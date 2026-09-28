@@ -7,9 +7,9 @@
 //  Le secret : les nuits où elle lave, un drap blanc attend au lavoir ; si l'on
 //  prend l'autre bout et qu'on tord dans son sens à elle (les vieux le savent :
 //  on le dit à qui a déjà vu son visage), elle est apaisée pour toujours.
-//  Dans l'autre sens, elle vous tord les bras. Essais : esprit.surgir(true).
+//  Dans l'autre sens, elle vous tord les bras. Essais : lavandiere.surgir(true).
 // ============================================================================
-const esprit = {
+const lavandiere = {
   el: null, cv: null, frames: null, t: 0, actif: false, battoirT: 0,
   S() { return evenements.S().esprit; },
   // le sens de la lavandière (selon la graine) : les vieux le disent
@@ -153,20 +153,20 @@ const esprit = {
 };
 // le drap : une interaction au lavoir, les nuits où elle lave
 HOOKS.target.push((eye, f, cand) => {
-  if (!farm.s || esprit.apaisee() || strange.inEnvers()) return;
+  if (!farm.s || lavandiere.apaisee() || strange.inEnvers()) return;
   const h = npcs.hour();
-  if (!(h >= 22 || h < 4) || !esprit.lave() || esprit.S().dernier === farm.s.day) return;
-  const L = esprit.lavoir();
+  if (!(h >= 22 || h < 4) || !lavandiere.lave() || lavandiere.S().dernier === farm.s.day) return;
+  const L = lavandiere.lavoir();
   if (!L) return;
   const dx = L.x - eye[0], dz = L.z - eye[2], d = Math.hypot(dx, dz);
   if (d > 3.2 || (dx * f[0] + dz * f[2]) / (d || 1) < 0.5) return;
-  cand({ kind: 'hook', use: () => esprit.drap() }, Math.max(0.5, d - 0.5));
+  cand({ kind: 'hook', use: () => lavandiere.drap() }, Math.max(0.5, d - 0.5));
 });
 HOOKS.draw.push((buf, sbuf, cam, t) => {
-  if (!farm.s || esprit.apaisee()) return;
+  if (!farm.s || lavandiere.apaisee()) return;
   const h = npcs.hour();
-  if (!(h >= 22 || h < 4) || !esprit.lave()) return;
-  const L = esprit.lavoir();
+  if (!(h >= 22 || h < 4) || !lavandiere.lave()) return;
+  const L = lavandiere.lavoir();
   if (!L || Math.hypot(L.x - cam[0], L.z - cam[2]) > 60) return;
   const y = Math.max(game.world.heightAt(L.x, L.z), game.world.waterLevel) + 0.55;
   PE.buf = buf; PE.fl = FX_EMIT; PE.frame(L.x, y, L.z, 0.4, 1);
@@ -176,15 +176,15 @@ HOOKS.draw.push((buf, sbuf, cam, t) => {
 });
 // les vieux savent : on le dit à qui a déjà vu son visage
 HOOKS.load.push(() => {
-  if (esprit.el) esprit.el.style.display = 'none';
-  esprit.actif = false; esprit.ditBattoir = false;
+  if (lavandiere.el) lavandiere.el.style.display = 'none';
+  lavandiere.actif = false; lavandiere.ditBattoir = false;
   if (game._espritHooks) return;
   game._espritHooks = true;
   const _choose = talk.choose.bind(talk);
   talk.choose = function (act) {
-    const n = this.n, S = farm.s && esprit.S();
+    const n = this.n, S = farm.s && lavandiere.S();
     if (act === 'chat' && n && S && S.n > 0 && !S.apaise && Math.random() < 0.4 && (n.d.gender === 'f' || ['guerisseuse', 'cure', 'aubergiste'].includes(n.d.id)) && n.d.id !== 'fillette') {
-      const sens = esprit.sens() === 'gauche' ? 'à main gauche' : 'à main droite';
+      const sens = lavandiere.sens() === 'gauche' ? 'à main gauche' : 'à main droite';
       return this.view(pick([
         `Une femme trempée, la nuit ? (Elle pâlit.) C’est Marthe Aubry. Elle s’est noyée au lavoir, un soir de Lavedi, en lavant le linceul de son petit. Elle lave encore. Si elle vous tend le drap, prenez l’autre bout, et tordez comme elle : ${sens}. Jamais dans l’autre sens.`,
         `Les lavandières de nuit… Ma grand-mère disait qu’il ne faut pas leur refuser son aide. On prend le drap, et on tord ${sens}, comme elles. Dans l’autre sens, elles vous tordent les bras.`,
@@ -198,9 +198,9 @@ HOOKS.load.push(() => {
   ui.renderSatchel = function () {
     _rs();
     if (this.satTab !== 'carnet' || !farm.s) return;
-    const S = esprit.S(), body = $('#satchel .body');
+    const S = lavandiere.S(), body = $('#satchel .body');
     if (!body || !S.n) return;
     body.insertAdjacentHTML('afterbegin', S.apaise ? '<h4>La lavandière</h4><p class="hint">Le drap est propre. Le battoir ne sonne plus, la nuit, au lavoir.</p>' : '<h4>Un visage, la nuit</h4><div class="q actif"><div>Certaines nuits, un visage de femme trempé vous hurle au visage. Il sent l’eau froide et le savon. Les gens d’ici savent peut-être qui c’est.</div></div>');
   };
 });
-HOOKS.update.push((dt, eye) => { if (farm.s) esprit.update(dt, eye); });
+HOOKS.update.push((dt, eye) => { if (farm.s) lavandiere.update(dt, eye); });

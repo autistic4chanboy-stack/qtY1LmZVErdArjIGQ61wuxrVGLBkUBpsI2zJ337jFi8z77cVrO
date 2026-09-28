@@ -261,7 +261,7 @@ const evenements = {
     if (id === 'nuit_noire' || id === 'neige' || id === 'soleil') { this.force[id] = true; return true; }
     if (id === 'tornade') return typeof tornade !== 'undefined' ? tornade.lancer(opts) : false;
     if (id === 'tueur') return typeof tueur !== 'undefined' ? tueur.lancer(opts) : false;
-    if (id === 'esprit') return typeof esprit !== 'undefined' ? esprit.surgir(true) : false;
+    if (id === 'esprit') return typeof lavandiere !== 'undefined' ? lavandiere.surgir(true) : false;
     if (PRODIGES[id]) return this.lancer(id, opts);
     return false;
   },
