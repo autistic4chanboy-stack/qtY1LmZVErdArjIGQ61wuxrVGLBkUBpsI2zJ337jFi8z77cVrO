@@ -27243,6 +27243,10 @@ HOOKS.inter.peche_glace = (it) => {
 // ============================================================================
 DYN_PROPS.add('cascade'); DYN_PROPS.add('feu_geant'); DYN_PROPS.add('pierre_trois'); DYN_PROPS.add('piege_loup');
 
+// ---------------------------------------------------------------- traduction : le module 14-i18n.js remplace T (T = function…)
+// À appeler pour tout texte dessiné sur un canevas (les textes du DOM sont traduits automatiquement).
+function T(s) { return s; }
+
 // ---------------------------------------------------------------- une journée : dix minutes
 const JOUR_SECONDES = 600;
 HOOKS.load.push(() => { if (game.world) game.world.dayLength = JOUR_SECONDES; });
