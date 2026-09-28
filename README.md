@@ -174,6 +174,17 @@ Les commandes sont dans le menu **Commandes** (Échap).
   colporteurs). Une prime est mise sur votre tête, des affiches « RECHERCHÉ » sont clouées, on refuse de vous parler, le
   garde somme, arrête ou frappe, des chasseurs de primes rôdent. La prime se paie au garde, au maire, ou s'oublie.
 - **Construire** : partout, sauf dans les villes, les villages et les lieux protégés.
+- **Vol à la tire** : accroupi, dans le dos d'un habitant, E pour « faire les poches ». La réussite dépend de la position,
+  de son attention, de la nuit, de la foule… Raté : il crie, les témoins parlent, le garde accourt. Les objets volés se
+  reconnaissent (les colporteurs, eux, rachètent sans rien demander).
+- **Prison** : arrêté, on se retrouve au **cachot** (objets volés et armes confisqués), pour des jours selon les crimes. On en
+  sort en payant une **rançon**, en faisant ses **travaux forcés** à la carrière (chaque journée de travail compte double), en
+  attendant sur la paille — ou en s'évadant (une lime, un barreau, le trousseau du geôlier endormi…), ce qui aggrave la prime.
+  Pendant ce temps, la ferme vit sans vous.
+- **Sentiments** : huit habitants peuvent s'éprendre du personnage (la boulangère, le forgeron, la postière, le garde,
+  l'éleveuse, le pêcheur, la colporteuse, le chasseur) : attirance, aveu, cour, rendez-vous (le lac au coucher du soleil, un
+  pique-nique, la danse de la veillée), couple, fiançailles, noces à l'église, puis il ou elle vient vivre à la ferme et aide.
+  Jalousie si l'on en courtise deux ; la mort de l'être aimé pèse lourd sur l'esprit.
 - **Les douves** de la ville : on peut y descendre, y nager, et en ressortir par les échelles.
 
 **Chasse et attelage**
@@ -273,6 +284,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzz6*.js` | mentalité, ce qu'on mange, le chien, l'alcool |
 | `11-zzz7*.js` | autres mondes : pays des bonbons, Ténèbres, cauchemar, Enfers |
 | `11-zzz8*.js` | objets légendaires et mythiques, l'Homme long, la Fondation |
+| `11-zzz9*.js` | vol à la tire, prison (cachot, rançon, carrière, évasion), sentiments |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
 | `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) |
 | `shell.html` | HTML + CSS |
