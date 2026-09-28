@@ -21,6 +21,20 @@
 //  et les propriétés inconnues d'un objet, d'une bête… sont listées sur sa fiche.
 //  Les secrets (solutions, lieux cachés, alchimie, fins) restent masqués tant
 //  qu'on n'a pas cliqué sur « révéler les secrets ».
+//
+//  Les systèmes nouveaux (modules 11-zzz*, 12-zzz* : corps et esprit, ce qu'on
+//  mange, le chien, l'alcool, la fabrication, la chasse, la société, les lieux,
+//  les routines, les événements, les Trois, les malédictions, les autres
+//  mondes, les merveilles…) ont leurs sections (fiches « sys: », « ev: »,
+//  « eff: », « monde: »…, section 20). Chaque fiche se compose de l'en-tête du
+//  module (le résumé qu'en fait le code, débarrassé du code), de ses tables et
+//  du commentaire qui les précède, et de ce que le jeu calcule lui-même dans la
+//  machine virtuelle : fréquences du calendrier, blessures des chutes mesurées,
+//  seuils lus dans le code, routines des douze jours, catalogue de la
+//  bibliothèque. Un module nouveau sans fiche dédiée (la prison, le vol à la
+//  tire, les sentiments…) en reçoit une d'office, avec ses tables ; les objets
+//  et les bêtes des nouveautés ont leur fiche ordinaire, reliée à ces sections.
+//  Les figurines utilisent les personnages « façon 1996 » (boîtes effilées).
 // ============================================================================
 'use strict';
 const fs = require('fs');
@@ -273,7 +287,245 @@ function trim(cv, pad = 1) {
 //  PHASE 1 : EXTRACTION (le jeu tourne dans la machine virtuelle)
 // ============================================================================
 // tables que les sections dédiées lisent (les autres, si elles contiennent du texte, vont dans « Autres tables »)
-const TECH_TABLES = /^(GLSL_|SH$|TEX_|MAX_|CHUNK$|RING$|PC\d*$|NOC$|TL$|WHITE$|M34_ID$|FX_EMIT$|BAYER4$|TAU$|DEG$|TS$|PX_PER_M$|EMISSIVE_A$|SPR_L$|TINT_A$|VM(_W|_H)?$|SKIN|ATLAS$|ICON3D$|PE$|HOOKS$|BUFF$|ROUTINES$|LANG_GLYPHS$|SKY_KEYS$|INT_UNIFORMS$|DEFAULT_SETTINGS$|BIOME_FOG$|MAZE$|UNDER_SLOTS$|TOWN_PROP_R$|PROP_COLL$|PROP_LIGHTS$|APAL$|PAL$|FLORA_PAL$|BARK_PAL$|SPECIES$|VILLAGER_LOOKS$|SLEEVE$|CROP_TPL$|SIGIL_GLYPHS$|SIGIL_COL$|WEATHER_PRESETS$|WEATHER_ICONS$|HAND_ICON$|OBJ_INDEX$|NPC_BY_ID$|INSCR_BY_ID$|MATERIALS$|TERRAIN_MATS$|BLOCK_MATS$|M_[A-Z0-9_]+$|F_[A-Z0-9_]+$|GRID_CELL$|WORLD_FORMAT$|FARM_KEY$|HISTORY_KEY$|ANIMAL_RIGS$|PROP_MODELS$|CROP_MODELS$|PROP_USE(_MORE)?$|ENVERS_SPRITES$|STRANGE_MORE$|BUILDS$|TOOL_DMG$|HORSE_FOOD$|OFFER_VALUE$|MASS$|VALLEY_N$|GEN_VERSION$|VALLEY_GEN$|DESIGN_OFF$|VER_ALL$|VER_ENVERS$|TERRA_STEP$|JOUR_SECONDES$|P_RADIUS$|BAR_DEFAULT$|ALCH_OK$|DYN_PROPS$|FLAMMABLE$|STRIKE_TREES$|TREE_IDS$|SHAPES$|BLOCK_PRESETS$|GRASS_VARIANTS$|SEED_ROTATE$|CROP_FOOD$|OLD_VARS$|TIER_COL$|NAME_[AB]$|WHEN_H$|FIRST_NAMES$|HAND_GROUPS$|BAR_TOKENS$|INT_|SHOP_DOORS$|NPC_NEW$)/;
+const TECH_TABLES = /^(GLSL_|SH$|TEX_|MAX_|CHUNK$|RING$|PC\d*$|NOC$|TL$|WHITE$|M34_ID$|FX_EMIT$|BAYER4$|TAU$|DEG$|TS$|PX_PER_M$|EMISSIVE_A$|SPR_L$|TINT_A$|VM(_W|_H)?$|SKIN|ATLAS$|ICON3D$|PE$|HOOKS$|BUFF$|ROUTINES$|LANG_GLYPHS$|SKY_KEYS$|INT_UNIFORMS$|DEFAULT_SETTINGS$|BIOME_FOG$|MAZE$|UNDER_SLOTS$|TOWN_PROP_R$|PROP_COLL$|PROP_LIGHTS$|APAL$|PAL$|FLORA_PAL$|BARK_PAL$|SPECIES$|VILLAGER_LOOKS$|SLEEVE$|CROP_TPL$|SIGIL_GLYPHS$|SIGIL_COL$|WEATHER_PRESETS$|WEATHER_ICONS$|HAND_ICON$|OBJ_INDEX$|NPC_BY_ID$|INSCR_BY_ID$|MATERIALS$|TERRAIN_MATS$|BLOCK_MATS$|M_[A-Z0-9_]+$|F_[A-Z0-9_]+$|GRID_CELL$|WORLD_FORMAT$|FARM_KEY$|HISTORY_KEY$|ANIMAL_RIGS$|PROP_MODELS$|CROP_MODELS$|PROP_USE(_MORE)?$|ENVERS_SPRITES$|STRANGE_MORE$|BUILDS$|TOOL_DMG$|HORSE_FOOD$|OFFER_VALUE$|MASS$|VALLEY_N$|GEN_VERSION$|VALLEY_GEN$|DESIGN_OFF$|VER_ALL$|VER_ENVERS$|TERRA_STEP$|JOUR_SECONDES$|P_RADIUS$|BAR_DEFAULT$|ALCH_OK$|DYN_PROPS$|FLAMMABLE$|STRIKE_TREES$|TREE_IDS$|SHAPES$|BLOCK_PRESETS$|GRASS_VARIANTS$|SEED_ROTATE$|CROP_FOOD$|OLD_VARS$|TIER_COL$|NAME_[AB]$|WHEN_H$|FIRST_NAMES$|HAND_GROUPS$|BAR_TOKENS$|INT_|SHOP_DOORS$|NPC_NEW$|TR_FORMES$|TF$|MONDES_(SPR|PAL|RIGS|IDX|FOND)$|PCF$|BB$|TNM$|CM$|ENF$|MSON$|IA_MONDE$|EV_FX$|LEG_VM_ALIAS$|I18N_)/;
+
+// ---------------------------------------------------------------- les modules des nouveautés (systèmes : corps, esprit, chasse, société…)
+// Ce qu'on garde d'un module : son en-tête (le résumé du système), ses tables et le commentaire qui les
+// précède, ses constantes simples, ses objets (« const chasse = { … } »), ses sections, les commentaires des
+// méthodes, les objets qu'il crée (defItem) et les répliques de cinématiques (« texte: … »).
+const SYS_FILE = /^(11-zzz|12-zzz|07-zzzzz)/;
+function parseModule(text) {
+  const L = text.split('\n');
+  const out = { head: [], tables: {}, scal: {}, objs: [], items: [], secs: [], blocks: [], mdocs: {}, mtexts: {} };
+  let i = 0;
+  // en-tête : le premier bloc de commentaires (entre les lignes de « ==== »)
+  while (i < L.length && /^\s*\/\//.test(L[i])) {
+    const s = L[i].replace(/^\s*\/\/ ?/, '').replace(/\s+$/, '');
+    if (/^={8,}$/.test(s.trim())) { if (out.head.length) break; } else out.head.push(s);
+    i++;
+  }
+  const isSep = (s) => /^[-=]{6,}\s*$/.test(s.trim());
+  // le commentaire juste au-dessus d'une ligne (les lignes de tirets portent parfois un titre)
+  const docAbove = (j) => {
+    const a = [];
+    for (let k = j - 1; k >= 0; k--) {
+      const m = L[k].match(/^\s*\/\/ ?(.*)$/);
+      if (!m) break;
+      const t = m[1].trim();
+      if (isSep(t)) break;
+      if (/^[-=]{6,}/.test(t)) { const tt = t.replace(/^[-=\s]+/, '').trim(); if (tt && !a.length) a.unshift(tt); break; }
+      a.unshift(t);
+    }
+    return a.join(' ').replace(/\s+/g, ' ').trim();
+  };
+  const inline = (s) => { const m = s.match(/^[^'"`]*?[;,{\]]\s*\/\/\s*(.+)$/); return m ? m[1].trim() : ''; };
+  let method = null;
+  for (let j = 0; j < L.length; j++) {
+    const s = L[j];
+    let m = s.match(/^(?:const|let|var)\s+([A-Z][A-Z0-9_]*)\s*=\s*(.*)$/);
+    if (m) {
+      const doc = [docAbove(j), inline(s)].filter(Boolean).join(' — ');
+      if (!out.tables[m[1]]) out.tables[m[1]] = { line: j + 1, doc };
+      const v = m[2].match(/^(-?\d[\d_.]*|'[^']*'|true|false)\s*;/);
+      if (v) out.scal[m[1]] = { v: v[1].startsWith("'") ? v[1].slice(1, -1) : v[1] === 'true' ? true : v[1] === 'false' ? false : +v[1].replace(/_/g, ''), doc };
+    }
+    m = s.match(/^const ([a-z][A-Za-z0-9_$]*)\s*=\s*\{/);
+    if (m && !out.objs.includes(m[1])) out.objs.push(m[1]);
+    for (const d of s.matchAll(/defItem\(\s*'([a-z0-9_]+)'/g)) if (!out.items.includes(d[1])) out.items.push(d[1]);
+    m = s.match(/^(\s*)\/\/ -{6,}\s*(\S.*)$/);
+    if (m) out.secs.push([m[1].length, m[2].trim(), j + 1]);
+    if (/^\s*\/\/ ={8,}/.test(s) && j > i) {
+      const b = [];
+      for (let k = j + 1; k < L.length && /^\s*\/\//.test(L[k]) && !/^\s*\/\/ ={8,}/.test(L[k]); k++) b.push(L[k].replace(/^\s*\/\/ ?/, '').trim());
+      if (b.length) out.blocks.push({ line: j + 1, text: b.join(' ').replace(/\s+/g, ' ') });
+    }
+    m = s.match(/^( {2,4})([a-zA-Z_$][\w$]*)\s*(?:\(([^)]*)\)\s*\{|:\s*(?:function\b|\([^)]*\)\s*=>|[a-z]\w*\s*=>))/);
+    if (m && !/^(if|for|while|switch|return|catch|function)$/.test(m[2])) {
+      method = m[2];
+      const doc = docAbove(j);
+      if (doc && !out.mdocs[method]) out.mdocs[method] = doc;
+    }
+    if (method) for (const t of s.matchAll(/\btexte:\s*(['`])((?:\\.|(?!\1).)*)\1/g)) (out.mtexts[method] || (out.mtexts[method] = [])).push(t[2].replace(/\$\{\s*([a-zA-Z_]+)[^}]*\}/g, '{$1}'));
+  }
+  return out;
+}
+// découpe « a, b(c, d), 'e, f' » en arguments de premier niveau
+function splitArgs(s) {
+  const out = []; let depth = 0, q = null, cur = '';
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (q) { cur += c; if (c === '\\') { cur += s[++i] || ''; continue; } if (c === q) q = null; continue; }
+    if (c === "'" || c === '"' || c === '`') { q = c; cur += c; continue; }
+    if (c === '(' || c === '[' || c === '{') depth++;
+    if (c === ')' || c === ']' || c === '}') { if (depth === 0) { out.push(cur.trim()); return { args: out, end: i }; } depth--; }
+    if (c === ',' && depth === 0) { out.push(cur.trim()); cur = ''; continue; }
+    cur += c;
+  }
+  out.push(cur.trim());
+  return { args: out, end: s.length };
+}
+// les systèmes : tout ce que les sections « nouveautés » lisent (le jeu tourne ; une partie neuve est prête)
+function extractSystems(G, DB) {
+  const S = DB.derived.sys = { files: {}, objs: {}, figs: {} };
+  const safe = (label, fn, d) => { try { return fn(); } catch (e) { DB.log.push('systèmes, ' + label + ' : ' + (e && e.message)); return d; } };
+  const J = (expr) => jclone(G.run(expr));
+  for (const [file, text] of G.texts) {
+    if (!SYS_FILE.test(file)) continue;
+    const M = S.files[file] = parseModule(text);
+    // les tables des objets du module (propriétés en majuscules : chasse.XXX, fabrication.LECONS…)
+    for (const o of M.objs) {
+      const props = safe('objet ' + o, () => J(`(() => { const o = ${o}, out = {}; for (const k of Object.keys(o)) if (/^[A-Z][A-Z0-9_]*$/.test(k)) out[k] = o[k]; return out; })()`), {});
+      if (props && Object.keys(props).length) S.objs[o] = { file, props };
+    }
+  }
+  // (modules attendus plus tard, s'ils manquent : rien)
+  S.present = Object.keys(S.files);
+  // les vrais noms des plantes (le jeu ne montre que leur allure tant qu'on ne les a pas fait nommer)
+  S.vrai = safe('vrais noms', () => J(`(() => { if (typeof alchimie === 'undefined' || !alchimie.VRAI) return null; const o = {}; for (const id in alchimie.VRAI) o[id] = { name: alchimie.VRAI[id].name, desc: alchimie.VRAI[id].desc, allure: PLANT_LOOK[id] ? PLANT_LOOK[id][0] : '', allureDesc: PLANT_LOOK[id] ? PLANT_LOOK[id][1] : '' }; return o; })()`), null);
+  if (S.vrai && DB.tables.ITEMS) for (const [id, v] of Object.entries(S.vrai)) { const it = DB.tables.ITEMS.v[id]; if (it && v.name) { it.name = v.name; if (v.desc) it.desc = v.desc; } }
+  // le catalogue de la grande bibliothèque et le prix des emprunts
+  S.biblioCat = safe('catalogue', () => J(`(() => typeof biblio === 'undefined' || !biblio.catalogue ? null : biblio.catalogue().map((e) => ({ item: e.item, titre: e.titre, auteur: e.auteur, genre: e.genre, base: e.base, prix: [1, 3, 7].map((j) => [j, biblio.prix(e, j)]) })))()`), null);
+  // l'étrange selon l'esprit : la courbe de bizarrerie()
+  S.bizarre = safe('bizarrerie', () => J(`(() => { if (typeof esprit === 'undefined') return null; const f = esprit.niveau, out = []; try { for (const v of [100, 85, 70, 55, 40, 25, 10, 0]) { esprit.niveau = () => v; out.push([v, Math.round(bizarrerie() * 100) / 100]); } } finally { esprit.niveau = f; } return out; })()`), null);
+  // le calendrier des événements (déterministe) : fréquences sur une longue suite de jours, et l'almanach
+  S.calendrier = safe('calendrier', () => J(`(() => {
+    if (typeof evenements === 'undefined') return null;
+    const N = 1200, out = { jours: N, ev: {}, prodiges: {}, almanach: {} };
+    const f = (k, fn) => { let n = 0, first = 0; for (let d = 1; d <= N; d++) { let r = false; try { r = fn(d); } catch (e) { r = false; } if (r !== false && r !== null && r !== undefined) { n++; if (!first) first = d; } } out.ev[k] = { n, first }; };
+    f('nuit_noire', (d) => evenements.nuitNoire(d) || false);
+    f('neige', (d) => evenements.neige(d) || false);
+    f('soleil', (d) => evenements.soleil(d) || false);
+    f('tornade', (d) => evenements.tornade(d));
+    f('tueur', (d) => evenements.tueur(d) || false);
+    for (let d = 1; d <= N; d++) { let p = null; try { p = evenements.prodige(d); } catch (e) { p = null; } if (p && p.id) out.prodiges[p.id] = (out.prodiges[p.id] || 0) + 1; }
+    try { const s = farm.s, d0 = s.day; s.day = 1; for (const a of evenements.almanach(N)) if (!out.almanach[a.quoi]) out.almanach[a.quoi] = a.texte; s.day = d0; } catch (e) {}
+    try { farm.s.ev = undefined; } catch (e) {}
+    return out;
+  })()`), null);
+  // la lavandière : son sens de torsion change-t-il d'une partie à l'autre ?
+  S.lavSens = safe('lavandière', () => G.run(`(() => { if (typeof lavandiere === 'undefined' || !lavandiere.sens) return null; const s0 = farm.s.seed, r = new Set(); for (const sd of [1, 2, 3, 4, 77, 1234]) { farm.s.seed = sd; r.add(lavandiere.sens()); } farm.s.seed = s0; return r.size > 1 ? 'varie' : [...r][0]; })()`), null);
+  // les chutes : blessures et risques mesurés (en appelant corps.chute, le hasard contrôlé)
+  S.chutes = safe('chutes', () => J(`(() => {
+    if (typeof corps === 'undefined' || !corps.chute) return null;
+    const g0 = game.player, h0 = play.hurt, c0 = corps.casserJambe, s0 = corps.saigner, r0 = Math.random, b0 = BUFF.on, rows = [];
+    try {
+      game.player = { riding: false, wading: false, pos: [0, 0, 0], vel: [0, 0, 0] };
+      BUFF.on = () => false;
+      const essai = (v, R) => { let dmg = 0, casse = false, saigne = 0, cause = ''; Math.random = () => R; play.hurt = (d, src, c) => { dmg += d; cause = c || cause; }; corps.casserJambe = () => { casse = true; }; corps.saigner = (k) => { saigne = k; }; corps.chute(v); return { dmg, casse, saigne, cause }; };
+      const proba = (v, key) => { if (!essai(v, 0)[key]) return 0; let a = 0, b = 1; for (let i = 0; i < 14; i++) { const m = (a + b) / 2; if (essai(v, m)[key]) a = m; else b = m; } return Math.round(a * 100) / 100; };
+      for (const v of [9, 10.5, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 25, 28]) { const e = essai(v, 0.9999); rows.push({ v, dmg: Math.round(e.dmg * 10) / 10, cause: e.cause || essai(v, 0).cause, casse: proba(v, 'casse'), saigne: proba(v, 'saigne'), debit: essai(v, 0).saigne }); }
+    } finally { game.player = g0; play.hurt = h0; corps.casserJambe = c0; corps.saigner = s0; Math.random = r0; BUFF.on = b0; }
+    return rows;
+  })()`), null);
+  // la gravité du personnage (pour traduire une vitesse de chute en hauteur)
+  S.gravite = safe('gravité', () => { for (const [, t] of G.texts) { const m = t.match(/vel\[1\] -= (\d+(?:\.\d+)?) \* this\.mods\.grav/); if (m) return +m[1]; } return null; }, null);
+  // ce qui fait monter ou baisser l'esprit : tous les appels à esprit.changer(…) du jeu
+  S.changes = [];
+  for (const [file, text] of G.texts) {
+    for (const m of text.matchAll(/\b(esprit|this)\.changer\(/g)) {
+      if (m[1] === 'this' && !/esprit/.test(file)) continue;
+      const a = splitArgs(text.slice(m.index + m[0].length)).args;
+      if (a.length < 2 || a[0] === 'delta') continue;
+      const line = text.slice(0, m.index).split('\n').length;
+      S.changes.push({ file, line, delta: a[0], raison: a[1], plafond: a[2] || null });
+    }
+  }
+  // les commandes du jeu (menu « Commandes » de src/shell.html)
+  S.commandes = safe('commandes', () => {
+    const html = fs.readFileSync(path.join(ROOT, 'src', 'shell.html'), 'utf8');
+    const m = html.match(/<div id="dlg-help"[\s\S]*?<div class="keys">([\s\S]*?)<\/div>\s*<div class="actions">/);
+    if (!m) return null;
+    const groups = [];
+    for (const part of m[1].split(/<h4>/).slice(1)) {
+      const t = part.slice(0, part.indexOf('</h4>')).trim();
+      const rows = [...part.matchAll(/<div><span>([\s\S]*?)<\/span><span>([\s\S]*?)<\/span><\/div>/g)].map((r) => [r[1].trim(), r[2].trim()]);
+      groups.push({ t, rows });
+    }
+    return groups;
+  }, null);
+  // les bêtes des autres mondes : leur module, leur nom (celui qu'on leur donne en jeu, sinon leur clé)
+  S.betesMonde = safe('bêtes des autres mondes', () => {
+    const BM = G.get('BETES_MONDE') || {}, out = {};
+    for (const k of Object.keys(BM)) {
+      let file = '', nom = '';
+      for (const [f, t] of G.texts) {
+        if (!SYS_FILE.test(f)) continue;
+        const at = t.search(new RegExp('(^|[\\s{,])' + k + '\\s*[:=]\\s*\\{\\s*rig:|BETES_MONDE\\.' + k + '\\s*=\\s*\\{'));
+        if (at < 0) continue;
+        file = f;
+        const seg = t.slice(at, at + 2500).split(/\n\s{0,2}[a-z_]+:\s*\{\s*rig:|\n\}\);|\n\};/)[0];
+        const sp = seg.match(/ui\.subtitle\('([^'(][^']*)'/);
+        if (sp) nom = sp[1];
+        // une définition à part (« BETES_MONDE.x = { ») : le commentaire de section juste au-dessus la nomme
+        const pre = t.slice(0, at).split('\n'), last = (pre[pre.length - 2] || '').match(/^\s*\/\/ -{4,}\s*(\S.*)$/);
+        if (!nom && last && /BETES_MONDE\./.test(t.slice(at, at + 40))) nom = last[1].trim();
+        break;
+      }
+      out[k] = { file, nom, d: jclone(BM[k]) };
+    }
+    return out;
+  }, {});
+  // les bêtes du monde des bonbons, etc. : les plantes qu'on y cueille (TYPES = [['objet', modèle, hauteur]…])
+  S.plantesMonde = {};
+  for (const [file, text] of G.texts) {
+    if (!/^11-zzz7/.test(file)) continue;
+    const ids = [...text.matchAll(/\[\s*'([a-z0-9_]+)'\s*,\s*[A-Z]{2,4}\.[a-zA-Z]+\s*,\s*[\d.]+\s*\]/g)].map((m) => m[1]);
+    if (ids.length) S.plantesMonde[file] = uniq(ids);
+  }
+  // le rythme des nains, et le silence entre les groupes
+  for (const [file, text] of G.texts) {
+    const m = text.match(/groupes\.join\('-'\) === '([\d-]+)'/);
+    if (m) { S.rythme = m[1]; const s = text.match(/F\[i\] - F\[i - 1\] > ([\d.]+)/); S.rythmeSilence = s ? +s[1] : null; S.rythmeFile = file; }
+  }
+  // quelques seuils lus dans le code (s'ils ont changé de forme, on s'en passe)
+  const grab = (file, re) => { const t = (G.texts.find(([f]) => f === file) || [])[1] || ''; const m = t.match(re); return m ? m.slice(1).map(Number) : null; };
+  S.seuils = {
+    ivresse: grab('11-zzz63-alcool.js', /niv = g >= ([\d.]+) \? 3 : g >= ([\d.]+) \? 2 : g >= ([\d.]+) \? 1/),
+    faim: grab('11-zzz60-esprit.js', /f < ([\d.]+) \? 3 : f < ([\d.]+) \? 2 : f < ([\d.]+) \? 1/),
+    pensees: grab('11-zzz60-esprit.js', /v < (\d+) \? ESPRIT_PENSEES\.tres_bas : v < (\d+) \? ESPRIT_PENSEES\.bas : v >= (\d+)/),
+    voile: grab('11-zzz60-esprit.js', /!on \|\| v >= (\d+) \? 1/),
+    jambe: grab('11-zzz00-socle.js', /C\.jambe = Math\.max\(C\.jambe, s\.hours \+ (\d+)\)/),
+    attelle: grab('11-zzz00-socle.js', /Math\.min\(C\.jambe, s\.hours \+ (\d+)\)/),
+    boite: grab('11-zzz00-socle.js', /attelle \? ([\d.]+) : ([\d.]+)\)/),
+    egratignure: grab('11-zzz00-socle.js', /if \(C\.saigne < ([\d.]+)\) C\.saigne = Math\.max\(0, C\.saigne - dt \* ([\d.]+)\)/),
+    lecons: grab('11-zzz03-fabrication.js', /const prix = lvl >= (\d+) \? 0 : base/),
+    chienMort: grab('11-zzz62-chien.js', /if \(h >= (\d+)\) \{ this\.mourir\('faim'\)/),
+    chienStades: grab('11-zzz62-chien.js', /h >= (\d+) \? 3 : h >= (\d+) \? 2 : h >= (\d+) \? 1/),
+  };
+  // ce que l'esprit laisse voir, et à partir de quand (« // murmures » puis « if (v < 40) »)
+  {
+    const t = (G.texts.find(([f]) => f === '11-zzz60-esprit.js') || [])[1] || '';
+    S.signes = [...t.matchAll(/\/\/ ([^\n]+)\n\s*if \(v < (\d+)\) \{/g)].map((m) => [m[1].trim(), +m[2]]);
+  }
+  // où joue-t-on une cinématique ?
+  S.cineUses = {};
+  for (const [file, text] of G.texts) { const n = (text.match(/\bcine\.jouer\(/g) || []).length + (/^11-zzz44/.test(file) ? 0 : (text.match(/\bcinematiques\.[a-zA-Z]+\(/g) || []).length); if (n && SYS_FILE.test(file)) S.cineUses[file] = n; }
+  // la valeur des constantes simples des modules (lues telles quelles)
+  S.scal = {};
+  for (const M of Object.values(S.files)) for (const [k, o] of Object.entries(M.scal)) S.scal[k] = o;
+  return S;
+}
+// les routines de la semaine (après la génération : les lieux doivent exister)
+function extractRoutines(G) {
+  return G.run(`(() => {
+    const out = {}, S = farm.s, d0 = S.day;
+    try { if (typeof ROUTINES !== 'undefined' && ROUTINES.clear) ROUTINES.clear(); } catch (e) {}
+    try { if (typeof routines !== 'undefined' && routines.cache && routines.cache.clear) routines.cache.clear(); } catch (e) {}
+    const nJ = typeof SEMAINE !== 'undefined' ? SEMAINE.length : 12;
+    let ok = 0;
+    for (const d of NPC_DATA) {
+      out[d.id] = [];
+      for (let k = 0; k < nJ; k++) {
+        S.day = k + 1 + 12 * 7;
+        let r = null;
+        try { r = typeof routineDuJour === 'function' ? routineDuJour({ id: d.id, d, st: { alive: true, name: d.names && d.names[0] } }) : d.schedule; ok++; } catch (e) { r = d.schedule; }
+        out[d.id].push(JSON.parse(JSON.stringify(r || [])));
+      }
+    }
+    S.day = d0;
+    return ok ? out : null;
+  })()`);
+}
 
 async function extract() {
   say('assemblage du jeu (src/NN-*.js) dans une machine virtuelle…');
@@ -329,6 +581,17 @@ async function extract() {
   // ---------------------------------------------------------------- figurines : habitants, bêtes, apparitions, plantes
   {
     const shelf = new Shelf(1024), fig = {};
+    // les personnages « façon 1996 » ont des boîtes effilées (TR_FORMES), que le vertex shader déforme : le rendu
+    // des icônes les ignore ; pour les figurines, on applique la même déformation aux coins des boîtes
+    const renderOrig = safe('boîtes effilées', () => G.run(`(() => {
+      if (typeof TR_FORMES === 'undefined' || !TR_FORMES.list || TR_FORMES.list.length < 2 || typeof ICON3D === 'undefined') return false;
+      const src = ICON3D.render.toString(), A = 'const corner = (u, v, w) => [';
+      if (!src.includes(A)) return false;
+      const patched = src.replace(A, 'const __shp = (() => { const c = bx.code | 0, i = c >= 0 ? (c >> 18) & 63 : ((-c - 1) >> 9) & 63; return i > 0 && i < TR_FORMES.list.length ? TR_FORMES.list[i] : null; })();\\n      const corner = (u0, v0, w0) => { if (!__shp) return __corner(u0, v0, w0); const k = __shp, t = v0 + 0.5, fx = 1 + k[0] * t - Math.max(k[0], 0), fz = 1 + k[1] * t - Math.max(k[1], 0); return __corner(u0 * fx, v0 + k[3] * (1 - t) * w0, w0 * fz + k[2] * (1 - t)); };\\n      const __corner = (u, v, w) => [');
+      globalThis.__renderOrig = ICON3D.render;
+      ICON3D.render = (0, eval)('({' + patched + '})').render;
+      return true;
+    })()`), false);
     const renderRig = (rigExpr, S) => G.run(`(() => { const rig = ${rigExpr}; const boxes = ICON3D.capture((cap) => { const M = new Float32Array(12); m34Root(M, 0, 0, 0, 0, 1); rig.emit(cap, M, 0); }); return boxes.length ? ICON3D.render(boxes, ${S}) : null; })()`);
     const human = (lookExpr, S, bust) => renderRig(`(() => { const r = humanRig(${lookExpr}); try { poseHuman(r, { t: 0, move: 0 }); } catch (e) {} ${bust ? "for (const q of r.parts) if (/^(leg|shoe|skirt|coatTail|foot|feet|knee|thigh|shin|calf|boot|ankle|toe)/i.test(q.name)) q.hide = true;" : ''} return r; })()`, S);
     for (const d of G.get('NPC_DATA') || []) {
@@ -358,8 +621,24 @@ async function extract() {
       const s = G.run(`ATLAS.sprites[${JSON.stringify(t.spr[0])}]`);
       if (s && s.canvas && s.canvas.width) fig['pl:' + t.id] = { full: shelf.add(trim(s.canvas, 0)) };
     });
+    // les silhouettes des nouveautés : les Trois, les géants, les bêtes des autres mondes, l'Homme long, les chercheurs
+    {
+      const DL = G.get('DIV_LOOK');
+      if (DL && typeof DL === 'object') for (const k of Object.keys(DL)) { const cv = safe('figurine ' + k, () => human(`DIV_LOOK[${JSON.stringify(k)}]`, 128, false)); if (cv) fig['div:' + k] = { full: shelf.add(trim(cv)) }; }
+      const GL = G.get('GEANT_LOOKS');
+      if (Array.isArray(GL)) GL.forEach((_, i) => { const cv = safe('géant ' + i, () => human(`GEANT_LOOKS[${i}]`, 128, false)); if (cv) fig['geant:' + i] = { full: shelf.add(trim(cv)) }; });
+      const BM = G.get('BETES_MONDE');
+      if (BM) for (const k of Object.keys(BM)) {
+        const cv = safe('bête ' + k, () => renderRig(`(() => { const d = BETES_MONDE[${JSON.stringify(k)}]; const rig = d.rig(0, { fem: false }); const e = { move: 0, phase: 0, id: 1, dist: 99, x: 0, y: 0, z: 0, heading: 0, state: 'idle', d }; const st = { t: 0, move: 0, phase: 0 }; try { if (d.pose) d.pose(e, rig, 0, st); else if (rig.kind === 'bird') poseBird(rig, st); else if (rig.parts.some((q) => q.name === 'torso')) poseHuman(rig, st); else poseQuad(rig, st); } catch (err) {} return rig; })()`, 96));
+        if (cv) fig['bm:' + k] = { full: shelf.add(trim(cv)) };
+      }
+      if (G.has('slenderModele')) { const cv = safe('homme long', () => G.run(`(() => { const boxes = ICON3D.capture((cap) => { PE.buf = cap; PE.fl = 0; PE.frame(0, 0, 0, 0, 1); slenderModele(PE, 0, false); }); return boxes.length ? ICON3D.render(boxes, 128) : null; })()`)); if (cv) fig['slender'] = { full: shelf.add(trim(cv)) }; }
+      const FC = G.get('FOND_CHERCHEURS');
+      if (Array.isArray(FC) && G.has('rigChercheur')) FC.forEach((c, i) => { const cv = safe('chercheur ' + i, () => renderRig(`(() => { const r = rigChercheur(FOND_CHERCHEURS[${i}].col); try { poseChercheur(r, 0, 0, 0, false); } catch (e) {} return r; })()`, 96)); if (cv) fig['chercheur:' + i] = { full: shelf.add(trim(cv)) }; });
+    }
+    if (renderOrig) safe('rendu d’origine', () => G.run('ICON3D.render = globalThis.__renderOrig'));
     DB.images.figures = Object.assign(shelf.png(), { index: fig });
-    say(`${Object.keys(fig).length} figurines`);
+    say(`${Object.keys(fig).length} figurines${renderOrig ? ' (boîtes effilées façon 1996)' : ''}`);
   }
 
   // ---------------------------------------------------------------- l'écriture des langues perdues (code du jeu embarqué)
@@ -397,6 +676,8 @@ async function extract() {
     return out;
   })()`), {});
   DB.derived.fishRarete = safe('rareté des poissons', () => (G.has('fishRarete') ? G.run('Object.fromEntries(Object.keys(FISH).map((k) => [k, fishRarete(k)]))') : {}), {});
+  safe('systèmes', () => extractSystems(G, DB));
+  say(`systèmes lus : ${Object.keys((DB.derived.sys || {}).files || {}).length} modules des nouveautés`);
 
   say(`génération de la vallée (graine ${SEED}, ≈ 45 s ou davantage si la machine est chargée)…`);
   const w = await G.run(`generateValley(${SEED}, () => {}, typeof VALLEY_GEN !== 'undefined' ? VALLEY_GEN : 3)`);
@@ -405,6 +686,8 @@ async function extract() {
   say(`vallée générée : ${w.objects.length} objets, ${w.props.length} objets posés, ${w.blocks.length} blocs`);
   safe('carte', () => extractWorld(G, w, DB));
   say('carte extraite');
+  // les semaines de chacun, maintenant que les lieux existent (la première lecture n'a que les journées ordinaires)
+  { const R = safe('routines (vallée)', () => extractRoutines(G), null); if (R) DB.derived.routines = R; }
   return DB;
 }
 
@@ -554,12 +837,30 @@ function buildWiki(DB) {
   const BLD = Object.fromEntries((W.bld || []).map((B) => [B.key, B]));
   const OTI = Object.fromEntries(OT.map((t) => [t.id, t]));
   const INTER = W.inter || [];
+  const LALIAS = U('LIEU_ALIAS', {});
+  // les accents des mots du jeu (les clés du code n'en ont pas : « fievre » → « fièvre »)
+  const ACCENTS = (() => {
+    const cnt = new Map();
+    // (seulement dans la prose : les identifiants comme « nausee » n'ont pas d'espace)
+    const add = (s) => { for (const w of String(s).match(/[A-Za-zÀ-ÖØ-öø-ÿœŒ]+/g) || []) { const lw = w.toLowerCase(), n = lw.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/œ/g, 'oe'); const m = cnt.get(n) || new Map(); m.set(lw, (m.get(lw) || 0) + 1); cnt.set(n, m); } };
+    const walk = (x, d) => { if (x == null || d > 9) return; if (typeof x === 'string') { if (x.length > 3 && /\s/.test(x)) add(x); return; } if (typeof x === 'object') for (const k in x) walk(x[k], d + 1); };
+    for (const t of Object.values(DB.tables)) walk(t.v, 0);
+    for (const M of Object.values((DB.derived.sys || {}).files || {})) add(M.head.join(' '));
+    const out = new Map();
+    for (const [n, m] of cnt) out.set(n, [...m.entries()].sort((a, b) => b[1] - a[1])[0][0]);
+    return out;
+  })();
+  const accent = (w) => ACCENTS.get(String(w).toLowerCase()) || w;
+  // une clé du code, lisible : « bassin_soir » → « bassin soir », « fievre » → « fièvre »
+  const humanKey = (k) => String(k || '').split(/[_\s]+/).filter(Boolean).map(accent).join(' ');
 
   // ---------------------------------------------------------------- pages
   const pages = new Map();
   const P = (id, o) => { let p = pages.get(id); if (!p) { p = { id, t: id, s: '', c: [], i: '', x: 0, h: '', g: '' }; pages.set(id, p); } if (o) Object.assign(p, o); return p; };
   const isSec = (id) => { const p = pages.get(id); return !!(p && p.x); };
   const link = (id, text) => { const p = pages.get(id); const t = text ?? (p ? p.t : id); if (!p) return esc(t); return `<a href="#/p/${encodeURIComponent(id)}"${p.x ? ' class="lsec"' : ''}>${esc(t)}</a>`; };
+  // liens différés vers une fiche qui n'existe pas encore (résolus à la fin, section 20)
+  const lk = (id, text) => `\u0002${id}\u0003${text === undefined || text === null ? '' : encodeURIComponent(text)}\u0004`;
   const iconOf = (id) => (ICON[id] !== undefined ? `<i class="ic ic-${ICON[id]}"></i>` : '');
   const iname = (id) => (ITEMS[id] ? ITEMS[id].name : id === 'argent' ? 'pièces' : (QITEMS[id] && QITEMS[id].name) || id);
   const IL = (id, n) => { const nm = iname(id); const p = pages.get('it:' + id); const q = n !== undefined && n !== null && n !== '' ? `<small>×${esc(n)}</small>` : ''; if (!p) return `<span class="il">${esc(nm)}${q ? ' ' + q : ''}</span>`; return `<a class="il${p.x ? ' lsec' : ''}" href="#/p/it:${encodeURIComponent(id)}">${iconOf(id)}${esc(nm)}</a>${q ? ' ' + q : ''}`; };
@@ -599,7 +900,12 @@ function buildWiki(DB) {
     travail: 'au travail', repas: 'au repas', priere: 'à la prière', promenade: 'en promenade', eglise: 'l’Église', anciens: 'les Anciens', dessous: 'Ceux d’en dessous',
     offre: 'La demande', accepte: 'Quand on accepte', attente: 'En attendant', recu: 'Le message', fin: 'À la fin', resume: 'En bref', texte: 'Le récit', indice_m: 'Indice', decouverte: 'La découverte',
   };
-  const label = (k) => LABELS[k] || cap(String(k).replace(/_/g, ' '));
+  // (les tables des modules nouveaux : des clés lisibles, sans les intitulés propres aux répliques)
+  let plainLabels = false;
+  const label = (k) => (!plainLabels && LABELS[k]) || cap(plainLabels ? humanKey(k) : String(k).replace(/_/g, ' '));
+  const plainTree = (v, d, who) => { plainLabels = true; try { return tree(v, d, who); } finally { plainLabels = false; } };
+  // le nom d'une machine (l'objet posé qui la porte)
+  const machName = (m) => (PLACEABLES[m] && PLACEABLES[m].name) || (ITEMS[m] && ITEMS[m].name) || label(m);
   // rendu générique d'une valeur (textes, listes, objets imbriqués) ; les objets connus deviennent des liens
   const idLink = (s) => {
     if (typeof s !== 'string' || s.length > 40 || /\s/.test(s)) return null;
@@ -732,7 +1038,7 @@ function buildWiki(DB) {
   const lootLine = (t, e) => `${link('bt:' + t)} : ${e[1] || e[2] ? `${e[1] === e[2] ? e[1] : e[1] + ' à ' + e[2]}` : 'objet de quête caché'}${e[3] ? ` <small>(poids ${nfmt(e[3])})</small>` : ''}`;
 
   // ---------------------------------------------------------------- 3) OBJETS
-  const KNOWN_ITEM_KEYS = new Set(['id', 'name', 'cat', 'price', 'ic', 'desc', 'food', 'heal', 'raw', 'poison', 'tool', 'tier', 'place', 'animal', 'potion', 'book', 'wild', 'alch', 'unique', 'questItem', 'crop', 'buy', 'biblio', 'use', 'region', 'passive']);
+  const KNOWN_ITEM_KEYS = new Set(['id', 'name', 'cat', 'price', 'ic', 'desc', 'food', 'heal', 'raw', 'poison', 'tool', 'tier', 'place', 'animal', 'potion', 'book', 'wild', 'alch', 'unique', 'questItem', 'crop', 'buy', 'biblio', 'use', 'region', 'passive', 'legend', 'alcool']);
   for (const id of itemIds) {
     const it = ITEMS[id], p = P('it:' + id);
     const props = [];
@@ -753,6 +1059,7 @@ function buildWiki(DB) {
     if (it.unique) props.push(['Unique', 'oui']);
     if (it.biblio) props.push(['Bibliothèque', 'se prête, à rendre à temps']);
     if (it.region && CARTES[it.region]) props.push(['Carte', esc(CARTES[it.region].titre)]);
+    if (it.alcool) props.push(['Alcool', `${nfmt(it.alcool)} ${it.alcool > 1 ? 'unités' : 'unité'} ${lk('sys:alcool', '(l’alcool)')}`]);
     for (const k of Object.keys(it)) if (!KNOWN_ITEM_KEYS.has(k)) { const v = it[k]; props.push([esc(label(k)), typeof v === 'object' ? tree(v, 2) : esc(typeof v === 'boolean' ? (v ? 'oui' : 'non') : typeof v === 'number' ? nfmt(v) : v)]); }
     let h = `<dl class="kv">${props.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
     if (it.desc) h = `<p class="lead">${FILL(it.desc)}</p>` + h;
@@ -767,7 +1074,7 @@ function buildWiki(DB) {
       return `<p class="note">${known}${tch.length ? ` S’apprend : ${tch.join(' ; ')}.` : ''}${!known && !tch.length ? 'Recette à découvrir en assemblant les bons ingrédients.' : LOCKED.has(id) && !CRAFT_BASE.has(id) ? '' : ''}</p>`;
     })()]);
     const mc = src.filter((s) => s.k === 'machine');
-    if (mc.length) rows.push(['Machines', mc.map((s) => `${esc(label(s.m))} : ${needList(s.e.in)} → ${IL(s.e.out[0], s.e.out[1])} <small>en ${nfmt(s.e.h)} h</small>`).join('<br>')]);
+    if (mc.length) rows.push(['Machines', mc.map((s) => `${esc(machName(s.m))} : ${needList(s.e.in)} → ${IL(s.e.out[0], s.e.out[1])} <small>en ${nfmt(s.e.h)} h</small>`).join('<br>')]);
     const cr = src.filter((s) => s.k === 'crop');
     if (cr.length) rows.push(['Culture', cr.map((s) => `se cultive (${link('it:' + s.c, CROPS[s.c].name)}) — ${Object.keys(ITEMS).filter((k) => ITEMS[k].crop === s.c).map((k) => IL(k)).join(', ')}`).join('<br>')]);
     const hv = src.filter((s) => s.k === 'harvest');
@@ -790,7 +1097,7 @@ function buildWiki(DB) {
     const ur = us.filter((u) => u.k === 'recipe');
     if (ur.length) urows.push(['Recettes', `<table class="t"><tr><th>Donne</th><th>Il faut</th><th>Où</th></tr>${uniq(ur.map((u) => u.ri)).map((ri) => recipeRow(RECIPES[ri])).join('')}</table>`]);
     const um = us.filter((u) => u.k === 'machine');
-    if (um.length) urows.push(['Machines', um.map((u) => `${esc(label(u.m))} → ${IL(u.e.out[0], u.e.out[1])}`).join('<br>')]);
+    if (um.length) urows.push(['Machines', um.map((u) => `${esc(machName(u.m))} → ${IL(u.e.out[0], u.e.out[1])}`).join('<br>')]);
     const ub = us.filter((u) => u.k === 'buy');
     if (ub.length) urows.push(['Acheté par', uniq(ub.map((u) => u.npc)).map((n) => npcLink(n)).join(', ')]);
     const uq = us.filter((u) => u.k === 'quest' || u.k === 'questobj');
@@ -895,11 +1202,17 @@ function buildWiki(DB) {
     if (pl === 'home') return { t: 'chez soi', k: d.home };
     if (pl === 'work') return { t: d.work && d.work !== d.home ? 'au travail' : 'à l’ouvrage, chez soi', k: d.work || d.home };
     if (typeof pl === 'string' && pl.startsWith('bld:')) { const b = pl.slice(4), who = NPCS.find((q) => q.home === b); return { t: who ? `chez ${(who.names || [''])[0]} ${who.surname || ''}`.trim() : 'à ' + lieuName(b), k: b }; }
-    if (typeof pl === 'string' && pl.startsWith('lieu:')) { const b = pl.slice(5); return { t: lieuName(b), k: b }; }
-    const k = pl === 'marche' ? 'marche' : pl === 'champ' ? (d.home || 'ferme') : pl;
+    if (typeof pl === 'string' && pl.startsWith('lieu:')) { const b = LALIAS[pl.slice(5)] || pl.slice(5); return { t: lieuName(b), k: b }; }
+    // lieux des routines nouvelles : les Sources, les halles des nains, la messe, un point précis
+    if (typeof pl === 'string' && (pl === 'bains' || pl.startsWith('sources:'))) { const k = LALIAS.bains || 'sources', sub = pl === 'bains' ? 'bains' : pl.slice(8); return { t: `${lieuName(k)} (${humanKey(sub)})`, k }; }
+    if (typeof pl === 'string' && pl.startsWith('nain:')) { const k = LM.nains ? 'nains' : Object.keys(LM).find((q) => /nain/.test(q)) || 'nains'; return { t: `sous la montagne (${humanKey(pl.slice(5))})`, k }; }
+    if (pl === 'messe') return { t: 'à la messe', k: 'eglise' };
+    if (typeof pl === 'string' && pl.startsWith('pt:')) return { t: 'quelque part, en chemin', k: '' };
+    const k = pl === 'marche' ? 'marche' : pl === 'champ' ? (d.home || 'ferme') : LALIAS[pl] || pl;
     return { t: LIEUN[pl] || (LM[pl] && LM[pl].name) || { champ: 'aux champs', lavoir: 'au lavoir', foret: 'en forêt', lande: 'sur la lande' }[pl] || pl, k };
   };
-  const schedText = (S, d) => (S || []).map(([hr, pl]) => { const q = placeKey(pl, d); return `<span class="sch"><b>${hours(hr)}</b> ${pages.has('li:' + q.k) && q.t !== 'chez soi' ? placeLink(q.k, q.t) : esc(q.t)}</span>`; }).join(' ');
+  // (une routine peut compter deux étapes à la même heure : seule la dernière compte)
+  const schedText = (S, d) => (S || []).filter((e, i, a) => !(a[i + 1] && a[i + 1][0] === e[0])).map(([hr, pl]) => { const q = placeKey(pl, d); return `<span class="sch"><b>${hours(hr)}</b> ${pages.has('li:' + q.k) && q.t !== 'chez soi' ? placeLink(q.k, q.t) : esc(q.t)}</span>`; }).join(' ');
   const questHTML = (d, q) => {
     const typ = { apporter: 'apporter', parler: 'aller parler', livrer: 'livrer', trouver: 'retrouver', enquete: 'enquêter' }[q.type] || q.type;
     let h = `<div class="quest"><h4>« ${esc(q.title)} » <small>${esc(typ)}${q.minAmitie ? ` · amitié ${q.minAmitie} au moins` : ''}</small></h4><dl class="kv">`;
@@ -1215,7 +1528,8 @@ function buildWiki(DB) {
 
   // ---------------------------------------------------------------- 17) L'ÉTRANGE
   {
-    const looks = Object.keys(FIG).filter((k) => k.startsWith('look:'));
+    // (les silhouettes des modules des nouveautés sont montrées sur les fiches de leurs systèmes)
+    const looks = Object.keys(FIG).filter((k) => k.startsWith('look:') && !(DB.tables[k.slice(5)] && SYS_FILE.test(DB.tables[k.slice(5)].file || '')));
     const LNAMES = { KILLER_LOOK: 'Le tueur masqué', FIGURE_LOOK: 'La silhouette noire', MONK_LOOK: 'Le moine sans visage', LADY_LOOK: 'La dame blanche', SOWER_LOOK: 'Le semeur' };
     for (const k of looks) {
       const n = k.slice(5);
@@ -1239,6 +1553,840 @@ function buildWiki(DB) {
     if (!p.c.includes('cartes')) p.c.push('cartes');
   }
 
+  // ---------------------------------------------------------------- 20) LES NOUVEAUTÉS : les systèmes (modules 11-zzz*, 12-zzz*)
+  // Chaque système a ses fiches, tirées de l'en-tête de son module (le résumé qu'en fait le code), de ses tables
+  // et du commentaire qui les précède, et de ce que le jeu calcule lui-même (fréquences, seuils, blessures).
+  const SYS = DB.derived.sys || { files: {}, objs: {} };
+  const MF = SYS.files || {};
+  const SYSP = [], MODPAGE = {}, NEWCATS = [];
+  const SP = (id, o, file) => { const p = P(id, Object.assign({ x: 0 }, o)); if (!SYSP.includes(id)) SYSP.push(id); for (const f of [].concat(file || [])) if (MF[f] && !MODPAGE[f]) MODPAGE[f] = id; return p; };
+  const OB = (o, k, d) => (SYS.objs && SYS.objs[o] && SYS.objs[o].props && SYS.objs[o].props[k] !== undefined ? SYS.objs[o].props[k] : d);
+  const docOf = (name) => { for (const M of Object.values(MF)) if (M.tables && M.tables[name]) return M.tables[name].doc || ''; return ''; };
+  const scal = (k, d) => (SYS.scal && SYS.scal[k] ? SYS.scal[k].v : d);
+  const fileHas = (re) => Object.keys(MF).find((f) => re.test(f)) || null;
+  const FIGW = DB.images.figures ? DB.images.figures.w : 1, FIGH = DB.images.figures ? DB.images.figures.h : 1;
+  const figRect = (key) => (FIG[key] ? FIG[key].full : null);
+  const figInline = (r, box = 110, capt = '', href = '') => {
+    if (!r) return '';
+    const [x, y, w, h] = r;
+    let k = Math.min(box / w, box / h, 4); if (k >= 1) k = Math.floor(k);
+    const span = `<span class="fg" style="width:${Math.round(w * k)}px;height:${Math.round(h * k)}px;background-size:${Math.round(FIGW * k)}px ${Math.round(FIGH * k)}px;background-position:${-Math.round(x * k)}px ${-Math.round(y * k)}px"></span>`;
+    return `<figure class="sysfig">${href ? `<a href="${href}">${span}</a>` : span}${capt ? `<figcaption>${capt}</figcaption>` : ''}</figure>`;
+  };
+  const pct = (p) => (p >= 0.995 ? 'toujours' : p > 0 && p < 0.01 ? 'moins de 1 %' : Math.round(p * 100) + ' %');
+  const dur = (s) => { s = Math.round(s); if (s < 60) return s + ' s'; const m = Math.floor(s / 60), r = s % 60; return m + ' min' + (r ? ' ' + String(r).padStart(2, '0') : ''); };
+  const span2 = (a, b, f = (v) => v) => (a === b || b === undefined ? f(a) : `${f(a)} à ${f(b)}`);
+  const ILs = (ids) => (ids || []).filter(Boolean).map((x) => IL(x)).join(', ');
+  const tagList = (a) => (a || []).map((x) => `<span class="tag">${esc(x)}</span>`).join(' ');
+  const quotes = (a, who) => (a && a.length ? `<ul class="qs">${a.filter(Boolean).map((t) => `<li>${FILL(String(t).replace(/^\(([^()]*)\)$/, '$1'), who)}</li>`).join('')}</ul>` : '');
+  const bold1 = (s) => cap(String(s || ''));
+  // ---- le texte des en-têtes : on garde la prose, on ôte le code (appels, chemins, clés, fichiers)
+  const CODEISH = /[a-z]\.[a-zA-Z_(]|[a-zA-Z]_[a-zA-Z]|[a-zA-Z]\(|[a-z][A-Z]|\.js\b|zzz|\bfarm\b|=>|\bAPI\b|\bagent [A-Z]\b|\bHOOKS\b|[{}|]|\blicence\b|\b(?:inter|kind|data|strange|cine|true|false|null|BUFF|id)\b/;
+  const CODETOK = /(?:^|[\s(:])(?:[A-Za-z_$][\w$]*\.[A-Za-z_$][\w$]*|[a-z]+[A-Z]\w*\(|\w+\([^()\s]*\))/;
+  // découpe une phrase en propositions (« ; » et « . ») hors des parenthèses
+  const clauses = (t) => {
+    const out = []; let d = 0, cur = '';
+    for (let i = 0; i < t.length; i++) {
+      const c = t[i]; cur += c;
+      if (c === '(') d++; else if (c === ')') d = Math.max(0, d - 1);
+      else if (!d && (c === ';' || c === '.') && (t[i + 1] === ' ' || i === t.length - 1)) { out.push(cur); cur = ''; }
+    }
+    if (cur.trim()) out.push(cur);
+    return out;
+  };
+  const cleanText = (s) => {
+    let t = ' ' + String(s || '') + ' ';
+    t = t.replace(/https?:\/\/\S+/g, ' ');
+    // les propositions « Essais : … », « État : … », « API : … », « Sauvegarde : … »
+    t = clauses(t).filter((c) => !/^\s*(Essais|État sauvegardé|État|Etat|API|Sauvegarde)\b[^:]*:/.test(c)).join('');
+    // parenthèses qui ne contiennent que du code (de l'intérieur vers l'extérieur ; celles qu'on garde sont mises de côté)
+    for (let k = 0; k < 5; k++) t = t.replace(/\s*\(([^()]*)\)/g, (m, c) => (CODEISH.test(c) || !c.replace(/[\s,;:—–-]/g, '') ? '' : m.replace('(', '\u2045').replace(/\)$/, '\u2046')));
+    t = t.replace(/\u2045/g, '(').replace(/\u2046/g, ')');
+    // les propositions qui parlent encore en code : on garde ce qui précède « : », sinon rien
+    t = clauses(t).map((c) => { if (!CODETOK.test(c)) return c; const j = c.search(/\s:\s/); const pre = j > 20 ? c.slice(0, j) : ''; return pre && !CODETOK.test(pre) ? pre + (/;\s*$/.test(c) ? ' ;' : '.') + ' ' : ''; }).join('');
+    t = t.replace(/[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)+(?:\([^()]*\))?/g, (m) => (/^(?:etc|cf|M|Mme|St)\./.test(m) ? m : ' '));
+    t = t.replace(/\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\b/g, ' ').replace(/\b[A-Z]{3,}\b/g, (w) => (DB.tables[w] || w === 'BUFF' ? ' ' : w)).replace(/'[a-z_]+'/g, ' ').replace(/\b\d\d-zzz[\w*-]*(?:\.js)?/g, ' ').replace(/\b[a-z]+:(?=[\s,)])/g, ' ');
+    t = t.replace(/,?\s*voir\s*\)/g, ')').replace(/\(\s*[,;:]\s*/g, '(').replace(/\s*[:;,]\s*\)/g, ')').replace(/\(\s*[,;:—–-]*\s*\)/g, '').replace(/\(\s+/g, '(').replace(/\s+\)/g, ')');
+    t = t.replace(/\s+([,.)])/g, '$1').replace(/([,;:])\s*(?=[,;.])/g, '').replace(/(?<!\.)\.\.(?!\.)/g, '.').replace(/\s{2,}/g, ' ').replace(/^[\s.,;:—–-]+/, '');
+    return t.trim();
+  };
+  // les mots en capitales (titres dans le texte) redeviennent des mots ; « E », « G », « SCP » restent
+  const decap = (t) => String(t).split(/(«[^»]*»)/).map((seg, i) => {
+    if (i % 2) return seg;
+    const toks = seg.split(/(\s+)/);
+    const letters = (w) => (w || '').replace(/[^A-Za-zÀ-ÖØ-öø-ÿœŒ]/g, '');
+    const isCap = (w) => { const L = letters(w); return L.length >= 1 && L === L.toUpperCase() && L !== L.toLowerCase(); };
+    return toks.map((w, j) => {
+      if (j % 2 || !isCap(w)) return w;
+      const L = letters(w), adj = (j >= 2 && isCap(toks[j - 2]) && letters(toks[j - 2]).length > 1) || (j + 2 < toks.length && isCap(toks[j + 2]) && letters(toks[j + 2]).length > 1);
+      return L.length >= 4 || (adj && L.length > 1) || (adj && /^[AÀ]$/.test(L)) ? w.toLowerCase() : w;
+    }).join('');
+  }).join('');
+  const CAPW = "(?:[A-ZÀ-ÖØ-ÞŒ][’'])?[A-ZÀ-ÖØ-ÞŒ0-9][A-ZÀ-ÖØ-ÞŒ0-9’'-]*";
+  const TITLE_RE = new RegExp('^(' + CAPW + '(?:\\s+' + CAPW + ')*)(?:\\s*\\(([^()]{0,60})\\))?\\s*(?:[.:—–]\\s*|$|(?=\\())');
+  const DROP = /^(API|État|Etat|Sauvegarde|Essais|Données|Branchements|Probabilité par nuit|C['’]est une entité|mondes\.|\(la mécanique)/;
+  const headParts = (file) => {
+    const M = MF[file];
+    if (!M || !M.head.length) return { title: '', sub: '', parts: [] };
+    const H = M.head.slice();
+    let title = '', sub = '';
+    { // le titre (en capitales), une parenthèse ou une courte proposition qui le suit : le sous-titre
+      const first = H[0].trim(), m = first.match(TITLE_RE);
+      if (m && /[A-ZÀ-Ý]{3,}/.test(m[1])) {
+        title = m[1].trim();
+        if (m[2] && !/^(agent [A-Z]|\d+)$/.test(m[2].trim()) && !CODEISH.test(cleanText(m[2]).replace(/\s:$/, ''))) sub = cleanText(m[2]).replace(/\s*[:;,]$/, '');
+        let rest = first.slice(m[0].length).trim();
+        const next = (H[1] || '').trim();
+        const short = rest.match(/^([^.;:()]{3,42})\.\s+(\S.*)$/);
+        if (!rest) H.shift();
+        else if (short && !sub) { sub = short[1]; H[0] = ' ' + short[2]; }
+        else if (!/[.,;:(]$/.test(rest) && (/^[A-ZÀ-Ý-]/.test(next) || !next) && !/\(/.test(rest)) { sub = sub || rest.replace(/^[—–-]\s*/, ''); H.shift(); }
+        else H[0] = ' ' + rest;
+      }
+    }
+    const parts = []; let cur = null, drop = -1, dropOpen = false;
+    for (const raw of H) {
+      const ind = raw.length - raw.trimStart().length, t = raw.trim();
+      if (!t) { cur = null; drop = -1; dropOpen = false; continue; }
+      // une ligne de code (« API : … ») se prolonge tant qu'elle ne finit pas par un point
+      if (drop >= 0 && (ind > drop || dropOpen)) { dropOpen = !/\.$/.test(t); continue; }
+      drop = -1; dropOpen = false;
+      if (DROP.test(t.replace(/^- /, ''))) { drop = ind; dropOpen = !/\.$/.test(t); cur = null; continue; }
+      if (/^- /.test(t)) { cur = { b: true, t: t.slice(2), ind }; parts.push(cur); continue; }
+      if (cur && (cur.b ? ind > cur.ind : ind >= cur.ind)) { cur.t += ' ' + t; continue; }
+      cur = { b: false, t, ind }; parts.push(cur);
+    }
+    for (const q of parts) {
+      let t = cleanText(q.t);
+      if (t.startsWith('(')) { let d = 0, j = -1; for (let i = 0; i < t.length; i++) { if (t[i] === '(') d++; else if (t[i] === ')' && --d === 0) { j = i; break; } } if (j > 0) t = t.slice(1, j) + (/^\s*[.;:,]/.test(t.slice(j + 1)) ? '' : '.') + t.slice(j + 1); }
+      // un intitulé en capitales en tête d'un point : en gras
+      const hm = q.b && t.match(new RegExp('^(' + CAPW + '(?:\\s+' + CAPW + ')*)\\s*:\\s*'));
+      q.head = hm && hm[1].length > 3 ? cap(hm[1].toLowerCase()) : '';
+      if (q.head) t = t.slice(hm[0].length);
+      q.t = cap(decap(t).replace(/\s+([.,])/g, '$1').trim().replace(/\s*;$/, q.b ? '' : '.'));
+    }
+    return { title: title ? cap(decap(title).toLowerCase()) : '', sub: sub ? decap(cleanText(sub)) : '', parts: parts.filter((q) => q.t && q.t.replace(/[^A-Za-zÀ-ÿ]/g, '').length > 2) };
+  };
+  // l'introduction d'une fiche : le résumé du module (o.secret : ce qui doit rester caché ; o.only / o.skip : filtres)
+  const intro = (file, o = {}) => {
+    const { parts } = headParts(file);
+    const key = (q) => (q.head ? q.head + ' : ' : '') + q.t;
+    let ps = parts;
+    if (o.only) ps = ps.filter((q) => o.only.test(key(q)));
+    if (o.skip) ps = ps.filter((q) => !o.skip.test(key(q)));
+    if (!ps.length) return '';
+    let h = '', ul = [];
+    const flush = () => { if (ul.length) { h += `<ul class="sysl">${ul.join('')}</ul>`; ul = []; } };
+    ps.forEach((q, i) => {
+      const body = (q.head ? `<b>${esc(q.head)}</b> : ` : '') + esc(q.t);
+      const secret = o.all || (o.secret && o.secret.test(key(q)));
+      if (q.b) { ul.push(secret ? `<li class="sec">${body}</li><li class="sec-note">(un point masqué : secrets)</li>` : `<li>${body}</li>`); return; }
+      flush();
+      const para = i === 0 && !o.nolead ? `<p class="lead">${body}</p>` : `<p>${body}</p>`;
+      h += secret ? SEC(para, 'Une partie du texte est masquée (secrets).') : para;
+    });
+    flush();
+    return h;
+  };
+  // les tables d'un module qui n'ont pas eu de rendu dédié : affichées telles quelles, avec leur commentaire
+  const tableTitle = (n, doc) => { const d = doc ? cleanText(doc).split(/\s[:(—]|\s\[/)[0].trim() : ''; return cap(d && d.length <= 70 ? d : humanKey(n.toLowerCase())); };
+  const restTables = (file, title = 'Autres données du module') => {
+    const M = MF[file];
+    if (!M) return '';
+    const names = Object.keys(M.tables).filter((n) => DB.tables[n] && !used.has(n) && !TECH_TABLES.test(n) && !/_LOOKS?$/.test(n) && DB.tables[n].file === file);
+    const keep = names.filter((n) => { const st = proseStats(DB.tables[n].v); return !st.code && st.prose >= 40; });
+    for (const n of names) used.add(n);
+    if (!keep.length) return '';
+    return `<details><summary>${esc(title)}</summary>${keep.map((n) => `<h4>${esc(tableTitle(n, M.tables[n].doc))}</h4>${M.tables[n].doc ? `<p class="note">${esc(cap(cleanText(M.tables[n].doc)))}</p>` : ''}${plainTree(DB.tables[n].v, 2)}`).join('')}</details>`;
+  };
+  // une fiche d'effet (nourriture) ou de chose nommée par une clé : son nom lisible
+  const BUFFN2 = T('BUFF_NAMES', {});
+  const FILE = {
+    socle: fileHas(/^11-zzz00/), alch: fileHas(/^11-zzz02/), fab: fileHas(/^11-zzz03/), livres: fileHas(/^11-zzz20/), biblio: fileHas(/^11-zzz21/), langues: fileHas(/^11-zzz22/), cartes: fileHas(/^11-zzz23/),
+    chasse: fileHas(/^11-zzz30/), attelage: fileHas(/^11-zzz31/), ev: fileHas(/^11-zzz40/), divins: fileHas(/^11-zzz41/), mal: fileHas(/^11-zzz42/), temple: fileHas(/^11-zzz43/), cine: fileHas(/^11-zzz44/),
+    soc: fileHas(/^11-zzz50/), lieux: fileHas(/^11-zzz51/), routines: fileHas(/^11-zzz52/), esprit: fileHas(/^11-zzz60/), nourr: fileHas(/^11-zzz61/), chien: fileHas(/^11-zzz62/), alcool: fileHas(/^11-zzz63/),
+    mondes: fileHas(/^11-zzz70/), bonbons: fileHas(/^11-zzz71/), tenebres: fileHas(/^11-zzz72/), cauchemar: fileHas(/^11-zzz73/), enfers: fileHas(/^11-zzz74/), leg: fileHas(/^11-zzz80/), slender: fileHas(/^11-zzz81/), fondation: fileHas(/^11-zzz82/),
+    tornade: fileHas(/^12-zzzD-tornade/), tueur: fileHas(/^12-zzzD-tueur/), lavandiere: fileHas(/^12-zzzD-esprit/), perso: fileHas(/^07-zzzzz-/), mondesModeles: fileHas(/^07-zzzzzz-/),
+    vol: fileHas(/^11-zzz90/), prison: fileHas(/^11-zzz91/), sentiments: fileHas(/^11-zzz92/),
+  };
+  const subOf = (file) => headParts(file).sub;
+  // liens différés : les fiches nouvelles se citent entre elles, dans n'importe quel ordre (résolus à la fin)
+  const modRef = (file) => (file ? lk('@mod:' + file) : '');
+  const SE = SYS.seuils || {};
+  const freq = (n, N) => (!n ? 'pas une fois' : n * 1.5 >= N ? 'presque chaque jour' : `environ un jour sur ${nfmt(Math.round(N / n))}`);
+  const JOUR = DB.derived.jour || scal('JOUR_SECONDES', null);
+  const hJeu = (h) => (JOUR ? `${nfmt(h)} h de jeu (${dur(h * JOUR / 24)} réelles)` : `${nfmt(h)} h de jeu`);
+
+  // ==== CORPS ET ESPRIT ====
+  // ---- le temps : la journée, la semaine, le calendrier
+  if (JOUR || SEM.length) {
+    let h = `<p class="lead">Dans la vallée, une journée entière dure ${JOUR ? nfmt(Math.round(JOUR / 6) / 10) + ' minutes' : '—'} de temps réel${JOUR ? ` : une heure de jeu passe en ${nfmt(Math.round(JOUR / 24 * 10) / 10)} secondes` : ''}. La semaine compte ${SEM.length} jours, chacun avec son nom et ses habitudes.</p>`;
+    if (SEM.length) h += `<table class="t">${SEM.map((D, k) => `<tr><th>${link('sem:' + k)}</th><td>${esc((D.annonce || '').replace(/^\(|\)$/g, ''))}</td></tr>`).join('')}</table>`;
+    const C = SYS.calendrier;
+    if (C && C.ev) {
+      const EVN = { nuit_noire: 'Nuits noires', neige: 'Neige partout', soleil: 'Soleil écrasant', tornade: 'Tornades', tueur: 'L’homme au long manteau' };
+      h += `<h3>Ce que réserve le calendrier</h3><p class="note">Le calendrier des événements rares se tire de la graine de la partie : un almanach peut le prédire. Fréquences mesurées sur ${nfmt(C.jours)} jours.</p><table class="t"><tr><th>Événement</th><th>Fréquence</th><th>Au plus tôt</th></tr>${Object.entries(C.ev).map(([k, e]) => `<tr><td>${lk('ev:' + k, EVN[k] || cap(humanKey(k)))}</td><td>${esc(freq(e.n, C.jours))} <small>(${e.n} fois)</small></td><td>${e.first ? 'jour ' + e.first : '—'}</td></tr>`).join('')}</table>`;
+      const np = Object.values(C.prodiges || {}).reduce((a, b) => a + b, 0);
+      if (np) h += `<p>Et ${lk('ev:prodiges', 'un prodige')} ${esc(freq(np, C.jours))}.</p>`;
+    }
+    SP('sys:journee', { t: 'Le temps qui passe', s: `Journées de ${JOUR ? nfmt(Math.round(JOUR / 6) / 10) + ' minutes' : '…'}, semaine de ${SEM.length} jours`, c: ['semaine'], i: '⌛', h }, FILE.socle);
+  }
+  // ---- le corps : chutes, fractures, saignements, pentes
+  if (FILE.socle) {
+    const g = SYS.gravite || 20, C = SYS.chutes || [];
+    let h = `<p class="lead">Le corps se blesse : une chute trop haute fait mal, peut casser une jambe ou ouvrir une plaie ; on meurt d’un coup, ou petit à petit, en perdant son sang.</p>`;
+    const rows = C.filter((r, i) => r.dmg > 0 || (C[i + 1] && C[i + 1].dmg > 0));
+    if (rows.length) {
+      h += `<h3>Les chutes</h3><table class="t"><tr><th>Hauteur</th><th>Vitesse</th><th>Blessure</th><th>Jambe cassée</th><th>Plaie qui saigne</th></tr>${rows.map((r) => `<tr><td>≈ ${nfmt(Math.round(r.v * r.v / (2 * g) * 10) / 10)} m</td><td>${nfmt(r.v)} m/s</td><td>${r.dmg ? plur(Math.round(r.dmg), 'point de vie', 'points de vie') : 'rien'}</td><td>${r.casse ? pct(r.casse) : '—'}</td><td>${r.saigne ? pct(r.saigne) + (r.debit ? ` <small>(${nfmt(Math.round(r.debit * 100) / 100)} point/s)</small>` : '') : '—'}</td></tr>`).join('')}</table>`;
+      const causes = uniq(C.map((r) => r.cause).filter(Boolean));
+      if (causes.length) h += `<p class="note">Sur l’avis de décès : ${causes.map((c) => `« ${esc(c)} »`).join(', ')}. (Mesuré en faisant tomber le personnage, dans le jeu lui-même ; la hauteur suppose une chute libre.)</p>`;
+    }
+    const j = SE.jambe && SE.jambe[0], at = SE.attelle && SE.attelle[0], bo = SE.boite;
+    if (j) h += `<h3>La jambe cassée</h3><p>Elle se remet en ${hJeu(j)}${at ? ` ; avec une ${ITEMS.attelle ? IL('attelle') : 'attelle'}, en ${hJeu(at)} au plus` : ''}. En attendant, on boite${bo ? ` : ${Math.round(bo[1] * 100)} % de sa vitesse (${Math.round(bo[0] * 100)} % avec l’attelle)` : ''}, sans courir ni sauter, et la douleur revient par moments. Une seconde chute sur la jambe cassée blesse encore.</p>`;
+    {
+      const eg = SE.egratignure, doc = (MF[FILE.socle].mdocs || {}).saigner, dm = doc && doc.match(/\(([^()]+)\)/);
+      h += `<h3>Le sang</h3><p>Une plaie fait perdre des points de vie chaque seconde${dm ? ` <small>(${esc(dm[1].replace(/(\d)\.(\d)/g, '$1,$2'))})</small>` : ''}. ${eg ? `Sous ${nfmt(eg[0])} point par seconde, elle se referme d’elle-même, lentement ; au-delà, il faut la panser.` : ''} ${ITEMS.bandage ? `Un ${IL('bandage')} arrête le sang.` : ''} On en meurt petit à petit : « mort de ses blessures, lentement ».</p>`;
+    }
+    const pm = OB('corps', 'PENTE_MAX'), pc = OB('corps', 'PENTE_CHEMIN'), pg = OB('corps', 'PENTE_GLISSE');
+    const deg = (t) => Math.round(Math.atan(t) * 180 / Math.PI) + '°';
+    if (pm) h += `<h3>Les pentes</h3><dl class="kv"><dt>Trop raide</dt><dd>au-delà de ${deg(pm)}, on ne monte plus</dd>${pc ? `<dt>Sur un chemin</dt><dd>de terre ou de pavés, on grimpe jusqu’à ${deg(pc)} (des marches y sont taillées)</dd>` : ''}${pg ? `<dt>On glisse</dt><dd>au-delà de ${deg(pg)}</dd>` : ''}</dl>`;
+    const lad = INTER.filter((it) => it.kind === 'grimper');
+    if (lad.length) h += `<h3>Les échelles des douves</h3><p>${plur(lad.length, 'échelle', 'échelles')} de fer dans les douves de ${esc(NAMES.ville || 'la ville')} : <kbd>E</kbd> pour se hisser jusqu’en haut. Avec une jambe cassée, on glisse souvent des barreaux. ${W.moat ? mapBtn('xy:' + Math.round(W.moat.x) + ',' + Math.round(W.moat.z), 'les douves') : ''}</p>`;
+    SP('sys:corps', { t: 'Le corps', s: 'Chutes, jambe cassée, saignements, pentes', c: ['corps'], i: '✚', h }, FILE.socle);
+  }
+  // ---- où l'on ne bâtit pas
+  if ((W.noBuild || []).length) {
+    const Z = W.noBuild.slice().sort((a, b) => b[2] - a[2]);
+    let h = `<p class="lead">La plupart des endroits se bâtissent. Pas les villes, les villages ni les lieux saints : on n’y construit pas, on n’y laboure pas, on n’y pose rien. ${plur(Z.length, 'zone protégée', 'zones protégées')}.</p><p>${mapBtn('couche:zones', 'Les zones sur la carte')}</p>`;
+    // la zone porte le nom d'un lieu : on la relie à sa fiche quand un lieu (proche) porte ce nom
+    const nn = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/^(le|la|les|l['’])\s*/, '').replace(/[^a-z ]/g, '').trim();
+    const named = (why, x, z) => { const w = nn(why); if (!w) return null; const c = [...(W.lm || []), ...(W.bld || [])].filter((L) => { const n = nn(L.name); return n && (n === w || n.startsWith(w + ' ') || w.startsWith(n + ' ')) && dist(L.x, L.z, x, z) < 400; }); return c.sort((a, b) => dist(a.x, a.z, x, z) - dist(b.x, b.z, x, z))[0] || null; };
+    h += `<table class="t"><tr><th>Zone</th><th>Rayon</th><th></th></tr>${Z.map(([x, z, r, why]) => { const L = named(why, x, z); return `<tr><td>${L && pages.has('li:' + L.key) ? placeLink(L.key, cap(why)) : esc(cap(why || ''))}</td><td>${Math.round(r)} m</td><td>${mapBtn('xy:' + Math.round(x) + ',' + Math.round(z), 'carte')}</td></tr>`; }).join('')}</table>`;
+    SP('sys:batir', { t: 'Où l’on ne bâtit pas', s: 'Villes, villages et lieux saints', c: ['lieux'], i: '⛔', h, g: 'Règles de la vallée' });
+  }
+  // ---- la sacoche, le carnet, ce que le personnage sait
+  {
+    const files = [FILE.fab ? fileHas(/^12-zzzA/) : null, fileHas(/^12-zzzB/), fileHas(/^12-zzzL/), fileHas(/^12-zzzH/)].filter(Boolean);
+    let h = FILE.socle ? intro(FILE.socle, { only: /personnage connaît|ce que le personnage/i, nolead: true }) : '';
+    if (h) h = `<p class="lead">Le personnage retient ce qu’il a vu et appris ; la sacoche (<kbd>Tab</kbd>) et son carnet le gardent.</p>` + h;
+    for (const f of files) { const x = intro(f, { nolead: true }), HP = headParts(f); if (x) h += `<h3>${esc(cap((HP.title || 'La sacoche') + (HP.sub ? ' : ' + HP.sub : '')))}</h3>${x}`; }
+    if (h) SP('sys:savoir', { t: 'La sacoche et le carnet', s: 'Ce que le personnage sait', c: ['corps'], i: '🎒', h }, files);
+  }
+  // ---- la mentalité
+  const changeRows = (SYS.changes || []).map((c) => {
+    const raison = ((c.raison.match(/'([^']*)'/) || [])[1] || c.raison).trim() + (/\+/.test(c.raison) ? ' …' : '');
+    const e = c.delta.trim();
+    const branches = e.includes('?') ? e.slice(e.indexOf('?') + 1) : e;
+    const nums = (branches.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+    let sign = /^-/.test(e) ? -1 : nums.length && nums.every((n) => n < 0) ? -1 : nums.length && nums.every((n) => n > 0) ? 1 : 0;
+    const mags = uniq(nums.map((n) => Math.abs(n))).sort((a, b) => a - b);
+    const per = /\bdh\b/.test(e) ? ' par heure' : /\bmorts\b/.test(e) ? ' par mort' : '';
+    const how = /A\.k\b/.test(e) ? ' (selon la dose)' : /durete/.test(e) ? ' (et plus, selon l’abus)' : /fear/.test(e) ? ' (selon la peur)' : '';
+    const sg = sign < 0 ? '−' : sign > 0 ? '+' : '±';
+    const val = mags.length ? (mags.length > 1 ? `${sg}${nfmt(mags[0])} à ${sg}${nfmt(mags[mags.length - 1])}` : sg + nfmt(mags[0])) + per + how : 'variable';
+    const pl = c.plafond && /^[\d.]+$/.test(c.plafond) ? +c.plafond : null;
+    return { raison, sign, val, pl, file: c.file, mag: mags.length ? mags[mags.length - 1] : 0 };
+  });
+  if (FILE.esprit) {
+    let h = intro(FILE.esprit);
+    const dep = scal('ESPRIT_DEPART'), bj = scal('ESPRIT_BAISSE_JOUR'), hj = scal('ESPRIT_HAUSSE_JOUR');
+    h += `<dl class="kv">${dep !== undefined ? `<dt>Au départ</dt><dd>${dep} sur 100 — jamais affichée</dd>` : ''}${bj ? `<dt>Baisse au plus</dt><dd>${bj} points par jour, toutes raisons confondues</dd>` : ''}${hj ? `<dt>Remonte au plus</dt><dd>${hj} points par jour</dd>` : ''}</dl>`;
+    const tab = (rows) => `<table class="t"><tr><th>Quoi</th><th>Effet</th><th>Plafond du jour</th><th>Voir</th></tr>${rows.map((r) => `<tr><td>${esc(cap(r.raison))}</td><td>${esc(r.val)}</td><td>${r.pl ? nfmt(r.pl) : '—'}</td><td><small>${r.file === FILE.esprit ? '' : modRef(r.file)}</small></td></tr>`).join('')}</table>`;
+    const dn = changeRows.filter((r) => r.sign < 0).sort((a, b) => b.mag - a.mag), up = changeRows.filter((r) => r.sign > 0).sort((a, b) => b.mag - a.mag), var_ = changeRows.filter((r) => !r.sign);
+    if (dn.length) h += `<h3>Ce qui la fait baisser</h3>` + tab(dn);
+    if (up.length) h += `<h3>Ce qui la fait remonter</h3>` + tab(up);
+    if (var_.length) h += `<h3>Selon les cas</h3>` + tab(var_);
+    // ce qu'on en voit
+    const EP = U('ESPRIT_PENSEES', {}), EC = U('ESPRIT_CARNET', []), FP = U('FAIM_PHRASES', {});
+    const md = MF[FILE.esprit].mdocs || {};
+    const sig = [];
+    if (SE.voile) sig.push([SE.voile[0], cleanText(md.voile || 'les couleurs s’éteignent un peu')]);
+    for (const [t, v] of SYS.signes || []) sig.push([v, t]);
+    if (SE.pensees) { sig.push([SE.pensees[1], 'des pensées sombres, de temps en temps']); sig.push([SE.pensees[0], 'des pensées très sombres']); }
+    if (sig.length) h += `<h3>Ce qu’on en voit</h3><table class="t">${sig.sort((a, b) => b[0] - a[0]).map(([v, t]) => `<tr><th>sous ${v}</th><td>${esc(cap(t))}</td></tr>`).join('')}${SE.pensees ? `<tr><th>au-dessus de ${SE.pensees[2]}</th><td>des pensées heureuses, parfois</td></tr>` : ''}</table>`;
+    if (EP.haut || EP.bas || EP.tres_bas) h += `<h3>Les pensées</h3>${EP.haut ? `<h4>Quand tout va bien</h4>${quotes(EP.haut)}` : ''}${EP.bas ? `<h4>Quand elle baisse</h4>${quotes(EP.bas)}` : ''}${EP.tres_bas ? `<h4>Quand elle s’effondre</h4>${quotes(EP.tres_bas)}` : ''}`;
+    if (EP.descend || EP.remonte) h += `<h3>Les seuils franchis</h3><table class="t">${Object.entries(EP.descend || {}).sort((a, b) => b[0] - a[0]).map(([v, t]) => `<tr><th>passe sous ${v}</th><td>${FILL(t.replace(/^\(|\)$/g, ''))}</td></tr>`).join('')}${Object.entries(EP.remonte || {}).sort((a, b) => a[0] - b[0]).map(([v, t]) => `<tr><th>remonte à ${v}</th><td>${FILL(t.replace(/^\(|\)$/g, ''))}</td></tr>`).join('')}</table>`;
+    if (EP.agite || EP.repose) h += `<h3>Le sommeil</h3>${EP.agite ? `<h4>Agité</h4>${quotes(EP.agite)}` : ''}${EP.repose ? `<h4>Reposé</h4>${quotes(EP.repose)}` : ''}${EP.ventre_vide ? `<h4>Le ventre vide</h4>${quotes([EP.ventre_vide])}` : ''}`;
+    if (EC.length) h += `<h3>Ce que dit le carnet</h3><p class="note">Jamais un chiffre : une ligne, en tête du carnet.</p><table class="t">${EC.map(([v, t]) => `<tr><th>${v >= 0 ? 'au-dessus de ' + v : 'plus bas encore'}</th><td>${FILL(t)}</td></tr>`).join('')}</table>`;
+    if (SYS.bizarre && SYS.bizarre.length) {
+      const b = (MF[FILE.esprit].blocks || []).find((x) => /bizarrerie|étrange/i.test(x.text));
+      h += `<h3>L’étrange suit l’esprit</h3>${b ? `<p>${esc(cap(decap(cleanText(b.text))))}</p>` : ''}<p class="note">Les hasards de l’étrange (nuits rouges, apparitions, événements, prodiges…) sont multipliés :</p><table class="t"><tr><th>Mentalité</th>${SYS.bizarre.map(([v]) => `<td>${v}</td>`).join('')}</tr><tr><th>L’étrange</th>${SYS.bizarre.map(([, x]) => `<td>×${nfmt(x)}</td>`).join('')}</tr></table>`;
+    }
+    if (Object.keys(FP).length) {
+      const fs2 = SE.faim || [];
+      h += `<h3>La faim</h3><p>Le ventre vide fait battre le cœur et coupe le souffle : l’endurance s’effondre, puis le cœur cogne.</p><table class="t">${[['creux', fs2[2]], ['faim', fs2[1]], ['famine', fs2[0]]].filter(([k]) => FP[k]).map(([k, v]) => `<tr><th>${v !== undefined ? 'nourriture sous ' + v : esc(k)}</th><td>${quotes(FP[k])}</td></tr>`).join('')}</table>`;
+    }
+    SP('sys:esprit', { t: 'La mentalité', s: 'L’esprit du personnage, qu’on ne voit jamais', c: ['corps'], i: '☁', h }, FILE.esprit);
+  }
+  // ---- ce qu'on mange : les effets
+  const EF = T('EFFETS', {}), AE = T('ALIMENTS_EFFETS', {});
+  const effName = (k) => { const e = EF[k]; if (e && e.buff && BUFFN2[e.buff]) return BUFFN2[e.buff]; return cap(humanKey(k)); };
+  const effLine = (r) => {
+    const [k, p, d0, d1, I, u0, u1] = r, e = EF[k] || {};
+    const du = u0 ? span2(u0, u1, dur) : e.dur ? span2(e.dur[0], e.dur[1], dur) : '';
+    return `${lk('eff:' + k, effName(k))} <small>${pct(p)}${d0 !== undefined ? `, après ${span2(d0, d1, dur)}` : ''}${I ? `, force ${I}` : ''}${du && !e.instant ? `, pendant ${du}` : ''}</small>`;
+  };
+  if (FILE.nourr && Object.keys(EF).length) {
+    U('EFFETS'); U('ALIMENTS_EFFETS');
+    const AG = U('ALIMENTS_GENERIQUES', {}), MN = U('MAL_NUIT', {});
+    let h = intro(FILE.nourr);
+    const doc = docOf('ALIMENTS_EFFETS');
+    if (doc) h += `<p class="note">Pour chaque effet : la chance qu’il arrive, le délai avant qu’il se déclare, sa force et sa durée (en temps réel).</p>`;
+    const ids = Object.keys(AE).sort((a, b) => iname(a).localeCompare(iname(b), 'fr'));
+    h += `<h3>Aliment par aliment</h3><table class="t"><tr><th>Ce qu’on mange</th><th>Ce que ça peut faire</th><th>S’il tue</th></tr>${ids.map((id) => `<tr><td>${IL(id)}${ITEMS[id] && ITEMS[id].raw ? ' <span class="tag">cru</span>' : ''}</td><td>${(AE[id].r || []).map(effLine).join('<br>')}</td><td><small>${AE[id].c ? 'empoisonné par ' + esc(AE[id].c) : ''}</small></td></tr>`).join('')}</table>`;
+    if (Object.keys(AG).length) h += `<h3>Tout ce qui est cru</h3><table class="t">${Object.entries(AG).map(([k, a]) => `<tr><th>${esc(cap(a.c || humanKey(k)))}</th><td>${(a.r || []).map(effLine).join('<br>')}</td></tr>`).join('')}</table>`;
+    if (Object.keys(MN).length) h += `<h3>La nuit d’après</h3><p>S’endormir malade gâte la nuit :</p>${quotes(Object.values(MN))}`;
+    h += `<h3>Les effets</h3><ul class="cards">${Object.keys(EF).map((k) => `<li>${lk('eff:' + k, effName(k))}</li>`).join('')}</ul>`;
+    SP('sys:nourriture', { t: 'Ce qu’on mange', s: 'Plantes, baies, champignons, viandes, poissons : leurs effets', c: ['corps'], i: '🍄', h }, FILE.nourr);
+    for (const [k, e] of Object.entries(EF)) {
+      let x = `<dl class="kv"><dt>Durée</dt><dd>${e.instant ? 'immédiat' : e.dur ? span2(e.dur[0], e.dur[1], dur) + ' (temps réel)' : '—'}</dd>${e.buff && BUFFN2[e.buff] !== effName(k) ? `<dt>Même effet que</dt><dd>${esc(BUFFN2[e.buff] || e.buff)} <small>(comme une potion)</small></dd>` : ''}${e.mal ? `<dt>La nuit d’après</dt><dd>${FILL(String(MN[e.mal] || '').replace(/^\(|\)$/g, ''))}</dd>` : ''}</dl>`;
+      if (e.debut) x += `<h3>Ce qu’on ressent</h3>${quotes([].concat(e.debut))}`;
+      if (e.fin) x += `<h3>Quand ça passe</h3>${quotes([e.fin])}`;
+      const by = [];
+      for (const [id, a] of Object.entries(AE)) for (const r of a.r || []) if (r[0] === k) by.push([id, r]);
+      for (const [id, a] of Object.entries(AG)) for (const r of a.r || []) if (r[0] === k) by.push(['@' + (a.c || id), r]);
+      if (by.length) x += `<h3>Ce qui le provoque</h3><table class="t">${by.sort((a, b) => b[1][1] - a[1][1]).map(([id, r]) => `<tr><td>${id.startsWith('@') ? esc(cap(id.slice(1))) : IL(id)}</td><td>${pct(r[1])}${r[2] !== undefined ? `, après ${span2(r[2], r[3], dur)}` : ''}</td></tr>`).join('')}</table>`;
+      x += `<p>${lk('sys:nourriture', 'Tout ce qu’on mange')}</p>`;
+      SP('eff:' + k, { t: effName(k), s: 'Effet de ce qu’on mange', c: ['corps'], i: '✺', h: x, g: 'Effets' });
+    }
+  }
+  // ---- le chien
+  if (FILE.chien) {
+    const CR = U('CHIEN_REPAS', {}), CN = U('CHIEN_NOMS', []);
+    let h = intro(FILE.chien);
+    if (FIG['an:dog']) h = figInline(figRect('an:dog'), 90, '', '#/p/an%3Adog') + h;
+    const md = MF[FILE.chien].mdocs || {}, st = SE.chienStades, mort = SE.chienMort;
+    if (st || md.stade) h += `<h3>La faim du chien</h3>${st ? `<table class="t"><tr><th>${st[2]} h sans manger</th><td>il a faim : il gémit, il réclame</td></tr><tr><th>${st[1]} h</th><td>il maigrit</td></tr><tr><th>${st[0]} h</th><td>il se couche et ne se relève plus</td></tr>${mort ? `<tr><th>${mort[0]} h</th><td><b class="warn">il meurt</b></td></tr>` : ''}</table>` : `<p>${esc(cleanText(md.stade))}</p>`}<p class="note">Des heures de jeu : ${JOUR ? `${mort ? mort[0] : 72} h, c’est ${dur((mort ? mort[0] : 72) * JOUR / 24)} de temps réel` : ''}.</p>`;
+    if (Object.keys(CR).length) h += `<h3>Ce qui le nourrit</h3><p class="note">${esc(cleanText(docOf('CHIEN_REPAS')) || 'Heures de ventre plein.')}</p><table class="t"><tr><th>À manger</th><th>Ventre plein</th></tr>${Object.entries(CR).sort((a, b) => b[1] - a[1]).map(([id, n]) => `<tr><td>${IL(id)}</td><td>${n} h</td></tr>`).join('')}</table>`;
+    const its = MF[FILE.chien].items.filter((i) => ITEMS[i]);
+    if (its.length) h += `<h3>Pour le chien</h3><p>${ILs(its)}</p>`;
+    const ch = changeRows.filter((r) => r.file === FILE.chien);
+    if (ch.length) h += `<h3>Sur le moral de son maître</h3><ul>${ch.map((r) => `<li>${esc(cap(r.raison))} : ${esc(r.val)}</li>`).join('')}</ul>`;
+    if (CN.length) h += `<h3>Des noms de chien</h3><p>${tagList(CN)}</p>`;
+    SP('sys:chien', { t: 'Le chien', s: 'Le nourrir, le commander, le garder en vie', c: ['corps'], i: '🐕', h }, FILE.chien);
+  }
+  // ---- l'alcool
+  if (FILE.alcool) {
+    const AL = U('ALCOOLS', []), AP = U('ALCOOL_PALIERS', []);
+    let h = intro(FILE.alcool);
+    const how = (id) => {
+      const out = [];
+      for (const [m, list] of Object.entries(MACHINES)) for (const e of list || []) if (e.out && e.out[0] === id) out.push(`${esc(machName(m))} : ${needList(e.in)} <small>(${nfmt(e.h)} h)</small>`);
+      for (const r of RECIPES) if (r.out === id) out.push(`${esc(cap(stationName(r.st)))} : ${needList(r.need)}`);
+      for (const s of (SRC[id] || []).filter((q) => q.k === 'shop')) out.push(`chez ${npcLink(s.npc)} <small>${nfmt(s.price)} pièces</small>`);
+      return uniq(out);
+    };
+    if (AL.length) h += `<h3>Les boissons</h3><table class="t"><tr><th>Boisson</th><th>Force</th><th>Comment l’avoir</th><th>Ce qu’elle fait aussi</th></tr>${AL.map((id) => `<tr><td>${IL(id)}</td><td>${ITEMS[id] && ITEMS[id].alcool ? nfmt(ITEMS[id].alcool) + ' ' + (ITEMS[id].alcool > 1 ? 'unités' : 'unité') : ''}</td><td><small>${how(id).join('<br>')}</small></td><td>${AE[id] ? (AE[id].r || []).map(effLine).join('<br>') : ''}</td></tr>`).join('')}</table>`;
+    const iv = SE.ivresse;
+    if (iv || AP.length) h += `<h3>L’ivresse</h3><table class="t">${AP.map((ph, i) => (ph ? `<tr><th>${iv ? `${nfmt(iv[3 - i])} unités dans le sang` : 'palier ' + i}</th><td>${quotes([].concat(ph))}</td></tr>` : '')).join('')}${scal('ALCOOL_COMA') ? `<tr><th>${nfmt(scal('ALCOOL_COMA'))} unités</th><td><b class="warn">${esc(cleanText(SYS.scal.ALCOOL_COMA.doc || 'on tombe'))}</b> : le coma, parfois mortel</td></tr>` : ''}</table>`;
+    if (scal('ALCOOL_ELIM')) h += `<p class="note">Le corps élimine ${nfmt(scal('ALCOOL_ELIM'))} unité par seconde réelle : une chope (1 unité) passe en ${dur(1 / scal('ALCOOL_ELIM'))}.</p>`;
+    if (MACHINES.alambic_cru) h += `<h3>L’alambic du bouilleur de cru</h3><p>${IL('alambic_cru')} ${MACHINE_HINT.alambic_cru ? '— ' + esc(MACHINE_HINT.alambic_cru) : ''}</p><table class="t"><tr><th>On y met</th><th>On obtient</th><th>Temps</th></tr>${MACHINES.alambic_cru.map((e) => `<tr><td>${needList(e.in)}</td><td>${IL(e.out[0], e.out[1])}</td><td>${nfmt(e.h)} h</td></tr>`).join('')}</table>`;
+    SP('sys:alcool', { t: 'L’alcool', s: 'Boissons, alambic, ivresse, gueule de bois', c: ['corps'], i: '🍷', h }, FILE.alcool);
+  }
+
+  // ==== FABRICATION ET ALCHIMIE ====
+  if (FILE.fab) {
+    let h = intro(FILE.fab);
+    const base = [...CRAFT_BASE].filter((id) => ITEMS[id]);
+    if (base.length) h += `<h3>Connues dès le départ</h3><p>${ILs(base.sort((a, b) => iname(a).localeCompare(iname(b), 'fr')))}</p>`;
+    const LEC = OB('fabrication', 'LECONS', {});
+    if (Object.keys(LEC).length) {
+      const free = SE.lecons && SE.lecons[0];
+      h += `<h3>Les gens de métier</h3><p class="note">Une leçon par jour et par habitant, quand on se connaît assez${free ? ` ; à l’amitié ${free}, ils n’en demandent plus rien` : ''}.</p><table class="t"><tr><th>Qui</th><th>Enseigne</th><th>Amitié</th><th>Prix</th></tr>${Object.entries(LEC).map(([n, list]) => (list || []).map((e, i) => `<tr>${i === 0 ? `<td rowspan="${list.length}">${npcLink(n)}</td>` : ''}<td>${IL(e[0])}</td><td>${e[1] || 0}</td><td>${e[2] ? nfmt(e[2]) + ' pièces' : 'rien'}</td></tr>`).join('')).join('')}</table>`;
+    }
+    const books = Object.entries(LIVRES).filter(([, L]) => (L.recettes || []).length);
+    if (books.length) h += `<h3>Les livres qui enseignent</h3><ul>${books.map(([b, L]) => `<li>${IL('livre_' + b)} : ${ILs(L.recettes)}</li>`).join('')}</ul>`;
+    const qr = NPCS.flatMap((d) => (d.quests || []).filter((q) => q.reward && q.reward.recette).map((q) => [d, q]));
+    if (qr.length) h += `<h3>En récompense</h3><ul>${qr.map(([d, q]) => `<li>${IL(q.reward.recette)} : quête « ${esc(q.title)} » de ${npcLink(d.id)}</li>`).join('')}</ul>`;
+    h += `<p>${link('cat:recettes', 'Toutes les recettes')}</p>`;
+    SP('sys:fabrication', { t: 'L’établi d’assemblage', s: 'Fabriquer sans liste : assembler, découvrir, retenir', c: ['recettes'], i: '⚒', h }, FILE.fab);
+  }
+  if (FILE.alch) {
+    const V = SYS.vrai || {}, REM = OB('alchimie', 'REM', {}), DIT = OB('alchimie', 'DIT', {});
+    if (Object.keys(V).length) {
+      let h = intro(FILE.alch, { only: /identifier|allure|nommée|nom/i });
+      h += `<p class="note">Tant qu’elle n’a pas été nommée, une plante cueillie ne porte que son allure : on ne sait pas ce qu’on mange.</p>`;
+      const ids = Object.keys(V).sort((a, b) => V[a].name.localeCompare(V[b].name, 'fr'));
+      h += `<table class="t"><tr><th>Ce qu’on en voit</th><th>Ce que c’est</th><th>Ce qu’en dit l’alchimiste</th></tr>${ids.map((id) => `<tr><td><b>${esc(V[id].allure)}</b><br><small>${FILL(V[id].allureDesc || '')}</small></td><td>${IL(id)}</td><td><small>${REM[id] ? FILL(REM[id]) : ''}</small></td></tr>`).join('')}</table>`;
+      if (DIT.intro) h += `<h3>L’alchimiste, au travail</h3>${quotes(DIT.intro, 'alchimiste')}`;
+      SP('sys:identification', { t: 'Les plantes à faire nommer', s: 'L’alchimiste de la ville les identifie', c: ['alchimie'], i: '🔍', h }, FILE.alch);
+      // sur la fiche de chaque plante : son allure
+      for (const id of ids) if (pages.has('it:' + id)) { const p = P('it:' + id); p.h = `<p class="note">Sans l’avoir fait nommer, on n’en connaît que l’allure : <b>${esc(V[id].allure)}</b>. ${lk('sys:identification', 'Les plantes à faire nommer')}</p>` + (REM[id] ? `<h3>Ce qu’en dit l’alchimiste</h3>${quote(REM[id], 'alchimiste')}` : '') + p.h; }
+    }
+    let h = intro(FILE.alch, { skip: /identifier|allure|nommée/i });
+    const NV = [].concat(OB('alchimie', 'NOUVELLES', [])).filter((id) => ITEMS[id] || POTIONS[id]);
+    if (NV.length) h += `<h3>Les potions nouvelles</h3><table class="t"><tr><th>Potion</th><th>Effet</th><th>Durée</th></tr>${NV.map((id) => `<tr><td>${IL(id)}</td><td>${FILL((POTIONS[id] && POTIONS[id].desc) || (ITEMS[id] && ITEMS[id].desc) || '')}</td><td>${POTIONS[id] && POTIONS[id].h ? nfmt(POTIONS[id].h) + ' h' : '—'}</td></tr>`).join('')}</table>`;
+    const FO = OB('alchimie', 'FORCE', {}), BA = OB('alchimie', 'BETES_APPAT', []), TR = OB('alchimie', 'TRACES', {});
+    let s = '';
+    if (Object.keys(FO).length) s += `<h3>La force qu’il faut</h3><p class="note">Les potions rares de la table ne sortent que si les deux essences dominantes, ensemble, pèsent au moins :</p><table class="t">${Object.entries(FO).sort((a, b) => b[1] - a[1]).map(([id, n]) => `<tr><td>${IL(id)}</td><td>${n}</td></tr>`).join('')}</table>`;
+    if (BA.length) s += `<h3>L’appât empoisonné attire</h3><p>${BA.map((k) => (pages.has('an:' + k) ? link('an:' + k) : esc(k))).join(', ')}</p>`;
+    if (Object.keys(TR).length) s += `<h3>Ce que les morts se rappellent de leur assassin</h3><p class="note">Le philtre des morts, ou un rêve, en laisse deviner autant :</p><table class="t">${Object.entries(TR).map(([n, t]) => `<tr><th>${n === 'defaut' ? 'les autres' : npcLink(n)}</th><td>${FILL(t)}</td></tr>`).join('')}</table>`;
+    if (s) h += SEC(s, 'Les seuils de la table, les appâts et les souvenirs des morts sont masqués (secrets).');
+    h += `<p>${link('alch:regles', 'Les essences et leurs combinaisons')} <small>(secrets)</small></p>`;
+    SP('sys:table-alchimie', { t: 'La table d’alchimiste', s: 'Mêler à l’aveugle, noter ce qu’on a essayé', c: ['alchimie'], i: '⚗', h }, FILE.alch);
+  }
+
+  // ==== CHASSE ET ATTELAGE ====
+  if (FILE.chasse) {
+    const F = U('CHASSE_FUSIL', {}), GI = U('CHASSE_GIBIER', []), DG = U('CHASSE_DANGER', {}), BO = U('CHASSE_BONUS', {}), PR = U('CHASSE_PRISES', {}), GR = U('CHASSE_GROS', []), NO = U('CHASSE_NOMS', {});
+    U('CHASSE_VEGETATION'); U('CHASSE_CALME');
+    const an = (k) => (pages.has('an:' + k) ? link('an:' + k, cap(NO[k] ? NO[k].replace(/^(le|la|l’|les) ?/, '') : animalName(k))) : esc(NO[k] || k));
+    let h = intro(FILE.chasse, { only: /fusil|dépouille|appeau/i });
+    if (Object.keys(F).length) {
+      const L = { portee: ['Portée', (v) => v + ' m'], degats: ['Dégâts au corps', (v) => v + ' points'], rearme: ['Réarmer', (v) => nfmt(v) + ' s'], zoom: ['Grossissement de la lunette', (v) => '×' + nfmt(Math.round(1 / v * 10) / 10)] };
+      h += `<h3>Le fusil à lunette</h3><dl class="kv">${Object.entries(F).filter(([k]) => L[k]).map(([k, v]) => `<dt>${esc(L[k][0])}</dt><dd>${esc(L[k][1](v))}</dd>`).join('')}</dl>${docOf('CHASSE_FUSIL') ? `<p class="note">${esc(cap(cleanText(docOf('CHASSE_FUSIL'))))}.</p>` : ''}<p>${ILs(['fusil', 'cartouche', 'lunette', 'canon_fusil'].filter((i) => ITEMS[i]))}</p>`;
+    }
+    if (Object.keys(BO).length) h += `<h3>Les dépouilles</h3><p class="note">${esc(cap(cleanText(docOf('CHASSE_BONUS')) || 'En plus de ce que donne la bête'))} :</p><table class="t">${Object.entries(BO).map(([k, a]) => `<tr><th>${an(k)}</th><td>${a.map((e) => IL(e[0]) + ` <small>${span2(e[1], e[2])}${e[3] ? ', ' + pct(e[3]) : ''}</small>`).join(', ')}</td></tr>`).join('')}</table>`;
+    if (GR.length) h += `<h3>Le gros gibier</h3><p>${GR.map(an).join(', ')}</p>`;
+    SP('sys:chasse', { t: 'La chasse au fusil', s: 'Viser, tirer, dépecer', c: ['chasse'], i: '⌖', h }, FILE.chasse);
+    let hp = intro(FILE.chasse, { only: /pièges à loup/i });
+    if (Object.keys(PR).length) hp += `<h3>Ce qui se prend, la nuit</h3><p class="note">${esc(cap(cleanText(docOf('CHASSE_PRISES'))))}.</p><table class="t">${Object.entries(PR).map(([m, a]) => `<tr><th>${HAB[m] ? `<a class="tag hab" href="#/p/${encodeURIComponent('mil:' + m)}">${esc(HAB[m])}</a>` : esc(m)}</th><td>${a.map(an).join(', ')}</td></tr>`).join('')}</table>`;
+    if (ITEMS.piege_loup) hp = `<p>${IL('piege_loup')}</p>` + hp;
+    SP('sys:pieges', { t: 'Les pièges à loup', s: 'Pour les bêtes… et pour qui ne regarde pas où il marche', c: ['chasse'], i: '⚙', h: hp }, FILE.chasse);
+    let hd = intro(FILE.chasse, { only: /dangereuses|ours|sanglier/i });
+    if (Object.keys(DG).length) {
+      const LBL = { alerte: ['Vous remarque à', (v) => v + ' m'], proche: ['Trop près', (v) => v + ' m'], patience: ['Patience', (v) => v + ' s'], surprise: ['Surprise à', (v) => v + ' m'], pSurprise: ['Charge si surpris', pct], pProche: ['Charge si on reste trop près', pct], pPetits: ['Charge si ses petits sont là', pct], pBlesse: ['Charge s’il est blessé', pct], pChasseur: ['Charge pendant les battues', pct], portee: ['Portée de ses coups', (v) => nfmt(v) + ' m'], degats: ['Blessure', (v) => span2(v[0], v[1]) + ' points'], saigne: ['Saignement', (v) => span2(v[0], v[1], nfmt) + ' point/s'], coupsMax: ['Coups, au plus', (v) => v], cause: ['Sur l’avis de décès', (v) => '« ' + v + ' »'] };
+      for (const [k, d] of Object.entries(DG)) hd += `<h3>${an(k)}</h3>${figInline(figRect('an:' + k), 90)}<dl class="kv">${Object.entries(d).map(([q, v]) => `<dt>${esc((LBL[q] || [humanKey(q)])[0])}</dt><dd>${esc((LBL[q] ? LBL[q][1] : (x) => JSON.stringify(x))(v))}</dd>`).join('')}</dl>`;
+    }
+    SP('sys:dangers', { t: 'Les bêtes dangereuses', s: 'Elles n’attaquent que menacées', c: ['chasse'], i: '⚠', h: hd }, FILE.chasse);
+    let hc = intro(FILE.chasse, { only: /chasseurs|chassedi|accident/i });
+    if (GI.length) hc += `<h3>Le gibier des battues</h3><p class="note">${esc(cap(cleanText(docOf('CHASSE_GIBIER'))))}.</p><p>${GI.map(an).join(', ')}</p>`;
+    if (ITEMS.brassard_rouge) hc += `<h3>Pour ne pas être pris pour un chevreuil</h3><p>${IL('brassard_rouge')} — ${FILL(ITEMS.brassard_rouge.desc || '')}</p>`;
+    if (SEM.some((J) => J.cle === 'chasse')) hc += `<p>Le jour de la chasse : ${link('sem:' + SEM.findIndex((J) => J.cle === 'chasse'))}.</p>`;
+    hc += (NPC_BY.chasseur ? `<p>${npcLink('chasseur')}</p>` : '');
+    SP('sys:chasseurs', { t: 'Les chasseurs du Chassedi', s: 'Battues, coups de feu au loin, et parfois l’accident', c: ['chasse'], i: '🎯', h: hc }, FILE.chasse);
+  }
+  if (FILE.attelage) {
+    const A = U('ATTELAGE', {});
+    let h = intro(FILE.attelage);
+    const L = { cap: ['Chargement', (v) => v + ' objets au plus'], vitesse: ['Allure, attelé', (v) => Math.round(v * 100) + ' % de celle du cheval'], vitesseChargee: ['Allure, chargé', (v) => Math.round(v * 100) + ' %'] };
+    const rows = Object.entries(A).filter(([k]) => L[k]);
+    if (rows.length) h += `<dl class="kv">${rows.map(([k, v]) => `<dt>${L[k][0]}</dt><dd>${esc(L[k][1](v))}</dd>`).join('')}</dl>`;
+    const its = ['harnais', 'charrette', 'roue', 'selle'].filter((i) => ITEMS[i]);
+    if (its.length) h += `<h3>Ce qu’il faut</h3><p>${ILs(its)}</p>`;
+    if (pages.has('an:horse')) h += `<p>${link('an:horse')}${pages.has('an:donkey') ? ', ' + link('an:donkey') : ''}</p>`;
+    SP('sys:attelage', { t: 'La charrette attelée', s: 'Un cheval, un harnais, une charrette', c: ['chasse'], i: '🛒', h }, FILE.attelage);
+  }
+
+  // ==== LIVRES, BIBLIOTHÈQUE, CARTES, LANGUES ====
+  if (FILE.livres) {
+    const h = intro(FILE.livres);
+    if (h) SP('sys:livres', { t: 'Lire', s: 'Le lecteur de livres', c: ['livres'], i: '📖', h: h + `<p>${link('cat:livres', 'Tous les livres')}</p>` }, FILE.livres);
+  }
+  if (FILE.biblio) {
+    const B = U('BIBLIO', {});
+    let h = intro(FILE.biblio, { secret: /rayonnage du fond|archives|passage/i });
+    const sr = figRect('look:SORCIER_LOOK');
+    if (sr) h = figInline(sr, 110, 'Le sorcier') + h;
+    const CAT = SYS.biblioCat || [];
+    if (CAT.length) {
+      const pub = CAT.filter((e) => e.genre !== 'Réserve'), res = CAT.filter((e) => e.genre === 'Réserve');
+      const tab = (a) => `<table class="t"><tr><th>Titre</th><th>Rayon</th>${(a[0].prix || []).map(([j]) => `<th>${j} ${j > 1 ? 'jours' : 'jour'}</th>`).join('')}</tr>${a.map((e) => `<tr><td>${IL(e.item)}</td><td><small>${esc(e.genre)}</small></td>${(e.prix || []).map(([, p]) => `<td>${nfmt(p)}</td>`).join('')}</tr>`).join('')}</table>`;
+      h += `<h3>Emprunter</h3><p class="note">Payé d’avance, à rendre avant ${B.heure ? B.heure + ' h' : 'la fermeture'} le dernier jour${B.max ? ` ; ${B.max} emprunts à la fois, au plus` : ''}. Prix en pièces.</p>` + tab(pub);
+      if (res.length) h += SEC(`<h3>La réserve</h3>${tab(res)}`, 'La réserve de la bibliothèque est masquée (secrets).');
+    }
+    if ((B.saints || []).length) h += `<h3>La terre bénite</h3><p class="note">Là où le sorcier n’entre pas :</p><ul class="cards">${B.saints.map(([k, r]) => `<li>${pages.has('li:' + k) ? placeLink(k) : esc(k)} <small>${r} m</small></li>`).join('')}</ul>`;
+    if ((B.phrases || []).length) {
+      const lang = LANG.aelin ? 'aelin' : Object.keys(LANG)[0];
+      const gloss = (t) => t.split(/\s+/).filter((m) => m && m !== ',').map((m) => { const s = ((LANG[lang] || {}).lex || {})[m] || ((LANG[lang] || {}).lex || {})[m.replace(/^na-/, '')]; return `<span class="gloss"><b>${esc(m)}</b><small>${esc(s || '?')}</small></span>`; }).join(' ');
+      h += `<h3>Ce que murmure le sorcier</h3>${B.phrases.map((t) => `<div class="inscr"><canvas class="glyph" data-lang="${esc(lang)}" data-text="${esc(t)}" data-size="16"></canvas><p><i>${esc(t)}</i></p>${SEC(`<p>${gloss(t)}</p>`, false)}</div>`).join('')}<p class="sec-note">Le mot à mot est masqué (secrets).</p>`;
+    }
+    if (pages.has('li:bibliotheque')) h += `<p>${placeLink('bibliotheque')} · ${NPC_BY.libraire ? npcLink('libraire') : ''}</p>`;
+    SP('sys:bibliotheque', { t: 'La grande bibliothèque', s: 'Emprunter, rendre à temps… ou le sorcier', c: ['livres'], i: '🏛', h }, FILE.biblio);
+  }
+  if (FILE.cartes) {
+    const SYM = U('CARTES_SYM', {}), ZO = U('CARTES_ZONES', []), VI = U('CARTES_VILLE', []);
+    U('CARTES_CONIF');
+    let h = intro(FILE.cartes);
+    const bySym = {};
+    for (const [k, s] of Object.entries(SYM)) (bySym[s] || (bySym[s] = [])).push(k);
+    if (Object.keys(bySym).length) h += `<h3>Les symboles</h3><p class="note">Un lieu ne figure sur une carte que si le personnage le connaît, à une place approximative.</p><table class="t">${Object.entries(bySym).map(([s, ks]) => `<tr><th>${esc(humanKey(s))}</th><td>${ks.map((k) => (pages.has('li:' + k) ? placeLink(k) : esc(humanKey(k)))).join(', ')}</td></tr>`).join('')}</table>`;
+    if (ZO.length) h += `<h3>Les étendues dessinées</h3><p>${ZO.map((k) => (pages.has('li:' + k) ? placeLink(k) : esc(humanKey(k)))).join(', ')}</p>`;
+    if (VI.length) h += `<h3>Sur le panneau de la ville</h3><p>${VI.map((k) => (pages.has('li:' + k) ? placeLink(k) : esc(humanKey(k)))).join(', ')}</p>`;
+    h += `<h3>Les cartes à acheter</h3><ul class="cards">${Object.keys(CARTES).filter((k) => ITEMS['carte_' + k]).map((k) => `<li>${IL('carte_' + k)}</li>`).join('')}</ul>`;
+    SP('sys:cartes', { t: 'Les cartes approximatives', s: 'Jamais la vallée entière', c: ['cartes'], i: '🗺', h }, FILE.cartes);
+  }
+  if (FILE.langues) {
+    let h = intro(FILE.langues);
+    const NM = T('NAINS_MOTS', {});
+    if (Object.keys(LANG).length) h += `<h3>Les langues</h3><ul class="cards">${Object.keys(LANG).map((k) => `<li>${link('lg:' + k)}</li>`).join('')}</ul>`;
+    if (Object.keys(NM).length) { used.add('NAINS_MOTS'); h += SEC(`<h3>Ce que les nains enseignent</h3>${Object.entries(NM).map(([lg, ws]) => `<p><b>${LANG[lg] ? link('lg:' + lg) : esc(lg)}</b> : ${ws.map((w) => `<span class="tag">${esc(w)}</span>`).join(' ')}</p>`).join('')}`, 'Les mots que les nains enseignent sont masqués (secrets).'); }
+    const GM = T('GEANTS_MOTS', []);
+    if (GM.length) { used.add('GEANTS_MOTS'); h += `<h3>Les mots des géants</h3><p>${GM.map((w) => `<span class="tag">${esc(w)}</span>`).join(' ')}</p>`; }
+    SP('sys:langues', { t: 'Apprendre les langues perdues', s: 'Pierres gravées, lexiques, leçons', c: ['langues'], i: 'ᚨ', h }, FILE.langues);
+  }
+
+  // ==== SOCIÉTÉ ====
+  const sayPair = (a, lang) => { // [texte en langue perdue, sens] (ou [langue, texte, sens])
+    const [lg, t, s] = a.length >= 3 ? a : [lang || null, a[0], a[1]];
+    return `<div class="say">${lg && LANG[lg] ? `<canvas class="glyph" data-lang="${esc(lg)}" data-text="${esc(t)}" data-size="10"></canvas>` : ''}<p><i>${esc(t)}</i>${lg && LANG[lg] ? ` <small>(${link('lg:' + lg)})</small>` : ''}<br>${esc(s || '')}</p></div>`;
+  };
+  if (FILE.soc) {
+    const CD = U('CRIME_DEF', {}), VG = U('SOC_VILLAGES', []), CA = U('SOC_CAUSES', {}), MA = U('SOC_MALADE', []), RE = U('SOC_REMEDES', []), NM = U('SOC_NOUVELLES_MORT', []), SU = U('SOC_SUCCESSION', {}), RP = U('SOC_REPRISE', {});
+    U('SOC_CHASSEUR_LOOK');
+    let h = intro(FILE.soc, { only: /mort|définitive|scellés/i });
+    if (Object.keys(CA).length) h += `<h3>Comment on meurt, dans la vallée</h3><p class="note">Ce qu’en dit le faire-part.</p><table class="t">${Object.entries(CA).map(([k, v]) => `<tr><th>${esc(humanKey(k))}</th><td>${esc([].concat(v)[0] || '')}</td></tr>`).join('')}</table>`;
+    if (MA.length) h += `<h3>La maladie</h3>${quotes(MA)}${RE.length ? `<p>Ce qui peut guérir un malade : ${ILs(RE)}.</p>` : ''}`;
+    if (NM.length) h += `<h3>Les nouvelles vont vite</h3>${quotes(NM)}`;
+    if (Object.keys(SU).length) h += `<h3>Qui reprend quoi</h3><p class="note">Quand un habitant meurt, son rôle passe à un autre, et son commerce est repris.</p><table class="t"><tr><th>Mort</th><th>Remplacé par</th><th>Commerce repris</th></tr>${Object.keys(Object.assign({}, SU, RP)).map((n) => `<tr><td>${NPC_BY[n] ? npcLink(n) : esc(n)}</td><td>${(SU[n] || []).map((x) => (NPC_BY[x] ? npcLink(x) : esc(x))).join(', ')}</td><td>${(RP[n] || []).map(([who, its]) => `${NPC_BY[who] ? npcLink(who) : esc(who)} <small>(${its.slice(0, 6).map(iname).join(', ')}${its.length > 6 ? '…' : ''})</small>`).join('<br>')}</td></tr>`).join('')}</table>`;
+    SP('sys:morts', { t: 'La mort des habitants', s: 'Définitive : quêtes perdues, commerce repris', c: ['societe'], i: '✝', h }, FILE.soc);
+    let hc = intro(FILE.soc, { only: /crime|prime|recherch|témoin/i });
+    const sc = figRect('look:SOC_CHASSEUR_LOOK');
+    if (sc) hc = figInline(sc, 110, 'Un chasseur de primes') + hc;
+    if (Object.keys(CD).length) hc += `<h3>Les crimes</h3><table class="t"><tr><th>Crime</th><th>Prime</th><th>Gravité</th><th>Oublié après</th><th></th></tr>${Object.entries(CD).map(([k, d]) => `<tr><td>${esc(cap(humanKey(k)))}</td><td>${d.prime ? nfmt(d.prime) + ' pièces' : '—'}</td><td>${d.grav || '—'}</td><td>${d.oubli ? d.oubli + ' jours sans récidive' : '—'}</td><td><small>${d.violent ? 'violent' : ''}</small></td></tr>`).join('')}</table>`;
+    if (VG.length) hc += `<h3>Les villages qui se parlent</h3><p>${VG.map((k) => (pages.has('li:' + k) ? placeLink(k) : esc(k === 'nains' ? 'les nains' : cap(humanKey(k))))).join(', ')}</p>`;
+    if (ITEMS.affiche_recherche || PLACEABLES.affiche_recherche) hc += `<p>${IL('affiche_recherche')}</p>`;
+    SP('sys:crimes', { t: 'Crimes et avis de recherche', s: 'Témoins, primes, affiches, chasseurs de primes', c: ['societe'], i: '⚖', h: hc }, FILE.soc);
+  }
+  if (FILE.lieux) {
+    // les Sources
+    let hs = intro(FILE.lieux, { only: /sources/i });
+    const nat = NPCS.filter((d) => d.area === 'sources' || (d.look && d.look.nude));
+    if (nat.length) hs += `<h3>Les gens des Sources</h3><ul class="cards">${nat.map((d) => `<li>${npcLink(d.id)}</li>`).join('')}</ul>`;
+    if (BUFFN2.bains) hs += `<p>Au sortir du bain : <span class="tag">${esc(BUFFN2.bains)}</span></p>`;
+    if (pages.has('li:sources')) hs += `<p>${placeLink('sources')} ${mapBtn('li:sources')}</p>`;
+    SP('sys:sources', { t: 'Les Sources', s: 'L’eau chaude de la montagne', c: ['societe'], i: '♨', h: hs }, FILE.lieux);
+    // les nains (lieu caché)
+    const NP = U('NAINS_PHRASES', []);
+    let hn = intro(FILE.lieux, { only: /nains/i, secret: /frapper|coups|sifflet|rythme/i });
+    if (SYS.rythme) hn += SEC(`<h3>Le rythme</h3><p>Frapper à la fente de la falaise : ${SYS.rythme.split('-').map((n) => `<b>${n}</b> ${+n > 1 ? 'coups' : 'coup'}`).join(', puis ')}${SYS.rythmeSilence ? `, avec un silence de plus de ${nfmt(SYS.rythmeSilence)} s entre les groupes` : ''}. ${ITEMS.sifflet_argent ? `Le ${IL('sifflet_argent')}, soufflé devant la fente, frappe à votre place.` : ''}</p>`, 'Le rythme à frapper est masqué (secrets).');
+    const dw = NPCS.filter((d) => d.look && d.look.dwarf);
+    if (dw.length) hn += `<h3>Les nains</h3><ul class="cards">${dw.map((d) => `<li>${npcLink(d.id)}</li>`).join('')}</ul>`;
+    if (NP.length) hn += `<h3>Ce qu’ils disent</h3>${NP.map((a) => sayPair(a)).join('')}`;
+    SP('sys:nains', { t: 'Le village caché des nains', s: 'Sous la montagne, derrière une fente de la falaise', c: ['societe'], i: '⛏', x: 1, h: hn }, FILE.lieux);
+    // les géants, et chacun d'eux
+    const GP = U('GEANTS_PHRASES', []), GD = U('GEANTS_DON', []), GC = U('GEANTS_COLERE', []), GA = U('GEANTS_AUBE', []), GN = U('GEANT_NOMS', []), GT = U('GEANT_TAILLES', []);
+    U('GEANT_LOOKS');
+    let hg = intro(FILE.lieux, { only: /géants/i });
+    if (GN.length) hg += `<div class="figrow">${GN.map((n, i) => figInline(figRect('geant:' + i), 120, esc(n), '#/p/' + encodeURIComponent('geant:' + i))).join('')}</div>`;
+    const lg = LANG.gorrain ? 'gorrain' : null;
+    if (GP.length) hg += `<h3>Ce qu’ils disent</h3>${GP.map((a) => sayPair(a, lg)).join('')}`;
+    if (GD.length) hg += `<h3>Quand on leur porte à manger</h3>${GD.map((a) => sayPair(a, lg)).join('')}`;
+    if (GA.length) hg += `<h3>À l’aube, sur la crête</h3>${GA.map((a) => sayPair(a, lg)).join('')}`;
+    if (GC.length) hg += `<h3>Quand on les frappe</h3>${GC.map((a) => sayPair(a, lg)).join('')}`;
+    if (pages.has('li:geants')) hg += `<p>${placeLink('geants')}</p>`;
+    SP('sys:geants', { t: 'Les géants', s: GN.length ? `${GN.length} géants, à leur camp des hauteurs` : 'Les géants des hauteurs', c: ['societe'], i: '⛰', h: hg }, FILE.lieux);
+    GN.forEach((n, i) => {
+      const r = figRect('geant:' + i);
+      SP('geant:' + i, { t: n, s: 'Géant', c: ['habitants'], g: 'Les géants', i: r ? 'fg:' + r.join(',') : '⛰', fig: r, h: `<dl class="kv"><dt>Taille</dt><dd>${GT[i] ? nfmt(GT[i]) + ' fois la taille d’un homme' : '—'}</dd><dt>Parle</dt><dd>${lg ? link('lg:' + lg) : 'une vieille langue'}, lentement</dd></dl><p>${lk('sys:geants', 'Les géants')}</p>` });
+    });
+  }
+  if (FILE.routines) {
+    U('ROUTINE_JOURS'); U('ROUTINE_BASES'); U('LIEUX_PROMENADE');
+    const TO = U('TOURNEES', {}), HO = U('HOTTES', {});
+    let h = intro(FILE.routines);
+    // la grille : chaque habitant, chaque jour (ce qui change de sa journée ordinaire)
+    const short = (pl, d) => { const q = placeKey(pl, d); return pages.has('li:' + q.k) && q.t !== 'chez soi' ? placeLink(q.k, q.t) : esc(q.t); };
+    if (SEM.length && Object.keys(RT).length) {
+      h += `<h3>Qui fait quoi, chaque jour</h3><p class="note">Ce qui change de la journée ordinaire de chacun (heures de jeu) ; « · » : une journée comme les autres. Chaque fiche d’habitant détaille sa semaine.</p><div class="scrollx"><table class="t week-grid"><tr><th></th>${SEM.map((J, k) => `<th>${link('sem:' + k, J.nom)}</th>`).join('')}</tr>${NPCS.map((d) => {
+        const R = RT[d.id] || [], base = JSON.stringify(d.schedule || []);
+        const cells = SEM.map((J, k) => {
+          const S = R[k] || [];
+          if (!S.length || JSON.stringify(S) === base) return '<td class="c">·</td>';
+          const ends = S.map((e, i) => (S[i + 1] ? S[i + 1][0] : 24));
+          // ce qui sort de l'ordinaire : un lieu où il ne va pas d'habitude (ni chez lui, ni au travail)
+          const usual = new Set((d.schedule || []).map((b) => b[1]).concat(['home', 'work']));
+          const diff = S.map((e, i) => [e, ends[i]]).filter(([e, end]) => !usual.has(e[1]) && end - e[0] > 0.05);
+          return `<td>${diff.length ? diff.map(([e, end]) => `<small>${hours(e[0])}–${hours(end)}</small> ${short(e[1], d)}`).join('<br>') : '<span class="c">·</span>'}</td>`;
+        }).join('');
+        return `<tr><th>${npcLink(d.id, `${(d.names || [])[0] || ''} ${d.surname || ''}`.trim())}</th>${cells}</tr>`;
+      }).join('')}</table></div>`;
+    }
+    SP('sys:routines', { t: 'La semaine de chacun', s: `${SEM.length} jours, et chacun les siens`, c: ['semaine'], i: '📅', h }, FILE.routines);
+    if (Object.keys(TO).length || Object.keys(HO).length) {
+      let hc = intro(FILE.routines, { only: /colporteur/i });
+      for (const [n, T2] of Object.entries(TO)) hc += `<h3>La tournée : ${npcLink(n)}</h3><table class="t">${SEM.map((J, k) => T2[J.cle] ? `<tr><th>${link('sem:' + k)}</th><td>${short(T2[J.cle], NPC_BY[n] || {})}</td></tr>` : '').join('')}</table>`;
+      for (const [n, H2] of Object.entries(HO)) {
+        hc += `<h3>La hotte : ${npcLink(n)}</h3>${(H2.fonds || []).length ? `<p><b>Toujours :</b> ${ILs(H2.fonds)}</p>` : ''}`;
+        if (H2.ici) hc += `<table class="t"><tr><th>Où</th><th>En plus</th></tr>${Object.entries(H2.ici).map(([pl, a]) => `<tr><td>${short(pl, NPC_BY[n] || {})}</td><td>${a.map(([id, pr]) => IL(id) + (pr ? ` <small>${nfmt(pr)}</small>` : '')).join(', ')}</td></tr>`).join('')}</table>`;
+      }
+      SP('sys:colporteurs', { t: 'Les colporteurs', s: 'D’un village à l’autre, selon le jour', c: ['societe'], i: '🎒', h: hc }, FILE.routines);
+    }
+  }
+
+  // ==== ÉVÉNEMENTS ET DIVINITÉS ====
+  const EVL = T('EV_LIGNES', {});
+  const CAL = SYS.calendrier || null;
+  const linesOf = (k) => { const L = EVL[k]; if (!L) return ''; used.add('EV_LIGNES'); return `<h3>Ce qu’en disent les habitants</h3>${[['avant', 'La veille'], ['pendant', 'Sur le moment'], ['apres', 'Le lendemain']].filter(([q]) => (L[q] || []).length).map(([q, t]) => `<h4>${t}</h4>${quotes(L[q])}`).join('')}`; };
+  const cineOf = (name) => { const M = FILE.cine && MF[FILE.cine]; if (!M || !M.mdocs[name]) return ''; return `<p class="note">Une cinématique : ${esc(cleanText(M.mdocs[name]))}. ${lk('sys:cinematiques', 'Les cinématiques')}</p>`; };
+  const calOf = (k) => { if (!CAL || !CAL.ev[k]) return ''; const e = CAL.ev[k], M = FILE.ev && MF[FILE.ev]; const md = M && (M.mdocs[{ nuit_noire: 'nuitNoireBrute', tornade: 'tornadeBrute', tueur: 'tueurBrut' }[k]] || ''); return `<dl class="kv"><dt>Fréquence</dt><dd>${esc(freq(e.n, CAL.jours))} <small>(${e.n} fois en ${nfmt(CAL.jours)} jours${e.first ? ', la première au jour ' + e.first : ''})</small></dd>${md ? `<dt>La règle</dt><dd>${esc(cap(cleanText(md)))}</dd>` : ''}${CAL.almanach && CAL.almanach[k] ? `<dt>L’almanach dit</dt><dd>« ${esc(CAL.almanach[k])} »</dd>` : ''}</dl>`; };
+  if (FILE.ev) {
+    const PD = U('PRODIGES', {});
+    U('EV_FX');
+    const parts = headParts(FILE.ev).parts;
+    const bullet = (re) => parts.filter((q) => q.b && re.test(q.head + ' ' + q.t)).map((q) => `<p class="lead">${esc(q.t)}</p>`).join('');
+    const evs = [
+      ['nuit_noire', 'Les nuits noires', 'Ni lune ni étoiles, et des murmures', '☾', /nuit noire/i, 'nuitNoire', FILE.ev],
+      ['neige', 'La neige partout', 'Les jours de grand froid', '❄', /neige/i, null, FILE.ev],
+      ['soleil', 'Le soleil écrasant', 'Le regarder laisse une tache noire', '☀', /soleil/i, null, FILE.ev],
+      ['tornade', 'Les tornades', 'Très rares, un jour d’orage ou de canicule', '🌪', null, 'tornade', FILE.tornade],
+      ['tueur', 'L’homme au long manteau', 'Le tueur errant : une nuit, un seul mort', '🗡', null, 'tueur', FILE.tueur],
+    ];
+    for (const [k, t, s, i, re, cn, file] of evs) {
+      if (!file) continue;
+      let h = re ? bullet(re) : intro(file);
+      if (k === 'tueur') { const r = figRect('look:TUEUR_LOOK'); if (r) h = figInline(r, 120, 'L’homme au long manteau') + h; const TL2 = U('TUEUR_LIEUX', []); U('TUEUR_LOOK'); if (TL2.length) { const seen = new Set(); h += `<h3>Où il rôde</h3><p>${TL2.filter((q) => { const n = lieuName(q); if (seen.has(n)) return false; seen.add(n); return true; }).map((q) => (pages.has('li:' + q) ? placeLink(q) : esc(humanKey(q)))).join(', ')}</p>`; } }
+      h += calOf(k) + (cn ? cineOf(cn) : '') + linesOf(k);
+      if (k === 'tueur' && pages.has('ent:tueur')) h += `<p class="note">Rien à voir avec ${link('ent:tueur', 'le tueur masqué caché parmi les habitants')}.</p>`;
+      SP('ev:' + k, { t, s, c: ['evenements'], i, h, g: 'Événements rares' }, file);
+    }
+    // les prodiges
+    const pk = Object.keys(PD);
+    if (pk.length) {
+      // leurs noms : l'énumération de l'en-tête, dans le même ordre, si elle compte autant d'éléments
+      let noms = {};
+      {
+        const txt = parts.map((q) => q.t).join(' ');
+        const m = txt.match(/prodige\W*:\s*([^.]+)\./i);
+        if (m) {
+          const L2 = m[1].split(/,\s*|\s+et\s+/).map((x) => x.trim()).filter(Boolean);
+          const n4 = (x) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().slice(0, 4);
+          if (L2.length === pk.length && pk.filter((k, i) => L2[i].toLowerCase().split(/\s+/).some((w) => n4(w) === n4(k))).length >= pk.length / 2) pk.forEach((k, i) => { noms[k] = cap(L2[i]); });
+        }
+      }
+      const nomP = (k) => noms[k] || cap(humanKey(k));
+      const tot = Object.values((CAL && CAL.prodiges) || {}).reduce((a, b) => a + b, 0);
+      let h = bullet(/prodige/i) || `<p class="lead">Chaque matin, on tire (rarement) un prodige.</p>`;
+      h += `<table class="t"><tr><th>Prodige</th><th>Fréquence</th><th>Dure</th><th></th></tr>${pk.map((k) => `<tr><td>${lk('pr:' + k, nomP(k))}</td><td>${CAL && CAL.prodiges ? esc(freq(CAL.prodiges[k] || 0, CAL.jours)) : '—'}</td><td>${PD[k].duree ? nfmt(PD[k].duree) + ' h' : '—'}</td><td><small>${PD[k].etrange ? 'étrange : plus fréquent quand l’esprit s’assombrit' : ''}</small></td></tr>`).join('')}</table>`;
+      if (tot && CAL) h += `<p class="note">En tout, un prodige ${esc(freq(tot, CAL.jours))} (${tot} en ${nfmt(CAL.jours)} jours).</p>`;
+      SP('ev:prodiges', { t: 'Les prodiges', s: 'Étoiles filantes, éclipses, cloches qui sonnent seules…', c: ['evenements'], i: '✶', h, g: 'Événements rares' }, FILE.ev);
+      for (const k of pk) SP('pr:' + k, { t: nomP(k), s: 'Prodige', c: ['evenements'], i: '✶', g: 'Les prodiges', h: `<dl class="kv"><dt>Fréquence</dt><dd>${CAL && CAL.prodiges ? esc(freq(CAL.prodiges[k] || 0, CAL.jours)) : '—'}</dd><dt>Dure</dt><dd>${PD[k].duree ? nfmt(PD[k].duree) + ' h de jeu' : '—'}</dd>${PD[k].etrange ? '<dt>Étrange</dt><dd>oui : plus fréquent quand la mentalité s’assombrit</dd>' : ''}</dl>` + linesOf(k) + `<p>${lk('ev:prodiges', 'Tous les prodiges')}</p>` });
+    }
+  }
+  // ---- les Trois
+  if (FILE.divins) {
+    const DN = U('DIV_NOMS', {}), DP = U('DIV_PAROLES', {}), DR = U('DIV_REVES', []);
+    U('DIV_LOOK');
+    let h = intro(FILE.divins);
+    h += `<div class="figrow">${Object.keys(DN).map((k) => figInline(figRect('div:' + k), 120, esc(DN[k]), '#/p/' + encodeURIComponent('dieu:' + k))).join('')}</div>`;
+    h += `<p>${link('div:trois', 'Ce que la vallée dit des Trois')}</p>`;
+    SP('sys:divins', { t: 'Les Trois viennent sur le monde', s: 'Apparitions, rêves, voix, pactes', c: ['evenements'], i: '☉', h, g: 'Les Trois' }, FILE.divins);
+    const lang = LANG.aelin ? 'aelin' : null;
+    for (const [k, nom] of Object.entries(DN)) {
+      const r = figRect('div:' + k);
+      let x = '';
+      const par = Object.entries(DP).filter(([q]) => q.startsWith(k + '_'));
+      if (par.length) x += `<h3>Ses paroles</h3><p class="note">Les Trois parlent aëlin ; le personnage n’en comprend que les mots qu’il connaît.</p>${par.map(([q, a]) => `<h4>${esc(cap(humanKey(q.slice(k.length + 1))))}</h4>${sayPair(a, lang)}`).join('')}`;
+      const rv = DR.filter((d) => d.qui === k);
+      if (rv.length) x += `<h3>Les rêves</h3>${rv.map((d) => `<blockquote>${FILL(d.t)}${(d.mots || []).length ? ` <small>(mot appris : ${d.mots.map((m) => `<b>${esc(m)}</b>`).join(', ')})</small>` : ''}</blockquote>`).join('')}`;
+      x += cineOf(k);
+      const bl = { aela: 'aube', durn: 'pierre' }[k];
+      if (bl && BUFFN2[bl]) x += `<p>Sa bénédiction : <span class="tag">${esc(BUFFN2[bl])}</span></p>`;
+      x += linesOf('divin_' + k);
+      x += `<p>${lk('sys:divins', 'Les Trois viennent sur le monde')} · ${link('div:trois', 'Les Trois dans les livres et les pierres')}</p>`;
+      SP('dieu:' + k, { t: nom, s: 'L’une des Trois divinités', c: ['evenements'], g: 'Les Trois', i: r ? 'fg:' + r.join(',') : '☉', fig: r, h: x });
+    }
+  }
+  // ---- les malédictions
+  if (FILE.mal) {
+    const ML = U('MALEDICTIONS', {}), MC = U('MAL_CAUSES', {}), PG = U('MAL_PRIX_GUERISSEUSE', []);
+    U('MAL_OMBRE_LOOK');
+    const parts = headParts(FILE.mal).parts;
+    const rem = parts.find((q) => /^Remèdes/i.test(q.t) || /remèdes/i.test(q.head));
+    let h = intro(FILE.mal, { skip: /^(Causes|Remèdes)/i });
+    h += `<table class="t"><tr><th>Malédiction</th><th>Ce qu’on en voit</th></tr>${Object.entries(ML).map(([k, m]) => `<tr><td>${lk('mal:' + k, m.nom || cap(humanKey(k)))}<br><small>${m.grave ? 'mortelle' : m.petite ? 'petite' : 'grande'}</small></td><td>${FILL(m.signes || '')}</td></tr>`).join('')}</table>`;
+    if (Object.keys(MC).length) h += `<h3>Ce qui les attire</h3><table class="t"><tr><th>La faute</th><th>La malédiction</th><th>Réparer</th></tr>${Object.values(MC).map((c) => `<tr><td>${FILL(c.faute || '')}</td><td>${ML[c.mal] ? lk('mal:' + c.mal, ML[c.mal].nom) : esc(c.mal || '')}</td><td>${FILL(c.reparer || '')}</td></tr>`).join('')}</table>`;
+    if (rem) h += `<h3>Les remèdes</h3><p>${esc(rem.t.replace(/^Remèdes\s*:\s*/i, ''))}</p>`;
+    if (PG.length) h += `<p>La guérisseuse demande, en échange, l’une de ces choses : ${ILs(PG)}.</p>`;
+    SP('sys:maledictions', { t: 'Les malédictions', s: 'Ce qui les attire, ce qui les lève', c: ['evenements'], i: '☠', h, g: 'Malédictions' }, FILE.mal);
+    for (const [k, m] of Object.entries(ML)) {
+      let x = `<p class="lead">${FILL(m.signes || '')}</p><dl class="kv"><dt>Sorte</dt><dd>${m.grave ? '<b class="warn">mortelle, si on ne la lève pas</b>' : m.petite ? 'petite : l’eau lustrale la lève' : 'grande'}</dd></dl>`;
+      const cs = Object.values(MC).filter((c) => c.mal === k);
+      if (cs.length) x += `<h3>Ce qui l’attire</h3><ul>${cs.map((c) => `<li>${FILL(c.faute || '')}${c.reparer ? ` <small>Réparer : ${FILL(c.reparer)}</small>` : ''}</li>`).join('')}</ul>`;
+      if (k === 'ombre') { const r = figRect('look:MAL_OMBRE_LOOK'); if (r) x = figInline(r, 110, 'L’ombre') + x; x += cineOf('ombre'); }
+      if (ITEMS.eau_lustrale && m.petite) x += `<p>${IL('eau_lustrale')}</p>`;
+      x += `<p>${lk('sys:maledictions', 'Toutes les malédictions')}</p>`;
+      SP('mal:' + k, { t: m.nom || cap(humanKey(k)), s: 'Malédiction', c: ['evenements'], g: 'Malédictions', i: '☠', h: x });
+    }
+  }
+  // ---- le temple (secret)
+  if (FILE.temple) {
+    const OR = U('TPL_ORDRE', []), TB = U('TPL_TOMBEAU', []);
+    let h = intro(FILE.temple, { all: false });
+    if (OR.length) h += `<h3>La porte des Trois</h3><p>Toucher les trois pierres dans l’ordre : ${OR.map((k) => (pages.has('dieu:' + k) ? link('dieu:' + k) : esc(cap(k)))).join(', puis ')}.</p>`;
+    if (TB.length) h += `<h3>Sur le tombeau</h3>${sayPair(TB, LANG.aelin ? 'aelin' : null)}`;
+    h += cineOf('templeOuverture') + cineOf('durnEveil');
+    if (pages.has('li:temple')) h += `<p>${placeLink('temple')}</p>`;
+    SP('sys:temple', { t: 'Le temple sous la montagne', s: 'Derrière la cascade où naît la rivière', c: ['evenements'], g: 'Lieux sacrés', i: '⛩', x: 1, h }, FILE.temple);
+  }
+  // ---- les cinématiques
+  if (FILE.cine) {
+    const M = MF[FILE.cine];
+    let h = intro(FILE.cine);
+    const SECRET_CINE = /temple|dormeur|réveille|ombre|rattrap/i;
+    const names = Object.keys(M.mdocs).filter((n) => M.mtexts[n] || /^[a-z]/.test(n));
+    h += `<h3>Les scènes</h3><ul class="sysl">${names.map((n) => { const d = cleanText(M.mdocs[n]); const tx = M.mtexts[n] || []; const body = `<b>${esc(cap(d))}</b>${tx.length ? quotes(tx) : ''}`; return SECRET_CINE.test(d) ? `<li class="sec">${body}</li><li class="sec-note">(une scène masquée : secrets)</li>` : `<li>${body}</li>`; }).join('')}</ul>`;
+    const uses = Object.entries(SYS.cineUses || {}).filter(([f]) => f !== FILE.cine && f !== FILE.socle);
+    if (uses.length) h += `<h3>Et encore</h3><p>D’autres scènes filmées : ${uses.map(([f, n]) => `${modRef(f)} <small>(${n})</small>`).join(', ')}.</p>`;
+    SP('sys:cinematiques', { t: 'Les cinématiques', s: 'Courtes ; Espace pour passer', c: ['evenements'], g: 'Les cinématiques', i: '🎬', h }, FILE.cine);
+  }
+  // ---- l'esprit du lavoir (secret)
+  if (FILE.lavandiere) {
+    let h = intro(FILE.lavandiere, { secret: /secret|tord|sens/i });
+    if (SYS.lavSens) h += SEC(`<p>Le sens dans lequel tordre ${SYS.lavSens === 'varie' ? 'change d’une partie à l’autre : les vieux du village le disent à qui a déjà vu son visage.' : 'est toujours le même : à main ' + esc(SYS.lavSens) + '.'}</p>`, 'Comment l’apaiser : masqué (secrets).');
+    if (pages.has('li:lavoir')) h += `<p>${placeLink('lavoir')}</p>`;
+    SP('ev:lavandiere', { t: 'La lavandière de nuit', s: 'L’esprit secret du lavoir', c: ['evenements'], g: 'Événements rares', i: '🌫', x: 1, h }, FILE.lavandiere);
+  }
+
+  // ==== AUTRES MONDES ====
+  const MOND = T('MONDES', {});
+  const BMs = SYS.betesMonde || {};
+  const monFile = { bonbons: FILE.bonbons, tenebres: FILE.tenebres, cauchemar: FILE.cauchemar, enfers: FILE.enfers };
+  const worldOf = (f) => Object.keys(monFile).find((k) => monFile[k] && monFile[k] === f) || null;
+  const mondeTitre = (k) => cap((MOND[k] && MOND[k].titre) || humanKey(k));
+  if (Object.keys(BMs).length) {
+    used.add('BETES_MONDE');
+    for (const [k, B] of Object.entries(BMs)) {
+      const d = B.d || {}, wk = worldOf(B.file), r = figRect('bm:' + k);
+      const nom = B.nom ? cap(B.nom.replace(/^(un|une)\s+/i, '')) : cap(humanKey(k));
+      const touch = d.intouchable || d.hp >= 999;
+      let x = `<dl class="kv">${wk ? `<dt>Monde</dt><dd>${lk('monde:' + wk, mondeTitre(wk))}</dd>` : ''}<dt>Vigueur</dt><dd>${touch ? 'on ne peut pas lui faire de mal' : d.hp + ' points de vie'}</dd>`;
+      if (d.vitesse && (d.vitesse[0] || d.vitesse[1])) x += `<dt>Allure</dt><dd>${nfmt(d.vitesse[0])} m/s au pas, ${nfmt(d.vitesse[1])} m/s à la course</dd>`;
+      if (d.degats) x += `<dt>Blessure</dt><dd>jusqu’à ${d.degats} points par coup${d.cadence ? `, un coup toutes les ${nfmt(d.cadence)} s` : ''}</dd>`;
+      if (d.vue) x += `<dt>Vous voit</dt><dd>à ${d.vue} m${d.perd ? `, vous perd à ${d.perd} m` : ''}</dd>`;
+      if (d.fuite) x += `<dt>Fuit</dt><dd>quand on approche à ${d.fuite} m</dd>`;
+      if ((d.butin || []).length) x += `<dt>Ce qu’elle laisse</dt><dd>${d.butin.map((e) => IL(e[0]) + ` <small>${span2(e[1], e[2])}</small>`).join(', ')}</dd>`;
+      if (d.cause) x += `<dt>Sur l’avis de décès</dt><dd>« ${esc(d.cause)} »</dd>`;
+      x += '</dl>';
+      if (d.fantome) x += `<p class="note">Une ombre : elle n’a pas de corps.</p>`;
+      SP('an:m:' + k, { t: nom, s: wk ? 'Bête ' + mondeTitre(wk).replace(/^Les /, 'des ').replace(/^Le /, 'du ').replace(/^La /, 'de la ').replace(/^L[’'](?=\S)/, 'de l’') : 'Bête d’un autre monde', c: ['betes'], g: 'Des autres mondes', i: r ? 'fg:' + r.join(',') : '🐾', fig: r, h: x });
+    }
+  }
+  if (FILE.mondes) {
+    let h = intro(FILE.mondes);
+    h += `<ul class="cards">${Object.keys(monFile).filter((k) => monFile[k]).map((k) => `<li>${lk('monde:' + k, mondeTitre(k))}</li>`).join('')}</ul>`;
+    SP('sys:mondes', { t: 'Les autres mondes', s: 'La vallée vue autrement, et ce qui est dessous', c: ['mondes'], i: '◐', h }, [FILE.mondes, FILE.mondesModeles]);
+  }
+  for (const [wk, f] of Object.entries(monFile)) {
+    if (!f) continue;
+    const M = MF[f];
+    let h = intro(f);
+    const its = M.items.filter((i) => ITEMS[i]);
+    const plantes = ((SYS.plantesMonde || {})[f] || []).filter((i) => ITEMS[i]);
+    const betes = Object.entries(BMs).filter(([, B]) => B.file === f).map(([k]) => k);
+    const lieux = M.secs.filter(([ind, t]) => ind > 0 && !/plantes|bêtes|chaque image|branchement|par terre|marchand/i.test(t)).map(([, t]) => cap(t));
+    if (lieux.length) h += `<h3>Ce qui s’y dresse</h3><ul>${lieux.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
+    if (plantes.length) h += `<h3>Ce qu’on y cueille</h3><p>${ILs(plantes)}</p>`;
+    if (betes.length) h += `<h3>Ce qui y vit</h3><div class="figrow">${betes.map((k) => figInline(figRect('bm:' + k), 90, lk('an:m:' + k), '#/p/' + encodeURIComponent('an:m:' + k))).join('')}</div>`;
+    if (its.length) h += `<h3>Les objets de ce monde</h3><p>${ILs(its)}</p>`;
+    const ret = Object.keys(M.tables).filter((n) => /_RETOUR$/.test(n) && DB.tables[n]);
+    for (const n of ret) { const R = U(n, {}); h += `<h3>Au retour dans la vallée</h3><p class="note">Ce qu’on en rapporte devient :</p><table class="t">${Object.entries(R).map(([a, b]) => `<tr><td>${IL(a)}</td><td>${b ? (b === a ? 'reste ce qu’il est' : IL(b)) : 'disparaît'}</td></tr>`).join('')}</table>`; }
+    if (wk === 'enfers') {
+      const ST = U('ENFERS_STELES', []), AM = U('ENFERS_AMES', []), SN = U('ENFERS_SANS_NOM', []), DA = U('ENFERS_DAMNES', []);
+      let s = '';
+      if (ST.length) s += `<h3>Les stèles</h3>${ST.map(([t, x]) => `<section class="bookpage"><h4>${esc(t)}</h4>${para(x)}</section>`).join('')}`;
+      if (AM.length) s += `<h3>Ce que disent les âmes des victimes</h3>${quotes(AM)}`;
+      if (SN.length) s += `<h3>Les victimes sans nom</h3>${quotes(SN)}`;
+      if (DA.length) s += `<h3>Les damnés</h3>${quotes(DA)}`;
+      if (s) h += SEC(s, 'Ce qu’on lit et ce qu’on entend aux Enfers est masqué (secrets).');
+    }
+    h += restTables(f);
+    const ttl = mondeTitre(wk);
+    SP('monde:' + wk, { t: ttl, s: subOf(f) || (MOND[wk] && MOND[wk].aPart ? 'Un monde à part' : 'La vallée, vue autrement'), c: ['mondes'], i: { bonbons: '🍬', tenebres: '🜏', cauchemar: '☾', enfers: '🜂' }[wk] || '◐', h }, f);
+  }
+
+  // ==== MERVEILLES ET MYSTÈRES ====
+  if (FILE.leg) {
+    const LG = U('LEGENDAIRES', {}), LR = U('LEG_RANGS', {}), LO = U('LEG_ORDRE', []), LF = U('LEG_FORGE', {});
+    const order = uniq([...LO, ...Object.keys(LG)]).filter((id) => LG[id]);
+    let h = intro(FILE.leg);
+    for (const [rk, R] of Object.entries(LR)) {
+      const ids = order.filter((id) => LG[id].rang === rk);
+      if (ids.length) h += `<h3 style="color:${esc(R.col || '')}">${esc(ids.length > 1 ? String(R.nom || rk).split(' ').map((w) => w + 's').join(' ') : R.nom || rk)}</h3><ul class="cards">${ids.map((id) => `<li>${IL(id)}</li>`).join('')}</ul>`;
+    }
+    SP('sys:legendaires', { t: 'Objets légendaires et mythiques', s: `${order.length} merveilles, un seul exemplaire par partie`, c: ['merveilles'], i: '✦', h }, FILE.leg);
+    for (const id of order) {
+      if (!pages.has('it:' + id)) continue;
+      const L = LG[id], R = LR[L.rang] || {}, p = P('it:' + id);
+      let x = `<p><span class="tag leg" style="color:${esc(R.col || '')};border-color:${esc(R.col || '')}">${esc(R.nom || L.rang)}</span></p>`;
+      if (L.histoire) x += `<h3>Son histoire</h3>${para(L.histoire)}`;
+      if (L.pouvoir) x += `<h3>Son pouvoir</h3>${para(L.pouvoir)}`;
+      const s = (L.origine ? `<h3>D’où il vient</h3>${para(L.origine)}` : '') + (L.indice ? `<h3>Comment le trouver</h3>${para(L.indice)}` : '') + (LF[id] ? `<h3>À la forge</h3><p>${needList(LF[id].need)}</p>${LF[id].dit ? quote(LF[id].dit, 'nain_forgeronne') : ''}${LF[id].fait ? quote(LF[id].fait, 'nain_forgeronne') : ''}` : '');
+      if (s) x += SEC(s, 'D’où il vient et comment l’obtenir : masqué (secrets).');
+      p.h = x + (L.pouvoir && ITEMS[id] && ITEMS[id].desc && ITEMS[id].desc.includes(L.pouvoir.slice(0, 40)) ? p.h.replace(/^<p class="lead">[\s\S]*?<\/p>/, '') : p.h);
+      if (!p.c.includes('merveilles')) p.c.push('merveilles');
+      p.g = R.nom ? String(R.nom).split(' ').map((w) => w + 's').join(' ') : 'Merveilles';
+    }
+  }
+  const clause = (f) => { const q = headParts(f).parts[0]; return q ? cap(q.t.split(/[,:;(]/)[0].trim()) : ''; };
+  if (FILE.slender) {
+    const SPG = U('SLENDER_PAGES', []), r = figRect('slender');
+    let h = intro(FILE.slender);
+    if (SPG.length) h += SEC(`<h3>Les pages griffonnées</h3><div class="book">${SPG.map((pg, i) => `<section class="bookpage"><h4>Page ${i + 1}</h4><p>${(pg.lignes || []).map(esc).join('<br>')}</p>${pg.dessin ? `<p class="note">un dessin : ${esc(humanKey(pg.dessin))}</p>` : ''}</section>`).join('')}</div>`, 'Les pages sont masquées (secrets).');
+    if (ITEMS.page_griffonnee) h += `<p>${IL('page_griffonnee')}</p>`;
+    SP('sys:slender', { t: 'L’Homme long', s: clause(FILE.slender) || 'Dans les bois', c: ['merveilles'], g: 'Mystères', i: r ? 'fg:' + r.join(',') : '☗', fig: r, h }, FILE.slender);
+  }
+  if (FILE.fondation) {
+    const FD = U('FOND_DOSSIERS', []), FJ = U('FOND_JOURNAUX', {}), FT = U('FOND_TXT', {}), FCH = U('FOND_CHERCHEURS', []), FCA = U('FOND_CASIERS', {});
+    let h = intro(FILE.fondation);
+    const headTxt = MF[FILE.fondation].head.join(' ').replace(/\s+/g, ' ');
+    const lic = headTxt.match(/\((La Fondation SCP[^)]*?CC BY-SA[^)]*?)\)/);
+    if (lic) { const url = (lic[1].match(/https?:\/\/[^\s)—]+/) || [])[0]; h += `<p class="note licence">${esc(lic[1].replace(/\s*:\s*https?:\/\/[^\s)—]+/, '').replace(/\s+—\s+/, ' — '))}${url ? ` — <a href="${esc(url)}" rel="noopener">${esc(url.replace(/^https?:\/\//, ''))}</a>` : ''}</p>`; }
+    if (FCH.length) h += `<h3>Les chercheurs</h3><div class="figrow">${FCH.map((c, i) => figInline(figRect('chercheur:' + i), 90, `${esc(c.nom || '')}<br><small>${esc(c.titre || '')}</small>`)).join('')}</div>`;
+    if (FD.length) h += `<h3>Les dossiers de confinement</h3><ul class="cards">${FD.map((D) => `<li>${lk('scp:' + D.id, `${D.id} — ${D.titre}`)}</li>`).join('')}</ul>`;
+    let s = '';
+    if (Object.keys(FT).length) s += `<h3>Plaques et notes</h3>${Object.values(FT).map((a) => `<section class="bookpage"><h4>${esc(a[0] || '')}</h4>${para(a[1] || '')}${a[2] ? `<p class="note">${esc(a[2])}</p>` : ''}</section>`).join('')}`;
+    if (Object.keys(FJ).length) s += `<h3>Les journaux</h3>${Object.values(FJ).map((J2) => `<section class="bookpage"><h4>${esc(J2.titre || '')}</h4>${(J2.s || []).map(([t, x]) => `<p><b>${esc(t)}</b> — ${FILL(x)}</p>`).join('')}</section>`).join('')}`;
+    if (Object.keys(FCA).length) s += `<h3>Dans les casiers</h3><table class="t">${Object.entries(FCA).map(([k, a]) => `<tr><th>${esc(humanKey(k))}</th><td>${a.map(([id, n]) => IL(id, n)).join(', ')}</td></tr>`).join('')}</table>`;
+    if (s) h += SEC(s, 'Ce qu’on lit dans le complexe est masqué (secrets).');
+    const its = MF[FILE.fondation].items.filter((i) => ITEMS[i]);
+    if (its.length) h += `<h3>Objets d’un autre temps</h3><p>${ILs(its)}</p>`;
+    SP('sys:fondation', { t: 'La Fondation', s: clause(FILE.fondation) || 'Un poste avancé sous la lande', c: ['merveilles'], g: 'Mystères', i: '▣', h }, FILE.fondation);
+    for (const D of FD) SP('scp:' + D.id, { t: `${D.id} — ${D.titre}`, s: `Dossier de confinement · classe ${D.classe || '?'}`, c: ['merveilles'], g: 'Dossiers de la Fondation', i: '▣', x: 1, h: `<dl class="kv"><dt>Désignation</dt><dd>SCP-${esc(D.id)}</dd><dt>Classe</dt><dd>${esc(D.classe || '—')}</dd></dl>${(D.s || []).map(([t, x]) => `<h3>${esc(t)}</h3>${para(x)}`).join('')}<p>${lk('sys:fondation', 'La Fondation')}</p>` });
+  }
+
+  // ==== PRISON, VOL À LA TIRE ET SENTIMENTS (modules à venir : leurs fiches se font d'elles-mêmes) ====
+  // et, plus généralement, tout module de nouveautés qu'aucune fiche ne couvre encore
+  const genericPage = (file, cat, g) => {
+    const M = MF[file], HP = headParts(file);
+    if (!M) return null;
+    const id = 'mod:' + file.replace(/\.js$/, '');
+    let h = intro(file);
+    const looks = Object.keys(M.tables).filter((n) => /_LOOK$/.test(n) && FIG['look:' + n]);
+    if (looks.length) h = `<div class="figrow">${looks.map((n) => figInline(figRect('look:' + n), 110, esc(cap(humanKey(n.replace(/_LOOK$/, '').toLowerCase()))))).join('')}</div>` + h;
+    for (const o of M.objs) {
+      const S2 = SYS.objs && SYS.objs[o];
+      if (!S2 || S2.file !== file) continue;
+      for (const [k, v] of Object.entries(S2.props)) { const st = proseStats(v); if (!st.code && st.prose >= 40) h += `<h3>${esc(cap(humanKey(k.toLowerCase())))}</h3>${plainTree(v, 1)}`; }
+    }
+    // les réglages simples (constantes et propriétés en majuscules), avec le commentaire qui les accompagne
+    const reg = Object.entries(M.scal || {}).filter(([k, o]) => !TECH_TABLES.test(k) && (typeof o.v === 'number' || (typeof o.v === 'string' && o.v.length < 80))).map(([k, o]) => [k, o.v, o.doc]);
+    for (const o of M.objs) { const S2 = SYS.objs && SYS.objs[o]; if (S2 && S2.file === file) for (const [k, v] of Object.entries(S2.props)) if (typeof v === 'number' || (typeof v === 'string' && v.length < 80)) reg.push([k, v, '']); }
+    if (reg.length) h += `<h3>Quelques chiffres</h3><dl class="kv">${reg.map(([k, v, d]) => `<dt>${esc(cap(humanKey(k.toLowerCase())))}</dt><dd>${esc(typeof v === 'number' ? nfmt(v) : v)}${d ? ` <small>— ${esc(cleanText(d))}</small>` : ''}</dd>`).join('')}</dl>`;
+    const its = M.items.filter((i) => ITEMS[i]);
+    if (its.length) h += `<h3>Objets</h3><p>${ILs(its)}</p>`;
+    // (les petites tables de nombres ou de mots comptent aussi ; pas les couleurs ni les modèles)
+    const leafs = (v, acc = []) => { if (v === null || typeof v !== 'object') { acc.push(v); return acc; } for (const k in v) leafs(v[k], acc); return acc; };
+    const simple = (v) => { const s = JSON.stringify(v); if (!s || s.length > 3000 || s === '{}' || s === '[]') return false; const L = leafs(v); return L.length > 0 && !(/\[/.test(s) && L.every((x) => typeof x === 'number')); };
+    const names = Object.keys(M.tables).filter((n) => DB.tables[n] && !used.has(n) && !TECH_TABLES.test(n) && !/_LOOKS?$/.test(n) && DB.tables[n].file === file && !proseStats(DB.tables[n].v).code && (proseStats(DB.tables[n].v).prose >= 40 || simple(DB.tables[n].v)));
+    for (const n of names) { used.add(n); h += `<h3>${esc(tableTitle(n, M.tables[n].doc))}</h3>${M.tables[n].doc ? `<p class="note">${esc(cap(cleanText(M.tables[n].doc)))}</p>` : ''}${plainTree(DB.tables[n].v, 1)}`; }
+    if (!h.replace(/<[^>]+>/g, '').trim()) return null;
+    SP(id, { t: HP.title || cap(humanKey(file.replace(/^\d\d-zzz\w?\d*-?|\.js$/g, ''))), s: HP.sub || '', c: [cat], g, i: '✦', h }, file);
+    return id;
+  };
+  for (const f of [FILE.vol, FILE.prison, FILE.sentiments]) if (f) genericPage(f, 'prison', 'Prison, vol et sentiments');
+  for (const f of Object.keys(MF)) if (!MODPAGE[f] && !/^07-/.test(f)) genericPage(f, 'nouveautes-autres', 'Autres nouveautés');
+  // ce qui reste des tables de chaque module : en bas de sa fiche principale
+  for (const f of Object.keys(MF)) { const pid = MODPAGE[f]; if (!pid) continue; const x = restTables(f); if (x) P(pid).h += x; }
+  // les liens différés, et les fiches qui renvoient aux nouveautés
+  const resolveLk = (s) => s.replace(/\u0002([^\u0003]*)\u0003([^\u0004]*)\u0004/g, (m, id, t) => {
+    const text = t ? decodeURIComponent(t) : undefined;
+    if (id.startsWith('@mod:')) { const pid = MODPAGE[id.slice(5)]; return pid ? link(pid) : ''; }
+    return pages.has(id) ? link(id, text) : esc(text || id);
+  });
+  for (const p of pages.values()) if (p.h && p.h.includes('\u0002')) p.h = resolveLk(p.h);
+  {
+    const BACK = {};
+    const add = (t, id) => { if (t === id || SYSP.includes(t) || !pages.has(t)) return; (BACK[t] || (BACK[t] = new Set())).add(id); };
+    for (const id of SYSP) { const p = pages.get(id); if (!p) continue; for (const m of p.h.matchAll(/href="#\/p\/([^"]+)"/g)) { const t = decodeURIComponent(m[1]); if (/^(it|an|pnj|li|pl|lg|mil|sem|foi|div|my):/.test(t)) add(t, id); } }
+    for (const [f, M] of Object.entries(MF)) { const pid = MODPAGE[f]; if (pid) for (const i of M.items) add('it:' + i, pid); }
+    for (const [t, set] of Object.entries(BACK)) {
+      const p = pages.get(t), ids = [...set].filter((i) => pages.has(i));
+      if (!p || !ids.length) continue;
+      p.h += `<h3 class="seealso">Dans les nouveautés</h3><ul class="cards">${ids.slice(0, 18).map((i) => `<li${isSec(i) && !p.x ? ' class="sec"' : ''}>${link(i)}</li>`).join('')}${ids.length > 18 ? `<li><small>et ${ids.length - 18} autres</small></li>` : ''}</ul>`;
+    }
+  }
+
   // ---------------------------------------------------------------- 19) AUTRES TABLES (tout ce qui n'a pas de section)
   const other = [];
   for (const [name, { file, v }] of Object.entries(DB.tables)) {
@@ -1254,27 +2402,39 @@ function buildWiki(DB) {
   const sortT = (ids) => ids.sort((a, b) => pages.get(a).t.localeCompare(pages.get(b).t, 'fr'));
   const groupBy = (ids, f) => { const g = {}; for (const id of ids) { const k = f(pages.get(id)) || 'Autres'; (g[k] || (g[k] = [])).push(id); } return Object.entries(g).map(([t, a]) => ({ t, ids: sortT(a) })); };
   const itemGroup = (p) => { const id = p.id.slice(3), it = ITEMS[id]; return it ? CATN[it.cat] || cap(it.cat || 'Autres') : 'Autres'; };
+  const isSys = (id) => SYSP.includes(id);
+  const sysGroup = (cat, t) => { const ids = byCat(cat).filter(isSys); return ids.length ? [{ t, ids }] : []; };
   const cats = [
+    { id: 'nouveautes', t: 'Nouveautés', d: 'Tout ce qui est arrivé dans la vallée : le corps et l’esprit, la chasse, la société, les événements, les Trois, les autres mondes, les merveilles…', page: true, nouveau: true },
+    { id: 'commandes', t: 'Commandes et mécaniques', d: 'Les touches du jeu, et ce que les nouveautés y ajoutent.', page: true, nouveau: true },
     { id: 'habitants', t: 'Habitants', d: 'Les gens de la vallée : leurs journées, leurs boutiques, leurs quêtes, leurs histoires.', groups: groupBy(byCat('habitants'), (p) => p.g || 'Autres') },
     { id: 'lieux', t: 'Lieux', d: 'Villes, hameaux, lieux-dits, bâtiments, et ce qu’on y trouve.', groups: groupBy(byCat('lieux'), (p) => p.g) },
     { id: 'objets', t: 'Objets', d: 'Tout ce qui se ramasse, s’achète, se fabrique.', groups: groupBy(byCat('objets'), itemGroup) },
-    { id: 'recettes', t: 'Recettes', d: 'Ce qui se fabrique, où, et avec quoi.', page: true },
+    { id: 'recettes', t: 'Recettes', d: 'Ce qui se fabrique, où, et avec quoi.', page: true, groups: sysGroup('recettes', 'Fabriquer') },
     { id: 'cultures', t: 'Cultures', d: 'Ce qui se sème au potager : temps de pousse, récolte, variétés.', page: true },
     { id: 'plantes', t: 'Plantes sauvages', d: 'Fleurs, herbes et champignons de chaque milieu.', groups: groupBy(byCat('plantes'), (p) => { const f = floraInfo[p.id.slice(3)]; return f && f.rar !== null && f.rar !== undefined ? cap(RAR[f.rar] || '') : 'Sans rareté connue'; }) },
     { id: 'arbres', t: 'Arbres', d: 'Les essences de la vallée.', groups: [{ t: 'Arbres', ids: sortT(byCat('arbres')) }] },
     { id: 'betes', t: 'Bêtes', d: 'Gibier, bêtes des bois, des eaux et des montagnes, et bêtes de ferme.', groups: groupBy(byCat('betes'), (p) => p.g) },
     { id: 'poissons', t: 'Poissons', d: 'Toutes les eaux, toutes les heures, du gardon à la Reine du lac.', groups: groupBy(byCat('poissons'), (p) => cap(RAR[FR[p.id.slice(3)]] || 'Autres')) },
     { id: 'milieux', t: 'Milieux', d: 'Chaque milieu a ses plantes et ses bêtes.', groups: [{ t: 'Milieux', ids: byCat('milieux') }] },
-    { id: 'alchimie', t: 'Alchimie', d: 'Les potions, et (en secret) les essences et les combinaisons.', groups: [{ t: 'Règles', ids: ['alch:regles'] }, { t: 'Potions', ids: sortT(byCat('alchimie').filter((i) => i !== 'alch:regles')) }] },
-    { id: 'livres', t: 'Livres', d: 'Ceux des marchands et ceux de la grande bibliothèque.', groups: groupBy(byCat('livres'), (p) => { const b = p.id.replace(/^it:livre_/, ''); return LIVRES[b] && LIVRES[b].biblio ? 'La grande bibliothèque' : 'Chez les marchands'; }) },
-    { id: 'langues', t: 'Langues perdues', d: 'L’aëlin et le gorrain : lexiques, écritures, inscriptions.', groups: [{ t: 'Langues', ids: byCat('langues').filter((i) => i.startsWith('lg:')) }, { t: 'Inscriptions', ids: byCat('langues').filter((i) => i.startsWith('ins:')) }] },
-    { id: 'semaine', t: 'La semaine', d: `${SEM.length} jours, chacun avec son nom et ses habitudes.`, groups: [{ t: 'Les jours', ids: byCat('semaine') }] },
+    { id: 'alchimie', t: 'Alchimie', d: 'Les potions, les plantes à faire nommer, la table d’alchimiste, et (en secret) les essences et les combinaisons.', groups: [{ t: 'Règles', ids: ['alch:regles', ...byCat('alchimie').filter(isSys)] }, { t: 'Potions', ids: sortT(byCat('alchimie').filter((i) => i !== 'alch:regles' && !isSys(i))) }] },
+    { id: 'livres', t: 'Livres', d: 'Ceux des marchands et ceux de la grande bibliothèque.', groups: [...sysGroup('livres', 'Lire, emprunter'), ...groupBy(byCat('livres').filter((i) => !isSys(i)), (p) => { const b = p.id.replace(/^it:livre_/, ''); return LIVRES[b] && LIVRES[b].biblio ? 'La grande bibliothèque' : 'Chez les marchands'; })] },
+    { id: 'langues', t: 'Langues perdues', d: 'L’aëlin et le gorrain : lexiques, écritures, inscriptions.', groups: [...sysGroup('langues', 'Apprendre'), { t: 'Langues', ids: byCat('langues').filter((i) => i.startsWith('lg:')) }, { t: 'Inscriptions', ids: byCat('langues').filter((i) => i.startsWith('ins:')) }] },
+    { id: 'semaine', t: 'La semaine', d: `${SEM.length} jours, chacun avec son nom et ses habitudes.`, groups: [...sysGroup('semaine', 'Le temps'), { t: 'Les jours', ids: byCat('semaine').filter((i) => i.startsWith('sem:')) }] },
     { id: 'legendes', t: 'Légendes et lore', d: 'Légendes, fois, divinités, signes, textes du monde.', groups: groupBy(byCat('legendes'), (p) => (p.id.startsWith('my:') ? 'Légendes' : p.id.startsWith('foi:') ? 'Les fois' : p.id.startsWith('div:') ? 'Les divinités' : 'Textes')) },
-    { id: 'cartes', t: 'Cartes des régions', d: 'Les cartes qu’on achète : jamais toute la vallée.', groups: [{ t: 'Cartes', ids: sortT(byCat('cartes')) }] },
+    { id: 'cartes', t: 'Cartes des régions', d: 'Les cartes qu’on achète : jamais toute la vallée.', groups: [...sysGroup('cartes', 'Comment on les dessine'), { t: 'Cartes', ids: sortT(byCat('cartes').filter((i) => !isSys(i))) }] },
     { id: 'etrange', t: 'L’étrange', d: 'Apparitions, manifestations, lettres… (secrets).', groups: [{ t: 'L’étrange', ids: byCat('etrange') }] },
+    { id: 'corps', t: 'Corps et esprit', d: 'Chutes, blessures, mentalité, ce qu’on mange, le chien, l’alcool.', nouveau: true, groups: groupBy(byCat('corps'), (p) => p.g || 'Le corps et l’esprit') },
+    { id: 'chasse', t: 'Chasse et attelage', d: 'Le fusil, les pièges, les bêtes dangereuses, les chasseurs, la charrette.', nouveau: true, groups: groupBy(byCat('chasse'), (p) => p.g || 'La chasse') },
+    { id: 'societe', t: 'Société', d: 'La mort des habitants, les crimes et les primes, les Sources, les nains, les géants, les colporteurs.', nouveau: true, groups: groupBy(byCat('societe'), (p) => p.g || 'La vie de la vallée') },
+    { id: 'evenements', t: 'Événements et divinités', d: 'Nuits noires, neige, soleil, tornades, prodiges, les Trois, les malédictions, le temple, les cinématiques.', nouveau: true, groups: groupBy(byCat('evenements'), (p) => p.g || 'Ce qui arrive') },
+    { id: 'mondes', t: 'Autres mondes', d: 'Le pays des bonbons, les Ténèbres, le cauchemar, les Enfers.', nouveau: true, groups: groupBy(byCat('mondes'), (p) => p.g || 'Les mondes') },
+    { id: 'merveilles', t: 'Merveilles et mystères', d: 'Objets légendaires et mythiques, l’Homme long, la Fondation.', nouveau: true, groups: groupBy(byCat('merveilles'), (p) => p.g || 'Merveilles') },
+    { id: 'prison', t: 'Prison, vol à la tire et sentiments', d: 'Voler, être pris, le cachot ; ce que les gens ressentent.', nouveau: true, groups: groupBy(byCat('prison'), (p) => p.g || 'Fiches') },
+    { id: 'nouveautes-autres', t: 'Autres nouveautés', d: 'Les modules nouveaux qui n’ont pas encore de section à eux.', nouveau: true, groups: groupBy(byCat('nouveautes-autres'), (p) => p.g || 'Fiches') },
     { id: 'butins', t: 'Butins', d: 'Ce qu’on trouve en fouillant les coffres et les caches (secrets).', groups: [{ t: 'Tables de butin', ids: sortT(byCat('butins')) }] },
     { id: 'autres', t: 'Autres tables', d: 'Les tables du jeu qui n’ont pas de section à elles, affichées telles quelles.', groups: [{ t: 'Tables', ids: sortT(byCat('autres')) }] },
-  ].filter((c) => c.page || c.groups.some((g) => g.ids.length));
+  ].map((c) => (c.groups ? Object.assign(c, { groups: c.groups.filter((g) => g.ids.length) }) : c)).filter((c) => c.page || c.groups.some((g) => g.ids.length));
 
   // pages de catégorie à contenu propre : recettes, cultures
   {
@@ -1282,7 +2442,7 @@ function buildWiki(DB) {
     RECIPES.forEach((r) => { (bySt[r.st || ''] || (bySt[r.st || ''] = [])).push(r); });
     let h = `<p class="lead">${RECIPES.length} recettes. Seules les recettes de base sont connues au départ ; les autres s’apprennent (quêtes, livres, habitants) ou se découvrent en assemblant les bons ingrédients.</p>`;
     for (const [st, rs] of Object.entries(bySt)) h += `<h3>${esc(cap(stationName(st || null)))}</h3><table class="t"><tr><th>Donne</th><th>Il faut</th><th>Connue</th></tr>${rs.map((r) => `<tr><td>${IL(r.out)}${r.n > 1 ? ` <small>×${r.n}</small>` : ''}</td><td>${needList(r.need)}</td><td><small>${CRAFT_BASE.has(r.out) ? 'dès le départ' : (teach[r.out] || []).length ? 'à apprendre' : 'à découvrir'}</small></td></tr>`).join('')}</table>`;
-    if (Object.keys(MACHINES).length) h += `<h3>Les machines</h3><table class="t"><tr><th>Machine</th><th>On y met</th><th>On obtient</th><th>Temps</th></tr>${Object.entries(MACHINES).flatMap(([m, L]) => (L || []).map((e) => `<tr><td>${esc(label(m))}</td><td>${needList(e.in)}</td><td>${IL(e.out[0], e.out[1])}</td><td>${nfmt(e.h)} h</td></tr>`)).join('')}</table>` + (Object.keys(MACHINE_HINT).length ? `<p class="note">${Object.values(MACHINE_HINT).map(esc).join(' ')}</p>` : '');
+    if (Object.keys(MACHINES).length) h += `<h3>Les machines</h3><table class="t"><tr><th>Machine</th><th>On y met</th><th>On obtient</th><th>Temps</th></tr>${Object.entries(MACHINES).flatMap(([m, L]) => (L || []).map((e) => `<tr><td>${esc(machName(m))}</td><td>${needList(e.in)}</td><td>${IL(e.out[0], e.out[1])}</td><td>${nfmt(e.h)} h</td></tr>`)).join('')}</table>` + (Object.keys(MACHINE_HINT).length ? `<p class="note">${Object.values(MACHINE_HINT).map(esc).join(' ')}</p>` : '');
     P('cat:recettes', { t: 'Recettes', s: 'Fabrication, cuisine, fonte, machines', c: [], i: '⚒', h });
     let hc = `<p class="lead">${cropRows.length} cultures. Les heures sont des heures de jeu, terre humide.</p><table class="t"><tr><th>Culture</th><th>Pousse</th><th>Repousse</th><th>Récolte</th><th>Graines</th><th>Vente</th></tr>${cropRows.map(([c, out, cr, seeds]) => `<tr><td>${out ? IL(out) : esc(cr.name)}</td><td>${nfmt(cr.h)} h</td><td>${cr.regrow ? nfmt(cr.regrow) + ' h' : '—'}</td><td>${cr.yield ? cr.yield.join('–') : '—'}</td><td>${seeds.map((s) => IL(s) + (ITEMS[s].buy ? ` <small>${ITEMS[s].buy}</small>` : '')).join(' ')}</td><td>${out && ITEMS[out] ? nfmt(ITEMS[out].price) : '—'}</td></tr>`).join('')}</table>`;
     P('cat:cultures', { t: 'Cultures', s: 'Le potager', c: [], i: '🌱', h: hc });
@@ -1296,11 +2456,52 @@ function buildWiki(DB) {
     const typ = { apporter: 'apporter', parler: 'aller parler', livrer: 'livrer', trouver: 'retrouver', enquete: 'enquêter' };
     if (qs.length) {
       P('cat:quetes', { t: 'Quêtes', s: `${qs.length} quêtes`, c: [], i: '✎', h: `<p class="lead">Ce que les habitants vous demandent, à mesure qu’ils vous font confiance.</p><table class="t"><tr><th>Quête</th><th>Qui</th><th>Quoi</th><th>Récompense</th></tr>${qs.map(([d, q]) => `<tr><td>« ${esc(q.title)} »${q.minAmitie ? ` <small>amitié ${q.minAmitie}</small>` : ''}</td><td>${npcLink(d.id)}</td><td>${esc(typ[q.type] || q.type || '')}${q.need ? ' : ' + needList(q.need) : ''}${q.a ? ' → ' + npcLink(q.a) : ''}${q.objet ? ' ' + IL(q.objet) : ''}${q.lieu && q.type !== 'trouver' ? ' — ' + placeLink(q.lieu) : ''}${q.moment ? ` <small>(${esc(q.moment)})</small>` : ''}</td><td>${[q.reward && q.reward.argent ? nfmt(q.reward.argent) + ' pièces' : '', q.reward && q.reward.recette ? 'recette : ' + IL(q.reward.recette) : '', q.reward && q.reward.objets ? Object.entries(q.reward.objets).map(([k, n]) => IL(k, n)).join(', ') : ''].filter(Boolean).join(' · ')}</td></tr>`).join('')}</table>` });
-      cats.splice(1, 0, { id: 'quetes', t: 'Quêtes', d: 'Toutes les quêtes des habitants.', page: true });
+      cats.splice(cats.findIndex((c) => c.id === 'habitants') + 1, 0, { id: 'quetes', t: 'Quêtes', d: 'Toutes les quêtes des habitants.', page: true });
     }
   }
   // semaine : page d'ensemble
   if (SEM.length) P('cat:semaine', { t: 'La semaine', s: `${SEM.length} jours`, c: [], i: '📅', h: `<p class="lead">Dans la vallée, la semaine compte ${SEM.length} jours${DB.derived.jour ? `, et une journée dure ${Math.round(DB.derived.jour / 60)} minutes` : ''}.</p><table class="t">${SEM.map((J, k) => `<tr><th>${link('sem:' + k)}</th><td>${esc((J.annonce || '').replace(/^\(|\)$/g, ''))}</td></tr>`).join('')}</table>` });
+
+  // les nouveautés : toutes les sections nouvelles, et les fiches des systèmes dans les sections anciennes
+  {
+    const SUBF = /^(eff|pr|scp|an:m|geant|mal|dieu):/;
+    let h = `<p class="lead">Ce qui est arrivé dans la vallée, section par section. Chaque fiche est tirée du jeu lui-même : l’en-tête de ses modules, leurs tables, ce qu’ils calculent.</p>`;
+    let n = 0;
+    for (const c of [...cats.filter((q) => q.nouveau), ...cats.filter((q) => !q.nouveau)]) {
+      const ids = SYSP.filter((id) => { const p = pages.get(id); return p && p.c.includes(c.id) && (!p.c.length || cats.findIndex((q) => p.c.includes(q.id)) === cats.indexOf(c)); });
+      if (!ids.length) continue;
+      const main = ids.filter((id) => !SUBF.test(id)), subs = ids.filter((id) => SUBF.test(id));
+      n += ids.length;
+      h += `<h2><a href="#/cat/${esc(c.id)}">${esc(c.t)}</a></h2>${c.nouveau ? '' : '<p class="note">(une section d’avant, qui s’est enrichie)</p>'}<ul class="nv">${main.map((id) => { const p = pages.get(id); return `<li${p.x ? ' class="sec"' : ''}>${link(id)}${p.s ? ` <small>— ${esc(p.s)}</small>` : ''}</li>`; }).join('')}</ul>${subs.length ? `<p class="note">Et ${subs.length} fiches : ${subs.slice(0, 40).map((id) => (isSec(id) ? secS(link(id)) : link(id))).join(' · ')}${subs.length > 40 ? '…' : ''}.</p>` : ''}`;
+    }
+    const newItems = uniq([...Object.values(MF).flatMap((M) => M.items), ...Object.keys(T('LEGENDAIRES', {}))]).filter((i) => pages.has('it:' + i));
+    if (newItems.length) h += `<h2>Les objets nouveaux</h2><p class="note">Chacun a sa fiche, reliée aux sections qui en parlent (« Dans les nouveautés »).</p><p>${newItems.map((i) => IL(i)).join(', ')}</p>`;
+    P('cat:nouveautes', { t: 'Nouveautés', s: `${n} fiches`, c: [], i: '✦', h });
+  }
+  // les commandes (menu du jeu), et les gestes que les nouveautés décrivent
+  {
+    let h = `<p class="lead">Les touches du jeu telles que les donne son menu « Commandes », puis les gestes que les nouveautés ajoutent.</p>`;
+    const kb = (s) => String(s).replace(/<(?!\/?kbd>)[^>]*>/g, '');
+    for (const g of SYS.commandes || []) h += `<h3>${esc(cap(g.t.toLowerCase()))}</h3><table class="t keys">${g.rows.map(([k, d]) => `<tr><th>${kb(k)}</th><td>${esc(d.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&#39;|&apos;/g, '’'))}</td></tr>`).join('')}</table>`;
+    const KEYRE = /(?:^|[\s(«])(E|G|F|R|Maj|Espace|Échap|Tab)(?=[\s),.;:»]|$)|\bclic\b|bouton (?:droit|gauche)|molette|flèches|←|→/i;
+    const rows = [];
+    // (seulement ce qu'une fiche publique dit déjà : rien des lieux cachés ni des secrets)
+    const nrm = (x) => String(x).toLowerCase().replace(/&[a-z]+;/g, ' ').replace(/[^a-zà-ÿœ0-9]+/g, ' ').trim();
+    const pubText = nrm(SYSP.filter((id) => !isSec(id)).map((id) => pages.get(id).h.replace(/<(li|p|span)\b[^>]*class="sec[^"]*"[^>]*>[\s\S]*?<\/\1>/g, ' ').replace(/<div class="sec">[\s\S]*?<\/div>/g, ' ').replace(/<[^>]+>/g, ' ')).join(' '));
+    for (const f of Object.keys(MF)) {
+      const pid = MODPAGE[f];
+      if (!pid || isSec(pid)) continue;
+      for (const q of headParts(f).parts) for (const s of clauses(q.t).map((c) => c.trim().replace(/\s*;$/, '.'))) if (KEYRE.test(s) && s.length < 360 && pubText.includes(nrm(s).slice(0, 80))) rows.push([pid, cap(s)]);
+    }
+    const wrapKeys = (s) => esc(s).replace(/(^|[\s(«])(E|G|F|R|Maj|Espace|Échap|Tab)(?=[\s),.;:»]|$)/g, '$1<kbd>$2</kbd>');
+    if (rows.length) {
+      const by = {}; for (const [pid, s] of rows) (by[pid] || (by[pid] = [])).push(s);
+      h += `<h3>Dans les nouveautés</h3><table class="t">${Object.entries(by).map(([pid, a]) => `<tr><th>${link(pid)}</th><td>${uniq(a).map((s) => `<p>${wrapKeys(s)}</p>`).join('')}</td></tr>`).join('')}</table>`;
+    }
+    const mech = SYSP.filter((id) => { const p = pages.get(id); return p && !p.x && /^(corps|semaine|recettes|lieux|chasse)$/.test(p.c[0] || '') && !/^(eff):/.test(id); });
+    if (mech.length) h += `<h3>Les mécaniques</h3><ul class="nv">${mech.map((id) => `<li>${link(id)}${pages.get(id).s ? ` <small>— ${esc(pages.get(id).s)}</small>` : ''}</li>`).join('')}</ul>`;
+    P('cat:commandes', { t: 'Commandes et mécaniques', s: 'Touches et gestes', c: [], i: '⌨', h });
+  }
 
   return { pages: [...pages.values()], cats, other, used: [...used], SAFE_INTER };
 }
@@ -2131,6 +3332,24 @@ ul.qs { padding-left: 1.2em; } ul.qs li { margin: .25em 0; font-style: italic; }
 ul.qs li::marker { content: '« '; color: var(--red); }
 ul.cards { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
 ul.cols { columns: 2 220px; }
+ul.sysl { padding-left: 1.2em; } ul.sysl li { margin: .35em 0; }
+ul.nv { padding-left: 1.1em; columns: 2 300px; } ul.nv li { margin: .2em 0; break-inside: avoid; }
+.figrow { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-end; margin: .6em 0 1em; }
+figure.sysfig { display: inline-flex; flex-direction: column; align-items: center; margin: 0 14px 8px 0; vertical-align: bottom; }
+.figrow figure.sysfig { margin: 0; }
+figure.sysfig figcaption { font-size: .85em; color: var(--ink2); text-align: center; margin-top: 3px; line-height: 1.2; }
+.scrollx { overflow-x: auto; max-width: 100%; }
+table.week-grid { font-size: .8em; }
+table.week-grid th, table.week-grid td { padding: 3px 5px; min-width: 64px; }
+table.keys th { white-space: nowrap; }
+kbd { display: inline-block; font: .82em/1.2 ui-monospace, Menlo, Consolas, monospace; padding: 0 .35em; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3px; background: rgba(255,250,235,.9); color: var(--ink); margin: 0 .1em; }
+.tag.leg { font-weight: 600; background: rgba(255,250,235,.95); }
+.inscr p { margin: .2em 0 .6em; }
+.say { display: flex; gap: 14px; align-items: center; margin: .35em 0 .7em; }
+.say canvas { flex: 0 0 auto; background: #d8ccb0; padding: 3px 6px; border-radius: 3px; box-shadow: inset 0 0 8px rgba(60,40,20,.2); }
+.say p { margin: 0; }
+p.licence { border-top: 1px solid var(--line); padding-top: .4em; }
+h3.seealso { font-size: 1em; }
 .inl { margin: .3em 0; }
 details { margin: .5em 0; border: 1px solid var(--line); border-radius: 3px; padding: 4px 12px; background: rgba(255,250,235,.35); }
 details > summary { cursor: pointer; font-variant: small-caps; letter-spacing: .03em; color: #4a3220; }
