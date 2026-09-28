@@ -28954,7 +28954,7 @@ const alchimie = {
     body += `<h4>Plantes nommées par l’alchimiste (${connues.length} / ${toutes.length})</h4>`;
     body += connues.length ? `<div class="alc-pl">${connues.sort((a, b) => this.vraiNom(a).localeCompare(this.vraiNom(b))).map((id) => `<span title="${esc(PLANT_LOOK[id][1])}"><img src="${iconURL(id)}" alt="">${esc(this.vraiNom(id))} <i>— ${esc(PLANT_LOOK[id][0].toLowerCase())}</i></span>`).join('')}</div>` : '<p class="hint">Aucune. Les plantes sauvages qu’on cueille n’ont pas de nom tant qu’on ne les a pas montrées à l’alchimiste de la ville.</p>';
     const inc = this.portees();
-    if (inc.length) body += `<p class="hint">Dans votre sacoche, inconnues : ${inc.map((id) => esc(itemName(id).toLowerCase())).join(', ')}.</p>`;
+    if (inc.length) body += `<p class="hint">Dans votre sacoche, inconnues : ${inc.map((id) => esc(T(itemName(id)).toLowerCase())).join(', ')}.</p>`;
     // potions
     const ids = new Set(Object.keys(A.potions).filter((id) => ITEMS[id]));
     for (const id in POTIONS) if (alchemy.known(id)) ids.add(id);
@@ -56257,6 +56257,7 @@ const I18N_EN = {"v":1,"exact":[
 ["À la vôtre ! Et à la ferme !","Your health! And to the farm!"],
 ["À l’abri ! Des grêlons gros comme des noix !","Take cover! Hailstones as big as walnuts!"],
 ["À l’aide !","Help me!"],
+["À l’alambic :","At the still:"],
 ["À l’aube, j’ai dit. Pas à midi, pas au soir. À l’aube.","At dawn, I said. Not at noon, not in the evening. At dawn."],
 ["À l’aube, par temps calme, on voit le clocher du village noyé, au fond du lac. Jules disait qu’on l’entendait sonner. Allez regarder, demain à l’aube. Moi, je ne peux plus.","At dawn, when it’s calm, you can see the bell tower of the drowned village at the bottom of the lake. Jules used to say you could hear it ring. Go and look, tomorrow at dawn. I can’t any more."],
 ["À l’aube, pas avant. Avant, ce n’est pas encore tout à fait à vous.","At dawn, not before. Before then, it isn’t quite yours yet."],
@@ -56273,6 +56274,7 @@ const I18N_EN = {"v":1,"exact":[
 ["À personne. Pas même à vous.","No one. Not even you."],
 ["À personne… C’est peut-être la réponse la plus sage de toute la vallée, et la plus triste. Je vais faire ma ronde.","No one… That may be the wisest answer in the whole valley, and the saddest. I’ll go and do my rounds."],
 ["À plus tard. Faites attention.","Later. Be careful."],
+["À portée :","Within reach:"],
 ["À poser contre une paroi : on y grimpe (E).","Place it against a wall: climb it (E)."],
 ["À poser sur un terrain dégagé de la ferme. Pour les poules, canes, oies et lapins.","To be placed on clear ground on the farm. For hens, ducks, geese and rabbits."],
 ["À poser sur un terrain dégagé de la ferme. Pour les vaches, moutons, cochons, chèvres, ânes et chevaux.","To be placed on clear ground on the farm. For cows, sheep, pigs, goats, donkeys and horses."],
