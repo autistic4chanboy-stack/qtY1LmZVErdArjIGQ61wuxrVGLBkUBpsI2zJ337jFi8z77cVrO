@@ -145,13 +145,13 @@ const sommeil = {
       const el = this.el = document.createElement('div');
       el.id = 'm95-paupieres';
       el.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;';
-      const mk = (top) => { const d = document.createElement('div'); d.style.cssText = `position:absolute;left:-5%;right:-5%;height:52%;${top ? 'top:0' : 'bottom:0'};background:linear-gradient(${top ? 'to bottom' : 'to top'},#000 0%,#000 62%,rgba(0,0,0,0.75) 82%,rgba(0,0,0,0) 100%);transform:translateY(${top ? -101 : 101}%);will-change:transform;`; el.appendChild(d); return d; };
+      const mk = (top) => { const d = document.createElement('div'); d.style.cssText = `position:absolute;left:-5%;right:-5%;height:62%;${top ? 'top:0' : 'bottom:0'};background:linear-gradient(${top ? 'to bottom' : 'to top'},#000 0%,#000 78%,rgba(0,0,0,0.6) 90%,rgba(0,0,0,0) 100%);transform:translateY(${top ? -101 : 101}%);will-change:transform;`; el.appendChild(d); return d; };
       this.elH = mk(true); this.elB = mk(false);
       const gl = document.getElementById('gl');
       if (gl && gl.parentNode) gl.parentNode.insertBefore(el, gl.nextSibling); else document.body.appendChild(el);
     }
     this.elK = c; this.elF = f;
-    const t = -101 + c * 101;
+    const t = -101 + Math.min(1, c) * 101;
     this.elH.style.transform = `translateY(${t.toFixed(1)}%)`;
     this.elB.style.transform = `translateY(${(-t).toFixed(1)}%)`;
     const fl = f > 0.05 ? `blur(${f.toFixed(2)}px)` : '';
