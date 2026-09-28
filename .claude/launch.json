@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "prairie",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/Users/Romai/AppData/Local/Temp/claude/C--Users-Romai-Desktop-RS-clone/ef75fcda-3854-4194-bcb2-8240db17a452/scratchpad/serve.js", "8765"],
+      "port": 8765
+    }
+  ]
+}

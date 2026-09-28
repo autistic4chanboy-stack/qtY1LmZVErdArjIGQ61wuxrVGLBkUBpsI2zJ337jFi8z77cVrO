@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prairie — La vieille ferme</title>
+<style>
+:root {
+  --amber: #ffc93c;
+  --amber-soft: rgba(255, 201, 60, .7);
+  --line: rgba(255, 201, 60, .22);
+  --panel: rgba(8, 8, 6, .5);
+  --panel-strong: rgba(14, 13, 10, .93);
+  --text: #f1e8d2;
+  --muted: #a9a08b;
+  --danger: #ff6a4d;
+  --ok: #8fe07a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #000; overflow: hidden; color: var(--text);
+  font-family: 'Trebuchet MS', 'Segoe UI', Verdana, sans-serif; user-select: none; -webkit-user-select: none; }
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+button { font: inherit; color: inherit; cursor: pointer; }
+kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding: 1px 5px; border-radius: 4px;
+  border: 1px solid var(--line); color: var(--amber); background: rgba(0,0,0,.35); }
+
+/* ------------------------------------------------------------ HUD (façon Half-Life 2) */
+#hud { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s; }
+#hud.on { opacity: 1; }
+#crosshair { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%, -50%); }
+#crosshair::before, #crosshair::after { content: ''; position: absolute; background: var(--amber); opacity: .85; box-shadow: 0 0 3px rgba(0,0,0,.8); }
+#crosshair::before { left: 10px; top: 0; width: 2px; height: 22px; clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%, 0 65%, 100% 65%, 100% 100%, 0 100%); }
+#crosshair::after { top: 10px; left: 0; height: 2px; width: 22px; clip-path: polygon(0 0, 35% 0, 35% 100%, 0 100%, 0 0, 65% 0, 100% 0, 100% 100%, 65% 100%); }
+.hl { position: absolute; bottom: 22px; display: flex; align-items: flex-end; gap: 10px; padding: 8px 16px 6px;
+  background: var(--panel); border-radius: 10px; color: var(--amber); text-shadow: 0 0 6px rgba(255,190,40,.45); }
+.hl .lbl { font-size: 11px; letter-spacing: .12em; padding-bottom: 8px; opacity: .85; }
+.hl .big { font-size: clamp(24px, 3.4vw, 42px); font-weight: bold; line-height: 1; font-variant-numeric: tabular-nums; }
+.hl .small { font-size: 13px; padding-bottom: 6px; opacity: .9; }
+#hud-time { left: 22px; }
+#hud-ammo { right: 22px; }
+#hud-mag.low { color: var(--danger); text-shadow: 0 0 8px rgba(255,80,50,.6); }
+#hud-flash { left: 22px; bottom: 96px; padding: 4px 10px; font-size: 16px; opacity: .35; }
+#hud-flash.on { opacity: 1; }
+#hud-mode { position: absolute; left: 22px; top: 18px; padding: 5px 12px; border-radius: 8px; background: var(--panel);
+  color: var(--amber); font-size: 12px; letter-spacing: .14em; }
+#hud-fps { position: absolute; right: 16px; top: 12px; font: 12px Consolas, monospace; color: var(--amber-soft); }
+#save-dot { position: absolute; right: 16px; top: 30px; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); opacity: 0; transition: opacity .4s; }
+#save-dot.blink { opacity: .9; }
+#hud-hint { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); padding: 5px 14px; border-radius: 8px;
+  background: var(--panel); color: var(--amber); font-size: 13px; white-space: nowrap; }
+#hud-hint:empty { display: none; }
+#hud-title { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); text-align: center; color: var(--amber);
+  text-shadow: 0 0 14px rgba(255,180,30,.45), 2px 2px 0 rgba(0,0,0,.6); opacity: 0; transition: opacity 1.2s; white-space: nowrap; }
+#hud-title.show { opacity: 1; }
+#hud-title .t1 { font-size: clamp(22px, 4vw, 40px); letter-spacing: .28em; font-weight: bold; }
+#hud-title .t2 { font-size: 13px; letter-spacing: .4em; color: var(--text); opacity: .8; margin-top: 4px; }
+#dlg-upgrade p { color: var(--text); line-height: 1.55; font-size: 14px; }
+#hud-help { position: absolute; right: 22px; top: 50%; transform: translateY(-50%); width: 290px; padding: 12px 16px;
+  background: var(--panel-strong); border: 1px solid var(--line); border-radius: 12px; font-size: 13px; display: none; }
+#hud-help.open { display: block; }
+#hud-help h4 { margin: 4px 0 6px; color: var(--amber); font-size: 12px; letter-spacing: .12em; }
+#hud-help div { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
+#hud-help span:last-child { color: var(--muted); text-align: right; }
+
+/* ------------------------------------------------------------ barre d'outils de l'éditeur */
+#hotbar { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); display: none; gap: 6px; pointer-events: none; }
+#hotbar.on { display: flex; }
+#hotbar .slot { width: 72px; padding: 6px 4px 5px; text-align: center; border-radius: 9px; background: var(--panel);
+  border: 1px solid transparent; color: var(--text); position: relative; }
+#hotbar .slot.on { border-color: var(--amber); background: rgba(40, 32, 8, .7); color: var(--amber); }
+#hotbar .slot kbd { position: absolute; left: 4px; top: 3px; font-size: 10px; padding: 0 3px; }
+#hotbar .ic { display: block; font-size: 20px; line-height: 24px; }
+#hotbar .nm { display: block; font-size: 11px; }
+
+/* ------------------------------------------------------------ panneau de l'éditeur */
+#editor-panel { position: fixed; left: 12px; top: 12px; bottom: 12px; width: 312px; max-width: calc(100vw - 24px);
+  overflow-y: auto; background: var(--panel-strong); border: 1px solid var(--line); border-radius: 12px; padding: 0 14px 14px;
+  display: none; font-size: 13px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+#editor-panel.open { display: block; }
+#editor-panel .ph { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 0 10px; background: var(--panel-strong); color: var(--amber); letter-spacing: .18em; font-weight: bold; z-index: 1; }
+#editor-panel section { border-top: 1px solid var(--line); padding: 10px 0 6px; }
+#editor-panel h3 { margin: 0 0 8px; font-size: 11px; letter-spacing: .14em; color: var(--amber); text-transform: uppercase; }
+#editor-panel label { display: block; margin: 6px 0; color: var(--muted); }
+#editor-panel label output { float: right; color: var(--text); }
+#editor-panel label.row { display: flex; align-items: center; gap: 8px; color: var(--text); }
+#editor-panel input[type=range] { width: 100%; accent-color: var(--amber); }
+#editor-panel input[type=text], #editor-panel select, .dialog input[type=text], .dialog select {
+  width: 100%; margin-top: 4px; padding: 6px 8px; background: rgba(0,0,0,.45); color: var(--text);
+  border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+#editor-panel .hint { color: var(--muted); font-size: 12px; margin: 8px 0 2px; line-height: 1.4; }
+.tools { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
+.tool { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: 7px; background: rgba(255,255,255,.04);
+  border: 1px solid transparent; text-align: left; }
+.tool .ic { width: 18px; text-align: center; }
+.tool span:nth-child(2) { flex: 1; }
+.tool.on, .sw.on, .ob.on, .chip.on { border-color: var(--amber); background: rgba(255, 201, 60, .1); color: var(--amber); }
+.tool:hover, .sw:hover, .ob:hover, .chip:hover, .btns button:hover, .mini:hover, .wide:hover { background: rgba(255, 201, 60, .14); }
+.grid { display: grid; gap: 5px; }
+.grid.mats { grid-template-columns: repeat(4, 1fr); }
+.grid.objs { grid-template-columns: repeat(4, 1fr); }
+.sw, .ob { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 2px; border-radius: 7px;
+  background: rgba(255,255,255,.04); border: 1px solid transparent; font-size: 10px; line-height: 1.15; }
+.sw img { width: 40px; height: 40px; image-rendering: pixelated; border-radius: 4px; }
+.ob img { width: 44px; height: 44px; object-fit: contain; image-rendering: pixelated; }
+.sw span, .ob span { max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat { margin: 10px 0 5px; font-size: 11px; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
+.chip, .mini { padding: 4px 9px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid var(--line); font-size: 12px; }
+.row2 { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
+.row2 span { flex: 1; color: var(--muted); }
+.wide { width: 100%; margin-top: 8px; padding: 8px; border-radius: 8px; background: rgba(255,255,255,.05); border: 1px solid var(--line); }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.btns button { padding: 8px; border-radius: 8px; background: rgba(255,255,255,.05); border: 1px solid var(--line); }
+
+/* ------------------------------------------------------------ écrans / menus */
+.screen { position: fixed; inset: 0; display: none; }
+.screen.open { display: flex; }
+#menu { background: linear-gradient(90deg, rgba(0,0,0,.82) 0%, rgba(0,0,0,.55) 38%, rgba(0,0,0,0) 70%); align-items: center; }
+#menu .inner { margin-left: clamp(24px, 8vw, 120px); max-width: calc(100vw - 48px); }
+#menu h1 { margin: 0; font-size: clamp(48px, 9vw, 96px); letter-spacing: .16em; color: var(--amber); font-weight: 900;
+  text-shadow: 0 0 22px rgba(255,180,30,.35), 3px 3px 0 #3a2400; }
+#menu .sub { margin: 4px 0 34px 4px; color: var(--muted); letter-spacing: .08em; font-size: 15px; }
+#menu nav { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+#menu nav button { background: none; border: none; padding: 7px 4px; font-size: 21px; color: var(--text); text-align: left;
+  letter-spacing: .03em; transition: color .15s, transform .15s, text-shadow .15s; }
+#menu nav button:hover, #menu nav button:focus-visible { color: var(--amber); transform: translateX(8px); text-shadow: 0 0 10px rgba(255,190,40,.5); outline: none; }
+#menu nav .sep { height: 10px; }
+#menu[data-kind="farm"] .k-cre, #menu[data-kind="creative"] .k-farm { display: none; }
+#m-world { margin-top: 30px; color: var(--muted); font-size: 13px; }
+#m-world b { color: var(--text); }
+.foot { position: absolute; right: 18px; bottom: 14px; color: var(--muted); font-size: 12px; }
+
+.dialog { background: rgba(0,0,0,.55); align-items: center; justify-content: center; z-index: 5; }
+.dialog .box { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; padding: 20px 24px;
+  background: var(--panel-strong); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+.dialog h2 { margin: 0 0 14px; color: var(--amber); letter-spacing: .1em; font-size: 20px; }
+.dialog label { display: block; margin: 10px 0; color: var(--muted); font-size: 14px; }
+.dialog label output { float: right; color: var(--text); }
+.dialog label.row { display: flex; gap: 8px; align-items: center; color: var(--text); }
+.dialog input[type=range] { width: 100%; accent-color: var(--amber); }
+.dialog .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
+.dialog .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.dialog .actions button, .seedrow button { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255,255,255,.05); }
+.dialog .actions .primary { background: var(--amber); color: #201600; border-color: var(--amber); font-weight: bold; }
+.seedrow { display: flex; gap: 8px; align-items: flex-end; }
+.seedrow label { flex: 1; margin: 10px 0 0; }
+.seedrow button { height: 34px; padding: 0 12px; }
+.keys { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 22px; font-size: 13px; }
+.keys h4 { grid-column: 1 / -1; margin: 12px 0 2px; color: var(--amber); font-size: 12px; letter-spacing: .12em; }
+.keys div { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.keys div span:first-child { white-space: nowrap; }
+.keys div span:last-child { color: var(--muted); text-align: right; }
+@media (max-width: 620px) { .dialog .cols, .keys { grid-template-columns: 1fr; } }
+
+#loading { background: #07080a; align-items: center; justify-content: center; flex-direction: column; gap: 18px; z-index: 10; color: var(--amber); letter-spacing: .12em; }
+#loading .bar { width: 180px; height: 4px; background: rgba(255,201,60,.15); border-radius: 2px; overflow: hidden; }
+#loading .bar::after { content: ''; display: block; width: 40%; height: 100%; background: var(--amber); animation: slide 1s infinite ease-in-out; }
+@keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+#fatal { z-index: 20; }
+#fatal p { color: var(--text); line-height: 1.5; }
+
+#toasts { position: fixed; left: 50%; top: 48px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 30; pointer-events: none; }
+.toast { padding: 8px 16px; border-radius: 8px; background: var(--panel-strong); border: 1px solid var(--line); color: var(--amber); font-size: 14px; transition: opacity .5s, transform .5s; max-width: calc(100vw - 32px); }
+.toast.err { color: var(--danger); border-color: rgba(255,106,77,.4); }
+.toast.out { opacity: 0; transform: translateY(-8px); }
+/* ------------------------------------------------------------ ferme : aucun HUD, panneaux papier à la demande */
+#fade { background: #000; opacity: 0; pointer-events: none; transition: opacity .9s; z-index: 15; align-items: center; justify-content: center; display: flex;
+  color: #d8cdb4; letter-spacing: .06em; text-align: center; padding: 24px; font-family: Georgia, 'Times New Roman', serif; font-size: 18px; line-height: 1.6; }
+#fade.open { opacity: 1; pointer-events: auto; }
+#subs { position: fixed; left: 50%; bottom: 7%; transform: translateX(-50%); width: min(820px, calc(100vw - 32px)); display: flex; flex-direction: column;
+  align-items: center; gap: 4px; pointer-events: none; z-index: 4; }
+#subs .sub { padding: 4px 12px; background: rgba(0,0,0,.45); color: #efe6cf; font: 16px Georgia, 'Times New Roman', serif; text-align: center;
+  text-shadow: 0 1px 2px #000; border-radius: 4px; transition: opacity .6s; }
+#subs .sub b { color: #e8c98a; font-weight: normal; font-style: italic; }
+#subs .sub.out { opacity: 0; }
+#dot { position: fixed; left: 50%; top: 50%; width: 3px; height: 3px; margin: -1px 0 0 -1px; background: rgba(255,255,255,.55); border-radius: 50%; display: none; pointer-events: none; z-index: 3; }
+#dot.on { display: block; }
+#paper { background: rgba(10,8,4,.35); align-items: flex-end; justify-content: center; z-index: 6; }
+#paper.open { display: flex; }
+.pp-panel { display: none; position: relative; margin: 0 auto 4vh; width: min(820px, calc(100vw - 24px)); max-height: calc(100vh - 8vh); overflow: hidden;
+  background: #e8dfc8; color: #33291d; font-family: Georgia, 'Times New Roman', serif; border-radius: 3px;
+  box-shadow: 0 18px 50px rgba(0,0,0,.65), inset 0 0 60px rgba(120,90,40,.25); }
+.pp-panel.open { display: flex; flex-direction: column; }
+.pp-panel::before { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background: repeating-linear-gradient(0deg, rgba(120,90,40,.04) 0 2px, transparent 2px 5px); }
+.pp-panel button { font-family: inherit; }
+.pp-panel h3 { margin: 0 0 10px; font-size: 20px; font-weight: normal; letter-spacing: .03em; color: #3d2e1c; }
+.pp-panel h4 { margin: 14px 0 6px; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: #7a5e3a; font-weight: normal; }
+.pp-panel .hint { color: #7a6a52; font-size: 13px; font-style: italic; }
+.pp-panel .tabs { display: flex; gap: 4px; align-items: center; padding: 10px 14px 0; border-bottom: 1px solid rgba(90,70,40,.25); }
+.pp-panel .tabs button { padding: 6px 14px 8px; background: none; border: none; border-bottom: 3px solid transparent; font-size: 16px; color: #6a5436; }
+.pp-panel .tabs button.on { color: #2d2216; border-bottom-color: #8a5a2a; }
+.pp-panel .tabs b { flex: 1; font-weight: normal; font-size: 18px; padding: 6px 4px 8px; }
+.pp-panel .tabs .x { margin-left: auto; font-size: 18px; }
+.pp-panel .body { padding: 10px 18px 16px; overflow-y: auto; scrollbar-width: thin; }
+.pp-panel .body.two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.pp-panel .foot { position: static; padding: 8px 18px 12px; color: #6a5436; font-size: 14px; border-top: 1px solid rgba(90,70,40,.2); }
+.pp-panel .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; }
+.pp-panel .it { position: relative; display: flex; align-items: center; gap: 6px; padding: 6px; background: rgba(255,255,255,.35); border: 1px solid rgba(90,70,40,.25); border-radius: 4px; text-align: left; font-size: 13px; color: #33291d; }
+.pp-panel .it.on { border-color: #8a5a2a; background: rgba(255,230,170,.6); }
+.pp-panel .it:hover { background: rgba(255,240,200,.7); }
+.pp-panel .it img, .pp-panel .row img { width: 32px; height: 32px; image-rendering: pixelated; flex: none; }
+.pp-panel .it span { flex: 1; line-height: 1.15; }
+.pp-panel .it i { font-style: normal; font-size: 12px; color: #6a5436; }
+.pp-panel .purse { font-size: 15px; margin: 2px 0 4px; }
+.pp-panel .row { display: flex; width: 100%; align-items: center; gap: 8px; padding: 5px 8px; margin-bottom: 4px; background: rgba(255,255,255,.3); border: 1px solid rgba(90,70,40,.22); border-radius: 4px; font-size: 14px; color: #33291d; text-align: left; }
+.pp-panel .row span { flex: 1; }
+.pp-panel .row i { font-style: normal; color: #7a4a1a; }
+.pp-panel .row.all { background: rgba(122,74,26,.14); border-color: rgba(122,74,26,.4); font-weight: bold; margin-bottom: 8px; }
+.pp-panel .row:hover:not(:disabled) { background: rgba(255,240,200,.75); }
+.pp-panel button:disabled { opacity: .45; cursor: default; }
+.pp-panel .rec { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-bottom: 1px dashed rgba(90,70,40,.25); }
+.pp-panel .rec .big { width: 40px; height: 40px; image-rendering: pixelated; flex: none; }
+.pp-panel .rec > div { flex: 1; font-size: 14px; }
+.pp-panel .rec .need span { display: inline-flex; align-items: center; gap: 3px; margin-right: 10px; font-size: 13px; }
+.pp-panel .rec .need img { width: 18px; height: 18px; image-rendering: pixelated; }
+.pp-panel .y { color: #3a6a2a; } .pp-panel .n { color: #9a3a2a; }
+.pp-panel .rec .st { font-size: 12px; font-style: italic; }
+.pp-panel .rec button, .pp-panel .close { padding: 6px 14px; background: #8a5a2a; color: #f4ead2; border: none; border-radius: 3px; font-size: 14px; }
+.pp-panel .rec button:disabled { background: #a89878; }
+.pp-panel .q { padding: 6px 0; border-bottom: 1px dashed rgba(90,70,40,.2); font-size: 14px; }
+.pp-panel .q span { color: #7a6a52; font-style: italic; }
+.pp-panel .q div { color: #5a4a36; font-size: 13px; margin-top: 2px; }
+.pp-panel .q.fait { opacity: .55; }
+.pp-panel .note { display: block; width: 100%; text-align: left; padding: 6px 8px; margin-bottom: 4px; background: rgba(255,255,255,.3); border: 1px solid rgba(90,70,40,.2); border-radius: 3px; font-size: 14px; color: #33291d; }
+.pp-panel .note.new { font-weight: bold; }
+.pp-panel .note span { color: #7a6a52; font-weight: normal; font-size: 12px; }
+.pp-panel .people { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
+.pp-panel .people i { color: #7a6a52; font-size: 12px; }
+/* barre d'outils : discrète, en bas de l'écran */
+#hotbar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 6; pointer-events: none; opacity: 0; transition: opacity .45s; font-family: Georgia, serif; }
+#hotbar.on { opacity: 1; }
+#hotbar .hb-name { text-align: center; color: #f4ead2; font-size: 15px; text-shadow: 0 1px 3px #000, 0 0 8px #000; margin-bottom: 5px; opacity: 0; transition: opacity .4s; }
+#hotbar.named .hb-name { opacity: 1; }
+.hb-row { display: flex; gap: 4px; }
+.hb-slot { position: relative; width: 44px; height: 44px; background: rgba(40,30,20,.55); border: 1px solid rgba(232,223,200,.35); border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+.hb-slot img { width: 32px; height: 32px; image-rendering: pixelated; }
+.hb-slot b { position: absolute; left: 3px; top: 1px; font: 10px Georgia, serif; color: rgba(244,234,210,.75); }
+.hb-slot i { position: absolute; right: 3px; bottom: 1px; font: 11px Georgia, serif; font-style: normal; color: #f4ead2; text-shadow: 0 1px 2px #000; }
+.hb-slot.on { border-color: #e8c070; background: rgba(120,80,30,.6); box-shadow: 0 0 6px rgba(232,192,112,.5); }
+.hb-slot.empty img { opacity: .3; }
+/* ce qu'on ramasse : liste discrète à droite, qui s'efface */
+#pickups { position: fixed; right: 18px; bottom: 24%; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; pointer-events: none; z-index: 7; font-family: Georgia, 'Times New Roman', serif; transition: opacity .3s; }
+#pickups.hid { opacity: 0; }
+.pk { display: flex; align-items: center; gap: 7px; padding: 3px 10px 3px 5px; background: rgba(30,22,14,.55); border: 1px solid rgba(232,223,200,.22); border-radius: 4px; color: #f4ead2; font-size: 14px; text-shadow: 0 1px 2px #000; transition: opacity .6s, transform .6s; animation: pkIn .25s ease-out; }
+.pk img { width: 24px; height: 24px; image-rendering: pixelated; }
+.pk b { color: #e8c070; font-weight: normal; }
+.pk i { color: #cdbd94; font-size: 12px; }
+.pk small { color: rgba(244,234,210,.55); font-size: 11px; margin-left: 2px; }
+.pk.out { opacity: 0; transform: translateX(22px); }
+.pk.bump { animation: pkBump .22s ease-out; }
+@keyframes pkIn { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: none; } }
+@keyframes pkBump { 0% { transform: scale(1.08); } 100% { transform: none; } }
+.barcfg { margin-bottom: 6px; }
+.barcfg h4 span { text-transform: none; letter-spacing: 0; font-style: italic; font-size: 12px; color: #8a7a5a; }
+.barcfg .hb-row.cfg .hb-slot { background: rgba(255,255,255,.35); border-color: rgba(90,70,40,.35); cursor: pointer; }
+.barcfg .hb-row.cfg .hb-slot b { color: #6a5436; }
+.barcfg .hb-row.cfg .hb-slot.over { border-color: #8a5a2a; background: rgba(255,230,170,.7); }
+.barcfg .tokens { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.barcfg .tok { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 3px; border: 1px dashed rgba(90,70,40,.4); border-radius: 3px; font-size: 12px; cursor: grab; }
+.barcfg .tok img { width: 20px; height: 20px; image-rendering: pixelated; }
+#choice { width: min(560px, calc(100vw - 24px)); padding: 18px 24px 16px; margin-bottom: 10vh; }
+#choice .desc { font-size: 15px; line-height: 1.55; font-style: italic; color: #5a4a36; margin: 2px 0 12px; white-space: pre-line; }
+#choice .opts { display: flex; flex-direction: column; gap: 3px; }
+#choice .opts button { text-align: left; background: none; border: none; padding: 5px 6px; font-size: 16px; color: #4a3822; border-radius: 3px; }
+#choice .opts button:hover { background: rgba(138,90,42,.15); color: #1d140a; }
+#choice kbd { font: 12px Georgia, serif; color: #8a6a44; border: 1px solid rgba(90,70,40,.35); background: none; padding: 0 5px; margin-right: 4px; }
+#mapview { width: min(620px, calc(100vw - 24px)); }
+#mapview .body.map { display: flex; justify-content: center; padding: 8px; }
+#mapview canvas { width: min(560px, calc(100vw - 60px)); height: auto; aspect-ratio: 1; image-rendering: auto; }
+#alchemy .alch-slots { display: flex; gap: 8px; margin: 6px 0; }
+#alchemy .alch-slot { width: 58px; height: 58px; border: 2px dashed rgba(90,70,40,.4); background: rgba(255,255,255,.3); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #8a7a5a; }
+#alchemy .alch-slot img { width: 40px; height: 40px; image-rendering: pixelated; }
+#alchemy .alch-guess { font-size: 14px; font-style: italic; color: #5a4a36; min-height: 1.4em; }
+#alchemy .brew { margin: 4px 0 10px; }
+#alchemy .alch-res { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: rgba(255,230,170,.6); border: 1px solid #8a5a2a; border-radius: 4px; font-size: 15px; margin-bottom: 8px; }
+#alchemy .alch-res img { width: 36px; height: 36px; image-rendering: pixelated; }
+.pp-panel .buffs { font-size: 13px; color: #5a4a36; margin: 0 0 6px; font-style: italic; }
+.pp-panel .myth { padding: 7px 0; border-bottom: 1px dashed rgba(90,70,40,.22); }
+.pp-panel .myth b { font-size: 15px; } .pp-panel .myth.found b::after { content: '  ✦ vu de vos yeux'; font-weight: normal; font-size: 12px; color: #6a8a3a; font-style: italic; }
+.pp-panel .myth div { font-size: 13px; color: #5a4a36; margin-top: 2px; }
+.pp-panel .myth button { margin-top: 4px; padding: 3px 10px; background: #8a5a2a; color: #f4ead2; border: none; border-radius: 3px; font-size: 13px; }
+.pp-panel .relics { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.pp-panel .relics span { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(90,70,40,.3); border-radius: 4px; background: rgba(255,255,255,.3); }
+.pp-panel .relics span.no img { opacity: .15; filter: grayscale(1); }
+.pp-panel .relics img { width: 32px; height: 32px; image-rendering: pixelated; }
+#talk { padding: 16px 22px 18px; }
+#talk .who { font-size: 20px; color: #3d2e1c; margin-bottom: 6px; }
+#talk .who span { margin-left: 10px; font-size: 13px; color: #7a6a52; font-style: italic; letter-spacing: .04em; }
+#talk .said { font-size: 17px; line-height: 1.55; min-height: 3.2em; margin: 4px 0 12px; }
+#talk .opts { display: flex; flex-direction: column; gap: 3px; }
+#talk .opts button { text-align: left; background: none; border: none; padding: 4px 6px; font-size: 16px; color: #4a3822; border-radius: 3px; }
+#talk .opts button:hover { background: rgba(138,90,42,.15); color: #1d140a; }
+#talk .opts button.q { color: #7a3a14; }
+#talk kbd { font: 12px Georgia, serif; color: #8a6a44; border: 1px solid rgba(90,70,40,.35); background: none; padding: 0 5px; margin-right: 4px; }
+#reader { width: min(560px, calc(100vw - 24px)); margin-bottom: 8vh; padding: 26px 30px 20px; transform: rotate(-0.5deg); }
+#reader .txt { font-size: 16px; line-height: 1.65; max-height: 58vh; overflow-y: auto; white-space: normal; }
+#reader .sign { text-align: right; font-style: italic; margin-top: 10px; color: #5a4a36; }
+#reader .close { margin-top: 14px; }
+#satchel, #shop, #store { height: min(640px, calc(100vh - 10vh)); }
+#death { background: #000; flex-direction: column; align-items: center; justify-content: center; gap: 14px; z-index: 20; color: #cfc4ae;
+  font-family: Georgia, 'Times New Roman', serif; text-align: center; padding: 20px; }
+#death h2 { margin: 0; font-size: clamp(34px, 6vw, 60px); font-weight: normal; letter-spacing: .2em; color: #8a1a14; }
+#death .cause { font-size: 20px; font-style: italic; }
+#death .days { color: #8a8070; }
+#death button { margin-top: 18px; padding: 10px 22px; background: none; border: 1px solid #6a5a44; color: #cfc4ae; font: inherit; font-size: 17px; }
+#death button:hover { background: rgba(255,255,255,.06); }
+#menu[data-kind="farm"] h1 { color: #e8d8b0; text-shadow: 0 0 22px rgba(0,0,0,.6), 3px 3px 0 #2a1a08; font-family: Georgia, 'Times New Roman', serif; font-weight: normal; }
+#menu[data-kind="farm"] nav button:hover { color: #e8c98a; text-shadow: none; }
+#m-versions { margin-top: 10px; color: var(--muted); font-size: 12px; font-style: italic; max-width: 440px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div id="hud">
+  <div id="crosshair"></div>
+  <div id="hud-mode"></div>
+  <div id="hud-fps"></div>
+  <div id="save-dot" title="Sauvegarde automatique"></div>
+  <div id="hud-flash" class="hl" title="Lampe torche (F)">🔦</div>
+  <div id="hud-time" class="hl"><span class="lbl">HEURE</span><span id="hud-clock" class="big">08:00</span><span id="hud-day" class="small">Jour 1</span></div>
+  <div id="hud-hint"></div>
+  <div id="hud-title"><div class="t1"></div><div class="t2"></div></div>
+  <div id="hud-help">
+    <h4>JEU</h4>
+    <div><span>ZQSD / WASD</span><span>se déplacer</span></div>
+    <div><span>Espace · Maj · C</span><span>sauter · courir · s'accroupir</span></div>
+    <div><span>F</span><span>lampe torche</span></div>
+    <div><span>T (maintenir)</span><span>accélérer le temps</span></div>
+    <div><span>E</span><span>jeu ⇄ éditeur</span></div>
+    <div><span>V</span><span>vol libre</span></div>
+    <h4>ÉDITEUR</h4>
+    <div><span>1 – 7</span><span>outils</span></div>
+    <div><span>Tab</span><span>visée ⇄ curseur</span></div>
+    <div><span>Clic G / D</span><span>appliquer / inverse</span></div>
+    <div><span>Molette</span><span>taille (Maj : force)</span></div>
+    <div><span>Ctrl+Z</span><span>annuler</span></div>
+    <div><span>H</span><span>masquer cette aide</span></div>
+  </div>
+</div>
+<div id="subs"></div>
+<div id="hotbar"></div>
+<div id="dot"></div>
+<div id="pickups"></div>
+<div id="editor-panel"></div>
+
+<div id="menu" class="screen">
+  <div class="inner">
+    <h1>PRAIRIE</h1>
+    <p class="sub">La vieille ferme</p>
+    <nav>
+      <button id="m-play">Jouer</button>
+      <button id="m-newgame" class="k-farm">Nouvelle partie</button>
+      <button id="m-creative" class="k-farm">Mode création (éditeur)</button>
+      <button id="m-edit" class="k-cre">Éditeur de monde</button>
+      <button id="m-new" class="k-cre">Nouveau monde…</button>
+      <button id="m-import" class="k-cre">Importer un monde…</button>
+      <button id="m-export" class="k-cre">Exporter le monde</button>
+      <button id="m-farm" class="k-cre">Retour à la ferme</button>
+      <div class="sep"></div>
+      <button id="m-options">Options</button>
+      <button id="m-help">Commandes</button>
+    </nav>
+    <div id="m-world"></div>
+    <div id="m-versions"></div>
+  </div>
+  <div class="foot">Échap : menu</div>
+</div>
+
+<div id="dlg-newgame" class="screen dialog">
+  <div class="box">
+    <h2>NOUVELLE PARTIE</h2>
+    <p style="color:var(--text);line-height:1.55;font-size:14px">Vous héritez d’une vieille ferme au fond d’une vallée. Une seule vie : si vous mourez, la partie s’arrête. La grande vallée est toujours la même, avec ses montagnes et ses secrets ; une vallée au hasard change à chaque fois.</p>
+    <label>La vallée <select id="ng-map"><option value="3">la grande vallée (3 km, montagnes, glacier, galeries)</option><option value="2">une vallée au hasard (2 km)</option></select></label>
+    <label>Vous êtes <select id="ng-who"><option value="m">le nouveau fermier</option><option value="f">la nouvelle fermière</option></select></label>
+    <label>Votre prénom (les habitants l’emploieront quand ils vous connaîtront) <input type="text" id="ng-name" maxlength="20" placeholder="au hasard"></label>
+    <div class="seedrow"><label>Graine (le relief d’une vallée au hasard ; le temps et les habitants dans les deux cas — laisser vide : au hasard) <input type="text" id="ng-seed" value=""></label></div>
+    <div class="actions"><button class="dlg-close">Annuler</button><button class="primary" id="ng-go">Commencer</button></div>
+  </div>
+</div>
+
+<div id="dlg-new" class="screen dialog">
+  <div class="box">
+    <h2>NOUVEAU MONDE</h2>
+    <label>Nom <input type="text" id="nw-name" value="Ma prairie" maxlength="40"></label>
+    <div class="seedrow"><label>Graine (nombre ou texte) <input type="text" id="nw-seed" value="42"></label><button id="nw-seed-rand" title="Graine aléatoire">🎲</button></div>
+    <div class="cols">
+      <label>Taille <select id="nw-size">
+        <option value="128">Petit — 256 m</option>
+        <option value="256">Moyen — 512 m</option>
+        <option value="384">Grand — 768 m</option>
+        <option value="512" selected>Immense — 1 024 m</option>
+      </select></label>
+      <label>Démarrer en <select id="nw-mode"><option value="play">Mode jeu</option><option value="edit">Mode éditeur</option></select></label>
+      <label>Arbres <output id="nw-trees-v"></output><input type="range" id="nw-trees" min="0" max="2" step="0.1" value="1"></label>
+      <label>Fleurs <output id="nw-flowers-v"></output><input type="range" id="nw-flowers" min="0" max="2" step="0.1" value="1"></label>
+      <label>Étangs <output id="nw-ponds-v"></output><input type="range" id="nw-ponds" min="0" max="8" step="1" value="4"></label>
+      <label>Villages <output id="nw-villages-v"></output><input type="range" id="nw-villages" min="0" max="5" step="1" value="3"></label>
+      <label>Animaux <output id="nw-animals-v"></output><input type="range" id="nw-animals" min="0" max="2" step="0.1" value="1"></label>
+      <div>
+        <label class="row"><input type="checkbox" id="nw-town" checked> Ville fortifiée (monde ≥ 1 km)</label>
+        <label class="row"><input type="checkbox" id="nw-mine" checked> Mine</label>
+        <label class="row"><input type="checkbox" id="nw-ruins" checked> Ruines antiques</label>
+        <label class="row"><input type="checkbox" id="nw-camp" checked> Camp et cabane</label>
+      </div>
+    </div>
+    <div class="actions"><button class="dlg-close">Annuler</button><button class="primary" id="nw-create">Créer le monde</button></div>
+  </div>
+</div>
+
+<div id="dlg-options" class="screen dialog">
+  <div class="box">
+    <h2>OPTIONS</h2>
+    <div class="cols">
+      <label>Sensibilité de la souris <output id="o-sens-v"></output><input type="range" id="o-sens" min="0.2" max="3" step="0.05"></label>
+      <label>Champ de vision <output id="o-fov-v"></output><input type="range" id="o-fov" min="60" max="115" step="1"></label>
+      <label>Pixelisation <select id="o-pixel">
+        <option value="200">Extrême (200 lignes)</option>
+        <option value="270">Doom (270 lignes)</option>
+        <option value="360">Moyenne (360 lignes)</option>
+        <option value="540">Fine (540 lignes)</option>
+      </select></label>
+      <label>Distance de vue <select id="o-view">
+        <option value="220">Courte</option>
+        <option value="340">Normale</option>
+        <option value="500">Lointaine</option>
+      </select></label>
+      <label>Luminosité <output id="o-gamma-v"></output><input type="range" id="o-gamma" min="0.7" max="1.5" step="0.05"></label>
+      <label>Volume général <output id="o-volume-v"></output><input type="range" id="o-volume" min="0" max="1" step="0.05"></label>
+      <label>Ambiance (oiseaux, grillons, pluie…) <output id="o-amb-v"></output><input type="range" id="o-amb" min="0" max="1" step="0.05"></label>
+      <label>Barre d’outils <select id="o-hotbar">
+        <option value="auto">Discrète (s’efface d’elle-même)</option>
+        <option value="toujours">Toujours visible</option>
+        <option value="jamais">Jamais</option>
+      </select></label>
+      <label class="row"><input type="checkbox" id="o-subs"> Sous-titres des paroles</label>
+      <label class="row"><input type="checkbox" id="o-dot"> Petit point de visée</label>
+      <label class="row"><input type="checkbox" id="o-dither"> Palette rétro tramée</label>
+      <label class="row"><input type="checkbox" id="o-bands"> Éclairage par paliers (Doom)</label>
+      <label class="row"><input type="checkbox" id="o-invert"> Inverser l'axe vertical</label>
+      <label class="row"><input type="checkbox" id="o-fps"> Afficher les images/s</label>
+    </div>
+    <div class="actions"><button id="o-reset">Réinitialiser</button><button class="primary dlg-close">Fermer</button></div>
+  </div>
+</div>
+
+<div id="dlg-help" class="screen dialog">
+  <div class="box">
+    <h2>COMMANDES</h2>
+    <div class="keys">
+      <h4>À LA FERME</h4>
+      <div><span><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>se déplacer</span></div>
+      <div><span><kbd>Espace</kbd> · <kbd>Maj</kbd> · <kbd>C</kbd></span><span>sauter · courir · s'accroupir</span></div>
+      <div><span><kbd>E</kbd></span><span>parler, ouvrir, ramasser, récolter, dormir, monter à cheval</span></div>
+      <div><span><kbd>E</kbd> maintenu (porte)</span><span>verrouiller / déverrouiller</span></div>
+      <div><span>Clic gauche</span><span>utiliser l'objet en main</span></div>
+      <div><span>Clic maintenu</span><span>labourer, semer, arroser, récolter en balayant</span></div>
+      <div><span><kbd>E</kbd> maintenu (culture)</span><span>récolter à la volée</span></div>
+      <div><span><kbd>E</kbd> (arbre)</span><span>secouer : fruits, nids, graines</span></div>
+      <div><span>Clic droit</span><span>manger, boire une potion · pivoter l'objet à poser</span></div>
+      <div><span><kbd>1</kbd> … <kbd>9</kbd> · molette</span><span>barre d'outils (à composer dans la sacoche : glisser un objet sur une case)</span></div>
+      <div><span>Pelle</span><span>clic : creuser (terre, trésors, éboulis) · clic droit : remblayer · accroupi : niveler à ses pieds</span></div>
+      <div><span>Chantier en main</span><span>des piquets montrent l'emprise : clic pour bâtir, clic droit pour tourner</span></div>
+      <div><span>Cheval sauvage</span><span>approcher accroupi, une pomme en main ; <kbd>E</kbd> pour le nourrir, puis pour le monter : gardez les yeux droit devant</span></div>
+      <div><span>Épouvantail</span><span>ne protège qu'à portée : l'anneau de paille la montre quand on le tient</span></div>
+      <div><span><kbd>E</kbd> (autel, calvaire, pierre)</span><span>prier, déposer une offrande</span></div>
+      <div><span><kbd>E</kbd> (alambic)</span><span>mêler 2 ou 3 ingrédients dans une fiole : potions</span></div>
+      <div><span><kbd>E</kbd> (poteau, panneau)</span><span>directions, carte de la vallée</span></div>
+      <div><span><kbd>Tab</kbd></span><span>sacoche, fabrication, carnet, lettres</span></div>
+      <div><span><kbd>F</kbd></span><span>lanterne</span></div>
+      <div><span><kbd>G</kbd></span><span>siffler (cheval, chien)</span></div>
+      <div><span><kbd>R</kbd></span><span>pivoter l'objet à poser</span></div>
+      <div><span>Arc</span><span>maintenir le clic pour bander</span></div>
+      <div><span>Pêche</span><span>clic : lancer ; au bouchon qui plonge, clic !</span></div>
+      <div><span><kbd>M</kbd> · <kbd>Échap</kbd></span><span>son · menu</span></div>
+      <h4>MODE CRÉATION</h4>
+      <div><span><kbd>E</kbd></span><span>jeu ⇄ éditeur</span></div>
+      <div><span><kbd>V</kbd> · <kbd>T</kbd></span><span>vol libre · accélérer le temps</span></div>
+      <div><span><kbd>1</kbd> … <kbd>7</kbd></span><span>choisir l'outil</span></div>
+      <div><span><kbd>Tab</kbd></span><span>visée ⇄ curseur + panneau</span></div>
+      <div><span>Clic gauche / droit</span><span>appliquer / action inverse</span></div>
+      <div><span>Molette (<kbd>Maj</kbd>)</span><span>taille (force) du pinceau</span></div>
+      <div><span><kbd>R</kbd> / molette (blocs)</span><span>pivoter (Maj : 90°)</span></div>
+      <div><span><kbd>Ctrl</kbd>+<kbd>Z</kbd></span><span>annuler</span></div>
+    </div>
+    <div class="actions"><button class="primary dlg-close">Fermer</button></div>
+  </div>
+</div>
+
+<div id="paper" class="screen">
+  <div id="talk" class="pp-panel"></div>
+  <div id="satchel" class="pp-panel"></div>
+  <div id="shop" class="pp-panel"></div>
+  <div id="store" class="pp-panel"></div>
+  <div id="reader" class="pp-panel"></div>
+  <div id="choice" class="pp-panel"></div>
+  <div id="alchemy" class="pp-panel"></div>
+  <div id="mapview" class="pp-panel"></div>
+</div>
+<div id="fade" class="screen"><div id="fade-text"></div></div>
+<div id="death" class="screen"><h2>VOUS ÊTES MORT</h2><div class="cause"></div><div class="days"></div><button id="death-ok">Retour à l’écran titre</button></div>
+
+<div id="dlg-upgrade" class="screen dialog">
+  <div class="box">
+    <h2>NOUVEAUTÉS</h2>
+    <p>Le monde s'est enrichi. Ton monde actuel a été créé avec une ancienne version : tu peux découvrir le nouveau monde,
+      ou garder le tien. Pour conserver une copie, exporte-le d'abord.</p>
+    <div class="actions">
+      <button id="up-export">Exporter mon monde</button>
+      <button id="up-keep">Garder mon monde</button>
+      <button class="primary" id="up-new">Découvrir le nouveau monde</button>
+    </div>
+  </div>
+</div>
+
+<div id="loading" class="screen open"><div id="loading-text">Préparation de la vallée…</div><div class="bar"></div></div>
+<div id="fatal" class="screen dialog"><div class="box"><h2>IMPOSSIBLE DE DÉMARRER</h2><p></p></div></div>
+<div id="toasts"></div>
+<input type="file" id="file-import" accept=".json,application/json" hidden>
+
+<script>
+/*@@JS@@*/
+</script>
+</body>
+</html>
