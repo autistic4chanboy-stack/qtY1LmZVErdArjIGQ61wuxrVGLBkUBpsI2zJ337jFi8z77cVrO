@@ -27247,6 +27247,15 @@ DYN_PROPS.add('cascade'); DYN_PROPS.add('feu_geant'); DYN_PROPS.add('pierre_troi
 // À appeler pour tout texte dessiné sur un canevas (les textes du DOM sont traduits automatiquement).
 function T(s) { return s; }
 
+// ---------------------------------------------------------------- l'étrange selon l'esprit du personnage
+// Multiplicateur des probabilités des bizarreries du monde (1 = normal). Le module de l'esprit (la mentalité, cachée)
+// le remplace par affectation (bizarrerie = function () {…}) : plus l'esprit est sombre, plus l'étrange se montre.
+// Tout événement étrange ou rare devrait multiplier sa probabilité par bizarrerie().
+function bizarrerie() { return 1; }
+// Nombre de personnes tuées de la main du joueur (habitants nommés + autres gens que les modules comptent dans
+// farm.s.stats.autresMeurtres)
+function meurtresDuJoueur() { const s = farm.s; if (!s) return 0; return (s.dead || []).filter((d) => d.by === 'joueur').length + ((s.stats && s.stats.autresMeurtres) || 0); }
+
 // ---------------------------------------------------------------- une journée : dix minutes
 const JOUR_SECONDES = 600;
 HOOKS.load.push(() => { if (game.world) game.world.dayLength = JOUR_SECONDES; });
