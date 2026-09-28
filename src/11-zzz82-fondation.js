@@ -430,7 +430,7 @@ function fondDossier(D) {
     const prev = H.length ? H.map((h) => `Version n° ${h.run} — ${h.day} jour${h.day > 1 ? 's' : ''} — ${String(h.cause || '').toLowerCase()}`).join('\n') : 'Aucune version antérieure enregistrée dans ce registre. Les autres registres disent le contraire.';
     return [
       ['Description', 'SCP-VAL-013 désigne l’occupant de la vieille ferme, arrivé dans la vallée à la suite d’une lettre de notaire. La même lettre a été reçue par toutes les personnes qui se sont succédé à la ferme. SCP-VAL-013 est à la fois le sujet et le point de convergence des anomalies : elles s’intensifient autour de lui.'],
-      ['Version en cours', `Version n° ${s.run || 1} — ${s.prenom || '(nom illisible)'}, arrivé${s.fem ? 'e' : ''} depuis ${s.day} jour${s.day > 1 ? 's' : ''}.`],
+      ['Version en cours', s.fem ? `Version n° ${s.run || 1} — ${s.prenom || '(nom illisible)'}, arrivée depuis ${s.day} jour${s.day > 1 ? 's' : ''}.` : `Version n° ${s.run || 1} — ${s.prenom || '(nom illisible)'}, arrivé depuis ${s.day} jour${s.day > 1 ? 's' : ''}.`],
       ['Versions précédentes', prev],
       ['Procédures de confinement spéciales', 'Aucune interaction. Si SCP-VAL-013 pénètre dans le site : le reconduire en surface, poliment. Ne pas lui montrer ce dossier.'],
       ['Addendum', 'La cellule 7 a été préparée pour SCP-VAL-013, conformément à la directive VAL-Ω. Elle ne sera utilisée qu’en cas de [DONNÉES SUPPRIMÉES].\n\nNote manuscrite, en bas de page : « Il lit par-dessus notre épaule. Il lit ceci. Bonjour. »'],
