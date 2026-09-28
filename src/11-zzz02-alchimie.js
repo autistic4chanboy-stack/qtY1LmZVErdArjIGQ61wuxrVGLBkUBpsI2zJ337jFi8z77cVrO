@@ -257,7 +257,7 @@ const alchimie = {
     body += `<h4>Plantes nommées par l’alchimiste (${connues.length} / ${toutes.length})</h4>`;
     body += connues.length ? `<div class="alc-pl">${connues.sort((a, b) => this.vraiNom(a).localeCompare(this.vraiNom(b))).map((id) => `<span title="${esc(PLANT_LOOK[id][1])}"><img src="${iconURL(id)}" alt="">${esc(this.vraiNom(id))} <i>— ${esc(PLANT_LOOK[id][0].toLowerCase())}</i></span>`).join('')}</div>` : '<p class="hint">Aucune. Les plantes sauvages qu’on cueille n’ont pas de nom tant qu’on ne les a pas montrées à l’alchimiste de la ville.</p>';
     const inc = this.portees();
-    if (inc.length) body += `<p class="hint">Dans votre sacoche, inconnues : ${inc.map((id) => esc(itemName(id).toLowerCase())).join(', ')}.</p>`;
+    if (inc.length) body += `<p class="hint">Dans votre sacoche, inconnues : ${inc.map((id) => esc(T(itemName(id)).toLowerCase())).join(', ')}.</p>`;
     // potions
     const ids = new Set(Object.keys(A.potions).filter((id) => ITEMS[id]));
     for (const id in POTIONS) if (alchemy.known(id)) ids.add(id);

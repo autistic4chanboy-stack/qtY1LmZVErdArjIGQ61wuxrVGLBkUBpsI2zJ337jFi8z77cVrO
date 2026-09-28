@@ -485,7 +485,10 @@ const societe = {
       const g = npcs.byId.garde, fm = game.world.lm.ferme;
       if (g && fm && S.visite === farm.s.day && S.convoque !== farm.s.day && h >= 10.5 && h < 11 && Math.hypot(g.x - fm.x, g.z - fm.z) < 40 && Math.hypot(p.pos[0] - fm.x, p.pos[2] - fm.z) > 60 && R) {
         S.convoque = farm.s.day;
-        farm.mail(g.name + ' ' + g.d.surname + ', garde', 'Convocation', `Je suis passé à la vieille ferme ce matin. Personne.\n\nVous êtes recherché${farm.s.fem ? 'e' : ''} pour ${this.actifs().filter((C) => this.connuQuelquePart(C)).map((C) => this.libelle(C)).join(', ')}. La prime est de ${R.prime} pièces.\n\nPrésentez-vous à la mairie pour la régler. Sinon, je reviendrai. Et je ne viendrai pas seul.`);
+        { const quoi = this.actifs().filter((C) => this.connuQuelquePart(C)).map((C) => this.libelle(C)).join(', ');
+          farm.mail(g.name + ' ' + g.d.surname + ', garde', 'Convocation', farm.s.fem
+            ? `Je suis passé à la vieille ferme ce matin. Personne.\n\nVous êtes recherchée pour ${quoi}. La prime est de ${R.prime} pièces.\n\nPrésentez-vous à la mairie pour la régler. Sinon, je reviendrai. Et je ne viendrai pas seul.`
+            : `Je suis passé à la vieille ferme ce matin. Personne.\n\nVous êtes recherché pour ${quoi}. La prime est de ${R.prime} pièces.\n\nPrésentez-vous à la mairie pour la régler. Sinon, je reviendrai. Et je ne viendrai pas seul.`); }
       }
       this.majAffiches(false);
     }
@@ -645,7 +648,7 @@ const societe = {
     const s = farm.s, A = this.actifs().filter((C) => this.connait(C, v || R.villages[0]) || (!v && this.connuQuelquePart(C)));
     const L = (A.length ? A : this.actifs().filter((C) => this.connuQuelquePart(C))).map((C) => this.libelle(C));
     const j = Math.min(...this.actifs().filter((C) => this.connait(C, v)).map((C) => C.connu[v]).concat([s.day]));
-    ui.open('#reader', `<div class="avis"><div class="avis-t">RECHERCHÉ${s.fem ? 'E' : ''}</div>
+    ui.open('#reader', `<div class="avis"><div class="avis-t">${s.fem ? 'RECHERCHÉE' : 'RECHERCHÉ'}</div>
       <img class="avis-p" src="${this.portrait()}" alt="">
       <div class="avis-n">${esc(s.prenom || (s.fem ? 'Jeanne' : 'Jean'))}</div>
       <div class="avis-q">${s.fem ? 'fermière de la vieille ferme' : 'fermier de la vieille ferme'}</div>
@@ -954,7 +957,8 @@ if (HOOKS.inter.affiche) {
       paras.splice(i, 1, ...rep);
     }
     const R = societe.recherche();
-    if (R && R.villages.includes('valbrume')) paras.unshift(esc(`RECHERCHÉ${farm.s.fem ? 'E' : ''} — ${farm.s.prenom || 'le fermier'}, ${farm.s.fem ? 'fermière' : 'fermier'} de la vieille ferme, pour ${societe.actifs().filter((C) => societe.connait(C, 'valbrume')).map((C) => societe.libelle(C)).join(', ')}. Prime : ${R.prime} pièces. S’adresser au garde.`));
+    if (R && R.villages.includes('valbrume')) { const quoi = societe.actifs().filter((C) => societe.connait(C, 'valbrume')).map((C) => societe.libelle(C)).join(', ');
+      paras.unshift(esc(farm.s.fem ? `RECHERCHÉE — ${farm.s.prenom || 'la fermière'}, fermière de la vieille ferme, pour ${quoi}. Prime : ${R.prime} pièces. S’adresser au garde.` : `RECHERCHÉ — ${farm.s.prenom || 'le fermier'}, fermier de la vieille ferme, pour ${quoi}. Prime : ${R.prime} pièces. S’adresser au garde.`)); }
     el.innerHTML = paras.join('<br><br>');
   };
 }
