@@ -18,6 +18,7 @@ const HOOKS = {
   primary: [],    // fn(eye, basis, held, item, id) : clic gauche — true si géré
   secondary: [],  // fn(eye, basis, item, id) : clic droit — true si géré
   death: [],      // fn(cause) : true pour empêcher la mort
+  camera: [],     // fn(dt, pos, yaw, pitch) -> { pos, yaw, pitch } pour reprendre la caméra (cinématiques)
 };
 // Objets posés utilisables avec E (fusionné dans PROP_USE)
 const PROP_USE_MORE = {};

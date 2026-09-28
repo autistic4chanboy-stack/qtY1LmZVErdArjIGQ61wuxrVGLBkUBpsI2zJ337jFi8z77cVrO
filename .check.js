@@ -6145,6 +6145,7 @@ const HOOKS = {
   primary: [],    // fn(eye, basis, held, item, id) : clic gauche — true si géré
   secondary: [],  // fn(eye, basis, item, id) : clic droit — true si géré
   death: [],      // fn(cause) : true pour empêcher la mort
+  camera: [],     // fn(dt, pos, yaw, pitch) -> { pos, yaw, pitch } pour reprendre la caméra (cinématiques)
 };
 // Objets posés utilisables avec E (fusionné dans PROP_USE)
 const PROP_USE_MORE = {};
@@ -9907,47 +9908,11 @@ FISH.poisson_aveugle.where.push('souterrain');
 const fishRarete = (id) => { const w = FISH[id].w; return w >= 4 ? 0 : w >= 2 ? 1 : w >= 0.5 ? 2 : w >= 0.1 ? 3 : 4; };
 
 // ---------------------------------------------------------------- nouvelles bêtes
-Object.assign(CREATURES, {
-  chamois: { walk: 0.9, run: 7.5, range: 26, flee: 18, radius: 0.3, idle: [2, 7], solid: true, graze: true, rig: 'chamois', h: 1.1, wild: true, shy: true },
-  lievre_blanc: { walk: 1.0, run: 7.5, range: 18, flee: 10, radius: 0.16, idle: [1, 5], hop: true, rig: 'lievre_blanc', h: 0.5, wild: true },
-  lagopede: { walk: 0.6, run: 3.0, range: 10, flee: 6, radius: 0.12, idle: [1, 4], rig: 'lagopede', h: 0.3, wild: true, oiseau: true, flush: true },
-  castor: { walk: 0.5, run: 2.8, range: 10, flee: 9, radius: 0.22, idle: [2, 7], rig: 'castor', h: 0.35, wild: true },
-  salamandre: { walk: 0.25, run: 0.8, range: 4, flee: 0, radius: 0.06, idle: [3, 9], rig: 'salamandre', h: 0.08, wild: true, nuit: true },
-  cistude: { walk: 0.15, run: 0.3, range: 4, flee: 0, radius: 0.12, idle: [4, 12], rig: 'cistude', h: 0.12, wild: true },
-  martre: { walk: 1.0, run: 6.5, range: 20, flee: 11, radius: 0.12, idle: [1, 4], rig: 'martre', h: 0.3, wild: true, arbre: true },
-  couleuvre: { walk: 0.35, run: 1.6, range: 7, flee: 3, radius: 0.1, idle: [3, 9], rig: 'couleuvre', h: 0.1, wild: true },
-  martin: { walk: 0.3, run: 1.5, range: 8, flee: 8, radius: 0.08, idle: [2, 6], rig: 'martin', h: 0.18, wild: true, oiseau: true },
-  tetras: { walk: 0.6, run: 3.2, range: 12, flee: 7, radius: 0.18, idle: [2, 6], rig: 'tetras', h: 0.6, wild: true, oiseau: true, flush: true },
-  aigle: { fly: true, rig: 'aigle', flock: 1, soar: true },
-  chocard: { fly: true, rig: 'chocard', flock: 6, crow: true },
-});
-Object.assign(PREY, {
-  chamois: { hp: 35, drop: [['viande', 2, 3], ['cuir', 1, 1]] }, lievre_blanc: { hp: 10, drop: [['viande', 1, 1], ['fourrure', 0, 1]] },
-  lagopede: { hp: 5, drop: [['viande', 1, 1], ['plume', 1, 2]] }, castor: { hp: 18, drop: [['fourrure', 1, 1], ['viande', 0, 1]] },
-  salamandre: { hp: 2, drop: [['peau_salamandre', 1, 1]] }, cistude: { hp: 8, drop: [['ecaille_tortue', 1, 1]] }, martre: { hp: 12, drop: [['fourrure', 1, 1]] },
-  couleuvre: { hp: 5, drop: [['mue_serpent', 1, 1]] }, martin: { hp: 3, drop: [['plume_bleue', 1, 1]] }, tetras: { hp: 10, drop: [['viande', 1, 2], ['plume_noire', 1, 2]] },
-  aigle: { hp: 12, drop: [['plume_aigle', 1, 2]] }, chocard: { hp: 3, drop: [['plume_noire', 1, 1]] },
-});
+// (leurs comportements et leurs modèles sont dans 10-zzfauna3.js : CREATURES n'existe pas encore ici)
 defItem('peau_salamandre', 'Peau de salamandre', 'materiau', 40, ['cuir', '#2a2a20'], { alch: true, desc: 'Noire et jaune, froide au toucher même au soleil.' });
 defItem('ecaille_tortue', 'Écaille de tortue', 'materiau', 35, ['os', '#5a5a3a'], { alch: true });
 defItem('plume_bleue', 'Plume de martin-pêcheur', 'materiau', 25, ['plume', '#2a90d0'], { alch: true });
 defItem('plume_aigle', 'Plume d’aigle', 'materiau', 45, ['plume', '#6a4a2a'], { alch: true, desc: 'Longue comme l’avant-bras. Les Aëlim, dit-on, en faisaient des plumes à écrire.' });
-OBJ_TYPES.push(
-  { id: 'chamoix', name: 'Chamois', cat: 'Animaux', spr: ['a_deer'], h: [1.1, 1.1], animal: 'chamois', col: 0, sway: 0, spacing: 3, sink: 0 },
-  { id: 'lievres_blancs', name: 'Lièvre variable', cat: 'Animaux', spr: ['a_rabbit'], h: [0.5, 0.5], animal: 'lievre_blanc', col: 0, sway: 0, spacing: 3, sink: 0 },
-  { id: 'lagopedes', name: 'Lagopède', cat: 'Animaux', spr: ['a_bird'], h: [0.3, 0.3], animal: 'lagopede', col: 0, sway: 0, spacing: 3, sink: 0 },
-  { id: 'castors', name: 'Castor', cat: 'Animaux', spr: ['a_rabbit'], h: [0.35, 0.35], animal: 'castor', col: 0, sway: 0, spacing: 3, sink: 0 },
-  { id: 'salamandres', name: 'Salamandre', cat: 'Animaux', spr: ['a_rabbit'], h: [0.08, 0.08], animal: 'salamandre', col: 0, sway: 0, spacing: 2, sink: 0 },
-  { id: 'cistudes', name: 'Cistude', cat: 'Animaux', spr: ['a_rabbit'], h: [0.12, 0.12], animal: 'cistude', col: 0, sway: 0, spacing: 2, sink: 0 },
-  { id: 'martres', name: 'Martre', cat: 'Animaux', spr: ['a_rabbit'], h: [0.3, 0.3], animal: 'martre', col: 0, sway: 0, spacing: 3, sink: 0 },
-  { id: 'couleuvres', name: 'Couleuvre', cat: 'Animaux', spr: ['a_rabbit'], h: [0.1, 0.1], animal: 'couleuvre', col: 0, sway: 0, spacing: 3, sink: 0 },
-  { id: 'martins', name: 'Martin-pêcheur', cat: 'Animaux', spr: ['a_bird'], h: [0.18, 0.18], animal: 'martin', col: 0, sway: 0, spacing: 3, sink: 0 },
-  { id: 'tetras_', name: 'Grand tétras', cat: 'Animaux', spr: ['a_bird'], h: [0.6, 0.6], animal: 'tetras', col: 0, sway: 0, spacing: 3, sink: 0 },
-  { id: 'aigles', name: 'Aigle royal', cat: 'Animaux', spr: ['a_bird'], h: [0.6, 0.6], animal: 'aigle', col: 0, sway: 0, spacing: 20, sink: 0 },
-  { id: 'chocards', name: 'Chocards', cat: 'Animaux', spr: ['a_bird'], h: [0.3, 0.3], animal: 'chocard', col: 0, sway: 0, spacing: 10, sink: 0 },
-);
-OBJ_TYPES.forEach((t, i) => { OBJ_INDEX[t.id] = i; });
-
 // ---------------------------------------------------------------- le catalogue (livres, peuplement)
 // bêtes : [id de créature, nom, milieux, rareté, dangereux (0-3)]
 const ESPECES_ANIMAUX = [
@@ -10008,6 +9973,1172 @@ FISH.brochet.where.push('lac_noir'); FISH.silure.where.push('lac_noir');
 
 LOOT.refuge = { rolls: [2, 3], items: [['pain', 1, 2, 3], ['bougie', 1, 3, 4], ['corde', 1, 2, 3], ['charbon', 1, 3, 3], ['viande_fumee', 1, 1, 2], ['lanterne', 1, 1, 0.4], ['boussole', 1, 1, 0.4], ['argent', 5, 30, 2], ['edelweiss', 1, 1, 0.5]] };
 LOOT.crevasse = { rolls: [2, 3], items: [['argent', 20, 90, 4], ['vieille_piece', 1, 3, 4], ['bijou', 1, 1, 2], ['corde', 1, 2, 3], ['boussole', 1, 1, 0.8], ['relique', 1, 1, 0.5], ['edelweiss', 1, 1, 1], ['os', 1, 2, 2]] };
+
+// ---- 05-zzz1-especes.js
+// ============================================================================
+//  ESPÈCES (suite) : ce qu'on voit d'une plante qu'on ne connaît pas encore
+//  (l'alchimiste de la ville seul sait la nommer), quelques plantes rares en
+//  plus, des poissons pour les eaux nouvelles (douves, sources chaudes,
+//  souterrains, bassin du temple), et les ESSENCES cachées de chaque
+//  ingrédient : l'alchimie se fait à l'aveugle (11-zzz02-alchimie.js).
+// ============================================================================
+
+// ---------------------------------------------------------------- plantes à identifier : [nom tant qu'on ne sait pas, ce qu'on en voit]
+const PLANT_LOOK = {
+  ail_ours: ['Larges feuilles odorantes', 'De grandes feuilles d’un vert tendre. Froissées, elles sentent fort, comme une cuisine.'],
+  muguet: ['Clochettes blanches parfumées', 'De minuscules clochettes blanches sur une tige arquée. Leur parfum entête.'],
+  millepertuis: ['Petites étoiles jaunes', 'Des fleurs jaunes à cinq pétales. Tenues contre le jour, les feuilles semblent percées de mille trous.'],
+  valeriane: ['Racine brune malodorante', 'Une racine brune, chevelue, qui sent le vieux fromage et les pieds.'],
+  sauge: ['Feuilles grises veloutées', 'Des feuilles douces comme une oreille de lapin, grises et parfumées.'],
+  serpolet: ['Petite plante rampante mauve', 'Un tapis de minuscules fleurs mauves qui embaume quand on marche dessus.'],
+  arnica: ['Fleur orangée des alpages', 'Une fleur jaune orangé aux pétales ébouriffés, qui pousse haut, là où l’herbe est rase.'],
+  genepi: ['Touffe argentée des rochers', 'Une touffe de feuilles argentées, poilues, accrochée à une fissure.'],
+  joubarbe: ['Rosette charnue des pierres', 'Une rosette épaisse, verte et rouge, qui pousse sur la pierre nue comme sur un toit.'],
+  lichen: ['Croûte grise des rochers', 'Une croûte grise et frisée, grattée sur un rocher. Elle craque sous le doigt.'],
+  aconit: ['Hautes fleurs bleues en casque', 'Une grande tige de fleurs bleu nuit, en forme de casques. Elles ont quelque chose de menaçant.'],
+  rossolis: ['Petite plante rouge collante', 'De petites feuilles rondes, rouges, couvertes de gouttes brillantes et collantes. Un moucheron y est pris.'],
+  menthe_eau: ['Tige mauve qui sent frais', 'Une tige carrée aux fleurs mauves en pompon. Elle sent le frais, et un peu la vase.'],
+  prele: ['Tiges creuses en anneaux', 'Des tiges creuses, rugueuses, faites d’anneaux emboîtés. Elles grincent sous les dents.'],
+  cresson: ['Petites feuilles rondes du ruisseau', 'Des feuilles rondes et luisantes, cueillies les pieds dans l’eau froide.'],
+  girolle: ['Champignon jaune en entonnoir', 'Un champignon jaune d’œuf, creusé en entonnoir, aux plis sous le chapeau.'],
+  cepe: ['Gros champignon brun', 'Un champignon trapu au chapeau brun, au pied ventru. Il sent la noisette.'],
+  amanite: ['Champignon rouge à points blancs', 'Un chapeau rouge vif semé de flocons blancs, comme dans les livres d’images.'],
+  trompette: ['Champignon noir en cornet', 'Un cornet noir et mince, qui se confond avec les feuilles mortes.'],
+  morille: ['Champignon alvéolé', 'Un chapeau brun creusé d’alvéoles, comme une éponge. Le pied est creux.'],
+  lycopode: ['Mousse en guirlande', 'Une mousse raide qui court au sol en guirlandes. Secouée, elle lâche une poudre jaune.'],
+  belladone_baies: ['Baies noires luisantes', 'Des baies noires et brillantes comme des yeux, posées dans une étoile de sépales.'],
+  perce_neige: ['Clochette blanche des neiges', 'Une clochette blanche penchée, sortie à travers la neige. Trois pétales, et un cœur vert.'],
+  linaigrette: ['Houppe de coton blanc', 'Une houppe de fils blancs au bout d’une tige, comme un flocon de coton.'],
+  ortie: ['Feuilles qui piquent', 'Des feuilles dentées qui brûlent la peau. Vous le savez, maintenant.'],
+  tussilage: ['Fleur jaune sans feuilles', 'Une fleur jaune sur une tige écailleuse, sans une seule feuille autour.'],
+  colchique: ['Fleur mauve sans tige', 'Une fleur mauve pâle qui sort de terre sans feuilles, comme une flamme de bougie.'],
+  digitale: ['Hautes clochettes pourpres', 'Une haute hampe de clochettes pourpres, tachetées dedans. Un doigt y entrerait.'],
+  orchidee: ['Fleur rose étrange', 'Une fleur rose aux formes bizarres : on dirait une petite bête posée sur la tige.'],
+  reine_pres: ['Grappes crème des berges', 'Des grappes mousseuses de fleurs crème, au parfum de miel et d’amande.'],
+  achillee: ['Ombelles blanches, feuilles plumeuses', 'De petites fleurs blanches en plateau, et des feuilles fines comme des plumes.'],
+  gentiane: ['Trompette bleu profond', 'Une grande trompette d’un bleu profond, posée presque à même le sol.'],
+  edelweiss: ['Étoile laineuse des cimes', 'Une étoile de velours blanc, comme taillée dans de la laine.'],
+  cynorhodon: ['Petits fruits rouges épineux', 'De petits fruits rouges et durs, pleins de graines qui grattent.'],
+  baies_sureau: ['Grappes de baies noires', 'Des grappes de petites baies noires qui tachent les doigts en violet.'],
+  baies_houx: ['Baies rouges luisantes', 'Des baies rouges, parfaites, sur des feuilles piquantes.'],
+  fleur_tilleul: ['Fleurs pâles d’un grand arbre', 'Des fleurs pâles et parfumées, accrochées à une petite aile de feuille.'],
+  lys_cimes: ['Lys blanc des éboulis', 'Un lys d’un blanc presque bleu, poussé seul dans les pierres. Il ne se fane pas.'],
+  mousse_nains: ['Mousse dorée des cavernes', 'Une mousse courte qui brille faiblement d’or dans l’obscurité.'],
+  asphodele: ['Épi de fleurs pâles des tombes', 'Un épi de fleurs blanches veinées de rose, qui aime les ruines et les cimetières.'],
+  fleur_temple: ['Fleur de pierre', 'Une fleur dure et froide, grise comme du granit. Elle a pourtant un parfum.'],
+};
+
+// ---------------------------------------------------------------- plantes rares en plus (même forme que PLANTES2)
+const PLANTES3 = [
+  ['lys_cimes', 'Lys des cimes', 'Lys des cimes', [0.5, 0.65], ['lys_cimes', 1, 1], ['rochers', 'neiges'], 3, { heal: 20 }],
+  ['mousse_nains', 'Mousse des nains', 'Mousse des nains', [0.1, 0.14], ['mousse_nains', 1, 2], ['souterrain', 'rochers'], 2, {}],
+  ['asphodele', 'Asphodèle', 'Asphodèle', [0.7, 0.9], ['asphodele', 1, 1], ['ville', 'lande'], 2, {}],
+  ['fleur_temple', 'Fleur de pierre', 'Fleur de pierre', [0.3, 0.4], ['fleur_temple', 1, 1], ['souterrain'], 4, {}],
+];
+{
+  const IC = { lys_cimes: ['c2_fleur', '#f4f8ff', '#b0c8e0'], mousse_nains: ['lichen', '#d8b040'], asphodele: ['c2_fleur', '#f0e0e8', '#c07890'], fleur_temple: ['c2_fleur', '#9a9a98', '#5a5a58'] };
+  const PRIX = [6, 14, 30, 60, 120];
+  for (const [id, name, single, h, drop, hab, rar, fx] of PLANTES3) {
+    OBJ_TYPES.push({ id, name, cat: 'Fleurs', spr: ['w3_' + id], h, col: 0, sway: 0.12, spacing: 0.9, sink: 0.04 });
+    HARVEST[id] = { tool: 'main', hp: 0, drop: [drop], regrow: 48 };
+    defItem(drop[0], single, 'cueillette', PRIX[rar], IC[drop[0]], Object.assign({ wild: true }, fx));
+    PLANTES2.push([id, name, single, h, drop, hab, rar, fx]);
+    ESPECES_PLANTES.push([id, hab, rar]);
+  }
+  OBJ_TYPES.forEach((t, i) => { OBJ_INDEX[t.id] = i; });
+}
+// pissenlits, orties : tout le monde les reconnaît
+if (ITEMS.pissenlit) ITEMS.pissenlit.wild = false;
+PLANTES_BANALES.add('pissenlit');
+
+// ---------------------------------------------------------------- poissons des eaux nouvelles
+Object.assign(FISH, {
+  carpe_miroir: { name: 'Carpe miroir', price: 45, where: ['douves', 'etang'], time: 'tout', w: 3, col: '#b89a4a' },
+  brochet_douves: { name: 'Le vieux brochet des douves', price: 380, where: ['douves'], time: 'nuit', w: 0.15, col: '#4a5a3a' },
+  truite_arc: { name: 'Truite arc-en-ciel', price: 60, where: ['riviere', 'lac'], time: 'jour', w: 1.2, col: '#c89090' },
+  poisson_source: { name: 'Poisson des sources', price: 35, where: ['bains'], time: 'tout', w: 4, col: '#e0c8a0' },
+  anguille_argent: { name: 'Anguille d’argent', price: 160, where: ['bains', 'souterrain'], time: 'nuit', w: 0.5, col: '#d0d8e0' },
+  ecrevisse_aveugle: { name: 'Écrevisse aveugle', price: 55, where: ['souterrain'], time: 'tout', w: 2, col: '#f0e8e0' },
+  truite_pierre: { name: 'Truite de pierre', price: 90, where: ['souterrain'], time: 'tout', w: 1.5, col: '#8a8a88' },
+  poisson_ancien: { name: 'Poisson des Anciens', price: 1200, where: ['temple'], time: 'tout', w: 0.08, col: '#e8d080' },
+  lamproie: { name: 'Lamproie', price: 40, where: ['riviere', 'douves'], time: 'nuit', w: 1.5, col: '#5a5048' },
+  gremille: { name: 'Grémille', price: 14, where: ['lac', 'etang', 'douves'], time: 'jour', w: 4, col: '#9a9a6a' },
+  blennie: { name: 'Blennie des sources', price: 22, where: ['bains', 'riviere'], time: 'jour', w: 3, col: '#8a9a7a' },
+});
+for (const id of ['carpe_miroir', 'brochet_douves', 'truite_arc', 'poisson_source', 'anguille_argent', 'ecrevisse_aveugle', 'truite_pierre', 'poisson_ancien', 'lamproie', 'gremille', 'blennie']) {
+  defItem(id, FISH[id].name, 'poisson', FISH[id].price, ['poisson', FISH[id].col], { food: 6, heal: 2, raw: true });
+  ITEM_GROUPS.poisson.push(id);
+}
+FISH.carpe.where.push('douves'); FISH.perche.where.push('douves'); FISH.tanche.where.push('douves');
+FISH.poisson_roche.where.push('temple'); FISH.poisson_aveugle.where.push('temple');
+ITEMS.poisson_ancien.desc = 'Des écailles comme des pièces d’or anciennes, frappées d’un signe que personne ne sait lire.';
+ITEMS.brochet_douves.desc = 'On le disait mort depuis le siège. Il a une vieille pointe de flèche plantée dans la mâchoire.';
+// les eaux (pour le livre des poissons)
+const EAUX = { lac: 'le grand lac', etang: 'les étangs', marais: 'le marais', riviere: 'la rivière', lac_noir: 'le lac Noir', lac_gele: 'le lac gelé (sous la glace)',
+  douves: 'les douves de la ville', bains: 'les sources chaudes', souterrain: 'les eaux souterraines', temple: 'le bassin du temple', mine: 'le puits de la mine', envers: 'l’Envers' };
+
+// ---------------------------------------------------------------- les essences (cachées) de chaque ingrédient
+// vie ↔ mort, feu ↔ froid, lumière ↔ ombre, terre ↔ air ; eau, esprit, sang, sort n'ont pas d'opposé
+const ESSENCE_NAMES = { vie: 'Vie', mort: 'Mort', feu: 'Feu', froid: 'Froid', eau: 'Eau', terre: 'Terre', air: 'Air', ombre: 'Ombre', lumiere: 'Lumière', esprit: 'Esprit', sang: 'Sang', sort: 'Fortune' };
+const ESSENCE_OPP = [['vie', 'mort'], ['feu', 'froid'], ['lumiere', 'ombre'], ['terre', 'air']];
+const ESSENCES = {
+  // plantes de la vallée
+  herbes: { vie: 2, terre: 1 }, fleur: { vie: 1, air: 1 }, champignon: { terre: 2, ombre: 1 }, baies: { vie: 1, sang: 1 }, trefle: { sort: 3, vie: 1 },
+  ail_ours: { vie: 2, feu: 1 }, muguet: { mort: 2, lumiere: 1 }, millepertuis: { lumiere: 3, vie: 1 }, valeriane: { ombre: 2, esprit: 1 },
+  sauge: { vie: 2, esprit: 1 }, serpolet: { feu: 1, air: 2 }, arnica: { vie: 3, sang: 1 }, genepi: { froid: 2, esprit: 2 }, joubarbe: { terre: 2, eau: 1 },
+  lichen: { terre: 1, froid: 1, air: 1 }, aconit: { mort: 3, froid: 1 }, rossolis: { sang: 2, esprit: 1 }, menthe_eau: { eau: 2, froid: 1 },
+  prele: { terre: 2, air: 1 }, cresson: { eau: 2, vie: 1 }, girolle: { terre: 1, feu: 1 }, cepe: { terre: 2, vie: 1 }, amanite: { mort: 2, esprit: 2 },
+  trompette: { ombre: 2, terre: 1 }, morille: { terre: 2, sort: 1 }, lycopode: { feu: 2, air: 1 }, belladone_baies: { mort: 2, ombre: 2 },
+  perce_neige: { froid: 2, vie: 1 }, linaigrette: { air: 3 }, ortie: { sang: 1, feu: 1 }, tussilage: { air: 1, vie: 1, eau: 1 }, colchique: { mort: 2, terre: 1 },
+  digitale: { mort: 2, sang: 2 }, orchidee: { esprit: 2, sort: 2 }, reine_pres: { vie: 2, eau: 1 }, achillee: { vie: 2, sang: 1 }, gentiane: { froid: 1, vie: 2, lumiere: 1 },
+  edelweiss: { lumiere: 2, froid: 2, sort: 1 }, cynorhodon: { vie: 1, feu: 1 }, baies_sureau: { ombre: 1, vie: 1 }, baies_houx: { mort: 1, feu: 1 }, fleur_tilleul: { ombre: 1, eau: 1, esprit: 1 },
+  lys_cimes: { lumiere: 3, esprit: 2 }, mousse_nains: { terre: 3, lumiere: 1 }, asphodele: { mort: 2, esprit: 1 }, fleur_temple: { esprit: 3, terre: 2, sort: 1 },
+  fleur_lune: { lumiere: 2, esprit: 2 }, champi_lumineux: { lumiere: 2, terre: 1 }, mandragore: { terre: 3, esprit: 2, mort: 1 }, pissenlit: { vie: 1, air: 1 },
+  lavande: { air: 1, esprit: 1 }, miel: { vie: 2, sort: 1 }, rosee: { eau: 2, lumiere: 1 }, eau_benite: { lumiere: 2, vie: 1 }, larme_dame: { eau: 3, esprit: 2 },
+  // bêtes
+  plume: { air: 2 }, plume_noire: { ombre: 2, air: 1 }, plume_hibou: { ombre: 1, esprit: 1, air: 1 }, plume_bleue: { eau: 1, air: 2 }, plume_aigle: { air: 2, lumiere: 1, sang: 1 },
+  aile_chauve_souris: { ombre: 2, air: 1 }, venin: { mort: 3 }, mue_serpent: { mort: 1, esprit: 1, terre: 1 }, croc: { sang: 3 }, os: { mort: 1, terre: 1 }, poudre_os: { mort: 1, terre: 2 },
+  peau_salamandre: { feu: 3, mort: 1 }, ecaille_tortue: { terre: 2, eau: 1 }, viande: { sang: 2 }, oeuf: { vie: 1, terre: 1 }, lait: { vie: 1, eau: 1 }, fourrure: { feu: 1, terre: 1 },
+  bois_de_cerf: { esprit: 1, terre: 1, sang: 1 }, graisse_ours: { feu: 2, sang: 1 }, griffe_ours: { sang: 2, terre: 1 },
+  // pierres, métaux, étrangetés
+  eclat: { esprit: 2, ombre: 1 }, gemme: { lumiere: 2, sort: 1 }, perle: { eau: 2, sort: 1 }, vieille_piece: { sort: 2 }, charbon: { feu: 2, ombre: 1 }, argile: { terre: 2, eau: 1 },
+  silex: { feu: 1, terre: 1 }, fossile: { terre: 2, esprit: 1 }, sel: { froid: 1, terre: 1 }, cendre_sacree: { feu: 1, esprit: 2 }, poussiere_etoile: { lumiere: 2, air: 2 },
+  // poissons
+  anguille: { eau: 2, ombre: 1 }, poisson_aveugle: { ombre: 2, eau: 1 }, poisson_lune: { lumiere: 1, eau: 1, esprit: 1 }, poisson_roche: { terre: 2, eau: 1 },
+  ecrevisse_aveugle: { ombre: 1, eau: 1, sang: 1 }, anguille_argent: { eau: 2, lumiere: 1 }, poisson_ancien: { esprit: 3, sort: 2 }, carpe: { eau: 1, vie: 1 },
+};
+// Résultat d'un mélange : [essence dominante, seconde] -> potion (les paires sont dans l'ordre alphabétique)
+const ALCH_SINGLE = {
+  vie: 'potion_soin', mort: 'fiole_poison', feu: 'potion_chaleur', froid: 'potion_sang_froid', eau: 'potion_apnee', terre: 'potion_force', air: 'potion_legerete',
+  ombre: 'potion_silence', lumiere: 'potion_nyctalopie', esprit: 'potion_clairvoyance', sang: 'potion_vigueur', sort: 'potion_chance',
+};
+const ALCH_PAIRS = {
+  'terre+vie': 'potion_croissance', 'eau+vie': 'potion_regeneration', 'sang+vie': 'baume_moelle', 'esprit+vie': 'eau_lustrale', 'lumiere+vie': 'antidote',
+  'feu+vie': 'potion_chaleur', 'froid+vie': 'potion_givre', 'ombre+vie': 'somnifere', 'sort+vie': 'philtre_charme', 'air+vie': 'potion_celerite',
+  'mort+ombre': 'philtre_envers', 'esprit+mort': 'philtre_morts', 'mort+sang': 'appat_empoisonne', 'mort+terre': 'fiole_poison', 'eau+mort': 'fiole_poison',
+  'air+mort': 'mixture', 'mort+sort': 'fiel_noir', 'feu+mort': 'fiole_poison', 'froid+mort': 'potion_givre', 'lumiere+mort': 'antidote',
+  'feu+terre': 'potion_force', 'air+feu': 'potion_celerite', 'feu+sang': 'potion_vigueur', 'esprit+feu': 'philtre_charme', 'feu+lumiere': 'potion_soleil',
+  'feu+ombre': 'potion_chaleur', 'feu+sort': 'potion_chance', 'eau+feu': 'mixture',
+  'eau+froid': 'potion_apnee', 'froid+terre': 'potion_peau_pierre', 'air+froid': 'potion_legerete', 'esprit+froid': 'potion_sang_froid', 'froid+ombre': 'potion_silence',
+  'froid+lumiere': 'potion_nyctalopie', 'froid+sang': 'potion_givre', 'froid+sort': 'potion_chance',
+  'eau+terre': 'potion_croissance', 'air+eau': 'potion_silence', 'eau+ombre': 'potion_apnee', 'eau+lumiere': 'eau_benite', 'eau+esprit': 'potion_memoire', 'eau+sang': 'potion_regeneration', 'eau+sort': 'potion_chance',
+  'ombre+terre': 'potion_peau_pierre', 'lumiere+terre': 'potion_croissance', 'esprit+terre': 'potion_clairvoyance', 'sang+terre': 'potion_force', 'sort+terre': 'potion_chance',
+  'air+ombre': 'potion_silence', 'air+lumiere': 'potion_clairvoyance', 'air+esprit': 'potion_songe', 'air+sang': 'potion_celerite', 'air+sort': 'potion_chance',
+  'esprit+ombre': 'philtre_envers', 'ombre+sang': 'potion_nyctalopie', 'ombre+sort': 'fiel_noir',
+  'esprit+lumiere': 'potion_clairvoyance', 'lumiere+sang': 'antidote', 'lumiere+sort': 'eau_lustrale',
+  'esprit+sang': 'philtre_charme', 'esprit+sort': 'elixir_souffle', 'sang+sort': 'potion_vigueur',
+};
+// nouvelles potions (effets : 11-zzz02-alchimie.js)
+Object.assign(POTIONS, {
+  fiole_poison: { name: 'Fiole de poison', col: '#304020', need: null, h: 0, desc: 'Ça ne se boit pas. Versé sur de la viande, ça fait un appât mortel.' },
+  potion_chaleur: { name: 'Potion de chaleur', col: '#e06020', need: null, h: 10, desc: 'Le froid ne mord plus.' },
+  potion_sang_froid: { name: 'Potion de sang-froid', col: '#90c0e0', need: null, h: 8, desc: 'Ni les murmures ni les cris ne vous font plus rien.' },
+  potion_regeneration: { name: 'Potion de régénération', col: '#e07080', need: null, h: 6, desc: 'Les blessures se referment d’elles-mêmes, lentement.' },
+  baume_moelle: { name: 'Baume de moelle', col: '#f0e0b0', need: null, h: 0, desc: 'Ressoude les os brisés en une nuit… ou en une heure.' },
+  eau_lustrale: { name: 'Eau lustrale', col: '#f0f8ff', need: null, h: 0, desc: 'Lave ce qui colle à l’âme : les malédictions légères s’en vont.' },
+  potion_givre: { name: 'Potion de givre', col: '#c0e8f8', need: null, h: 0, desc: 'Le sang qui coule se fige. Arrête les saignements.' },
+  philtre_morts: { name: 'Philtre des morts', col: '#506050', need: null, h: 2, desc: 'Pour un moment, on entend ce que disent les morts.' },
+  appat_empoisonne: { name: 'Appât empoisonné', col: '#6a3020', need: null, h: 0, desc: 'Posé dans un piège, il tue ce qui le mord.' },
+  fiel_noir: { name: 'Fiel noir', col: '#1a1010', need: null, h: 0, desc: 'Personne ne sait pourquoi on en fabrique. Surtout pas celui qui le boit.' },
+  potion_soleil: { name: 'Potion de soleil', col: '#ffe060', need: null, h: 12, desc: 'Protège les yeux de l’éclat du soleil, et efface les taches qu’il y a laissées.' },
+  potion_peau_pierre: { name: 'Potion de peau de pierre', col: '#8a8a80', need: null, h: 3, desc: 'Les coups portent deux fois moins.' },
+  potion_memoire: { name: 'Eau de mémoire', col: '#80a0e0', need: null, h: 0, desc: 'On se souvient de mots qu’on n’a jamais appris.' },
+  potion_songe: { name: 'Potion de songe', col: '#c0a0e0', need: null, h: 24, desc: 'La nuit suivante, le rêve montre quelque chose de vrai.' },
+});
+for (const id of ['fiole_poison', 'potion_chaleur', 'potion_sang_froid', 'potion_regeneration', 'baume_moelle', 'eau_lustrale', 'potion_givre', 'philtre_morts', 'appat_empoisonne', 'fiel_noir', 'potion_soleil', 'potion_peau_pierre', 'potion_memoire', 'potion_songe']) {
+  const P = POTIONS[id];
+  defItem(id, P.name, 'potion', 60 + (P.h > 6 ? 30 : 0), ['fiole', P.col], { potion: id, desc: P.desc });
+}
+ITEMS.baume_moelle.price = 180; ITEMS.eau_lustrale.price = 150; ITEMS.fiel_noir.price = 5; ITEMS.fiole_poison.price = 20; ITEMS.appat_empoisonne.price = 25;
+// ingrédients en plus
+defItem('graisse_ours', 'Graisse d’ours', 'materiau', 40, ['pot', '#e8d8a8'], { alch: true, desc: 'Contre le froid, dit-on, et contre les engelures.' });
+defItem('griffe_ours', 'Griffe d’ours', 'materiau', 55, ['croc', '#3a2a20'], { alch: true, desc: 'Longue comme un doigt, et bien plus dure.' });
+defItem('sel', 'Sel', 'materiau', 4, ['sachet', '#f0f0f0'], { alch: true, desc: 'Du sel gris, en gros grains. Il conserve, et il protège, disent les vieux.' });
+defItem('cendre_sacree', 'Cendre sacrée', 'materiau', 60, ['sachet', '#8a8078'], { alch: true, desc: 'Ramassée au pied de l’autel d’un temple que personne ne connaît.' });
+defItem('poussiere_etoile', 'Poussière d’étoile', 'materiau', 200, ['sachet', '#d0d8ff'], { alch: true, desc: 'Tombée du ciel une nuit d’étoiles filantes. Elle brille encore un peu.' });
+for (const id of Object.keys(ESSENCES)) if (ITEMS[id] && !ITEMS[id].alch && id !== 'viande' && id !== 'oeuf' && id !== 'lait' && id !== 'miel' && id !== 'carpe') ITEMS[id].alch = true;
+
+// ---- 05-zzz2-especes-textes.js
+// ============================================================================
+//  CE QUE DISENT LES LIVRES DES ESPÈCES : une notice par bête, par plante, par
+//  arbre et par poisson (bestiaire, herbier, livre des poissons)
+// ============================================================================
+const NOTICE_ANIMAUX = {
+  rabbit: 'Il sort à l’aube et au crépuscule, broute au bord des haies et file au moindre bruit. On le chasse à l’arc, ou au collet.',
+  lievre_blanc: 'Brun l’été, blanc l’hiver, il vit au-dessus des arbres. Ses longues oreilles ont le bout noir. Plus rapide que le lapin, et plus méfiant.',
+  deer: 'Le roi de la forêt. Les mâles portent des bois qu’ils perdent au printemps. Il flaire l’homme de très loin : approchez accroupi, le vent dans le nez.',
+  roe: 'Plus petit que le cerf, il aime les lisières et les jeunes pousses. Il aboie quand il a peur, comme un chien enroué.',
+  boar: 'Il fouille la terre du groin et charge ce qui le dérange. Une laie qui protège ses petits ne recule jamais. Montez sur un rocher, ou priez.',
+  fox: 'Il ne sort guère que la nuit et connaît chaque poulailler de la vallée. Rusé, peureux, il ne s’en prend pas à l’homme.',
+  wolf: 'Ils chassent en meute, la nuit, dans les grands bois. Ils encerclent avant d’attaquer. Le feu et la lanterne les tiennent à distance.',
+  bear: 'Rare, énorme, solitaire. L’ours évite l’homme, mais malheur à qui le surprend, s’approche de sa proie ou le blesse. On ne le fuit pas en courant : on recule lentement, face à lui.',
+  lynx: 'Le chat des montagnes, aux oreilles terminées en pinceau. On le voit une fois dans sa vie, et c’est souvent lui qui vous a vu le premier.',
+  chamois: 'Il saute d’un rocher à l’autre comme s’il n’avait pas de poids. Deux petites cornes en crochet, une bande noire sur le visage.',
+  ibex: 'Le bouquetin porte des cornes énormes, annelées, et monte là où rien d’autre ne monte. Il ne craint pas grand-chose.',
+  marmot: 'Elle siffle pour prévenir les autres et plonge dans son terrier. Elle dort six mois de l’année, dit-on.',
+  squirrel: 'Roux, vif, il file vers le premier arbre et disparaît dans les branches. Il enterre des noix qu’il oublie : ainsi poussent les noyers.',
+  martre: 'Une petite bête souple et brune, à la gorge dorée, qui vit dans les arbres. Elle chasse l’écureuil. Sa fourrure vaut cher.',
+  badger: 'Le blaireau creuse des terriers immenses, qu’il nettoie avec soin. Il sort la nuit. Acculé, il mord fort.',
+  hedgehog: 'Il se roule en boule quand on l’approche. On l’entend renifler la nuit dans les jardins, à la recherche de limaces.',
+  otter: 'Elle nage mieux qu’un poisson et joue dans le courant. Très discrète, on voit plus souvent ses traces que la bête elle-même.',
+  castor: 'Il abat les arbres des berges avec ses dents et bâtit des barrages. Sa queue plate claque sur l’eau pour donner l’alarme.',
+  frog: 'Elle chante la nuit dans les mares, par centaines. Certains disent qu’elle annonce la pluie.',
+  salamandre: 'Noire et jaune, elle sort les nuits humides. Les anciens croyaient qu’elle vivait dans le feu. Sa peau est un poison léger.',
+  cistude: 'Une petite tortue d’eau douce, noire piquetée de jaune, qui se chauffe au soleil sur les troncs du marais. Elle vit plus longtemps qu’un homme.',
+  snake: 'La vipère aime les pierres chaudes et les landes. Elle ne mord que si on la presse : marchez en faisant du bruit, accroupi, jamais pieds nus. Son venin tue lentement.',
+  couleuvre: 'Grande et inoffensive, elle porte un collier jaune derrière la tête. Elle nage très bien et mange les grenouilles.',
+  heron: 'Immobile comme un piquet au bord de l’eau, il attend le poisson des heures durant. Son cri est un croassement rauque.',
+  stork: 'Blanche aux ailes noires, elle arpente les prés humides. On dit qu’elle porte bonheur à la maison où elle fait son nid.',
+  swan: 'Oiseau de la Dame du lac, dit-on. Personne n’y touche. Personne.',
+  duck: 'Le colvert au cou vert barbote dans les étangs et les rivières. Il s’envole droit, en criant.',
+  martin: 'Un éclair bleu au ras de l’eau. Il plonge du haut d’une branche et ressort un poisson au bec.',
+  pheasant: 'Le coq porte une longue queue et une tête verte. Il s’envole dans un grand bruit quand on marche presque dessus.',
+  partridge: 'Elle vit en compagnies dans les chaumes et part à tire-d’aile toutes ensemble.',
+  lagopede: 'Blanc en hiver, gris en été, il vit dans les pierres des hauteurs. Il se laisse approcher, puis s’envole en ronflant.',
+  tetras: 'Le grand coq de bruyère, noir aux sourcils rouges. Il parade à l’aube sur les branches des sapins. Très rare, très farouche.',
+  magpie: 'Noire et blanche, bavarde, elle vole tout ce qui brille. On trouve parfois des pièces dans son nid.',
+  crow: 'La corneille suit les labours et pille les semis. Un épouvantail la tient à distance, pas toujours longtemps.',
+  chocard: 'Noir au bec jaune, il tourne en bandes autour des sommets et vient mendier au refuge.',
+  owl: 'La chouette hulotte appelle la nuit depuis les grands arbres. Son vol ne fait aucun bruit.',
+  aigle: 'Il plane très haut au-dessus des alpages, en larges cercles. Il enlève les marmottes et les jeunes chamois.',
+  bat: 'Elles sortent au crépuscule et tournent autour des arbres. Dans les grottes, elles vivent par centaines.',
+  pigeon: 'Il vit sur les toits de la ville et dans le clocher. Il roucoule du matin au soir.',
+  wildhorse: 'Une harde vit libre dans les grands prés. Un cheval sauvage qu’on apprivoise vous choisit plus que vous ne le choisissez.',
+  bird: 'Mésanges, rouges-gorges, pinsons, merles : ils chantent le matin et se taisent à l’approche de l’orage.',
+  hen: 'Elle pond presque chaque jour si elle est bien nourrie et à l’abri la nuit. Le renard le sait aussi.',
+  cow: 'Il faut la traire chaque jour, un seau à la main. Elle aime le foin et les prés.',
+  sheep: 'Sa laine repousse ; on la tond aux cisailles. Un troupeau se tient serré quand il a peur.',
+  pig: 'Il mange de tout et trouve les truffes, les jours sans pluie.',
+  horse: 'Le cheval porte son cavalier bien plus vite qu’à pied, et il peut tirer une charrette. Sifflez : il vient.',
+  goat: 'Elle grimpe partout et donne un lait fort, dont on fait un fromage qui l’est plus encore.',
+  donkey: 'Plus lent que le cheval, plus têtu, plus sûr sur les sentiers. Il porte, et il se souvient.',
+  goose: 'Elle garde la cour mieux qu’un chien : elle crie à la moindre ombre.',
+  dog: 'Le compagnon de la ferme. Il aboie après ce qui rôde, même ce qu’on ne voit pas.',
+  cat: 'Il chasse les souris et fixe parfois les coins vides d’une pièce, longtemps.',
+};
+const NOTICE_PLANTES = {
+  poppies: 'Rouges et fragiles, ils poussent dans les champs et au bord des chemins.',
+  daisies: 'La fleur des prés par excellence. On l’effeuille pour savoir si l’on est aimé.',
+  cornflower: 'Bleu vif, il pousse parmi les blés. On en fait un collyre pour les yeux fatigués.',
+  lavender: 'Elle embaume la lande. Mise dans les armoires, elle chasse les mites.',
+  sunflower: 'Il suit le soleil tout le jour, dit-on. Ses graines nourrissent les oiseaux.',
+  heather: 'Elle couvre la lande de rose à la fin de l’été. Les abeilles en font un miel sombre.',
+  mushroom: 'Des champignons ordinaires, que tout le monde connaît et ramasse sans crainte.',
+  berry: 'Mûres, framboises et myrtilles, selon les buissons. Elles repoussent vite.',
+  herbs: 'Un mélange de plantes utiles que les gens d’ici reconnaissent sans y penser.',
+  fern: 'Elle envahit les sous-bois. On en fait des litières pour les bêtes.',
+  reeds: 'Au bord de l’eau. On en tire une fibre solide, et des toits.',
+  lilypad: 'Posés sur l’eau calme des étangs. Les grenouilles s’y reposent.',
+  tallgrass: 'L’herbe haute se fauche pour le foin des bêtes.',
+  jacinthe: 'Elles bleuissent le sous-bois au printemps.',
+  digitale: 'Belle et mortelle. Le cœur s’emballe, puis s’arrête. La guérisseuse, elle, sait la doser.',
+  lupin: 'De hautes grappes violettes dans les prés humides.',
+  lupin2: 'Une variété blanche, plus rare.',
+  iris: 'Jaune ou bleu, il pousse les pieds dans l’eau du marais.',
+  orchidee: 'Rarissime. Elle ne pousse que là où personne n’a marché depuis longtemps.',
+  bouton_or: 'Jaunes et luisants. Les vaches n’y touchent pas : ils brûlent la bouche.',
+  pissenlit: 'En salade au printemps, en tisane pour le foie. Tout le monde le connaît.',
+  primevere: 'La première fleur du printemps. Elle annonce les beaux jours.',
+  violette: 'Petite, discrète, parfumée. On la trouve au pied des haies.',
+  trefle_f: 'On cherche parmi les trèfles celui à quatre feuilles. On le trouve rarement.',
+  reine_pres: 'Contre la fièvre et les douleurs. Son parfum rappelle l’amande.',
+  achillee: 'L’herbe aux charpentiers : écrasée, elle arrête le sang des coupures.',
+  campanule: 'De petites cloches bleues qui tintent, disent les enfants, quand passent les fées.',
+  chardon: 'Piquant. Les chardonnerets en adorent les graines.',
+  mauve: 'Ses feuilles adoucissent la gorge et la peau.',
+  gentiane: 'Amère comme la montagne. Sa racine fortifie.',
+  edelweiss: 'L’étoile des neiges, au bord des précipices. On la cueille pour prouver son courage.',
+  rhododendron: 'Il couvre les pentes des monts de fleurs roses. Ses feuilles sont toxiques.',
+  eglantier: 'Le rosier sauvage. Ses fruits, les cynorhodons, se mangent en confiture.',
+  sureau: 'Ses fleurs parfument les beignets ; ses baies noires se cuisent, jamais crues.',
+  myosotis: 'Ne-m’oubliez-pas. Il pousse au bord des ruisseaux.',
+  jonquille: 'Jaune d’or, elle fleurit en masse dans les prés humides.',
+  ail_ours: 'En sous-bois humide, il forme des tapis entiers. Délicieux. Attention : le muguet et le colchique lui ressemblent, et tuent.',
+  muguet: 'Porte-bonheur de mai. Toute la plante est un poison pour le cœur.',
+  millepertuis: 'L’herbe de la Saint-Jean. On la dit capable de chasser les mauvais esprits et la mélancolie.',
+  valeriane: 'Sa racine fait dormir. Les chats en raffolent.',
+  sauge: 'Qui a de la sauge dans son jardin n’a pas besoin de médecin, dit le proverbe.',
+  serpolet: 'Le thym des landes et des rochers. Il parfume les viandes et soigne la toux.',
+  arnica: 'Pour les coups et les bleus, en onguent seulement. Elle ne se boit pas.',
+  genepi: 'Il pousse au plus haut, près des glaciers. On en fait une liqueur qui réchauffe l’âme.',
+  joubarbe: 'Elle pousse sur les toits et les pierres. On dit qu’elle protège de la foudre.',
+  lichen: 'Il pousse sur les rochers froids. Bouilli, il nourrit quand il n’y a plus rien.',
+  aconit: 'La plus dangereuse des plantes de la montagne. La toucher suffit à engourdir les doigts.',
+  rossolis: 'Une plante qui mange les mouches. Elle pousse dans les tourbières.',
+  menthe_eau: 'Elle pousse au bord de l’eau et sent frais. Bonne contre les maux de ventre.',
+  prele: 'On récure les chaudrons avec ses tiges. Elle fortifie les os, dit-on.',
+  cresson: 'Il pousse dans l’eau claire et froide des sources. Jamais dans l’eau des prés à bêtes.',
+  girolle: 'Jaune, parfumée, en entonnoir. Un régal.',
+  cepe: 'Le roi des champignons. Pied ventru, chapeau brun, chair blanche.',
+  amanite: 'Rouge à points blancs. Elle ne tue pas toujours ; elle fait voir des choses.',
+  trompette: 'Noire comme la mort, mais délicieuse. Son nom fait peur aux ignorants.',
+  morille: 'Rare, printanière, alvéolée. Jamais crue.',
+  lycopode: 'Sa poudre jaune s’enflamme d’un coup : les magiciens de foire s’en servent.',
+  belladone_s: 'Ses baies noires tuent un enfant. Les dames d’autrefois en mettaient dans leurs yeux pour les faire briller.',
+  perce_neige: 'Elle perce la neige à la fin de l’hiver. Un signe d’espoir.',
+  linaigrette: 'Ses houppes blanches signalent les tourbières : là où elle pousse, le sol ne porte pas.',
+  ortie: 'Elle pique, mais se mange en soupe. Elle pousse près des maisons, même abandonnées.',
+  tussilage: 'Ses fleurs sortent avant ses feuilles. Contre la toux.',
+  colchique: 'Dans les prés, en automne. Mortel. On le confond avec l’ail des ours au printemps, quand il n’a que ses feuilles.',
+  lys_cimes: 'On ne le trouve qu’au plus haut, seul dans les éboulis. Les vieux disent qu’il pousse là où quelqu’un est mort de froid.',
+  mousse_nains: 'Une mousse dorée qui luit sous terre. On ne la voit que dans les galeries profondes, et là où passe le peuple d’en bas.',
+  asphodele: 'La fleur des morts, disaient les anciens. Elle aime les ruines et les cimetières.',
+  fleur_temple: 'Une fleur de pierre qui ne pousse qu’en un seul endroit. Si vous en tenez une, vous savez où vous avez été.',
+};
+const NOTICE_ARBRES = {
+  oak: 'Le chêne vit mille ans. Son bois fait les charpentes et les tonneaux.', birch: 'L’arbre blanc des bois clairs. Son écorce brûle même mouillée.',
+  pine: 'Le pin résineux des pentes sèches.', apple: 'Pommes à croquer, à cuire, à presser en cidre.', deadtree: 'Mort debout. Il tombera à la prochaine tempête.',
+  giantoak: 'Le chêne millénaire. On ne coupe pas cet arbre. On ne coupe pas cet arbre.', hetre: 'Tronc lisse et gris, feuillage dense : rien ne pousse sous le hêtre.',
+  chataignier: 'Ses bogues piquent ; ses châtaignes se grillent.', noyer: 'Ses noix mûrissent en automne. Rien ne pousse près de lui, il est jaloux.',
+  saule: 'Au bord de l’eau, il pleure dans le courant. Son écorce calme la fièvre.', peuplier: 'Il pousse droit et vite le long des rivières.',
+  sapin: 'Le grand sapin des monts, sombre et droit.', sapin_neige: 'Le même, sous la neige des hauteurs.', meleze: 'Le seul conifère qui perd ses aiguilles en hiver.',
+  if: 'L’arbre des cimetières. Tout en lui est poison, sauf la chair rouge de ses fruits.', tilleul: 'Ses fleurs font dormir ; on le plantait sur les places.',
+  erable: 'Il rougit en automne.', cerisier: 'Les merles en mangent la moitié.', poirier: 'Ses poires mûrissent tard.', prunier: 'Prunes violettes, pour les tartes et l’eau-de-vie.',
+  aulne: 'Son bois rougit quand on le coupe, comme s’il saignait.', houx: 'Toujours vert, piquant, porte-bonheur l’hiver.', foudroye: 'Frappé par la foudre. On dit que la foudre ne tombe jamais deux fois au même endroit. On dit beaucoup de choses.',
+};
+const NOTICE_POISSONS = {
+  carpe: 'Grosse, lente, elle fouille la vase des eaux calmes. Elle vit très vieille.', perche: 'Rayée de noir, ses nageoires piquent. Elle chasse en bandes.',
+  truite: 'Elle aime l’eau claire et froide, et mord mieux par temps de pluie.', brochet: 'Le requin des eaux douces. Il attaque tout ce qui bouge.',
+  anguille: 'Elle sort la nuit et peut ramper sur l’herbe mouillée d’une mare à l’autre.', silure: 'Énorme, moustachu, nocturne. On raconte qu’il avale des canards.',
+  poisson_lune: 'Pâle comme la lune. Il ne mord que certaines nuits, les nuits rouges surtout.', poisson_aveugle: 'Il vit dans le noir complet et n’a plus d’yeux.',
+  gardon: 'Le poisson le plus commun. Idéal pour apprendre.', rotengle: 'Nageoires rouges, eaux tranquilles et herbeuses.', tanche: 'Verte et visqueuse, elle mord la nuit dans les eaux chaudes.',
+  breme: 'Large et plate, elle vit en bancs dans le grand lac.', sandre: 'Chasseur de nuit aux yeux vitreux, dans les eaux profondes.',
+  chevesne: 'Gros mangeur de la rivière, il gobe même les cerises tombées.', barbeau: 'Il fouille le fond des courants avec ses barbillons.',
+  vandoise: 'Argentée, vive, elle aime le courant.', vairon: 'Minuscule, il vit en bandes dans l’eau froide.', loche: 'Petite, tachetée, elle se cache sous les pierres le jour.',
+  chabot: 'Une grosse tête, un corps de rien. Il se confond avec les cailloux.', saumon: 'Il remonte la rivière pour mourir là où il est né.',
+  esturgeon: 'Un poisson d’un autre âge, couvert de plaques. Presque disparu.', ecrevisse: 'Elle marche à reculons la nuit au fond des ruisseaux.',
+  ablette: 'Petite et brillante, elle nage en surface.', carassin: 'Un poisson doré, cousin de la carpe. Rare dans la nature.', poisson_chat: 'Noir, moustachu, il pique.',
+  lavaret: 'Le poisson des lacs froids et profonds.', reine_lac: 'Une carpe dorée, immense et très vieille. Les pêcheurs l’ont tous vue ; personne ne l’a prise.',
+  poisson_roche: 'Blanc, presque transparent, il vit dans les eaux souterraines.', goujon: 'Petit, il vit au fond du courant. En friture.',
+  ombre: 'Le « porte-étendard » à la grande nageoire dorsale. Il aime l’eau vive et la pluie.', omble: 'Au ventre rouge, il vit dans les lacs de montagne les plus froids.',
+  lotte: 'Le seul poisson d’eau douce proche de la morue. Il mord la nuit, en hiver.', vieux_silure: 'Le vieux silure du lac Noir. Les pêcheurs de la Combe ne le nomment pas.',
+  carpe_miroir: 'Une carpe aux grandes écailles éparses, comme des miroirs. Les douves en sont pleines.', brochet_douves: 'On le dit vieux de cent ans. Il vit dans les douves depuis le siège.',
+  truite_arc: 'Irisée, combative, venue on ne sait d’où.', poisson_source: 'Il vit dans l’eau tiède des sources chaudes, et nulle part ailleurs.',
+  anguille_argent: 'Pâle et brillante, elle vit dans les eaux tièdes et sous la terre.', ecrevisse_aveugle: 'Blanche, sans yeux, dans les eaux souterraines.',
+  truite_pierre: 'Grise comme la roche, elle vit dans les rivières sous la montagne.', poisson_ancien: 'Il vit dans le bassin du temple. On ne sait pas s’il est vivant.',
+  lamproie: 'Sans mâchoire, elle se fixe aux autres poissons par une bouche ronde. Elle remonte les rivières au printemps.',
+  gremille: 'Petite perche visqueuse, commune dans les eaux calmes.', blennie: 'Un petit poisson curieux qui vit sous les pierres des eaux tièdes.',
+};
+
+// ---- 05-zzz3-langues.js
+// ============================================================================
+//  DEUX LANGUES PERDUES
+//  - l'AËLIN : la langue des Aëlim, qui bâtirent le temple sous la montagne et
+//    priaient les Trois (Aëla, Durn, Vesh). Langue fluide, verbe à la fin,
+//    pluriel en -im, génitif en na- (« na-aël » : de la lumière). Écriture : les
+//    Hautes Lettres, des traits anguleux gravés de haut en bas.
+//  - le GORRAIN : la langue des Gorr, qui dressèrent les pierres de la vallée
+//    (menhirs, dolmen, cercle). Les géants en sont les derniers à le parler.
+//    Langue rude, mots courts, redoublés pour le pluriel (« gor-gor » : des
+//    pierres), l'adjectif avant le nom. Écriture : des cupules et des anneaux
+//    creusés dans la pierre.
+//  On apprend les mots dans les lexiques de la grande bibliothèque, auprès des
+//  nains (qui ont gardé l'aëlin) et des géants (le gorrain), avec l'eau de
+//  mémoire, ou en recopiant les inscriptions où un mot est déjà connu.
+// ============================================================================
+const LANGUES = {
+  aelin: {
+    nom: 'l’aëlin', ecriture: 'les Hautes Lettres', peuple: 'les Aëlim',
+    desc: 'La langue des Aëlim, qui vivaient dans la vallée avant tout le monde. Elle coule comme de l’eau : le verbe vient toujours à la fin, le pluriel se dit en -im, et « na- » devant un mot veut dire « de ». On l’écrit en Hautes Lettres, de haut en bas, avec des traits anguleux.',
+    lex: {
+      ael: 'lumière', aela: 'Aëla (l’Aube)', aelim: 'les Aëlim (le peuple de la lumière)', durn: 'Durn (le Dormeur)', vesh: 'Vesh (la Nuit noire)',
+      thal: 'pierre', thalen: 'temple', mora: 'montagne', noth: 'dessous', ser: 'eau', sera: 'lac', vir: 'feu', vira: 'soleil', lun: 'lune', estel: 'étoile',
+      hem: 'homme', hemim: 'les hommes', ila: 'femme', ior: 'enfant', dal: 'porte', dalen: 'seuil', rath: 'chemin', kel: 'clé', mir: 'œil', mirim: 'les yeux',
+      oth: 'mort', othen: 'tombeau', ven: 'vie', ves: 'nuit', vesa: 'noire', ul: 'silence', ulen: 'se taire', sae: 'dormir', saeth: 'le sommeil',
+      rim: 'garder', rimen: 'gardien', tor: 'ouvrir', tora: 'ouvre', kor: 'fermer', ith: 'trois', ithim: 'les Trois', an: 'un', dua: 'deux', tres: 'treize',
+      fal: 'tomber', fala: 'est tombé', eld: 'ancien', eldim: 'les anciens', nai: 'ne… pas', ma: 'et', o: 'ô', ne: 'celui qui', ta: 'toi', mi: 'moi', ve: 'nous',
+      lir: 'chanter', lira: 'chant', hal: 'maison', halim: 'les maisons', gar: 'nain', garim: 'les nains', orm: 'géant', ormim: 'les géants',
+      sil: 'argent', aur: 'or', drae: 'sang', vael: 'vent', neth: 'sous', teh: 'ici', eth: 'là-bas', vor: 'avant', vora: 'autrefois', luin: 'bleu',
+      rhu: 'rendre', rhua: 'rends', tin: 'livre', tinim: 'les livres', sel: 'secret', selim: 'les secrets', kal: 'appeler', kala: 'appelle', mael: 'main',
+    },
+  },
+  gorrain: {
+    nom: 'le gorrain', ecriture: 'les cupules', peuple: 'les Gorr',
+    desc: 'La langue des Gorr, qui dressèrent les pierres de la vallée. Les géants la parlent encore, lentement. Les mots sont courts ; on les redouble pour le pluriel (« gor-gor », des pierres), et l’adjectif vient avant le nom. On l’écrit avec des cupules et des anneaux creusés dans la pierre.',
+    lex: {
+      gor: 'pierre', 'gor-gor': 'les pierres', gorr: 'les Gorr (le peuple des pierres)', dun: 'haut', dunn: 'grand', mek: 'petit', bruk: 'table', tuk: 'debout',
+      ulm: 'géant', 'ulm-ulm': 'les géants', hak: 'homme', 'hak-hak': 'les hommes', tro: 'mort', trom: 'tombe', vok: 'feu', vogga: 'soleil', olm: 'lune',
+      rag: 'eau', ragga: 'rivière', mor: 'montagne', bul: 'sous', kran: 'os', drum: 'cœur', ek: 'un', dek: 'deux', trek: 'trois', 'trek-trek': 'beaucoup',
+      zog: 'aller', zogga: 'va', hum: 'dormir', humma: 'dors', gar: 'garder', garru: 'gardien', bol: 'ventre', kuv: 'cercle', rum: 'rond', dor: 'porte',
+      lok: 'voir', lokka: 'regarde', nuk: 'non', ya: 'oui', ho: 'ô', ta: 'toi', ma: 'moi', 'ma-ma': 'nous', grum: 'tonnerre', skaa: 'ciel', bak: 'dos', ruk: 'marcher',
+      hal: 'mourir', hol: 'nuit', dwerr: 'nain', 'dwerr-dwerr': 'les nains', aal: 'lumière', ulv: 'loup', brek: 'casser', tunn: 'lourd', snow: 'neige', fell: 'peau',
+    },
+  },
+};
+// Les inscriptions : [id, langue, texte, sens, lieu (landmark) ou null]
+const INSCRIPTIONS = [
+  ['a_seuil', 'aelin', 'o ta ne dalen tora , rhua ael na-durn', 'Ô toi qui ouvres le seuil, rends la lumière de Durn.', 'temple'],
+  ['a_porte', 'aelin', 'dal nai tor , ma ithim kala', 'La porte ne s’ouvre pas. Appelle les Trois.', 'temple'],
+  ['a_trois', 'aelin', 'aela ven , durn saeth , vesh oth', 'Aëla, la vie. Durn, le sommeil. Vesh, la mort.', 'temple'],
+  ['a_mora', 'aelin', 'thalen neth mora , durn sae', 'Le temple est sous la montagne. Durn dort.', null],
+  ['a_nuit', 'aelin', 'ves vesa fala , ma hemim ulen', 'La nuit noire est tombée, et les hommes se sont tus.', null],
+  ['a_nains', 'aelin', 'garim rimen na-thalen , vor ma teh', 'Les nains, gardiens du temple, avant et ici.', 'nains'],
+  ['a_livres', 'aelin', 'tinim na-aelim neth thal , selim rim', 'Les livres des Aëlim sous la pierre gardent les secrets.', 'bibliotheque'],
+  ['a_tres', 'aelin', 'tres hemim mora fala , an nai', 'Treize hommes sont tombés de la montagne ; pas un seul.', 'col'],
+  ['a_lune', 'aelin', 'lun ma vira ma estel , ithim mirim', 'La lune, le soleil et l’étoile : les yeux des Trois.', null],
+  ['a_kel', 'aelin', 'kel neth sera luin , ne sera sae', 'La clé est sous le lac bleu, là où dort le lac.', 'lac_gele'],
+  ['a_sang', 'aelin', 'drae nai rhu , ve ulen', 'Nous ne rendrons pas le sang. Nous nous taisons.', null],
+  ['a_chant', 'aelin', 'lira na-aela , ael vor ves', 'Le chant d’Aëla : la lumière avant la nuit.', 'temple'],
+  ['g_table', 'gorrain', 'dunn bruk ulm-ulm , hak nuk', 'Grande table des géants. Pas pour les hommes.', 'dolmen'],
+  ['g_cercle', 'gorrain', 'gor-gor kuv , olm lokka , hol zogga', 'Les pierres en cercle : regarde la lune, va dans la nuit.', 'cercle'],
+  ['g_menhirs', 'gorrain', 'tuk gor dek , drum bul', 'Deux pierres debout ; le cœur est dessous.', 'menhirs'],
+  ['g_trom', 'gorrain', 'trom gorr , ho ta hum', 'Tombe des Gorr. Ô toi, dors.', null],
+  ['g_mor', 'gorrain', 'mor dunn , ulm humma , grum nuk', 'Haute montagne. Géant, dors. Pas de tonnerre.', 'geants'],
+  ['g_dwerr', 'gorrain', 'dwerr-dwerr bul mor , aal mek', 'Les nains sous la montagne ; petite lumière.', 'nains'],
+  ['g_ulv', 'gorrain', 'ulv trek-trek hol , vok gar', 'Beaucoup de loups la nuit : garde le feu.', null],
+  ['g_rag', 'gorrain', 'ragga zog , mor bul , dor', 'La rivière va sous la montagne : une porte.', 'temple'],
+];
+const INSCR_BY_ID = {};
+for (const I of INSCRIPTIONS) INSCR_BY_ID[I[0]] = { id: I[0], lang: I[1], texte: I[2], sens: I[3], lieu: I[4] };
+// mots d'une inscription (sans ponctuation)
+const langWords = (texte) => texte.split(/\s+/).filter((w) => w && w !== ',');
+
+// ---------------------------------------------------------------- l'écriture (dessin d'un mot, lettre à lettre)
+const LANG_GLYPHS = {};
+function langGlyph(lang, ch) {
+  const key = lang + ch;
+  if (LANG_GLYPHS[key]) return LANG_GLYPHS[key];
+  const rnd = mulberry32(hashString(key) + 7);
+  const strokes = [];
+  if (lang === 'aelin') { // traits sur une grille 3 × 4
+    const n = 2 + ((rnd() * 3) | 0);
+    for (let k = 0; k < n; k++) { const a = [(rnd() * 3) | 0, (rnd() * 4) | 0], b = [(rnd() * 3) | 0, (rnd() * 4) | 0]; if (a[0] === b[0] && a[1] === b[1]) b[1] = (b[1] + 2) % 4; strokes.push([a, b]); }
+    strokes.push([[1, 0], [1, 3]]); // la hampe
+  } else { // cupules et anneaux
+    const n = 1 + ((rnd() * 3) | 0);
+    for (let k = 0; k < n; k++) strokes.push({ x: rnd(), y: rnd(), r: 0.12 + rnd() * 0.2, ring: rnd() < 0.5 });
+    if (rnd() < 0.5) strokes.push({ line: [rnd(), rnd(), rnd(), rnd()] });
+  }
+  return (LANG_GLYPHS[key] = strokes);
+}
+// Dessine un texte dans l'écriture de la langue : renvoie un canevas
+function langCanvas(lang, texte, opts = {}) {
+  const words = langWords(texte), letters = words.map((w) => w.replace(/-/g, '').split(''));
+  const G = opts.size || 18, gap = G * 0.5;
+  const cols = lang === 'aelin' ? words.length : 1;
+  const cv = document.createElement('canvas');
+  if (lang === 'aelin') { // colonnes de haut en bas
+    const maxL = Math.max(1, ...letters.map((l) => l.length));
+    cv.width = Math.max(40, cols * (G + gap) + gap); cv.height = maxL * G * 1.2 + gap * 2;
+  } else { // lignes de cupules
+    cv.width = Math.min(520, Math.max(60, texte.length * G * 0.6)); cv.height = Math.ceil(letters.flat().length * G * 0.62 / cv.width + 1) * G * 1.3 + gap * 2;
+  }
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = opts.bg || '#cfc6b0'; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.strokeStyle = opts.ink || '#3a3024'; ctx.fillStyle = opts.ink || '#3a3024'; ctx.lineWidth = Math.max(1.5, G / 9); ctx.lineCap = 'round';
+  if (lang === 'aelin') {
+    letters.forEach((L, wi) => {
+      const x0 = cv.width - gap - (wi + 1) * (G + gap) + gap; // de droite à gauche
+      L.forEach((ch, li) => {
+        const y0 = gap + li * G * 1.2;
+        for (const [a, b] of langGlyph(lang, ch)) { ctx.beginPath(); ctx.moveTo(x0 + a[0] / 2 * G * 0.8, y0 + a[1] / 3 * G); ctx.lineTo(x0 + b[0] / 2 * G * 0.8, y0 + b[1] / 3 * G); ctx.stroke(); }
+      });
+    });
+  } else {
+    let x = gap, y = gap;
+    for (const L of letters) {
+      for (const ch of L) {
+        const s = G * 0.6;
+        for (const g of langGlyph(lang, ch)) {
+          if (g.line) { ctx.beginPath(); ctx.moveTo(x + g.line[0] * s, y + g.line[1] * s); ctx.lineTo(x + g.line[2] * s, y + g.line[3] * s); ctx.stroke(); continue; }
+          ctx.beginPath(); ctx.arc(x + g.x * s, y + g.y * s, g.r * s + 1, 0, TAU);
+          if (g.ring) ctx.stroke(); else ctx.fill();
+        }
+        x += s;
+        if (x > cv.width - gap - s) { x = gap; y += G * 1.3; }
+      }
+      x += s * 0.6;
+    }
+  }
+  return cv;
+}
+
+// ---- 05-zzz4-livres.js
+// ============================================================================
+//  LES LIVRES : ceux qu'on achète au marchand (bestiaire, herbier, poissons,
+//  sciences, manuels de fabrication) et ceux de la grande bibliothèque, qu'on
+//  emprunte (chroniques, archives, lexiques des langues perdues, traités,
+//  atlas, secrets). Un livre s'ouvre en main (clic) ; certains enseignent des
+//  recettes ou des mots, d'autres révèlent un lieu (sans jamais le montrer
+//  exactement) ou une vérité.
+//  pages : tableau de { titre, texte } ou fonction (pages calculées à la lecture)
+// ============================================================================
+const LIVRES = {
+  // ------------------------------------------------------------ vendus par les marchands
+  bestiaire: { titre: 'Bestiaire de la vallée', auteur: 'par un naturaliste de passage', prix: 90, col: '#6a4a2a', gen: 'bestiaire',
+    desc: 'Toutes les bêtes de la vallée, de la plus commune à la plus rare : où elles vivent, ce qu’elles craignent, ce qu’il faut craindre d’elles.' },
+  herbier: { titre: 'Herbier de la vallée', auteur: 'planches et notices', prix: 90, col: '#3a6a3a', gen: 'herbier',
+    desc: 'Toutes les plantes et tous les arbres de la vallée, avec leurs milieux et leurs dangers. Pour être sûr de ce qu’on a cueilli, il faut toujours montrer la plante à un alchimiste.' },
+  poissons: { titre: 'Poissons des eaux douces', auteur: 'par Émile Rivière, pêcheur', prix: 70, col: '#2a5a7a', gen: 'poissons',
+    desc: 'Tous les poissons des eaux de la vallée : dans quelles eaux, à quelle heure, et combien ils sont rares.' },
+  sciences: { titre: 'Précis des sciences de base', auteur: 'à l’usage des écoles de canton', prix: 60, col: '#7a2a2a',
+    desc: 'Le temps, le corps, la matière, les essences, les astres, les mécaniques. De quoi comprendre un peu le monde, ou s’en donner l’impression.',
+    pages: [
+      { titre: 'Avertissement', texte: 'Ce petit livre ne dit pas tout. Il dit ce que tout le monde devrait savoir, et que personne ne sait. Lisez-le dans l’ordre, ou dans le désordre : la science n’est pas pressée.' },
+      { titre: 'I. Le temps', texte: 'La semaine compte douze jours : Primedi, Ferdi, Marchedi, Lavedi, Nahédi, Chassedi, Pêchedi, Orédi, Foiredi, Veilledi, Chômedi et Vorndi. Chacun a ses habitudes : le marché le Marchedi, la chasse le Chassedi (prudence en forêt), la messe l’Orédi, le jour des morts le Vorndi.\n\nUne journée passe vite : le soleil se lève vers six heures et se couche vers vingt heures et demie.\n\nLe ciel prévient : des nuages qui se figent annoncent la pluie ; un ciel trop clair et trop chaud, l’orage sec. Il peut neiger partout, même dans les prés du bas, quand le froid descend des Monts. Les tornades sont rarissimes ; si le ciel devient vert et que le vent tourne en rond, cherchez une cave.' },
+      { titre: 'II. Le corps', texte: 'On ne meurt pas toujours d’un coup. Une chute de plus de quatre mètres fait mal ; de plus de six, elle casse une jambe ; de plus de dix, elle tue. Une jambe cassée se soigne avec une attelle, du repos, ou le baume de moelle des alchimistes : sans cela, on boite trois jours.\n\nUne plaie ouverte saigne : le sang s’en va peu à peu. Un bandage l’arrête ; la potion de givre aussi. Le venin tue lentement : l’antidote le chasse. Le froid tue la nuit, en montagne, sans feu ni toit. La faim tue en quelques jours.\n\nOn ne gravit pas une pente trop raide : il faut chercher un sentier, des lacets, une échelle.' },
+      { titre: 'III. La matière', texte: 'Le minerai se fond au four avec du charbon : trois pierres de minerai et un charbon donnent un lingot. Deux lingots de fer et trois charbons donnent l’acier.\n\nTout objet fabriqué est l’assemblage de ses parties : un manche de bois, une tête de pierre, une ficelle de fibre font une hache. Qui comprend de quoi une chose est faite peut la refaire. Qui essaie au hasard découvre parfois ce que personne n’a noté.' },
+      { titre: 'IV. Les essences', texte: 'Les alchimistes enseignent que chaque chose porte en elle des essences cachées : la Vie, la Mort, le Feu, le Froid, l’Eau, la Terre, l’Air, l’Ombre, la Lumière, l’Esprit, le Sang et la Fortune.\n\nQuatre paires s’annulent : la Vie et la Mort, le Feu et le Froid, la Lumière et l’Ombre, la Terre et l’Air. Quand on mêle des ingrédients, leurs essences s’additionnent, les contraires se mangent, et ce qui domine décide du résultat. Une essence seule qui l’emporte donne une potion simple ; deux essences fortes ensemble donnent une potion plus rare.\n\nQuelques exemples connus de tous : le miel tient de la Vie ; la plume, de l’Air ; le croc, du Sang ; le venin, de la Mort ; la rosée, de l’Eau ; le trèfle, de la Fortune. Pour le reste, il faut essayer, noter, recommencer. C’est pour cela que les alchimistes ont de si gros carnets.' },
+      { titre: 'V. Les astres', texte: 'Certaines nuits sont noires : ni lune, ni étoiles, et les lanternes semblent éclairer moins loin. Les anciens disaient qu’on y entend murmurer. Restez chez vous.\n\nCertains jours, le soleil brille trop fort. Ne le regardez pas en face : l’œil se brûle, et une tache noire y reste longtemps. La potion de soleil protège et soigne.\n\nLes étoiles filantes laissent parfois une poussière qui brille encore au matin.' },
+      { titre: 'VI. Les mécaniques', texte: 'Un cheval tire dix fois ce que porte un homme : attelé à une charrette, il emporte un coffre entier de récoltes.\n\nUn piège à loup se tend à la main, s’arme au sol, et se referme sur la première patte qui passe. Il ne choisit pas : ni le loup, ni le chien, ni vous.\n\nLe fusil de chasse porte loin et juste ; la lunette rapproche la cible (bouton droit). Une cartouche, un coup. Le bruit fait fuir toute la forêt, et un chasseur qui entend tirer tire parfois lui aussi, sur ce qui bouge.' },
+    ] },
+  // ------------------------------------------------------------ manuels (enseignent des recettes)
+  manuel_menuisier: { titre: 'Manuel du menuisier', auteur: 'Compagnons du Devoir', prix: 120, col: '#8a6a3a', recettes: ['banc', 'table', 'chaise', 'tonneau', 'coffre', 'caisse_expedition', 'niche', 'brouette', 'mangeoire', 'nichoir', 'portillon', 'plancher', 'panneau'],
+    desc: 'Assemblages, tenons et mortaises : de quoi meubler une ferme entière.' },
+  manuel_forgeron: { titre: 'L’art du forgeron', auteur: 'Maître Jacquemin', prix: 160, col: '#4a4a52', recettes: ['hache_cuivre', 'pioche_cuivre', 'hache_fer', 'pioche_fer', 'hache_acier', 'pioche_acier', 'faux', 'cisailles', 'seau', 'lanterne', 'arrosoir', 'lingot_acier', 'piege_loup'],
+    desc: 'Le feu, le fer, le marteau. Et comment ne pas y laisser ses doigts.' },
+  manuel_chasse: { titre: 'Traité de la chasse et des pièges', auteur: 'par un vieux garde-chasse', prix: 130, col: '#5a3a20', recettes: ['arc', 'fleche', 'piege', 'piege_loup', 'cartouche', 'lunette', 'fusil', 'bandage', 'appeau'],
+    desc: 'Pister, attendre, tirer. Et surtout : ne jamais tirer sur ce qu’on n’a pas vu.' },
+  manuel_cuisine: { titre: 'Les recettes de la mère Aubert', auteur: 'Boulangerie Aubert', prix: 50, col: '#c08040', recettes: ['pain', 'tarte', 'soupe', 'ragout', 'confiture', 'fromage', 'viande_grillee', 'poisson_grille', 'infusion', 'chataignes_grillees'],
+    desc: 'Tout ce qui se mange, et comment faire pour que ça se mange bien.' },
+  manuel_jardin: { titre: 'Le jardin d’agrément', auteur: 'par un paysagiste de la ville', prix: 90, col: '#4a8a4a', recettes: ['pot_fleurs', 'parterre', 'arche_fleurie', 'allee', 'dalle', 'haie', 'cloture_pierre', 'statue', 'lampadaire', 'lanterne_sol', 'girouette', 'puits_deco', 'citrouille_sculptee'],
+    desc: 'Une ferme n’est pas qu’un champ : il y faut des fleurs, des allées, de la lumière.' },
+  manuel_charron: { titre: 'Charronnage et attelages', auteur: 'Maison Brossard, charrons', prix: 140, col: '#6a5030', recettes: ['roue', 'charrette', 'harnais', 'selle', 'attelle', 'corde'],
+    desc: 'Roues, essieux, brancards et harnais : tout pour atteler un cheval.' },
+  // ------------------------------------------------------------ la grande bibliothèque (s'empruntent)
+  chroniques: { titre: 'Chroniques de la vallée', auteur: 'recueillies par les moines de Montrevel', biblio: true, col: '#5a3a3a',
+    pages: [
+      { titre: 'Avant les villes', texte: 'Avant les villes, il y avait les Gorr, qui dressaient des pierres, et avant les Gorr il y avait les Aëlim, qui en taillaient. Les moines n’en savent rien de plus que ce que disent les pierres elles-mêmes, et les pierres parlent peu.' },
+      { titre: 'Le siège', texte: 'Valbrume fut assiégée trois fois. La troisième, on creusa les douves à la hâte et l’on releva les ponts pour la première fois. Les assiégeants partirent une nuit sans lune, sans que personne ne sût pourquoi. Au matin, leurs feux étaient encore chauds.' },
+      { titre: 'Les disparus', texte: 'Chaque génération a ses disparus. Les registres de la commune en tiennent le compte, avec une précision que les moines trouvent inquiétante.' },
+    ] },
+  archives: { titre: 'Archives de la commune (copie)', auteur: 'Mairie de Valbrume', biblio: true, col: '#4a4a3a', secret: 'archives',
+    pages: [
+      { titre: 'Registre, 1791', texte: 'Cette année-là, un fermier de la vieille ferme a signé un bail avec « ceux d’en dessous ». L’acte est au dossier. Il ne porte pas de signature de l’autre partie, mais une empreinte de main, à l’ocre.' },
+      { titre: 'Registre, 1854', texte: 'Treize habitants sont montés au col pour chercher un enfant. Douze sont redescendus. Le treizième figure encore au recensement, chaque année, sans que personne ne se souvienne de l’avoir recensé.' },
+      { titre: 'Une note au crayon', texte: 'Les nains ne sont pas une légende. Le grand-père Morel a commercé avec eux ; il allait au nord-est de la Combe Perdue, là où la falaise a une fente en forme de serrure. Il n’a jamais voulu dire comment on entre. « Il faut frapper comme eux », disait-il.' },
+    ] },
+  lexique_aelin: { titre: 'Des langues d’avant : l’aëlin', auteur: 'Frère Anselme de Montrevel', biblio: true, col: '#3a4a6a', langue: 'aelin', mots: 40 },
+  lexique_aelin2: { titre: 'Glossaire des Hautes Lettres', auteur: 'anonyme', biblio: true, col: '#2a3a5a', langue: 'aelin', mots: 999 },
+  lexique_gorrain: { titre: 'Les pierres qui parlent : le gorrain', auteur: 'Docteur Lefèvre, antiquaire', biblio: true, col: '#6a5a3a', langue: 'gorrain', mots: 30 },
+  lexique_gorrain2: { titre: 'Vocabulaire des géants', auteur: 'recueilli au péril de sa vie', biblio: true, col: '#5a4a2a', langue: 'gorrain', mots: 999 },
+  les_trois: { titre: 'Les Trois', auteur: 'fragment aëlim traduit', biblio: true, col: '#6a6a8a', secret: 'trois',
+    pages: [
+      { titre: 'Aëla', texte: 'Aëla est l’Aube. Elle se lève avant le soleil et c’est elle qui lui dit de venir. Elle guérit ce qui peut l’être. Elle ne se montre qu’à qui a veillé toute une nuit sans lumière et sans peur, et encore : une fois dans une vie.' },
+      { titre: 'Durn', texte: 'Durn est la Pierre, le Dormeur. Il dort sous la montagne, et la montagne est son lit. Quand il se retourne, la terre tremble. Il n’aime pas qu’on le réveille, mais il respecte ceux qui trouvent son seuil.' },
+      { titre: 'Vesh', texte: 'Vesh est la Nuit noire. Les nuits sans lune ni étoiles sont son souffle ; les murmures sont sa voix. Il offre, et ce qu’il offre se paie toujours. Il ne faut pas répondre quand il appelle. Il faut encore moins lui dire son nom.' },
+    ] },
+  temple_montagne: { titre: 'Du temple sous la montagne', auteur: 'Frère Anselme de Montrevel', biblio: true, col: '#3a3a3a', secret: 'temple',
+    pages: [
+      { titre: 'Ce qu’on raconte', texte: 'Les Aëlim auraient creusé, sous la montagne du nord, un temple plus grand que la ville, pour y faire dormir Durn. On y entrerait par l’eau : là où la rivière naît de la montagne, sous les Monts, derrière ce qui tombe.' },
+      { titre: 'Ce qu’on n’ose pas écrire', texte: 'La porte ne s’ouvre qu’à qui sait la lire. Il faut « appeler les Trois » : Aëla, Durn et Vesh, dans l’ordre du jour — l’aube, le sommeil, la nuit. Trois pierres à toucher, dit un fragment. Je n’y suis pas allé. Je suis trop vieux, ou trop sage.' },
+    ] },
+  maledictions: { titre: 'Traité des malédictions', auteur: 'par une guérisseuse de l’ancien temps', biblio: true, col: '#4a2a4a', secret: 'maledictions',
+    pages: [
+      { titre: 'Comment on attrape une malédiction', texte: 'En tuant un cygne de la Dame ou le Cerf blanc. En pillant une tombe. En volant dans un temple. En brisant une pierre dressée. En gardant un livre qui ne vous appartient pas. En buvant ce qu’il ne fallait pas boire. En répondant, la nuit noire, à ce qui vous appelle par votre nom.' },
+      { titre: 'Ce qu’elles font', texte: 'La malchance : les pièges restent vides, les poissons ne mordent plus. La faim qui ne passe pas. Les bêtes qui vous fuient. Le sommeil sans repos. Les récoltes qui pourrissent. Le poids : on marche comme dans l’eau. La pire de toutes : l’ombre qui vous suit, et qui un jour vous rattrape.' },
+      { titre: 'Comment on s’en défait', texte: 'L’eau lustrale lave les petites. Le curé en ôte certaines, en échange d’une confession sincère et d’une offrande. La guérisseuse en ôte d’autres, en échange de ce qu’elle voudra. Les plus lourdes ne partent qu’en réparant la faute, ou en s’en remettant à l’un des Trois.' },
+    ] },
+  geants: { titre: 'Les géants et la Table', auteur: 'Docteur Lefèvre, antiquaire', biblio: true, col: '#5a5a4a', secret: 'geants',
+    pages: [
+      { titre: 'La Table des Géants', texte: 'Le dolmen du plateau n’est pas une tombe, mais une table. Les géants y mangeaient, disent les gens du plateau, et y mangent encore certaines nuits.' },
+      { titre: 'Ce que j’ai vu', texte: 'J’en ai vu un, une fois, marcher sur les crêtes de l’est, à l’aube, grand comme trois maisons. Il ne m’a pas vu, ou il m’a laissé vivre. Ils parlent le gorrain, lentement. Ils ne sont pas méchants. Ils ne font pas attention à ce qui est petit, c’est tout.' },
+    ] },
+  peuple_bas: { titre: 'Le peuple d’en bas', auteur: 'contes recueillis à Clairpré', biblio: true, col: '#4a3a2a', secret: 'nains',
+    pages: [
+      { titre: 'Les petits hommes', texte: 'Ils sont petits, larges, barbus, et ils vivent sous la montagne depuis que les Aëlim leur ont confié le temple. Ils commercent parfois avec les hommes, en échange de pain, de miel et de laine. Ils ont horreur du soleil et des menteurs.' },
+      { titre: 'Pour les trouver', texte: 'Au bord de la Combe, où la falaise est fendue. On frappe trois coups, puis un, puis trois. Qui ne sait pas frapper reste dehors.' },
+    ] },
+  contes: { titre: 'Contes de la veillée', auteur: 'recueillis par l’instituteur', biblio: true, col: '#7a5a3a',
+    pages: [
+      { titre: 'Le fermier et la Nuit', texte: 'Il était un fermier qui répondit, une nuit noire, à la voix qui l’appelait. On lui donna tout ce qu’il voulut : la pluie à point, le blé haut, l’or dans le puits. Le jour où il voulut rendre, il n’y avait plus personne à qui rendre. On dit qu’il cherche encore.' },
+      { titre: 'L’enfant et le géant', texte: 'Une petite fille perdue dans la neige fut ramenée au village, un matin, endormie dans une main grande comme une charrette. Personne ne la crut. Au printemps, on trouva dans le pré des empreintes de pieds longues comme des barques.' },
+      { titre: 'Le libraire', texte: 'Il ne faut jamais rendre un livre en retard à la grande bibliothèque. Tout le monde sait ça. Personne ne sait pourquoi. Ceux qui savaient ne sont plus là pour le dire.' },
+    ] },
+  memoires_chasseur: { titre: 'Mémoires d’un chasseur', auteur: 'Auguste Delorme', biblio: true, col: '#5a4a2a', recettes: ['appeau', 'piege_loup'],
+    pages: [
+      { titre: 'L’ours', texte: 'L’ours ne vous veut rien. Il veut son miel, ses baies, ses petits. Si vous tombez entre lui et l’un des trois, faites-vous grand, parlez-lui, reculez. Ne courez pas. Ne tirez que si vous êtes sûr de tuer : un ours blessé ne s’arrête plus.' },
+      { titre: 'Les jours de chasse', texte: 'Le Chassedi, les bois sont pleins de fusils. Portez du rouge, faites du bruit, restez sur les chemins. J’ai vu un homme tomber parce qu’il marchait accroupi dans les fougères. On l’avait pris pour un chevreuil.' },
+    ] },
+  almanach_nuits: { titre: 'Almanach des nuits noires', auteur: 'anonyme', biblio: true, col: '#1a1a2a',
+    pages: [
+      { titre: 'Les nuits noires', texte: 'Elles reviennent sans règle, une ou deux fois par mois. On les sent venir : les chiens se taisent au crépuscule, les chandelles fument. Il faut fermer les volets, garder une lumière, et ne pas écouter.\n\nCe qui murmure ne peut pas entrer. Ce qui murmure peut appeler. Si vous répondez, vous lui avez ouvert.' },
+    ] },
+  atlas_ancien: { titre: 'Atlas ancien (feuillets)', auteur: 'cartographe inconnu', biblio: true, col: '#6a5a3a', carte: 'ancien',
+    pages: [{ titre: 'Feuillets de cartes', texte: 'Des feuillets jaunis, dessinés à la main, où les montagnes sont des pointes et les forêts des petits arbres. Rien n’est à sa place exacte. Tout est à peu près là.' }] },
+};
+// objets « livre »
+for (const id in LIVRES) {
+  const L = LIVRES[id];
+  defItem('livre_' + id, L.titre, 'livre', L.prix || (L.biblio ? 0 : 40), ['livre', L.col || '#6a2a24'], { book: id, desc: (L.desc || (L.biblio ? 'Un livre de la grande bibliothèque. Il faudra le rendre à temps.' : '')) + (L.biblio ? '' : '') });
+  if (L.biblio) ITEMS['livre_' + id].biblio = true;
+}
+ITEM_CAT_NAMES.livre = 'Livres';
+// ce que vendent les marchands (colporteurs, bibliothèque, boutiques)
+const LIVRES_MARCHANDS = ['bestiaire', 'herbier', 'poissons', 'sciences'];
+const LIVRES_MANUELS = ['manuel_menuisier', 'manuel_forgeron', 'manuel_chasse', 'manuel_cuisine', 'manuel_jardin', 'manuel_charron'];
+
+// ---- 05-zzz5-objets.js
+// ============================================================================
+//  OBJETS EN PLUS : le fusil de chasse à lunette et ses cartouches, le piège à
+//  loup, la charrette qu'on attelle au cheval, les soins (attelle, bandage), la
+//  table d'alchimiste, les cartes de régions (toujours approximatives), et les
+//  recettes correspondantes. La fabrication se découvre : seules les recettes
+//  de BASE sont connues au départ (voir 11-zzz03-fabrication.js).
+// ============================================================================
+defItem('fusil', 'Fusil de chasse à lunette', 'outil', 950, ['fusil', '#5a4a3a'], { tool: 'fusil', desc: 'Clic : tirer. Bouton droit maintenu : viser à la lunette. Une cartouche par coup.' });
+defItem('cartouche', 'Cartouche', 'outil', 6, ['cartouche', '#c8a040'], { desc: 'Pour le fusil de chasse.' });
+defItem('canon_fusil', 'Canon de fusil', 'materiau', 260, ['canon', '#6a6a72'], { desc: 'Un tube d’acier foré, long comme le bras.' });
+defItem('lunette', 'Lunette de visée', 'materiau', 220, ['lunette', '#3a3a40'], { desc: 'Deux lentilles dans un tube de cuivre. Tout paraît plus près, et plus seul.' });
+defItem('lentille', 'Lentille de verre', 'materiau', 60, ['rond', '#d0e8f0'], { desc: 'Taillée par un nain, dit-on. Parfaitement claire.' });
+defItem('appeau', 'Appeau', 'outil', 35, ['cle', '#8a6a44'], { tool: 'appeau', desc: 'Clic : imiter le cri du gibier. Les bêtes curieuses approchent.' });
+defItem('roue', 'Roue de charrette', 'materiau', 70, ['roue', '#7a5a3a'], { desc: 'Rayons de frêne, bandage de fer.' });
+defItem('harnais', 'Harnais', 'outil', 90, ['cuir', '#5a3a24'], { passive: true, desc: 'Pour atteler un cheval (ou un âne) à une charrette.' });
+defItem('attelle', 'Attelle', 'outil', 25, ['attelle', '#c8b088'], { desc: 'Clic : immobiliser une jambe cassée. Elle guérira bien plus vite.' });
+defItem('bandage', 'Bandage', 'outil', 12, ['bandage', '#f0ece0'], { desc: 'Clic : panser une plaie. Arrête le saignement.' });
+defItem('sifflet_argent', 'Sifflet d’argent', 'outil', 0, ['cle', '#d0d8e0'], { desc: 'Un sifflet des nains. Soufflé devant la fente de la falaise, il répond au rythme des coups.' });
+// objets à poser en plus
+Object.assign(PLACEABLES, {
+  piege_loup: { name: 'Piège à loup', price: 110, trap: true },
+  charrette: { name: 'Charrette', price: 600, store: true },
+  table_alchimie: { name: 'Table d’alchimiste', price: 450, alembic: true },
+  echelle_bois: { name: 'Échelle de bois', price: 30 },
+});
+for (const id of ['piege_loup', 'charrette', 'table_alchimie', 'echelle_bois']) defItem(id, PLACEABLES[id].name, 'objet', PLACEABLES[id].price, ['objet', id], { place: id });
+ITEMS.piege_loup.desc = 'Clic : le poser au sol. Il se referme sur la première patte qui passe. Attention où vous marchez.';
+ITEMS.charrette.desc = 'À poser, puis à atteler au cheval (un harnais, E sur la charrette à cheval). Elle transporte ce qu’on y met.';
+ITEMS.table_alchimie.desc = 'On y mêle deux à quatre ingrédients, à l’aveugle. On note ce qu’il en sort.';
+ITEMS.echelle_bois.desc = 'À poser contre une paroi : on y grimpe (E).';
+
+// cartes de régions : jamais la vallée entière, jamais un point exact
+const CARTES_REGIONS = {
+  centre: { titre: 'Carte du pays de Valbrume', x: 1540, z: 1880, r: 470, prix: 60, desc: 'La ville, la ferme, le hameau, le grand lac. Dessinée à main levée par un clerc de la mairie.' },
+  ouest: { titre: 'Carte du lac et du marais', x: 960, z: 1980, r: 430, prix: 70, desc: 'Le grand lac, le marais, la forêt de l’ouest. Les rives sont fantaisistes.' },
+  nord: { titre: 'Carte de la Combe et des Monts', x: 1640, z: 820, r: 520, prix: 120, desc: 'Le col, la Combe Perdue, le glacier, le refuge. Levée par des bergers, avec leurs mots à eux.' },
+  est: { titre: 'Carte du plateau', x: 2140, z: 1380, r: 460, prix: 90, desc: 'La lande, l’abbaye, le château, la Table des Géants. Tracée par un moine qui voyait mal.' },
+  sud: { titre: 'Carte des bois du sud', x: 1500, z: 2480, r: 460, prix: 80, desc: 'La forêt du sud, le hameau abandonné. Beaucoup de blancs.' },
+  monts: { titre: 'Carte des crêtes', x: 2300, z: 800, r: 520, prix: 150, desc: 'Les crêtes de l’est et le lac gelé. On y a dessiné des géants dans les marges.' },
+  ancien: { titre: 'Feuillets de l’atlas ancien', x: 1700, z: 1300, r: 800, prix: 0, desc: 'Des feuillets anciens : la vallée comme on la voyait il y a trois siècles. Rien n’est plus tout à fait là.' },
+};
+for (const k in CARTES_REGIONS) {
+  const C = CARTES_REGIONS[k];
+  defItem('carte_' + k, C.titre, 'outil', C.prix, ['carte', k === 'ancien' ? '#b89868' : '#d8c8a0'], { use: 'region', region: k, desc: 'Clic : déplier la carte. ' + C.desc });
+}
+// la « carte de la vallée » d'autrefois n'est plus qu'une carte du pays de Valbrume, approximative
+if (ITEMS.carte_vallee) { ITEMS.carte_vallee.use = 'region'; ITEMS.carte_vallee.region = 'centre'; ITEMS.carte_vallee.name = 'Carte du pays (vieille)'; ITEMS.carte_vallee.desc = 'Clic : déplier la carte. Une vieille carte approximative des environs de la ville.'; }
+
+// ---------------------------------------------------------------- recettes en plus
+RECIPES.push(
+  { out: 'canon_fusil', n: 1, need: { lingot_acier: 2, charbon: 2 }, st: 'four' },
+  { out: 'lunette', n: 1, need: { lingot_cuivre: 1, lentille: 2 }, st: 'etabli' },
+  { out: 'fusil', n: 1, need: { canon_fusil: 1, lunette: 1, bois: 3, lingot_fer: 1 }, st: 'etabli' },
+  { out: 'cartouche', n: 6, need: { lingot_cuivre: 1, charbon: 2, silex: 1 }, st: 'etabli' },
+  { out: 'piege_loup', n: 1, need: { lingot_fer: 2, corde: 1 }, st: 'etabli' },
+  { out: 'appeau', n: 1, need: { bois: 1, os: 1 }, st: null },
+  { out: 'roue', n: 1, need: { bois: 6, lingot_fer: 1 }, st: 'etabli' },
+  { out: 'charrette', n: 1, need: { bois: 16, roue: 2, lingot_fer: 2 }, st: 'etabli' },
+  { out: 'harnais', n: 1, need: { cuir: 3, corde: 1 }, st: 'etabli' },
+  { out: 'attelle', n: 1, need: { bois: 2, toile: 1 }, st: null },
+  { out: 'bandage', n: 2, need: { toile: 1 }, st: null },
+  { out: 'bandage', n: 1, need: { fibre: 4, herbes: 1 }, st: null },
+  { out: 'table_alchimie', n: 1, need: { bois: 8, lingot_cuivre: 2, fiole: 3 }, st: 'etabli' },
+  { out: 'echelle_bois', n: 1, need: { bois: 5, corde: 1 }, st: null },
+  { out: 'corde', n: 1, need: { fibre: 5 }, st: null },
+  { out: 'toile', n: 1, need: { fibre: 8 }, st: 'etabli' },
+  { out: 'fiole', n: 2, need: { sable: 3, charbon: 1 }, st: 'four' },
+  { out: 'lentille', n: 1, need: { sable: 5, charbon: 2, gemme: 1 }, st: 'four' },
+);
+// les recettes de base, connues de tous dès le premier jour (les autres se découvrent)
+const CRAFT_BASE = new Set(['hache_pierre', 'pioche_pierre', 'houe', 'marteau', 'canne', 'feu_camp', 'cloture', 'botte_foin', 'infusion', 'viande_grillee',
+  'poisson_grille', 'etabli', 'bougie', 'corde', 'bandage', 'charbon', 'lingot_cuivre', 'lingot_fer', 'pain', 'allee']);
+// ---------------------------------------------------------------- butins des lieux nouveaux
+Object.assign(LOOT, {
+  archives: { rolls: [2, 3], items: [['livre_archives', 1, 1, 2], ['livre_temple_montagne', 1, 1, 2], ['feuillet_perdu', 0, 0, 0], ['vieille_piece', 2, 5, 3], ['bijou', 1, 1, 1], ['carte_ancien', 1, 1, 2], ['argent', 40, 120, 3]] },
+  temple: { rolls: [2, 4], items: [['vieille_piece', 3, 8, 5], ['bijou', 1, 2, 3], ['gemme', 1, 2, 2], ['cendre_sacree', 1, 2, 3], ['relique', 1, 1, 1], ['lingot_or', 1, 2, 1.5], ['argent', 60, 220, 3], ['poussiere_etoile', 1, 1, 0.5]] },
+  temple_or: { rolls: [3, 4], items: [['lingot_or', 2, 4, 4], ['gemme', 2, 3, 3], ['bijou', 1, 3, 3], ['couronne_aelim', 1, 1, 1], ['argent', 200, 500, 3]] },
+});
+defItem('couronne_aelim', 'Diadème des Aëlim', 'tresor', 1500, ['couronne', '#e8e0f0'], { desc: 'Un diadème d’argent pâle, gravé de Hautes Lettres : « ael vor ves ». La lumière avant la nuit.' });
+LOOT.fouille.items.push(['sel', 1, 2, 1]);
+LOOT.campement.items.push(['bandage', 1, 2, 2], ['cartouche', 2, 6, 0.8]);
+LOOT.ruines.items.push(['herbier_fauvel', 0, 0, 0]);
+
+// ---- 05-zzz6-habitants.js
+// ============================================================================
+//  NOUVEAUX HABITANTS : l'alchimiste de la ville, le bibliothécaire de la
+//  grande bibliothèque, deux colporteurs qui vont de village en village, un
+//  chasseur, les gens des Sources (un village de naturistes), et deux nains.
+//  Même forme que NPC_DATA (05-npc-data.js). look.bust / look.hips : poitrine
+//  et hanches (0 à 1,3) ; look.nude : naturiste ; look.dwarf : nain.
+// ============================================================================
+Object.assign(QUEST_ITEMS, {
+  paquet_colporteur: { name: 'Paquet ficelé', desc: 'Un paquet lourd, ficelé serré, qui tinte quand on le secoue. « Pour l’auberge, en main propre. »' },
+  feuillet_perdu: { name: 'Feuillet arraché', desc: 'Une page arrachée à un vieux registre de l’abbaye. Les marges sont couvertes de Hautes Lettres.' },
+  marteau_nain: { name: 'Marteau des nains', desc: 'Un petit marteau lourd comme un gros. Le manche est gravé de cupules.' },
+  herbier_fauvel: { name: 'Herbier de Fauvel', desc: 'Un herbier de cuir mangé par l’humidité. Des planches manquent.' },
+  flacon_bains: { name: 'Flacon d’eau des Sources', desc: 'Encore tiède, alors qu’il a passé la nuit dehors.' },
+});
+const NPC_NEW = [
+  // --------------------------------------------------------------------------
+  {
+    id: 'alchimiste', role: 'Alchimiste', gender: 'm', names: ['Ambroise', 'Isidore', 'Barnabé'], surname: 'Fauvel', age: 56, area: 'ville',
+    home: 'vide6', work: 'vide6', traits: ['savant', 'distrait'], liens: { guerisseuse: 'rivale', libraire: 'ami', cure: 'méfiant' },
+    look: { skin: '#e0c0a0', hair: '#6a6a70', hairStyle: 'chauve', beard: 'longue', hat: null, top: '#3a2a4a', bottom: '#2a2a30', dress: false, apron: '#6a5a3a', height: 0.98, build: 'mince', coat: true },
+    schedule: [[6.5, 'home'], [8, 'work'], [12, 'auberge'], [13.5, 'work'], [19, 'place'], [20, 'home']],
+    likes: ['gentiane', 'edelweiss', 'fleur_lune', 'champi_lumineux'], loves: ['lys_cimes', 'fleur_temple'], dislikes: ['pain', 'foin'],
+    shop: { name: 'Échoppe de l’alchimiste', sells: [['fiole', 8], ['table_alchimie', 450], ['bandage', 15], ['potion_soin', 90], ['antidote', 110], ['baume_moelle', 220], ['eau_lustrale', 180], ['sel', 5], ['poudre_os', 14], ['livre_herbier', 90]],
+      buys: ['herbes', 'champignon', 'trefle', 'champi_lumineux', 'fleur_lune', 'rosee', 'venin', 'mue_serpent', 'plume_hibou', 'aile_chauve_souris', 'eclat', 'mandragore', 'graisse_ours', 'griffe_ours', 'peau_salamandre', 'plume_aigle', 'plume_bleue', 'ecaille_tortue'] },
+    lines: {
+      intro: 'Hm ? Ah. Un client. Ou un curieux. {nom} Fauvel, alchimiste. Si vous avez trouvé une plante que vous ne connaissez pas, apportez-la-moi : je vous dirai ce que c’est. Et si c’est un poison, je vous dirai combien de temps il vous reste.',
+      greet: {
+        matin: ['Bonjour. Vous n’auriez pas vu mes lunettes ? Ah. Sur ma tête. Bonjour.', 'Le matin, les plantes sont pleines de rosée et de vertus. Les alchimistes, eux, sont pleins de café.'],
+        jour: ['Une plante à me montrer ? Posez-la là, ne la sentez pas.', 'Je distille, je broie, je note. La science, c’est surtout noter.'],
+        soir: ['Le soir, certaines fleurs s’ouvrent. D’autres se referment sur ce qui passe.', 'Rentrez avant la nuit. Surtout les nuits noires. Surtout.'],
+        pluie: ['La pluie lave les feuilles et dilue les poisons. C’est un bon jour pour cueillir. Un mauvais pour mes rhumatismes.'],
+        orage: ['L’orage charge l’air d’une essence que personne n’a jamais su mettre en fiole. J’ai essayé. J’ai perdu un sourcil.'],
+        ami: ['Mon ami ! J’ai une théorie nouvelle sur la Fortune. Elle est probablement fausse. Voulez-vous l’entendre ?', 'Vous avez l’œil, {fermier}. Vous feriez un bon alchimiste, si vous étiez un peu moins raisonnable.'],
+        froid: ['Je suis occupé. Les plantes, elles, ne me mentent pas.', 'Allez voir la guérisseuse. Elle, au moins, elle aime les gens.'],
+        peur: ['N’approchez pas ! J’ai… j’ai de l’aconit ! Beaucoup ! Je ne sais pas le lancer, mais j’en ai !'],
+      },
+      about: [
+        'J’ai étudié à la faculté, en ville, loin d’ici. On m’en a renvoyé pour « expériences non autorisées ». Toutes les expériences sont non autorisées, au début.',
+        'La guérisseuse soigne, moi je comprends. Ce n’est pas la même chose. Parfois, je l’envie.',
+        'Chaque chose porte des essences. Le miel, la Vie. Le venin, la Mort. Les contraires s’annulent. Ce qui domine l’emporte. Le reste, c’est des années de carnets.',
+        'Mon herbier a été rongé par les rats et l’humidité. Il me manque des planches. Les plus rares, bien sûr.',
+        'J’ai vu un jour une fleur de pierre, dans une vitrine de la bibliothèque. Morand dit qu’elle vient d’un temple. Je donnerais tous mes carnets pour en tenir une.',
+      ],
+      rumeurs: [
+        'Ne mangez jamais une plante que vous n’avez pas fait identifier. L’ail des ours ressemble au colchique comme un frère. L’un vous nourrit, l’autre vous enterre.',
+        'Le bibliothécaire, {npc:libraire}, est un homme charmant. Rendez-lui ses livres à l’heure. Je ne plaisante pas.',
+        'La guérisseuse et moi, nous nous disputons depuis vingt ans sur la valériane. Elle a raison. Ne le lui répétez pas.',
+        'On raconte que les nains taillent des lentilles d’un verre si pur qu’on voit à travers les montagnes. Je paierais cher pour une seule.',
+        'Il y a des jours où le soleil brille trop fort. Ne le regardez pas. La potion de soleil protège l’œil ; je n’en ai pas toujours.',
+        'Pour une table d’alchimiste, il vous faut du cuivre, du bois, des fioles. Et de la patience. Surtout de la patience.',
+      ],
+      etrange: ['Mes fioles se sont toutes tournées vers le nord, cette nuit. Toutes. Même les vides.', 'Une plante a poussé dans mon mortier. Je n’y avais rien mis. Elle n’existe dans aucun herbier.', 'J’ai distillé de l’eau de pluie de la nuit noire. Elle est restée noire. Elle chuchote, quand on colle l’oreille.'],
+      cadeau: { adore: 'Mon Dieu. Un spécimen parfait. Je… je vais le dessiner toute la nuit. Merci. Merci !', aime: 'Oh, voilà qui ira dans l’herbier. Merci, {fermier}.', neutre: 'Merci. Je trouverai bien de quoi en extraire une essence.', deteste: 'Qu’est-ce que je suis censé en faire ? Le distiller ? Même moi, j’ai des limites.' },
+      nuit: 'L’échoppe est fermée. Les alambics dorment. Moi, j’essaie.',
+      meurtre: 'Vous avez tué. Je connais douze poisons qui ne laissent pas de trace. Ne me donnez pas l’envie d’en essayer un.',
+      disparu: '{victime}… Il y a des poisons qui s’en vont avec le temps. Le chagrin n’en fait pas partie.',
+      nuitrouge: 'Mes fioles de sang de bœuf ont bouilli cette nuit, bouchées, dans l’armoire froide. Je note. Je ne comprends pas. Je note.',
+      adieu: ['Notez tout ce que vous essayez. Tout.', 'Et ne goûtez pas ce que vous ne connaissez pas !'],
+      tueur: ['…'], indice: '…',
+    },
+    quests: [
+      { id: 'alchimiste_1', title: 'Les planches manquantes', type: 'apporter', need: { gentiane: 1, edelweiss: 1 }, minAmitie: 0, reward: { argent: 180, amitie: 1, recette: 'table_alchimie' },
+        texte: { offre: 'Mon herbier a perdu ses planches de montagne. Il me faudrait une gentiane et un edelweiss, frais. Faites-les-moi identifier d’abord, bien sûr : je ne veux pas d’un pissenlit peint en bleu.', accepte: 'Parfait. Là-haut, on les trouve près des rochers. Méfiez-vous du vide.', attente: 'Une gentiane, un edelweiss. La montagne ne va pas les apporter toute seule.', fin: 'Superbes ! Tenez : les plans d’une table d’alchimiste, pour chez vous. Vous en aurez besoin : vous avez l’œil.' } },
+      { id: 'alchimiste_2', title: 'L’herbier de Fauvel', type: 'trouver', objet: 'herbier_fauvel', lieu: 'ruines', minAmitie: 2, reward: { argent: 300, amitie: 2, objets: { baume_moelle: 1, eau_lustrale: 1 } },
+        texte: { offre: 'Mon premier herbier, je l’ai perdu il y a trente ans, aux ruines de l’est, en fuyant un orage. Je n’ai jamais osé y retourner. Vous, si ?', accepte: 'Il était en cuir vert. Enfin, il l’était. Allez voir aux ruines.', attente: 'Les ruines de l’est. Un herbier de cuir, s’il en reste quelque chose.', fin: 'Il en reste… presque tout. Mes dessins d’étudiant. J’étais si sûr de moi. Merci. Prenez ceci : ce que je fais de mieux.' } },
+    ],
+  },
+  // --------------------------------------------------------------------------
+  {
+    id: 'libraire', role: 'Bibliothécaire', gender: 'm', names: ['Célestin', 'Anatole', 'Évariste'], surname: 'Morand', age: 71, area: 'plateau',
+    home: 'bibliotheque', work: 'bibliotheque', traits: ['courtois', 'inquiétant'], liens: { alchimiste: 'ami', cure: 'respect' },
+    look: { skin: '#e8d4c0', hair: '#e8e8e8', hairStyle: 'court', beard: 'courte', hat: null, top: '#1a1a24', bottom: '#1a1a24', dress: false, apron: null, height: 1.04, build: 'mince', coat: true, held: 'livre' },
+    schedule: [[7, 'home'], [8.5, 'work'], [20, 'home']],
+    likes: ['livre_chroniques', 'bougie', 'fleur_tilleul'], loves: ['fleur_temple', 'feuillet_perdu'], dislikes: ['viande', 'poisson_grille', 'fiel_noir'],
+    shop: { name: 'La grande bibliothèque (vente)', sells: [['livre_bestiaire', 95], ['livre_herbier', 95], ['livre_poissons', 75], ['livre_sciences', 65], ['livre_manuel_menuisier', 130], ['livre_manuel_jardin', 95], ['carte_est', 90], ['carte_nord', 120], ['carte_monts', 150], ['bougie', 10]], buys: ['feuillet_perdu', 'tesson', 'fossile', 'relique'] },
+    lines: {
+      intro: 'Bienvenue à la grande bibliothèque. {nom} Morand, bibliothécaire. On peut consulter, acheter certains ouvrages, en emprunter d’autres. Les emprunts sont payants, et à rendre à la date dite. Toujours à la date dite.',
+      greet: {
+        matin: ['Bonjour. Parlez bas, les livres dorment encore.', 'Déjà debout ? Les livres aussi. Ils ne dorment jamais vraiment.'],
+        jour: ['Un livre à rendre ? Non ? Un livre à emprunter, alors.', 'Silence, je vous prie. Merci.'],
+        soir: ['Nous fermons bientôt. Les rayonnages du fond n’aiment pas qu’on s’y attarde après la nuit.', 'Bonsoir. Vos emprunts sont-ils à jour ? Je demande cela à tout le monde.'],
+        pluie: ['La pluie, c’est l’humidité, et l’humidité, c’est la mort du papier. Essuyez vos pieds.'],
+        orage: ['Pendant l’orage, je ferme les volets du grand rayonnage. La foudre aime les vieux livres. Moi aussi.'],
+        ami: ['Mon ami. J’ai mis de côté un ouvrage pour vous. Il est dangereux. Vous l’aimerez.', 'Vous êtes un lecteur exemplaire. Toujours à l’heure. J’apprécie beaucoup. Beaucoup.'],
+        froid: ['Vous me devez quelque chose. Vous le savez.', 'Je n’ai rien à vous prêter.'],
+        peur: ['Sortez. Vous tachez les parquets.'],
+      },
+      about: [
+        'Je garde cette bibliothèque depuis cinquante ans. Avant moi, un autre. Avant lui, un autre. Nous ne sommes jamais partis. Nous ne le pouvons pas.',
+        'Il y a ici des livres qu’on ne trouve nulle part ailleurs : des lexiques de langues mortes, des archives que la mairie aimerait oublier, des cartes de lieux qui n’existent plus. Ou qui existent encore.',
+        'Un livre prêté est une promesse. Une promesse rompue est… une chose très sérieuse, ici. Ne la rompez pas.',
+        'J’ai appris l’aëlin dans ma jeunesse. Seul. Avec des pierres et des fragments. On n’apprend pas une langue morte : on la réveille.',
+        'Il y a une vitrine au fond. Une fleur de pierre y repose. Si un jour vous en trouvez une autre, apportez-la-moi. Je vous dirai d’où elle vient. Et ce que cela signifie.',
+      ],
+      rumeurs: [
+        'L’alchimiste, {npc:alchimiste}, est venu consulter mon herbier ancien. Il a pleuré. Les savants pleurent souvent, en secret.',
+        'On me demande souvent si les nains existent. Je réponds que les archives de la commune ne mentent pas. Puis je me tais.',
+        'Les cartes que je vends sont approximatives. Toutes les cartes le sont. Celui qui vous vend une carte exacte vous ment, ou vous veut du mal.',
+        'Le temple sous la montagne ? Un conte. Un conte qu’un de mes prédécesseurs a passé sa vie à chercher. On l’a retrouvé au printemps, au pied d’une cascade.',
+        'Les nuits noires, je ferme la bibliothèque, j’allume toutes les bougies, et je lis à voix haute. Cela les tient à distance. Ce qui murmure n’aime pas qu’on parle plus fort que lui.',
+        'Il y avait ici un lecteur qui ne rendait jamais ses livres. Il ne vient plus. Personne ne sait où il est. Moi, si.',
+      ],
+      etrange: ['Un livre est revenu seul sur son rayon cette nuit. Il était sorti depuis quarante ans.', 'Les pages blanches de mon registre se remplissent parfois de noms. Des noms de lecteurs en retard.', 'Quelqu’un a lu dans la salle du fond, cette nuit. La chandelle était chaude. Les portes étaient fermées. De l’intérieur.'],
+      cadeau: { adore: 'Oh. Oh ! Ceci… ceci va dans la vitrine. Vous êtes un ami de cette maison. Pour toujours.', aime: 'Merci. C’est délicat.', neutre: 'Merci. Je le rangerai.', deteste: 'Ne posez pas cela sur un livre. Ne posez pas cela ici du tout.' },
+      nuit: 'La bibliothèque est fermée. Revenez à la lumière du jour, et avec vos livres.',
+      meurtre: 'Un meurtrier. J’ai des livres entiers sur ce qu’on fait aux meurtriers. Aucun n’est gentil.',
+      disparu: '{victime} avait emprunté un livre, le mois dernier. Il était à l’heure. Il était toujours à l’heure. Je l’inscris au registre des lecteurs perdus.',
+      nuitrouge: 'Les livres ont saigné cette nuit. Pas tous. Les vieux. Je les ai séchés un à un.',
+      adieu: ['Bonne lecture.', 'Et rendez vos livres à temps. Je vous en prie.'],
+      tueur: ['…'], indice: '…',
+    },
+    quests: [
+      { id: 'libraire_1', title: 'Le feuillet de l’abbaye', type: 'trouver', objet: 'feuillet_perdu', lieu: 'abbaye', minAmitie: 0, reward: { argent: 150, amitie: 1, objets: { livre_lexique_aelin: 1 } },
+        texte: { offre: 'Il manque une page à un registre de Montrevel que je conserve. Les moines l’ont arrachée, dit-on, pour la cacher dans l’abbaye. Elle est couverte de Hautes Lettres. Voulez-vous la chercher ?', accepte: 'L’abbaye, sur le plateau. Cherchez là où l’on n’a pas envie de chercher.', attente: 'Le feuillet ? L’abbaye ne l’a pas encore rendu, je vois.', fin: 'Le voilà. Je vous en prie, gardez ce lexique : il est à vous. Vous en aurez besoin, si vous comptez lire ce que disent les pierres.' } },
+    ],
+  },
+  // --------------------------------------------------------------------------
+  {
+    id: 'colporteur', role: 'Colporteur', gender: 'm', names: ['Firmin', 'Achille', 'Norbert'], surname: 'Jouvet', age: 44, area: 'nomade', nomade: true,
+    home: 'roulotte_a', work: 'roulotte_a', traits: ['bavard', 'roublard'], liens: { colporteuse: 'concurrente', aubergiste: 'client' },
+    look: { skin: '#d8b090', hair: '#3a2a1a', hairStyle: 'court', beard: 'moustache', hat: 'chapeau', hatCol: '#5a3a2a', top: '#7a4a2a', bottom: '#4a3a2a', dress: false, apron: null, height: 1.0, build: 'rond', held: 'baton' },
+    schedule: [[6.5, 'home'], [7.5, 'marche'], [18.5, 'auberge'], [20.5, 'home']],
+    likes: ['cidre', 'vin', 'fromage'], loves: ['bijou'], dislikes: ['fiel_noir', 'os'],
+    shop: { name: 'La hotte de Jouvet', sells: [['livre_bestiaire', 90], ['livre_herbier', 90], ['livre_poissons', 70], ['livre_sciences', 60], ['livre_manuel_forgeron', 160], ['livre_manuel_charron', 140], ['livre_manuel_chasse', 130], ['carte_centre', 60], ['carte_ouest', 70], ['carte_sud', 80], ['corde', 14], ['bougie', 9], ['lanterne', 70], ['harnais', 110], ['roue', 85], ['sifflet_argent', 0]],
+      buys: ['fourrure', 'cuir', 'croc', 'bois_de_cerf', 'bijou', 'vieille_piece', 'tesson', 'fossile', 'perle', 'gemme', 'griffe_ours', 'plume_aigle'] },
+    lines: {
+      intro: 'Bonjour, bonjour ! {nom} Jouvet, colporteur, fils du colporteur, petit-fils du colporteur ! Des livres, des cartes, du fil, des aiguilles, des almanachs, et des nouvelles fraîches ! Les nouvelles, c’est gratuit. Le reste, non.',
+      greet: {
+        matin: ['Déjà sur la route ? Moi aussi. On se croise, on se recroise, c’est la vie des chemins.', 'Bonjour ! Qu’est-ce qui vous ferait plaisir ? Un bestiaire ? Une carte ? Des nouvelles ?'],
+        jour: ['Approchez, approchez ! Tout est vrai, tout est bon, presque tout est neuf !', 'J’ai des nouvelles de {hameau}. Et de la ville. Et d’ailleurs. Surtout d’ailleurs.'],
+        soir: ['Le soir, je rentre à la roulotte. Les chemins, la nuit, ce n’est pas pour les honnêtes gens. Ni pour les autres.'],
+        pluie: ['La pluie ! Mauvais pour les livres, bon pour les parapluies. Je n’ai pas de parapluies.'],
+        orage: ['Par l’orage, je m’abrite sous ma roulotte. Mon père s’abritait sous un chêne. Mon père est mort foudroyé.'],
+        ami: ['Pour vous, prix d’ami ! Enfin, presque. Le prix d’ami, c’est pour les amis d’enfance.', 'Vous, je vous aime bien. Vous payez comptant et vous ne marchandez pas trop.'],
+        froid: ['Je ne commerce pas avec vous. Trop de gens parlent, sur les routes.'],
+        peur: ['Prenez la caisse ! Prenez tout ! Laissez-moi la roulotte, c’est tout ce que j’ai !'],
+      },
+      about: [
+        'Mon père faisait déjà la tournée. Il passait deux fois l’an. Moi, je passe chaque semaine : la vallée a changé, elle a besoin de plus de nouvelles.',
+        'Le Marchedi, je suis au marché de la ville. Le Foiredi, à la foire de {hameau}. Le reste du temps, sur les chemins. Allez savoir où.',
+        'Les nouvelles vont plus vite que moi. Quand quelqu’un meurt dans la vallée, tout le monde le sait avant le soir. Et quand quelqu’un tue, aussi.',
+        'Ma concurrente, {npc:colporteuse}, vend des épices et des tissus. Je vends des livres et des cartes. On ne se marche pas dessus. Enfin, pas souvent.',
+        'Un jour, un vieux nain m’a acheté tout mon miel contre une lentille de verre. Je l’ai revendue à l’alchimiste. Je n’ai jamais revu le nain. J’ai toujours du miel sur moi, au cas où.',
+      ],
+      rumeurs: [
+        'Les cartes, je les achète à des bergers, à des moines, à des soldats. Aucune n’est juste. Toutes sont un peu vraies.',
+        'On dit qu’un homme en long manteau marche parfois sur les routes la nuit, et qu’il ne tue qu’une fois avant de disparaître. Je ne voyage jamais la nuit.',
+        'À la bibliothèque, ne gardez jamais un livre en retard. Mon père l’a fait, une fois. Il n’en parlait jamais. Il avait les cheveux blancs à trente ans.',
+        'Il y a un village, au sud-est, où les gens vivent tout nus, près de sources chaudes. Ils sont très aimables. Ils achètent tout mon savon.',
+        'Les géants existent. J’en ai vu un de loin, sur la crête de l’est. Il ne m’a pas vu. J’ai vendu plus de livres ce jour-là qu’en un mois : tout le monde voulait des nouvelles.',
+        'Pour atteler un cheval à une charrette, il faut un harnais. J’en vends. Quelle coïncidence.',
+      ],
+      etrange: ['Ma roulotte a avancé toute seule cette nuit. De trois pas. Les freins étaient serrés.', 'Un client m’a payé en pièces que personne ne frappe plus depuis deux siècles. Elles étaient chaudes.'],
+      cadeau: { adore: 'Pour moi ? Oh, ça, ça se revend très… Non ! Non, je le garde. Merci.', aime: 'Merci ! Ça fera plaisir, à moi ou à un client.', neutre: 'Merci. Tout se revend.', deteste: 'Même moi, je ne saurais pas à qui vendre ça.' },
+      nuit: 'Chut ! La roulotte est fermée. Revenez demain, sur la route.',
+      meurtre: 'Tout le monde sait. Tout le monde. Je l’ai dit partout, moi-même. Pardon. Non, pas pardon.',
+      disparu: 'J’ai appris pour {victime} en route. J’ai dû l’annoncer à trois villages. C’est le pire du métier.',
+      nuitrouge: 'Cette nuit, la route était pleine de gens. Tous marchaient dans l’autre sens. Aucun n’avait de visage.',
+      adieu: ['À la semaine prochaine, sur un chemin ou un autre !', 'Et faites circuler : Jouvet a des cartes neuves !'],
+      tueur: ['…'], indice: '…',
+    },
+    quests: [
+      { id: 'colporteur_1', title: 'Le paquet de l’aubergiste', type: 'livrer', objet: 'paquet_colporteur', a: 'aubergiste', minAmitie: 0, reward: { argent: 70, amitie: 1, objets: { carte_centre: 1 } },
+        texte: { offre: 'Rendez-moi un service : ce paquet doit aller à l’aubergiste, en main propre, et moi je dois aller ailleurs. Ne l’ouvrez pas. Ne le secouez pas trop non plus.', accepte: 'En main propre ! Et vite.', attente: 'Le paquet, il est parti ?', recu: 'Ah, enfin, le paquet de Jouvet. Ne me demandez pas ce qu’il y a dedans. Des bouteilles. D’accord, des bouteilles.', fin: 'Livré ? Merci ! Tenez, une carte des environs. Fausse, comme toutes les cartes, mais jolie.' } },
+    ],
+  },
+  // --------------------------------------------------------------------------
+  {
+    id: 'colporteuse', role: 'Colporteuse', gender: 'f', names: ['Rosalie', 'Berthe', 'Madeleine'], surname: 'Carrez', age: 38, area: 'nomade', nomade: true,
+    home: 'roulotte_b', work: 'roulotte_b', traits: ['franche', 'voyageuse'], liens: { colporteur: 'concurrent', grainetiere: 'amie' },
+    look: { skin: '#c89a78', hair: '#1a1410', hairStyle: 'queue', beard: null, hat: 'voile', hatCol: '#8a2a3a', top: '#b0503a', bottom: '#5a3a5a', dress: true, apron: '#d8c080', height: 0.97, build: 'normal', bust: 0.95, hips: 1.05 },
+    schedule: [[6.5, 'home'], [7.5, 'marche'], [18.5, 'auberge'], [20.5, 'home']],
+    likes: ['miel', 'fleur', 'confiture'], loves: ['perle', 'poisson_source'], dislikes: ['venin', 'viande'],
+    shop: { name: 'Les ballots de Carrez', sells: [['toile', 24], ['bandage', 14], ['attelle', 30], ['fiole', 9], ['sel', 5], ['corde', 13], ['carte_nord', 125], ['carte_est', 95], ['carte_monts', 155], ['graines_basilic', 12], ['graines_lavande', 16], ['livre_manuel_cuisine', 55], ['livre_sciences', 60], ['livre_poissons', 72], ['appeau', 40]],
+      buys: ['fleur', 'miel', 'laine', 'poisson', 'toile', 'huile', 'lavande', 'confiture'] },
+    lines: {
+      intro: '{nom} Carrez, marchande de tout et d’ailleurs. Tissus, épices, remèdes, cartes du nord. Et je ne raconte pas d’histoires : ça, c’est mon concurrent.',
+      greet: {
+        matin: ['Bonjour ! Belle journée pour marcher.', 'Vous avez l’air d’avoir besoin de toile. Ou de bandages. Vous avez une tête à bandages.'],
+        jour: ['Regardez, touchez, achetez. Ne marchandez pas, je suis plus têtue que vous.', 'J’arrive des Sources. Ils vous saluent. Ils saluent tout le monde, là-bas.'],
+        soir: ['Je rentre. Une femme seule sur les routes, la nuit, c’est une femme qui a oublié sa sœur.'],
+        pluie: ['Couvrez-vous. La pluie de la vallée est froide jusqu’aux os.'],
+        orage: ['L’orage me fait peur depuis l’enfance. Voilà, c’est dit.'],
+        ami: ['Pour vous, j’ai gardé la plus belle toile. Ne le dites pas à Jouvet.', 'Vous êtes quelqu’un de bien, {fermier}. Ça se voit aux mains.'],
+        froid: ['Passez votre chemin.'],
+        peur: ['Ne me touchez pas ! J’ai un couteau, et une sœur qui a deux couteaux !'],
+      },
+      about: [
+        'Je viens de loin, de l’autre côté des Monts. J’ai franchi le col des Treize à dix-sept ans, avec une mule et un ballot de toile. La mule est morte. La toile, je l’ai vendue.',
+        'Ma sœur tient une auberge dans une autre vallée. Elle dit que les nôtres sont plus étranges. Elle ne sait pas à quel point.',
+        'Je fais le tour des villages : la ville, le hameau, les Sources, la bibliothèque, l’abbaye. Chaque jour de la semaine a sa route.',
+        'Aux Sources, j’ai appris à ne plus rougir. Ce sont des gens simples : ils disent que les vêtements cachent surtout ce qu’on pense.',
+        'Un soir, au col, une voix m’a appelée par mon nom. Je n’ai pas répondu. C’est pour ça que je suis encore là pour vous vendre de la toile.',
+      ],
+      rumeurs: [
+        'Les chasseurs du Chassedi tirent sur tout ce qui bouge dans les fougères. Portez des couleurs vives, et parlez fort.',
+        'Au village des Sources, l’eau est chaude toute l’année. On y guérit de tout, sauf de la timidité.',
+        'Les bandages, ça arrête le sang. Quand on saigne, on ne s’en rend compte qu’au moment de tomber.',
+        'Si vous voulez de vraies cartes du nord, c’est moi. Les bergers me les dessinent contre du sel.',
+        'L’alchimiste de la ville reconnaît n’importe quelle plante. Il est pénible, mais il ne se trompe jamais.',
+      ],
+      etrange: ['Mon ballot de toile était mouillé ce matin. Pas de pluie. Il sentait le lac.', 'J’ai vu des traces de pieds nus dans la neige, au col. Grandes comme des barques.'],
+      cadeau: { adore: 'Oh ! C’est… vous êtes gentil. Ça ne se fait pas, sur les routes, d’être gentil.', aime: 'Merci. Ça ira dans mes ballots, ou dans mon cœur.', neutre: 'Merci bien.', deteste: 'Je ne vends pas ça, je n’achète pas ça, je ne veux pas de ça.' },
+      nuit: 'Je dors. Revenez quand le soleil sera levé, et moi aussi.',
+      meurtre: 'On le sait jusqu’aux Sources, ce que vous avez fait. Je ne vous vends plus rien.',
+      disparu: '{victime}… J’avais un coupon de toile pour elle. Pour lui. Je ne sais plus. Je ne veux plus savoir.',
+      nuitrouge: 'Les routes étaient rouges cette nuit. Je suis restée dans la roulotte, les yeux fermés, à compter mes coupons.',
+      adieu: ['Bonne route !', 'Et achetez des bandages. Faites-moi confiance.'],
+      tueur: ['…'], indice: '…',
+    },
+    quests: [
+      { id: 'colporteuse_1', title: 'Le poisson des Sources', type: 'apporter', need: { poisson_source: 2 }, minAmitie: 0, reward: { argent: 110, amitie: 1, objets: { carte_nord: 1 } },
+        texte: { offre: 'Ma sœur m’écrit qu’elle voudrait goûter le poisson des Sources. Il n’existe que là-bas, dans l’eau chaude. Deux, pour faire bonne mesure ?', accepte: 'Aux Sources, au sud-est. Ils vous prêteront même une serviette.', attente: 'Deux poissons des Sources. Ils ne vont pas se pêcher tout seuls.', fin: 'Merci ! Tenez, une carte du nord : dessinée par un berger, relue par personne.' } },
+    ],
+  },
+  // --------------------------------------------------------------------------
+  {
+    id: 'chasseur', role: 'Chasseur', gender: 'm', names: ['Gaston', 'Lucien', 'Marcel'], surname: 'Brossard', age: 49, area: 'foret',
+    home: 'relais_chasse', work: 'relais_chasse', traits: ['taciturne', 'dangereux'], liens: { garde: 'ami', eleveuse: 'client' },
+    look: { skin: '#c8a080', hair: '#4a3a2a', hairStyle: 'court', beard: 'courte', hat: 'casquette', hatCol: '#4a5a3a', top: '#5a6a3a', bottom: '#4a3a2a', dress: false, apron: null, height: 1.05, build: 'normal', coat: true },
+    schedule: [[5, 'home'], [6, 'foret'], [12, 'home'], [14, 'foret'], [18.5, 'home']],
+    likes: ['viande_grillee', 'cidre', 'croc'], loves: ['griffe_ours', 'bois_de_cerf'], dislikes: ['fleur', 'plume'],
+    shop: { name: 'Le relais de chasse', sells: [['cartouche', 7], ['fusil', 950], ['piege', 25], ['piege_loup', 130], ['appeau', 38], ['fleche', 4], ['arc', 85], ['bandage', 15], ['viande', 22], ['livre_manuel_chasse', 135]],
+      buys: ['cuir', 'fourrure', 'croc', 'bois_de_cerf', 'viande', 'plume', 'plume_noire', 'griffe_ours', 'graisse_ours'] },
+    lines: {
+      intro: '{nom} Brossard. Chasseur. Je chasse, je vends, je me tais. Le Chassedi, ne traînez pas dans les fougères : je tire vite.',
+      greet: {
+        matin: ['Chut. Vous faites fuir le gibier.', 'L’aube, c’est l’heure. Pour eux comme pour moi.'],
+        jour: ['Vous voulez des cartouches ? Des pièges ? Sinon, allez-vous-en.', 'Bonjour.'],
+        soir: ['Le soir, les loups sortent. Moi, je rentre. Chacun son tour.'],
+        pluie: ['Sous la pluie, on ne sent rien, on n’entend rien. Mauvaise chasse.'],
+        orage: ['Rentrez. Le fusil attire la foudre. Et les imbéciles.'],
+        ami: ['Tiens, {fermier}. J’ai vu des traces d’ours près du ruisseau. Faites attention.', 'Vous tirez bien, pour un fermier. Pour un fermier.'],
+        froid: ['Je ne vends pas aux gens qui me déplaisent.'],
+        peur: ['Un pas de plus et je tire. Je ne rate jamais.'],
+      },
+      about: [
+        'J’ai commencé à chasser à huit ans, avec mon père. Il est mort à la chasse. Un sanglier. Moi, les sangliers, je ne les rate plus.',
+        'Le relais de chasse était au château, autrefois. Les Valmont chassaient à courre. Maintenant, il n’y a plus que moi.',
+        'L’ours, je ne le chasse pas. Je le respecte. Il me respecte. Tant qu’on ne se croise pas.',
+        'Le Chassedi, on est quelques-uns à battre les bois. Des gens de la ville, du hameau. Ils tirent mal. Ils tirent souvent. Faites attention à vous.',
+        'Il y a eu un accident, il y a dix ans. Un garçon dans les fougères, accroupi, qui cueillait des champignons. On l’a pris pour un chevreuil. Ce n’était pas moi. Je dis ça, mais j’y pense tous les jours.',
+      ],
+      rumeurs: [
+        'Un fusil à lunette, ça se fabrique : un canon, une lunette, du bois, un peu de fer. La lunette, c’est les lentilles. Les lentilles, c’est les nains. Bonne chance.',
+        'Les pièges à loup, posez-les loin des chemins. Loin de chez vous. Et rappelez-vous où vous les avez mis.',
+        'Le loup craint le feu. L’ours ne craint rien, sauf ses petits en danger. Le sanglier, lui, craint seulement de ne pas vous avoir chargé.',
+        'Les nuits noires, même les loups se taisent. C’est comme ça que je sais qu’il faut rentrer.',
+        'Parfois, dans les monts, on trouve des empreintes grandes comme des barques. Je ne les suis pas.',
+      ],
+      etrange: ['Mes pièges étaient tous refermés ce matin. Vides. Sur de la mousse.', 'J’ai visé un cerf blanc, une fois. Mon fusil s’est enrayé. Je ne vise plus les cerfs blancs.'],
+      cadeau: { adore: 'Ça… ça, c’est un trophée. Merci. Je le mettrai au mur.', aime: 'Merci. Ça servira.', neutre: 'Hm. Merci.', deteste: 'Qu’est-ce que je fais de ça ? Des fleurs ? Je suis chasseur.' },
+      nuit: 'C’est la nuit. On ne frappe pas chez un chasseur la nuit. Il a un fusil près de la porte.',
+      meurtre: 'Vous avez tué un homme. Moi, je ne tue que des bêtes. Pour l’instant.',
+      disparu: '{victime}… Je relève les pistes autour. Il y a des choses dans cette vallée que je ne sais pas pister.',
+      nuitrouge: 'Cette nuit, les bêtes marchaient toutes dans le même sens. Vers le puits. Je ne les ai pas suivies.',
+      adieu: ['Bonne chasse.', 'Et portez du rouge le Chassedi.'],
+      tueur: ['…'], indice: '…',
+    },
+    quests: [
+      { id: 'chasseur_1', title: 'Des peaux pour l’hiver', type: 'apporter', need: { fourrure: 3, cuir: 2 }, minAmitie: 0, reward: { argent: 160, amitie: 1, recette: 'piege_loup' },
+        texte: { offre: 'Il me faut des peaux pour l’hiver. Trois fourrures, deux cuirs. Vous chassez ? Prouvez-le.', accepte: 'Ne revenez pas avec des peaux de chat.', attente: 'Trois fourrures, deux cuirs.', fin: 'Bon travail. Voilà comment on fait un piège à loup. Posez-le loin des chemins.' } },
+      { id: 'chasseur_2', title: 'Ce qui vide les pièges', type: 'enquete', lieu: 'relais_chasse', moment: 'nuit', minAmitie: 1, reward: { argent: 140, amitie: 1, objets: { cartouche: 12 } },
+        texte: { offre: 'Quelque chose vide mes pièges la nuit, près du relais. Pas un renard : les pièges se referment sur de la mousse. Veillez une nuit près du relais. Dites-moi ce que vous voyez.', accepte: 'Une nuit, près du relais. Ne tirez sur rien que vous n’ayez vu.', attente: 'Alors, cette nuit ?', fin: 'Vous l’avez vu aussi. Bon. Tenez, des cartouches. On n’en parle à personne.' } },
+    ],
+  },
+  // --------------------------------------------------------------------------
+  {
+    id: 'naturiste_a', role: 'Baigneuse des Sources', gender: 'f', names: ['Solange', 'Irène', 'Colette'], surname: 'Dumas', age: 33, area: 'sources',
+    home: 'source_a', work: 'source_a', traits: ['joyeuse', 'libre'], liens: { naturiste_b: 'mentor', naturiste_c: 'amie' },
+    look: { skin: '#e2b894', hair: '#8a4a2a', hairStyle: 'long', beard: null, hat: null, top: '#e2b894', bottom: '#e2b894', dress: false, apron: null, height: 0.98, build: 'normal', nude: true, bust: 1.1, hips: 1.15 },
+    schedule: [[7, 'home'], [8, 'bains'], [12, 'home'], [14, 'bains'], [19, 'home']],
+    likes: ['fleur', 'miel', 'fraise'], loves: ['huile', 'reine_pres'], dislikes: ['viande', 'venin'],
+    shop: { name: 'L’étal des Sources', sells: [['huile', 60], ['miel', 70], ['reine_pres', 16], ['bandage', 12], ['flacon_bains', 0]], buys: ['fleur', 'fraise', 'toile', 'laine'] },
+    lines: {
+      intro: 'Bonjour, et bienvenue aux Sources ! Moi, c’est {nom}. Ici, on vit comme on est né : sans rien sur le dos. Vous faites comme vous voulez, personne ne vous regardera de travers. Sauf si vous regardez de travers.',
+      greet: {
+        matin: ['Bonjour ! L’eau est à la bonne température, ce matin. Elle l’est tous les matins.', 'Vous avez bien dormi ? Ici, tout le monde dort bien.'],
+        jour: ['Venez vous baigner ! Ça guérit les fatigues et les chagrins.', 'Il fait beau, on est bien, que demander de plus ?'],
+        soir: ['Le soir, on regarde la vapeur monter au-dessus des bassins. C’est notre veillée.'],
+        pluie: ['La pluie ? On s’en moque, on est déjà mouillés !'],
+        orage: ['Pendant l’orage, on sort des bassins. L’eau et la foudre, ça ne fait pas bon ménage.'],
+        ami: ['Ah, {fermier} ! Vous revenez souvent, ça nous fait plaisir.', 'On devrait vous faire un bassin à vous, tiens.'],
+        froid: ['Vous n’êtes plus le bienvenu. Même ici.'],
+        peur: ['Au secours ! Octave ! Octave !'],
+      },
+      about: [
+        'Je suis arrivée ici il y a cinq ans, fatiguée de tout. Le docteur m’a dit : « Posez tout, même votre robe. » J’ai ri. Je suis restée.',
+        'Les Sources, c’est l’eau chaude qui sort de la montagne. Le docteur dit que c’est le souffle d’un géant qui dort dessous. Je préfère ne pas y penser en me baignant.',
+        'Les gens de la ville nous trouvent étranges. Nous, on trouve étrange de se cacher tout le temps.',
+        'Je vends de l’huile et du miel au marché de {hameau}, le Foiredi. Habillée, rassurez-vous. Il fait frais, là-bas.',
+        'Il y a un poisson qui ne vit que dans nos bassins. Il est tiède au toucher, comme nous.',
+      ],
+      rumeurs: [
+        'Le docteur soigne mieux que la guérisseuse. Enfin, il soigne avec de l’eau. Elle, avec des plantes. Ils s’entendent bien.',
+        'Les colporteurs passent tous les deux ou trois jours. Jouvet rougit encore. Carrez, plus du tout.',
+        'On raconte qu’au fond des bassins il y a une porte. Une vraie, en pierre. Personne n’est descendu assez profond pour la voir.',
+        'Si vous vous baignez longtemps, vous guérissez. Même une jambe cassée va mieux après une journée dans l’eau chaude.',
+      ],
+      etrange: ['L’eau a été froide pendant une heure, cette nuit. Glacée. Et puis elle est revenue chaude. Personne ne sait pourquoi.', 'Quelqu’un chantait sous l’eau, ce matin. Pas l’une de nous.'],
+      cadeau: { adore: 'Oh, merci ! C’est parfait ! Je vous embrasserais, si vous n’étiez pas si habillé.', aime: 'Merci, c’est gentil !', neutre: 'Merci !', deteste: 'Beurk. Non merci. Vraiment.' },
+      nuit: 'On dort, ici ! Revenez demain, les bassins vous attendront.',
+      meurtre: 'On sait ce que vous avez fait. Partez. L’eau ne lave pas tout.',
+      disparu: '{victime}… On a allumé des bougies sur l’eau, hier soir. Elles ont flotté jusqu’au matin.',
+      nuitrouge: 'Les bassins étaient rouges cette nuit. On n’y est pas allés. Ce matin, ils étaient clairs, comme si rien.',
+      adieu: ['À bientôt !', 'Revenez vous baigner !'],
+      tueur: ['…'], indice: '…',
+    },
+    quests: [],
+  },
+  // --------------------------------------------------------------------------
+  {
+    id: 'naturiste_b', role: 'Docteur des Sources', gender: 'm', names: ['Octave', 'Philémon', 'Aristide'], surname: 'Bréhal', age: 61, area: 'sources',
+    home: 'source_b', work: 'source_b', traits: ['sage', 'excentrique'], liens: { naturiste_a: 'élève', guerisseuse: 'collègue' },
+    look: { skin: '#d8b08c', hair: '#d0d0cc', hairStyle: 'chauve', beard: 'longue', hat: null, top: '#d8b08c', bottom: '#d8b08c', dress: false, apron: null, height: 1.0, build: 'rond', nude: true },
+    schedule: [[6, 'home'], [7, 'bains'], [11, 'work'], [15, 'bains'], [20, 'home']],
+    likes: ['infusion', 'herbes', 'reine_pres'], loves: ['flacon_bains', 'gentiane'], dislikes: ['vin', 'fiel_noir'],
+    shop: null,
+    lines: {
+      intro: 'Docteur {nom} Bréhal, fondateur, doyen et unique médecin des Sources. Bienvenue. Déshabillez-vous, ou pas : le corps n’a rien de honteux, et la honte n’a rien de médical.',
+      greet: {
+        matin: ['Bonjour ! Un bain, une infusion, et la journée commence bien.', 'Respirez. Profondément. Voilà.'],
+        jour: ['Comment va votre dos ? Tout le monde a mal au dos. C’est l’humanité.', 'L’eau soigne. La patience aussi. Les deux ensemble, c’est la médecine.'],
+        soir: ['Le soir, je note l’état de chaque bassin. La montagne respire, et je l’écoute.'],
+        pluie: ['Une pluie tiède ! Excellent pour la circulation.'],
+        orage: ['Sortez de l’eau, tous ! Allons, allons.'],
+        ami: ['Mon cher ami. Votre teint est bien meilleur depuis que vous venez.', 'Vous êtes toujours le bienvenu ici. Avec ou sans vos vêtements.'],
+        froid: ['Je soigne tout le monde. Sauf ceux qui font du mal. Partez.'],
+        peur: ['Restez où vous êtes ! Je suis médecin, pas soldat !'],
+      },
+      about: [
+        'J’exerçais en ville, autrefois. J’ai soigné beaucoup de gens malades de leurs habits trop serrés, de leurs soucis trop serrés, de leur vie trop serrée. Alors j’ai tout desserré.',
+        'Les Sources sont chaudes parce que la montagne est chaude dedans. Les nains le savent. Ils disent qu’un dieu y dort. Je dis que c’est de la géologie. Nous avons peut-être raison tous les deux.',
+        'Un bain aux Sources soigne les fatigues, les blessures, et même les os cassés, si l’on reste assez longtemps. La science ne sait pas pourquoi. Moi non plus. Je constate.',
+        'Nous sommes peu nombreux : Solange, la petite Lise, moi, et ceux qui passent. On ne force personne. On ne juge personne.',
+        'Je corresponds avec la guérisseuse de la forêt. Nos lettres sont très longues et très savantes. Nous sommes probablement amoureux. Nous ne l’avouerons jamais.',
+      ],
+      rumeurs: [
+        'Une jambe cassée ? Une attelle, et des bains. Trois jours au lieu de dix.',
+        'Le soleil, certains jours, est dangereux pour l’œil. Regarder l’eau, pas le ciel.',
+        'Les nuits noires, nos bassins se refroidissent. Je crois que ce qui dort sous la montagne a froid, ces nuits-là.',
+        'Un saignement se soigne en le serrant. Un bandage, un linge propre, de la patience.',
+      ],
+      etrange: ['Les bassins ont baissé d’un pied cette nuit, puis remonté. Comme une respiration.', 'Il y avait des empreintes de très grands pieds autour du bassin du haut, ce matin. Déjà sèches.'],
+      cadeau: { adore: 'Merveilleux ! Ceci ira dans ma pharmacie. Merci, merci.', aime: 'Merci beaucoup.', neutre: 'C’est aimable. Merci.', deteste: 'Oh non. Non. Mauvais pour le foie. Tout est mauvais pour le foie.' },
+      nuit: 'Le docteur dort. Sauf urgence. Est-ce une urgence ? Non ? Alors bonne nuit.',
+      meurtre: 'Je ne soigne pas les assassins. Allez-vous-en.',
+      disparu: '{victime}… Je l’avais soigné, une fois, d’une mauvaise toux. On devrait pouvoir soigner tout le reste aussi.',
+      nuitrouge: 'Ma boussole tournait sur elle-même cette nuit. Ça m’a rappelé mes études.',
+      adieu: ['Buvez de l’eau.', 'Et prenez soin de ce corps : vous n’en aurez pas d’autre.'],
+      tueur: ['…'], indice: '…',
+    },
+    quests: [
+      { id: 'naturiste_b_1', title: 'Pour la pharmacie', type: 'apporter', need: { reine_pres: 3, achillee: 2, miel: 1 }, minAmitie: 0, reward: { argent: 120, amitie: 1, objets: { attelle: 2, bandage: 4 } },
+        texte: { offre: 'Ma pharmacie est vide. Il me faudrait de la reine-des-prés, de l’achillée, un pot de miel. Faites-les identifier en ville, je ne soigne pas avec des devinettes.', accepte: 'Trois reines-des-prés, deux achillées, un miel. Merci.', attente: 'La pharmacie attend. Moi aussi, mais moi, j’ai l’habitude.', fin: 'Parfait ! Tenez : des attelles et des bandages. Avec ce que vous faites, vous en aurez besoin.' } },
+    ],
+  },
+  // --------------------------------------------------------------------------
+  {
+    id: 'naturiste_c', role: 'Gardienne des Bains', gender: 'f', names: ['Lise', 'Nina', 'Paule'], surname: 'Vautrin', age: 27, area: 'sources',
+    home: 'source_c', work: 'source_c', traits: ['réservée', 'curieuse'], liens: { naturiste_a: 'amie', naturiste_b: 'maître' },
+    look: { skin: '#f0d0b8', hair: '#e8d090', hairStyle: 'chignon', beard: null, hat: null, top: '#f0d0b8', bottom: '#f0d0b8', dress: false, apron: null, height: 0.95, build: 'mince', nude: true, bust: 0.65, hips: 0.9 },
+    schedule: [[6.5, 'home'], [7.5, 'bains'], [13, 'home'], [15, 'bains'], [20.5, 'home']],
+    likes: ['fleur', 'livre_contes', 'myosotis'], loves: ['perle', 'lys_cimes'], dislikes: ['croc', 'venin'],
+    shop: null,
+    lines: {
+      intro: 'Bonjour. Je suis {nom}, je garde les bains. Je nettoie les bassins, je surveille l’eau, et je regarde la vapeur. On dit que c’est un métier. Je crois que c’est surtout une excuse.',
+      greet: {
+        matin: ['Bonjour. L’eau est claire, ce matin.', 'Vous êtes matinal. L’eau aussi.'],
+        jour: ['Ne marchez pas au bord du grand bassin, ça glisse.', 'Bonjour.'],
+        soir: ['Le soir, la vapeur fait des formes. Je les dessine.'],
+        pluie: ['J’aime la pluie sur l’eau chaude. Ça fait des milliers de petites fumées.'],
+        orage: ['Tout le monde dehors des bassins.'],
+        ami: ['Vous revoilà. J’ai dessiné une forme de vapeur qui vous ressemblait.', 'Vous voulez voir mes dessins ? Personne ne veut voir mes dessins.'],
+        froid: ['…'],
+        peur: ['Laissez-moi !'],
+      },
+      about: [
+        'Je suis née à {hameau}. J’étais timide à en pleurer. Ici, on ne peut rien cacher, alors on n’a plus rien à craindre.',
+        'Je dessine la vapeur, la nuit. Les formes reviennent. Toujours les mêmes. Une grande main, un œil, trois traits.',
+        'Le docteur dit que je devrais aller à la ville apprendre la médecine. Je préfère garder les bassins. Ils ont besoin de moi. Je crois.',
+        'Parfois, au fond du grand bassin, je vois une lumière. Quand je plonge, elle s’éteint.',
+      ],
+      rumeurs: ['Si vous restez longtemps dans l’eau chaude, vos blessures guérissent. Même les vieilles.', 'Il y a une pierre gravée au bord du bassin du haut. Les lettres ressemblent à celles de la bibliothèque. Personne ne sait les lire.'],
+      etrange: ['La vapeur a fait un visage, cette nuit. Il m’a regardée. J’ai continué à dessiner.'],
+      cadeau: { adore: 'Pour moi ? Vraiment ? Je… merci. Je vais la dessiner.', aime: 'Merci.', neutre: 'Merci.', deteste: 'Non, ça, je n’aime pas.' },
+      nuit: 'Je surveille la vapeur. Ne me dérangez pas.',
+      meurtre: 'Ne m’approchez pas.',
+      disparu: 'Je dessinerai {victime}, de mémoire. Pour que la vapeur s’en souvienne.',
+      nuitrouge: 'La vapeur était rouge. J’ai tout dessiné. Je ne vous montrerai pas.',
+      adieu: ['Au revoir.', 'Faites attention au bord.'],
+      tueur: ['…'], indice: '…',
+    },
+    quests: [],
+  },
+  // --------------------------------------------------------------------------
+  {
+    id: 'nain_ancien', role: 'Ancien des nains', gender: 'm', names: ['Tormod', 'Grelin', 'Hasko'], surname: 'du Seuil', age: 240, area: 'nains',
+    home: 'nain_a', work: 'nain_a', traits: ['grave', 'méfiant'], liens: { nain_forgeronne: 'fille' },
+    look: { skin: '#c8987a', hair: '#a8a8a0', hairStyle: 'long', beard: 'longue', hat: 'capuche', hatCol: '#5a3a2a', top: '#6a4a2a', bottom: '#4a3a2a', dress: false, apron: '#5a4a3a', height: 0.72, build: 'rond', dwarf: true },
+    schedule: [[6, 'home'], [8, 'work'], [20, 'home']],
+    likes: ['pain', 'miel', 'laine', 'fromage'], loves: ['feuillet_perdu', 'lingot_or'], dislikes: ['viande_grillee', 'fleur'],
+    shop: null,
+    lines: {
+      intro: 'Tu as frappé comme nous. Peu de grands savent. {nom} du Seuil, ancien du peuple d’en bas. Parle doucement, ne touche à rien, et ne dis à personne où est la porte.',
+      greet: {
+        matin: ['Là-haut, c’est le matin ? Ici, c’est toujours la même heure : l’heure du travail.'],
+        jour: ['Grand. Tu reviens. Bien.', 'Tu apportes du pain ? Le pain d’en haut est le meilleur du monde. Ne le répète pas.'],
+        soir: ['Le soir, nous chantons pour Durn, pour qu’il dorme encore.'],
+        pluie: ['Nous n’avons pas de pluie. Nous avons des gouttes. Des milliers.'],
+        orage: ['L’orage d’en haut, on l’entend ici comme un tambour. Durn se retourne.'],
+        ami: ['Ami-grand. Tu as appris des mots. Ta bouche les écorche, mais tu les dis.', 'Tu es presque des nôtres. Il te manque la barbe, et deux siècles.'],
+        froid: ['Tu as menti. Nous le sentons. Va-t’en.'],
+        peur: ['Recule, grand. Ici, le plafond peut tomber sur qui on veut.'],
+      },
+      about: [
+        'Nous étions les serviteurs des Aëlim. Ils nous ont confié le temple, avant de partir. Nous le gardons encore. Personne ne nous a dit d’arrêter.',
+        'Nous parlons l’aëlin entre nous, pour les choses sacrées. Si tu veux des mots, apporte du pain. Un pain, un mot. C’est le prix.',
+        'Le soleil nous brûle les yeux. Nous ne sortons que les nuits sans lune. Mais pas les nuits noires. Jamais les nuits noires.',
+        'Durn dort sous la montagne. Les Sources chaudes, c’est son souffle. Les tremblements, ses rêves. Nous chantons pour qu’il ne se réveille pas.',
+        'Il y a trois pierres à la porte du temple. Aëla, Durn, Vesh. L’aube, le sommeil, la nuit. Celui qui les appelle dans l’ordre entre. Celui qui se trompe… reste.',
+      ],
+      rumeurs: [
+        'Les géants sont nos cousins de loin. Ils sont grands, nous sommes petits, et tous deux nous étions là avant vous.',
+        'Ta lunette de fusil, grand, c’est avec nos lentilles qu’elle voit loin. Tu nous dois le coup que tu réussis.',
+        'Vesh parle les nuits noires. Si tu entends ton nom, ne réponds pas. Surtout pas.',
+        'Les Aëlim écrivaient de haut en bas, et de droite à gauche. Les grands lisent toujours à l’envers.',
+      ],
+      etrange: ['La montagne a respiré plus fort, cette nuit. Nous avons chanté jusqu’au matin.', 'Une pierre du temple a parlé, hier. Nous ne répéterons pas ce qu’elle a dit.'],
+      cadeau: { adore: 'Ah ! Ceci est digne d’un ancien. Merci, grand.', aime: 'Bon. Bon, bon.', neutre: 'Nous l’acceptons.', deteste: 'Nous n’en voulons pas. Remporte.' },
+      nuit: 'Tout le monde dort. Même la pierre.',
+      meurtre: 'Tu portes du sang. Sors. La porte ne s’ouvrira plus.',
+      disparu: 'Nous graverons {victime} dans la pierre. Chez nous, on n’oublie pas les grands qui meurent.',
+      nuitrouge: 'Même ici, cette nuit, le rouge est descendu. Il y a longtemps que ce n’était pas arrivé.',
+      adieu: ['Va, grand. Et tais la porte.', 'Reviens avec du pain.'],
+      tueur: ['…'], indice: '…',
+    },
+    quests: [
+      { id: 'nain_ancien_1', title: 'Le pain d’en haut', type: 'apporter', need: { pain: 6, miel: 2 }, minAmitie: 0, reward: { argent: 0, amitie: 2, objets: { lentille: 2, livre_lexique_aelin2: 1 } },
+        texte: { offre: 'Nos fours ne font que des galettes. Rapporte-nous du pain d’en haut, six, et deux pots de miel. Tu auras nos mots, et du verre.', accepte: 'Six pains. Deux miels. Nous attendons.', attente: 'Le pain, grand. Nous sentons que tu n’en as pas assez.', fin: 'Il sent le blé et le soleil. Prends : deux lentilles, et le glossaire des Hautes Lettres. Tu liras, maintenant.' } },
+      { id: 'nain_ancien_2', title: 'Le marteau perdu', type: 'trouver', objet: 'marteau_nain', lieu: 'mine', minAmitie: 2, reward: { argent: 400, amitie: 2, objets: { lingot_or: 2 } },
+        texte: { offre: 'Un des nôtres a perdu son marteau dans la mine des grands, il y a trente de vos années. Il est trop fier pour y retourner. Toi, tu n’as pas de fierté.', accepte: 'Au fond de la mine des grands. Un petit marteau lourd.', attente: 'Le marteau ?', fin: 'Le voilà. Il va pleurer, et prétendre que c’est la poussière. Tiens : de l’or de nos filons.' } },
+    ],
+  },
+  // --------------------------------------------------------------------------
+  {
+    id: 'nain_forgeronne', role: 'Forgeronne naine', gender: 'f', names: ['Hilde', 'Ragna', 'Sigrun'], surname: 'Martelfer', age: 130, area: 'nains',
+    home: 'nain_b', work: 'nain_b', traits: ['bourrue', 'fière'], liens: { nain_ancien: 'père' },
+    look: { skin: '#d0a080', hair: '#b04a20', hairStyle: 'queue', beard: 'courte', hat: null, top: '#5a4a3a', bottom: '#3a2a20', dress: false, apron: '#3a3030', height: 0.7, build: 'rond', dwarf: true, bust: 0.8, hips: 1.0, held: 'marteau' },
+    schedule: [[5, 'home'], [6, 'work'], [21, 'home']],
+    likes: ['charbon', 'lingot_fer', 'pain'], loves: ['gemme', 'marteau_nain'], dislikes: ['fleur', 'toile'],
+    shop: { name: 'La forge d’en bas', sells: [['lentille', 55], ['lunette', 240], ['canon_fusil', 280], ['pioche_acier', 520], ['hache_acier', 520], ['lanterne', 50], ['lingot_acier', 150], ['gemme', 320]], buys: ['pain', 'miel', 'laine', 'fromage', 'charbon', 'minerai_fer', 'minerai_or', 'lingot_fer'] },
+    lines: {
+      intro: '{nom} Martelfer. Je forge. Tu achètes, ou tu regardes ? Ici, regarder coûte aussi.',
+      greet: {
+        matin: ['Le feu est prêt. Toi, je ne sais pas.'],
+        jour: ['Tu veux une lentille ? Une lunette ? Un canon ? Tu as du pain ?', 'Bouge. Tu es devant le soufflet.'],
+        soir: ['Le soir, la forge chante. Écoute, et tais-toi.'],
+        pluie: ['Là-haut il pleut ? Tant mieux pour toi. Ici il fait chaud.'],
+        orage: ['Le tonnerre d’en haut fait sonner mon enclume. Durn n’aime pas ça.'],
+        ami: ['Ami-grand. Pour toi, un canon bien droit.', 'Tu as de bonnes mains, pour un grand. Trop grandes, mais bonnes.'],
+        froid: ['Pas de commerce avec toi.'],
+        peur: ['Approche et je te forge.'],
+      },
+      about: ['Mon père est l’ancien. Il parle. Moi, je forge. Chacun son métier.', 'Nos lentilles sont les meilleures du monde. On les taille dans le cristal des grottes, pendant cent ans s’il le faut.', 'Les grands font des fusils. Nous faisons les canons, les lunettes. Les grands n’ont que le bois et la gâchette, et ils disent que le fusil est à eux.'],
+      rumeurs: ['Un canon de fusil, c’est deux lingots d’acier et du charbon, au four. Mais un bon canon, c’est un nain.', 'La lunette, c’est deux lentilles et du cuivre. Avec des lentilles d’en haut, tu verras flou. Avec les nôtres, tu verras les poux d’un loup.'],
+      etrange: ['Ma forge s’est éteinte toute seule cette nuit. Le feu ne s’éteint jamais. Jamais.'],
+      cadeau: { adore: 'Ha ! Ça, c’est un présent. Merci, grand.', aime: 'Bon.', neutre: 'Hm.', deteste: 'Des fleurs ? À une forgeronne ? Sors.' },
+      nuit: 'La forge dort. Pas longtemps.',
+      meurtre: 'Pas d’assassin à ma forge.',
+      disparu: 'On forgera une plaque pour {victime}.',
+      nuitrouge: 'Le métal a rougi tout seul cette nuit, sans feu.',
+      adieu: ['Va.', 'Reviens avec du pain.'],
+      tueur: ['…'], indice: '…',
+    },
+    quests: [],
+  },
+];
+for (const d of NPC_NEW) NPC_DATA.push(d);
+// Les femmes : poitrine et hanches plus ou moins marquées (chacune à sa façon, tirée de son nom)
+for (const d of NPC_DATA) {
+  if (d.gender !== 'f' || !d.look) continue;
+  const h = hashString(d.id);
+  if (d.look.bust === undefined) d.look.bust = (d.age || 30) < 16 ? 0 : 0.45 + ((h % 1000) / 1000) * 0.75;
+  if (d.look.hips === undefined) d.look.hips = (d.age || 30) < 16 ? 0.2 : 0.55 + (((h >> 10) % 1000) / 1000) * 0.7;
+}
 
 // ---- 06-structures.js
 // ============================================================================
@@ -13979,6 +15110,522 @@ Object.assign(LIEU_NAMES, {
 });
 
 
+// ---- 06-zzzgen-lieux3.js
+// ============================================================================
+//  LIEUX NOUVEAUX (vallée dessinée) — ajoutés APRÈS tout le reste, avec leur
+//  propre tirage : les numéros des objets et des objets posés des parties déjà
+//  commencées ne bougent pas.
+//  - la grande bibliothèque (plateau), sa salle des archives secrètes ;
+//  - les Sources : un hameau de naturistes autour de bassins d'eau chaude ;
+//  - le relais de chasse (vieille forêt) ; les roulottes des colporteurs ;
+//  - l'échoppe de l'alchimiste (une maison vide de la ville) ;
+//  - les halles des nains, sous la montagne (on y entre par une fente de la
+//    falaise, au bord de la Combe, en frappant comme eux) ;
+//  - le camp des géants, sur les hauteurs de l'est ;
+//  - le temple secret, immense, sous les Monts : on y entre derrière une
+//    cascade, là où la rivière naît de la montagne ;
+//  - des échelles dans les douves de la ville ;
+//  - les zones où l'on ne bâtit pas (villes, villages, lieux saints) ;
+//  - chaque milieu reçoit ses plantes et ses bêtes (communes ou rares).
+// ============================================================================
+Object.assign(LIEU_NAMES, {
+  bibliotheque: 'la grande bibliothèque', sources: 'les Sources', relais_chasse: 'le relais de chasse', roulottes: 'le campement des colporteurs',
+  roulotte_a: 'la roulotte de Jouvet', roulotte_b: 'la roulotte de Carrez', vide6: 'l’échoppe de l’alchimiste', source_a: 'la maison aux volets verts', source_b: 'la maison du docteur',
+  source_c: 'la maison des bains', nains: 'les halles d’en bas', nain_a: 'la maison de l’ancien', nain_b: 'la forge d’en bas', fente_nains: 'la falaise fendue',
+  geants: 'le camp des géants', temple: 'le temple sous la montagne', cascade: 'la cascade de la source', archives: 'la salle des archives',
+});
+const PROTECTED = []; // zones où l'on ne construit pas : { x, z, r, why }
+
+function addLieux3(w, seed) {
+  if (!w.designed) return;
+  const rnd = mulberry32(seed * 101 + 77), WL = w.waterLevel;
+  const B = new Builder(w, rnd, new Uint8Array(w.W * w.W));
+  const H = (x, z) => w.heightAt(x, z);
+  w.pools = w.pools || [];
+  const nObj0 = w.objects.length;
+  // ------------------------------------------------------------ outils
+  // l'endroit le plus plat et le plus libre près de (x0, z0)
+  const busy = (x, z, r) => {
+    for (const k in w.bld) { const b = w.bld[k]; if (Math.hypot(b.x - x, b.z - z) < r + Math.max(b.W || 8, b.D || 8) * 0.7 + 4) return true; }
+    for (const k in w.lm) { const L = w.lm[k]; if (!L.under && Math.hypot(L.x - x, L.z - z) < r + Math.min(L.r || 8, 30) * 0.6) return true; }
+    if (w.townInfo && Math.max(Math.abs(x - w.townInfo.x), Math.abs(z - w.townInfo.z)) < 62 + r) return true;
+    return false;
+  };
+  const spread = (x, z, r) => { let mn = 1e9, mx = -1e9; for (let a = 0; a < 8; a++) for (const k of [0.5, 1]) { const h = H(x + Math.cos(a * 0.785) * r * k, z + Math.sin(a * 0.785) * r * k); mn = Math.min(mn, h); mx = Math.max(mx, h); } return [mx - mn, mn]; };
+  const siteNear = (x0, z0, R, r, o = {}) => {
+    let best = null;
+    for (let k = 0; k < 400; k++) {
+      const a = rnd() * TAU, d = Math.sqrt(rnd()) * R, x = x0 + Math.cos(a) * d, z = z0 + Math.sin(a) * d;
+      if (!w.inside(x, z, r + 30)) continue;
+      const [sp, mn] = spread(x, z, r);
+      if (mn < WL + (o.dry ?? 1.5)) continue;
+      if (o.minH !== undefined && mn < WL + o.minH) continue;
+      if (o.maxH !== undefined && mn > WL + o.maxH) continue;
+      if (busy(x, z, r)) continue;
+      const score = sp + d * (o.pull ?? 0.01) + rnd() * 0.3;
+      if (!best || score < best.score) best = { x, z, y: H(x, z), score };
+    }
+    return best || { x: x0, z: z0, y: H(x0, z0), score: 99 };
+  };
+  const clearAround = (x, z, r, keepAnimals) => {
+    for (let i = 0; i < nObj0; i++) { const o = w.objects[i]; if (o.gone || Math.hypot(o.x - x, o.z - z) > r) continue; const t = OBJ_TYPES[o.t]; if (keepAnimals && t.animal) continue; o.gone = true; o.cleared = true; }
+    w.objectsDirty = true;
+  };
+  const road = (a, b, width, tag) => { // chemin + nœuds de navigation
+    const L = Math.hypot(b.x - a.x, b.z - a.z), n = Math.max(2, Math.ceil(L / 10));
+    let prev = null, last = -1, acc = 0;
+    for (let k = 0; k <= n; k++) {
+      const t = k / n, off = Math.sin(t * Math.PI) * Math.sin(a.x * 0.013 + k * 0.7) * Math.min(12, L * 0.05);
+      const nx = -(b.z - a.z) / (L || 1), nz = (b.x - a.x) / (L || 1);
+      const p = { x: lerp(a.x, b.x, t) + nx * off, z: lerp(a.z, b.z, t) + nz * off };
+      if (prev && width > 0) B.paintLine(prev.x, prev.z, p.x, p.z, width, M_DIRT);
+      if (prev) acc += Math.hypot(p.x - prev.x, p.z - prev.z);
+      if (k === 0 || k === n || acc > 18) { const ni = B.navNode(p.x, p.z, tag || 'chemin'); if (last >= 0) B.navLink(last, ni, 'road'); last = ni; acc = 0; }
+      prev = p;
+    }
+  };
+  // nœud de chemin le plus proche d'un point (pour raccorder un lieu au réseau)
+  const nearestRoadNode = (x, z) => { let best = null, bd = 1e9; for (const n of w.nav.nodes) { if (n.iso || !/chemin|route|rue|hameau|place|pont/.test(n.tag)) continue; const d = Math.hypot(n.x - x, n.z - z); if (d < bd) { bd = d; best = n; } } return best; };
+  const protect = (x, z, r, why) => PROTECTED.push({ x, z, r, why });
+  const landmark = (key, x, z, r, extra) => B.landmark(key, x, z, r, extra);
+
+  // ================================================================ la grande bibliothèque
+  {
+    const s = siteNear(2060, 1400, 110, 16, { pull: 0.02, minH: 8 });
+    const f = { x: Math.round(s.x), y: s.y, z: Math.round(s.z), r: 0 };
+    const rn = nearestRoadNode(f.x, f.z);
+    if (rn) f.r = Math.round(Math.atan2(-(rn.x - f.x), -(rn.z - f.z)) / (Math.PI / 2)) * Math.PI / 2; // la façade regarde le chemin
+    clearAround(f.x, f.z, 22);
+    B.flattenRect(f, 14, 11, f.y, 10);
+    f.y = H(f.x, f.z);
+    const W = 22, D = 16;
+    const Bl = B.building('bibliotheque', f, W, D, { floors: 3, wall: M_STONE, win: M_STONEWIN, roof: M_SLATE, chimney: true, roofH: 4.2, dw: 2.2, dh: 3.0 }, function (bf, W, D, B2) {
+      // rayonnages : trois rangées, et contre les murs
+      for (const lz of [-2.5, 1.0, 4.5]) for (const lx of [-7.5, -4.5, 4.5, 7.5]) this.propRel(bf, 'etagere', lx, 0.15, lz, lz > 0 ? Math.PI : 0, { kind: 'livres' });
+      for (let lx = -9.5; lx <= 9.5; lx += 1.6) this.propRel(bf, 'etagere', lx, 0.15, D / 2 - 0.45, Math.PI, { kind: 'livres' });
+      this.propRel(bf, 'comptoir', 0, 0.15, -3.6, 0);
+      this.spot(bf, B2, 'work', 0, -2.6, Math.PI);
+      for (const [lx, lz] of [[-2.8, 2.6], [2.8, 2.6]]) { this.propRel(bf, 'table', lx, 0.15, lz, 0); this.propRel(bf, 'chaise', lx, 0.15, lz - 0.8, Math.PI); this.propRel(bf, 'chaise', lx, 0.15, lz + 0.8, 0); this.propRel(bf, 'bougie', lx, 0.95, lz, 0); }
+      this.propRel(bf, 'vitrine', -W / 2 + 1.2, 0.15, -D / 2 + 1.6, Math.PI / 2);
+      this.propRel(bf, 'lit', W / 2 - 1.2, 0.15, -D / 2 + 2.2, Math.PI / 2, { col: '#2a2a3a' });
+      this.spot(bf, B2, 'bed', W / 2 - 1.2, -D / 2 + 2.2, Math.PI / 2);
+      this.spot(bf, B2, 'sit', 2.8, 1.8, Math.PI);
+      this.propRel(bf, 'cheminee', -W / 2 + 0.62, 0.15, 3.0, Math.PI / 2, { lit: true });
+      this.interRel(bf, 'biblio', 'biblio_comptoir', 0, 1.2, -4.3, 'Parler de livres (comptoir)');
+      this.interRel(bf, 'biblio_rayon', 'biblio_rayon', -6, 1.2, 0.2, 'Parcourir les rayonnages');
+      this.interRel(bf, 'biblio_vitrine', 'biblio_vitrine', -W / 2 + 1.9, 1.1, -D / 2 + 1.6, 'Regarder la vitrine');
+      this.interRel(bf, 'biblio_secret', 'biblio_secret', 7.5, 1.2, D / 2 - 1.2, 'Examiner le rayonnage du fond');
+    });
+    landmark('bibliotheque', Bl.out[0], Bl.out[1], 18);
+    if (rn) road({ x: Bl.out[0], z: Bl.out[1] }, rn, 1.2);
+    protect(f.x, f.z, 30, 'la bibliothèque');
+    // la salle des archives secrètes (sous terre, loin : on y descend par le rayonnage)
+    const af = B.underRoom(2920, 2940, 12, 10, 3.6, 30, M_STONE, M_PLANKS);
+    for (let lx = -5; lx <= 5; lx += 1.7) B.propRel(af, 'etagere', lx, 0, 4.6, Math.PI, { kind: 'livres' });
+    B.propRel(af, 'table', 0, 0, 0, 0); B.propRel(af, 'bougie', 0, 0.8, 0, 0); B.propRel(af, 'lanterne_sol', -4, 0, -3, 0); B.propRel(af, 'lanterne_sol', 4, 0, -3, 0);
+    B.propRel(af, 'coffre_vieux', 4.5, 0, 3, Math.PI, { vide: false });
+    const [cx, cz] = B.toWorld(af, 4.5, 3); B.inter('loot', 'archives_coffre', cx, af.y + 0.6, cz, 'Fouiller', { table: 'archives', prop: w.props.length - 1 });
+    const [bx, bz] = B.toWorld(af, 0, 0.4); B.inter('archives_livre', 'archives_livre', bx, af.y + 1, bz, 'Lire le registre ouvert');
+    const [ex, ez] = B.toWorld(af, 0, -4.2); B.propRel(af, 'echelle', 0, 0, -4.7, 0, { h: 3.6 });
+    const [rx, rz] = B.toWorld(f, 7.5, D / 2 - 2.2);
+    B.inter('ladder', 'archives_sortie', ex, af.y + 1, ez, 'Remonter', { to: [rx, f.y + 0.2, rz] });
+    w.archives = { to: [ex, af.y + 0.1, ez] };
+    landmark('archives', af.x, af.z, 8, { under: true, secret: true });
+  }
+
+  // ================================================================ les Sources (naturistes)
+  {
+    const s = siteNear(2320, 2380, 170, 24, { pull: 0.01 });
+    const f = { x: Math.round(s.x), y: s.y, z: Math.round(s.z), r: rnd() * TAU };
+    clearAround(f.x, f.z, 34);
+    B.flatten(f.x, f.z, 26, f.y, 14);
+    f.y = H(f.x, f.z);
+    B.paintDisk(f.x, f.z, 30, M_LUSH, 2, true);
+    B.paintDisk(f.x, f.z, 5, M_DIRT, 1, true);
+    const sub = (lx, lz, rr) => { const [x, z] = B.toWorld(f, lx, lz); return { x, y: f.y, z, r: f.r + rr }; };
+    const houses = [['source_a', -16, -8, Math.PI / 2, '#6a9a5a'], ['source_b', 16, -8, -Math.PI / 2, '#8a6a4a'], ['source_c', 0, 18, Math.PI, '#5a7a9a']];
+    for (const [key, lx, lz, rr, col] of houses) {
+      B.building(key, sub(lx, lz, rr), 7, 6, { wall: M_TIMBER, win: M_TIMBERWIN, roof: M_THATCH, chimney: key === 'source_b' }, function (bf, W, D, B2) { this.furnishHome(bf, W, D, B2, { bedCol: col }); });
+    }
+    // les bassins d'eau chaude (dalles de pierre, eau fumante)
+    const pools = [[0, -2, 7, 5], [-7, 9, 4.5, 3.5], [8, 9, 4, 4]];
+    pools.forEach(([lx, lz, pw, pd], i) => {
+      const [x, z] = B.toWorld(f, lx, lz), pf = { x, y: f.y, z, r: f.r };
+      B.block(pf, 0, -0.55, 0, pw + 0.8, 0.5, pd + 0.8, M_STONE);
+      for (const [a, b, sx, sz] of [[0, pd / 2 + 0.2, pw + 0.8, 0.4], [0, -pd / 2 - 0.2, pw + 0.8, 0.4], [pw / 2 + 0.2, 0, 0.4, pd], [-pw / 2 - 0.2, 0, 0.4, pd]]) B.block(pf, a, -0.05, b, sx, 0.35, sz, M_STONE);
+      B.block(pf, 0, -0.12, 0, pw, 0.1, pd, M_WATERB);
+      w.pools.push({ x, z, y: f.y - 0.02, w: pw, d: pd, r: f.r, kind: 'bains', hot: true });
+      if (i === 0) B.inter('bain', 'bain_grand', x, f.y + 0.2, z, 'Se baigner');
+    });
+    const [sx, sz] = B.toWorld(f, 11, -2); B.prop('stele', sx, H(sx, sz), sz, f.r, { ins: 'a_nains' }); B.inter('inscription', 'ins_sources', sx, H(sx, sz) + 1.1, sz, 'Lire la pierre gravée', { ins: 'a_nains' });
+    for (let k = 0; k < 6; k++) { const a = k / 6 * TAU, [x, z] = B.toWorld(f, Math.cos(a) * 12, Math.sin(a) * 12 + 3); B.prop('lanterne_sol', x, H(x, z), z, 0); }
+    landmark('sources', f.x, f.z, 30, { fish: 'bains' });
+    const c = B.navNode(f.x + 1, f.z + 1, 'bains');
+    const [lx2, lz2] = B.toWorld(f, 0, -8); B.navNode(lx2, lz2, 'bains');
+    const rn = nearestRoadNode(f.x, f.z);
+    if (rn) road({ x: f.x, z: f.z }, rn, 0.9);
+    w.sources = { x: f.x, z: f.z, y: f.y, r: 30, node: c };
+    protect(f.x, f.z, 40, 'les Sources');
+  }
+
+  // ================================================================ le relais de chasse
+  {
+    const s = siteNear(1190, 1390, 120, 10, { pull: 0.02 });
+    const f = { x: Math.round(s.x), y: s.y, z: Math.round(s.z), r: Math.floor(rnd() * 4) * Math.PI / 2 };
+    clearAround(f.x, f.z, 12);
+    B.flattenRect(f, 7, 6, f.y, 8); f.y = H(f.x, f.z);
+    const Bl = B.building('relais_chasse', f, 9, 7, { wall: M_LOGS, win: M_TIMBERWIN, roof: M_ROOF, chimney: true }, function (bf, W, D, B2) {
+      this.furnishHome(bf, W, D, B2, { bedCol: '#5a4a2a' });
+      this.propRel(bf, 'trophee', 0, 1.8, D / 2 - 0.35, Math.PI);
+      this.spot(bf, B2, 'work', 1.5, 1.0, 0);
+    });
+    B.propRel(f, 'tonneau', 5.2, 0, -2.5, 0); B.propRel(f, 'sechoir_peaux', -6, 0, -2, 0.3);
+    landmark('relais_chasse', Bl.out[0], Bl.out[1], 14);
+    const rn = nearestRoadNode(f.x, f.z);
+    if (rn) road({ x: Bl.out[0], z: Bl.out[1] }, rn, 0.8);
+    B.navNode(f.x + 18, f.z + 12, 'chasse'); B.navNode(f.x - 16, f.z + 20, 'chasse'); B.navNode(f.x + 6, f.z + 32, 'chasse');
+    w.relais = { x: f.x, z: f.z };
+  }
+
+  // ================================================================ les roulottes des colporteurs (près de la porte sud)
+  if (w.townInfo) {
+    const T = w.townInfo, g = T.gS || [T.x, T.z + 60];
+    let k = 0;
+    for (const key of ['roulotte_a', 'roulotte_b']) {
+      const s = siteNear(g[0] + (k ? 40 : -40), g[1] + 30, 40, 5, { pull: 0.05 });
+      const f = { x: Math.round(s.x), y: s.y, z: Math.round(s.z), r: Math.round(rnd() * 4) * Math.PI / 2 };
+      clearAround(f.x, f.z, 7);
+      B.flattenRect(f, 3, 4, f.y, 5); f.y = H(f.x, f.z);
+      const Bl = B.building(key, f, 2.8, 5, { wall: M_PLANKS, win: M_PLANKS, roof: M_ROOF, roofH: 1.1, dw: 1.0, dh: 1.9, found: M_PLANKS }, function (bf, W, D, B2) {
+        this.bed(bf, B2, 0, D / 2 - 1.3, k ? '#8a2a3a' : '#3a5a2a');
+        this.spot(bf, B2, 'sit', 0, 0, 0);
+      });
+      for (const [lx, lz] of [[-1.55, -1.6], [1.55, -1.6], [-1.55, 1.6], [1.55, 1.6]]) B.propRel(f, 'roue_deco', lx, -0.2, lz, Math.PI / 2);
+      landmark(key, Bl.out[0], Bl.out[1], 6);
+      k++;
+    }
+    landmark('roulottes', g[0], g[1] + 30, 40);
+  }
+
+  // ================================================================ l'échoppe de l'alchimiste (une maison vide de la ville)
+  const alch = w.bld.vide6;
+  if (alch) {
+    B.propRel(alch.f, 'table_alchimie', 1.5, 0.15, 1.4, Math.PI);
+    B.interRel(alch.f, 'alch_table', 'alch_table_ville', 1.5, 1.0, 0.7, 'Utiliser la table d’alchimiste');
+    B.propRel(alch.f, 'etagere', -2.5, 0.15, -1.5, Math.PI / 2, { kind: 'bocaux' });
+    const [x, z] = B.toWorld(alch.f, 1.5, -alch.D / 2);
+    B.prop('enseigne', x, alch.f.y, z, alch.f.r, { k: 'alchimiste' });
+    const [ix, iz] = B.toWorld(alch.f, 1.5, -alch.D / 2 - 0.75);
+    B.inter('lire', 'ens_alchimie', ix, alch.f.y + 2.0, iz, 'Lire l’enseigne', { text: ['Alchimiste', 'Identification des plantes, remèdes, potions.\nTables d’alchimiste sur commande.'] });
+    alch.spots.work = { x: B.toWorld(alch.f, 1.5, 0.3)[0], y: alch.f.y + 0.15, z: B.toWorld(alch.f, 1.5, 0.3)[1], r: alch.f.r + Math.PI };
+    landmark('echoppe', alch.out[0], alch.out[1], 6);
+    LIEU_NAMES.echoppe = 'l’échoppe de l’alchimiste';
+  }
+
+  // ================================================================ les halles des nains (sous la montagne : un coin éloigné de la carte)
+  {
+    const cx = 330, cz = 2780, Wd = 44, Dd = 32, Hh = 7;
+    const hall = B.underRoom(cx, cz, Wd, Dd, Hh, 34, M_ROCK, M_COBBLE);
+    const y0 = hall.y;
+    // piliers, maisons creusées, forge, lac
+    for (const [lx, lz] of [[-12, -8], [0, -8], [12, -8], [-12, 8], [0, 8], [12, 8]]) B.block(hall, lx, 0, lz, 1.4, Hh, 1.4, M_STONE);
+    const room = (key, lx, lz, W, D, bedCol, furnish) => { // pièce ouverte (sans porte) contre le mur du fond
+      const f = { x: B.toWorld(hall, lx, lz)[0], y: y0, z: B.toWorld(hall, lx, lz)[1], r: 0 };
+      B.block(f, 0, 0, D / 2, W, Hh - 0.5, 0.4, M_STONE); B.block(f, -W / 2, 0, 0, 0.4, Hh - 0.5, D, M_STONE); B.block(f, W / 2, 0, 0, 0.4, Hh - 0.5, D, M_STONE);
+      const inn = B.toWorld(f, 0, -D / 2 + 1.2), mid = B.toWorld(f, 0, 0.3), out = B.toWorld(f, 0, -D / 2 - 1.5);
+      const nOut = B.navNode(out[0], out[1], key + ':out'), nIn = B.navNode(inn[0], inn[1], key + ':in'), nMid = B.navNode(mid[0], mid[1], key + ':mid');
+      B.navLink(nOut, nIn); B.navLink(nIn, nMid);
+      const Bk = { key, name: LIEU_NAMES[key], x: f.x, z: f.z, y: y0 + 0.02, f, W, D, H: Hh, door: -1, nOut, nIn, nMid, spots: {}, out, under: true };
+      w.bld[key] = Bk;
+      B.bed(f, Bk, -W / 2 + 0.9, D / 2 - 1.3, bedCol);
+      furnish(f, Bk, W, D);
+      return Bk;
+    };
+    room('nain_a', -14, 10, 8, 7, '#6a4a2a', (f, Bk) => { B.propRel(f, 'table', 1.5, 0, 0.5, 0); B.propRel(f, 'chaise', 1.5, 0, -0.3, Math.PI); B.spot(f, Bk, 'work', 1.5, -0.3, Math.PI); B.spot(f, Bk, 'sit', 1.5, -0.3, Math.PI); B.propRel(f, 'etagere', 3.2, 0, 2.5, -Math.PI / 2, { kind: 'livres' }); });
+    room('nain_b', 14, 10, 9, 7, '#8a3a2a', (f, Bk) => { B.propRel(f, 'enclume', 0.5, 0, -0.5, 0); B.propRel(f, 'four', 3, 0, 2.2, Math.PI, { lit: true }); B.spot(f, Bk, 'work', 0.5, -1.4, 0); B.spot(f, Bk, 'sit', 0.5, -1.4, 0); });
+    // lac des nains
+    const [px, pz] = B.toWorld(hall, 0, -11); B.block({ x: px, y: y0, z: pz, r: 0 }, 0, -0.08, 0, 9, 0.12, 5, M_WATERB); w.blocks[w.blocks.length - 1].under = true;
+    w.pools.push({ x: px, z: pz, y: y0 + 0.05, w: 9, d: 5, r: 0, kind: 'souterrain' });
+    // lumières : cristaux, forge, lanternes ; mousse dorée
+    for (const [lx, lz] of [[-18, -12], [18, -12], [-6, 0], [6, 0], [-18, 2], [18, 2]]) B.propRel(hall, 'cristal_lumineux', lx, 0, lz, rnd() * TAU);
+    for (let k = 0; k < 14; k++) { const [x, z] = B.toWorld(hall, (rnd() - 0.5) * (Wd - 4), (rnd() - 0.5) * (Dd - 4)); B.obj('mousse_nains', x, z, 0.12, { y: y0 }); }
+    // l'écriture sur le mur
+    const [ix, iz] = B.toWorld(hall, 0, Dd / 2 - 0.6); B.prop('stele', ix, y0, iz, Math.PI, { ins: 'g_dwerr' }); B.inter('inscription', 'ins_nains', ix, y0 + 1.2, iz, 'Lire l’inscription', { ins: 'g_dwerr' });
+    const [ix2, iz2] = B.toWorld(hall, -8, Dd / 2 - 0.6); B.prop('stele', ix2, y0, iz2, Math.PI, { ins: 'a_nains' }); B.inter('inscription', 'ins_nains2', ix2, y0 + 1.2, iz2, 'Lire l’inscription', { ins: 'a_nains' });
+    // navigation : un maillage dans la halle
+    // (liens posés à la main : sous terre, le calcul automatique ne voit que le relief de surface)
+    const grid = {};
+    for (let lz = -10; lz <= 4; lz += 7) for (let lx = -18; lx <= 18; lx += 9) { const [x, z] = B.toWorld(hall, lx, lz); grid[lx + ',' + lz] = B.navNode(x, z, lx === 0 && lz === -3 ? 'village:nains' : 'halle:' + lx + ',' + lz); }
+    for (const k in grid) { const [lx, lz] = k.split(',').map(Number); if (grid[(lx + 9) + ',' + lz] !== undefined) B.navLink(grid[k], grid[(lx + 9) + ',' + lz]); if (grid[lx + ',' + (lz + 7)] !== undefined) B.navLink(grid[k], grid[lx + ',' + (lz + 7)]); }
+    for (const key of ['nain_a', 'nain_b']) { const Bk = w.bld[key], O = w.nav.nodes[Bk.nOut]; let bi = -1, bd = 1e9; for (const k in grid) { const q = w.nav.nodes[grid[k]], d = Math.hypot(q.x - O.x, q.z - O.z); if (d < bd) { bd = d; bi = grid[k]; } } B.navLink(Bk.nOut, bi); }
+    // sortie : un escalier taillé, qui remonte à la falaise
+    const [sx, sz] = B.toWorld(hall, -Wd / 2 + 2, -Dd / 2 + 2);
+    B.propRel(hall, 'echelle', -Wd / 2 + 1.2, 0, -Dd / 2 + 2, Math.PI / 2, { h: Hh });
+    w.nains = { hall: { x: hall.x, z: hall.z, y: y0 }, inside: [sx, y0 + 0.05, sz] };
+    landmark('nains', hall.x, hall.z, 24, { under: true, secret: true });
+    // la fente de la falaise : au nord-est de la Combe Perdue, dans une paroi
+    let fx = 1470, fz = 790, bestS = -1;
+    const trail = VALLEY_DESIGN.wild.trail;
+    for (let k = 0; k < 400; k++) {
+      const x = 1380 + rnd() * 200, z = 700 + rnd() * 160, n = w.normalAt(x, z), h = H(x, z);
+      if (h < WL + 6 || n[1] > 0.8) continue;
+      if (trail.some(([tx, tz]) => Math.hypot(tx - x, tz - z) < 40)) continue; // loin de la piste : on ne la voit pas en passant
+      const steep = 1 - n[1] + rnd() * 0.05;
+      if (steep > bestS) { bestS = steep; fx = x; fz = z; }
+    }
+    const nrm = w.normalAt(fx, fz), face = Math.atan2(nrm[0], nrm[2]);
+    const fy = H(fx, fz);
+    B.prop('fente_falaise', fx, fy - 0.3, fz, face);
+    B.inter('fente_nains', 'fente_nains', fx + Math.sin(face) * 0.9, fy + 1.2, fz + Math.cos(face) * 0.9, 'Examiner la fente', {});
+    B.inter('ladder', 'nains_sortie', sx, y0 + 1, sz, 'Remonter à la falaise', { to: [fx + Math.sin(face) * 2.2, fy + 0.1, fz + Math.cos(face) * 2.2] });
+    w.nains.door = [fx, fy, fz, face];
+    landmark('fente_nains', fx, fz, 6, { secret: true });
+  }
+
+  // ================================================================ le camp des géants (hauteurs de l'est)
+  {
+    const s = siteNear(2170, 930, 170, 18, { pull: 0.004, minH: 34, dry: 30 });
+    const f = { x: Math.round(s.x), y: s.y, z: Math.round(s.z), r: rnd() * TAU };
+    clearAround(f.x, f.z, 26);
+    B.flatten(f.x, f.z, 18, f.y, 16); f.y = H(f.x, f.z);
+    B.paintDisk(f.x, f.z, 16, M_DRY, 3, true);
+    B.block(f, 0, 0, 0, 9, 3.6, 5, M_STONE); B.block(f, 0, 3.6, 0, 11, 0.8, 6.5, M_MOSSY); // la table
+    for (let k = 0; k < 7; k++) { const a = k / 7 * TAU + 0.3, [x, z] = B.toWorld(f, Math.cos(a) * 13, Math.sin(a) * 13); B.prop('pierre_dressee', x, H(x, z), z, a, null, 1.8 + rnd() * 0.8); }
+    const [hx, hz] = B.toWorld(f, 9, 7); B.prop('feu_geant', hx, H(hx, hz), hz, 0);
+    for (let k = 0; k < 3; k++) { const [x, z] = B.toWorld(f, -8 + k * 3, -9 - k); B.prop('os_geant', x, H(x, z), z, rnd() * TAU); }
+    const [bx, bz] = B.toWorld(f, -10, 6); B.prop('lit_geant', bx, H(bx, bz), bz, f.r);
+    const [ix, iz] = B.toWorld(f, 0, 5.5); B.prop('stele', ix, H(ix, iz), iz, f.r, { ins: 'g_mor' }, 1.6); B.inter('inscription', 'ins_geants', ix, H(ix, iz) + 1.6, iz, 'Lire les cupules', { ins: 'g_mor' });
+    landmark('geants', f.x, f.z, 40, { secret: true });
+    w.geants = { x: f.x, z: f.z, y: f.y };
+  }
+
+  // ================================================================ le temple sous la montagne (immense)
+  {
+    // l'entrée : derrière une cascade, là où naît la rivière (au pied des contreforts)
+    const src = (VALLEY_DESIGN.core.rivers[0].pts[0]), ox = DESIGN_OFF[0], oz = DESIGN_OFF[1];
+    let ex = src[0] + ox, ez = src[1] + oz - 14;
+    // la paroi la plus raide juste au nord de la source
+    let best = -1;
+    for (let k = 0; k < 200; k++) {
+      const x = src[0] + ox + (rnd() - 0.5) * 60, z = src[1] + oz - 8 - rnd() * 50, n = w.normalAt(x, z);
+      const st = (1 - n[1]) + (H(x, z) - WL) * 0.002;
+      if (st > best && H(x, z) > WL + 1) { best = st; ex = x; ez = z; }
+    }
+    const nrm = w.normalAt(ex, ez), face = Math.atan2(nrm[0], nrm[2]), ey = H(ex, ez);
+    const ef = { x: ex, y: ey, z: ez, r: face };
+    clearAround(ex, ez, 8);
+    B.prop('cascade', ex, ey, ez, face);
+    B.prop('grotte_bouche', ex, ey - 0.2, ez, face);
+    const [ix, iz] = B.toWorld(ef, 0, 1.4);
+    B.inter('temple_entree', 'temple_entree', ix, ey + 1.3, iz, 'Passer derrière la cascade', {});
+    landmark('cascade', ex, ez, 10);
+    // le temple lui-même : coin nord-est de la carte, profondément sous les Monts
+    const TX = 2760, TZ = 330, D0 = 40;
+    let minH = 1e9; for (let dz = -80; dz <= 80; dz += 8) for (let dx = -70; dx <= 70; dx += 8) minH = Math.min(minH, H(TX + dx, TZ + dz));
+    const ty = minH - D0, T = { x: TX, y: ty, z: TZ, r: 0 };
+    const under = (fn) => { const n0 = w.blocks.length; fn(); for (let k = n0; k < w.blocks.length; k++) w.blocks[k].under = true; };
+    const hall = (lx, lz, W, D, Hh, mat, floor, gaps) => under(() => { // salle avec ouvertures : gaps = { n: largeur, s: …, e: …, w: … }
+      B.block(T, lx, -0.6, lz, W + 1, 0.6, D + 1, floor);
+      B.block(T, lx, Hh, lz, W + 1, 0.9, D + 1, mat); w.blocks[w.blocks.length - 1].ceil = true;
+      const wall = (cx, cz, len, alongX, gap) => {
+        if (!gap) { B.block(T, cx, 0, cz, alongX ? len : 0.8, Hh, alongX ? 0.8 : len, mat); return; }
+        const seg = (len - gap) / 2;
+        for (const s of [-1, 1]) B.block(T, cx + (alongX ? s * (gap / 2 + seg / 2) : 0), 0, cz + (alongX ? 0 : s * (gap / 2 + seg / 2)), alongX ? seg : 0.8, Hh, alongX ? 0.8 : seg, mat);
+        B.block(T, cx, Math.min(Hh, 4.2), cz, alongX ? gap : 0.8, Hh - Math.min(Hh, 4.2), alongX ? 0.8 : gap, mat);
+      };
+      wall(lx, lz - D / 2 - 0.4, W + 1.6, true, gaps.n); wall(lx, lz + D / 2 + 0.4, W + 1.6, true, gaps.s);
+      wall(lx - W / 2 - 0.4, lz, D, false, gaps.w); wall(lx + W / 2 + 0.4, lz, D, false, gaps.e);
+    });
+    // vestibule (on arrive ici) -> couloir -> porte des Trois -> grande salle -> chapelles, bassin, tombeau
+    hall(0, 70, 14, 10, 5, M_STONE, M_COBBLE, { n: 4 });
+    hall(0, 52, 5, 26, 5, M_STONE, M_COBBLE, { n: 4, s: 4 });
+    hall(0, 34, 18, 10, 7, M_STONE, M_STONE, { n: 5, s: 4 });            // l'antichambre de la porte
+    hall(0, 26.5, 5, 5, 6, M_STONE, M_STONE, { n: 4.5, s: 4.5 });         // le passage de la porte
+    hall(0, -4, 64, 56, 16, M_STONE, M_STONE, { s: 5, w: 5, e: 5, n: 6 }); // la grande salle
+    hall(-44, -4, 22, 18, 8, M_MOSSY, M_STONE, { e: 5 });                 // chapelle d'Aëla
+    hall(44, -4, 22, 18, 8, M_DARK, M_STONE, { w: 5 });                   // chapelle de Vesh
+    hall(0, -44, 30, 24, 10, M_STONE, M_STONE, { s: 6 });                 // la salle du Dormeur
+    // la porte des Trois : un mur qui s'ouvre (bloc masqué quand elle est ouverte)
+    const nD = w.blocks.length;
+    B.block(T, 0, 0, 28.6, 5.2, 4.3, 0.8, M_SLATE);
+    w.blocks[nD].under = true; w.blocks[nD].templeDoor = true;
+    w.temple = { x: TX, y: ty, z: TZ, arrive: [TX, ty + 0.1, TZ + 72], door: nD, exit: [ex + Math.sin(face) * 3, ey + 0.1, ez + Math.cos(face) * 3] };
+    // les trois pierres de la porte (à toucher dans l'ordre)
+    [['aela', -6], ['durn', 0], ['vesh', 6]].forEach(([k, lx], i) => {
+      const [x, z] = B.toWorld(T, lx, 36);
+      B.prop('pierre_trois', x, ty, z, Math.PI, { k });
+      B.inter('pierre_trois', 'pierre_' + k, x, ty + 1.1, z, 'Toucher la pierre', { k, i });
+    });
+    const insc = (id, lx, lz, r) => { const [x, z] = B.toWorld(T, lx, lz); B.prop('stele', x, ty, z, r, { ins: id }, 1.3); B.inter('inscription', 'ins_' + id, x, ty + 1.4, z, 'Lire l’inscription', { ins: id }); };
+    insc('a_seuil', -7, 65.5, 0); insc('a_porte', 7, 38.5, Math.PI); insc('g_rag', 7, 65.5, 0);
+    insc('a_trois', 0, 20, Math.PI); insc('a_chant', -40, 4, Math.PI); insc('a_lune', 20, -26, 0);
+    // grande salle : deux rangées de piliers, les statues des Trois, le bassin sacré
+    under(() => { for (let lz = -26; lz <= 18; lz += 11) for (const lx of [-18, 18]) B.block(T, lx, 0, lz, 2.4, 16, 2.4, M_STONE); });
+    [['aela', -10], ['durn', 0], ['vesh', 10]].forEach(([k, lx]) => { const [x, z] = B.toWorld(T, lx, -24); B.prop('statue_dieu', x, ty, z, 0, { k }, 1); });
+    const [px, pz] = B.toWorld(T, 0, 2); under(() => { B.block(T, 0, -0.35, 2, 14, 0.3, 10, M_STONE); B.block(T, 0, -0.08, 2, 12, 0.12, 8, M_WATERB); });
+    w.pools.push({ x: px, z: pz, y: ty + 0.05, w: 12, d: 8, r: 0, kind: 'temple' });
+    // chapelles : autel d'Aëla (bénédiction), autel de Vesh (pacte), trésors
+    { const [x, z] = B.toWorld(T, -50, -4); B.prop('autel', x, ty, z, Math.PI / 2); B.inter('autel_aela', 'autel_aela', x + 1.2, ty + 1, z, 'S’agenouiller devant l’autel d’Aëla'); }
+    { const [x, z] = B.toWorld(T, 50, -4); B.prop('autel', x, ty, z, -Math.PI / 2); B.inter('autel_vesh', 'autel_vesh', x - 1.2, ty + 1, z, 'Poser la main sur l’autel noir'); }
+    for (const [lx, lz, tab] of [[-50, 4, 'temple'], [50, 4, 'temple'], [-36, -10, 'temple'], [10, -52, 'temple_or']]) {
+      const [x, z] = B.toWorld(T, lx, lz); const p = B.prop('coffre_vieux', x, ty, z, rnd() * TAU, { vide: false });
+      B.inter('loot', 'temple_' + lx + '_' + lz, x, ty + 0.6, z, 'Fouiller', { table: tab, prop: w.props.length - 1, temple: true });
+    }
+    // le Dormeur : une statue couchée, immense
+    { const [x, z] = B.toWorld(T, 0, -47); B.prop('dormeur', x, ty, z, 0); B.inter('dormeur', 'dormeur', x, ty + 2, z + 7, 'Regarder le Dormeur'); }
+    { const [x, z] = B.toWorld(T, -10, -53); B.inter('tombeau', 'tombeau_aelim', x, ty + 1, z + 0.9, 'Lire le tombeau'); B.prop('tombe', x, ty, z, 0); }
+    for (let k = 0; k < 10; k++) { const [x, z] = B.toWorld(T, (rnd() - 0.5) * 56, (rnd() - 0.5) * 48 - 4); B.obj('fleur_temple', x, z, 0.35, { y: ty }); }
+    // lumières : cristaux et braseros
+    for (const [lx, lz] of [[-26, -24], [26, -24], [-26, 16], [26, 16], [0, 33], [0, 68], [-44, -10], [44, -10], [-10, -38], [10, -38], [0, 52], [0, 44]]) B.propRel(T, 'cristal_lumineux', lx, 0, lz, rnd() * TAU);
+    // retour : l'échelle du vestibule remonte à la cascade
+    const [lx0, lz0] = B.toWorld(T, 0, 74.4); B.propRel(T, 'echelle', 0, 0, 74.6, Math.PI, { h: 5 });
+    B.inter('ladder', 'temple_sortie', lx0, ty + 1, lz0, 'Ressortir par la cascade', { to: w.temple.exit });
+    landmark('temple', TX, TZ, 60, { under: true, secret: true });
+  }
+
+  // ================================================================ les douves : des échelles pour en ressortir
+  if (w.townInfo) {
+    const T = w.townInfo, half = 46;
+    const spots = [[-30, -1], [30, -1], [-30, 1], [30, 1], [-1, -25], [1, 25], [-1, 25], [1, -25]];
+    let k = 0;
+    for (const [a, b] of spots) {
+      const side = Math.abs(a) > Math.abs(b) ? 'z' : 'x';
+      for (const inner of [true, false]) {
+        const d = inner ? 47.9 : 54.2, sgn = side === 'z' ? Math.sign(b) : Math.sign(a);
+        const x = T.x + (side === 'z' ? a : sgn * d), z = T.z + (side === 'z' ? sgn * d : b);
+        const r = side === 'z' ? (sgn > 0 ? (inner ? 0 : Math.PI) : (inner ? Math.PI : 0)) : (sgn > 0 ? (inner ? Math.PI / 2 : -Math.PI / 2) : (inner ? -Math.PI / 2 : Math.PI / 2));
+        const top = inner ? H(T.x, T.z) : H(x + (side === 'x' ? sgn * 3 : 0), z + (side === 'z' ? sgn * 3 : 0));
+        const bot = WL - 1.7, h = Math.max(1.5, top - bot + 0.6);
+        B.prop('echelle', x, bot, z, r, { h });
+        const to = inner ? [x - (side === 'x' ? sgn * 1.6 : 0), top + 0.1, z - (side === 'z' ? sgn * 1.6 : 0)] : [x + (side === 'x' ? sgn * 1.8 : 0), top + 0.1, z + (side === 'z' ? sgn * 1.8 : 0)];
+        B.inter('grimper', 'douve_echelle' + k++, x, WL + 0.4, z, 'Grimper à l’échelle', { to });
+      }
+    }
+    w.moat = { x: T.x, z: T.z, inner: 47.4, outer: 55.5 };
+    w.fishZones = w.fishZones || [];
+    w.fishZones.unshift({ x: T.x, z: T.z, r: 60, kind: 'douves' });
+  }
+
+  // ================================================================ où l'on ne bâtit pas
+  if (w.townInfo) protect(w.townInfo.x, w.townInfo.z, 72, 'la ville');
+  const lm = w.lm;
+  for (const [k, r, why] of [['hameau', 48, 'le hameau'], ['hameau_abandonne', 36, 'le hameau abandonné'], ['cimetiere', 22, 'le cimetière'], ['eglise', 20, 'l’église'], ['abbaye', 34, 'l’abbaye'],
+    ['chateau', 34, 'le château'], ['cercle', 22, 'le cercle de pierres'], ['dolmen', 16, 'la Table des Géants'], ['chapelle', 16, 'la chapelle'], ['refuge', 14, 'le refuge'], ['relais_chasse', 14, 'le relais de chasse'],
+    ['roulottes', 30, 'le campement des colporteurs'], ['geants', 34, 'le camp des géants'], ['cascade', 12, 'la cascade'], ['ferme', 0, '']])
+    if (lm[k] && r) protect(lm[k].x, lm[k].z, r, why);
+  w.noBuild = PROTECTED.slice();
+
+  // ================================================================ chaque milieu, ses plantes et ses bêtes
+  populateMilieux(w, B, rnd);
+
+  // navigation : les nouveaux nœuds rejoignent le réseau ; les halles des nains forment leur propre îlot habité
+  // (finalizeNav marque les îlots mais ne les « démarque » jamais : on repart de zéro à chaque passe)
+  const renav = () => { for (const q of w.nav.nodes) delete q.iso; finalizeNav(w); };
+  renav();
+  // les maisons nouvelles restées à l'écart du réseau : un lien vers le nœud habité le plus proche
+  let relink = false;
+  // (sans traverser les douves : dehors on se raccorde dehors, dedans dedans)
+  const TI = w.townInfo, horsVille = (x, z) => !TI || Math.max(Math.abs(x - TI.x), Math.abs(z - TI.z)) > 57;
+  for (const key of ['bibliotheque', 'roulotte_a', 'roulotte_b', 'relais_chasse', 'source_a', 'source_b', 'source_c']) {
+    const Bk = w.bld[key]; if (!Bk) continue;
+    const O = w.nav.nodes[Bk.nOut];
+    if (!O.iso) continue;
+    let bi = -1, bd = 1e9;
+    w.nav.nodes.forEach((q, i) => { if (q.iso || /:(in|mid|out)$/.test(q.tag) || q.tag.startsWith('halle') || q.tag.startsWith('village:') || /^pont_/.test(q.tag) || horsVille(q.x, q.z) !== horsVille(O.x, O.z)) return; const d = Math.hypot(q.x - O.x, q.z - O.z); if (d < bd) { bd = d; bi = i; } });
+    if (bi >= 0) { B.navLink(Bk.nOut, bi, 'road'); relink = true; }
+  }
+  if (w.sources) for (const key of ['source_a', 'source_b', 'source_c']) if (w.bld[key]) { B.navLink(w.bld[key].nOut, w.sources.node); relink = true; }
+  if (relink) renav();
+  const N = w.nav, seen = new Set();
+  for (let i = 0; i < N.nodes.length; i++) {
+    if (!/^village:/.test(N.nodes[i].tag)) continue;
+    const q = [i]; seen.add(i);
+    while (q.length) { const c = q.shift(); N.nodes[c].iso = false; for (const e of N.adj[c]) if (!seen.has(e.to)) { seen.add(e.to); q.push(e.to); } }
+  }
+  w.objectsDirty = true; w.grid = null; w.blocksDirty = true; w.coverDirty = true; w.shadeDirty = true;
+}
+
+// ---------------------------------------------------------------- les milieux
+// milieu d'un point : pres, foret, bouleaux, marais, lande, berges, riviere, alpage, neiges, sapiniere, combe, rochers, ville
+function milieuAt(w, x, z) {
+  const WL = w.waterLevel, h = w.heightAt(x, z), sl = (w.snowLine || 1e4) - WL, b = w.biome ? BIOMES[w.biome[clamp(Math.floor(z / 8), 0, w.biomeW - 1) * w.biomeW + clamp(Math.floor(x / 8), 0, w.biomeW - 1)]] : 'plaine';
+  const alt = h - WL, n = w.normalAt(x, z), m = w.matAt(x, z);
+  if (b === 'ville') return 'ville';
+  if (alt < 1.2 && alt > -0.3) { for (const Z of w.fishZones || []) if (Math.hypot(Z.x - x, Z.z - z) < Z.r * 1.25) return Z.kind === 'riviere' ? 'riviere' : Z.kind === 'marais' ? 'marais' : 'berges'; return 'berges'; }
+  if (m === M_SNOW || m === M_ICE || alt > sl - 6) return 'neiges';
+  if (n[1] < 0.75 || m === M_ROCK) return alt > 20 ? 'rochers' : 'rochers';
+  if (Math.hypot((x - 1320) / 250, (z - 880) / 140) < 1) return 'combe';
+  if (b === 'marais') return 'marais';
+  if (b === 'foret' || b === 'bouleaux') return alt > 18 ? 'sapiniere' : b;
+  if (alt > 26) return 'alpage';
+  if (b === 'lande') return 'lande';
+  if (b === 'ferme') return 'pres';
+  return 'pres';
+}
+function populateMilieux(w, B, rnd) {
+  const S = w.size, WL = w.waterLevel;
+  const PER = [60, 32, 14, 5, 2]; // nombre de touffes par rareté (commune … légendaire)
+  // index des milieux (échantillonnage grossier : 24 m)
+  const pts = {};
+  for (let z = 40; z < S - 40; z += 24) for (let x = 40; x < S - 40; x += 24) {
+    const jx = x + (rnd() - 0.5) * 20, jz = z + (rnd() - 0.5) * 20;
+    if (w.heightAt(jx, jz) < WL - 0.2) continue;
+    const k = milieuAt(w, jx, jz);
+    (pts[k] || (pts[k] = [])).push([jx, jz]);
+  }
+  const free = (x, z) => { let ok = true; w.query(x, z, 1.5, (o) => { if (ok && Math.hypot(o.x - x, o.z - z) < 1.2) ok = false; }, (b) => { if (!ok || b.under) return; const [lx, lz] = World.blockLocal(b, x, z); if (Math.abs(lx) < b.sx / 2 + 0.5 && Math.abs(lz) < b.sz / 2 + 0.5) ok = false; }); return ok; };
+  // les plantes des milieux (touffes de 2 à 5 pieds)
+  for (const [id, , , , , hab, rar] of PLANTES2) {
+    if (!OBJ_INDEX[id] || hab.every((h) => h === 'souterrain')) continue;
+    const cand = hab.flatMap((h) => pts[h] || []);
+    if (!cand.length) continue;
+    const n = PER[rar] || 2;
+    for (let k = 0; k < n; k++) {
+      const [cx, cz] = cand[(rnd() * cand.length) | 0], m = 2 + ((rnd() * 4) | 0);
+      for (let j = 0; j < m; j++) {
+        const x = cx + (rnd() - 0.5) * 6, z = cz + (rnd() - 0.5) * 6;
+        if (w.heightAt(x, z) < WL + 0.05 || !free(x, z)) continue;
+        B.obj(id, x, z);
+      }
+    }
+  }
+  // plantes souterraines : dans les grottes (mousse des nains aussi dans les Galeries)
+  for (const blk of w.blocks) {
+    if (!blk.under || blk.sy > 0.7 || blk.sx < 6 || blk.sz < 6 || blk.ceil || rnd() > 0.25) continue;
+    const x = blk.x + (rnd() - 0.5) * (blk.sx - 2), z = blk.z + (rnd() - 0.5) * (blk.sz - 2);
+    B.obj('mousse_nains', x, z, undefined, { y: blk.y + blk.sy });
+  }
+  // les bêtes des milieux (points d'apparition) : les nouvelles espèces, selon leur rareté
+  const BEASTS = { chamois: 'chamoix', lievre_blanc: 'lievres_blancs', lagopede: 'lagopedes', castor: 'castors', salamandre: 'salamandres', cistude: 'cistudes', martre: 'martres', couleuvre: 'couleuvres', martin: 'martins', tetras: 'tetras_', aigle: 'aigles', chocard: 'chocards' };
+  const NB = [22, 12, 6, 3, 1];
+  for (const [kind, , hab, rar] of ESPECES_ANIMAUX) {
+    const oid = BEASTS[kind];
+    if (!oid || OBJ_INDEX[oid] === undefined) continue;
+    const cand = hab.flatMap((h) => pts[h] || []);
+    if (!cand.length) continue;
+    for (let k = 0; k < (NB[rar] || 1); k++) {
+      const [x, z] = cand[(rnd() * cand.length) | 0];
+      if (w.heightAt(x, z) < WL + 0.2 && !CREATURES[kind].water) continue;
+      B.obj(oid, x + (rnd() - 0.5) * 8, z + (rnd() - 0.5) * 8);
+    }
+  }
+  // les ours : quelques-uns en plus dans les sapinières (rares) ; des chevreuils et des sangliers dans les bois de bouleaux
+  for (const [oid, hab, n] of [['bears', 'sapiniere', 2], ['roes', 'bouleaux', 6], ['boar', 'bouleaux', 3], ['ibexes', 'rochers', 4], ['marmots', 'alpage', 6], ['snakes', 'lande', 4], ['herons', 'berges', 4]]) {
+    const cand = pts[hab] || [];
+    if (!cand.length || OBJ_INDEX[oid] === undefined) continue;
+    for (let k = 0; k < n; k++) { const [x, z] = cand[(rnd() * cand.length) | 0]; B.obj(oid, x, z); }
+  }
+}
+// branchement : après tout le reste de la vallée
+{
+  const _gv = generateValley;
+  generateValley = async function (seed, progress, gen) {
+    const w = await _gv(seed, progress, gen);
+    if (w.designed) { if (progress) progress('Les lieux oubliés…'); addLieux3(w, w.seed || seed); }
+    return w;
+  };
+}
+
 // ---- 07-models.js
 // ============================================================================
 //  MODÈLES 3D (boîtes articulées façon 1998) : habitants, animaux, objets
@@ -16779,6 +18426,254 @@ Object.assign(PROP_MODELS, {
 });
 Object.assign(PROP_COLL, { pont_bois: null, sigle: null, cairn: [0.45, 0.4, 1.3], bouche_mine: null, etai: null, trou_glace: null });
 
+// ---- 07-zzzz-modeles.js
+// ============================================================================
+//  MODÈLES ET DESSINS EN PLUS
+//  - sprites des plantes rares (lys des cimes, mousse des nains, asphodèle,
+//    fleur de pierre), icônes des nouveaux objets, le fusil tenu en main ;
+//  - objets posés : vitrine, trophée, séchoir, cristaux lumineux, stèles,
+//    cascade, bouche de grotte, fente de falaise, pierres des Trois, statues des
+//    Trois, le Dormeur, camp des géants, table d'alchimiste, piège à loup,
+//    charrette, affiche d'avis de recherche, roue ;
+//  - morphologies : poitrine et hanches, naturistes, nains, géants.
+// ============================================================================
+
+// ---------------------------------------------------------------- sprites des plantes rares
+function spriteWild3(kind, seed) {
+  const rnd = mulberry32(seed), W = 22, Hh = kind === 'mousse_nains' ? 12 : 28, pb = new PixelBuf(W, Hh);
+  const px = (x, y, c, a) => pb.set(Math.round(x), Math.round(y), c, a);
+  const stem = (x, top, col) => drawLine(pb, x, top, x, Hh - 1, col || PAL.stem[1]);
+  switch (kind) {
+    case 'lys_cimes':
+      for (let i = 0; i < 2; i++) { const x = 7 + i * 8, top = 4 + i * 3; stem(x, top); for (let a = 0; a < 6; a++) { const aa = a / 6 * TAU; px(x + Math.cos(aa) * 3, top + Math.sin(aa) * 2, [244, 248, 255]); px(x + Math.cos(aa) * 2, top + Math.sin(aa) * 1.3, [214, 226, 245]); } px(x, top, [240, 210, 90]); drawLine(pb, x - 3, Hh - 6, x, Hh - 10, [60, 120, 70]); }
+      break;
+    case 'mousse_nains':
+      for (let x = 1; x < W - 1; x++) for (let y = Hh - 6; y < Hh; y++) if (rnd() < 0.62 - (Hh - y) * 0.06) px(x, y, rnd() < 0.3 ? [255, 214, 90] : rnd() < 0.5 ? [200, 150, 50] : [150, 110, 40], rnd() < 0.3 ? EMISSIVE_A : 255);
+      break;
+    case 'asphodele':
+      for (let i = 0; i < 3; i++) { const x = 5 + i * 6, top = 3 + rnd() * 5; stem(x, top); for (let b = 0; b < 9; b++) { px(x + (b % 2 ? 1 : -1), top + b * 1.6, [246, 236, 240]); px(x, top + b * 1.6 + 0.8, [210, 140, 170]); } drawLine(pb, x - 2, Hh - 1, x - 4, Hh - 8, [80, 110, 60]); }
+      break;
+    case 'fleur_temple':
+      stem(11, 10, [110, 110, 104]);
+      for (let a = 0; a < 8; a++) { const aa = a / 8 * TAU; for (let r = 1; r <= 5; r++) px(11 + Math.cos(aa) * r, 10 + Math.sin(aa) * r * 0.7, r > 3 ? [150, 150, 146] : [120, 120, 118]); }
+      px(11, 10, [220, 200, 120], EMISSIVE_A);
+      break;
+  }
+  return pb;
+}
+{
+  const _afs = addFarmSprites;
+  addFarmSprites = function (add) {
+    _afs(add);
+    for (const k of ['lys_cimes', 'mousse_nains', 'asphodele', 'fleur_temple']) add('w3_' + k, spriteWild3(k, 2203 + k.length * 31));
+  };
+}
+
+// ---------------------------------------------------------------- icônes des nouveaux objets
+{
+  const _ip = iconPaint;
+  iconPaint = function (shape, c1, c2) {
+    const pb = new PixelBuf(16, 16), P = rampOf(c1 || '#aaaaaa');
+    const L = (x0, y0, x1, y1, c, w) => drawLine(pb, x0, y0, x1, y1, typeof c === 'string' ? hexToRgb(c) : c, w || 1);
+    const R = (x0, y0, x1, y1, c) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) pb.set(x, y, typeof c === 'string' ? hexToRgb(c) : c); };
+    switch (shape) {
+      case 'fusil': L(1, 11, 11, 5, [70, 70, 78], 2); L(9, 6, 15, 3, [60, 60, 66]); R(3, 8, 6, 9, [40, 40, 44]); L(1, 12, 4, 14, [110, 70, 40], 2); L(4, 12, 7, 10, [120, 80, 44], 2); R(5, 5, 9, 6, [30, 30, 34]); return pb;
+      case 'cartouche': R(6, 3, 9, 12, [200, 60, 40]); R(6, 12, 9, 14, [200, 170, 70]); L(6, 3, 9, 3, [150, 40, 30]); return pb;
+      case 'canon': L(2, 13, 14, 2, [90, 92, 100], 2); L(3, 13, 14, 3, [150, 152, 160]); return pb;
+      case 'lunette': L(2, 11, 13, 4, [50, 50, 56], 3); pb.set(13, 4, [180, 220, 240]); pb.set(2, 11, [160, 200, 220]); L(7, 8, 8, 11, [120, 90, 50]); return pb;
+      case 'roue': for (let a = 0; a < 40; a++) { const t = a / 40 * TAU; pb.set(Math.round(8 + Math.cos(t) * 6), Math.round(8 + Math.sin(t) * 6), [110, 80, 50]); pb.set(Math.round(8 + Math.cos(t) * 6.6), Math.round(8 + Math.sin(t) * 6.6), [70, 70, 76]); } for (let k = 0; k < 6; k++) { const t = k / 6 * TAU; L(8, 8, Math.round(8 + Math.cos(t) * 5), Math.round(8 + Math.sin(t) * 5), [140, 100, 60]); } R(7, 7, 8, 8, [60, 60, 60]); return pb;
+      case 'attelle': R(4, 2, 5, 14, [190, 160, 110]); R(10, 2, 11, 14, [190, 160, 110]); for (const y of [4, 8, 12]) L(3, y, 12, y, [236, 232, 220]); return pb;
+      case 'bandage': for (let y = 4; y < 13; y++) for (let x = 3; x < 13; x++) if ((x - 8) * (x - 8) + (y - 8.5) * (y - 8.5) < 22) pb.set(x, y, (x + y) % 3 ? [240, 236, 226] : [214, 208, 196]); R(7, 7, 9, 9, [200, 40, 40]); return pb;
+    }
+    return _ip(shape, c1, c2);
+  };
+}
+
+// ---------------------------------------------------------------- le fusil tenu en main (repos, visée, tir)
+function vmRifle(pose) {
+  const pb = new PixelBuf(VM_W, VM_H), steel = ramp(['#2a2c30', '#3e4148', '#5a5e68', '#7e8490']), wood = ramp(['#4a2c16', '#6a4222', '#8a5a30', '#a8743e']);
+  const up = pose === 1 ? -12 : 0, kick = pose === 2 ? 6 : 0;
+  // crosse et fût
+  fillPoly(pb, [[118, 92 + kick], [96, 80 + up + kick], [64, 64 + up + kick], [58, 70 + up + kick], [88, 90 + kick], [120, 100]], wood, (x, y) => 0.55 + (x - 60) * 0.004);
+  // canon
+  thickLine(pb, 64, 66 + up + kick, 12, 42 + up + kick, 4, steel, 0.7);
+  // lunette
+  thickLine(pb, 84, 66 + up + kick, 54, 52 + up + kick, 6, steel, 0.5);
+  drawSphere(pb, 54, 52 + up + kick, 3.5, ramp(['#305060', '#70a0b8', '#c0e0f0']), 3);
+  // mains
+  drawSphere(pb, 70, 70 + up + kick, 8, SKIN_HAND, 2, { sq: 0.8 });
+  fillPoly(pb, [[62, 76 + up + kick], [30, 100], [0, 100], [0, 88], [56, 66 + up + kick]], SLEEVE, () => 0.7);
+  vmArm(pb, 104, 90 + kick);
+  drawSphere(pb, 102, 88 + kick, 9, SKIN_HAND, 5, { sq: 0.9 });
+  if (pose === 2) for (let k = 0; k < 14; k++) pb.set(10 - (k % 4), 40 + (k >> 2) - 2, [255, 220, 120], EMISSIVE_A);
+  edgeDarken(pb, 0.8);
+  return pb;
+}
+{
+  const _bvm = buildViewModels;
+  buildViewModels = function () { _bvm(); VM.fusil = [vmRifle(0), vmRifle(1), vmRifle(2)]; };
+}
+
+// ---------------------------------------------------------------- objets posés
+const PC5 = { stone: rgbf('#9a968c'), dark: rgbf('#3a3840'), gold: rgbf('#d0b060'), crystal: [0.6, 0.85, 1.2], water: rgbf('#6a9ab8') };
+Object.assign(PROP_MODELS, {
+  vitrine(E, o) {
+    E.bx(0, 0, 0, 1.2, 0.8, 0.6, WHITE, TL.darkwood);
+    E.fl = FX_EMIT; E.bx(0, 0.8, 0, 1.1, 0.7, 0.5, [0.55, 0.62, 0.66], TL.glass); E.fl = 0;
+    E.bx(0, 0.86, 0, 0.12, 0.2, 0.12, [0.62, 0.62, 0.6], TL.stone); E.bx(0, 1.06, 0, 0.22, 0.05, 0.22, [0.62, 0.62, 0.6], TL.stone);
+    E.bx(0, 1.5, 0, 1.24, 0.05, 0.64, WHITE, TL.darkwood);
+  },
+  trophee(E) { E.bx(0, 0, 0, 0.5, 0.6, 0.06, WHITE, TL.darkwood); E.box(0, 0.35, 0.12, 0.2, 0.22, 0.25, rgbf('#9a6a3e'), TL.fur); for (const s of [-1, 1]) { E.box(s * 0.12, 0.55, 0.14, 0.04, 0.4, 0.04, rgbf('#cbb894'), TL.bone, 0, 0, s * 0.5); E.box(s * 0.2, 0.72, 0.14, 0.03, 0.2, 0.03, rgbf('#cbb894'), TL.bone, 0, 0, s * 1.1); } },
+  sechoir_peaux(E) { for (const s of [-0.8, 0.8]) E.bx(s, 0, 0, 0.1, 1.8, 0.1, WHITE, TL.darkwood); E.bx(0, 1.7, 0, 1.8, 0.08, 0.08, WHITE, TL.wood); E.bx(-0.35, 0.8, 0, 0.6, 0.9, 0.03, rgbf('#8a5a34'), TL.leather); E.bx(0.35, 0.9, 0, 0.5, 0.8, 0.03, rgbf('#c8652a'), TL.fur); },
+  roue_deco(E) { E.box(0, 0.45, 0, 0.08, 0.9, 0.9, WHITE, TL.darkwood); E.box(0, 0.45, 0, 0.1, 0.9, 0.9, WHITE, TL.darkwood, Math.PI / 4); },
+  cristal_lumineux(E, o) {
+    E.bx(0, 0, 0, 0.7, 0.25, 0.6, WHITE, TL.stone);
+    E.fl = FX_EMIT;
+    E.box(0, 0.7, 0, 0.22, 1.1, 0.22, PC5.crystal, TL.glass, 0.3, 0.1, 0.12);
+    E.box(0.2, 0.45, 0.1, 0.14, 0.7, 0.14, PC5.crystal, TL.glass, 0.8, -0.3, 0.2);
+    E.box(-0.18, 0.4, -0.08, 0.12, 0.55, 0.12, PC5.crystal, TL.glass, 1.4, 0.25, -0.2);
+    E.fl = 0;
+  },
+  stele(E, o) {
+    E.bx(0, 0, 0, 0.9, 1.9, 0.28, PC5.stone, TL.stone); E.bx(0, 1.9, 0, 0.7, 0.2, 0.28, PC5.stone, TL.stone);
+    const aelin = o.data && INSCR_BY_ID[o.data.ins] && INSCR_BY_ID[o.data.ins].lang === 'aelin';
+    for (let k = 0; k < 6; k++) E.bx(aelin ? -0.25 + k * 0.1 : -0.3 + (k % 3) * 0.3, aelin ? 0.5 : 0.6 + ((k / 3) | 0) * 0.5, 0.145, aelin ? 0.03 : 0.12, aelin ? 1.1 : 0.12, 0.01, [0.25, 0.22, 0.2], 0);
+  },
+  cascade(E, o, t) {
+    const s = t ? t.t : 0;
+    E.fl = FX_EMIT;
+    for (let k = 0; k < 5; k++) { const y = 5.5 - ((s * 3.2 + k * 1.3) % 6); E.bx(-1.1 + k * 0.55, Math.max(0, y), 0.9, 0.45, Math.min(1.4, 6 - Math.max(0, y)), 0.08, [0.55, 0.7, 0.85], TL.glass); }
+    E.fl = 0;
+    E.bx(0, 5.6, 0.6, 3.4, 0.4, 0.8, WHITE, mt(M_ROCK));
+    E.bx(0, -0.05, 1.8, 4, 0.1, 2.2, PC5.water, TL.plain);
+  },
+  grotte_bouche(E) { E.bx(0, 0, 0, 3.6, 3.4, 0.6, [0.05, 0.05, 0.06], 0); for (const s of [-1, 1]) E.bx(s * 2.1, -0.2, 0.1, 1.0, 4.2, 1.4, WHITE, mt(M_ROCK)); E.bx(0, 3.3, 0.1, 5.2, 1.2, 1.4, WHITE, mt(M_ROCK)); },
+  fente_falaise(E) { E.bx(0, 0, 0, 0.5, 2.4, 0.4, [0.03, 0.03, 0.04], 0); E.bx(0, 1.0, 0.05, 0.7, 0.35, 0.35, [0.03, 0.03, 0.04], 0); for (const s of [-1, 1]) E.bx(s * 0.8, -0.3, 0.1, 1.1, 3.2, 0.6, WHITE, mt(M_ROCK)); },
+  pierre_trois(E, o) {
+    const k = o.data && o.data.k, c = k === 'aela' ? [1.2, 1.05, 0.7] : k === 'durn' ? [0.75, 0.72, 0.68] : [0.35, 0.3, 0.45];
+    E.bx(0, 0, 0, 1.0, 1.3, 1.0, PC5.stone, TL.stone);
+    E.fl = o.data && o.data.lit ? FX_EMIT : 0; E.bx(0, 1.3, 0, 0.7, 0.18, 0.7, c, TL.stone); E.fl = 0;
+    E.bx(0, 0.55, 0.505, 0.4, 0.4, 0.02, c, 0);
+  },
+  statue_dieu(E, o) { // les Trois, taillés dans la pierre (quatre fois la taille d'un homme)
+    const k = o.data && o.data.k, S = 4, c = k === 'aela' ? rgbf('#c8c0a8') : k === 'durn' ? rgbf('#8a8680') : rgbf('#4a4650');
+    E.bx(0, 0, 0, 1.6 * S * 0.5, 0.5, 1.2 * S * 0.5, c, TL.stone);
+    E.bx(0, 0.5, 0, 0.9 * S * 0.5, 2.6 * S * 0.5, 0.55 * S * 0.5, c, TL.stone);          // robe
+    E.bx(0, 0.5 + 2.6 * S * 0.5, 0, 0.62 * S * 0.5, 0.9 * S * 0.5, 0.42 * S * 0.5, c, TL.stone); // buste
+    E.bx(0, 0.5 + 3.5 * S * 0.5, 0, 0.34 * S * 0.5, 0.38 * S * 0.5, 0.34 * S * 0.5, c, TL.stone); // tête
+    if (k === 'aela') { E.fl = FX_EMIT; E.box(0, 0.5 + 3.8 * S * 0.5, -0.4, 1.8, 1.8, 0.08, [1.3, 1.15, 0.7], TL.gold); E.fl = 0; for (const s of [-1, 1]) E.box(s * 1.1, 6.4, 0.1, 0.3, 2.2, 0.3, c, TL.stone, 0, 0, s * -2.4); }
+    else if (k === 'durn') { for (const s of [-1, 1]) E.box(s * 0.95, 4.6, 0.3, 0.34, 1.6, 0.34, c, TL.stone, 0, 0.7, 0); E.bx(0, 7.5, 0, 1.0, 0.25, 1.0, c, TL.stone); }
+    else { E.box(0, 7.4, -0.1, 0.9, 1.0, 0.9, [0.1, 0.1, 0.12], TL.coat); for (const s of [-1, 1]) E.box(s * 0.7, 4.2, 0.2, 0.25, 2.4, 0.25, c, TL.stone, 0, 0.2, s * 0.15); }
+  },
+  dormeur(E) { // Durn qui dort : une statue couchée de quatorze mètres
+    const c = rgbf('#7a7670');
+    E.bx(0, 0, 0, 7, 1.2, 16, WHITE, mt(M_STONE));
+    E.bx(0, 1.2, 1.5, 4.4, 2.4, 8, c, TL.stone);  // corps
+    E.bx(0, 1.2, -5.2, 3.4, 1.6, 5.2, c, TL.stone); // jambes
+    E.bx(0, 1.4, 7.2, 2.2, 2.2, 2.4, c, TL.stone);  // tête
+    E.bx(0, 3.4, 7.2, 1.4, 0.3, 1.6, c, TL.stone);  // nez
+    for (const s of [-1, 1]) E.bx(s * 2.6, 1.2, 2.5, 0.9, 1.0, 6.5, c, TL.stone);
+  },
+  feu_geant(E, o, t) {
+    for (let k = 0; k < 10; k++) { const a = k / 10 * TAU; E.bx(Math.cos(a) * 2.2, 0, Math.sin(a) * 2.2, 0.9, 0.7, 0.9, WHITE, TL.stone, a); }
+    for (let k = 0; k < 3; k++) E.box(0, 0.4, 0, 3.4, 0.5, 0.5, WHITE, TL.bark, k * 1.05);
+    const f = t ? 1 + Math.sin(t.t * 7 + o.x) * 0.1 : 1;
+    E.fl = FX_EMIT; E.bx(0, 0.4, 0, 1.4, 2.2 * f, 1.4, [1.3, 0.75, 0.3], TL.flame, t ? t.t * 2 : 0); E.bx(0, 0.4, 0, 0.8, 3.2 * f, 0.8, [1.4, 1.05, 0.5], TL.flame, 0.7); E.fl = 0;
+  },
+  os_geant(E) { E.box(0, 0.25, 0, 0.5, 0.5, 4.2, WHITE, TL.bone, 0.3); E.bx(0.6, 0, 2.0, 1.0, 0.9, 1.0, WHITE, TL.bone); E.bx(-0.3, 0, -2.0, 0.9, 0.8, 0.9, WHITE, TL.bone); },
+  lit_geant(E) { for (let k = 0; k < 6; k++) E.bx(-2.5 + k * 1.0, 0, 0, 0.9, 0.9, 11, WHITE, TL.bark); E.bx(0, 0.9, 0, 5.6, 0.3, 10, rgbf('#8a6a44'), TL.fur); },
+  table_alchimie(E) {
+    E.bx(0, 0.82, 0, 1.6, 0.1, 0.8, WHITE, TL.darkwood); for (const [x, z] of [[-0.7, -0.32], [0.7, -0.32], [-0.7, 0.32], [0.7, 0.32]]) E.bx(x, 0, z, 0.1, 0.82, 0.1, WHITE, TL.darkwood);
+    E.bx(-0.45, 0.92, 0, 0.3, 0.35, 0.3, rgbf('#b87333'), TL.metal); E.bx(-0.45, 1.27, 0, 0.08, 0.3, 0.08, rgbf('#b87333'), TL.metal);
+    E.fl = FX_EMIT; for (const [x, c] of [[0.1, [0.4, 1, 0.5]], [0.3, [0.9, 0.4, 1]], [0.5, [1, 0.6, 0.3]]]) E.bx(x, 0.92, -0.15, 0.1, 0.22, 0.1, c, TL.glass); E.fl = 0;
+    E.bx(0.3, 0.92, 0.2, 0.36, 0.05, 0.26, WHITE, TL.paper);
+  },
+  piege_loup(E, o) {
+    const shut = o.data && o.data.shut;
+    E.bx(0, 0, 0, 0.7, 0.04, 0.7, PC.iron, TL.iron);
+    for (const s of [-1, 1]) { const a = shut ? s * 0.05 : s * 1.35; E.box(s * (shut ? 0.03 : 0.25), shut ? 0.2 : 0.06, 0, 0.04, 0.38, 0.64, PC.iron, TL.iron, 0, 0, a); for (let k = -2; k <= 2; k++) E.box(s * (shut ? 0.06 : 0.42), shut ? 0.36 : 0.08, k * 0.12, 0.03, 0.08, 0.03, [0.8, 0.8, 0.85], TL.metal, 0, 0, a); }
+    E.bx(0, 0.04, 0, 0.18, 0.03, 0.18, rgbf('#8a6a44'), TL.wood);
+    if (o.data && o.data.prise) E.bx(0, 0.05, 0.1, 0.3, 0.25, 0.5, rgbf('#6e6a66'), TL.fur);
+  },
+  charrette(E, o) {
+    E.bx(0, 0.75, 0, 1.5, 0.12, 2.6, WHITE, TL.wood);
+    for (const s of [-1, 1]) E.bx(s * 0.72, 0.87, 0, 0.08, 0.5, 2.6, WHITE, TL.darkwood);
+    E.bx(0, 0.87, -1.26, 1.5, 0.5, 0.08, WHITE, TL.darkwood); E.bx(0, 0.87, 1.26, 1.5, 0.5, 0.08, WHITE, TL.darkwood);
+    for (const s of [-1, 1]) { E.box(s * 0.86, 0.5, 0, 0.1, 1.0, 1.0, WHITE, TL.darkwood); E.box(s * 0.86, 0.5, 0, 0.12, 1.0, 1.0, WHITE, TL.darkwood, 0, Math.PI / 4); }
+    E.bx(0, 0.4, 0, 1.8, 0.1, 0.1, PC.iron, TL.iron);
+    for (const s of [-0.5, 0.5]) E.box(s, 0.72, 2.2, 0.08, 0.08, 2.0, WHITE, TL.wood, 0, o.data && o.data.hitched ? 0 : -0.22);
+    if (o.data && o.data.load) E.bx(0, 0.87, 0, 1.2, 0.45, 2.1, rgbf('#c8a868'), TL.hay);
+  },
+  echelle_bois(E, o) { PROP_MODELS.echelle(E, { data: { h: 3.2 } }); },
+  affiche_recherche(E, o) { E.bx(0, 0, 0, 0.62, 0.84, 0.02, rgbf('#e8dcb8'), TL.paper); E.bx(0, 0.3, 0.012, 0.3, 0.3, 0.005, [0.35, 0.3, 0.26], 0); E.bx(0, 0.72, 0.012, 0.5, 0.06, 0.005, [0.6, 0.1, 0.08], 0); },
+  lanterne_grande(E, o, t) { PROP_MODELS.lanterne_sol(E, o, t); },
+});
+
+Object.assign(PROP_COLL, {
+  vitrine: [0.6, 0.3, 1.5], sechoir_peaux: [0.9, 0.1, 1.8], cristal_lumineux: [0.35, 0.3, 1.2], stele: [0.45, 0.14, 2.1], pierre_trois: [0.5, 0.5, 1.45],
+  statue_dieu: [1.6, 1.2, 8], dormeur: [3.5, 8, 4.6], os_geant: [0.6, 2.1, 0.9], lit_geant: [2.8, 5.5, 1.2], table_alchimie: [0.8, 0.4, 1.0], charrette: [0.8, 1.35, 1.0],
+  fente_falaise: [1.4, 0.4, 3], grotte_bouche: [2.6, 0.7, 4.4],
+});
+Object.assign(PROP_LIGHTS, {
+  cristal_lumineux: { c: [0.45, 0.75, 1.1], r: 11, y: 0.9 },
+  feu_geant: { c: [1.0, 0.5, 0.2], r: 22, y: 1.8, flicker: true },
+  vitrine: { c: [0.8, 0.8, 0.7], r: 3, y: 1.1 },
+});
+for (const id of ['piege_loup', 'charrette', 'table_alchimie', 'echelle_bois']) if (!ITEMS[id].ic || ITEMS[id].ic[0] === 'objet') ITEMS[id].ic = ['objet', id];
+
+// ---------------------------------------------------------------- morphologies : poitrine, hanches, naturistes, nains, géants
+{
+  const _humanRig = humanRig;
+  humanRig = function (look) {
+    look = look || {};
+    const dwarf = !!look.dwarf, nude = !!look.nude;
+    const L2 = Object.assign({}, look);
+    if (dwarf) { L2.height = 1; if (L2.face === undefined) L2.face = look.dress ? TL.faceF : look.beard ? TL.faceMan : TL.faceOld; }
+    if (nude) { L2.coat = false; L2.apron = null; L2.dress = false; L2.shoe = look.skin; if (L2.hat === 'capuche') L2.hat = null; }
+    const r = _humanRig(L2);
+    const skin = rgbf(look.skin || '#e0b896');
+    if (nude) for (const q of r.parts) {
+      if (!q.s) continue;
+      if (['torso', 'legL', 'legR', 'armL', 'armR', 'shoeL', 'shoeR'].includes(q.name)) { q.col = skin; q.tex = TL.skin; }
+    }
+    const P = [];
+    const torso = r.part('torso'), tw = torso.s[0], td = torso.s[2];
+    // poitrine
+    const bust = look.bust || 0;
+    if (bust > 0.05) {
+      const bc = nude ? skin : torso.col, bw = tw * 0.36, bh = 0.1 + 0.07 * bust, bd = 0.035 + 0.085 * bust;
+      for (const s of [-1, 1]) P.push({ name: s < 0 ? 'bustL' : 'bustR', parent: 'torso', p: [s * tw * 0.2, 0.43, td / 2 + bd / 2 - 0.012], s: [bw, bh, bd], col: bc, tex: nude ? TL.skin : TL.cloth });
+    }
+    // hanches (fesses) : sous une robe, la jupe s'arrondit
+    const hips = look.hips || 0;
+    if (hips > 0.05) {
+      const sk = r.part('skirt');
+      if (sk && !nude) { sk.s = [sk.s[0] + hips * 0.08, sk.s[1], sk.s[2] + hips * 0.1]; }
+      else {
+        const hc = nude ? skin : r.part('legL').col, hd = 0.04 + 0.08 * hips;
+        P.push({ name: 'fesses', parent: 'hips', p: [0, -0.04, -td / 2 - hd / 2 + 0.03], s: [tw * (0.86 + hips * 0.1), 0.16 + 0.06 * hips, hd], col: hc, tex: nude ? TL.skin : TL.cloth });
+      }
+    }
+    let rig = P.length ? rigPlus(r, P) : r;
+    rig.kind = 'human'; rig.look = look; rig.kid = r.kid;
+    // nains : jambes courtes, torse large, grosse tête
+    if (dwarf) {
+      const k = 0.6;
+      for (const n of ['legL', 'legR']) { const q = rig.part(n); q.s = [q.s[0] * 1.35, q.s[1] * k, q.s[2] * 1.3]; q.o = [0, q.o[1] * k, 0]; }
+      for (const n of ['shoeL', 'shoeR']) { const q = rig.part(n); q.p = [q.p[0], q.p[1] * k, q.p[2]]; q.s = [q.s[0] * 1.3, q.s[1], q.s[2] * 1.2]; }
+      for (const n of ['legL', 'legR']) { const q = rig.part(n); q.p = [q.p[0] * 1.5, q.p[1], q.p[2]]; }
+      const tq = rig.part('torso'); tq.s = [tq.s[0] * 1.3, tq.s[1] * 0.92, tq.s[2] * 1.35];
+      for (const n of ['armL', 'armR']) { const q = rig.part(n); q.p = [q.p[0] * 1.3, q.p[1] * 0.92, q.p[2]]; q.s = [q.s[0] * 1.3, q.s[1] * 0.85, q.s[2] * 1.2]; q.o = [0, q.o[1] * 0.85, 0]; }
+      for (const n of ['handL', 'handR']) { const q = rig.part(n); q.p = [q.p[0], q.p[1] * 0.85, q.p[2]]; }
+      const hd = rig.part('head'); if (hd) { hd.s = hd.s.map((v) => v * 1.18); }
+      rig.hipY = 0.88 * k + 0.02;
+    }
+    return rig;
+  };
+  const _poseHuman = poseHuman;
+  poseHuman = function (rig, st) { _poseHuman(rig, st); if (rig.hipY !== undefined) rig.part('hips').p[1] += rig.hipY - 0.88; };
+}
+
 // ---- 08-renderer.js
 // ============================================================================
 //  RENDU : cycle jour/nuit, terrain par morceaux, sprites, herbe, eau, blocs
@@ -19046,6 +20941,158 @@ OBJ_TYPES.forEach((t, i) => { OBJ_INDEX[t.id] = i; });
   };
 }
 
+// ---- 10-zzfauna3.js
+// ============================================================================
+//  FAUNE (suite) : les bêtes des milieux (chamois, lièvre variable, lagopède,
+//  castor, salamandre, cistude, martre, couleuvre, martin-pêcheur, grand
+//  tétras, aigle royal, chocard). Déclarées ici et non dans 05-zzspecies.js :
+//  CREATURES n'existe qu'à partir de 10-entities.js.
+// ============================================================================
+Object.assign(CREATURES, {
+  chamois: { walk: 0.9, run: 7.5, range: 26, flee: 18, radius: 0.3, idle: [2, 7], solid: true, graze: true, rig: 'chamois', h: 1.1, wild: true, shy: true },
+  lievre_blanc: { walk: 1.0, run: 7.5, range: 18, flee: 10, radius: 0.16, idle: [1, 5], hop: true, rig: 'lievre_blanc', h: 0.5, wild: true },
+  lagopede: { walk: 0.6, run: 3.0, range: 10, flee: 6, radius: 0.12, idle: [1, 4], rig: 'lagopede', h: 0.3, wild: true, oiseau: true, flush: true },
+  castor: { walk: 0.5, run: 2.8, range: 10, flee: 9, radius: 0.22, idle: [2, 7], rig: 'castor', h: 0.35, wild: true },
+  salamandre: { walk: 0.25, run: 0.8, range: 4, flee: 0, radius: 0.06, idle: [3, 9], rig: 'salamandre', h: 0.08, wild: true, nuit: true },
+  cistude: { walk: 0.15, run: 0.3, range: 4, flee: 0, radius: 0.12, idle: [4, 12], rig: 'cistude', h: 0.12, wild: true },
+  martre: { walk: 1.0, run: 6.5, range: 20, flee: 11, radius: 0.12, idle: [1, 4], rig: 'martre', h: 0.3, wild: true, arbre: true },
+  couleuvre: { walk: 0.35, run: 1.6, range: 7, flee: 3, radius: 0.1, idle: [3, 9], rig: 'couleuvre', h: 0.1, wild: true },
+  martin: { walk: 0.3, run: 1.5, range: 8, flee: 8, radius: 0.08, idle: [2, 6], rig: 'martin', h: 0.18, wild: true, oiseau: true },
+  tetras: { walk: 0.6, run: 3.2, range: 12, flee: 7, radius: 0.18, idle: [2, 6], rig: 'tetras', h: 0.6, wild: true, oiseau: true, flush: true },
+  aigle: { fly: true, rig: 'aigle', flock: 1, soar: true },
+  chocard: { fly: true, rig: 'chocard', flock: 6, crow: true },
+});
+Object.assign(PREY, {
+  chamois: { hp: 35, drop: [['viande', 2, 3], ['cuir', 1, 1]] }, lievre_blanc: { hp: 10, drop: [['viande', 1, 1], ['fourrure', 0, 1]] },
+  lagopede: { hp: 5, drop: [['viande', 1, 1], ['plume', 1, 2]] }, castor: { hp: 18, drop: [['fourrure', 1, 1], ['viande', 0, 1]] },
+  salamandre: { hp: 2, drop: [['peau_salamandre', 1, 1]] }, cistude: { hp: 8, drop: [['ecaille_tortue', 1, 1]] }, martre: { hp: 12, drop: [['fourrure', 1, 1]] },
+  couleuvre: { hp: 5, drop: [['mue_serpent', 1, 1]] }, martin: { hp: 3, drop: [['plume_bleue', 1, 1]] }, tetras: { hp: 10, drop: [['viande', 1, 2], ['plume_noire', 1, 2]] },
+  aigle: { hp: 12, drop: [['plume_aigle', 1, 2]] }, chocard: { hp: 3, drop: [['plume_noire', 1, 1]] },
+});
+
+OBJ_TYPES.push(
+  { id: 'chamoix', name: 'Chamois', cat: 'Animaux', spr: ['a_deer'], h: [1.1, 1.1], animal: 'chamois', col: 0, sway: 0, spacing: 3, sink: 0 },
+  { id: 'lievres_blancs', name: 'Lièvre variable', cat: 'Animaux', spr: ['a_rabbit'], h: [0.5, 0.5], animal: 'lievre_blanc', col: 0, sway: 0, spacing: 3, sink: 0 },
+  { id: 'lagopedes', name: 'Lagopède', cat: 'Animaux', spr: ['a_bird'], h: [0.3, 0.3], animal: 'lagopede', col: 0, sway: 0, spacing: 3, sink: 0 },
+  { id: 'castors', name: 'Castor', cat: 'Animaux', spr: ['a_rabbit'], h: [0.35, 0.35], animal: 'castor', col: 0, sway: 0, spacing: 3, sink: 0 },
+  { id: 'salamandres', name: 'Salamandre', cat: 'Animaux', spr: ['a_rabbit'], h: [0.08, 0.08], animal: 'salamandre', col: 0, sway: 0, spacing: 2, sink: 0 },
+  { id: 'cistudes', name: 'Cistude', cat: 'Animaux', spr: ['a_rabbit'], h: [0.12, 0.12], animal: 'cistude', col: 0, sway: 0, spacing: 2, sink: 0 },
+  { id: 'martres', name: 'Martre', cat: 'Animaux', spr: ['a_rabbit'], h: [0.3, 0.3], animal: 'martre', col: 0, sway: 0, spacing: 3, sink: 0 },
+  { id: 'couleuvres', name: 'Couleuvre', cat: 'Animaux', spr: ['a_rabbit'], h: [0.1, 0.1], animal: 'couleuvre', col: 0, sway: 0, spacing: 3, sink: 0 },
+  { id: 'martins', name: 'Martin-pêcheur', cat: 'Animaux', spr: ['a_bird'], h: [0.18, 0.18], animal: 'martin', col: 0, sway: 0, spacing: 3, sink: 0 },
+  { id: 'tetras_', name: 'Grand tétras', cat: 'Animaux', spr: ['a_bird'], h: [0.6, 0.6], animal: 'tetras', col: 0, sway: 0, spacing: 3, sink: 0 },
+  { id: 'aigles', name: 'Aigle royal', cat: 'Animaux', spr: ['a_bird'], h: [0.6, 0.6], animal: 'aigle', col: 0, sway: 0, spacing: 20, sink: 0 },
+  { id: 'chocards', name: 'Chocards', cat: 'Animaux', spr: ['a_bird'], h: [0.3, 0.3], animal: 'chocard', col: 0, sway: 0, spacing: 10, sink: 0 },
+);
+OBJ_TYPES.forEach((t, i) => { OBJ_INDEX[t.id] = i; });
+
+
+// ---------------------------------------------------------------- modèles (boîtes)
+Object.assign(ANIMAL_RIGS, {
+  chamois: () => {
+    const c = rgbf('#7a5a3a'), noir = [0.1, 0.08, 0.06];
+    const r = quadRig({ col: c, body: [0.32, 0.4, 0.78], bodyY: 0.74, leg: [0.08, 0.54], hoof: true, dark: noir,
+      neck: [0, 0.14], neckS: [0.14, 0.34, 0.17], neckO: [0, 0.16, 0.04], headP: [0, 0.31, 0.04], head: [0.15, 0.17, 0.27], headCol: rgbf('#e6dac4'), face: TL.deerF,
+      ears: [0.08, 0.04, 0.04], tail: [0.05, 0.09, 0.04] });
+    const u = [];
+    for (const s of [-1, 1]) {
+      u.push({ name: 'bande' + s, parent: 'head', p: [s * 0.05, 0.015, 0.14], s: [0.035, 0.1, 0.27], col: noir, tex: TL.fur });
+      u.push({ name: 'corne' + s, parent: 'head', p: [s * 0.035, 0.09, 0.07], s: [0.024, 0.13, 0.024], o: [0, 0.065, 0], col: noir, tex: TL.bone, r0: [-0.15, 0, 0] });
+      u.push({ name: 'crochet' + s, parent: 'corne' + s, p: [0, 0.13, 0], s: [0.022, 0.06, 0.022], o: [0, 0.02, 0], col: noir, tex: TL.bone, r0: [-1.7, 0, 0] });
+    }
+    u.push({ name: 'raie', parent: 'body', p: [0, 0.2, 0], s: [0.06, 0.02, 0.74], col: noir, tex: TL.fur });
+    return rigPlus(r, u);
+  },
+  lievre_blanc: () => {
+    const r = scaleRig(ANIMAL_RIGS.rabbit(), 1.3);
+    for (const q of r.parts) if (q.s) q.col = [0.95, 0.95, 0.93];
+    return rigPlus(r, [
+      { name: 'boutL', parent: 'earL', p: [0, 0.2, 0], s: [0.055, 0.04, 0.042], col: [0.1, 0.1, 0.1], tex: TL.fur },
+      { name: 'boutR', parent: 'earR', p: [0, 0.2, 0], s: [0.055, 0.04, 0.042], col: [0.1, 0.1, 0.1], tex: TL.fur },
+    ]);
+  },
+  lagopede: () => {
+    const r = birdParts({ col: [0.94, 0.94, 0.92], body: [0.16, 0.15, 0.24], bodyY: 0.16, head: [0.08, 0.08, 0.09], beak: [0.025, 0.02, 0.03], beakCol: [0.1, 0.1, 0.1],
+      tail: [0.08, 0.03, 0.07], tailCol: [0.12, 0.12, 0.12], leg: [0.025, 0.08], legCol: [0.95, 0.95, 0.95] });
+    return rigPlus(r, [{ name: 'sourcil', parent: 'head', p: [0, 0.075, 0.02], s: [0.085, 0.015, 0.03], col: [0.85, 0.12, 0.1], tex: TL.plain }]);
+  },
+  castor: () => {
+    const r = quadRig({ col: rgbf('#6a4a2e'), body: [0.3, 0.24, 0.56], bodyY: 0.17, leg: [0.07, 0.11], neck: [0, 0.04], head: [0.18, 0.16, 0.18], face: TL.dogF,
+      snout: [0.1, 0.07, 0.06, -0.03], snoutCol: rgbf('#4a3020'), ears: [0.03, 0.03, 0.02] });
+    return rigPlus(r, [
+      { name: 'queue', parent: 'body', p: [0, -0.07, -0.27], s: [0.17, 0.03, 0.3], o: [0, 0, -0.15], col: rgbf('#3a3230'), tex: TL.scales },
+      { name: 'dents', parent: 'snout', p: [0, -0.045, 0.061], s: [0.045, 0.035, 0.01], col: [0.95, 0.72, 0.3], tex: TL.plain },
+    ]);
+  },
+  salamandre: () => {
+    const { P, add } = rigParts();
+    const noir = [0.07, 0.07, 0.07], jaune = rgbf('#f0c020');
+    add('body', null, [0, 0.025, 0], [0.045, 0.03, 0.11], [0, 0, 0], noir, TL.fur);
+    [[-0.012, 0.03], [0.012, -0.02], [-0.01, -0.035], [0.014, 0.012]].forEach(([x, z], k) => add('tache' + k, 'body', [x, 0.016, z], [0.015, 0.004, 0.02], [0, 0, 0], jaune, TL.plain));
+    add('neck', 'body', [0, 0.005, 0.055], null);
+    add('head', 'neck', [0, 0, 0], [0.04, 0.025, 0.04], [0, 0, 0.02], noir, tx(TL.fur, TL.henF));
+    add('tacheT', 'head', [0, 0.013, 0.02], [0.03, 0.004, 0.015], [0, 0, 0], jaune, TL.plain);
+    for (const [n, sx, sz] of [['legFL', -1, 1], ['legFR', 1, 1], ['legBL', -1, -1], ['legBR', 1, -1]]) add(n, 'body', [sx * 0.028, 0, sz * 0.035], [0.012, 0.025, 0.012], [0, -0.012, 0], noir, TL.fur);
+    add('queue', 'body', [0, 0, -0.055], [0.025, 0.02, 0.1], [0, 0, -0.05], noir, TL.fur);
+    const r = new Rig(P); r.kind = 'quad'; r.cfg = {}; return r;
+  },
+  cistude: () => {
+    const { P, add } = rigParts();
+    const sh = rgbf('#3a3a2a'), sk = rgbf('#4a4a30');
+    add('body', null, [0, 0.06, 0], [0.16, 0.06, 0.2], [0, 0, 0], sk, TL.scales);
+    add('carapace', 'body', [0, 0.035, 0], [0.18, 0.05, 0.22], [0, 0, 0], sh, TL.scales);
+    add('dome', 'body', [0, 0.07, 0], [0.13, 0.03, 0.16], [0, 0, 0], v3.scale(sh, 0.8), TL.scales);
+    add('neck', 'body', [0, 0, 0.1], [0.04, 0.035, 0.05], [0, 0, 0.02], sk, TL.scales);
+    add('head', 'neck', [0, 0.005, 0.04], [0.05, 0.04, 0.05], [0, 0, 0.02], sk, tx(TL.scales, TL.henF));
+    for (const [n, sx, sz] of [['legFL', -1, 1], ['legFR', 1, 1], ['legBL', -1, -1], ['legBR', 1, -1]]) add(n, 'body', [sx * 0.07, -0.02, sz * 0.07], [0.04, 0.04, 0.04], [0, -0.02, 0], sk, TL.scales);
+    add('queue', 'body', [0, -0.01, -0.1], [0.02, 0.02, 0.04], [0, 0, -0.02], sk, TL.scales);
+    const r = new Rig(P); r.kind = 'quad'; r.cfg = {}; return r;
+  },
+  martre: () => {
+    const r = quadRig({ col: rgbf('#5a3a24'), body: [0.14, 0.13, 0.42], bodyY: 0.145, leg: [0.05, 0.14], neck: [0, 0.04], head: [0.12, 0.11, 0.13], face: TL.foxF,
+      snout: [0.06, 0.05, 0.05, -0.02], ears: [0.035, 0.04, 0.02], tail: [0.07, 0.07, 0.3] });
+    return rigPlus(r, [{ name: 'bavette', parent: 'body', p: [0, -0.01, 0.2], s: [0.1, 0.09, 0.03], col: rgbf('#e8c880'), tex: TL.fur }]);
+  },
+  couleuvre: () => {
+    const r = scaleRig(ANIMAL_RIGS.snake(), 1.3);
+    for (const q of r.parts) if (q.s) q.col = q.name === 'head' ? rgbf('#2a3020') : /[02468]$/.test(q.name) ? rgbf('#4a5a3a') : rgbf('#3e4c30');
+    return rigPlus(r, [{ name: 'collier', parent: 'head', p: [0, 0, -0.01], s: [0.08, 0.04, 0.025], col: rgbf('#e8d040'), tex: TL.plain }]);
+  },
+  martin: () => {
+    const r = birdParts({ col: rgbf('#2a90d0'), body: [0.07, 0.07, 0.12], bodyY: 0.08, head: [0.06, 0.06, 0.06], headCol: rgbf('#1a70b0'), beak: [0.015, 0.015, 0.06], beakCol: [0.1, 0.1, 0.1],
+      tail: [0.03, 0.01, 0.04], wingCol: rgbf('#1a6aa0'), leg: [0.01, 0.03], legCol: rgbf('#d04020') });
+    return rigPlus(r, [{ name: 'ventre', parent: 'body', p: [0, -0.02, 0.01], s: [0.072, 0.035, 0.1], col: rgbf('#e87a30'), tex: TL.fur }]);
+  },
+  tetras: () => {
+    const r = birdParts({ col: [0.12, 0.12, 0.14], body: [0.26, 0.28, 0.44], bodyY: 0.36, neck: [0.08, 0.12, 0.08], head: [0.12, 0.12, 0.14], beak: [0.04, 0.04, 0.05], beakCol: rgbf('#e8e0c8'),
+      tail: [0.06, 0.04, 0.08], leg: [0.04, 0.21], legCol: [0.3, 0.28, 0.25] });
+    return rigPlus(r, [
+      { name: 'sourcil', parent: 'head', p: [0, 0.1, 0.03], s: [0.13, 0.025, 0.04], col: [0.85, 0.1, 0.1], tex: TL.plain },
+      { name: 'eventail', parent: 'body', p: [0, 0.1, -0.22], s: [0.38, 0.34, 0.04], o: [0, 0.12, 0], col: [0.1, 0.1, 0.12], tex: TL.fur, r0: [-0.25, 0, 0] },
+      { name: 'poitrail', parent: 'body', p: [0, 0.05, 0.2], s: [0.2, 0.14, 0.05], col: rgbf('#1a4a3a'), tex: TL.fur },
+    ]);
+  },
+  aigle: () => {
+    const r = scaleRig(ANIMAL_RIGS.crow(), 2.4);
+    for (const q of r.parts) if (q.s) q.col = q.name === 'beak' ? rgbf('#e8c040') : q.name === 'head' ? rgbf('#b08040') : rgbf('#4a3220');
+    return r;
+  },
+  chocard: () => {
+    const r = ANIMAL_RIGS.crow();
+    for (const q of r.parts) if (q.s) { if (q.name === 'beak') q.col = rgbf('#f0d020'); else if (q.name.startsWith('leg')) q.col = rgbf('#d02a20'); }
+    return r;
+  },
+});
+// l'aigle plane très haut, en larges cercles lents
+{
+  const _spawnFrom = entities.spawnFrom.bind(entities);
+  entities.spawnFrom = function (w, o, kind) {
+    const arr = _spawnFrom(w, o, kind);
+    if (kind === 'aigle') for (const e of arr) { e.flyR = 40 + Math.random() * 30; e.flyH = 38 + Math.random() * 25; e.flyS = 0.07 * (Math.random() < 0.5 ? 1 : -1); }
+    return arr;
+  };
+}
+
 // ---- 11-editor.js
 // ============================================================================
 //  ÉDITEUR DE MONDE : relief, peinture, objets, blocs, annulation
@@ -19534,7 +21581,7 @@ const play = {
       for (const q of this.cellsAt(eye, f, 1)) {
         const cr = farm.crop(q.x, q.z);
         if (cr && cr.dead) { delete farm.s.crops[farm.cellKey(q.x, q.z)]; }
-        if (!farm.crop(q.x, q.z) && Math.hypot(q.x - game.world.farm.f.x, q.z - game.world.farm.f.z) < 95 && farm.canTill(q.x, q.z)) { farm.till(q.x, q.z); n++; }
+        if (!farm.crop(q.x, q.z) && !interditDeBatir(q.x, q.z) && farm.canTill(q.x, q.z)) { farm.till(q.x, q.z); n++; }
       }
       if (n) { sound.dig && sound.dig(1); puffAt(c.x, c.y + 0.05, c.z, [96, 68, 44], 12, 2, false); }
       const dig0 = (game.world.inter || []).find((it) => it.kind === 'dig' && !farm.s.flags['dug_' + it.id] && Math.hypot(it.x - c.x, it.z - c.z) < 1.5 && (!it.data.envers || strange.inEnvers()));
@@ -19547,7 +21594,7 @@ const play = {
     const cr = farm.crop(c.x, c.z);
     if (cr && cr.dead) { delete farm.s.crops[farm.cellKey(c.x, c.z)]; farm.till(c.x, c.z); farm.dirtyProps = true; sound.dig && sound.dig(); return; }
     if (cr) { sound.dig && sound.dig(0.5); return; }
-    if (Math.hypot(c.x - game.world.farm.f.x, c.z - game.world.farm.f.z) > 95) { sound.dig && sound.dig(0.4); return; }
+    { const P = interditDeBatir(c.x, c.z); if (P) { sound.dig && sound.dig(0.4); if (!this.noTillT || performance.now() > this.noTillT) { this.noTillT = performance.now() + 4000; ui.subtitle('', '(On ne laboure pas ici : ' + (P.why || 'ce n’est pas à vous') + '.)', 2.5); } return; } }
     if (!farm.canTill(c.x, c.z)) { sound.impact('soft'); return; }
     farm.till(c.x, c.z);
     sound.dig && sound.dig(1);
@@ -19775,7 +21822,7 @@ const play = {
     let r = this.rotY + Math.round(game.player.yaw / (Math.PI / 2)) * Math.PI / 2 + Math.PI;
     if (P.snap) { const s = P.snap; if (s === 1) { x = Math.floor(x) + 0.5; z = Math.floor(z) + 0.5; } else { x = Math.round(x / s * 2) * s / 2; z = Math.round(z / s * 2) * s / 2; } r = Math.round(r / (Math.PI / 2)) * Math.PI / 2; }
     if (!(bh && bh.n[1] > 0.7)) y = w.groundAt(x, z, y + 0.3, 0.4);
-    let ok = y > w.waterLevel + 0.05 && Math.hypot(x - w.farm.f.x, z - w.farm.f.z) < 95;
+    let ok = y > w.waterLevel + 0.05 && !interditDeBatir(x, z) && !(game.player.underground && !P.sousTerre);
     const c = PROP_COLL[it.place];
     if (ok && c) {
       const probe = { x, y, z, sx: c[0] * 2, sy: c[2], sz: c[1] * 2, r };
@@ -21961,9 +24008,8 @@ const builds = {
     const bad = (why, y) => ({ ok: false, why, y: y ?? w.heightAt(x, z) });
     if ((kind === 'grange' || kind === 'poulailler') && this.has(kind)) return bad(kind === 'grange' ? '(Vous avez déjà une grange.)' : '(Vous avez déjà un poulailler.)');
     if (this.count(kind) >= K.max) return bad('(Vous en avez déjà construit ' + (K.max > 1 ? 'assez.)' : 'un.)'));
-    if (Math.hypot(x - fm.f.x, z - fm.f.z) > 110) return bad('(Trop loin de la ferme : il faut bâtir sur vos terres.)');
-    const T = w.townInfo;
-    if (T && Math.hypot(x - T.x, z - T.z) < 90) return bad('(Pas ici.)');
+    { const P = interditDeBatir(x, z, Math.max(K.W || 0, K.D || 0) / 2); if (P) return bad(P.why ? '(On ne bâtit pas ici : ' + P.why + '.)' : '(Pas ici.)'); }
+    if (game.player.underground) return bad('(Pas sous terre.)');
     // relief
     let mn = 1e9, mx = -1e9, sum = 0, n = 0;
     for (let lz = z0; lz <= z1 + 0.01; lz += 1) for (let lx = x0; lx <= x1 + 0.01; lx += 1) { const [px, pz] = L(lx, lz), h = w.heightAt(px, pz); mn = Math.min(mn, h); mx = Math.max(mx, h); sum += h; n++; }
@@ -24660,6 +26706,462 @@ HOOKS.inter.peche_glace = (it) => {
   ui.subtitle('', '(Rien encore. La ligne ne bouge pas.)', 2);
 };
 
+// ---- 11-zzz00-socle.js
+// ============================================================================
+//  SOCLE des nouveautés : ce qui doit attendre que la ferme (11-farm-play.js)
+//  soit chargée, et ce que partagent les autres modules 11-zzz* :
+//   - la journée de dix minutes ;
+//   - savoir : ce que le personnage connaît (lieux, espèces vues, plantes
+//     identifiées, recettes, mots des langues perdues, livres lus) ;
+//   - corps : chutes, jambe cassée, saignements, pentes trop raides ;
+//   - cine : les cinématiques (caméra, bandes noires, paroles) ;
+//   - où l'on ne bâtit pas (villes, villages, lieux saints) ;
+//   - les échelles des douves, la pêche dans les bassins.
+// ============================================================================
+DYN_PROPS.add('cascade'); DYN_PROPS.add('feu_geant'); DYN_PROPS.add('pierre_trois'); DYN_PROPS.add('piege_loup');
+
+// ---------------------------------------------------------------- traduction : le module 14-i18n.js remplace T (T = function…)
+// À appeler pour tout texte dessiné sur un canevas (les textes du DOM sont traduits automatiquement).
+function T(s) { return s; }
+
+// ---------------------------------------------------------------- l'étrange selon l'esprit du personnage
+// Multiplicateur des probabilités des bizarreries du monde (1 = normal). Le module de l'esprit (la mentalité, cachée)
+// le remplace par affectation (bizarrerie = function () {…}) : plus l'esprit est sombre, plus l'étrange se montre.
+// Tout événement étrange ou rare devrait multiplier sa probabilité par bizarrerie().
+function bizarrerie() { return 1; }
+// Nombre de personnes tuées de la main du joueur (habitants nommés + autres gens que les modules comptent dans
+// farm.s.stats.autresMeurtres)
+function meurtresDuJoueur() { const s = farm.s; if (!s) return 0; return (s.dead || []).filter((d) => d.by === 'joueur').length + ((s.stats && s.stats.autresMeurtres) || 0); }
+
+// ---------------------------------------------------------------- une journée : dix minutes
+const JOUR_SECONDES = 600;
+HOOKS.load.push(() => { if (game.world) game.world.dayLength = JOUR_SECONDES; });
+
+// ---------------------------------------------------------------- où l'on ne bâtit pas (ni ne laboure, ni ne pose)
+// renvoie la zone protégée qui couvre (x, z) (marge r en plus), ou null
+function interditDeBatir(x, z, r) {
+  const w = game.world;
+  if (!w || !w.noBuild) return null;
+  for (const P of w.noBuild) if (Math.hypot(x - P.x, z - P.z) < P.r + (r || 0)) return P;
+  return null;
+}
+
+// ============================================================================
+//  SAVOIR : ce que le personnage connaît (sauvegardé dans farm.s.savoir)
+// ============================================================================
+const savoir = {
+  onLieu: [], onVu: [], onPlante: [], onRecette: [], onMots: [],
+  S() {
+    const s = farm.s;
+    const K = s.savoir || (s.savoir = {});
+    for (const k of ['lieux', 'vus', 'plantes', 'recettes', 'mots', 'lus']) if (!K[k]) K[k] = {};
+    return K;
+  },
+  // -- les lieux où l'on est allé (les cartes ne montrent que ceux-là)
+  lieuConnu(k) { return !!this.S().lieux[k]; },
+  connaitreLieu(k) {
+    const L = this.S().lieux;
+    if (!k || L[k]) return false;
+    L[k] = farm.s.day;
+    for (const fn of this.onLieu) fn(k);
+    return true;
+  },
+  // -- les espèces vues ou prises (bêtes : e.kind ; poissons : id d'objet ; plantes et arbres : id OBJ_TYPES)
+  vu(id) { return this.S().vus[id] || 0; },
+  voir(id, n) {
+    if (!id) return false;
+    const V = this.S().vus, first = !V[id];
+    V[id] = (V[id] || 0) + (n || 1);
+    if (first) for (const fn of this.onVu) fn(id);
+    return first;
+  },
+  // -- les plantes que l'alchimiste a nommées (sans lui, on ne connaît que leur allure)
+  planteConnue(id) { return typeof PLANT_LOOK === 'undefined' || !PLANT_LOOK[id] || !!this.S().plantes[id]; },
+  identifier(id) {
+    const P = this.S().plantes;
+    if (P[id]) return false;
+    P[id] = farm.s.day;
+    for (const fn of this.onPlante) fn(id);
+    return true;
+  },
+  // -- les recettes : celles de base, et celles qu'on a trouvées (ou apprises dans un livre, d'un habitant)
+  recetteConnue(out) { return CRAFT_BASE.has(out) || !!this.S().recettes[out]; },
+  apprendreRecette(out, source) {
+    const R = this.S().recettes;
+    if (CRAFT_BASE.has(out) || R[out]) return false;
+    R[out] = source || 'essai';
+    for (const fn of this.onRecette) fn(out, source);
+    return true;
+  },
+  // -- les mots des langues perdues (aelin, gorrain)
+  motConnu(lang, mot) { const M = this.S().mots[lang]; return !!(M && M[mot]); },
+  motsConnus(lang) { return Object.keys(this.S().mots[lang] || {}); },
+  apprendreMots(lang, liste) {
+    const M = this.S().mots[lang] || (this.S().mots[lang] = {});
+    let n = 0;
+    for (const m of liste) if (m && !M[m]) { M[m] = farm.s.day; n++; }
+    if (n) for (const fn of this.onMots) fn(lang, n);
+    return n;
+  },
+  // -- les livres lus
+  lu(id) { return !!this.S().lus[id]; },
+  lire(id) { const L = this.S().lus; const first = !L[id]; L[id] = L[id] || farm.s.day; return first; },
+};
+
+// ce qu'on voit passe dans la mémoire : bêtes croisées, lieux traversés, plantes cueillies, poissons pris
+{
+  let lookT = 0;
+  HOOKS.update.push((dt, eye, basis, sky, playing) => {
+    if (!playing || !farm.s) return;
+    lookT -= dt;
+    if (lookT > 0) return;
+    lookT = 0.5;
+    const w = game.world, p = game.player, f = basis.f;
+    for (const e of entities.list) {
+      if (e.dead || e.removed || !e.kind) continue;
+      const dx = e.x - eye[0], dz = e.z - eye[2], d = Math.hypot(dx, dz);
+      if (d > 32 || d < 0.5) continue;
+      if ((dx * f[0] + dz * f[2]) / d < 0.82) continue;
+      if (e.hidden) continue;
+      savoir.voir(e.kind);
+    }
+    for (const k in w.lm || {}) {
+      const L = w.lm[k];
+      if (L.under && !p.underground) continue;
+      if (Math.hypot(L.x - p.pos[0], L.z - p.pos[2]) < Math.max(12, (L.r || 20) * 0.9)) savoir.connaitreLieu(k);
+    }
+    const t = game.target;
+    if (t && (t.kind === 'pick' || t.kind === 'tree') && t.o) { const T = OBJ_TYPES[t.o.t]; if (T) savoir.voir(T.id); }
+  });
+  const _collect = play.collect.bind(play);
+  play.collect = function (o, idx, H, p) { const ok = _collect(o, idx, H, p); if (ok && o && OBJ_TYPES[o.t]) savoir.voir(OBJ_TYPES[o.t].id); return ok; };
+  const _give = farm.give.bind(farm);
+  farm.give = function (id, n) { _give(id, n); if ((n === undefined || n > 0) && typeof FISH !== 'undefined' && FISH[id] && this.s) savoir.voir(id); };
+}
+
+// ============================================================================
+//  CORPS : chutes, jambe cassée, saignements, pentes
+// ============================================================================
+const corps = {
+  PENTE_MAX: 1.05,  // au-delà (46°), on ne monte plus
+  PENTE_CHEMIN: 2.2, // sur un chemin de terre ou de pavés, on grimpe plus raide (il y a des marches taillées)
+  PENTE_GLISSE: 1.45, // au-delà, on glisse
+  C() { const s = farm.s; return s.corps || (s.corps = { jambe: 0, attelle: 0, saigne: 0, cause: '' }); },
+  jambeCassee() { const C = this.C(); return C.jambe > farm.s.hours; },
+  casserJambe(cause) {
+    const C = this.C(), s = farm.s;
+    const deja = this.jambeCassee();
+    C.jambe = Math.max(C.jambe, s.hours + 48); C.attelle = 0;
+    sound.impact && sound.impact('hard'); sound.hurt && sound.hurt(30);
+    game.shakeT = 0.8;
+    ui.subtitle('', deja ? '(La jambe cassée cède encore. La douleur vous coupe le souffle.)' : '(Un craquement sec. Votre jambe ne vous porte plus : elle est cassée.)', 4);
+    if (deja) play.hurt(15, null, cause || 'Une mauvaise chute');
+  },
+  soignerJambe(total) {
+    const C = this.C(), s = farm.s;
+    if (!this.jambeCassee()) return false;
+    C.jambe = total ? 0 : Math.min(C.jambe, s.hours + 12);
+    return true;
+  },
+  // k : points de vie perdus par seconde (0.05 : une égratignure ; 1 : une artère)
+  saigner(k, cause) {
+    const C = this.C();
+    C.saigne = Math.min(3, (C.saigne || 0) + k);
+    if (cause) C.cause = cause;
+  },
+  saignement() { return this.C().saigne || 0; },
+  panser() { const C = this.C(); if (!C.saigne) return false; C.saigne = 0; return true; },
+  // atterrissage à la vitesse v (m/s)
+  chute(v) {
+    const p = game.player;
+    if (BUFF.on('legerete') || p.riding) return;
+    let k = 1;
+    if (p.wading) k = 0.4;
+    if (v <= 10.5) return;
+    const dmg = Math.pow(v - 10.5, 1.5) * 3.4 * k;
+    const casse = v > 13 && Math.random() < clamp((v - 13) / 6, 0, 1) * 0.85 * k;
+    if (casse) this.casserJambe('Une mauvaise chute');
+    if (v > 16.5 && Math.random() < 0.5) this.saigner(0.08 + (v - 16.5) * 0.04, 'Une mauvaise chute');
+    play.hurt(dmg, null, v > 19 ? 'Une chute de très haut' : 'Une mauvaise chute');
+  },
+  // monter en douceur jusqu'à un point (échelles des douves, murs)
+  hisser(to, dur) {
+    if (this.hisse) return Promise.resolve();
+    const p = game.player, from = p.pos.slice();
+    return new Promise((res) => { this.hisse = { from, to: to.slice(), t: 0, dur: dur || 1.6, res }; sound.step('wood', 1); });
+  },
+  update(dt) {
+    const p = game.player, s = farm.s, C = this.C();
+    // se hisser
+    const H = this.hisse;
+    if (H) {
+      H.t += dt;
+      const k = Math.min(1, H.t / H.dur), up = Math.min(1, k / 0.75), fw = clamp((k - 0.6) / 0.4, 0, 1);
+      p.pos = [lerp(H.from[0], H.to[0], fw), lerp(H.from[1], H.to[1] + 0.05, up * up * (3 - 2 * up)), lerp(H.from[2], H.to[2], fw)];
+      p.vel = [0, 0, 0];
+      if (Math.floor(H.t * 3) !== Math.floor((H.t - dt) * 3)) sound.step('wood', 0.8);
+      if (k >= 1) { this.hisse = null; H.res(); }
+    }
+    // saignement : on meurt petit à petit, ou on s'en remet si ce n'est qu'une égratignure
+    if (C.saigne > 0) {
+      p.hp -= C.saigne * dt;
+      if (C.saigne < 0.25) C.saigne = Math.max(0, C.saigne - dt * 0.0025);
+      this.gouttesT = (this.gouttesT || 0) - dt;
+      if (this.gouttesT <= 0) {
+        this.gouttesT = clamp(1.2 / (C.saigne * 4 + 0.2), 0.15, 3);
+        const w = game.world, y = w.groundAt(p.pos[0], p.pos[2], p.pos[1] + 0.3, 0.5);
+        for (let i = 0; i < 2; i++) particles.spawn(p.pos[0] + (Math.random() - 0.5) * 0.4, p.pos[1] + 0.9, p.pos[2] + (Math.random() - 0.5) * 0.4, 0, -1, 0, [0.45, 0.02, 0.02, 1], 0.05, 0.7, 9, false);
+        void y;
+      }
+      if (!this.ditSaigne || s.hours > this.ditSaigne + 2) { this.ditSaigne = s.hours; ui.subtitle('', C.saigne > 0.5 ? '(Vous perdez beaucoup de sang. Il faut un bandage, vite.)' : '(Vous saignez. Un bandage arrêterait ça.)', 3.5); }
+      if (p.hp <= 0) game.die(C.cause || 'Mort de ses blessures, lentement');
+    }
+    if (this.jambeCassee()) {
+      this.douleurT = (this.douleurT || 0) - dt;
+      if (this.douleurT <= 0) { this.douleurT = 14 + Math.random() * 20; sound.hurtHuman ? sound.hurtHuman(0.3) : sound.hurt && sound.hurt(5); }
+    } else if (C.jambe && C.jambe <= s.hours) { C.jambe = 0; C.attelle = 0; ui.subtitle('', '(Votre jambe vous porte de nouveau.)', 3); }
+  },
+};
+// déplacements : jambe cassée, pentes trop raides, chutes (remplace l'ancien calcul des chutes)
+{
+  const _upd = Player.prototype.update;
+  Player.prototype.update = function (dt, w, c) {
+    if (game.kind !== 'farm' || !farm.s || this.fly) return _upd.call(this, dt, w, c);
+    if (corps.hisse) { this.vel = [0, 0, 0]; return; }
+    if (typeof cine !== 'undefined' && cine.on) c = { fwd: 0, right: 0, up: false, down: false, sprint: false };
+    const casse = corps.jambeCassee() && !this.riding;
+    const x0 = this.pos[0], y0 = this.pos[1], z0 = this.pos[2], vy0 = this.vel[1], g0 = this.onGround;
+    const c2 = Object.assign({}, c, { onFall: null });
+    const sp = this.mods.speed;
+    if (casse) { c2.sprint = false; if (!this.swimming) c2.up = false; this.mods.speed = sp * (corps.C().attelle ? 0.55 : 0.4); }
+    try { _upd.call(this, dt, w, c2); } finally { this.mods.speed = sp; }
+    if (casse && this.onGround && Math.hypot(this.vel[0], this.vel[2]) > 0.5) this.eyeOffset += Math.sin(this.bobPhase * 2) * 0.012; // on boite
+    // atterrissage
+    if (!g0 && this.onGround && vy0 < -10.5 && !this.swimming) corps.chute(-vy0);
+    // pentes : impossible de monter trop raide, et l'on glisse sur les parois
+    if (this.onGround && !this.swimming && !this.underground) {
+      const hN = w.heightAt(this.pos[0], this.pos[2]);
+      if (Math.abs(this.pos[1] - hN) < 0.12) {
+        const dx = this.pos[0] - x0, dz = this.pos[2] - z0, d = Math.hypot(dx, dz);
+        if (d > 1e-4) {
+          const h0 = w.heightAt(x0, z0);
+          const m = w.matAt(this.pos[0], this.pos[2]), chemin = m === M_DIRT || m === M_COBBLE || m === M_SAND;
+          if ((hN - h0) / d > (chemin ? corps.PENTE_CHEMIN : corps.PENTE_MAX) && Math.abs(y0 - h0) < 0.25) {
+            this.pos[0] = x0; this.pos[2] = z0; this.pos[1] = Math.max(y0, h0);
+            // on garde le glissé le long de la pente, pas la montée
+            const n = w.normalAt(x0, z0), nl = Math.hypot(n[0], n[2]) || 1, gx = n[0] / nl, gz = n[2] / nl;
+            const vd = this.vel[0] * gx + this.vel[2] * gz;
+            if (vd < 0) { this.vel[0] -= vd * gx; this.vel[2] -= vd * gz; }
+          }
+        }
+        const n = w.normalAt(this.pos[0], this.pos[2]), tan = Math.hypot(n[0], n[2]) / Math.max(0.05, n[1]);
+        if (tan > corps.PENTE_GLISSE) {
+          const nl = Math.hypot(n[0], n[2]) || 1, k = Math.min(1, (tan - corps.PENTE_GLISSE) * 2) * 3.2 * dt;
+          const nx = this.pos[0] + n[0] / nl * k, nz = this.pos[2] + n[2] / nl * k;
+          const [cx, cz] = this.collide(w, nx, nz, 0.3);
+          this.pos[0] = cx; this.pos[2] = cz; this.pos[1] = w.groundAt(cx, cz, this.pos[1] + 0.3, 0.6);
+        }
+      }
+    }
+  };
+}
+HOOKS.update.push((dt, eye, basis, sky, playing) => { if (farm.s && !game.dying) corps.update(playing ? dt : 0); });
+// soigner : bandage, attelle
+HOOKS.primary.push((eye, basis, held, it, id) => {
+  if (held) return false;
+  if (id === 'bandage') {
+    if (!corps.saignement()) { ui.subtitle('', '(Vous ne saignez pas.)', 2); return true; }
+    farm.take('bandage', 1); corps.panser(); sound.equip && sound.equip();
+    ui.subtitle('', '(Vous serrez le bandage. Le sang s’arrête.)', 3); play.cool = 0.8;
+    return true;
+  }
+  if (id === 'attelle') {
+    if (!corps.jambeCassee()) { ui.subtitle('', '(Vos jambes vont bien.)', 2); return true; }
+    if (corps.C().attelle) { ui.subtitle('', '(L’attelle tient déjà la jambe.)', 2); return true; }
+    farm.take('attelle', 1); corps.C().attelle = 1; corps.soignerJambe(false); sound.equip && sound.equip();
+    ui.subtitle('', '(Vous immobilisez la jambe entre deux planchettes. Elle se remettra plus vite ; on marche un peu mieux.)', 4); play.cool = 0.8;
+    return true;
+  }
+  return false;
+});
+// la mort lente a sa propre cause ; une nouvelle partie repart en bonne santé
+HOOKS.load.push((saved) => { if (!saved && farm.s) farm.s.corps = { jambe: 0, attelle: 0, saigne: 0, cause: '' }; corps.hisse = null; });
+
+// ---------------------------------------------------------------- les échelles des douves : on se hisse
+HOOKS.inter.grimper = (it) => {
+  const to = it.data && it.data.to;
+  if (!to) return;
+  if (corps.jambeCassee() && Math.random() < 0.6) { ui.subtitle('', '(Avec cette jambe, vous glissez des barreaux.)', 2.5); return; }
+  corps.hisser(to, 1.5 + Math.max(0, to[1] - game.player.pos[1]) * 0.25);
+};
+
+// ---------------------------------------------------------------- pêche dans les bassins (sources chaudes, souterrains, temple)
+{
+  const _spot = strange.fishingSpot.bind(strange);
+  strange.fishingSpot = function (eye, dir) {
+    const r = _spot(eye, dir);
+    if (r) return r;
+    for (const P of game.world.pools || []) {
+      if (Math.hypot(eye[0] - P.x, eye[2] - P.z) > 16) continue;
+      const t = (P.y - eye[1]) / (dir[1] || -1e-3);
+      if (!(t > 0 && t < 16)) continue;
+      const x = eye[0] + dir[0] * t, z = eye[2] + dir[2] * t;
+      const c = Math.cos(P.r || 0), sn = Math.sin(P.r || 0), dx = x - P.x, dz = z - P.z, lx = dx * c - dz * sn, lz = dx * sn + dz * c;
+      if (Math.abs(lx) < P.w / 2 && Math.abs(lz) < P.d / 2) return { x, y: P.y, z, kind: P.kind };
+    }
+    return null;
+  };
+}
+
+// ============================================================================
+//  CINÉMATIQUES : une suite de plans filmés, bandes noires, paroles
+//  cine.jouer([{ dur, de: { pos, look } | { pos, yaw, pitch }, a: {...}, texte, qui, fondu, debut(), fin(), joueur }], { passer })
+//  - de / a : positions de caméra (a facultatif : plan fixe) ; look : point regardé
+//  - orbite : { c:[x,y,z], r, h, a0, a1 } à la place de de/a
+//  - joueur : dessine le personnage là où il se tient
+//  Renvoie une promesse, résolue à la fin (ou quand on passe avec Espace).
+// ============================================================================
+const cine = {
+  on: false, plans: null, i: 0, t: 0, res: null, opts: null, el: null, lastTxt: '',
+  vue(pos, look) {
+    const dx = look[0] - pos[0], dy = look[1] - pos[1], dz = look[2] - pos[2];
+    return { pos: pos.slice(), yaw: Math.atan2(-dx, -dz), pitch: Math.atan2(dy, Math.hypot(dx, dz)) };
+  },
+  cam(k) {
+    if (!k) return null;
+    if (k.look) return this.vue(k.pos, k.look);
+    return { pos: k.pos.slice(), yaw: k.yaw || 0, pitch: k.pitch || 0 };
+  },
+  jouer(plans, opts) {
+    if (this.on) this.finir(true);
+    this.plans = plans.filter(Boolean); this.i = -1; this.t = 0; this.opts = opts || {};
+    this.on = true; game.noHand = true;
+    this.dom(true);
+    ui.close(true);
+    this.next();
+    return new Promise((res) => { this.res = res; });
+  },
+  next() {
+    const P = this.plans[this.i];
+    if (P && P.fin) try { P.fin(); } catch (e) { console.error(e); }
+    this.i++; this.t = 0;
+    const N = this.plans[this.i];
+    if (!N) { this.finir(); return; }
+    if (N.debut) try { N.debut(); } catch (e) { console.error(e); }
+    this.texte(N.texte || '', N.qui || '');
+    if (N.fondu === 'noir') $('#cine-veil').classList.add('on'); else $('#cine-veil').classList.remove('on');
+  },
+  finir(silent) {
+    if (!this.on) return;
+    const P = this.plans && this.plans[this.i];
+    if (P && P.fin && !silent) try { P.fin(); } catch (e) { console.error(e); }
+    this.on = false; game.noHand = false; this.plans = null;
+    this.dom(false);
+    const r = this.res; this.res = null;
+    if (this.opts && this.opts.apres) try { this.opts.apres(); } catch (e) { console.error(e); }
+    if (r) r();
+  },
+  passer() {
+    if (!this.on || (this.opts && this.opts.passer === false)) return;
+    // on joue les effets de tous les plans restants (sans les montrer)
+    for (let k = this.i; k < this.plans.length; k++) { const P = this.plans[k]; if (k > this.i && P.debut) try { P.debut(); } catch (e) { console.error(e); } if (P.fin) try { P.fin(); } catch (e) { console.error(e); } }
+    this.plans = []; this.i = 0;
+    this.finir(true);
+  },
+  texte(t, qui) {
+    const el = $('#cine-txt');
+    if (!el) return;
+    el.innerHTML = t ? (qui ? `<b>${esc(qui)}</b> — ` : '') + esc(t) : '';
+    el.classList.toggle('on', !!t);
+  },
+  dom(on) {
+    if (!$('#cine')) {
+      const st = document.createElement('style');
+      st.textContent = `#cine{position:fixed;inset:0;pointer-events:none;z-index:40}
+#cine .bar{position:absolute;left:0;right:0;height:0;background:#000;transition:height .8s ease}
+#cine .bar.t{top:0}#cine .bar.b{bottom:0}
+#cine.on .bar{height:11vh}
+#cine-txt{position:absolute;left:10%;right:10%;bottom:3.2vh;text-align:center;color:#e8e0cc;font:16px/1.4 Georgia,serif;opacity:0;transition:opacity .5s;text-shadow:0 1px 2px #000}
+#cine-txt.on{opacity:1}#cine-txt b{color:#d8b878;font-weight:normal}
+#cine-veil{position:absolute;inset:0;background:#000;opacity:0;transition:opacity 1s}
+#cine-veil.on{opacity:1}
+#cine-skip{position:absolute;right:14px;top:calc(11vh + 8px);color:#8a8070;font:12px Georgia,serif;opacity:0;transition:opacity .5s}
+#cine.on #cine-skip{opacity:.7}
+body.cine #hud,body.cine #hotbar,body.cine #dot,body.cine #pickups{visibility:hidden}`;
+      document.head.appendChild(st);
+      const d = document.createElement('div');
+      d.id = 'cine';
+      d.innerHTML = '<div id="cine-veil"></div><div class="bar t"></div><div class="bar b"></div><div id="cine-txt"></div><div id="cine-skip">Espace : passer</div>';
+      document.body.appendChild(d);
+    }
+    $('#cine').classList.toggle('on', on);
+    document.body.classList.toggle('cine', on);
+    if (!on) { this.texte(''); $('#cine-veil').classList.remove('on'); }
+    $('#cine-skip').style.display = this.opts && this.opts.passer === false ? 'none' : '';
+  },
+  update(dt) {
+    if (!this.on) return;
+    const P = this.plans[this.i];
+    if (!P) { this.finir(); return; }
+    this.t += dt;
+    if (P.chaque) try { P.chaque(this.t, dt); } catch (e) { console.error(e); }
+    if (this.t >= (P.dur || 3)) this.next();
+    if (input.down('Space') && this.t > 0.6 && (this.i > 0 || this.t > 1)) this.passer();
+  },
+  camera() {
+    if (!this.on) return null;
+    const P = this.plans[this.i];
+    if (!P) return null;
+    const k0 = clamp(this.t / (P.dur || 3), 0, 1), k = k0 * k0 * (3 - 2 * k0);
+    if (P.orbite) {
+      const O = P.orbite, a = lerp(O.a0 || 0, O.a1 ?? (O.a0 || 0) + 0.6, k);
+      const pos = [O.c[0] + Math.sin(a) * O.r, O.c[1] + (O.h ?? 3), O.c[2] + Math.cos(a) * O.r];
+      return this.vue(pos, O.look || O.c);
+    }
+    const A = this.cam(P.de), B = this.cam(P.a) || A;
+    if (!A) return null;
+    let dy = B.yaw - A.yaw;
+    while (dy > Math.PI) dy -= TAU;
+    while (dy < -Math.PI) dy += TAU;
+    const pos = [lerp(A.pos[0], B.pos[0], k), lerp(A.pos[1], B.pos[1], k), lerp(A.pos[2], B.pos[2], k)];
+    const shake = P.secousse ? P.secousse * (1 - k0 * 0.5) : 0;
+    if (shake) { const t = game.time; pos[0] += Math.sin(t * 37) * shake; pos[1] += Math.sin(t * 41) * shake; }
+    return { pos, yaw: A.yaw + dy * k, pitch: lerp(A.pitch, B.pitch, k) };
+  },
+  // le personnage lui-même, vu de l'extérieur
+  rigJoueur() {
+    const fem = !!farm.s.fem;
+    const key = fem ? 'f' : 'm';
+    if (this._rig && this._rigK === key) return this._rig;
+    this._rigK = key;
+    this._rig = humanRig(fem ? { skin: '#e2b894', hair: '#5a3a22', hairStyle: 'long', top: '#7a6a58', bottom: '#4a3c30', dress: true, bust: 0.5, hips: 0.5 } : { skin: '#dcb08a', hair: '#4a3020', top: '#6a5a48', bottom: '#3a3830', hat: 'paille', beard: 'courte' });
+    return this._rig;
+  },
+};
+HOOKS.update.push((dt) => cine.update(dt));
+HOOKS.camera.push(() => cine.camera());
+HOOKS.draw.push((buf, sbuf, cam, t) => {
+  if (!cine.on) return;
+  const P = cine.plans && cine.plans[cine.i];
+  if (!P || !P.joueur) return;
+  const p = game.player, r = cine.rigJoueur();
+  poseHuman(r, { move: 0, t, lookY: 0 });
+  drawRig(buf, r, p.pos[0], p.pos[1], p.pos[2], p.yaw + Math.PI, 1, 0);
+  if (sbuf) drawShadow(sbuf, p.pos[0], p.pos[1], p.pos[2], 0.34);
+});
+// pendant une cinématique : ni clic, ni touche E (Espace pour passer)
+HOOKS.primary.unshift(() => cine.on);
+HOOKS.secondary.unshift(() => cine.on);
+// (game est défini plus loin, dans 13-main.js : on s'y branche au premier chargement)
+HOOKS.load.unshift(() => {
+  if (game._socle) return;
+  game._socle = true;
+  const _interact = game.interact.bind(game);
+  game.interact = function () { if (cine.on || corps.hisse) return; return _interact(); };
+  const _die = game.die.bind(game);
+  game.die = function (cause) { if (cine.on) cine.finir(true); corps.hisse = null; return _die(cause); };
+});
+
 // ---- 12-ui.js
 // ============================================================================
 //  INTERFACE : menus, options, panneau de l'éditeur, HUD, fichiers
@@ -26734,6 +29236,7 @@ const game = {
       camPos = p.eyePos(); yaw = p.yaw; pitch = p.pitch + p.kickPitch;
       if (this.shakeT > 0) { this.shakeT = Math.min(this.shakeT, 1) - dt; const k = Math.max(0, this.shakeT) * 0.05, t = this.time; camPos = [camPos[0] + Math.sin(t * 37) * k, camPos[1] + Math.sin(t * 43 + 1) * k, camPos[2] + Math.sin(t * 31 + 2) * k]; }
       if (F && play.nausea > 0) yaw += Math.sin(this.time * 1.3) * Math.min(0.025, 0.004 * play.nausea);
+      if (F) for (const fn of HOOKS.camera) { const c = fn(dt, camPos, yaw, pitch); if (c) { camPos = c.pos; yaw = c.yaw; pitch = c.pitch; } }
     }
     weather.update(dt, w);
     const wc = weather.cur;
@@ -26804,7 +29307,7 @@ const game = {
 
     // objet en main
     let gun = null, gunL = null;
-    if (this.mode === 'play' && F && !this.dying) {
+    if (this.mode === 'play' && F && !this.dying && !this.noHand) {
       gun = this.viewModel(p, dt); gun.light = lights.gunLight;
       if (this.lantern && farm.s.hand !== 'lanterne' && farm.count('lanterne')) gunL = { spr: 'vm_lantern', frame: 1, ox: gun.ox * 0.6 + 0.02, oy: gun.oy * 0.8 - 0.02, light: lights.gunLight };
     }
@@ -26841,7 +29344,7 @@ const game = {
     const ents = { data: this.flyData || (this.flyData = new Float32Array(64 * 13)), n: 0 };
     if (F) ents.n = play.appendFlyers(ents.data, 0);
     this.renderer.render({
-      cam: { pos: camPos, yaw, pitch, fovX: settings.fov * DEG },
+      cam: { pos: camPos, yaw, pitch, fovX: settings.fov * DEG * (this.fovK || 1) },
       sky, time: this.time, cloudT: this.cloudT, lights, flash: this.flashlight && !F ? 1 : 0,
       bands: settings.bands ? 14 : 0, levels: settings.dither ? 28 : 0, gamma: 1 / settings.gamma,
       grass: strange.inEnvers() && F ? null : { n: 150, spacing: 0.56, radius: 40 },
