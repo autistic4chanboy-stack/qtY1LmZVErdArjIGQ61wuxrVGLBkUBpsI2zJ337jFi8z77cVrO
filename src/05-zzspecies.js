@@ -97,47 +97,11 @@ FISH.poisson_aveugle.where.push('souterrain');
 const fishRarete = (id) => { const w = FISH[id].w; return w >= 4 ? 0 : w >= 2 ? 1 : w >= 0.5 ? 2 : w >= 0.1 ? 3 : 4; };
 
 // ---------------------------------------------------------------- nouvelles bêtes
-Object.assign(CREATURES, {
-  chamois: { walk: 0.9, run: 7.5, range: 26, flee: 18, radius: 0.3, idle: [2, 7], solid: true, graze: true, rig: 'chamois', h: 1.1, wild: true, shy: true },
-  lievre_blanc: { walk: 1.0, run: 7.5, range: 18, flee: 10, radius: 0.16, idle: [1, 5], hop: true, rig: 'lievre_blanc', h: 0.5, wild: true },
-  lagopede: { walk: 0.6, run: 3.0, range: 10, flee: 6, radius: 0.12, idle: [1, 4], rig: 'lagopede', h: 0.3, wild: true, oiseau: true, flush: true },
-  castor: { walk: 0.5, run: 2.8, range: 10, flee: 9, radius: 0.22, idle: [2, 7], rig: 'castor', h: 0.35, wild: true },
-  salamandre: { walk: 0.25, run: 0.8, range: 4, flee: 0, radius: 0.06, idle: [3, 9], rig: 'salamandre', h: 0.08, wild: true, nuit: true },
-  cistude: { walk: 0.15, run: 0.3, range: 4, flee: 0, radius: 0.12, idle: [4, 12], rig: 'cistude', h: 0.12, wild: true },
-  martre: { walk: 1.0, run: 6.5, range: 20, flee: 11, radius: 0.12, idle: [1, 4], rig: 'martre', h: 0.3, wild: true, arbre: true },
-  couleuvre: { walk: 0.35, run: 1.6, range: 7, flee: 3, radius: 0.1, idle: [3, 9], rig: 'couleuvre', h: 0.1, wild: true },
-  martin: { walk: 0.3, run: 1.5, range: 8, flee: 8, radius: 0.08, idle: [2, 6], rig: 'martin', h: 0.18, wild: true, oiseau: true },
-  tetras: { walk: 0.6, run: 3.2, range: 12, flee: 7, radius: 0.18, idle: [2, 6], rig: 'tetras', h: 0.6, wild: true, oiseau: true, flush: true },
-  aigle: { fly: true, rig: 'aigle', flock: 1, soar: true },
-  chocard: { fly: true, rig: 'chocard', flock: 6, crow: true },
-});
-Object.assign(PREY, {
-  chamois: { hp: 35, drop: [['viande', 2, 3], ['cuir', 1, 1]] }, lievre_blanc: { hp: 10, drop: [['viande', 1, 1], ['fourrure', 0, 1]] },
-  lagopede: { hp: 5, drop: [['viande', 1, 1], ['plume', 1, 2]] }, castor: { hp: 18, drop: [['fourrure', 1, 1], ['viande', 0, 1]] },
-  salamandre: { hp: 2, drop: [['peau_salamandre', 1, 1]] }, cistude: { hp: 8, drop: [['ecaille_tortue', 1, 1]] }, martre: { hp: 12, drop: [['fourrure', 1, 1]] },
-  couleuvre: { hp: 5, drop: [['mue_serpent', 1, 1]] }, martin: { hp: 3, drop: [['plume_bleue', 1, 1]] }, tetras: { hp: 10, drop: [['viande', 1, 2], ['plume_noire', 1, 2]] },
-  aigle: { hp: 12, drop: [['plume_aigle', 1, 2]] }, chocard: { hp: 3, drop: [['plume_noire', 1, 1]] },
-});
+// (leurs comportements et leurs modèles sont dans 10-zzfauna3.js : CREATURES n'existe pas encore ici)
 defItem('peau_salamandre', 'Peau de salamandre', 'materiau', 40, ['cuir', '#2a2a20'], { alch: true, desc: 'Noire et jaune, froide au toucher même au soleil.' });
 defItem('ecaille_tortue', 'Écaille de tortue', 'materiau', 35, ['os', '#5a5a3a'], { alch: true });
 defItem('plume_bleue', 'Plume de martin-pêcheur', 'materiau', 25, ['plume', '#2a90d0'], { alch: true });
 defItem('plume_aigle', 'Plume d’aigle', 'materiau', 45, ['plume', '#6a4a2a'], { alch: true, desc: 'Longue comme l’avant-bras. Les Aëlim, dit-on, en faisaient des plumes à écrire.' });
-OBJ_TYPES.push(
-  { id: 'chamoix', name: 'Chamois', cat: 'Animaux', spr: ['a_deer'], h: [1.1, 1.1], animal: 'chamois', col: 0, sway: 0, spacing: 3, sink: 0 },
-  { id: 'lievres_blancs', name: 'Lièvre variable', cat: 'Animaux', spr: ['a_rabbit'], h: [0.5, 0.5], animal: 'lievre_blanc', col: 0, sway: 0, spacing: 3, sink: 0 },
-  { id: 'lagopedes', name: 'Lagopède', cat: 'Animaux', spr: ['a_bird'], h: [0.3, 0.3], animal: 'lagopede', col: 0, sway: 0, spacing: 3, sink: 0 },
-  { id: 'castors', name: 'Castor', cat: 'Animaux', spr: ['a_rabbit'], h: [0.35, 0.35], animal: 'castor', col: 0, sway: 0, spacing: 3, sink: 0 },
-  { id: 'salamandres', name: 'Salamandre', cat: 'Animaux', spr: ['a_rabbit'], h: [0.08, 0.08], animal: 'salamandre', col: 0, sway: 0, spacing: 2, sink: 0 },
-  { id: 'cistudes', name: 'Cistude', cat: 'Animaux', spr: ['a_rabbit'], h: [0.12, 0.12], animal: 'cistude', col: 0, sway: 0, spacing: 2, sink: 0 },
-  { id: 'martres', name: 'Martre', cat: 'Animaux', spr: ['a_rabbit'], h: [0.3, 0.3], animal: 'martre', col: 0, sway: 0, spacing: 3, sink: 0 },
-  { id: 'couleuvres', name: 'Couleuvre', cat: 'Animaux', spr: ['a_rabbit'], h: [0.1, 0.1], animal: 'couleuvre', col: 0, sway: 0, spacing: 3, sink: 0 },
-  { id: 'martins', name: 'Martin-pêcheur', cat: 'Animaux', spr: ['a_bird'], h: [0.18, 0.18], animal: 'martin', col: 0, sway: 0, spacing: 3, sink: 0 },
-  { id: 'tetras_', name: 'Grand tétras', cat: 'Animaux', spr: ['a_bird'], h: [0.6, 0.6], animal: 'tetras', col: 0, sway: 0, spacing: 3, sink: 0 },
-  { id: 'aigles', name: 'Aigle royal', cat: 'Animaux', spr: ['a_bird'], h: [0.6, 0.6], animal: 'aigle', col: 0, sway: 0, spacing: 20, sink: 0 },
-  { id: 'chocards', name: 'Chocards', cat: 'Animaux', spr: ['a_bird'], h: [0.3, 0.3], animal: 'chocard', col: 0, sway: 0, spacing: 10, sink: 0 },
-);
-OBJ_TYPES.forEach((t, i) => { OBJ_INDEX[t.id] = i; });
-
 // ---------------------------------------------------------------- le catalogue (livres, peuplement)
 // bêtes : [id de créature, nom, milieux, rareté, dangereux (0-3)]
 const ESPECES_ANIMAUX = [
