@@ -44879,6 +44879,2010 @@ HOOKS.load.push(() => {
   if (fondation.presente()) { fondation.S().on = true; fondation.initChercheurs(); }
 });
 
+// ---- 11-zzz90-vol.js
+// ============================================================================
+//  VOL À LA TIRE
+//  Accroupi, dans le dos d'un habitant, la touche E propose « Faire les poches ».
+//  - la réussite dépend de la position (dans le dos, accroupi), de l'attention
+//    de l'habitant (au travail, en train de parler, endormi, la nuit, la foule
+//    du marché), de son caractère, de l'ivresse et des récidives ;
+//  - le butin dépend de ce qu'il porte : des pièces selon sa richesse, des
+//    objets de son métier, des objets personnels, parfois un objet de quête ;
+//  - raté : il crie, se retourne, l'amitié chute, le crime est connu de ceux
+//    qui l'ont vu (societe.crime, type 'vol'), la mentalité baisse ;
+//  - les objets volés se reconnaissent : les revendre à leur propriétaire, ou
+//    dans son village, c'est être pris la main dans le sac. Les colporteurs,
+//    eux, ne demandent jamais d'où vient ce qu'ils achètent.
+//  État : farm.s.vol = { marques: [{ id, de, j, t }], poches: { pnj: jour },
+//         victimes: { pnj: jour }, pieces, reussis, rates, plaintes: {} }
+//  API : vol.tenter(n), vol.chance(n), vol.marques(id), vol.confisquer(),
+//        vol.recel(id) (objets volés d'un type), vol.cible(n)
+// ============================================================================
+defItem('mouchoir_brode', 'Mouchoir brodé', 'tresor', 10, ['sachet', '#ece4d8'], { desc: 'Du fil blanc sur de la batiste, et deux initiales qui ne sont pas les vôtres.' });
+defItem('tabatiere', 'Tabatière d’argent', 'tresor', 40, ['rond', '#a8a8b4'], { desc: 'Le couvercle est gravé d’un cerf. Elle sent encore le tabac de quelqu’un.' });
+defItem('couteau_poche', 'Couteau de poche', 'tresor', 25, ['cle', '#9a9aa2'], { desc: 'Un manche de corne, une lame usée à force d’être affûtée. On y tenait.' });
+defItem('medaillon_portrait', 'Médaillon à portrait', 'tresor', 80, ['medaillon', '#c8a860'], { desc: 'Sous le verre bombé, un visage minuscule, pâli. Quelqu’un l’embrassait chaque soir.' });
+
+// ce que portent les gens : b = pièces [min, max], m = objets du métier, p = objets personnels, r = rares, q = [quête, objet]
+const VOL_POCHES = {
+  maire: { b: [18, 45], m: ['plume', 'bougie'], p: ['montre', 'tabatiere', 'mouchoir_brode'] },
+  boulangere: { b: [4, 14], m: ['pain', 'brioche', 'farine'], p: ['mouchoir_brode', 'medaillon_portrait'] },
+  forgeron: { b: [6, 18], m: ['charbon', 'lingot_cuivre'], p: ['couteau_poche', 'tabatiere'] },
+  grainetiere: { b: [5, 16], m: ['graines_ble', 'graines_carotte', 'graines_chou', 'graines_fraise'], p: ['mouchoir_brode'] },
+  aubergiste: { b: [12, 34], m: ['cidre', 'fromage'], p: ['tabatiere', 'couteau_poche'] },
+  cure: { b: [6, 22], m: ['bougie', 'eau_benite', 'chapelet_buis'], p: ['mouchoir_brode'], q: ['aubergiste_3', 'pipe'] },
+  postiere: { b: [4, 12], m: ['plume', 'bougie'], p: ['mouchoir_brode', 'couteau_poche'] },
+  garde: { b: [3, 10], m: ['pain', 'bougie'], p: ['tabatiere'] },
+  eleveuse: { b: [6, 20], m: ['foin', 'oeuf', 'corde'], p: ['couteau_poche'] },
+  pecheur: { b: [2, 8], m: ['vers', 'perche', 'gardon'], p: ['couteau_poche', 'tabatiere'] },
+  guerisseuse: { b: [1, 6], m: ['herbes', 'rosee', 'reine_pres'], p: ['chapelet_buis'] },
+  fillette: { b: [0, 2], m: [], p: ['figurine'] },
+  alchimiste: { b: [10, 30], m: ['fiole', 'sel', 'lichen'], p: ['tabatiere', 'mouchoir_brode'] },
+  libraire: { b: [6, 20], m: ['bougie', 'plume'], p: ['medaillon_portrait'] },
+  colporteur: { b: [15, 45], m: ['corde', 'bougie', 'sel', 'vieille_piece'], p: ['tabatiere'], r: ['bijou'], q: ['libraire_1', 'feuillet_perdu'] },
+  colporteuse: { b: [10, 30], m: ['toile', 'bandage', 'sel', 'fiole'], p: ['mouchoir_brode'], r: ['perle'], q: ['cure_2', 'chapelet'] },
+  chasseur: { b: [5, 15], m: ['cartouche', 'croc', 'plume_noire'], p: ['couteau_poche'], q: ['guerisseuse_2', 'dent_de_loup'] },
+  nain_ancien: { b: [20, 60], m: ['minerai_fer', 'charbon'], p: [], r: ['gemme', 'lingot_or'] },
+  nain_forgeronne: { b: [15, 40], m: ['lingot_fer', 'charbon'], p: [], r: ['gemme'] },
+};
+// le caractère : on se méfie, ou pas
+const VOL_TRAITS = { bavarde: 0.08, joviale: 0.06, pressée: 0.05, mélancolique: 0.05, patient: 0.02, joyeuse: 0.04, curieuse: -0.08, méfiant: -0.12, zélé: -0.1, dangereux: -0.12, directe: -0.04, robuste: -0.04, taciturne: -0.03, grave: -0.08, roublard: -0.15, franche: -0.03, peureux: 0.03, loyal: 0 };
+const VOL_CRIS = {
+  _: ['Au voleur ! AU VOLEUR !', 'Hé ! Vos mains ! Au voleur !', 'Qu’est-ce que vous faites dans ma poche ?! Au voleur !'],
+  maire: 'Mes poches ! Vous osez ? Au garde ! AU GARDE !',
+  boulangere: 'Doux Jésus ! Votre main dans mon tablier ?! Au voleur !',
+  forgeron: 'Enlevez votre main. Tout de suite.',
+  grainetiere: 'Petite fouine ! Au voleur ! J’ai des yeux dans le dos, moi, depuis soixante ans !',
+  aubergiste: 'Ma recette ! Au voleur ! Je vous ai servi à boire, et voilà comment on me remercie !',
+  cure: 'Mon enfant… dans la poche d’un prêtre ? Dieu vous voit. Moi aussi.',
+  postiere: 'Ma sacoche ! Au voleur ! Toute la ville va le savoir, je vous le garantis !',
+  garde: 'La main dans la poche du garde ? Vous êtes fou, ou vous avez envie de voir le cachot ?',
+  eleveuse: 'Hé ! On ne fouille pas une femme de ranch. Pas sans y laisser des dents !',
+  pecheur: 'Hé. Il n’y a que du fil et des hameçons, là-dedans. Au voleur !',
+  guerisseuse: 'Mes herbes ? Prenez-les. Mais les mains qui volent se dessèchent. C’est connu.',
+  fillette: 'Hé ! C’est à moi ! Maman ! MAMAN !',
+  alchimiste: 'Vos doigts dans mes fioles ! Vous voulez vous brûler jusqu’à l’os ? Au voleur !',
+  libraire: 'On ne vole pas un vieil homme. On emprunte, on rend, et on paie le retard. Au voleur !',
+  colporteur: 'Ha ! À un colporteur ? On me l’a faite cent fois, mon ami. Cent fois. Au voleur !',
+  colporteuse: 'Ma bourse ! Au voleur ! Sur les routes, on se fait voler par des inconnus, pas par des clients !',
+  chasseur: 'Je vous entends respirer depuis tout à l’heure. Retirez votre main, ou je vous la casse.',
+  nain_ancien: 'Des doigts de surface dans une bourse des halles. Voleur ! VOLEUR !',
+  nain_forgeronne: 'Tu fouilles une forgeronne ? Tu tiens à ta main ? Voleur !',
+};
+const VOL_TEMOIN = ['Au voleur ! Là, dans le dos de {victime} !', 'Hé ! Je vous ai vu ! Au voleur !', 'Il fait les poches de {victime} ! Au garde !'];
+const VOL_PLAINTE = [
+  'On m’a fait les poches, hier. Si je tenais le voleur… Enfin. Je ne le tiens pas.',
+  'Il me manque des sous. Je ne suis pas folle : il me manque des sous. Quelqu’un a de longs doigts, par ici.',
+  'Vous n’auriez pas vu traîner quelqu’un de louche ? On m’a vidé les poches, et je n’ai rien senti. Rien.',
+];
+const VOL_ARMES_TOOLS = new Set(['fusil', 'arc', 'rapiere']);
+
+const vol = {
+  t: 0, attente: null, hintEl: null,
+  S() {
+    const s = farm.s;
+    if (!s) return null;
+    const S = s.vol || (s.vol = {});
+    if (!S.marques) Object.assign(S, { marques: [], poches: {}, victimes: {}, pieces: 0, reussis: 0, rates: 0, plaintes: {} });
+    if (!S.plaintes) S.plaintes = {};
+    return S;
+  },
+  nu(n) { return !!(n.d.look && n.d.look.nude); },
+  // un habitant qu'on peut détrousser (le reste des conditions : la cible de E)
+  cible(n) {
+    if (!n || !n.st || !n.st.alive || n.vanished || n.hunting || n.talking || n.state === 'gone' || n.state === 'dead') return false;
+    if ((n.fleeT || 0) > 0 || (n.poursuite || 0) > game.time || n.sommeT) return false;
+    const S = this.S();
+    return !(S && S.poches[n.id] === farm.s.day);
+  },
+  // « pile dans le dos » : 1 ; de côté : 0 ; en face : -1
+  dos(n, px, pz) {
+    const dx = px - n.x, dz = pz - n.z, d = Math.hypot(dx, dz) || 1;
+    return -(dx * Math.sin(n.heading) + dz * Math.cos(n.heading)) / d;
+  },
+  foule(n) { let k = 0; for (const m of npcs.list) if (m !== n && m.st.alive && !m.vanished && m.state !== 'gone' && Math.hypot(m.x - n.x, m.z - n.z) < 7) k++; return k; },
+  chance(n) {
+    const p = game.player, h = npcs.hour(), s = farm.s, S = this.S();
+    let k = 0.28;
+    if (n.state === 'sleep') k += 0.36;
+    else k += clamp(this.dos(n, p.pos[0], p.pos[2]), 0, 1) * 0.22;
+    if (p.crouch > 0.5) k += 0.06;
+    const pose = n.goal && n.state === 'idle' ? n.goal.pose : null;
+    if (pose === 'work' || pose === 'fish') k += 0.14; // occupé à son ouvrage
+    if ((n.chatT || 0) > 0 || (n.bubbleT || 0) > 0) k += 0.12; // en train de parler
+    if (n.state === 'walk') k -= 0.06;
+    if (h >= 21 || h < 5.5) k += 0.1; // la nuit
+    if (game.lantern) k -= 0.08;
+    k += Math.min(0.18, this.foule(n) * 0.06); // la foule du marché
+    for (const t of n.d.traits || []) k += VOL_TRAITS[t] || 0;
+    if ((n.d.age || 30) >= 65) k += 0.06;
+    if (npcs.level(n) >= 6) k += 0.04; // on ne se méfie pas d'un ami
+    if (n.d.id === 'garde') k -= 0.2;
+    if (n.d.area === 'nains') k -= 0.08;
+    const last = S.victimes[n.id];
+    if (last && s.day - last < 4) k -= 0.12;
+    try { if (typeof alcool !== 'undefined' && alcool.niveau && alcool.niveau() >= 2) k -= 0.12; } catch (e) { /* rien */ }
+    return clamp(k, 0.03, 0.9);
+  },
+
+  // ------------------------------------------------------------------ la tentative
+  tenter(n) {
+    if (!farm.s || this.attente || game.sleeping || game.dying) return;
+    if (this.nu(n)) { ui.subtitle('', '(Pas la moindre poche. Évidemment.)', 3); return; }
+    const k = this.chance(n);
+    sound.scratch && sound.scratch();
+    this.attente = { n, k, t: 0.45 };
+  },
+  resoudre() {
+    const A = this.attente, n = A.n, p = game.player;
+    this.attente = null;
+    if (!n.st.alive || Math.hypot(n.x - p.pos[0], n.z - p.pos[2]) > 2.3) { ui.subtitle('', '(Il s’éloigne. Votre main se referme sur le vide.)', 3); return; }
+    if (Math.random() < A.k) this.reussite(n); else this.echec(n);
+  },
+  reussite(n) {
+    const s = farm.s, S = this.S(), p = game.player, P = VOL_POCHES[n.d.id] || { b: [2, 10], m: [], p: [] };
+    const pos = [p.pos[0], p.pos[1] + 1.1, p.pos[2]];
+    const bits = [];
+    // des pièces, selon la richesse (les jours de marché, la recette est dans la poche)
+    let pieces = 0;
+    if (Math.random() < 0.85) {
+      pieces = Math.round(P.b[0] + Math.random() * (P.b[1] - P.b[0]));
+      if (typeof cal !== 'undefined' && cal.is('marche') && n.d.shop) pieces = Math.round(pieces * 1.5);
+      if (pieces > 0) { s.money += pieces; S.pieces += pieces; bits.push(pieces > 1 ? `${pieces} pièces` : 'une pièce'); sound.coin && sound.coin(); }
+    }
+    // un objet : de quête, du métier, personnel, rare
+    let id = null, t = 'm';
+    const Q = P.q && s.quests[P.q[0]];
+    if (Q && Q.st === 'actif' && !Q.found && ITEMS[P.q[1]] && !farm.count(P.q[1]) && Math.random() < 0.5) { id = P.q[1]; t = 'q'; }
+    else {
+      const r = Math.random(), have = (L) => (L || []).filter((k) => ITEMS[k]);
+      const R = have(P.r), M = have(P.m), Pp = have(P.p);
+      if (R.length && r < 0.06) { id = pick(R); t = 'p'; }
+      else if (M.length && r < 0.6) { id = pick(M); t = 'm'; }
+      else if (Pp.length && r < 0.9) { id = pick(Pp); t = 'p'; }
+    }
+    if (id) {
+      farm.give(id, 1); play.flyer && play.flyer(id, pos, 1);
+      S.marques.push({ id, de: n.id, j: s.day, t });
+      bits.push(itemName(id).toLowerCase());
+      if (t === 'q') this.objetDeQuete(P.q[0], id);
+    }
+    S.poches[n.id] = s.day; S.victimes[n.id] = s.day; S.reussis++;
+    S.plaintes[n.id] = s.day;
+    if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-0.8, 'vol à la tire', 2.4);
+    ui.subtitle('', bits.length ? `(Vos doigts ressortent de la poche : ${bits.join(', ')}.)` : '(Rien. Des miettes, un bout de ficelle. Des poches vides.)', 3.5);
+    // quelqu'un a-t-il vu ?
+    this.temoins(n);
+  },
+  // l'objet d'une quête en cours : on le tient, on ne le cherchera plus au sol
+  objetDeQuete(qid, id) {
+    const s = farm.s, w = game.world, Q = s.quests[qid];
+    if (Q) Q.found = true;
+    const i = (w.inter || []).findIndex((it) => it.id === 'quete_' + qid);
+    if (i >= 0) w.inter.splice(i, 1);
+    const pi = w.props.findIndex((q) => q.questFind === qid);
+    if (pi >= 0) { w.props.splice(pi, 1); farm.dirtyProps = true; }
+    const g = quests.giver(qid), gn = g && npcs.byId[g];
+    setTimeout(() => ui.subtitle('', gn ? `(${itemName(id)}… C’est ce que cherche ${gn.name}.)` : `(${itemName(id)}… Voilà qui n’était pas à lui.)`, 4), 3600);
+  },
+  // les autres : ceux qui regardent de ce côté, pas trop loin
+  temoins(n) {
+    const p = game.player, h = npcs.hour(), w = game.world;
+    for (const m of npcs.list) {
+      if (m === n || !m.st.alive || m.vanished || m.hunting || m.sleep || m.state === 'sleep' || m.state === 'gone' || m.talking) continue;
+      const dx = p.pos[0] - m.x, dz = p.pos[2] - m.z, d = Math.hypot(dx, dz);
+      if (d > 12 || (d > 5 && !segClear(w, m.x, m.z, p.pos[0], p.pos[2]))) continue;
+      const face = (dx * Math.sin(m.heading) + dz * Math.cos(m.heading)) / (d || 1);
+      if (face < 0.35) continue;
+      if (Math.random() > (h >= 21 || h < 5.5 ? 0.3 : 0.55)) continue;
+      npcs.say(m, fmtLine(pick(VOL_TEMOIN), m, { victime: n.name }), 3);
+      m.heading = Math.atan2(dx, dz);
+      this.pris(n, [m, n]);
+      return true;
+    }
+    return false;
+  },
+  echec(n) {
+    const S = this.S(), p = game.player;
+    S.rates++; S.victimes[n.id] = farm.s.day;
+    n.heading = Math.atan2(p.pos[0] - n.x, p.pos[2] - n.z);
+    const cri = VOL_CRIS[n.d.id] || pick(VOL_CRIS._);
+    npcs.say(n, cri, 3.5);
+    n.chatT = 0;
+    if (n.state === 'sleep') { n.state = 'idle'; n.sleep = false; n.goal = null; }
+    // les costauds repoussent, les autres reculent
+    if (['forgeron', 'chasseur', 'eleveuse', 'nain_forgeronne'].includes(n.d.id)) {
+      const a = Math.atan2(p.pos[0] - n.x, p.pos[2] - n.z);
+      p.vel[0] += Math.sin(a) * 5; p.vel[2] += Math.cos(a) * 5;
+      play.hurt(6, n, 'Repoussé par ' + n.name);
+      game.shakeT = Math.max(game.shakeT || 0, 0.25);
+    } else if (n.d.id !== 'garde') { n.fleeT = 2.5; }
+    this.pris(n, null); // le cri : tous ceux qui sont autour l'entendent (la société compte les témoins)
+  },
+  // pris sur le fait : l'amitié chute, le crime est su, le garde accourt
+  pris(n, tem) {
+    npcs.addAmitie(n, -150);
+    n.st.anger = Math.max(n.st.anger || 0, 4);
+    npcs.remember(n, 'vol');
+    let C = null;
+    if (typeof societe !== 'undefined' && societe.crime) C = societe.crime(tem ? { type: 'vol', victime: n.id, x: n.x, z: n.z, temoins: tem } : { type: 'vol', victime: n.id, x: n.x, z: n.z });
+    const g = npcs.byId.garde, vus = tem || (C ? C.temoins.map((id) => npcs.byId[id]) : [n]);
+    if (g && g.st.alive && !g.sleep && (vus.includes(g) || Math.hypot(g.x - n.x, g.z - n.z) < 40)) { g.poursuite = game.time + 18; g.vuT = game.time; g.fleeT = 0; }
+  },
+
+  // ------------------------------------------------------------------ les objets volés
+  // (on ne garde pas plus de marques qu'on n'a d'objets : ce qui a été mangé, donné, perdu ne compte plus)
+  ranger() {
+    const S = this.S();
+    if (!S) return;
+    const vus = {};
+    for (let i = S.marques.length - 1; i >= 0; i--) {
+      const m = S.marques[i];
+      vus[m.id] = (vus[m.id] || 0) + 1;
+      if (vus[m.id] > farm.count(m.id)) S.marques.splice(i, 1);
+    }
+  },
+  marques(id) { const S = this.S(); if (!S) return []; this.ranger(); return S.marques.filter((m) => m.id === id); },
+  recel(id) { return this.marques(id).length; },
+  oter(m) { const S = this.S(), i = S.marques.indexOf(m); if (i >= 0) S.marques.splice(i, 1); },
+  // un marchand reconnaît-il l'objet ? (le volé lui-même, ou un voisin pour les objets personnels)
+  reconnait(n, id) {
+    const M = this.marques(id);
+    if (!M.length || !n || n.d.nomade) return null;
+    const vd = (i) => (typeof societe !== 'undefined' ? societe.villageDe(i) : null);
+    for (const m of M) if (m.de === n.id && (m.t === 'p' || Math.random() < 0.6)) return m;
+    for (const m of M) if (m.t === 'p' && m.de !== n.id && vd(m.de) && vd(m.de) === vd(n.id) && Math.random() < 0.6) return m;
+    return null;
+  },
+  mainDansLeSac(n, m) {
+    const v = npcs.byId[m.de], nom = itemName(m.id).toLowerCase();
+    farm.take(m.id, 1); this.oter(m);
+    ui.close(true);
+    const t = v === n ? `Mais… c’est à moi, ça ! ${itemName(m.id)} ! Vous me l’avez volé !` : `Ce ${nom}, je le connais : c’est celui de ${v ? v.name : 'quelqu’un d’ici'}. D’où vous le tenez ?`;
+    npcs.say(n, t, 4);
+    npcs.addAmitie(n, -120);
+    n.st.anger = Math.max(n.st.anger || 0, 3);
+    if (typeof societe !== 'undefined' && societe.crime) societe.crime({ type: 'vol', victime: m.de, x: n.x, z: n.z, temoins: [n], preuve: societe.villageDe(n.id) || true });
+    if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-1, 'pris la main dans le sac', 2);
+    setTimeout(() => ui.subtitle('', '(On vous a pris la main dans le sac.)', 3), 3800);
+  },
+  // au cachot : les objets volés sont rendus à leurs propriétaires
+  confisquer() {
+    const S = this.S(), out = [];
+    if (!S) return out;
+    this.ranger();
+    for (const m of S.marques.slice()) { if (farm.take(m.id, 1)) out.push(itemName(m.id).toLowerCase()); }
+    S.marques = [];
+    return out;
+  },
+  arme(id) { const it = ITEMS[id]; return !!it && (VOL_ARMES_TOOLS.has(it.tool) || ['fleche', 'fleche_fer', 'cartouche', 'piege_loup'].includes(id)); },
+
+  // ------------------------------------------------------------------ chaque image
+  update(dt, playing) {
+    if (this.attente) { this.attente.t -= dt; if (this.attente.t <= 0) this.resoudre(); }
+    // la cible visée s'éclaire ; l'indice discret sous le réticule
+    const t = game.target, on = !!(playing && t && t.kind === 'hook' && (t.vol || t.geolier));
+    if (on && t.vol) t.vol.hi = true;
+    const el = this.hint();
+    if (el) {
+      const txt = !on ? '' : t.geolier ? 'E — Prendre le trousseau, à travers les barreaux' : t.vol.st.met ? `E — Faire les poches de ${t.vol.name}` : 'E — Faire les poches';
+      if (el.textContent !== txt) el.textContent = txt;
+      el.classList.toggle('on', on);
+    }
+    this.t -= dt;
+    if (this.t <= 0) { this.t = 5; this.ranger(); }
+  },
+  hint() {
+    if (this.hintEl && this.hintEl.isConnected) return this.hintEl;
+    if (typeof document === 'undefined' || !document.body || !document.createElement) return null;
+    const st = document.createElement('style');
+    st.textContent = '#k-poche{position:fixed;left:50%;top:calc(50% + 26px);transform:translateX(-50%);color:#e8e0cc;font:13px Georgia,serif;text-shadow:0 1px 2px #000;opacity:0;transition:opacity .25s;pointer-events:none;z-index:6;white-space:nowrap}#k-poche.on{opacity:.82}.k-vole{color:#b04a3a;font-style:italic;margin-left:4px}';
+    document.head.appendChild(st);
+    const d = document.createElement('div'); d.id = 'k-poche';
+    document.body.appendChild(d);
+    this.hintEl = d;
+    return d;
+  },
+};
+
+// ---------------------------------------------------------------- touche E : accroupi, dans le dos d'un habitant
+HOOKS.target.push((eye, f, cand) => {
+  if (!farm.s || (typeof cine !== 'undefined' && cine.on) || vol.attente) return;
+  const p = game.player;
+  if (!(p.crouch > 0.5) || p.riding || p.swimming) return;
+  const fh = Math.hypot(f[0], f[2]) || 1;
+  let best = null, bd = 1.75;
+  for (const n of npcs.list) {
+    if (!vol.cible(n)) continue;
+    const dx = n.x - p.pos[0], dz = n.z - p.pos[2], d = Math.hypot(dx, dz);
+    if (d > bd || d < 0.2 || Math.abs(n.y - p.pos[1]) > 1.3) continue;
+    if ((dx * f[0] + dz * f[2]) / (d * fh) < 0.55) continue; // on le regarde
+    if (n.state !== 'sleep' && vol.dos(n, p.pos[0], p.pos[2]) < 0.25) continue; // dans son dos
+    best = n; bd = d;
+  }
+  if (best) { const n = best; cand({ kind: 'hook', vol: n, use: () => vol.tenter(n) }, 0.02); }
+});
+HOOKS.update.push((dt, eye, basis, sky, playing) => { if (farm.s) vol.update(dt, playing); });
+
+// ---------------------------------------------------------------- chargement : boutiques (recel) et cadeaux (on reconnaît son bien)
+HOOKS.load.push(() => {
+  vol.S(); vol.attente = null;
+  // les colporteurs rachètent les petites choses sans poser de questions ; à la ville, le maire (qui collectionne)
+  // et l'aubergiste (qui prête sur gages) les rachètent aussi… mais on y connaît le bien des voisins
+  for (const id of ['colporteur', 'colporteuse', 'maire', 'aubergiste']) {
+    const d = NPC_BY_ID[id];
+    if (d && d.shop && d.shop.buys) for (const k of ['mouchoir_brode', 'tabatiere', 'couteau_poche', 'medaillon_portrait', 'montre', 'bijou']) if (!d.shop.buys.includes(k)) d.shop.buys.push(k);
+  }
+  if (vol.hooked) return;
+  vol.hooked = true;
+  const _rs = ui.renderShop.bind(ui);
+  ui.renderShop = function () {
+    _rs();
+    const n = this.shopN;
+    if (!n || !farm.s) return;
+    const el = $('#shop');
+    if (!el) return;
+    for (const b of el.querySelectorAll('[data-sell]')) {
+      const id = b.dataset.sell;
+      if (!vol.recel(id)) continue;
+      const sp = b.querySelector('span');
+      if (sp && !sp.querySelector('.k-vole')) { const i = document.createElement('i'); i.className = 'k-vole'; i.textContent = n.d.nomade ? '(volé — on ne demande rien)' : '(volé)'; sp.appendChild(i); }
+      const f0 = b.onclick;
+      b.onclick = (e) => {
+        const m = vol.reconnait(n, id);
+        if (m) { vol.mainDansLeSac(n, m); return; }
+        const M = vol.marques(id), c0 = farm.count(id);
+        if (f0) f0(e);
+        // ce qui a été vendu sans histoire ne se reconnaîtra plus (le recel est fait)
+        if (M.length && farm.count(id) < c0) vol.oter(M[0]);
+        vol.ranger();
+      };
+    }
+    const all = el.querySelector('[data-sellall]');
+    if (all) {
+      const f0 = all.onclick;
+      all.onclick = (e) => {
+        for (const b of el.querySelectorAll('[data-sell]')) { const id = b.dataset.sell; const m = vol.recel(id) ? vol.reconnait(n, id) : null; if (m) { vol.mainDansLeSac(n, m); return; } }
+        if (f0) f0(e);
+        vol.ranger();
+      };
+    }
+  };
+  // offrir à quelqu'un ce qu'on lui a volé…
+  const _gift = talk.gift.bind(talk);
+  talk.gift = function () {
+    const n = this.n, id = farm.s && farm.s.hand;
+    if (n && id) {
+      const m = vol.marques(id).find((k) => k.de === n.id);
+      if (m && (m.t === 'p' || m.t === 'q' || Math.random() < 0.5)) {
+        farm.take(id, 1); vol.oter(m);
+        npcs.addAmitie(n, -100); n.st.anger = Math.max(n.st.anger || 0, 3);
+        if (typeof societe !== 'undefined' && societe.crime) societe.crime({ type: 'vol', victime: n.id, x: n.x, z: n.z, temoins: [n] });
+        return this.view(`${itemName(id)}… C’est à moi. C’est à MOI. Vous me faites les poches, et vous venez me l’offrir ? Sortez.`, [{ label: 'Partir', act: 'bye' }]);
+      }
+    }
+    return _gift();
+  };
+  // le lendemain, la victime s'aperçoit qu'on l'a volée
+  const _open = talk.open.bind(talk);
+  talk.open = function (n) {
+    const v = _open(n);
+    try {
+      const S = vol.S(), d = S && S.plaintes[n.id];
+      if (v && v.text && d !== undefined && farm.s.day - d >= 1 && farm.s.day - d <= 3 && n.st.met && !(n.st.anger > 0)) {
+        delete S.plaintes[n.id];
+        if (Math.random() < 0.6) { v.text = fmtLine(pick(VOL_PLAINTE), n); n.speakT = Math.min(6, 1 + v.text.length * 0.04); }
+      }
+    } catch (e) { console.error(e); }
+    return v;
+  };
+});
+
+// ---- 11-zzz91-prison.js
+// ============================================================================
+//  LA PRISON : le cachot sous la maison du garde de la ville
+//  - quand le garde (ou un chasseur de primes) arrête le fermier, on remplace
+//    le cachot « en fondu » de la société par une vraie cellule : paillasse,
+//    seau, barreaux, soupirail, un geôlier (Honoré Brac) ;
+//  - les objets volés sont rendus à leurs propriétaires, les armes gardées au
+//    greffe ; la peine se compte en jours, selon les crimes, la prime et les
+//    récidives ;
+//  - on en sort en payant la RANÇON (libéré aussitôt, prime levée), en purgeant
+//    sa peine (dormir sur la paille : le temps passe), ou plus vite par les
+//    TRAVAUX FORCÉS : casser des blocs à la carrière du cachot, sous l'œil du
+//    geôlier (une journée de carrière vaut deux jours de paille) ;
+//  - la ferme vit sans vous : les cultures sèchent, le chien a faim ;
+//  - l'ÉVASION est possible et difficile : une lime cachée derrière une pierre
+//    et trois nuits à scier un barreau du soupirail, ou le trousseau pris à la
+//    ceinture du geôlier quand il s'endort sur son tabouret. Rattrapé : deux
+//    jours de plus. Évadé : les crimes reprennent, et l'évasion s'y ajoute ;
+//  - à la sortie : la prime est levée, la réputation abîmée.
+//  Génération : deux salles souterraines (le cachot, la carrière) ajoutées
+//  après tout le reste de la vallée, avec leur propre tirage.
+//  État : farm.s.prison. API : prison (incarcerer, liberer, evader, enPrison…)
+// ============================================================================
+defItem('lime', 'Lime de forçat', 'quete', 0, ['cle', '#7a7a82'], { desc: 'Une lime plate, ébréchée, enveloppée dans un chiffon. Quelqu’un l’a laissée là pour le suivant.' });
+defItem('trousseau', 'Trousseau du geôlier', 'quete', 0, ['cle', '#5a5a62'], { desc: 'Six clés de fer sur un anneau. L’une d’elles ouvre votre grille.' });
+defItem('masse_forcat', 'Masse de forçat', 'outil', 0, ['marteau', '#6a6a70'], { tool: 'masse', desc: 'Clic : frapper le bloc. Douze blocs par jour, et la journée compte double.' });
+Object.assign(LIEU_NAMES, { cachot: 'le cachot de la ville', carriere_cachot: 'la carrière du cachot' });
+if (typeof CRIME_DEF !== 'undefined' && !CRIME_DEF.evasion) CRIME_DEF.evasion = { prime: 90, grav: 3, oubli: 20, violent: false };
+{
+  const _lib = societe.libelle.bind(societe);
+  societe.libelle = function (C) { return C && C.type === 'evasion' ? 'une évasion du cachot' : _lib(C); };
+}
+
+// ---------------------------------------------------------------- modèles : grilles, paillasse, seau, soupirail, blocs
+function kGrille(E, W) {
+  const H = 3.4;
+  for (let x = -W / 2 + 0.07; x < W / 2; x += 0.15) E.bx(x, 0, 0, 0.045, H, 0.045, PC.iron, TL.iron);
+  for (const y of [0.12, 1.3, 2.4, 3.3]) E.box(0, y, 0, W, 0.07, 0.05, PC.iron, TL.iron);
+}
+Object.assign(PROP_MODELS, {
+  grille_cachot(E) { kGrille(E, 6.0); },
+  grille_courte(E) { kGrille(E, 2.4); },
+  porte_grille(E, o) {
+    const a = o.data && o.data.open ? 1.35 : 0, W = 1.2, H = 3.4, hx = -0.6;
+    const at = (u) => [hx + Math.cos(a) * u, -Math.sin(a) * u];
+    for (let u = 0.08; u < W; u += 0.15) { const [x, z] = at(u); E.bx(x, 0.02, z, 0.045, H - 0.08, 0.045, PC.iron, TL.iron); }
+    for (const y of [0.15, 1.3, 2.4, 3.25]) { const [x, z] = at(W / 2); E.box(x, y, z, W, 0.07, 0.05, PC.iron, TL.iron, a); }
+    const [lx, lz] = at(W - 0.14); E.box(lx, 1.15, lz, 0.16, 0.22, 0.1, rgbf('#34343a'), TL.iron, a);
+    E.bx(hx, 0, 0, 0.1, H, 0.1, PC.iron, TL.iron);
+  },
+  paillasse(E) {
+    E.bx(0, 0, 0, 0.9, 0.14, 1.9, WHITE, TL.straw);
+    E.bx(0, 0.14, 0.35, 0.84, 0.04, 1.05, rgbf('#6a5a48'), TL.blanket);
+    E.bx(0, 0.14, -0.7, 0.5, 0.1, 0.3, rgbf('#b8a070'), TL.sack);
+  },
+  seau_cachot(E) {
+    E.bx(0, 0, 0, 0.34, 0.38, 0.34, WHITE, TL.wood);
+    for (const y of [0.05, 0.3]) E.bx(0, y, 0, 0.36, 0.04, 0.36, PC.iron, TL.iron);
+    E.bx(0, 0.35, 0, 0.28, 0.02, 0.28, [0.2, 0.18, 0.12], TL.plain);
+  },
+  chaine_mur(E) {
+    E.box(0, 1.62, 0, 0.14, 0.14, 0.05, PC.iron, TL.iron);
+    for (let k = 0; k < 6; k++) E.box(0, 1.5 - k * 0.12, 0.04, k % 2 ? 0.05 : 0.02, 0.11, k % 2 ? 0.02 : 0.05, PC.iron, TL.iron);
+    E.box(0, 0.74, 0.07, 0.16, 0.07, 0.16, PC.iron, TL.iron);
+  },
+  soupirail(E, o) {
+    // (le côté +z du modèle regarde la cellule)
+    const scie = o.data && o.data.scie;
+    E.box(0, 0, -0.03, 0.8, 0.5, 0.04, rgbf('#8e9aac'), TL.plain);
+    E.box(0, 0.28, 0.02, 0.9, 0.07, 0.1, PC.stone, TL.stone); E.box(0, -0.28, 0.02, 0.9, 0.07, 0.1, PC.stone, TL.stone);
+    for (const x of [-0.26, 0, 0.26]) {
+      if (x === 0 && scie) { E.box(0.02, 0.16, 0.05, 0.04, 0.2, 0.04, PC.iron, TL.iron, 0, 0.5); continue; }
+      E.box(x, 0, 0.03, 0.04, 0.52, 0.04, PC.iron, TL.iron);
+    }
+  },
+  lanterne_cachot(E) {
+    E.bx(0, 0, 0, 0.2, 0.05, 0.2, rgbf('#2e2e34'), TL.iron);
+    E.bx(0, 0.05, 0, 0.15, 0.2, 0.15, [1, 0.82, 0.5], TL.glass);
+    E.bx(0, 0.25, 0, 0.2, 0.05, 0.2, rgbf('#2e2e34'), TL.iron);
+    E.bx(0, 0.3, 0, 0.04, 0.08, 0.04, rgbf('#2e2e34'), TL.iron);
+  },
+  bloc_pierre(E) {
+    E.bx(0, 0, 0, 0.8, 0.55, 0.7, WHITE, TL.stone);
+    E.bx(0.08, 0.55, -0.04, 0.55, 0.22, 0.46, WHITE, TL.stone);
+  },
+  gravats(E) {
+    const P = [[0, 0, 0.5], [0.3, 0.1, 0.34], [-0.28, -0.12, 0.3], [0.1, -0.3, 0.26], [-0.1, 0.32, 0.28], [0.36, -0.28, 0.2], [-0.4, 0.2, 0.22]];
+    for (const [x, z, s] of P) E.bx(x, 0, z, s, s * 0.6, s * 0.8, WHITE, TL.stone);
+  },
+  pierre_mur(E) { E.box(0, 0, 0.02, 0.38, 0.26, 0.12, rgbf('#b8b0a2'), TL.stone); },
+});
+Object.assign(PROP_COLL, { grille_cachot: [3.0, 0.07, 3.4], grille_courte: [1.2, 0.07, 3.4], porte_grille: [0.6, 0.07, 3.4], bloc_pierre: [0.4, 0.35, 0.78] });
+Object.assign(PROP_LIGHTS, { lanterne_cachot: { c: [1.3, 0.92, 0.55], r: 10, y: 0.25, flicker: true }, soupirail: { c: [0.6, 0.68, 0.82], r: 5.5, y: 0 } });
+
+// ---------------------------------------------------------------- génération (après tout le reste de la vallée)
+const PRISON_POS = { x: 60, z: 560, cx: 60, cz: 612, H: 3.4 };
+function addPrison(w, seed) {
+  const rnd = mulberry32((((seed | 0) * 613) + 29) >>> 0);
+  const B = new Builder(w, rnd, new Uint8Array(w.W * w.W));
+  const H = PRISON_POS.H;
+  const under = (fn) => { const n0 = w.blocks.length; fn(); for (let k = n0; k < w.blocks.length; k++) w.blocks[k].under = true; };
+  // ------------------------------------------------ le cachot : trois cellules, un couloir, le coin du geôlier
+  const f = B.underRoom(PRISON_POS.x, PRISON_POS.z, 18, 14, H, 26, M_STONE, M_COBBLE);
+  under(() => {
+    B.block(f, -3, 0, 4.8, 0.4, H, 4.4, M_STONE);
+    B.block(f, 3, 0, 4.8, 0.4, H, 4.4, M_STONE);
+    B.block(f, -6, 0, -3.4, 0.6, H, 0.6, M_STONE); // piliers
+    B.block(f, 1.5, 0, -3.4, 0.6, H, 0.6, M_STONE);
+  });
+  B.propRel(f, 'grille_cachot', -6, 0, 2.6, 0);
+  B.propRel(f, 'grille_courte', -1.8, 0, 2.6, 0);
+  const porte = B.propRel(f, 'porte_grille', 0, 0, 2.6, 0, { open: false });
+  B.propRel(f, 'grille_courte', 1.8, 0, 2.6, 0);
+  B.propRel(f, 'grille_cachot', 6, 0, 2.6, 0);
+  // la cellule du milieu
+  B.propRel(f, 'paillasse', -1.5, 0, 5.8, Math.PI / 2);
+  B.propRel(f, 'seau_cachot', 2.25, 0, 6.5, 0);
+  B.propRel(f, 'chaine_mur', 0.9, 0, 6.95, Math.PI);
+  const soup = B.propRel(f, 'soupirail', 1.0, H - 1.0, 6.97, Math.PI, { scie: false });
+  B.propRel(f, 'pierre_mur', -2.55, 0.3, 6.96, Math.PI);
+  // les deux autres, vides
+  B.propRel(f, 'paillasse', -6.2, 0, 5.9, Math.PI / 2); B.propRel(f, 'seau_cachot', -8.4, 0, 6.5, 0); B.propRel(f, 'chaine_mur', -4.5, 0, 6.95, Math.PI);
+  B.propRel(f, 'paillasse', 6.4, 0, 5.9, Math.PI / 2); B.propRel(f, 'chaine_mur', 4.8, 0, 6.95, Math.PI); B.propRel(f, 'chaine_mur', 7.9, 0, 6.95, Math.PI);
+  // le coin du geôlier : table, chaise, tabouret de nuit devant la grille, coffre du greffe, échelle
+  B.propRel(f, 'table', 5, 0, -4.6, 0);
+  B.propRel(f, 'chaise', 5, 0, -5.4, Math.PI);
+  B.propRel(f, 'chaise', 1.3, 0, 1.75, 0);
+  B.propRel(f, 'coffre', 8.2, 0, -6.4, 0);
+  B.propRel(f, 'echelle', -8.55, 0, -6.2, Math.PI / 2, { h: H });
+  B.propRel(f, 'tonneau', 7.9, 0, -4.4, 0);
+  B.propRel(f, 'lanterne_cachot', 5.35, 0.8, -4.55, 0);
+  B.propRel(f, 'lanterne_cachot', -8.5, 0, 0.9, 0);
+  B.propRel(f, 'lanterne_cachot', 8.5, 0, 0.9, 0);
+  B.propRel(f, 'lanterne_cachot', -3.7, 0, 1.3, 0); B.propRel(f, 'lanterne_cachot', 3.7, 0, 1.3, 0);
+  B.propRel(f, 'lanterne_cachot', -7.0, 0, -6.5, 0);
+  // ce qu'on peut faire (touche E)
+  B.interRel(f, 'k_porte', 'k_porte', 0, 1.2, 2.45, 'La grille');
+  B.interRel(f, 'k_paillasse', 'k_paillasse', -1.5, 0.35, 5.8, 'Dormir sur la paille');
+  B.interRel(f, 'k_soupirail', 'k_soupirail', 1.0, H - 1.0, 6.85, 'Le soupirail');
+  B.interRel(f, 'k_pierre', 'k_pierre', -2.55, 0.35, 6.85, 'Une pierre descellée');
+  B.interRel(f, 'k_traits', 'k_traits', 2.72, 1.3, 4.4, 'Des traits gravés');
+  B.interRel(f, 'k_greffe', 'k_greffe', 8.2, 0.7, -6.4, 'Le coffre du greffe');
+  B.interRel(f, 'k_echelle', 'k_echelle', -8.3, 1.2, -6.0, 'L’échelle');
+  B.landmark('cachot', f.x, f.z, 8, { under: true, secret: true });
+  const W = (lx, lz, ly) => { const [x, z] = B.toWorld(f, lx, lz); return [x, f.y + (ly || 0), z]; };
+  // ------------------------------------------------ la carrière : des blocs à casser, sous l'œil du geôlier
+  const g = B.underRoom(PRISON_POS.cx, PRISON_POS.cz, 16, 12, 5, 26, M_ROCK, M_ROCK);
+  const blocs = [];
+  for (let i = 0; i < 15; i++) {
+    const lx = -5.5 + (i % 5) * 2.75 + (rnd() - 0.5) * 0.6, lz = -1.4 + Math.floor(i / 5) * 2.5 + (rnd() - 0.5) * 0.5;
+    B.propRel(g, 'bloc_pierre', lx, 0, lz, rnd() * TAU);
+    blocs.push(w.props.length - 1);
+  }
+  B.propRel(g, 'brouette', 6.1, 0, -4.2, 0.4);
+  B.propRel(g, 'gravats', -6.4, 0, 4.4, 0); B.propRel(g, 'gravats', 6.3, 0, 4.5, 1.2); B.propRel(g, 'gravats', 0.5, 0, 4.9, 2.1);
+  for (const [lx, lz] of [[-7.4, -5.4], [7.4, -5.4], [-7.4, 5.4], [7.4, 5.4]]) B.propRel(g, 'lanterne_cachot', lx, 0, lz, 0);
+  B.landmark('carriere_cachot', g.x, g.z, 8, { under: true, secret: true });
+  const Wg = (lx, lz) => { const [x, z] = B.toWorld(g, lx, lz); return [x, g.y, z]; };
+  w.prison = {
+    f, porteIdx: w.props.indexOf(porte), soupIdx: w.props.indexOf(soup),
+    cellule: { x0: f.x - 2.72, x1: f.x + 2.72, z0: f.z + 2.78, z1: f.z + 6.9 },
+    centre: W(0.2, 4.4), lit: W(-1.5, 5.8), tabouret: W(1.3, 1.9), table: W(5, -5.25), echelle: W(-8.2, -6.0),
+    zone: { x0: f.x - 9, x1: f.x + 9, z0: f.z - 7, z1: f.z + 7 },
+    cour: { f: g, entree: Wg(0, -4.3), garde: Wg(-5.6, -4.6), blocs, zone: { x0: g.x - 8, x1: g.x + 8, z0: g.z - 6, z1: g.z + 6 } },
+  };
+}
+{
+  const _gv = generateValley;
+  generateValley = async function (seed, progress, gen) {
+    const w = await _gv(seed, progress, gen);
+    if (w && w.designed) { try { addPrison(w, w.seed || seed); } catch (e) { console.error('prison', e); } }
+    return w;
+  };
+}
+
+// ---------------------------------------------------------------- le geôlier
+const GEOLIER = { nom: 'Brac, le geôlier', look: { skin: '#c89a78', hair: '#6a6560', hairStyle: 'court', beard: 'longue', hat: 'casquette', hatCol: '#2a2a30', top: '#4a4238', bottom: '#2e2a26', dress: false, apron: null, coat: true, build: 'rond', height: 1.02, held: null } };
+const GEOLIER_DIT = {
+  accueil: 'Honoré Brac, geôlier. Vous en avez pour {jours}. La rançon, c’est {rancon} pièces. Ou la carrière, au petit jour : une journée de cailloux vaut deux jours de paille. Frappez à la grille quand vous vous serez décidé{e}.',
+  combien: ['Encore {jours}. Je compte pour vous, ne vous en faites pas.', 'Il vous reste {jours}. Ici, les jours sont longs, mais ils passent. Comme partout.', '{jours}, et puis la porte. Si vous êtes sage.'],
+  pauvre: 'Vous n’avez pas le compte. Ici, on ne fait pas crédit : on fait des jours.',
+  rancon: 'C’est bien de l’argent. Il sent la ferme. Allez, dehors. Et que je ne vous revoie pas.',
+  carriere: 'La carrière ? Bon. Suivez-moi, et pas de bêtises : j’ai de bonnes jambes et une mauvaise humeur.',
+  carriere_tard: 'La carrière, c’est au petit jour. Là, c’est trop tard. Demain.',
+  carriere_fait: 'Vous avez déjà cassé vos cailloux pour aujourd’hui. Dormez.',
+  consigne: 'Douze blocs. En cailloux, pour les chemins. Quand c’est fait, on rentre.',
+  travail: ['Au travail.', 'On ne rêvasse pas, à la carrière.', 'Les blocs ne se cassent pas en les regardant.'],
+  fin_travail: 'C’est bon pour aujourd’hui. Ça vous fera un jour de moins.',
+  fin_tard: 'Il est tard. Votre journée ne comptera pas. Demain, frappez plus fort.',
+  nuit: 'Dormez. C’est tout ce qu’il y a à faire, ici, la nuit.',
+  dort: '(Le geôlier ronfle, la tête sur la poitrine.)',
+  reveil: 'Hein ? … Qu’est-ce que vous fabriquez ? Dormez, ou je vous fais dormir.',
+  halte: 'Halte ! Vous me prenez pour un imbécile ?',
+  mains: 'Hé ! Bas les pattes, voleur ! Vous vous croyez où ?',
+  rattrape: 'Deux jours de plus. Et la prochaine fois, je vous mets aux fers.',
+  libere: 'C’est fini pour vous. Vos affaires sont là. Ce qui n’était pas à vous est retourné à qui de droit.',
+  soupe: '(Le geôlier glisse une écuelle de soupe sous la grille.)',
+  pain: '(Pain sec et cruche d’eau, glissés sous la grille.)',
+};
+const PRISON_PEINE = { vol: 1, braconnage: 1, profanation: 3, agression: 2, meurtre: 6, evasion: 2 };
+const PRISON_TRAITS = ['Des traits gravés dans la pierre, par paquets de cinq. Des centaines. Quelqu’un a compté longtemps.', 'Sous les traits, gravé plus profond : « Ils ne reviennent pas tous de la carrière. »', 'Un nom, à moitié effacé. Une date. Et un dessin d’enfant : une maison, un soleil, un chien.'];
+
+const prison = {
+  g: null, busy: false, pv: {}, t: 0, attente: null, ronfleT: 0, criT: 0, hPrev: -1,
+  S() {
+    const s = farm.s;
+    if (!s) return null;
+    const P = s.prison || (s.prison = {});
+    if (P.fois === undefined) Object.assign(P, { v: 1, actif: false, fois: 0, evasions: 0, casier: [], saisie: {} });
+    if (!P.saisie) P.saisie = {};
+    if (!P.casier) P.casier = [];
+    return P;
+  },
+  enPrison() { const P = this.S(); return !!(P && P.actif); },
+  // ------------------------------------------------------------------ lieux
+  W() { return game.world && game.world.prison; },
+  dans(Z, x, z, m) { return x > Z.x0 - (m || 0) && x < Z.x1 + (m || 0) && z > Z.z0 - (m || 0) && z < Z.z1 + (m || 0); },
+  dansCellule(m) { const R = this.W(), p = game.player; return !!R && this.dans(R.cellule, p.pos[0], p.pos[2], m || 0); },
+  placer(pos, yaw) {
+    const p = game.player;
+    p.pos = [pos[0], pos[1] + 0.05, pos[2]]; p.vel = [0, 0, 0];
+    if (yaw !== undefined) p.yaw = yaw;
+    p.pitch = -0.05;
+    try { game.renderer.uploadCover(p.pos[0], p.pos[2]); } catch (e) { /* rendu pas prêt */ }
+  },
+  mettreEnCellule() { const R = this.W(); if (R) this.placer(R.centre, 0); },
+  // devant (ou derrière, la nuit) la maison du garde
+  dehors(derriere) {
+    const w = game.world, B = w.bld.garde, p = game.player;
+    let x, z, yaw = 0;
+    if (B) {
+      const bb = new Builder(w, Math.random, new Uint8Array(1));
+      [x, z] = derriere ? bb.toWorld(B.f, 0.5, B.D / 2 + 1.8) : [B.out[0], B.out[1]];
+      yaw = B.f.r + (derriere ? Math.PI : 0); // (on tourne le dos à la maison)
+    } else { x = w.townInfo ? w.townInfo.x : p.pos[0]; z = w.townInfo ? w.townInfo.z : p.pos[2]; }
+    const y = w.groundAt(x, z, w.heightAt(x, z) + 1.5, 2);
+    this.placer([x, y, z], yaw);
+  },
+  porte() { const R = this.W(); return R ? game.world.props[R.porteIdx] : null; },
+  appliquerPorte() {
+    const q = this.porte(), P = this.S(), w = game.world;
+    if (!q || !P) return;
+    const open = !!(P.actif && P.porte);
+    q.data = Object.assign({}, q.data || {}, { open });
+    if (open && q.blk) removePropCollider(w, q);
+    if (!open && !q.blk) { addPropCollider(w, q); w.grid = null; }
+    const so = this.W() && w.props[this.W().soupIdx];
+    if (so) so.data = Object.assign({}, so.data || {}, { scie: !!(P.actif && P.lime >= 3) });
+    farm.dirtyProps = true;
+  },
+  // ------------------------------------------------------------------ la peine, la rançon
+  peine(A, prime) {
+    const P = this.S();
+    let j = 0;
+    for (const C of A) j += PRISON_PEINE[C.type] || 1;
+    j += Math.floor(prime / 150) + Math.min(3, P.fois || 0);
+    return clamp(j, 1, 20);
+  },
+  prixRancon(prime, jours) { return Math.max(30, Math.round((prime * 1.3 + jours * 20) / 5) * 5); },
+  jours(n) { return n > 1 ? `${n} jours` : 'un jour'; },
+  txt(t) { const P = this.S(); return fmtLine(String(t).replace(/\{jours\}/g, this.jours(Math.max(1, P.jours || 1))).replace(/\{rancon\}/g, String(P.rancon || 0)).replace(/\{e\}/g, farm.s.fem ? 'e' : ''), null); },
+  dire(t, dur) { const s = this.txt(t); ui.subtitle(s.startsWith('(') ? '' : GEOLIER.nom, s, dur || Math.min(7, 2 + s.length * 0.045)); if (!s.startsWith('(')) sound.mumble && sound.mumble(0.8, s.length, 0); },
+  // ------------------------------------------------------------------ l'arrestation : au cachot
+  async incarcerer(R, repli) {
+    const s = farm.s, w = game.world, P = this.S();
+    if (!w.prison || !P) return repli ? repli(R) : null;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    if (game.player.riding) game.dismount();
+    game.sleeping = true;
+    ui.close(true);
+    try {
+      await ui.fade(true, `On vous mène au cachot, sous la maison du garde de ${farm.names.ville}.`, 1200);
+      const A = societe.actifs().filter((C) => societe.connuQuelquePart(C));
+      const prime = A.reduce((a, C) => a + C.prime, 0) || (R ? R.prime : 0);
+      let jours = this.peine(A, prime);
+      let mot = null;
+      if (typeof sentiments !== 'undefined' && sentiments.auCachot) { const r = sentiments.auCachot(jours); if (r) { jours = r.jours; mot = r.texte; } }
+      for (const C of A) { C.leve = 'prison'; C.leveJour = s.day; }
+      for (const m of npcs.list) { m.poursuite = 0; m.alerte = null; m.sommeT = 0; m.attaque = false; }
+      societe.majAffiches(true);
+      Object.assign(P, { actif: true, entree: s.day, jours, total: jours, prime, rancon: this.prixRancon(prime, jours), crimes: A.map((C) => C.id), travail: null, porte: false, lime: 0, limeVue: false, liberable: false, fois: (P.fois || 0) + 1, dernierTravail: 0, visite: 0, reveilNuit: 0 });
+      const pris = this.confisquer();
+      this.appliquerPorte();
+      this.mettreEnCellule();
+      this.g = null;
+      $('#fade-text').textContent = pris.length ? `On vous fouille. On vous prend : ${pris.join(', ')}.` : 'On vous fouille. On ne vous prend rien.';
+      await wait(2200);
+      $('#fade-text').textContent = mot || `${this.jours(jours)} de cachot.`;
+      await wait(1600);
+      farm.save();
+      await ui.fade(false, '', 1000);
+    } catch (e) { console.error(e); } finally { game.sleeping = false; }
+    this.dire(GEOLIER_DIT.accueil, 8);
+    return null;
+  },
+  confisquer() {
+    const s = farm.s, P = this.S(), out = [];
+    if (typeof vol !== 'undefined' && vol.confisquer) { const v = vol.confisquer(); if (v.length) out.push(...v.map((x) => x + ' (volé)')); }
+    for (const id of Object.keys(s.inv)) {
+      if (!(typeof vol !== 'undefined' && vol.arme ? vol.arme(id) : false)) continue;
+      const k = farm.count(id);
+      if (!k || !farm.take(id, k)) continue;
+      P.saisie[id] = (P.saisie[id] || 0) + k;
+      out.push(itemName(id).toLowerCase() + (k > 1 ? ' ×' + k : ''));
+    }
+    for (const id of ['lime', 'trousseau', 'masse_forcat']) { const k = farm.count(id); if (k) farm.take(id, k); }
+    return out;
+  },
+  // ------------------------------------------------------------------ sortir : peine purgée, rançon
+  async liberer(raison) {
+    const s = farm.s, P = this.S();
+    if (!P || !P.actif || this.busy) return;
+    this.busy = true;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    game.sleeping = true;
+    ui.close(true);
+    try {
+      if (raison === 'rancon') { this.dire(GEOLIER_DIT.rancon, 4); await wait(1500); }
+      await ui.fade(true, raison === 'rancon' ? 'La grille grince. Le geôlier compte vos pièces une deuxième fois, puis vous rend vos affaires.' : 'Un matin, la grille s’ouvre, et personne ne vous dit de rester.', 1100);
+      const S = societe.S();
+      for (const C of S.crimes) if ((P.crimes || []).includes(C.id) && C.leve === 'prison') { C.leve = raison === 'rancon' ? 'rancon' : 'cachot'; C.leveJour = s.day; }
+      societe.majAffiches(true);
+      const rendu = [];
+      for (const id in P.saisie) { if (ITEMS[id] && P.saisie[id] > 0) { farm.give(id, P.saisie[id]); rendu.push(itemName(id).toLowerCase()); } }
+      P.saisie = {};
+      for (const id of ['masse_forcat', 'lime', 'trousseau']) { const k = farm.count(id); if (k) farm.take(id, k); }
+      P.casier.push({ entree: P.entree, sortie: s.day, jours: P.total, raison });
+      Object.assign(P, { actif: false, travail: null, liberable: false, porte: false, lime: 0 });
+      this.appliquerPorte(); this.remettreBlocs();
+      s.rep.infamy = (s.rep.infamy || 0) + 1;
+      this.dehors(false);
+      if (npcs.hour() < 6.5 || npcs.hour() > 20.5) { /* la nuit : on vous laisse sortir quand même */ }
+      const sig = npcs.alive('garde') ? npcs.byId.garde.name + ' ' + npcs.byId.garde.d.surname + ', garde' : 'Le greffe de ' + farm.names.ville;
+      farm.mail(sig, 'Levée d’écrou', raison === 'rancon'
+        ? `${s.prenom || 'Le détenu'}, de la vieille ferme, a été ${s.fem ? 'libérée' : 'libéré'} ce jour contre une rançon de ${P.rancon} pièces, versée à la commune.\n\nLa prime est levée. L’affaire est close. Elle ne sera pas oubliée.`
+        : `${s.prenom || 'Le détenu'}, de la vieille ferme, a été ${s.fem ? 'relâchée' : 'relâché'} ce matin après ${this.jours(P.total)} de cachot.\n\nLa prime est levée. Qu’on ne vous y reprenne pas.`);
+      farm.save();
+      $('#fade-text').textContent = rendu.length ? `On vous rend : ${rendu.join(', ')}.` : 'Dehors, l’air a un goût de neuf.';
+      await wait(1500);
+      await ui.fade(false, '', 1100);
+    } catch (e) { console.error(e); } finally { game.sleeping = false; this.busy = false; }
+    ui.subtitle('', raison === 'rancon' ? '(Libre. La bourse plus légère, et la réputation aussi.)' : '(Libre. Les gens de la ville vous regardent passer, et se taisent.)', 5);
+  },
+  payer() {
+    const P = this.S();
+    if (this.dortMaintenant()) { this.dire(GEOLIER_DIT.dort); return; }
+    if (!farm.pay(P.rancon)) { this.dire(GEOLIER_DIT.pauvre); return; }
+    sound.coin && sound.coin(); setTimeout(() => sound.coin && sound.coin(), 140);
+    this.liberer('rancon');
+  },
+  // ------------------------------------------------------------------ la carrière (travaux forcés)
+  async carriere() {
+    const P = this.S(), h = npcs.hour(), s = farm.s, R = this.W();
+    if (this.dortMaintenant()) { this.dire(GEOLIER_DIT.dort); return; }
+    if (P.dernierTravail === s.day) { this.dire(GEOLIER_DIT.carriere_fait); return; }
+    if (h < 5.5 || h >= 10) { this.dire(GEOLIER_DIT.carriere_tard); return; }
+    this.busy = true;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    ui.close(true);
+    this.dire(GEOLIER_DIT.carriere, 4);
+    await wait(1400);
+    game.sleeping = true;
+    try {
+      await ui.fade(true, 'Le geôlier vous mène à la carrière, une masse sur l’épaule.', 1000);
+      this.remettreBlocs();
+      P.travail = { jour: s.day, casses: [], quota: 12, dernierCoup: game.time };
+      farm.give('masse_forcat', 1); s.hand = 'masse_forcat';
+      this.placer(R.cour.entree, Math.PI);
+      this.g = null;
+      await wait(700);
+      await ui.fade(false, '', 900);
+    } catch (e) { console.error(e); } finally { game.sleeping = false; this.busy = false; }
+    this.dire(GEOLIER_DIT.consigne, 5);
+  },
+  remettreBlocs() {
+    const R = this.W(), w = game.world;
+    if (!R) return;
+    for (const i of R.cour.blocs) { const q = w.props[i]; if (!q) continue; q.gone = false; if (!q.blk) addPropCollider(w, q); }
+    this.pv = {}; w.grid = null; farm.dirtyProps = true;
+  },
+  blocVise(eye, f) {
+    const R = this.W(), w = game.world;
+    let best = -1, bt = 2.7;
+    for (const i of R.cour.blocs) {
+      const q = w.props[i];
+      if (!q || q.gone) continue;
+      const cx = q.x - eye[0], cy = q.y + 0.45 - eye[1], cz = q.z - eye[2];
+      const t = cx * f[0] + cy * f[1] + cz * f[2];
+      if (t < 0 || t > bt) continue;
+      const px = f[0] * t - cx, py = f[1] * t - cy, pz = f[2] * t - cz;
+      if (px * px + py * py + pz * pz > 0.62 * 0.62) continue;
+      best = i; bt = t;
+    }
+    return best;
+  },
+  frapper(i) {
+    const P = this.S(), w = game.world, q = w.props[i], p = game.player;
+    if (!P.travail || !q || q.gone) return;
+    P.travail.dernierCoup = game.time;
+    this.pv[i] = (this.pv[i] ?? 4) - 1;
+    sound.shovelHit && sound.shovelHit(); sound.impact && sound.impact('hard');
+    typeof puffAt === 'function' && puffAt(q.x, q.y + 0.6, q.z, [150, 146, 136], 8, 0.5, true);
+    game.shakeT = Math.max(game.shakeT || 0, 0.08);
+    p.stamina = Math.max(0, (p.stamina ?? 1) - 0.05); p.food = Math.max(0, p.food - 0.5);
+    if (this.pv[i] > 0) return;
+    q.gone = true; removePropCollider(w, q); farm.dirtyProps = true;
+    P.travail.casses.push(i);
+    const reste = P.travail.quota - P.travail.casses.length;
+    if (reste <= 0) { this.finTravail(true); return; }
+    if (reste % 3 === 0 || reste <= 2) ui.subtitle('', reste > 1 ? `(Encore ${reste} blocs.)` : '(Encore un bloc.)', 2);
+  },
+  async finTravail(ok) {
+    const P = this.S(), s = farm.s, p = game.player;
+    if (!P.travail || this.busy) return;
+    this.busy = true;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    this.dire(ok ? GEOLIER_DIT.fin_travail : GEOLIER_DIT.fin_tard, 4);
+    await wait(1600);
+    game.sleeping = true;
+    try {
+      await ui.fade(true, 'Le geôlier vous ramène en cellule. Vos mains ne se ferment plus.', 1000);
+      P.travail = null; P.dernierTravail = s.day;
+      if (ok) P.jours -= 1;
+      const k = farm.count('masse_forcat'); if (k) farm.take('masse_forcat', k);
+      this.remettreBlocs();
+      this.mettreEnCellule();
+      p.food = Math.max(0, p.food - 12);
+      if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-1, 'la carrière', 2);
+      await wait(700);
+      await ui.fade(false, '', 900);
+    } catch (e) { console.error(e); } finally { game.sleeping = false; this.busy = false; }
+    ui.subtitle('', ok ? `(La journée compte double. Il vous reste ${this.jours(Math.max(0, P.jours))}.)` : '(Une journée pour rien.)', 4);
+    if (P.jours <= 0) setTimeout(() => this.liberer('peine'), 1500);
+  },
+  // ------------------------------------------------------------------ l'évasion
+  dortCetteNuit() { const s = farm.s; return mulberry32(((s.seed | 0) * 7 + s.day * 131) >>> 0)() < 0.68; },
+  dortMaintenant() {
+    const h = npcs.hour(), P = this.S();
+    if (!P.actif || P.travail) return false;
+    if (P.reveilNuit === farm.s.day) return false;
+    return (h >= 23 || h < 4.5) && this.dortCetteNuit();
+  },
+  nuit() { const h = npcs.hour(); return h >= 22 || h < 5.5; },
+  async limer() {
+    const P = this.S(), h = npcs.hour(), w = game.world;
+    if (!(h >= 21.5 || h < 2)) { ui.subtitle('', h < 21.5 && h >= 5.5 ? '(En plein jour ? Le geôlier vous entendrait du bout du couloir.)' : '(Bientôt l’aube. Pas le temps.)', 3); return; }
+    this.busy = true;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    game.sleeping = true;
+    let pris = false;
+    try {
+      await ui.fade(true, 'Vous limez, lentement, en comptant les ronflements.', 900);
+      game.skipHours(1); w.time = (w.time + 1 / 24) % 1; game.lastT = w.time;
+      sound.scratch && sound.scratch();
+      await wait(900);
+      const dort = this.dortMaintenant();
+      if (!dort && Math.random() < 0.45) pris = true;
+      else if (dort && Math.random() < 0.12) { P.reveilNuit = farm.s.day; $('#fade-text').textContent = 'Le geôlier grogne, se retourne. Vous arrêtez tout.'; await wait(1100); }
+      else { P.lime = (P.lime || 0) + 1; this.appliquerPorte(); $('#fade-text').textContent = P.lime >= 3 ? 'Le barreau cède.' : P.lime === 2 ? 'Le barreau ne tient plus que par un fil de fer.' : 'Une entaille, à peine. Il faudra d’autres nuits.'; await wait(1100); }
+      await ui.fade(false, '', 700);
+    } catch (e) { console.error(e); } finally { game.sleeping = false; this.busy = false; }
+    if (pris) this.rattrape(GEOLIER_DIT.halte);
+  },
+  // le trousseau, à la ceinture du geôlier endormi sur son tabouret
+  clefs() {
+    if (this.attente || this.busy) return;
+    sound.scratch && sound.scratch();
+    this.attente = { t: 0.5, k: this.dortMaintenant() ? 0.55 : 0.07 };
+  },
+  resoudreClefs() {
+    const A = this.attente, P = this.S();
+    this.attente = null;
+    if (Math.random() < A.k) { farm.give('trousseau', 1); ui.subtitle('', '(Vous décrochez le trousseau de sa ceinture, clé par clé, sans un bruit.)', 4); return; }
+    P.reveilNuit = farm.s.day;
+    this.rattrape(GEOLIER_DIT.mains);
+  },
+  async ouvrir() {
+    const P = this.S();
+    ui.close(true);
+    P.porte = true; this.appliquerPorte();
+    sound.lock && sound.lock(false); sound.door && sound.door(true);
+    ui.subtitle('', '(La troisième clé tourne. La grille s’entrouvre, avec un grincement à réveiller les morts.)', 4);
+    if (this.dortMaintenant() && Math.random() < 0.2) P.reveilNuit = farm.s.day;
+  },
+  async evader(voie) {
+    const s = farm.s, P = this.S();
+    if (!P.actif || this.busy) return;
+    this.busy = true;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    game.sleeping = true;
+    ui.close(true);
+    try {
+      await ui.fade(true, voie === 'soupirail' ? 'Vous vous glissez par le soupirail. La pierre vous arrache la peau des épaules. Et puis l’air de la nuit.' : 'Vous montez l’échelle, barreau par barreau, sans respirer. La trappe cède. La nuit.', 1400);
+      const S = societe.S();
+      for (const C of S.crimes) if ((P.crimes || []).includes(C.id) && C.leve === 'prison') { C.leve = null; delete C.leveJour; }
+      for (const id of ['masse_forcat', 'lime', 'trousseau']) { const k = farm.count(id); if (k) farm.take(id, k); }
+      Object.assign(P, { actif: false, travail: null, porte: false, liberable: false, lime: 0, evasions: (P.evasions || 0) + 1 });
+      this.appliquerPorte(); this.remettreBlocs();
+      const B = game.world.bld.garde;
+      societe.crime({ type: 'evasion', victime: null, x: B ? B.x : game.player.pos[0], z: B ? B.z : game.player.pos[2], temoins: [], preuve: 'valbrume' });
+      this.dehors(true);
+      farm.save();
+      await wait(1200);
+      await ui.fade(false, '', 1000);
+    } catch (e) { console.error(e); } finally { game.sleeping = false; this.busy = false; }
+    ui.subtitle('', '(Libre. Pour l’instant. Demain, votre visage sera sur toutes les portes.)', 5);
+  },
+  async rattrape(txt) {
+    const P = this.S();
+    if (this.busy) return;
+    this.busy = true;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    game.sleeping = true;
+    ui.close(true);
+    try {
+      this.dire(txt, 3);
+      sound.chain && sound.chain();
+      await wait(1200);
+      await ui.fade(true, 'Le geôlier vous ramène en cellule, sans douceur.', 900);
+      P.jours += 2; P.total += 2; P.rancon = this.prixRancon(P.prime + 40, P.jours);
+      for (const id of ['lime', 'trousseau']) { const k = farm.count(id); if (k) farm.take(id, k); }
+      P.porte = false; P.lime = 0; P.limeVue = true; P.reveilNuit = farm.s.day;
+      this.appliquerPorte();
+      this.mettreEnCellule();
+      if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-2, 'évasion manquée');
+      await wait(900);
+      await ui.fade(false, '', 900);
+    } catch (e) { console.error(e); } finally { game.sleeping = false; this.busy = false; }
+    this.dire(GEOLIER_DIT.rattrape, 4);
+  },
+  // ------------------------------------------------------------------ la grille (touche E)
+  menuPorte() {
+    const P = this.S(), s = farm.s;
+    if (!P.actif) { ui.subtitle('', '(Une grille de fer, scellée dans la pierre.)', 2.5); return; }
+    const dort = this.dortMaintenant();
+    const opts = [];
+    if (farm.count('trousseau') && !P.porte) opts.push({ label: 'Ouvrir la grille avec le trousseau', fn: () => this.ouvrir() });
+    opts.push({ label: `Payer la rançon (${P.rancon} pièces)`, fn: () => { ui.close(true); this.payer(); } });
+    opts.push({ label: 'Demander à travailler à la carrière', fn: () => { ui.close(true); this.carriere(); } });
+    opts.push({ label: 'Appeler le geôlier', fn: () => { ui.close(true); if (dort) { if (Math.random() < 0.5) { P.reveilNuit = s.day; this.dire(GEOLIER_DIT.reveil); } else this.dire(GEOLIER_DIT.dort); } else this.dire(this.nuit() ? GEOLIER_DIT.nuit : pick(GEOLIER_DIT.combien)); } });
+    opts.push({ label: 'Rien', fn: () => ui.close() });
+    ui.choice('La grille', `${this.jours(Math.max(1, P.jours))} de cachot encore. Rançon : ${P.rancon} pièces ; vous en avez ${s.money}.${dort ? ' Le geôlier dort sur son tabouret.' : ''}`, opts);
+  },
+  // ------------------------------------------------------------------ le geôlier : où il est, ce qu'il fait
+  placeGeolier() {
+    const R = this.W(), P = this.S(), p = game.player;
+    if (!R) return null;
+    const g = this.g || (this.g = { rig: humanRig(Object.assign({}, GEOLIER.look)), x: 0, y: 0, z: 0, heading: 0, sit: true, lookY: 0 });
+    if (P && P.actif && P.travail) {
+      const c = R.cour.garde; g.x = c[0]; g.y = c[1]; g.z = c[2]; g.sit = false;
+      g.heading = Math.atan2(p.pos[0] - g.x, p.pos[2] - g.z);
+    } else if (this.nuit()) { const c = R.tabouret; g.x = c[0]; g.y = c[1]; g.z = c[2]; g.sit = true; g.heading = Math.PI; }
+    else { const c = R.table; g.x = c[0]; g.y = c[1]; g.z = c[2]; g.sit = true; g.heading = 0; }
+    return g;
+  },
+  // ------------------------------------------------------------------ chaque image
+  update(dt, playing) {
+    const P = this.S(), R = this.W(), p = game.player;
+    if (!P || !R) return;
+    if (this.attente) { this.attente.t -= dt; if (this.attente.t <= 0) this.resoudreClefs(); }
+    if (!P.actif) return;
+    const h = npcs.hour();
+    if (!this.busy && !game.sleeping && playing) {
+      // libérable (peine purgée au matin)
+      if (P.liberable) { this.liberer('peine'); return; }
+      // la carrière
+      if (P.travail) {
+        if (!this.dans(R.cour.zone, p.pos[0], p.pos[2], 0.5)) this.placer(R.cour.entree);
+        if (h >= 17) { this.finTravail(false); return; }
+        if (game.time - (P.travail.dernierCoup || 0) > 40) { P.travail.dernierCoup = game.time; this.dire(pick(GEOLIER_DIT.travail), 2.5); }
+      } else if (!P.porte) {
+        // la grille est fermée : on est dans la cellule (et pas ailleurs)
+        if (!this.dansCellule(0.7)) this.mettreEnCellule();
+      } else if (!this.dansCellule(0.2)) {
+        // on est sorti de la cellule : le geôlier voit-il, entend-il ?
+        const g = this.placeGeolier(), d = Math.hypot(g.x - p.pos[0], g.z - p.pos[2]);
+        if (!this.dortMaintenant()) { this.rattrape(GEOLIER_DIT.halte); return; }
+        this.bruitT = (this.bruitT || 0) - dt;
+        if (this.bruitT <= 0) {
+          this.bruitT = 0.5;
+          const v = Math.hypot(p.vel[0], p.vel[2]);
+          if (d < 6 && v > 2.4 && Math.random() < 0.3) { P.reveilNuit = farm.s.day; this.rattrape(GEOLIER_DIT.halte); return; }
+        }
+      }
+      // pain du matin (au jour qui se lève), soupe de midi
+      if (this.hPrev >= 0 && this.hPrev < 12 && h >= 12 && !P.travail) { this.dire(GEOLIER_DIT.soupe, 3); p.food = Math.min(100, p.food + 15); }
+      // la visite de l'être cher, le lendemain de l'arrestation, vers dix heures
+      if (this.hPrev >= 0 && this.hPrev < 10 && h >= 10 && farm.s.day - (P.visite || 0) >= 2 && farm.s.day > P.entree && typeof sentiments !== 'undefined' && sentiments.visiteCachot) {
+        P.visite = farm.s.day;
+        const V = sentiments.visiteCachot();
+        if (V) { ui.subtitle(V.qui, V.texte, 6); for (const [id, k] of V.objets || []) if (ITEMS[id]) farm.give(id, k); }
+      }
+    }
+    this.hPrev = h;
+    // ronflements
+    if (this.dortMaintenant() && !P.travail) {
+      this.ronfleT -= dt;
+      const g = this.placeGeolier();
+      if (this.ronfleT <= 0 && g && Math.hypot(g.x - p.pos[0], g.z - p.pos[2]) < 16) { this.ronfleT = 2.6 + Math.random(); sound.breath && sound.breath(1.4); }
+    }
+  },
+  // chaque nouveau jour (6 h) : un jour de moins, pain sec, un peu de soi qui s'en va
+  jour() {
+    const P = this.S(), p = game.player;
+    if (!P || !P.actif) return;
+    P.jours -= 1;
+    p.food = Math.min(100, p.food + 25);
+    setTimeout(() => { if (P.actif) this.dire(GEOLIER_DIT.pain, 3); }, 3500);
+    if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-2, 'le cachot', 4);
+    if (P.jours <= 0) P.liberable = true;
+  },
+  draw(buf, sbuf, cam, t) {
+    const R = this.W(), p = game.player;
+    if (!R || !farm.s) return;
+    if (Math.abs(p.pos[0] - R.f.x) > 60 || Math.abs(p.pos[2] - R.f.z - 26) > 70) return;
+    const g = this.placeGeolier(), P = this.S();
+    if (!g) return;
+    const dort = this.dortMaintenant();
+    const talk = !dort && (ui.subtitleWho ? ui.subtitleWho === GEOLIER.nom : false);
+    poseHuman(g.rig, { move: 0, t, sit: g.sit, lookY: dort ? 0 : Math.sin(t * 0.3) * 0.4, lookP: dort ? 0.55 : 0, talk });
+    drawRig(buf, g.rig, g.x, g.y, g.z, g.heading, GEOLIER.look.height || 1, this.cibleClefs ? FX_HI : 0);
+    if (sbuf) drawShadow(sbuf, g.x, g.y, g.z, 0.36);
+    if (P && P.actif && P.travail) { /* debout dans la carrière */ }
+  },
+};
+
+// ---------------------------------------------------------------- interactions (touche E)
+HOOKS.inter.k_porte = () => prison.menuPorte();
+HOOKS.inter.k_paillasse = () => {
+  const P = prison.S();
+  if (!P.actif) { ui.subtitle('', '(De la paille qui pique, et qui sent la peur des autres.)', 3); return; }
+  game.sleep('cachot');
+};
+HOOKS.inter.k_soupirail = () => {
+  const P = prison.S();
+  if (!P.actif) { ui.subtitle('', '(Un soupirail, trop haut, trop étroit.)', 2.5); return; }
+  if (P.lime >= 3) { ui.choice('Le soupirail', 'Le barreau du milieu est scié. L’ouverture est tout juste assez large.', [{ label: 'Se glisser dehors', fn: () => { ui.close(true); prison.evader('soupirail'); } }, { label: 'Pas encore', fn: () => ui.close() }]); return; }
+  if (!farm.count('lime')) { ui.subtitle('', '(Un soupirail, trop haut, trop étroit. Trois barreaux scellés dans la pierre, et un filet de jour, ou de nuit.)', 4); return; }
+  ui.choice('Le soupirail', `Trois barreaux. ${P.lime ? `Celui du milieu est entamé (${P.lime} nuit${P.lime > 1 ? 's' : ''} de lime).` : 'Avec la lime, et quelques nuits…'}`, [{ label: 'Limer le barreau du milieu (une heure)', fn: () => { ui.close(true); prison.limer(); } }, { label: 'Pas maintenant', fn: () => ui.close() }]);
+};
+HOOKS.inter.k_pierre = () => {
+  const P = prison.S();
+  if (!P.actif) { ui.subtitle('', '(Une pierre descellée.)', 2); return; }
+  if (!prison.nuit() && !prison.dortMaintenant()) { ui.subtitle('', '(Une pierre bouge un peu, derrière la paillasse. Pas sous le nez du geôlier.)', 3.5); return; }
+  if (P.limeVue) { ui.subtitle('', '(Le trou, derrière la pierre, est vide.)', 2.5); return; }
+  P.limeVue = true;
+  farm.give('lime', 1);
+  sound.scratch && sound.scratch();
+  ui.subtitle('', '(Derrière la pierre, dans un trou, une lime plate enveloppée dans un chiffon. Quelqu’un l’a laissée là pour le suivant.)', 5);
+};
+HOOKS.inter.k_traits = () => { const P = prison.S(); ui.read('Des traits gravés', PRISON_TRAITS.slice(0, 1 + Math.min(2, (P && P.fois) || 0)).join('\n\n')); };
+HOOKS.inter.k_greffe = () => {
+  const P = prison.S();
+  const ids = Object.keys(P.saisie || {}).filter((id) => ITEMS[id] && P.saisie[id] > 0);
+  if (!ids.length) { ui.subtitle('', '(Le coffre du greffe. Des registres, des menottes rouillées. Rien à vous.)', 3); return; }
+  for (const id of ids) farm.give(id, P.saisie[id]);
+  P.saisie = {};
+  sound.lootOpen && sound.lootOpen();
+  ui.subtitle('', `(Vous reprenez vos affaires : ${ids.map((id) => itemName(id).toLowerCase()).join(', ')}.)`, 4);
+};
+HOOKS.inter.k_echelle = () => {
+  const P = prison.S();
+  if (P.actif && !prison.dansCellule(0.2)) { prison.evader('echelle'); return; }
+  ui.subtitle('', '(L’échelle monte vers une trappe, dans la cour de la maison du garde.)', 3);
+};
+// le trousseau du geôlier endormi, à travers les barreaux (accroupi, dans son dos)
+HOOKS.target.push((eye, f, cand) => {
+  prison.cibleClefs = false;
+  const P = prison.S(), R = prison.W(), p = game.player;
+  if (!P || !P.actif || !R || P.travail || P.porte || !prison.nuit() || farm.count('trousseau') || !(p.crouch > 0.5)) return;
+  const T = R.tabouret, dx = T[0] - p.pos[0], dz = T[2] - p.pos[2], d = Math.hypot(dx, dz);
+  if (d > 1.8) return;
+  if ((dx * f[0] + dz * f[2]) / (d * (Math.hypot(f[0], f[2]) || 1)) < 0.5) return;
+  prison.cibleClefs = true;
+  cand({ kind: 'hook', geolier: true, use: () => prison.clefs() }, 0.02);
+});
+// la masse, à la carrière
+HOOKS.primary.push((eye, basis, held, it, id) => {
+  const P = prison.S();
+  if (!P || !P.actif || !P.travail) return false;
+  if (id !== 'masse_forcat') return false;
+  if (play.cool > 0 || prison.busy) return true;
+  const i = prison.blocVise(eye, basis.f);
+  play.swingT = 0.42; play.swingHit = true; play.cool = 0.55;
+  sound.swish && sound.swish(1.2);
+  if (i >= 0) setTimeout(() => prison.frapper(i), 200);
+  return true;
+});
+HOOKS.update.push((dt, eye, basis, sky, playing) => { if (farm.s) prison.update(dt, playing); });
+HOOKS.day.push(() => { if (farm.s) prison.jour(); });
+HOOKS.draw.push((buf, sbuf, cam, t) => { if (farm.s && game.world && game.world.prison) prison.draw(buf, sbuf, cam, t); });
+// l'arrestation de la société mène désormais à la cellule
+{
+  const _cachot0 = societe.cachot.bind(societe);
+  societe.cachot = function (R) { return prison.incarcerer(R, _cachot0); };
+}
+HOOKS.load.push(() => {
+  const P = prison.S(), w = game.world;
+  prison.g = null; prison.busy = false; prison.attente = null; prison.hPrev = -1; prison.pv = {};
+  if (typeof VM !== 'undefined' && !VM.masse && VM.marteau) VM.masse = VM.marteau;
+  if (P.actif && !w.prison) {
+    // (une vallée sans cachot : on relâche)
+    const S = societe.S();
+    for (const C of S.crimes) if ((P.crimes || []).includes(C.id) && C.leve === 'prison') C.leve = 'cachot';
+    for (const id in P.saisie) if (ITEMS[id]) farm.give(id, P.saisie[id]);
+    Object.assign(P, { actif: false, saisie: {}, travail: null, porte: false });
+  }
+  if (w.prison) {
+    prison.remettreBlocs();
+    if (P.actif && P.travail) { P.travail = null; const k = farm.count('masse_forcat'); if (k) farm.take('masse_forcat', k); prison.mettreEnCellule(); }
+    prison.appliquerPorte();
+    if (P.actif && !P.porte && !prison.dansCellule(0.7)) prison.mettreEnCellule();
+  }
+  if (prison.hooked) return;
+  prison.hooked = true;
+  // s'évanouir d'épuisement au cachot : on se réveille sur la paille (ou rattrapé, hors de la cellule)
+  const _faint = game.faint.bind(game);
+  game.faint = async function () {
+    const P2 = prison.S();
+    if (P2 && P2.actif) {
+      if (!P2.travail && P2.porte && !prison.dansCellule(0.2)) return prison.rattrape(GEOLIER_DIT.halte);
+      if (P2.travail) { P2.travail = null; const k = farm.count('masse_forcat'); if (k) farm.take('masse_forcat', k); prison.remettreBlocs(); }
+      prison.mettreEnCellule();
+      return game.sleep('cachot');
+    }
+    return _faint();
+  };
+});
+
+// ---- 11-zzz92-sentiments.js
+// ============================================================================
+//  LES SENTIMENTS
+//  Huit habitants, adultes et libres, choisis pour leur histoire, peuvent
+//  s'attacher au fermier (ou à la fermière) : la boulangère (veuve d'Émile), le
+//  forgeron (qui l'aime sans rien dire), la postière, le garde, l'éleveuse
+//  (veuve d'Augustin), le pêcheur, la colporteuse et le chasseur.
+//  - étapes au-delà de l'amitié : attirance (amitié haute), cour (après un aveu,
+//    le sien ou le vôtre), couple (après des rendez-vous), fiançailles (un
+//    anneau), mariage (à l'église, le jour dit), et il ou elle vient vivre à la
+//    ferme (la petite aussi, si c'est la boulangère) ;
+//  - cadeaux qui touchent le cœur, rendez-vous (promenade au lac au coucher du
+//    soleil, pique-nique au bord de l'eau, danse à la veillée du Veilledi) ;
+//  - répliques propres à chacun et à chaque étape ; jalousie si l'on en courtise
+//    deux ; en couple : salut tendre, petits cadeaux, aide à la ferme ; la mort
+//    de l'être aimé fait chuter la mentalité. Pudique et sobre.
+//  État : farm.s.coeur. API : sentiments (etape(id), c(id), candidat(n),
+//         auCachot(jours), visiteCachot(), conjoint())
+// ============================================================================
+defItem('anneau_fiancailles', 'Anneau de fiançailles', 'outil', 320, ['anneau', '#e8c860'], { desc: 'Un anneau d’or fin. En main, on peut demander la main de quelqu’un. Encore faut-il qu’on vous la donne.' });
+
+// les huit, dans leur voix ({e} : le e de la fermière ; {autre} : l'autre personne courtisée)
+const COEUR = {
+  boulangere: {
+    offre: ['brioche', 'tarte', 'pain'], cadeaux: ['fraise', 'rose', 'fleur', 'confiture', 'bouquet'], rival: 'forgeron',
+    attirance: ['Tiens, c’est vous… J’ai de la farine sur le nez, pas vrai ? Ne dites rien. Si, dites quelque chose.', 'Je vous ai gardé la plus belle miche. Enfin, la plus belle… disons celle que j’ai regardée le plus longtemps.', 'Vous savez que vous êtes la seule personne à qui je parle sans penser au four ? C’est bête, ce que je dis. Oubliez.'],
+    aveu_oui: 'Oh, mon chou… Doux Jésus. J’ai quarante et un ans, une fille, un four, et un mari que la nuit a gardé. Et vous me dites ça. … Oui. On peut se fréquenter. Doucement, hein. Je ne sais plus comment on fait.',
+    aveu_pas: 'Oh… Vous êtes gentil{le}. Mais c’est trop tôt, mon chou. Il y a encore la place d’Émile, dans cette maison. Laissez-moi un peu de temps.',
+    aveu_npc: 'Il faut que je vous dise quelque chose, et si je ne le dis pas maintenant, je vais le pétrir jusqu’à demain. Depuis que vous passez, je chante. Faux, mais je chante. Voilà. C’est vous qui me faites chanter.',
+    aveu_npc_oui: 'Vraiment ? … Alors ne bougez pas. Laissez-moi vous regarder une minute, sans comptoir entre nous.',
+    refus: 'Ah. Bon. Ce n’est rien, mon chou. Une bêtise de boulangère. On oublie, et vous reprenez du pain demain, d’accord ?',
+    rdv_oui: { lac: 'Au lac, ce soir ? Doux Jésus, il faudra que je me recoiffe. Oui. Je demanderai à {npc:grainetiere} de garder la petite.', piquenique: 'Un pique-nique ! Ça fait des années. J’apporterai la nappe ; vous, apportez de quoi manger. Et pas mon pain, hein, je le connais par cœur.', danse: 'Danser ? Moi ? Je vous préviens, je marche sur les pieds. … Allez. Tenez-moi bien.' },
+    rdv: { lac: ['Le soleil se couche, et moi, je ne suis pas au four. Émile disait que le lac, le soir, c’est de l’or qu’on ne peut pas vendre.', 'Je crois que je vais garder ce soir-là. Comme une miche qu’on ne vend pas.'], piquenique: ['Mangez, mangez ! Vous avez une petite mine, je vous l’ai toujours dit.', 'La petite serait jalouse, si elle savait. La prochaine fois, on l’emmène ?'], danse: ['Un, deux, trois… Doux Jésus, je vous ai encore écrasé le pied !', 'On nous regarde. Tant pis. Qu’ils regardent : ça leur fera une histoire pour l’hiver.'] },
+    rdv_manque: 'Je vous ai attendu{e} jusqu’à la nuit, avec mon plus beau châle. Ce n’est rien. J’ai l’habitude d’attendre, vous savez.',
+    couple_oui: 'Ensemble ? Vous et moi ? … Oui, mon chou. Oui. Je le dirai à la petite ce soir. Elle va pleurer, ou rire. Sans doute les deux.',
+    couple_pas: 'Pas encore, mon chou. Laissez la pâte lever. On ne presse pas ce qui doit monter.',
+    tendre: ['Te voilà ! Viens que je t’enlève cette poussière. Là. C’est mieux.', 'Je t’ai gardé une brioche, la plus dorée. Chut.', 'La petite demande quand tu reviens. Moi aussi, un peu.'],
+    cadeau_donne: ['Tiens. C’est encore tiède. Ne le mange pas en route.', 'Pour toi. Je l’ai fait en pensant à toi, alors c’est un peu de travers.'],
+    main_oui: 'Un anneau… Doux Jésus. J’ai rangé celui d’Émile dans la boîte à sel, le jour où j’ai recommencé à chanter. Il comprendrait. Oui. Oui, je veux bien.',
+    main_pas: 'Pas encore… Je t’aime, tu sais. Mais laisse-moi le temps de dire au revoir à quelqu’un.',
+    noces: 'Devant tout le monde, et devant Émile qui nous regarde sûrement de quelque part : oui.',
+    foyer: ['La ferme sent le pain, maintenant. Tu as remarqué ?', 'La petite a pris le coin près de la cheminée. Elle dit qu’ici, personne ne frappe la nuit.', 'Je me lève encore à trois heures et demie. Toi, dors. Je te laisse le pain sur la table.'],
+    jalousie: 'On m’a dit que tu te promènes avec {autre}. On me dit beaucoup de choses, au comptoir. Celle-là, je n’avais pas envie de l’entendre.',
+    rupture: 'Alors c’est fini. Bien. Je ferai le pain, comme avant. Le pain, lui, ne s’en va pas.',
+    noces_manquees: 'J’ai attendu devant l’autel, avec ma robe du dimanche, jusqu’à ce que le curé me prenne la main. Il avait l’air plus triste que moi. C’est dire.',
+    aide: 'Je suis passée à la ferme avant le four. Les semis sont arrosés, et le chien a eu sa croûte. Ne me remercie pas : ça m’a fait plaisir.',
+    visite: 'Je t’ai apporté du pain, et du fromage. Mange. On ne pense pas bien le ventre vide, et tu as besoin de penser.',
+  },
+  forgeron: {
+    offre: ['lingot_fer', 'lingot_cuivre', 'lanterne'], cadeaux: ['brioche', 'lingot_acier', 'ragout'],
+    attirance: ['Hm. … Vous restez un peu ? Le feu est bon.', 'J’ai redressé votre houe. Elle était tordue. Non, pas besoin de payer.', 'Vous parlez, et j’écoute. D’habitude, je n’écoute pas.'],
+    aveu_oui: '… J’ai forgé toute ma vie sans rien dire. Je ne vais pas commencer à faire des phrases. Oui. On peut se voir.',
+    aveu_pas: 'Hm. Trop tôt. Le fer, il faut le chauffer longtemps avant de le plier.',
+    aveu_npc: 'Je vais dire un truc. Une fois. Ne me faites pas répéter. Je pense à vous quand je bats le fer. Voilà. C’est dit.',
+    aveu_npc_oui: '… Bon. Bien. Je… bien.',
+    refus: 'Hm. Compris. On n’en parle plus.',
+    rdv_oui: { lac: 'Ce soir. Le lac. J’y serai.', piquenique: 'Un pique-nique. Hm. J’apporterai du pain. Pas de chez elle. … Si, de chez elle. C’est le meilleur.', danse: 'Je ne danse pas. … Une fois. Pour vous.' },
+    rdv: { lac: ['Le soleil dans l’eau. Comme une barre qui sort de la forge.', 'Je n’ai jamais regardé un coucher de soleil jusqu’au bout. C’est long. C’est bien.'], piquenique: ['Bon. Le pain.', 'On pourrait rester là. Un moment. Sans rien faire.'], danse: ['Je compte. Un, deux, trois. Ne me parlez pas, je compte.', '… Je ne vous ai pas marché dessus. Pas encore.'] },
+    rdv_manque: 'Je vous ai attendu{e}. Longtemps. J’ai compté les vagues. Il y en a beaucoup.',
+    couple_oui: 'Oui. Hm. Oui.',
+    couple_pas: 'Pas encore. Chauffe encore un peu.',
+    tendre: ['Te voilà. Bien.', 'J’ai pensé à toi. Deux fois. Trois.', 'Viens t’asseoir. Le feu est bon.'],
+    cadeau_donne: ['Tiens. J’ai fait ça le soir. C’est rien.', 'Pour toi. Ça servira. Ça sert toujours.'],
+    main_oui: 'Un anneau. Moi, j’en forge. Personne ne m’en avait jamais offert. … Oui. Je le porterai. Même à la forge.',
+    main_pas: 'Pas encore. Pas tout de suite.',
+    noces: 'Oui. … C’est tout. Oui.',
+    foyer: ['J’ai huilé les gonds de la porte. Elle ne grincera plus.', 'Je rentre tard, les jours de fer. Garde-moi une assiette.', 'La ferme est solide. Je vérifie quand même. Tous les soirs.'],
+    jalousie: 'On dit que tu vois {autre}. Hm. Je ne suis pas homme à partager. Ni le feu, ni le reste.',
+    rupture: 'Bon. J’ai l’habitude de me taire. Je me tairai.',
+    noces_manquees: 'L’église était pleine. Pas de vous. Je suis resté debout jusqu’au bout. Je suis doué pour ça.',
+    aide: 'Passé à la ferme à l’aube. Réparé la barrière. Arrosé. Le chien m’a suivi jusqu’au portail.',
+    visite: 'Tiens. Du pain. Mange-le doucement : le milieu est dur. … Tu comprendras.',
+    rival_dit: 'Elle chante, le matin, maintenant. On l’entend de la forge. … C’est bien. Prenez soin d’elle. Sinon, vous aurez affaire à moi.',
+  },
+  postiere: {
+    offre: ['plume', 'bougie', 'brioche'], cadeaux: ['fleur', 'bouquet', 'rose', 'brioche', 'plume'],
+    attirance: ['Il n’y a rien pour vous, aujourd’hui. Je le sais : j’ai vérifié trois fois. Pour rien. Enfin, pour vous.', 'Je vous ai vu{e} passer, ce matin. Je n’espionne pas ! Je regarde le courrier. Par la fenêtre.', 'Vous savez que vous avez une page à votre nom, dans mon carnet des bonnes nouvelles ? Non, je ne vous la montrerai pas.'],
+    aveu_oui: 'Vous… Attendez. Je vais noter la date. Non, je plaisante. Si, je vais la noter. Oui ! Oui, on peut se voir. Mon oncle va en faire une attaque.',
+    aveu_pas: 'Oh. C’est… Je ne suis pas sûre. Laissez-moi y penser. Je pense vite, d’habitude. Là, non.',
+    aveu_npc: 'Je dois vous avouer quelque chose. Je vous ai écrit une lettre. Trois, en fait. Je ne les ai jamais envoyées : je savais ce qu’il y avait dedans. Elles disent que je vous aime bien. Plus que bien.',
+    aveu_npc_oui: 'Oh ! Alors je peux les jeter ? Non. Je les garde. On ne jette pas une bonne nouvelle.',
+    refus: 'Bien. Retour à l’envoyeur. Ce n’est pas grave. J’ai l’habitude des lettres qui reviennent.',
+    rdv_oui: { lac: 'Le lac, ce soir ? Je ferai la tournée en courant. Je cours très bien.', piquenique: 'Un pique-nique ! J’apporte la limonade. Et mon carnet. Pour rien. Au cas où.', danse: 'Danser ! Enfin quelqu’un qui me le demande avant mon oncle. Vite, avant qu’il arrive.' },
+    rdv: { lac: ['Mon père disait que le soleil se couche pour tout le monde, sauf pour les postiers : ils sont encore sur la route.', 'Aujourd’hui, je ne suis sur aucune route. C’est ça, une bonne nouvelle.'], piquenique: ['Il y a une fourmi sur votre pain. Elle doit être de la poste : elle est pressée.', 'Je pourrais rester là jusqu’à la dernière levée. Et même après.'], danse: ['Tout le monde nous regarde ! Demain, tout le village le saura. Et pour une fois, ce ne sera pas moi qui l’aurai dit !', 'Vous dansez comme on distribue le courrier : un peu en retard, mais au bon endroit.'] },
+    rdv_manque: 'Vous n’êtes pas venu{e}. J’ai attendu, et puis j’ai fait comme avec les lettres sans adresse : je suis rentrée, et je n’ai rien dit.',
+    couple_oui: 'Ensemble ! Je le note. Souligné deux fois. Non : trois.',
+    couple_pas: 'Pas encore… Je veux être sûre. Les nouvelles, je les vérifie toujours avant de les annoncer.',
+    tendre: ['Toi ! Il y avait une lettre pour toi. Non, je mens. Je voulais juste te voir.', 'J’ai fini la tournée plus tôt. Devine pourquoi.', 'Mon oncle demande qui me fait sourire au guichet. Je n’ai rien dit. Il a deviné.'],
+    cadeau_donne: ['Tiens. Pour toi. Ne me demande pas pourquoi : je n’ai pas de raison.', 'Pour toi. Je l’avais gardé de côté, comme les plus jolis timbres.'],
+    main_oui: 'Oui ! Oh, oui. Il faut que je l’écrive à quelqu’un. À toi. Je vais t’écrire que j’ai dit oui.',
+    main_pas: 'Pas encore… Pardon. Je tremble comme une feuille de route.',
+    noces: 'Oui. Et cette fois, c’est moi qui annonce la nouvelle.',
+    foyer: ['Ta boîte aux lettres était pleine de toiles d’araignée. Maintenant, elle a du courrier : le mien.', 'Je suis rentrée par le chemin du puits. Pardon. Je sais, je sais.', 'Ton courrier est trié, classé, rangé. Je ne l’ai pas lu. Pas beaucoup.'],
+    jalousie: 'On m’a dit que tu te promènes avec {autre}. Les nouvelles vont vite. Celle-là, j’aurais préféré la perdre en chemin.',
+    rupture: 'Bien. Je range tout. Les lettres, le carnet. Je sais ranger. C’est mon métier.',
+    noces_manquees: 'J’ai attendu devant l’autel. Toute la ville était là. Demain, tout le monde le saura. Et cette fois, je n’aurai rien à ajouter.',
+    aide: 'Je suis passée à la ferme en faisant ma tournée. J’ai arrosé ce qui avait soif, et j’ai donné au chien ce qui restait de ma brioche. Ne le gronde pas : c’est moi qui ai commencé.',
+    visite: 'Je t’ai apporté une lettre. De moi. Lis-la ce soir. Elle dit de tenir bon, avec plus de mots.',
+  },
+  garde: {
+    offre: ['lanterne', 'ragout', 'pain'], cadeaux: ['ragout', 'soupe', 'viande_grillee'],
+    attirance: ['Garde-à-vous ! … Non, repos. Pardon. C’est vous. Ça me fait toujours ça, quand c’est vous.', 'J’ai retardé le pont de deux minutes, hier soir. Hors règlement. Au cas où vous seriez en route.', 'La nuit me fait moins peur, depuis quelque temps. Je ne sais pas pourquoi. Enfin, si. Un peu.'],
+    aveu_oui: 'Moi ? Vous… moi ? Article premier : ne pas s’évanouir en service. … Oui. Oui, je veux bien. Même si je ne vous vois qu’à la lueur d’une lampe.',
+    aveu_pas: 'Je… Il faut que je réfléchisse. Réglementairement. Et autrement aussi.',
+    aveu_npc: 'Je vais faire mon rapport. À vous. Depuis que vous êtes arrivé{e}, je guette le chemin de la ferme. Je guette le pont. Je vous guette, voilà. Fin du rapport.',
+    aveu_npc_oui: 'Vraiment ? … Il faut que je m’assoie. Ce n’est pas réglementaire, de s’asseoir. Je m’assois quand même.',
+    refus: 'Compris. Rompez. Enfin… je veux dire : bien. Bonne journée.',
+    rdv_oui: { lac: 'Au lac ? Avant la levée des ponts, alors. Je ferai vite. Je courrai. Je cours bien, quand j’ai peur.', piquenique: 'Un pique-nique ! J’apporte le ragoût. Celui de l’auberge. Le mien, il vaut mieux pas.', danse: 'Danser ? En uniforme ? Le règlement ne l’interdit pas. Je l’ai relu douze fois.' },
+    rdv: { lac: ['Le soleil se couche. D’habitude, c’est l’heure où je commence à avoir peur. Là, non.', 'Si vous restez à côté de moi, je crois que je pourrais regarder la nuit arriver jusqu’au bout.'], piquenique: ['C’est la première fois que je mange assis depuis des mois. En service, on mange debout.', 'Si le maire passe, vous direz que je surveille le pré. Je surveille : vous.'], danse: ['Un pas à gauche, un pas à droite… On m’a appris à marcher au pas, pas à danser.', 'Hortense disait que je ne la verrais qu’à la lueur d’une lampe. Il y a des lampes, ce soir. Et je vous vois très bien.'] },
+    rdv_manque: 'Je suis resté au lac jusqu’à la levée des ponts. J’ai failli rester dehors toute la nuit. Pour rien.',
+    couple_oui: 'Oui ! Enfin… affirmatif. Oui. Je vais l’écrire au registre. Non, je ne vais pas l’écrire au registre.',
+    couple_pas: 'Pas encore. Je voudrais être sûr de ne pas avoir peur. De ça aussi.',
+    tendre: ['Te voilà ! Tout est en ordre, maintenant.', 'J’ai rêvé de toi. Un rêve calme. C’est rare, chez moi.', 'Rentre avant la nuit. … Ou reste avec moi, à la guérite. Ça me ferait moins peur.'],
+    cadeau_donne: ['Tiens. C’est pour toi. Ne dis pas non : ce n’est pas réglementaire, de dire non.', 'Pour toi. J’en avais deux. Le deuxième, c’était pour toi depuis le début.'],
+    main_oui: 'Oui ! Oh… oui. Il y aura des bans, à la porte de la mairie. Et cette fois, personne ne les décrochera.',
+    main_pas: 'Pas encore… J’ai déjà vu des bans décrochés. Je ne veux pas revivre ça.',
+    noces: 'Oui. De jour comme de nuit. Surtout de nuit.',
+    foyer: ['J’ai fait une ronde autour de la ferme. Tout est en ordre. Je t’aime. Tout est en ordre.', 'Et si on prenait un chien ? Un gros. On l’appellerait Courage.', 'Je dors mieux, ici. Je n’ai plus besoin de laisser la lampe allumée.'],
+    jalousie: 'On m’a fait un rapport. Toi, avec {autre}. Je n’ai pas voulu le croire. Je l’ai relu douze fois.',
+    rupture: 'Bien. Je retourne à ma guérite. On y est seul, mais au moins, on sait pourquoi.',
+    noces_manquees: 'Les bans étaient affichés. Je les décrocherai moi-même. J’ai l’habitude.',
+    aide: 'Rapport : passé à la ferme au petit jour. Semis arrosés. Chien nourri. Aucune anomalie. Tu me manques. (Ce dernier point est hors rapport.)',
+    visite: 'Je n’ai pas le droit d’être ici. Je suis là quand même. Mange. Et ne fais pas de bêtise : c’est moi qui monte la garde, cette nuit.',
+  },
+  eleveuse: {
+    offre: ['lait', 'fromage', 'oeuf'], cadeaux: ['miel', 'pomme', 'carotte', 'bouquet'], rival: 'pecheur',
+    attirance: ['Tempête vous a encore laissé{e} approcher. Elle ne le fait pour personne. Moi non plus, d’ailleurs.', 'Je me suis surprise à guetter votre chemin. Comme une gamine. Ne riez pas.', 'Vous restez dîner ? Non, oubliez. Si, restez.'],
+    aveu_oui: 'Ha ! Il vous en a fallu, du temps. Moi aussi, remarquez. Oui. On se voit. Mais je vous préviens : chez moi, on se lève à quatre heures.',
+    aveu_pas: 'Pas si vite. Une bête qu’on brusque, elle rue. Une femme de ranch aussi.',
+    aveu_npc: 'Bon. Je vais être directe, c’est comme ça que je suis faite. Vous me plaisez. Depuis un moment. Voilà. Maintenant, dites quelque chose, avant que je retourne à mes bêtes.',
+    aveu_npc_oui: 'Bien. Très bien. … Je ne sais plus quoi faire de mes mains. Ça ne m’était pas arrivé depuis Augustin.',
+    refus: 'Compris. Pas de rancune. Les bêtes, elles, ne me font jamais ce coup-là.',
+    rdv_oui: { lac: 'Au lac, ce soir ? Je mettrai une robe. Une fois. Pour voir.', piquenique: 'Un pique-nique ? J’apporte le lait, le fromage, et Tempête, si elle veut bien suivre.', danse: 'Danser ! Je danse comme je travaille : fort. Vous êtes prévenu{e}.' },
+    rdv: { lac: ['Augustin aimait le lac, le soir. Je n’y étais pas revenue depuis. Ça va. Avec vous, ça va.', 'Regardez les chevaux, là-bas, sur la rive d’en face. Ils regardent le soleil, eux aussi.'], piquenique: ['Le fromage est de ce matin. Le lait aussi. Moi, je suis de quatre heures, alors ne comptez pas sur moi pour la sieste.', 'On est bien, là. Rien à nourrir, rien à rentrer. Juste rester.'], danse: ['Tenez-moi plus fort. Je ne suis pas en sucre.', 'On nous regarde. Qu’ils regardent : une veuve qui danse, ça ne s’est pas vu depuis longtemps, ici.'] },
+    rdv_manque: 'Je vous ai attendu{e} au bord de l’eau. J’avais mis une robe. Je ne la remettrai pas de sitôt.',
+    couple_oui: 'Oui. Ça tombe bien : je n’avais pas envie de dire non.',
+    couple_pas: 'Pas encore. J’ai besoin d’être sûre. Je n’ai pas envie de pleurer encore neuf jours.',
+    tendre: ['Te voilà ! Viens, Tempête t’attend. Moi aussi, un peu.', 'Tu as de la paille dans les cheveux. Laisse. Ça te va bien.', 'J’ai reçu une lettre parfumée, ce matin. Ce n’était pas de toi, hein ? Dommage.'],
+    cadeau_donne: ['Tiens. De ce matin. Mange, tu es trop maigre.', 'Pour toi. De la maison. Ne fais pas de manières.'],
+    main_oui: 'Augustin m’avait offert une pouliche, avec un ruban rouge. J’avais dit oui à la pouliche, et il était venu avec. Toi, un anneau… Oui. Je dis oui à l’anneau, et à toi avec.',
+    main_pas: 'Pas encore. Laisse-moi finir de dormir de son côté du lit.',
+    noces: 'Oui. Et que ça dure plus de neuf jours.',
+    foyer: ['J’ai amené Colombe à la ferme. Elle s’y plaît. Moi aussi.', 'Levée à quatre heures. Les bêtes sont nourries, le lait est tiré. Tu peux dormir, toi.', 'Tu ronfles. Un peu. Comme un poulain. J’aime bien.'],
+    jalousie: 'On me dit que tu fréquentes {autre}. Je suis directe, alors je te le dis en face : je n’aime pas ça. Pas du tout.',
+    rupture: 'Bon. Au moins, c’est clair. Retourne à tes affaires, je retourne à mes bêtes.',
+    noces_manquees: 'J’avais remis la robe. Toute la matinée. Personne. Je l’ai donnée à la grainetière pour ses torchons.',
+    aide: 'Passée à la ferme avant la traite. Tes bêtes ont mangé, ton potager a bu, ton chien m’a fait la fête. Tu devrais le nourrir plus.',
+    visite: 'Du lait, du fromage, et des nouvelles : tes bêtes vont bien, je m’en occupe. Toi, tiens bon. Ce n’est pas une cage qui va te faire plier.',
+  },
+  pecheur: {
+    offre: ['truite', 'perche', 'poisson_fume'], cadeaux: ['pomme', 'soupe', 'pain'],
+    attirance: ['Hé. Asseyez-vous. Le ponton est plus doux quand vous êtes là.', 'Je vous ai gardé une place. Ça ne se fait pas, sur un ponton. Je l’ai fait quand même.', 'Vous regardez l’eau comme Jules. Non. Comme personne d’autre.'],
+    aveu_oui: 'Hé… À mon âge. Le lac va rire de moi. Qu’il rie. Oui. On peut se voir. Doucement : je suis vieux, et je suis lent.',
+    aveu_pas: 'Pas encore. Le poisson qu’on ferre trop tôt, on le perd.',
+    aveu_npc: 'Je vais vous dire une chose, et après, je me tairai jusqu’à l’hiver. Je vous attends, maintenant. Sur le ponton. Tous les jours. Je ne pêche plus : j’attends.',
+    aveu_npc_oui: 'Hé. Alors… alors le lac a bien fait de vous amener.',
+    refus: 'Hé. Bon. Le lac donne, le lac prend. On a l’habitude.',
+    rdv_oui: { lac: 'Au lac ? J’y suis toujours. Mais ce soir, je n’apporterai pas la canne.', piquenique: 'Un pique-nique. J’apporterai une truite. Grillée. Pas crue : je ne suis pas un sauvage.', danse: 'Danser ? J’ai les jambes d’un héron. Mais un héron, ça danse, au printemps.' },
+    rdv: { lac: ['Le soleil se couche. Jules disait que c’est le seul moment où le lac se tait.', 'Hé. Écoutez. Rien. C’est ça que je voulais vous faire entendre.'], piquenique: ['Mangez la truite par le dos. Les arêtes, c’est pour les impatients.', 'Ça faisait dix ans que je n’avais pas mangé avec quelqu’un. Ça a meilleur goût.'], danse: ['Hé. Je n’ai pas dansé depuis la noce de mon frère. Il dansait mieux que moi.', 'Ne me lâchez pas. Si je tombe, je coule.'] },
+    rdv_manque: 'Je vous ai attendu{e} au bord du lac. Le soleil est venu, lui.',
+    couple_oui: 'Hé. Oui. Ça me fait comme une touche au bout de la ligne. Une grosse.',
+    couple_pas: 'Pas encore. Laissez-moi m’y faire.',
+    tendre: ['Hé. Te voilà. Le lac est plus beau.', 'Je t’ai gardé la plus belle perche. Ne la vends pas.', 'Viens t’asseoir. On ne parlera pas. C’est ça, le meilleur.'],
+    cadeau_donne: ['Tiens. Pris ce matin, en pensant à toi.','Pour toi. Ça tiendra l’hiver. Comme nous.'],
+    main_oui: 'Un anneau… Hé. Je le porterai à la main qui tient la canne. Comme ça, le lac saura. Oui.',
+    main_pas: 'Pas encore. Je veux que Jules le sache d’abord. Je lui parlerai, dimanche, au bout du ponton.',
+    noces: 'Oui. Et que le lac nous laisse tranquilles.',
+    foyer: ['Je pose encore le bol de lait, le dimanche. Au bout du chemin, maintenant. On ne sait jamais.', 'J’ai pris une carpe, ce matin. Elle est dans le seau. Pour ce soir.', 'La ferme est loin de l’eau. Mais tu es là. Alors ça va.'],
+    jalousie: 'Hé. On dit que tu vois {autre}. Le lac m’a appris à attendre. Pas à partager.',
+    rupture: 'Hé. Bon. Je retourne à mes lignes. Elles, au moins, reviennent toujours.',
+    noces_manquees: 'J’ai attendu devant l’autel. Comme au bout du ponton. On finit toujours par rentrer seul.',
+    aide: 'Passé à ta ferme au petit jour, avant l’eau. Arrosé tes semis. Ton chien a eu une tête de carpe. Il a aimé.',
+    visite: 'Hé. Du poisson fumé et du pain. Ça tient au corps. Tiens bon. L’eau finit toujours par redescendre.',
+    rival_dit: 'Les lettres parfumées… c’était moi. Deux ans. Sans signer. Je n’ai jamais eu le courage de signer. Vous, vous l’avez eu. Soyez bon{ne} avec elle.',
+  },
+  colporteuse: {
+    offre: ['toile', 'huile', 'bandage'], cadeaux: ['perle', 'poisson_source', 'miel', 'fleur', 'confiture', 'bouquet'],
+    attirance: ['Vous encore ! Vous finirez par croire que je fais exprès de passer par ici. Vous auriez raison.', 'Je vous ai gardé la plus belle toile. Encore. Il va falloir que j’arrête, je vais me ruiner.', 'Sur les routes, on ne s’attache pas. C’est la règle. Je n’ai jamais été très douée pour les règles.'],
+    aveu_oui: 'Moi qui ai franchi le col des Treize à dix-sept ans pour ne dépendre de personne… Oui. Oui, on se voit. Je suis franche : ça me fait peur, et j’en ai envie.',
+    aveu_pas: 'Pas encore. Une femme des routes, ça ne s’arrête pas au premier sourire. Au deuxième, peut-être.',
+    aveu_npc: 'Je vais être franche, c’est mon défaut. Je fais des détours pour passer devant chez vous. Des lieues de détours. Ma mule serait morte deux fois.',
+    aveu_npc_oui: 'Alors je peux arrêter les détours ? Non. Je vais les faire quand même. Ils sont devenus mon chemin.',
+    refus: 'Bon. La route est longue, et elle ne me demande rien, elle. À bientôt, quand même.',
+    rdv_oui: { lac: 'Au lac, ce soir ? Je déballerai mon plus beau châle. Il n’est pas à vendre.', piquenique: 'Un pique-nique ! J’ai du sel, des épices, et une nappe de l’autre côté des Monts.', danse: 'Danser ! Dans les auberges du col, on danse jusqu’à l’aube. Suivez-moi, si vous pouvez.' },
+    rdv: { lac: ['De l’autre côté des Monts, le soleil se couche plus tôt. Ici, il prend son temps. Moi aussi, ce soir.', 'Ma sœur dit que je finirai sur une route, seule. Elle se trompe peut-être.'], piquenique: ['Goûtez ce sel. Il vient de la mer. Personne ici n’a vu la mer. Moi si.', 'On devrait faire ça sur toutes les routes. S’arrêter. Manger. Regarder quelqu’un.'], danse: ['Plus vite ! Au col, on danse comme on se réchauffe.', 'Vous avez marché sur mon châle. Ce n’est rien. Je vous le vends quand même.'] },
+    rdv_manque: 'Je vous ai attendu{e}. J’ai déballé mon châle pour rien. Je l’ai remballé. Je sais remballer.',
+    couple_oui: 'Ensemble ! Moi. Ma sœur ne va jamais me croire. Je lui écrirai en lettres capitales.',
+    couple_pas: 'Pas encore. Laissez-moi finir ma tournée. Elle est longue, ma tournée.',
+    tendre: ['Toi ! J’ai fait trois lieues de détour. Ne dis rien.', 'Je t’ai gardé une chose de l’autre côté des Monts. Devine quoi. Non : moi.', 'Tu as l’air fatigué. Assieds-toi sur mon ballot. Il est doux, pour un ballot.'],
+    cadeau_donne: ['Tiens. De mes ballots. Ne dis rien, c’est offert.','Pour toi. Ça vient de l’autre côté des Monts. Ça sent le soleil.'],
+    main_oui: 'Un anneau ! Je n’en ai jamais vendu d’aussi beau. Celui-là, je ne le vendrai pas. Oui. Je pose mes ballots. Chez toi.',
+    main_pas: 'Pas encore… Donne-moi le temps de faire mes adieux à la route.',
+    noces: 'Oui. J’ai assez marché. Maintenant, je reste.',
+    foyer: ['J’ai rangé mes ballots au grenier. Ils sentent encore le col.', 'Je vends toujours au marché. Mais le soir, je rentre. Rentrer : je ne connaissais pas ce mot.', 'Ma sœur m’a écrit. Elle dit que je suis folle. Elle dit aussi qu’elle viendra voir la ferme.'],
+    jalousie: 'On parle, sur les routes. On m’a dit, pour toi et {autre}. Je suis franche : ça me fait mal. Voilà.',
+    rupture: 'Bon. Je reprends la route. Elle, elle ne ment jamais.',
+    noces_manquees: 'J’ai attendu à l’église. Et puis j’ai repris la route. Je sais faire ça, au moins.',
+    aide: 'Passée à ta ferme ce matin, entre deux villages. Arrosé, nourri, balayé. Tu as un chien qui aime les colporteurs : c’est rare.',
+    visite: 'Je t’ai apporté du pain, et du tabac à troquer avec le geôlier. Sur les routes, on apprend : en prison, tout s’échange.',
+  },
+  chasseur: {
+    offre: ['viande_fumee', 'fourrure', 'cuir'], cadeaux: ['griffe_ours', 'bois_de_cerf', 'viande_grillee', 'cidre'],
+    attirance: ['Vous. … Bon. Restez. Le gibier attendra.', 'J’ai relevé vos traces, ce matin. Je ne vous suivais pas. Enfin… si.', 'Vous marchez moins fort, dans les bois. Vous apprenez. J’aime bien.'],
+    aveu_oui: '… Je suis un homme des bois. Je ne sais pas dire. Mais je sais attendre à l’affût. Oui. On se voit.',
+    aveu_pas: 'Pas encore. On ne tire pas sur ce qu’on n’a pas bien vu.',
+    aveu_npc: 'Je vais dire une chose. Depuis dix ans, je ne pense qu’à un garçon dans les fougères. Depuis quelque temps, je pense à vous. C’est mieux. C’est tout.',
+    aveu_npc_oui: '… Bien. Alors restez dans mon champ de vision. Toujours.',
+    refus: 'Bon. Compris. Les bêtes, elles, ne mentent pas.',
+    rdv_oui: { lac: 'Au lac, ce soir. Sans fusil. Je vous le promets.', piquenique: 'Un pique-nique. J’apporte la viande. Grillée.', danse: 'Danser. … Je vais le regretter. Allons-y.' },
+    rdv: { lac: ['Le soir, les bêtes viennent boire. Regardez, là-bas. Un chevreuil. Je ne tirerai pas.', 'Je n’avais jamais regardé le soleil se coucher sans guetter quelque chose. C’est reposant.'], piquenique: ['Mangez. Le grand air donne faim, même à ceux qui ne chassent pas.', 'On entend tout, ici. Les merles, le vent. Vous qui respirez.'], danse: ['Je danse comme je marche en forêt : sans bruit. Et sans grâce.', 'Tout le monde me regarde. D’habitude, on m’évite. C’est mieux, ça.'] },
+    rdv_manque: 'Je vous ai attendu{e}. À l’affût. Je sais attendre. Mais pas pour rien.',
+    couple_oui: 'Oui. … Oui.',
+    couple_pas: 'Pas encore. Laissez la bête sortir du bois.',
+    tendre: ['Te voilà. Je t’ai entendu{e} arriver. Je t’entends toujours.', 'J’ai vu un ours près du ruisseau. Fais attention. Pour moi.', 'Reste un peu. Le gibier attendra.'],
+    cadeau_donne: ['Tiens. Pour l’hiver.', 'Pour toi. Ça te tiendra au corps.'],
+    main_oui: 'Un anneau. … Je ne tirerai plus jamais sans regarder deux fois. Promis. Oui.',
+    main_pas: 'Pas encore. Je dois encore faire la paix avec un garçon dans les fougères.',
+    noces: 'Oui. Et que Dieu me pardonne le reste.',
+    foyer: ['J’ai posé des collets autour de la ferme. Pour les renards. Pas pour les gens.', 'Je rentre avant la nuit, maintenant. Pour toi.', 'Ta ferme a de bons bois derrière. Et toi devant. Je suis bien.'],
+    jalousie: 'Tu vois {autre}. Je t’ai vu{e}. Je vois tout, dans les bois. Je n’aime pas ce que j’ai vu.',
+    rupture: 'Bon. Je retourne au relais. Seul. Comme avant.',
+    noces_manquees: 'J’ai attendu à l’église, en habit. Je ne mets jamais d’habit. Je ne le remettrai pas.',
+    aide: 'Passé à ta ferme à l’aube. Arrosé. Nourri les bêtes. Ton chien m’a suivi jusqu’à la lisière. Bon chien.',
+    visite: 'Viande fumée. Du pain. Mange. Et ne pense pas à t’enfuir : je te trouverais. Tout le monde te trouverait.',
+  },
+};
+const COEUR_ROMANTIQUE = ['bouquet', 'fleur', 'rose', 'tulipe', 'dahlia', 'lavande', 'bijou', 'perle', 'orchidee', 'edelweiss', 'lys_cimes', 'muguet', 'gateau', 'anneau_fiancailles'];
+const COEUR_PENSEES = {
+  lac: ['(Le soleil descend dans l’eau. Vous n’avez pas envie qu’il finisse.)', '(Vous ne dites rien. Il n’y a rien à dire.)'],
+  piquenique: ['(Le pain, l’herbe tiède, le bruit de l’eau. Pour une fois, la vallée se tient tranquille.)', '(Vous riez. Vous aviez oublié le bruit que ça fait.)'],
+  danse: ['(La vielle grince, les sabots claquent. Le temps d’une chanson, il n’y a plus de nuit dehors.)', '(Vous comptez les pas, et puis vous oubliez de compter.)'],
+};
+const COEUR_OFFICIANTS = {
+  cure: ['Mes enfants. Nous voici réunis, devant Dieu et devant cette vallée qui en a vu d’autres, pour unir {a} et {b}.', 'Les anneaux, je vous prie. Et que vos mains ne tremblent pas : ce n’est que de l’or.', 'Je vous déclare unis. Allez. Aimez-vous. Et fermez bien vos portes, la nuit.'],
+  maire: ['Au nom de la loi, et puisque notre curé n’est plus là pour le faire, je vais vous marier moi-même. {a}, {b}, approchez.', 'Les consentements, je vous prie. Clairs et nets : c’est pour le registre.', 'Au nom de la loi, vous êtes unis. Signez là. Et là. Voilà : la vallée compte un foyer de plus.'],
+};
+const COEUR_ETAPES = { 1: 'attirance', 2: 'cour', 3: 'couple', 4: 'fiançailles', 5: 'mariage' };
+const COEUR_HOME0 = {};
+for (const d of NPC_DATA) COEUR_HOME0[d.id] = d.home;
+
+const sentiments = {
+  t: 0, pts: {}, hooked: false,
+  S() {
+    const s = farm.s;
+    if (!s) return null;
+    const S = s.coeur || (s.coeur = {});
+    if (!S.c) Object.assign(S, { v: 1, c: {}, rdv: null, noces: null, foyer: null, fillette: false, lit2: false, deuils: [], rival: {} });
+    if (!S.rival) S.rival = {};
+    if (!S.deuils) S.deuils = [];
+    return S;
+  },
+  c(id) {
+    const S = this.S();
+    return S.c[id] || (S.c[id] = { e: 0, p: 0, rdv: 0, depuis: farm.s.day, refus: 0, parleJ: 0, cadeauJ: 0, manques: 0, bague: false, jaloux: null });
+  },
+  etape(id) { const S = this.S(); return S && S.c[id] ? S.c[id].e : 0; },
+  candidat(n) { return !!(n && COEUR[n.d.id] && n.st && n.st.alive && (n.d.age || 30) >= 18); },
+  conjoint() { const S = this.S(); return S && S.foyer && npcs.alive(S.foyer) ? npcs.byId[S.foyer] : null; },
+  D(n) { return COEUR[n.d.id]; },
+  fmt(t, n, extra) {
+    let s = String(t || '');
+    const fem = !!(farm.s && farm.s.fem);
+    s = s.replace(/\{e\}/g, fem ? 'e' : '').replace(/\{le\}/g, fem ? 'le' : '').replace(/\{ne\}/g, fem ? 'ne' : '');
+    if (extra) for (const k in extra) s = s.split('{' + k + '}').join(extra[k]);
+    return fmtLine(s, n);
+  },
+  crimes(n) { return typeof societe !== 'undefined' && societe.crimesSus ? societe.crimesSus(n) : []; },
+  // ------------------------------------------------------------------ étapes
+  majEtape(n) {
+    const c = this.c(n.id), S = this.S(), s = farm.s;
+    if (c.e === 0 && npcs.level(n) >= 6 && !(c.refus && s.day - c.refus < 12) && !(S.foyer && S.foyer !== n.id) && !this.crimes(n).length) {
+      c.e = 1; c.depuis = s.day; c.p = Math.max(c.p, 40); c.nouveau = true;
+    }
+  },
+  passer(n, e) {
+    const c = this.c(n.id), s = farm.s;
+    c.e = e; c.depuis = s.day;
+    if (e === 2) this.nouvelleCour(n);
+  },
+  // quand une cour commence : les autres finiront par l'apprendre ; le rival, lui, le sait tout de suite
+  nouvelleCour(n) {
+    const S = this.S(), s = farm.s, vd = (id) => (typeof societe !== 'undefined' ? societe.villageDe(id) : null);
+    for (const id in S.c) {
+      if (id === n.id) continue;
+      const c = S.c[id];
+      if (c.e >= 2 && npcs.alive(id) && !c.jaloux) c.jaloux = { de: n.id, jour: s.day + (vd(id) && vd(id) === vd(n.id) ? 0 : 1) };
+    }
+    const r = COEUR[n.d.id].rival;
+    if (r && npcs.alive(r) && !S.rival[r]) S.rival[r] = n.id;
+  },
+  rompre(n, silencieux) {
+    const c = this.c(n.id), S = this.S(), s = farm.s;
+    c.e = 0; c.p = 0; c.refus = s.day; c.jaloux = null; c.rdv = 0;
+    npcs.addAmitie(n, -150); n.st.anger = Math.max(n.st.anger || 0, 3);
+    if (S.rdv && S.rdv.id === n.id) S.rdv = null;
+    if (S.noces && S.noces.id === n.id) S.noces = null;
+    if (S.foyer === n.id) { S.foyer = null; S.fillette = false; this.appliquerFoyer(); npcs.snap(game.world); }
+    if (!silencieux && typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-4, 'rupture', 6);
+  },
+  // ------------------------------------------------------------------ à l'ouverture du dialogue
+  ouvrir(n, v, special) {
+    const c = this.c(n.id), D = this.D(n), s = farm.s, S = this.S();
+    const K = this.crimes(n);
+    if (c.e >= 2 && K.some((C) => C.type === 'meurtre')) { this.rompre(n, true); setTimeout(() => ui.subtitle('', '(Dans ses yeux, il n’y a plus que de la peur.)', 4), 2500); return null; }
+    if (c.e >= 2 && K.length) { c.crimesVus = c.crimesVus || {}; for (const C of K) if (!c.crimesVus[C.id]) { c.crimesVus[C.id] = 1; c.p -= 80; } return null; }
+    if (special) return null;
+    this.majEtape(n);
+    if (c.e < 1) return this.rivalDit(n, v); // le rival : il sait, et il le dit une fois
+    if (c.parleJ !== s.day) { c.parleJ = s.day; c.p += 15; }
+    const set = (t) => { v.text = this.fmt(t, n); n.speakT = Math.min(6, 1 + v.text.length * 0.04); };
+    // la jalousie
+    if (c.jaloux && c.jaloux.jour <= s.day) {
+      const J = c.jaloux, autre = npcs.byId[J.de];
+      c.jaloux = null;
+      if (autre && this.etape(J.de) >= 2) {
+        set(this.fmt(D.jalousie, n, { autre: autre.name }));
+        if (c.e >= 3) { this.rompre(n); v.options = [{ label: 'Partir', act: 'bye' }]; }
+        else { c.p -= 150; if (c.p < 0) { c.p = 0; c.e = 1; } }
+        return null;
+      }
+    }
+    if (c.manqueJ) { const k = c.manqueJ; c.manqueJ = 0; set(k === 'noces' ? D.noces_manquees : D.rdv_manque); return null; }
+    if (c.nouveau) { c.nouveau = false; set(pick(D.attirance)); return null; }
+    // l'aveu, de sa part
+    if (c.e === 1 && npcs.level(n) >= 8 && c.p >= 220 && !c.aveuNpc && Math.random() < 0.45) {
+      c.aveuNpc = s.day;
+      return talk.view(this.fmt(D.aveu_npc, n), [{ label: '(Vous aussi.)', act: 'k:oui' }, { label: '(Vous ne pouvez pas.)', act: 'k:non' }]);
+    }
+    if (c.e >= 3) {
+      // un petit cadeau, de temps en temps
+      if (s.day - (c.cadeauJ || 0) >= 3 && Math.random() < 0.5) {
+        const id = pick(D.offre.filter((k) => ITEMS[k]));
+        if (id) {
+          c.cadeauJ = s.day; farm.give(id, 1);
+          const p = game.player; play.flyer && play.flyer(id, [p.pos[0], p.pos[1] + 1.2, p.pos[2]], 1);
+          set(pick(D.cadeau_donne));
+          v.text = `(${n.d.gender === 'f' ? 'Elle' : 'Il'} vous tend : ${itemName(id).toLowerCase()}.) ` + v.text;
+          return null;
+        }
+      }
+      if (Math.random() < 0.65) set(pick(S.foyer === n.id && game.insideBuilding && game.insideBuilding('ferme') ? D.foyer : S.foyer === n.id && Math.random() < 0.5 ? D.foyer : D.tendre));
+      n.waveT = 1.2;
+      return null;
+    }
+    if (c.e >= 1 && Math.random() < 0.4) set(pick(D.attirance));
+    return null;
+  },
+  rivalDit(n, v) {
+    const S = this.S(), pour = S.rival[n.id], D = COEUR[n.d.id];
+    if (!pour || pour === 'dit' || !D || !D.rival_dit || this.etape(pour) < 2) return null;
+    S.rival[n.id] = 'dit';
+    v.text = this.fmt(D.rival_dit, n); n.speakT = Math.min(6, 1 + v.text.length * 0.04);
+    npcs.addAmitie(n, -40);
+    return null;
+  },
+  // ------------------------------------------------------------------ options et choix
+  options(n, opts) {
+    if (!this.candidat(n) || this.crimes(n).length || n.st.anger > 0) return;
+    const c = this.c(n.id), s = farm.s, lvl = npcs.level(n), extra = [];
+    if (c.e === 1 && lvl >= 7 && c.aveuJ !== s.day) extra.push({ label: '(Lui avouer ce que vous ressentez)', act: 'k:aveu', quest: true });
+    if (c.e >= 2 && this.veillee(n)) extra.push({ label: 'M’accorderez-vous une danse ?', act: 'k:danse', quest: true });
+    if (c.e >= 2) extra.push({ label: 'Vous proposer une sortie…', act: 'k:sortie' });
+    if (c.e === 2 && c.rdv >= 2) extra.push({ label: '(Lui demander de former un couple)', act: 'k:couple', quest: true });
+    if (c.e === 3 && (farm.count('anneau_fiancailles') || c.bague)) extra.push({ label: '(Demander sa main)', act: 'k:main', quest: true });
+    if (c.e === 4 && this.S().noces && this.S().noces.id === n.id) extra.push({ label: 'Nos noces…', act: 'k:noces' });
+    if (c.e >= 2) extra.push({ label: '(Rompre)', act: 'k:rompre' });
+    if (!extra.length) return;
+    const i = opts.findIndex((o) => o.act === 'bye');
+    opts.splice(i >= 0 ? i : opts.length, 0, ...extra);
+  },
+  veillee(n) {
+    const h = npcs.hour(), w = game.world, B = w.bld.auberge, p = game.player;
+    if (typeof cal === 'undefined' || !cal.is('veillee') || h < 19 || h > 23.5 || !B) return false;
+    return Math.hypot(p.pos[0] - B.x, p.pos[2] - B.z) < 9 && Math.hypot(n.x - B.x, n.z - B.z) < 9;
+  },
+  choisir(n, act) {
+    const c = this.c(n.id), D = this.D(n), s = farm.s, S = this.S(), h = npcs.hour();
+    const V = (t, o) => talk.view(this.fmt(t, n), o || talk.options());
+    switch (act) {
+      case 'k:aveu':
+        if (c.p >= 150) { this.passer(n, 2); c.p += 40; npcs.addAmitie(n, 30); this.bonheur(3); return V(D.aveu_oui); }
+        c.aveuJ = s.day; c.p += 20; return V(D.aveu_pas);
+      case 'k:oui': this.passer(n, 2); c.p += 60; npcs.addAmitie(n, 30); this.bonheur(3); return V(D.aveu_npc_oui);
+      case 'k:non': c.e = 0; c.p = 0; c.refus = s.day; npcs.addAmitie(n, -40); return V(D.refus);
+      case 'k:sortie': {
+        const o = [];
+        o.push({ label: h < 18.3 ? 'Ce soir, au lac, pour le coucher du soleil' : 'Demain soir, au lac, pour le coucher du soleil', act: 'k:rdv:lac' });
+        o.push({ label: 'Demain midi, un pique-nique au bord de l’eau', act: 'k:rdv:piquenique' });
+        if (this.veillee(n)) o.push({ label: 'Danser, ici, ce soir', act: 'k:danse' });
+        o.push({ label: 'Rien. Pardon.', act: 'k:rien' });
+        return talk.view(this.fmt('(Vous cherchez vos mots.)', n), o);
+      }
+      case 'k:rdv:lac': case 'k:rdv:piquenique': {
+        if (S.rdv && !S.rdv.fait) return V(S.rdv.id === n.id ? 'On a déjà rendez-vous, vous vous souvenez ?' : '…');
+        const type = act.slice(6), jour = type === 'lac' && h < 18.3 ? s.day : s.day + 1;
+        S.rdv = type === 'lac' ? { id: n.id, type, jour, h0: 18.6, h1: 20.4 } : { id: n.id, type, jour, h0: 12, h1: 14.5 };
+        npcs.addAmitie(n, 10);
+        return V(D.rdv_oui[type]);
+      }
+      case 'k:danse': talk.close(); ui.close(true); setTimeout(() => this.scene(n, { type: 'danse' }), 250); return null;
+      case 'k:couple':
+        if (c.p >= 450) { this.passer(n, 3); npcs.addAmitie(n, 40); this.bonheur(4); return V(D.couple_oui); }
+        return V(D.couple_pas);
+      case 'k:main': {
+        if (c.e === 3 && s.day - c.depuis >= 2 && c.p >= 650) {
+          if (!c.bague) { if (!farm.take('anneau_fiancailles', 1)) return V(D.main_pas); c.bague = true; }
+          this.passer(n, 4); this.planNoces(n); this.bonheur(5);
+          sound.quest && sound.quest(true);
+          return V(D.main_oui + '\n\n' + this.texteNoces());
+        }
+        return V(D.main_pas);
+      }
+      case 'k:noces': return V(this.texteNoces());
+      case 'k:rompre': return talk.view(this.fmt(farm.s.fem ? '(Vous êtes sûre ?)' : '(Vous êtes sûr ?)', n), [{ label: '(Oui. Rompre.)', act: 'k:rompre2' }, { label: '(Non.)', act: 'k:rien' }]);
+      case 'k:rompre2': this.rompre(n); return talk.view(this.fmt(D.rupture, n), [{ label: 'Partir', act: 'bye' }]);
+      case 'k:rien': return talk.view('…', talk.options());
+    }
+    return talk.view('…', talk.options());
+  },
+  bonheur(k) { if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(k, 'le cœur', 8); },
+  // ------------------------------------------------------------------ les cadeaux qui touchent le cœur
+  cadeau(n, id) {
+    const c = this.c(n.id), D = this.D(n);
+    if (c.e < 1) return;
+    const loves = n.d.loves || [], likes = n.d.likes || [], dis = n.d.dislikes || [];
+    let k = 0;
+    if (dis.includes(id)) k = -40;
+    else if (loves.includes(id)) k = 70;
+    else if ((D.cadeaux || []).includes(id)) k = 55;
+    else if (likes.includes(id)) k = 40;
+    else if (COEUR_ROMANTIQUE.includes(id)) k = 45;
+    else k = 10;
+    c.p += k;
+    if (k >= 40) this.temoinsJaloux(n, 16);
+  },
+  // quelqu'un qu'on courtise aussi, tout près : il voit
+  temoinsJaloux(n, r) {
+    const S = this.S(), p = game.player, s = farm.s;
+    for (const id in S.c) {
+      if (id === n.id || S.c[id].e < 2) continue;
+      const m = npcs.byId[id];
+      if (!m || !m.st.alive || m.sleep || Math.hypot(m.x - p.pos[0], m.z - p.pos[2]) > r) continue;
+      S.c[id].jaloux = { de: n.id, jour: s.day };
+      npcs.say(m, '…', 2);
+    }
+  },
+  // ------------------------------------------------------------------ rendez-vous
+  pointRdv(type) {
+    if (this.pts[type]) return this.pts[type];
+    const w = game.world, WL = w.waterLevel;
+    const L = type === 'lac' ? (w.lm.ponton || w.lm.lac) : (w.lm.moulin || w.lm.pont_riviere || w.lm.lavoir || w.lm.ponton || w.lm.lac);
+    if (!L) return null;
+    let best = null;
+    for (let k = 0; k < 80; k++) {
+      const a = k * 2.399, d = 3 + (k % 10) * 1.1, x = L.x + Math.cos(a) * d, z = L.z + Math.sin(a) * d, h = w.heightAt(x, z);
+      if (h < WL + 0.35 || h > WL + 6 || w.normalAt(x, z)[1] < 0.9 || !pointFree(w, x, z, 0.8)) continue;
+      // au bord de l'eau : qu'il y ait de l'eau à quelques pas
+      let eau = null;
+      for (let j = 0; j < 12 && !eau; j++) { const b = j / 12 * TAU, ex = x + Math.cos(b) * 7, ez = z + Math.sin(b) * 7; if (w.heightAt(ex, ez) < WL - 0.3) eau = [ex, ez]; }
+      if (!eau && type === 'lac') continue;
+      const r = eau ? Math.atan2(eau[0] - x, eau[1] - z) : 0;
+      best = { x, z, r }; break;
+    }
+    if (!best) best = { x: L.x + 2, z: L.z + 2, r: 0 };
+    this.pts[type] = best;
+    return best;
+  },
+  // l'emploi du temps, les jours de rendez-vous et de noces
+  horaire(n, h) {
+    const S = this.S(), s = farm.s;
+    if (!S || n.st.malade) return null;
+    const R = S.rdv;
+    if (R && !R.fait && R.id === n.id && s.day === R.jour && h >= R.h0 - 0.75 && h <= R.h1) return { place: 'k:rdv', sleep: false };
+    const N = S.noces;
+    if (N && !N.fait && s.day === N.jour && h >= 10.2 && h <= 13.2) {
+      if (n.id === N.id) return { place: 'k:mariee', sleep: false };
+      if (n.id === this.officiant()) return { place: 'k:autel', sleep: false };
+      if (n.st.met && npcs.level(n) >= 3 && n.d.area !== 'nains' && !n.d.nomade) return { place: 'k:invite', sleep: false };
+    }
+    return null;
+  },
+  officiant() { return npcs.alive('cure') ? 'cure' : npcs.alive('maire') ? 'maire' : null; },
+  autel() {
+    const w = game.world, B = w.bld.eglise;
+    if (!B || !B.spots.work) return null;
+    const W = B.spots.work, r = W.r, fx = Math.sin(r), fz = Math.cos(r), rx = Math.cos(r), rz = -Math.sin(r);
+    const cx = W.x + fx * 2.4, cz = W.z + fz * 2.4;
+    return { r, y: W.y, autel: [W.x, W.z], centre: [cx, cz], mariee: [cx + rx * 0.55, cz + rz * 0.55], joueur: [cx - rx * 0.55, cz - rz * 0.55], B };
+  },
+  dest(n, pl) {
+    const w = game.world, S = this.S();
+    const node = (x, z) => npcs.nearestReach(x, z, (q) => !/:(in|mid)$/.test(q.tag));
+    if (pl === 'k:rdv' && S.rdv) {
+      const P = this.pointRdv(S.rdv.type);
+      if (!P) return null;
+      return { node: node(P.x, P.z), x: P.x, z: P.z, r: P.r, pose: S.rdv.type === 'piquenique' ? 'sit' : null };
+    }
+    const A = this.autel();
+    if (!A) return null;
+    if (pl === 'k:mariee') return { node: A.B.nMid, x: A.mariee[0], z: A.mariee[1], r: A.r + Math.PI, pose: null, bld: 'eglise' };
+    if (pl === 'k:autel') return { node: A.B.nMid, x: A.autel[0], z: A.autel[1], r: A.r, pose: null, bld: 'eglise' };
+    if (pl === 'k:invite') {
+      const bancs = Object.keys(A.B.spots).filter((k) => k.startsWith('banc'));
+      if (!bancs.length) return null;
+      const sp = A.B.spots[bancs[(hashString(n.id) >>> 0) % bancs.length]];
+      return { node: A.B.nMid, x: sp.x, z: sp.z, r: sp.r, pose: 'sit', bld: 'eglise', y: sp.y };
+    }
+    return null;
+  },
+  // ------------------------------------------------------------------ les scènes (cinématiques)
+  async scene(n, R) {
+    const D = this.D(n), c = this.c(n.id), S = this.S(), p = game.player, type = R.type;
+    if (typeof cine === 'undefined' || cine.on || !n.st.alive) return;
+    R.fait = true;
+    n.talking = true; n.fleeT = 0;
+    let gain = 150, pense = pick(COEUR_PENSEES[type]);
+    if (type === 'piquenique') {
+      const vivres = Object.keys(farm.s.inv).filter((id) => ITEMS[id] && ITEMS[id].cat === 'nourriture' && !ITEMS[id].alcool);
+      let k = 0;
+      for (const id of vivres) { while (k < 2 && farm.count(id) && farm.take(id, 1)) k++; if (k >= 2) break; }
+      if (!k) { gain = 70; pense = '(Vous n’avez rien apporté. On partage ce qu’on a : presque rien. C’est bien quand même.)'; }
+    }
+    const y = n.y + 1.05, mid = [(n.x + p.pos[0]) / 2, y, (n.z + p.pos[2]) / 2];
+    const a0 = Math.atan2(p.pos[0] - n.x, p.pos[2] - n.z) + Math.PI / 2;
+    const L = D.rdv[type];
+    let musique = null;
+    const danse = type === 'danse' ? { cx: mid[0], cz: mid[2], a: Math.atan2(n.x - mid[0], n.z - mid[2]), y0: p.pos[1] } : null;
+    const pas = (t, dt) => {
+      if (!danse) return;
+      danse.a += dt * 1.1;
+      const r = 0.45;
+      n.x = danse.cx + Math.sin(danse.a) * r; n.z = danse.cz + Math.cos(danse.a) * r;
+      p.pos[0] = danse.cx - Math.sin(danse.a) * r; p.pos[2] = danse.cz - Math.cos(danse.a) * r;
+      n.heading = Math.atan2(p.pos[0] - n.x, p.pos[2] - n.z);
+      p.yaw = Math.atan2(n.x - p.pos[0], n.z - p.pos[2]) - Math.PI;
+      n.move = 0.55; n.phase += dt * 5;
+    };
+    const plans = [
+      { dur: 4.8, orbite: { c: mid, r: type === 'danse' ? 3.2 : 4.4, h: 0.8, a0, a1: a0 + 0.55, look: mid }, texte: this.fmt(L[0], n), qui: n.name, joueur: true, chaque: pas, debut: () => { if (type === 'danse') musique = this.musique(); } },
+      { dur: 4.8, orbite: { c: mid, r: type === 'danse' ? 2.4 : 2.9, h: 0.45, a0: a0 + 1.0, a1: a0 + 1.35, look: mid }, texte: this.fmt(L[1], n), qui: n.name, joueur: true, chaque: pas },
+      { dur: 3.8, orbite: { c: mid, r: 6.5, h: 2.4, a0: a0 + 1.9, a1: a0 + 2.3, look: mid }, texte: pense, joueur: true, chaque: pas },
+    ];
+    try { await cine.jouer(plans, {}); } catch (e) { console.error(e); }
+    n.talking = false; n.move = 0; n.goal = null;
+    if (danse) { p.pos[1] = Math.max(p.pos[1], danse.y0); }
+    if (musique) musique.fin = true;
+    c.p += gain; c.rdv = (c.rdv || 0) + 1; c.manques = 0;
+    npcs.addAmitie(n, 40);
+    this.bonheur(3);
+    this.temoinsJaloux(n, 28);
+    if (S.rdv === R) S.rdv = null;
+  },
+  // un air de vielle, pour la danse
+  musique() {
+    const M = { fin: false };
+    if (!sound.ok || !sound.tone || !sound.at) return M;
+    const N = [587, 659, 740, 784, 880, 988, 1175];
+    const air = [4, 3, 2, 3, 4, 4, 4, -1, 3, 3, 3, -1, 4, 6, 6, -1, 4, 3, 2, 3, 4, 4, 4, 4, 3, 3, 4, 3, 2, -1, 0, 0];
+    const t0 = sound.at() + 0.1, dur = 0.24;
+    for (let rep = 0; rep < 2; rep++) for (let i = 0; i < air.length; i++) {
+      const k = air[i];
+      if (k < 0) continue;
+      try { sound.tone(t0 + (rep * air.length + i) * dur, 'triangle', N[k], N[k], dur * 0.9, 0.035); } catch (e) { return M; }
+    }
+    try { sound.tone(t0, 'sawtooth', 147, 147, air.length * 2 * dur, 0.008); sound.tone(t0, 'sine', 294, 294, air.length * 2 * dur, 0.01); } catch (e) { /* rien */ }
+    return M;
+  },
+  // ------------------------------------------------------------------ les noces
+  planNoces(n) {
+    const S = this.S(), s = farm.s;
+    let jour = s.day + 2;
+    if (npcs.alive('cure') && typeof cal !== 'undefined') { for (let k = 0; k < 13; k++) if (cal.is('messe', s.day + 2 + k)) { jour = s.day + 2 + k; break; } }
+    S.noces = { id: n.id, jour, reports: 0 };
+  },
+  texteNoces() {
+    const N = this.S().noces;
+    if (!N) return '…';
+    const date = typeof cal !== 'undefined' ? `${cal.nom(N.jour)} ${N.jour}` : `le jour ${N.jour}`;
+    return `(Les noces : ${date}, à onze heures, à l’église de ${farm.names.ville}.)`;
+  },
+  async ceremonie(n) {
+    const S = this.S(), N = S.noces, s = farm.s, A = this.autel(), p = game.player, D = this.D(n);
+    if (!N || !A || cine.on) return;
+    N.fait = true;
+    n.talking = true;
+    p.pos = [A.joueur[0], A.y, A.joueur[1]]; p.vel = [0, 0, 0]; p.yaw = A.r;
+    n.x = A.mariee[0]; n.z = A.mariee[1]; n.heading = A.r + Math.PI;
+    const off = this.officiant(), L = off ? COEUR_OFFICIANTS[off] : null, qui = off ? npcs.byId[off].name : '';
+    const moi = s.prenom || (s.fem ? 'la fermière' : 'le fermier');
+    const ab = { a: n.name, b: moi };
+    const fx = Math.sin(A.r), fz = Math.cos(A.r), c = [A.centre[0], A.y + 1.2, A.centre[1]];
+    const nef = [A.centre[0] + fx * 7, A.y + 2.4, A.centre[1] + fz * 7];
+    const plans = [
+      { dur: 5, de: { pos: nef, look: [A.autel[0], A.y + 1.2, A.autel[1]] }, a: { pos: [A.centre[0] + fx * 4.5, A.y + 1.9, A.centre[1] + fz * 4.5], look: c }, texte: L ? this.fmt(L[0], n, ab) : '(Il n’y a plus personne pour vous marier. Alors vous vous le dites l’un à l’autre, devant l’autel vide.)', qui, joueur: true, debut: () => { sound.bell && sound.bell(1); } },
+      { dur: 4, orbite: { c, r: 2.6, h: 0.3, a0: A.r + 0.9, a1: A.r + 0.6, look: c }, texte: L ? this.fmt(L[1], n, ab) : '(Vos mains tremblent un peu.)', qui, joueur: true },
+      { dur: 4.5, orbite: { c, r: 2.0, h: 0.2, a0: A.r - 0.6, a1: A.r - 0.9, look: [n.x, A.y + 1.5, n.z] }, texte: this.fmt(D.noces, n), qui: n.name, joueur: true },
+      { dur: 2.6, orbite: { c, r: 2.2, h: 0.2, a0: A.r + 0.4, a1: A.r + 0.2, look: [p.pos[0], A.y + 1.5, p.pos[2]] }, texte: '(Oui.)', joueur: true },
+      { dur: 5, de: { pos: [A.centre[0] + fx * 3, A.y + 1.7, A.centre[1] + fz * 3], look: c }, a: { pos: nef, look: c }, texte: L ? this.fmt(L[2], n, ab) : '(Dehors, les cloches ne sonnent pas. Vous les entendez quand même.)', qui, joueur: true, fin: () => { sound.bell && sound.bell(1); setTimeout(() => sound.bell && sound.bell(0.8), 700); } },
+    ];
+    try { await cine.jouer(plans, {}); } catch (e) { console.error(e); }
+    n.talking = false;
+    this.marier(n);
+  },
+  marier(n) {
+    const S = this.S(), s = farm.s;
+    this.passer(n, 5);
+    S.noces = null; S.foyer = n.id;
+    if (n.d.id === 'boulangere' && npcs.alive('fillette')) S.fillette = true;
+    this.appliquerFoyer();
+    if (S.fillette) this.litPetite();
+    this.bonheur(8);
+    for (const m of npcs.list) if (m !== n && m.st.alive && m.st.met && npcs.level(m) >= 3) npcs.addAmitie(m, 20);
+    s.rep.hero = (s.rep.hero || 0) + 1;
+    farm.mail(npcs.alive('maire') ? 'La mairie de ' + farm.names.ville : 'Le presbytère', 'Registre de l’état civil', `Ce jour, ${cal.nom(s.day)} ${s.day}, ont été unis ${n.name} ${n.d.surname}, ${n.d.role.toLowerCase()}, et ${s.prenom || 'l’occupant de la vieille ferme'}.\n\nLes époux résideront à la vieille ferme.\n\n« Que la vallée leur soit douce. Elle l’est rarement. »`);
+    setTimeout(() => ui.subtitle('', `(Ce soir, ${n.name} dormira à la ferme. Et les soirs d’après.)`, 5), 1500);
+  },
+  // l'être aimé vient vivre à la ferme (la petite aussi) : la maison change dans les données, à chaque chargement
+  appliquerFoyer() {
+    const S = this.S(), w = game.world;
+    for (const d of NPC_DATA) if (COEUR_HOME0[d.id]) d.home = COEUR_HOME0[d.id];
+    if (!S || !w || !w.bld.ferme) return;
+    const B = w.bld.ferme;
+    if (S.foyer && npcs.alive(S.foyer)) {
+      NPC_BY_ID[S.foyer].home = 'ferme';
+      if (S.fillette && npcs.alive('fillette')) NPC_BY_ID.fillette.home = 'ferme';
+      const bb = new Builder(w, Math.random, new Uint8Array(1));
+      const [x, z] = bb.toWorld(B.f, 1.0, -0.2);
+      B.spots.sit = { x, y: B.f.y + 0.15, z, r: B.f.r + Math.PI };
+      if (S.lit2) { const [x2, z2] = bb.toWorld(B.f, 3.55, -1.9); B.spots.bed2 = { x: x2, y: B.f.y + 0.65, z: z2, r: B.f.r + Math.PI }; }
+    } else { delete B.spots.sit; delete B.spots.bed2; }
+  },
+  litPetite() {
+    const S = this.S(), w = game.world, B = w.bld.ferme;
+    if (S.lit2 || !B) return;
+    const bb = new Builder(w, Math.random, new Uint8Array(1));
+    const [x, z] = bb.toWorld(B.f, 3.55, -1.9);
+    farm.addProp({ id: 'lit', x, y: B.f.y + 0.15, z, r: B.f.r + Math.PI, data: { col: '#c890a0' } });
+    S.lit2 = true;
+    this.appliquerFoyer();
+  },
+  // ------------------------------------------------------------------ la ferme : on vous aide
+  aiderFerme() {
+    const s = farm.s;
+    let k = 0;
+    for (const key in s.crops) { const c = s.crops[key]; if (!c || !c.c || c.dead) continue; if (!(c.wet > s.hours + 1)) { c.wet = s.hours + 10; k++; } }
+    for (const a of s.animals || []) a.fedUntil = Math.max(a.fedUntil || 0, s.hours + 14);
+    try { if (typeof chien !== 'undefined' && chien.vivant && chien.vivant() && chien.stade() >= 1) chien.repas(14, false); } catch (e) { console.error(e); }
+    farm.dirtyProps = true;
+    return k;
+  },
+  jour() {
+    const S = this.S(), s = farm.s;
+    if (!S) return;
+    // l'aide à la ferme : l'être aimé passe (en couple), ou vit là (marié)
+    const qui = Object.keys(S.c).filter((id) => S.c[id].e >= 3 && npcs.alive(id));
+    const conj = this.conjoint();
+    if (conj) { this.aiderFerme(); setTimeout(() => { if (!game.dying) ui.subtitle('', `(Le potager est arrosé, les bêtes ont mangé. ${conj.name} s’est levé${conj.d.gender === 'f' ? 'e' : ''} avant vous.)`, 4.5); }, 4200); }
+    else for (const id of qui) {
+      if (Math.random() > 0.3) continue;
+      const n = npcs.byId[id];
+      this.aiderFerme();
+      farm.mail(n.name + ' ' + n.d.surname, 'Un mot', this.fmt(COEUR[id].aide, n) + '\n\n— ' + n.name);
+      break;
+    }
+    // le deuil, appris le lendemain
+    for (const d of S.deuils) if (!d.su && s.day > d.day) { d.su = true; const m = npcs.byId[d.id]; if (m) setTimeout(() => { if (!game.dying) ui.subtitle('', `(Une lettre bordée de noir. Le nom de ${m.name}. Vous la lisez trois fois, et le nom ne change pas.)`, 6); }, 5200); }
+    for (const id in S.c) { const n = npcs.byId[id]; if (n && n.st.alive) this.majEtape(n); }
+  },
+  // ------------------------------------------------------------------ la mort de l'être aimé
+  mort(n, by) {
+    const S = this.S(), c = S && S.c[n.id];
+    if (!c || c.e < 1) return;
+    const e = c.e;
+    c.e = -1; c.mortJ = farm.s.day;
+    if (S.rdv && S.rdv.id === n.id) S.rdv = null;
+    if (S.noces && S.noces.id === n.id) S.noces = null;
+    if (S.foyer === n.id) { S.foyer = null; }
+    if (e >= 2) {
+      const k = (e >= 5 ? 30 : e >= 3 ? 20 : 12) + (by === 'joueur' ? 10 : 0);
+      if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-k, 'la mort de ' + n.name);
+      const p = game.player, pres = Math.hypot(n.x - p.pos[0], n.z - p.pos[2]) < 40;
+      S.deuils.push({ id: n.id, day: farm.s.day, e, su: pres });
+      if (pres) setTimeout(() => { if (!game.dying) ui.subtitle('', by === 'joueur' ? '(Qu’avez-vous fait. Qu’avez-vous fait.)' : `(Non. Pas ${n.name}. Pas maintenant.)`, 5); }, 1200);
+    }
+    this.appliquerFoyer();
+  },
+  // ------------------------------------------------------------------ la prison (appelé par le cachot)
+  auCachot(jours) {
+    const S = this.S();
+    if (!S) return null;
+    const g = S.c.garde;
+    if (g && g.e >= 3 && npcs.alive('garde') && jours > 1) return { jours: jours - 1, texte: `${this.fmt('{npc:garde}', npcs.byId.garde)} a parlé au maire, à voix basse. Un jour de moins. Il ne vous regarde pas.` };
+    return null;
+  },
+  visiteCachot() {
+    const S = this.S();
+    if (!S) return null;
+    const ids = Object.keys(S.c).filter((id) => S.c[id].e >= 3 && npcs.alive(id));
+    if (!ids.length) return null;
+    const id = S.foyer && ids.includes(S.foyer) ? S.foyer : ids[0], n = npcs.byId[id];
+    const objets = [['pain', 1], ['fromage', 1]];
+    if (id === 'forgeron' && !farm.count('lime')) objets.push(['lime', 1]);
+    if (id === 'pecheur') objets.push(['poisson_fume', 1]);
+    return { qui: n.name, texte: this.fmt(COEUR[id].visite, n), objets };
+  },
+  // ------------------------------------------------------------------ chaque image (par demi-seconde)
+  update(dt, playing) {
+    const S = this.S(), s = farm.s;
+    if (!S) return;
+    this.t -= dt;
+    if (this.t > 0) return;
+    this.t = 0.5;
+    const h = npcs.hour(), p = game.player, en = typeof prison !== 'undefined' && prison.enPrison();
+    // le rendez-vous
+    const R = S.rdv;
+    if (R && !R.fait) {
+      const n = npcs.byId[R.id];
+      if (!n || !n.st.alive || this.etape(R.id) < 2) S.rdv = null;
+      else if (s.day > R.jour || (s.day === R.jour && h > R.h1)) {
+        const c = this.c(R.id);
+        S.rdv = null;
+        if (!en) { c.p -= 80; c.manques = (c.manques || 0) + 1; c.manqueJ = 'rdv'; npcs.addAmitie(n, -30); if (c.manques >= 2 && c.e > 1) { c.e -= 1; c.manques = 0; } }
+      } else if (playing && s.day === R.jour && h >= R.h0 - 0.3 && !cine.on && !ui.panel && !game.sleeping) {
+        const P = this.pointRdv(R.type);
+        if (P && Math.hypot(n.x - P.x, n.z - P.z) < 5 && Math.hypot(p.pos[0] - n.x, p.pos[2] - n.z) < 7) this.scene(n, R);
+      }
+    }
+    // les noces
+    const N = S.noces;
+    if (N && !N.fait) {
+      const n = npcs.byId[N.id];
+      if (!n || !n.st.alive) S.noces = null;
+      else if (en && s.day >= N.jour) { N.jour = s.day + 3; N.reports = (N.reports || 0) + 1; farm.mail(n.name + ' ' + n.d.surname, 'Les noces', this.fmt('On repoussera les noces. Je t’attendrai. Je ne sais faire que ça, en ce moment.', n) + '\n\n— ' + n.name); }
+      else if (s.day > N.jour || (s.day === N.jour && h > 13.2)) {
+        const c = this.c(N.id);
+        S.noces = null; c.p -= 300; c.manqueJ = 'noces'; npcs.addAmitie(n, -120);
+        this.passer(n, 3); c.bague = true;
+      } else if (playing && s.day === N.jour && h >= 10.3 && !cine.on && !ui.panel && !game.sleeping) {
+        const A = this.autel();
+        if (A && Math.hypot(n.x - A.centre[0], n.z - A.centre[1]) < 4 && Math.hypot(p.pos[0] - A.centre[0], p.pos[2] - A.centre[1]) < 9) this.ceremonie(n);
+      }
+    }
+    // le soir, à la ferme, on ferme la porte à clé
+    const conj = this.conjoint();
+    if (conj && (h >= 21.5 || h < 5) && (conj.state === 'sleep' || conj.sleep) && conj.inside === 'ferme') {
+      const w = game.world, dr = w.bld.ferme && w.doors[w.bld.ferme.door];
+      if (dr && !dr.locked && !dr.open && !(p && game.insideBuilding && !game.insideBuilding('ferme') && Math.hypot(p.pos[0] - dr.x, p.pos[2] - dr.z) < 30)) dr.locked = true;
+    }
+  },
+  // ------------------------------------------------------------------ le carnet
+  carnet(body) {
+    const S = this.S();
+    if (!S || !body) return;
+    const L = [];
+    for (const id in S.c) {
+      const c = S.c[id], n = npcs.byId[id];
+      if (!n || c.e === 0 || !n.st.met) continue;
+      const f = n.d.gender === 'f', nom = `${n.name} ${n.d.surname}`;
+      let t = '';
+      if (c.e === -1) { const M = typeof societe !== 'undefined' && societe.S().morts[id]; t = `${nom} — † ${M && typeof cal !== 'undefined' ? cal.nom(M.day) + ' ' + M.day : ''}. Vous ne l’oubliez pas.`; }
+      else if (c.e === 1) t = `${nom} — ${f ? 'elle' : 'il'} vous regarde un peu plus longtemps qu’avant.`;
+      else if (c.e === 2) t = `${nom} — vous vous fréquentez${c.rdv ? ` (${c.rdv} rendez-vous)` : ''}.`;
+      else if (c.e === 3) t = `${nom} — vous êtes ensemble.`;
+      else if (c.e === 4) t = `${nom} — ${f ? 'votre fiancée' : 'votre fiancé'}. ${this.texteNoces().replace(/[()]/g, '')}`;
+      else if (c.e === 5) t = `${nom} — ${f ? 'votre épouse' : 'votre époux'}${S.foyer === id ? ', à la ferme avec vous' : ''}.`;
+      L.push(t);
+    }
+    const R = S.rdv;
+    if (R && !R.fait && npcs.byId[R.id]) {
+      const n = npcs.byId[R.id], quand = R.jour === farm.s.day ? 'aujourd’hui' : 'demain';
+      L.push(R.type === 'lac' ? `Rendez-vous avec ${n.name} : ${quand}, au lac, au coucher du soleil (vers sept heures).` : `Rendez-vous avec ${n.name} : ${quand} midi, pique-nique au bord de l’eau. Apportez de quoi manger.`);
+    }
+    if (typeof prison !== 'undefined' && prison.enPrison()) { const P = prison.S(); L.unshift(`Au cachot : encore ${prison.jours(Math.max(1, P.jours))}. Rançon : ${P.rancon} pièces.`); }
+    if (!L.length) return;
+    const d = document.createElement('div'); d.className = 'q coeur';
+    d.innerHTML = `<b>${esc('Le cœur')}</b>${L.map((t) => `<div>${esc(t)}</div>`).join('')}`;
+    const rech = body.querySelector('.q.recherche');
+    if (rech && rech.nextSibling) body.insertBefore(d, rech.nextSibling); else body.insertBefore(d, body.firstChild);
+  },
+};
+
+// ============================================================================
+//  BRANCHEMENTS
+// ============================================================================
+// la mort de l'être aimé
+{
+  const _kill = npcs.kill.bind(npcs);
+  npcs.kill = function (n, by, wit) {
+    const vivant = !!(n && n.st && n.st.alive);
+    _kill(n, by, wit);
+    try { if (vivant && n && n.st && !n.st.alive && farm.s) sentiments.mort(n, by); } catch (e) { console.error(e); }
+  };
+}
+// les anneaux : au colporteur, à la colporteuse, à la forge
+if (typeof HOTTES !== 'undefined') for (const id of ['colporteur', 'colporteuse']) if (HOTTES[id] && HOTTES[id].fonds && !HOTTES[id].fonds.includes('anneau_fiancailles')) HOTTES[id].fonds.push('anneau_fiancailles');
+if (NPC_BY_ID.forgeron && NPC_BY_ID.forgeron.shop && !NPC_BY_ID.forgeron.shop.sells.some(([k]) => k === 'anneau_fiancailles')) NPC_BY_ID.forgeron.shop.sells.push(['anneau_fiancailles', 340]);
+
+HOOKS.update.push((dt, eye, basis, sky, playing) => { if (farm.s && game.world) sentiments.update(dt, playing); });
+HOOKS.day.push(() => { if (farm.s) sentiments.jour(); });
+HOOKS.load.push(() => {
+  sentiments.S(); sentiments.pts = {}; sentiments.t = 0;
+  sentiments.appliquerFoyer();
+  const S = sentiments.S();
+  if (S.rdv) S.rdv.fait = false;
+  if (S.noces) S.noces.fait = false;
+  if (S.foyer) npcs.snap(game.world);
+  if (sentiments.hooked) return;
+  sentiments.hooked = true;
+  // l'emploi du temps : rendez-vous, noces
+  const _sp = npcs.schedulePlace.bind(npcs);
+  npcs.schedulePlace = function (n, h) {
+    const r = _sp(n, h);
+    try { if (farm.s) { const o = sentiments.horaire(n, h); if (o) return o; } } catch (e) { console.error(e); }
+    return r;
+  };
+  const _dest = npcs.dest.bind(npcs);
+  npcs.dest = function (n, pl, sleep) {
+    if (typeof pl === 'string' && pl.startsWith('k:')) { try { const D = sentiments.dest(n, pl); if (D && D.node >= 0) return D; } catch (e) { console.error(e); } pl = 'home'; }
+    return _dest(n, pl, sleep);
+  };
+  // au lit, à la ferme : on ne le réveille pas en visant le lit
+  const _rc = npcs.raycast.bind(npcs);
+  npcs.raycast = function (o, d, m) {
+    const c = sentiments.conjoint();
+    if (!c || c.state !== 'sleep' || c.inside !== 'ferme') return _rc(o, d, m);
+    const st = c.state; c.state = 'gone';
+    try { return _rc(o, d, m); } finally { c.state = st; }
+  };
+  // le salut tendre
+  const _sg = npcs.shortGreet.bind(npcs);
+  npcs.shortGreet = function (n) {
+    try {
+      if (farm.s && sentiments.candidat(n) && sentiments.etape(n.id) >= 3 && !sentiments.crimes(n).length && !(n.st.anger > 0) && Math.random() < 0.6) {
+        const D = COEUR[n.d.id], S = sentiments.S();
+        n.waveT = 1.4;
+        return sentiments.fmt(pick(S.foyer === n.id && Math.random() < 0.5 ? D.foyer : D.tendre), n);
+      }
+    } catch (e) { console.error(e); }
+    return _sg(n);
+  };
+  // les dialogues
+  const _open = talk.open.bind(talk);
+  talk.open = function (n) {
+    const s = farm.s, st = n.st, dd = s && s.dead.length ? s.dead[s.dead.length - 1] : null;
+    const special = !s || !st.met || st.anger > 0 || npcs.murdererKnown() || (strange.wasRedNight() && st.redSeen !== s.day) || !!(dd && dd.day >= s.day - 2 && st.deuil !== dd.id && dd.id !== n.id);
+    const v = _open(n);
+    try { if (v && farm.s && sentiments.candidat(n)) { const r = sentiments.ouvrir(n, v, special); if (r) return r; } } catch (e) { console.error(e); }
+    return v;
+  };
+  const _options = talk.options.bind(talk);
+  talk.options = function () {
+    const opts = _options();
+    try { if (this.n && farm.s) sentiments.options(this.n, opts); } catch (e) { console.error(e); }
+    return opts;
+  };
+  const _choose = talk.choose.bind(talk);
+  talk.choose = function (act) {
+    const n = this.n;
+    if (n && typeof act === 'string' && act.startsWith('k:')) return sentiments.choisir(n, act);
+    return _choose(act);
+  };
+  const _gift = talk.gift.bind(talk);
+  talk.gift = function () {
+    const n = this.n, id = farm.s && farm.s.hand, g0 = n && n.st.giftDay;
+    const v = _gift();
+    try { if (n && id && n.st.giftDay === farm.s.day && g0 !== farm.s.day && sentiments.candidat(n)) sentiments.cadeau(n, id); } catch (e) { console.error(e); }
+    return v;
+  };
+  // le carnet
+  const _rsat = ui.renderSatchel.bind(ui);
+  ui.renderSatchel = function () {
+    _rsat();
+    try { if (this.satTab === 'carnet' && farm.s) sentiments.carnet($('#satchel .body')); } catch (e) { console.error(e); }
+  };
+});
+
 // ---- 12-ui.js
 // ============================================================================
 //  INTERFACE : menus, options, panneau de l'éditeur, HUD, fichiers
