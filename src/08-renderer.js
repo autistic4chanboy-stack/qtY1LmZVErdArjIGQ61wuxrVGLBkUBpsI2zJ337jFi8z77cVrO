@@ -275,7 +275,7 @@ class Renderer {
     gl.bindVertexArray(null);
 
     // uniformes constants
-    this.matInfo = new Float32Array(96);
+    this.matInfo = new Float32Array(128);
     MATERIALS.forEach((m, i) => { this.matInfo[i * 2] = m.scale; this.matInfo[i * 2 + 1] = m.fit ? 1 : 0; });
     this.gUV = new Float32Array(48); this.gSize = new Float32Array(24);
     GRASS_VARIANTS.forEach(([id, h], i) => {
@@ -364,7 +364,7 @@ class Renderer {
     const w = this.world;
     const data = new Float32Array(Math.max(1, w.objects.length) * 13), xz = new Float32Array(Math.max(1, w.objects.length) * 2);
     let k = 0, n = 0;
-    const env = w.envers ? ENVERS_SPRITES : null;
+    const env = w.sprMap || (w.envers ? ENVERS_SPRITES : null); // sprMap : autres mondes (bonbons, ténèbres)
     const slot = this.objSlot = new Int32Array(w.objects.length).fill(-1);
     for (let oi = 0; oi < w.objects.length; oi++) {
       const o = w.objects[oi], t = OBJ_TYPES[o.t];
@@ -669,7 +669,7 @@ class Renderer {
     gl.bindTexture(gl.TEXTURE_2D, this.target.tex);
     this.use(this.progs.post, {
       uRes: [rw, rh], uScale: this.scale, uLevels: F.levels, uUnder: F.underwater ? 1 : 0, uTimeP: F.time,
-      uGamma: F.gamma, uTint: F.tint || [0, 0, 0, 0], uGlitch: F.glitch || [0, 0, 0, 0], uSeed: F.seed || 0, uFx: F.fx || [0, 0, 0, 0],
+      uGamma: F.gamma, uTint: F.tint || [0, 0, 0, 0], uGlitch: F.glitch || [0, 0, 0, 0], uSeed: F.seed || 0, uFx: F.fx || [0, 0, 0, 0], uFx2: F.fx2 || [0, 0, 0, 0],
     });
     gl.bindVertexArray(this.emptyVAO);
     gl.drawArrays(gl.TRIANGLES, 0, 3);

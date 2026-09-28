@@ -527,7 +527,7 @@ layout(location = 2) in vec3 iPos;
 layout(location = 3) in vec3 iSize;
 layout(location = 4) in vec2 iRM;
 uniform mat4 uViewProj;
-uniform vec2 uMatInfo[48];
+uniform vec2 uMatInfo[64];
 out vec3 vPos;
 out vec3 vNrm;
 out vec2 vUV;
@@ -587,7 +587,7 @@ layout(location = 4) in vec4 iM1;
 layout(location = 5) in vec4 iM2;
 layout(location = 6) in vec4 iCol;
 uniform mat4 uViewProj;
-uniform vec2 uMatInfo[48];
+uniform vec2 uMatInfo[64];
 uniform sampler2D uShade;
 uniform int uN;
 uniform float uCell;
@@ -828,14 +828,20 @@ uniform vec4 uTint;
 uniform vec4 uGlitch;   // x: déchirures, y: décalage RVB, z: blocs de bruit, w: inversion
 uniform float uSeed;
 uniform vec4 uFx;       // x: épuisement, y: nuit rouge, z: nausée, w: l'Envers
+uniform vec4 uFx2;      // autres mondes : x: bonbons, y: ténèbres, z: cauchemar, w: enfers
 out vec4 outCol;
 const float B[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
 float h11(float n) { return fract(sin(n * 12.9898 + uSeed * 78.233) * 43758.5453); }
 vec3 fetchC(vec2 px) { return texelFetch(uScene, ivec2(clamp(px, vec2(0.0), uRes - 1.0)), 0).rgb; }
+vec3 rgb2hsv(vec3 c) { vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0); vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g)); vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r)); float d = q.x - min(q.w, q.y); return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + 1e-10)), d / (q.x + 1e-10), q.x); }
+vec3 hsv2rgb(vec3 c) { vec3 p = abs(fract(c.xxx + vec3(1.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0); return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y); }
 void main() {
   vec2 px = floor(gl_FragCoord.xy / uScale);
   if (uUnder > 0.5) px.x += floor(sin(px.y * 0.18 + uTimeP * 3.0) * 1.5);
   if (uFx.z > 0.0) px += floor(vec2(sin(px.y * 0.07 + uTimeP * 2.1), cos(px.x * 0.05 + uTimeP * 1.7)) * 3.0 * uFx.z);
+  if (uFx2.x > 0.0) px += floor(vec2(sin(px.y * 0.045 + uTimeP * 1.2), cos(px.x * 0.035 + uTimeP * 0.9)) * 2.2 * uFx2.x);
+  if (uFx2.z > 0.0) px.x += floor(sin(px.y * 0.11 + uTimeP * 2.7) * 1.4 * uFx2.z);
+  if (uFx2.w > 0.0 && px.y < uRes.y * 0.45) px.x += floor(sin(px.y * 0.35 + uTimeP * 7.0) * 1.2 * uFx2.w);
   if (uGlitch.x > 0.0) { // lignes arrachées
     float band = floor(px.y / (3.0 + floor(h11(7.0) * 8.0)));
     float r = h11(band);
@@ -852,10 +858,36 @@ void main() {
   if (uUnder > 0.5) c = mix(c, vec3(0.04, 0.22, 0.28), 0.5) * vec3(0.75, 0.95, 1.0);
   if (uFx.y > 0.0) c = mix(c, c * vec3(1.3, 0.55, 0.5), uFx.y * 0.7);
   if (uFx.w > 0.0) { float l = dot(c, vec3(0.35, 0.5, 0.15)); c = mix(c, vec3(l * 1.55, l * 0.32, l * 0.3), uFx.w * 0.85); }
+  if (uFx2.x > 0.0) { // pays des bonbons : les verts virent au rose, les bleus au lilas, tout devient sucré
+    vec3 h = rgb2hsv(c);
+    float g = smoothstep(0.1, 0.18, h.x) * (1.0 - smoothstep(0.5, 0.56, h.x));
+    h.x = mix(h.x, 0.9 + (h.x - 0.1) * 0.22, g);
+    float bl = smoothstep(0.54, 0.6, h.x) * (1.0 - smoothstep(0.7, 0.76, h.x));
+    h.x = fract(h.x + bl * 0.12);
+    h.y = clamp(h.y * 1.45 + 0.1, 0.0, 0.78);
+    h.z = clamp(mix(h.z * 1.12 + 0.05, h.z * 1.45 + 0.16, g), 0.0, 1.0);
+    vec3 cc = mix(hsv2rgb(h), vec3(1.0, 0.92, 0.97), 0.1 + g * 0.08);
+    cc += step(0.9975, h11(floor(px.x * 0.5) * 17.0 + floor(px.y * 0.5) * 131.0)) * vec3(0.6, 0.55, 0.6);
+    c = mix(c, cc, uFx2.x);
+  }
+  if (uFx2.y > 0.0) { // ténèbres : tout est mort, rouge et noir, le grain de la peur
+    float l = dot(c, vec3(0.3, 0.55, 0.15));
+    vec3 d = vec3(l * 1.3 + l * l * 0.6, l * 0.16, l * 0.12);
+    d = d * d * 1.6 + (h11(px.x * 1.7 + px.y * 3.1 + floor(uTimeP * 24.0) * 11.0) - 0.5) * 0.05;
+    c = mix(c, d * (0.86 + 0.14 * sin(uTimeP * 1.3)), uFx2.y * 0.94);
+  }
+  if (uFx2.z > 0.0) { // cauchemar : pellicule sale, couleurs d'hospice, couleurs qui se décollent
+    float o = 1.0 + floor(uFx2.z * 2.0);
+    vec3 ca = vec3(fetchC(px + vec2(o, 0.0)).r, c.g, fetchC(px - vec2(o, 0.0)).b);
+    float l = dot(ca, vec3(0.3, 0.55, 0.15));
+    vec3 d = vec3(l * 0.92, l * 1.02, l * 0.86) + (h11(px.x * 2.3 + px.y * 1.1 + floor(uTimeP * 18.0) * 5.0) - 0.5) * 0.08;
+    c = mix(c, d * (0.94 + 0.06 * sin(px.y * 1.7 + uTimeP * 40.0)), uFx2.z * 0.9);
+  }
+  if (uFx2.w > 0.0) { float l = dot(c, vec3(0.3, 0.55, 0.15)); c = mix(c, vec3(l * 1.5 + 0.015, l * 0.62, l * 0.28), uFx2.w * 0.75); } // enfers : la fournaise
   c = mix(c, 1.0 - c, uGlitch.w);
   c = pow(max(c, 0.0), vec3(uGamma));
   vec2 q = px / uRes - 0.5;
-  c *= 1.0 - dot(q, q) * (0.4 + uFx.x * 2.6);
+  c *= 1.0 - dot(q, q) * (0.4 + uFx.x * 2.6 + uFx2.y * 2.4 + uFx2.z * 2.8 + uFx2.w * 1.2);
   c = mix(c, uTint.rgb, uTint.a);
   if (uLevels > 0.0) {
     int bx = int(px.x) & 3, by = int(px.y) & 3;
