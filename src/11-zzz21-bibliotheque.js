@@ -502,6 +502,7 @@ const biblio = {
     this.styled = true;
     const st = document.createElement('style');
     st.textContent = `#biblio{height:min(640px,calc(100vh - 10vh))}
+#biblio .body{flex:1}
 #biblio .bb-tete{font-style:italic;color:#5a4a36;font-size:14.5px;margin:4px 0 6px}
 #biblio .bb-row{display:flex;align-items:center;gap:9px;padding:6px 8px;margin-bottom:4px;background:rgba(255,255,255,.3);border:1px solid rgba(90,70,40,.22);border-radius:4px}
 #biblio .bb-row img{width:32px;height:32px;image-rendering:pixelated;flex:none}

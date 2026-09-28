@@ -200,13 +200,15 @@ const cartes = {
     const poser = (texte, x, y, font, dys) => {
       ctx.font = font;
       const tw = ctx.measureText(texte).width + 6, thh = parseInt(font.match(/(\d+)px/)[1], 10) + 3;
+      // (près des bords, le nom se décale vers l'intérieur)
+      const cx0 = clamp(x, pad + tw / 2 + 2, S - pad - tw / 2 - 2);
       for (const dy of dys) {
-        const r = [x - tw / 2, y + dy - thh + 3, tw, thh];
-        if (r[0] < pad || r[0] + r[2] > S - pad || r[1] < pad + 30 || r[1] + r[3] > S - pad) continue;
+        const r = [cx0 - tw / 2, y + dy - thh + 3, tw, thh];
+        if (r[1] < pad + 30 || r[1] + r[3] > S - pad) continue;
         if (used.some((q) => r[0] < q[0] + q[2] && r[0] + r[2] > q[0] && r[1] < q[1] + q[3] && r[1] + r[3] > q[1])) continue;
         used.push(r);
-        ctx.fillStyle = 'rgba(236,224,196,.7)'; ctx.fillText(texte, x + 1, y + dy + 1);
-        ctx.fillStyle = ink; ctx.fillText(texte, x, y + dy);
+        ctx.fillStyle = 'rgba(236,224,196,.7)'; ctx.fillText(texte, cx0 + 1, y + dy + 1);
+        ctx.fillStyle = ink; ctx.fillText(texte, cx0, y + dy);
         return true;
       }
       return false;
