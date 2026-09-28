@@ -12,6 +12,7 @@
 // - Contrôles : mêmes jetons ({0}, {1}…, {fermier}, {npc:garde}…) en français et en anglais, sinon la paire est
 //   rejetée ; nombre de lignes différent : avertissement (la paire est gardée).
 // - Les textes avec {0}, {1}… vont dans « patterns » (gabarits), les autres dans « exact ».
+// On peut aussi donner un fichier { français: anglais } tout fait (ex. merged.json) à la place d'un dossier.
 // Sans dossier : relit et réécrit le fichier (tri, normalisation) et affiche la couverture des sources.
 //
 // Exemple (première vague) : node tools/i18n-build.js /chemin/scratchpad/tr --fresh
@@ -64,13 +65,37 @@ function checkPair(fr, en) {
   return null;
 }
 
-// ------------------------------------------------------------------ fusion d'un dossier de vague
+// ------------------------------------------------------------------ fusion d'une vague
+const newReport = () => ({ added: 0, replaced: 0, same: 0, rejected: [], missing: [], unknown: [], warn: [], batches: 0, noOut: [] });
+// une paire (contrôlée, normalisée) ; renvoie false si rejetée
+function addPair(map, rep, key, frRaw, enRaw) {
+  const fr = norm(frRaw), en = typeof enRaw === 'string' ? norm(enRaw) : enRaw;
+  const bad = checkPair(fr, en);
+  if (bad) { rep.rejected.push([key, bad + ' — ' + JSON.stringify(fr).slice(0, 80)]); return false; }
+  if (fr.split('\n').length !== en.split('\n').length) rep.warn.push(`${key} lignes ${fr.split('\n').length} / ${en.split('\n').length}`);
+  const old = map.get(fr);
+  if (old === undefined) rep.added++; else if (old === en) rep.same++; else rep.replaced++;
+  map.set(fr, en);
+  return true;
+}
+// un fichier { français: anglais } tout fait (ex. merged.json)
+function mergeFlat(map, file) {
+  const rep = newReport();
+  let O;
+  try { O = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { rep.rejected.push([file, 'JSON illisible : ' + e.message]); return rep; }
+  rep.batches = 1;
+  for (const fr of Object.keys(O)) addPair(map, rep, JSON.stringify(fr).slice(0, 40), fr, O[fr]);
+  return rep;
+}
+// un dossier de vague, ou un fichier { français: anglais }
+const mergeAny = (map, p) => (fs.statSync(p).isDirectory() ? mergeDir(map, p) : mergeFlat(map, p));
+
 // Formats acceptés (dans le même dossier) :
 //   - in_XX.json { clé: français } + out_XX.json { clé: anglais } (clé cherchée d'abord dans le in_XX du même numéro) ;
 //   - manifest.json { clé: français } (toutes les clés de la vague) + out_XX.json { clé: anglais }.
 // renvoie { added, replaced, same, rejected: [[clé, raison]], missing: [clé], unknown: [clé], warn: [..], noOut: [in_XX] }
 function mergeDir(map, dir) {
-  const rep = { added: 0, replaced: 0, same: 0, rejected: [], missing: [], unknown: [], warn: [], batches: 0, noOut: [] };
+  const rep = newReport();
   const read = (f) => { try { return JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')); } catch (e) { rep.rejected.push([f, 'JSON illisible : ' + e.message]); return null; } };
   const files = fs.readdirSync(dir).sort();
   const all = {}; // clé -> français (manifeste, puis lots in_XX)
@@ -91,14 +116,7 @@ function mergeDir(map, dir) {
     for (const k of Object.keys(O)) {
       const frRaw = k in I ? I[k] : all[k];
       if (typeof frRaw !== 'string') { rep.unknown.push(id + ':' + k); continue; }
-      const fr = norm(frRaw), en = typeof O[k] === 'string' ? norm(O[k]) : O[k];
-      const bad = checkPair(fr, en);
-      if (bad) { rep.rejected.push([id + ':' + k, bad + ' — ' + JSON.stringify(fr).slice(0, 80)]); continue; }
-      done.add(k);
-      if (fr.split('\n').length !== en.split('\n').length) rep.warn.push(`${id}:${k} lignes ${fr.split('\n').length} / ${en.split('\n').length}`);
-      const old = map.get(fr);
-      if (old === undefined) rep.added++; else if (old === en) rep.same++; else rep.replaced++;
-      map.set(fr, en);
+      if (addPair(map, rep, id + ':' + k, frRaw, O[k])) done.add(k);
     }
   }
   for (const id of Object.keys(ins)) if (!files.includes('out_' + id + '.json')) rep.noOut.push('in_' + id + '.json');
@@ -122,7 +140,7 @@ function printReport(dir, rep) {
   if (rep.warn.length) console.log(`  avertissements (nombre de lignes) : ${rep.warn.length} (${rep.warn.slice(0, 6).join(' ; ')})`);
 }
 
-module.exports = { DATA, norm, tokens, loadData, writeData, mergeDir, checkPair, coverage, printReport };
+module.exports = { DATA, norm, tokens, loadData, writeData, mergeDir, mergeFlat, mergeAny, checkPair, coverage, printReport };
 
 if (require.main === module) {
   const args = process.argv.slice(2);
@@ -131,7 +149,7 @@ if (require.main === module) {
   const dirs = args.filter((a, i) => !a.startsWith('--') && !(oi >= 0 && i === oi + 1));
   const map = args.includes('--fresh') ? new Map() : loadData(out);
   const before = map.size;
-  for (const d of dirs) printReport(d, mergeDir(map, d));
+  for (const d of dirs) printReport(d, mergeAny(map, d));
   const w = writeData(map, out);
   console.log(`${path.relative(root, out)} : ${w.exact} textes, ${w.patterns} gabarits (${(w.bytes / 1024).toFixed(0)} Ko) — ${map.size - before >= 0 ? '+' : ''}${map.size - before}`);
   const c = coverage(map);

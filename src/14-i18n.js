@@ -104,10 +104,11 @@ const i18n = (() => {
   }
   // garde les espaces de bord de s autour de t
   const keepWs = (s, t) => s.slice(0, s.length - s.trimStart().length) + t + s.slice(s.trimEnd().length);
+  // Chaque recherche rend { t: traduction, part: vrai si un morceau est resté en français } ou null.
   function sub(c, d) {
-    if (!c || !LETTER.test(c)) return c;
-    const t = look(c.trim(), d + 1);
-    return t == null ? c : keepWs(c, t);
+    if (!c || !LETTER.test(c)) return { t: c, part: false };
+    const x = lk(c.trim(), d + 1);
+    return x ? { t: keepWs(c, x.t), part: x.part } : { t: c, part: false }; // (un nom propre reste tel quel)
   }
   function matchPats(n, d) {
     const nl = n.indexOf('\n') >= 0;
@@ -121,79 +122,100 @@ const i18n = (() => {
       const m = P.re.exec(n);
       if (!m) continue;
       const caps = [];
-      for (let i = 0; i < P.names.length; i++) caps.push(sub(m[i + 1], d));
-      return fill(P, caps);
+      let part = false;
+      for (let i = 0; i < P.names.length; i++) { const x = sub(m[i + 1], d); caps.push(x.t); part = part || x.part; }
+      return { t: fill(P, caps), part };
     }
     return null;
   }
   const fixLead = (s) => s.replace(/«\s*/g, '“');
   const fixTrail = (s) => s.replace(/\s*»/g, '”').replace(/\s+([:;!?])/g, '$1');
   const SEG = /( — | – | · | \| | (?=\())/;
-  // texte normalisé -> traduction, ou null
-  function look(n, d) {
-    let r = map.get(n);
-    if (r !== undefined) return r;
-    if (d > 4 || n.length < 2) return null;
-    r = inner.get(n);
+  // texte normalisé -> { t, part } ou null (cache des recherches composées)
+  function lk(n, d) {
+    const r0 = map.get(n);
+    if (r0 !== undefined) return { t: r0, part: false };
+    if (d > 6 || n.length < 2) return null;
+    let r = inner.get(n);
     if (r !== undefined) return r || null;
     r = find(n, d);
     inner.set(n, r || false);
     return r;
   }
   function find(n, d) {
-    let r = matchPats(n, d);
-    if (r != null) return r;
+    const r = matchPats(n, d);
+    if (r) return r;
     // plusieurs lignes : ligne à ligne
     if (n.indexOf('\n') >= 0) {
       const L = n.split('\n');
-      let ch = false;
-      for (let i = 0; i < L.length; i++) { if (!LETTER.test(L[i])) continue; const t = look(L[i], d + 1); if (t != null) { L[i] = t; ch = true; } }
-      return ch ? L.join('\n') : null;
+      let ch = false, part = false;
+      for (let i = 0; i < L.length; i++) {
+        if (!LETTER.test(L[i])) continue;
+        const x = lk(L[i], d + 1);
+        if (x) { L[i] = x.t; ch = true; part = part || x.part; } else part = true;
+      }
+      return ch ? { t: L.join('\n'), part } : null;
+    }
+    let best = null; // une traduction partielle ne sert qu'en dernier recours
+    // énumération « A, B, C » : chaque élément doit se traduire
+    if (n.indexOf(', ') > 0) {
+      const P = n.split(', '), out = [];
+      let part = false;
+      for (const p of P) { const x = LETTER.test(p) ? lk(p, d + 1) : { t: p, part: false }; if (!x) break; out.push(x.t); part = part || x.part; }
+      if (out.length === P.length) { if (!part) return { t: out.join(', '), part: false }; best = best || { t: out.join(', '), part: true }; }
     }
     // morceaux : « A — B », « A · B », « A (B) » ; les plus longues suites de morceaux connues d'abord
     if (SEG.test(n)) {
       const P = n.split(SEG); // morceaux aux indices pairs, séparateurs aux indices impairs
       const last = P.length - 1;
-      let out = '', ch = false;
+      let out = '', ch = false, part = false;
       for (let i = 0; i <= last; i += 2) {
         let got = null;
         for (let j = last; j >= i && got == null; j -= 2) {
           if (i === 0 && j === last) continue; // le texte entier : déjà cherché
           const cand = P.slice(i, j + 1).join(''), c = cand.trim();
           if (!c || !LETTER.test(c)) continue;
-          const t = look(c, d + 1);
-          if (t != null) { got = keepWs(cand, t); i = j; }
+          const x = lk(c, d + 1);
+          if (x) { got = keepWs(cand, x.t); part = part || x.part; i = j; }
         }
-        if (got != null) ch = true;
+        if (got != null) ch = true; else if (LETTER.test(P[i])) part = true;
         out += got != null ? got : P[i];
         if (i + 1 <= last) out += P[i + 1];
       }
-      if (ch) return out;
+      if (ch && !part) return { t: out, part: false };
+      if (ch) best = { t: out, part: true };
     }
-    // énumération « A, B, C » : seulement si tout se traduit
-    if (n.indexOf(', ') > 0) {
-      const P = n.split(', ');
-      const out = [];
-      for (const p of P) { const t = LETTER.test(p) ? look(p, d + 1) : p; if (t == null) break; out.push(t); }
-      if (out.length === P.length) return out.join(', ');
-    }
-    // ponctuation, nombres, guillemets autour : « 2 Bois », « Pain ×3 », « « Le puits » »
+    // ponctuation, nombres, guillemets autour : « 2 Bois », « Pain ×3 », « « Le puits » », « 3 fleurs (au choix) »
     const m = /^([^A-Za-zÀ-ÖØ-öø-ÿŒœ]*)([\s\S]*?)([^A-Za-zÀ-ÖØ-öø-ÿŒœ]*)$/.exec(n);
     if (m && (m[1] || m[3])) {
       const C = [[m[1], m[2], m[3]]];
-      if (m[1] && m[3]) C.push([m[1], n.slice(m[1].length), ''], ['', n.slice(0, n.length - m[3].length), m[3]]); // « 3 fleurs (au choix) »
-      for (const [a, mid, b] of C) { if (mid.length < 2) continue; const t = look(mid, d + 1); if (t != null) return fixLead(a) + t + fixTrail(b); }
+      if (m[1] && m[3]) C.push([m[1], n.slice(m[1].length), ''], ['', n.slice(0, n.length - m[3].length), m[3]]);
+      for (const [a, mid, b] of C) {
+        if (mid.length < 2) continue;
+        const x = lk(mid, d + 1);
+        if (!x) continue;
+        const t = fixLead(a) + x.t + fixTrail(b);
+        if (!x.part) return { t, part: false };
+        best = best || { t, part: true };
+      }
     }
     // casse : « pain » (mis en minuscules) -> « Pain »
     const c = n[0], U = c.toUpperCase(), Lo = c.toLowerCase();
-    if (c !== U) { const t = map.get(U + n.slice(1)); if (t !== undefined) return loFirst(t); }
-    else if (c !== Lo) { const t = map.get(Lo + n.slice(1)); if (t !== undefined) return upFirst(t); }
+    if (c !== U) { const t = map.get(U + n.slice(1)); if (t !== undefined) return { t: loFirst(t), part: false }; }
+    else if (c !== Lo) { const t = map.get(Lo + n.slice(1)); if (t !== undefined) return { t: upFirst(t), part: false }; }
     // textes courts dont la casse a changé : « baigneuse des sources », « LE LAC »
     if (n.length <= 80) {
       const lo = n.toLowerCase(), t = lower.get(lo);
-      if (t !== undefined) return n === lo ? t.toLowerCase() : n === n.toUpperCase() ? t.toUpperCase() : t;
+      if (t !== undefined) return { t: n === lo ? t.toLowerCase() : n === n.toUpperCase() ? t.toUpperCase() : t, part: false };
+      // nom de lieu privé de son article (« Vieille ferme » <- « la vieille ferme ») : l'anglais perd « the »
+      if (c !== Lo && n.indexOf(' ') > 0 || /^[A-ZÀ-Ý][a-zà-ÿ]/.test(n)) {
+        for (const art of ['la ', 'le ', 'les ', 'l’', "l'"]) {
+          const t2 = map.get(art + loFirst(n));
+          if (t2 !== undefined) return { t: upFirst(t2.replace(/^the /i, '')), part: false };
+        }
+      }
     }
-    return null;
+    return best;
   }
   // traduction d'une chaîne quelconque (espaces de bord gardés), avec cache
   function tr(s) {
@@ -203,10 +225,10 @@ const i18n = (() => {
     if (s.length > 1 && LETTER.test(s)) {
       data();
       const n = nrm(s);
-      const t = n ? look(n, 0) : null;
-      if (t != null && t !== n) r = keepWs(s, t);
+      const x = n ? lk(n, 0) : null;
+      if (x && x.t !== n) r = keepWs(s, x.t);
     }
-    if (cache.size > 20000) { cache.clear(); inner.clear(); }
+    if (cache.size > 20000 || inner.size > 50000) { cache.clear(); inner.clear(); }
     cache.set(s, r);
     return r;
   }
@@ -226,7 +248,7 @@ const i18n = (() => {
     const rec = TXT.get(node);
     if (rec && rec.en === v) return;
     const p = node.parentNode;
-    if (!p || p.nodeType !== 1 || SKIP_TAGS.has(p.nodeName)) return;
+    if (!p || p.nodeType !== 1 || SKIP_TAGS.has(p.nodeName) || p.getAttribute('translate') === 'no') return;
     const en = tr(v);
     if (en === v) { if (I.debug && LETTER.test(v)) miss(v, p); return; }
     if (noTr(p)) return;

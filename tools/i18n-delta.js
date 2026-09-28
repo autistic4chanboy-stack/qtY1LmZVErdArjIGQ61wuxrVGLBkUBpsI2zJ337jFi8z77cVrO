@@ -7,10 +7,11 @@
 //         in_00.json, in_01.json…   les lots (~28 Ko de français chacun, textes voisins dans les sources)
 //         glossaire_XX.json          noms déjà traduits ailleurs dans le jeu et présents dans le lot (à réutiliser)
 //         INSTRUCTIONS.md            consignes pour les traducteurs (format, style, glossaire)
+//         origine.json               { clé: 'fichier.js:ligne' } d'où vient chaque texte (pour retrouver le contexte)
 //       Un traducteur par lot : il lit INSTRUCTIONS.md, in_XX.json (et glossaire_XX.json) et écrit out_XX.json
 //       (mêmes clés, texte anglais) dans le même dossier. Refuse d'écraser un dossier qui contient déjà des
 //       out_XX.json (vague pas encore fusionnée), sauf --force.
-//   node tools/i18n-delta.js fusion <dossier>…
+//   node tools/i18n-delta.js fusion <dossier>…   (ou un fichier { français: anglais } tout fait)
 //       Vérifie les out_XX.json (clés, jetons {0}/{fermier}…, lignes), les ajoute à src/14-i18n-en.js (une
 //       traduction nouvelle remplace l'ancienne), et dit ce qui manque encore (lots non rendus, clés rejetées,
 //       textes des sources toujours sans traduction). Même mécanisme que node tools/i18n-build.js <dossier>.
@@ -195,7 +196,7 @@ function fusion(dirs) {
   const map = B.loadData();
   const before = map.size;
   let bad = 0;
-  for (const d of dirs) { const r = B.mergeDir(map, d); B.printReport(d, r); bad += r.rejected.length + r.missing.length + r.noOut.length; }
+  for (const d of dirs) { const r = B.mergeAny(map, d); B.printReport(d, r); bad += r.rejected.length + r.missing.length + r.noOut.length; }
   const w = B.writeData(map);
   console.log(`src/14-i18n-en.js : ${w.exact} textes, ${w.patterns} gabarits (${(w.bytes / 1024).toFixed(0)} Ko), ${map.size - before} nouveau(x)`);
   const c = B.coverage(map);
