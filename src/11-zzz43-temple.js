@@ -53,6 +53,10 @@ const temple = {
     this.allumer(null, o);
     const T = w.temple;
     this.cristaux = w.props.filter((q) => q.id === 'cristal_lumineux' && Math.hypot(q.x - T.x, q.z - T.z) < 110 && Math.abs(q.y - T.y) < 12);
+    // la sortie (au pied de la cascade) : posée au niveau du sol, pas en l'air au-dessus du bassin
+    // (le même tableau sert à l'échelle du vestibule : on le corrige sur place)
+    const X = T.exit;
+    if (X && !X._sol) { X._sol = true; X[1] = Math.max(w.heightAt(X[0], X[2]), w.waterLevel - 0.5) + 0.1; }
   },
 
   // ------------------------------------------------------------ l'entrée, derrière la cascade
@@ -61,6 +65,7 @@ const temple = {
     if (!w.temple) return;
     const premier = !S.vu;
     S.vu = S.vu || s.day;
+    savoir.connaitreLieu('temple');
     game.teleport(w.temple.arrive, premier ? 'Derrière le rideau d’eau, la roche est creusée. Un escalier taillé descend, longtemps, dans le noir et le froid.' : 'Vous passez derrière la cascade, et vous descendez.');
     if (premier) setTimeout(() => { if (!game.dying) ui.subtitle('', '(Une salle taillée dans la montagne. Des lettres anguleuses sur les murs. Quelque part, très loin, quelque chose respire.)', 5.5); }, 1600);
     void it;

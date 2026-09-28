@@ -117,7 +117,7 @@ const PRODIGES = {
   meteorite: { poids: 0.9, etrange: 0, peut: (P) => evCiel(P, 23, 'clair') || evCiel(P, 23, 'nuageux'), heure: (P, r) => 22 + r * 4, duree: 0.5 },
   oiseaux: { poids: 2, etrange: 0, peut: (P) => !P.storm, heure: (P, r) => 8 + r * 9, duree: 1.4 },
   grenouilles: { poids: 0.9, etrange: 1, peut: (P) => P.rain && !P.storm, heure: (P, r) => evPluieHeure(P, r), duree: 1 },
-  geant: { poids: 0.9, etrange: 1, peut: () => true, heure: (P, r) => 29 + r * 0.7, duree: 1.8 },
+  geant: { poids: 0.9, etrange: 1, peut: () => true, heure: (P, r) => 6.05 + r * 0.8, duree: 1.8 },
 };
 // l'état du ciel à une heure donnée d'un programme météo
 function evEtat(P, h) { h = h % 24; let st = P.plan[0][1]; for (const [hr, x] of P.plan) if (h >= hr) st = x; return st; }
@@ -205,6 +205,16 @@ const evenements = {
   jour(d) {
     if (d === undefined) d = farm.s ? farm.s.day : 1;
     return { d, nuitNoire: this.nuitNoire(d), neige: this.neige(d), soleil: this.soleil(d), tornade: this.tornade(d), tueur: this.tueur(d) };
+  },
+  // ce qu'un almanach peut annoncer pour les n jours à venir : [{ jour, quoi, texte }]
+  almanach(n) {
+    const out = [], d0 = farm.s ? farm.s.day : 1;
+    for (let d = d0; d < d0 + (n || 24); d++) {
+      if (this.nuitNoire(d)) out.push({ jour: d, quoi: 'nuit_noire', texte: 'Nuit noire : ni lune ni étoiles. Fermer les volets, garder une lumière, ne pas répondre.' });
+      if (this.neige(d)) out.push({ jour: d, quoi: 'neige', texte: 'Grand froid : la neige descend jusque dans les prés. Rentrer du bois.' });
+      if (this.soleil(d)) out.push({ jour: d, quoi: 'soleil', texte: 'Soleil de plomb : ne pas le regarder en face.' });
+    }
+    return out;
   },
 
   // ------------------------------------------------------------ ce qui est en cours
@@ -575,7 +585,7 @@ const evSoleil = {
         this.stareT += dt;
         if (this.stareT > 1.3 && this.warn !== Math.floor(s.hours)) { this.warn = Math.floor(s.hours); ui.subtitle('', protege ? '(La potion vous protège. Vous regardez le soleil en face, et il ne vous fait rien.)' : '(Le soleil vous brûle les yeux. Détournez le regard !)', 2.5); }
         if (this.stareT > 2.5 && !protege) {
-          const first = T.a < 0.05;
+          const first = T.a < 0.01;
           T.a = Math.min(0.96, T.a + dt * 0.9);
           T.r = Math.min(34, Math.max(T.r, 5 + (this.stareT - 2.5) * 5));
           if (first) { sound.hurt && sound.hurt(5); ui.subtitle('', '(Une tache noire vous est restée au milieu des yeux. Elle ne part pas.)', 4); }
@@ -672,9 +682,12 @@ const EV_FX = {
         const az = Math.random() * TAU, el = 0.5 + Math.random() * 0.55, R = 62;
         const d = [Math.sin(az + 1.3 + Math.random()) * 0.8, -0.35 - Math.random() * 0.3, Math.cos(az + 1.3 + Math.random()) * 0.8];
         const L = Math.hypot(...d);
-        E.traits.push({ p: evDome(eye, az, el, R), v: d.map((x) => x / L * 55), t: 0, life: 0.5 + Math.random() * 0.7, len: 5 + Math.random() * 6 });
+        E.traits.push({ p: evDome(eye, az, el, R), v: d.map((x) => x / L * 45), t: 0, life: 0.6 + Math.random() * 0.7, len: 9 + Math.random() * 8 });
       }
-      for (const T of E.traits) { T.t += dt; T.p = [T.p[0] + T.v[0] * dt, T.p[1] + T.v[1] * dt, T.p[2] + T.v[2] * dt]; }
+      for (const T of E.traits) {
+        T.t += dt; T.p = [T.p[0] + T.v[0] * dt, T.p[1] + T.v[1] * dt, T.p[2] + T.v[2] * dt];
+        if (Math.random() < dt * 30) particles.spawn(T.p[0], T.p[1], T.p[2], T.v[0] * 0.05, T.v[1] * 0.05, T.v[2] * 0.05, [0.9, 0.95, 1.2, 0.8], 0.35, 0.5, 0, true);
+      }
       E.traits = E.traits.filter((T) => T.t < T.life);
     },
     sky(E, sky) { sky.stars = Math.max(sky.stars, sky.night * 0.9); },
@@ -683,8 +696,9 @@ const EV_FX = {
       PE.buf = buf; PE.fl = FX_EMIT; PE.frame(0, 0, 0, 0, 1);
       for (const T of E.traits) {
         const f = 1 - T.t / T.life, L = Math.hypot(...T.v), n = T.v.map((x) => x / L);
-        const c = [1.6 * f + 0.4, 1.6 * f + 0.5, 2 * f + 0.6];
-        PE.box(T.p[0] - n[0] * T.len / 2, T.p[1] - n[1] * T.len / 2, T.p[2] - n[2] * T.len / 2, 0.09, 0.09, T.len, c, TL.plain, Math.atan2(n[0], n[2]), -Math.atan2(n[1], Math.hypot(n[0], n[2])));
+        const ry = Math.atan2(n[0], n[2]), rx = -Math.atan2(n[1], Math.hypot(n[0], n[2]));
+        PE.box(T.p[0] - n[0] * T.len * 0.15, T.p[1] - n[1] * T.len * 0.15, T.p[2] - n[2] * T.len * 0.15, 0.45, 0.45, T.len * 0.3, [2.2 * f + 0.3, 2.2 * f + 0.3, 2.4 * f + 0.5], TL.plain, ry, rx);
+        PE.box(T.p[0] - n[0] * T.len * 0.6, T.p[1] - n[1] * T.len * 0.6, T.p[2] - n[2] * T.len * 0.6, 0.25, 0.25, T.len * 0.8, [0.9 * f + 0.2, 1.0 * f + 0.25, 1.4 * f + 0.35], TL.plain, ry, rx);
       }
       PE.fl = 0;
     },
@@ -695,13 +709,16 @@ const EV_FX = {
     update(E, dt, eye) {
       if (game.player.underground) return;
       const k = Math.min(1, E.k * 6, (1 - E.k) * 5);
-      const n = Math.floor(dt * 160 * k);
+      // des rayons verticaux, serrés, qui ondulent : des voiles
+      const n = Math.floor(dt * 26 * k + Math.random());
       for (let i = 0; i < n; i++) {
-        const u = Math.random(), az = Math.PI + (u - 0.5) * 2.2, band = Math.sin(u * 9 + game.time * 0.25 + E.ph) * 0.12;
-        const el = 0.42 + band + Math.random() * 0.34, R = 66;
-        const p = evDome(eye, az, el, R);
-        const g = Math.random(), col = g < 0.7 ? [0.25, 1.1, 0.55, 0.13] : g < 0.9 ? [0.3, 0.8, 0.9, 0.12] : [0.8, 0.35, 1.0, 0.12];
-        particles.spawn(p[0], p[1], p[2], 0, -0.8 - Math.random(), 0, col, 1.6 + Math.random() * 1.6, 1.4 + Math.random(), 0, true);
+        const u = Math.random(), az = Math.PI + (u - 0.5) * 2.4, band = Math.sin(u * 9 + game.time * 0.25 + E.ph) * 0.1;
+        const el0 = 0.36 + band, R = 66, h = 5 + ((Math.random() * 5) | 0);
+        const g = Math.random(), col = g < 0.72 ? [0.2, 1.05, 0.5, 0.1] : g < 0.9 ? [0.25, 0.75, 0.9, 0.09] : [0.75, 0.3, 0.95, 0.09];
+        for (let j = 0; j < h; j++) {
+          const p = evDome(eye, az, el0 + j * 0.045, R), c = j < 2 ? col : [col[0] * 0.8, col[1] * 0.85, col[2], col[3] * (1 - j / (h + 2))];
+          particles.spawn(p[0], p[1], p[2], 0, -0.3, 0, c, 1.1 + Math.random() * 0.5, 1.6 + Math.random() * 0.8, 0, true);
+        }
       }
     },
     sky(E, sky) {
@@ -723,7 +740,7 @@ const EV_FX = {
       const d = 1 - 0.9 * k;
       sky.sunCol = v3.scale(sky.sunCol, 1 - 0.96 * k); sky.amb = v3.scale(sky.amb, 1 - 0.82 * k); sky.zen = v3.scale(sky.zen, d); sky.hor = v3.lerp(v3.scale(sky.hor, d), [0.5, 0.25, 0.12], 0.25 * k);
       sky.haze = v3.scale(sky.haze, d); sky.glow = v3.scale(sky.glow, 1 - k); sky.cloudLit = v3.scale(sky.cloudLit, d); sky.cloudDark = v3.scale(sky.cloudDark, d);
-      sky.stars = Math.max(sky.stars, 0.75 * k); sky.sunDisk = v3.lerp(sky.sunDisk, [0.02, 0.02, 0.03], k); sky.nightLit = k > 0.6 ? 1 : sky.nightLit;
+      sky.stars = Math.max(sky.stars, 0.8 * smoothstep(0.55, 1, k)); sky.sunDisk = v3.lerp(sky.sunDisk, [0.02, 0.02, 0.03], k); sky.nightLit = k > 0.6 ? 1 : sky.nightLit;
       sky.shadowK *= 1 - k;
     },
   },
@@ -917,7 +934,7 @@ const EV_FX = {
           const dx = x - cam[0], dz = z - cam[2];
           if (dx * dx + dz * dz > 250 * 250) continue;
           const fl = Math.sin(t * 7 + i * 0.7) * 0.5;
-          PE.frame(x, Math.max(y0, cam[1] + 25) + Math.sin(i) * 0.5, z, h, 1);
+          PE.frame(x, Math.max(y0, cam[1] + 25) + Math.sin(i) * 0.5, z, h, 1.6);
           PE.box(0, 0, 0, 0.22, 0.2, 0.9, [0.22, 0.2, 0.18], TL.fur);
           PE.box(-0.5, 0.05, 0, 0.9, 0.04, 0.34, [0.3, 0.28, 0.26], TL.fur, 0, 0, fl);
           PE.box(0.5, 0.05, 0, 0.9, 0.04, 0.34, [0.3, 0.28, 0.26], TL.fur, 0, 0, -fl);
@@ -964,8 +981,9 @@ const EV_FX = {
     debut(E) {
       const w = game.world, p = game.player.pos;
       let best = null;
+      // sur une crête, du côté du soleil levant (sa silhouette se découpe sur le ciel clair)
       for (let k = 0; k < 48; k++) {
-        const a = k / 48 * TAU, r = 150 + (k % 3) * 35, x = p[0] + Math.sin(a) * r, z = p[2] + Math.cos(a) * r;
+        const a = Math.PI / 2 + (k / 48 - 0.5) * 2.6, r = 130 + (k % 3) * 35, x = p[0] + Math.sin(a) * r, z = p[2] + Math.cos(a) * r;
         if (!w.inside(x, z, 30)) continue;
         const h = w.heightAt(x, z);
         if (h < w.waterLevel + 1) continue;
