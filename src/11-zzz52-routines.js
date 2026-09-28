@@ -356,7 +356,7 @@ const routines = {
           for (const [h, pl] of S) {
             if (!this.valide(n, pl)) out.push([n.id, J, h, pl, 'lieu inconnu']);
             const P = this.pos(n, pl), Q = this.pos(n, prev);
-            if (P && Q && w.townInfo && this.dansVille(P.x, P.z) !== this.dansVille(Q.x, Q.z) && (h >= 19.6 || h < 6)) out.push([n.id, J, h, pl, 'douves la nuit']);
+            if (P && Q && w.townInfo && this.dansVille(P.x, P.z) !== this.dansVille(Q.x, Q.z) && (h > 19.6 || h < 6)) out.push([n.id, J, h, pl, 'douves la nuit']);
             if (n.d.area === 'nains' && P && Math.hypot(P.x - w.nains.hall.x, P.z - w.nains.hall.z) > 40) out.push([n.id, J, h, pl, 'nain dehors']);
             if (n.d.area === 'sources' && P && pl !== 'home' && !pl.startsWith('sources') && pl !== 'bains' && !['hameau', 'bld:hutte_ermite', 'work'].includes(pl)) out.push([n.id, J, h, pl, 'hors des Sources']);
             void chez; void prevH;
@@ -444,10 +444,10 @@ function routinesSentiers(w) {
     if (n.voyage && n.dist < 70 && n.state === 'walk' && !n.run) {
       const mx = n.x - x0, mz = n.z - z0, m = Math.hypot(mx, mz);
       if (m > 1e-4 && m < 0.5) {
-        let nx = n.x + mx * 0.55, nz = n.z + mz * 0.55;
+        let nx = n.x + mx * 1.0, nz = n.z + mz * 1.0;
         [nx, nz] = w.collideCircle(nx, nz, n.y, n.y + 1.7, 0.28, 0.5, true);
         const g = w.groundAt(nx, nz, n.y + 0.6, 0.6);
-        if (g > w.waterLevel - 0.2) { n.x = nx; n.z = nz; n.y = g; n.phase += dt * 1.35 * 2.4 * 0.55; }
+        if (g > w.waterLevel - 0.2) { n.x = nx; n.z = nz; n.y = g; n.phase += dt * 1.35 * 2.4; }
       }
     }
   };
