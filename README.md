@@ -1,12 +1,19 @@
 # Prairie — La vieille ferme
 
-Jeu de ferme et d'horreur lente à la première personne, en 3D rétro (pixels façon Doom, personnages et
-bêtes en boîtes façon 1998), presque sans affichage à l'écran. Un mode Création (éditeur de monde) est inclus.
+Jeu de ferme et d'horreur lente à la première personne, en 3D rétro (pixels façon Doom, personnages anguleux façon
+premier Tomb Raider, bêtes en boîtes), presque sans affichage à l'écran. Un mode Création (éditeur de monde) est inclus.
 
 ## Jouer
 
 Ouvrir **`Prairie.html`** dans un navigateur récent (Chrome, Edge ou Firefox, WebGL 2 requis).
 Aucune installation ni connexion : tout est dans ce seul fichier. La partie est sauvegardée automatiquement.
+Le jeu existe en **français** et en **anglais** (Options, ou le bouton de langue du menu ; bascule à chaud).
+
+**Le wiki de la vallée** : **`Prairie-Wiki.html`** (à ouvrir de même, hors du jeu) est un compagnon autonome : la carte interactive de toute
+la vallée (relief, eaux, forêts, chemins, milieux, lieux-dits, maisons des habitants, zones de pêche ; zoom, recherche) et les fiches de
+tout le jeu (habitants et leur semaine, objets, recettes, cultures, plantes, arbres, bêtes, poissons, alchimie, livres, langues perdues,
+légendes…), avec une recherche plein texte. Les secrets restent masqués tant qu'on ne clique pas sur « révéler les secrets ». Il se
+régénère depuis les sources du jeu (la vallée est générée, ≈ 1 minute) : `node tools/wiki-build.js`.
 
 ### La grande vallée
 
@@ -73,8 +80,11 @@ peut pas acheter de bêtes. (Les parties commencées avant cette version gardent
   Œufs, lait (seau), laine (cisailles), truffes ; la mangeoire se remplit de foin.
 - **Chasse et pêche** : arc et flèches (maintenir le clic), canne à pêche (lancer, puis cliquer quand le bouchon plonge).
 - **Bois et pierre** : haches et pioches de pierre, cuivre, fer puis acier (les arbres et filons résistent aux outils faibles).
-- **Fabrication** (Tab) : outils, lingots au four, cuisine au feu, et des dizaines d'objets pour arranger la ferme
-  (clôtures, haies, pavés, parterres, lampadaires, ruches, statues, puits, arches…). Certains plans s'apprennent des habitants.
+- **Fabrication par assemblage** (Tab) : pas de liste toute faite. On pose de un à cinq objets de la sacoche sur l'établi
+  d'assemblage, avec leurs quantités, et l'on assemble : si cela fait quelque chose (et que l'établi, le four ou le feu est
+  à portée), on le fabrique et la recette entre dans « Ce que vous savez faire » ; sinon, un indice sobre. On ne connaît
+  au départ que les recettes de base ; les autres se trouvent en essayant, dans les manuels (livres) ou auprès des
+  habitants de métier (« Vous pourriez m'apprendre à fabriquer quelque chose ? »).
 - **Machines** : tonneau, baratte, fumoir, presse, meule à bras, composteur. On y dépose des produits (E), on revient
   quelques heures plus tard chercher cidre, vin, beurre, fromage, huile, jus, farine, fumaisons ou engrais.
 - **Fouille** (jamais chez les habitants) : coffres, tonneaux et caisses des campements, ruines, hameau, chapelle, phare,
@@ -93,11 +103,20 @@ peut pas acheter de bêtes. (Les parties commencées avant cette version gardent
 - **Alchimie** : un alambic (chez la guérisseuse, ou fabriqué) mêle deux ou trois ingrédients dans une fiole. Seize potions
   à découvrir (soin, vigueur, célérité, œil de chouette, croissance, bonne fortune, silence, clairvoyance, souffle d'anguille,
   force, légèreté, antidote, philtre d'amitié, philtre de l'Envers, élixir du dernier souffle, somnifère).
+  **À l'aveugle** : la **table d'alchimiste** (dans l'échoppe de l'alchimiste de la ville, ou achetée et posée à la ferme)
+  mêle deux à quatre ingrédients ; chacun porte des essences cachées (vie, mort, feu, froid, lumière, ombre, terre, air) qui
+  s'additionnent et s'annulent. On ne voit que le résultat, noté dans le carnet (onglet Grimoire) : potions simples ou rares,
+  mixtures, poisons, bouillie grise. Quatorze potions nouvelles (chaleur, sang-froid, régénération, baume de moelle, eau
+  lustrale, givre, philtre des morts, peau de pierre, mémoire, songe, soleil, fiel noir, appât empoisonné…).
+  **Les plantes sauvages sont inconnues** : on ne connaît que leur allure (« Larges feuilles odorantes ») tant que
+  l'**alchimiste de la ville** ne les a pas nommées : on lui en porte une, elle la nomme (et en garde un brin).
 - **Prière et religions** : l'Église (messe le dimanche, calvaires, bénitier), la Vieille Foi (la Mère des Moissons, la Dame
   du Lac, le Cerf Blanc) et Ceux d'En-Dessous (pactes qui exaucent, avec un prix). Faveurs cachées, bénédictions, offrandes.
 - **Légendes** : quatorze légendes racontées par les habitants ou lues dans les livres ; chacune mène à un vrai secret.
   Onze reliques des Anciens, réunies à l'autel du cercle à minuit, apaisent la vallée.
-- **Panneaux** : poteaux indicateurs aux carrefours, panneaux-cartes (« vous êtes ici »), carte de la vallée à la poste.
+- **Panneaux et cartes** : poteaux indicateurs aux carrefours. **Il n'existe aucune carte de toute la vallée** : les
+  panneaux-cartes des villes ne montrent que les environs, à main levée et incomplets ; les cartes de régions (poste,
+  colporteurs, bibliothèque) sont déformées, sans « vous êtes ici », et n'indiquent que les lieux où l'on est déjà allé.
 - **Villes et villages** : enseignes qu'on peut lire, bacs à fleurs, panneau d'affichage (avis, messe, arrivages de graines,
   objets perdus, chevaux sauvages aperçus…), terrasse de l'auberge, second marché, monument aux morts, drapeau de la mairie,
   bancs, barres d'attache et abreuvoirs (le cheval y boit), arrière-cours avec linge, potagers, bois et poules ; pigeons
@@ -107,7 +126,7 @@ peut pas acheter de bêtes. (Les parties commencées avant cette version gardent
 
 ### Les habitants
 
-Douze habitants nommés (le prénom change à chaque partie), chacun avec sa routine, ses répliques, ses quêtes et sa boutique.
+Vingt-deux habitants nommés (le prénom change à chaque partie), chacun avec sa routine, ses répliques, ses quêtes et sa boutique.
 Chacun a son histoire (racontée chapitre après chapitre, à mesure qu'on se lie), ses questions (dont il se souvient),
 son humeur du jour, ses souvenirs de vous, ses conversations avec les autres, sa foi, ses légendes, son jour de fête.
 Ils s'assoient, prient à la messe, se saluent, clignent des yeux, bougent les lèvres en parlant ; passé un certain degré
@@ -123,6 +142,87 @@ dimension cachée (**l'Envers**), et une vallée qui a déjà connu d'autres **v
 s'efface et la vallée recommence autrement. Elle s'en souviendra.
 
 Les commandes sont dans le menu **Commandes** (Échap).
+
+### La grande mise à jour
+
+**Le temps et le corps**
+- Une journée dure **dix minutes** ; la semaine a **douze jours**, chacun son nom (Primedi, Ferdi, Marchedi, Lavedi, Nahédi,
+  Chassedi, Pêchedi, Orédi, Foiredi, Veilledi, Chômedi, Vorndi), et chaque habitant a ses jours à lui (marché, lessive,
+  chasse, pêche, messe, foire, veillée, jour des morts, visites…).
+- **Trois états, dont deux cachés** : la faim (plus elle creuse, plus le cœur bat vite), la vie (jamais affichée) et la
+  **mentalité**. Elle baisse peu à peu quand on tue des bêtes, qu'on erre la nuit loin des lumières, qu'on fait le mal,
+  qu'on voit des horreurs ; elle remonte avec les quêtes, le soleil, les bons repas, le chien, le sommeil, la prière, le
+  bain. Plus l'esprit s'assombrit, plus l'étrange se montre (et il se devine : couleurs éteintes, murmures, silhouettes).
+- **Chutes** : dégâts dès trois mètres, **jambe cassée** en sautant de trop haut (on boite ; une attelle aide), mort vers
+  quatorze mètres. On **saigne** (mort lente, un bandage l'arrête) ou l'on meurt d'un coup, selon la menace. On ne gravit pas
+  les pentes trop raides (hors des chemins), on glisse sur les parois.
+- **Ce qu'on mange** : crus ou cuits, des champignons, baies, plantes, viandes et poissons donnent des effets (poison,
+  nausée, coliques, fièvre, somnolence, visions, force, jambes de cerf, yeux de chat, calme, panique, paralysie…), tout de
+  suite ou jusqu'à cinq minutes plus tard.
+- **Son propre alcool** : le tonneau (cidre, vin, bière, hydromel, liqueurs) et l'alambic du bouilleur de cru (eaux-de-vie
+  de prune, de poire, de grain…). L'ivresse fait tanguer la vue et dériver les pas ; trop, c'est le coma ; le lendemain,
+  la gueule de bois. L'aubergiste achète les bouteilles.
+- **Le chien** : il faut le nourrir (gamelle, ou E sur lui) : trois jours sans manger et il meurt. E sur lui : le caresser,
+  « À la niche ! », « Au pied ! », « Pas bouger ! ».
+
+**Les gens**
+- Dix habitants de plus : l'alchimiste de la ville, le bibliothécaire, deux colporteurs qui vont de village en village
+  selon le jour (jusqu'à la ferme) et portent les nouvelles, le chasseur du relais, les gens des Sources, deux nains.
+- **La mort est définitive** : un habitant mort emporte ses quêtes et ses répliques à jamais (carnet : « † ne pourra plus
+  se faire »), sa maison est mise sous scellés, son commerce repris ; la nouvelle court de village en village.
+- **Avis de recherche** : un crime vu est su dans le village des témoins, puis ailleurs au fil des jours (postière, garde,
+  colporteurs). Une prime est mise sur votre tête, des affiches « RECHERCHÉ » sont clouées, on refuse de vous parler, le
+  garde somme, arrête ou frappe, des chasseurs de primes rôdent. La prime se paie au garde, au maire, ou s'oublie.
+- **Construire** : partout, sauf dans les villes, les villages et les lieux protégés.
+- **Les douves** de la ville : on peut y descendre, y nager, et en ressortir par les échelles.
+
+**Chasse et attelage**
+- **Fusil de chasse à lunette** (le chasseur le vend, ou on le fabrique) : bouton droit maintenu pour viser (la respiration
+  fait danser le réticule, Maj retient le souffle), clic pour tirer, une cartouche par coup. Les bêtes abattues se dépècent
+  (E), une bête blessée fuit en saignant.
+- **Pièges à loup** : ils prennent les bêtes, les habitants… et le joueur distrait (E pour se dégager).
+- **Bêtes dangereuses** : ours et sangliers attaquent rarement, quand on les menace. Le Chassedi, les chasseurs battent les
+  bois : coups de feu au loin, pièges, et parfois l'accident (pris pour un gibier).
+- **Charrette** : un harnais, un cheval (ou un âne), E sur la charrette : elle suit comme une remorque et se charge.
+
+**Savoir**
+- **Livres** (chez les colporteurs, le bibliothécaire…) : bestiaire, herbier, livre des poissons (avec ce qu'on a vu ou
+  pris), sciences, manuels (qui enseignent des recettes), et les livres de la bibliothèque (histoire, légendes, secrets).
+- **La grande bibliothèque** du plateau : on emprunte un livre ou une carte pour 1, 3 ou 7 jours, en payant d'avance.
+  En retard, le bibliothécaire devient un **sorcier** et vous traque où que vous soyez. Un passage caché mène aux archives.
+- **Deux langues perdues** : l'**aëlin** (les Hautes Lettres des Aëlim, en colonnes) et le **gorrain** (les cupules des
+  Gorr, le peuple des géants). Des stèles gravées partout ; on apprend les mots dans les lexiques, auprès du bibliothécaire,
+  de l'ancien des nains ; les inscriptions se traduisent à mesure. Onglet « Langues » dans la sacoche.
+
+**Lieux**
+- **Les Sources** : un village de naturistes autour de sources chaudes (on s'y baigne : soin, chaleur, apaisement).
+- **Le village caché des nains**, sous la falaise de la Combe : il faut savoir frapper (trois coups, un, trois).
+- **Le camp des géants** sur les hauteurs de l'est : trois géants paisibles, qui parlent gorrain.
+- **Le temple sous la montagne**, immense, derrière la cascade où naît la rivière : la porte des Trois, les autels, le
+  Dormeur, le tombeau des Aëlim, des coffres qu'il vaut mieux ne pas vider.
+- Le relais de chasse, l'échoppe de l'alchimiste, le campement des colporteurs.
+- Chaque milieu a ses plantes et ses bêtes, communes ou rares (chamois, lièvres blancs, lagopèdes, castors, salamandres,
+  cistudes, martres, aigles…) ; des dizaines de poissons nouveaux selon les eaux (douves, sources chaudes, lacs
+  souterrains, bassin du temple).
+
+**L'étrange, encore**
+- **Nuits noires** (l'almanach les prédit) : plus aucune lumière au ciel, et des murmures ; une voix vous appelle — il ne
+  faut pas répondre. **Neige** possible sur toute la vallée. **Soleil écrasant** : le regarder laisse une tache noire.
+  **Tornades**, très rares. Et d'autres prodiges : étoiles filantes, aurore, éclipse, grêle, tremblement de terre, mur de
+  brouillard, feux follets, cloches, météorite, pluie de grenouilles, un géant sur la crête à l'aube…
+- **L'homme au long manteau**, très rare : il passe une nuit, tue une fois (un habitant resté dehors, ou vous), et disparaît.
+- **La lavandière** du lavoir, qui surgit certaines nuits. **Malédictions** (malchance, faim, bêtes qui fuient, sommeil sans
+  repos, pourriture, le poids, l'ombre qui suit) : on les lève par l'eau lustrale, le curé, la guérisseuse, ou l'un des Trois.
+- **Les Trois** : Aëla l'Aube, Durn la Pierre, Vesh la Nuit noire. Dans de très rares cas, ils viennent sur le monde ou
+  prennent contact (rêves, voix, apparitions).
+- **Pilules de joie**, un peu partout : la vallée devient le **pays des bonbons**… puis vient la retombée dans les
+  **Ténèbres**, d'autant plus dure qu'on en abuse. **Cauchemars** très rares, où l'on est poursuivi. Qui a tué dix
+  personnes de sa main ne meurt pas tout de suite : il descend aux **Enfers**, où l'on ne peut pas manger.
+- **Objets légendaires et mythiques** (quinze, uniques) ; dans une partie sur cinq cents, **l'Homme long** hante les bois ;
+  dans une partie sur cent vingt, un **complexe de la Fondation** — des humains venus du futur étudier les bizarreries de la
+  vallée — est caché sous la lande (la Fondation SCP est une création collective sous licence CC BY-SA 3.0 :
+  https://scp-wiki.wikidot.com ; les textes du jeu sont originaux).
+- **Cinématiques** : l'arrivée dans la vallée, le temple, les Trois, la tornade, le tueur… (Espace pour passer).
 
 ### Mode Création
 
@@ -161,6 +261,20 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzvallee.js` | la vallée vivante : crues, foudre, incendies, neige et froid, signes, refuge, pêche sous la glace |
 | `12-zzui-feed.js` | ce qu'on ramasse (liste discrète à droite) |
 | `13-main.js` | modes, boucle principale, interactions, journées |
+| `05-zzz*.js` | espèces par milieu et rareté, notices, poissons, essences d'alchimie, langues perdues, livres, objets et habitants nouveaux |
+| `06-zzzgen-lieux3.js` | lieux nouveaux (bibliothèque et archives, Sources, relais de chasse, roulottes, halles des nains, camp des géants, temple, échelles des douves) et peuplement des milieux |
+| `07-zzzz-modeles.js`, `07-zzzzz-personnages.js`, `07-zzzzzz-mondes.js` | modèles nouveaux ; personnages anguleux façon 1996 (boîtes effilées dans le shader) ; modèles des autres mondes |
+| `11-zzz00-socle.js` | socle commun : journée de 10 min, savoirs du personnage, chutes, jambe cassée, saignements, pentes, cinématiques (`cine`), zones où l'on ne bâtit pas, `bizarrerie()` |
+| `11-zzz02-*.js`, `11-zzz03-*.js` | alchimie à l'aveugle et plantes à faire nommer ; fabrication par assemblage |
+| `11-zzz2*.js` | livres, grande bibliothèque et sorcier, langues perdues, cartes approximatives |
+| `11-zzz3*.js` | fusil à lunette, dépouilles, pièges à loup, bêtes dangereuses, chasseurs ; charrette attelée |
+| `11-zzz4*.js`, `12-zzzD-*.js` | événements (nuits noires, neige, soleil, prodiges), les Trois, malédictions, temple, cinématiques ; tornade, tueur, lavandière |
+| `11-zzz5*.js` | société (mort définitive, avis de recherche), Sources, nains, géants, semaine de chacun |
+| `11-zzz6*.js` | mentalité, ce qu'on mange, le chien, l'alcool |
+| `11-zzz7*.js` | autres mondes : pays des bonbons, Ténèbres, cauchemar, Enfers |
+| `11-zzz8*.js` | objets légendaires et mythiques, l'Homme long, la Fondation |
+| `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
+| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) |
 | `shell.html` | HTML + CSS |
 
 Après une modification, régénérer le fichier unique :
