@@ -166,7 +166,7 @@ function iconPaint(shape, c1, c2) {
       fillPoly(pb, [[12, 8], [15, 4], [15, 12]], P, () => 0.5); pb.set(4, 7, [20, 20, 20]); break;
     case 'hache': L(3, 14, 11, 3, wood[2], 2); fillPoly(pb, [[9, 2], [14, 1], [15, 7], [11, 7]], tier, (x) => 0.9 - (x - 9) * 0.05); L(15, 1, 15, 7, tier[3]); break;
     case 'pioche': L(4, 14, 9, 4, wood[2], 2); fillPoly(pb, [[1, 5], [8, 2], [15, 5], [15, 6], [8, 4], [1, 6]], tier, () => 0.7); break;
-    case 'houe': L(3, 14, 11, 2, wood[2], 2); R(10, 2, 14, 5, (x, y) => tier[1 + ((x + y) & 1)]); break;
+    case 'houe': L(3, 14, 10, 3, wood[2], 2); R(9, 1, 12, 3, tier[1]); fillPoly(pb, [[11, 2], [14, 2], [15, 9], [12, 9]], tier, (x) => 0.9 - (x - 11) * 0.06); L(12, 9, 15, 9, tier[3]); break;
     case 'arrosoir': R(3, 7, 10, 14, (x, y) => rampPick(steel, 0.9 - (x - 3) * 0.08, x, y)); L(10, 9, 15, 5, steel[2], 2); L(4, 6, 9, 4, steel[1]); L(9, 4, 10, 7, steel[1]); break;
     case 'faux': L(4, 15, 9, 1, wood[2], 2); for (let i = 0; i < 9; i++) pb.set(9 - i, 1 + Math.round(i * i * 0.05), steel[3]); for (let i = 0; i < 8; i++) pb.set(9 - i, 2 + Math.round(i * i * 0.05), steel[2]); break;
     case 'canne': L(2, 15, 14, 1, wood[2]); L(14, 1, 12, 12, [200, 200, 200]); pb.set(12, 12, [200, 40, 30]); pb.set(12, 13, [240, 240, 240]); break;
@@ -259,28 +259,33 @@ function vmTool(kind, swing, tcol) {
   const blade = rampOf(tcol || '#9aa2ac');
   const gx = 86, gy = 86;
   let ang = swing ? -1.25 : -0.3;
-  if (kind === 'houe') ang = swing ? -0.2 : -0.45;
+  if (kind === 'houe') ang = swing ? -1.05 : -0.45; // la houe s'abat vers le sol devant soi
   if (kind === 'faux') ang = swing ? -1.5 : -0.2;
   if (kind === 'pelle') ang = swing ? -0.05 : -0.35;
   vmArm(pb, gx, gy);
   const L = kind === 'faux' ? 80 : kind === 'marteau' ? 44 : 64;
   const h = vmHandle(pb, gx, gy, ang, L);
   const T = (a, b) => [h.hx + h.px * a + h.dx * b, h.hy + h.py * a + h.dy * b];
+  // (h.px, h.py) : perpendiculaire au manche vers l'extérieur ; les fers sont du côté opposé (a < 0), vers le centre
+  // de la vue, c'est-à-dire vers ce qu'on frappe : au coup, le tranchant mène (vers le bas)
   if (kind === 'hache') {
-    fillPoly(pb, [T(-3, 4), T(-3, -6), T(13, -12), T(17, -2), T(13, 9)], blade, (x, y) => 0.55 + ((x - h.hx) * h.px + (y - h.hy) * h.py) * 0.025);
-    for (let k = -10; k <= 7; k++) { const [x, y] = T(15.5, k * 0.9); pb.set(Math.round(x), Math.round(y), blade[3]); }
-  } else if (kind === 'pioche') {
-    fillPoly(pb, [T(-20, -1), T(-8, -4), T(0, -5), T(8, -4), T(20, -1), T(8, 1), T(0, 2), T(-8, 1)], blade, (x, y) => 0.6 - ((x - h.hx) * h.dx + (y - h.hy) * h.dy) * 0.05);
-  } else if (kind === 'houe') {
-    fillPoly(pb, [T(-2, -3), T(-2, 3), T(14, 6), T(15, -1)], blade, () => 0.7);
+    fillPoly(pb, [T(2, -4), T(7, -3), T(7, 3), T(2, 4)], blade, () => 0.35); // talon du fer
+    fillPoly(pb, [T(3, 4), T(3, -6), T(-13, -12), T(-17, -2), T(-13, 9)], blade, (x, y) => 0.55 - ((x - h.hx) * h.px + (y - h.hy) * h.py) * 0.025);
+    for (let k = -10; k <= 7; k++) { const [x, y] = T(-15.5, k * 0.9); pb.set(Math.round(x), Math.round(y), blade[3]); }
+  } else if (kind === 'pioche') { // fer en arc, les pointes tournées vers le manche
+    fillPoly(pb, [T(-20, -7), T(-8, -3), T(0, -3), T(8, -3), T(20, -7), T(8, 1), T(0, 3), T(-8, 1)], blade, (x, y) => 0.6 - ((x - h.hx) * h.dx + (y - h.hy) * h.dy) * 0.05);
+  } else if (kind === 'houe') { // lame perpendiculaire au manche, tournée vers le sol, un peu ramenée vers soi
+    fillPoly(pb, [T(3, -3), T(3, 3), T(-3, 3), T(-3, -3)], blade, () => 0.4); // douille
+    fillPoly(pb, [T(-2, 3), T(-2, -3), T(-15, -7), T(-16, 2)], blade, (x, y) => 0.5 - ((x - h.hx) * h.px + (y - h.hy) * h.py) * 0.02);
+    for (let k = 0; k <= 9; k++) { const [x, y] = T(-15.6 + k * 0.1, -6.8 + k); pb.set(Math.round(x), Math.round(y), blade[3]); } // tranchant
   } else if (kind === 'marteau') {
     fillPoly(pb, [T(-9, -4), T(9, -4), T(9, 6), T(-9, 6)], blade, (x, y) => 0.75 - ((x - h.hx) * h.px) * 0.03);
   } else if (kind === 'pelle') {
     // lame de pelle au bout du manche, poignée en T de l'autre côté
     fillPoly(pb, [T(-7, 0), T(7, 0), T(8, 12), T(4, 18), T(-4, 18), T(-8, 12)], blade, (x, y) => 0.8 - ((x - h.hx) * h.px + (y - h.hy) * h.py) * 0.02);
     for (let k = -6; k <= 6; k++) { const [x, y] = T(k, 0); pb.set(Math.round(x), Math.round(y), blade[3]); }
-  } else if (kind === 'faux') {
-    for (let i = 0; i < 44; i++) { const [x, y] = T(-2 - i, 2 + i * i * 0.012); for (let w = 0; w < 4 - i / 14; w++) pb.set(Math.round(x), Math.round(y + w), blade[w === 0 ? 3 : 2]); }
+  } else if (kind === 'faux') { // lame dont la pointe revient vers le manche, tranchant du côté creux
+    for (let i = 0; i < 44; i++) { const [x, y] = T(-2 - i, 2 - i * i * 0.011), wm = Math.ceil(4 - i / 14); for (let w = 0; w < wm; w++) pb.set(Math.round(x), Math.round(y + w), blade[w === wm - 1 ? 3 : 2]); }
   }
   vmFist(pb, gx, gy);
   edgeDarken(pb, 0.8);
