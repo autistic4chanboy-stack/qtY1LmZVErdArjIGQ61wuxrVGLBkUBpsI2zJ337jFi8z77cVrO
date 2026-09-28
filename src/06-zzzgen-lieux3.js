@@ -411,12 +411,14 @@ function addLieux3(w, seed) {
   renav();
   // les maisons nouvelles restées à l'écart du réseau : un lien vers le nœud habité le plus proche
   let relink = false;
+  // (sans traverser les douves : dehors on se raccorde dehors, dedans dedans)
+  const TI = w.townInfo, horsVille = (x, z) => !TI || Math.max(Math.abs(x - TI.x), Math.abs(z - TI.z)) > 57;
   for (const key of ['bibliotheque', 'roulotte_a', 'roulotte_b', 'relais_chasse', 'source_a', 'source_b', 'source_c']) {
     const Bk = w.bld[key]; if (!Bk) continue;
     const O = w.nav.nodes[Bk.nOut];
     if (!O.iso) continue;
     let bi = -1, bd = 1e9;
-    w.nav.nodes.forEach((q, i) => { if (q.iso || /:(in|mid|out)$/.test(q.tag) || q.tag.startsWith('halle') || q.tag.startsWith('village:')) return; const d = Math.hypot(q.x - O.x, q.z - O.z); if (d < bd) { bd = d; bi = i; } });
+    w.nav.nodes.forEach((q, i) => { if (q.iso || /:(in|mid|out)$/.test(q.tag) || q.tag.startsWith('halle') || q.tag.startsWith('village:') || /^pont_/.test(q.tag) || horsVille(q.x, q.z) !== horsVille(O.x, O.z)) return; const d = Math.hypot(q.x - O.x, q.z - O.z); if (d < bd) { bd = d; bi = i; } });
     if (bi >= 0) { B.navLink(Bk.nOut, bi, 'road'); relink = true; }
   }
   if (w.sources) for (const key of ['source_a', 'source_b', 'source_c']) if (w.bld[key]) { B.navLink(w.bld[key].nOut, w.sources.node); relink = true; }

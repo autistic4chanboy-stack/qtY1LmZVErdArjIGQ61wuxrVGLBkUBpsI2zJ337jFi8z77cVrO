@@ -268,7 +268,7 @@ const play = {
       for (const q of this.cellsAt(eye, f, 1)) {
         const cr = farm.crop(q.x, q.z);
         if (cr && cr.dead) { delete farm.s.crops[farm.cellKey(q.x, q.z)]; }
-        if (!farm.crop(q.x, q.z) && Math.hypot(q.x - game.world.farm.f.x, q.z - game.world.farm.f.z) < 95 && farm.canTill(q.x, q.z)) { farm.till(q.x, q.z); n++; }
+        if (!farm.crop(q.x, q.z) && !interditDeBatir(q.x, q.z) && farm.canTill(q.x, q.z)) { farm.till(q.x, q.z); n++; }
       }
       if (n) { sound.dig && sound.dig(1); puffAt(c.x, c.y + 0.05, c.z, [96, 68, 44], 12, 2, false); }
       const dig0 = (game.world.inter || []).find((it) => it.kind === 'dig' && !farm.s.flags['dug_' + it.id] && Math.hypot(it.x - c.x, it.z - c.z) < 1.5 && (!it.data.envers || strange.inEnvers()));
@@ -281,7 +281,7 @@ const play = {
     const cr = farm.crop(c.x, c.z);
     if (cr && cr.dead) { delete farm.s.crops[farm.cellKey(c.x, c.z)]; farm.till(c.x, c.z); farm.dirtyProps = true; sound.dig && sound.dig(); return; }
     if (cr) { sound.dig && sound.dig(0.5); return; }
-    if (Math.hypot(c.x - game.world.farm.f.x, c.z - game.world.farm.f.z) > 95) { sound.dig && sound.dig(0.4); return; }
+    { const P = interditDeBatir(c.x, c.z); if (P) { sound.dig && sound.dig(0.4); if (!this.noTillT || performance.now() > this.noTillT) { this.noTillT = performance.now() + 4000; ui.subtitle('', '(On ne laboure pas ici : ' + (P.why || 'ce n’est pas à vous') + '.)', 2.5); } return; } }
     if (!farm.canTill(c.x, c.z)) { sound.impact('soft'); return; }
     farm.till(c.x, c.z);
     sound.dig && sound.dig(1);
@@ -509,7 +509,7 @@ const play = {
     let r = this.rotY + Math.round(game.player.yaw / (Math.PI / 2)) * Math.PI / 2 + Math.PI;
     if (P.snap) { const s = P.snap; if (s === 1) { x = Math.floor(x) + 0.5; z = Math.floor(z) + 0.5; } else { x = Math.round(x / s * 2) * s / 2; z = Math.round(z / s * 2) * s / 2; } r = Math.round(r / (Math.PI / 2)) * Math.PI / 2; }
     if (!(bh && bh.n[1] > 0.7)) y = w.groundAt(x, z, y + 0.3, 0.4);
-    let ok = y > w.waterLevel + 0.05 && Math.hypot(x - w.farm.f.x, z - w.farm.f.z) < 95;
+    let ok = y > w.waterLevel + 0.05 && !interditDeBatir(x, z) && !(game.player.underground && !P.sousTerre);
     const c = PROP_COLL[it.place];
     if (ok && c) {
       const probe = { x, y, z, sx: c[0] * 2, sy: c[2], sz: c[1] * 2, r };

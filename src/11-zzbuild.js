@@ -79,9 +79,8 @@ const builds = {
     const bad = (why, y) => ({ ok: false, why, y: y ?? w.heightAt(x, z) });
     if ((kind === 'grange' || kind === 'poulailler') && this.has(kind)) return bad(kind === 'grange' ? '(Vous avez déjà une grange.)' : '(Vous avez déjà un poulailler.)');
     if (this.count(kind) >= K.max) return bad('(Vous en avez déjà construit ' + (K.max > 1 ? 'assez.)' : 'un.)'));
-    if (Math.hypot(x - fm.f.x, z - fm.f.z) > 110) return bad('(Trop loin de la ferme : il faut bâtir sur vos terres.)');
-    const T = w.townInfo;
-    if (T && Math.hypot(x - T.x, z - T.z) < 90) return bad('(Pas ici.)');
+    { const P = interditDeBatir(x, z, Math.max(K.W || 0, K.D || 0) / 2); if (P) return bad(P.why ? '(On ne bâtit pas ici : ' + P.why + '.)' : '(Pas ici.)'); }
+    if (game.player.underground) return bad('(Pas sous terre.)');
     // relief
     let mn = 1e9, mx = -1e9, sum = 0, n = 0;
     for (let lz = z0; lz <= z1 + 0.01; lz += 1) for (let lx = x0; lx <= x1 + 0.01; lx += 1) { const [px, pz] = L(lx, lz), h = w.heightAt(px, pz); mn = Math.min(mn, h); mx = Math.max(mx, h); sum += h; n++; }

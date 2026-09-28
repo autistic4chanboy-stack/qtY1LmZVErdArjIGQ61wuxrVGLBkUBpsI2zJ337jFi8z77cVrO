@@ -970,6 +970,7 @@ const game = {
       camPos = p.eyePos(); yaw = p.yaw; pitch = p.pitch + p.kickPitch;
       if (this.shakeT > 0) { this.shakeT = Math.min(this.shakeT, 1) - dt; const k = Math.max(0, this.shakeT) * 0.05, t = this.time; camPos = [camPos[0] + Math.sin(t * 37) * k, camPos[1] + Math.sin(t * 43 + 1) * k, camPos[2] + Math.sin(t * 31 + 2) * k]; }
       if (F && play.nausea > 0) yaw += Math.sin(this.time * 1.3) * Math.min(0.025, 0.004 * play.nausea);
+      if (F) for (const fn of HOOKS.camera) { const c = fn(dt, camPos, yaw, pitch); if (c) { camPos = c.pos; yaw = c.yaw; pitch = c.pitch; } }
     }
     weather.update(dt, w);
     const wc = weather.cur;
@@ -1040,7 +1041,7 @@ const game = {
 
     // objet en main
     let gun = null, gunL = null;
-    if (this.mode === 'play' && F && !this.dying) {
+    if (this.mode === 'play' && F && !this.dying && !this.noHand) {
       gun = this.viewModel(p, dt); gun.light = lights.gunLight;
       if (this.lantern && farm.s.hand !== 'lanterne' && farm.count('lanterne')) gunL = { spr: 'vm_lantern', frame: 1, ox: gun.ox * 0.6 + 0.02, oy: gun.oy * 0.8 - 0.02, light: lights.gunLight };
     }
@@ -1077,7 +1078,7 @@ const game = {
     const ents = { data: this.flyData || (this.flyData = new Float32Array(64 * 13)), n: 0 };
     if (F) ents.n = play.appendFlyers(ents.data, 0);
     this.renderer.render({
-      cam: { pos: camPos, yaw, pitch, fovX: settings.fov * DEG },
+      cam: { pos: camPos, yaw, pitch, fovX: settings.fov * DEG * (this.fovK || 1) },
       sky, time: this.time, cloudT: this.cloudT, lights, flash: this.flashlight && !F ? 1 : 0,
       bands: settings.bands ? 14 : 0, levels: settings.dither ? 28 : 0, gamma: 1 / settings.gamma,
       grass: strange.inEnvers() && F ? null : { n: 150, spacing: 0.56, radius: 40 },
