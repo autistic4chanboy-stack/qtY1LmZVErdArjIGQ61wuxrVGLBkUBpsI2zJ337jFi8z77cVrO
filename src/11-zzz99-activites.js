@@ -1160,7 +1160,8 @@ const activites = {
     if (h < 16) { ui.subtitle('', P.best ? `(Votre plus belle prise, pour l’instant : ${itemName(P.best.id).toLowerCase()}. On présente à quatre heures.)` : '(Rien de pris pour l’instant. Il reste jusqu’à quatre heures.)', 3.5); return; }
     if (h >= 20) { ui.subtitle('', '(Trop tard : le jury est rentré souper.)', 3); P.fini = true; return; }
     P.fini = true;
-    const L = this.scoresPNJ(2, [['pecheur', 55, 130], ['maire', 18, 48], ['aubergiste', 22, 55], ['fillette', 6, 28], ['colporteur', 15, 42]]);
+    // les prises des autres, en prix du poisson (équilibrage : les poissons valent le quart d'avant, les scores aussi)
+    const L = this.scoresPNJ(2, [['pecheur', 14, 33], ['maire', 5, 12], ['aubergiste', 6, 14], ['fillette', 2, 7], ['colporteur', 4, 11]]);
     const moi = P.best ? P.best.prix : 0;
     L.push(['vous', moi]); L.sort((a, b) => b[1] - a[1]);
     const rang = L.findIndex((q) => q[0] === 'vous') + 1;

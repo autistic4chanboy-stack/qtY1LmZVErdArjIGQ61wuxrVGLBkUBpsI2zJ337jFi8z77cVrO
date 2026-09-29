@@ -46,7 +46,10 @@ const CATALOGUE = String.raw`(() => {
   { const src = String(pilules.boutique); const m = /\[([^\]]*)\]\.filter\(\(id\) => ITEMS\[id\] && farm\.count/.exec(src); if (m) for (const id of eval('[' + m[1] + ']')) VEN('marchand de joie', id, Math.round(ITEMS[id].price * 1.2)); }
   // la caisse d'expédition : le prix de base, pour tout ce qui n'est pas un outil
   for (const id in ITEMS) if (ITEMS[id].price > 0 && ITEMS[id].cat !== 'outil') VEN('caisse', id, ITEMS[id].price);
-  return JSON.stringify({ niv: NIV, achats, ventes });
+  // (pour mémoire) ce qu'un marchand rachète sans que l'objet ait de prix : il en donne 1 pièce (plancher de shopPrice)
+  const sansPrix = [];
+  for (const d of NPC_DATA) if (d.shop && d.shop.buys) for (const id of d.shop.buys) if (ITEMS[id] && !(ITEMS[id].price > 0)) sansPrix.push(d.id + ' : ' + id);
+  return JSON.stringify({ niv: NIV, achats, ventes, sansPrix });
 })()`;
 
 function catalogue(J) {
@@ -68,6 +71,7 @@ function boucles(J, c, log) {
   }
   out.sort((x, y) => y.gain - x.gain);
   log(`Points d'achat : ${c.achats.length} (objets : ${Object.keys(c.A).length}) ; points de vente : ${c.ventes.length} (objets : ${Object.keys(c.V).length}).`);
+  if (c.sansPrix && c.sansPrix.length) log(`(Rachetés 1 pièce faute de prix, sans boucle possible : ${c.sansPrix.join(', ')}.)`);
   if (!out.length) log('Aucun achat-revente gagnant (ni même à prix égal), à toute amitié.');
   else {
     log(`${out.length} achat(s)-revente sans perte :`);
