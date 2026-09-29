@@ -135,7 +135,7 @@ const LEGENDAIRES = {
     const L = LEGENDAIRES[id], R = LEG_RANGS[L.rang];
     defItem(id, L.nom, 'legende', 0, [L.ic, R.col], Object.assign({ legend: L.rang, desc: (L.rang === 'mythique' ? 'Objet mythique. ' : 'Objet légendaire. ') + L.pouvoir }, L.item));
   }
-  defItem('coeur_montagne', 'Cœur de montagne', 'materiau', 260, ['leg_coeur', '#e0802a'], { desc: 'Un cristal orangé, chaud au creux de la main, pris dans sa gangue de roche. Les nains disent que la montagne en a un, et que c’est un morceau de lui.' });
+  defItem('coeur_montagne', 'Cœur de montagne', 'materiau', 100, ['leg_coeur', '#e0802a'], { desc: 'Un cristal orangé, chaud au creux de la main, pris dans sa gangue de roche. Les nains disent que la montagne en a un, et que c’est un morceau de lui.' });
   defItem('fer_cognee', 'Fer de cognée des Gorr', 'quete', 0, ['leg_fer', '#6a645c'], { desc: 'Un fer de hache large comme une porte de four, trop lourd pour un manche d’homme. Une forgeronne naine saurait l’emmancher.' });
   TOOL_DMG.rapiere = 46;
   // le cœur de montagne : dans les profondeurs, chez les Frappeurs, dans les cristaux

@@ -12,7 +12,7 @@
 //  ordinaire (tools/equilibrage/hasard.js), bien plus à l'esprit sombre.
 //  mondes.entrer('cauchemar') : rêver tout de suite (essais).
 // ============================================================================
-defItem('dessin_reve', 'Dessin d’enfant', 'ailleurs', 60, ['md_dessin', '#2a2020'], { desc: 'Un dessin au crayon : un homme avec un sac sur la tête, qui tient la main d’un enfant. Vous l’avez rapporté d’un rêve. Au dos, votre nom, d’une écriture que vous ne connaissez pas.' });
+defItem('dessin_reve', 'Dessin d’enfant', 'ailleurs', 30, ['md_dessin', '#2a2020'], { desc: 'Un dessin au crayon : un homme avec un sac sur la tête, qui tient la main d’un enfant. Vous l’avez rapporté d’un rêve. Au dos, votre nom, d’une écriture que vous ne connaissez pas.' });
 
 const cauchemar = {
   C() { const M = mondes.S(); return M.cauchemar || (M.cauchemar = { nuits: 0, dernier: -99, pris: 0 }); },

@@ -16,10 +16,10 @@
 //  API : vol.tenter(n), vol.chance(n), vol.marques(id), vol.confisquer(),
 //        vol.recel(id) (objets volés d'un type), vol.cible(n)
 // ============================================================================
-defItem('mouchoir_brode', 'Mouchoir brodé', 'tresor', 10, ['sachet', '#ece4d8'], { desc: 'Du fil blanc sur de la batiste, et deux initiales qui ne sont pas les vôtres.' });
-defItem('tabatiere', 'Tabatière d’argent', 'tresor', 40, ['rond', '#a8a8b4'], { desc: 'Le couvercle est gravé d’un cerf. Elle sent encore le tabac de quelqu’un.' });
-defItem('couteau_poche', 'Couteau de poche', 'tresor', 25, ['cle', '#9a9aa2'], { desc: 'Un manche de corne, une lame usée à force d’être affûtée. On y tenait.' });
-defItem('medaillon_portrait', 'Médaillon à portrait', 'tresor', 80, ['medaillon', '#c8a860'], { desc: 'Sous le verre bombé, un visage minuscule, pâli. Quelqu’un l’embrassait chaque soir.' });
+defItem('mouchoir_brode', 'Mouchoir brodé', 'tresor', 5, ['sachet', '#ece4d8'], { desc: 'Du fil blanc sur de la batiste, et deux initiales qui ne sont pas les vôtres.' });
+defItem('tabatiere', 'Tabatière d’argent', 'tresor', 20, ['rond', '#a8a8b4'], { desc: 'Le couvercle est gravé d’un cerf. Elle sent encore le tabac de quelqu’un.' });
+defItem('couteau_poche', 'Couteau de poche', 'tresor', 13, ['cle', '#9a9aa2'], { desc: 'Un manche de corne, une lame usée à force d’être affûtée. On y tenait.' });
+defItem('medaillon_portrait', 'Médaillon à portrait', 'tresor', 40, ['medaillon', '#c8a860'], { desc: 'Sous le verre bombé, un visage minuscule, pâli. Quelqu’un l’embrassait chaque soir.' });
 
 // ce que portent les gens : b = pièces [min, max], m = objets du métier, p = objets personnels, r = rares, q = [quête, objet]
 // (une poche réussie : une quarantaine de pièces en moyenne ; raté, l'amende d'un vol en coûte cent cinquante)

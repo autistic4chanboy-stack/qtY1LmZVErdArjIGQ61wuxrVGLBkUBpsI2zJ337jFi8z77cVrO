@@ -4,48 +4,48 @@
 // ============================================================================
 
 // ---------------------------------------------------------------- trésors, trophées, curiosités
-defItem('vieille_piece', 'Vieille pièce', 'tresor', 40, ['rond', '#c8a040'], { desc: 'Une pièce frappée d’un roi dont personne ne se souvient.' });
-defItem('tesson', 'Tesson de poterie', 'tresor', 18, ['caillou', '#b87850'], { desc: 'Un morceau de pot peint. Il y avait un visage dessus.' });
-defItem('bijou', 'Bijou ancien', 'tresor', 160, ['gemme', '#e0a8e8']);
-defItem('relique', 'Relique', 'tresor', 260, ['figurine', '#e0d8a8'], { desc: 'Un petit reliquaire de cuivre. Il est plus lourd qu’il ne devrait.' });
-defItem('fossile', 'Fossile', 'tresor', 120, ['caillou', '#d8d0b8']);
-defItem('perle', 'Perle', 'tresor', 220, ['oeuf', '#f4f4ff']);
-defItem('croc', 'Croc de loup', 'chasse', 45, ['plume', '#ece4cc']);
-defItem('defense', 'Défense de sanglier', 'chasse', 55, ['cerf', '#ece4cc']);
-defItem('fourrure', 'Fourrure de renard', 'chasse', 70, ['cuir', '#c8652a']);
-defItem('plume_noire', 'Plume noire', 'chasse', 8, ['plume', '#2a2a30']);
+defItem('vieille_piece', 'Vieille pièce', 'tresor', 20, ['rond', '#c8a040'], { desc: 'Une pièce frappée d’un roi dont personne ne se souvient.' });
+defItem('tesson', 'Tesson de poterie', 'tresor', 9, ['caillou', '#b87850'], { desc: 'Un morceau de pot peint. Il y avait un visage dessus.' });
+defItem('bijou', 'Bijou ancien', 'tresor', 80, ['gemme', '#e0a8e8']);
+defItem('relique', 'Relique', 'tresor', 130, ['figurine', '#e0d8a8'], { desc: 'Un petit reliquaire de cuivre. Il est plus lourd qu’il ne devrait.' });
+defItem('fossile', 'Fossile', 'tresor', 60, ['caillou', '#d8d0b8']);
+defItem('perle', 'Perle', 'tresor', 110, ['oeuf', '#f4f4ff']);
+defItem('croc', 'Croc de loup', 'chasse', 8, ['plume', '#ece4cc']);
+defItem('defense', 'Défense de sanglier', 'chasse', 10, ['cerf', '#ece4cc']);
+defItem('fourrure', 'Fourrure de renard', 'chasse', 12, ['cuir', '#c8652a']);
+defItem('plume_noire', 'Plume noire', 'chasse', 1, ['plume', '#2a2a30']);
 defItem('eclat', "Éclat de l'Envers", 'tresor', 0, ['gemme', '#b01818'], { desc: 'Froid comme une nuit rouge. Il bat, un peu.' });
 // objets qu'on ouvre (clic)
 defItem('coffre_peche', 'Coffre englouti', 'tresor', 0, ['objet', 'coffre'], { open: 'peche', desc: 'Remonté du fond. Il ruisselle encore.' });
-defItem('geode', 'Géode', 'tresor', 20, ['caillou', '#7a7a92'], { open: 'geode', desc: 'Une pierre creuse. Quelque chose brille à l’intérieur.' });
+defItem('geode', 'Géode', 'tresor', 10, ['caillou', '#7a7a92'], { open: 'geode', desc: 'Une pierre creuse. Quelque chose brille à l’intérieur.' });
 defItem('sac_graines', 'Sac de graines', 'graine', 0, ['sac', '#8a6a44'], { open: 'graines', desc: 'Un vieux sac noué. Des graines mélangées.' });
 defItem('caisse_vivres', 'Caisse de vivres', 'nourriture', 0, ['objet', 'coffre'], { open: 'vivres' });
 // matières
-defItem('corde', 'Corde', 'materiau', 12, ['fibre', '#b89060']);
-defItem('toile', 'Toile de lin', 'materiau', 22, ['cuir', '#e4dcc4']);
-defItem('farine', 'Farine', 'materiau', 12, ['sac', '#f2eee2']);
-defItem('engrais', 'Engrais', 'materiau', 6, ['sac', '#5a4a30'], { fert: 1, desc: 'Sur une culture : elle pousse une fois et demie plus vite.' });
-defItem('engrais_riche', 'Engrais riche', 'materiau', 16, ['sac', '#2e2216'], { fert: 2, desc: 'Sur une culture : elle pousse deux fois plus vite.' });
+defItem('corde', 'Corde', 'materiau', 1, ['fibre', '#b89060']);
+defItem('toile', 'Toile de lin', 'materiau', 1, ['cuir', '#e4dcc4']);
+defItem('farine', 'Farine', 'materiau', 3, ['sac', '#f2eee2']);
+defItem('engrais', 'Engrais', 'materiau', 1, ['sac', '#5a4a30'], { fert: 1, desc: 'Sur une culture : elle pousse une fois et demie plus vite.' });
+defItem('engrais_riche', 'Engrais riche', 'materiau', 3, ['sac', '#2e2216'], { fert: 2, desc: 'Sur une culture : elle pousse deux fois plus vite.' });
 // produits transformés
-defItem('cidre', 'Cidre', 'nourriture', 55, ['bouteille', '#d8a040'], { food: 8, heal: 6 });
-defItem('vin', 'Vin de fruits', 'nourriture', 95, ['bouteille', '#8a2040'], { food: 6, heal: 4 });
-defItem('beurre', 'Beurre', 'produit', 45, ['fromage', '#f8e880'], { food: 10, heal: 2 });
-defItem('huile', 'Huile de tournesol', 'produit', 65, ['bouteille', '#f0d040']);
-defItem('jus', 'Jus de légumes', 'nourriture', 42, ['bouteille', '#d86030'], { food: 12, heal: 8 });
-defItem('poisson_fume', 'Poisson fumé', 'nourriture', 80, ['poisson', '#8a5a2a'], { food: 28, heal: 12 });
-defItem('viande_fumee', 'Viande fumée', 'nourriture', 75, ['viande', '#6a3a1a'], { food: 30, heal: 12 });
+defItem('cidre', 'Cidre', 'nourriture', 4, ['bouteille', '#d8a040'], { food: 8, heal: 6 });
+defItem('vin', 'Vin de fruits', 'nourriture', 5, ['bouteille', '#8a2040'], { food: 6, heal: 4 });
+defItem('beurre', 'Beurre', 'produit', 30, ['fromage', '#f8e880'], { food: 10, heal: 2 });
+defItem('huile', 'Huile de tournesol', 'produit', 12, ['bouteille', '#f0d040']);
+defItem('jus', 'Jus de légumes', 'nourriture', 4, ['bouteille', '#d86030'], { food: 12, heal: 8 });
+defItem('poisson_fume', 'Poisson fumé', 'nourriture', 1, ['poisson', '#8a5a2a'], { food: 28, heal: 12 });
+defItem('viande_fumee', 'Viande fumée', 'nourriture', 7, ['viande', '#6a3a1a'], { food: 30, heal: 12 });
 // cuisine
-defItem('omelette', 'Omelette', 'nourriture', 35, ['bol', '#f0d060'], { food: 22, heal: 10 });
-defItem('crepes', 'Crêpes', 'nourriture', 50, ['pain', '#e8c070'], { food: 28, heal: 12 });
-defItem('gateau', 'Gâteau au miel', 'nourriture', 120, ['brioche', '#d89040'], { food: 40, heal: 25 });
-defItem('salade', 'Salade du jardin', 'nourriture', 55, ['bol', '#7ab050'], { food: 18, heal: 15 });
-defItem('soupe_poisson', 'Soupe de poisson', 'nourriture', 75, ['bol', '#c8a060'], { food: 38, heal: 20 });
-defItem('tarte_citrouille', 'Tarte à la citrouille', 'nourriture', 170, ['tarte', '#e88a20'], { food: 45, heal: 25 });
-defItem('popcorn', 'Maïs grillé', 'nourriture', 40, ['baies', '#f8f0c0'], { food: 12, heal: 4 });
-defItem('brochette', 'Brochette', 'nourriture', 85, ['viande', '#a86030'], { food: 40, heal: 20 });
-defItem('salade_fruits', 'Salade de fruits', 'nourriture', 60, ['bol', '#e05060'], { food: 16, heal: 14 });
-defItem('tisane', 'Tisane au miel', 'nourriture', 65, ['bol', '#a8c060'], { food: 6, heal: 40, stamina: 1 });
-defItem('pain_mais', 'Pain de maïs', 'nourriture', 45, ['pain', '#f0c040'], { food: 24, heal: 8 });
+defItem('omelette', 'Omelette', 'nourriture', 18, ['bol', '#f0d060'], { food: 22, heal: 10 });
+defItem('crepes', 'Crêpes', 'nourriture', 21, ['pain', '#e8c070'], { food: 28, heal: 12 });
+defItem('gateau', 'Gâteau au miel', 'nourriture', 25, ['brioche', '#d89040'], { food: 40, heal: 25 });
+defItem('salade', 'Salade du jardin', 'nourriture', 8, ['bol', '#7ab050'], { food: 18, heal: 15 });
+defItem('soupe_poisson', 'Soupe de poisson', 'nourriture', 5, ['bol', '#c8a060'], { food: 38, heal: 20 });
+defItem('tarte_citrouille', 'Tarte à la citrouille', 'nourriture', 60, ['tarte', '#e88a20'], { food: 45, heal: 25 });
+defItem('popcorn', 'Maïs grillé', 'nourriture', 3, ['baies', '#f8f0c0'], { food: 12, heal: 4 });
+defItem('brochette', 'Brochette', 'nourriture', 9, ['viande', '#a86030'], { food: 40, heal: 20 });
+defItem('salade_fruits', 'Salade de fruits', 'nourriture', 4, ['bol', '#e05060'], { food: 16, heal: 14 });
+defItem('tisane', 'Tisane au miel', 'nourriture', 10, ['bol', '#a8c060'], { food: 6, heal: 40, stamina: 1 });
+defItem('pain_mais', 'Pain de maïs', 'nourriture', 7, ['pain', '#f0c040'], { food: 24, heal: 8 });
 // outils améliorés et équipement (certains agissent sur 3 × 3 cases)
 defItem('houe_fer', 'Houe de fer', 'outil', 220, ['houe', '#9aa2ac'], { tool: 'houe', area: 1, tier: 1 });
 defItem('arrosoir_cuivre', 'Arrosoir de cuivre', 'outil', 160, ['arrosoir', '#c8743a'], { tool: 'arrosoir', area: 1, cap: 40, tier: 1 });
@@ -61,15 +61,15 @@ defItem('miroir_poche', 'Miroir de poche', 'outil', 0, ['montre', '#b8b8c8'], { 
 
 // ---------------------------------------------------------------- objets à poser en plus (machines, arrosage, décor)
 Object.assign(PLACEABLES, {
-  arroseur: { name: 'Arroseur', price: 120, sprinkler: 1 }, arroseur_fer: { name: 'Arroseur de fer', price: 300, sprinkler: 2 },
-  composteur: { name: 'Composteur', price: 60, machine: true }, baratte: { name: 'Baratte', price: 90, machine: true },
-  fumoir: { name: 'Fumoir', price: 150, machine: true }, presse: { name: 'Presse', price: 140, machine: true },
-  moulin_a_bras: { name: 'Moulin à bras', price: 80, machine: true },
-  horloge: { name: 'Horloge de jardin', price: 160 }, nain_jardin: { name: 'Nain de jardin', price: 30 }, bassin: { name: 'Bassin', price: 90, water: true },
-  fontaine_jardin: { name: 'Fontaine', price: 220, water: true }, tapis: { name: 'Tapis', price: 40, flat: true }, banc_pierre: { name: 'Banc de pierre', price: 60 },
-  pergola: { name: 'Pergola', price: 120 }, jardiniere: { name: 'Jardinière', price: 35 }, cloture_blanche: { name: 'Clôture blanche', price: 8, snap: 2 },
-  poteau_indicateur: { name: 'Poteau indicateur', price: 20 }, statue_cerf: { name: 'Statue de cerf', price: 300 },
-  epouvantail_fer: { name: 'Épouvantail de fer', price: 160, scare: 14 }, lanterne_suspendue: { name: 'Lanterne suspendue', price: 70, light: true }, tente: { name: 'Tente', price: 80 },
+  arroseur: { name: 'Arroseur', price: 66, sprinkler: 1 }, arroseur_fer: { name: 'Arroseur de fer', price: 127, sprinkler: 2 },
+  composteur: { name: 'Composteur', price: 1, machine: true }, baratte: { name: 'Baratte', price: 30, machine: true },
+  fumoir: { name: 'Fumoir', price: 30, machine: true }, presse: { name: 'Presse', price: 60, machine: true },
+  moulin_a_bras: { name: 'Moulin à bras', price: 1, machine: true },
+  horloge: { name: 'Horloge de jardin', price: 85 }, nain_jardin: { name: 'Nain de jardin', price: 1 }, bassin: { name: 'Bassin', price: 1, water: true },
+  fontaine_jardin: { name: 'Fontaine', price: 36, water: true }, tapis: { name: 'Tapis', price: 4, flat: true }, banc_pierre: { name: 'Banc de pierre', price: 1 },
+  pergola: { name: 'Pergola', price: 5 }, jardiniere: { name: 'Jardinière', price: 4 }, cloture_blanche: { name: 'Clôture blanche', price: 1, snap: 2 },
+  poteau_indicateur: { name: 'Poteau indicateur', price: 1 }, statue_cerf: { name: 'Statue de cerf', price: 24 },
+  epouvantail_fer: { name: 'Épouvantail de fer', price: 62, scare: 14 }, lanterne_suspendue: { name: 'Lanterne suspendue', price: 34, light: true }, tente: { name: 'Tente', price: 6 },
 });
 for (const id of ['arroseur', 'arroseur_fer', 'composteur', 'baratte', 'fumoir', 'presse', 'moulin_a_bras', 'horloge', 'nain_jardin', 'bassin', 'fontaine_jardin', 'tapis', 'banc_pierre', 'pergola', 'jardiniere', 'cloture_blanche', 'poteau_indicateur', 'statue_cerf', 'epouvantail_fer', 'lanterne_suspendue', 'tente']) {
   const p = PLACEABLES[id];

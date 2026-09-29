@@ -30,19 +30,19 @@ const ALCOOL_PALIERS = [null,
   if (ITEMS.vin) ITEMS.vin.ic = ['h_bouteille', '#7a1a34', '#e8dcc0'];
   if (ITEMS.biere) ITEMS.biere.ic = ['h_bouteille', '#c88a30', '#f0e8d0'];
 }
-defItem('hydromel', 'Hydromel', 'nourriture', 110, ['h_bouteille', '#e8b848', '#f0e0b0'], { food: 6, heal: 5, alcool: 1.5, desc: 'Du miel, de l’eau, et un tonneau oublié à la cave. La boisson des anciens.' });
-defItem('cervoise', 'Cervoise', 'nourriture', 55, ['h_bouteille', '#b87a30', '#e8dcc0'], { food: 8, heal: 2, alcool: 1, desc: 'Une bière d’orge sans houblon, trouble et douce, comme on en brassait avant.' });
-defItem('eau_de_vie_cidre', 'Eau-de-vie de cidre', 'nourriture', 160, ['h_flasque', '#d8a040'], { food: 1, heal: 2, alcool: 2.5, desc: 'Du cidre passé à l’alambic. Ça réchauffe jusqu’aux orteils.' });
-defItem('gnole', 'Gnôle de prune', 'nourriture', 150, ['h_cruche', '#8a7a6a'], { food: 1, heal: 2, alcool: 3, desc: 'Claire comme de l’eau, et ce n’en est pas. La gnôle des bouilleurs de cru.' });
-defItem('eau_de_vie_poire', 'Eau-de-vie de poire', 'nourriture', 180, ['h_flasque', '#e4ecd8'], { food: 1, heal: 2, alcool: 2.5, desc: 'Toute la poire, sans la poire.' });
-defItem('kirsch', 'Kirsch', 'nourriture', 170, ['h_flasque', '#f0e8f0'], { food: 1, heal: 2, alcool: 2.5, desc: 'L’eau-de-vie des cerises, avec un goût d’amande au fond.' });
-defItem('marc', 'Marc de raisin', 'nourriture', 170, ['h_flasque', '#e0c070'], { food: 1, heal: 2, alcool: 2.8, desc: 'On distille ce qui reste du raisin une fois pressé. Rien ne se perd.' });
-defItem('fine', 'Fine de vin', 'nourriture', 190, ['h_flasque', '#b8783a'], { food: 1, heal: 2, alcool: 2.5, desc: 'Du vin passé à l’alambic. Les messieurs de la ville en boivent dans de petits verres.' });
-defItem('eau_de_vie_grain', 'Eau-de-vie de grain', 'nourriture', 120, ['h_flasque', '#f4f4f0'], { food: 1, heal: 1, alcool: 2.5, desc: 'De l’orge, du seigle ou de la bière, distillés. Ça brûle la gorge, puis le reste.' });
-defItem('liqueur_gentiane', 'Liqueur de gentiane', 'nourriture', 160, ['h_bouteille', '#e0c030', '#e8dcc0'], { food: 2, heal: 4, alcool: 2, desc: 'Amère comme la montagne. On dit que ça ouvre l’appétit et ferme les plaies.' });
-defItem('liqueur_cassis', 'Liqueur de cassis', 'nourriture', 150, ['h_bouteille', '#4a1030', '#e8dcc0'], { food: 4, heal: 2, alcool: 1.8, desc: 'Noire et sucrée. Les dames du bourg en boivent en cachette.' });
-defItem('vin_noix', 'Vin de noix', 'nourriture', 140, ['h_bouteille', '#3a2412', '#e8dcc0'], { food: 3, heal: 3, alcool: 1.5, desc: 'Des noix vertes, macérées dans le vin. Pour l’apéritif du dimanche.' });
-defItem('vin_chaud', 'Vin chaud', 'nourriture', 70, ['bol', '#8a2040'], { food: 8, heal: 10, alcool: 1.2, desc: 'Du vin, du miel, et le feu. Rien de tel pour les soirs de neige.' });
+defItem('hydromel', 'Hydromel', 'nourriture', 14, ['h_bouteille', '#e8b848', '#f0e0b0'], { food: 6, heal: 5, alcool: 1.5, desc: 'Du miel, de l’eau, et un tonneau oublié à la cave. La boisson des anciens.' });
+defItem('cervoise', 'Cervoise', 'nourriture', 12, ['h_bouteille', '#b87a30', '#e8dcc0'], { food: 8, heal: 2, alcool: 1, desc: 'Une bière d’orge sans houblon, trouble et douce, comme on en brassait avant.' });
+defItem('eau_de_vie_cidre', 'Eau-de-vie de cidre', 'nourriture', 11, ['h_flasque', '#d8a040'], { food: 1, heal: 2, alcool: 2.5, desc: 'Du cidre passé à l’alambic. Ça réchauffe jusqu’aux orteils.' });
+defItem('gnole', 'Gnôle de prune', 'nourriture', 8, ['h_cruche', '#8a7a6a'], { food: 1, heal: 2, alcool: 3, desc: 'Claire comme de l’eau, et ce n’en est pas. La gnôle des bouilleurs de cru.' });
+defItem('eau_de_vie_poire', 'Eau-de-vie de poire', 'nourriture', 16, ['h_flasque', '#e4ecd8'], { food: 1, heal: 2, alcool: 2.5, desc: 'Toute la poire, sans la poire.' });
+defItem('kirsch', 'Kirsch', 'nourriture', 8, ['h_flasque', '#f0e8f0'], { food: 1, heal: 2, alcool: 2.5, desc: 'L’eau-de-vie des cerises, avec un goût d’amande au fond.' });
+defItem('marc', 'Marc de raisin', 'nourriture', 32, ['h_flasque', '#e0c070'], { food: 1, heal: 2, alcool: 2.8, desc: 'On distille ce qui reste du raisin une fois pressé. Rien ne se perd.' });
+defItem('fine', 'Fine de vin', 'nourriture', 14, ['h_flasque', '#b8783a'], { food: 1, heal: 2, alcool: 2.5, desc: 'Du vin passé à l’alambic. Les messieurs de la ville en boivent dans de petits verres.' });
+defItem('eau_de_vie_grain', 'Eau-de-vie de grain', 'nourriture', 20, ['h_flasque', '#f4f4f0'], { food: 1, heal: 1, alcool: 2.5, desc: 'De l’orge, du seigle ou de la bière, distillés. Ça brûle la gorge, puis le reste.' });
+defItem('liqueur_gentiane', 'Liqueur de gentiane', 'nourriture', 17, ['h_bouteille', '#e0c030', '#e8dcc0'], { food: 2, heal: 4, alcool: 2, desc: 'Amère comme la montagne. On dit que ça ouvre l’appétit et ferme les plaies.' });
+defItem('liqueur_cassis', 'Liqueur de cassis', 'nourriture', 14, ['h_bouteille', '#4a1030', '#e8dcc0'], { food: 4, heal: 2, alcool: 1.8, desc: 'Noire et sucrée. Les dames du bourg en boivent en cachette.' });
+defItem('vin_noix', 'Vin de noix', 'nourriture', 23, ['h_bouteille', '#3a2412', '#e8dcc0'], { food: 3, heal: 3, alcool: 1.5, desc: 'Des noix vertes, macérées dans le vin. Pour l’apéritif du dimanche.' });
+defItem('vin_chaud', 'Vin chaud', 'nourriture', 13, ['bol', '#8a2040'], { food: 8, heal: 10, alcool: 1.2, desc: 'Du vin, du miel, et le feu. Rien de tel pour les soirs de neige.' });
 RECIPES.push({ out: 'vin_chaud', n: 1, need: { vin: 1, miel: 1 }, st: 'feu' });
 // ce que certains alcools font en plus (voir 11-zzz61-nourriture.js)
 Object.assign(ALIMENTS_EFFETS, {
@@ -55,8 +55,8 @@ Object.assign(ALIMENTS_EFFETS, {
 const ALCOOLS = Object.keys(ITEMS).filter((id) => ITEMS[id].alcool);
 
 // ---------------------------------------------------------------- l'alambic du bouilleur de cru
-PLACEABLES.alambic_cru = { name: 'Alambic de bouilleur de cru', price: 380, machine: true };
-defItem('alambic_cru', 'Alambic de bouilleur de cru', 'objet', 380, ['objet', 'alambic_cru'], { place: 'alambic_cru', desc: 'Une cuve de cuivre sur un foyer, un col de cygne, un serpentin dans un tonneau d’eau. E dessus avec ce qu’il faut distiller en main, et du bois (ou du charbon) dans la sacoche.' });
+PLACEABLES.alambic_cru = { name: 'Alambic de bouilleur de cru', price: 102, machine: true };
+defItem('alambic_cru', 'Alambic de bouilleur de cru', 'objet', 102, ['objet', 'alambic_cru'], { place: 'alambic_cru', desc: 'Une cuve de cuivre sur un foyer, un col de cygne, un serpentin dans un tonneau d’eau. E dessus avec ce qu’il faut distiller en main, et du bois (ou du charbon) dans la sacoche.' });
 RECIPES.push({ out: 'alambic_cru', n: 1, need: { lingot_cuivre: 4, lingot_fer: 1, pierre: 8 }, st: 'etabli' });
 LOCKED_RECIPES.add('alambic_cru');
 PROP_USE_MORE.alambic_cru = 'm';

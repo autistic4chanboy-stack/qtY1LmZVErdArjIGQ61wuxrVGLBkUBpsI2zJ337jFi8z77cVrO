@@ -221,6 +221,7 @@ function buildSkinAtlas() {
   T(TL.boarF, animalFace(5, [3, 12], null));
   T(TL.crowF, animalFace(6, [2, 13], null));
   SKIN.canvas = pb.canvas();
+  SKIN.pb = pb; // les icônes 3D lisent leurs couleurs ici, sans relire le canevas (avertissement du navigateur)
 }
 
 // ---------------------------------------------------------------- squelettes articulés

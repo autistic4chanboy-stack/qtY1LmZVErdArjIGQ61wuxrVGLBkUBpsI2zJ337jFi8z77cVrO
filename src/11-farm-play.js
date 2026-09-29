@@ -3,7 +3,7 @@
 //  posés, repas, fabrication), santé et faim, rendu des objets 3D
 // ============================================================================
 
-CROPS.pommier = { name: 'Pommier', h: 24, regrow: 8, yield: [2, 4], frost: false, col: '#c82828', tree: true, fruit: 'pomme' };
+CROPS.pommier = { name: 'Pommier', h: 96, regrow: 48, yield: [2, 4], frost: false, col: '#c82828', tree: true, fruit: 'pomme' };
 const HAND_GROUPS = [
   ['main'],
   ['hache_acier', 'hache_fer', 'hache_cuivre', 'hache_pierre'],
@@ -406,7 +406,7 @@ const play = {
     sound.cast && sound.cast();
     if (!zone) { this.fish = { x: wx, y: w.heightAt(wx, wz) + 0.05, z: wz, state: 'ground', t: 0 }; return; }
     const fast = (this.item() || {}).fast || 1;
-    this.fish = { x: wx, y: wy, z: wz, zone, state: 'wait', t: (3 + Math.random() * 8) * fast, bob: 0 };
+    this.fish = { x: wx, y: wy, z: wz, zone, state: 'wait', t: (8 + Math.random() * 20) * fast, bob: 0 }; // touche au bout de 8 à 28 s (équilibrage)
   },
   fishZone(x, z) {
     const w = game.world;
@@ -441,8 +441,8 @@ const play = {
     for (const k of cand) { r -= FISH[k].w * (FISH[k].rain && game.sky.wet > 0.3 ? 3 : 1); if (r <= 0) { pick = k; break; } }
     const r0 = Math.random();
     if (r0 < 0.05) { farm.give('fibre', 1); this.flyer('fibre', [F.x, F.y + 0.3, F.z], 1); sound.reel && sound.reel(0.5); return; }
-    if (r0 < 0.09) { farm.give('coffre_peche', 1); this.flyer('coffre_peche', [F.x, F.y + 0.3, F.z], 1); splashAt(F.x, F.y, F.z); sound.catchFish && sound.catchFish(); return; }
-    if (r0 < 0.105 && F.zone === 'lac') { farm.give('perle', 1); this.flyer('perle', [F.x, F.y + 0.3, F.z], 1); sound.catchFish && sound.catchFish(); return; }
+    if (r0 < 0.06) { farm.give('coffre_peche', 1); this.flyer('coffre_peche', [F.x, F.y + 0.3, F.z], 1); splashAt(F.x, F.y, F.z); sound.catchFish && sound.catchFish(); return; }
+    if (r0 < 0.075 && F.zone === 'lac') { farm.give('perle', 1); this.flyer('perle', [F.x, F.y + 0.3, F.z], 1); sound.catchFish && sound.catchFish(); return; }
     farm.give(pick, 1);
     farm.s.stats.fish++;
     this.flyer(pick, [F.x, F.y + 0.3, F.z], 1);

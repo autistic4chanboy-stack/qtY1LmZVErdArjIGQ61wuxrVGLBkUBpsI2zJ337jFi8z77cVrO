@@ -248,7 +248,7 @@ function installBeastHooks() {
       if (a.dead || !['goat', 'goose', 'farmduck', 'farmrabbit'].includes(a.kind)) continue;
       const fedK = a.fedUntil > s.hours ? 1.5 : this.raining ? 0.6 : 1;
       a.prodT = (a.prodT || 0) + dtH * fedK;
-      const P = { goat: 10, goose: 12, farmduck: 9, farmrabbit: 14 }[a.kind];
+      const P = { goat: 12, goose: 24, farmduck: 20, farmrabbit: 36 }[a.kind];
       if (a.prodT < P) continue;
       a.prodT = 0;
       if (a.kind === 'goat') a.milk = Math.min(2, (a.milk || 0) + 1);

@@ -7,21 +7,21 @@
 // ============================================================================
 defItem('fusil', 'Fusil de chasse à lunette', 'outil', 950, ['fusil', '#5a4a3a'], { tool: 'fusil', desc: 'Clic : tirer. Bouton droit maintenu : viser à la lunette. Une cartouche par coup.' });
 defItem('cartouche', 'Cartouche', 'outil', 6, ['cartouche', '#c8a040'], { desc: 'Pour le fusil de chasse.' });
-defItem('canon_fusil', 'Canon de fusil', 'materiau', 260, ['canon', '#6a6a72'], { desc: 'Un tube d’acier foré, long comme le bras.' });
-defItem('lunette', 'Lunette de visée', 'materiau', 220, ['lunette', '#3a3a40'], { desc: 'Deux lentilles dans un tube de cuivre. Tout paraît plus près, et plus seul.' });
-defItem('lentille', 'Lentille de verre', 'materiau', 60, ['rond', '#d0e8f0'], { desc: 'Taillée par un nain, dit-on. Parfaitement claire.' });
+defItem('canon_fusil', 'Canon de fusil', 'materiau', 143, ['canon', '#6a6a72'], { desc: 'Un tube d’acier foré, long comme le bras.' });
+defItem('lunette', 'Lunette de visée', 'materiau', 107, ['lunette', '#3a3a40'], { desc: 'Deux lentilles dans un tube de cuivre. Tout paraît plus près, et plus seul.' });
+defItem('lentille', 'Lentille de verre', 'materiau', 39, ['rond', '#d0e8f0'], { desc: 'Taillée par un nain, dit-on. Parfaitement claire.' });
 defItem('appeau', 'Appeau', 'outil', 35, ['cle', '#8a6a44'], { tool: 'appeau', desc: 'Clic : imiter le cri du gibier. Les bêtes curieuses approchent.' });
-defItem('roue', 'Roue de charrette', 'materiau', 70, ['roue', '#7a5a3a'], { desc: 'Rayons de frêne, bandage de fer.' });
+defItem('roue', 'Roue de charrette', 'materiau', 29, ['roue', '#7a5a3a'], { desc: 'Rayons de frêne, bandage de fer.' });
 defItem('harnais', 'Harnais', 'outil', 90, ['cuir', '#5a3a24'], { passive: true, desc: 'Pour atteler un cheval (ou un âne) à une charrette.' });
 defItem('attelle', 'Attelle', 'outil', 25, ['attelle', '#c8b088'], { desc: 'Clic : immobiliser une jambe cassée. Elle guérira bien plus vite.' });
 defItem('bandage', 'Bandage', 'outil', 12, ['bandage', '#f0ece0'], { desc: 'Clic : panser une plaie. Arrête le saignement.' });
 defItem('sifflet_argent', 'Sifflet d’argent', 'outil', 0, ['cle', '#d0d8e0'], { desc: 'Un sifflet des nains. Soufflé devant la fente de la falaise, il répond au rythme des coups.' });
 // objets à poser en plus
 Object.assign(PLACEABLES, {
-  piege_loup: { name: 'Piège à loup', price: 110, trap: true },
-  charrette: { name: 'Charrette', price: 600, store: true },
-  table_alchimie: { name: 'Table d’alchimiste', price: 450, alembic: true },
-  echelle_bois: { name: 'Échelle de bois', price: 30 },
+  piege_loup: { name: 'Piège à loup', price: 61, trap: true },
+  charrette: { name: 'Charrette', price: 130, store: true },
+  table_alchimie: { name: 'Table d’alchimiste', price: 40, alembic: true },
+  echelle_bois: { name: 'Échelle de bois', price: 1 },
 });
 for (const id of ['piege_loup', 'charrette', 'table_alchimie', 'echelle_bois']) defItem(id, PLACEABLES[id].name, 'objet', PLACEABLES[id].price, ['objet', id], { place: id });
 ITEMS.piege_loup.desc = 'Clic : le poser au sol. Il se referme sur la première patte qui passe. Attention où vous marchez.';
@@ -76,7 +76,7 @@ Object.assign(LOOT, {
   temple: { rolls: [2, 4], items: [['vieille_piece', 3, 8, 5], ['bijou', 1, 2, 3], ['gemme', 1, 2, 2], ['cendre_sacree', 1, 2, 3], ['relique', 1, 1, 1], ['lingot_or', 1, 2, 1.5], ['argent', 60, 220, 3], ['poussiere_etoile', 1, 1, 0.5]] },
   temple_or: { rolls: [3, 4], items: [['lingot_or', 2, 4, 4], ['gemme', 2, 3, 3], ['bijou', 1, 3, 3], ['couronne_aelim', 1, 1, 1], ['argent', 200, 500, 3]] },
 });
-defItem('couronne_aelim', 'Diadème des Aëlim', 'tresor', 1500, ['couronne', '#e8e0f0'], { desc: 'Un diadème d’argent pâle, gravé de Hautes Lettres : « ael vor ves ». La lumière avant la nuit.' });
+defItem('couronne_aelim', 'Diadème des Aëlim', 'tresor', 750, ['couronne', '#e8e0f0'], { desc: 'Un diadème d’argent pâle, gravé de Hautes Lettres : « ael vor ves ». La lumière avant la nuit.' });
 LOOT.fouille.items.push(['sel', 1, 2, 1]);
 LOOT.campement.items.push(['bandage', 1, 2, 2], ['cartouche', 2, 6, 0.8]);
 LOOT.ruines.items.push(['herbier_fauvel', 0, 0, 0]);

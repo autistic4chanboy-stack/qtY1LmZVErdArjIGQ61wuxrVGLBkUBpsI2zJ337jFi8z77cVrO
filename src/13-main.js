@@ -525,8 +525,8 @@ const game = {
     sound.shake && sound.shake();
     const pos = [o.x, this.world.objectY(o) + 1.5, o.z];
     let got = [];
-    if (id === 'apple') got = [['pomme', 1 + Math.floor(Math.random() * 3)]];
-    else if (Math.random() < 0.45) got = rollLoot('arbre');
+    if (id === 'apple') got = [['pomme', 0 + Math.floor(Math.random() * 3)]];
+    else if (Math.random() < 0.15) got = rollLoot('arbre');
     for (const [it, n] of got) { if (it === 'argent') { farm.earn(n); continue; } farm.give(it, n); play.flyer(it, pos, n); }
   },
   useAnimal(e) {

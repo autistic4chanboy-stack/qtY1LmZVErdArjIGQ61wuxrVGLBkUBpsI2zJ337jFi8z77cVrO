@@ -272,7 +272,8 @@ const farm = {
       if (a.dead) continue;
       const fedK = a.fedUntil > s.hours ? 1.5 : this.raining ? 0.6 : 1;
       a.prodT = (a.prodT || 0) + dtH * fedK;
-      const P = { hen: 7, cow: 9, sheep: 14, pig: 7 }[a.kind];
+      // heures entre deux produits (équilibrage : deux œufs, trois traites par jour ; nourries, × 1,5)
+      const P = { hen: 16, cow: 12, sheep: 36, pig: 20 }[a.kind];
       if (!P || a.prodT < P) continue;
       a.prodT = 0;
       if (a.kind === 'hen') a.egg = Math.min(3, (a.egg || 0) + 1);
