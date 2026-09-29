@@ -25,9 +25,10 @@ const EV_FREQ = {
   soleil: 0.035,        // soleil écrasant : un jour sur vingt-huit
   neige: 0.032,         // neige partout : un jour sur trente
   tornade: 0.15,        // part des jours d'orage ou de canicule qui en font une : une tornade toutes les quatre semaines
-  tueur: 0.085,         // l'homme au long manteau : un soir sur douze × bizarrerie, une fois l'écart passé…
+  tueur: 0.065,         // l'homme au long manteau : un soir sur quinze × bizarrerie, une fois l'écart passé…
   tueurJour: 13,        // … jamais la première semaine (douze jours)…
-  tueurEcart: 20,       // … et jamais deux passages en vingt jours : un toutes les quatre à cinq semaines
+  tueurEcart: 20,       // … et jamais deux passages en vingt jours : un toutes les trois semaines environ (il tue
+                        // à chaque passage : plus souvent, une longue partie viderait les villages)
 };
 // heures de jeu écoulées pendant dt secondes réelles, comme dans game.loop : le temps accéléré compte ; en pause, en
 // dormant (le sommeil saute les heures, sans tirage), en mourant ou quand le temps s'arrête, rien ne passe
