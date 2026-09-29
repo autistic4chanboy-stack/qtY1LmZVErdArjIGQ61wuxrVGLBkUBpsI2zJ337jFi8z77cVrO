@@ -37,7 +37,7 @@ function installerDansLeJeu(HABITUDES, DEHORS, LAVOIR, NOIR) {
     },
     // le calendrier des événements (11-zzz40-evenements.js), jour après jour
     calendrier(seeds, v, D) {
-      const R = { jours: 0, nn: 0, nnImp: 0, nnPrem: 999, nnSuite: 0, sol: 0, neige: 0, torn: 0, tornPrem: 999, tornEcart: [], tu: 0, tuPrem: 999, tuEcart: [], prod: {}, prodEtrangeAvant4: 0, durn: 0, durn12: 0, avant4: 0 };
+      const R = { jours: 0, nn: 0, nnImp: 0, nnPrem: 999, nnSuite: 0, sol: 0, neige: 0, torn: 0, tornPrem: 999, tornEcart: [], tu: 0, tuPrem: 999, tuEcart: [], prod: {}, prodEtrangeAvant4: 0, durn: 0, durn6: 0, durn12: 0, avant4: 0 };
       for (let seed = 1; seed <= seeds; seed++) {
         this.neuf(seed, v);
         const S = evenements.S(), rnd = mulberry32(seed * 977 + 13);
@@ -56,7 +56,7 @@ function installerDansLeJeu(HABITUDES, DEHORS, LAVOIR, NOIR) {
             R.prod[P.id] = (R.prod[P.id] || 0) + 1;
             if (d < 4 && PRODIGES[P.id].etrange) R.prodEtrangeAvant4++;
             // la terre tremble : parfois, Durn se lève (une fois dans une vie)
-            if (P.id === 'seisme' && rnd() < divins.chanceDurn()) { divins.S().durn.vu = d; R.durn++; if (d <= 144) R.durn12++; }
+            if (P.id === 'seisme' && rnd() < divins.chanceDurn()) { divins.S().durn.vu = d; R.durn++; if (d <= 72) R.durn6++; if (d <= 144) R.durn12++; }
           }
         }
       }
@@ -104,7 +104,7 @@ function installerDansLeJeu(HABITUDES, DEHORS, LAVOIR, NOIR) {
     },
     // les nuits du joueur « typique » : lavandière, rêves et venues des Trois, cauchemars, marchand de joie
     nuits(seeds, v, D, tueurMasque) {
-      const R = { jours: 0, lav: 0, lavEcart: [], lavMin: 999, reves: { aela: 0, durn: 0, vesh: 0 }, reves12: { aela: 0, durn: 0, vesh: 0 }, aela: 0, aela12: 0, vesh: 0, vesh12: 0, sommeils: 0, cauch: 0, cauchEcartMin: 999, marchand: 0, marchandAvant4: 0, lavandiereAvant: 0 };
+      const R = { jours: 0, lav: 0, lavEcart: [], lavMin: 999, reves: { aela: 0, durn: 0, vesh: 0 }, reves6: { aela: 0, durn: 0, vesh: 0 }, reves12: { aela: 0, durn: 0, vesh: 0 }, aela: 0, aela6: 0, aela12: 0, vesh: 0, vesh6: 0, vesh12: 0, sommeils: 0, cauch: 0, cauchEcartMin: 999, marchand: 0, marchandAvant4: 0, lavandiereAvant: 0 };
       for (let seed = 1; seed <= seeds; seed++) {
         this.neuf(seed, v);
         const st = strange.s;
@@ -125,8 +125,8 @@ function installerDansLeJeu(HABITUDES, DEHORS, LAVOIR, NOIR) {
             if (rnd() < 1 - Math.exp(-tx)) { E.esprit.dernier = d; R.lav++; if (lastLav > 0) { R.lavEcart.push(d - lastLav); R.lavMin = Math.min(R.lavMin, d - lastLav); } lastLav = d; }
           }
           // Vesh, une nuit noire, à qui veille dehors vers 23 h ; Aëla, à l'aube, à qui a veillé toute la nuit dehors
-          if (noire && hab.vesh && rnd() < DEHORS && rnd() < divins.chanceVesh(d)) { Dv.vesh.vu = d; R.vesh++; if (d <= 144) R.vesh12++; }
-          if (hab.aube && rnd() < DEHORS && rnd() < divins.chanceAela(d)) { Dv.aela.vu = d; R.aela++; if (d <= 144) R.aela12++; }
+          if (noire && hab.vesh && rnd() < DEHORS && rnd() < divins.chanceVesh(d)) { Dv.vesh.vu = d; R.vesh++; if (d <= 72) R.vesh6++; if (d <= 144) R.vesh12++; }
+          if (hab.aube && rnd() < DEHORS && rnd() < divins.chanceAela(d)) { Dv.aela.vu = d; R.aela++; if (d <= 72) R.aela6++; if (d <= 144) R.aela12++; }
           // le sommeil : un rêve des Trois (11-zzz41-divins.js), un cauchemar (11-zzz73-cauchemar.js)
           if (hab.dort) {
             R.sommeils++;
@@ -134,7 +134,7 @@ function installerDansLeJeu(HABITUDES, DEHORS, LAVOIR, NOIR) {
             if (reste.length && rnd() < divins.chanceReve()) {
               const X = reste[(rnd() * reste.length) | 0];
               Dv.reves = Dv.reves || {}; Dv.reves[DIV_REVES.indexOf(X)] = d;
-              R.reves[X.qui]++; if (d <= 144) R.reves12[X.qui]++;
+              R.reves[X.qui]++; if (d <= 72) R.reves6[X.qui]++; if (d <= 144) R.reves12[X.qui]++;
             }
             if (rnd() < cauchemar.chance('ferme')) { C.dernier = d; C.nuits++; R.cauch++; if (lastC > 0) R.cauchEcartMin = Math.min(R.cauchEcartMin, d - lastC); lastC = d; }
           }
@@ -274,8 +274,8 @@ module.exports = {
       NU[nom] = JSON.parse(J.avec({ S: SEEDS, v, D: JOURS }, '__hasard.nuits(__v.S, __v.v, __v.D, true)'));
       NUsans[nom] = JSON.parse(J.avec({ S: SEEDS, v, D: JOURS }, '__hasard.nuits(__v.S, __v.v, __v.D, false)'));
     }
-    // contacts d'un dieu sur les douze premières semaines : ses rêves, et ses venues (Durn : au séisme, voir 2.)
-    const contacts12 = (n, q) => NU[n].reves12[q] + (q === 'aela' ? NU[n].aela12 : q === 'vesh' ? NU[n].vesh12 : CAL[n].durn12);
+    // contacts d'un dieu sur les six ou douze premières semaines : ses rêves, et ses venues (Durn : au séisme, voir 2.)
+    const contacts = (n, q, k) => NU[n]['reves' + k][q] + (q === 'aela' ? NU[n]['aela' + k] : q === 'vesh' ? NU[n]['vesh' + k] : CAL[n]['durn' + k]);
     tableau(log, ['(1 nuit sur N)', ...col, 'cible'], [
       ['lavandière', ...col.map((n) => unSur(NU[n].lav, NU[n].jours)), '1/24 à 1/42 (ordinaire)'],
       ['cauchemar (tueur masqué en liberté)', ...col.map((n) => unSur(NU[n].cauch, NU[n].sommeils)), ''],
@@ -283,8 +283,8 @@ module.exports = {
       ['cauchemar (moyenne des deux)', ...col.map((n) => unSur(NU[n].cauch + NUsans[n].cauch, NU[n].sommeils + NUsans[n].sommeils)), '1/25 à 1/45 (ordinaire)'],
       ['marchand de joie (par semaine)', ...col.map((n) => parSem(NU[n].marchand, NU[n].jours)), '≈ 1 (ordinaire)'],
     ]);
-    log('  Les Trois, contacts sur les douze premières semaines (rêves + venues), par dieu :');
-    tableau(log, ['', ...col, 'cible'], ['aela', 'durn', 'vesh'].map((q) => [q, ...col.map((n) => f2(contacts12(n, q) / SEEDS)), '1 à 2 (ordinaire)']));
+    log('  Les Trois, contacts par dieu (rêves + venues) sur les six, puis les douze premières semaines :');
+    tableau(log, ['', ...col.map((n) => n + ' 6 s.'), ...col.map((n) => n + ' 12 s.'), 'cible (ordinaire)'], ['aela', 'durn', 'vesh'].map((q) => [q, ...col.map((n) => f2(contacts(n, q, 6) / SEEDS)), ...col.map((n) => f2(contacts(n, q, 12) / SEEDS)), '0,5 à 1 ; 1 à 2']));
     log(`  venues sur le monde en ${JOURS / 12} semaines (parties sur ${SEEDS}) : Aëla à l'aube ${MENTALITES.map(([n]) => NU[n].aela).join('/')}, Vesh les nuits noires ${MENTALITES.map(([n]) => NU[n].vesh).join('/')}, Durn au séisme ${MENTALITES.map(([n]) => CAL[n].durn).join('/')}`);
     const NO = NU.ordinaire, NTB = NU['très basse'];
     const lavO = NO.lav / NO.jours;
@@ -293,8 +293,8 @@ module.exports = {
     const cO = (NO.cauch + NUsans.ordinaire.cauch) / (NO.sommeils + NUsans.ordinaire.sommeils);
     verif(cO >= 1 / 45 && cO <= 1 / 25, `cauchemar, esprit ordinaire : 1 nuit sur ${f1(1 / cO)} (cible 1/25 à 1/45 ; tueur masqué en liberté : ${unSur(NO.cauch, NO.sommeils)}, pris : ${unSur(NUsans.ordinaire.cauch, NUsans.ordinaire.sommeils)})`);
     verif(NTB.cauch / NTB.sommeils > cO && NTB.cauch / NTB.sommeils <= 1 / 4 && Math.min(NTB.cauchEcartMin, NO.cauchEcartMin) >= 3, `cauchemar : plus fréquent à l'esprit sombre (${unSur(NTB.cauch, NTB.sommeils)}), jamais deux en trois nuits`);
-    const contacts = ['aela', 'durn', 'vesh'].map((q) => contacts12('ordinaire', q) / SEEDS);
-    verif(contacts.every((c) => c >= 0.9 && c <= 2.1), `les Trois, esprit ordinaire : ${contacts.map(f2).join(' / ')} contacts chacun en douze semaines (cible : un toutes les 6 à 12 semaines)`);
+    const c6 = ['aela', 'durn', 'vesh'].map((q) => contacts('ordinaire', q, 6) / SEEDS), c12 = ['aela', 'durn', 'vesh'].map((q) => contacts('ordinaire', q, 12) / SEEDS);
+    verif(c6.every((c) => c >= 0.4 && c <= 1.1) && c12.every((c) => c >= 0.9 && c <= 2.1), `les Trois, esprit ordinaire : ${c6.map(f2).join(' / ')} contacts chacun en six semaines, ${c12.map(f2).join(' / ')} en douze (cible : un toutes les 6 à 12 semaines)`);
     verif(NTB.aela <= SEEDS && NTB.vesh <= SEEDS, 'Aëla et Vesh ne viennent sur le monde qu\'une fois dans une vie');
     const venues = [NO.aela, NO.vesh, CAL.ordinaire.durn].map((n) => n / SEEDS);
     verif(venues.every((x) => x <= 0.4), `venues sur le monde, très très rares : en ${JOURS / 12} semaines, Aëla / Vesh / Durn dans ${venues.map((x) => Math.round(x * 100) + ' %').join(' / ')} des parties (esprit ordinaire, au plus 40 %)`);
