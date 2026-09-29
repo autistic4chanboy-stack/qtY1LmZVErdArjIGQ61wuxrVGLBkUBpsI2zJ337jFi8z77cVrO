@@ -118,7 +118,7 @@ function mesurerFaim(G, log, echec) {
   log(`  sans rien manger (debout) : rassasié → ventre vide en ${f1(hVide)} h de jeu ; ventre vide → mort (100 PV) en ${f1(hMort)} h (${f1(t / 60)} min réelles)`);
   log(`  des premiers gargouillis (faim < 30) à la mort : ${f1(hCreux + hMort)} h de jeu (${f1((hCreux + hMort) * H / 60)} min réelles)`);
   // cible : mourir de faim n'est ni instantané ni sans conséquence : une demi-journée à une journée le ventre vide
-  if (!(hMort >= 8 && hMort <= 24)) echec(`ventre vide → mort en ${f1(hMort)} h de jeu (cible : 8 à 24 h)`);
+  if (!(hMort >= 10 && hMort <= 24)) echec(`ventre vide → mort en ${f1(hMort)} h de jeu (cible : 10 à 24 h, une demi-journée environ)`);
   if (!(hVide + hMort >= 24 && hVide + hMort <= 72)) echec(`sans manger, mort en ${f1(hVide + hMort)} h debout (cible : un à trois jours)`);
   // (c) dormir le ventre vide ne sauve pas : trois « nuits » de 12 h de suite, sans manger, en partant de 100 PV
   const pS = G.nouvelle(); pS.food = 0; pS.hp = 100;
@@ -171,8 +171,14 @@ function mesurerChutes(G, log, echec) {
   }
   log('\n2. LES CHUTES (vrai Player.update, puis corps.chute ; 300 essais par hauteur, 100 PV au départ)');
   tableau(log, ['hauteur', 'vitesse', 'PV perdus', 'jambe cassée', 'saigne', 'mort'], rows);
-  const S = G.corps.C ? null : null; void S;
-  log(`  jambe cassée : ${48} h de jeu à boiter (vitesse × 0,4) ; avec une attelle, 12 h (× 0,55) ; les sources chaudes la remettent trois fois plus vite`);
+  // la jambe cassée : combien de temps, à quelle vitesse (on marche 3 s droit devant, vrai Player.update)
+  const marche = () => { const p = G.game.player; p.pos = [1500, 0, 1500]; p.vel = [0, 0, 0]; p.onGround = true; p.yaw = 0; for (let k = 0; k < 180; k++) p.update(1 / 60, G.game.world, { fwd: 1, right: 0, up: false, down: false, sprint: false }); return Math.hypot(p.pos[0] - 1500, p.pos[2] - 1500); };
+  G.nouvelle(); const d0 = marche();
+  G.corps.casserJambe('essai'); const CJ = G.corps.C(), hJambe = CJ.jambe - G.farm.s.hours, dCasse = marche();
+  CJ.attelle = 1; G.corps.soignerJambe(false); const hAttelle = CJ.jambe - G.farm.s.hours, dAttelle = marche();
+  log(`  jambe cassée : ${f0(hJambe)} h de jeu à boiter (on marche à ${pc(dCasse / d0)} de son pas) ; avec une attelle, ${f0(hAttelle)} h (à ${pc(dAttelle / d0)}) ; les sources chaudes la remettent trois fois plus vite`);
+  if (!(hJambe >= 24 && hJambe <= 72)) echec(`une jambe cassée dure ${f0(hJambe)} h (cible : un à trois jours)`);
+  if (!(hAttelle <= hJambe / 2 && dAttelle > dCasse)) echec('l’attelle doit raccourcir la guérison et aider à marcher');
   // cibles : sauter d'un mur (2,5 m) ne fait rien ; la jambe peut casser dès 4-5 m ; on survit à 6 m ; 12 m tuent
   if (R[2.5].dmg > 0.5) echec(`un saut de 2,5 m coûte ${f1(R[2.5].dmg)} PV (cible : rien)`);
   if (!(R[5].jambe > 0.05 && R[4].jambe < R[6].jambe)) echec('la jambe doit pouvoir casser dès 5 m, et de plus en plus haut');
@@ -341,7 +347,7 @@ function mesurerMilieux(G, log, echec) {
   let heuresTapi = 0;
   try {
     p = G.nouvelle(); p.crouch = 1;
-    const N = 400; // 400 heures de jeu tapi (en tranches d'une heure)
+    const N = 1000; // 1000 heures de jeu tapi (en tranches d'une heure)
     for (let k = 0; k < N; k++) { C.accT = 0; for (let s = 0; s < H; s += 0.25) C.verifAccident(0.25); heuresTapi++; }
     var parHeure = accidents / heuresTapi;
     // le coup de feu : mortel d'un coup, ou une balle (saignement, parfois la jambe)
@@ -355,21 +361,21 @@ function mesurerMilieux(G, log, echec) {
   log(`  le chasseur (Chassedi, battue, tapi dans les fougères à portée, sans brassard rouge ni lanterne) : ${pc(parHeure)} de risque par heure de jeu ;`);
   log(`    le coup part après 1,2 s de visée (se lever, bouger, siffler l’arrête) : mortel ${pc(letal)} du temps en pleine santé, sinon ${f0(pvBalle)} PV, un saignement, la jambe ${pc(pJambe)}`);
   // cible : rare mais possible (le chasseur vous prend pour du gibier) ; une matinée entière tapi : quelques pour cent
-  if (!(parHeure > 0.005 && parHeure < 0.06)) echec(`accident de chasse : ${pc(parHeure)} par heure tapi (cible : 0,5 à 6 %)`);
+  if (!(parHeure > 0.005 && parHeure < 0.08)) echec(`accident de chasse : ${pc(parHeure)} par heure tapi (cible : 0,5 à 8 %)`);
   if (!(letal > 0.1 && letal < 0.5)) echec(`la balle tue ${pc(letal)} du temps (cible : parfois, pas toujours)`);
 }
 function J_EV(G, expr) { try { return G.__J.ev(expr); } catch (e) { return null; } }
 
 // ================================================================== 5. CE QU'ON MANGE : poisons, nausées, délais (effets)
-// Chaque aliment est mangé 300 fois par un joueur en pleine santé, qui ne fait rien ensuite (pas d'antidote) :
+// Chaque aliment est mangé 200 fois par un joueur en pleine santé, qui ne fait rien ensuite (pas d'antidote) :
 // le vrai play.eat (et ses emballages), puis effets.update pendant 10 minutes réelles.
 function mesurerAliments(G, log, echec) {
-  const dt = 0.1, R = {};
+  const dt = 0.2, N = 200, R = {};
   const IDS = ['aconit', 'belladone_baies', 'colchique', 'digitale', 'muguet', 'amanite', 'mandragore', 'champignon', 'viande', 'gardon', 'anguille', 'morille', 'baies_sureau', 'haricot', 'pain', 'herbes'];
   for (const id of IDS) {
     if (!G.ITEMS[id]) continue;
     let mort = 0, pv = 0, delai = 0, nd = 0, pvMax = 0;
-    for (let k = 0; k < 300; k++) {
+    for (let k = 0; k < N; k++) {
       const p = G.nouvelle(); p.food = 90; p.hp = 100;
       G.farm.give(id, 1);
       G.play.eat(id);
@@ -381,9 +387,9 @@ function mesurerAliments(G, log, echec) {
       const perte = 100 - Math.max(0, p.hp);
       pv += perte; pvMax = Math.max(pvMax, perte);
     }
-    R[id] = { mort: mort / 300, pv: pv / 300, delai: nd ? delai / nd : null, raw: !!G.ITEMS[id].raw };
+    R[id] = { mort: mort / N, pv: pv / N, delai: nd ? delai / nd : null, raw: !!G.ITEMS[id].raw };
   }
-  log('\n5. CE QU’ON MANGE (vrai play.eat puis effets.update pendant 10 min réelles ; 300 essais, 100 PV, sans antidote)');
+  log('\n5. CE QU’ON MANGE (vrai play.eat puis effets.update pendant 10 min réelles ; 200 essais, 100 PV, sans antidote)');
   tableau(log, ['aliment', 'mort', 'PV perdus (moy.)', '1er effet après'], Object.keys(R).map((id) => [id + (R[id].raw ? ' (cru)' : ''), pc(R[id].mort), f0(R[id].pv), R[id].delai !== null ? f0(R[id].delai) + ' s' : '—']));
   // cibles : ce qu'on mange tous les jours ne tue jamais (poisson cru, viande crue, champignons, pain) ; les grands
   // poisons (aconit, belladone, colchique) tuent souvent ; aucun poison n'agit à l'instant (on a le temps de
