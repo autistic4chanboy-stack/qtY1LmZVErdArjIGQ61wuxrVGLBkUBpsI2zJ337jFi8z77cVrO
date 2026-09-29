@@ -146,7 +146,7 @@ Les commandes sont dans le menu **Commandes** (Échap).
 ### La grande mise à jour
 
 **Le temps et le corps**
-- Une journée dure **dix minutes** ; la semaine a **douze jours**, chacun son nom (Primedi, Ferdi, Marchedi, Lavedi, Nahédi,
+- Le jour dure **dix minutes** et la nuit **dix minutes** (vingt minutes pour vingt-quatre heures) ; la semaine a **douze jours**, chacun son nom (Primedi, Ferdi, Marchedi, Lavedi, Nahédi,
   Chassedi, Pêchedi, Orédi, Foiredi, Veilledi, Chômedi, Vorndi), et chaque habitant a ses jours à lui (marché, lessive,
   chasse, pêche, messe, foire, veillée, jour des morts, visites…).
 - **Trois états, dont deux cachés** : la faim (plus elle creuse, plus le cœur bat vite), la vie (jamais affichée) et la
@@ -312,7 +312,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `05-zzz*.js` | espèces par milieu et rareté, notices, poissons, essences d'alchimie, langues perdues, livres, objets et habitants nouveaux |
 | `06-zzzgen-lieux3.js` | lieux nouveaux (bibliothèque et archives, Sources, relais de chasse, roulottes, halles des nains, camp des géants, temple, échelles des douves) et peuplement des milieux |
 | `07-zzzz-modeles.js`, `07-zzzzz-personnages.js`, `07-zzzzzz-mondes.js` | modèles nouveaux ; personnages anguleux façon 1996 (boîtes effilées dans le shader) ; modèles des autres mondes |
-| `11-zzz00-socle.js` | socle commun : journée de 10 min, savoirs du personnage, chutes, jambe cassée, saignements, pentes, cinématiques (`cine`), zones où l'on ne bâtit pas, `bizarrerie()` |
+| `11-zzz00-socle.js` | socle commun : jour de 10 min et nuit de 10 min, savoirs du personnage, chutes, jambe cassée, saignements, pentes, cinématiques (`cine`), zones où l'on ne bâtit pas, `bizarrerie()` |
 | `11-zzz02-*.js`, `11-zzz03-*.js` | alchimie à l'aveugle et plantes à faire nommer ; fabrication par assemblage |
 | `11-zzz2*.js` | livres, grande bibliothèque et sorcier, langues perdues, cartes approximatives |
 | `11-zzz3*.js` | fusil à lunette, dépouilles, pièges à loup, bêtes dangereuses, chasseurs ; charrette attelée |

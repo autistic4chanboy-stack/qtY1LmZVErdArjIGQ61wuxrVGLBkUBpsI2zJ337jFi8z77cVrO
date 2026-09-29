@@ -779,7 +779,7 @@ const activites = {
     try { const k = weather.tomorrow(); out.push({ soleil: 'Demain, du beau temps, à ce qu’on dit.', pluie: 'Demain, de la pluie : rentrez le foin.', orage: 'Demain, de l’orage : rentrez les bêtes.', gel: 'Demain à l’aube, du gel : couvrez les semis.', brouillard: 'Demain matin, du brouillard : ne vous écartez pas des chemins.' }[k] || 'Demain, le temps qu’il plaira au ciel.'); } catch (e) { /* rien */ }
     const dem = { marche: 'Demain, grand marché sur la place, avec les étals des Monts !', foire: `Demain, foire à ${farm.names.hameau}, avec la tombola ! Billets à cinq pièces.`, chasse: 'Demain, Chassedi : concours de tir au relais de chasse ! Et portez du rouge en forêt.', peche: 'Demain, Pêchedi : concours de pêche au ponton du lac !', veillee: 'Demain soir, veillée à l’auberge : on contera.', messe: 'Demain, messe à dix heures en l’église.', morts: 'Demain, Vorndi, jour des morts : fleurissez vos tombes, et rentrez avant la nuit.' }[dm];
     if (dem) out.push(dem);
-    for (const d of (s.dead || []).filter((q) => s.day - q.day <= 2)) { const n = npcs.byId[d.id]; out.push(`Avis de décès : ${d.name}${n ? ' ' + n.d.surname : ''}. Priez pour ${n && n.d.gender === 'f' ? 'elle' : 'lui'}.`); }
+    for (const d of (s.dead || []).filter((q) => s.day - q.day <= 2)) { const n = npcs.byId[d.id]; const qui = d.name + (n ? ' ' + n.d.surname : ''); out.push(n && n.d.gender === 'f' ? `Avis de décès : ${qui}. Priez pour elle.` : `Avis de décès : ${qui}. Priez pour lui.`); }
     const de = (t) => (/^une? /.test(t) ? 'd’' + t : /^le /.test(t) ? 'du ' + t.slice(3) : /^du /.test(t) ? 'de ' + t.slice(3) : 'de ' + t);
     try { if (typeof societe !== 'undefined' && societe.recherche) { const R = societe.recherche(); if (R && R.villages.includes('valbrume')) out.push(`Avis de recherche : on recherche l’auteur ${societe.actifs().filter((C) => societe.connait(C, 'valbrume')).map((C) => de(societe.libelle(C))).join(', ')}. Prime : ${R.prime} pièces !`); } } catch (e) { /* rien */ }
     try { if (typeof evenements !== 'undefined') { const r = (evenements.S().recents || []).filter((q) => q.d >= s.day - 1 && EV_LIGNES[q.id] && EV_LIGNES[q.id].apres); if (r.length) out.push(pick(EV_LIGNES[r[r.length - 1].id].apres)); } } catch (e) { /* rien */ }
@@ -1141,7 +1141,7 @@ const activites = {
     const nom = (id) => (id === 'vous' ? 'vous' : npcs.nameOf(id));
     const txt = `Vos coups : ${pts.join(', ')} — ${score} points sur 30.\n\nClassement : ${L.map((q, i) => `${i + 1}. ${nom(q[0])} (${q[1]})`).join(' ; ')}.${prix ? '\n\n' + prix : ''}`;
     if (ui.panel === '#choice') ui.choice('Le concours de tir', txt, [{ label: 'Rendre le fusil de concours', fn: () => ui.close() }]);
-    else ui.subtitle('', `(Concours de tir : ${score} points, ${rang}${rang === 1 ? 'er' : 'e'}.)`, 4);
+    else ui.subtitle('', `(Concours de tir : ${score} points ; classement : ${rang} sur ${L.length}.)`, 4);
   },
 
   // ================================================================ le concours de pêche du Pêchedi
