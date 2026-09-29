@@ -260,6 +260,12 @@ module.exports = {
       ['victimes du tueur masqué (sans enquête)', ...col.map((n) => f2(ET[n].victimes / SEEDS)), ''],
       ['  sa première, jour (médiane)', ...col.map((n) => String(med(ET[n].victimeJour))), ''],
     ]);
+    {
+      // les petits frissons de la nuit (11-strange.js, minuterie en heures de jeu) : lus dans la source
+      const T = require('fs').readFileSync(require('path').join(__dirname, '..', '..', 'src', '11-strange.js'), 'utf8');
+      const m = T.match(/this\.ambT = ([\d.]+) \+ Math\.random\(\) \* ([\d.]+) \/ \(([\d.]+) \+ this\.tension\(\)\)/);
+      if (m) { const ecart = +m[1] + +m[2] / 2 / (+m[3] + 1); log(`  petits frissons de la nuit (murmure, écho, lampes, coups, silhouette) : à pleine tension, un toutes les ${f1(ecart)} heures de nuit éveillée (esprit ordinaire ; × bizarrerie)`); }
+    }
     const EO = ET.ordinaire, ETB = ET['très basse'];
     verif(EO.rouges / EO.nuitsApres <= 1 / 9 && EO.rouges / EO.nuitsApres >= 1 / 16, `nuits rouges, esprit ordinaire : ${unSur(EO.rouges, EO.nuitsApres)} nuits (cible 1/9 à 1/16)`);
     verif(ETB.rouges / ETB.nuitsApres <= 1 / 3 && ETB.rouges > EO.rouges && EO.rouges > ET.haute.rouges, `nuits rouges : plus fréquentes à l'esprit sombre, jamais plus d'une nuit sur trois (très bas ${unSur(ETB.rouges, ETB.nuitsApres)})`);
