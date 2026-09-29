@@ -285,12 +285,15 @@ const depouilles = {
     else { L.skin = depMix(skin, '#5e5648', 0.74); for (const k of ['top', 'bottom', 'apron', 'hatCol', 'belt']) vet(k, '#3e3a32', 0.45); vet('hair', '#4a463e', 0.45); vet('shoe', '#2a2620', 0.3); }
     return L;
   },
-  // le corps (avant les os) : pâli, puis affaissé ; les yeux fermés
+  // le corps (avant les os) : pâli, puis affaissé ; les yeux fermés ; la robe et les pans du manteau retombent à plat
   humain(look, st) {
     const L = this.lookStade(look, st);
     let r = humanRig(L);
-    if (st >= 2) for (const q of r.parts) {
+    for (const q of r.parts) {
       if (!q.s) continue;
+      if (q.name === 'skirt') q.s = [q.s[0] * 0.9, q.s[1], q.s[2] * 0.42];
+      else if (q.name === 'coatTail') q.s = [q.s[0] * 0.92, q.s[1], q.s[2] * 0.5];
+      if (st < 2) continue;
       if (q.name === 'torso' || q.name === 'bustL') q.s = [q.s[0] * 0.94, q.s[1], q.s[2] * 0.78];
       else if (q.name === 'pelvis') q.s = [q.s[0] * 0.92, q.s[1], q.s[2] * 0.85];
       else if (/^(leg|shin|arm|fore)[LR]$/.test(q.name)) q.s = [q.s[0] * 0.86, q.s[1], q.s[2] * 0.86];
@@ -447,9 +450,7 @@ const depouilles = {
     // pour viser : la tête, le bassin, les pieds
     const L = rec.t === 'chien' ? 0.42 : 0.85;
     const pts = [[0, 0.15, L], [0, 0.15, 0], [0, 0.15, -L]].map(([a, b, c]) => [Rt[0] * a + Rt[1] * b + Rt[2] * c + Rt[3], Rt[4] * a + Rt[5] * b + Rt[6] * c + Rt[7], Rt[8] * a + Rt[9] * b + Rt[10] * c + Rt[11]]);
-    // la terre assombrie dessous, dehors, les premiers jours
-    const tache = rec.sol && st >= 1 && st <= 2 ? depMul(Rt, depMat(0, 0, 0, 0, 0.012, 0)) : null;
-    return { st, rig, M, pts, tache, ts: rec.t === 'chien' ? [0.55, 0.9] : [0.8, 1.8], tc: st >= 2 ? [0.2, 0.16, 0.12] : [0.3, 0.25, 0.19] };
+    return { st, rig, M, pts };
   },
   rt(rec) {
     const st = this.stade(rec);
@@ -471,7 +472,6 @@ const depouilles = {
       const R = this.rt(rec);
       if (!R) continue;
       drawRigM(buf, R.rig, R.M, tg === rec ? FX_HI : 0);
-      if (R.tache) buf.box(R.tache, 0, 0, 0, R.ts[0], 0.012, R.ts[1], R.tc, tx(TL.soilWet, TL.soilWet));
     }
   },
   // les habitants morts ce jour (état 'dead') ne sont plus dessinés par npcs.draw : c'est leur dépouille qu'on voit
@@ -517,7 +517,8 @@ const depouilles = {
         bt = tt; best = rec;
       }
     }
-    if (best) cand({ kind: 'hook', use: () => this.utiliser(best), depouille: best, f2lab: this.etiquette(best) }, bt);
+    // un regard posé sur le corps l'emporte sur ce qui est dessous (le lit, visé par 11-zzz95, l'herbe…)
+    if (best) cand({ kind: 'hook', use: () => this.utiliser(best), depouille: best, f2lab: this.etiquette(best) }, Math.max(0.25, bt * 0.5));
   },
   utiliser(rec) {
     if (!farm.s || !rec || game.sleeping || game.dying || (typeof cine !== 'undefined' && cine.on)) return;
@@ -626,22 +627,32 @@ const depouilles = {
   // ------------------------------------------------------------------ enterrer
   lieuTombe(rec) {
     const w = game.world;
-    const creusable = (x, z) => {
+    // de la terre meuble, dehors, hors de l'eau et des pavés
+    const meuble = (x, z) => {
       if (!w.inside(x, z, 3)) return false;
       const h = w.heightAt(x, z);
       if (h < w.waterLevel + 0.15) return false;
       const m = w.matAt(x, z);
-      if (m === M_ROCK || m === M_COBBLE || m === M_STONE) return false;
-      if (w.covered(x, h + 1.2, z)) return false;
-      return pointFree(w, x, z, 0.55);
+      return m !== M_ROCK && m !== M_COBBLE && m !== M_STONE && !w.covered(x, h + 1.2, z);
+    };
+    // toute la fosse : libre (ni mur ni meuble) et à peu près à plat, d'un bout à l'autre ; renvoie le cap retenu
+    const fosse = (x, z) => {
+      if (!meuble(x, z) || !pointFree(w, x, z, 0.5)) return null;
+      const h = w.heightAt(x, z);
+      for (const r of [rec.r, rec.r + Math.PI / 2]) {
+        let ok = true;
+        for (const k of [-1, 1]) { const ex = x + Math.sin(r) * 0.95 * k, ez = z + Math.cos(r) * 0.95 * k; if (!meuble(ex, ez) || !pointFree(w, ex, ez, 0.3) || Math.abs(w.heightAt(ex, ez) - h) > 0.5) { ok = false; break; } }
+        if (ok) return r;
+      }
+      return null;
     };
     const sousTerre = rec.y < w.heightAt(rec.x, rec.z) - 2;
     const dedans = !sousTerre && w.covered(rec.x, rec.y + 1.0, rec.z);
-    if (!sousTerre && !dedans && rec.sol && creusable(rec.x, rec.z)) return { x: rec.x, y: w.heightAt(rec.x, rec.z), z: rec.z, r: rec.r, mode: 'la' };
+    if (!sousTerre && !dedans && rec.sol) { const r = fosse(rec.x, rec.z); if (r !== null) return { x: rec.x, y: w.heightAt(rec.x, rec.z), z: rec.z, r, mode: 'la' }; }
     if (!sousTerre) {
       for (let k = 1; k <= (dedans ? 30 : 22); k++) for (let a = 0; a < 16; a++) {
-        const g = a / 16 * TAU + k * 0.37, x = rec.x + Math.cos(g) * k, z = rec.z + Math.sin(g) * k;
-        if (creusable(x, z)) return { x, y: w.heightAt(x, z), z, r: rec.r, mode: dedans ? 'dehors' : 'traine' };
+        const g = a / 16 * TAU + k * 0.37, x = rec.x + Math.cos(g) * k, z = rec.z + Math.sin(g) * k, r = fosse(x, z);
+        if (r !== null) return { x, y: w.heightAt(x, z), z, r, mode: dedans ? 'dehors' : 'traine' };
       }
     }
     return { x: rec.x, y: rec.y, z: rec.z, r: rec.r, mode: 'pierres' };
@@ -902,9 +913,13 @@ Object.assign(PROP_MODELS, {
       const P = [[0, 0, 0.55, 0.5, 0.26, 0.42], [-0.18, 0, -0.05, 0.42, 0.24, 0.4], [0.2, 0, -0.1, 0.4, 0.22, 0.38], [0, 0, -0.6, 0.46, 0.22, 0.4],
         [-0.02, 0.2, 0.2, 0.38, 0.2, 0.34], [0.05, 0.18, -0.35, 0.34, 0.18, 0.3], [0.2, 0, 0.35, 0.3, 0.2, 0.3], [-0.22, 0, 0.4, 0.3, 0.2, 0.3]];
       for (const [x, y, z, sx, sy, sz] of P) E.bx(x, y, z, sx, sy, sz, rgbf('#8a8680'), TL.stone, ((x * 7 + z * 3) % 1) * 0.8);
-    } else {
-      E.bx(0, -0.08, 0, 0.78, 0.26, 1.85, WHITE, mt(M_DIRT));
-      E.bx(0, 0.14, 0, 0.56, 0.1, 1.55, WHITE, mt(M_DIRT));
+    } else { // un tertre bombé, de la terre retournée, des mottes
+      const T = [rgbf('#5a4331'), rgbf('#664c37'), rgbf('#4c3828'), rgbf('#70563f')];
+      E.bx(0, -0.14, 0, 0.9, 0.24, 2.0, T[0], TL.plain);
+      E.bx(0.02, 0.06, -0.03, 0.68, 0.12, 1.74, T[1], TL.plain, 0.03);
+      E.bx(-0.02, 0.15, 0.04, 0.4, 0.08, 1.3, T[3], TL.plain, -0.04);
+      const M = [[-0.34, 0.02, -0.7, 0.15], [0.36, 0.0, -0.2, 0.13], [-0.3, 0.03, 0.35, 0.14], [0.28, 0.02, 0.62, 0.12], [0.06, 0.18, -0.52, 0.11], [-0.12, 0.2, 0.1, 0.1], [0.14, 0.17, 0.5, 0.1], [0.4, -0.02, 0.9, 0.11], [-0.38, -0.02, -0.95, 0.12]];
+      M.forEach(([x, y, z, k], i) => E.bx(x, y, z, k, k * 0.75, k * 1.1, T[i % 4], TL.plain, x * 4 + z));
     }
     // la croix : deux bâtons liés, à la tête
     E.bx(0, 0, 1.02, 0.07, 0.98, 0.07, WHITE, TL.darkwood, 0, -0.05);
