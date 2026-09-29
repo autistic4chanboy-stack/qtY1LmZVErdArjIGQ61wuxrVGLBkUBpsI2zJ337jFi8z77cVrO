@@ -115,7 +115,7 @@ const vallee = {
     this.fireUpdate(dt, eye, basis);
     // le froid, là-haut
     if (w.designed && alt > sl - 4 && !p.underground && !strange.inEnvers()) {
-      p.food = Math.max(0, p.food - dt / w.dayLength * 70); // la faim vient deux fois plus vite
+      p.food = Math.max(0, p.food - dt / w.dayLength * CORPS_JOUR.faim); // la faim vient deux fois plus vite
       const inside = w.covered(eye[0], eye[1], eye[2]), warm = inside || game.nearFire(p.pos) || this.fireNear > 0.6;
       if ((sky.night > 0.5 || (this.snowK > 0.35 && alt > sl + 25)) && !warm) {
         this.coldAcc += dt;
