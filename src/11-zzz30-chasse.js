@@ -47,8 +47,9 @@ const CHASSE_VEGETATION = new Set(['tallgrass', 'fern', 'reeds', 'heather', 'bus
 
 // ---------------------------------------------------------------- objets en plus : le brassard rouge, le trophée
 defItem('brassard_rouge', 'Brassard rouge', 'outil', 12, ['laine', '#c8281e'], { passive: true, desc: 'Un brassard de laine rouge. Le Chassedi, les chasseurs voient du rouge avant de voir un chevreuil. En principe.' });
-PLACEABLES.trophee = { name: 'Trophée de cerf', price: 180 };
-defItem('trophee', 'Trophée de cerf', 'objet', 180, ['objet', 'trophee'], { place: 'trophee', desc: 'Une tête de cerf naturalisée sur sa planche. À poser au mur, ou sur une table.' });
+// trophée : un cerf sur six ou sept en donne un ; il vaut trois cerfs dépecés (équilibrage : était 180)
+PLACEABLES.trophee = { name: 'Trophée de cerf', price: 60 };
+defItem('trophee', 'Trophée de cerf', 'objet', 60, ['objet', 'trophee'], { place: 'trophee', desc: 'Une tête de cerf naturalisée sur sa planche. À poser au mur, ou sur une table.' });
 if (NPC_BY_ID.chasseur && NPC_BY_ID.chasseur.shop && !NPC_BY_ID.chasseur.shop.sells.some((x) => x[0] === 'brassard_rouge')) NPC_BY_ID.chasseur.shop.sells.push(['brassard_rouge', 14]);
 if (NPC_BY_ID.chasseur && NPC_BY_ID.chasseur.shop && NPC_BY_ID.chasseur.shop.buys && !NPC_BY_ID.chasseur.shop.buys.includes('trophee')) NPC_BY_ID.chasseur.shop.buys.push('trophee');
 

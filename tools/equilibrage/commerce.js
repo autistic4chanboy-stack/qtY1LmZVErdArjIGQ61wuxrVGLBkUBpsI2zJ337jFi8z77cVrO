@@ -133,7 +133,18 @@ function transformations(J, c, log) {
     for (let i = start; i < ing.length; i++) combo(i, pris.concat(ing[i]));
   };
   if (fiole < Infinity) combo(0, []);
-  log(`${recettes.length} recettes et transformations (+ ${essais} mélanges de la table d'alchimiste avec ${ing.length} ingrédients achetables).`);
+  // ce qu'on achète et qu'on ouvre (géode, coffre…) : en moyenne, le contenu doit valoir moins que le prix payé
+  const D2 = donnees(J), v2 = valeurs(D2);
+  let ouvrables = 0;
+  for (const id in c.A) {
+    const it = D2.items[id];
+    if (!it || !it.open) continue;
+    ouvrables++;
+    const ev = esperance(D2, it.open, v2), a = c.minAchat(id);
+    if (ev >= a.p) out.push({ r: { ou: 'ouvert (' + it.open + ')', need: [id], out: 'contenu moyen', n: 1 }, s: a.p, v: Math.round(ev) });
+    else log(`${id} : acheté au mieux ${a.p} (${a.ou}), contenu moyen ${ev.toFixed(1)}`);
+  }
+  log(`${recettes.length} recettes et transformations (+ ${essais} mélanges de la table d'alchimiste avec ${ing.length} ingrédients achetables ; ${ouvrables} objet(s) achetable(s) qu'on ouvre).`);
   if (!out.length) log('Aucune transformation gagnante à partir d’achats seulement.');
   else for (const { r, s, v } of out.slice(0, 40)) log(`  ${r.out} ×${r.n} (${r.ou}) : ingrédients achetés ${Math.round(s)} → revendu ${v}  ← ${Array.isArray(r.need) ? r.need.join(' + ') : Object.entries(r.need).map(([k, n]) => n + ' ' + k).join(' + ')}`);
   return out;

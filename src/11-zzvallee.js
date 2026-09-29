@@ -389,7 +389,7 @@ HOOKS.inter.refuge = () => game.trySleep('refuge');
 HOOKS.inter.peche_glace = (it) => {
   if (!farm.count('canne')) { ui.subtitle('', '(Un trou rond dans la glace, l’eau noire dessous. Il faudrait une canne à pêche.)', 3.5); return; }
   const F = vallee.fish;
-  if (!F) { vallee.fish = { it, t: 5 + Math.random() * 10, bite: 0 }; sound.splash && sound.splash(); ui.subtitle('', '(Vous laissez filer la ligne dans l’eau noire, et vous attendez.)', 3); return; }
+  if (!F) { vallee.fish = { it, t: 8 + Math.random() * 20, bite: 0 }; /* comme au bord de l'eau : 8 à 28 s (équilibrage) */ sound.splash && sound.splash(); ui.subtitle('', '(Vous laissez filer la ligne dans l’eau noire, et vous attendez.)', 3); return; }
   if (F.bite > 0) { vallee.fish = null; play.catchFish({ zone: 'lac_gele', x: it.x, y: it.y, z: it.z }); return; }
   ui.subtitle('', '(Rien encore. La ligne ne bouge pas.)', 2);
 };
