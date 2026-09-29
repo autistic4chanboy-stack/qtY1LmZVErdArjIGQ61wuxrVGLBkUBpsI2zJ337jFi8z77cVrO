@@ -64,14 +64,19 @@ function vallee(J, graine = 1234) { return J.ev(`generateValley(${graine | 0}, (
 
 // empreinte d'une vallée générée : les anciennes sauvegardes retrouvent leurs objets par leur rang dans w.objects /
 // w.props (le monde est régénéré à chaque chargement). Un réglage d'équilibrage ne doit JAMAIS la changer.
-function empreinte(w) {
+// (n = [objets, props, interactions] : l'empreinte des seuls premiers, ceux des anciennes versions ; une génération
+// ajoutée APRÈS tout le reste allonge les listes sans toucher à ces premiers)
+function empreinte(w, n) {
   const crypto = require('crypto');
   const h = crypto.createHash('sha1');
   const r = (v) => Math.round(v * 100);
-  for (const o of w.objects) h.update(`${o.t},${r(o.x)},${r(o.z)};`);
-  for (const q of w.props) h.update(`${q.id},${r(q.x)},${r(q.z)};`);
-  for (const i of w.inter) h.update(`${i.kind},${i.id || ''},${r(i.x)},${r(i.z)};`);
-  return `${w.objects.length}/${w.props.length}/${w.inter.length}/${h.digest('hex').slice(0, 12)}`;
+  const [no, np, ni] = n || [w.objects.length, w.props.length, w.inter.length];
+  for (const o of w.objects.slice(0, no)) h.update(`${o.t},${r(o.x)},${r(o.z)};`);
+  for (const q of w.props.slice(0, np)) h.update(`${q.id},${r(q.x)},${r(q.z)};`);
+  for (const i of w.inter.slice(0, ni)) h.update(`${i.kind},${i.id || ''},${r(i.x)},${r(i.z)};`);
+  return `${no}/${np}/${ni}/${h.digest('hex').slice(0, 12)}`;
 }
+// l'empreinte de référence de la graine 1234 avant l'équilibrage (98896 objets, 1308 props, 516 interactions)
+const EMPREINTE_1234 = '98896/1308/516/666d7edf598a';
 
-module.exports = { charger, vallee, empreinte, ROOT };
+module.exports = { charger, vallee, empreinte, EMPREINTE_1234, ROOT };

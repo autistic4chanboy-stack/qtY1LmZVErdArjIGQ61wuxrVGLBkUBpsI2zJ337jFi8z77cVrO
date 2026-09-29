@@ -291,7 +291,7 @@ module.exports = {
     const LOTS = J.ev('activites.LOTS'), valLots = LOTS.reduce((a, [id, n]) => a + n * valeur(id), 0);
     const billet = J.ev('activites.BILLET || 5');
     const src99 = require('fs').readFileSync(require('path').join(__dirname, '..', '..', 'src', '11-zzz99-activites.js'), 'utf8');
-    const mB = /Acheter un billet \((\d+) pièces\)/.exec(src99), billetTexte = mB ? +mB[1] : null;
+    const mB = /Acheter un billet \((\d+|\$\{this\.BILLET\}) pièces\)/.exec(src99), billetTexte = mB ? (mB[1] === '${this.BILLET}' ? billet : +mB[1]) : null; // (le texte peut lire la constante elle-même)
     log(`  tombola : lots ${r0(valLots)} pièces pour 50 billets à ${billet} → un billet rapporte ${r1(valLots / 50)} (${pc(valLots / 50 / billet)} de son prix)`);
     // les quilles : la cagnotte (10 pièces) pour les neuf d'un coup, en visant le milieu
     let pStrike = 0;

@@ -158,7 +158,7 @@ Object.assign(LOOT, {
   pelle: { rolls: [1, 1], items: [['vers', 1, 3, 6], ['pierre', 1, 2, 5], ['os', 1, 1, 2], ['silex', 1, 1, 2], ['argile', 1, 2, 3], ['tesson', 1, 1, 1.2], ['vieille_piece', 1, 1, 0.8], ['fossile', 1, 1, 0.2], ['carte_tresor', 1, 1, 0.08]] },
   sable: { rolls: [1, 1], items: [['sable', 1, 3, 10], ['perle', 1, 1, 0.1], ['vieille_piece', 1, 1, 0.3]] },
   // le coffre d'une carte au trésor : un beau jour de chance, pas une fortune (les cartes s'achètent au Marchedi)
-  tresor_carte: { rolls: [2, 3], items: [['argent', 40, 120, 5], ['vieille_piece', 1, 3, 5], ['bijou', 1, 1, 2], ['lingot_or', 1, 1, 1], ['gemme', 1, 1, 0.7], ['relique', 1, 1, 0.5], ['trefle', 1, 1, 1], ['geode', 1, 1, 2]] },
+  tresor_carte: { rolls: [3, 4], items: [['argent', 60, 160, 5], ['vieille_piece', 1, 3, 5], ['bijou', 1, 1, 2], ['lingot_or', 1, 1, 1], ['gemme', 1, 1, 0.7], ['relique', 1, 1, 0.5], ['trefle', 1, 1, 1], ['geode', 1, 1, 2]] },
   // la cache des contrebandiers se regarnit (ils passent) : de quoi boire, un peu d'argent, rarement une carte
   contrebandiers: { rolls: [1, 2], items: [['vin', 1, 2, 4], ['cidre', 1, 2, 4], ['argent', 20, 70, 4], ['bijou', 1, 1, 0.5], ['carte_tresor', 1, 1, 0.3], ['corde', 1, 3, 3], ['lanterne', 1, 1, 0.5], ['toile', 1, 3, 2], ['tabac', 0, 0, 0]] },
   clocher: { rolls: [3, 4], items: [['vieille_piece', 3, 8, 5], ['bijou', 1, 2, 3], ['relique', 1, 1, 2], ['perle', 1, 3, 3], ['eau_benite', 1, 2, 2], ['argent', 80, 200, 3]] },

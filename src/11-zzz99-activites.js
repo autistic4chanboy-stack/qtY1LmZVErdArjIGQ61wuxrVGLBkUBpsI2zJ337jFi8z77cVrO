@@ -777,7 +777,7 @@ const activites = {
     const an = cal.annonce().replace(/^\(|\)$/g, '');
     if (an) out.push(an);
     try { const k = weather.tomorrow(); out.push({ soleil: 'Demain, du beau temps, à ce qu’on dit.', pluie: 'Demain, de la pluie : rentrez le foin.', orage: 'Demain, de l’orage : rentrez les bêtes.', gel: 'Demain à l’aube, du gel : couvrez les semis.', brouillard: 'Demain matin, du brouillard : ne vous écartez pas des chemins.' }[k] || 'Demain, le temps qu’il plaira au ciel.'); } catch (e) { /* rien */ }
-    const dem = { marche: 'Demain, grand marché sur la place, avec les étals des Monts !', foire: `Demain, foire à ${farm.names.hameau}, avec la tombola ! Billets à vingt pièces.`, chasse: 'Demain, Chassedi : concours de tir au relais de chasse ! Et portez du rouge en forêt.', peche: 'Demain, Pêchedi : concours de pêche au ponton du lac !', veillee: 'Demain soir, veillée à l’auberge : on contera.', messe: 'Demain, messe à dix heures en l’église.', morts: 'Demain, Vorndi, jour des morts : fleurissez vos tombes, et rentrez avant la nuit.' }[dm];
+    const dem = { marche: 'Demain, grand marché sur la place, avec les étals des Monts !', foire: `Demain, foire à ${farm.names.hameau}, avec la tombola ! Billets à huit pièces.`, chasse: 'Demain, Chassedi : concours de tir au relais de chasse ! Et portez du rouge en forêt.', peche: 'Demain, Pêchedi : concours de pêche au ponton du lac !', veillee: 'Demain soir, veillée à l’auberge : on contera.', messe: 'Demain, messe à dix heures en l’église.', morts: 'Demain, Vorndi, jour des morts : fleurissez vos tombes, et rentrez avant la nuit.' }[dm];
     if (dem) out.push(dem);
     for (const d of (s.dead || []).filter((q) => s.day - q.day <= 2)) { const n = npcs.byId[d.id]; const qui = d.name + (n ? ' ' + n.d.surname : ''); out.push(n && n.d.gender === 'f' ? `Avis de décès : ${qui}. Priez pour elle.` : `Avis de décès : ${qui}. Priez pour lui.`); }
     const de = (t) => (/^une? /.test(t) ? 'd’' + t : /^le /.test(t) ? 'du ' + t.slice(3) : /^du /.test(t) ? 'de ' + t.slice(3) : 'de ' + t);
@@ -1054,8 +1054,8 @@ const activites = {
   // ================================================================ la tombola du Foiredi
   TIRAGE_H: 15,
   // le billet : les huit lots valent environ les trois quarts de ce que rapportent les cinquante billets (la tombola
-  // paie la fête ; à cinq pièces, un billet en rapportait trois fois son prix)
-  BILLET: 20,
+  // paie la fête ; à cinq pièces, avec les anciens prix, un billet en rapportait trois fois son prix)
+  BILLET: 8,
   tirage() { const s = farm.s, rnd = mulberry32(((s.seed | 0) * 5 + s.day * 313) >>> 0), L = []; while (L.length < 8) { const n = 1 + ((rnd() * 50) | 0); if (!L.includes(n)) L.push(n); } return L; },
   LOTS: [['poule', 1, 'une poule pondeuse, vivante'], ['viande_fumee', 2, 'un jambon fumé'], ['montre', 1, 'une montre de gousset'], ['bouquet', 1, 'un bouquet'], ['confiture', 2, 'deux pots de confiture'], ['cidre', 2, 'deux bouteilles de cidre'], ['fromage', 1, 'un fromage'], ['livre_contes', 1, 'un livre de contes']],
   tombola() {
@@ -1065,7 +1065,7 @@ const activites = {
     const TB = A.tombola;
     if (h < this.TIRAGE_H) {
       const opts = [];
-      if (TB.billets.length < 3 && s.money >= this.BILLET) opts.push({ label: 'Acheter un billet (20 pièces)', fn: () => { if (!farm.pay(this.BILLET)) return; let n; do { n = 1 + ((Math.random() * 50) | 0); } while (TB.billets.includes(n)); TB.billets.push(n); sound.coin && sound.coin(); this.tombola(); } });
+      if (TB.billets.length < 3 && s.money >= this.BILLET) opts.push({ label: `Acheter un billet (${this.BILLET} pièces)`, fn: () => { if (!farm.pay(this.BILLET)) return; let n; do { n = 1 + ((Math.random() * 50) | 0); } while (TB.billets.includes(n)); TB.billets.push(n); sound.coin && sound.coin(); this.tombola(); } });
       opts.push({ label: 'Partir', fn: () => ui.close() });
       ui.choice('La tombola de la foire', `Un tambour de bois plein de billets pliés. Les lots s’alignent sur une planche : ${this.LOTS.slice(0, 4).map((l) => l[2]).join(', ')}… Tirage à trois heures.${TB.billets.length ? ' Vos billets : ' + TB.billets.join(', ') + '.' : ''}${TB.billets.length >= 3 ? ' (Trois billets par personne.)' : ''}`, opts);
       return;
