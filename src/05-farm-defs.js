@@ -97,23 +97,25 @@ const ITEMS = {};
 function defItem(id, name, cat, price, ic, extra) { ITEMS[id] = Object.assign({ id, name, cat, price, ic }, extra || {}); }
 
 // cultures : heures de pousse quand la terre est humide, repousse (h), récolte, sensible au gel
+// (équilibrage : pousse × 4 et repousse × 6 pour la journée de vingt minutes : un radis en 8 h, une citrouille en 40 h)
 const CROPS = {
-  radis: { name: 'Radis', h: 2, regrow: 0, yield: [1, 2], frost: false, col: '#d84060' },
-  ble: { name: 'Blé', h: 2.5, regrow: 0, yield: [2, 3], frost: false, col: '#e0c060' },
-  carotte: { name: 'Carotte', h: 3, regrow: 0, yield: [1, 2], frost: false, col: '#e87a20' },
-  lin: { name: 'Lin', h: 3, regrow: 0, yield: [2, 3], frost: false, col: '#6a8ae0' },
-  patate: { name: 'Pomme de terre', h: 4, regrow: 0, yield: [2, 4], frost: false, col: '#b89060' },
-  betterave: { name: 'Betterave', h: 4, regrow: 0, yield: [1, 2], frost: false, col: '#8a2050' },
-  haricot: { name: 'Haricots', h: 5, regrow: 2, yield: [2, 3], frost: true, col: '#5a9a3a' },
-  fraise: { name: 'Fraise', h: 5, regrow: 2.5, yield: [2, 3], frost: true, col: '#e02030' },
-  tournesol: { name: 'Tournesol', h: 5, regrow: 0, yield: [1, 1], frost: false, col: '#f0c020', seedBack: [1, 3] },
-  chou: { name: 'Chou', h: 6, regrow: 0, yield: [1, 1], frost: false, col: '#8ac060' },
-  tomate: { name: 'Tomate', h: 6, regrow: 3, yield: [2, 4], frost: true, col: '#d83020' },
-  mais: { name: 'Maïs', h: 6, regrow: 3, yield: [2, 3], frost: true, col: '#f0c030' },
-  melon: { name: 'Melon', h: 8, regrow: 0, yield: [1, 1], frost: true, col: '#7ab050' },
-  citrouille: { name: 'Citrouille', h: 10, regrow: 0, yield: [1, 1], frost: true, col: '#e88a20' },
+  radis: { name: 'Radis', h: 8, regrow: 0, yield: [1, 2], frost: false, col: '#d84060' },
+  ble: { name: 'Blé', h: 10, regrow: 0, yield: [2, 3], frost: false, col: '#e0c060' },
+  carotte: { name: 'Carotte', h: 12, regrow: 0, yield: [1, 2], frost: false, col: '#e87a20' },
+  lin: { name: 'Lin', h: 12, regrow: 0, yield: [2, 3], frost: false, col: '#6a8ae0' },
+  patate: { name: 'Pomme de terre', h: 16, regrow: 0, yield: [2, 4], frost: false, col: '#b89060' },
+  betterave: { name: 'Betterave', h: 16, regrow: 0, yield: [1, 2], frost: false, col: '#8a2050' },
+  haricot: { name: 'Haricots', h: 20, regrow: 12, yield: [2, 3], frost: true, col: '#5a9a3a' },
+  fraise: { name: 'Fraise', h: 20, regrow: 15, yield: [2, 3], frost: true, col: '#e02030' },
+  tournesol: { name: 'Tournesol', h: 20, regrow: 0, yield: [1, 1], frost: false, col: '#f0c020', seedBack: [1, 3] },
+  chou: { name: 'Chou', h: 24, regrow: 0, yield: [1, 1], frost: false, col: '#8ac060' },
+  tomate: { name: 'Tomate', h: 24, regrow: 18, yield: [2, 4], frost: true, col: '#d83020' },
+  mais: { name: 'Maïs', h: 24, regrow: 18, yield: [2, 3], frost: true, col: '#f0c030' },
+  melon: { name: 'Melon', h: 32, regrow: 0, yield: [1, 1], frost: true, col: '#7ab050' },
+  citrouille: { name: 'Citrouille', h: 40, regrow: 0, yield: [1, 1], frost: true, col: '#e88a20' },
 };
-const CROP_PRICE = { radis: 8, ble: 7, carotte: 12, lin: 6, patate: 14, betterave: 16, haricot: 10, fraise: 18, tournesol: 22, chou: 32, tomate: 14, mais: 16, melon: 60, citrouille: 85 };
+// prix de revente : 3 à 6 pièces de marge par case et par jour, graines déduites (équilibrage, tools/equilibrage/commerce.js)
+const CROP_PRICE = { radis: 3, ble: 2, carotte: 6, lin: 3, patate: 3, betterave: 7, haricot: 1, fraise: 2, tournesol: 5, chou: 19, tomate: 2, mais: 2, melon: 32, citrouille: 36 };
 const SEED_PRICE = { radis: 3, ble: 3, carotte: 5, lin: 3, patate: 7, betterave: 6, haricot: 9, fraise: 16, tournesol: 10, chou: 14, tomate: 12, mais: 12, melon: 25, citrouille: 30 };
 for (const id in CROPS) {
   const c = CROPS[id];
@@ -122,54 +124,55 @@ for (const id in CROPS) {
 }
 ITEMS.graines_patate.name = 'Plants de pomme de terre';
 
-defItem('oeuf', 'Œuf', 'produit', 15, ['oeuf', '#f2ede2'], { food: 6, heal: 2 });
-defItem('lait', 'Bouteille de lait', 'produit', 30, ['bouteille', '#f4f2ea'], { food: 10, heal: 4 });
-defItem('laine', 'Laine', 'produit', 45, ['laine', '#ece6d8']);
-defItem('truffe', 'Truffe', 'produit', 160, ['truffe', '#3a2a22']);
-defItem('plume', 'Plume', 'produit', 4, ['plume', '#d8d0c0']);
-defItem('miel', 'Pot de miel', 'produit', 70, ['pot', '#e8a820'], { food: 12, heal: 6 });
-defItem('champignon', 'Champignons', 'cueillette', 14, ['champi', '#c84030'], { food: 5, heal: 2 });
-defItem('baies', 'Baies', 'cueillette', 8, ['baies', '#4a50c8'], { food: 4, heal: 2 });
-defItem('fleur', 'Fleurs des champs', 'cueillette', 6, ['fleur', '#e8c040']);
-defItem('herbes', 'Herbes médicinales', 'cueillette', 18, ['herbes', '#6aa050'], { heal: 12 });
-defItem('pomme', 'Pomme', 'cueillette', 10, ['rond', '#c82828'], { food: 6, heal: 2 });
-defItem('viande', 'Viande crue', 'chasse', 25, ['viande', '#b83838'], { food: 4, heal: 0, raw: true });
-defItem('cuir', 'Cuir', 'chasse', 30, ['cuir', '#8a5a34']);
-defItem('bois_de_cerf', 'Bois de cerf', 'chasse', 90, ['cerf', '#cbb894']);
-defItem('bois', 'Bûches', 'materiau', 2, ['buche', '#8a5a34']);
-defItem('pierre', 'Pierres', 'materiau', 2, ['caillou', '#8a8a88']);
-defItem('fibre', 'Fibres', 'materiau', 1, ['fibre', '#8aa050']);
-defItem('charbon', 'Charbon', 'materiau', 10, ['charbon', '#2a2a2e']);
-defItem('minerai_cuivre', 'Minerai de cuivre', 'materiau', 12, ['minerai', '#c8743a']);
-defItem('minerai_fer', 'Minerai de fer', 'materiau', 20, ['minerai', '#9aa2ac']);
-defItem('minerai_or', "Minerai d'or", 'materiau', 45, ['minerai', '#f0c040']);
-defItem('lingot_cuivre', 'Lingot de cuivre', 'materiau', 50, ['lingot', '#c8743a']);
-defItem('lingot_fer', 'Lingot de fer', 'materiau', 80, ['lingot', '#9aa2ac']);
-defItem('lingot_acier', "Lingot d'acier", 'materiau', 180, ['lingot', '#dce4ec']);
-defItem('lingot_or', "Lingot d'or", 'materiau', 220, ['lingot', '#f0c040']);
-defItem('gemme', 'Gemme', 'materiau', 300, ['gemme', '#60c8e8']);
-defItem('foin', 'Foin', 'materiau', 3, ['foin', '#d8c07a']);
-defItem('figurine', 'Figurine de bois', 'quete', 25, ['figurine', '#8a6a44'], { desc: 'Une petite silhouette sculptée. Le visage est effacé.' });
-defItem('pain', 'Pain', 'nourriture', 15, ['pain', '#c48846'], { food: 20, heal: 6 });
-defItem('brioche', 'Brioche', 'nourriture', 25, ['brioche', '#e0a050'], { food: 22, heal: 8 });
-defItem('tarte', 'Tarte aux pommes', 'nourriture', 45, ['tarte', '#c87838'], { food: 35, heal: 15 });
-defItem('soupe', 'Soupe de légumes', 'nourriture', 35, ['bol', '#b8a040'], { food: 30, heal: 15 });
-defItem('ragout', 'Ragoût', 'nourriture', 70, ['bol', '#8a4a2a'], { food: 50, heal: 30 });
-defItem('poisson_grille', 'Poisson grillé', 'nourriture', 40, ['poisson', '#b8783a'], { food: 30, heal: 15 });
-defItem('viande_grillee', 'Viande grillée', 'nourriture', 45, ['viande', '#8a4a28'], { food: 35, heal: 15 });
-defItem('fromage', 'Fromage', 'nourriture', 60, ['fromage', '#f0d070'], { food: 25, heal: 10 });
-defItem('confiture', 'Confiture', 'nourriture', 55, ['pot', '#b82040'], { food: 20, heal: 8 });
-defItem('infusion', 'Infusion', 'nourriture', 30, ['bol', '#6aa050'], { food: 5, heal: 35 });
+defItem('oeuf', 'Œuf', 'produit', 7, ['oeuf', '#f2ede2'], { food: 6, heal: 2 });
+defItem('lait', 'Bouteille de lait', 'produit', 22, ['bouteille', '#f4f2ea'], { food: 10, heal: 4 });
+defItem('laine', 'Laine', 'produit', 30, ['laine', '#ece6d8']);
+defItem('truffe', 'Truffe', 'produit', 50, ['truffe', '#3a2a22']);
+defItem('plume', 'Plume', 'produit', 1, ['plume', '#d8d0c0']);
+defItem('miel', 'Pot de miel', 'produit', 5, ['pot', '#e8a820'], { food: 12, heal: 6 });
+defItem('champignon', 'Champignons', 'cueillette', 2, ['champi', '#c84030'], { food: 5, heal: 2 });
+defItem('baies', 'Baies', 'cueillette', 1, ['baies', '#4a50c8'], { food: 4, heal: 2 });
+defItem('fleur', 'Fleurs des champs', 'cueillette', 1, ['fleur', '#e8c040']);
+defItem('herbes', 'Herbes médicinales', 'cueillette', 3, ['herbes', '#6aa050'], { heal: 12 });
+defItem('pomme', 'Pomme', 'cueillette', 1, ['rond', '#c82828'], { food: 6, heal: 2 });
+defItem('viande', 'Viande crue', 'chasse', 5, ['viande', '#b83838'], { food: 4, heal: 0, raw: true });
+defItem('cuir', 'Cuir', 'chasse', 6, ['cuir', '#8a5a34']);
+defItem('bois_de_cerf', 'Bois de cerf', 'chasse', 20, ['cerf', '#cbb894']);
+defItem('bois', 'Bûches', 'materiau', 0, ['buche', '#8a5a34']);
+defItem('pierre', 'Pierres', 'materiau', 0, ['caillou', '#8a8a88']);
+defItem('fibre', 'Fibres', 'materiau', 0, ['fibre', '#8aa050']);
+defItem('charbon', 'Charbon', 'materiau', 1, ['charbon', '#2a2a2e']);
+defItem('minerai_cuivre', 'Minerai de cuivre', 'materiau', 4, ['minerai', '#c8743a']);
+defItem('minerai_fer', 'Minerai de fer', 'materiau', 7, ['minerai', '#9aa2ac']);
+defItem('minerai_or', "Minerai d'or", 'materiau', 16, ['minerai', '#f0c040']);
+defItem('lingot_cuivre', 'Lingot de cuivre', 'materiau', 15, ['lingot', '#c8743a']);
+defItem('lingot_fer', 'Lingot de fer', 'materiau', 25, ['lingot', '#9aa2ac']);
+defItem('lingot_acier', "Lingot d'acier", 'materiau', 61, ['lingot', '#dce4ec']);
+defItem('lingot_or', "Lingot d'or", 'materiau', 56, ['lingot', '#f0c040']);
+defItem('gemme', 'Gemme', 'materiau', 80, ['gemme', '#60c8e8']);
+defItem('foin', 'Foin', 'materiau', 0, ['foin', '#d8c07a']);
+defItem('figurine', 'Figurine de bois', 'quete', 12, ['figurine', '#8a6a44'], { desc: 'Une petite silhouette sculptée. Le visage est effacé.' });
+defItem('pain', 'Pain', 'nourriture', 2, ['pain', '#c48846'], { food: 20, heal: 6 });
+defItem('brioche', 'Brioche', 'nourriture', 9, ['brioche', '#e0a050'], { food: 22, heal: 8 });
+defItem('tarte', 'Tarte aux pommes', 'nourriture', 18, ['tarte', '#c87838'], { food: 35, heal: 15 });
+defItem('soupe', 'Soupe de légumes', 'nourriture', 4, ['bol', '#b8a040'], { food: 30, heal: 15 });
+defItem('ragout', 'Ragoût', 'nourriture', 18, ['bol', '#8a4a2a'], { food: 50, heal: 30 });
+defItem('poisson_grille', 'Poisson grillé', 'nourriture', 1, ['poisson', '#b8783a'], { food: 30, heal: 15 });
+defItem('viande_grillee', 'Viande grillée', 'nourriture', 7, ['viande', '#8a4a28'], { food: 35, heal: 15 });
+defItem('fromage', 'Fromage', 'nourriture', 43, ['fromage', '#f0d070'], { food: 25, heal: 10 });
+defItem('confiture', 'Confiture', 'nourriture', 10, ['pot', '#b82040'], { food: 20, heal: 8 });
+defItem('infusion', 'Infusion', 'nourriture', 5, ['bol', '#6aa050'], { food: 5, heal: 35 });
 
+// prix (équilibrage) : quelques pièces pour un poisson ordinaire, une prise toutes les vingt secondes environ
 const FISH = {
-  carpe: { name: 'Carpe', price: 30, where: ['lac', 'etang', 'marais'], time: 'tout', w: 5, col: '#a8904a' },
-  perche: { name: 'Perche', price: 25, where: ['lac', 'etang'], time: 'jour', w: 5, col: '#8aa05a' },
-  truite: { name: 'Truite', price: 45, where: ['lac'], time: 'jour', w: 3, col: '#b0a0a8', rain: true },
-  brochet: { name: 'Brochet', price: 70, where: ['lac'], time: 'tout', w: 2, col: '#6a8a5a' },
-  anguille: { name: 'Anguille', price: 55, where: ['marais', 'etang'], time: 'nuit', w: 3, col: '#4a4a3a' },
-  silure: { name: 'Silure', price: 120, where: ['lac'], time: 'nuit', w: 1, col: '#3a3a36' },
-  poisson_lune: { name: 'Poisson-lune', price: 400, where: ['lac'], time: 'nuit', w: 0.25, col: '#d8e0f0', moon: true },
-  poisson_aveugle: { name: 'Poisson aveugle', price: 250, where: ['mine', 'envers'], time: 'tout', w: 1, col: '#f0e8e8' },
+  carpe: { name: 'Carpe', price: 8, where: ['lac', 'etang', 'marais'], time: 'tout', w: 5, col: '#a8904a' },
+  perche: { name: 'Perche', price: 6, where: ['lac', 'etang'], time: 'jour', w: 5, col: '#8aa05a' },
+  truite: { name: 'Truite', price: 11, where: ['lac'], time: 'jour', w: 3, col: '#b0a0a8', rain: true },
+  brochet: { name: 'Brochet', price: 18, where: ['lac'], time: 'tout', w: 2, col: '#6a8a5a' },
+  anguille: { name: 'Anguille', price: 14, where: ['marais', 'etang'], time: 'nuit', w: 3, col: '#4a4a3a' },
+  silure: { name: 'Silure', price: 27, where: ['lac'], time: 'nuit', w: 1, col: '#3a3a36' },
+  poisson_lune: { name: 'Poisson-lune', price: 90, where: ['lac'], time: 'nuit', w: 0.25, col: '#d8e0f0', moon: true },
+  poisson_aveugle: { name: 'Poisson aveugle', price: 25, where: ['mine', 'envers'], time: 'tout', w: 1, col: '#f0e8e8' },
 };
 for (const id in FISH) defItem(id, FISH[id].name, 'poisson', FISH[id].price, ['poisson', FISH[id].col], { food: 6, heal: 2, raw: true });
 
@@ -189,24 +192,24 @@ defItem('marteau', 'Marteau', 'outil', 25, ['marteau', '#8a8680'], { tool: 'mart
 defItem('cisailles', 'Cisailles', 'outil', 70, ['cisailles', '#9aa2ac'], { tool: 'cisailles' });
 defItem('seau', 'Seau', 'outil', 40, ['seau', '#8a6a44'], { tool: 'seau' });
 defItem('lanterne', 'Lanterne', 'outil', 60, ['lanterne', '#e8b050'], { tool: 'lanterne' });
-defItem('montre', 'Montre à gousset', 'outil', 120, ['montre', '#d0b060'], { tool: 'montre' });
+defItem('montre', 'Montre à gousset', 'outil', 60, ['montre', '#d0b060'], { tool: 'montre' });
 defItem('boussole', 'Boussole', 'outil', 90, ['boussole', '#b88a50'], { tool: 'boussole' });
 
 // objets à poser (id = modèle 3D)
 const PLACEABLES = {
-  cloture: { name: 'Clôture', price: 6, snap: 2 }, cloture_pierre: { name: 'Muret de pierre', price: 12, snap: 2 }, haie: { name: 'Haie', price: 15, snap: 2 },
-  portillon: { name: 'Portillon', price: 20, snap: 2, gate: true }, epouvantail: { name: 'Épouvantail', price: 45, scare: 9 },
-  mangeoire: { name: 'Mangeoire', price: 30 }, abreuvoir: { name: 'Abreuvoir', price: 30 }, nichoir: { name: 'Nichoir', price: 25, birds: true },
-  ruche: { name: 'Ruche', price: 90 }, coffre: { name: 'Coffre', price: 40, store: true }, caisse_expedition: { name: "Caisse d'expédition", price: 60, ship: true },
-  banc: { name: 'Banc', price: 30 }, pot_fleurs: { name: 'Pot de fleurs', price: 15 }, lampadaire: { name: 'Lampadaire', price: 120, light: true },
-  statue: { name: 'Statue', price: 250 }, panneau: { name: 'Panneau', price: 12 }, allee: { name: 'Pavés', price: 3, flat: true, snap: 1 },
-  dalle: { name: 'Dalle', price: 3, flat: true, snap: 1 }, plancher: { name: 'Plancher', price: 3, flat: true, snap: 1 },
-  parterre: { name: 'Parterre fleuri', price: 25 }, jeune_pommier: { name: 'Jeune pommier', price: 80, tree: true }, table: { name: 'Table', price: 35 },
-  chaise: { name: 'Chaise', price: 15 }, girouette: { name: 'Girouette', price: 80 }, tonneau: { name: 'Tonneau', price: 25 }, brouette: { name: 'Brouette', price: 40 },
-  botte_foin: { name: 'Botte de foin', price: 10 }, arche_fleurie: { name: 'Arche fleurie', price: 60 }, puits_deco: { name: 'Puits décoratif', price: 150, water: true },
-  feu_camp: { name: 'Feu de camp', price: 10, light: true, cook: true }, niche: { name: 'Niche', price: 40 }, citrouille: { name: 'Citrouille sculptée', price: 60, light: true },
-  lanterne_sol: { name: 'Lanterne de jardin', price: 40, light: true }, piege: { name: 'Piège à lapins', price: 20, trap: true }, etabli: { name: 'Établi', price: 50, bench: true },
-  four: { name: 'Four', price: 80, furnace: true }, meule: { name: 'Meule de foin', price: 40 }, tonnelle: null,
+  cloture: { name: 'Clôture', price: 1, snap: 2 }, cloture_pierre: { name: 'Muret de pierre', price: 1, snap: 2 }, haie: { name: 'Haie', price: 1, snap: 2 },
+  portillon: { name: 'Portillon', price: 14, snap: 2, gate: true }, epouvantail: { name: 'Épouvantail', price: 1, scare: 9 },
+  mangeoire: { name: 'Mangeoire', price: 1 }, abreuvoir: { name: 'Abreuvoir', price: 1 }, nichoir: { name: 'Nichoir', price: 1, birds: true },
+  ruche: { name: 'Ruche', price: 5 }, coffre: { name: 'Coffre', price: 18, store: true }, caisse_expedition: { name: "Caisse d'expédition", price: 1, ship: true },
+  banc: { name: 'Banc', price: 1 }, pot_fleurs: { name: 'Pot de fleurs', price: 2 }, lampadaire: { name: 'Lampadaire', price: 64, light: true },
+  statue: { name: 'Statue', price: 1 }, panneau: { name: 'Panneau', price: 1 }, allee: { name: 'Pavés', price: 1, flat: true, snap: 1 },
+  dalle: { name: 'Dalle', price: 1, flat: true, snap: 1 }, plancher: { name: 'Plancher', price: 1, flat: true, snap: 1 },
+  parterre: { name: 'Parterre fleuri', price: 6 }, jeune_pommier: { name: 'Jeune pommier', price: 45, tree: true }, table: { name: 'Table', price: 1 },
+  chaise: { name: 'Chaise', price: 1 }, girouette: { name: 'Girouette', price: 36 }, tonneau: { name: 'Tonneau', price: 25 }, brouette: { name: 'Brouette', price: 30 },
+  botte_foin: { name: 'Botte de foin', price: 1 }, arche_fleurie: { name: 'Arche fleurie', price: 10 }, puits_deco: { name: 'Puits décoratif', price: 1, water: true },
+  feu_camp: { name: 'Feu de camp', price: 1, light: true, cook: true }, niche: { name: 'Niche', price: 1 }, citrouille: { name: 'Citrouille sculptée', price: 47, light: true },
+  lanterne_sol: { name: 'Lanterne de jardin', price: 22, light: true }, piege: { name: 'Piège à lapins', price: 1, trap: true }, etabli: { name: 'Établi', price: 1, bench: true },
+  four: { name: 'Four', price: 1, furnace: true }, meule: { name: 'Meule de foin', price: 1 }, tonnelle: null,
 };
 delete PLACEABLES.tonnelle;
 for (const id in PLACEABLES) {
@@ -226,7 +229,7 @@ defItem('lettre', 'Lettre', 'quete', 0, ['lettre', '#e8e0c8'], { unique: true })
 defItem('cle_crypte', "Clé d'os", 'quete', 0, ['cle', '#e8e0c8'], { desc: 'Froide. Elle ne vient pas d’ici.' });
 defItem('masque', 'Masque de toile', 'quete', 0, ['masque', '#e8e0d0'], { desc: 'Taché. Il sent la terre et le fer.' });
 defItem('registre', 'Registre des versions', 'quete', 0, ['livre', '#3a2a24']);
-defItem('bougie', 'Bougie', 'materiau', 8, ['bougie', '#f0e8d0']);
+defItem('bougie', 'Bougie', 'materiau', 3, ['bougie', '#f0e8d0']);
 
 const ITEM_CAT_NAMES = {
   outil: 'Outils', graine: 'Graines', culture: 'Récoltes', produit: 'Produits de la ferme', cueillette: 'Cueillette', chasse: 'Chasse',

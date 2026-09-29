@@ -15,7 +15,9 @@
 // ============================================================================
 const ESPRIT_DEPART = 80;
 const ESPRIT_BAISSE_JOUR = 28; // au plus, par jour de jeu (toutes raisons confondues)
-const ESPRIT_HAUSSE_JOUR = 20;
+// une journée ordinaire (sommeil, soleil, repas, chien) rapporte environ +6 ; les méfaits la font glisser ; on remonte
+// de 30 à 60 en trois à cinq jours (tools/equilibrage/survie.js, « la mentalité ») : au plus +12 par jour
+const ESPRIT_HAUSSE_JOUR = 12;
 
 const ESPRIT_PENSEES = {
   haut: [
@@ -152,7 +154,7 @@ const esprit = {
     if (dh) {
       const pluie = typeof vallee !== 'undefined' && vallee.rainK !== undefined ? vallee.rainK : weather.cur.rain;
       // la journée au soleil
-      if (sky.day > 0.55 && !cov && !env && !red && pluie < 0.35) this.changer(0.35 * dh, 'soleil', 4);
+      if (sky.day > 0.55 && !cov && !env && !red && pluie < 0.35) this.changer(0.2 * dh, 'soleil', 2);
       // la nuit dehors, loin des lumières
       if (sky.night > 0.55 && !cov && !env && !this.presLumiere(eye)) {
         const lant = game.lantern && farm.count('lanterne');
@@ -291,10 +293,10 @@ const esprit = {
   reveil(where, v0, food0, h0) {
     const s = farm.s, p = game.player;
     const lit = where === 'ferme' || where === 'auberge';
-    let bonus = where === 'ferme' ? 4 : where === 'auberge' ? 3 : -1;
+    let bonus = where === 'ferme' ? 2 : where === 'auberge' ? 1.5 : -1;
     let txt = null;
     const agite = v0 < 35 && Math.random() < 0.35 + (35 - v0) / 50;
-    if (agite) { bonus = lit ? 0.8 : -1.5; p.hp = Math.max(1, p.hp - 14); p.stamina = Math.min(p.stamina, 0.6); txt = pick(ESPRIT_PENSEES.agite); }
+    if (agite) { bonus = lit ? 0.5 : -1.5; p.hp = Math.max(1, p.hp - 14); p.stamina = Math.min(p.stamina, 0.6); txt = pick(ESPRIT_PENSEES.agite); }
     else if (food0 < 12) { bonus *= 0.5; txt = ESPRIT_PENSEES.ventre_vide; }
     else if (lit && v0 >= 60 && Math.random() < 0.25) txt = pick(ESPRIT_PENSEES.repose);
     if (typeof alcool !== 'undefined' && alcool.S() && alcool.S().g > 2.5) bonus = Math.min(bonus, 0.5);
@@ -356,42 +358,53 @@ const faim = {
 };
 
 // ============================================================================
-//  L'ÉTRANGE SUIT L'ESPRIT : bizarrerie() de 1 (esprit clair, au-dessus de 70)
-//  à 3 (esprit en ruine) ; appliqué aux hasards de l'étrange existant
+//  L'ÉTRANGE SUIT L'ESPRIT : bizarrerie() de 0,6 (esprit clair, 100) à 1
+//  (esprit ordinaire, 70) puis 2,5 (esprit en ruine, 0) ; la fatigue la pousse
+//  encore (11-zzz95-sommeil.js), jamais au-delà de BIZ_MAX. Elle multiplie les
+//  chances de l'étrange : nuits rouges et événements (ci-dessous), nuits noires
+//  imprévues, tueur errant, prodiges étranges, lavandière, rêves et venues des
+//  Trois, cauchemars, marchand de joie… (mesures : tools/equilibrage/hasard.js)
 // ============================================================================
-bizarrerie = function () {
-  const v = esprit.niveau();
-  return v >= 70 ? 1 : 1 + 2 * Math.pow((70 - v) / 70, 1.2);
-};
+const BIZ_MIN = 0.6, BIZ_MAX = 2.5;
+function bizarrerieDe(v) {
+  v = clamp(+v || 0, 0, 100);
+  return v >= 70 ? 1 - (1 - BIZ_MIN) * (v - 70) / 30 : 1 + (BIZ_MAX - 1) * Math.pow((70 - v) / 70, 1.2);
+}
+bizarrerie = function () { return bizarrerieDe(esprit.niveau()); };
 {
-  // les événements du jour : plus nombreux, et les nuits rouges plus fréquentes
+  // les événements du jour et les nuits rouges suivent l'esprit, dans les deux sens
   const _newDay = strange.newDay.bind(strange);
   strange.newDay = function (nightInfo) {
     const r = _newDay(nightInfo);
     try { espritEtrange(this); } catch (e) { console.error(e); }
     return r;
   };
-  // un esprit en ruine voit plus loin dans l'étrange
+  // un esprit en ruine voit plus loin dans l'étrange (pas les trois premiers jours : rien de grand avant le quatrième)
   const _maxLevel = strange.maxLevel.bind(strange);
-  strange.maxLevel = function () { const l = _maxLevel(); return bizarrerie() >= 2.2 ? Math.min(3, l + 1) : l; };
-  // les petits frissons de la nuit : plus rapprochés
+  strange.maxLevel = function () { const l = _maxLevel(); return bizarrerie() >= 2.2 && farm.s && farm.s.day >= 4 ? Math.min(3, l + 1) : l; };
+  // les petits frissons de la nuit : plus rapprochés quand l'esprit s'assombrit, plus rares quand il est clair
+  // (la minuterie compte en heures de jeu : elle s'écoule ici b fois plus vite)
   const _upd = strange.update.bind(strange);
-  strange.update = function (dt, c) { const b = bizarrerie(); if (b > 1 && this.ambT > 0) this.ambT -= dt * (b - 1); return _upd(dt, c); };
+  strange.update = function (dt, c) { const b = bizarrerie(); if (this.ambT > 0) this.ambT -= heuresDeJeu(dt) * (b - 1); return _upd(dt, c); };
 }
 function espritEtrange(st) {
   const b = bizarrerie(), S = st.s, s = farm.s, d = s.day;
-  if (!S || b <= 1.001) return;
+  if (!S || Math.abs(b - 1) < 0.001) return;
   const t = st.tension();
-  // nuit rouge : probabilité du jour multipliée par b
-  if (!S.redTonight && d >= S.redMin && S.lastRed < d - 1) {
-    const p = 0.12 + t * 0.12, pb = Math.min(0.9, p * b);
-    if (Math.random() < (pb - p) / (1 - p)) S.redTonight = true;
-  }
-  // événements du jour
-  const p0 = 0.35 + t * 0.5, pb = Math.min(0.97, p0 * b);
+  // nuit rouge : la chance du soir multipliée par b ; jamais une nuit noire (l'almanach doit rester juste) ; la toute
+  // première, qui vient toujours, reste
+  const p = st.chanceRouge(), premiere = S.redCount === 0 && d >= S.redMin + 3;
+  const noire = typeof evenements !== 'undefined' && evenements.nuitNoire(d);
+  if (b > 1) {
+    if (!S.redTonight && !noire && d >= S.redMin && S.lastRed < d - 1) { const pb = Math.min(0.5, p * b); if (Math.random() < (pb - p) / (1 - p)) S.redTonight = true; }
+  } else if (S.redTonight && !premiere && Math.random() > b) S.redTonight = false;
+  // événements du jour : un esprit clair en voit moins…
+  if (b < 1) { S.events = S.events.filter((e) => (d === 2 && e.id === 'epouvantail') || Math.random() < b); return; }
+  // … un esprit sombre, davantage
+  const p0 = st.chanceEvenements(), pb = Math.min(0.9, p0 * b);
   let extra = 0;
-  if (!S.events.length) { if (Math.random() < (pb - p0) / Math.max(0.01, 1 - p0)) extra = 1 + Math.floor(Math.random() * (1 + t * 3)); }
-  else if (Math.random() < (b - 1) * 0.5) extra = 1;
+  if (!S.events.length) { if (Math.random() < (pb - p0) / Math.max(0.01, 1 - p0)) extra = 1 + (Math.random() < t * 0.15 ? 1 : 0); }
+  else if (Math.random() < (b - 1) * 0.25) extra = 1;
   if (!extra) return;
   const maxL = st.maxLevel();
   const pool = EVENT_DEFS.filter((e) => e.lvl <= maxL && (S.seen[e.id] || 0) < 3 && !S.events.some((x) => x.id === e.id));

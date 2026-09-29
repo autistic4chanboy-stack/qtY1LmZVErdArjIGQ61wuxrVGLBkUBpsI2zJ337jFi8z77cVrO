@@ -3,7 +3,8 @@
 //  Marthe Aubry s'est noyée au lavoir, un soir de Lavedi, en lavant le linceul
 //  de son petit. Depuis, certaines nuits, on entend battre le linge au lavoir ;
 //  et très rarement, elle surgit : un visage plein écran, un cri, une secousse
-//  (jamais deux fois de suite : il faut au moins deux jours entre deux).
+//  (une fois toutes les deux ou trois semaines, plus souvent à l'esprit sombre ;
+//  jamais deux fois de suite : au moins quatre jours entre deux).
 //  Le secret : les nuits où elle lave, un drap blanc attend au lavoir ; si l'on
 //  prend l'autre bout et qu'on tord dans son sens à elle (les vieux le savent :
 //  on le dit à qui a déjà vu son visage), elle est apaisée pour toujours.
@@ -16,6 +17,14 @@ const lavandiere = {
   sens() { return ((farm.s.seed >>> 0) % 2) ? 'gauche' : 'droite'; },
   lavoir() { const w = game.world; if (w.lavoir) return { x: w.lavoir.x, z: w.lavoir.z }; const L = w.lm.lavoir; return L ? { x: L.x, z: L.z } : null; },
   apaisee() { return !!this.S().apaise; },
+  // ------------------------------------------------------------ sa fréquence (tools/equilibrage/hasard.js)
+  // fois par heure de jeu passée éveillé la nuit (22 h – 4 h) : 0,015 dehors × bizarrerie, sept fois plus à moins de
+  // soixante pas du lavoir, deux fois plus dans le noir d'une maison sans lanterne ; soit, pour qui veille une heure ou
+  // deux chaque nuit, une fois en deux à trois semaines
+  taux(pres, noir) { return 0.015 * EV_BIZ() * (pres ? 7 : noir ? 2 : 1); },
+  ecart: 4, // jours au moins entre deux apparitions
+  premierJour: 4, // rien de tel les trois premières nuits
+
   // ------------------------------------------------------------ le visage (dessiné une fois, trois images)
   dessiner() {
     const W = 320, H = 200, frames = [];
@@ -67,7 +76,7 @@ const lavandiere = {
   surgir(force) {
     if (!farm.s || game.dying) return false;
     const S = this.S(), d = farm.s.day;
-    if (!force && (this.apaisee() || S.dernier >= d - 1 || cine.on || ui.panel || game.sleeping || game.mode !== 'play')) return false;
+    if (!force && (this.apaisee() || d < this.premierJour || d - S.dernier < this.ecart || cine.on || ui.panel || game.sleeping || game.mode !== 'play')) return false;
     if (!this.frames) this.dessiner();
     this.dom();
     S.dernier = d; S.n = (S.n || 0) + 1;
@@ -109,14 +118,13 @@ const lavandiere = {
         if (!this.ditBattoir) { this.ditBattoir = true; ui.subtitle('', '(Du côté du lavoir, quelqu’un bat le linge. À cette heure-ci.)', 4); }
       }
     }
-    // très rarement, elle surgit (plus souvent près du lavoir, ou seul dans le noir)
+    // très rarement, elle surgit (plus souvent près du lavoir, ou seul dans le noir) : un tirage toutes les cinq
+    // secondes, à la mesure des heures de jeu écoulées (voir taux)
     this.tirT = (this.tirT || 0) - dt;
     if (this.tirT <= 0) {
       this.tirT = 5;
       const w = game.world, noir = !game.lantern && (w.covered(eye[0], eye[1], eye[2]) || p.underground);
-      let pr = 0.0035 * EV_BIZ();
-      if (dL < 60) pr *= 7; else if (noir) pr *= 2;
-      if (Math.random() < pr) this.surgir(false);
+      if (Math.random() < hasardHeure(this.taux(dL < 60, noir), 5)) this.surgir(false);
     }
   },
   // les nuits où elle lave : une sur trois (et toujours les Lavedi)

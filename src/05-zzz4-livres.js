@@ -104,7 +104,7 @@ const LIVRES = {
 // objets « livre »
 for (const id in LIVRES) {
   const L = LIVRES[id];
-  defItem('livre_' + id, L.titre, 'livre', L.prix || (L.biblio ? 0 : 40), ['livre', L.col || '#6a2a24'], { book: id, desc: (L.desc || (L.biblio ? 'Un livre de la grande bibliothèque. Il faudra le rendre à temps.' : '')) + (L.biblio ? '' : '') });
+  defItem('livre_' + id, L.titre, 'livre', L.prix ? Math.round(L.prix / 2) /* revendu moitié prix */ : (L.biblio ? 0 : 40), ['livre', L.col || '#6a2a24'], { book: id, desc: (L.desc || (L.biblio ? 'Un livre de la grande bibliothèque. Il faudra le rendre à temps.' : '')) + (L.biblio ? '' : '') });
   if (L.biblio) ITEMS['livre_' + id].biblio = true;
 }
 ITEM_CAT_NAMES.livre = 'Livres';

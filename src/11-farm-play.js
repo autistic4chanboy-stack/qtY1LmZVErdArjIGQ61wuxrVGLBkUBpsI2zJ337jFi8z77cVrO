@@ -3,7 +3,7 @@
 //  posés, repas, fabrication), santé et faim, rendu des objets 3D
 // ============================================================================
 
-CROPS.pommier = { name: 'Pommier', h: 24, regrow: 8, yield: [2, 4], frost: false, col: '#c82828', tree: true, fruit: 'pomme' };
+CROPS.pommier = { name: 'Pommier', h: 96, regrow: 48, yield: [2, 4], frost: false, col: '#c82828', tree: true, fruit: 'pomme' };
 const HAND_GROUPS = [
   ['main'],
   ['hache_acier', 'hache_fer', 'hache_cuivre', 'hache_pierre'],
@@ -16,6 +16,16 @@ const HAND_GROUPS = [
   ['lanterne', 'montre', 'boussole', 'miroir_poche'],
 ];
 const TOOL_DMG = { main: 4, hache: [14, 20, 28, 38], pioche: [10, 15, 22, 30], houe: 8, faux: 16, fourche: 24, marteau: 9, canne: 2, arc: 2, cisailles: 5, seau: 3, arrosoir: 3, miroir: 2 };
+// Le corps au rythme des journées : valeurs par journée de jeu (24 h), mesurées par tools/equilibrage/survie.js.
+// Trois repas par jour (≈ 70 de faim, nuit comprise) ; la vie remonte de 60 par journée debout et deux fois plus
+// vite en dormant ; le ventre vide, elle s'en va en une demi-journée (ni d'un coup, ni sans conséquence).
+const CORPS_JOUR = {
+  faim: 70, faimCourse: 110, // la faim, debout : en marchant, en courant
+  faimNuit: 54,              // en dormant : 2,25 par heure (18 pour une nuit de huit heures)
+  soin: 60,                  // la vie qui remonte debout, le ventre plein (faim > 25) : 2,5 PV par heure
+  soinNuit: 120,             // en dormant, tant qu'il reste à manger : 5 PV par heure (40 pour une nuit)
+  famine: 200,               // le ventre vide : 100 PV en 12 heures, debout comme endormi
+};
 
 const play = {
   swingT: 0, swingHit: false, cool: 0, fish: null, bow: 0, arrows: [], flyers: [], ghost: null, rotY: 0, eatT: 0,
@@ -396,7 +406,7 @@ const play = {
     sound.cast && sound.cast();
     if (!zone) { this.fish = { x: wx, y: w.heightAt(wx, wz) + 0.05, z: wz, state: 'ground', t: 0 }; return; }
     const fast = (this.item() || {}).fast || 1;
-    this.fish = { x: wx, y: wy, z: wz, zone, state: 'wait', t: (3 + Math.random() * 8) * fast, bob: 0 };
+    this.fish = { x: wx, y: wy, z: wz, zone, state: 'wait', t: (8 + Math.random() * 20) * fast, bob: 0 }; // touche au bout de 8 à 28 s (équilibrage)
   },
   fishZone(x, z) {
     const w = game.world;
@@ -431,8 +441,8 @@ const play = {
     for (const k of cand) { r -= FISH[k].w * (FISH[k].rain && game.sky.wet > 0.3 ? 3 : 1); if (r <= 0) { pick = k; break; } }
     const r0 = Math.random();
     if (r0 < 0.05) { farm.give('fibre', 1); this.flyer('fibre', [F.x, F.y + 0.3, F.z], 1); sound.reel && sound.reel(0.5); return; }
-    if (r0 < 0.09) { farm.give('coffre_peche', 1); this.flyer('coffre_peche', [F.x, F.y + 0.3, F.z], 1); splashAt(F.x, F.y, F.z); sound.catchFish && sound.catchFish(); return; }
-    if (r0 < 0.105 && F.zone === 'lac') { farm.give('perle', 1); this.flyer('perle', [F.x, F.y + 0.3, F.z], 1); sound.catchFish && sound.catchFish(); return; }
+    if (r0 < 0.06) { farm.give('coffre_peche', 1); this.flyer('coffre_peche', [F.x, F.y + 0.3, F.z], 1); splashAt(F.x, F.y, F.z); sound.catchFish && sound.catchFish(); return; }
+    if (r0 < 0.075 && F.zone === 'lac') { farm.give('perle', 1); this.flyer('perle', [F.x, F.y + 0.3, F.z], 1); sound.catchFish && sound.catchFish(); return; }
     farm.give(pick, 1);
     farm.s.stats.fish++;
     this.flyer(pick, [F.x, F.y + 0.3, F.z], 1);
@@ -605,9 +615,9 @@ const play = {
   updateBody(dt) {
     const p = game.player, s = farm.s;
     const dayK = dt / game.world.dayLength; // fraction de journée
-    p.food = Math.max(0, p.food - dayK * (p.sprinting ? 110 : 70));
-    if (p.food <= 0) { p.hp -= dt * 0.25; if (p.hp <= 0) game.die('Mort de faim'); }
-    else if (p.food > 25 && p.hp < 100) p.hp = Math.min(100, p.hp + dt * 0.05);
+    p.food = Math.max(0, p.food - dayK * (p.sprinting ? CORPS_JOUR.faimCourse : CORPS_JOUR.faim));
+    if (p.food <= 0) { p.hp -= dayK * CORPS_JOUR.famine; if (p.hp <= 0) game.die('Mort de faim'); }
+    else if (p.food > 25 && p.hp < 100) p.hp = Math.min(100, p.hp + dayK * CORPS_JOUR.soin);
     this.hurtFlash = Math.max(0, this.hurtFlash - dt * 1.4);
     this.nausea = Math.max(0, (this.nausea || 0) - dt);
     // cœur qui bat quand on est blessé ou effrayé
@@ -619,6 +629,21 @@ const play = {
     const eye = p.eyePos(), w = game.world;
     if (eye[1] < w.waterLevel - 0.05 && w.heightAt(eye[0], eye[2]) < w.waterLevel) { p.breath -= dt / 25; if (p.breath <= 0) { p.hp -= dt * 12; this.lastHurtBy = 'Noyé'; if (p.hp <= 0) game.die('Noyé dans ' + (strange.placeName(p.pos) || 'l’eau froide')); } }
     else p.breath = Math.min(1, p.breath + dt / 3);
+  },
+  // le corps pendant une nuit de h heures de jeu (game.sleep) : la faim creuse moins qu'en veillant, la vie remonte
+  // tant qu'il reste à manger ; le ventre vide, on ne guérit plus et la faim ronge, mais on se réveille (5 PV au
+  // moins) : dormir ne sauve pas de la faim, et la mort vient debout. Une égratignure se referme pendant la nuit ;
+  // une vraie plaie, non : tant qu'elle saigne, la nuit ne soigne pas (il faut un bandage)
+  nuit(h) {
+    const p = game.player, K = CORPS_JOUR, C = typeof corps !== 'undefined' && farm.s ? corps.C() : null;
+    h = Math.max(0, +h || 0);
+    if (C && C.saigne > 0 && C.saigne < 0.25) C.saigne = 0;
+    const plaie = !!(C && C.saigne > 0);
+    const repu = Math.min(h, p.food / (K.faimNuit / 24)); // heures dormies avant que le ventre soit vide
+    p.food = Math.max(0, p.food - h * K.faimNuit / 24);
+    if (!plaie) p.hp = Math.min(100, p.hp + repu * K.soinNuit / 24);
+    if (h > repu) p.hp = Math.max(Math.min(p.hp, 5), p.hp - (h - repu) * K.famine / 24);
+    p.stamina = 1;
   },
 
   // ------------------------------------------------------------- rendu des objets 3D posés et des cultures

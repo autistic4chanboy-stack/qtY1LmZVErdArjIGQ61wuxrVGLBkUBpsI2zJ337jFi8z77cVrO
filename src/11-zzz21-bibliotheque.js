@@ -60,7 +60,8 @@ const biblio = {
     for (const k of BIBLIO.cartes) {
       const C = CARTES_REGIONS[k];
       if (!C || !ITEMS['carte_' + k]) continue;
-      out.push({ item: 'carte_' + k, carte: k, titre: C.titre, auteur: '', genre: 'Cartes', base: k === 'ancien' ? 30 : Math.max(12, Math.round(C.prix * 0.25)) });
+      // (une carte qu'on achète aussi chez les marchands : l'emprunter sept jours coûte moins de la moitié de son prix)
+      out.push({ item: 'carte_' + k, carte: k, titre: C.titre, auteur: '', genre: 'Cartes', base: k === 'ancien' ? 30 : Math.max(8, Math.round((ITEMS['carte_' + k].price || C.prix) * 0.12)) });
     }
     return out;
   },

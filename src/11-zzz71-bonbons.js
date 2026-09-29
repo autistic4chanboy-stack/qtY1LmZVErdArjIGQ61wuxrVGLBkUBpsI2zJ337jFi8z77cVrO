@@ -21,8 +21,8 @@ defItem('guimauve', 'Guimauve', 'ailleurs', 0, ['md_guimauve', '#f8b8d0', '#fffa
 defItem('sucre_orge', 'Sucre d’orge', 'ailleurs', 0, ['md_canne', '#e02848'], { desc: 'Un bâton de sucre d’orge qui poussait dans l’herbe.' });
 defItem('dragee', 'Dragées', 'ailleurs', 0, ['md_dragee', '#f4a8c8', '#a8e4c8'], { desc: 'Des cailloux de sucre, lisses et froids.' });
 defItem('gomme', 'Oursons en gomme', 'ailleurs', 0, ['md_ourson', '#e8243e'], { desc: 'Ce qui reste d’un ourson en gomme. Encore tiède.' });
-defItem('couronne_sucre', 'Couronne de sucre', 'ailleurs', 420, ['couronne', '#f6b0d0'], { desc: 'Une couronne de sucre candi, donnée par un roi de pain d’épice. Elle ne fond pas. Elle ne devrait pas exister.' });
-defItem('crin_licorne', 'Crin irisé', 'ailleurs', 260, ['md_crin', '#f0a0c0'], { desc: 'Un crin aux sept couleurs, arraché à une bête qui n’existe pas. Il est là, pourtant.' });
+defItem('couronne_sucre', 'Couronne de sucre', 'ailleurs', 210, ['couronne', '#f6b0d0'], { desc: 'Une couronne de sucre candi, donnée par un roi de pain d’épice. Elle ne fond pas. Elle ne devrait pas exister.' });
+defItem('crin_licorne', 'Crin irisé', 'ailleurs', 130, ['md_crin', '#f0a0c0'], { desc: 'Un crin aux sept couleurs, arraché à une bête qui n’existe pas. Il est là, pourtant.' });
 // ce que deviennent les bonbons quand la vision s'en va (null : rien ; même id : ça reste)
 const BONBONS_RETOUR = { barbe_a_papa: 'fibre', sucette: 'pierre', guimauve: 'champignon', sucre_orge: 'os', dragee: 'pierre', gomme: 'viande', couronne_sucre: 'couronne_sucre', crin_licorne: 'crin_licorne' };
 // on en trouve un peu partout
@@ -148,8 +148,11 @@ const pilules = {
       P.sol.push({ x: Math.round(x * 10) / 10, z: Math.round(z * 10) / 10, j: farm.s.day, n: rnd() < 0.2 ? 2 : 1, id: farm.s.day * 10 + k });
     }
     // le marchand de joie viendra-t-il ce soir ?
-    P.marchand = rnd() < 0.3 * bizarrerie() && farm.s.day >= 2 ? { j: farm.s.day, h: 19 + rnd() * 2.5 } : null;
+    P.marchand = rnd() < this.chanceMarchand(farm.s.day) ? { j: farm.s.day, h: 19 + rnd() * 2.5 } : null;
   },
+  // certains soirs seulement : un par semaine environ pour un esprit ordinaire (× bizarrerie), pas avant le quatrième
+  // jour (tools/equilibrage/hasard.js)
+  chanceMarchand(d) { return d >= 4 ? Math.min(0.5, 0.09 * bizarrerie()) : 0; },
   // ------------------------------------------------------------- pilules par terre
   updateSol(dt) {
     this.solT = (this.solT || 0) - dt;

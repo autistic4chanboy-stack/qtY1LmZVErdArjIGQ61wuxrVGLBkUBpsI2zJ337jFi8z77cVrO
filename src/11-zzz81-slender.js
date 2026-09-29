@@ -236,7 +236,8 @@ const slender = {
       this.dehors = !p.underground && !w.covered(eye[0], eye[1], eye[2]) && !strange.inEnvers();
     }
     const nuit = sky.night, brume = weather.cur.fog || 0, dansBois = this.bois >= 12;
-    // naissance d'une apparition (toutes les cinq secondes)
+    // naissance d'une apparition (un tirage toutes les cinq secondes, à la mesure des heures de jeu écoulées : la traque
+    // vient 0,06 à 0,21 fois par heure de jeu passée la nuit dans les bois, le guet 0,02 à 0,07 fois par heure ailleurs)
     this.spawnT -= dt;
     if (!this.e && this.spawnT <= 0) {
       this.spawnT = 5;
@@ -244,8 +245,8 @@ const slender = {
       const att = this.attention(), B = bizarrerie();
       if (!repit && this.dehors && s.day >= 2) {
         const pages = this.nbPages();
-        if (dansBois && pages > 0 && nuit > 0.45 && s.hours - (S.derniere || -99) > 10 && Math.random() < (0.012 + att * 0.03) * B) this.apparaitre('traque');
-        else if (!dansBois && (nuit > 0.25 || brume > 0.5 || (pages >= 4 && sky.day > 0.5 && Math.random() < 0.3)) && Math.random() < (0.004 + att * 0.01) * B) this.apparaitre('guet');
+        if (dansBois && pages > 0 && nuit > 0.45 && s.hours - (S.derniere || -99) > 10 && Math.random() < hasardHeure((0.06 + att * 0.15) * B, 5)) this.apparaitre('traque');
+        else if (!dansBois && (nuit > 0.25 || brume > 0.5 || (pages >= 4 && sky.day > 0.5 && Math.random() < 0.3)) && Math.random() < hasardHeure((0.02 + att * 0.05) * B, 5)) this.apparaitre('guet');
       }
     }
     const e = this.e;

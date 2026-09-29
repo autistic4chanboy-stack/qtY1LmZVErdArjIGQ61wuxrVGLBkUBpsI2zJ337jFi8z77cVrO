@@ -7,10 +7,12 @@
 //  fort, il crie. S'il vous rattrape, vous vous réveillez en hurlant ; si vous
 //  trouvez l'issue, vous vous réveillez en sueur. On n'y meurt pas : c'est un
 //  rêve. (Mais un objet, parfois, vous suit jusqu'au matin.)
-//  Probabilité par nuit : 1,5 % × bizarrerie() × (pilules, meurtres…).
+//  Probabilité par nuit : 2,2 % × bizarrerie() × (pilules, meurtres…), jamais
+//  deux cauchemars en trois nuits : une nuit sur quarante environ pour un esprit
+//  ordinaire (tools/equilibrage/hasard.js), bien plus à l'esprit sombre.
 //  mondes.entrer('cauchemar') : rêver tout de suite (essais).
 // ============================================================================
-defItem('dessin_reve', 'Dessin d’enfant', 'ailleurs', 60, ['md_dessin', '#2a2020'], { desc: 'Un dessin au crayon : un homme avec un sac sur la tête, qui tient la main d’un enfant. Vous l’avez rapporté d’un rêve. Au dos, votre nom, d’une écriture que vous ne connaissez pas.' });
+defItem('dessin_reve', 'Dessin d’enfant', 'ailleurs', 30, ['md_dessin', '#2a2020'], { desc: 'Un dessin au crayon : un homme avec un sac sur la tête, qui tient la main d’un enfant. Vous l’avez rapporté d’un rêve. Au dos, votre nom, d’une écriture que vous ne connaissez pas.' });
 
 const cauchemar = {
   C() { const M = mondes.S(); return M.cauchemar || (M.cauchemar = { nuits: 0, dernier: -99, pris: 0 }); },
@@ -20,9 +22,9 @@ const cauchemar = {
     if (where === 'chene') return 0;
     const C = this.C(), s = farm.s;
     const pil = typeof pilules !== 'undefined' ? pilules.risqueCauchemar() : 1;
-    if (s.day - C.dernier < 3 && pil < 5) return 0;
+    if ((s.day - C.dernier < 3 || s.day < 4) && pil < 5) return 0; // (les pilules, elles, n'attendent pas)
     const meurtres = typeof meurtresDuJoueur === 'function' ? meurtresDuJoueur() : 0;
-    return clamp(0.015 * bizarrerie() * pil * (1 + meurtres * 0.08) * (strange.killerActive() ? 1.5 : 1), 0, 0.6);
+    return clamp(0.022 * bizarrerie() * pil * (1 + meurtres * 0.08) * (strange.killerActive() ? 1.5 : 1), 0, 0.6);
   },
   // le rêve : de l'endormissement au réveil (puis la nuit continue normalement)
   async rever(where, suite) {

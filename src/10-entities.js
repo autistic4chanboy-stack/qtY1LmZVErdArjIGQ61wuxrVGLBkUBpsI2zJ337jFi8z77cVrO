@@ -258,18 +258,23 @@ const entities = {
     if (!night && !e.angry) { if (e.dist < 60) { e.hidden = false; return false; } e.hidden = true; return true; }
     e.hidden = false;
     e.angry = Math.max(0, (e.angry || 0) - dt);
+    e.recul = Math.max(0, (e.recul || 0) - dt);
     const fear = c.fire || (c.lantern && e.dist < 9);
     e.attackT = Math.max(0, e.attackT - dt);
     if (fear && e.dist < 14) { this.startFlee(e, c.px, c.pz); e.timer = 3; sound.growl && sound.growl(0.4); return false; }
     if ((e.dist < 45 && c.alive && !c.inside && !c.riding) || e.angry > 0) {
       const k = (e.pack ? e.pack.indexOf(e) : 0) / 3 * TAU + c.t * 0.25;
-      const circle = e.dist > 6 && e.attackT < 0.5 && !e.angry;
+      // la meute harcèle : après une morsure, le loup recule et tourne quelques secondes avant de revenir, et la meute
+      // ne mord qu'un loup à la fois (jamais deux morsures à moins de 1,8 s). Un homme immobile et sans lumière tient
+      // une quinzaine de secondes après la première morsure (sept avant) : le temps d'allumer la lanterne ou de fuir
+      const circle = (e.dist > 6 && e.attackT < 0.5 && !e.angry) || e.recul > 0;
       const tx = circle ? c.px + Math.sin(k) * 7 : c.px, tz = circle ? c.pz + Math.cos(k) * 7 : c.pz;
       e.heading = turnToward(e.heading, Math.atan2(tx - e.x, tz - e.z), dt * 4);
-      const sp = circle ? e.cfg.walk * 2.4 : e.cfg.run;
+      const sp = circle ? (e.recul > 0 ? e.cfg.run * 0.7 : e.cfg.walk * 2.4) : e.cfg.run;
       this.stepMove(e, dt, w, sp);
       e.move = 1; e.run = sp > 3; e.phase += dt * sp * 2.2;
-      if (!circle && e.dist < 1.2 && e.attackT <= 0) { e.attackT = 2.2; c.hurt(e.cfg.dmg, e, 'Dévoré par les loups'); }
+      const libre = !e.pack || !e.pack.some((o) => o.mordT > c.t - 1.8);
+      if (!circle && e.dist < 1.2 && e.attackT <= 0 && libre) { e.attackT = 2.2; e.mordT = c.t; e.recul = 2 + Math.random() * 2; c.hurt(e.cfg.dmg, e, 'Dévoré par les loups'); }
       if (Math.random() < dt * 0.05 && sound.howl) sound.howl(e.dist);
       return true;
     }

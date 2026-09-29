@@ -28,8 +28,9 @@ RECIPES.push({ out: 'crochets', n: 1, need: { lingot_fer: 1, cuir: 1 }, st: 'eta
   if (f && f.shop) f.shop.sells.push(['crochets', 75]);
 }
 if (typeof CRIME_DEF !== 'undefined') {
-  if (!CRIME_DEF.effraction) CRIME_DEF.effraction = { prime: 50, grav: 2, oubli: 10, violent: false };
-  if (!CRIME_DEF.intrusion) CRIME_DEF.intrusion = { prime: 20, grav: 1, oubli: 6, violent: false };
+  // (l'effraction pèse un vol ; entrer chez quelqu'un sans rien forcer, une petite amende)
+  if (!CRIME_DEF.effraction) CRIME_DEF.effraction = { prime: 150, grav: 2, oubli: 6, violent: false };
+  if (!CRIME_DEF.intrusion) CRIME_DEF.intrusion = { prime: 60, grav: 1, oubli: 3, violent: false };
   if (typeof PRISON_PEINE !== 'undefined') { PRISON_PEINE.effraction = PRISON_PEINE.effraction || 1; PRISON_PEINE.intrusion = PRISON_PEINE.intrusion || 1; }
   const _lib = societe.libelle.bind(societe);
   societe.libelle = function (C) {
@@ -178,7 +179,10 @@ const crochetage = {
         if (!m || !m.st.alive || m.sleep || m.state === 'sleep') continue;
         const dd = Math.hypot(m.x - J.x, m.z - J.z);
         if (dd > 28 || !(dd < 6 || segClear(game.world, m.x, m.z, J.x, J.z))) continue;
-        if (Math.random() < (nuit ? 0.03 : 0.12) * (dd < 10 ? 2 : 1)) { this.pris(m, false); break; }
+        // (celui qui regarde ailleurs voit moins : de face, de côté, de dos)
+        const face = ((J.x - m.x) * Math.sin(m.heading || 0) + (J.z - m.z) * Math.cos(m.heading || 0)) / (dd || 1);
+        const k = face > 0.3 ? 1 : face > -0.2 ? 0.5 : 0.2;
+        if (Math.random() < (nuit ? 0.03 : 0.12) * (dd < 10 ? 2 : 1) * k) { this.pris(m, false); break; }
       }
     }
     this.dessiner();

@@ -584,7 +584,7 @@ const NPC_DATA = [
     likes: ['viande', 'patate', 'fromage', 'champignon'], loves: ['truffe'], dislikes: ['herbes', 'poisson_aveugle'],
     shop: {
       name: 'Auberge du Coq Tordu',
-      sells: [['soupe', 15], ['ragout', 40], ['poisson_grille', 30], ['fromage', 25]],
+      sells: [['soupe', 15], ['ragout', 40], ['poisson_grille', 30], ['fromage', 60]],
       buys: ['viande', 'carpe', 'truite', 'brochet', 'perche', 'anguille', 'silure', 'champignon', 'baies', 'pomme', 'lait'],
     },
     lines: {
@@ -1401,7 +1401,7 @@ const NPC_DATA = [
     likes: ['herbes', 'champignon', 'baies', 'plume'], loves: ['bois_de_cerf'], dislikes: ['lingot_fer', 'minerai_fer'],
     shop: {
       name: 'Hutte de la guérisseuse',
-      sells: [['herbes', 12], ['champignon', 15], ['baies', 8], ['fleur', 10], ['graines_fraise', 35]],
+      sells: [['herbes', 12], ['champignon', 15], ['baies', 12], ['fleur', 10], ['graines_fraise', 35]],
       buys: ['herbes', 'champignon', 'fleur', 'baies', 'plume', 'bois_de_cerf', 'poisson_aveugle', 'figurine'],
     },
     lines: {

@@ -182,10 +182,22 @@ Object.assign(ui, {
     this.open('#shop');
     this.renderShop();
   },
+  // amitié : remise à l'achat, meilleur prix à la vente (niveaux 3 et 6)
+  shopK(lvl, buying) { return buying ? (lvl >= 6 ? 0.88 : lvl >= 3 ? 0.95 : 1) : (lvl >= 6 ? 1.1 : lvl >= 3 ? 1.05 : 1); },
   shopPrice(n, id, base, buying) {
-    const lvl = npcs.level(n);
-    const k = buying ? (lvl >= 6 ? 0.88 : lvl >= 3 ? 0.95 : 1) : (lvl >= 6 ? 1.1 : lvl >= 3 ? 1.05 : 1);
-    return Math.max(1, Math.round(base * k));
+    const p = Math.max(1, Math.round(base * this.shopK(npcs.level(n), buying)));
+    // garde-fou : on n'achète jamais au prix où l'on pourrait revendre ailleurs (aucun achat-revente gagnant)
+    return buying ? Math.max(p, this.revente(id) + 1) : p;
+  },
+  // le mieux payé pour un objet, tous rachats confondus : la caisse (prix de base, sauf les outils), un marchand qui
+  // le rachète (au mieux de l'amitié), le marchand de joie (souvenirs d'ailleurs, 120 %) ; le brocanteur paie moins
+  revente(id) {
+    const it = ITEMS[id];
+    if (!it || !(it.price > 0)) return 0;
+    let r = it.cat === 'outil' ? 0 : it.price;
+    if (it.cat === 'ailleurs') r = Math.round(it.price * 1.2);
+    if (NPC_DATA.some((d) => d.shop && d.shop.buys && (d.shop.buys.includes(id) || (FISH[id] && d.shop.buys.includes('poisson'))))) r = Math.max(r, Math.round(it.price * this.shopK(10, false)));
+    return r;
   },
   renderShop() {
     const n = this.shopN, s = farm.s, S = n.d.shop;

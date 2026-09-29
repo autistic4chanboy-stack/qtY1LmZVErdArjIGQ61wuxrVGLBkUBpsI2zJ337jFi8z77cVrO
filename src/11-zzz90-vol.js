@@ -16,32 +16,33 @@
 //  API : vol.tenter(n), vol.chance(n), vol.marques(id), vol.confisquer(),
 //        vol.recel(id) (objets volés d'un type), vol.cible(n)
 // ============================================================================
-defItem('mouchoir_brode', 'Mouchoir brodé', 'tresor', 10, ['sachet', '#ece4d8'], { desc: 'Du fil blanc sur de la batiste, et deux initiales qui ne sont pas les vôtres.' });
-defItem('tabatiere', 'Tabatière d’argent', 'tresor', 40, ['rond', '#a8a8b4'], { desc: 'Le couvercle est gravé d’un cerf. Elle sent encore le tabac de quelqu’un.' });
-defItem('couteau_poche', 'Couteau de poche', 'tresor', 25, ['cle', '#9a9aa2'], { desc: 'Un manche de corne, une lame usée à force d’être affûtée. On y tenait.' });
-defItem('medaillon_portrait', 'Médaillon à portrait', 'tresor', 80, ['medaillon', '#c8a860'], { desc: 'Sous le verre bombé, un visage minuscule, pâli. Quelqu’un l’embrassait chaque soir.' });
+defItem('mouchoir_brode', 'Mouchoir brodé', 'tresor', 5, ['sachet', '#ece4d8'], { desc: 'Du fil blanc sur de la batiste, et deux initiales qui ne sont pas les vôtres.' });
+defItem('tabatiere', 'Tabatière d’argent', 'tresor', 20, ['rond', '#a8a8b4'], { desc: 'Le couvercle est gravé d’un cerf. Elle sent encore le tabac de quelqu’un.' });
+defItem('couteau_poche', 'Couteau de poche', 'tresor', 13, ['cle', '#9a9aa2'], { desc: 'Un manche de corne, une lame usée à force d’être affûtée. On y tenait.' });
+defItem('medaillon_portrait', 'Médaillon à portrait', 'tresor', 40, ['medaillon', '#c8a860'], { desc: 'Sous le verre bombé, un visage minuscule, pâli. Quelqu’un l’embrassait chaque soir.' });
 
 // ce que portent les gens : b = pièces [min, max], m = objets du métier, p = objets personnels, r = rares, q = [quête, objet]
+// (une poche réussie : une quarantaine de pièces en moyenne ; raté, l'amende d'un vol en coûte cent cinquante)
 const VOL_POCHES = {
-  maire: { b: [18, 45], m: ['plume', 'bougie'], p: ['montre', 'tabatiere', 'mouchoir_brode'] },
-  boulangere: { b: [4, 14], m: ['pain', 'brioche', 'farine'], p: ['mouchoir_brode', 'medaillon_portrait'] },
-  forgeron: { b: [6, 18], m: ['charbon', 'lingot_cuivre'], p: ['couteau_poche', 'tabatiere'] },
-  grainetiere: { b: [5, 16], m: ['graines_ble', 'graines_carotte', 'graines_chou', 'graines_fraise'], p: ['mouchoir_brode'] },
-  aubergiste: { b: [12, 34], m: ['cidre', 'fromage'], p: ['tabatiere', 'couteau_poche'] },
-  cure: { b: [6, 22], m: ['bougie', 'eau_benite', 'chapelet_buis'], p: ['mouchoir_brode'], q: ['aubergiste_3', 'pipe'] },
-  postiere: { b: [4, 12], m: ['plume', 'bougie'], p: ['mouchoir_brode', 'couteau_poche'] },
-  garde: { b: [3, 10], m: ['pain', 'bougie'], p: ['tabatiere'] },
-  eleveuse: { b: [6, 20], m: ['foin', 'oeuf', 'corde'], p: ['couteau_poche'] },
-  pecheur: { b: [2, 8], m: ['vers', 'perche', 'gardon'], p: ['couteau_poche', 'tabatiere'] },
-  guerisseuse: { b: [1, 6], m: ['herbes', 'rosee', 'reine_pres'], p: ['chapelet_buis'] },
-  fillette: { b: [0, 2], m: [], p: ['figurine'] },
-  alchimiste: { b: [10, 30], m: ['fiole', 'sel', 'lichen'], p: ['tabatiere', 'mouchoir_brode'] },
-  libraire: { b: [6, 20], m: ['bougie', 'plume'], p: ['medaillon_portrait'] },
-  colporteur: { b: [15, 45], m: ['corde', 'bougie', 'sel', 'vieille_piece'], p: ['tabatiere'], r: ['bijou'], q: ['libraire_1', 'feuillet_perdu'] },
-  colporteuse: { b: [10, 30], m: ['toile', 'bandage', 'sel', 'fiole'], p: ['mouchoir_brode'], r: ['perle'], q: ['cure_2', 'chapelet'] },
-  chasseur: { b: [5, 15], m: ['cartouche', 'croc', 'plume_noire'], p: ['couteau_poche'], q: ['guerisseuse_2', 'dent_de_loup'] },
-  nain_ancien: { b: [20, 60], m: ['minerai_fer', 'charbon'], p: [], r: ['gemme', 'lingot_or'] },
-  nain_forgeronne: { b: [15, 40], m: ['lingot_fer', 'charbon'], p: [], r: ['gemme'] },
+  maire: { b: [27, 68], m: ['plume', 'bougie'], p: ['montre', 'tabatiere', 'mouchoir_brode'] },
+  boulangere: { b: [6, 21], m: ['pain', 'brioche', 'farine'], p: ['mouchoir_brode', 'medaillon_portrait'] },
+  forgeron: { b: [9, 27], m: ['charbon', 'lingot_cuivre'], p: ['couteau_poche', 'tabatiere'] },
+  grainetiere: { b: [8, 24], m: ['graines_ble', 'graines_carotte', 'graines_chou', 'graines_fraise'], p: ['mouchoir_brode'] },
+  aubergiste: { b: [18, 51], m: ['cidre', 'fromage'], p: ['tabatiere', 'couteau_poche'] },
+  cure: { b: [9, 33], m: ['bougie', 'eau_benite', 'chapelet_buis'], p: ['mouchoir_brode'], q: ['aubergiste_3', 'pipe'] },
+  postiere: { b: [6, 18], m: ['plume', 'bougie'], p: ['mouchoir_brode', 'couteau_poche'] },
+  garde: { b: [5, 15], m: ['pain', 'bougie'], p: ['tabatiere'] },
+  eleveuse: { b: [9, 30], m: ['foin', 'oeuf', 'corde'], p: ['couteau_poche'] },
+  pecheur: { b: [3, 12], m: ['vers', 'perche', 'gardon'], p: ['couteau_poche', 'tabatiere'] },
+  guerisseuse: { b: [2, 9], m: ['herbes', 'rosee', 'reine_pres'], p: ['chapelet_buis'] },
+  fillette: { b: [0, 3], m: [], p: ['figurine'] },
+  alchimiste: { b: [15, 45], m: ['fiole', 'sel', 'lichen'], p: ['tabatiere', 'mouchoir_brode'] },
+  libraire: { b: [9, 30], m: ['bougie', 'plume'], p: ['medaillon_portrait'] },
+  colporteur: { b: [23, 68], m: ['corde', 'bougie', 'sel', 'vieille_piece'], p: ['tabatiere'], r: ['bijou'], q: ['libraire_1', 'feuillet_perdu'] },
+  colporteuse: { b: [15, 45], m: ['toile', 'bandage', 'sel', 'fiole'], p: ['mouchoir_brode'], r: ['perle'], q: ['cure_2', 'chapelet'] },
+  chasseur: { b: [8, 23], m: ['cartouche', 'croc', 'plume_noire'], p: ['couteau_poche'], q: ['guerisseuse_2', 'dent_de_loup'] },
+  nain_ancien: { b: [30, 90], m: ['minerai_fer', 'charbon'], p: [], r: ['gemme', 'lingot_or'] },
+  nain_forgeronne: { b: [23, 60], m: ['lingot_fer', 'charbon'], p: [], r: ['gemme'] },
 };
 // le caractère : on se méfie, ou pas
 const VOL_TRAITS = { bavarde: 0.08, joviale: 0.06, pressée: 0.05, mélancolique: 0.05, patient: 0.02, joyeuse: 0.04, curieuse: -0.08, méfiant: -0.12, zélé: -0.1, dangereux: -0.12, directe: -0.04, robuste: -0.04, taciturne: -0.03, grave: -0.08, roublard: -0.15, franche: -0.03, peureux: 0.03, loyal: 0 };

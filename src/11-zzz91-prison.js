@@ -24,7 +24,7 @@ defItem('lime', 'Lime de forçat', 'quete', 0, ['cle', '#7a7a82'], { desc: 'Une 
 defItem('trousseau', 'Trousseau du geôlier', 'quete', 0, ['cle', '#5a5a62'], { desc: 'Six clés de fer sur un anneau. L’une d’elles ouvre votre grille.' });
 defItem('masse_forcat', 'Masse de forçat', 'outil', 0, ['marteau', '#6a6a70'], { tool: 'masse', desc: 'Clic : frapper le bloc. Douze blocs par jour, et la journée compte double.' });
 Object.assign(LIEU_NAMES, { cachot: 'le cachot de la ville', carriere_cachot: 'la carrière du cachot' });
-if (typeof CRIME_DEF !== 'undefined' && !CRIME_DEF.evasion) CRIME_DEF.evasion = { prime: 90, grav: 3, oubli: 20, violent: false };
+if (typeof CRIME_DEF !== 'undefined' && !CRIME_DEF.evasion) CRIME_DEF.evasion = { prime: 250, grav: 3, oubli: 12, violent: false };
 {
   const _lib = societe.libelle.bind(societe);
   societe.libelle = function (C) { return C && C.type === 'evasion' ? 'une évasion du cachot' : _lib(C); };
@@ -175,7 +175,7 @@ function addPrison(w, seed) {
 // ---------------------------------------------------------------- le geôlier
 const GEOLIER = { nom: 'Brac, le geôlier', look: { skin: '#c89a78', hair: '#6a6560', hairStyle: 'court', beard: 'longue', hat: 'casquette', hatCol: '#2a2a30', top: '#4a4238', bottom: '#2e2a26', dress: false, apron: null, coat: true, build: 'rond', height: 1.02, held: null } };
 const GEOLIER_DIT = {
-  accueil: 'Honoré Brac, geôlier. Vous en avez pour {jours}. La rançon, c’est {rancon} pièces. Ou la carrière, au petit jour : une journée de cailloux vaut deux jours de paille. Frappez à la grille quand vous vous serez décidé{e}.',
+  accueil: 'Honoré Brac, geôlier. Vous en avez pour {jours}. La rançon, c’est {rancon} pièces. Ou la carrière, au petit jour : une journée de cailloux vaut deux jours de paille. Sinon, la paille : on dort, et les jours passent. Frappez à la grille quand vous vous serez décidé{e}.',
   combien: ['Encore {jours}. Je compte pour vous, ne vous en faites pas.', 'Il vous reste {jours}. Ici, les jours sont longs, mais ils passent. Comme partout.', '{jours}, et puis la porte. Si vous êtes sage.'],
   pauvre: 'Vous n’avez pas le compte. Ici, on ne fait pas crédit : on fait des jours.',
   rancon: 'C’est bien de l’argent. Il sent la ferme. Allez, dehors. Et que je ne vous revoie pas.',
@@ -252,10 +252,16 @@ const prison = {
     const P = this.S();
     let j = 0;
     for (const C of A) j += PRISON_PEINE[C.type] || 1;
-    j += Math.floor(prime / 150) + Math.min(3, P.fois || 0);
+    // (un jour de plus par tranche de 400 pièces de prime, et par séjour déjà fait, jusqu'à trois)
+    j += Math.floor(prime / 400) + Math.min(3, P.fois || 0);
     return clamp(j, 1, 20);
   },
-  prixRancon(prime, jours) { return Math.max(30, Math.round((prime * 1.3 + jours * 20) / 5) * 5); },
+  // la rançon : la prime et un tiers, chaque jour de cachot racheté au prix de ce qu'on gagne en une demi-journée les
+  // premiers jours, et la part de la commune sur ce qu'on a en poche (un dixième) : lourde, mais payable (un vol :
+  // un peu plus d'une journée de travail des débuts ; un meurtre : une semaine, deux jours plus tard dans la partie)
+  prixRancon(prime, jours, bourse) { return Math.max(50, Math.round((prime * 1.3 + jours * 120 + (bourse || 0) * 0.1) / 5) * 5); },
+  // (les jours faits ne se rachètent plus : la rançon baisse avec la peine qui reste)
+  majRancon() { const P = this.S(); if (P && P.actif && P.jours > 0) P.rancon = this.prixRancon(P.prime || 0, P.jours, P.bourse ?? farm.s.money); },
   jours(n) { return n > 1 ? `${n} jours` : 'un jour'; },
   txt(t) { const P = this.S(); return fmtLine(String(t).replace(/\{jours\}/g, this.jours(Math.max(1, P.jours || 1))).replace(/\{rancon\}/g, String(P.rancon || 0)).replace(/\{e\}/g, farm.s.fem ? 'e' : ''), null); },
   dire(t, dur) { const s = this.txt(t); ui.subtitle(s.startsWith('(') ? '' : GEOLIER.nom, s, dur || Math.min(7, 2 + s.length * 0.045)); if (!s.startsWith('(')) sound.mumble && sound.mumble(0.8, s.length, 0); },
@@ -277,7 +283,7 @@ const prison = {
       for (const C of A) { C.leve = 'prison'; C.leveJour = s.day; }
       for (const m of npcs.list) { m.poursuite = 0; m.alerte = null; m.sommeT = 0; m.attaque = false; }
       societe.majAffiches(true);
-      Object.assign(P, { actif: true, entree: s.day, jours, total: jours, prime, rancon: this.prixRancon(prime, jours), crimes: A.map((C) => C.id), travail: null, porte: false, lime: 0, limeVue: false, liberable: false, fois: (P.fois || 0) + 1, dernierTravail: 0, visite: 0, reveilNuit: 0 });
+      Object.assign(P, { actif: true, entree: s.day, jours, total: jours, prime, bourse: s.money, rancon: this.prixRancon(prime, jours, s.money), crimes: A.map((C) => C.id), travail: null, porte: false, lime: 0, limeVue: false, liberable: false, fois: (P.fois || 0) + 1, dernierTravail: 0, visite: 0, reveilNuit: 0 });
       const pris = this.confisquer();
       this.appliquerPorte();
       this.mettreEnCellule();
@@ -419,7 +425,7 @@ const prison = {
     try {
       await ui.fade(true, 'Le geôlier vous ramène en cellule. Vos mains ne se ferment plus.', 1000);
       P.travail = null; P.dernierTravail = s.day;
-      if (ok) P.jours -= 1;
+      if (ok) { P.jours -= 1; this.majRancon(); }
       const k = farm.count('masse_forcat'); if (k) farm.take('masse_forcat', k);
       this.remettreBlocs();
       this.mettreEnCellule();
@@ -516,7 +522,7 @@ const prison = {
       sound.chain && sound.chain();
       await wait(1200);
       await ui.fade(true, 'Le geôlier vous ramène en cellule, sans douceur.', 900);
-      P.jours += 2; P.total += 2; P.rancon = this.prixRancon(P.prime + 40, P.jours);
+      P.jours += 2; P.total += 2; P.prime = (P.prime || 0) + 100; this.majRancon();
       for (const id of ['lime', 'trousseau']) { const k = farm.count(id); if (k) farm.take(id, k); }
       P.porte = false; P.lime = 0; P.limeVue = true; P.reveilNuit = farm.s.day;
       this.appliquerPorte();
@@ -581,8 +587,8 @@ const prison = {
           if (d < 6 && v > 2.4 && Math.random() < 0.3) { P.reveilNuit = farm.s.day; this.rattrape(GEOLIER_DIT.halte); return; }
         }
       }
-      // pain du matin (au jour qui se lève), soupe de midi
-      if (this.hPrev >= 0 && this.hPrev < 12 && h >= 12 && !P.travail) { this.dire(GEOLIER_DIT.soupe, 3); p.food = Math.min(100, p.food + 15); }
+      // pain du matin (au jour qui se lève), soupe de midi (une par jour : au retour de la carrière aussi)
+      if (h >= 12 && h < 20 && P.soupe !== farm.s.day && !P.travail) { P.soupe = farm.s.day; this.dire(GEOLIER_DIT.soupe, 3); p.food = Math.min(100, p.food + 15); }
       // la visite de l'être cher, le lendemain de l'arrestation, vers dix heures
       if (this.hPrev >= 0 && this.hPrev < 10 && h >= 10 && farm.s.day - (P.visite || 0) >= 2 && farm.s.day > P.entree && typeof sentiments !== 'undefined' && sentiments.visiteCachot) {
         P.visite = farm.s.day;
@@ -603,7 +609,9 @@ const prison = {
     const P = this.S(), p = game.player;
     if (!P || !P.actif) return;
     P.jours -= 1;
-    p.food = Math.min(100, p.food + 25);
+    this.majRancon();
+    // (le geôlier nourrit ses prisonniers : maigre, mais on ne meurt pas de faim au cachot, même en y dormant ses jours)
+    p.food = Math.min(100, Math.max(p.food + 25, 60));
     setTimeout(() => { if (P.actif) this.dire(GEOLIER_DIT.pain, 3); }, 3500);
     if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-2, 'le cachot', 4);
     if (P.jours <= 0) P.liberable = true;

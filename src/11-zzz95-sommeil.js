@@ -296,7 +296,8 @@ const sommeil = {
       game.skipHours(dh);
       w.time = (I.arrivee % 24) / 24; game.lastT = w.time;
       npcs.snap(w);
-      p.hp = Math.min(100, p.hp + 5 * dh); p.stamina = Math.max(p.stamina, 0.6);
+      const st0 = p.stamina;
+      play.nuit(dh); p.stamina = Math.max(st0, 0.6); // (le corps pendant ces quelques heures : la faim, la vie)
       this.reveille(dh * 1.5);
       $('#fade-text').textContent = '';
       await new Promise((r) => setTimeout(r, 700));
@@ -343,10 +344,10 @@ const sommeil = {
   },
 };
 
-// ---------------------------------------------------------------- l'étrange suit la fatigue
+// ---------------------------------------------------------------- l'étrange suit la fatigue (jamais au-delà de BIZ_MAX : 11-zzz60-esprit.js)
 {
   const _biz = bizarrerie;
-  bizarrerie = function () { const b = _biz(); try { return b * (1 + 0.5 * sommeil.k()); } catch (e) { return b; } };
+  bizarrerie = function () { const b = _biz(); try { return Math.min(BIZ_MAX, b * (1 + 0.5 * sommeil.k())); } catch (e) { return b; } };
 }
 // quand on est fatigué, les coups durs pèsent plus lourd sur la mentalité
 if (typeof esprit !== 'undefined' && esprit.changer) {

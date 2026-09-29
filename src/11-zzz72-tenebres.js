@@ -10,8 +10,8 @@
 //  mondes.entrer('tenebres', { duree (heures), durete (0..1.5) })
 // ============================================================================
 defItem('cendre', 'Cendre', 'materiau', 0, ['tas', '#8a8680'], { desc: 'Une poignée de cendre grise, légère, qui ne sent rien.' });
-defItem('coeur_noir', 'Cœur noir', 'ailleurs', 380, ['md_coeur', '#1a1418', '#a01818'], { desc: 'Un cœur de pierre noire pris sur l’autel d’une cathédrale qui n’existe pas. Parfois, il bat.' });
-defItem('oeil_verre', 'Œil de verre', 'ailleurs', 90, ['md_oeil', '#6a8a9a'], { desc: 'Un œil de verre, donné par un enfant dans une cage. Il regarde toujours quelque chose derrière vous.' });
+defItem('coeur_noir', 'Cœur noir', 'ailleurs', 190, ['md_coeur', '#1a1418', '#a01818'], { desc: 'Un cœur de pierre noire pris sur l’autel d’une cathédrale qui n’existe pas. Parfois, il bat.' });
+defItem('oeil_verre', 'Œil de verre', 'ailleurs', 45, ['md_oeil', '#6a8a9a'], { desc: 'Un œil de verre, donné par un enfant dans une cage. Il regarde toujours quelque chose derrière vous.' });
 defItem('plume_ombre', 'Plume d’ombre', 'ailleurs', 0, ['plume', '#101014'], { desc: 'Une plume si noire qu’on n’en voit pas les bords.' });
 defItem('ronce_noire', 'Ronce noire', 'ailleurs', 0, ['md_ronce', '#1a1214', '#a01414'], { desc: 'Une tige de ronce noire. Les épines sont rouges au bout.' });
 defItem('lys_cendre', 'Lys de cendre', 'ailleurs', 0, ['md_lys', '#b8b4ac'], { desc: 'Un lys gris, sec, qui s’effrite sous les doigts.' });

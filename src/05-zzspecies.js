@@ -52,7 +52,7 @@ const PLANTES2 = [
     girolle: ['champi', '#f0a838'], cepe: ['champi', '#8a5a30'], amanite: ['champi', '#e03020'], trompette: ['champi', '#2a2428'], morille: ['champi', '#9a7a50'],
     lycopode: ['herbes', '#4a8a40'], belladone_baies: ['baies', '#1a1420'], perce_neige: ['c2_fleur', '#f8f8f8', '#6ab06a'], linaigrette: ['herbes', '#f4f4f0'], ortie: ['herbes', '#3a7a30'],
     tussilage: ['c2_fleur', '#f0c020', '#a07010'], colchique: ['c2_fleur', '#d090d0', '#f0e8e8'] };
-  const PRIX = [6, 14, 30, 60, 120];
+  const PRIX = [1, 2, 5, 12, 25]; // selon la rareté (équilibrage : était 6, 14, 30, 60, 120)
   for (const [id, name, single, h, drop, hab, rar, fx] of PLANTES2) {
     OBJ_TYPES.push({ id, name, cat: ['girolle', 'cepe', 'amanite', 'trompette', 'morille'].includes(id) ? 'Champignons' : 'Fleurs', spr: ['w2_' + (id === 'belladone_s' ? 'belladone' : id)], h, col: 0, sway: 0.15, spacing: 0.9, sink: 0.04 });
     HARVEST[id] = { tool: 'main', hp: 0, drop: [drop], regrow: 30 };
@@ -66,26 +66,26 @@ for (const id of ['digitale', 'orchidee', 'pissenlit', 'reine_pres', 'achillee',
 
 // ---------------------------------------------------------------- nouveaux poissons (selon les eaux et la rareté)
 Object.assign(FISH, {
-  gardon: { name: 'Gardon', price: 10, where: ['lac', 'etang', 'riviere'], time: 'tout', w: 6, col: '#b8b8a8' },
-  rotengle: { name: 'Rotengle', price: 12, where: ['etang', 'marais'], time: 'jour', w: 5, col: '#c89868' },
-  tanche: { name: 'Tanche', price: 30, where: ['etang', 'marais'], time: 'nuit', w: 3, col: '#6a7a3a' },
-  breme: { name: 'Brème', price: 22, where: ['lac'], time: 'tout', w: 4, col: '#a89878' },
-  sandre: { name: 'Sandre', price: 85, where: ['lac', 'lac_noir'], time: 'nuit', w: 1.2, col: '#8a9a8a' },
-  chevesne: { name: 'Chevesne', price: 20, where: ['riviere'], time: 'jour', w: 4, col: '#a0a8a0' },
-  barbeau: { name: 'Barbeau', price: 35, where: ['riviere'], time: 'tout', w: 2, col: '#a88a5a' },
-  vandoise: { name: 'Vandoise', price: 14, where: ['riviere'], time: 'jour', w: 4, col: '#c0c4c8' },
-  vairon: { name: 'Vairon', price: 5, where: ['riviere', 'lac_gele'], time: 'jour', w: 6, col: '#8a9a6a' },
-  loche: { name: 'Loche franche', price: 8, where: ['riviere'], time: 'nuit', w: 3, col: '#9a8a6a' },
-  chabot: { name: 'Chabot', price: 9, where: ['riviere'], time: 'tout', w: 2, col: '#7a6a5a' },
-  saumon: { name: 'Saumon', price: 220, where: ['riviere'], time: 'jour', w: 0.3, col: '#d08878' },
-  esturgeon: { name: 'Esturgeon', price: 480, where: ['lac'], time: 'nuit', w: 0.1, col: '#6a6a6a' },
-  ecrevisse: { name: 'Écrevisse', price: 18, where: ['riviere', 'etang'], time: 'nuit', w: 4, col: '#a84a2a' },
-  ablette: { name: 'Ablette', price: 6, where: ['lac', 'riviere'], time: 'jour', w: 6, col: '#d0d4d8' },
-  carassin: { name: 'Carassin doré', price: 60, where: ['etang'], time: 'jour', w: 0.8, col: '#e0a030' },
-  poisson_chat: { name: 'Poisson-chat', price: 25, where: ['etang', 'marais'], time: 'nuit', w: 2, col: '#4a4038' },
-  lavaret: { name: 'Lavaret', price: 70, where: ['lac_gele', 'lac'], time: 'tout', w: 1.5, col: '#b8c8d0' },
-  reine_lac: { name: 'La Reine du lac', price: 900, where: ['lac'], time: 'nuit', w: 0.04, col: '#c8a040' },
-  poisson_roche: { name: 'Poisson des roches', price: 180, where: ['souterrain'], time: 'tout', w: 1, col: '#e8e0f0' },
+  gardon: { name: 'Gardon', price: 3, where: ['lac', 'etang', 'riviere'], time: 'tout', w: 6, col: '#b8b8a8' },
+  rotengle: { name: 'Rotengle', price: 3, where: ['etang', 'marais'], time: 'jour', w: 5, col: '#c89868' },
+  tanche: { name: 'Tanche', price: 8, where: ['etang', 'marais'], time: 'nuit', w: 3, col: '#6a7a3a' },
+  breme: { name: 'Brème', price: 6, where: ['lac'], time: 'tout', w: 4, col: '#a89878' },
+  sandre: { name: 'Sandre', price: 21, where: ['lac', 'lac_noir'], time: 'nuit', w: 1.2, col: '#8a9a8a' },
+  chevesne: { name: 'Chevesne', price: 5, where: ['riviere'], time: 'jour', w: 4, col: '#a0a8a0' },
+  barbeau: { name: 'Barbeau', price: 9, where: ['riviere'], time: 'tout', w: 2, col: '#a88a5a' },
+  vandoise: { name: 'Vandoise', price: 4, where: ['riviere'], time: 'jour', w: 4, col: '#c0c4c8' },
+  vairon: { name: 'Vairon', price: 1, where: ['riviere', 'lac_gele'], time: 'jour', w: 6, col: '#8a9a6a' },
+  loche: { name: 'Loche franche', price: 2, where: ['riviere'], time: 'nuit', w: 3, col: '#9a8a6a' },
+  chabot: { name: 'Chabot', price: 2, where: ['riviere'], time: 'tout', w: 2, col: '#7a6a5a' },
+  saumon: { name: 'Saumon', price: 49, where: ['riviere'], time: 'jour', w: 0.3, col: '#d08878' },
+  esturgeon: { name: 'Esturgeon', price: 105, where: ['lac'], time: 'nuit', w: 0.1, col: '#6a6a6a' },
+  ecrevisse: { name: 'Écrevisse', price: 5, where: ['riviere', 'etang'], time: 'nuit', w: 4, col: '#a84a2a' },
+  ablette: { name: 'Ablette', price: 2, where: ['lac', 'riviere'], time: 'jour', w: 6, col: '#d0d4d8' },
+  carassin: { name: 'Carassin doré', price: 15, where: ['etang'], time: 'jour', w: 0.8, col: '#e0a030' },
+  poisson_chat: { name: 'Poisson-chat', price: 6, where: ['etang', 'marais'], time: 'nuit', w: 2, col: '#4a4038' },
+  lavaret: { name: 'Lavaret', price: 18, where: ['lac_gele', 'lac'], time: 'tout', w: 1.5, col: '#b8c8d0' },
+  reine_lac: { name: 'La Reine du lac', price: 200, where: ['lac'], time: 'nuit', w: 0.04, col: '#c8a040' },
+  poisson_roche: { name: 'Poisson des roches', price: 20, where: ['souterrain'], time: 'tout', w: 1, col: '#e8e0f0' },
 });
 for (const id of ['gardon', 'rotengle', 'tanche', 'breme', 'sandre', 'chevesne', 'barbeau', 'vandoise', 'vairon', 'loche', 'chabot', 'saumon', 'esturgeon', 'ecrevisse', 'ablette', 'carassin', 'poisson_chat', 'lavaret', 'reine_lac', 'poisson_roche']) {
   defItem(id, FISH[id].name, 'poisson', FISH[id].price, ['poisson', FISH[id].col], { food: 6, heal: 2, raw: true });
@@ -98,10 +98,10 @@ const fishRarete = (id) => { const w = FISH[id].w; return w >= 4 ? 0 : w >= 2 ? 
 
 // ---------------------------------------------------------------- nouvelles bêtes
 // (leurs comportements et leurs modèles sont dans 10-zzfauna3.js : CREATURES n'existe pas encore ici)
-defItem('peau_salamandre', 'Peau de salamandre', 'materiau', 40, ['cuir', '#2a2a20'], { alch: true, desc: 'Noire et jaune, froide au toucher même au soleil.' });
-defItem('ecaille_tortue', 'Écaille de tortue', 'materiau', 35, ['os', '#5a5a3a'], { alch: true });
-defItem('plume_bleue', 'Plume de martin-pêcheur', 'materiau', 25, ['plume', '#2a90d0'], { alch: true });
-defItem('plume_aigle', 'Plume d’aigle', 'materiau', 45, ['plume', '#6a4a2a'], { alch: true, desc: 'Longue comme l’avant-bras. Les Aëlim, dit-on, en faisaient des plumes à écrire.' });
+defItem('peau_salamandre', 'Peau de salamandre', 'materiau', 8, ['cuir', '#2a2a20'], { alch: true, desc: 'Noire et jaune, froide au toucher même au soleil.' });
+defItem('ecaille_tortue', 'Écaille de tortue', 'materiau', 8, ['os', '#5a5a3a'], { alch: true });
+defItem('plume_bleue', 'Plume de martin-pêcheur', 'materiau', 5, ['plume', '#2a90d0'], { alch: true });
+defItem('plume_aigle', 'Plume d’aigle', 'materiau', 10, ['plume', '#6a4a2a'], { alch: true, desc: 'Longue comme l’avant-bras. Les Aëlim, dit-on, en faisaient des plumes à écrire.' });
 // ---------------------------------------------------------------- le catalogue (livres, peuplement)
 // bêtes : [id de créature, nom, milieux, rareté, dangereux (0-3)]
 const ESPECES_ANIMAUX = [

@@ -21,12 +21,15 @@
 // ============================================================================
 const SOC_VILLAGES = ['valbrume', 'clairpre', 'sources', 'plateau', 'nains'];
 // gravité, prime de base, jours sans récidive avant l'oubli
+// (la prime est l'amende qu'on règle à la mairie : celle d'un vol vaut une demi-journée de travail des premiers jours,
+// un meurtre trois jours ; la récidive la fait monter jusqu'au double. Une journée dure vingt minutes : un vol
+// s'oublie après six jours sans récidive, deux heures de jeu, un meurtre après trente)
 const CRIME_DEF = {
-  meurtre: { prime: 350, grav: 10, oubli: 45, violent: true },
-  agression: { prime: 60, grav: 3, oubli: 12, violent: true },
-  vol: { prime: 45, grav: 2, oubli: 10, violent: false },
-  braconnage: { prime: 30, grav: 1, oubli: 8, violent: false },
-  profanation: { prime: 140, grav: 5, oubli: 25, violent: false },
+  meurtre: { prime: 900, grav: 10, oubli: 30, violent: true },
+  agression: { prime: 200, grav: 3, oubli: 8, violent: true },
+  vol: { prime: 150, grav: 2, oubli: 6, violent: false },
+  braconnage: { prime: 80, grav: 1, oubli: 5, violent: false },
+  profanation: { prime: 300, grav: 5, oubli: 15, violent: false },
 };
 // causes de mort (faire-part, nouvelles) : [masculin, féminin]
 const SOC_CAUSES = {
@@ -204,8 +207,8 @@ const societe = {
     const S = this.S(), def = CRIME_DEF[type];
     const avant = S.crimes.filter((k) => k.leve !== 'justice' && k.leve !== 'remplace').length;
     let p = def.prime * Math.min(2, 1 + avant * 0.25);
-    if (vic && ['garde', 'maire', 'cure'].includes(vic.id)) p += type === 'meurtre' ? 150 : 25;
-    if (vic && vic.id === 'fillette') p += type === 'meurtre' ? 400 : 60;
+    if (vic && ['garde', 'maire', 'cure'].includes(vic.id)) p += type === 'meurtre' ? 400 : 60;
+    if (vic && vic.id === 'fillette') p += type === 'meurtre' ? 1000 : 150;
     return Math.round(p / 5) * 5;
   },
 
@@ -452,8 +455,10 @@ const societe = {
     // 5) prime : un chasseur de primes, parfois ; le garde passe à la ferme
     const R = this.recherche();
     S.prevu = null;
-    if (R && R.prime >= 150 && d - (S.chasseurJour || 0) >= 3 && Math.random() < clamp(0.07 + R.prime / 4000, 0, 0.25)) S.prevu = { day: d, h: 9 + Math.random() * 8 };
-    if (R && R.villages.includes('valbrume') && R.prime >= 90 && vivant('garde') && d - (S.visite || 0) >= 3) S.visite = d;
+    // (les chasseurs de primes ne se dérangent pas pour un vol : une agression et deux vols, un meurtre ; le garde
+    // monte à la ferme dès que la prime passe celle de deux vols)
+    if (R && R.prime >= 500 && d - (S.chasseurJour || 0) >= 3 && Math.random() < clamp(0.07 + R.prime / 10000, 0, 0.25)) S.prevu = { day: d, h: 9 + Math.random() * 8 };
+    if (R && R.villages.includes('valbrume') && R.prime >= 250 && vivant('garde') && d - (S.visite || 0) >= 3) S.visite = d;
     for (const n of npcs.list) { if (n.st.deuilDe && d - n.st.deuilDe.day > 6) n.st.deuilDe = null; }
     this.majAffiches(true);
   },
@@ -578,7 +583,7 @@ const societe = {
   async cachot(R) {
     const s = farm.s, w = game.world, p = game.player;
     const prime = R ? R.prime : 0, paye = Math.min(s.money, prime), manque = prime - paye;
-    const jours = clamp((R && R.meurtre ? 3 : R && R.violent ? 2 : 1) + Math.ceil(manque / 150), 1, 5);
+    const jours = clamp((R && R.meurtre ? 3 : R && R.violent ? 2 : 1) + Math.ceil(manque / 400), 1, 5);
     game.sleeping = true;
     await ui.fade(true, `On vous enferme au cachot, sous la maison du garde de ${farm.names.ville}.`, 1200);
     await new Promise((r) => setTimeout(r, 1400));

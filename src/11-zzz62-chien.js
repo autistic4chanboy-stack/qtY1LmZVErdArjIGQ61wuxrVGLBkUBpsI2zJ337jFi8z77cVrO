@@ -29,10 +29,10 @@ function chienValeur(id) {
 const CHIEN_NOMS = ['Filou', 'Médor', 'Pataud', 'Finaud', 'Mirza', 'Fidèle', 'Ravageot', 'Brisquet', 'Sultan', 'Pastis'];
 
 // ---------------------------------------------------------------- la gamelle, la pâtée, le chiot, la tombe
-PLACEABLES.gamelle = { name: 'Gamelle du chien', price: 14 };
-defItem('gamelle', 'Gamelle du chien', 'objet', 14, ['objet', 'gamelle'], { place: 'gamelle', desc: 'À poser à la ferme. E dessus avec de quoi manger en main pour la remplir : le chien y mange quand il a faim.' });
-defItem('patee', 'Pâtée pour chien', 'nourriture', 14, ['bol', '#8a6a4a'], { food: 6, heal: 0, desc: 'Des restes, de la viande, du pain trempé. Pour le chien. En principe.' });
-defItem('chiot', 'Chiot', 'objet', 120, ['animal', '#b08450'], { desc: 'Clic : l’adopter. Un chien pour la ferme (s’il n’y en a plus).' });
+PLACEABLES.gamelle = { name: 'Gamelle du chien', price: 1 };
+defItem('gamelle', 'Gamelle du chien', 'objet', 1, ['objet', 'gamelle'], { place: 'gamelle', desc: 'À poser à la ferme. E dessus avec de quoi manger en main pour la remplir : le chien y mange quand il a faim.' });
+defItem('patee', 'Pâtée pour chien', 'nourriture', 2, ['bol', '#8a6a4a'], { food: 6, heal: 0, desc: 'Des restes, de la viande, du pain trempé. Pour le chien. En principe.' });
+defItem('chiot', 'Chiot', 'objet', 60, ['animal', '#b08450'], { desc: 'Clic : l’adopter. Un chien pour la ferme (s’il n’y en a plus).' });
 RECIPES.push(
   { out: 'gamelle', n: 1, need: { bois: 2 }, st: null },
   { out: 'patee', n: 2, need: { viande: 1, pain: 1 }, st: 'feu' },
@@ -116,14 +116,14 @@ const chien = {
     s.dog.love = (s.dog.love || 0) + 1;
     const first = C.nourriJour !== s.day;
     C.nourriJour = s.day;
-    esprit.changer(main ? (first ? 1.5 : 0.4) : (first ? 0.8 : 0.2), 'chien nourri', 3);
+    esprit.changer(main ? (first ? 0.8 : 0.2) : (first ? 0.5 : 0.1), 'chien nourri', 1.2);
   },
   caresser(e) {
     const s = farm.s, C = this.C(), nom = this.nom(), st = this.stade();
     if (e) { e.wag = st < 2; e.lookY = 0; }
     sound.bark && sound.bark(0.35);
     s.dog.love = (s.dog.love || 0) + 1;
-    if (s.hours - (C.caresse ?? -99) > 2) esprit.changer(st >= 1 ? 0.3 : 0.7, 'caresser le chien', 2.1);
+    if (s.hours - (C.caresse ?? -99) > 2) esprit.changer(st >= 1 ? 0.2 : 0.4, 'caresser le chien', 0.8);
     C.caresse = s.hours;
     ui.subtitle('', st >= 2 ? `(${nom} se laisse faire. Sous la main, on sent les côtes.)` : st === 1 ? `(${nom} se laisse gratter, mais son ventre gargouille.)` : pick([`(${nom} remue la queue et vous pousse la main du museau.)`, `(${nom} se roule dans l’herbe, les pattes en l’air.)`, `(${nom} pose la tête sur votre genou et ferme les yeux.)`]), 3);
   },
