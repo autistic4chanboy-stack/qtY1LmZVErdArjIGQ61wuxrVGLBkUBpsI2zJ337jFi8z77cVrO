@@ -755,8 +755,11 @@ function fouillesGen(w, seed) {
 // ---------------------------------------------------------------- le jeu
 const fouilles = {
   enCours: null, par: new Map(), props: new Map(), hintEl: null, t: 0, libres: new Set(),
-  // étiquettes des interactions d'autres modules (activités) pour l'indice sous le réticule : kind -> fn(it) -> texte
+  // étiquettes des interactions d'autres modules (activités) pour l'indice sous le réticule : kind -> fn(it) -> texte (HTML)
   etiquettes: {},
+  // surcharges d'étiquette pour les endroits à fouiller (fn(it) -> texte HTML ou null), et gardiens qui ne sont pas des
+  // habitants (marchands du Marchedi…) : fn(it) -> { qui, texte, village } s'ils voient le vol, sinon null
+  surcharges: [], gardiens: [],
   S() {
     const s = farm.s;
     if (!s) return null;
@@ -850,7 +853,8 @@ const fouilles = {
     const own = this.proprio(it), vivant = !!(own && own.st.alive);
     const lieu = d.lieu || (vivant ? 'maison' : 'public');
     const vus = this.temoins(it, own);
-    let pris = false;
+    let pris = false, cri = null;
+    if (lieu !== 'rebut' && lieu !== 'abandon') for (const fn of this.gardiens) { try { cri = fn(it); } catch (e) { console.error(e); } if (cri) break; }
     if (lieu === 'rebut') {
       if (vus.length) { const m = vus[0]; npcs.say(m, pick(F2_TEMOIN_REBUT), 3); npcs.addAmitie(m, -5); if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-0.3, 'fouiller les ordures', 1); }
     } else if (lieu === 'abandon' || (own && !vivant)) {
@@ -859,7 +863,7 @@ const fouilles = {
     } else {
       // c'est un vol (chez quelqu'un, dans un commerce, à l'église, ou sur la marchandise d'autrui)
       this.marquer(got, vivant ? own.id : null, T);
-      if (vus.length) { this.pris(it, vivant ? own : null, vus); pris = true; }
+      if (vus.length || cri) { this.pris(it, vivant ? own : null, vus, cri); pris = true; }
       else {
         if (vivant) S.plaintes[own.id] = s.day;
         if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(T.enfant || d.t === 'tronc' ? -1.5 : -0.6, 'voler', 3);
@@ -900,8 +904,15 @@ const fouilles = {
     return out;
   },
   // pris sur le fait
-  pris(it, own, vus) {
+  pris(it, own, vus, cri) {
     const S = this.S(), p = game.player, g = npcs.byId.garde;
+    if (cri && !vus.length) {
+      ui.subtitle(cri.qui || '', cri.texte, 3.5);
+      if (own) { npcs.addAmitie(own, -60); npcs.remember(own, 'vol'); }
+      if (typeof societe !== 'undefined' && societe.crime) { try { societe.crime({ type: 'vol', victime: own ? own.id : null, x: p.pos[0], z: p.pos[2], temoins: [], preuve: cri.village || true }); if (societe.alerterGarde) societe.alerterGarde(p.pos[0], p.pos[2], 0.8); } catch (e) { console.error(e); } }
+      S.pris = (S.pris || 0) + 1;
+      return;
+    }
     if (own && vus.includes(own)) npcs.say(own, F2_CRIS[own.id] || pick(F2_CRIS._), 3.5);
     else { const a = vus[0]; npcs.say(a, fmtLine(pick(own ? F2_TEMOIN : F2_TEMOIN_PUBLIC), a, { victime: own ? own.name : '' }), 3.2); }
     for (const m of vus) { m.heading = Math.atan2(p.pos[0] - m.x, p.pos[2] - m.z); m.chatT = 0; }
@@ -1031,6 +1042,7 @@ const fouilles = {
     if (this.etiquettes[it.kind]) { try { return this.etiquettes[it.kind](it); } catch (e) { return esc(it.name || ''); } }
     if (it.kind === 'f2_trappe') return esc(it.name) + (it.data.lock && !this.ouvert(it) && !farm.count(it.data.cle) ? ' <b>— fermée à clé</b>' : '');
     if (it.kind !== 'f2') return null;
+    for (const fn of this.surcharges) { const r = fn(it); if (r) return r; }
     const d = it.data, own = this.proprio(it);
     let t = esc(it.name);
     if (this.vide(it)) return t + ' <b>— vide</b>';
