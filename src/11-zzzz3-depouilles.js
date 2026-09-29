@@ -130,13 +130,25 @@ const depouilles = {
     this.cache.delete(rec.id);
     return rec;
   },
+  // comme pointFree, mais à la hauteur donnée (sous la montagne, le sol n'est pas celui de la surface)
+  libre(x, z, y, r) {
+    const w = game.world, h = w.heightAt(x, z);
+    if (y > h - 1 && h < w.waterLevel + 0.15) return false;
+    let hit = false;
+    w.query(x, z, r + 0.6, null, (b) => {
+      if (hit || b.y > y + 1.7 || b.y + b.sy < y + 0.5) return;
+      const [lx, lz] = World.blockLocal(b, x, z);
+      if (Math.abs(lx) < b.sx / 2 + r && Math.abs(lz) < b.sz / 2 + r) hit = true;
+    });
+    return !hit;
+  },
   // un cap où la tête et les pieds ne sont ni dans un mur ni dans le vide
   cap(x, z, y, r0, L) {
     const w = game.world;
     const ok = (r) => {
       for (const k of [-1, 1]) {
         const px = x + Math.sin(r) * L * k, pz = z + Math.cos(r) * L * k;
-        if (!pointFree(w, px, pz, 0.12)) return false;
+        if (!this.libre(px, pz, y, 0.12)) return false;
         if (Math.abs(w.groundAt(px, pz, y + 0.5, 0.6) - y) > 0.45) return false;
       }
       return true;
@@ -292,7 +304,7 @@ const depouilles = {
     for (const q of r.parts) {
       if (!q.s) continue;
       if (q.name === 'skirt') q.s = [q.s[0] * 0.9, q.s[1], q.s[2] * 0.42];
-      else if (q.name === 'coatTail') q.s = [q.s[0] * 0.92, q.s[1], q.s[2] * 0.5];
+      else if (q.name === 'coatTail') q.s = [q.s[0] * 0.86, q.s[1] * 0.92, q.s[2] * 0.36];
       if (st < 2) continue;
       if (q.name === 'torso' || q.name === 'bustL') q.s = [q.s[0] * 0.94, q.s[1], q.s[2] * 0.78];
       else if (q.name === 'pelvis') q.s = [q.s[0] * 0.92, q.s[1], q.s[2] * 0.85];
@@ -661,6 +673,12 @@ const depouilles = {
         const g = a / 16 * TAU + k * 0.37, x = rec.x + Math.cos(g) * k, z = rec.z + Math.sin(g) * k, r = fosse(x, z);
         if (r !== null) return { x, y: w.heightAt(x, z), z, r, mode: dedans ? 'dehors' : 'traine' };
       }
+    }
+    // un tas de pierres : là, ou tout près, où rien ne gêne (ni table ni mur), au niveau du sol où il gît
+    const plat = (x, z) => this.libre(x, z, rec.y, 0.55) && Math.abs(w.groundAt(x, z, rec.y + 0.5, 0.6) - rec.y) < 0.4;
+    for (let k = 0; k <= 6; k++) for (let a = 0; a < (k ? 12 : 1); a++) {
+      const g = a / 12 * TAU, x = rec.x + Math.cos(g) * k * 0.8, z = rec.z + Math.sin(g) * k * 0.8;
+      if (plat(x, z)) return { x, y: w.groundAt(x, z, rec.y + 0.5, 0.6), z, r: rec.r, mode: 'pierres' };
     }
     return { x: rec.x, y: rec.y, z: rec.z, r: rec.r, mode: 'pierres' };
   },
