@@ -1,0 +1,353 @@
+// Équilibrage du commerce : points d'achat et de vente, boucles d'argent, transformations, rendements, coûts.
+//   node tools/equilibrage.js commerce
+// Tout se lit dans le jeu chargé (tables et formules réelles : ui.shopPrice, routines.hotte, alchimie.calculer…).
+'use strict';
+
+// ---------------------------------------------------------------- côté jeu : catalogue des achats et des ventes
+// (évalué dans la machine virtuelle : les const du jeu y sont visibles)
+const CATALOGUE = String.raw`(() => {
+  const NIV = [0, 3, 6, 10];
+  npcs.level = (n) => n.__niv || 0;                          // amitié simulée (0 à 10)
+  const pnj = (d, niv) => ({ id: d.id, d, name: d.name, st: { alive: true, amitie: niv * 100 }, __niv: niv });
+  const achats = [], ventes = [];
+  const prixPNJ = (d, id, p, achat) => NIV.map((v) => ui.shopPrice(pnj(d, v), id, p, achat));
+  const ACH = (ou, id, prix, note) => { if (ITEMS[id]) achats.push({ ou, id, prix: Array.isArray(prix) ? prix : [prix, prix, prix, prix], note: note || '' }); };
+  const VEN = (ou, id, prix, note) => { if (ITEMS[id] && ITEMS[id].price > 0) ventes.push({ ou, id, prix: Array.isArray(prix) ? prix : [prix, prix, prix, prix], note: note || '' }); };
+  // les colporteurs, le maire et l'aubergiste recèlent les petites choses (ajouté au chargement d'une partie : 11-zzz90-vol.js)
+  { const h = HOOKS.load.find((f) => String(f).includes('mouchoir_brode')); if (h) { const S0 = vol.S, h0 = vol.hooked; vol.S = () => ({}); vol.hooked = true; try { h(); } finally { vol.S = S0; vol.hooked = h0; } } }
+  for (const d of NPC_DATA) {
+    const S = d.shop;
+    if (!S) continue;
+    // ce qu'on achète : l'étal fixe, la graineterie du jour, la hotte des colporteurs, les reprises
+    let sells = (S.sells || []).slice();
+    if (d.id === 'grainetiere') sells = (S.base || sells.filter(([id]) => !id.startsWith('graines_'))).concat(SEED_BASE.concat(SEED_ROTATE).filter((c) => ITEMS['graines_' + c]).map((c) => ['graines_' + c, SEED_PRICE[c]]));
+    if (typeof HOTTES !== 'undefined' && HOTTES[d.id]) {
+      const H = HOTTES[d.id], base = sells, prix = (id) => { const e = base.find(([k]) => k === id); return e && e[1] > 0 ? e[1] : Math.max(1, (ITEMS[id] && ITEMS[id].price) || 10); };
+      sells = H.fonds.map((id) => [id, prix(id)]);
+      for (const k in H.ici) for (const e of H.ici[k]) sells.push([e[0], e[1], 'hotte, ' + k]);
+      for (const e of H.rares) sells.push([e[0], e[1], 'hotte, rare']);
+    }
+    for (const [id, p, note] of sells) { if (ITEMS[id] && !ITEMS[id].animal) ACH(d.id, id, prixPNJ(d, id, p, true), note); }
+    // les reprises : quand un marchand meurt, un autre reprend une part de son étal (prix de base × 1,2)
+    for (const mort in SOC_REPRISE) for (const [qui, L] of SOC_REPRISE[mort]) if (qui === d.id) for (const id of L) if (ITEMS[id] && !ITEMS[id].animal) ACH(d.id, id, prixPNJ(d, id, Math.round(societe.prixBase(id) * 1.2), true), 'reprise de ' + mort);
+    // ce qu'on vend
+    const buys = (S.buys || []).slice();
+    if (buys.includes('poisson')) for (const f in FISH) if (!buys.includes(f)) buys.push(f);
+    for (const id of buys) if (ITEMS[id] && ITEMS[id].price > 0) VEN(d.id, id, prixPNJ(d, id, ITEMS[id].price, false));
+  }
+  // les étals du Marchedi (prix fixes) et le brocanteur (trésors, 60 %)
+  for (const R of ACT_ETALS) {
+    for (const [id, p] of R.vend) ACH('étal ' + R.id, id, p);
+    if (R.achete) for (const id in ITEMS) if (ITEMS[id].cat === 'tresor' && ITEMS[id].price > 0) VEN('étal ' + R.id, id, Math.max(1, Math.round(ITEMS[id].price * 0.6)));
+  }
+  // le marchand de joie : les pilules, et il rachète les souvenirs du monde des bonbons (× 1,2)
+  ACH('marchand de joie', 'pilule_joie', 20, 'trois pour 60');
+  { const src = String(pilules.boutique); const m = /\[([^\]]*)\]\.filter\(\(id\) => ITEMS\[id\] && farm\.count/.exec(src); if (m) for (const id of eval('[' + m[1] + ']')) VEN('marchand de joie', id, Math.round(ITEMS[id].price * 1.2)); }
+  // la caisse d'expédition : le prix de base, pour tout ce qui n'est pas un outil
+  for (const id in ITEMS) if (ITEMS[id].price > 0 && ITEMS[id].cat !== 'outil') VEN('caisse', id, ITEMS[id].price);
+  return JSON.stringify({ niv: NIV, achats, ventes });
+})()`;
+
+function catalogue(J) {
+  const c = JSON.parse(J.ev(CATALOGUE));
+  const parId = (L) => { const m = {}; for (const e of L) (m[e.id] = m[e.id] || []).push(e); return m; };
+  c.A = parId(c.achats); c.V = parId(c.ventes);
+  // le moins cher à l'achat (toute amitié), le mieux payé à la vente (toute amitié)
+  c.minAchat = (id) => { let b = null; for (const e of c.A[id] || []) for (let i = 0; i < c.niv.length; i++) if (!b || e.prix[i] < b.p) b = { p: e.prix[i], ou: e.ou, niv: c.niv[i], note: e.note }; return b; };
+  c.maxVente = (id) => { let b = null; for (const e of c.V[id] || []) for (let i = 0; i < c.niv.length; i++) if (!b || e.prix[i] > b.p) b = { p: e.prix[i], ou: e.ou, niv: c.niv[i] }; return b; };
+  return c;
+}
+
+// ---------------------------------------------------------------- 1. achat-revente
+function boucles(J, c, log) {
+  const out = [];
+  for (const id in c.A) {
+    const a = c.minAchat(id), v = c.maxVente(id);
+    if (a && v && v.p >= a.p) out.push({ id, a, v, gain: v.p - a.p });
+  }
+  out.sort((x, y) => y.gain - x.gain);
+  log(`Points d'achat : ${c.achats.length} (objets : ${Object.keys(c.A).length}) ; points de vente : ${c.ventes.length} (objets : ${Object.keys(c.V).length}).`);
+  if (!out.length) log('Aucun achat-revente gagnant (ni même à prix égal), à toute amitié.');
+  else {
+    log(`${out.length} achat(s)-revente sans perte :`);
+    for (const b of out) log(`  ${b.id.padEnd(22)} acheté ${String(b.a.p).padStart(4)} (${b.a.ou}${b.a.note ? ', ' + b.a.note : ''}, amitié ${b.a.niv})  revendu ${String(b.v.p).padStart(4)} (${b.v.ou}, amitié ${b.v.niv})  gain ${b.gain}`);
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------- 3. rendements de la production honnête (modèle)
+// Les gestes et délais sont ceux du jeu (lus dans les tables et le source) ; ce qui dépend du joueur est une hypothèse,
+// écrite ici : la marche (4,4 m/s), le temps de ramasser (E), les deux passages par jour au champ, la journée active.
+const fs = require('fs');
+const path = require('path');
+const HYP = {
+  jourActif: 13,        // heures de jeu actives (6 h → 19 h, puis on dort)
+  marche: 4.4,          // m/s (10-player.js)
+  ramasser: 0.8,        // s pour viser et cueillir (E), en plus de la marche
+  voisinMax: 30,        // m : au-delà, on va d'une plante à l'autre en mêlant les espèces
+  coup: 0.48,           // s entre deux coups d'outil (11-farm-play.js, swing)
+  passages: [7, 18],    // heures des passages au champ (arrosage à chaque passage)
+  ratePeche: 0.1,       // part des touches manquées (il faut cliquer dans la seconde)
+  reaction: 0.5,        // s pour cliquer quand le bouchon plonge
+};
+const lireSource = (J, f) => fs.readFileSync(path.join(require('./vm.js').ROOT, 'src', f), 'utf8');
+
+function donnees(J) {
+  return JSON.parse(J.ev(`JSON.stringify({
+    J: JOUR_SECONDES, CROPS, SEED_PRICE, SEED_BASE, SEED_ROTATE, FISH, HARVEST, PREY, LOOT, VEINS,
+    CHASSE_BONUS: typeof CHASSE_BONUS !== 'undefined' ? CHASSE_BONUS : {},
+    items: Object.fromEntries(Object.keys(ITEMS).map((k) => [k, { p: ITEMS[k].price, cat: ITEMS[k].cat, open: ITEMS[k].open || null, fast: ITEMS[k].fast || 0, animal: ITEMS[k].animal || null }])),
+    recettes: RECIPES, machines: MACHINES, groupes: ITEM_GROUPS,
+  })`));
+}
+
+// valeur d'un objet pour qui le vend (caisse ou marchand, amitié 0) ; ce qui s'ouvre vaut ce qu'il contient
+function valeurs(D) {
+  const memo = {};
+  const v = (id, prof = 0) => {
+    if (id === 'argent') return 1;
+    if (memo[id] !== undefined) return memo[id];
+    const it = D.items[id];
+    if (!it) return 0;
+    let x = it.cat === 'outil' ? 0 : Math.max(0, it.p || 0);
+    if (it.open && prof < 3) x = Math.max(x, esperance(D, it.open, (k) => v(k, prof + 1)));
+    return (memo[id] = x);
+  };
+  return v;
+}
+// espérance d'un tirage de butin (voir rollLoot, 05-zfarm-content.js)
+function esperance(D, cle, v) {
+  const T = D.LOOT[cle] || D.LOOT.fouille;
+  const items = T.items.filter((e) => e[3] > 0 && (e[0] === 'argent' || D.items[e[0]]));
+  const tot = items.reduce((a, e) => a + e[3], 0);
+  if (!tot) return 0;
+  const n = (T.rolls[0] + T.rolls[1]) / 2;
+  let s = 0;
+  for (const [id, a, b, w] of items) { let q = 0; for (let k = a; k <= b; k++) if (k > 0) q += k; q /= (b - a + 1); s += w / tot * q * v(id); }
+  return n * s;
+}
+const moyenne = (drop, v) => drop.reduce((a, [id, m, M, p]) => a + (p === undefined ? 1 : p) * (m + M) / 2 * v(id), 0);
+
+// ---- cultures : marge par case et par jour, régime établi sur 24 jours (passages et arrosages fixes)
+function culture(D, id, v, passages = HYP.passages) {
+  const C = D.CROPS[id], s = D.SEED_PRICE[id] || 0, fruit = C.fruit || id;
+  const h = C.h, r = C.regrow || 0, y = (C.yield[0] + C.yield[1]) / 2 * (C.giant ? 1.15 : 1);
+  let g = 0, wet = -1, planted = false, rec = 0, sem = 0;
+  const jours = 24;
+  for (let t = 0; t < jours * 24; t++) {
+    const hh = t % 24;
+    if (passages.includes(hh)) {
+      if (planted && g >= h) { rec++; if (r) g = h - r; else { planted = false; g = 0; } }
+      if (!planted) { planted = true; sem++; g = 0; }
+      wet = t + 10;
+    }
+    const nuit = hh >= 20.5 || hh < 5.5;
+    if (planted && t < wet && !(C.night && !nuit)) g = Math.min(h, g + 1);
+  }
+  const retour = C.seedBack ? (C.seedBack[0] + C.seedBack[1]) / 2 : (r ? 0.05 : 0.12);
+  const marge = (rec * y * v(fruit) - Math.max(0, sem - rec * retour) * s) / jours;
+  return { id, h, r, y, p: v(fruit), s, recJ: rec / jours, marge, base: D.SEED_BASE.includes(id) };
+}
+
+// ---- pêche : durée d'une prise et valeur d'un lancer, par zone
+function peche(J, D, v) {
+  const src = lireSource(J, '11-farm-play.js');
+  const [, a, b] = src.match(/t: \(([\d.]+) \+ Math\.random\(\) \* ([\d.]+)\) \* fast/);
+  const lancer = +src.match(/this\.cool = ([\d.]+); this\.castT/)[1], ferrer = +src.match(/this\.fish = null; this\.cool = ([\d.]+);/)[1];
+  const seuils = src.match(/r0 < ([\d.]+)/g).map((x) => +x.slice(5));   // fibre, coffre, perle (au lac)
+  const attente = (+a + +b / 2);
+  const duree = (fast) => lancer + attente * fast + HYP.reaction + ferrer + HYP.ratePeche * 8 * fast;
+  const zones = {};
+  for (const k in D.FISH) for (const z of D.FISH[k].where) (zones[z] = zones[z] || []).push(k);
+  const out = [];
+  for (const z in zones) for (const nuit of [false, true]) {
+    const L = zones[z].filter((k) => !D.FISH[k].moon && (D.FISH[k].time === 'tout' || (D.FISH[k].time === 'nuit') === nuit));
+    const tw = L.reduce((x, k) => x + D.FISH[k].w, 0);
+    if (!tw) continue;
+    const moyP = L.reduce((x, k) => x + D.FISH[k].w * v(k), 0) / tw;
+    const pf = seuils[0], pc = seuils[1] - seuils[0], pp = z === 'lac' ? seuils[2] - seuils[1] : 0;
+    const parLancer = pf * v('fibre') + pc * v('coffre_peche') + pp * v('perle') + (1 - pf - pc - pp) * moyP;
+    for (const [canne, fast] of [['canne', 1], ['canne_fer', D.items.canne_fer ? D.items.canne_fer.fast : 1]]) {
+      const t = duree(fast);
+      out.push({ z, nuit, canne, moyP, parLancer, t, parS: parLancer / t, jour: parLancer / t * HYP.jourActif * D.J / 24 });
+    }
+  }
+  return { out, attente: [+a, +a + +b], duree: duree(1), dureeFer: duree(D.items.canne_fer ? D.items.canne_fer.fast : 1) };
+}
+
+// ---- bêtes : production par jour (nourries : ×1,5), valeur, retour sur le prix d'achat
+function betes(J, D, v) {
+  const P1 = eval('(' + lireSource(J, '11-farm-state.js').match(/const P = (\{[^}]*\})/)[1] + ')');
+  const P2 = eval('(' + lireSource(J, '10-zzcreatures-more.js').match(/const P = (\{[^}]*\})/)[1] + ')');
+  const P = Object.assign({}, P1, P2);
+  // ce que donne une récolte (13-main.js useAnimal, 10-zzcreatures-more.js) ; le cochon ne trouve rien sous la pluie
+  const PROD = { hen: ['oeuf', 1], cow: ['lait', 1], sheep: ['laine', 2], pig: ['truffe', 0.7 * 0.8], goat: ['lait_chevre', 1], goose: ['oeuf_oie', 1], farmduck: ['oeuf_cane', 1], farmrabbit: ['poil_lapin', 1] };
+  const out = [];
+  for (const id in D.items) {
+    const a = D.items[id].animal;
+    if (!a || !P[a] || !PROD[a]) continue;
+    const [prod, k] = PROD[a], nJ = 24 / (P[a] / 1.5) * k, nJ0 = 24 / P[a] * k;
+    const foin = a === 'hen' ? 0 : 24 / 14 * 2;   // la mangeoire : deux bottes de foin par bête (hors poules) pour 14 h
+    out.push({ id, a, prod, P: P[a], nJ, val: nJ * v(prod), val0: nJ0 * v(prod), foin, prix: D.items[id].p, retour: D.items[id].p / (nJ * v(prod)) });
+  }
+  return out;
+}
+
+// ---- cueillette, bois, pierre : d'après la densité réelle de la vallée (graine 1234, voir densite())
+function temps(nn) { return HYP.ramasser + Math.min(nn || HYP.voisinMax, HYP.voisinMax) / HYP.marche; }
+
+async function vallee1234(J) {
+  const { vallee } = require('./vm.js');
+  const w = await vallee(J, 1234);
+  const OT = J.ev('OBJ_TYPES'), H = J.ev('HARVEST'), F = w.lm.ferme;
+  const by = {};
+  w.objects.forEach((o) => { const t = OT[o.t]; if (t && H[t.id]) (by[t.id] = by[t.id] || []).push(o); });
+  const dens = {};
+  for (const id in by) {
+    const L = by[id], G = new Map(), C = 30, key = (x, z) => ((x / C) | 0) + ',' + ((z / C) | 0);
+    for (const o of L) { const k = key(o.x, o.z); if (!G.has(k)) G.set(k, []); G.get(k).push(o); }
+    const nn = [];
+    const pas = Math.max(1, Math.ceil(L.length / 2000));
+    for (let i = 0; i < L.length; i += pas) {
+      const o = L[i], cx = (o.x / C) | 0, cz = (o.z / C) | 0;
+      let best = 1e9;
+      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) for (const q of G.get((cx + dx) + ',' + (cz + dz)) || []) { if (q !== o) best = Math.min(best, Math.hypot(q.x - o.x, q.z - o.z)); }
+      nn.push(best);
+    }
+    nn.sort((a, b) => a - b);
+    const d = L.map((o) => Math.hypot(o.x - F.x, o.z - F.z));
+    dens[id] = { n: L.length, nn: nn[nn.length >> 1], pres: d.filter((x) => x < 600).length };
+  }
+  return { w, dens };
+}
+
+function cueillette(D, v, dens) {
+  const out = [];
+  for (const id in dens) {
+    const H = D.HARVEST[id];
+    if (!H || H.tool !== 'main' || !H.drop) continue;
+    const val = moyenne(H.drop, v), t = temps(dens[id].nn);
+    out.push({ id, val, t, parS: val / t, n: dens[id].n, pres: dens[id].pres, repousse: H.regrow || 0 });
+  }
+  return out;
+}
+function secouer(D, v, dens) {
+  const out = [];
+  for (const id in dens) {
+    const H = D.HARVEST[id];
+    if (!H || H.tool !== 'hache') continue;
+    let val = 0;
+    if (id === 'apple') val = 2 * v('pomme');                       // 13-main.js shakeTree : 1 à 3 pommes
+    else if (H.fruit) val = moyenne([H.fruit], v);                   // 11-zzvallee.js : les fruitiers
+    else if (['oak', 'birch', 'pine'].includes(id)) val = 0.45 * esperance(D, 'arbre', v);
+    else continue;
+    const t = temps(dens[id].nn);
+    out.push({ id, val, t, parS: val / t, n: dens[id].n, pres: dens[id].pres });
+  }
+  return out;
+}
+function bucheron(D, v, dens) {
+  const bois = v('bois'), rec = D.recettes.find((r) => r.out === 'charbon' && r.need.bois && Object.keys(r.need).length === 1);
+  const parBois = Math.max(bois, rec ? v('charbon') * rec.n / rec.need.bois : 0);
+  const out = [];
+  for (const [tier, dmg] of [[0, 1], [2, 2.2]]) {
+    const H = D.HARVEST.oak, S = D.HARVEST.stump, coups = Math.ceil(H.hp / dmg) + Math.ceil(S.hp / dmg);
+    const t = coups * HYP.coup + temps(dens.oak ? dens.oak.nn : 5) - HYP.ramasser;
+    const nb = moyenne(H.drop, () => 1) + moyenne(S.drop, () => 1);
+    out.push({ tier, t, val: nb * parBois, parS: nb * parBois / t, parBois });
+  }
+  return out;
+}
+function carrier(D, v, dens) {
+  const out = [];
+  for (const [tier, dmg] of [[0, 1], [2, 2.4]]) {
+    const H = D.HARVEST.rock, coups = Math.ceil(H.hp / dmg);
+    const t = coups * HYP.coup + temps(dens.rock ? dens.rock.nn : 14) - HYP.ramasser;
+    const val = moyenne(H.drop, v);
+    out.push({ tier, t, val, parS: val / t });
+  }
+  return out;
+}
+function chasse(D, v) {
+  const out = [];
+  for (const k of ['rabbit', 'duck', 'deer', 'roe', 'boar', 'fox', 'wolf', 'bear', 'pheasant', 'partridge', 'chamois', 'ibex', 'lievre_blanc', 'badger', 'otter', 'martre']) {
+    const P = D.PREY[k];
+    if (!P) continue;
+    const val = moyenne(P.drop || [], v) + moyenne(D.CHASSE_BONUS[k] || [], v);
+    out.push({ k, val });
+  }
+  return out;
+}
+
+async function rendements(J, log, opts = {}) {
+  const D = donnees(J), v = valeurs(D), echecs = [];
+  const h = D.J / 24, jourS = HYP.jourActif * h;
+  const f1 = (x) => (Math.round(x * 10) / 10).toFixed(1), f2 = (x) => x.toFixed(2);
+  log(`Base de temps : une journée = ${D.J} s réelles, une heure de jeu = ${h} s ; journée active ${HYP.jourActif} h = ${jourS} s.`);
+  // cultures
+  const C = Object.keys(D.CROPS).filter((id) => id !== 'pommier' && D.SEED_PRICE[id]).map((id) => culture(D, id, v));
+  C.sort((a, b) => b.marge - a.marge);
+  log(`\n## Cultures (passages à ${HYP.passages.join(' h et ')} h, arrosage à chaque passage ; marge = récoltes − graines, par case et par jour)`);
+  log('culture       pousse repousse  prix grain. récolte/j  marge/case/j');
+  for (const c of C) log(`${c.id.padEnd(13)} ${String(c.h).padStart(5)} ${String(c.r).padStart(7)} ${String(c.p).padStart(6)} ${String(c.s).padStart(5)} ${f2(c.recJ).padStart(8)} ${f1(c.marge).padStart(10)}${c.base ? '  (toujours en rayon)' : ''}`);
+  const base = C.filter((c) => c.base), meilleureBase = base[0], med = C[C.length >> 1];
+  const champ = 54;
+  log(`Champ de départ (${champ} cases labourées) avec la meilleure graine toujours en rayon (${meilleureBase.id}) : ${Math.round(champ * meilleureBase.marge)} /jour ; culture médiane (${med.id}) sur 200 cases : ${Math.round(200 * med.marge)} /jour.`);
+  const diligent = Object.keys(D.CROPS).filter((id) => id !== 'pommier' && D.SEED_PRICE[id]).map((id) => culture(D, id, v, [7, 11, 14, 18]));
+  diligent.sort((a, b) => b.marge - a.marge);
+  log(`Passages à 7, 11, 14 et 18 h (joueur assidu) : marge maximale ${f1(diligent[0].marge)} /case/jour (${diligent[0].id}).`);
+  // pêche
+  const Pe = peche(J, D, v);
+  log(`\n## Pêche (touche au bout de ${Pe.attente[0]} à ${Pe.attente[1]} s × vitesse de la canne ; une prise toutes les ${f1(Pe.duree)} s, canne de fer ${f1(Pe.dureeFer)} s ; ${Math.round(HYP.ratePeche * 100)} % de touches manquées)`);
+  log('zone          moment  canne       poisson moy.  par lancer  pièces/s   /jour actif');
+  for (const p of Pe.out) log(`${p.z.padEnd(13)} ${(p.nuit ? 'nuit' : 'jour').padEnd(6)}  ${p.canne.padEnd(10)} ${f1(p.moyP).padStart(10)} ${f1(p.parLancer).padStart(10)} ${f2(p.parS).padStart(9)} ${String(Math.round(p.jour)).padStart(10)}`);
+  log(`(un coffre englouti vaut en moyenne ${f1(v('coffre_peche'))} ; une perle ${v('perle')})`);
+  // bêtes
+  const B = betes(J, D, v);
+  log('\n## Bêtes (nourries : production × 1,5 ; foin : deux bottes par bête et par 14 h, hors poules)');
+  log('bête        prix  produit        par jour  valeur/j (sans foin)  retour (jours)');
+  for (const b of B) log(`${b.id.padEnd(10)} ${String(b.prix).padStart(5)}  ${b.prod.padEnd(12)} ${f1(b.nJ).padStart(8)} ${f1(b.val).padStart(9)} (${f1(b.val0)})  ${f1(b.retour).padStart(8)}`);
+  // la vallée (densités)
+  let dens = opts.dens;
+  if (!dens && !opts.sansVallee) { log('\n(génération de la vallée 1234 pour les densités…)'); dens = (await vallee1234(J)).dens; }
+  const R = { C, meilleureBase, champ, Pe, B, diligent, D, v };
+  if (dens) {
+    const Q = cueillette(D, v, dens).filter((q) => q.val > 0).sort((a, b) => b.parS - a.parS);
+    log(`\n## Cueillette (E ; ${HYP.ramasser} s par plante + la marche jusqu'à la suivante du même type, ${HYP.voisinMax} m au plus)`);
+    log('plante          valeur  s/plante  pièces/s  repousse  (vallée, à moins de 600 m de la ferme)');
+    for (const q of Q.slice(0, 40)) log(`${q.id.padEnd(15)} ${f1(q.val).padStart(6)} ${f1(q.t).padStart(8)} ${f2(q.parS).padStart(9)} ${String(q.repousse).padStart(6)} h   ${q.n} (${q.pres})`);
+    const pres = Q.filter((q) => q.pres > 0), totV = pres.reduce((a, q) => a + q.pres * q.val, 0), totT = pres.reduce((a, q) => a + q.pres * q.t, 0);
+    const melange = totV / totT;
+    log(`Cueillette mêlée près de la ferme (tout ce qui pousse à moins de 600 m, au prorata) : ${f2(melange)} pièce/s, ${Math.round(melange * jourS)} /jour.`);
+    const S = secouer(D, v, dens).sort((a, b) => b.parS - a.parS);
+    log('\n## Arbres secoués (une fois par jour et par arbre)');
+    for (const s of S) log(`${s.id.padEnd(12)} ${f1(s.val).padStart(6)} par arbre, ${f1(s.t)} s  → ${f2(s.parS)} pièce/s   (${s.n} arbres, ${s.pres} à moins de 600 m)`);
+    const Bu = bucheron(D, v, dens), Ca = carrier(D, v, dens);
+    log('\n## Bois (chêne + souche) et pierre (rocher)');
+    for (const b of Bu) log(`bûcheron, hache ${b.tier ? 'de fer' : 'de pierre'} : ${f1(b.t)} s par chêne, ${f1(b.val)} pièces (bûche ≈ ${f2(b.parBois)}) → ${f2(b.parS)} pièce/s`);
+    for (const c of Ca) log(`carrier, pioche ${c.tier ? 'de fer' : 'de pierre'} : ${f1(c.t)} s par rocher, ${f1(c.val)} pièces → ${f2(c.parS)} pièce/s`);
+    Object.assign(R, { Q, melange, S, Bu, Ca });
+  }
+  const Ch = chasse(D, v);
+  log('\n## Chasse (ce que rapporte une bête dépecée)');
+  log(Ch.map((c) => `${c.k} ${f1(c.val)}`).join(' · '));
+  const fouille = esperance(D, 'fouille', v);
+  log(`\n## Terre remuée (9 trous par jour, butin « fouille ») : ${f1(fouille)} par trou, ${Math.round(9 * fouille)} /jour.`);
+  Object.assign(R, { Ch, fouille });
+  return R;
+}
+
+module.exports = {
+  titre: 'Commerce : prix, étals, boucles d’argent, rendements, coûts',
+  catalogue, boucles, rendements, donnees, valeurs, esperance, HYP,
+  async verifier(J, log) {
+    let echecs = 0;
+    const c = catalogue(J);
+    log('\n# 1. Achat-revente (tous les points d’achat et de vente, amitié 0 à 10)');
+    const B = boucles(J, c, log);
+    if (B.length) echecs++;
+    log('\n# 3. Rendements (modèle)');
+    await rendements(J, log);
+    return { echecs };
+  },
+};
