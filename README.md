@@ -66,7 +66,7 @@ peut pas acheter de bêtes. (Les parties commencées avant cette version gardent
   et herbes sauvages en donnent parfois.
 - **Ce qu'on ramasse** s'affiche un instant à droite de l'écran (icône, quantité, variété, total dans la sacoche).
   **Clic maintenu** : on laboure, sème, arrose et récolte en balayant le champ ; **E maintenu** récolte à la volée.
-  Ça pousse **en heures** (un radis en 2 h de jeu, soit moins de 2 minutes ; une citrouille en 10 h), même pendant la nuit.
+  Ça pousse **en heures** (un radis en 8 h de jeu, moins de 7 minutes ; une citrouille en 40 h, deux journées), même la nuit.
   Houe de fer et arrosoirs de cuivre ou de fer travaillent 3 × 3 cases ; arroseurs, engrais et semoir accélèrent encore.
   La pluie arrose, le gel tue les jeunes pousses sensibles, l'orage couche les récoltes, la canicule assèche.
   Les corbeaux mangent les semis : un épouvantail ne protège qu'à **six mètres** autour de lui (dix pour celui de fer) ;

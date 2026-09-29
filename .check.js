@@ -2914,23 +2914,25 @@ const ITEMS = {};
 function defItem(id, name, cat, price, ic, extra) { ITEMS[id] = Object.assign({ id, name, cat, price, ic }, extra || {}); }
 
 // cultures : heures de pousse quand la terre est humide, repousse (h), récolte, sensible au gel
+// (équilibrage : pousse × 4 et repousse × 6 pour la journée de vingt minutes : un radis en 8 h, une citrouille en 40 h)
 const CROPS = {
-  radis: { name: 'Radis', h: 2, regrow: 0, yield: [1, 2], frost: false, col: '#d84060' },
-  ble: { name: 'Blé', h: 2.5, regrow: 0, yield: [2, 3], frost: false, col: '#e0c060' },
-  carotte: { name: 'Carotte', h: 3, regrow: 0, yield: [1, 2], frost: false, col: '#e87a20' },
-  lin: { name: 'Lin', h: 3, regrow: 0, yield: [2, 3], frost: false, col: '#6a8ae0' },
-  patate: { name: 'Pomme de terre', h: 4, regrow: 0, yield: [2, 4], frost: false, col: '#b89060' },
-  betterave: { name: 'Betterave', h: 4, regrow: 0, yield: [1, 2], frost: false, col: '#8a2050' },
-  haricot: { name: 'Haricots', h: 5, regrow: 2, yield: [2, 3], frost: true, col: '#5a9a3a' },
-  fraise: { name: 'Fraise', h: 5, regrow: 2.5, yield: [2, 3], frost: true, col: '#e02030' },
-  tournesol: { name: 'Tournesol', h: 5, regrow: 0, yield: [1, 1], frost: false, col: '#f0c020', seedBack: [1, 3] },
-  chou: { name: 'Chou', h: 6, regrow: 0, yield: [1, 1], frost: false, col: '#8ac060' },
-  tomate: { name: 'Tomate', h: 6, regrow: 3, yield: [2, 4], frost: true, col: '#d83020' },
-  mais: { name: 'Maïs', h: 6, regrow: 3, yield: [2, 3], frost: true, col: '#f0c030' },
-  melon: { name: 'Melon', h: 8, regrow: 0, yield: [1, 1], frost: true, col: '#7ab050' },
-  citrouille: { name: 'Citrouille', h: 10, regrow: 0, yield: [1, 1], frost: true, col: '#e88a20' },
+  radis: { name: 'Radis', h: 8, regrow: 0, yield: [1, 2], frost: false, col: '#d84060' },
+  ble: { name: 'Blé', h: 10, regrow: 0, yield: [2, 3], frost: false, col: '#e0c060' },
+  carotte: { name: 'Carotte', h: 12, regrow: 0, yield: [1, 2], frost: false, col: '#e87a20' },
+  lin: { name: 'Lin', h: 12, regrow: 0, yield: [2, 3], frost: false, col: '#6a8ae0' },
+  patate: { name: 'Pomme de terre', h: 16, regrow: 0, yield: [2, 4], frost: false, col: '#b89060' },
+  betterave: { name: 'Betterave', h: 16, regrow: 0, yield: [1, 2], frost: false, col: '#8a2050' },
+  haricot: { name: 'Haricots', h: 20, regrow: 12, yield: [2, 3], frost: true, col: '#5a9a3a' },
+  fraise: { name: 'Fraise', h: 20, regrow: 15, yield: [2, 3], frost: true, col: '#e02030' },
+  tournesol: { name: 'Tournesol', h: 20, regrow: 0, yield: [1, 1], frost: false, col: '#f0c020', seedBack: [1, 3] },
+  chou: { name: 'Chou', h: 24, regrow: 0, yield: [1, 1], frost: false, col: '#8ac060' },
+  tomate: { name: 'Tomate', h: 24, regrow: 18, yield: [2, 4], frost: true, col: '#d83020' },
+  mais: { name: 'Maïs', h: 24, regrow: 18, yield: [2, 3], frost: true, col: '#f0c030' },
+  melon: { name: 'Melon', h: 32, regrow: 0, yield: [1, 1], frost: true, col: '#7ab050' },
+  citrouille: { name: 'Citrouille', h: 40, regrow: 0, yield: [1, 1], frost: true, col: '#e88a20' },
 };
-const CROP_PRICE = { radis: 8, ble: 7, carotte: 12, lin: 6, patate: 14, betterave: 16, haricot: 10, fraise: 18, tournesol: 22, chou: 32, tomate: 14, mais: 16, melon: 60, citrouille: 85 };
+// prix de revente : 3 à 6 pièces de marge par case et par jour, graines déduites (équilibrage, tools/equilibrage/commerce.js)
+const CROP_PRICE = { radis: 3, ble: 2, carotte: 6, lin: 3, patate: 3, betterave: 7, haricot: 1, fraise: 2, tournesol: 5, chou: 19, tomate: 2, mais: 2, melon: 32, citrouille: 36 };
 const SEED_PRICE = { radis: 3, ble: 3, carotte: 5, lin: 3, patate: 7, betterave: 6, haricot: 9, fraise: 16, tournesol: 10, chou: 14, tomate: 12, mais: 12, melon: 25, citrouille: 30 };
 for (const id in CROPS) {
   const c = CROPS[id];
@@ -2939,54 +2941,55 @@ for (const id in CROPS) {
 }
 ITEMS.graines_patate.name = 'Plants de pomme de terre';
 
-defItem('oeuf', 'Œuf', 'produit', 15, ['oeuf', '#f2ede2'], { food: 6, heal: 2 });
-defItem('lait', 'Bouteille de lait', 'produit', 30, ['bouteille', '#f4f2ea'], { food: 10, heal: 4 });
-defItem('laine', 'Laine', 'produit', 45, ['laine', '#ece6d8']);
-defItem('truffe', 'Truffe', 'produit', 160, ['truffe', '#3a2a22']);
-defItem('plume', 'Plume', 'produit', 4, ['plume', '#d8d0c0']);
-defItem('miel', 'Pot de miel', 'produit', 70, ['pot', '#e8a820'], { food: 12, heal: 6 });
-defItem('champignon', 'Champignons', 'cueillette', 14, ['champi', '#c84030'], { food: 5, heal: 2 });
-defItem('baies', 'Baies', 'cueillette', 8, ['baies', '#4a50c8'], { food: 4, heal: 2 });
-defItem('fleur', 'Fleurs des champs', 'cueillette', 6, ['fleur', '#e8c040']);
-defItem('herbes', 'Herbes médicinales', 'cueillette', 18, ['herbes', '#6aa050'], { heal: 12 });
-defItem('pomme', 'Pomme', 'cueillette', 10, ['rond', '#c82828'], { food: 6, heal: 2 });
-defItem('viande', 'Viande crue', 'chasse', 25, ['viande', '#b83838'], { food: 4, heal: 0, raw: true });
-defItem('cuir', 'Cuir', 'chasse', 30, ['cuir', '#8a5a34']);
-defItem('bois_de_cerf', 'Bois de cerf', 'chasse', 90, ['cerf', '#cbb894']);
-defItem('bois', 'Bûches', 'materiau', 2, ['buche', '#8a5a34']);
-defItem('pierre', 'Pierres', 'materiau', 2, ['caillou', '#8a8a88']);
-defItem('fibre', 'Fibres', 'materiau', 1, ['fibre', '#8aa050']);
-defItem('charbon', 'Charbon', 'materiau', 10, ['charbon', '#2a2a2e']);
-defItem('minerai_cuivre', 'Minerai de cuivre', 'materiau', 12, ['minerai', '#c8743a']);
-defItem('minerai_fer', 'Minerai de fer', 'materiau', 20, ['minerai', '#9aa2ac']);
-defItem('minerai_or', "Minerai d'or", 'materiau', 45, ['minerai', '#f0c040']);
-defItem('lingot_cuivre', 'Lingot de cuivre', 'materiau', 50, ['lingot', '#c8743a']);
-defItem('lingot_fer', 'Lingot de fer', 'materiau', 80, ['lingot', '#9aa2ac']);
-defItem('lingot_acier', "Lingot d'acier", 'materiau', 180, ['lingot', '#dce4ec']);
-defItem('lingot_or', "Lingot d'or", 'materiau', 220, ['lingot', '#f0c040']);
-defItem('gemme', 'Gemme', 'materiau', 300, ['gemme', '#60c8e8']);
-defItem('foin', 'Foin', 'materiau', 3, ['foin', '#d8c07a']);
-defItem('figurine', 'Figurine de bois', 'quete', 25, ['figurine', '#8a6a44'], { desc: 'Une petite silhouette sculptée. Le visage est effacé.' });
-defItem('pain', 'Pain', 'nourriture', 15, ['pain', '#c48846'], { food: 20, heal: 6 });
-defItem('brioche', 'Brioche', 'nourriture', 25, ['brioche', '#e0a050'], { food: 22, heal: 8 });
-defItem('tarte', 'Tarte aux pommes', 'nourriture', 45, ['tarte', '#c87838'], { food: 35, heal: 15 });
-defItem('soupe', 'Soupe de légumes', 'nourriture', 35, ['bol', '#b8a040'], { food: 30, heal: 15 });
-defItem('ragout', 'Ragoût', 'nourriture', 70, ['bol', '#8a4a2a'], { food: 50, heal: 30 });
-defItem('poisson_grille', 'Poisson grillé', 'nourriture', 40, ['poisson', '#b8783a'], { food: 30, heal: 15 });
-defItem('viande_grillee', 'Viande grillée', 'nourriture', 45, ['viande', '#8a4a28'], { food: 35, heal: 15 });
-defItem('fromage', 'Fromage', 'nourriture', 60, ['fromage', '#f0d070'], { food: 25, heal: 10 });
-defItem('confiture', 'Confiture', 'nourriture', 55, ['pot', '#b82040'], { food: 20, heal: 8 });
-defItem('infusion', 'Infusion', 'nourriture', 30, ['bol', '#6aa050'], { food: 5, heal: 35 });
+defItem('oeuf', 'Œuf', 'produit', 7, ['oeuf', '#f2ede2'], { food: 6, heal: 2 });
+defItem('lait', 'Bouteille de lait', 'produit', 22, ['bouteille', '#f4f2ea'], { food: 10, heal: 4 });
+defItem('laine', 'Laine', 'produit', 30, ['laine', '#ece6d8']);
+defItem('truffe', 'Truffe', 'produit', 50, ['truffe', '#3a2a22']);
+defItem('plume', 'Plume', 'produit', 1, ['plume', '#d8d0c0']);
+defItem('miel', 'Pot de miel', 'produit', 5, ['pot', '#e8a820'], { food: 12, heal: 6 });
+defItem('champignon', 'Champignons', 'cueillette', 2, ['champi', '#c84030'], { food: 5, heal: 2 });
+defItem('baies', 'Baies', 'cueillette', 1, ['baies', '#4a50c8'], { food: 4, heal: 2 });
+defItem('fleur', 'Fleurs des champs', 'cueillette', 1, ['fleur', '#e8c040']);
+defItem('herbes', 'Herbes médicinales', 'cueillette', 3, ['herbes', '#6aa050'], { heal: 12 });
+defItem('pomme', 'Pomme', 'cueillette', 1, ['rond', '#c82828'], { food: 6, heal: 2 });
+defItem('viande', 'Viande crue', 'chasse', 5, ['viande', '#b83838'], { food: 4, heal: 0, raw: true });
+defItem('cuir', 'Cuir', 'chasse', 6, ['cuir', '#8a5a34']);
+defItem('bois_de_cerf', 'Bois de cerf', 'chasse', 20, ['cerf', '#cbb894']);
+defItem('bois', 'Bûches', 'materiau', 0, ['buche', '#8a5a34']);
+defItem('pierre', 'Pierres', 'materiau', 0, ['caillou', '#8a8a88']);
+defItem('fibre', 'Fibres', 'materiau', 0, ['fibre', '#8aa050']);
+defItem('charbon', 'Charbon', 'materiau', 1, ['charbon', '#2a2a2e']);
+defItem('minerai_cuivre', 'Minerai de cuivre', 'materiau', 4, ['minerai', '#c8743a']);
+defItem('minerai_fer', 'Minerai de fer', 'materiau', 7, ['minerai', '#9aa2ac']);
+defItem('minerai_or', "Minerai d'or", 'materiau', 16, ['minerai', '#f0c040']);
+defItem('lingot_cuivre', 'Lingot de cuivre', 'materiau', 15, ['lingot', '#c8743a']);
+defItem('lingot_fer', 'Lingot de fer', 'materiau', 25, ['lingot', '#9aa2ac']);
+defItem('lingot_acier', "Lingot d'acier", 'materiau', 61, ['lingot', '#dce4ec']);
+defItem('lingot_or', "Lingot d'or", 'materiau', 56, ['lingot', '#f0c040']);
+defItem('gemme', 'Gemme', 'materiau', 80, ['gemme', '#60c8e8']);
+defItem('foin', 'Foin', 'materiau', 0, ['foin', '#d8c07a']);
+defItem('figurine', 'Figurine de bois', 'quete', 12, ['figurine', '#8a6a44'], { desc: 'Une petite silhouette sculptée. Le visage est effacé.' });
+defItem('pain', 'Pain', 'nourriture', 2, ['pain', '#c48846'], { food: 20, heal: 6 });
+defItem('brioche', 'Brioche', 'nourriture', 9, ['brioche', '#e0a050'], { food: 22, heal: 8 });
+defItem('tarte', 'Tarte aux pommes', 'nourriture', 18, ['tarte', '#c87838'], { food: 35, heal: 15 });
+defItem('soupe', 'Soupe de légumes', 'nourriture', 4, ['bol', '#b8a040'], { food: 30, heal: 15 });
+defItem('ragout', 'Ragoût', 'nourriture', 18, ['bol', '#8a4a2a'], { food: 50, heal: 30 });
+defItem('poisson_grille', 'Poisson grillé', 'nourriture', 1, ['poisson', '#b8783a'], { food: 30, heal: 15 });
+defItem('viande_grillee', 'Viande grillée', 'nourriture', 7, ['viande', '#8a4a28'], { food: 35, heal: 15 });
+defItem('fromage', 'Fromage', 'nourriture', 43, ['fromage', '#f0d070'], { food: 25, heal: 10 });
+defItem('confiture', 'Confiture', 'nourriture', 10, ['pot', '#b82040'], { food: 20, heal: 8 });
+defItem('infusion', 'Infusion', 'nourriture', 5, ['bol', '#6aa050'], { food: 5, heal: 35 });
 
+// prix (équilibrage) : quelques pièces pour un poisson ordinaire, une prise toutes les vingt secondes environ
 const FISH = {
-  carpe: { name: 'Carpe', price: 30, where: ['lac', 'etang', 'marais'], time: 'tout', w: 5, col: '#a8904a' },
-  perche: { name: 'Perche', price: 25, where: ['lac', 'etang'], time: 'jour', w: 5, col: '#8aa05a' },
-  truite: { name: 'Truite', price: 45, where: ['lac'], time: 'jour', w: 3, col: '#b0a0a8', rain: true },
-  brochet: { name: 'Brochet', price: 70, where: ['lac'], time: 'tout', w: 2, col: '#6a8a5a' },
-  anguille: { name: 'Anguille', price: 55, where: ['marais', 'etang'], time: 'nuit', w: 3, col: '#4a4a3a' },
-  silure: { name: 'Silure', price: 120, where: ['lac'], time: 'nuit', w: 1, col: '#3a3a36' },
-  poisson_lune: { name: 'Poisson-lune', price: 400, where: ['lac'], time: 'nuit', w: 0.25, col: '#d8e0f0', moon: true },
-  poisson_aveugle: { name: 'Poisson aveugle', price: 250, where: ['mine', 'envers'], time: 'tout', w: 1, col: '#f0e8e8' },
+  carpe: { name: 'Carpe', price: 8, where: ['lac', 'etang', 'marais'], time: 'tout', w: 5, col: '#a8904a' },
+  perche: { name: 'Perche', price: 6, where: ['lac', 'etang'], time: 'jour', w: 5, col: '#8aa05a' },
+  truite: { name: 'Truite', price: 11, where: ['lac'], time: 'jour', w: 3, col: '#b0a0a8', rain: true },
+  brochet: { name: 'Brochet', price: 18, where: ['lac'], time: 'tout', w: 2, col: '#6a8a5a' },
+  anguille: { name: 'Anguille', price: 14, where: ['marais', 'etang'], time: 'nuit', w: 3, col: '#4a4a3a' },
+  silure: { name: 'Silure', price: 27, where: ['lac'], time: 'nuit', w: 1, col: '#3a3a36' },
+  poisson_lune: { name: 'Poisson-lune', price: 90, where: ['lac'], time: 'nuit', w: 0.25, col: '#d8e0f0', moon: true },
+  poisson_aveugle: { name: 'Poisson aveugle', price: 25, where: ['mine', 'envers'], time: 'tout', w: 1, col: '#f0e8e8' },
 };
 for (const id in FISH) defItem(id, FISH[id].name, 'poisson', FISH[id].price, ['poisson', FISH[id].col], { food: 6, heal: 2, raw: true });
 
@@ -3006,24 +3009,24 @@ defItem('marteau', 'Marteau', 'outil', 25, ['marteau', '#8a8680'], { tool: 'mart
 defItem('cisailles', 'Cisailles', 'outil', 70, ['cisailles', '#9aa2ac'], { tool: 'cisailles' });
 defItem('seau', 'Seau', 'outil', 40, ['seau', '#8a6a44'], { tool: 'seau' });
 defItem('lanterne', 'Lanterne', 'outil', 60, ['lanterne', '#e8b050'], { tool: 'lanterne' });
-defItem('montre', 'Montre à gousset', 'outil', 120, ['montre', '#d0b060'], { tool: 'montre' });
+defItem('montre', 'Montre à gousset', 'outil', 60, ['montre', '#d0b060'], { tool: 'montre' });
 defItem('boussole', 'Boussole', 'outil', 90, ['boussole', '#b88a50'], { tool: 'boussole' });
 
 // objets à poser (id = modèle 3D)
 const PLACEABLES = {
-  cloture: { name: 'Clôture', price: 6, snap: 2 }, cloture_pierre: { name: 'Muret de pierre', price: 12, snap: 2 }, haie: { name: 'Haie', price: 15, snap: 2 },
-  portillon: { name: 'Portillon', price: 20, snap: 2, gate: true }, epouvantail: { name: 'Épouvantail', price: 45, scare: 9 },
-  mangeoire: { name: 'Mangeoire', price: 30 }, abreuvoir: { name: 'Abreuvoir', price: 30 }, nichoir: { name: 'Nichoir', price: 25, birds: true },
-  ruche: { name: 'Ruche', price: 90 }, coffre: { name: 'Coffre', price: 40, store: true }, caisse_expedition: { name: "Caisse d'expédition", price: 60, ship: true },
-  banc: { name: 'Banc', price: 30 }, pot_fleurs: { name: 'Pot de fleurs', price: 15 }, lampadaire: { name: 'Lampadaire', price: 120, light: true },
-  statue: { name: 'Statue', price: 250 }, panneau: { name: 'Panneau', price: 12 }, allee: { name: 'Pavés', price: 3, flat: true, snap: 1 },
-  dalle: { name: 'Dalle', price: 3, flat: true, snap: 1 }, plancher: { name: 'Plancher', price: 3, flat: true, snap: 1 },
-  parterre: { name: 'Parterre fleuri', price: 25 }, jeune_pommier: { name: 'Jeune pommier', price: 80, tree: true }, table: { name: 'Table', price: 35 },
-  chaise: { name: 'Chaise', price: 15 }, girouette: { name: 'Girouette', price: 80 }, tonneau: { name: 'Tonneau', price: 25 }, brouette: { name: 'Brouette', price: 40 },
-  botte_foin: { name: 'Botte de foin', price: 10 }, arche_fleurie: { name: 'Arche fleurie', price: 60 }, puits_deco: { name: 'Puits décoratif', price: 150, water: true },
-  feu_camp: { name: 'Feu de camp', price: 10, light: true, cook: true }, niche: { name: 'Niche', price: 40 }, citrouille: { name: 'Citrouille sculptée', price: 60, light: true },
-  lanterne_sol: { name: 'Lanterne de jardin', price: 40, light: true }, piege: { name: 'Piège à lapins', price: 20, trap: true }, etabli: { name: 'Établi', price: 50, bench: true },
-  four: { name: 'Four', price: 80, furnace: true }, meule: { name: 'Meule de foin', price: 40 }, tonnelle: null,
+  cloture: { name: 'Clôture', price: 1, snap: 2 }, cloture_pierre: { name: 'Muret de pierre', price: 1, snap: 2 }, haie: { name: 'Haie', price: 1, snap: 2 },
+  portillon: { name: 'Portillon', price: 14, snap: 2, gate: true }, epouvantail: { name: 'Épouvantail', price: 1, scare: 9 },
+  mangeoire: { name: 'Mangeoire', price: 1 }, abreuvoir: { name: 'Abreuvoir', price: 1 }, nichoir: { name: 'Nichoir', price: 1, birds: true },
+  ruche: { name: 'Ruche', price: 5 }, coffre: { name: 'Coffre', price: 18, store: true }, caisse_expedition: { name: "Caisse d'expédition", price: 1, ship: true },
+  banc: { name: 'Banc', price: 1 }, pot_fleurs: { name: 'Pot de fleurs', price: 2 }, lampadaire: { name: 'Lampadaire', price: 64, light: true },
+  statue: { name: 'Statue', price: 1 }, panneau: { name: 'Panneau', price: 1 }, allee: { name: 'Pavés', price: 1, flat: true, snap: 1 },
+  dalle: { name: 'Dalle', price: 1, flat: true, snap: 1 }, plancher: { name: 'Plancher', price: 1, flat: true, snap: 1 },
+  parterre: { name: 'Parterre fleuri', price: 6 }, jeune_pommier: { name: 'Jeune pommier', price: 45, tree: true }, table: { name: 'Table', price: 1 },
+  chaise: { name: 'Chaise', price: 1 }, girouette: { name: 'Girouette', price: 36 }, tonneau: { name: 'Tonneau', price: 25 }, brouette: { name: 'Brouette', price: 30 },
+  botte_foin: { name: 'Botte de foin', price: 1 }, arche_fleurie: { name: 'Arche fleurie', price: 10 }, puits_deco: { name: 'Puits décoratif', price: 1, water: true },
+  feu_camp: { name: 'Feu de camp', price: 1, light: true, cook: true }, niche: { name: 'Niche', price: 1 }, citrouille: { name: 'Citrouille sculptée', price: 47, light: true },
+  lanterne_sol: { name: 'Lanterne de jardin', price: 22, light: true }, piege: { name: 'Piège à lapins', price: 1, trap: true }, etabli: { name: 'Établi', price: 1, bench: true },
+  four: { name: 'Four', price: 1, furnace: true }, meule: { name: 'Meule de foin', price: 1 }, tonnelle: null,
 };
 delete PLACEABLES.tonnelle;
 for (const id in PLACEABLES) {
@@ -3043,7 +3046,7 @@ defItem('lettre', 'Lettre', 'quete', 0, ['lettre', '#e8e0c8'], { unique: true })
 defItem('cle_crypte', "Clé d'os", 'quete', 0, ['cle', '#e8e0c8'], { desc: 'Froide. Elle ne vient pas d’ici.' });
 defItem('masque', 'Masque de toile', 'quete', 0, ['masque', '#e8e0d0'], { desc: 'Taché. Il sent la terre et le fer.' });
 defItem('registre', 'Registre des versions', 'quete', 0, ['livre', '#3a2a24']);
-defItem('bougie', 'Bougie', 'materiau', 8, ['bougie', '#f0e8d0']);
+defItem('bougie', 'Bougie', 'materiau', 3, ['bougie', '#f0e8d0']);
 
 const ITEM_CAT_NAMES = {
   outil: 'Outils', graine: 'Graines', culture: 'Récoltes', produit: 'Produits de la ferme', cueillette: 'Cueillette', chasse: 'Chasse',
@@ -3724,7 +3727,7 @@ const NPC_DATA = [
     likes: ['viande', 'patate', 'fromage', 'champignon'], loves: ['truffe'], dislikes: ['herbes', 'poisson_aveugle'],
     shop: {
       name: 'Auberge du Coq Tordu',
-      sells: [['soupe', 15], ['ragout', 40], ['poisson_grille', 30], ['fromage', 25]],
+      sells: [['soupe', 15], ['ragout', 40], ['poisson_grille', 30], ['fromage', 60]],
       buys: ['viande', 'carpe', 'truite', 'brochet', 'perche', 'anguille', 'silure', 'champignon', 'baies', 'pomme', 'lait'],
     },
     lines: {
@@ -4541,7 +4544,7 @@ const NPC_DATA = [
     likes: ['herbes', 'champignon', 'baies', 'plume'], loves: ['bois_de_cerf'], dislikes: ['lingot_fer', 'minerai_fer'],
     shop: {
       name: 'Hutte de la guérisseuse',
-      sells: [['herbes', 12], ['champignon', 15], ['baies', 8], ['fleur', 10], ['graines_fraise', 35]],
+      sells: [['herbes', 12], ['champignon', 15], ['baies', 12], ['fleur', 10], ['graines_fraise', 35]],
       buys: ['herbes', 'champignon', 'fleur', 'baies', 'plume', 'bois_de_cerf', 'poisson_aveugle', 'figurine'],
     },
     lines: {
@@ -5539,48 +5542,48 @@ function worldFromJSON(data) {
 // ============================================================================
 
 // ---------------------------------------------------------------- trésors, trophées, curiosités
-defItem('vieille_piece', 'Vieille pièce', 'tresor', 40, ['rond', '#c8a040'], { desc: 'Une pièce frappée d’un roi dont personne ne se souvient.' });
-defItem('tesson', 'Tesson de poterie', 'tresor', 18, ['caillou', '#b87850'], { desc: 'Un morceau de pot peint. Il y avait un visage dessus.' });
-defItem('bijou', 'Bijou ancien', 'tresor', 160, ['gemme', '#e0a8e8']);
-defItem('relique', 'Relique', 'tresor', 260, ['figurine', '#e0d8a8'], { desc: 'Un petit reliquaire de cuivre. Il est plus lourd qu’il ne devrait.' });
-defItem('fossile', 'Fossile', 'tresor', 120, ['caillou', '#d8d0b8']);
-defItem('perle', 'Perle', 'tresor', 220, ['oeuf', '#f4f4ff']);
-defItem('croc', 'Croc de loup', 'chasse', 45, ['plume', '#ece4cc']);
-defItem('defense', 'Défense de sanglier', 'chasse', 55, ['cerf', '#ece4cc']);
-defItem('fourrure', 'Fourrure de renard', 'chasse', 70, ['cuir', '#c8652a']);
-defItem('plume_noire', 'Plume noire', 'chasse', 8, ['plume', '#2a2a30']);
+defItem('vieille_piece', 'Vieille pièce', 'tresor', 20, ['rond', '#c8a040'], { desc: 'Une pièce frappée d’un roi dont personne ne se souvient.' });
+defItem('tesson', 'Tesson de poterie', 'tresor', 9, ['caillou', '#b87850'], { desc: 'Un morceau de pot peint. Il y avait un visage dessus.' });
+defItem('bijou', 'Bijou ancien', 'tresor', 80, ['gemme', '#e0a8e8']);
+defItem('relique', 'Relique', 'tresor', 130, ['figurine', '#e0d8a8'], { desc: 'Un petit reliquaire de cuivre. Il est plus lourd qu’il ne devrait.' });
+defItem('fossile', 'Fossile', 'tresor', 60, ['caillou', '#d8d0b8']);
+defItem('perle', 'Perle', 'tresor', 110, ['oeuf', '#f4f4ff']);
+defItem('croc', 'Croc de loup', 'chasse', 8, ['plume', '#ece4cc']);
+defItem('defense', 'Défense de sanglier', 'chasse', 10, ['cerf', '#ece4cc']);
+defItem('fourrure', 'Fourrure de renard', 'chasse', 12, ['cuir', '#c8652a']);
+defItem('plume_noire', 'Plume noire', 'chasse', 1, ['plume', '#2a2a30']);
 defItem('eclat', "Éclat de l'Envers", 'tresor', 0, ['gemme', '#b01818'], { desc: 'Froid comme une nuit rouge. Il bat, un peu.' });
 // objets qu'on ouvre (clic)
 defItem('coffre_peche', 'Coffre englouti', 'tresor', 0, ['objet', 'coffre'], { open: 'peche', desc: 'Remonté du fond. Il ruisselle encore.' });
-defItem('geode', 'Géode', 'tresor', 20, ['caillou', '#7a7a92'], { open: 'geode', desc: 'Une pierre creuse. Quelque chose brille à l’intérieur.' });
+defItem('geode', 'Géode', 'tresor', 10, ['caillou', '#7a7a92'], { open: 'geode', desc: 'Une pierre creuse. Quelque chose brille à l’intérieur.' });
 defItem('sac_graines', 'Sac de graines', 'graine', 0, ['sac', '#8a6a44'], { open: 'graines', desc: 'Un vieux sac noué. Des graines mélangées.' });
 defItem('caisse_vivres', 'Caisse de vivres', 'nourriture', 0, ['objet', 'coffre'], { open: 'vivres' });
 // matières
-defItem('corde', 'Corde', 'materiau', 12, ['fibre', '#b89060']);
-defItem('toile', 'Toile de lin', 'materiau', 22, ['cuir', '#e4dcc4']);
-defItem('farine', 'Farine', 'materiau', 12, ['sac', '#f2eee2']);
-defItem('engrais', 'Engrais', 'materiau', 6, ['sac', '#5a4a30'], { fert: 1, desc: 'Sur une culture : elle pousse une fois et demie plus vite.' });
-defItem('engrais_riche', 'Engrais riche', 'materiau', 16, ['sac', '#2e2216'], { fert: 2, desc: 'Sur une culture : elle pousse deux fois plus vite.' });
+defItem('corde', 'Corde', 'materiau', 1, ['fibre', '#b89060']);
+defItem('toile', 'Toile de lin', 'materiau', 1, ['cuir', '#e4dcc4']);
+defItem('farine', 'Farine', 'materiau', 3, ['sac', '#f2eee2']);
+defItem('engrais', 'Engrais', 'materiau', 1, ['sac', '#5a4a30'], { fert: 1, desc: 'Sur une culture : elle pousse une fois et demie plus vite.' });
+defItem('engrais_riche', 'Engrais riche', 'materiau', 3, ['sac', '#2e2216'], { fert: 2, desc: 'Sur une culture : elle pousse deux fois plus vite.' });
 // produits transformés
-defItem('cidre', 'Cidre', 'nourriture', 55, ['bouteille', '#d8a040'], { food: 8, heal: 6 });
-defItem('vin', 'Vin de fruits', 'nourriture', 95, ['bouteille', '#8a2040'], { food: 6, heal: 4 });
-defItem('beurre', 'Beurre', 'produit', 45, ['fromage', '#f8e880'], { food: 10, heal: 2 });
-defItem('huile', 'Huile de tournesol', 'produit', 65, ['bouteille', '#f0d040']);
-defItem('jus', 'Jus de légumes', 'nourriture', 42, ['bouteille', '#d86030'], { food: 12, heal: 8 });
-defItem('poisson_fume', 'Poisson fumé', 'nourriture', 80, ['poisson', '#8a5a2a'], { food: 28, heal: 12 });
-defItem('viande_fumee', 'Viande fumée', 'nourriture', 75, ['viande', '#6a3a1a'], { food: 30, heal: 12 });
+defItem('cidre', 'Cidre', 'nourriture', 4, ['bouteille', '#d8a040'], { food: 8, heal: 6 });
+defItem('vin', 'Vin de fruits', 'nourriture', 5, ['bouteille', '#8a2040'], { food: 6, heal: 4 });
+defItem('beurre', 'Beurre', 'produit', 30, ['fromage', '#f8e880'], { food: 10, heal: 2 });
+defItem('huile', 'Huile de tournesol', 'produit', 12, ['bouteille', '#f0d040']);
+defItem('jus', 'Jus de légumes', 'nourriture', 4, ['bouteille', '#d86030'], { food: 12, heal: 8 });
+defItem('poisson_fume', 'Poisson fumé', 'nourriture', 1, ['poisson', '#8a5a2a'], { food: 28, heal: 12 });
+defItem('viande_fumee', 'Viande fumée', 'nourriture', 7, ['viande', '#6a3a1a'], { food: 30, heal: 12 });
 // cuisine
-defItem('omelette', 'Omelette', 'nourriture', 35, ['bol', '#f0d060'], { food: 22, heal: 10 });
-defItem('crepes', 'Crêpes', 'nourriture', 50, ['pain', '#e8c070'], { food: 28, heal: 12 });
-defItem('gateau', 'Gâteau au miel', 'nourriture', 120, ['brioche', '#d89040'], { food: 40, heal: 25 });
-defItem('salade', 'Salade du jardin', 'nourriture', 55, ['bol', '#7ab050'], { food: 18, heal: 15 });
-defItem('soupe_poisson', 'Soupe de poisson', 'nourriture', 75, ['bol', '#c8a060'], { food: 38, heal: 20 });
-defItem('tarte_citrouille', 'Tarte à la citrouille', 'nourriture', 170, ['tarte', '#e88a20'], { food: 45, heal: 25 });
-defItem('popcorn', 'Maïs grillé', 'nourriture', 40, ['baies', '#f8f0c0'], { food: 12, heal: 4 });
-defItem('brochette', 'Brochette', 'nourriture', 85, ['viande', '#a86030'], { food: 40, heal: 20 });
-defItem('salade_fruits', 'Salade de fruits', 'nourriture', 60, ['bol', '#e05060'], { food: 16, heal: 14 });
-defItem('tisane', 'Tisane au miel', 'nourriture', 65, ['bol', '#a8c060'], { food: 6, heal: 40, stamina: 1 });
-defItem('pain_mais', 'Pain de maïs', 'nourriture', 45, ['pain', '#f0c040'], { food: 24, heal: 8 });
+defItem('omelette', 'Omelette', 'nourriture', 18, ['bol', '#f0d060'], { food: 22, heal: 10 });
+defItem('crepes', 'Crêpes', 'nourriture', 21, ['pain', '#e8c070'], { food: 28, heal: 12 });
+defItem('gateau', 'Gâteau au miel', 'nourriture', 25, ['brioche', '#d89040'], { food: 40, heal: 25 });
+defItem('salade', 'Salade du jardin', 'nourriture', 8, ['bol', '#7ab050'], { food: 18, heal: 15 });
+defItem('soupe_poisson', 'Soupe de poisson', 'nourriture', 5, ['bol', '#c8a060'], { food: 38, heal: 20 });
+defItem('tarte_citrouille', 'Tarte à la citrouille', 'nourriture', 60, ['tarte', '#e88a20'], { food: 45, heal: 25 });
+defItem('popcorn', 'Maïs grillé', 'nourriture', 3, ['baies', '#f8f0c0'], { food: 12, heal: 4 });
+defItem('brochette', 'Brochette', 'nourriture', 9, ['viande', '#a86030'], { food: 40, heal: 20 });
+defItem('salade_fruits', 'Salade de fruits', 'nourriture', 4, ['bol', '#e05060'], { food: 16, heal: 14 });
+defItem('tisane', 'Tisane au miel', 'nourriture', 10, ['bol', '#a8c060'], { food: 6, heal: 40, stamina: 1 });
+defItem('pain_mais', 'Pain de maïs', 'nourriture', 7, ['pain', '#f0c040'], { food: 24, heal: 8 });
 // outils améliorés et équipement (certains agissent sur 3 × 3 cases)
 defItem('houe_fer', 'Houe de fer', 'outil', 220, ['houe', '#9aa2ac'], { tool: 'houe', area: 1, tier: 1 });
 defItem('arrosoir_cuivre', 'Arrosoir de cuivre', 'outil', 160, ['arrosoir', '#c8743a'], { tool: 'arrosoir', area: 1, cap: 40, tier: 1 });
@@ -5596,15 +5599,15 @@ defItem('miroir_poche', 'Miroir de poche', 'outil', 0, ['montre', '#b8b8c8'], { 
 
 // ---------------------------------------------------------------- objets à poser en plus (machines, arrosage, décor)
 Object.assign(PLACEABLES, {
-  arroseur: { name: 'Arroseur', price: 120, sprinkler: 1 }, arroseur_fer: { name: 'Arroseur de fer', price: 300, sprinkler: 2 },
-  composteur: { name: 'Composteur', price: 60, machine: true }, baratte: { name: 'Baratte', price: 90, machine: true },
-  fumoir: { name: 'Fumoir', price: 150, machine: true }, presse: { name: 'Presse', price: 140, machine: true },
-  moulin_a_bras: { name: 'Moulin à bras', price: 80, machine: true },
-  horloge: { name: 'Horloge de jardin', price: 160 }, nain_jardin: { name: 'Nain de jardin', price: 30 }, bassin: { name: 'Bassin', price: 90, water: true },
-  fontaine_jardin: { name: 'Fontaine', price: 220, water: true }, tapis: { name: 'Tapis', price: 40, flat: true }, banc_pierre: { name: 'Banc de pierre', price: 60 },
-  pergola: { name: 'Pergola', price: 120 }, jardiniere: { name: 'Jardinière', price: 35 }, cloture_blanche: { name: 'Clôture blanche', price: 8, snap: 2 },
-  poteau_indicateur: { name: 'Poteau indicateur', price: 20 }, statue_cerf: { name: 'Statue de cerf', price: 300 },
-  epouvantail_fer: { name: 'Épouvantail de fer', price: 160, scare: 14 }, lanterne_suspendue: { name: 'Lanterne suspendue', price: 70, light: true }, tente: { name: 'Tente', price: 80 },
+  arroseur: { name: 'Arroseur', price: 66, sprinkler: 1 }, arroseur_fer: { name: 'Arroseur de fer', price: 127, sprinkler: 2 },
+  composteur: { name: 'Composteur', price: 1, machine: true }, baratte: { name: 'Baratte', price: 30, machine: true },
+  fumoir: { name: 'Fumoir', price: 30, machine: true }, presse: { name: 'Presse', price: 60, machine: true },
+  moulin_a_bras: { name: 'Moulin à bras', price: 1, machine: true },
+  horloge: { name: 'Horloge de jardin', price: 85 }, nain_jardin: { name: 'Nain de jardin', price: 1 }, bassin: { name: 'Bassin', price: 1, water: true },
+  fontaine_jardin: { name: 'Fontaine', price: 36, water: true }, tapis: { name: 'Tapis', price: 4, flat: true }, banc_pierre: { name: 'Banc de pierre', price: 1 },
+  pergola: { name: 'Pergola', price: 5 }, jardiniere: { name: 'Jardinière', price: 4 }, cloture_blanche: { name: 'Clôture blanche', price: 1, snap: 2 },
+  poteau_indicateur: { name: 'Poteau indicateur', price: 1 }, statue_cerf: { name: 'Statue de cerf', price: 24 },
+  epouvantail_fer: { name: 'Épouvantail de fer', price: 62, scare: 14 }, lanterne_suspendue: { name: 'Lanterne suspendue', price: 34, light: true }, tente: { name: 'Tente', price: 6 },
 });
 for (const id of ['arroseur', 'arroseur_fer', 'composteur', 'baratte', 'fumoir', 'presse', 'moulin_a_bras', 'horloge', 'nain_jardin', 'bassin', 'fontaine_jardin', 'tapis', 'banc_pierre', 'pergola', 'jardiniere', 'cloture_blanche', 'poteau_indicateur', 'statue_cerf', 'epouvantail_fer', 'lanterne_suspendue', 'tente']) {
   const p = PLACEABLES[id];
@@ -5811,115 +5814,115 @@ const BULK_CATS = new Set(['culture', 'produit', 'poisson', 'cueillette', 'chass
 //  chevaux, terre (pelle).
 // ============================================================================
 
-// n : nom · h : heures de pousse (terre humide) · re : repousse · y : récolte [min, max] · gel : sensible au gel
+// n : nom · h : heures de pousse (terre humide ; équilibrage : × 4) · re : repousse (× 6) · y : récolte [min, max] · gel : sensible au gel
 // col : couleur (variété par défaut) · t : gabarit 3D · p : paramètres du gabarit · ic : icône [forme, couleur 2]
 // pr : prix de vente · sp : prix des graines · g : groupe · v : variétés [nom, couleur, poids] · sn : nom des graines
 const CROPS_MORE = {
   // ---- racines et tubercules
-  navet: { n: 'Navet', h: 2.5, y: [1, 2], col: '#ece6f0', t: 'racine', p: { shape: 'rond', lf: '#5a9a3a', top: '#9a5ab0' }, ic: ['racine_rond', '#9a5ab0'], pr: 9, sp: 3, g: 'legume',
+  navet: { n: 'Navet', h: 10, y: [1, 2], col: '#ece6f0', t: 'racine', p: { shape: 'rond', lf: '#5a9a3a', top: '#9a5ab0' }, ic: ['racine_rond', '#9a5ab0'], pr: 3, sp: 3, g: 'legume',
     v: [['Violet de Milan', '#ece6f0', 3], ['Boule d’or', '#e8c860', 1.5], ['Blanc de Croissy', '#f4f2ea', 1]] },
-  panais: { n: 'Panais', h: 4.5, y: [1, 2], col: '#e8dcb0', t: 'racine', p: { shape: 'long', lf: '#6aa04a', h: 0.45 }, ic: ['racine_long', '#6aa04a'], pr: 18, sp: 6, g: 'legume',
+  panais: { n: 'Panais', h: 18, y: [1, 2], col: '#e8dcb0', t: 'racine', p: { shape: 'long', lf: '#6aa04a', h: 0.45 }, ic: ['racine_long', '#6aa04a'], pr: 7, sp: 6, g: 'legume',
     v: [['Demi-long de Guernesey', '#e8dcb0', 3], ['Tender and True', '#f0e8c8', 1]] },
-  celeri: { n: 'Céleri-rave', h: 5.5, y: [1, 1], col: '#d8d0b0', t: 'racine', p: { shape: 'gros', lf: '#4a8a3a', h: 0.5 }, ic: ['racine_gros', '#4a8a3a'], pr: 28, sp: 10, g: 'legume' },
-  topinambour: { n: 'Topinambour', h: 6, y: [2, 4], col: '#c8a070', t: 'haute', p: { kind: 'topi' }, ic: ['topi', '#c8a070'], pr: 14, sp: 8, g: 'legume', sn: 'Tubercules de topinambour',
+  celeri: { n: 'Céleri-rave', h: 22, y: [1, 1], col: '#d8d0b0', t: 'racine', p: { shape: 'gros', lf: '#4a8a3a', h: 0.5 }, ic: ['racine_gros', '#4a8a3a'], pr: 17, sp: 10, g: 'legume' },
+  topinambour: { n: 'Topinambour', h: 24, y: [2, 4], col: '#c8a070', t: 'haute', p: { kind: 'topi' }, ic: ['topi', '#c8a070'], pr: 5, sp: 8, g: 'legume', sn: 'Tubercules de topinambour',
     v: [['Commun', '#c8a070', 3], ['Rouge', '#b86a5a', 1]] },
   // ---- bulbes
-  oignon: { n: 'Oignon', h: 3.5, y: [1, 2], col: '#c89048', t: 'bulbe', p: { n: 5, h: 0.5 }, ic: ['bulbe', '#8ab060'], pr: 11, sp: 4, g: 'legume',
+  oignon: { n: 'Oignon', h: 14, y: [1, 2], col: '#c89048', t: 'bulbe', p: { n: 5, h: 0.5 }, ic: ['bulbe', '#8ab060'], pr: 5, sp: 4, g: 'legume',
     v: [['Jaune paille', '#c89048', 4], ['Rouge de Florence', '#9a2a4a', 2], ['Blanc de Paris', '#f0ecd8', 1.2]] },
-  ail: { n: 'Ail', h: 4, y: [1, 2], col: '#ece4d4', t: 'bulbe', p: { n: 4, h: 0.45 }, ic: ['ail', '#ece4d4'], pr: 14, sp: 5, g: 'legume', sn: 'Caïeux d’ail',
+  ail: { n: 'Ail', h: 16, y: [1, 2], col: '#ece4d4', t: 'bulbe', p: { n: 4, h: 0.45 }, ic: ['ail', '#ece4d4'], pr: 6, sp: 5, g: 'legume', sn: 'Caïeux d’ail',
     v: [['Ail blanc', '#ece4d4', 3], ['Ail rose de Lautrec', '#e8b8c4', 1.5], ['Ail violet', '#b890b8', 1]] },
-  echalote: { n: 'Échalote', h: 3, y: [2, 3], col: '#b87858', t: 'bulbe', p: { n: 6, h: 0.35, cluster: true }, ic: ['echalote', '#b87858'], pr: 8, sp: 4, g: 'legume', sn: 'Bulbes d’échalote',
+  echalote: { n: 'Échalote', h: 12, y: [2, 3], col: '#b87858', t: 'bulbe', p: { n: 6, h: 0.35, cluster: true }, ic: ['echalote', '#b87858'], pr: 3, sp: 4, g: 'legume', sn: 'Bulbes d’échalote',
     v: [['Grise', '#9a8a70', 2], ['Longue de Jersey', '#b87858', 3]] },
-  poireau: { n: 'Poireau', h: 5, y: [1, 1], col: '#5a8a6a', t: 'poireau', p: {}, ic: ['poireau', '#5a8a6a'], pr: 20, sp: 7, g: 'legume', sn: 'Plants de poireau',
+  poireau: { n: 'Poireau', h: 20, y: [1, 1], col: '#5a8a6a', t: 'poireau', p: {}, ic: ['poireau', '#5a8a6a'], pr: 11, sp: 7, g: 'legume', sn: 'Plants de poireau',
     v: [['Bleu de Solaise', '#4a7a78', 2], ['Monstrueux de Carentan', '#6a9a5a', 2]] },
   // ---- feuilles
-  laitue: { n: 'Laitue', h: 2, y: [1, 1], col: '#8ac858', t: 'feuilles', p: { head: true }, ic: ['salade', '#8ac858'], pr: 10, sp: 3, g: 'legume',
+  laitue: { n: 'Laitue', h: 8, y: [1, 1], col: '#8ac858', t: 'feuilles', p: { head: true }, ic: ['salade', '#8ac858'], pr: 4, sp: 3, g: 'legume',
     v: [['Batavia', '#8ac858', 4], ['Feuille de chêne rouge', '#a04a3a', 2], ['Romaine', '#5aa040', 2], ['Sucrine', '#b0d878', 1]] },
-  epinard: { n: 'Épinards', h: 2.5, re: 1.5, y: [1, 2], col: '#2e6e2e', t: 'feuilles', p: { flat: true }, ic: ['feuille', '#2e6e2e'], pr: 8, sp: 4, g: 'legume' },
-  blette: { n: 'Blettes', h: 3, re: 2, y: [1, 2], col: '#d82a3a', t: 'feuilles', p: { stems: true, lf: '#3a7a2a' }, ic: ['blette', '#3a7a2a'], pr: 11, sp: 5, g: 'legume',
+  epinard: { n: 'Épinards', h: 10, re: 9, y: [1, 2], col: '#2e6e2e', t: 'feuilles', p: { flat: true }, ic: ['feuille', '#2e6e2e'], pr: 1, sp: 4, g: 'legume' },
+  blette: { n: 'Blettes', h: 12, re: 12, y: [1, 2], col: '#d82a3a', t: 'feuilles', p: { stems: true, lf: '#3a7a2a' }, ic: ['blette', '#3a7a2a'], pr: 3, sp: 5, g: 'legume',
     v: [['Côtes rouges', '#d82a3a', 3], ['Côtes jaunes', '#e8c020', 2], ['Côtes blanches', '#f0ecd8', 2], ['Arc-en-ciel', '#e87020', 0.8]] },
-  rhubarbe: { n: 'Rhubarbe', h: 6, re: 3, y: [1, 2], col: '#c83a4a', t: 'feuilles', p: { stems: true, big: true, lf: '#4a8a3a' }, ic: ['rhubarbe', '#4a8a3a'], pr: 22, sp: 12, g: 'fruit', sn: 'Éclats de rhubarbe' },
-  chou_fleur: { n: 'Chou-fleur', h: 7, y: [1, 1], col: '#f0ead8', t: 'chou', p: {}, ic: ['choufleur', '#5a8a4a'], pr: 42, sp: 15, g: 'legume', giant: true,
+  rhubarbe: { n: 'Rhubarbe', h: 24, re: 18, y: [1, 2], col: '#c83a4a', t: 'feuilles', p: { stems: true, big: true, lf: '#4a8a3a' }, ic: ['rhubarbe', '#4a8a3a'], pr: 3, sp: 12, g: 'fruit', sn: 'Éclats de rhubarbe' },
+  chou_fleur: { n: 'Chou-fleur', h: 28, y: [1, 1], col: '#f0ead8', t: 'chou', p: {}, ic: ['choufleur', '#5a8a4a'], pr: 20, sp: 15, g: 'legume', giant: true,
     v: [['Blanc', '#f0ead8', 4], ['Violet de Sicile', '#8a4aa0', 1.2], ['Romanesco', '#a8d060', 1]] },
-  brocoli: { n: 'Brocoli', h: 6, y: [1, 2], col: '#3e6e32', t: 'chou', p: { grain: true }, ic: ['brocoli', '#3e6e32'], pr: 30, sp: 12, g: 'legume' },
-  artichaut: { n: 'Artichaut', h: 9, re: 4, y: [1, 2], col: '#7a9a78', t: 'haute', p: { kind: 'arti' }, ic: ['artichaut', '#7a9a78'], pr: 36, sp: 18, gel: true, g: 'legume', sn: 'Œilletons d’artichaut',
+  brocoli: { n: 'Brocoli', h: 24, y: [1, 2], col: '#3e6e32', t: 'chou', p: { grain: true }, ic: ['brocoli', '#3e6e32'], pr: 12, sp: 12, g: 'legume' },
+  artichaut: { n: 'Artichaut', h: 36, re: 24, y: [1, 2], col: '#7a9a78', t: 'haute', p: { kind: 'arti' }, ic: ['artichaut', '#7a9a78'], pr: 6, sp: 18, gel: true, g: 'legume', sn: 'Œilletons d’artichaut',
     v: [['Gros vert de Laon', '#7a9a78', 3], ['Violet de Provence', '#8a5a8a', 2]] },
-  asperge: { n: 'Asperges', h: 7, re: 3, y: [2, 3], col: '#8ab060', t: 'haute', p: { kind: 'asp' }, ic: ['asperge', '#8ab060'], pr: 26, sp: 16, g: 'legume', sn: 'Griffes d’asperge',
+  asperge: { n: 'Asperges', h: 28, re: 18, y: [2, 3], col: '#8ab060', t: 'haute', p: { kind: 'asp' }, ic: ['asperge', '#8ab060'], pr: 2, sp: 16, g: 'legume', sn: 'Griffes d’asperge',
     v: [['Verte', '#8ab060', 3], ['Blanche', '#f0ecd8', 2], ['Violette', '#8a4a8a', 1]] },
   // ---- fruits-légumes
-  courgette: { n: 'Courgette', h: 5, re: 2, y: [1, 2], col: '#3a7a2a', t: 'rampant', p: { fruit: [0.12, 0.12, 0.42], n: 2, flower: true }, ic: ['courgette', '#3a7a2a'], pr: 13, sp: 7, gel: true, g: 'legume',
+  courgette: { n: 'Courgette', h: 20, re: 12, y: [1, 2], col: '#3a7a2a', t: 'rampant', p: { fruit: [0.12, 0.12, 0.42], n: 2, flower: true }, ic: ['courgette', '#3a7a2a'], pr: 3, sp: 7, gel: true, g: 'legume',
     v: [['Verte de Milan', '#3a7a2a', 4], ['Jaune', '#e8c830', 1.5], ['Ronde de Nice', '#6aa040', 1]] },
-  concombre: { n: 'Concombre', h: 5, re: 2, y: [1, 3], col: '#4a8a3a', t: 'tuteur', p: { fruit: [0.07, 0.26, 0.07], n: 4 }, ic: ['concombre', '#4a8a3a'], pr: 10, sp: 6, gel: true, g: 'legume',
+  concombre: { n: 'Concombre', h: 20, re: 12, y: [1, 3], col: '#4a8a3a', t: 'tuteur', p: { fruit: [0.07, 0.26, 0.07], n: 4 }, ic: ['concombre', '#4a8a3a'], pr: 2, sp: 6, gel: true, g: 'legume',
     v: [['Marketer', '#4a8a3a', 3], ['Cornichon', '#5a9a3a', 2], ['Blanc', '#e8ecd0', 0.8]] },
-  poivron: { n: 'Poivron', h: 7, re: 3, y: [1, 3], col: '#d83020', t: 'tuteur', p: { fruit: [0.12, 0.14, 0.12], n: 3, low: true }, ic: ['poivron', '#d83020'], pr: 16, sp: 9, gel: true, g: 'legume',
+  poivron: { n: 'Poivron', h: 28, re: 18, y: [1, 3], col: '#d83020', t: 'tuteur', p: { fruit: [0.12, 0.14, 0.12], n: 3, low: true }, ic: ['poivron', '#d83020'], pr: 2, sp: 9, gel: true, g: 'legume',
     v: [['Rouge', '#d83020', 3], ['Jaune', '#f0c020', 2], ['Orange', '#f07820', 1.5], ['Chocolat', '#6a3a24', 0.6]] },
-  piment: { n: 'Piment', h: 7, re: 3, y: [2, 4], col: '#d82010', t: 'tuteur', p: { fruit: [0.04, 0.13, 0.04], n: 7, low: true }, ic: ['piment', '#d82010'], pr: 11, sp: 8, gel: true, g: 'legume',
+  piment: { n: 'Piment', h: 28, re: 18, y: [2, 4], col: '#d82010', t: 'tuteur', p: { fruit: [0.04, 0.13, 0.04], n: 7, low: true }, ic: ['piment', '#d82010'], pr: 2, sp: 8, gel: true, g: 'legume',
     v: [['d’Espelette', '#d82010', 3], ['Jaune', '#f0c020', 1], ['Violet', '#5a2060', 0.7]] },
-  aubergine: { n: 'Aubergine', h: 7, re: 3, y: [1, 2], col: '#4a2a5a', t: 'tuteur', p: { fruit: [0.1, 0.22, 0.1], n: 3, low: true }, ic: ['aubergine', '#4a2a5a'], pr: 18, sp: 10, gel: true, g: 'legume',
+  aubergine: { n: 'Aubergine', h: 28, re: 18, y: [1, 2], col: '#4a2a5a', t: 'tuteur', p: { fruit: [0.1, 0.22, 0.1], n: 3, low: true }, ic: ['aubergine', '#4a2a5a'], pr: 3, sp: 10, gel: true, g: 'legume',
     v: [['Violette de Barbentane', '#4a2a5a', 3], ['Blanche', '#f0ecd8', 1], ['Zébrée', '#9a5ab0', 1]] },
-  petit_pois: { n: 'Petits pois', h: 3.5, re: 1.5, y: [2, 3], col: '#6ab040', t: 'tuteur', p: { fruit: [0.05, 0.16, 0.03], n: 6, twig: true }, ic: ['pois', '#6ab040'], pr: 7, sp: 4, gel: true, g: 'legume',
+  petit_pois: { n: 'Petits pois', h: 14, re: 9, y: [2, 3], col: '#6ab040', t: 'tuteur', p: { fruit: [0.05, 0.16, 0.03], n: 6, twig: true }, ic: ['pois', '#6ab040'], pr: 1, sp: 4, gel: true, g: 'legume',
     v: [['Petit provençal', '#6ab040', 3], ['Pois gourmand', '#8ac050', 2], ['Pois violet', '#6a3a8a', 0.7]] },
-  pasteque: { n: 'Pastèque', h: 9, y: [1, 1], col: '#3a7a3a', t: 'rampant', p: { fruit: [0.5, 0.42, 0.64], n: 1, stripes: true }, ic: ['pasteque', '#3a7a3a'], pr: 72, sp: 28, gel: true, g: 'fruit', giant: true,
+  pasteque: { n: 'Pastèque', h: 36, y: [1, 1], col: '#3a7a3a', t: 'rampant', p: { fruit: [0.5, 0.42, 0.64], n: 1, stripes: true }, ic: ['pasteque', '#3a7a3a'], pr: 34, sp: 28, gel: true, g: 'fruit', giant: true,
     v: [['Sugar Baby', '#2e5a2e', 3], ['Charleston', '#5a9a4a', 2], ['Pastèque jaune', '#8ab050', 0.7]] },
-  courge: { n: 'Courge musquée', h: 8, y: [1, 2], col: '#e0a050', t: 'rampant', p: { fruit: [0.26, 0.26, 0.46], n: 2 }, ic: ['courge', '#e0a050'], pr: 38, sp: 15, g: 'legume', giant: true,
+  courge: { n: 'Courge musquée', h: 32, y: [1, 2], col: '#e0a050', t: 'rampant', p: { fruit: [0.26, 0.26, 0.46], n: 2 }, ic: ['courge', '#e0a050'], pr: 15, sp: 15, g: 'legume', giant: true,
     v: [['Butternut', '#e0a050', 3], ['Potimarron', '#e06020', 2], ['Courge spaghetti', '#f0e060', 1], ['Pâtisson blanc', '#f0f0d8', 0.8]] },
   // ---- céréales et plantes utiles
-  seigle: { n: 'Seigle', h: 3, y: [2, 3], col: '#b8a070', t: 'cereale', p: { h: 1.25 }, ic: ['epi', '#b8a070'], pr: 7, sp: 3, g: 'cereale' },
-  orge: { n: 'Orge', h: 3, y: [2, 3], col: '#d8c890', t: 'cereale', p: { h: 0.9, barbu: true }, ic: ['epi', '#d8c890'], pr: 7, sp: 3, g: 'cereale' },
-  avoine: { n: 'Avoine', h: 3.5, y: [2, 3], col: '#e0d8a0', t: 'cereale', p: { h: 1.0, droop: true }, ic: ['avoine', '#e0d8a0'], pr: 8, sp: 3, g: 'cereale' },
-  sarrasin: { n: 'Sarrasin', h: 3, y: [2, 3], col: '#6a4a3a', t: 'cereale', p: { h: 0.7, flowers: '#f4f0f0', stem: '#b04a4a' }, ic: ['sarrasin', '#6a4a3a'], pr: 9, sp: 4, g: 'cereale' },
-  colza: { n: 'Colza', h: 4, y: [2, 3], col: '#f0e020', t: 'cereale', p: { h: 1.2, flowers: '#f0e020', stem: '#6a9a3a' }, ic: ['colza', '#f0e020'], pr: 9, sp: 4, g: 'cereale' },
-  chanvre: { n: 'Chanvre', h: 5, y: [2, 3], col: '#5a8a3a', t: 'cereale', p: { h: 1.8, hemp: true }, ic: ['chanvre', '#5a8a3a'], pr: 10, sp: 5, g: 'cereale' },
-  lentille: { n: 'Lentilles', h: 4, y: [2, 3], col: '#a88050', t: 'aromate', p: { h: 0.35, pods: true, lf: '#7aa050' }, ic: ['lentille', '#a88050'], pr: 9, sp: 4, g: 'legume',
+  seigle: { n: 'Seigle', h: 12, y: [2, 3], col: '#b8a070', t: 'cereale', p: { h: 1.25 }, ic: ['epi', '#b8a070'], pr: 3, sp: 3, g: 'cereale' },
+  orge: { n: 'Orge', h: 12, y: [2, 3], col: '#d8c890', t: 'cereale', p: { h: 0.9, barbu: true }, ic: ['epi', '#d8c890'], pr: 3, sp: 3, g: 'cereale' },
+  avoine: { n: 'Avoine', h: 14, y: [2, 3], col: '#e0d8a0', t: 'cereale', p: { h: 1.0, droop: true }, ic: ['avoine', '#e0d8a0'], pr: 3, sp: 3, g: 'cereale' },
+  sarrasin: { n: 'Sarrasin', h: 12, y: [2, 3], col: '#6a4a3a', t: 'cereale', p: { h: 0.7, flowers: '#f4f0f0', stem: '#b04a4a' }, ic: ['sarrasin', '#6a4a3a'], pr: 3, sp: 4, g: 'cereale' },
+  colza: { n: 'Colza', h: 16, y: [2, 3], col: '#f0e020', t: 'cereale', p: { h: 1.2, flowers: '#f0e020', stem: '#6a9a3a' }, ic: ['colza', '#f0e020'], pr: 3, sp: 4, g: 'cereale' },
+  chanvre: { n: 'Chanvre', h: 20, y: [2, 3], col: '#5a8a3a', t: 'cereale', p: { h: 1.8, hemp: true }, ic: ['chanvre', '#5a8a3a'], pr: 4, sp: 5, g: 'cereale' },
+  lentille: { n: 'Lentilles', it: 'lentilles', h: 16, y: [2, 3], col: '#a88050', t: 'aromate', p: { h: 0.35, pods: true, lf: '#7aa050' }, ic: ['lentille', '#a88050'], pr: 3, sp: 4, g: 'legume',
     v: [['Verte du Puy', '#6a7a4a', 3], ['Blonde', '#c8a060', 2], ['Corail', '#d86a40', 1]] },
-  houblon: { n: 'Houblon', h: 8, re: 3, y: [2, 3], col: '#b0d070', t: 'treille', p: { cones: true }, ic: ['houblon', '#b0d070'], pr: 20, sp: 14, g: 'cereale', sn: 'Plants de houblon' },
+  houblon: { n: 'Houblon', h: 32, re: 18, y: [2, 3], col: '#b0d070', t: 'treille', p: { cones: true }, ic: ['houblon', '#b0d070'], pr: 2, sp: 14, g: 'cereale', sn: 'Plants de houblon' },
   // ---- fruits
-  framboise: { n: 'Framboises', h: 6, re: 2, y: [2, 3], col: '#d02a50', t: 'buisson', p: { cane: true, berry: 0.05, n: 10 }, ic: ['baie', '#d02a50'], pr: 18, sp: 14, g: 'fruit', sn: 'Plants de framboisier',
+  framboise: { n: 'Framboises', h: 24, re: 12, y: [2, 3], col: '#d02a50', t: 'buisson', p: { cane: true, berry: 0.05, n: 10 }, ic: ['baie', '#d02a50'], pr: 2, sp: 14, g: 'fruit', sn: 'Plants de framboisier',
     v: [['Héritage', '#d02a50', 3], ['Framboise jaune', '#f0c040', 1]] },
-  groseille: { n: 'Groseilles', h: 6, re: 2, y: [2, 4], col: '#e02020', t: 'buisson', p: { grappes: true, berry: 0.035, n: 6 }, ic: ['grappe', '#e02020'], pr: 14, sp: 12, g: 'fruit', sn: 'Boutures de groseillier',
+  groseille: { n: 'Groseilles', h: 24, re: 12, y: [2, 4], col: '#e02020', t: 'buisson', p: { grappes: true, berry: 0.035, n: 6 }, ic: ['grappe', '#e02020'], pr: 2, sp: 12, g: 'fruit', sn: 'Boutures de groseillier',
     v: [['Rouge', '#e02020', 3], ['Blanche', '#f0e8c8', 1]] },
-  cassis: { n: 'Cassis', h: 7, re: 2.5, y: [2, 3], col: '#2a1a3a', t: 'buisson', p: { grappes: true, berry: 0.04, n: 6 }, ic: ['grappe', '#2a1a3a'], pr: 20, sp: 14, g: 'fruit', sn: 'Boutures de cassissier' },
-  myrtille: { n: 'Myrtilles', h: 7, re: 2.5, y: [2, 3], col: '#3a4aa0', t: 'buisson', p: { low: true, berry: 0.04, n: 14 }, ic: ['baie', '#3a4aa0'], pr: 22, sp: 16, g: 'fruit', sn: 'Plants de myrtillier' },
-  raisin: { n: 'Raisin', h: 10, re: 4, y: [2, 3], col: '#4a2a5a', t: 'treille', p: { grapes: true }, ic: ['raisin', '#4a2a5a'], pr: 28, sp: 22, g: 'fruit', sn: 'Pieds de vigne',
+  cassis: { n: 'Cassis', h: 28, re: 15, y: [2, 3], col: '#2a1a3a', t: 'buisson', p: { grappes: true, berry: 0.04, n: 6 }, ic: ['grappe', '#2a1a3a'], pr: 2, sp: 14, g: 'fruit', sn: 'Boutures de cassissier' },
+  myrtille: { n: 'Myrtilles', h: 28, re: 15, y: [2, 3], col: '#3a4aa0', t: 'buisson', p: { low: true, berry: 0.04, n: 14 }, ic: ['baie', '#3a4aa0'], pr: 2, sp: 16, g: 'fruit', sn: 'Plants de myrtillier' },
+  raisin: { n: 'Raisin', h: 40, re: 24, y: [2, 3], col: '#4a2a5a', t: 'treille', p: { grapes: true }, ic: ['raisin', '#4a2a5a'], pr: 4, sp: 22, g: 'fruit', sn: 'Pieds de vigne',
     v: [['Pinot noir', '#4a2a5a', 3], ['Chardonnay', '#c8d070', 2], ['Muscat rosé', '#c87090', 1]] },
   // ---- aromates et plantes médicinales
-  basilic: { n: 'Basilic', h: 3, re: 2, y: [1, 2], col: '#3a9a3a', t: 'aromate', p: { h: 0.35, big: true }, ic: ['herbe', '#3a9a3a'], pr: 10, sp: 5, g: 'aromate',
+  basilic: { n: 'Basilic', h: 12, re: 12, y: [1, 2], col: '#3a9a3a', t: 'aromate', p: { h: 0.35, big: true }, ic: ['herbe', '#3a9a3a'], pr: 3, sp: 5, g: 'aromate',
     v: [['Grand vert', '#3a9a3a', 3], ['Pourpre', '#5a2a4a', 1]] },
-  persil: { n: 'Persil', h: 2.5, re: 2, y: [1, 2], col: '#4aa040', t: 'aromate', p: { h: 0.3, frise: true }, ic: ['herbe', '#4aa040'], pr: 8, sp: 4, g: 'aromate' },
-  menthe: { n: 'Menthe', h: 2.5, re: 1.5, y: [1, 2], col: '#5ac070', t: 'aromate', p: { h: 0.42 }, ic: ['herbe', '#5ac070'], pr: 8, sp: 4, g: 'aromate', sn: 'Plants de menthe' },
-  thym: { n: 'Thym', h: 4, re: 2, y: [1, 2], col: '#7a9a6a', t: 'aromate', p: { h: 0.25, flowers: '#e0b0d8', woody: true }, ic: ['herbe', '#7a9a6a'], pr: 12, sp: 6, g: 'aromate' },
-  camomille: { n: 'Camomille', h: 3.5, re: 2, y: [1, 2], col: '#f4f0e0', t: 'fleur', p: { daisy: true, n: 9, h: 0.45, bloom: 0.07 }, ic: ['fleur', '#f0c020'], pr: 12, sp: 6, g: 'aromate' },
-  souci: { n: 'Souci', h: 3, re: 2, y: [1, 2], col: '#f09020', t: 'fleur', p: { daisy: true, n: 6, h: 0.4, bloom: 0.1 }, ic: ['fleur', '#a85010'], pr: 10, sp: 5, g: 'fleur_c',
+  persil: { n: 'Persil', h: 10, re: 12, y: [1, 2], col: '#4aa040', t: 'aromate', p: { h: 0.3, frise: true }, ic: ['herbe', '#4aa040'], pr: 3, sp: 4, g: 'aromate' },
+  menthe: { n: 'Menthe', h: 10, re: 9, y: [1, 2], col: '#5ac070', t: 'aromate', p: { h: 0.42 }, ic: ['herbe', '#5ac070'], pr: 2, sp: 4, g: 'aromate', sn: 'Plants de menthe' },
+  thym: { n: 'Thym', h: 16, re: 12, y: [1, 2], col: '#7a9a6a', t: 'aromate', p: { h: 0.25, flowers: '#e0b0d8', woody: true }, ic: ['herbe', '#7a9a6a'], pr: 3, sp: 6, g: 'aromate' },
+  camomille: { n: 'Camomille', h: 14, re: 12, y: [1, 2], col: '#f4f0e0', t: 'fleur', p: { daisy: true, n: 9, h: 0.45, bloom: 0.07 }, ic: ['fleur', '#f0c020'], pr: 3, sp: 6, g: 'aromate' },
+  souci: { n: 'Souci', h: 12, re: 12, y: [1, 2], col: '#f09020', t: 'fleur', p: { daisy: true, n: 6, h: 0.4, bloom: 0.1 }, ic: ['fleur', '#a85010'], pr: 3, sp: 5, g: 'fleur_c',
     v: [['Orange', '#f09020', 3], ['Citron', '#f0d030', 1.5]] },
-  lavande: { n: 'Lavande', h: 6, re: 3, y: [2, 3], col: '#9a70d0', t: 'aromate', p: { h: 0.55, spikes: true, lf: '#8aa08a' }, ic: ['lavande', '#9a70d0'], pr: 18, sp: 10, g: 'fleur_c', sn: 'Plants de lavande',
+  lavande: { n: 'Lavande', h: 24, re: 18, y: [2, 3], col: '#9a70d0', t: 'aromate', p: { h: 0.55, spikes: true, lf: '#8aa08a' }, ic: ['lavande', '#9a70d0'], pr: 2, sp: 10, g: 'fleur_c', sn: 'Plants de lavande',
     v: [['Vraie lavande', '#9a70d0', 3], ['Lavandin blanc', '#f0ecf4', 0.7], ['Lavande rose', '#e0a0c8', 0.7]] },
   // ---- fleurs
-  tulipe: { n: 'Tulipes', h: 4, y: [1, 2], col: '#e03040', t: 'fleur', p: { cup: true, n: 5, h: 0.5, bloom: 0.1 }, ic: ['tulipe', '#e03040'], pr: 16, sp: 8, g: 'fleur_c', sn: 'Bulbes de tulipe',
+  tulipe: { n: 'Tulipes', h: 16, y: [1, 2], col: '#e03040', t: 'fleur', p: { cup: true, n: 5, h: 0.5, bloom: 0.1 }, ic: ['tulipe', '#e03040'], pr: 8, sp: 8, g: 'fleur_c', sn: 'Bulbes de tulipe',
     v: [['Rouge', '#e03040', 3], ['Jaune', '#f0d020', 2], ['Rose', '#f080a8', 2], ['Blanche', '#f4f0ec', 1.5], ['Perroquet', '#e86020', 0.8], ['Reine de la nuit', '#2a1a2e', 0.35]] },
-  rose: { n: 'Roses', h: 8, re: 3, y: [1, 2], col: '#c81838', t: 'buisson', p: { rose: true, berry: 0.1, n: 5 }, ic: ['rose', '#c81838'], pr: 32, sp: 20, g: 'fleur_c', sn: 'Boutures de rosier',
+  rose: { n: 'Roses', h: 32, re: 18, y: [1, 2], col: '#c81838', t: 'buisson', p: { rose: true, berry: 0.1, n: 5 }, ic: ['rose', '#c81838'], pr: 4, sp: 20, g: 'fleur_c', sn: 'Boutures de rosier',
     v: [['Rouge', '#c81838', 3], ['Blanche', '#f4f0e8', 2], ['Rose ancienne', '#f090b0', 2], ['Jaune', '#f0d040', 1], ['Noire', '#2a0a14', 0.3]] },
-  pavot: { n: 'Pavot', h: 4, y: [1, 2], col: '#e04030', t: 'fleur', p: { poppy: true, n: 4, h: 0.7, bloom: 0.14 }, ic: ['fleur', '#2a2020'], pr: 14, sp: 7, g: 'fleur_c',
+  pavot: { n: 'Pavot', h: 16, y: [1, 2], col: '#e04030', t: 'fleur', p: { poppy: true, n: 4, h: 0.7, bloom: 0.14 }, ic: ['fleur', '#2a2020'], pr: 7, sp: 7, g: 'fleur_c',
     v: [['Coquelicot', '#e04030', 3], ['Pavot blanc', '#f0ece8', 1], ['Pavot mauve', '#b070c0', 1]] },
-  dahlia: { n: 'Dahlias', h: 6, y: [1, 2], col: '#d04080', t: 'fleur', p: { pompom: true, n: 3, h: 0.85, bloom: 0.16 }, ic: ['dahlia', '#d04080'], pr: 22, sp: 12, g: 'fleur_c', sn: 'Tubercules de dahlia',
+  dahlia: { n: 'Dahlias', h: 24, y: [1, 2], col: '#d04080', t: 'fleur', p: { pompom: true, n: 3, h: 0.85, bloom: 0.16 }, ic: ['dahlia', '#d04080'], pr: 12, sp: 12, g: 'fleur_c', sn: 'Tubercules de dahlia',
     v: [['Fuchsia', '#d04080', 3], ['Orange', '#f07030', 2], ['Blanc', '#f4f0ec', 1.5], ['Pourpre', '#5a1a3a', 1]] },
   // ---- plantes étranges
   mandragore: { n: 'Mandragore', h: 14, y: [1, 1], col: '#c09060', t: 'racine', p: { shape: 'mandra', lf: '#2a4a2a', h: 0.4 }, ic: null, pr: 80, sp: 60, g: null, night: true, fruit: 'mandragore', sn: 'Graines de mandragore', noFood: true },
-  belladone: { n: 'Belladone', h: 6, re: 3, y: [2, 3], col: '#1a1420', t: 'buisson', p: { low: true, berry: 0.05, n: 8, star: true }, ic: ['belladone', '#1a1420'], pr: 40, sp: 24, g: null, poison: true },
+  belladone: { n: 'Belladone', h: 24, re: 18, y: [2, 3], col: '#1a1420', t: 'buisson', p: { low: true, berry: 0.05, n: 8, star: true }, ic: ['belladone', '#1a1420'], pr: 2, sp: 24, g: null, poison: true },
 };
 // Nourriture par groupe : [faim, soin]
 const CROP_FOOD = { legume: [8, 2], fruit: [7, 3], aromate: [2, 5], fleur_c: [0, 0], cereale: [0, 0] };
 for (const id in CROPS_MORE) {
   const d = CROPS_MORE[id];
   CROPS[id] = { name: d.n, h: d.h, regrow: d.re || 0, yield: d.y, frost: !!d.gel, col: d.col, tpl: d.t, p: d.p, giant: !!d.giant, night: !!d.night, group: d.g, poison: !!d.poison };
-  if (d.fruit) CROPS[id].fruit = d.fruit;
+  if (d.fruit || d.it) CROPS[id].fruit = d.fruit || d.it;
   if (d.v) CROPS[id].vars = d.v.map(([n, c, w]) => ({ n, c, w }));
   CROP_PRICE[id] = d.pr; SEED_PRICE[id] = d.sp;
   if (!d.fruit) {
     const F = d.noFood ? [0, 0] : CROP_FOOD[d.g] || [0, 0];
-    defItem(id, d.n, 'culture', d.pr, ['c2_' + d.ic[0], d.col, d.ic[1]], F[0] || F[1] ? { food: F[0], heal: F[1] } : (d.poison ? { food: 2, heal: -15, poison: true } : {}));
+    defItem(d.it || id, d.n, 'culture', d.pr, ['c2_' + d.ic[0], d.col, d.ic[1]], F[0] || F[1] ? { food: F[0], heal: F[1] } : (d.poison ? { food: 2, heal: -15, poison: true } : {}));
   }
   defItem('graines_' + id, d.sn || 'Graines : ' + d.n.toLowerCase(), 'graine', Math.ceil(d.sp / 2), ['sac', d.col], { crop: id, buy: d.sp });
-  if (d.g) (ITEM_GROUPS[d.g] || (ITEM_GROUPS[d.g] = [])).push(id);
+  if (d.g) (ITEM_GROUPS[d.g] || (ITEM_GROUPS[d.g] = [])).push(d.it || id);
 }
 ITEMS.graines_mandragore.desc = 'Elles remuent un peu dans le sachet. Ne poussent que la nuit.';
 ITEMS.graines_belladone.desc = 'Belle-dame. Les baies sont un poison ; la guérisseuse sait quoi en faire.';
@@ -5964,24 +5967,24 @@ function pickCropVar(id) {
 function cropVarRare(id, vr) { const V = CROPS[id] && CROPS[id].vars; if (!V || V.length < 3) return false; const min = Math.min(...V.map((v) => v.w)); return V[vr] && V[vr].w === min && min < 1.2; }
 
 // ---------------------------------------------------------------- produits, cuisine, objets
-defItem('biere', 'Bière de la ferme', 'nourriture', 70, ['bouteille', '#d8a030'], { food: 6, heal: 4 });
-defItem('ratatouille', 'Ratatouille', 'nourriture', 140, ['bol', '#c0502a'], { food: 45, heal: 25 });
-defItem('soupe_oignon', 'Soupe à l’oignon', 'nourriture', 60, ['bol', '#c8a060'], { food: 32, heal: 14 });
-defItem('gratin', 'Gratin de pommes de terre', 'nourriture', 85, ['tarte', '#e8c878'], { food: 40, heal: 16 });
-defItem('tarte_rhubarbe', 'Tarte à la rhubarbe', 'nourriture', 115, ['tarte', '#c84a5a'], { food: 36, heal: 18 });
-defItem('galette', 'Galette de sarrasin', 'nourriture', 50, ['pain', '#8a6a4a'], { food: 26, heal: 10 });
-defItem('pistou', 'Pistou', 'nourriture', 70, ['pot', '#3a8a3a'], { food: 10, heal: 8 });
-defItem('porridge', 'Bouillie d’avoine', 'nourriture', 45, ['bol', '#e8dcc0'], { food: 26, heal: 8 });
-defItem('bouquet', 'Bouquet de fleurs', 'produit', 45, ['c2_bouquet', '#e05070', '#5a9a3a'], { desc: 'Des fleurs du jardin, nouées d’un brin de lin. Ça s’offre.' });
-defItem('friandise', 'Friandise pour cheval', 'produit', 20, ['sac', '#c8a060'], { desc: 'Avoine, pomme écrasée. Aucun cheval n’y résiste tout à fait.' });
+defItem('biere', 'Bière de la ferme', 'nourriture', 11, ['bouteille', '#d8a030'], { food: 6, heal: 4 });
+defItem('ratatouille', 'Ratatouille', 'nourriture', 13, ['bol', '#c0502a'], { food: 45, heal: 25 });
+defItem('soupe_oignon', 'Soupe à l’oignon', 'nourriture', 16, ['bol', '#c8a060'], { food: 32, heal: 14 });
+defItem('gratin', 'Gratin de pommes de terre', 'nourriture', 36, ['tarte', '#e8c878'], { food: 40, heal: 16 });
+defItem('tarte_rhubarbe', 'Tarte à la rhubarbe', 'nourriture', 21, ['tarte', '#c84a5a'], { food: 36, heal: 18 });
+defItem('galette', 'Galette de sarrasin', 'nourriture', 8, ['pain', '#8a6a4a'], { food: 26, heal: 10 });
+defItem('pistou', 'Pistou', 'nourriture', 16, ['pot', '#3a8a3a'], { food: 10, heal: 8 });
+defItem('porridge', 'Bouillie d’avoine', 'nourriture', 36, ['bol', '#e8dcc0'], { food: 26, heal: 8 });
+defItem('bouquet', 'Bouquet de fleurs', 'produit', 3, ['c2_bouquet', '#e05070', '#5a9a3a'], { desc: 'Des fleurs du jardin, nouées d’un brin de lin. Ça s’offre.' });
+defItem('friandise', 'Friandise pour cheval', 'produit', 4, ['sac', '#c8a060'], { desc: 'Avoine, pomme écrasée. Aucun cheval n’y résiste tout à fait.' });
 defItem('selle', 'Selle de cuir', 'outil', 180, ['c2_selle', '#6a3a24', '#c8a060'], { passive: true, desc: 'Dans la sacoche : vos chevaux sont sellés, et vont un peu plus vite.' });
-defItem('terre', 'Terre', 'materiau', 1, ['tas', '#6a4a30'], { desc: 'Clic droit avec la pelle : on rehausse le sol là où l’on vise.' });
+defItem('terre', 'Terre', 'materiau', 0, ['tas', '#6a4a30'], { desc: 'Clic droit avec la pelle : on rehausse le sol là où l’on vise.' });
 // chantiers : on les pose sur la ferme, le bâtiment est construit dans la journée
 ITEM_CAT_NAMES.construction = 'Constructions';
-defItem('plan_poulailler', 'Chantier : poulailler', 'construction', 380, ['c2_plan', '#b8683a', '#e8dcc0'], { build: 'poulailler', desc: 'À poser sur un terrain dégagé de la ferme. Pour les poules, canes, oies et lapins.' });
-defItem('plan_grange', 'Chantier : grange', 'construction', 1200, ['c2_plan', '#8a3a2a', '#e8dcc0'], { build: 'grange', desc: 'À poser sur un terrain dégagé de la ferme. Pour les vaches, moutons, cochons, chèvres, ânes et chevaux.' });
-defItem('plan_atelier', 'Chantier : atelier', 'construction', 480, ['c2_plan', '#6a6a70', '#e8dcc0'], { build: 'atelier', desc: 'Un appentis avec un établi et un four.' });
-defItem('plan_puits', 'Chantier : puits', 'construction', 300, ['c2_plan', '#8a8a88', '#e8dcc0'], { build: 'puits', desc: 'Un puits à la ferme : l’eau à portée d’arrosoir.' });
+defItem('plan_poulailler', 'Chantier : poulailler', 'construction', 1, ['c2_plan', '#b8683a', '#e8dcc0'], { build: 'poulailler', desc: 'À poser sur un terrain dégagé de la ferme. Pour les poules, canes, oies et lapins.' });
+defItem('plan_grange', 'Chantier : grange', 'construction', 60, ['c2_plan', '#8a3a2a', '#e8dcc0'], { build: 'grange', desc: 'À poser sur un terrain dégagé de la ferme. Pour les vaches, moutons, cochons, chèvres, ânes et chevaux.' });
+defItem('plan_atelier', 'Chantier : atelier', 'construction', 1, ['c2_plan', '#6a6a70', '#e8dcc0'], { build: 'atelier', desc: 'Un appentis avec un établi et un four.' });
+defItem('plan_puits', 'Chantier : puits', 'construction', 1, ['c2_plan', '#8a8a88', '#e8dcc0'], { build: 'puits', desc: 'Un puits à la ferme : l’eau à portée d’arrosoir.' });
 
 // ---------------------------------------------------------------- recettes
 {
@@ -6039,11 +6042,11 @@ LOOT.chapelle && LOOT.chapelle.items.push(['graines_lavande', 1, 2, 1], ['graine
 // ---------------------------------------------------------------- boutiques
 {
   const S = (id) => NPC_DATA.find((d) => d.id === id);
-  const all = Object.keys(CROPS_MORE).filter((id) => !CROPS_MORE[id].fruit);
+  const all = Object.keys(CROPS_MORE).filter((id) => !CROPS_MORE[id].fruit), objet = (id) => CROPS_MORE[id].it || id;
   const G = S('grainetiere');
-  if (G && G.shop) { for (const id of all) if (!G.shop.buys.includes(id)) G.shop.buys.push(id); G.shop.buys.push('bouquet'); }
+  if (G && G.shop) { for (const id of all) if (!G.shop.buys.includes(objet(id))) G.shop.buys.push(objet(id)); G.shop.buys.push('bouquet'); }
   const A = S('aubergiste');
-  if (A && A.shop) A.shop.buys.push(...all.filter((id) => ['legume', 'fruit', 'aromate'].includes(CROPS_MORE[id].g)), 'biere', 'pistou');
+  if (A && A.shop) A.shop.buys.push(...all.filter((id) => ['legume', 'fruit', 'aromate'].includes(CROPS_MORE[id].g)).map(objet), 'biere', 'pistou');
   const B = S('boulangere');
   if (B && B.shop) B.shop.buys.push('seigle', 'orge', 'avoine', 'sarrasin', 'rhubarbe', 'framboise', 'myrtille');
   const H = S('guerisseuse');
@@ -6131,23 +6134,23 @@ for (const [id, name, h, drop] of FLORA_WILD) {
 OBJ_TYPES.forEach((t, i) => { OBJ_INDEX[t.id] = i; });
 
 // ce qu'on en tire
-defItem('chataigne', 'Châtaignes', 'cueillette', 8, ['baies', '#7a4a24'], { food: 5, heal: 2 });
-defItem('noix', 'Noix', 'cueillette', 10, ['rond', '#b8966a'], { food: 5, heal: 2 });
-defItem('cerise', 'Cerises', 'cueillette', 9, ['baies', '#c81c30'], { food: 4, heal: 2 });
-defItem('poire', 'Poire', 'cueillette', 11, ['rond', '#c8c850'], { food: 6, heal: 2 });
-defItem('prune', 'Prunes', 'cueillette', 9, ['baies', '#5a2a6a'], { food: 5, heal: 2 });
-defItem('fleur_tilleul', 'Fleurs de tilleul', 'cueillette', 12, ['herbes', '#e8e0a0'], { desc: 'En tisane, elles font dormir les enfants et les inquiets.' });
-defItem('baies_houx', 'Baies de houx', 'cueillette', 6, ['baies', '#c81818'], { desc: 'Jolies, et toxiques. Les oiseaux, eux, les mangent.' });
-defItem('digitale', 'Digitale', 'cueillette', 30, ['c2_fleur', '#c060b0', '#f0d0f0'], { food: 1, heal: -20, poison: true, desc: 'Le cœur s’emballe, puis ralentit. La guérisseuse sait la doser.' });
-defItem('orchidee', 'Orchidée sauvage', 'cueillette', 45, ['c2_fleur', '#e080c0', '#6a3a5a'], { desc: 'Rare. On dit qu’elle ne pousse que là où personne n’a marché depuis cent ans.' });
-defItem('pissenlit', 'Pissenlits', 'cueillette', 4, ['c2_salade', '#7ab040', '#f0d030'], { food: 4, heal: 3 });
-defItem('reine_pres', 'Reine-des-prés', 'cueillette', 12, ['herbes', '#f0ead0'], { heal: 8, desc: 'Contre la fièvre et les douleurs.' });
-defItem('achillee', 'Achillée', 'cueillette', 12, ['herbes', '#f4f4ec'], { heal: 10, desc: 'L’herbe aux charpentiers : elle ferme les coupures.' });
-defItem('gentiane', 'Gentiane', 'cueillette', 40, ['c2_fleur', '#2040c0', '#f0f0f0'], { heal: 12, desc: 'Amère comme la montagne. La guérisseuse la paie bien.' });
-defItem('edelweiss', 'Edelweiss', 'cueillette', 150, ['c2_fleur', '#f0f0e8', '#d8c878'], { desc: 'L’étoile des neiges. On la cueille au bord des précipices, dit-on, pour prouver qu’on existe.' });
-defItem('cynorhodon', 'Cynorhodons', 'cueillette', 7, ['baies', '#d03020'], { food: 3, heal: 4 });
-defItem('baies_sureau', 'Baies de sureau', 'cueillette', 7, ['baies', '#2a1830'], { food: 3, heal: 2 });
-defItem('chataignes_grillees', 'Châtaignes grillées', 'nourriture', 32, ['baies', '#6a3a1a'], { food: 18, heal: 6 });
+defItem('chataigne', 'Châtaignes', 'cueillette', 1, ['baies', '#7a4a24'], { food: 5, heal: 2 });
+defItem('noix', 'Noix', 'cueillette', 2, ['rond', '#b8966a'], { food: 5, heal: 2 });
+defItem('cerise', 'Cerises', 'cueillette', 1, ['baies', '#c81c30'], { food: 4, heal: 2 });
+defItem('poire', 'Poire', 'cueillette', 2, ['rond', '#c8c850'], { food: 6, heal: 2 });
+defItem('prune', 'Prunes', 'cueillette', 1, ['baies', '#5a2a6a'], { food: 5, heal: 2 });
+defItem('fleur_tilleul', 'Fleurs de tilleul', 'cueillette', 2, ['herbes', '#e8e0a0'], { desc: 'En tisane, elles font dormir les enfants et les inquiets.' });
+defItem('baies_houx', 'Baies de houx', 'cueillette', 1, ['baies', '#c81818'], { desc: 'Jolies, et toxiques. Les oiseaux, eux, les mangent.' });
+defItem('digitale', 'Digitale', 'cueillette', 5, ['c2_fleur', '#c060b0', '#f0d0f0'], { food: 1, heal: -20, poison: true, desc: 'Le cœur s’emballe, puis ralentit. La guérisseuse sait la doser.' });
+defItem('orchidee', 'Orchidée sauvage', 'cueillette', 8, ['c2_fleur', '#e080c0', '#6a3a5a'], { desc: 'Rare. On dit qu’elle ne pousse que là où personne n’a marché depuis cent ans.' });
+defItem('pissenlit', 'Pissenlits', 'cueillette', 1, ['c2_salade', '#7ab040', '#f0d030'], { food: 4, heal: 3 });
+defItem('reine_pres', 'Reine-des-prés', 'cueillette', 2, ['herbes', '#f0ead0'], { heal: 8, desc: 'Contre la fièvre et les douleurs.' });
+defItem('achillee', 'Achillée', 'cueillette', 2, ['herbes', '#f4f4ec'], { heal: 10, desc: 'L’herbe aux charpentiers : elle ferme les coupures.' });
+defItem('gentiane', 'Gentiane', 'cueillette', 6, ['c2_fleur', '#2040c0', '#f0f0f0'], { heal: 12, desc: 'Amère comme la montagne. La guérisseuse la paie bien.' });
+defItem('edelweiss', 'Edelweiss', 'cueillette', 10, ['c2_fleur', '#f0f0e8', '#d8c878'], { desc: 'L’étoile des neiges. On la cueille au bord des précipices, dit-on, pour prouver qu’on existe.' });
+defItem('cynorhodon', 'Cynorhodons', 'cueillette', 1, ['baies', '#d03020'], { food: 3, heal: 4 });
+defItem('baies_sureau', 'Baies de sureau', 'cueillette', 1, ['baies', '#2a1830'], { food: 3, heal: 2 });
+defItem('chataignes_grillees', 'Châtaignes grillées', 'nourriture', 5, ['baies', '#6a3a1a'], { food: 18, heal: 6 });
 ITEM_GROUPS.fruit.push('cerise', 'poire', 'prune', 'cynorhodon', 'baies_sureau');
 ITEM_GROUPS.aromate.push('reine_pres', 'achillee', 'fleur_tilleul');
 RECIPES.push(
@@ -6203,33 +6206,33 @@ BULK_CATS.add('alchimie');
 // ---------------------------------------------------------------- outils et objets d'usage
 defItem('pelle', 'Pelle', 'outil', 70, ['pelle', '#8a8680'], { tool: 'pelle', tier: 1, desc: 'Pour creuser partout : trous, trésors, racines, grottes ensevelies.' });
 defItem('carte_vallee', 'Carte de la vallée', 'outil', 45, ['carte', '#d8c8a0'], { use: 'carte', desc: 'Clic : déplier la carte.' });
-defItem('carte_tresor', 'Carte au trésor', 'tresor', 30, ['carte', '#c8a870'], { use: 'tresor', desc: 'Clic : l’examiner. Une croix, quelque part dans la vallée.' });
+defItem('carte_tresor', 'Carte au trésor', 'tresor', 15, ['carte', '#c8a870'], { use: 'tresor', desc: 'Clic : l’examiner. Une croix, quelque part dans la vallée.' });
 defItem('grimoire', 'Grimoire du frère Anselme', 'quete', 0, ['livre', '#4a2a3a'], { desc: 'Des pages d’alchimie à l’encre brune. Certaines recettes vous sont désormais connues.' });
 defItem('livre_legendes', 'Légendes de la vallée', 'quete', 0, ['livre', '#6a3a24'], { desc: 'Un recueil de veillées, annoté par plusieurs générations de lecteurs.' });
 
 // matériaux
-defItem('fiole', 'Fiole vide', 'materiau', 6, ['fiole', '#c8e0e8'], { desc: 'Pour l’alambic, la rosée, l’eau bénite.' });
-defItem('sable', 'Sable', 'materiau', 2, ['tas', '#d8c080']);
-defItem('os', 'Os', 'materiau', 3, ['os', '#e8e0cc']);
-defItem('argile', 'Argile', 'materiau', 3, ['tas', '#a86a4a']);
-defItem('silex', 'Silex', 'materiau', 4, ['caillou', '#5a5a64']);
+defItem('fiole', 'Fiole vide', 'materiau', 1, ['fiole', '#c8e0e8'], { desc: 'Pour l’alambic, la rosée, l’eau bénite.' });
+defItem('sable', 'Sable', 'materiau', 0, ['tas', '#d8c080']);
+defItem('os', 'Os', 'materiau', 1, ['os', '#e8e0cc']);
+defItem('argile', 'Argile', 'materiau', 1, ['tas', '#a86a4a']);
+defItem('silex', 'Silex', 'materiau', 1, ['caillou', '#5a5a64']);
 defItem('vers', 'Vers de terre', 'cueillette', 1, ['ver', '#c07060'], { desc: 'Le pêcheur en raffole. Enfin, ses poissons.' });
 
 // ingrédients d'alchimie
 const ALCH = (id, name, price, ic, desc) => defItem(id, name, 'alchimie', price, ic, { alch: true, desc });
-ALCH('trefle', 'Trèfle à quatre feuilles', 25, ['trefle', '#3a9a3a'], 'Rare, dans les prés. Porte-bonheur, dit-on.');
-ALCH('champi_lumineux', 'Champignon lumineux', 18, ['champi', '#60e0d0'], 'Il luit doucement dans le noir des grottes.');
-ALCH('plume_hibou', 'Plume de hibou', 14, ['plume', '#b09070'], 'Douce, silencieuse.');
-ALCH('rosee', 'Fiole de rosée', 12, ['fiole', '#c0f0ff'], 'Recueillie à l’aube, sur l’herbe.');
-ALCH('fleur_lune', 'Fleur de lune', 30, ['fleur', '#c8d8ff'], 'Elle ne s’ouvre que la nuit, dans le cercle de pierres.');
-ALCH('lichen', 'Lichen', 6, ['lichen', '#a0b070'], 'Gratté sur les rochers.');
-ALCH('eau_benite', 'Fiole d’eau bénite', 10, ['fiole', '#e8f0ff'], 'Puisée au bénitier de l’église.');
-ALCH('aile_chauve_souris', 'Aile de chauve-souris', 16, ['aile', '#4a3a3a'], 'Fine comme du papier.');
-ALCH('venin', 'Fiole de venin', 22, ['fiole', '#80c040'], 'Venin de vipère. Attention.');
-ALCH('mue_serpent', 'Mue de serpent', 12, ['mue', '#c8b890'], 'Une peau vide, parfaite.');
-ALCH('larme_dame', 'Larme de la Dame', 60, ['larme', '#80c0ff'], 'Une goutte d’eau qui ne sèche jamais.');
-ALCH('mandragore', 'Racine de mandragore', 80, ['racine', '#c09060'], 'Elle a crié quand vous l’avez arrachée.');
-ALCH('poudre_os', 'Poudre d’os', 10, ['sachet', '#e8e0d0'], 'Des os moulus, blancs comme la farine.');
+ALCH('trefle', 'Trèfle à quatre feuilles', 4, ['trefle', '#3a9a3a'], 'Rare, dans les prés. Porte-bonheur, dit-on.');
+ALCH('champi_lumineux', 'Champignon lumineux', 4, ['champi', '#60e0d0'], 'Il luit doucement dans le noir des grottes.');
+ALCH('plume_hibou', 'Plume de hibou', 3, ['plume', '#b09070'], 'Douce, silencieuse.');
+ALCH('rosee', 'Fiole de rosée', 3, ['fiole', '#c0f0ff'], 'Recueillie à l’aube, sur l’herbe.');
+ALCH('fleur_lune', 'Fleur de lune', 8, ['fleur', '#c8d8ff'], 'Elle ne s’ouvre que la nuit, dans le cercle de pierres.');
+ALCH('lichen', 'Lichen', 1, ['lichen', '#a0b070'], 'Gratté sur les rochers.');
+ALCH('eau_benite', 'Fiole d’eau bénite', 3, ['fiole', '#e8f0ff'], 'Puisée au bénitier de l’église.');
+ALCH('aile_chauve_souris', 'Aile de chauve-souris', 4, ['aile', '#4a3a3a'], 'Fine comme du papier.');
+ALCH('venin', 'Fiole de venin', 5, ['fiole', '#80c040'], 'Venin de vipère. Attention.');
+ALCH('mue_serpent', 'Mue de serpent', 3, ['mue', '#c8b890'], 'Une peau vide, parfaite.');
+ALCH('larme_dame', 'Larme de la Dame', 20, ['larme', '#80c0ff'], 'Une goutte d’eau qui ne sèche jamais.');
+ALCH('mandragore', 'Racine de mandragore', 60, ['racine', '#c09060'], 'Elle a crié quand vous l’avez arrachée.');
+ALCH('poudre_os', 'Poudre d’os', 3, ['sachet', '#e8e0d0'], 'Des os moulus, blancs comme la farine.');
 
 // potions (effets : voir le module d'alchimie)
 const POTIONS = {
@@ -6251,8 +6254,8 @@ const POTIONS = {
   somnifere: { name: 'Somnifère', col: '#6a60a0', need: ['fleur', 'lait', 'champignon'], h: 0, desc: 'Sommeil immédiat, jusqu’au matin.' },
   mixture: { name: 'Mixture douteuse', col: '#6a6a40', need: null, h: 0, desc: 'Personne ne sait ce que c’est. Pas même vous.' },
 };
-for (const id in POTIONS) { const P = POTIONS[id]; defItem(id, P.name, 'potion', id === 'mixture' ? 2 : 40 + P.need.length * 25 + (P.h > 6 ? 30 : 0), ['fiole', P.col], { potion: id, desc: P.desc }); }
-ITEMS.elixir_souffle.price = 400; ITEMS.philtre_envers.price = 200; ITEMS.potion_clairvoyance.price = 150;
+for (const id in POTIONS) { const P = POTIONS[id]; defItem(id, P.name, 'potion', id === 'mixture' ? 1 : 6 + P.need.length * 4 + (P.h > 6 ? 6 : 0), ['fiole', P.col], { potion: id, desc: P.desc }); }
+ITEMS.elixir_souffle.price = 60; ITEMS.philtre_envers.price = 30; ITEMS.potion_clairvoyance.price = 24;
 
 // reliques des Anciens (11)
 const RELICS = ['relique_cerf', 'relique_dame', 'relique_calice', 'relique_tablette', 'relique_sceau', 'relique_croc', 'relique_medaillon', 'relique_croix', 'relique_lampe', 'relique_fer', 'relique_poupee'];
@@ -6270,8 +6273,8 @@ defItem('relique_poupee', 'Poupée de paille de la Mère', 'relique', 0, ['poupe
 defItem('couronne_anciens', 'Couronne des Anciens', 'relique', 0, ['couronne', '#e0c060'], { desc: 'La vallée dort, enfin. Elle vous a choisi pour veiller.' });
 
 // piété
-defItem('chapelet_buis', 'Chapelet de buis', 'piete', 30, ['chapelet', '#b89a60'], { desc: 'Porté sur soi, il prolonge la Grâce d’une nuit.' });
-defItem('talisman_paille', 'Talisman de paille', 'piete', 30, ['poupee', '#d8b860'], { desc: 'Porté sur soi : les corbeaux évitent vos champs.' });
+defItem('chapelet_buis', 'Chapelet de buis', 'piete', 1, ['chapelet', '#b89a60'], { desc: 'Porté sur soi, il prolonge la Grâce d’une nuit.' });
+defItem('talisman_paille', 'Talisman de paille', 'piete', 1, ['poupee', '#d8b860'], { desc: 'Porté sur soi : les corbeaux évitent vos champs.' });
 
 // bêtes de la ferme en plus, et leurs produits
 defItem('chevre', 'Chèvre', 'animal', 420, ['animal', '#d8d0c0'], { animal: 'goat' });
@@ -6279,20 +6282,20 @@ defItem('oie', 'Oie', 'animal', 180, ['animal', '#f0f0ea'], { animal: 'goose' })
 defItem('cane', 'Cane', 'animal', 120, ['animal', '#8a6a4a'], { animal: 'farmduck' });
 defItem('lapin', 'Lapin', 'animal', 90, ['animal', '#9a8672'], { animal: 'farmrabbit' });
 defItem('ane', 'Âne', 'animal', 700, ['animal', '#7a7068'], { animal: 'donkey' });
-defItem('lait_chevre', 'Lait de chèvre', 'produit', 30, ['bouteille', '#f4f0e4']);
-defItem('fromage_chevre', 'Fromage de chèvre', 'nourriture', 70, ['fromage', '#f0ead8'], { food: 22, heal: 4 });
-defItem('oeuf_cane', 'Œuf de cane', 'produit', 18, ['oeuf', '#dfe8e0']);
-defItem('oeuf_oie', 'Œuf d’oie', 'produit', 30, ['oeuf', '#f4f2ea']);
-defItem('poil_lapin', 'Poil de lapin', 'produit', 26, ['laine', '#e0d8d0']);
+defItem('lait_chevre', 'Lait de chèvre', 'produit', 14, ['bouteille', '#f4f0e4']);
+defItem('fromage_chevre', 'Fromage de chèvre', 'nourriture', 38, ['fromage', '#f0ead8'], { food: 22, heal: 4 });
+defItem('oeuf_cane', 'Œuf de cane', 'produit', 7, ['oeuf', '#dfe8e0']);
+defItem('oeuf_oie', 'Œuf d’oie', 'produit', 12, ['oeuf', '#f4f2ea']);
+defItem('poil_lapin', 'Poil de lapin', 'produit', 9, ['laine', '#e0d8d0']);
 ITEM_GROUPS.oeufs = ['oeuf', 'oeuf_cane', 'oeuf_oie'];
 GROUP_NAMES.oeufs = 'œufs (au choix)';
 
 // ---------------------------------------------------------------- objets à poser en plus
 Object.assign(PLACEABLES, {
-  alambic: { name: 'Alambic', price: 400, alembic: true }, autel_maison: { name: 'Coin de prière', price: 90, shrine: true },
-  croix_bois: { name: 'Croix de bois', price: 40 }, statue_saint: { name: 'Statue de saint Aubin', price: 260 },
-  pierre_gravee: { name: 'Pierre gravée des Anciens', price: 120, shrine: true }, clapier: { name: 'Clapier', price: 70 },
-  mare: { name: 'Mare aux canards', price: 110, water: true },
+  alambic: { name: 'Alambic', price: 74, alembic: true }, autel_maison: { name: 'Coin de prière', price: 11, shrine: true },
+  croix_bois: { name: 'Croix de bois', price: 1 }, statue_saint: { name: 'Statue de saint Aubin', price: 1 },
+  pierre_gravee: { name: 'Pierre gravée des Anciens', price: 2, shrine: true }, clapier: { name: 'Clapier', price: 1 },
+  mare: { name: 'Mare aux canards', price: 5, water: true },
 });
 for (const id of ['alambic', 'autel_maison', 'croix_bois', 'statue_saint', 'pierre_gravee', 'clapier', 'mare']) {
   const p = PLACEABLES[id];
@@ -6352,7 +6355,7 @@ Object.assign(LOOT, {
   pelle: { rolls: [1, 1], items: [['vers', 1, 3, 6], ['pierre', 1, 2, 5], ['os', 1, 1, 2], ['silex', 1, 1, 2], ['argile', 1, 2, 3], ['tesson', 1, 1, 1.2], ['vieille_piece', 1, 1, 0.8], ['fossile', 1, 1, 0.2], ['carte_tresor', 1, 1, 0.08]] },
   sable: { rolls: [1, 1], items: [['sable', 1, 3, 10], ['perle', 1, 1, 0.1], ['vieille_piece', 1, 1, 0.3]] },
   // le coffre d'une carte au trésor : un beau jour de chance, pas une fortune (les cartes s'achètent au Marchedi)
-  tresor_carte: { rolls: [2, 3], items: [['argent', 40, 120, 5], ['vieille_piece', 1, 3, 5], ['bijou', 1, 1, 2], ['lingot_or', 1, 1, 1], ['gemme', 1, 1, 0.7], ['relique', 1, 1, 0.5], ['trefle', 1, 1, 1], ['geode', 1, 1, 2]] },
+  tresor_carte: { rolls: [3, 4], items: [['argent', 60, 160, 5], ['vieille_piece', 1, 3, 5], ['bijou', 1, 1, 2], ['lingot_or', 1, 1, 1], ['gemme', 1, 1, 0.7], ['relique', 1, 1, 0.5], ['trefle', 1, 1, 1], ['geode', 1, 1, 2]] },
   // la cache des contrebandiers se regarnit (ils passent) : de quoi boire, un peu d'argent, rarement une carte
   contrebandiers: { rolls: [1, 2], items: [['vin', 1, 2, 4], ['cidre', 1, 2, 4], ['argent', 20, 70, 4], ['bijou', 1, 1, 0.5], ['carte_tresor', 1, 1, 0.3], ['corde', 1, 3, 3], ['lanterne', 1, 1, 0.5], ['toile', 1, 3, 2], ['tabac', 0, 0, 0]] },
   clocher: { rolls: [3, 4], items: [['vieille_piece', 3, 8, 5], ['bijou', 1, 2, 3], ['relique', 1, 1, 2], ['perle', 1, 3, 3], ['eau_benite', 1, 2, 2], ['argent', 80, 200, 3]] },
@@ -9905,7 +9908,7 @@ const PLANTES2 = [
     girolle: ['champi', '#f0a838'], cepe: ['champi', '#8a5a30'], amanite: ['champi', '#e03020'], trompette: ['champi', '#2a2428'], morille: ['champi', '#9a7a50'],
     lycopode: ['herbes', '#4a8a40'], belladone_baies: ['baies', '#1a1420'], perce_neige: ['c2_fleur', '#f8f8f8', '#6ab06a'], linaigrette: ['herbes', '#f4f4f0'], ortie: ['herbes', '#3a7a30'],
     tussilage: ['c2_fleur', '#f0c020', '#a07010'], colchique: ['c2_fleur', '#d090d0', '#f0e8e8'] };
-  const PRIX = [6, 14, 30, 60, 120];
+  const PRIX = [1, 2, 5, 12, 25]; // selon la rareté (équilibrage : était 6, 14, 30, 60, 120)
   for (const [id, name, single, h, drop, hab, rar, fx] of PLANTES2) {
     OBJ_TYPES.push({ id, name, cat: ['girolle', 'cepe', 'amanite', 'trompette', 'morille'].includes(id) ? 'Champignons' : 'Fleurs', spr: ['w2_' + (id === 'belladone_s' ? 'belladone' : id)], h, col: 0, sway: 0.15, spacing: 0.9, sink: 0.04 });
     HARVEST[id] = { tool: 'main', hp: 0, drop: [drop], regrow: 30 };
@@ -9919,26 +9922,26 @@ for (const id of ['digitale', 'orchidee', 'pissenlit', 'reine_pres', 'achillee',
 
 // ---------------------------------------------------------------- nouveaux poissons (selon les eaux et la rareté)
 Object.assign(FISH, {
-  gardon: { name: 'Gardon', price: 10, where: ['lac', 'etang', 'riviere'], time: 'tout', w: 6, col: '#b8b8a8' },
-  rotengle: { name: 'Rotengle', price: 12, where: ['etang', 'marais'], time: 'jour', w: 5, col: '#c89868' },
-  tanche: { name: 'Tanche', price: 30, where: ['etang', 'marais'], time: 'nuit', w: 3, col: '#6a7a3a' },
-  breme: { name: 'Brème', price: 22, where: ['lac'], time: 'tout', w: 4, col: '#a89878' },
-  sandre: { name: 'Sandre', price: 85, where: ['lac', 'lac_noir'], time: 'nuit', w: 1.2, col: '#8a9a8a' },
-  chevesne: { name: 'Chevesne', price: 20, where: ['riviere'], time: 'jour', w: 4, col: '#a0a8a0' },
-  barbeau: { name: 'Barbeau', price: 35, where: ['riviere'], time: 'tout', w: 2, col: '#a88a5a' },
-  vandoise: { name: 'Vandoise', price: 14, where: ['riviere'], time: 'jour', w: 4, col: '#c0c4c8' },
-  vairon: { name: 'Vairon', price: 5, where: ['riviere', 'lac_gele'], time: 'jour', w: 6, col: '#8a9a6a' },
-  loche: { name: 'Loche franche', price: 8, where: ['riviere'], time: 'nuit', w: 3, col: '#9a8a6a' },
-  chabot: { name: 'Chabot', price: 9, where: ['riviere'], time: 'tout', w: 2, col: '#7a6a5a' },
-  saumon: { name: 'Saumon', price: 220, where: ['riviere'], time: 'jour', w: 0.3, col: '#d08878' },
-  esturgeon: { name: 'Esturgeon', price: 480, where: ['lac'], time: 'nuit', w: 0.1, col: '#6a6a6a' },
-  ecrevisse: { name: 'Écrevisse', price: 18, where: ['riviere', 'etang'], time: 'nuit', w: 4, col: '#a84a2a' },
-  ablette: { name: 'Ablette', price: 6, where: ['lac', 'riviere'], time: 'jour', w: 6, col: '#d0d4d8' },
-  carassin: { name: 'Carassin doré', price: 60, where: ['etang'], time: 'jour', w: 0.8, col: '#e0a030' },
-  poisson_chat: { name: 'Poisson-chat', price: 25, where: ['etang', 'marais'], time: 'nuit', w: 2, col: '#4a4038' },
-  lavaret: { name: 'Lavaret', price: 70, where: ['lac_gele', 'lac'], time: 'tout', w: 1.5, col: '#b8c8d0' },
-  reine_lac: { name: 'La Reine du lac', price: 900, where: ['lac'], time: 'nuit', w: 0.04, col: '#c8a040' },
-  poisson_roche: { name: 'Poisson des roches', price: 180, where: ['souterrain'], time: 'tout', w: 1, col: '#e8e0f0' },
+  gardon: { name: 'Gardon', price: 3, where: ['lac', 'etang', 'riviere'], time: 'tout', w: 6, col: '#b8b8a8' },
+  rotengle: { name: 'Rotengle', price: 3, where: ['etang', 'marais'], time: 'jour', w: 5, col: '#c89868' },
+  tanche: { name: 'Tanche', price: 8, where: ['etang', 'marais'], time: 'nuit', w: 3, col: '#6a7a3a' },
+  breme: { name: 'Brème', price: 6, where: ['lac'], time: 'tout', w: 4, col: '#a89878' },
+  sandre: { name: 'Sandre', price: 21, where: ['lac', 'lac_noir'], time: 'nuit', w: 1.2, col: '#8a9a8a' },
+  chevesne: { name: 'Chevesne', price: 5, where: ['riviere'], time: 'jour', w: 4, col: '#a0a8a0' },
+  barbeau: { name: 'Barbeau', price: 9, where: ['riviere'], time: 'tout', w: 2, col: '#a88a5a' },
+  vandoise: { name: 'Vandoise', price: 4, where: ['riviere'], time: 'jour', w: 4, col: '#c0c4c8' },
+  vairon: { name: 'Vairon', price: 1, where: ['riviere', 'lac_gele'], time: 'jour', w: 6, col: '#8a9a6a' },
+  loche: { name: 'Loche franche', price: 2, where: ['riviere'], time: 'nuit', w: 3, col: '#9a8a6a' },
+  chabot: { name: 'Chabot', price: 2, where: ['riviere'], time: 'tout', w: 2, col: '#7a6a5a' },
+  saumon: { name: 'Saumon', price: 49, where: ['riviere'], time: 'jour', w: 0.3, col: '#d08878' },
+  esturgeon: { name: 'Esturgeon', price: 105, where: ['lac'], time: 'nuit', w: 0.1, col: '#6a6a6a' },
+  ecrevisse: { name: 'Écrevisse', price: 5, where: ['riviere', 'etang'], time: 'nuit', w: 4, col: '#a84a2a' },
+  ablette: { name: 'Ablette', price: 2, where: ['lac', 'riviere'], time: 'jour', w: 6, col: '#d0d4d8' },
+  carassin: { name: 'Carassin doré', price: 15, where: ['etang'], time: 'jour', w: 0.8, col: '#e0a030' },
+  poisson_chat: { name: 'Poisson-chat', price: 6, where: ['etang', 'marais'], time: 'nuit', w: 2, col: '#4a4038' },
+  lavaret: { name: 'Lavaret', price: 18, where: ['lac_gele', 'lac'], time: 'tout', w: 1.5, col: '#b8c8d0' },
+  reine_lac: { name: 'La Reine du lac', price: 200, where: ['lac'], time: 'nuit', w: 0.04, col: '#c8a040' },
+  poisson_roche: { name: 'Poisson des roches', price: 20, where: ['souterrain'], time: 'tout', w: 1, col: '#e8e0f0' },
 });
 for (const id of ['gardon', 'rotengle', 'tanche', 'breme', 'sandre', 'chevesne', 'barbeau', 'vandoise', 'vairon', 'loche', 'chabot', 'saumon', 'esturgeon', 'ecrevisse', 'ablette', 'carassin', 'poisson_chat', 'lavaret', 'reine_lac', 'poisson_roche']) {
   defItem(id, FISH[id].name, 'poisson', FISH[id].price, ['poisson', FISH[id].col], { food: 6, heal: 2, raw: true });
@@ -9951,10 +9954,10 @@ const fishRarete = (id) => { const w = FISH[id].w; return w >= 4 ? 0 : w >= 2 ? 
 
 // ---------------------------------------------------------------- nouvelles bêtes
 // (leurs comportements et leurs modèles sont dans 10-zzfauna3.js : CREATURES n'existe pas encore ici)
-defItem('peau_salamandre', 'Peau de salamandre', 'materiau', 40, ['cuir', '#2a2a20'], { alch: true, desc: 'Noire et jaune, froide au toucher même au soleil.' });
-defItem('ecaille_tortue', 'Écaille de tortue', 'materiau', 35, ['os', '#5a5a3a'], { alch: true });
-defItem('plume_bleue', 'Plume de martin-pêcheur', 'materiau', 25, ['plume', '#2a90d0'], { alch: true });
-defItem('plume_aigle', 'Plume d’aigle', 'materiau', 45, ['plume', '#6a4a2a'], { alch: true, desc: 'Longue comme l’avant-bras. Les Aëlim, dit-on, en faisaient des plumes à écrire.' });
+defItem('peau_salamandre', 'Peau de salamandre', 'materiau', 8, ['cuir', '#2a2a20'], { alch: true, desc: 'Noire et jaune, froide au toucher même au soleil.' });
+defItem('ecaille_tortue', 'Écaille de tortue', 'materiau', 8, ['os', '#5a5a3a'], { alch: true });
+defItem('plume_bleue', 'Plume de martin-pêcheur', 'materiau', 5, ['plume', '#2a90d0'], { alch: true });
+defItem('plume_aigle', 'Plume d’aigle', 'materiau', 10, ['plume', '#6a4a2a'], { alch: true, desc: 'Longue comme l’avant-bras. Les Aëlim, dit-on, en faisaient des plumes à écrire.' });
 // ---------------------------------------------------------------- le catalogue (livres, peuplement)
 // bêtes : [id de créature, nom, milieux, rareté, dangereux (0-3)]
 const ESPECES_ANIMAUX = [
@@ -10002,11 +10005,11 @@ const PLANTES_BANALES = new Set(['fleur', 'herbes', 'champignon', 'baies', 'pomm
 //  ce qu'on trouve au refuge du col et au fond des crevasses
 // ============================================================================
 Object.assign(FISH, {
-  goujon: { name: 'Goujon', price: 12, where: ['riviere'], time: 'jour', w: 6, col: '#9aa08a' },
-  ombre: { name: 'Ombre commun', price: 50, where: ['riviere'], time: 'jour', w: 2, col: '#8a9098', rain: true },
-  omble: { name: 'Omble chevalier', price: 95, where: ['lac_gele'], time: 'tout', w: 4, col: '#c86848' },
-  lotte: { name: 'Lotte', price: 70, where: ['lac_gele', 'lac_noir'], time: 'nuit', w: 2, col: '#6a6448' },
-  vieux_silure: { name: 'Le vieux silure du lac Noir', price: 650, where: ['lac_noir'], time: 'nuit', w: 0.12, col: '#22221e' },
+  goujon: { name: 'Goujon', price: 3, where: ['riviere'], time: 'jour', w: 6, col: '#9aa08a' },
+  ombre: { name: 'Ombre commun', price: 13, where: ['riviere'], time: 'jour', w: 2, col: '#8a9098', rain: true },
+  omble: { name: 'Omble chevalier', price: 24, where: ['lac_gele'], time: 'tout', w: 4, col: '#c86848' },
+  lotte: { name: 'Lotte', price: 18, where: ['lac_gele', 'lac_noir'], time: 'nuit', w: 2, col: '#6a6448' },
+  vieux_silure: { name: 'Le vieux silure du lac Noir', price: 140, where: ['lac_noir'], time: 'nuit', w: 0.12, col: '#22221e' },
 });
 for (const id of ['goujon', 'ombre', 'omble', 'lotte', 'vieux_silure']) { defItem(id, FISH[id].name, 'poisson', FISH[id].price, ['poisson', FISH[id].col], { food: 6, heal: 2, raw: true }); ITEM_GROUPS.poisson.push(id); }
 ITEMS.vieux_silure.desc = 'Long comme un homme. Ses barbillons ont l’air de vous chercher encore.';
@@ -10079,7 +10082,7 @@ const PLANTES3 = [
 ];
 {
   const IC = { lys_cimes: ['c2_fleur', '#f4f8ff', '#b0c8e0'], mousse_nains: ['lichen', '#d8b040'], asphodele: ['c2_fleur', '#f0e0e8', '#c07890'], fleur_temple: ['c2_fleur', '#9a9a98', '#5a5a58'] };
-  const PRIX = [6, 14, 30, 60, 120];
+  const PRIX = [1, 2, 5, 12, 25]; // selon la rareté (équilibrage : était 6, 14, 30, 60, 120)
   for (const [id, name, single, h, drop, hab, rar, fx] of PLANTES3) {
     OBJ_TYPES.push({ id, name, cat: 'Fleurs', spr: ['w3_' + id], h, col: 0, sway: 0.12, spacing: 0.9, sink: 0.04 });
     HARVEST[id] = { tool: 'main', hp: 0, drop: [drop], regrow: 48 };
@@ -10095,19 +10098,19 @@ PLANTES_BANALES.add('pissenlit');
 
 // ---------------------------------------------------------------- poissons des eaux nouvelles
 Object.assign(FISH, {
-  carpe_miroir: { name: 'Carpe miroir', price: 45, where: ['douves', 'etang'], time: 'tout', w: 3, col: '#b89a4a' },
-  brochet_douves: { name: 'Le vieux brochet des douves', price: 380, where: ['douves'], time: 'nuit', w: 0.15, col: '#4a5a3a' },
-  truite_arc: { name: 'Truite arc-en-ciel', price: 60, where: ['riviere', 'lac'], time: 'jour', w: 1.2, col: '#c89090' },
-  poisson_source: { name: 'Poisson des sources', price: 35, where: ['bains'], time: 'tout', w: 4, col: '#e0c8a0' },
-  anguille_argent: { name: 'Anguille d’argent', price: 160, where: ['bains', 'souterrain'], time: 'nuit', w: 0.5, col: '#d0d8e0' },
-  ecrevisse_aveugle: { name: 'Écrevisse aveugle', price: 55, where: ['souterrain'], time: 'tout', w: 2, col: '#f0e8e0' },
-  truite_pierre: { name: 'Truite de pierre', price: 90, where: ['souterrain'], time: 'tout', w: 1.5, col: '#8a8a88' },
+  carpe_miroir: { name: 'Carpe miroir', price: 11, where: ['douves', 'etang'], time: 'tout', w: 3, col: '#b89a4a' },
+  brochet_douves: { name: 'Le vieux brochet des douves', price: 85, where: ['douves'], time: 'nuit', w: 0.15, col: '#4a5a3a' },
+  truite_arc: { name: 'Truite arc-en-ciel', price: 15, where: ['riviere', 'lac'], time: 'jour', w: 1.2, col: '#c89090' },
+  poisson_source: { name: 'Poisson des sources', price: 9, where: ['bains'], time: 'tout', w: 4, col: '#e0c8a0' },
+  anguille_argent: { name: 'Anguille d’argent', price: 30, where: ['bains', 'souterrain'], time: 'nuit', w: 0.5, col: '#d0d8e0' },
+  ecrevisse_aveugle: { name: 'Écrevisse aveugle', price: 12, where: ['souterrain'], time: 'tout', w: 2, col: '#f0e8e0' },
+  truite_pierre: { name: 'Truite de pierre', price: 18, where: ['souterrain'], time: 'tout', w: 1.5, col: '#8a8a88' },
   // 0,025 : seul poisson légendaire d'une eau où il n'y en a que trois, il sortait une prise sur trente ; une sur
   // quatre-vingt-dix, comme les autres légendes (tools/equilibrage/hasard.js)
-  poisson_ancien: { name: 'Poisson des Anciens', price: 1200, where: ['temple'], time: 'tout', w: 0.025, col: '#e8d080' },
-  lamproie: { name: 'Lamproie', price: 40, where: ['riviere', 'douves'], time: 'nuit', w: 1.5, col: '#5a5048' },
-  gremille: { name: 'Grémille', price: 14, where: ['lac', 'etang', 'douves'], time: 'jour', w: 4, col: '#9a9a6a' },
-  blennie: { name: 'Blennie des sources', price: 22, where: ['bains', 'riviere'], time: 'jour', w: 3, col: '#8a9a7a' },
+  poisson_ancien: { name: 'Poisson des Anciens', price: 200, where: ['temple'], time: 'tout', w: 0.025, col: '#e8d080' },
+  lamproie: { name: 'Lamproie', price: 10, where: ['riviere', 'douves'], time: 'nuit', w: 1.5, col: '#5a5048' },
+  gremille: { name: 'Grémille', price: 4, where: ['lac', 'etang', 'douves'], time: 'jour', w: 4, col: '#9a9a6a' },
+  blennie: { name: 'Blennie des sources', price: 6, where: ['bains', 'riviere'], time: 'jour', w: 3, col: '#8a9a7a' },
 });
 for (const id of ['carpe_miroir', 'brochet_douves', 'truite_arc', 'poisson_source', 'anguille_argent', 'ecrevisse_aveugle', 'truite_pierre', 'poisson_ancien', 'lamproie', 'gremille', 'blennie']) {
   defItem(id, FISH[id].name, 'poisson', FISH[id].price, ['poisson', FISH[id].col], { food: 6, heal: 2, raw: true });
@@ -10191,15 +10194,15 @@ Object.assign(POTIONS, {
 });
 for (const id of ['fiole_poison', 'potion_chaleur', 'potion_sang_froid', 'potion_regeneration', 'baume_moelle', 'eau_lustrale', 'potion_givre', 'philtre_morts', 'appat_empoisonne', 'fiel_noir', 'potion_soleil', 'potion_peau_pierre', 'potion_memoire', 'potion_songe']) {
   const P = POTIONS[id];
-  defItem(id, P.name, 'potion', 60 + (P.h > 6 ? 30 : 0), ['fiole', P.col], { potion: id, desc: P.desc });
+  defItem(id, P.name, 'potion', 10 + (P.h > 6 ? 6 : 0), ['fiole', P.col], { potion: id, desc: P.desc });
 }
-ITEMS.baume_moelle.price = 180; ITEMS.eau_lustrale.price = 150; ITEMS.fiel_noir.price = 5; ITEMS.fiole_poison.price = 20; ITEMS.appat_empoisonne.price = 25;
+ITEMS.baume_moelle.price = 20; ITEMS.eau_lustrale.price = 20; ITEMS.fiel_noir.price = 2; ITEMS.fiole_poison.price = 4; ITEMS.appat_empoisonne.price = 5;
 // ingrédients en plus
-defItem('graisse_ours', 'Graisse d’ours', 'materiau', 40, ['pot', '#e8d8a8'], { alch: true, desc: 'Contre le froid, dit-on, et contre les engelures.' });
-defItem('griffe_ours', 'Griffe d’ours', 'materiau', 55, ['croc', '#3a2a20'], { alch: true, desc: 'Longue comme un doigt, et bien plus dure.' });
-defItem('sel', 'Sel', 'materiau', 4, ['sachet', '#f0f0f0'], { alch: true, desc: 'Du sel gris, en gros grains. Il conserve, et il protège, disent les vieux.' });
-defItem('cendre_sacree', 'Cendre sacrée', 'materiau', 60, ['sachet', '#8a8078'], { alch: true, desc: 'Ramassée au pied de l’autel d’un temple que personne ne connaît.' });
-defItem('poussiere_etoile', 'Poussière d’étoile', 'materiau', 200, ['sachet', '#d0d8ff'], { alch: true, desc: 'Tombée du ciel une nuit d’étoiles filantes. Elle brille encore un peu.' });
+defItem('graisse_ours', 'Graisse d’ours', 'materiau', 10, ['pot', '#e8d8a8'], { alch: true, desc: 'Contre le froid, dit-on, et contre les engelures.' });
+defItem('griffe_ours', 'Griffe d’ours', 'materiau', 12, ['croc', '#3a2a20'], { alch: true, desc: 'Longue comme un doigt, et bien plus dure.' });
+defItem('sel', 'Sel', 'materiau', 2, ['sachet', '#f0f0f0'], { alch: true, desc: 'Du sel gris, en gros grains. Il conserve, et il protège, disent les vieux.' });
+defItem('cendre_sacree', 'Cendre sacrée', 'materiau', 25, ['sachet', '#8a8078'], { alch: true, desc: 'Ramassée au pied de l’autel d’un temple que personne ne connaît.' });
+defItem('poussiere_etoile', 'Poussière d’étoile', 'materiau', 70, ['sachet', '#d0d8ff'], { alch: true, desc: 'Tombée du ciel une nuit d’étoiles filantes. Elle brille encore un peu.' });
 for (const id of Object.keys(ESSENCES)) if (ITEMS[id] && !ITEMS[id].alch && id !== 'viande' && id !== 'oeuf' && id !== 'lait' && id !== 'miel' && id !== 'carpe') ITEMS[id].alch = true;
 
 // ---- 05-zzz2-especes-textes.js
@@ -10604,7 +10607,7 @@ const LIVRES = {
 // objets « livre »
 for (const id in LIVRES) {
   const L = LIVRES[id];
-  defItem('livre_' + id, L.titre, 'livre', L.prix || (L.biblio ? 0 : 40), ['livre', L.col || '#6a2a24'], { book: id, desc: (L.desc || (L.biblio ? 'Un livre de la grande bibliothèque. Il faudra le rendre à temps.' : '')) + (L.biblio ? '' : '') });
+  defItem('livre_' + id, L.titre, 'livre', L.prix ? Math.round(L.prix / 2) /* revendu moitié prix */ : (L.biblio ? 0 : 40), ['livre', L.col || '#6a2a24'], { book: id, desc: (L.desc || (L.biblio ? 'Un livre de la grande bibliothèque. Il faudra le rendre à temps.' : '')) + (L.biblio ? '' : '') });
   if (L.biblio) ITEMS['livre_' + id].biblio = true;
 }
 ITEM_CAT_NAMES.livre = 'Livres';
@@ -10622,21 +10625,21 @@ const LIVRES_MANUELS = ['manuel_menuisier', 'manuel_forgeron', 'manuel_chasse', 
 // ============================================================================
 defItem('fusil', 'Fusil de chasse à lunette', 'outil', 950, ['fusil', '#5a4a3a'], { tool: 'fusil', desc: 'Clic : tirer. Bouton droit maintenu : viser à la lunette. Une cartouche par coup.' });
 defItem('cartouche', 'Cartouche', 'outil', 6, ['cartouche', '#c8a040'], { desc: 'Pour le fusil de chasse.' });
-defItem('canon_fusil', 'Canon de fusil', 'materiau', 260, ['canon', '#6a6a72'], { desc: 'Un tube d’acier foré, long comme le bras.' });
-defItem('lunette', 'Lunette de visée', 'materiau', 220, ['lunette', '#3a3a40'], { desc: 'Deux lentilles dans un tube de cuivre. Tout paraît plus près, et plus seul.' });
-defItem('lentille', 'Lentille de verre', 'materiau', 60, ['rond', '#d0e8f0'], { desc: 'Taillée par un nain, dit-on. Parfaitement claire.' });
+defItem('canon_fusil', 'Canon de fusil', 'materiau', 143, ['canon', '#6a6a72'], { desc: 'Un tube d’acier foré, long comme le bras.' });
+defItem('lunette', 'Lunette de visée', 'materiau', 107, ['lunette', '#3a3a40'], { desc: 'Deux lentilles dans un tube de cuivre. Tout paraît plus près, et plus seul.' });
+defItem('lentille', 'Lentille de verre', 'materiau', 39, ['rond', '#d0e8f0'], { desc: 'Taillée par un nain, dit-on. Parfaitement claire.' });
 defItem('appeau', 'Appeau', 'outil', 35, ['cle', '#8a6a44'], { tool: 'appeau', desc: 'Clic : imiter le cri du gibier. Les bêtes curieuses approchent.' });
-defItem('roue', 'Roue de charrette', 'materiau', 70, ['roue', '#7a5a3a'], { desc: 'Rayons de frêne, bandage de fer.' });
+defItem('roue', 'Roue de charrette', 'materiau', 29, ['roue', '#7a5a3a'], { desc: 'Rayons de frêne, bandage de fer.' });
 defItem('harnais', 'Harnais', 'outil', 90, ['cuir', '#5a3a24'], { passive: true, desc: 'Pour atteler un cheval (ou un âne) à une charrette.' });
 defItem('attelle', 'Attelle', 'outil', 25, ['attelle', '#c8b088'], { desc: 'Clic : immobiliser une jambe cassée. Elle guérira bien plus vite.' });
 defItem('bandage', 'Bandage', 'outil', 12, ['bandage', '#f0ece0'], { desc: 'Clic : panser une plaie. Arrête le saignement.' });
 defItem('sifflet_argent', 'Sifflet d’argent', 'outil', 0, ['cle', '#d0d8e0'], { desc: 'Un sifflet des nains. Soufflé devant la fente de la falaise, il répond au rythme des coups.' });
 // objets à poser en plus
 Object.assign(PLACEABLES, {
-  piege_loup: { name: 'Piège à loup', price: 110, trap: true },
-  charrette: { name: 'Charrette', price: 600, store: true },
-  table_alchimie: { name: 'Table d’alchimiste', price: 450, alembic: true },
-  echelle_bois: { name: 'Échelle de bois', price: 30 },
+  piege_loup: { name: 'Piège à loup', price: 61, trap: true },
+  charrette: { name: 'Charrette', price: 130, store: true },
+  table_alchimie: { name: 'Table d’alchimiste', price: 40, alembic: true },
+  echelle_bois: { name: 'Échelle de bois', price: 1 },
 });
 for (const id of ['piege_loup', 'charrette', 'table_alchimie', 'echelle_bois']) defItem(id, PLACEABLES[id].name, 'objet', PLACEABLES[id].price, ['objet', id], { place: id });
 ITEMS.piege_loup.desc = 'Clic : le poser au sol. Il se referme sur la première patte qui passe. Attention où vous marchez.';
@@ -10691,7 +10694,7 @@ Object.assign(LOOT, {
   temple: { rolls: [2, 4], items: [['vieille_piece', 3, 8, 5], ['bijou', 1, 2, 3], ['gemme', 1, 2, 2], ['cendre_sacree', 1, 2, 3], ['relique', 1, 1, 1], ['lingot_or', 1, 2, 1.5], ['argent', 60, 220, 3], ['poussiere_etoile', 1, 1, 0.5]] },
   temple_or: { rolls: [3, 4], items: [['lingot_or', 2, 4, 4], ['gemme', 2, 3, 3], ['bijou', 1, 3, 3], ['couronne_aelim', 1, 1, 1], ['argent', 200, 500, 3]] },
 });
-defItem('couronne_aelim', 'Diadème des Aëlim', 'tresor', 1500, ['couronne', '#e8e0f0'], { desc: 'Un diadème d’argent pâle, gravé de Hautes Lettres : « ael vor ves ». La lumière avant la nuit.' });
+defItem('couronne_aelim', 'Diadème des Aëlim', 'tresor', 750, ['couronne', '#e8e0f0'], { desc: 'Un diadème d’argent pâle, gravé de Hautes Lettres : « ael vor ves ». La lumière avant la nuit.' });
 LOOT.fouille.items.push(['sel', 1, 2, 1]);
 LOOT.campement.items.push(['bandage', 1, 2, 2], ['cartouche', 2, 6, 0.8]);
 LOOT.ruines.items.push(['herbier_fauvel', 0, 0, 0]);
@@ -10719,7 +10722,7 @@ const NPC_NEW = [
     look: { skin: '#e0c0a0', hair: '#6a6a70', hairStyle: 'chauve', beard: 'longue', hat: null, top: '#3a2a4a', bottom: '#2a2a30', dress: false, apron: '#6a5a3a', height: 0.98, build: 'mince', coat: true },
     schedule: [[6.5, 'home'], [8, 'work'], [12, 'auberge'], [13.5, 'work'], [19, 'place'], [20, 'home']],
     likes: ['gentiane', 'edelweiss', 'fleur_lune', 'champi_lumineux'], loves: ['lys_cimes', 'fleur_temple'], dislikes: ['pain', 'foin'],
-    shop: { name: 'Échoppe de l’alchimiste', sells: [['fiole', 8], ['table_alchimie', 450], ['bandage', 15], ['potion_soin', 90], ['antidote', 110], ['baume_moelle', 220], ['eau_lustrale', 180], ['sel', 5], ['poudre_os', 14], ['livre_herbier', 90]],
+    shop: { name: 'Échoppe de l’alchimiste', sells: [['fiole', 8], ['table_alchimie', 450], ['bandage', 15], ['potion_soin', 90], ['antidote', 110], ['baume_moelle', 220], ['eau_lustrale', 180], ['sel', 10], ['poudre_os', 14], ['livre_herbier', 90]],
       buys: ['herbes', 'champignon', 'trefle', 'champi_lumineux', 'fleur_lune', 'rosee', 'venin', 'mue_serpent', 'plume_hibou', 'aile_chauve_souris', 'eclat', 'mandragore', 'graisse_ours', 'griffe_ours', 'peau_salamandre', 'plume_aigle', 'plume_bleue', 'ecaille_tortue'] },
     lines: {
       intro: 'Hm ? Ah. Un client. Ou un curieux. {nom} Fauvel, alchimiste. Si vous avez trouvé une plante que vous ne connaissez pas, apportez-la-moi : je vous dirai ce que c’est. Et si c’est un poison, je vous dirai combien de temps il vous reste.',
@@ -10870,7 +10873,7 @@ const NPC_NEW = [
     look: { skin: '#c89a78', hair: '#1a1410', hairStyle: 'queue', beard: null, hat: 'voile', hatCol: '#8a2a3a', top: '#b0503a', bottom: '#5a3a5a', dress: true, apron: '#d8c080', height: 0.97, build: 'normal', bust: 0.95, hips: 1.05 },
     schedule: [[6.5, 'home'], [7.5, 'marche'], [18.5, 'auberge'], [20.5, 'home']],
     likes: ['miel', 'fleur', 'confiture'], loves: ['perle', 'poisson_source'], dislikes: ['venin', 'viande'],
-    shop: { name: 'Les ballots de Carrez', sells: [['toile', 24], ['bandage', 14], ['attelle', 30], ['fiole', 9], ['sel', 5], ['corde', 13], ['carte_nord', 125], ['carte_est', 95], ['carte_monts', 155], ['graines_basilic', 12], ['graines_lavande', 16], ['livre_manuel_cuisine', 55], ['livre_sciences', 60], ['livre_poissons', 72], ['appeau', 40]],
+    shop: { name: 'Les ballots de Carrez', sells: [['toile', 24], ['bandage', 14], ['attelle', 30], ['fiole', 9], ['sel', 10], ['corde', 13], ['carte_nord', 125], ['carte_est', 95], ['carte_monts', 155], ['graines_basilic', 12], ['graines_lavande', 16], ['livre_manuel_cuisine', 55], ['livre_sciences', 60], ['livre_poissons', 72], ['appeau', 40]],
       buys: ['fleur', 'miel', 'laine', 'poisson', 'toile', 'huile', 'lavande', 'confiture'] },
     lines: {
       intro: '{nom} Carrez, marchande de tout et d’ailleurs. Tissus, épices, remèdes, cartes du nord. Et je ne raconte pas d’histoires : ça, c’est mon concurrent.',
@@ -15894,6 +15897,7 @@ function buildSkinAtlas() {
   T(TL.boarF, animalFace(5, [3, 12], null));
   T(TL.crowF, animalFace(6, [2, 13], null));
   SKIN.canvas = pb.canvas();
+  SKIN.pb = pb; // les icônes 3D lisent leurs couleurs ici, sans relire le canevas (avertissement du navigateur)
 }
 
 // ---------------------------------------------------------------- squelettes articulés
@@ -22198,7 +22202,7 @@ function installBeastHooks() {
       if (a.dead || !['goat', 'goose', 'farmduck', 'farmrabbit'].includes(a.kind)) continue;
       const fedK = a.fedUntil > s.hours ? 1.5 : this.raining ? 0.6 : 1;
       a.prodT = (a.prodT || 0) + dtH * fedK;
-      const P = { goat: 10, goose: 12, farmduck: 9, farmrabbit: 14 }[a.kind];
+      const P = { goat: 12, goose: 24, farmduck: 20, farmrabbit: 36 }[a.kind];
       if (a.prodT < P) continue;
       a.prodT = 0;
       if (a.kind === 'goat') a.milk = Math.min(2, (a.milk || 0) + 1);
@@ -22683,7 +22687,7 @@ const editor = {
 //  posés, repas, fabrication), santé et faim, rendu des objets 3D
 // ============================================================================
 
-CROPS.pommier = { name: 'Pommier', h: 24, regrow: 8, yield: [2, 4], frost: false, col: '#c82828', tree: true, fruit: 'pomme' };
+CROPS.pommier = { name: 'Pommier', h: 96, regrow: 48, yield: [2, 4], frost: false, col: '#c82828', tree: true, fruit: 'pomme' };
 const HAND_GROUPS = [
   ['main'],
   ['hache_acier', 'hache_fer', 'hache_cuivre', 'hache_pierre'],
@@ -23086,7 +23090,7 @@ const play = {
     sound.cast && sound.cast();
     if (!zone) { this.fish = { x: wx, y: w.heightAt(wx, wz) + 0.05, z: wz, state: 'ground', t: 0 }; return; }
     const fast = (this.item() || {}).fast || 1;
-    this.fish = { x: wx, y: wy, z: wz, zone, state: 'wait', t: (3 + Math.random() * 8) * fast, bob: 0 };
+    this.fish = { x: wx, y: wy, z: wz, zone, state: 'wait', t: (8 + Math.random() * 20) * fast, bob: 0 }; // touche au bout de 8 à 28 s (équilibrage)
   },
   fishZone(x, z) {
     const w = game.world;
@@ -23121,8 +23125,8 @@ const play = {
     for (const k of cand) { r -= FISH[k].w * (FISH[k].rain && game.sky.wet > 0.3 ? 3 : 1); if (r <= 0) { pick = k; break; } }
     const r0 = Math.random();
     if (r0 < 0.05) { farm.give('fibre', 1); this.flyer('fibre', [F.x, F.y + 0.3, F.z], 1); sound.reel && sound.reel(0.5); return; }
-    if (r0 < 0.09) { farm.give('coffre_peche', 1); this.flyer('coffre_peche', [F.x, F.y + 0.3, F.z], 1); splashAt(F.x, F.y, F.z); sound.catchFish && sound.catchFish(); return; }
-    if (r0 < 0.105 && F.zone === 'lac') { farm.give('perle', 1); this.flyer('perle', [F.x, F.y + 0.3, F.z], 1); sound.catchFish && sound.catchFish(); return; }
+    if (r0 < 0.06) { farm.give('coffre_peche', 1); this.flyer('coffre_peche', [F.x, F.y + 0.3, F.z], 1); splashAt(F.x, F.y, F.z); sound.catchFish && sound.catchFish(); return; }
+    if (r0 < 0.075 && F.zone === 'lac') { farm.give('perle', 1); this.flyer('perle', [F.x, F.y + 0.3, F.z], 1); sound.catchFish && sound.catchFish(); return; }
     farm.give(pick, 1);
     farm.s.stats.fish++;
     this.flyer(pick, [F.x, F.y + 0.3, F.z], 1);
@@ -23696,7 +23700,8 @@ const farm = {
       if (a.dead) continue;
       const fedK = a.fedUntil > s.hours ? 1.5 : this.raining ? 0.6 : 1;
       a.prodT = (a.prodT || 0) + dtH * fedK;
-      const P = { hen: 7, cow: 9, sheep: 14, pig: 7 }[a.kind];
+      // heures entre deux produits (équilibrage : deux œufs, trois traites par jour ; nourries, × 1,5)
+      const P = { hen: 16, cow: 12, sheep: 36, pig: 20 }[a.kind];
       if (!P || a.prodT < P) continue;
       a.prodT = 0;
       if (a.kind === 'hen') a.egg = Math.min(3, (a.egg || 0) + 1);
@@ -28101,7 +28106,7 @@ HOOKS.inter.refuge = () => game.trySleep('refuge');
 HOOKS.inter.peche_glace = (it) => {
   if (!farm.count('canne')) { ui.subtitle('', '(Un trou rond dans la glace, l’eau noire dessous. Il faudrait une canne à pêche.)', 3.5); return; }
   const F = vallee.fish;
-  if (!F) { vallee.fish = { it, t: 5 + Math.random() * 10, bite: 0 }; sound.splash && sound.splash(); ui.subtitle('', '(Vous laissez filer la ligne dans l’eau noire, et vous attendez.)', 3); return; }
+  if (!F) { vallee.fish = { it, t: 8 + Math.random() * 20, bite: 0 }; /* comme au bord de l'eau : 8 à 28 s (équilibrage) */ sound.splash && sound.splash(); ui.subtitle('', '(Vous laissez filer la ligne dans l’eau noire, et vous attendez.)', 3); return; }
   if (F.bite > 0) { vallee.fish = null; play.catchFish({ zone: 'lac_gele', x: it.x, y: it.y, z: it.z }); return; }
   ui.subtitle('', '(Rien encore. La ligne ne bouge pas.)', 2);
 };
@@ -31720,8 +31725,9 @@ const CHASSE_VEGETATION = new Set(['tallgrass', 'fern', 'reeds', 'heather', 'bus
 
 // ---------------------------------------------------------------- objets en plus : le brassard rouge, le trophée
 defItem('brassard_rouge', 'Brassard rouge', 'outil', 12, ['laine', '#c8281e'], { passive: true, desc: 'Un brassard de laine rouge. Le Chassedi, les chasseurs voient du rouge avant de voir un chevreuil. En principe.' });
-PLACEABLES.trophee = { name: 'Trophée de cerf', price: 180 };
-defItem('trophee', 'Trophée de cerf', 'objet', 180, ['objet', 'trophee'], { place: 'trophee', desc: 'Une tête de cerf naturalisée sur sa planche. À poser au mur, ou sur une table.' });
+// trophée : un cerf sur six ou sept en donne un ; il vaut trois cerfs dépecés (équilibrage : était 180)
+PLACEABLES.trophee = { name: 'Trophée de cerf', price: 60 };
+defItem('trophee', 'Trophée de cerf', 'objet', 60, ['objet', 'trophee'], { place: 'trophee', desc: 'Une tête de cerf naturalisée sur sa planche. À poser au mur, ou sur une table.' });
 if (NPC_BY_ID.chasseur && NPC_BY_ID.chasseur.shop && !NPC_BY_ID.chasseur.shop.sells.some((x) => x[0] === 'brassard_rouge')) NPC_BY_ID.chasseur.shop.sells.push(['brassard_rouge', 14]);
 if (NPC_BY_ID.chasseur && NPC_BY_ID.chasseur.shop && NPC_BY_ID.chasseur.shop.buys && !NPC_BY_ID.chasseur.shop.buys.includes('trophee')) NPC_BY_ID.chasseur.shop.buys.push('trophee');
 
@@ -37754,9 +37760,9 @@ const HOTTES = {
       hameau: [['laine', 50], ['fromage', 65], ['graines_ble', 3], ['graines_carotte', 4]],
       'lieu:sources': [['reine_pres', 14], ['huile', 68], ['livre_sciences', 60]],
       'lieu:bibliotheque': [['livre_manuel_jardin', 95], ['livre_herbier', 92], ['carte_ouest', 75]],
-      ponton: [['canne', 65], ['vers', 1], ['livre_poissons', 72]],
+      ponton: [['canne', 65], ['vers', 2], ['livre_poissons', 72]],
       cimetiere: [['bougie', 9], ['fleur', 8]],
-      lavoir: [['toile', 22], ['sel', 4]],
+      lavoir: [['toile', 22], ['sel', 9]],
       marche: [['livre_manuel_cuisine', 55], ['livre_poissons', 72], ['carte_monts', 155]],
       'lieu:relais_chasse': [['attelle', 28], ['corde', 12]],
       place: [['livre_sciences', 60]],
@@ -39307,10 +39313,10 @@ function chienValeur(id) {
 const CHIEN_NOMS = ['Filou', 'Médor', 'Pataud', 'Finaud', 'Mirza', 'Fidèle', 'Ravageot', 'Brisquet', 'Sultan', 'Pastis'];
 
 // ---------------------------------------------------------------- la gamelle, la pâtée, le chiot, la tombe
-PLACEABLES.gamelle = { name: 'Gamelle du chien', price: 14 };
-defItem('gamelle', 'Gamelle du chien', 'objet', 14, ['objet', 'gamelle'], { place: 'gamelle', desc: 'À poser à la ferme. E dessus avec de quoi manger en main pour la remplir : le chien y mange quand il a faim.' });
-defItem('patee', 'Pâtée pour chien', 'nourriture', 14, ['bol', '#8a6a4a'], { food: 6, heal: 0, desc: 'Des restes, de la viande, du pain trempé. Pour le chien. En principe.' });
-defItem('chiot', 'Chiot', 'objet', 120, ['animal', '#b08450'], { desc: 'Clic : l’adopter. Un chien pour la ferme (s’il n’y en a plus).' });
+PLACEABLES.gamelle = { name: 'Gamelle du chien', price: 1 };
+defItem('gamelle', 'Gamelle du chien', 'objet', 1, ['objet', 'gamelle'], { place: 'gamelle', desc: 'À poser à la ferme. E dessus avec de quoi manger en main pour la remplir : le chien y mange quand il a faim.' });
+defItem('patee', 'Pâtée pour chien', 'nourriture', 2, ['bol', '#8a6a4a'], { food: 6, heal: 0, desc: 'Des restes, de la viande, du pain trempé. Pour le chien. En principe.' });
+defItem('chiot', 'Chiot', 'objet', 60, ['animal', '#b08450'], { desc: 'Clic : l’adopter. Un chien pour la ferme (s’il n’y en a plus).' });
 RECIPES.push(
   { out: 'gamelle', n: 1, need: { bois: 2 }, st: null },
   { out: 'patee', n: 2, need: { viande: 1, pain: 1 }, st: 'feu' },
@@ -39779,19 +39785,19 @@ const ALCOOL_PALIERS = [null,
   if (ITEMS.vin) ITEMS.vin.ic = ['h_bouteille', '#7a1a34', '#e8dcc0'];
   if (ITEMS.biere) ITEMS.biere.ic = ['h_bouteille', '#c88a30', '#f0e8d0'];
 }
-defItem('hydromel', 'Hydromel', 'nourriture', 110, ['h_bouteille', '#e8b848', '#f0e0b0'], { food: 6, heal: 5, alcool: 1.5, desc: 'Du miel, de l’eau, et un tonneau oublié à la cave. La boisson des anciens.' });
-defItem('cervoise', 'Cervoise', 'nourriture', 55, ['h_bouteille', '#b87a30', '#e8dcc0'], { food: 8, heal: 2, alcool: 1, desc: 'Une bière d’orge sans houblon, trouble et douce, comme on en brassait avant.' });
-defItem('eau_de_vie_cidre', 'Eau-de-vie de cidre', 'nourriture', 160, ['h_flasque', '#d8a040'], { food: 1, heal: 2, alcool: 2.5, desc: 'Du cidre passé à l’alambic. Ça réchauffe jusqu’aux orteils.' });
-defItem('gnole', 'Gnôle de prune', 'nourriture', 150, ['h_cruche', '#8a7a6a'], { food: 1, heal: 2, alcool: 3, desc: 'Claire comme de l’eau, et ce n’en est pas. La gnôle des bouilleurs de cru.' });
-defItem('eau_de_vie_poire', 'Eau-de-vie de poire', 'nourriture', 180, ['h_flasque', '#e4ecd8'], { food: 1, heal: 2, alcool: 2.5, desc: 'Toute la poire, sans la poire.' });
-defItem('kirsch', 'Kirsch', 'nourriture', 170, ['h_flasque', '#f0e8f0'], { food: 1, heal: 2, alcool: 2.5, desc: 'L’eau-de-vie des cerises, avec un goût d’amande au fond.' });
-defItem('marc', 'Marc de raisin', 'nourriture', 170, ['h_flasque', '#e0c070'], { food: 1, heal: 2, alcool: 2.8, desc: 'On distille ce qui reste du raisin une fois pressé. Rien ne se perd.' });
-defItem('fine', 'Fine de vin', 'nourriture', 190, ['h_flasque', '#b8783a'], { food: 1, heal: 2, alcool: 2.5, desc: 'Du vin passé à l’alambic. Les messieurs de la ville en boivent dans de petits verres.' });
-defItem('eau_de_vie_grain', 'Eau-de-vie de grain', 'nourriture', 120, ['h_flasque', '#f4f4f0'], { food: 1, heal: 1, alcool: 2.5, desc: 'De l’orge, du seigle ou de la bière, distillés. Ça brûle la gorge, puis le reste.' });
-defItem('liqueur_gentiane', 'Liqueur de gentiane', 'nourriture', 160, ['h_bouteille', '#e0c030', '#e8dcc0'], { food: 2, heal: 4, alcool: 2, desc: 'Amère comme la montagne. On dit que ça ouvre l’appétit et ferme les plaies.' });
-defItem('liqueur_cassis', 'Liqueur de cassis', 'nourriture', 150, ['h_bouteille', '#4a1030', '#e8dcc0'], { food: 4, heal: 2, alcool: 1.8, desc: 'Noire et sucrée. Les dames du bourg en boivent en cachette.' });
-defItem('vin_noix', 'Vin de noix', 'nourriture', 140, ['h_bouteille', '#3a2412', '#e8dcc0'], { food: 3, heal: 3, alcool: 1.5, desc: 'Des noix vertes, macérées dans le vin. Pour l’apéritif du dimanche.' });
-defItem('vin_chaud', 'Vin chaud', 'nourriture', 70, ['bol', '#8a2040'], { food: 8, heal: 10, alcool: 1.2, desc: 'Du vin, du miel, et le feu. Rien de tel pour les soirs de neige.' });
+defItem('hydromel', 'Hydromel', 'nourriture', 14, ['h_bouteille', '#e8b848', '#f0e0b0'], { food: 6, heal: 5, alcool: 1.5, desc: 'Du miel, de l’eau, et un tonneau oublié à la cave. La boisson des anciens.' });
+defItem('cervoise', 'Cervoise', 'nourriture', 12, ['h_bouteille', '#b87a30', '#e8dcc0'], { food: 8, heal: 2, alcool: 1, desc: 'Une bière d’orge sans houblon, trouble et douce, comme on en brassait avant.' });
+defItem('eau_de_vie_cidre', 'Eau-de-vie de cidre', 'nourriture', 11, ['h_flasque', '#d8a040'], { food: 1, heal: 2, alcool: 2.5, desc: 'Du cidre passé à l’alambic. Ça réchauffe jusqu’aux orteils.' });
+defItem('gnole', 'Gnôle de prune', 'nourriture', 8, ['h_cruche', '#8a7a6a'], { food: 1, heal: 2, alcool: 3, desc: 'Claire comme de l’eau, et ce n’en est pas. La gnôle des bouilleurs de cru.' });
+defItem('eau_de_vie_poire', 'Eau-de-vie de poire', 'nourriture', 16, ['h_flasque', '#e4ecd8'], { food: 1, heal: 2, alcool: 2.5, desc: 'Toute la poire, sans la poire.' });
+defItem('kirsch', 'Kirsch', 'nourriture', 8, ['h_flasque', '#f0e8f0'], { food: 1, heal: 2, alcool: 2.5, desc: 'L’eau-de-vie des cerises, avec un goût d’amande au fond.' });
+defItem('marc', 'Marc de raisin', 'nourriture', 32, ['h_flasque', '#e0c070'], { food: 1, heal: 2, alcool: 2.8, desc: 'On distille ce qui reste du raisin une fois pressé. Rien ne se perd.' });
+defItem('fine', 'Fine de vin', 'nourriture', 14, ['h_flasque', '#b8783a'], { food: 1, heal: 2, alcool: 2.5, desc: 'Du vin passé à l’alambic. Les messieurs de la ville en boivent dans de petits verres.' });
+defItem('eau_de_vie_grain', 'Eau-de-vie de grain', 'nourriture', 20, ['h_flasque', '#f4f4f0'], { food: 1, heal: 1, alcool: 2.5, desc: 'De l’orge, du seigle ou de la bière, distillés. Ça brûle la gorge, puis le reste.' });
+defItem('liqueur_gentiane', 'Liqueur de gentiane', 'nourriture', 17, ['h_bouteille', '#e0c030', '#e8dcc0'], { food: 2, heal: 4, alcool: 2, desc: 'Amère comme la montagne. On dit que ça ouvre l’appétit et ferme les plaies.' });
+defItem('liqueur_cassis', 'Liqueur de cassis', 'nourriture', 14, ['h_bouteille', '#4a1030', '#e8dcc0'], { food: 4, heal: 2, alcool: 1.8, desc: 'Noire et sucrée. Les dames du bourg en boivent en cachette.' });
+defItem('vin_noix', 'Vin de noix', 'nourriture', 23, ['h_bouteille', '#3a2412', '#e8dcc0'], { food: 3, heal: 3, alcool: 1.5, desc: 'Des noix vertes, macérées dans le vin. Pour l’apéritif du dimanche.' });
+defItem('vin_chaud', 'Vin chaud', 'nourriture', 13, ['bol', '#8a2040'], { food: 8, heal: 10, alcool: 1.2, desc: 'Du vin, du miel, et le feu. Rien de tel pour les soirs de neige.' });
 RECIPES.push({ out: 'vin_chaud', n: 1, need: { vin: 1, miel: 1 }, st: 'feu' });
 // ce que certains alcools font en plus (voir 11-zzz61-nourriture.js)
 Object.assign(ALIMENTS_EFFETS, {
@@ -39804,8 +39810,8 @@ Object.assign(ALIMENTS_EFFETS, {
 const ALCOOLS = Object.keys(ITEMS).filter((id) => ITEMS[id].alcool);
 
 // ---------------------------------------------------------------- l'alambic du bouilleur de cru
-PLACEABLES.alambic_cru = { name: 'Alambic de bouilleur de cru', price: 380, machine: true };
-defItem('alambic_cru', 'Alambic de bouilleur de cru', 'objet', 380, ['objet', 'alambic_cru'], { place: 'alambic_cru', desc: 'Une cuve de cuivre sur un foyer, un col de cygne, un serpentin dans un tonneau d’eau. E dessus avec ce qu’il faut distiller en main, et du bois (ou du charbon) dans la sacoche.' });
+PLACEABLES.alambic_cru = { name: 'Alambic de bouilleur de cru', price: 102, machine: true };
+defItem('alambic_cru', 'Alambic de bouilleur de cru', 'objet', 102, ['objet', 'alambic_cru'], { place: 'alambic_cru', desc: 'Une cuve de cuivre sur un foyer, un col de cygne, un serpentin dans un tonneau d’eau. E dessus avec ce qu’il faut distiller en main, et du bois (ou du charbon) dans la sacoche.' });
 RECIPES.push({ out: 'alambic_cru', n: 1, need: { lingot_cuivre: 4, lingot_fer: 1, pierre: 8 }, st: 'etabli' });
 LOCKED_RECIPES.add('alambic_cru');
 PROP_USE_MORE.alambic_cru = 'm';
@@ -40867,8 +40873,8 @@ defItem('guimauve', 'Guimauve', 'ailleurs', 0, ['md_guimauve', '#f8b8d0', '#fffa
 defItem('sucre_orge', 'Sucre d’orge', 'ailleurs', 0, ['md_canne', '#e02848'], { desc: 'Un bâton de sucre d’orge qui poussait dans l’herbe.' });
 defItem('dragee', 'Dragées', 'ailleurs', 0, ['md_dragee', '#f4a8c8', '#a8e4c8'], { desc: 'Des cailloux de sucre, lisses et froids.' });
 defItem('gomme', 'Oursons en gomme', 'ailleurs', 0, ['md_ourson', '#e8243e'], { desc: 'Ce qui reste d’un ourson en gomme. Encore tiède.' });
-defItem('couronne_sucre', 'Couronne de sucre', 'ailleurs', 420, ['couronne', '#f6b0d0'], { desc: 'Une couronne de sucre candi, donnée par un roi de pain d’épice. Elle ne fond pas. Elle ne devrait pas exister.' });
-defItem('crin_licorne', 'Crin irisé', 'ailleurs', 260, ['md_crin', '#f0a0c0'], { desc: 'Un crin aux sept couleurs, arraché à une bête qui n’existe pas. Il est là, pourtant.' });
+defItem('couronne_sucre', 'Couronne de sucre', 'ailleurs', 210, ['couronne', '#f6b0d0'], { desc: 'Une couronne de sucre candi, donnée par un roi de pain d’épice. Elle ne fond pas. Elle ne devrait pas exister.' });
+defItem('crin_licorne', 'Crin irisé', 'ailleurs', 130, ['md_crin', '#f0a0c0'], { desc: 'Un crin aux sept couleurs, arraché à une bête qui n’existe pas. Il est là, pourtant.' });
 // ce que deviennent les bonbons quand la vision s'en va (null : rien ; même id : ça reste)
 const BONBONS_RETOUR = { barbe_a_papa: 'fibre', sucette: 'pierre', guimauve: 'champignon', sucre_orge: 'os', dragee: 'pierre', gomme: 'viande', couronne_sucre: 'couronne_sucre', crin_licorne: 'crin_licorne' };
 // on en trouve un peu partout
@@ -41379,8 +41385,8 @@ MONDES.bonbons = {
 //  mondes.entrer('tenebres', { duree (heures), durete (0..1.5) })
 // ============================================================================
 defItem('cendre', 'Cendre', 'materiau', 0, ['tas', '#8a8680'], { desc: 'Une poignée de cendre grise, légère, qui ne sent rien.' });
-defItem('coeur_noir', 'Cœur noir', 'ailleurs', 380, ['md_coeur', '#1a1418', '#a01818'], { desc: 'Un cœur de pierre noire pris sur l’autel d’une cathédrale qui n’existe pas. Parfois, il bat.' });
-defItem('oeil_verre', 'Œil de verre', 'ailleurs', 90, ['md_oeil', '#6a8a9a'], { desc: 'Un œil de verre, donné par un enfant dans une cage. Il regarde toujours quelque chose derrière vous.' });
+defItem('coeur_noir', 'Cœur noir', 'ailleurs', 190, ['md_coeur', '#1a1418', '#a01818'], { desc: 'Un cœur de pierre noire pris sur l’autel d’une cathédrale qui n’existe pas. Parfois, il bat.' });
+defItem('oeil_verre', 'Œil de verre', 'ailleurs', 45, ['md_oeil', '#6a8a9a'], { desc: 'Un œil de verre, donné par un enfant dans une cage. Il regarde toujours quelque chose derrière vous.' });
 defItem('plume_ombre', 'Plume d’ombre', 'ailleurs', 0, ['plume', '#101014'], { desc: 'Une plume si noire qu’on n’en voit pas les bords.' });
 defItem('ronce_noire', 'Ronce noire', 'ailleurs', 0, ['md_ronce', '#1a1214', '#a01414'], { desc: 'Une tige de ronce noire. Les épines sont rouges au bout.' });
 defItem('lys_cendre', 'Lys de cendre', 'ailleurs', 0, ['md_lys', '#b8b4ac'], { desc: 'Un lys gris, sec, qui s’effrite sous les doigts.' });
@@ -41672,7 +41678,7 @@ MONDES.tenebres = {
 //  ordinaire (tools/equilibrage/hasard.js), bien plus à l'esprit sombre.
 //  mondes.entrer('cauchemar') : rêver tout de suite (essais).
 // ============================================================================
-defItem('dessin_reve', 'Dessin d’enfant', 'ailleurs', 60, ['md_dessin', '#2a2020'], { desc: 'Un dessin au crayon : un homme avec un sac sur la tête, qui tient la main d’un enfant. Vous l’avez rapporté d’un rêve. Au dos, votre nom, d’une écriture que vous ne connaissez pas.' });
+defItem('dessin_reve', 'Dessin d’enfant', 'ailleurs', 30, ['md_dessin', '#2a2020'], { desc: 'Un dessin au crayon : un homme avec un sac sur la tête, qui tient la main d’un enfant. Vous l’avez rapporté d’un rêve. Au dos, votre nom, d’une écriture que vous ne connaissez pas.' });
 
 const cauchemar = {
   C() { const M = mondes.S(); return M.cauchemar || (M.cauchemar = { nuits: 0, dernier: -99, pris: 0 }); },
@@ -42429,7 +42435,7 @@ const LEGENDAIRES = {
     const L = LEGENDAIRES[id], R = LEG_RANGS[L.rang];
     defItem(id, L.nom, 'legende', 0, [L.ic, R.col], Object.assign({ legend: L.rang, desc: (L.rang === 'mythique' ? 'Objet mythique. ' : 'Objet légendaire. ') + L.pouvoir }, L.item));
   }
-  defItem('coeur_montagne', 'Cœur de montagne', 'materiau', 260, ['leg_coeur', '#e0802a'], { desc: 'Un cristal orangé, chaud au creux de la main, pris dans sa gangue de roche. Les nains disent que la montagne en a un, et que c’est un morceau de lui.' });
+  defItem('coeur_montagne', 'Cœur de montagne', 'materiau', 100, ['leg_coeur', '#e0802a'], { desc: 'Un cristal orangé, chaud au creux de la main, pris dans sa gangue de roche. Les nains disent que la montagne en a un, et que c’est un morceau de lui.' });
   defItem('fer_cognee', 'Fer de cognée des Gorr', 'quete', 0, ['leg_fer', '#6a645c'], { desc: 'Un fer de hache large comme une porte de four, trop lourd pour un manche d’homme. Une forgeronne naine saurait l’emmancher.' });
   TOOL_DMG.rapiere = 46;
   // le cœur de montagne : dans les profondeurs, chez les Frappeurs, dans les cristaux
@@ -44843,10 +44849,10 @@ HOOKS.load.push(() => {
 //  API : vol.tenter(n), vol.chance(n), vol.marques(id), vol.confisquer(),
 //        vol.recel(id) (objets volés d'un type), vol.cible(n)
 // ============================================================================
-defItem('mouchoir_brode', 'Mouchoir brodé', 'tresor', 10, ['sachet', '#ece4d8'], { desc: 'Du fil blanc sur de la batiste, et deux initiales qui ne sont pas les vôtres.' });
-defItem('tabatiere', 'Tabatière d’argent', 'tresor', 40, ['rond', '#a8a8b4'], { desc: 'Le couvercle est gravé d’un cerf. Elle sent encore le tabac de quelqu’un.' });
-defItem('couteau_poche', 'Couteau de poche', 'tresor', 25, ['cle', '#9a9aa2'], { desc: 'Un manche de corne, une lame usée à force d’être affûtée. On y tenait.' });
-defItem('medaillon_portrait', 'Médaillon à portrait', 'tresor', 80, ['medaillon', '#c8a860'], { desc: 'Sous le verre bombé, un visage minuscule, pâli. Quelqu’un l’embrassait chaque soir.' });
+defItem('mouchoir_brode', 'Mouchoir brodé', 'tresor', 5, ['sachet', '#ece4d8'], { desc: 'Du fil blanc sur de la batiste, et deux initiales qui ne sont pas les vôtres.' });
+defItem('tabatiere', 'Tabatière d’argent', 'tresor', 20, ['rond', '#a8a8b4'], { desc: 'Le couvercle est gravé d’un cerf. Elle sent encore le tabac de quelqu’un.' });
+defItem('couteau_poche', 'Couteau de poche', 'tresor', 13, ['cle', '#9a9aa2'], { desc: 'Un manche de corne, une lame usée à force d’être affûtée. On y tenait.' });
+defItem('medaillon_portrait', 'Médaillon à portrait', 'tresor', 40, ['medaillon', '#c8a860'], { desc: 'Sous le verre bombé, un visage minuscule, pâli. Quelqu’un l’embrassait chaque soir.' });
 
 // ce que portent les gens : b = pièces [min, max], m = objets du métier, p = objets personnels, r = rares, q = [quête, objet]
 // (une poche réussie : une quarantaine de pièces en moyenne ; raté, l'amende d'un vol en coûte cent cinquante)
@@ -47445,12 +47451,13 @@ function m95Poterne(w, T, y0) {
 //  API : locations (« location » est pris par le navigateur) — locataire(clé),
 //        louer(clé), payer(clé), rendre(clé), expulser(clé), ecriteau(clé), S()
 // ============================================================================
+// loyers à la semaine de douze jours (équilibrage : 12 à 18 pièces la nuit, un peu moins que la chambre de l'auberge)
 const LOC_MAISONS = {
-  vide4: { nom: 'la maison Vernet', court: 'maison Vernet', rue: 'du côté ouest, derrière la forge', loyer: 84, cle: 'cle_vernet',
+  vide4: { nom: 'la maison Vernet', court: 'maison Vernet', rue: 'du côté ouest, derrière la forge', loyer: 150, cle: 'cle_vernet',
     desc: 'Une pièce, un lit, un coffre cerclé de fer, une cheminée qui tire bien. La veuve Vernet est partie vivre chez sa fille, en bas de la vallée.' },
-  vide5: { nom: 'la maison Delorme', court: 'maison Delorme', rue: 'du côté est, contre le rempart', loyer: 96, cle: 'cle_delorme',
+  vide5: { nom: 'la maison Delorme', court: 'maison Delorme', rue: 'du côté est, contre le rempart', loyer: 170, cle: 'cle_delorme',
     desc: 'Une pièce claire, un lit, un coffre, une cheminée. Les Delorme sont partis un matin, sans laisser d’adresse. Leurs volets, eux, sont restés.' },
-  maison_rempart: { nom: 'la maison du Rempart', court: 'maison du Rempart', rue: 'au nord-est, derrière la poste, au pied du rempart', loyer: 120, cle: 'cle_rempart',
+  maison_rempart: { nom: 'la maison du Rempart', court: 'maison du Rempart', rue: 'au nord-est, derrière la poste, au pied du rempart', loyer: 210, cle: 'cle_rempart',
     desc: 'Une maison de pierre neuve, contre le rempart. Un lit, un coffre, une cheminée, des rayonnages. Elle avait été bâtie pour un sergent du guet qui n’est jamais venu.' },
 };
 defItem('cle_vernet', 'Clé de la maison Vernet', 'quete', 0, ['cle', '#9a7a4a'], { desc: 'Une clé de fer, un peu tordue, au bout d’une ficelle. La porte de la maison Vernet, en ville.' });
@@ -48132,29 +48139,29 @@ HOOKS.load.push(() => {
 
 // ---------------------------------------------------------------- objets du quotidien
 const F2_OBJETS = [
-  ['bobine_fil', 'Bobine de fil', 'materiau', 4, ['rond', '#d8d0c0'], 'Du fil de lin écru, enroulé serré sur une bobine de bois. Quelqu’un comptait s’en servir.'],
-  ['de_coudre', 'Dé à coudre d’argent', 'tresor', 14, ['rond', '#c8c8d0'], 'Usé au bout, là où l’aiguille pousse. Il a la taille d’un doigt de femme.'],
-  ['cuillere_argent', 'Cuillère d’argent', 'tresor', 35, ['objet', '#d0d0d8'], 'Gravée d’une initiale. Le reste du service doit dormir dans un buffet.'],
-  ['bougeoir', 'Bougeoir d’étain', 'tresor', 26, ['lampe', '#9a9aa2'], 'Une coulure de cire figée sur le pied, comme une larme.'],
-  ['besicles', 'Besicles', 'tresor', 30, ['anneau', '#b8a888'], 'Des lunettes rondes, un verre fêlé. Le monde, à travers, penche un peu.'],
-  ['peigne_corne', 'Peigne de corne', 'tresor', 8, ['objet', '#c8a878'], 'Il y reste un cheveu, long et gris.'],
-  ['savon', 'Pain de savon', 'materiau', 6, ['tas', '#e8e0c8'], 'Du savon de Marseille, qui sent la lessive du Lavedi.'],
-  ['ruban', 'Ruban de soie', 'tresor', 9, ['sachet', '#b83a50'], 'Un ruban rouge, noué puis dénoué tant de fois qu’il a gardé la forme du nœud.'],
-  ['bille', 'Bille de verre', 'tresor', 3, ['rond', '#6ab0d0'], 'Une spirale bleue prise dans le verre. Les enfants l’appellent « l’œil ».'],
-  ['boutons_nacre', 'Boutons de nacre', 'tresor', 10, ['rond', '#f0ece0'], 'Six boutons cousus sur un carton. Il en manque un.'],
-  ['image_pieuse', 'Image pieuse', 'tresor', 5, ['carte', '#e8d8a8'], 'Une sainte aux yeux levés. Au dos, au crayon : « Pour que tu reviennes. »'],
-  ['meche_cheveux', 'Mèche de cheveux', 'tresor', 2, ['sachet', '#8a6a3a'], 'Nouée d’un fil rouge, dans un papier plié. Il y a un prénom sur le papier. Ce n’est pas le vôtre.'],
-  ['jeu_cartes', 'Jeu de cartes', 'tresor', 15, ['carte', '#c83030'], 'Trente-deux cartes cornées. Le valet de pique a été redessiné à l’encre.'],
-  ['des_pipes', 'Dés pipés', 'tresor', 20, ['os', '#e8e0d0'], 'Deux dés en os, un peu trop lourds d’un côté. Aux dés de l’auberge, ils aideraient… si personne ne s’en aperçoit.'],
-  ['tabac', 'Blague à tabac', 'tresor', 12, ['sachet', '#6a4a2a'], 'Du gris, sec, dans une blague de cuir. L’odeur de quelqu’un.'],
-  ['eau_cologne', 'Eau de Cologne', 'tresor', 30, ['fiole', '#c0d8e8'], 'Un flacon à moitié plein. Bergamote, et quelque chose de plus triste.'],
-  ['clous', 'Poignée de clous', 'materiau', 4, ['tas', '#7a7a80'], 'Des clous de charpentier, forgés à la main, encore gras.'],
-  ['fer_cheval', 'Fer à cheval', 'materiau', 15, ['fer', '#6a6a70'], 'Un fer usé. Il porte chance, dit-on, si on le cloue les branches en haut.'],
-  ['timbres', 'Timbres-poste', 'tresor', 8, ['lettre', '#c84040'], 'Une bande de timbres rouges, à l’effigie d’une République qui regarde ailleurs.'],
-  ['cire', 'Bâton de cire', 'materiau', 5, ['bougie', '#b02020'], 'De la cire à cacheter, rouge sombre. Elle a déjà scellé bien des secrets.'],
-  ['encrier', 'Encrier', 'tresor', 14, ['pot', '#2a2a3a'], 'Un encrier de verre, l’encre séchée au fond comme un lac noir.'],
-  ['calice_etain', 'Calice d’étain', 'tresor', 60, ['calice', '#a8a8b0'], 'Le calice des jours ordinaires. Le beau, en vermeil, a disparu depuis longtemps.'],
-  ['calice_vermeil', 'Calice de vermeil', 'tresor', 380, ['calice', '#e0b050'], 'Le calice de l’église, qu’on disait volé. Lourd, froid. Contre l’oreille, on entend la cloche.'],
+  ['bobine_fil', 'Bobine de fil', 'materiau', 2, ['rond', '#d8d0c0'], 'Du fil de lin écru, enroulé serré sur une bobine de bois. Quelqu’un comptait s’en servir.'],
+  ['de_coudre', 'Dé à coudre d’argent', 'tresor', 7, ['rond', '#c8c8d0'], 'Usé au bout, là où l’aiguille pousse. Il a la taille d’un doigt de femme.'],
+  ['cuillere_argent', 'Cuillère d’argent', 'tresor', 18, ['objet', '#d0d0d8'], 'Gravée d’une initiale. Le reste du service doit dormir dans un buffet.'],
+  ['bougeoir', 'Bougeoir d’étain', 'tresor', 13, ['lampe', '#9a9aa2'], 'Une coulure de cire figée sur le pied, comme une larme.'],
+  ['besicles', 'Besicles', 'tresor', 15, ['anneau', '#b8a888'], 'Des lunettes rondes, un verre fêlé. Le monde, à travers, penche un peu.'],
+  ['peigne_corne', 'Peigne de corne', 'tresor', 4, ['objet', '#c8a878'], 'Il y reste un cheveu, long et gris.'],
+  ['savon', 'Pain de savon', 'materiau', 3, ['tas', '#e8e0c8'], 'Du savon de Marseille, qui sent la lessive du Lavedi.'],
+  ['ruban', 'Ruban de soie', 'tresor', 5, ['sachet', '#b83a50'], 'Un ruban rouge, noué puis dénoué tant de fois qu’il a gardé la forme du nœud.'],
+  ['bille', 'Bille de verre', 'tresor', 2, ['rond', '#6ab0d0'], 'Une spirale bleue prise dans le verre. Les enfants l’appellent « l’œil ».'],
+  ['boutons_nacre', 'Boutons de nacre', 'tresor', 5, ['rond', '#f0ece0'], 'Six boutons cousus sur un carton. Il en manque un.'],
+  ['image_pieuse', 'Image pieuse', 'tresor', 3, ['carte', '#e8d8a8'], 'Une sainte aux yeux levés. Au dos, au crayon : « Pour que tu reviennes. »'],
+  ['meche_cheveux', 'Mèche de cheveux', 'tresor', 1, ['sachet', '#8a6a3a'], 'Nouée d’un fil rouge, dans un papier plié. Il y a un prénom sur le papier. Ce n’est pas le vôtre.'],
+  ['jeu_cartes', 'Jeu de cartes', 'tresor', 8, ['carte', '#c83030'], 'Trente-deux cartes cornées. Le valet de pique a été redessiné à l’encre.'],
+  ['des_pipes', 'Dés pipés', 'tresor', 10, ['os', '#e8e0d0'], 'Deux dés en os, un peu trop lourds d’un côté. Aux dés de l’auberge, ils aideraient… si personne ne s’en aperçoit.'],
+  ['tabac', 'Blague à tabac', 'tresor', 6, ['sachet', '#6a4a2a'], 'Du gris, sec, dans une blague de cuir. L’odeur de quelqu’un.'],
+  ['eau_cologne', 'Eau de Cologne', 'tresor', 15, ['fiole', '#c0d8e8'], 'Un flacon à moitié plein. Bergamote, et quelque chose de plus triste.'],
+  ['clous', 'Poignée de clous', 'materiau', 2, ['tas', '#7a7a80'], 'Des clous de charpentier, forgés à la main, encore gras.'],
+  ['fer_cheval', 'Fer à cheval', 'materiau', 6, ['fer', '#6a6a70'], 'Un fer usé. Il porte chance, dit-on, si on le cloue les branches en haut.'],
+  ['timbres', 'Timbres-poste', 'tresor', 4, ['lettre', '#c84040'], 'Une bande de timbres rouges, à l’effigie d’une République qui regarde ailleurs.'],
+  ['cire', 'Bâton de cire', 'materiau', 2, ['bougie', '#b02020'], 'De la cire à cacheter, rouge sombre. Elle a déjà scellé bien des secrets.'],
+  ['encrier', 'Encrier', 'tresor', 7, ['pot', '#2a2a3a'], 'Un encrier de verre, l’encre séchée au fond comme un lac noir.'],
+  ['calice_etain', 'Calice d’étain', 'tresor', 30, ['calice', '#a8a8b0'], 'Le calice des jours ordinaires. Le beau, en vermeil, a disparu depuis longtemps.'],
+  ['calice_vermeil', 'Calice de vermeil', 'tresor', 190, ['calice', '#e0b050'], 'Le calice de l’église, qu’on disait volé. Lourd, froid. Contre l’oreille, on entend la cloche.'],
 ];
 for (const [id, name, cat, price, ic, desc] of F2_OBJETS) if (!ITEMS[id]) defItem(id, name, cat, price, ic, { desc });
 defItem('cle_bureau', 'Petite clé de laiton', 'quete', 0, ['cle', '#d0b060'], { unique: true, desc: 'Une clé de meuble, dentée fin. Elle ouvre un bureau, quelque part, où l’on range ce qu’on ne veut pas montrer.' });
@@ -49346,7 +49353,7 @@ const ACT_PECHE = {
 const ACT_ETALS = [
   { id: 'brocanteur', nom: 'Lazare, brocanteur', accueil: 'Tout se vend, tout s’achète. Je ne demande jamais d’où ça vient. C’est ma politesse.', vend: [['bougeoir', 40], ['besicles', 45], ['jeu_cartes', 25], ['boussole', 120], ['lanterne', 75]], n: 3, achete: true,
     look: { skin: '#caa080', hair: '#3a3028', hairStyle: 'court', beard: 'courte', hat: 'chapeau', hatCol: '#2a2420', top: '#4a4038', bottom: '#2e2a26', shoe: '#1a1410', coat: true, build: 'mince', height: 1.02 } },
-  { id: 'curiosites', nom: 'Mme Perrine, curiosités', accueil: 'Des choses rares, pour des gens qui le sont aussi. Regardez avec les yeux, d’abord.', vend: [['carte_tresor', 70], ['vieille_piece', 60], ['livre_contes', 45], ['montre', 170], ['figurine', 45], ['geode', 35], ['bijou', 220], ['fossile', 150], ['eau_cologne', 50], ['medaillon_portrait', 110]], n: 3,
+  { id: 'curiosites', nom: 'Mme Perrine, curiosités', accueil: 'Des choses rares, pour des gens qui le sont aussi. Regardez avec les yeux, d’abord.', vend: [['carte_tresor', 70], ['vieille_piece', 60], ['livre_contes', 45], ['montre', 170], ['figurine', 45], ['geode', 45], ['bijou', 220], ['fossile', 150], ['eau_cologne', 50], ['medaillon_portrait', 110]], n: 3,
     look: { skin: '#e0c0a8', hair: '#5a3a2a', hairStyle: 'chignon', hat: 'voile', hatCol: '#3a2a3a', top: '#5a3a5a', bottom: '#3a2a3a', shoe: '#1a1410', dress: true, build: 'normal', height: 0.97, fem: true } },
   { id: 'grainier', nom: 'le grainier des Monts', accueil: 'Des graines d’en haut. Elles lèvent mieux quand on leur parle. Pas trop fort.', vend: [['graines_rose', 16], ['graines_lavande', 9], ['graines_dahlia', 10], ['graines_pasteque', 22], ['graines_artichaut', 15], ['graines_asperge', 13], ['graines_houblon', 12], ['graines_raisin', 18], ['graines_mandragore', 55], ['graines_belladone', 20], ['graines_framboise', 12], ['graines_myrtille', 14]], n: 4,
     look: { skin: '#b88a68', hair: '#2a2420', hairStyle: 'court', beard: 'longue', hat: 'bonnet', hatCol: '#6a2a20', top: '#7a6a4a', bottom: '#4a4034', shoe: '#2a2018', build: 'normal', height: 1.0 } },
@@ -49992,7 +49999,7 @@ const activites = {
     const an = cal.annonce().replace(/^\(|\)$/g, '');
     if (an) out.push(an);
     try { const k = weather.tomorrow(); out.push({ soleil: 'Demain, du beau temps, à ce qu’on dit.', pluie: 'Demain, de la pluie : rentrez le foin.', orage: 'Demain, de l’orage : rentrez les bêtes.', gel: 'Demain à l’aube, du gel : couvrez les semis.', brouillard: 'Demain matin, du brouillard : ne vous écartez pas des chemins.' }[k] || 'Demain, le temps qu’il plaira au ciel.'); } catch (e) { /* rien */ }
-    const dem = { marche: 'Demain, grand marché sur la place, avec les étals des Monts !', foire: `Demain, foire à ${farm.names.hameau}, avec la tombola ! Billets à vingt pièces.`, chasse: 'Demain, Chassedi : concours de tir au relais de chasse ! Et portez du rouge en forêt.', peche: 'Demain, Pêchedi : concours de pêche au ponton du lac !', veillee: 'Demain soir, veillée à l’auberge : on contera.', messe: 'Demain, messe à dix heures en l’église.', morts: 'Demain, Vorndi, jour des morts : fleurissez vos tombes, et rentrez avant la nuit.' }[dm];
+    const dem = { marche: 'Demain, grand marché sur la place, avec les étals des Monts !', foire: `Demain, foire à ${farm.names.hameau}, avec la tombola ! Billets à huit pièces.`, chasse: 'Demain, Chassedi : concours de tir au relais de chasse ! Et portez du rouge en forêt.', peche: 'Demain, Pêchedi : concours de pêche au ponton du lac !', veillee: 'Demain soir, veillée à l’auberge : on contera.', messe: 'Demain, messe à dix heures en l’église.', morts: 'Demain, Vorndi, jour des morts : fleurissez vos tombes, et rentrez avant la nuit.' }[dm];
     if (dem) out.push(dem);
     for (const d of (s.dead || []).filter((q) => s.day - q.day <= 2)) { const n = npcs.byId[d.id]; const qui = d.name + (n ? ' ' + n.d.surname : ''); out.push(n && n.d.gender === 'f' ? `Avis de décès : ${qui}. Priez pour elle.` : `Avis de décès : ${qui}. Priez pour lui.`); }
     const de = (t) => (/^une? /.test(t) ? 'd’' + t : /^le /.test(t) ? 'du ' + t.slice(3) : /^du /.test(t) ? 'de ' + t.slice(3) : 'de ' + t);
@@ -50269,8 +50276,8 @@ const activites = {
   // ================================================================ la tombola du Foiredi
   TIRAGE_H: 15,
   // le billet : les huit lots valent environ les trois quarts de ce que rapportent les cinquante billets (la tombola
-  // paie la fête ; à cinq pièces, un billet en rapportait trois fois son prix)
-  BILLET: 20,
+  // paie la fête ; à cinq pièces, avec les anciens prix, un billet en rapportait trois fois son prix)
+  BILLET: 8,
   tirage() { const s = farm.s, rnd = mulberry32(((s.seed | 0) * 5 + s.day * 313) >>> 0), L = []; while (L.length < 8) { const n = 1 + ((rnd() * 50) | 0); if (!L.includes(n)) L.push(n); } return L; },
   LOTS: [['poule', 1, 'une poule pondeuse, vivante'], ['viande_fumee', 2, 'un jambon fumé'], ['montre', 1, 'une montre de gousset'], ['bouquet', 1, 'un bouquet'], ['confiture', 2, 'deux pots de confiture'], ['cidre', 2, 'deux bouteilles de cidre'], ['fromage', 1, 'un fromage'], ['livre_contes', 1, 'un livre de contes']],
   tombola() {
@@ -50280,7 +50287,7 @@ const activites = {
     const TB = A.tombola;
     if (h < this.TIRAGE_H) {
       const opts = [];
-      if (TB.billets.length < 3 && s.money >= this.BILLET) opts.push({ label: 'Acheter un billet (20 pièces)', fn: () => { if (!farm.pay(this.BILLET)) return; let n; do { n = 1 + ((Math.random() * 50) | 0); } while (TB.billets.includes(n)); TB.billets.push(n); sound.coin && sound.coin(); this.tombola(); } });
+      if (TB.billets.length < 3 && s.money >= this.BILLET) opts.push({ label: `Acheter un billet (${this.BILLET} pièces)`, fn: () => { if (!farm.pay(this.BILLET)) return; let n; do { n = 1 + ((Math.random() * 50) | 0); } while (TB.billets.includes(n)); TB.billets.push(n); sound.coin && sound.coin(); this.tombola(); } });
       opts.push({ label: 'Partir', fn: () => ui.close() });
       ui.choice('La tombola de la foire', `Un tambour de bois plein de billets pliés. Les lots s’alignent sur une planche : ${this.LOTS.slice(0, 4).map((l) => l[2]).join(', ')}… Tirage à trois heures.${TB.billets.length ? ' Vos billets : ' + TB.billets.join(', ') + '.' : ''}${TB.billets.length >= 3 ? ' (Trois billets par personne.)' : ''}`, opts);
       return;
@@ -50614,6 +50621,1019 @@ HOOKS.draw.push((buf, sbuf, cam, t) => { if (farm.s && game.world) activites.dra
 HOOKS.lights.push((eye) => (farm.s && game.world ? activites.lights(eye) : []));
 HOOKS.day.push(() => { if (farm.s) { activites.S(); activites.marqueurs(); } });
 HOOKS.load.push(() => { if (farm.s && game.world) activites.charger(); });
+
+// ---- 11-zzzz1-butin.js
+// ============================================================================
+//  LE BUTIN (agent U1) : on choisit ce qu'on prend.
+//  - Un MENU DE BUTIN (panneau papier) pour tout conteneur : armoires,
+//    commodes, malles, coffres, tonneaux, caisses, sacs, étagères, tiroirs,
+//    charrettes, cachettes (11-zzz98-fouilles.js), coffres des lieux
+//    (game.lootBox : archives, temple, épaves, campements, ruines…), casiers de
+//    la Fondation, coffre du greffe, coffres déterrés, et ce qu'on ouvre en
+//    main (coffre englouti, caisse de vivres, sac de graines). Chaque objet :
+//    icône, nom, quantité, courte description (au survol ou à la sélection) ;
+//    clic = la pile, Maj+clic ou −/+ = une quantité choisie, « Tout prendre » ;
+//    E, Échap ou le bouton referment. Ce qu'on laisse RESTE dedans (farm.s.butin,
+//    par la clé de l'interaction) jusqu'au remplissage habituel du conteneur.
+//  - Le vol reste un vol (même règle que 11-zzz98) : ouvrir chez quelqu'un sous
+//    les yeux d'un témoin puis refermer sans rien prendre, c'est un soupçon (une
+//    remarque, un peu d'amitié en moins) ; prendre, c'est voler (cris,
+//    societe.crime, le garde) ; pas vu, la plainte du lendemain.
+//  - TOUT MEUBLE ou conteneur de la vallée se fouille : étagères, tiroirs des
+//    tables, tonneaux, caisses, sacs, wagonnets, tas de bois, charrettes… des
+//    maisons, boutiques, fermes, hameaux, campements, mines et lieux abandonnés
+//    (butin selon le meuble et le lieu, propriétaire, délai de remplissage).
+//    Génération après tout le reste, sans tirage : des interactions 'f2' en plus
+//    à la fin de w.inter (les objets, les props et les interactions d'origine ne
+//    bougent pas), jamais deux cibles au même endroit.
+//  - La BOUTIQUE : la liste ne remonte plus en haut après un achat ou une vente ;
+//    un clic sur un article ouvre un encart (description, prix à l'unité donné
+//    par ui.shopPrice, quantité −/+, saisie ou maximum, total, Confirmer /
+//    Annuler) ; Maj+clic et Ctrl+clic achètent et vendent par 5 et par 20.
+//  État : farm.s.butin = { v, c: { clé: { src, j, o: [[id, n]…], pap, x, z } }, n }
+//  API : butin.ouvrir({ titre, objets, cle, proprio, x, z, onPris(id, n), onFerme(pris) }),
+//        butin.conteneur(q), butin.fouillable(q), butin.vider(q), butin.contenu(cle),
+//        butin.oublier(cle), butin.description(id)
+// ============================================================================
+
+// ---------------------------------------------------------------- tables de butin des meubles nouveaux : [objet, min, max, poids]
+Object.assign(LOOT, {
+  bu_etagere: { rolls: [1, 2], items: [['bougie', 1, 2, 4], ['sel', 1, 1, 2], ['confiture', 1, 1, 1.5], ['miel', 1, 1, 0.6], ['tisane', 1, 1, 1], ['savon', 1, 1, 1], ['bobine_fil', 1, 1, 1], ['image_pieuse', 1, 1, 1], ['bougeoir', 1, 1, 0.5], ['cuillere_argent', 1, 1, 0.4], ['figurine', 1, 1, 0.4], ['tesson', 1, 1, 0.8], ['livre_contes', 1, 1, 0.15], ['argent', 1, 8, 1]] },
+  bu_etagere_vide: { rolls: [1, 1], items: [['tesson', 1, 2, 4], ['bougie', 1, 1, 3], ['image_pieuse', 1, 1, 1], ['bille', 1, 1, 0.5], ['figurine', 1, 1, 0.4], ['vieille_piece', 1, 1, 0.6], ['meche_cheveux', 1, 1, 0.3], ['livre_contes', 1, 1, 0.1]] },
+  bu_etagere_poste: { rolls: [1, 2], items: [['timbres', 1, 2, 3], ['cire', 1, 1, 2], ['plume', 1, 3, 2], ['encrier', 1, 1, 1], ['bougie', 1, 2, 2], ['toile', 1, 1, 1], ['corde', 1, 1, 1]] },
+  bu_etagere_livres: { rolls: [1, 1], items: [['bougie', 1, 2, 3], ['plume', 1, 2, 2], ['encrier', 1, 1, 1], ['image_pieuse', 1, 1, 1], ['livre_contes', 1, 1, 0.4], ['vieille_piece', 1, 1, 0.4]] },
+  bu_tiroir: { rolls: [1, 1], items: [['bougie', 1, 2, 3], ['bobine_fil', 1, 1, 2], ['boutons_nacre', 1, 1, 1.5], ['sel', 1, 1, 1.5], ['argent', 1, 6, 2], ['image_pieuse', 1, 1, 1], ['cire', 1, 1, 1], ['tabac', 1, 1, 0.8], ['de_coudre', 1, 1, 0.6], ['jeu_cartes', 1, 1, 0.5], ['cuillere_argent', 1, 1, 0.3], ['couteau_poche', 1, 1, 0.25]] },
+  bu_tiroir_vide: { rolls: [1, 1], items: [['bougie', 1, 1, 2], ['boutons_nacre', 1, 1, 1.5], ['bobine_fil', 1, 1, 1], ['tesson', 1, 1, 2], ['bille', 1, 1, 0.6], ['image_pieuse', 1, 1, 0.8], ['vieille_piece', 1, 1, 0.5], ['meche_cheveux', 1, 1, 0.3]] },
+  bu_tonneau: { rolls: [1, 1], items: [['pomme', 2, 4, 3], ['cidre', 1, 1, 2], ['patate', 2, 4, 2], ['sel', 1, 2, 1.5], ['huile', 1, 1, 0.8], ['clous', 1, 2, 1]] },
+  bu_tonneau_peche: { rolls: [1, 2], items: [['vers', 2, 6, 4], ['sel', 1, 2, 2], ['poisson_fume', 1, 1, 2], ['corde', 1, 1, 1], ['gardon', 1, 1, 1]] },
+  bu_tonneau_salaison: { rolls: [1, 2], items: [['viande_fumee', 1, 1, 3], ['sel', 1, 2, 3], ['cuir', 1, 1, 1], ['graisse_ours', 1, 1, 0.3]] },
+  bu_vieux_tonneau: { rolls: [1, 1], items: [['charbon', 1, 2, 3], ['clous', 1, 3, 2], ['corde', 1, 1, 2], ['bougie', 1, 2, 2], ['huile', 1, 1, 0.6], ['tesson', 1, 1, 1], ['vieille_piece', 1, 1, 0.4]] },
+  bu_caisse: { rolls: [1, 2], items: [['toile', 1, 2, 2], ['sel', 1, 2, 2], ['bougie', 1, 3, 2], ['clous', 1, 3, 2], ['corde', 1, 1, 2], ['pomme', 2, 4, 2], ['patate', 2, 4, 1.5], ['savon', 1, 1, 1], ['argent', 1, 8, 0.6]] },
+  bu_caisse_mine: { rolls: [1, 2], items: [['charbon', 1, 3, 4], ['minerai_cuivre', 1, 3, 3], ['minerai_fer', 1, 2, 2], ['bougie', 1, 2, 3], ['corde', 1, 1, 2], ['clous', 1, 3, 2], ['lingot_fer', 1, 1, 0.3], ['argent', 2, 12, 0.8]] },
+  bu_caisse_col: { rolls: [1, 2], items: [['pain', 1, 1, 2], ['corde', 1, 1, 3], ['bougie', 1, 2, 3], ['charbon', 1, 2, 2], ['viande_fumee', 1, 1, 1], ['edelweiss', 1, 1, 0.3], ['argent', 3, 15, 1]] },
+  bu_sac: { rolls: [1, 1], items: [['farine', 1, 2, 3], ['avoine', 1, 3, 3], ['patate', 2, 4, 2], ['graines_ble', 2, 4, 1.5], ['sel', 1, 1, 1]] },
+  bu_crypte: { rolls: [1, 1], items: [['bougie', 1, 3, 4], ['os', 1, 2, 3], ['tesson', 1, 2, 2], ['cire', 1, 1, 1], ['image_pieuse', 1, 1, 1], ['vieille_piece', 1, 1, 0.8], ['relique', 1, 1, 0.12]] },
+  bu_wagonnet: { rolls: [1, 2], items: [['minerai_cuivre', 1, 4, 5], ['charbon', 1, 4, 4], ['minerai_fer', 1, 3, 3], ['pierre', 2, 5, 3], ['geode', 1, 1, 0.8], ['minerai_or', 1, 1, 0.4]] },
+});
+
+// ---------------------------------------------------------------- les meubles nouveaux (mêmes champs que F2_TYPES de 11-zzz98)
+Object.assign(F2_TYPES, {
+  bu_etagere: { lab: 'Fouiller l’étagère', table: 'bu_etagere', d: 1.2, son: 'vaisselle', p: 0.15, r: 3, h: 1.1 },
+  bu_tiroir: { lab: 'Ouvrir le tiroir de la table', table: 'bu_tiroir', d: 0.9, son: 'bois', p: 0.2, r: 3, h: 0.8 },
+  bu_tonneau: { lab: 'Fouiller le tonneau', table: 'bu_tonneau', d: 1.1, son: 'bois', p: 0, r: 3, h: 0.95 },
+  bu_caisse: { lab: 'Fouiller la caisse', table: 'bu_caisse', d: 1.2, son: 'bois', p: 0.05, r: 3, h: 0.85 },
+  bu_caisses: { lab: 'Fouiller les caisses', table: 'bu_caisse', d: 1.3, son: 'bois', p: 0.05, r: 3, h: 0.95 },
+  bu_sac: { lab: 'Fouiller le sac', table: 'bu_sac', d: 1.0, son: 'grain', p: 0, r: 3, h: 0.6 },
+  bu_wagonnet: { lab: 'Fouiller le wagonnet', table: 'bu_wagonnet', d: 1.3, son: 'pierre', p: 0, r: 5, h: 0.9 },
+  bu_coffre: { lab: 'Ouvrir le coffre', table: 'f2_malle', d: 1.5, son: 'bois', p: 0.2, r: 5, h: 0.6 },
+});
+// prop -> type de fouille ; h : hauteur de la cible ; av : la cible avancée devant le meuble (l'avant regarde +z)
+const BU_MEUBLES = {
+  etagere: { t: 'bu_etagere', h: 1.1, av: 0.42 }, table: { t: 'bu_tiroir', h: 0.8, dedans: true },
+  tonneau: { t: 'bu_tonneau', h: 0.95 }, tonneau_vieux: { t: 'bu_tonneau', h: 0.9 },
+  caisse: { t: 'bu_caisse', h: 0.85 }, caisses: { t: 'bu_caisses', h: 0.95 }, sac: { t: 'bu_sac', h: 0.6 }, sacs: { t: 'sacs_grain', h: 0.6 },
+  wagonnet: { t: 'bu_wagonnet', h: 0.9 }, tas_bois: { t: 'tas_bois', h: 0.7 }, charrette: { t: 'charrette', h: 1.1 }, coffre_vieux: { t: 'bu_coffre', h: 0.6 },
+  malle: { t: 'malle', h: 0.55, av: 0.3 }, armoire: { t: 'armoire', h: 1.1, av: 0.35 }, commode: { t: 'commode', h: 0.8, av: 0.3 }, buffet: { t: 'buffet', h: 0.9, av: 0.35 },
+  jarre: { t: 'jarre', h: 0.6 },
+};
+// étagères : ce qu'on y range, selon la maison ou la boutique
+const BU_ETAGERE_BLD = {
+  mairie: 'f2_archives', boulangerie: 'f2_pains', poste: 'bu_etagere_poste', graineterie: 'f2_semences', vide6: 'f2_apothicaire', ranch: 'f2_sellerie',
+  source_a: 'f2_sources', source_b: 'f2_sources', source_c: 'f2_sources', relais_chasse: 'f2_chasse', nain_a: 'f2_nain', nain_b: 'f2_nain', forge: 'f2_outils',
+  cabane_pecheur: 'f2_peche', auberge: 'f2_buffet', hutte_ermite: 'f2_bocaux', eglise: 'f2_sacristie', garde: 'f2_coffre_garde',
+};
+// les meubles et conteneurs (le ramassage de l'agent U2 n'y touche pas : butin.conteneur)
+const BU_CONTENEURS = new Set(['armoire', 'commode', 'buffet', 'malle', 'secretaire', 'coffre_fort', 'apothicaire', 'casier_tri', 'petrin', 'coffre_outils', 'poubelle', 'tronc',
+  'sellerie', 'coffre_nain', 'boite_tresors', 'jambons', 'coffre', 'coffre_vieux', 'coffre_tresor', 'coffre_loc', 'coffre_enterre', 'tonneau', 'tonneau_vieux', 'caisse', 'caisses',
+  'caisse_expedition', 'sac', 'sacs', 'etagere', 'jarre', 'wagonnet', 'comptoir', 'fond_casier', 'huche', 'vaisselier', 'panier', 'tiroir']);
+// ce qui s'ouvre en main et garde ce qu'on y laisse (la géode, elle, se casse d'un coup)
+const BU_MAIN = new Set(['coffre_peche', 'caisse_vivres', 'sac_graines']);
+
+// ---------------------------------------------------------------- textes
+const BU_TITRES = {
+  armoire: 'L’armoire', commode: 'La commode', buffet: 'Le buffet', malle: 'La malle', secretaire: 'Le secrétaire', coffre_fort: 'Le coffre-fort', tiroir: 'Le tiroir-caisse',
+  tonneaux: 'Le tonneau', petrin: 'Le pétrin', boite_tresors: 'La boîte à trésors', casier_tri: 'Les casiers du tri', colis: 'Les colis', baquet: 'Le baquet',
+  coffre_outils: 'Le coffre à outils', sacs_grain: 'Les sacs', sacristie: 'L’armoire de la sacristie', tronc: 'Le tronc des pauvres', apothicaire: 'Les tiroirs de l’apothicaire',
+  charrette: 'La charrette', caisses: 'Les caisses', etal: 'L’étal', tas_bois: 'Le tas de bois', linge: 'La corde à linge', poulailler: 'Le poulailler',
+  boite_lettres: 'La boîte aux lettres', poubelle: 'La poubelle', foin: 'Le foin', sacs_avoine: 'Les sacs d’avoine', sellerie: 'La sellerie', bocaux: 'Les bocaux',
+  jarre: 'La jarre', coffre_peche: 'Le coffre de pêche', coffre_chasse: 'Le coffre du chasseur', coffre_roulotte: 'Le coffre de la roulotte', coffre_nain: 'Le coffre de pierre',
+  cave_tonneaux: 'Les tonneaux de la cave', cave_casier: 'Le casier à bouteilles', cave_jambons: 'Les jambons', cave_caisse: 'Les caisses de la cave', cache: 'La cachette',
+  bu_etagere: 'L’étagère', bu_tiroir: 'Le tiroir de la table', bu_tonneau: 'Le tonneau', bu_caisse: 'La caisse', bu_caisses: 'Les caisses', bu_sac: 'Le sac',
+  bu_wagonnet: 'Le wagonnet', bu_coffre: 'Le coffre',
+};
+const BU_TITRES_LAB = {
+  'Fouiller l’armoire aux archives': 'L’armoire aux archives', 'Ouvrir le coffre du garde': 'Le coffre du garde', 'Ouvrir la malle du curé': 'La malle du curé',
+  'Fouiller le tiroir des lettres perdues': 'Le tiroir des lettres perdues',
+};
+const BU_TITRES_PROPS = {
+  coffre_vieux: 'Un vieux coffre', tonneau_vieux: 'Un vieux tonneau', caisse: 'Une caisse', caisses: 'Des caisses', sac: 'Un sac', barque: 'La barque',
+  charrette_renversee: 'La charrette renversée', coffre_enterre: 'Un coffre enterré', wagonnet: 'Le wagonnet', tonneau: 'Un tonneau',
+};
+const BU_OUTILS = {
+  hache: 'Abat les arbres et fend les souches. Plus le métal est bon, plus elle mord.',
+  pioche: 'Casse les pierres, les rochers et le minerai.',
+  houe: 'Retourne la terre avant de semer.',
+  arrosoir: 'Arrose les cultures ; il se remplit au puits, à la rivière ou à l’étang.',
+  faux: 'Fauche les hautes herbes, dont on fait le foin.',
+  canne: 'Pour pêcher : lancez vers l’eau, et attendez que ça morde.',
+  arc: 'Tendez longtemps, puis relâchez : la flèche part.',
+  marteau: 'Démonte ce que vous avez posé.',
+  cisailles: 'Pour tondre les moutons.',
+  seau: 'Pour traire les vaches.',
+  lanterne: 'Éclaire la nuit (touche F).',
+  montre: 'Donne l’heure, même la nuit.',
+  fourche: 'Pour remuer le foin et la paille.',
+  pelle: 'Creuse la terre, là où quelque chose attend peut-être.',
+};
+const BU_CATS = {
+  culture: 'Une récolte des champs, à manger, à cuisiner ou à vendre.',
+  graine: 'Des graines, à semer dans une terre retournée à la houe, puis à arroser.',
+  produit: 'Un produit de la ferme, qui se vend bien en ville.',
+  cueillette: 'Cueilli dans la vallée, au bord des chemins.',
+  chasse: 'Une prise de chasse.',
+  poisson: 'Un poisson de la vallée.',
+  materiau: 'Un matériau, pour fabriquer ou pour bâtir.',
+  nourriture: 'De quoi manger.',
+  outil: 'Un outil.',
+  objet: 'Un objet à poser : prenez-le en main et cliquez là où vous voulez l’installer.',
+  animal: 'Une bête, livrée à la ferme le lendemain matin.',
+  quete: 'Un objet particulier, qu’on garde précieusement.',
+  tresor: 'Une curiosité, que certains collectionnent et paient bien.',
+  legende: 'Un objet dont on raconte l’histoire à la veillée.',
+  construction: 'De quoi bâtir.',
+  alchimie: 'Un ingrédient d’alchimie.',
+  potion: 'Une potion : prenez-la en main et cliquez pour la boire.',
+  relique: 'Une relique des Anciens.',
+  piete: 'Un objet de piété.',
+  livre: 'Un livre : prenez-le en main et cliquez pour le lire.',
+  ailleurs: 'Une chose qui ne vient pas d’ici.',
+  futur: 'Un objet d’un autre temps.',
+};
+const BU_SOUPCON = ['Vous cherchez quelque chose, là-dedans ?', 'Ce n’est pas à vous, ça. Refermez.', 'On ne fouille pas chez les gens.'];
+const BU_SOUPCON_PROPRIO = ['Qu’est-ce que vous cherchez dans mes affaires ?', 'Refermez ça. Tout de suite.', 'Mes affaires ne vous regardent pas.'];
+
+// ---------------------------------------------------------------- la génération : tout meuble ou conteneur de la vallée (après tout le reste, sans tirage)
+function butinGen(w) {
+  if (!w || !w.props || !w.bld || !w.inter || !w.nav) return;
+  const T = w.townInfo, lm = w.lm || {}, H = lm.hameau, bl = w.bld, N0 = w.props.length;
+  const proprio = (key) => { const d = NPC_DATA.find((q) => q.home === key && (q.age || 30) >= 16); return d ? d.id : null; };
+  const dans = (q) => { for (const k in bl) { const b = bl[k]; if (!b || !b.f) continue; const [lx, lz] = f2Local(b.f, q.x, q.z); if (Math.abs(lx) < b.W / 2 + 0.05 && Math.abs(lz) < b.D / 2 + 0.05 && Math.abs(q.y - b.f.y) < 3) return k; } return null; };
+  const prochain = (q, max) => { let best = null, bd = max; for (const k in bl) { const b = bl[k]; if (!b.f || b.under) continue; const [lx, lz] = f2Local(b.f, q.x, q.z), d = Math.hypot(Math.max(0, Math.abs(lx) - b.W / 2), Math.max(0, Math.abs(lz) - b.D / 2)); if (d < bd && Math.abs(q.y - b.f.y) < 4) { bd = d; best = k; } } return best; };
+  const enVille = (q) => T && Math.abs(q.x - T.x) < 46.5 && Math.abs(q.z - T.z) < 46.5;
+  const auHameau = (q) => H && Math.hypot(q.x - H.x, q.z - H.z) < 45;
+  // un lieu-dit souterrain garde la hauteur du sol au-dessus de lui : on y est si l'on est sous terre, dans son rayon
+  const sousTerre = (q) => q.y < w.heightAt(q.x, q.z) - 3;
+  const dansLm = (q, L, m) => Math.hypot(L.x - q.x, L.z - q.z) < (L.r || 8) + m && (L.under ? sousTerre(q) : L.y === undefined || Math.abs(L.y - q.y) < 12);
+  const lieuDit = (q) => { let best = null, bd = 1e9; for (const k in lm) { const L = lm[k], d = Math.hypot(L.x - q.x, L.z - q.z); if (d < bd && dansLm(q, L, 6)) { bd = d; best = k; } } return best; };
+  const pres = (o, q, r, dy) => !!o && isFinite(o.x) && Math.hypot(o.x - q.x, o.z - q.z) < r && Math.abs((o.y || 0) - q.y) < dy;
+  // pas là : la ferme du joueur et sa cave, la bibliothèque et les archives (leurs livres ont leur propre règle), le cachot,
+  // le temple, la Fondation, la cave de l'auberge (déjà fouillable, pièce par pièce)
+  const exclu = (q, key) => {
+    if (key === 'ferme' || key === 'bibliotheque') return true;
+    for (const [k, m] of [['archives', 4], ['cachot', 6], ['carriere_cachot', 6], ['temple', 6], ['ferme', 0]]) if (lm[k] && dansLm(q, lm[k], m)) return true;
+    return pres(w.fondation, q, 45, 12) || pres(w.cellar, q, 9, 5) || pres(w.caveAuberge, q, 9, 5);
+  };
+  const occupe = (x, y, z, r) => w.inter.some((i) => Math.abs(i.x - x) < r && Math.abs(i.z - z) < r && Math.hypot(i.x - x, i.z - z) < r && Math.abs(i.y - y) < 2);
+  let n = 0;
+  for (let i = 0; i < N0; i++) {
+    const q = w.props[i], R = BU_MEUBLES[q.id];
+    if (!R || q.gone || q.f2 || q.ver || q.questFind || q.hole || q.fouille || q.bld) continue;
+    const key = dans(q);
+    if (R.dedans && !key) continue;
+    if (exclu(q, key)) continue;
+    if (q.id === 'table' && (key === 'auberge' || key === 'eglise')) continue; // (les tables de la salle commune sont aux clients)
+    const s = q.s || 1, av = (R.av || 0) * s, r = q.r || 0;
+    const x = q.x + Math.sin(r) * av, z = q.z + Math.cos(r) * av, y = q.y + R.h * s;
+    if (occupe(x, y, z, 1.2) || occupe(q.x, y, q.z, 1.0)) continue;
+    // à qui ? dedans : l'habitant de la maison (sinon abandonnée) ; dehors : le voisin le plus proche, la rue, ou personne
+    let own = null, lieu, bp = null;
+    if (key) { own = proprio(key); lieu = key === 'eglise' ? 'eglise' : own ? 'maison' : 'abandon'; }
+    else { bp = prochain(q, 6); own = bp ? proprio(bp) : null; lieu = own ? 'maison' : enVille(q) || auHameau(q) ? 'public' : 'libre'; }
+    const k = key || bp, ld = lieuDit(q), kind = q.data && q.data.kind;
+    let t = R.t, table = null;
+    const crypte = pres(w.crypt, q, 10, 5);
+    if (t === 'bu_etagere') table = kind === 'livres' && k !== 'mairie' ? 'bu_etagere_livres' : BU_ETAGERE_BLD[k] || (kind === 'pain' ? 'f2_pains' : lieu === 'abandon' ? 'bu_etagere_vide' : 'bu_etagere');
+    else if (crypte && (t === 'bu_caisse' || t === 'bu_caisses' || t === 'bu_tonneau')) table = 'bu_crypte';
+    else if (t === 'bu_tiroir') table = lieu === 'abandon' ? 'bu_tiroir_vide' : 'bu_tiroir';
+    else if (t === 'bu_tonneau') {
+      if (k === 'auberge') t = 'tonneaux';
+      else if (k === 'forge') t = 'baquet';
+      else table = k === 'cabane_pecheur' ? 'bu_tonneau_peche' : k === 'relais_chasse' ? 'bu_tonneau_salaison' : lieu === 'libre' || q.id === 'tonneau_vieux' ? 'bu_vieux_tonneau' : 'bu_tonneau';
+    } else if (t === 'bu_caisse' || t === 'bu_caisses') table = /^(mine|galeries|bouche_galerie|faille|grotte)/.test(ld || '') ? 'bu_caisse_mine' : /^(col|refuge|monts|glacier|combe)/.test(ld || '') ? 'bu_caisse_col' : k === 'poste' ? 'f2_colis' : 'bu_caisse';
+    else if (t === 'bu_sac' || t === 'sacs_grain') table = k === 'graineterie' ? 'f2_semences' : k === 'boulangerie' ? 'f2_farine' : t === 'bu_sac' ? 'bu_sac' : null;
+    else if (t === 'bu_coffre') table = lieu === 'abandon' ? 'f2_abandon' : null;
+    else if ((t === 'armoire' || t === 'commode' || t === 'malle') && lieu === 'abandon') table = t === 'commode' ? 'f2_abandon_commode' : 'f2_abandon';
+    const pool = own && F2_POOLS[own] ? own : k && F2_POOLS[k] ? k : null;
+    const id = 'f2:p:' + i;
+    if (w.inter.some((it) => it.id === id)) continue;
+    const data = { t, own, bld: k || null, lieu, pr: i, bu: 1 };
+    if (table) data.table = table;
+    if (pool) data.pool = pool;
+    if (lieu === 'libre') data.refill = 7; else if (lieu === 'abandon') data.refill = 6;
+    w.inter.push({ kind: 'f2', id, x, y, z, name: F2_TYPES[t].lab, data });
+    q.f2 = id; n++;
+  }
+  w.butin = { n };
+}
+{
+  const _gv = generateValley;
+  generateValley = async function (seed, progress, gen) {
+    const w = await _gv(seed, progress, gen);
+    if (w && w.designed) { try { butinGen(w); } catch (e) { console.error('butin', e); } }
+    return w;
+  };
+}
+
+// ---------------------------------------------------------------- le jeu
+const butin = {
+  sess: null, enc: null, branche: false, styled: false, eFerme: false, shopGarde: false,
+  parProp: new Map(), propPar: new Map(), tresors: [],
+
+  S() {
+    const s = farm.s;
+    if (!s) return null;
+    const B = s.butin || (s.butin = { v: 1, c: {}, n: 0 });
+    if (!B.c || typeof B.c !== 'object') B.c = {};
+    return B;
+  },
+  pret() { return !!(farm.s && typeof game !== 'undefined' && game.world && typeof document !== 'undefined' && document.body && $('#paper')); },
+  // ------------------------------------------------------------------ le contenu
+  nettoyer(lots) {
+    const out = [], ix = {};
+    for (const e of lots || []) {
+      if (!Array.isArray(e)) continue;
+      const k = e[0], n = Math.floor(+e[1] || 0);
+      if (!(n > 0) || (k !== 'argent' && !ITEMS[k])) continue;
+      if (ix[k] !== undefined) { out[ix[k]][1] += n; continue; }
+      ix[k] = out.length; out.push([k, n]);
+    }
+    return out;
+  },
+  // ce qui peut se prendre (un objet unique déjà en poche, une merveille déjà trouvée : non)
+  prenable(k) {
+    if (k === 'argent') return true;
+    const I = ITEMS[k];
+    if (!I || (I.unique && farm.count(k))) return false;
+    try { if (typeof LEGENDAIRES !== 'undefined' && LEGENDAIRES[k] && typeof legendaires !== 'undefined' && legendaires.a && legendaires.a(k)) return false; } catch (e) { /* rien */ }
+    return true;
+  },
+  // le contenu gardé vaut-il encore ? (un conteneur qui s'est rempli de nouveau repart d'un tirage neuf)
+  valide(k, C) {
+    const s = farm.s;
+    if (C.src === 'f2') {
+      if (typeof fouilles === 'undefined') return false;
+      const it = fouilles.par.get(k);
+      if (!it) return false;
+      const F = fouilles.S();
+      return it.data.cache ? !!F.prises[it.data.cache] : F.vides[k] === C.j;
+    }
+    if (C.src === 'loot') return s.looted[k] === C.j;
+    return true;
+  },
+  papierVisible(C) { return !!(C && C.pap && typeof F2_PAPIERS !== 'undefined' && F2_PAPIERS[C.pap] && !(typeof fouilles !== 'undefined' && fouilles.S() && fouilles.S().papiers.includes(C.pap))); },
+  plein(C) { return !!C && ((C.o || []).some(([k, n]) => n > 0 && this.prenable(k)) || this.papierVisible(C)); },
+  reste(k) {
+    const B = this.S();
+    if (!B || !k) return null;
+    const C = B.c[k];
+    if (!C) return null;
+    if (!this.valide(k, C)) { delete B.c[k]; return null; }
+    return this.plein(C) ? C : null;
+  },
+  contenu(k) { const C = this.reste(k); return C ? C.o.filter(([id, n]) => n > 0 && this.prenable(id)).map((e) => e.slice()) : null; },
+  oublier(k) { const B = this.S(); if (B) delete B.c[k]; },
+  // donne sans rien montrer ce qu'une fonction aurait donné d'un coup (fouilles d'origine, coffres…)
+  capturer(fn) {
+    const L = [], g = farm.give, e = farm.earn, f = play.flyer;
+    farm.give = (id, n = 1) => { if (n > 0) L.push([id, n]); };
+    farm.earn = (n) => { if (n > 0) L.push(['argent', n]); };
+    play.flyer = () => {};
+    try { fn(); } finally { farm.give = g; farm.earn = e; play.flyer = f; }
+    return L;
+  },
+  donner(L) { for (const [k, n] of L || []) { if (k === 'argent') farm.earn(n); else if (ITEMS[k]) farm.give(k, n); } },
+
+  // ------------------------------------------------------------------ les fouilles (11-zzz98) passent par le menu
+  tirerF2(it) {
+    const F = fouilles.S(), s = farm.s, d = it.data, B = this.S(), Cc = d.cache ? F2_CACHES[d.cache] : null;
+    const lots = d.cache ? ((Cc && Cc.lots) || []).map((a) => a.slice()) : rollLoot(fouilles.table(it));
+    let pap = d.cache ? (Cc && Cc.papier) || null : fouilles.tirerPapier(it);
+    if (pap && F.papiers.includes(pap)) pap = null;
+    if (d.cache) F.prises[d.cache] = s.day; else F.vides[it.id] = s.day;
+    F.n = (F.n || 0) + 1;
+    return (B.c[it.id] = { src: 'f2', j: s.day, o: this.nettoyer(lots), pap });
+  },
+  titreF2(it) {
+    const d = it.data || {}, maj = (t) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
+    if (d.cache && F2_CACHES[d.cache]) return maj(F2_CACHES[d.cache].nom);
+    if (BU_TITRES_LAB[it.name]) return BU_TITRES_LAB[it.name];
+    if (!d.lab && BU_TITRES[d.t]) return BU_TITRES[d.t];
+    return maj(String(it.name || '').replace(/^(Fouiller|Ouvrir|Forcer) (le |la |les |l’)?/, (m0, v, art) => art || ''));
+  },
+  fouilleF2(it) {
+    const C = this.reste(it.id) || this.tirerF2(it), d = it.data, own = fouilles.proprio(it);
+    fouilles.majProp(it);
+    return this.ouvrir({ titre: this.titreF2(it), chez: own && own.st.alive && d.lieu !== 'rebut' && !this.chezSoi(d.bld) ? (own.st.met ? `chez ${own.name}` : 'chez quelqu’un') : '', contenu: C, cle: it.id, it, x: it.x, y: it.y, z: it.z });
+  },
+  chezSoi(k) { try { return !!(k && typeof locations !== 'undefined' && locations.locataire && locations.locataire(k)); } catch (e) { return false; } },
+
+  // ------------------------------------------------------------------ les coffres des lieux (game.lootBox), le temple
+  titreLoot(it, q) {
+    const d = it.data || {};
+    if (d.temple) return d.table === 'temple_or' ? 'Le trésor des Trois' : 'Un coffre du temple';
+    if (d.table === 'archives') return 'Le coffre des archives';
+    if (d.table === 'crevasse') return 'Des restes, dans la glace';
+    if (d.table === 'refuge') return 'Le coffre du refuge';
+    if (it.id === 'chapelle_profonde') return 'Sous l’autel';
+    if (q && BU_TITRES_PROPS[q.id]) return BU_TITRES_PROPS[q.id];
+    if (/caisses/.test(it.name || '')) return 'Des caisses';
+    return 'Ce que vous trouvez';
+  },
+  lootBox(it, extra) {
+    const s = farm.s, w = game.world, d = it.data || {};
+    let C = this.reste(it.id);
+    if (!C) {
+      const avant = s.looted[it.id];
+      const L = this.capturer(() => this._lootBox(it));
+      if (s.looted[it.id] !== s.day || avant === s.day) { this.donner(L); return; } // (vide : l'original l'a dit)
+      C = this.S().c[it.id] = { src: 'loot', j: s.day, o: this.nettoyer(L) };
+    }
+    const q = d.prop !== undefined ? w.props[d.prop] : null;
+    return this.ouvrir(Object.assign({ titre: this.titreLoot(it, q), contenu: C, cle: it.id, x: it.x, y: it.y, z: it.z }, extra || {}));
+  },
+
+  // ------------------------------------------------------------------ le menu
+  ouvrir(o) {
+    o = o || {};
+    if (!farm.s || typeof game === 'undefined' || !game.world) return false;
+    // (mourant, endormi, pendant une cinématique : pas maintenant ; ce qui est gardé attend)
+    if (game.dying || game.sleeping || (typeof cine !== 'undefined' && cine.on)) return false;
+    const B = this.S();
+    // une clé déjà connue : son contenu gardé compte (même si « objets » est redonné) ; butin.oublier(cle) pour repartir de zéro
+    const garde = !o.contenu && o.cle && B.c[o.cle] && B.c[o.cle].src === 'ext' ? B.c[o.cle] : null;
+    let C = o.contenu || garde;
+    if (!C) {
+      const L = typeof o.objets === 'function' ? o.objets() : o.objets;
+      C = { src: 'ext', j: farm.s.day, o: this.nettoyer(L), pap: o.papier || null };
+      if (o.cle) B.c[o.cle] = C;
+    }
+    if (!this.pret()) { // (pas de page : tout d'un coup, comme avant)
+      const L = C.o.splice(0);
+      this.donner(L);
+      for (const [k, n] of L) if (o.onPris) try { o.onPris(k, n); } catch (e) { console.error(e); }
+      if (o.onFerme) try { o.onFerme(L); } catch (e) { console.error(e); }
+      return false;
+    }
+    if (this.sess) ui.close(true);
+    if (this.sess) this.clore();
+    const S = { o, C, pris: [], sel: 0, k: 0, kPour: null, vus: [], cri: null, vol: false, agi: false, attrape: false, papier: null, premier: false, videAvant: !!garde && !this.plein(garde) };
+    this.sess = S;
+    try { this.ouvertureSociale(S); } catch (e) { console.error('butin', e); }
+    if (this.sess !== S) return false;
+    this.panneau();
+    return true;
+  },
+  // qui voit ? une seule fois, à l'ouverture (même règle que 11-zzz98 : témoins, marchands qui gardent leur étal)
+  ouvertureSociale(S) {
+    const o = S.o, it = o.it;
+    if (it) {
+      const d = it.data, own = fouilles.proprio(it), vivant = !!(own && own.st.alive);
+      let lieu = d.lieu || (vivant ? 'maison' : 'public');
+      if (this.chezSoi(d.bld)) lieu = 'libre';
+      Object.assign(S, { own, vivant, lieu, T: fouilles.type(it) });
+      if (lieu === 'libre') return;
+      const vus = fouilles.temoins(it, own);
+      let cri = null;
+      if (lieu !== 'rebut' && lieu !== 'abandon') for (const fn of fouilles.gardiens) { try { cri = fn(it); } catch (e) { console.error(e); } if (cri) break; }
+      S.vus = vus; S.cri = cri;
+      if (lieu === 'rebut') {
+        if (vus.length) { const m = vus[0]; npcs.say(m, pick(F2_TEMOIN_REBUT), 3); npcs.addAmitie(m, -5); if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-0.3, 'fouiller les ordures', 1); }
+      } else if (lieu === 'abandon' || (own && !vivant)) {
+        if (vus.length) { const m = vus[0]; npcs.say(m, fmtLine(pick(own && !vivant ? F2_TEMOIN_MORT : F2_TEMOIN_ABANDON), m, { victime: own ? own.name : '' }), 3.5); for (const v of vus) npcs.addAmitie(v, -20); }
+        if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(own && !vivant ? -1 : -0.4, 'fouiller chez les disparus', 2);
+      } else S.vol = true; // chez quelqu'un, dans un commerce, à l'église, dans la rue : prendre sera voler
+      return;
+    }
+    // une autre source, aux affaires d'un vivant
+    const own = o.proprio ? (typeof o.proprio === 'object' ? o.proprio : npcs.byId[o.proprio]) : null;
+    if (!own || !own.st || !own.st.alive || o.temoins === false) return;
+    const p = game.player;
+    S.itF = { id: o.cle || 'butin', x: o.x ?? p.pos[0], y: o.y ?? p.pos[1], z: o.z ?? p.pos[2], name: o.titre || '', data: { own: own.id, bld: o.bld || null, lieu: o.lieu || 'maison', lock: 0, t: 'malle' } };
+    Object.assign(S, { own, vivant: true, lieu: S.itF.data.lieu, T: F2_TYPES.malle, vol: true });
+    S.vus = fouilles.temoins(S.itF, own);
+  },
+  // le premier objet pris : c'est un vol (vu : cris, crime, garde ; pas vu : la plainte du lendemain)
+  acte(S) {
+    if (!S.premier) { S.premier = true; if (S.o.onPremier) try { S.o.onPremier(); } catch (e) { console.error(e); } }
+    if (!S.vol || S.agi) return;
+    S.agi = true;
+    const it = S.o.it || S.itF, own = S.own, vivant = S.vivant;
+    if (S.vus.length || S.cri) { fouilles.pris(it, vivant ? own : null, S.vus, S.cri); S.attrape = true; return; }
+    if (vivant && own) fouilles.S().plaintes[own.id] = farm.s.day;
+    if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer((S.T && S.T.enfant) || (it && it.data && it.data.t === 'tronc') ? -1.5 : -0.6, 'voler', 3);
+  },
+  // ouvert sous les yeux de quelqu'un, refermé sans rien prendre : un soupçon
+  soupcon(S) {
+    const own = S.own, p = game.player;
+    for (const v of S.vus) { v.heading = Math.atan2(p.pos[0] - v.x, p.pos[2] - v.z); v.chatT = 0; }
+    if (own && S.vus.includes(own)) { npcs.say(own, pick(BU_SOUPCON_PROPRIO), 3); npcs.addAmitie(own, -8); npcs.remember(own, 'intrus'); }
+    else { const m = S.vus[0]; npcs.say(m, pick(BU_SOUPCON), 3); npcs.addAmitie(m, -3); if (own && own.st.alive) npcs.addAmitie(own, -2); }
+  },
+  // ce qu'on voit dans le conteneur (index dans C.o, ou le papier)
+  entrees(S) {
+    const C = S.C, out = [];
+    C.o.forEach((e, i) => { if (e[1] > 0 && this.prenable(e[0])) out.push({ k: e[0], n: e[1], i }); });
+    if (this.papierVisible(C)) out.push({ k: 'papier', n: 1, pap: C.pap });
+    return out;
+  },
+  nomEntree(e) { return e.pap ? F2_PAPIERS[e.pap].t : e.k === 'argent' ? (e.n > 1 ? 'Des pièces' : 'Une pièce') : itemName(e.k); },
+  iconeEntree(e) { return iconURL(e.pap ? 'lettre' : e.k === 'argent' ? 'vieille_piece' : e.k); },
+  descEntree(e) { return e.pap ? 'Un papier plié, oublié là. Si vous le prenez, vous le lirez en refermant.' : e.k === 'argent' ? 'De la monnaie : elle va droit dans la bourse.' : this.description(e.k); },
+  prendre(j, k) {
+    const S = this.sess;
+    if (!S) return;
+    const e = this.entrees(S)[j];
+    if (!e) return;
+    this.retirer(S, e, e.pap ? 1 : clamp(Math.floor(k || e.n), 1, e.n));
+    this.apres(S);
+  },
+  toutPrendre() {
+    const S = this.sess;
+    if (!S) return;
+    let E = this.entrees(S), g = 0;
+    if (!E.length) { ui.close(); return; }
+    for (; E.length && g < 200; E = this.entrees(S), g++) { const e = E[E.length - 1]; this.retirer(S, e, e.pap ? 1 : e.n); }
+    this.apres(S);
+  },
+  retirer(S, e, n) {
+    const C = S.C;
+    if (e.pap) {
+      C.pap = null; S.papier = e.pap; S.pris.push(['papier', 1, e.pap]);
+      fouilles.garderPapier(e.pap, S.o.it || null);
+      sound.page && sound.page();
+      return;
+    }
+    const L = C.o[e.i];
+    L[1] -= n;
+    if (L[1] <= 0) C.o.splice(e.i, 1);
+    if (e.k === 'argent') { farm.earn(n); sound.coin && sound.coin(); } else { farm.give(e.k, n); sound.pop && sound.pop(); }
+    S.pris.push([e.k, n]);
+    const B = this.S(); B.n = (B.n || 0) + n;
+    if (e.k !== 'argent' && S.vol && S.vivant && S.own) fouilles.marquer([[e.k, n]], S.own.id, S.T); // (les objets pris chez quelqu'un se reconnaissent)
+    if (S.o.onPris) try { S.o.onPris(e.k, n); } catch (err) { console.error(err); }
+  },
+  apres(S) {
+    this.acte(S);
+    if (this.sess !== S) return;
+    if (S.o.it) fouilles.majProp(S.o.it);
+    if (S.attrape) { ui.close(); return; }
+    this.maj();
+    if (!this.entrees(S).length) setTimeout(() => { if (this.sess === S) ui.close(); }, 450);
+  },
+  clore() {
+    const S = this.sess;
+    if (!S) return;
+    this.sess = null;
+    try {
+      if (S.vol && !S.agi && S.vus.length) this.soupcon(S);
+      if (S.o.it) fouilles.majProp(S.o.it);
+      if (S.pris.length) ui.subtitle('', `(Vous prenez : ${this.resume(S.pris)}.)`, 3.5);
+      if (S.o.onFerme) try { S.o.onFerme(S.pris.filter((p) => p[0] !== 'papier').map((p) => p.slice(0, 2))); } catch (e) { console.error(e); }
+      const pap = S.papier;
+      if (pap && !S.attrape) setTimeout(() => { if (!ui.panel && !game.dying) fouilles.lirePapier(pap); }, 450);
+      else if (pap) setTimeout(() => ui.subtitle('', '(Le papier, vous le relirez plus tard : sacoche, onglet Lettres.)', 3.5), 2600);
+    } catch (e) { console.error('butin', e); }
+    this.menage();
+  },
+  resume(pris) {
+    let pieces = 0;
+    const m = new Map(), paps = [];
+    for (const [k, n, pap] of pris) { if (k === 'argent') pieces += n; else if (k === 'papier') paps.push(pap); else m.set(k, (m.get(k) || 0) + n); }
+    const bits = [];
+    if (pieces > 0) bits.push(pieces > 1 ? `${pieces} pièces` : 'une pièce');
+    for (const [k, n] of m) bits.push(n > 1 ? `${itemName(k).toLowerCase()} (${n})` : itemName(k).toLowerCase());
+    for (const p of paps) if (F2_PAPIERS[p]) bits.push(F2_PAPIERS[p].t.toLowerCase());
+    return bits.join(', ');
+  },
+
+  // ------------------------------------------------------------------ le panneau
+  htmlListe(S) {
+    const E = this.entrees(S);
+    if (!E.length) return `<p class="bu-vide">${S.pris.length || S.videAvant ? '(Il n’y a plus rien.)' : '(Rien qui vaille la peine. Des miettes, de la poussière.)'}</p>`;
+    S.sel = clamp(S.sel, 0, E.length - 1);
+    return E.map((e, j) => `<button class="row bu-it${j === S.sel ? ' on' : ''}" data-bu="${j}"><kbd>${j < 9 ? j + 1 : ''}</kbd><img src="${this.iconeEntree(e)}" alt=""><span>${esc(this.nomEntree(e))}</span><i>${e.pap ? '' : e.k === 'argent' ? e.n : '×' + e.n}</i></button>`).join('');
+  },
+  htmlInfo(S) {
+    const e = this.entrees(S)[S.sel];
+    if (!e) return '';
+    const cle = e.pap || e.k;
+    if (S.kPour !== cle) { S.kPour = cle; S.k = e.n; }
+    S.k = clamp(S.k, 1, e.n);
+    const cat = e.pap || e.k === 'argent' ? '' : ITEM_CAT_NAMES[ITEMS[e.k].cat] || '';
+    const qte = e.n > 1 ? `<button class="bu-b sec" data-q="-" title="Un de moins">−</button><input class="bu-n" type="text" inputmode="numeric" value="${S.k}"><button class="bu-b sec" data-q="+" title="Un de plus">+</button>` : '';
+    return `<div class="bu-t"><img src="${this.iconeEntree(e)}" alt=""><div><b>${esc(this.nomEntree(e))}</b>${cat ? `<small>${esc(cat)}</small>` : ''}</div></div>
+      <p>${esc(this.descEntree(e))}</p><div class="bu-qte">${qte}<button class="bu-b" data-prendre>Prendre</button></div>`;
+  },
+  alerte(S) {
+    if (!S.vol || S.attrape) return '';
+    if (S.vus.length) { const m = S.vus[0]; return m.st && m.st.met ? `${m.name} vous regarde.` : 'Quelqu’un vous regarde.'; }
+    return S.cri ? 'On vous a à l’œil.' : '';
+  },
+  panneau() {
+    const S = this.sess;
+    if (!S) return;
+    this.style();
+    if (!$('#butin')) { const d = document.createElement('div'); d.id = 'butin'; d.className = 'pp-panel'; $('#paper').appendChild(d); }
+    const o = S.o;
+    ui.open('#butin', `<div class="tabs"><b>${esc(o.titre || 'Ce que vous trouvez')}${o.chez ? ` <small class="bu-chez">${esc(o.chez)}</small>` : ''}</b><button class="x" data-fermer title="Refermer">✕</button></div>
+      <div class="body"><div class="bu-liste"></div><div class="bu-info"></div></div>
+      <div class="foot bu-pied"><span class="bu-alerte"></span><button class="bu-b" data-tout>Tout prendre</button><button class="bu-b sec" data-fermer>Refermer</button></div>
+      <div class="bu-aide">Clic : prendre la pile · Maj+clic : choisir la quantité · 1 à 9 : prendre · T : tout prendre · E ou Échap : refermer</div>`);
+    const el = $('#butin');
+    el.querySelectorAll('[data-fermer]').forEach((b) => (b.onclick = () => ui.close()));
+    el.querySelector('[data-tout]').onclick = () => this.toutPrendre();
+    this.maj();
+  },
+  maj() {
+    const S = this.sess, el = $('#butin');
+    if (!S || !el) return;
+    const li = el.querySelector('.bu-liste'), top = li ? li.scrollTop : 0;
+    if (li) { li.innerHTML = this.htmlListe(S); li.scrollTop = top; }
+    this.majInfo();
+    const al = el.querySelector('.bu-alerte'), t = this.alerte(S);
+    if (al && al.textContent !== t) al.textContent = t;
+    const tout = el.querySelector('[data-tout]');
+    if (tout) tout.disabled = !this.entrees(S).length;
+    el.querySelectorAll('[data-bu]').forEach((b) => {
+      b.onclick = (ev) => { const j = +b.dataset.bu; if (ev.shiftKey) { this.choisir(j); const inp = el.querySelector('.bu-n'); if (inp) { inp.focus(); inp.select(); } return; } this.prendre(j); };
+      b.onmouseenter = () => { const j = +b.dataset.bu; if (this.sess && j !== this.sess.sel) this.choisir(j); };
+    });
+  },
+  majInfo() {
+    const S = this.sess, el = $('#butin'), inf = el && el.querySelector('.bu-info');
+    if (!S || !inf) return;
+    inf.innerHTML = this.htmlInfo(S);
+    const moins = inf.querySelector('[data-q="-"]'), plus = inf.querySelector('[data-q="+"]'), inp = inf.querySelector('.bu-n'), pr = inf.querySelector('[data-prendre]');
+    if (moins) moins.onclick = () => this.quantite(-1);
+    if (plus) plus.onclick = () => this.quantite(1);
+    if (inp) { inp.oninput = () => { const e = this.entrees(S)[S.sel], v = parseInt(inp.value.replace(/\D/g, ''), 10); if (e && v > 0) S.k = clamp(v, 1, e.n); }; inp.onchange = () => { inp.value = S.k; }; }
+    if (pr) pr.onclick = () => this.prendre(S.sel, S.k);
+  },
+  choisir(j) {
+    const S = this.sess;
+    if (!S) return;
+    const E = this.entrees(S);
+    if (!E.length) return;
+    S.sel = clamp(j, 0, E.length - 1);
+    const el = $('#butin');
+    if (el) el.querySelectorAll('[data-bu]').forEach((b) => b.classList.toggle('on', +b.dataset.bu === S.sel));
+    const b = el && el.querySelector(`[data-bu="${S.sel}"]`);
+    if (b && b.scrollIntoView) b.scrollIntoView({ block: 'nearest' });
+    this.majInfo();
+  },
+  quantite(d) {
+    const S = this.sess;
+    if (!S) return;
+    const e = this.entrees(S)[S.sel];
+    if (!e || e.n < 2) return;
+    S.k = clamp((S.k || e.n) + d, 1, e.n);
+    const inp = $('#butin .bu-n');
+    if (inp) inp.value = S.k;
+    sound.click && sound.click();
+  },
+  clavier(e) {
+    const S = this.sess, c = e.code;
+    const a = document.activeElement, saisie = !!(a && a.classList && a.classList.contains('bu-n'));
+    // Échap : le jeu referme le panneau (depuis la saisie aussi, d'un seul coup)
+    if (c === 'Escape') { if (saisie) { e.preventDefault(); e.stopImmediatePropagation(); a.blur(); ui.close(); } return; }
+    if (saisie && /^(Digit|Numpad)[0-9]$|^Backspace$|^Delete$|^Tab$/.test(c)) return;
+    // (un bouton du panneau qui a gardé le focus ne doit pas se déclencher en plus : Espace, Entrée)
+    if (a && a.tagName === 'BUTTON' && a.closest && a.closest('#butin')) a.blur();
+    let fait = true;
+    if (c === 'KeyE') { if (!e.repeat) { this.eFerme = true; ui.close(); } }
+    else if (c === 'ArrowDown') this.choisir(S.sel + 1);
+    else if (c === 'ArrowUp') this.choisir(S.sel - 1);
+    else if (c === 'ArrowLeft' || c === 'Minus' || c === 'NumpadSubtract') this.quantite(e.shiftKey ? -10 : -1);
+    else if (c === 'ArrowRight' || c === 'Equal' || c === 'NumpadAdd') this.quantite(e.shiftKey ? 10 : 1);
+    else if (c === 'Enter' || c === 'NumpadEnter' || c === 'Space') { if (!e.repeat) this.prendre(S.sel, S.k); }
+    else if (c === 'KeyT') { if (!e.repeat) this.toutPrendre(); }
+    else if (/^(Digit|Numpad)[1-9]$/.test(c) && !saisie) { if (!e.repeat) this.prendre(+c.slice(-1) - 1); }
+    else fait = false;
+    if (fait) e.preventDefault();
+  },
+
+  // ------------------------------------------------------------------ les objets posés (contrat avec les agents U2 et W)
+  indexer() {
+    const w = game.world;
+    this.parProp = new Map(); this.propPar = new Map();
+    if (!w) return;
+    const lier = (q, it) => { if (!q || !it || this.parProp.has(q) || this.propPar.has(it)) return; this.parProp.set(q, it); this.propPar.set(it, q); };
+    const F = typeof fouilles !== 'undefined' ? fouilles : null;
+    const n0 = farm.genProps || w.props.length;
+    for (let i = 0; i < n0; i++) { const q = w.props[i]; if (q && q.f2 && F) lier(q, F.par.get(q.f2)); }
+    for (const it of w.inter) if (it.kind === 'loot' && it.data && it.data.prop !== undefined) lier(w.props[it.data.prop], it);
+    // les endroits posés sur un objet (comptoir, tonneau, caisse, étagère, jarre…) : le conteneur le plus proche
+    for (const it of w.inter) {
+      if ((it.kind !== 'f2' && it.kind !== 'loot' && it.kind !== 'fond_casier') || this.propPar.has(it) || (it.data && it.data.cache)) continue;
+      let best = null, bd = 0.95;
+      for (let i = 0; i < n0; i++) {
+        const q = w.props[i];
+        if (!q || !BU_CONTENEURS.has(q.id) || this.parProp.has(q) || Math.abs(q.x - it.x) > bd || Math.abs(q.z - it.z) > bd || Math.abs(q.y - it.y) > 2.5) continue;
+        const d = Math.hypot(q.x - it.x, q.z - it.z);
+        if (d < bd) { bd = d; best = q; }
+      }
+      lier(best, it);
+    }
+  },
+  // l'interaction de fouille d'un objet posé (ou null)
+  interDe(q) { if (!q) return null; const it = this.parProp.get(q); if (it) return it; return q.f2 && typeof fouilles !== 'undefined' ? fouilles.par.get(q.f2) || null : null; },
+  // l'objet posé d'une interaction est-il encore là ? (cassé, ramassé : on ne le fouille plus)
+  present(it) { const q = this.propPar.get(it); return !q || typeof game === 'undefined' || !game.world || game.world.live(q); },
+  conteneur(q) { return !!q && (!!this.interDe(q) || BU_CONTENEURS.has(q.id)); },
+  fouillable(q) { const it = this.interDe(q); return !!(it && q && game.world.live(q) && (!HOOKS.interVis[it.kind] || HOOKS.interVis[it.kind](it))); },
+  // un conteneur cassé : ce qu'il reste dedans ([[id, n]…], 'argent' pour les pièces), et il est marqué vide
+  vider(q) {
+    const out = [];
+    try {
+      if (!q || !farm.s || typeof game === 'undefined' || !game.world) return out;
+      if (q.data && q.data.items && typeof q.data.items === 'object') { // (coffre du joueur, charrette : leur chargement)
+        for (const k in q.data.items) { const n = q.data.items[k]; if (n > 0 && ITEMS[k]) out.push([k, n]); }
+        farm.setPropData(q, { items: {} });
+        return out;
+      }
+      const it = this.interDe(q), s = farm.s;
+      if (!it) return out;
+      let C = this.reste(it.id);
+      if (it.kind === 'f2') { if (!C && !it.data.cache && !fouilles.vide(it)) C = this.tirerF2(it); }
+      else if (it.kind === 'loot') { if (!C && s.looted[it.id] === undefined) { s.looted[it.id] = s.day; C = this.S().c[it.id] = { src: 'loot', j: s.day, o: this.nettoyer(rollLoot(it.data.table)) }; } }
+      else if (it.kind === 'fond_casier' && typeof fondation !== 'undefined') {
+        const F = fondation.S(), k = 'casier_' + it.data.c;
+        if (!F.pris[k]) { C = this.S().c['fond:' + it.data.c] || { src: 'fond', j: s.day, o: (FOND_CASIERS[it.data.c] || []).map((a) => a.slice()) }; F.pris[k] = s.day; delete this.S().c['fond:' + it.data.c]; }
+      }
+      if (C) {
+        for (const [k, n] of C.o) if (n > 0 && this.prenable(k)) out.push([k, n]);
+        if (this.papierVisible(C)) { fouilles.garderPapier(C.pap, it); ui.subtitle('', '(Un papier glisse des débris. Vous le gardez : sacoche, onglet Lettres.)', 3.5); }
+        C.o = []; C.pap = null;
+      }
+      if (it.kind === 'f2') fouilles.majProp(it);
+      this.menage();
+    } catch (e) { console.error('butin.vider', e); }
+    return out;
+  },
+
+  // ------------------------------------------------------------------ les coffres déterrés (cartes au trésor, secrets enfouis)
+  coffreDeterre(cle, x, z, L) {
+    const C = this.S().c[cle] = { src: 'tresor', j: farm.s.day, o: this.nettoyer(L), x: Math.round(x * 10) / 10, z: Math.round(z * 10) / 10 };
+    this.majTresors();
+    this.ouvrir({ titre: 'Le coffre enterré', contenu: C, cle, x, z });
+  },
+  majTresors() { const B = this.S(); this.tresors = []; if (!B) return; for (const k in B.c) { const C = B.c[k]; if (C.src === 'tresor' && this.plein(C)) this.tresors.push({ cle: k, x: C.x, z: C.z }); } },
+  menage() {
+    const B = this.S();
+    if (!B) return;
+    for (const k in B.c) {
+      const C = B.c[k];
+      if (!C || !Array.isArray(C.o)) { delete B.c[k]; continue; }
+      if (C.src === 'ext') continue;
+      if (!this.valide(k, C) || (!this.plein(C) && !(this.sess && this.sess.C === C))) delete B.c[k];
+    }
+    this.majTresors();
+  },
+
+  // ------------------------------------------------------------------ descriptions (menu de butin, boutique)
+  description(id) {
+    const it = ITEMS[id];
+    if (!it) return '';
+    const L = [];
+    if (it.desc) L.push(it.desc);
+    else if (it.tool && BU_OUTILS[it.tool]) L.push(BU_OUTILS[it.tool]);
+    else if (it.crop && CROPS[it.crop]) { const c = CROPS[it.crop]; L.push(BU_CATS.graine); L.push(c.h <= 3 ? 'Pousse vite.' : c.h <= 6 ? 'Pousse en quelques heures de terre humide.' : 'Pousse lentement : il faut de la patience.'); if (c.regrow) L.push('Donne plusieurs récoltes.'); if (c.frost) L.push('Craint le gel.'); }
+    else if (it.animal) L.push(BU_CATS.animal);
+    else if (it.place) L.push(BU_CATS.objet);
+    else if (it.open) L.push('S’ouvre en main, d’un clic.');
+    else if (it.book) L.push(BU_CATS.livre);
+    else if (it.potion) L.push(BU_CATS.potion);
+    else L.push(BU_CATS[it.cat] || 'Un objet.');
+    const f = it.food || 0, h = it.heal || 0;
+    if (it.raw && f > 0) L.push('Cru, il nourrit mal : mieux vaut le faire cuire.');
+    else if (f > 0) {
+      L.push(f >= 35 ? 'Un vrai repas, de quoi tenir une bonne partie de la journée.' : f >= 18 ? 'De quoi tenir quelques heures.' : f >= 8 ? 'De quoi calmer une petite faim.' : 'À peine de quoi grignoter.');
+      if (h >= 25) L.push('Et ça redonne des forces.'); else if (h >= 10) L.push('Et ça fait du bien.');
+    } else if (h > 0) L.push(h >= 25 ? 'Soigne bien les plaies et la fatigue.' : 'Soigne un peu.');
+    if (it.alcool) L.push('Il y a de l’alcool dedans.');
+    return L.join(' ');
+  },
+
+  // ================================================================== la boutique
+  brancherBoutique() {
+    const el = $('#shop');
+    if (!el) return;
+    const s = farm.s;
+    for (const b of el.querySelectorAll('[data-buy],[data-sell]')) {
+      if (b._bu) continue;
+      b._bu = true;
+      const f0 = b.onclick, achat = b.hasAttribute('data-buy');
+      b._buF0 = f0;
+      // un article hors de portée s'ouvre quand même (pour lire sa description) ; il ne s'achète pas
+      if (achat && b.disabled) { b.disabled = false; b.classList.add('bu-non'); b.dataset.buNon = s.money < +b.dataset.p ? 'argent' : 'autre'; }
+      b.onclick = (e) => {
+        if (e && (e.shiftKey || e.ctrlKey || e.metaKey)) { if (b.dataset.buNon) { sound.click && sound.click(); return; } return f0 ? f0(e) : undefined; }
+        this.encart({ id: achat ? b.dataset.buy : b.dataset.sell, achat, pr: +b.dataset.p, f0, b });
+      };
+    }
+    const ft = el.querySelector('.foot');
+    if (ft && !ft.querySelector('.bu-pied-aide')) { const sp = document.createElement('span'); sp.className = 'bu-pied-aide'; sp.textContent = 'Clic : détails et quantité'; ft.append(' · ', sp); }
+  },
+  maxAchat(E) {
+    const s = farm.s, it = ITEMS[E.id];
+    if (!it || (E.b && E.b.dataset.buNon === 'autre')) return 0;
+    let m = E.pr > 0 ? Math.floor(s.money / E.pr) : 99;
+    if (it.animal) {
+      const same = s.animals.filter((a) => a.kind === it.animal).length + s.pending.filter((p) => p.kind === it.animal).length;
+      const barn = s.animals.filter((a) => a.kind !== 'hen').length + s.pending.filter((p) => p.kind !== 'hen').length;
+      m = Math.min(m, it.animal === 'hen' ? 10 - same : 8 - barn);
+    }
+    if (it.unique) m = Math.min(m, farm.count(E.id) ? 0 : 1);
+    return clamp(m, 0, 99);
+  },
+  raison(E) {
+    const s = farm.s, it = ITEMS[E.id];
+    if (!E.achat) return farm.count(E.id) ? '' : 'Vous n’en avez plus.';
+    if (E.b && E.b.dataset.buNon === 'autre') { const sm = E.b.querySelector('span small'); return sm ? sm.textContent : 'Pas pour l’instant.'; }
+    if (s.money < E.pr) return `Il vous manque ${E.pr - s.money} pièces.`;
+    if (it && it.animal && E.max <= 0) return 'Vous n’avez plus de place pour loger une bête de plus.';
+    return '';
+  },
+  encart(E) {
+    const el = $('#shop');
+    if (!el || !ITEMS[E.id]) return;
+    this.fermerEncart();
+    this.style();
+    E.max = E.achat ? this.maxAchat(E) : farm.count(E.id);
+    E.k = E.k ? clamp(E.k, 1, Math.max(1, E.max)) : 1;
+    if (E.max <= 0) E.k = 0;
+    this.enc = E;
+    const v = document.createElement('div'); v.className = 'bu-voile'; v.onclick = () => this.fermerEncart();
+    const d = document.createElement('div'); d.className = 'bu-encart';
+    el.appendChild(v); el.appendChild(d);
+    const it = ITEMS[E.id], cat = ITEM_CAT_NAMES[it.cat] || '', rs = this.raison(E), s = farm.s;
+    // (une bête : on compte celles de la ferme, et celles qu'on attend)
+    const n = it.animal ? s.animals.filter((a) => a.kind === it.animal).length + s.pending.filter((q) => q.kind === it.animal).length : farm.count(E.id);
+    d.innerHTML = `<div class="bu-e-tete"><img src="${iconURL(E.id)}" alt=""><div><b>${esc(itemName(E.id))}</b>${cat ? `<small>${esc(cat)}</small>` : ''}</div></div>
+      <p class="bu-e-desc">${esc(this.description(E.id))}</p>
+      <div class="bu-e-l"><span>${E.achat ? 'Prix à l’unité' : 'Prix de reprise, à l’unité'}</span><b>${E.pr > 1 ? `${E.pr} pièces` : '1 pièce'}</b></div>
+      <div class="bu-e-l"><span>${it.animal ? 'À la ferme' : 'Dans votre sacoche'}</span><b>${n}</b></div>
+      <div class="bu-e-l"><span>Votre bourse</span><b>${farm.s.money > 1 ? `${farm.s.money} pièces` : `${farm.s.money} pièce`}</b></div>
+      <div class="bu-e-qte"><span>Quantité</span><button class="bu-b sec" data-eq="-" title="Un de moins">−</button><input class="bu-e-n" type="text" inputmode="numeric" value="${E.k}"><button class="bu-b sec" data-eq="+" title="Un de plus">+</button><button class="bu-b sec" data-eq="max">Maximum (${E.max})</button></div>
+      <div class="bu-e-total"><span>Total</span><b class="bu-e-tot"></b></div>
+      ${rs ? `<p class="bu-e-raison">${esc(rs)}</p>` : ''}
+      <div class="bu-e-actions"><button class="bu-b sec" data-eannuler>Annuler</button><button class="bu-b" data-econfirmer>${E.achat ? 'Confirmer l’achat' : 'Confirmer la vente'}</button></div>`;
+    d.querySelector('[data-eq="-"]').onclick = () => this.qteEncart(-1);
+    d.querySelector('[data-eq="+"]').onclick = () => this.qteEncart(1);
+    d.querySelector('[data-eq="max"]').onclick = () => this.qteEncart(0, E.max);
+    d.querySelector('[data-eannuler]').onclick = () => this.fermerEncart();
+    d.querySelector('[data-econfirmer]').onclick = () => this.confirmerEncart();
+    const inp = d.querySelector('.bu-e-n');
+    inp.oninput = () => { const x = parseInt(inp.value.replace(/\D/g, ''), 10); E.k = clamp(x || 0, 0, E.max); this.totalEncart(); };
+    inp.onchange = () => { inp.value = E.k; };
+    this.totalEncart();
+    sound.page && sound.page();
+  },
+  qteEncart(dk, fixe) {
+    const E = this.enc, d = $('#shop .bu-encart');
+    if (!E || !d) return;
+    E.k = clamp(fixe !== undefined ? fixe : E.k + dk, E.max > 0 ? 1 : 0, E.max);
+    const inp = d.querySelector('.bu-e-n');
+    if (inp) inp.value = E.k;
+    this.totalEncart();
+    sound.click && sound.click();
+  },
+  totalEncart() {
+    const E = this.enc, d = $('#shop .bu-encart');
+    if (!E || !d) return;
+    const t = E.pr * E.k, tot = d.querySelector('.bu-e-tot'), ok = d.querySelector('[data-econfirmer]');
+    if (tot) tot.textContent = t > 1 ? `${t} pièces` : `${t} pièce`;
+    if (ok) ok.disabled = !(E.k > 0 && E.k <= E.max);
+  },
+  fermerEncart() {
+    const el = $('#shop');
+    if (el) el.querySelectorAll('.bu-voile, .bu-encart').forEach((x) => x.remove());
+    this.enc = null;
+  },
+  // l'achat (ou la vente) passe par le bouton d'origine, par paquets de 20, 5 et 1 (Ctrl, Maj, simple), sans redessiner entre deux
+  confirmerEncart() {
+    const E = this.enc, s = farm.s;
+    if (!E || !(E.k > 0) || E.k > E.max || !E.f0) return;
+    this.fermerEncart();
+    const R = ui.renderShop;
+    ui.renderShop = function () {};
+    try {
+      let reste = E.k;
+      while (reste > 0 && ui.panel === '#shop') {
+        const lot = reste >= 20 ? 20 : reste >= 5 ? 5 : 1, m0 = s.money, c0 = farm.count(E.id), p0 = s.pending.length;
+        E.f0({ ctrlKey: lot === 20, shiftKey: lot === 5, metaKey: false, altKey: false, preventDefault() {}, stopPropagation() {} });
+        if (s.money === m0 && farm.count(E.id) === c0 && s.pending.length === p0) break;
+        reste -= lot;
+      }
+    } catch (e) { console.error('boutique', e); } finally { ui.renderShop = R; }
+    if (ui.panel === '#shop' && ui.shopN) ui.renderShop();
+  },
+  clavierEncart(e) {
+    const c = e.code;
+    if (c === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); this.fermerEncart(); return; }
+    if (c === 'Enter' || c === 'NumpadEnter') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) this.confirmerEncart(); return; }
+    if (c === 'ArrowLeft' || c === 'ArrowDown' || c === 'NumpadSubtract' || c === 'Minus') { e.preventDefault(); this.qteEncart(e.shiftKey ? -10 : -1); }
+    else if (c === 'ArrowRight' || c === 'ArrowUp' || c === 'NumpadAdd' || c === 'Equal') { e.preventDefault(); this.qteEncart(e.shiftKey ? 10 : 1); }
+  },
+
+  // ------------------------------------------------------------------ l'allure (injectée une fois)
+  style() {
+    if (this.styled || typeof document === 'undefined' || !document.head) return;
+    this.styled = true;
+    const st = document.createElement('style');
+    st.id = 'butin-css';
+    st.textContent = `
+#butin { width: min(660px, calc(100vw - 24px)); }
+#butin .tabs b .bu-chez { font-size: 13px; font-style: italic; color: #7a6a52; margin-left: 6px; }
+#butin .body { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; padding: 12px 16px 10px; min-height: 170px; }
+#butin .bu-liste { display: flex; flex-direction: column; gap: 4px; max-height: min(392px, 52vh); overflow-y: auto; scrollbar-width: thin; padding-right: 2px; }
+#butin .bu-it { margin: 0; cursor: pointer; }
+#butin .bu-it kbd { flex: none; min-width: 17px; padding: 0 3px; border: 1px solid rgba(90,70,40,.35); border-radius: 3px; font: 11px Georgia, serif; color: #7a5e3a; text-align: center; background: rgba(255,255,255,.3); }
+#butin .bu-it.on { border-color: #8a5a2a; background: rgba(255,228,165,.7); box-shadow: inset 3px 0 0 #8a5a2a; }
+#butin .bu-vide { font-style: italic; color: #7a6a52; margin: 8px 2px; }
+#butin .bu-info { border-left: 1px dashed rgba(90,70,40,.3); padding-left: 16px; font-size: 14px; }
+#butin .bu-t { display: flex; gap: 10px; align-items: center; }
+#butin .bu-t img { width: 40px; height: 40px; image-rendering: pixelated; flex: none; }
+#butin .bu-t b { display: block; font-weight: normal; font-size: 16px; color: #2d2216; line-height: 1.2; }
+#butin .bu-t small { color: #7a6a52; font-style: italic; font-size: 12px; }
+#butin .bu-info p { margin: 9px 0 10px; font-size: 13px; line-height: 1.45; color: #4a3a22; font-style: italic; }
+#butin .bu-qte { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+#butin .bu-qte [data-prendre] { margin-left: 4px; }
+#butin .bu-pied { display: flex; align-items: center; gap: 10px; }
+#butin .bu-alerte { flex: 1; color: #9a3a2a; font-style: italic; font-size: 13px; }
+#butin .bu-aide { padding: 0 18px 10px; font-size: 12px; color: #8a7a62; }
+.bu-b { padding: 5px 13px; background: #8a5a2a; color: #f4ead2; border: 1px solid #7a4a1a; border-radius: 3px; font: 14px Georgia, 'Times New Roman', serif; cursor: pointer; }
+.bu-b.sec { background: rgba(255,255,255,.4); color: #3d2e1c; border-color: rgba(90,70,40,.4); }
+.bu-b:hover:not(:disabled) { filter: brightness(1.08); }
+.bu-b:disabled { opacity: .45; cursor: default; }
+#butin .bu-n, #shop .bu-e-n { width: 50px; padding: 4px 2px; text-align: center; font: 15px Georgia, serif; color: #2d2216; background: rgba(255,255,255,.65); border: 1px solid rgba(90,70,40,.4); border-radius: 3px; }
+#shop .row.bu-non { opacity: .5; }
+#shop .bu-voile { position: absolute; inset: 0; background: rgba(40,30,15,.4); z-index: 3; }
+#shop .bu-encart { position: absolute; left: 50%; bottom: 50px; transform: translateX(-50%); width: min(440px, calc(100% - 28px)); z-index: 4; background: #efe6cf; border: 1px solid rgba(90,70,40,.45); border-radius: 4px; box-shadow: 0 12px 34px rgba(0,0,0,.45), inset 0 0 34px rgba(120,90,40,.18); padding: 14px 16px 12px; font-size: 14px; color: #33291d; }
+#shop .bu-e-tete { display: flex; gap: 10px; align-items: center; }
+#shop .bu-e-tete img { width: 40px; height: 40px; image-rendering: pixelated; flex: none; }
+#shop .bu-e-tete b { display: block; font-weight: normal; font-size: 17px; line-height: 1.2; }
+#shop .bu-e-tete small { color: #7a6a52; font-style: italic; font-size: 12px; }
+#shop .bu-e-desc { margin: 9px 0 10px; font-style: italic; font-size: 13px; line-height: 1.45; color: #4a3a22; }
+#shop .bu-e-l { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-bottom: 1px dotted rgba(90,70,40,.25); }
+#shop .bu-e-l b, #shop .bu-e-total b { font-weight: normal; color: #7a4a1a; }
+#shop .bu-e-qte { display: flex; align-items: center; gap: 6px; margin: 11px 0 7px; flex-wrap: wrap; }
+#shop .bu-e-qte > span { margin-right: auto; }
+#shop .bu-e-total { display: flex; justify-content: space-between; font-size: 16px; padding: 7px 0 2px; border-top: 1px solid rgba(90,70,40,.3); }
+#shop .bu-e-raison { margin: 6px 0 0; color: #9a3a2a; font-style: italic; font-size: 13px; }
+#shop .bu-e-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+#shop .bu-pied-aide { font-style: italic; }
+@media (max-width: 560px) {
+  #butin .body { grid-template-columns: 1fr; }
+  #butin .bu-info { border-left: 0; padding-left: 0; border-top: 1px dashed rgba(90,70,40,.3); padding-top: 10px; }
+  #butin .bu-liste { max-height: 30vh; }
+  #butin .bu-aide { display: none; }
+}
+`;
+    document.head.appendChild(st);
+  },
+};
+
+// ---------------------------------------------------------------- branchements (au chargement du module : ce qui existe déjà)
+{
+  // les fouilles de 11-zzz98 : le butin passe par le menu ; un conteneur où il reste quelque chose n'est pas vide
+  const _vide = fouilles.vide.bind(fouilles);
+  fouilles.vide = function (it) { return _vide(it) && !butin.reste(it.id); };
+  const _res = fouilles.resoudre.bind(fouilles);
+  fouilles.resoudre = function (it) { if (!butin.pret()) return _res(it); return butin.fouilleF2(it); };
+  // un conteneur cassé ou ramassé ne se fouille plus
+  const _v2 = HOOKS.interVis.f2;
+  HOOKS.interVis.f2 = (it) => (!_v2 || _v2(it)) && butin.present(it);
+  const _vl = HOOKS.interVis.loot;
+  HOOKS.interVis.loot = (it) => (!_vl || _vl(it)) && butin.present(it);
+  // ce qui reste dans une crevasse ou un coffre des lieux se reprend (le temple garde sa question)
+  const _lp = HOOKS.interPre.loot;
+  HOOKS.interPre.loot = (it) => { if (!(it.data && it.data.temple) && butin.reste(it.id) && butin.pret()) { game.lootBox(it); return true; } return _lp ? _lp(it) : false; };
+  // le coffre englouti, la caisse de vivres, le sac de graines : on choisit, le reste attend dedans
+  const _oi = play.openItem.bind(play);
+  play.openItem = function (id) {
+    const it = ITEMS[id];
+    if (!it || !BU_MAIN.has(id) || !butin.pret() || !farm.count(id)) return _oi(id);
+    const B = butin.S(), k = 'main:' + id;
+    let C = butin.plein(B.c[k]) ? B.c[k] : null;
+    if (!C) { C = B.c[k] = { src: 'main', j: farm.s.day, o: butin.nettoyer(rollLoot(it.open)) }; sound.lootOpen && sound.lootOpen(); }
+    this.cool = 0.5;
+    butin.ouvrir({ titre: itemName(id), contenu: C, cle: k, onFerme: () => { if (!butin.plein(C) && farm.take(id, 1)) delete B.c[k]; } });
+  };
+  // les coffres qu'on déterre (secrets enfouis, cartes au trésor)
+  const _sd = dig.secretDig.bind(dig);
+  dig.secretDig = function (q, c) { if (!butin.pret()) return _sd(q, c); const L = butin.capturer(() => _sd(q, c)); if (L.length) butin.coffreDeterre('tresor:' + q.id, q.x, q.z, L); };
+  const _md = dig.mapDig.bind(dig);
+  dig.mapDig = function (m, c) { if (!butin.pret()) return _md(m, c); const L = butin.capturer(() => _md(m, c)); if (L.length) butin.coffreDeterre('tresor:' + m.id, m.x, m.z, L); };
+  // les coffres enterrés des énigmes et des caches (houe, pelle) ; la terre remuée du jour, elle, donne d'un coup
+  const _du = play.digUp.bind(play);
+  play.digUp = function (it) {
+    if (!it || !it.data || it.data.daily || !butin.pret() || !farm.propByKind('coffre_enterre', [it.x, it.z], 2)) return _du(it);
+    const L = butin.capturer(() => _du(it));
+    if (L.length) butin.coffreDeterre('tresor:' + it.id, it.x, it.z, L);
+  };
+  // le temple : « Prendre » ouvre le menu ; la malédiction tombe au premier objet pris, pas à l'ouverture
+  const _tc = temple.coffre.bind(temple);
+  temple.coffre = function (it) {
+    if (!butin.pret()) return _tc(it);
+    const s = farm.s, last = s.looted[it.id], vide = last !== undefined && s.day - last < 3 && !butin.reste(it.id), or = it.data.table === 'temple_or';
+    const opts = [];
+    if (!vide) opts.push({ label: 'Prendre', fn: () => { ui.close(true); butin.lootBox(it, { onPremier: () => { temple.S().vols = (temple.S().vols || 0) + 1; setTimeout(() => malediction.frapper(or ? 'poids' : 'malchance', 'temple'), 1200); } }); } });
+    if (malediction.liste().some((k) => malediction.cause(k) === 'temple')) opts.push({ label: 'Rendre ce qui a été pris', fn: () => this.rendre(it) });
+    opts.push({ label: 'Laisser', fn: () => ui.close() });
+    ui.choice(or ? 'Le trésor des Trois' : 'Un coffre du temple', vide ? 'Le coffre est vide. Quelqu’un est déjà passé.' : 'De l’or, des pierres, des choses données aux Trois il y a très longtemps. Rien ne vous empêche de les prendre. Rien, sinon ce qui regarde.', opts);
+  };
+  // les casiers de la Fondation : un témoin, et l'on vous reconduit ; sinon on choisit
+  const _fc = HOOKS.inter.fond_casier;
+  HOOKS.inter.fond_casier = (it) => {
+    if (!butin.pret()) return _fc(it);
+    const F = fondation.S(), k = 'casier_' + it.data.c, cle = 'fond:' + it.data.c, B = butin.S();
+    if (F.pris[k]) return;
+    const r = fondation.temoin();
+    if (r) { fondation.reconduire(r, 'vol'); return; }
+    let C = B.c[cle];
+    if (!C) { C = B.c[cle] = { src: 'fond', j: farm.s.day, o: butin.nettoyer(FOND_CASIERS[it.data.c] || []) }; sound.lootOpen && sound.lootOpen(); }
+    butin.ouvrir({ titre: 'Le casier', contenu: C, cle, x: it.x, y: it.y, z: it.z, onFerme: () => { if (!butin.plein(C)) { F.pris[k] = farm.s.day; delete B.c[cle]; } } });
+  };
+  // le coffre du greffe : vos affaires saisies, reprises une à une si l'on veut
+  const _kg = HOOKS.inter.k_greffe;
+  HOOKS.inter.k_greffe = (it) => {
+    const P = prison.S(), ids = Object.keys(P.saisie || {}).filter((id) => ITEMS[id] && P.saisie[id] > 0);
+    if (!butin.pret() || !ids.length) return _kg(it);
+    sound.lootOpen && sound.lootOpen();
+    butin.ouvrir({ titre: 'Le coffre du greffe', objets: ids.map((id) => [id, P.saisie[id]]), x: it && it.x, z: it && it.z, onPris: (id, n) => { P.saisie[id] = (P.saisie[id] || 0) - n; if (P.saisie[id] <= 0) delete P.saisie[id]; } });
+  };
+}
+// E sur un coffre déterré où il reste quelque chose
+HOOKS.target.push((eye, f, cand) => {
+  if (!farm.s || !butin.tresors.length || typeof game === 'undefined' || !game.world) return;
+  for (const T of butin.tresors) {
+    const y = game.world.heightAt(T.x, T.z) + 0.25, dx = T.x - eye[0], dy = y - eye[1], dz = T.z - eye[2], d = Math.hypot(dx, dy, dz);
+    if (d > 2.6) continue;
+    const cos = (dx * f[0] + dy * f[1] + dz * f[2]) / (d || 1);
+    if (cos < 0.75) continue;
+    cand({ kind: 'hook', f2lab: 'Fouiller le coffre déterré', use: () => { const C = butin.reste(T.cle); if (C) butin.ouvrir({ titre: 'Le coffre enterré', contenu: C, cle: T.cle, x: T.x, z: T.z }); } }, d * (1.6 - cos * 0.6));
+  }
+});
+// le clavier : le menu de butin, l'encart de la boutique (avant le jeu : phase de capture)
+window.addEventListener('keydown', (e) => {
+  try {
+    if (butin.enc && typeof ui !== 'undefined' && ui.panel === '#shop') { butin.clavierEncart(e); return; }
+    if (butin.sess && typeof ui !== 'undefined' && ui.panel === '#butin') butin.clavier(e);
+  } catch (err) { console.error('butin', err); }
+}, true);
+window.addEventListener('keyup', (e) => {
+  // E a refermé le menu : le relâcher ne doit pas rouvrir le conteneur
+  if (e.code === 'KeyE' && butin.eFerme) { butin.eFerme = false; if (typeof game !== 'undefined') game.holdDone = true; }
+}, true);
+HOOKS.update.push(() => { if (butin.sess && ui.panel !== '#butin') butin.clore(); });
+HOOKS.death.push(() => { if (butin.sess && ui.panel === '#butin') ui.close(true); butin.fermerEncart(); return false; });
+HOOKS.day.push(() => { if (farm.s) butin.menage(); });
+HOOKS.load.push(() => {
+  butin.sess = null; butin.enc = null; butin.eFerme = false; butin.shopGarde = false;
+  if (!farm.s || !game.world) return;
+  butin.S(); butin.indexer(); butin.menage();
+  if (butin.branche) return;
+  butin.branche = true;
+  // les coffres des lieux : le butin tiré par 13-main.js s'ouvre dans le menu
+  butin._lootBox = game.lootBox.bind(game);
+  game.lootBox = function (it) { if (!butin.pret()) return butin._lootBox(it); return butin.lootBox(it); };
+  // un panneau refermé (Échap, E, croix, un autre panneau) : le menu se clôt tout de suite
+  const _close = ui.close.bind(ui);
+  ui.close = function (silent) {
+    const was = this.panel, r = _close(silent);
+    if (was === '#butin' && butin.sess) butin.clore();
+    if (was === '#shop') butin.enc = null;
+    return r;
+  };
+  // la boutique : la liste reste où elle était ; un clic sur un article ouvre l'encart
+  const _os = ui.openShop.bind(ui);
+  ui.openShop = function (n) { butin.shopGarde = false; butin.enc = null; return _os(n); };
+  const _rs = ui.renderShop.bind(ui);
+  ui.renderShop = function () {
+    const b0 = $('#shop .body'), top = butin.shopGarde && b0 ? b0.scrollTop : 0, enc = butin.enc;
+    butin.enc = null;
+    const r = _rs();
+    butin.shopGarde = true;
+    try {
+      const b1 = $('#shop .body');
+      if (b1 && top) b1.scrollTop = top;
+      butin.brancherBoutique();
+      if (enc) { const b = $(`#shop [data-${enc.achat ? 'buy' : 'sell'}="${enc.id}"]`); if (b && b._buF0) butin.encart({ id: enc.id, achat: enc.achat, pr: +b.dataset.p, f0: b._buF0, b, k: enc.k }); }
+    } catch (e) { console.error('boutique', e); }
+    return r;
+  };
+});
 
 // ---- 12-ui.js
 // ============================================================================
@@ -51195,10 +52215,22 @@ Object.assign(ui, {
     this.open('#shop');
     this.renderShop();
   },
+  // amitié : remise à l'achat, meilleur prix à la vente (niveaux 3 et 6)
+  shopK(lvl, buying) { return buying ? (lvl >= 6 ? 0.88 : lvl >= 3 ? 0.95 : 1) : (lvl >= 6 ? 1.1 : lvl >= 3 ? 1.05 : 1); },
   shopPrice(n, id, base, buying) {
-    const lvl = npcs.level(n);
-    const k = buying ? (lvl >= 6 ? 0.88 : lvl >= 3 ? 0.95 : 1) : (lvl >= 6 ? 1.1 : lvl >= 3 ? 1.05 : 1);
-    return Math.max(1, Math.round(base * k));
+    const p = Math.max(1, Math.round(base * this.shopK(npcs.level(n), buying)));
+    // garde-fou : on n'achète jamais au prix où l'on pourrait revendre ailleurs (aucun achat-revente gagnant)
+    return buying ? Math.max(p, this.revente(id) + 1) : p;
+  },
+  // le mieux payé pour un objet, tous rachats confondus : la caisse (prix de base, sauf les outils), un marchand qui
+  // le rachète (au mieux de l'amitié), le marchand de joie (souvenirs d'ailleurs, 120 %) ; le brocanteur paie moins
+  revente(id) {
+    const it = ITEMS[id];
+    if (!it || !(it.price > 0)) return 0;
+    let r = it.cat === 'outil' ? 0 : it.price;
+    if (it.cat === 'ailleurs') r = Math.round(it.price * 1.2);
+    if (NPC_DATA.some((d) => d.shop && d.shop.buys && (d.shop.buys.includes(id) || (FISH[id] && d.shop.buys.includes('poisson'))))) r = Math.max(r, Math.round(it.price * this.shopK(10, false)));
+    return r;
   },
   renderShop() {
     const n = this.shopN, s = farm.s, S = n.d.shop;
@@ -51322,7 +52354,7 @@ const ICON3D = {
       this.tiles = [];
       const cv = SKIN.canvas;
       if (!cv) return [180, 180, 180];
-      const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+      const d = SKIN.pb && SKIN.pb.w === cv.width ? SKIN.pb.d : cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
       for (let t = 0; t < 256; t++) {
         const ox = (t % 16) * 16, oy = Math.floor(t / 16) * 16;
         let r = 0, g = 0, b = 0, n = 0;
@@ -53138,8 +54170,8 @@ const game = {
     sound.shake && sound.shake();
     const pos = [o.x, this.world.objectY(o) + 1.5, o.z];
     let got = [];
-    if (id === 'apple') got = [['pomme', 1 + Math.floor(Math.random() * 3)]];
-    else if (Math.random() < 0.45) got = rollLoot('arbre');
+    if (id === 'apple') got = [['pomme', 0 + Math.floor(Math.random() * 3)]];
+    else if (Math.random() < 0.15) got = rollLoot('arbre');
     for (const [it, n] of got) { if (it === 'argent') { farm.earn(n); continue; } farm.give(it, n); play.flyer(it, pos, n); }
   },
   useAnimal(e) {
