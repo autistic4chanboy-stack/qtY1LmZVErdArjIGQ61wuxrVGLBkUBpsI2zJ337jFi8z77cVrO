@@ -206,7 +206,8 @@ const LOOT = {
   cave: { rolls: [2, 4], items: [['cidre', 1, 2, 3], ['vin', 1, 1, 1], ['farine', 1, 2, 3], ['bougie', 1, 3, 3], ['graines_citrouille', 1, 3, 2], ['vieille_piece', 1, 2, 2], ['argent', 20, 60, 3], ['conserve', 0, 0, 0]] },
   crypte: { rolls: [2, 4], items: [['relique', 1, 2, 3], ['bijou', 1, 2, 3], ['vieille_piece', 2, 5, 4], ['lingot_or', 1, 2, 2], ['gemme', 1, 1, 1], ['bougie', 2, 4, 2], ['argent', 60, 200, 3]] },
   envers: { rolls: [1, 3], items: [['eclat', 1, 3, 7], ['relique', 1, 1, 1], ['bijou', 1, 1, 1], ['poisson_aveugle', 1, 1, 1], ['vieille_piece', 1, 3, 2]] },
-  fouille: { rolls: [1, 2], items: [['vieille_piece', 1, 2, 4], ['tesson', 1, 2, 5], ['fossile', 1, 1, 1], ['sac_graines', 1, 1, 3], ['minerai_cuivre', 1, 3, 3], ['minerai_fer', 1, 2, 2], ['geode', 1, 1, 2], ['argent', 5, 30, 3], ['relique', 1, 1, 0.3], ['bijou', 1, 1, 0.4], ['figurine', 1, 1, 0.3], ['charbon', 1, 2, 2]] },
+  // la terre remuée du jour (neuf trous autour de la ferme) : une trouvaille par trou, moins de trente pièces
+  fouille: { rolls: [1, 1], items: [['vieille_piece', 1, 1, 2], ['tesson', 1, 1, 5], ['fossile', 1, 1, 0.5], ['sac_graines', 1, 1, 3], ['minerai_cuivre', 1, 3, 3], ['minerai_fer', 1, 2, 2], ['geode', 1, 1, 1], ['argent', 5, 30, 3], ['relique', 1, 1, 0.3], ['bijou', 1, 1, 0.4], ['figurine', 1, 1, 0.3], ['charbon', 1, 2, 2]] },
   // le coffre englouti : une prise sur vingt-cinq à la pêche, le premier prix du concours ; une bonne surprise (≈ 4 poissons)
   peche: { rolls: [1, 3], items: [['vieille_piece', 1, 2, 5], ['argent', 10, 50, 4], ['perle', 1, 1, 1], ['bijou', 1, 1, 0.5], ['lingot_or', 1, 1, 0.3], ['gemme', 1, 1, 0.2], ['relique', 1, 1, 0.2], ['corde', 1, 1, 2], ['tesson', 1, 1, 2]] },
   geode: { rolls: [1, 2], items: [['minerai_cuivre', 2, 4, 4], ['minerai_fer', 1, 3, 3], ['minerai_or', 1, 2, 2], ['gemme', 1, 1, 1], ['charbon', 1, 3, 2], ['fossile', 1, 1, 0.6]] },

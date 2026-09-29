@@ -179,7 +179,10 @@ const crochetage = {
         if (!m || !m.st.alive || m.sleep || m.state === 'sleep') continue;
         const dd = Math.hypot(m.x - J.x, m.z - J.z);
         if (dd > 28 || !(dd < 6 || segClear(game.world, m.x, m.z, J.x, J.z))) continue;
-        if (Math.random() < (nuit ? 0.03 : 0.12) * (dd < 10 ? 2 : 1)) { this.pris(m, false); break; }
+        // (celui qui regarde ailleurs voit moins : de face, de côté, de dos)
+        const face = ((J.x - m.x) * Math.sin(m.heading || 0) + (J.z - m.z) * Math.cos(m.heading || 0)) / (dd || 1);
+        const k = face > 0.3 ? 1 : face > -0.2 ? 0.5 : 0.2;
+        if (Math.random() < (nuit ? 0.03 : 0.12) * (dd < 10 ? 2 : 1) * k) { this.pris(m, false); break; }
       }
     }
     this.dessiner();

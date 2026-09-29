@@ -109,6 +109,8 @@ module.exports = {
     log('\n--- Trésors enfouis (une seule fois) : points à creuser, secrets, carte au trésor');
     for (const k of Object.keys(creuser)) log(`  ${pad(k, 16)} ×${creuser[k].length}  ${r0(esperance(k).tot)} pièces  (${esperance(k).top.join(', ')})`);
     log(`  ${pad('tresor_carte', 16)} par carte  ${r0(esperance('tresor_carte').tot)} pièces  (${esperance('tresor_carte').top.join(', ')})`);
+    const terre = 9 * esperance('fouille').tot;
+    log(`  terre remuée du jour (neuf trous autour de la ferme, table « fouille ») : ${r0(esperance('fouille').tot)} par trou, ${r0(terre)} par jour`);
 
     log('\n--- Objets qu\'on ouvre (espérance du contenu)');
     for (const id of Object.keys(ITEMS).filter((i) => ITEMS[i].open)) log(`  ${pad(id, 16)} prix ${lpad(ITEMS[id].price || 0, 4)}  contenu ${r0(esperance(ITEMS[id].open).tot)}  (${esperance(ITEMS[id].open).top.join(', ')})`);
@@ -226,7 +228,7 @@ module.exports = {
       crocs[d] = L;
       log(`${pad(d, 9)}${lpad(CP[d - 1], 6)}${lpad('±' + r0(L[0].fen) + ' ms', 9)}` + L.map((q) => lpad(`${pc(q.p)} / ${r1(q.rates)} / ${r1(q.casses)}`, 26)).join(''));
     }
-    log('Bruit : chaque raté réveille le propriétaire endormi avec 11 % (porte : bruit 1), un voisin endormi 4 %, un passant à moins de 9 m 50 % ; un passant qui voit la porte, 12 % par demi-seconde le jour (3 % la nuit).');
+    log('Bruit : chaque raté réveille le propriétaire endormi avec 11 % (porte : bruit 1), un voisin endormi 4 %, un passant à moins de 9 m 50 % ; un passant qui voit la porte, 12 % par demi-seconde le jour (3 % la nuit), s’il regarde de ce côté (de côté la moitié, de dos le cinquième).');
 
     // ============================================================ 7. la bibliothèque
     const CAT = J.ev('biblio.catalogue()');
@@ -328,6 +330,23 @@ module.exports = {
     for (const v of volSc) log(`  une poche, ${pad(v.k, 16)} : chance ${pc(v.p)}, butin ${r0(moyB)} ; raté : amende ${amende} (+ amitié ${amitieVal}) → ${r1(v.ev)} (${r1(v.evA)}) par tentative, ${r1(v.ev / DUREE)} pièce/s (honnête au début : ${E.debitDebut})`);
     const cave = ['f2_cave_casier', 'f2_cave_tonneaux', 'f2_cave_jambons', 'f2_cave_caisse', 'f2_caisse_auberge', 'f2_tonneaux'].reduce((a, k) => a + esperance(k).tot, 0);
     log(`  une nuit à l'auberge (cave et comptoir vidés) : ${r0(cave)} pièces ; pris : amende ${prime('vol', 0)} à ${prime('vol', 4)}, amitié de l'aubergiste −150`);
+    // par tentative et par minute réelle (durées : approche, geste, trajet jusqu'au suivant ; risque : amende + amitié)
+    const maisons = G.filter((g) => g.lieu === 'maison' && !g.lock), evMaison = maisons.reduce((a, g) => a + g.n * esperance(g.table).tot, 0) / (maisons.reduce((a, g) => a + g.n, 0) || 1);
+    const risque = amende + amitieVal;
+    const ACT = [
+      ['poche, dans le dos (jour)', volSc[1].p * moyB - (1 - volSc[1].p) * risque, 30, 'une fois par habitant et par jour'],
+      ['poche, habitant endormi', volSc[4].p * moyB - (1 - volSc[4].p) * risque, 40, 'il faut entrer chez lui'],
+      ['fouille chez quelqu\'un, de jour', evMaison - 0.6 * risque, 20, 'vu six fois sur dix'],
+      ['fouille chez quelqu\'un, la nuit', evMaison - 0.2 * risque, 25, 'le dormeur se réveille une fois sur cinq'],
+      ['la cave de l\'auberge, la nuit', cave - 0.15 * risque, 240, 'tous les 2-3 jours'],
+      ['maison des disparus', esperance('f2_abandon').tot, 20, 'une fois par semaine'],
+      ['passe-dix (mise 20)', 20 * (PD.g - PD.p), 15, 'six parties par jour'],
+      ['passe-dix, dés pipés (mise 20)', 20 * evPipe, 15, 'pris une fois sur cinq : trois jours d\'interdiction'],
+      ['vingt-et-un (mise 20)', 20 * V21, 20, 'six mains par jour'],
+      ['tombola (un billet)', valLots / 50 - billet, 10, 'trois billets par Foiredi'],
+    ];
+    log(`  ${pad('activité', 34)}${lpad('tentative', 10)}${lpad('durée', 7)}${lpad('/minute', 9)}  (travail honnête : ${r0(E.debitDebut * 60)} /min au début, ${r0(E.milieu / (650 / 60))} /min au milieu)`);
+    for (const [nom, ev, d, rem] of ACT) log(`  ${pad(nom, 34)}${lpad(r1(ev), 10)}${lpad(d + ' s', 7)}${lpad(r1(ev / d * 60), 9)}  ${rem}`);
 
     // ============================================================ 10. les invariants
     log('\n--- Vérifications');
@@ -351,6 +370,7 @@ module.exports = {
     verif(totJour <= E.milieu, `la tournée de TOUS les coffres ordinaires tous les 3 jours rapporte moins qu'une journée de travail du milieu (${r0(totJour)} / jour)`);
     const carte = esperance('tresor_carte').tot;
     verif(carte >= 0.5 * E.debut && carte <= 1.5 * E.debut, `une carte au trésor : un beau jour de chance, pas une fortune (${r0(carte)} pièces)`);
+    verif(terre <= E.debut, `la terre remuée du jour rapporte moins qu'une journée de travail des débuts (${r0(terre)} pour les neuf trous)`);
     verif(coffreP >= 60 && coffreP <= 200, `le coffre englouti : quelques poissons, pas un tiers de la pêche (${r0(coffreP)} pièces)`);
     const etalOk = J.ev(`(function () { const s0 = farm.s; farm.s = farm.blank(1234); farm.s.day = 30; const R = { id: 'curiosites' }; const a = activites.piece(R, 'carte_tresor'); activites.piece(R, 'carte_tresor', true); const b = activites.piece(R, 'carte_tresor'); farm.s.day = 42; const c = activites.piece(R, 'carte_tresor'); const f = activites.piece({ id: 'fromagere' }, 'fromage', true) || activites.piece({ id: 'fromagere' }, 'fromage'); farm.s = s0; return !a && b && !c && !f; })()`);
     verif(etalOk, 'les curiosités et la brocante n\'ont qu\'une pièce de chaque par semaine (pas de cartes au trésor ni de géodes à la chaîne)');
@@ -366,6 +386,8 @@ module.exports = {
     verif(totCaches >= 2 * E.debut && totCaches <= 10 * E.debut, `les cachettes récompensent l'enquête (${r0(totCaches)} pièces pour les sept)`);
     // le vol à la tire
     verif(moyB >= 20 && moyB <= 70, `une poche réussie : quelques dizaines de pièces (${r0(moyB)} en moyenne)`);
+    const crimes = ACT.slice(0, 5).map(([nom, ev, d]) => [nom, ev / d * 60]), honnete = E.milieu / (650 / 60);
+    verif(crimes.every(([, m]) => m <= honnete), `aucun crime, risque compté, ne rapporte à la minute plus que le travail du milieu de partie (${r0(honnete)} /min ; ${crimes.map(([n, m]) => n + ' ' + r0(m)).join(', ')})`);
     const pire = volSc.reduce((m, v) => Math.max(m, v.ev), -1e9);
     verif(pire / DUREE <= E.debitDebut, `faire les poches ne rapporte pas plus que le travail des débuts, même dans le meilleur cas (${r1(pire / DUREE)} pièce/s)`);
     // les primes, la prison
