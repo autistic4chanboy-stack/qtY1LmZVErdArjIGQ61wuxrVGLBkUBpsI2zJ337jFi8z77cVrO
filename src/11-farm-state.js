@@ -284,14 +284,14 @@ const farm = {
         const R = PLACEABLES[q.id].sprinkler, x0 = Math.floor(q.x), z0 = Math.floor(q.z);
         for (let dz = -R; dz <= R; dz++) for (let dx = -R; dx <= R; dx++) {
           const c = s.crops[(x0 + dx) + ',' + (z0 + dz)];
-          if (c && !(c.wet > s.hours + HUM - 6)) { if (!(c.wet > s.hours)) this.dirtyProps = true; c.wet = s.hours + HUM; }
+          if (c) { if (!(c.wet > s.hours)) this.dirtyProps = true; c.wet = s.hours + HUM; }
         }
       }
     }
     for (const k in s.crops) {
       const c = s.crops[k];
       // la pluie mouille toute la terre pour deux jours ; la canicule la sèche une fois et demie plus vite
-      if (pluie) { if (!(c.wet > s.hours + HUM - 1)) c.wet = s.hours + HUM; }
+      if (pluie) c.wet = s.hours + HUM;
       else if (hot > 1 && c.wet > s.hours) c.wet -= dtH * (hot - 1);
       const wet = c.tree || c.wet > s.hours || pluie;
       if (!c.c) {
