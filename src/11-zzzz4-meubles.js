@@ -247,7 +247,7 @@ const meubles = {
   // le rayon du regard dans la pièce : le plancher, ou le premier mur (repère de la pièce) ; null au-delà de la portée
   viser(G, eye, f) {
     const [ex, ez] = this.loc(G, eye[0], eye[2]), c = Math.cos(G.f.r), s = Math.sin(G.f.r);
-    const dx = f[0] * c - f[2] * s, dz = f[0] * s + f[2] * c, dy = f[1], R = 4.6;
+    const dx = f[0] * c - f[2] * s, dz = f[0] * s + f[2] * c, dy = f[1], R = 6;
     let best = null;
     if (dy < -0.02) { const t = (G.y - eye[1]) / dy; if (t > 0 && t <= R) best = { t, sol: true }; }
     const murs = [[dx, G.IX - ex, 0, 1], [-dx, G.IX + ex, 0, -1], [dz, G.IZ - ez, 1, 1], [-dz, G.IZ + ez, 1, -1]];
