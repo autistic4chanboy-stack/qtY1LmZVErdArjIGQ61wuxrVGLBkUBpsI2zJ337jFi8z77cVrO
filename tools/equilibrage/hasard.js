@@ -334,6 +334,13 @@ module.exports = {
       verif(Math.abs(N / a / 500 - 1) < 0.005 && Math.abs(N / b / 120 - 1) < 0.005, 'une partie sur 500 pour le Slender, une sur 120 pour la Fondation (à 0,5 % près)');
       const pur = J.ev(`(() => { const a = slender.tirage(4242), b = fondation.tirage(4242); farm.s = farm.blank(4242); farm.s.esprit = 0; return a === slender.tirage(4242) && b === fondation.tirage(4242); })()`);
       verif(pur, 'le tirage du Slender et de la Fondation ne dépend que de la graine');
+      // dans ces parties-là : les apparitions (lues dans la source, en fois par heure de jeu)
+      const fs = require('fs'), path = require('path'), src = (f) => fs.readFileSync(path.join(__dirname, '..', '..', 'src', f), 'utf8');
+      const S81 = src('11-zzz81-slender.js'), S82 = src('11-zzz82-fondation.js');
+      const tr = S81.match(/hasardHeure\(\(([\d.]+) \+ att \* ([\d.]+)\) \* B, 5\)\) this\.apparaitre\('traque'\)/), gu = S81.match(/hasardHeure\(\(([\d.]+) \+ att \* ([\d.]+)\) \* B, 5\)\) this\.apparaitre\('guet'\)/);
+      const ch = S82.match(/hasardHeure\(([\d.]+) \* bizarrerie\(\), 3\)/);
+      if (tr && gu && ch) log(`  dans ces parties : le Slender traque ${tr[1]} à ${f2(+tr[1] + +tr[2])} fois par heure de nuit passée dans les bois (pas deux fois en dix heures), guette ${gu[1]} à ${f2(+gu[1] + +gu[2])} fois par heure ailleurs (selon les pages prises) ; un chercheur de la Fondation remonte ${ch[1]} fois par heure de nuit près de la cabane ; × bizarrerie`);
+      verif(!!(tr && gu && ch), 'Slender et chercheurs de la Fondation : apparitions tirées par heure de jeu');
     }
 
     // ============================================================ 8. les poissons
