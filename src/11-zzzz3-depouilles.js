@@ -450,7 +450,10 @@ const depouilles = {
     // pour viser : la tête, le bassin, les pieds
     const L = rec.t === 'chien' ? 0.42 : 0.85;
     const pts = [[0, 0.15, L], [0, 0.15, 0], [0, 0.15, -L]].map(([a, b, c]) => [Rt[0] * a + Rt[1] * b + Rt[2] * c + Rt[3], Rt[4] * a + Rt[5] * b + Rt[6] * c + Rt[7], Rt[8] * a + Rt[9] * b + Rt[10] * c + Rt[11]]);
-    return { st, rig, M, pts };
+    // la pose ne bouge plus : les boîtes sont calculées une fois, puis recopiées à chaque image
+    const inst = new InstBuf(64);
+    rig.emit(inst, M, 0);
+    return { st, rig, M, pts, inst };
   },
   rt(rec) {
     const st = this.stade(rec);
@@ -471,7 +474,11 @@ const depouilles = {
       if (dx * dx + dz * dz > m2 || Math.abs(rec.y - cam[1]) > 45) continue;
       const R = this.rt(rec);
       if (!R) continue;
-      drawRigM(buf, R.rig, R.M, tg === rec ? FX_HI : 0);
+      if (tg === rec || !R.inst) { drawRigM(buf, R.rig, R.M, tg === rec ? FX_HI : 0); continue; } // (visé : en surbrillance)
+      const n = R.inst.n;
+      while (buf.n + n > buf.cap) { const d = new Float32Array(buf.cap * 32); d.set(buf.data); buf.data = d; buf.cap *= 2; }
+      buf.data.set(R.inst.data.subarray(0, n * 16), buf.n * 16);
+      buf.n += n;
     }
   },
   // les habitants morts ce jour (état 'dead') ne sont plus dessinés par npcs.draw : c'est leur dépouille qu'on voit
@@ -883,6 +890,18 @@ const depouilles = {
     this.reactions();
   },
 
+  // la nouvelle court : celui qui a vu un corps en parle (les deux jours qui suivent)
+  nouvelle(n) {
+    const S = this.S();
+    if (!S || !S.corps.length || Math.random() > 0.45) return null;
+    const d = farm.s.day;
+    const rec = S.corps.find((c) => { const j = S.vus[n.id + ':' + c.id]; return j !== undefined && d - j <= 2; });
+    if (!rec) return null;
+    if (rec.t === 'chien') return pick(['Votre chien… il est toujours là-bas, par terre. Vous devriez l’enterrer.', 'La pauvre bête est toujours couchée là-bas. Ça fait mal au cœur.']);
+    if (rec.t === 'fermier') return 'Il y a un mort, près d’ici, dans des habits de ferme. On dirait les vôtres. Personne n’ose y toucher.';
+    return pick(['Vous avez vu ? Il y a un mort, là-bas. Personne n’ose y toucher.', 'On a trouvé un corps. Personne ne veut le relever : ça porte malheur, de relever les morts.', '(À voix basse.) Le corps est toujours là-bas. Qui va l’enterrer, hein ? Pas moi.']);
+  },
+
   // ------------------------------------------------------------------ l'avis de décès : une tombe vide (on ne relève pas les morts)
   avisDeces(text) {
     const S = this.S(), ville = farm.names && farm.names.ville;
@@ -977,14 +996,21 @@ Object.assign(SoundEngine.prototype, {
     for (const n of H) n.vanished = true;
     try { return _draw(buf, sbuf, cam, t, maxD); } finally { for (const n of H) n.vanished = false; }
   };
+  // ceux qui ont vu un corps en parlent
+  const _sg = npcs.shortGreet.bind(npcs);
+  npcs.shortGreet = function (n) {
+    try { if (farm.s && n && !npcs.murdererKnown()) { const t = depouilles.nouvelle(n); if (t) return t; } } catch (e) { console.error('depouilles', e); }
+    return _sg(n);
+  };
   // ceux qui ont vu un corps : ils s'arrêtent, regardent, puis s'écartent (la routine reprend après)
   const _upd = npcs.update.bind(npcs);
   npcs.update = function (dt, w, c) {
     const R = [];
     for (const n of this.list) {
       if (!n._dep) continue;
-      if (!n.st.alive || n.vanished || n.talking) { n._dep = null; continue; }
-      if (!n.hunting) { n.hunting = true; R.push(n); }
+      // (mort, disparu, en pleine conversation, ou mené par un autre module : la réaction s'arrête là)
+      if (!n.st.alive || n.vanished || n.talking || n.hunting) { depouilles.finRecul(n); continue; }
+      n.hunting = true; R.push(n);
     }
     try { _upd(dt, w, c); } finally { for (const n of R) n.hunting = false; }
     for (const n of R) { try { if (n._dep) depouilles.recul(n, dt, w); } catch (e) { console.error(e); n._dep = null; } }
