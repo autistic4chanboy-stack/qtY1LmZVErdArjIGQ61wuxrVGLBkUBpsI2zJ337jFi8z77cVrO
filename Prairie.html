@@ -6253,27 +6253,61 @@ const LOOT = {
   campement: { rolls: [2, 4], items: [['pain', 1, 2, 4], ['bougie', 1, 3, 4], ['corde', 1, 2, 3], ['fleche', 3, 8, 4], ['charbon', 1, 3, 3], ['sac_graines', 1, 1, 3], ['cuir', 1, 2, 2], ['argent', 10, 45, 4], ['vieille_piece', 1, 1, 1], ['caisse_vivres', 1, 1, 1], ['lanterne', 1, 1, 0.3]] },
   charrette: { rolls: [2, 3], items: [['bois', 3, 8, 4], ['pomme', 2, 5, 3], ['farine', 1, 2, 2], ['corde', 1, 2, 2], ['graines_patate', 3, 6, 2], ['argent', 15, 50, 3], ['caisse_vivres', 1, 1, 1], ['toile', 1, 2, 1]] },
   barque: { rolls: [1, 3], items: [['carpe', 1, 2, 3], ['corde', 1, 2, 3], ['fleche', 2, 5, 2], ['perle', 1, 1, 0.6], ['coffre_peche', 1, 1, 0.8], ['argent', 10, 40, 3], ['canne', 1, 1, 0.5]] },
-  ruines: { rolls: [2, 4], items: [['vieille_piece', 1, 3, 5], ['tesson', 1, 3, 5], ['bijou', 1, 1, 1], ['relique', 1, 1, 0.5], ['figurine', 1, 1, 1], ['argent', 20, 80, 4], ['lingot_fer', 1, 1, 1], ['graines_melon', 2, 4, 1], ['geode', 1, 2, 2]] },
+  ruines: { rolls: [1, 3], items: [['vieille_piece', 1, 3, 5], ['tesson', 1, 3, 5], ['bijou', 1, 1, 1], ['relique', 1, 1, 0.5], ['figurine', 1, 1, 1], ['argent', 20, 80, 4], ['lingot_fer', 1, 1, 1], ['graines_melon', 2, 4, 1], ['geode', 1, 2, 2]] },
   hameau: { rolls: [1, 3], items: [['tesson', 1, 2, 4], ['bougie', 1, 2, 3], ['vieille_piece', 1, 2, 3], ['sac_graines', 1, 1, 3], ['poupee_chiffon', 0, 0, 0], ['figurine', 1, 1, 1], ['argent', 5, 30, 3], ['corde', 1, 1, 2]] },
   chapelle: { rolls: [1, 3], items: [['bougie', 2, 4, 5], ['vieille_piece', 1, 3, 3], ['relique', 1, 1, 1], ['bijou', 1, 1, 0.6], ['argent', 10, 60, 3], ['livre', 0, 0, 0]] },
   marais: { rolls: [1, 3], items: [['herbes', 1, 3, 4], ['champignon', 1, 3, 4], ['anguille', 1, 1, 2], ['bougie', 1, 2, 2], ['relique', 1, 1, 0.4], ['argent', 5, 40, 3], ['plume_noire', 1, 3, 2]] },
   phare: { rolls: [2, 3], items: [['charbon', 2, 5, 4], ['corde', 1, 3, 3], ['bougie', 2, 4, 3], ['perle', 1, 1, 0.8], ['lingot_cuivre', 1, 2, 2], ['argent', 20, 70, 3], ['boussole', 1, 1, 0.3]] },
   tour: { rolls: [2, 3], items: [['fleche', 4, 10, 4], ['fleche_fer', 2, 5, 1], ['corde', 1, 2, 3], ['pain', 1, 2, 2], ['lingot_fer', 1, 2, 2], ['argent', 20, 60, 3], ['bijou', 1, 1, 0.5]] },
-  mine: { rolls: [2, 4], items: [['charbon', 2, 6, 5], ['minerai_cuivre', 2, 5, 5], ['minerai_fer', 1, 4, 3], ['lingot_cuivre', 1, 2, 2], ['geode', 1, 2, 3], ['bougie', 1, 3, 2], ['argent', 10, 50, 2], ['fossile', 1, 1, 0.8]] },
+  mine: { rolls: [2, 3], items: [['charbon', 2, 6, 5], ['minerai_cuivre', 2, 5, 5], ['minerai_fer', 1, 4, 3], ['lingot_cuivre', 1, 2, 2], ['geode', 1, 2, 3], ['bougie', 1, 3, 2], ['argent', 10, 50, 2], ['fossile', 1, 1, 0.8]] },
   profond: { rolls: [2, 4], items: [['minerai_or', 1, 3, 4], ['gemme', 1, 2, 2], ['geode', 2, 3, 4], ['lingot_fer', 1, 3, 3], ['fossile', 1, 2, 2], ['relique', 1, 1, 0.6], ['argent', 40, 150, 3]] },
   cave: { rolls: [2, 4], items: [['cidre', 1, 2, 3], ['vin', 1, 1, 1], ['farine', 1, 2, 3], ['bougie', 1, 3, 3], ['graines_citrouille', 1, 3, 2], ['vieille_piece', 1, 2, 2], ['argent', 20, 60, 3], ['conserve', 0, 0, 0]] },
   crypte: { rolls: [2, 4], items: [['relique', 1, 2, 3], ['bijou', 1, 2, 3], ['vieille_piece', 2, 5, 4], ['lingot_or', 1, 2, 2], ['gemme', 1, 1, 1], ['bougie', 2, 4, 2], ['argent', 60, 200, 3]] },
   envers: { rolls: [1, 3], items: [['eclat', 1, 3, 7], ['relique', 1, 1, 1], ['bijou', 1, 1, 1], ['poisson_aveugle', 1, 1, 1], ['vieille_piece', 1, 3, 2]] },
-  fouille: { rolls: [1, 2], items: [['vieille_piece', 1, 2, 4], ['tesson', 1, 2, 5], ['fossile', 1, 1, 1], ['sac_graines', 1, 1, 3], ['minerai_cuivre', 1, 3, 3], ['minerai_fer', 1, 2, 2], ['geode', 1, 1, 2], ['argent', 5, 30, 3], ['relique', 1, 1, 0.3], ['bijou', 1, 1, 0.4], ['figurine', 1, 1, 0.3], ['charbon', 1, 2, 2]] },
-  peche: { rolls: [2, 4], items: [['perle', 1, 1, 2], ['vieille_piece', 1, 3, 4], ['bijou', 1, 1, 1], ['lingot_or', 1, 1, 1], ['gemme', 1, 1, 1], ['argent', 30, 120, 3], ['relique', 1, 1, 0.5]] },
+  // la terre remuée du jour (neuf trous autour de la ferme) : une trouvaille par trou, moins de trente pièces
+  fouille: { rolls: [1, 1], items: [['vieille_piece', 1, 1, 2], ['tesson', 1, 1, 5], ['fossile', 1, 1, 0.5], ['sac_graines', 1, 1, 3], ['minerai_cuivre', 1, 3, 3], ['minerai_fer', 1, 2, 2], ['geode', 1, 1, 1], ['argent', 5, 30, 3], ['relique', 1, 1, 0.3], ['bijou', 1, 1, 0.4], ['figurine', 1, 1, 0.3], ['charbon', 1, 2, 2]] },
+  // le coffre englouti : une prise sur vingt-cinq à la pêche, le premier prix du concours ; une bonne surprise (≈ 4 poissons)
+  peche: { rolls: [1, 3], items: [['vieille_piece', 1, 2, 5], ['argent', 10, 50, 4], ['perle', 1, 1, 1], ['bijou', 1, 1, 0.5], ['lingot_or', 1, 1, 0.3], ['gemme', 1, 1, 0.2], ['relique', 1, 1, 0.2], ['corde', 1, 1, 2], ['tesson', 1, 1, 2]] },
   geode: { rolls: [1, 2], items: [['minerai_cuivre', 2, 4, 4], ['minerai_fer', 1, 3, 3], ['minerai_or', 1, 2, 2], ['gemme', 1, 1, 1], ['charbon', 1, 3, 2], ['fossile', 1, 1, 0.6]] },
   graines: { rolls: [1, 2], items: [['graines_radis', 3, 6, 5], ['graines_ble', 3, 6, 5], ['graines_carotte', 2, 5, 4], ['graines_lin', 2, 5, 3], ['graines_betterave', 2, 4, 3], ['graines_haricot', 2, 3, 2], ['graines_fraise', 1, 3, 1.5], ['graines_tomate', 1, 3, 1.5], ['graines_mais', 1, 3, 1.5], ['graines_melon', 1, 2, 0.8], ['graines_citrouille', 1, 2, 0.6], ['graines_tournesol', 1, 3, 1.5]] },
   vivres: { rolls: [2, 3], items: [['pain', 1, 3, 5], ['fromage', 1, 1, 2], ['pomme', 2, 4, 4], ['viande_fumee', 1, 1, 1], ['cidre', 1, 1, 1], ['confiture', 1, 1, 1], ['omelette', 1, 1, 1]] },
   arbre: { rolls: [1, 1], items: [['plume', 1, 2, 4], ['oeuf', 1, 1, 2], ['sac_graines', 1, 1, 2], ['fibre', 1, 3, 4], ['bois', 1, 2, 4], ['vieille_piece', 1, 1, 0.5], ['figurine', 1, 1, 0.15], ['baies', 1, 3, 2]] },
 };
+// Les trésors scellés ne se remplissent pas : les coffres des lieux se regarnissent tous les trois jours, mais ce qui
+// dormait dans une tombe, un temple, une crevasse ou au fond du lac n'y revient pas. Une table qui a un « reste » ne
+// donne son plein que tant qu'il reste des coffres jamais ouverts de cette table dans la vallée (farm.s.tresors :
+// tirages déjà faits, par table) ; ensuite, la table du reste (ce que le temps y ramène : de la poussière, des os, un
+// peu de cire). Sans cela, le temple et la crypte rapportaient plus, à la tournée, qu'une ferme entière.
+const LOOT_RESTE = {
+  temple: 'reste_temple', temple_or: 'reste_temple', crypte: 'reste_tombe', crevasse: 'reste_glace', clocher: 'reste_noye',
+  profond: 'reste_roche', cristaux: 'reste_roche', cercle_cache: 'reste_roche', grotte_peinte: 'reste_roche', bete: 'reste_roche',
+  archives: 'reste_papiers', scriptorium: 'reste_papiers',
+};
+Object.assign(LOOT, {
+  reste_temple: { rolls: [1, 1], items: [['cendre_sacree', 1, 1, 3], ['bougie', 1, 2, 3], ['tesson', 1, 1, 2], ['vieille_piece', 1, 1, 1], ['poussiere_etoile', 1, 1, 0.15]] },
+  reste_tombe: { rolls: [1, 2], items: [['os', 1, 3, 5], ['bougie', 1, 2, 3], ['tesson', 1, 1, 2], ['vieille_piece', 1, 1, 0.8], ['eau_benite', 1, 1, 0.5]] },
+  reste_glace: { rolls: [1, 1], items: [['os', 1, 2, 4], ['corde', 1, 1, 2], ['edelweiss', 1, 1, 0.6], ['vieille_piece', 1, 1, 0.2]] },
+  reste_noye: { rolls: [1, 1], items: [['tesson', 1, 2, 4], ['vieille_piece', 1, 1, 2], ['anguille', 1, 1, 1], ['perle', 1, 1, 0.1]] },
+  reste_roche: { rolls: [1, 1], items: [['os', 1, 2, 4], ['silex', 1, 2, 3], ['tesson', 1, 1, 1], ['champi_lumineux', 1, 1, 0.6], ['geode', 1, 1, 0.5], ['vieille_piece', 1, 1, 0.2]] },
+  reste_papiers: { rolls: [1, 2], items: [['bougie', 1, 2, 4], ['plume', 1, 2, 3], ['cire', 1, 1, 2], ['fiole', 1, 1, 1], ['vieille_piece', 1, 1, 0.4]] },
+});
+// combien de trésors pleins d'une table dort dans la vallée (coffres et points à creuser qui la tirent)
+function lootPleins(key) {
+  const w = typeof game !== 'undefined' && game ? game.world : null;
+  if (!w || !w.inter) return 1;
+  const C = w.lootPleins || (w.lootPleins = {});
+  if (C[key] === undefined) C[key] = Math.max(1, w.inter.filter((i) => i.data && ((i.kind === 'loot' && i.data.table === key) || (i.kind === 'dig' && i.data.loot === key))).length);
+  return C[key];
+}
 // Tirage d'un butin : liste [[objet, n], …]
 function rollLoot(key, rnd) {
-  const T = LOOT[key] || LOOT.fouille;
+  let T = LOOT[key] || LOOT.fouille;
+  const reste = LOOT_RESTE[key];
+  if (reste && LOOT[reste] && typeof farm !== 'undefined' && farm.s) {
+    const R = farm.s.tresors || (farm.s.tresors = {});
+    if ((R[key] || 0) >= lootPleins(key)) T = LOOT[reste];
+    R[key] = (R[key] || 0) + 1;
+  }
   rnd = rnd || Math.random;
   const items = T.items.filter((e) => e[3] > 0 && (e[0] === 'argent' || ITEMS[e[0]]));
   const tot = items.reduce((a, e) => a + e[3], 0);
@@ -6824,10 +6858,11 @@ MACHINES.baratte.push({ in: { lait_chevre: 2 }, out: ['fromage_chevre', 1], h: 3
 }
 
 // ---------------------------------------------------------------- butins en plus
-LOOT.campement.items.push(['carte_tresor', 1, 1, 0.5], ['os', 1, 2, 1], ['fiole', 1, 2, 1]);
-LOOT.charrette.items.push(['carte_tresor', 1, 1, 0.4], ['fiole', 1, 2, 1]);
-LOOT.barque.items.push(['carte_tresor', 1, 1, 0.4]);
-LOOT.ruines.items.push(['carte_tresor', 1, 1, 0.6], ['os', 1, 3, 2]);
+// (une carte au trésor mène à un trésor : rare dans les coffres qui se regarnissent)
+LOOT.campement.items.push(['carte_tresor', 1, 1, 0.15], ['os', 1, 2, 1], ['fiole', 1, 2, 1]);
+LOOT.charrette.items.push(['carte_tresor', 1, 1, 0.15], ['fiole', 1, 2, 1]);
+LOOT.barque.items.push(['carte_tresor', 1, 1, 0.15]);
+LOOT.ruines.items.push(['carte_tresor', 1, 1, 0.3], ['os', 1, 3, 2]);
 LOOT.hameau.items.push(['os', 1, 2, 2], ['fiole', 1, 1, 1]);
 LOOT.chapelle.items.push(['eau_benite', 1, 1, 1.5], ['fiole', 1, 2, 1.5]);
 LOOT.marais.items.push(['mue_serpent', 1, 1, 1], ['os', 1, 2, 1]);
@@ -6839,8 +6874,10 @@ LOOT.arbre.items.push(['plume_hibou', 1, 1, 0.3]);
 Object.assign(LOOT, {
   pelle: { rolls: [1, 1], items: [['vers', 1, 3, 6], ['pierre', 1, 2, 5], ['os', 1, 1, 2], ['silex', 1, 1, 2], ['argile', 1, 2, 3], ['tesson', 1, 1, 1.2], ['vieille_piece', 1, 1, 0.8], ['fossile', 1, 1, 0.2], ['carte_tresor', 1, 1, 0.08]] },
   sable: { rolls: [1, 1], items: [['sable', 1, 3, 10], ['perle', 1, 1, 0.1], ['vieille_piece', 1, 1, 0.3]] },
-  tresor_carte: { rolls: [3, 5], items: [['argent', 60, 180, 4], ['vieille_piece', 2, 5, 4], ['bijou', 1, 2, 3], ['lingot_or', 1, 2, 2], ['gemme', 1, 2, 2], ['relique', 1, 1, 1], ['trefle', 1, 1, 1], ['geode', 1, 2, 2]] },
-  contrebandiers: { rolls: [2, 4], items: [['vin', 1, 3, 4], ['cidre', 1, 3, 4], ['argent', 40, 140, 4], ['bijou', 1, 1, 1.5], ['carte_tresor', 1, 1, 2], ['corde', 1, 3, 3], ['lanterne', 1, 1, 0.5], ['toile', 1, 3, 2], ['tabac', 0, 0, 0]] },
+  // le coffre d'une carte au trésor : un beau jour de chance, pas une fortune (les cartes s'achètent au Marchedi)
+  tresor_carte: { rolls: [2, 3], items: [['argent', 40, 120, 5], ['vieille_piece', 1, 3, 5], ['bijou', 1, 1, 2], ['lingot_or', 1, 1, 1], ['gemme', 1, 1, 0.7], ['relique', 1, 1, 0.5], ['trefle', 1, 1, 1], ['geode', 1, 1, 2]] },
+  // la cache des contrebandiers se regarnit (ils passent) : de quoi boire, un peu d'argent, rarement une carte
+  contrebandiers: { rolls: [1, 2], items: [['vin', 1, 2, 4], ['cidre', 1, 2, 4], ['argent', 20, 70, 4], ['bijou', 1, 1, 0.5], ['carte_tresor', 1, 1, 0.3], ['corde', 1, 3, 3], ['lanterne', 1, 1, 0.5], ['toile', 1, 3, 2], ['tabac', 0, 0, 0]] },
   clocher: { rolls: [3, 4], items: [['vieille_piece', 3, 8, 5], ['bijou', 1, 2, 3], ['relique', 1, 1, 2], ['perle', 1, 3, 3], ['eau_benite', 1, 2, 2], ['argent', 80, 200, 3]] },
   noyes: { rolls: [3, 4], items: [['vieille_piece', 2, 6, 5], ['bijou', 1, 2, 3], ['perle', 1, 2, 3], ['lingot_or', 1, 1, 1.5], ['argent', 60, 160, 3], ['anguille', 1, 2, 1]] },
   valmont: { rolls: [4, 5], items: [['lingot_or', 2, 4, 5], ['bijou', 2, 3, 4], ['gemme', 1, 3, 3], ['vieille_piece', 4, 10, 5], ['argent', 200, 500, 4]] },
@@ -30772,7 +30809,8 @@ const biblio = {
     for (const k of BIBLIO.cartes) {
       const C = CARTES_REGIONS[k];
       if (!C || !ITEMS['carte_' + k]) continue;
-      out.push({ item: 'carte_' + k, carte: k, titre: C.titre, auteur: '', genre: 'Cartes', base: k === 'ancien' ? 30 : Math.max(12, Math.round(C.prix * 0.25)) });
+      // (une carte qu'on achète aussi chez les marchands : l'emprunter sept jours coûte moins de la moitié de son prix)
+      out.push({ item: 'carte_' + k, carte: k, titre: C.titre, auteur: '', genre: 'Cartes', base: k === 'ancien' ? 30 : Math.max(8, Math.round((ITEMS['carte_' + k].price || C.prix) * 0.12)) });
     }
     return out;
   },
@@ -36387,12 +36425,15 @@ HOOKS.update.push((dt, eye, basis, sky, playing) => {
 // ============================================================================
 const SOC_VILLAGES = ['valbrume', 'clairpre', 'sources', 'plateau', 'nains'];
 // gravité, prime de base, jours sans récidive avant l'oubli
+// (la prime est l'amende qu'on règle à la mairie : celle d'un vol vaut une demi-journée de travail des premiers jours,
+// un meurtre trois jours ; la récidive la fait monter jusqu'au double. Une journée dure vingt minutes : un vol
+// s'oublie après six jours sans récidive, deux heures de jeu, un meurtre après trente)
 const CRIME_DEF = {
-  meurtre: { prime: 350, grav: 10, oubli: 45, violent: true },
-  agression: { prime: 60, grav: 3, oubli: 12, violent: true },
-  vol: { prime: 45, grav: 2, oubli: 10, violent: false },
-  braconnage: { prime: 30, grav: 1, oubli: 8, violent: false },
-  profanation: { prime: 140, grav: 5, oubli: 25, violent: false },
+  meurtre: { prime: 900, grav: 10, oubli: 30, violent: true },
+  agression: { prime: 200, grav: 3, oubli: 8, violent: true },
+  vol: { prime: 150, grav: 2, oubli: 6, violent: false },
+  braconnage: { prime: 80, grav: 1, oubli: 5, violent: false },
+  profanation: { prime: 300, grav: 5, oubli: 15, violent: false },
 };
 // causes de mort (faire-part, nouvelles) : [masculin, féminin]
 const SOC_CAUSES = {
@@ -36570,8 +36611,8 @@ const societe = {
     const S = this.S(), def = CRIME_DEF[type];
     const avant = S.crimes.filter((k) => k.leve !== 'justice' && k.leve !== 'remplace').length;
     let p = def.prime * Math.min(2, 1 + avant * 0.25);
-    if (vic && ['garde', 'maire', 'cure'].includes(vic.id)) p += type === 'meurtre' ? 150 : 25;
-    if (vic && vic.id === 'fillette') p += type === 'meurtre' ? 400 : 60;
+    if (vic && ['garde', 'maire', 'cure'].includes(vic.id)) p += type === 'meurtre' ? 400 : 60;
+    if (vic && vic.id === 'fillette') p += type === 'meurtre' ? 1000 : 150;
     return Math.round(p / 5) * 5;
   },
 
@@ -36818,8 +36859,10 @@ const societe = {
     // 5) prime : un chasseur de primes, parfois ; le garde passe à la ferme
     const R = this.recherche();
     S.prevu = null;
-    if (R && R.prime >= 150 && d - (S.chasseurJour || 0) >= 3 && Math.random() < clamp(0.07 + R.prime / 4000, 0, 0.25)) S.prevu = { day: d, h: 9 + Math.random() * 8 };
-    if (R && R.villages.includes('valbrume') && R.prime >= 90 && vivant('garde') && d - (S.visite || 0) >= 3) S.visite = d;
+    // (les chasseurs de primes ne se dérangent pas pour un vol : une agression et deux vols, un meurtre ; le garde
+    // monte à la ferme dès que la prime passe celle de deux vols)
+    if (R && R.prime >= 500 && d - (S.chasseurJour || 0) >= 3 && Math.random() < clamp(0.07 + R.prime / 10000, 0, 0.25)) S.prevu = { day: d, h: 9 + Math.random() * 8 };
+    if (R && R.villages.includes('valbrume') && R.prime >= 250 && vivant('garde') && d - (S.visite || 0) >= 3) S.visite = d;
     for (const n of npcs.list) { if (n.st.deuilDe && d - n.st.deuilDe.day > 6) n.st.deuilDe = null; }
     this.majAffiches(true);
   },
@@ -36944,7 +36987,7 @@ const societe = {
   async cachot(R) {
     const s = farm.s, w = game.world, p = game.player;
     const prime = R ? R.prime : 0, paye = Math.min(s.money, prime), manque = prime - paye;
-    const jours = clamp((R && R.meurtre ? 3 : R && R.violent ? 2 : 1) + Math.ceil(manque / 150), 1, 5);
+    const jours = clamp((R && R.meurtre ? 3 : R && R.violent ? 2 : 1) + Math.ceil(manque / 400), 1, 5);
     game.sleeping = true;
     await ui.fade(true, `On vous enferme au cachot, sous la maison du garde de ${farm.names.ville}.`, 1200);
     await new Promise((r) => setTimeout(r, 1400));
@@ -45329,26 +45372,27 @@ defItem('couteau_poche', 'Couteau de poche', 'tresor', 25, ['cle', '#9a9aa2'], {
 defItem('medaillon_portrait', 'Médaillon à portrait', 'tresor', 80, ['medaillon', '#c8a860'], { desc: 'Sous le verre bombé, un visage minuscule, pâli. Quelqu’un l’embrassait chaque soir.' });
 
 // ce que portent les gens : b = pièces [min, max], m = objets du métier, p = objets personnels, r = rares, q = [quête, objet]
+// (une poche réussie : une quarantaine de pièces en moyenne ; raté, l'amende d'un vol en coûte cent cinquante)
 const VOL_POCHES = {
-  maire: { b: [18, 45], m: ['plume', 'bougie'], p: ['montre', 'tabatiere', 'mouchoir_brode'] },
-  boulangere: { b: [4, 14], m: ['pain', 'brioche', 'farine'], p: ['mouchoir_brode', 'medaillon_portrait'] },
-  forgeron: { b: [6, 18], m: ['charbon', 'lingot_cuivre'], p: ['couteau_poche', 'tabatiere'] },
-  grainetiere: { b: [5, 16], m: ['graines_ble', 'graines_carotte', 'graines_chou', 'graines_fraise'], p: ['mouchoir_brode'] },
-  aubergiste: { b: [12, 34], m: ['cidre', 'fromage'], p: ['tabatiere', 'couteau_poche'] },
-  cure: { b: [6, 22], m: ['bougie', 'eau_benite', 'chapelet_buis'], p: ['mouchoir_brode'], q: ['aubergiste_3', 'pipe'] },
-  postiere: { b: [4, 12], m: ['plume', 'bougie'], p: ['mouchoir_brode', 'couteau_poche'] },
-  garde: { b: [3, 10], m: ['pain', 'bougie'], p: ['tabatiere'] },
-  eleveuse: { b: [6, 20], m: ['foin', 'oeuf', 'corde'], p: ['couteau_poche'] },
-  pecheur: { b: [2, 8], m: ['vers', 'perche', 'gardon'], p: ['couteau_poche', 'tabatiere'] },
-  guerisseuse: { b: [1, 6], m: ['herbes', 'rosee', 'reine_pres'], p: ['chapelet_buis'] },
-  fillette: { b: [0, 2], m: [], p: ['figurine'] },
-  alchimiste: { b: [10, 30], m: ['fiole', 'sel', 'lichen'], p: ['tabatiere', 'mouchoir_brode'] },
-  libraire: { b: [6, 20], m: ['bougie', 'plume'], p: ['medaillon_portrait'] },
-  colporteur: { b: [15, 45], m: ['corde', 'bougie', 'sel', 'vieille_piece'], p: ['tabatiere'], r: ['bijou'], q: ['libraire_1', 'feuillet_perdu'] },
-  colporteuse: { b: [10, 30], m: ['toile', 'bandage', 'sel', 'fiole'], p: ['mouchoir_brode'], r: ['perle'], q: ['cure_2', 'chapelet'] },
-  chasseur: { b: [5, 15], m: ['cartouche', 'croc', 'plume_noire'], p: ['couteau_poche'], q: ['guerisseuse_2', 'dent_de_loup'] },
-  nain_ancien: { b: [20, 60], m: ['minerai_fer', 'charbon'], p: [], r: ['gemme', 'lingot_or'] },
-  nain_forgeronne: { b: [15, 40], m: ['lingot_fer', 'charbon'], p: [], r: ['gemme'] },
+  maire: { b: [27, 68], m: ['plume', 'bougie'], p: ['montre', 'tabatiere', 'mouchoir_brode'] },
+  boulangere: { b: [6, 21], m: ['pain', 'brioche', 'farine'], p: ['mouchoir_brode', 'medaillon_portrait'] },
+  forgeron: { b: [9, 27], m: ['charbon', 'lingot_cuivre'], p: ['couteau_poche', 'tabatiere'] },
+  grainetiere: { b: [8, 24], m: ['graines_ble', 'graines_carotte', 'graines_chou', 'graines_fraise'], p: ['mouchoir_brode'] },
+  aubergiste: { b: [18, 51], m: ['cidre', 'fromage'], p: ['tabatiere', 'couteau_poche'] },
+  cure: { b: [9, 33], m: ['bougie', 'eau_benite', 'chapelet_buis'], p: ['mouchoir_brode'], q: ['aubergiste_3', 'pipe'] },
+  postiere: { b: [6, 18], m: ['plume', 'bougie'], p: ['mouchoir_brode', 'couteau_poche'] },
+  garde: { b: [5, 15], m: ['pain', 'bougie'], p: ['tabatiere'] },
+  eleveuse: { b: [9, 30], m: ['foin', 'oeuf', 'corde'], p: ['couteau_poche'] },
+  pecheur: { b: [3, 12], m: ['vers', 'perche', 'gardon'], p: ['couteau_poche', 'tabatiere'] },
+  guerisseuse: { b: [2, 9], m: ['herbes', 'rosee', 'reine_pres'], p: ['chapelet_buis'] },
+  fillette: { b: [0, 3], m: [], p: ['figurine'] },
+  alchimiste: { b: [15, 45], m: ['fiole', 'sel', 'lichen'], p: ['tabatiere', 'mouchoir_brode'] },
+  libraire: { b: [9, 30], m: ['bougie', 'plume'], p: ['medaillon_portrait'] },
+  colporteur: { b: [23, 68], m: ['corde', 'bougie', 'sel', 'vieille_piece'], p: ['tabatiere'], r: ['bijou'], q: ['libraire_1', 'feuillet_perdu'] },
+  colporteuse: { b: [15, 45], m: ['toile', 'bandage', 'sel', 'fiole'], p: ['mouchoir_brode'], r: ['perle'], q: ['cure_2', 'chapelet'] },
+  chasseur: { b: [8, 23], m: ['cartouche', 'croc', 'plume_noire'], p: ['couteau_poche'], q: ['guerisseuse_2', 'dent_de_loup'] },
+  nain_ancien: { b: [30, 90], m: ['minerai_fer', 'charbon'], p: [], r: ['gemme', 'lingot_or'] },
+  nain_forgeronne: { b: [23, 60], m: ['lingot_fer', 'charbon'], p: [], r: ['gemme'] },
 };
 // le caractère : on se méfie, ou pas
 const VOL_TRAITS = { bavarde: 0.08, joviale: 0.06, pressée: 0.05, mélancolique: 0.05, patient: 0.02, joyeuse: 0.04, curieuse: -0.08, méfiant: -0.12, zélé: -0.1, dangereux: -0.12, directe: -0.04, robuste: -0.04, taciturne: -0.03, grave: -0.08, roublard: -0.15, franche: -0.03, peureux: 0.03, loyal: 0 };
@@ -45730,7 +45774,7 @@ defItem('lime', 'Lime de forçat', 'quete', 0, ['cle', '#7a7a82'], { desc: 'Une 
 defItem('trousseau', 'Trousseau du geôlier', 'quete', 0, ['cle', '#5a5a62'], { desc: 'Six clés de fer sur un anneau. L’une d’elles ouvre votre grille.' });
 defItem('masse_forcat', 'Masse de forçat', 'outil', 0, ['marteau', '#6a6a70'], { tool: 'masse', desc: 'Clic : frapper le bloc. Douze blocs par jour, et la journée compte double.' });
 Object.assign(LIEU_NAMES, { cachot: 'le cachot de la ville', carriere_cachot: 'la carrière du cachot' });
-if (typeof CRIME_DEF !== 'undefined' && !CRIME_DEF.evasion) CRIME_DEF.evasion = { prime: 90, grav: 3, oubli: 20, violent: false };
+if (typeof CRIME_DEF !== 'undefined' && !CRIME_DEF.evasion) CRIME_DEF.evasion = { prime: 250, grav: 3, oubli: 12, violent: false };
 {
   const _lib = societe.libelle.bind(societe);
   societe.libelle = function (C) { return C && C.type === 'evasion' ? 'une évasion du cachot' : _lib(C); };
@@ -45881,7 +45925,7 @@ function addPrison(w, seed) {
 // ---------------------------------------------------------------- le geôlier
 const GEOLIER = { nom: 'Brac, le geôlier', look: { skin: '#c89a78', hair: '#6a6560', hairStyle: 'court', beard: 'longue', hat: 'casquette', hatCol: '#2a2a30', top: '#4a4238', bottom: '#2e2a26', dress: false, apron: null, coat: true, build: 'rond', height: 1.02, held: null } };
 const GEOLIER_DIT = {
-  accueil: 'Honoré Brac, geôlier. Vous en avez pour {jours}. La rançon, c’est {rancon} pièces. Ou la carrière, au petit jour : une journée de cailloux vaut deux jours de paille. Frappez à la grille quand vous vous serez décidé{e}.',
+  accueil: 'Honoré Brac, geôlier. Vous en avez pour {jours}. La rançon, c’est {rancon} pièces. Ou la carrière, au petit jour : une journée de cailloux vaut deux jours de paille. Sinon, la paille : on dort, et les jours passent. Frappez à la grille quand vous vous serez décidé{e}.',
   combien: ['Encore {jours}. Je compte pour vous, ne vous en faites pas.', 'Il vous reste {jours}. Ici, les jours sont longs, mais ils passent. Comme partout.', '{jours}, et puis la porte. Si vous êtes sage.'],
   pauvre: 'Vous n’avez pas le compte. Ici, on ne fait pas crédit : on fait des jours.',
   rancon: 'C’est bien de l’argent. Il sent la ferme. Allez, dehors. Et que je ne vous revoie pas.',
@@ -45958,10 +46002,16 @@ const prison = {
     const P = this.S();
     let j = 0;
     for (const C of A) j += PRISON_PEINE[C.type] || 1;
-    j += Math.floor(prime / 150) + Math.min(3, P.fois || 0);
+    // (un jour de plus par tranche de 400 pièces de prime, et par séjour déjà fait, jusqu'à trois)
+    j += Math.floor(prime / 400) + Math.min(3, P.fois || 0);
     return clamp(j, 1, 20);
   },
-  prixRancon(prime, jours) { return Math.max(30, Math.round((prime * 1.3 + jours * 20) / 5) * 5); },
+  // la rançon : la prime et un tiers, chaque jour de cachot racheté au prix de ce qu'on gagne en une demi-journée les
+  // premiers jours, et la part de la commune sur ce qu'on a en poche (un dixième) : lourde, mais payable (un vol :
+  // un peu plus d'une journée de travail des débuts ; un meurtre : une semaine, deux jours plus tard dans la partie)
+  prixRancon(prime, jours, bourse) { return Math.max(50, Math.round((prime * 1.3 + jours * 120 + (bourse || 0) * 0.1) / 5) * 5); },
+  // (les jours faits ne se rachètent plus : la rançon baisse avec la peine qui reste)
+  majRancon() { const P = this.S(); if (P && P.actif && P.jours > 0) P.rancon = this.prixRancon(P.prime || 0, P.jours, P.bourse ?? farm.s.money); },
   jours(n) { return n > 1 ? `${n} jours` : 'un jour'; },
   txt(t) { const P = this.S(); return fmtLine(String(t).replace(/\{jours\}/g, this.jours(Math.max(1, P.jours || 1))).replace(/\{rancon\}/g, String(P.rancon || 0)).replace(/\{e\}/g, farm.s.fem ? 'e' : ''), null); },
   dire(t, dur) { const s = this.txt(t); ui.subtitle(s.startsWith('(') ? '' : GEOLIER.nom, s, dur || Math.min(7, 2 + s.length * 0.045)); if (!s.startsWith('(')) sound.mumble && sound.mumble(0.8, s.length, 0); },
@@ -45983,7 +46033,7 @@ const prison = {
       for (const C of A) { C.leve = 'prison'; C.leveJour = s.day; }
       for (const m of npcs.list) { m.poursuite = 0; m.alerte = null; m.sommeT = 0; m.attaque = false; }
       societe.majAffiches(true);
-      Object.assign(P, { actif: true, entree: s.day, jours, total: jours, prime, rancon: this.prixRancon(prime, jours), crimes: A.map((C) => C.id), travail: null, porte: false, lime: 0, limeVue: false, liberable: false, fois: (P.fois || 0) + 1, dernierTravail: 0, visite: 0, reveilNuit: 0 });
+      Object.assign(P, { actif: true, entree: s.day, jours, total: jours, prime, bourse: s.money, rancon: this.prixRancon(prime, jours, s.money), crimes: A.map((C) => C.id), travail: null, porte: false, lime: 0, limeVue: false, liberable: false, fois: (P.fois || 0) + 1, dernierTravail: 0, visite: 0, reveilNuit: 0 });
       const pris = this.confisquer();
       this.appliquerPorte();
       this.mettreEnCellule();
@@ -46125,7 +46175,7 @@ const prison = {
     try {
       await ui.fade(true, 'Le geôlier vous ramène en cellule. Vos mains ne se ferment plus.', 1000);
       P.travail = null; P.dernierTravail = s.day;
-      if (ok) P.jours -= 1;
+      if (ok) { P.jours -= 1; this.majRancon(); }
       const k = farm.count('masse_forcat'); if (k) farm.take('masse_forcat', k);
       this.remettreBlocs();
       this.mettreEnCellule();
@@ -46222,7 +46272,7 @@ const prison = {
       sound.chain && sound.chain();
       await wait(1200);
       await ui.fade(true, 'Le geôlier vous ramène en cellule, sans douceur.', 900);
-      P.jours += 2; P.total += 2; P.rancon = this.prixRancon(P.prime + 40, P.jours);
+      P.jours += 2; P.total += 2; P.prime = (P.prime || 0) + 100; this.majRancon();
       for (const id of ['lime', 'trousseau']) { const k = farm.count(id); if (k) farm.take(id, k); }
       P.porte = false; P.lime = 0; P.limeVue = true; P.reveilNuit = farm.s.day;
       this.appliquerPorte();
@@ -46287,8 +46337,8 @@ const prison = {
           if (d < 6 && v > 2.4 && Math.random() < 0.3) { P.reveilNuit = farm.s.day; this.rattrape(GEOLIER_DIT.halte); return; }
         }
       }
-      // pain du matin (au jour qui se lève), soupe de midi
-      if (this.hPrev >= 0 && this.hPrev < 12 && h >= 12 && !P.travail) { this.dire(GEOLIER_DIT.soupe, 3); p.food = Math.min(100, p.food + 15); }
+      // pain du matin (au jour qui se lève), soupe de midi (une par jour : au retour de la carrière aussi)
+      if (h >= 12 && h < 20 && P.soupe !== farm.s.day && !P.travail) { P.soupe = farm.s.day; this.dire(GEOLIER_DIT.soupe, 3); p.food = Math.min(100, p.food + 15); }
       // la visite de l'être cher, le lendemain de l'arrestation, vers dix heures
       if (this.hPrev >= 0 && this.hPrev < 10 && h >= 10 && farm.s.day - (P.visite || 0) >= 2 && farm.s.day > P.entree && typeof sentiments !== 'undefined' && sentiments.visiteCachot) {
         P.visite = farm.s.day;
@@ -46309,7 +46359,9 @@ const prison = {
     const P = this.S(), p = game.player;
     if (!P || !P.actif) return;
     P.jours -= 1;
-    p.food = Math.min(100, p.food + 25);
+    this.majRancon();
+    // (le geôlier nourrit ses prisonniers : maigre, mais on ne meurt pas de faim au cachot, même en y dormant ses jours)
+    p.food = Math.min(100, Math.max(p.food + 25, 60));
     setTimeout(() => { if (P.actif) this.dire(GEOLIER_DIT.pain, 3); }, 3500);
     if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-2, 'le cachot', 4);
     if (P.jours <= 0) P.liberable = true;
@@ -48246,8 +48298,9 @@ RECIPES.push({ out: 'crochets', n: 1, need: { lingot_fer: 1, cuir: 1 }, st: 'eta
   if (f && f.shop) f.shop.sells.push(['crochets', 75]);
 }
 if (typeof CRIME_DEF !== 'undefined') {
-  if (!CRIME_DEF.effraction) CRIME_DEF.effraction = { prime: 50, grav: 2, oubli: 10, violent: false };
-  if (!CRIME_DEF.intrusion) CRIME_DEF.intrusion = { prime: 20, grav: 1, oubli: 6, violent: false };
+  // (l'effraction pèse un vol ; entrer chez quelqu'un sans rien forcer, une petite amende)
+  if (!CRIME_DEF.effraction) CRIME_DEF.effraction = { prime: 150, grav: 2, oubli: 6, violent: false };
+  if (!CRIME_DEF.intrusion) CRIME_DEF.intrusion = { prime: 60, grav: 1, oubli: 3, violent: false };
   if (typeof PRISON_PEINE !== 'undefined') { PRISON_PEINE.effraction = PRISON_PEINE.effraction || 1; PRISON_PEINE.intrusion = PRISON_PEINE.intrusion || 1; }
   const _lib = societe.libelle.bind(societe);
   societe.libelle = function (C) {
@@ -48396,7 +48449,10 @@ const crochetage = {
         if (!m || !m.st.alive || m.sleep || m.state === 'sleep') continue;
         const dd = Math.hypot(m.x - J.x, m.z - J.z);
         if (dd > 28 || !(dd < 6 || segClear(game.world, m.x, m.z, J.x, J.z))) continue;
-        if (Math.random() < (nuit ? 0.03 : 0.12) * (dd < 10 ? 2 : 1)) { this.pris(m, false); break; }
+        // (celui qui regarde ailleurs voit moins : de face, de côté, de dos)
+        const face = ((J.x - m.x) * Math.sin(m.heading || 0) + (J.z - m.z) * Math.cos(m.heading || 0)) / (dd || 1);
+        const k = face > 0.3 ? 1 : face > -0.2 ? 0.5 : 0.2;
+        if (Math.random() < (nuit ? 0.03 : 0.12) * (dd < 10 ? 2 : 1) * k) { this.pris(m, false); break; }
       }
     }
     this.dessiner();
@@ -48628,19 +48684,22 @@ defItem('cle_bureau', 'Petite clé de laiton', 'quete', 0, ['cle', '#d0b060'], {
 defItem('cle_cave', 'Clé de la cave', 'quete', 0, ['cle', '#6a6a70'], { unique: true, desc: 'Une grosse clé de fer, attachée à un bouchon de liège. « Cave — ne pas descendre seul. »' });
 
 // ---------------------------------------------------------------- tables de butin : [objet, min, max, poids]
+// (ce que vaut une fouille : un meuble ordinaire, 10 à 40 pièces ; un tiroir-caisse, une malle, un tonneau, 30 à 70 ;
+// le secrétaire, la cave, le coffre-fort de la commune, 100 à 200. On chaparde une seule chose à un étal ; on remplit
+// un seul pichet au tonneau)
 Object.assign(LOOT, {
   f2_armoire: { rolls: [1, 3], items: [['toile', 1, 2, 4], ['laine', 1, 1, 1], ['mouchoir_brode', 1, 1, 2], ['boutons_nacre', 1, 1, 2], ['ruban', 1, 1, 2], ['bougie', 1, 2, 3], ['savon', 1, 1, 2], ['argent', 3, 18, 3], ['peigne_corne', 1, 1, 1.5], ['eau_cologne', 1, 1, 0.6], ['vieille_piece', 1, 1, 0.5], ['bijou', 1, 1, 0.2], ['medaillon_portrait', 1, 1, 0.25], ['meche_cheveux', 1, 1, 0.3]] },
   f2_archives: { rolls: [1, 2], items: [['bougie', 1, 3, 3], ['cire', 1, 1, 3], ['plume', 1, 3, 2], ['encrier', 1, 1, 1], ['timbres', 1, 1, 1], ['vieille_piece', 1, 1, 1], ['argent', 2, 10, 1], ['cle_bureau', 1, 1, 0.7], ['carte_vallee', 1, 1, 0.15]] },
   f2_commode: { rolls: [1, 3], items: [['de_coudre', 1, 1, 2], ['bobine_fil', 1, 3, 3], ['boutons_nacre', 1, 1, 2], ['ruban', 1, 1, 2], ['mouchoir_brode', 1, 1, 2], ['image_pieuse', 1, 1, 2], ['besicles', 1, 1, 0.8], ['argent', 2, 15, 3], ['bougie', 1, 2, 2], ['tabac', 1, 1, 1], ['bille', 1, 2, 0.5], ['montre', 1, 1, 0.1], ['bijou', 1, 1, 0.2], ['meche_cheveux', 1, 1, 0.4]] },
   f2_buffet: { rolls: [1, 3], items: [['cuillere_argent', 1, 2, 1.5], ['bougeoir', 1, 1, 1], ['toile', 1, 1, 2], ['pain', 1, 2, 2], ['fromage', 1, 1, 1.5], ['confiture', 1, 1, 1.5], ['cidre', 1, 1, 1], ['vin', 1, 1, 0.6], ['sel', 1, 2, 2], ['miel', 1, 1, 0.5], ['argent', 2, 10, 1], ['bougie', 1, 2, 2], ['jeu_cartes', 1, 1, 0.5]] },
-  f2_malle: { rolls: [1, 3], items: [['toile', 1, 2, 3], ['laine', 1, 2, 2], ['cuir', 1, 1, 1.5], ['corde', 1, 1, 2], ['bougie', 1, 2, 2], ['vieille_piece', 1, 2, 1.5], ['bijou', 1, 1, 0.4], ['montre', 1, 1, 0.2], ['boussole', 1, 1, 0.2], ['carte_tresor', 1, 1, 0.3], ['figurine', 1, 1, 0.6], ['livre_contes', 1, 1, 0.15], ['argent', 5, 30, 2], ['meche_cheveux', 1, 1, 0.3], ['tabatiere', 1, 1, 0.3], ['lanterne', 1, 1, 0.15]] },
+  f2_malle: { rolls: [1, 2], items: [['toile', 1, 2, 3], ['laine', 1, 2, 2], ['cuir', 1, 1, 1.5], ['corde', 1, 1, 2], ['bougie', 1, 2, 2], ['vieille_piece', 1, 2, 1.5], ['bijou', 1, 1, 0.4], ['montre', 1, 1, 0.2], ['boussole', 1, 1, 0.2], ['carte_tresor', 1, 1, 0.3], ['figurine', 1, 1, 0.6], ['livre_contes', 1, 1, 0.15], ['argent', 5, 30, 2], ['meche_cheveux', 1, 1, 0.3], ['tabatiere', 1, 1, 0.3], ['lanterne', 1, 1, 0.15]] },
   f2_secretaire: { rolls: [2, 3], items: [['argent', 10, 45, 3], ['cire', 1, 1, 3], ['encrier', 1, 1, 1.5], ['plume', 1, 3, 2], ['timbres', 1, 1, 1.5], ['vieille_piece', 1, 2, 2], ['tabatiere', 1, 1, 0.6], ['bijou', 1, 1, 0.3], ['besicles', 1, 1, 0.8]] },
   f2_coffre_commune: { rolls: [1, 2], items: [['argent', 40, 140, 5], ['vieille_piece', 1, 3, 2], ['lingot_or', 1, 1, 0.2], ['bijou', 1, 1, 0.5], ['relique', 1, 1, 0.15]] },
   f2_caisse_auberge: { rolls: [1, 2], items: [['argent', 8, 40, 7], ['jeu_cartes', 1, 1, 0.8], ['des_pipes', 1, 1, 0.6], ['cle_cave', 1, 1, 0.7], ['tabac', 1, 1, 0.8]] },
   f2_caisse_boulangerie: { rolls: [1, 2], items: [['argent', 5, 30, 7], ['pain', 1, 1, 2], ['brioche', 1, 1, 1], ['ruban', 1, 1, 0.5]] },
   f2_caisse_poste: { rolls: [1, 2], items: [['argent', 5, 28, 6], ['timbres', 1, 2, 3], ['cire', 1, 1, 1.5], ['plume', 1, 2, 1]] },
   f2_caisse_graineterie: { rolls: [1, 2], items: [['argent', 6, 32, 7], ['graines_tournesol', 2, 4, 1], ['graines_fraise', 1, 3, 1], ['sac_graines', 1, 1, 1]] },
-  f2_tonneaux: { rolls: [1, 2], items: [['cidre', 1, 2, 4], ['vin', 1, 1, 2], ['biere', 1, 1, 2], ['cervoise', 1, 1, 1], ['eau_de_vie_cidre', 1, 1, 0.4]] },
+  f2_tonneaux: { rolls: [1, 1], items: [['cidre', 1, 1, 4], ['vin', 1, 1, 2], ['biere', 1, 1, 2], ['cervoise', 1, 1, 1], ['eau_de_vie_cidre', 1, 1, 0.4]] },
   f2_petrin: { rolls: [1, 2], items: [['farine', 1, 3, 5], ['sel', 1, 1, 2], ['pain', 1, 2, 2], ['brioche', 1, 1, 1], ['argent', 1, 8, 0.6], ['bijou', 1, 1, 0.12]] },
   f2_tresors: { rolls: [1, 2], items: [['bille', 1, 4, 4], ['ruban', 1, 1, 3], ['figurine', 1, 1, 1.5], ['plume', 1, 2, 2], ['image_pieuse', 1, 1, 1], ['fleur', 1, 2, 1], ['tesson', 1, 1, 1], ['vieille_piece', 1, 1, 0.4]] },
   f2_tri: { rolls: [1, 1], items: [['timbres', 1, 1, 2], ['argent', 1, 6, 1], ['cire', 1, 1, 1]] },
@@ -48656,20 +48715,20 @@ Object.assign(LOOT, {
   f2_tronc: { rolls: [1, 1], items: [['argent', 3, 25, 8], ['vieille_piece', 1, 1, 0.4], ['boutons_nacre', 1, 1, 1]] },
   f2_apothicaire: { rolls: [1, 3], items: [['fiole', 1, 3, 4], ['sel', 1, 2, 3], ['lichen', 1, 2, 2], ['herbes', 1, 2, 2], ['rosee', 1, 1, 1.5], ['venin', 1, 1, 1], ['mue_serpent', 1, 1, 1], ['poudre_os', 1, 2, 1.5], ['aile_chauve_souris', 1, 1, 1], ['champi_lumineux', 1, 1, 0.8], ['mandragore', 1, 1, 0.2], ['potion_soin', 1, 1, 0.4], ['antidote', 1, 1, 0.3], ['argent', 2, 12, 1]] },
   f2_charrette_foin: { rolls: [1, 2], items: [['foin', 2, 5, 5], ['avoine', 1, 3, 2], ['corde', 1, 1, 1], ['pomme', 1, 3, 1]] },
-  f2_charrette_tonneaux: { rolls: [1, 2], items: [['cidre', 1, 2, 4], ['vin', 1, 1, 1.5], ['biere', 1, 1, 1.5], ['huile', 1, 1, 0.6]] },
-  f2_legumes: { rolls: [1, 2], items: [['carotte', 1, 3, 3], ['chou', 1, 1, 2], ['patate', 2, 4, 3], ['poireau', 1, 2, 2], ['oignon', 1, 3, 2], ['navet', 1, 3, 2], ['betterave', 1, 2, 1]] },
-  f2_fruits: { rolls: [1, 2], items: [['pomme', 2, 4, 4], ['poire', 1, 3, 3], ['prune', 2, 4, 2], ['cerise', 2, 5, 2], ['noix', 2, 4, 1]] },
-  f2_fromages: { rolls: [1, 2], items: [['fromage', 1, 1, 4], ['fromage_chevre', 1, 1, 2], ['beurre', 1, 1, 2], ['oeuf', 1, 3, 2], ['lait', 1, 1, 1]] },
-  f2_poissons: { rolls: [1, 2], items: [['gardon', 1, 2, 4], ['perche', 1, 1, 3], ['carpe', 1, 1, 2], ['poisson_fume', 1, 1, 1], ['ecrevisse', 1, 3, 1]] },
-  f2_pains: { rolls: [1, 2], items: [['pain', 1, 2, 5], ['brioche', 1, 1, 2], ['galette', 1, 1, 1.5], ['pain_mais', 1, 1, 1]] },
+  f2_charrette_tonneaux: { rolls: [1, 1], items: [['cidre', 1, 1, 4], ['vin', 1, 1, 1.5], ['biere', 1, 1, 1.5], ['huile', 1, 1, 0.6]] },
+  f2_legumes: { rolls: [1, 1], items: [['carotte', 1, 3, 3], ['chou', 1, 1, 2], ['patate', 2, 4, 3], ['poireau', 1, 2, 2], ['oignon', 1, 3, 2], ['navet', 1, 3, 2], ['betterave', 1, 2, 1]] },
+  f2_fruits: { rolls: [1, 1], items: [['pomme', 2, 4, 4], ['poire', 1, 3, 3], ['prune', 2, 4, 2], ['cerise', 2, 5, 2], ['noix', 2, 4, 1]] },
+  f2_fromages: { rolls: [1, 1], items: [['fromage', 1, 1, 4], ['fromage_chevre', 1, 1, 2], ['beurre', 1, 1, 2], ['oeuf', 1, 3, 2], ['lait', 1, 1, 1]] },
+  f2_poissons: { rolls: [1, 1], items: [['gardon', 1, 2, 4], ['perche', 1, 1, 3], ['carpe', 1, 1, 2], ['poisson_fume', 1, 1, 1], ['ecrevisse', 1, 3, 1]] },
+  f2_pains: { rolls: [1, 1], items: [['pain', 1, 2, 5], ['brioche', 1, 1, 2], ['galette', 1, 1, 1.5], ['pain_mais', 1, 1, 1]] },
   f2_poteries: { rolls: [1, 1], items: [['argile', 1, 3, 3], ['tesson', 1, 2, 3], ['pot_fleurs', 1, 1, 1], ['argent', 1, 5, 0.5]] },
-  f2_fleurs: { rolls: [1, 2], items: [['fleur', 2, 4, 4], ['bouquet', 1, 1, 2], ['rose', 1, 2, 1.5], ['tulipe', 1, 2, 1.5], ['lavande', 1, 2, 1]] },
-  f2_tissus: { rolls: [1, 2], items: [['toile', 1, 2, 4], ['laine', 1, 2, 2], ['ruban', 1, 1, 2], ['mouchoir_brode', 1, 1, 1.5], ['boutons_nacre', 1, 1, 1.5], ['bobine_fil', 1, 2, 2]] },
+  f2_fleurs: { rolls: [1, 1], items: [['fleur', 2, 4, 4], ['bouquet', 1, 1, 2], ['rose', 1, 2, 1.5], ['tulipe', 1, 2, 1.5], ['lavande', 1, 2, 1]] },
+  f2_tissus: { rolls: [1, 1], items: [['toile', 1, 2, 4], ['laine', 1, 2, 2], ['ruban', 1, 1, 2], ['mouchoir_brode', 1, 1, 1.5], ['boutons_nacre', 1, 1, 1.5], ['bobine_fil', 1, 2, 2]] },
   f2_bois: { rolls: [1, 1], items: [['bois', 2, 5, 8], ['oeuf', 1, 1, 0.5], ['fibre', 1, 2, 1], ['vieille_piece', 1, 1, 0.2], ['couteau_poche', 1, 1, 0.1]] },
   f2_linge: { rolls: [1, 1], items: [['toile', 1, 1, 4], ['mouchoir_brode', 1, 1, 2], ['laine', 1, 1, 1], ['ruban', 1, 1, 1]] },
   f2_oeufs: { rolls: [1, 1], items: [['oeuf', 1, 3, 10], ['plume', 1, 2, 2]] },
   f2_boite: { rolls: [1, 1], items: [['timbres', 1, 1, 1], ['argent', 1, 5, 1]] },
-  f2_poubelle: { rolls: [1, 2], items: [['os', 1, 2, 3], ['tesson', 1, 2, 3], ['charbon', 1, 1, 1], ['bougie', 1, 1, 1], ['pain', 1, 1, 0.5], ['pomme', 1, 1, 0.5], ['plume', 1, 2, 1], ['fibre', 1, 2, 1], ['vieille_piece', 1, 1, 0.2], ['bijou', 1, 1, 0.05], ['pilule_joie', 1, 1, 0.25], ['boutons_nacre', 1, 1, 0.4], ['bille', 1, 1, 0.3], ['besicles', 1, 1, 0.1]] },
+  f2_poubelle: { rolls: [1, 1], items: [['os', 1, 2, 3], ['tesson', 1, 1, 1.5], ['charbon', 1, 1, 1], ['bougie', 1, 1, 1], ['pain', 1, 1, 0.5], ['pomme', 1, 1, 0.5], ['plume', 1, 2, 1], ['fibre', 1, 2, 1], ['vieille_piece', 1, 1, 0.2], ['bijou', 1, 1, 0.05], ['pilule_joie', 1, 1, 0.25], ['boutons_nacre', 1, 1, 0.4], ['bille', 1, 1, 0.3], ['besicles', 1, 1, 0.1]] },
   f2_foin: { rolls: [1, 1], items: [['foin', 2, 5, 6], ['oeuf', 1, 2, 1.5], ['plume', 1, 1, 1], ['bijou', 1, 1, 0.1], ['montre', 1, 1, 0.08], ['fibre', 1, 2, 1]] },
   f2_grange_sacs: { rolls: [1, 2], items: [['avoine', 1, 3, 4], ['orge', 1, 3, 2], ['seigle', 1, 3, 2], ['farine', 1, 1, 1], ['sac_graines', 1, 1, 1]] },
   f2_sellerie: { rolls: [1, 2], items: [['cuir', 1, 1, 3], ['corde', 1, 1, 3], ['friandise', 1, 2, 2], ['fer_cheval', 1, 1, 2], ['selle', 1, 1, 0.15], ['harnais', 1, 1, 0.1], ['argent', 2, 10, 0.8]] },
@@ -48682,9 +48741,9 @@ Object.assign(LOOT, {
   f2_nain: { rolls: [1, 2], items: [['lentille', 1, 1, 1], ['gemme', 1, 1, 0.8], ['lingot_fer', 1, 2, 2], ['lingot_acier', 1, 1, 0.5], ['minerai_or', 1, 2, 1], ['mousse_nains', 1, 2, 2], ['pain', 1, 1, 1], ['argent', 5, 20, 0.5]] },
   f2_abandon: { rolls: [1, 2], items: [['toile', 1, 1, 3], ['laine', 1, 1, 1], ['bougie', 1, 2, 2], ['vieille_piece', 1, 1, 1], ['tesson', 1, 1, 1], ['mouchoir_brode', 1, 1, 1], ['boutons_nacre', 1, 1, 1], ['meche_cheveux', 1, 1, 0.5], ['bijou', 1, 1, 0.3], ['image_pieuse', 1, 1, 1], ['livre_contes', 1, 1, 0.1]] },
   f2_abandon_commode: { rolls: [1, 2], items: [['bobine_fil', 1, 2, 2], ['de_coudre', 1, 1, 1.5], ['besicles', 1, 1, 0.8], ['image_pieuse', 1, 1, 2], ['bougie', 1, 1, 2], ['argent', 1, 8, 1], ['bille', 1, 2, 1], ['meche_cheveux', 1, 1, 0.5], ['vieille_piece', 1, 1, 0.6]] },
-  f2_cave_tonneaux: { rolls: [1, 2], items: [['cidre', 1, 2, 4], ['vin', 1, 2, 3], ['biere', 1, 1, 2], ['cervoise', 1, 1, 1], ['eau_de_vie_cidre', 1, 1, 0.6]] },
-  f2_cave_casier: { rolls: [1, 2], items: [['vin', 1, 2, 5], ['eau_de_vie_poire', 1, 1, 0.6], ['kirsch', 1, 1, 0.5], ['marc', 1, 1, 0.5], ['fine', 1, 1, 0.3], ['liqueur_cassis', 1, 1, 0.5], ['hydromel', 1, 1, 0.4]] },
-  f2_cave_jambons: { rolls: [1, 2], items: [['viande_fumee', 1, 2, 5], ['fromage', 1, 1, 2], ['oignon', 1, 3, 1], ['ail', 1, 3, 1]] },
+  f2_cave_tonneaux: { rolls: [1, 1], items: [['cidre', 1, 1, 4], ['vin', 1, 1, 3], ['biere', 1, 1, 2], ['cervoise', 1, 1, 1], ['eau_de_vie_cidre', 1, 1, 0.6]] },
+  f2_cave_casier: { rolls: [1, 2], items: [['vin', 1, 1, 5], ['eau_de_vie_poire', 1, 1, 0.6], ['kirsch', 1, 1, 0.5], ['marc', 1, 1, 0.5], ['fine', 1, 1, 0.3], ['liqueur_cassis', 1, 1, 0.5], ['hydromel', 1, 1, 0.4]] },
+  f2_cave_jambons: { rolls: [1, 1], items: [['viande_fumee', 1, 1, 5], ['fromage', 1, 1, 2], ['oignon', 1, 3, 1], ['ail', 1, 3, 1]] },
   f2_cave_caisse: { rolls: [1, 3], items: [['farine', 1, 2, 3], ['sel', 1, 2, 2], ['pomme', 1, 3, 3], ['patate', 2, 4, 2], ['oignon', 1, 3, 2], ['bougie', 1, 2, 2], ['argent', 2, 12, 1], ['vieille_piece', 1, 1, 0.5], ['jeu_cartes', 1, 1, 0.3]] },
 });
 
@@ -48715,7 +48774,7 @@ const F2_TYPES = {
   linge: { lab: 'Décrocher du linge', table: 'f2_linge', d: 0.8, son: 'tissu', p: 0, r: 2, h: 1.5, vides: ['(Il ne sèche plus que des torchons troués.)'] },
   poulailler: { lab: 'Chaparder des œufs', table: 'f2_oeufs', d: 1.0, son: 'poule', p: 0, r: 1, h: 0.6, vides: ['(Pas un œuf. Les poules vous regardent de travers.)'] },
   boite_lettres: { lab: 'Fouiller la boîte aux lettres', table: 'f2_boite', d: 1.2, son: 'papier', p: 0.9, r: 1, h: 1.1 },
-  poubelle: { lab: 'Fouiller la poubelle', table: 'f2_poubelle', d: 1.2, son: 'metal', p: 0.35, r: 1, h: 0.8, vides: ['(Rien que des épluchures et de la cendre.)', '(Il n’y a plus que des épluchures.)'] },
+  poubelle: { lab: 'Fouiller la poubelle', table: 'f2_poubelle', d: 1.2, son: 'metal', p: 0.35, r: 2, h: 0.8, vides: ['(Rien que des épluchures et de la cendre.)', '(Il n’y a plus que des épluchures.)'] },
   foin: { lab: 'Fouiller le foin', table: 'f2_foin', d: 1.8, son: 'foin', p: 0, r: 3, h: 0.8 },
   sacs_avoine: { lab: 'Fouiller les sacs d’avoine', table: 'f2_grange_sacs', d: 1.2, son: 'grain', p: 0, r: 3, h: 0.6 },
   sellerie: { lab: 'Fouiller la sellerie', table: 'f2_sellerie', d: 1.4, son: 'cuir', p: 0.25, r: 3, h: 0.9 },
@@ -49351,7 +49410,14 @@ const fouilles = {
   },
   type(it) { return F2_TYPES[it.data.t] || F2_TYPES.malle; },
   table(it) { return it.data.table || this.type(it).table; },
-  refill(it) { return it.data.refill || this.type(it).r || 3; },
+  // (chez les disparus et les morts, personne ne regarnit les armoires : une semaine, au moins, avant qu'il y ait de
+  // nouveau quelque chose à prendre ; sinon, une tournée des maisons vides rapportait autant qu'un champ)
+  refill(it) {
+    const r = it.data.refill || this.type(it).r || 3;
+    if (it.data.cache) return r;
+    const own = it.data.own && npcs.byId ? npcs.byId[it.data.own] : null;
+    return it.data.lieu === 'abandon' || (own && !own.st.alive) ? Math.max(12, r * 4) : r;
+  },
   vide(it) {
     const S = this.S(), d = it.data;
     if (!S) return false;
@@ -50449,7 +50515,7 @@ const activites = {
     const an = cal.annonce().replace(/^\(|\)$/g, '');
     if (an) out.push(an);
     try { const k = weather.tomorrow(); out.push({ soleil: 'Demain, du beau temps, à ce qu’on dit.', pluie: 'Demain, de la pluie : rentrez le foin.', orage: 'Demain, de l’orage : rentrez les bêtes.', gel: 'Demain à l’aube, du gel : couvrez les semis.', brouillard: 'Demain matin, du brouillard : ne vous écartez pas des chemins.' }[k] || 'Demain, le temps qu’il plaira au ciel.'); } catch (e) { /* rien */ }
-    const dem = { marche: 'Demain, grand marché sur la place, avec les étals des Monts !', foire: `Demain, foire à ${farm.names.hameau}, avec la tombola ! Billets à cinq pièces.`, chasse: 'Demain, Chassedi : concours de tir au relais de chasse ! Et portez du rouge en forêt.', peche: 'Demain, Pêchedi : concours de pêche au ponton du lac !', veillee: 'Demain soir, veillée à l’auberge : on contera.', messe: 'Demain, messe à dix heures en l’église.', morts: 'Demain, Vorndi, jour des morts : fleurissez vos tombes, et rentrez avant la nuit.' }[dm];
+    const dem = { marche: 'Demain, grand marché sur la place, avec les étals des Monts !', foire: `Demain, foire à ${farm.names.hameau}, avec la tombola ! Billets à vingt pièces.`, chasse: 'Demain, Chassedi : concours de tir au relais de chasse ! Et portez du rouge en forêt.', peche: 'Demain, Pêchedi : concours de pêche au ponton du lac !', veillee: 'Demain soir, veillée à l’auberge : on contera.', messe: 'Demain, messe à dix heures en l’église.', morts: 'Demain, Vorndi, jour des morts : fleurissez vos tombes, et rentrez avant la nuit.' }[dm];
     if (dem) out.push(dem);
     for (const d of (s.dead || []).filter((q) => s.day - q.day <= 2)) { const n = npcs.byId[d.id]; const qui = d.name + (n ? ' ' + n.d.surname : ''); out.push(n && n.d.gender === 'f' ? `Avis de décès : ${qui}. Priez pour elle.` : `Avis de décès : ${qui}. Priez pour lui.`); }
     const de = (t) => (/^une? /.test(t) ? 'd’' + t : /^le /.test(t) ? 'du ' + t.slice(3) : /^du /.test(t) ? 'de ' + t.slice(3) : 'de ' + t);
@@ -50613,11 +50679,21 @@ const activites = {
     while (L.length && out.length < R.n) out.push(L.splice((rnd() * L.length) | 0, 1)[0]);
     return out;
   },
+  // la brocante et les curiosités n'ont qu'une pièce de chaque, pour la semaine (une carte au trésor, une géode
+  // achetées à la chaîne rapportaient plus qu'elles ne coûtaient) ; les fromages et les graines, à volonté
+  piece(R, id, prendre) {
+    if (R.id !== 'brocanteur' && R.id !== 'curiosites') return false;
+    const A = this.S(), sem = Math.floor(farm.s.day / 12);
+    if (!A.etalsPris || A.etalsPris.sem !== sem) A.etalsPris = { sem, ids: {} };
+    const k = R.id + ':' + id, deja = !!A.etalsPris.ids[k];
+    if (prendre) A.etalsPris.ids[k] = 1;
+    return deja;
+  },
   etal(it) {
     const R = this.roleEtal(it), s = farm.s;
     if (!R) return;
     const pos = [it.x, it.y + 0.3, it.z], opts = [];
-    for (const [id, prix] of this.offre(R)) opts.push({ label: `Acheter : ${itemName(id)} — ${prix} pièces`, fn: () => { if (!farm.pay(prix)) { ui.subtitle(R.nom, 'Il vous manque des pièces. Revenez quand votre bourse aura grandi.', 3); return; } farm.give(id, 1); play.flyer && play.flyer(id, pos, 1); sound.coin && sound.coin(); this.etal(it); } });
+    for (const [id, prix] of this.offre(R)) if (!this.piece(R, id)) opts.push({ label: `Acheter : ${itemName(id)} — ${prix} pièces`, fn: () => { if (!farm.pay(prix)) { ui.subtitle(R.nom, 'Il vous manque des pièces. Revenez quand votre bourse aura grandi.', 3); return; } this.piece(R, id, true); farm.give(id, 1); play.flyer && play.flyer(id, pos, 1); sound.coin && sound.coin(); this.etal(it); } });
     if (R.achete) {
       const vendus = this.fait('brocante');
       const T = Object.keys(s.inv).filter((id) => ITEMS[id] && ITEMS[id].cat === 'tresor' && ITEMS[id].price > 0 && farm.count(id)).slice(0, 8);
@@ -50715,6 +50791,9 @@ const activites = {
 
   // ================================================================ la tombola du Foiredi
   TIRAGE_H: 15,
+  // le billet : les huit lots valent environ les trois quarts de ce que rapportent les cinquante billets (la tombola
+  // paie la fête ; à cinq pièces, un billet en rapportait trois fois son prix)
+  BILLET: 20,
   tirage() { const s = farm.s, rnd = mulberry32(((s.seed | 0) * 5 + s.day * 313) >>> 0), L = []; while (L.length < 8) { const n = 1 + ((rnd() * 50) | 0); if (!L.includes(n)) L.push(n); } return L; },
   LOTS: [['poule', 1, 'une poule pondeuse, vivante'], ['viande_fumee', 2, 'un jambon fumé'], ['montre', 1, 'une montre de gousset'], ['bouquet', 1, 'un bouquet'], ['confiture', 2, 'deux pots de confiture'], ['cidre', 2, 'deux bouteilles de cidre'], ['fromage', 1, 'un fromage'], ['livre_contes', 1, 'un livre de contes']],
   tombola() {
@@ -50724,7 +50803,7 @@ const activites = {
     const TB = A.tombola;
     if (h < this.TIRAGE_H) {
       const opts = [];
-      if (TB.billets.length < 3 && s.money >= 5) opts.push({ label: 'Acheter un billet (5 pièces)', fn: () => { if (!farm.pay(5)) return; let n; do { n = 1 + ((Math.random() * 50) | 0); } while (TB.billets.includes(n)); TB.billets.push(n); sound.coin && sound.coin(); this.tombola(); } });
+      if (TB.billets.length < 3 && s.money >= this.BILLET) opts.push({ label: 'Acheter un billet (20 pièces)', fn: () => { if (!farm.pay(this.BILLET)) return; let n; do { n = 1 + ((Math.random() * 50) | 0); } while (TB.billets.includes(n)); TB.billets.push(n); sound.coin && sound.coin(); this.tombola(); } });
       opts.push({ label: 'Partir', fn: () => ui.close() });
       ui.choice('La tombola de la foire', `Un tambour de bois plein de billets pliés. Les lots s’alignent sur une planche : ${this.LOTS.slice(0, 4).map((l) => l[2]).join(', ')}… Tirage à trois heures.${TB.billets.length ? ' Vos billets : ' + TB.billets.join(', ') + '.' : ''}${TB.billets.length >= 3 ? ' (Trois billets par personne.)' : ''}`, opts);
       return;
@@ -50749,6 +50828,15 @@ const activites = {
 
   // ================================================================ le concours de tir du Chassedi
   scoresPNJ(k, noms) { const s = farm.s, rnd = mulberry32(((s.seed | 0) * 17 + s.day * 71 + k) >>> 0); return noms.map(([id, a, b]) => [id, Math.round(a + rnd() * (b - a))]).filter(([id]) => npcs.alive ? npcs.alive(id) : true); },
+  // le concours de pêche : chacun présente la plus belle de ses prises du jour, tirées comme les vôtres dans le lac
+  // (les poissons de jour et de toute heure) : le classement suit les prix des poissons, quels qu'ils soient
+  prisesPNJ(k, noms) {
+    const s = farm.s, rnd = mulberry32(((s.seed | 0) * 17 + s.day * 71 + k) >>> 0);
+    const L = Object.keys(FISH).filter((id) => ITEMS[id] && FISH[id].where.includes('lac') && FISH[id].time !== 'nuit' && !FISH[id].moon);
+    const tot = L.reduce((a, id) => a + FISH[id].w, 0);
+    const prise = () => { let r = rnd() * tot; for (const id of L) { r -= FISH[id].w; if (r <= 0) return id; } return L[L.length - 1]; };
+    return noms.map(([id, n]) => { let best = 0; for (let i = 0; i < n; i++) best = Math.max(best, ITEMS[prise()].price || 0); return [id, best]; }).filter(([id]) => npcs.alive ? npcs.alive(id) : true);
+  },
   tir() {
     const s = farm.s, A = this.S(), h = this.h();
     if (!cal.is('chasse') || h < 9 || h >= 17) { ui.read('Le concours de tir', 'Concours de tir, chaque Chassedi, de neuf heures à cinq heures. Trois coups à quinze pas, sur la cible de paille. Inscription : cinq pièces.\n\nPremier prix : soixante pièces et six cartouches. Deuxième : vingt-cinq pièces. Troisième : trois cartouches.\n\nPortez du rouge en forêt.', 'Le relais de chasse'); return; }
@@ -50832,7 +50920,8 @@ const activites = {
     if (h < 16) { ui.subtitle('', P.best ? `(Votre plus belle prise, pour l’instant : ${itemName(P.best.id).toLowerCase()}. On présente à quatre heures.)` : '(Rien de pris pour l’instant. Il reste jusqu’à quatre heures.)', 3.5); return; }
     if (h >= 20) { ui.subtitle('', '(Trop tard : le jury est rentré souper.)', 3); P.fini = true; return; }
     P.fini = true;
-    const L = this.scoresPNJ(2, [['pecheur', 55, 130], ['maire', 18, 48], ['aubergiste', 22, 55], ['fillette', 6, 28], ['colporteur', 15, 42]]);
+    // (le pêcheur a lancé sa ligne dès l'aube : six prises ; les autres, une à trois)
+    const L = this.prisesPNJ(2, [['pecheur', 6], ['maire', 2], ['aubergiste', 3], ['fillette', 1], ['colporteur', 2]]);
     const moi = P.best ? P.best.prix : 0;
     L.push(['vous', moi]); L.sort((a, b) => b[1] - a[1]);
     const rang = L.findIndex((q) => q[0] === 'vous') + 1;
@@ -50984,7 +51073,7 @@ const activites = {
     const _cf = play.catchFish.bind(play);
     play.catchFish = function (F) {
       const A = activites.S(), avant = {};
-      const P = A && A.peche && A.peche.j === farm.s.day && !A.peche.fini && npcs.hour() < 16 ? A.peche : null;
+      const P = A && A.peche && A.peche.j === farm.s.day && !A.peche.fini && npcs.hour() < 16 && F && F.zone === 'lac' ? A.peche : null;
       if (P) for (const k in FISH) avant[k] = farm.count(k);
       const r = _cf(F);
       if (P) for (const k in FISH) if (farm.count(k) > avant[k] && ITEMS[k]) { const prix = ITEMS[k].price || 0; if (!P.best || prix > P.best.prix) { P.best = { id: k, prix }; setTimeout(() => ui.subtitle('', `(Pour le concours : ${itemName(k).toLowerCase()}. Votre plus belle prise.)`, 3), 800); } }
