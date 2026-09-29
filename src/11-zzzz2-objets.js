@@ -506,7 +506,8 @@ const objets = {
         continue;
       }
       if (it.kind === 'loot') { if (parRang || (d.prop === undefined && this.hote(it) === q)) P.liens.push(it); continue; }
-      if (it.kind === 'grave') { if (P.casse && P.casse.opt.prof && this.hote(it, OBJ_TOMBES) === q) P.liens.push(it); continue; }
+      // (l'inscription d'une vieille tombe part avec elle ; jamais celle d'un mort qu'on a enterré : data.who)
+      if (it.kind === 'grave') { if (P.casse && P.casse.opt.prof && d.who === undefined && this.hote(it, OBJ_TOMBES) === q) P.liens.push(it); continue; }
       if (parRang) { if (it.kind === 'pray' && q.id === 'calvaire') { P.liens.push(it); continue; } P.protege = 'attaché : ' + it.kind; return P; }
       const k = it.kind || '';
       if (OBJ_KINDS_PROTEGES.has(k) || k.startsWith('f2a') || k.startsWith('k_') || k.startsWith('biblio')) {
