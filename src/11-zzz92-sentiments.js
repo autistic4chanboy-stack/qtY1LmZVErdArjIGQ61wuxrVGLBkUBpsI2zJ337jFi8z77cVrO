@@ -641,7 +641,7 @@ const sentiments = {
   aiderFerme() {
     const s = farm.s;
     let k = 0;
-    for (const key in s.crops) { const c = s.crops[key]; if (!c || !c.c || c.dead) continue; if (!(c.wet > s.hours + 1)) { c.wet = s.hours + 10; k++; } }
+    for (const key in s.crops) { const c = s.crops[key]; if (!c || !c.c || c.dead) continue; if (!(c.wet > s.hours + TERRE.humide - 12)) { c.wet = s.hours + TERRE.humide; k++; } }
     for (const a of s.animals || []) a.fedUntil = Math.max(a.fedUntil || 0, s.hours + 14);
     try { if (typeof chien !== 'undefined' && chien.vivant && chien.vivant() && chien.stade() >= 1) chien.repas(14, false); } catch (e) { console.error(e); }
     farm.dirtyProps = true;

@@ -26,6 +26,9 @@ const CORPS_JOUR = {
   soinNuit: 120,             // en dormant, tant qu'il reste à manger : 5 PV par heure (40 pour une nuit)
   famine: 200,               // le ventre vide : 100 PV en 12 heures, debout comme endormi
 };
+// Ce qui souffre, au champ (play.buildProps ; teintes multipliées à la texture) : la terre lasse (plus de cinq récoltes
+// sans engrais) puis épuisée (plus de dix) pâlit ; une plante qui vit son dernier jour sans eau jaunit.
+const SOL_LAS = [1.12, 1.08, 1.0], SOL_EPUISE = [1.26, 1.2, 1.08], PLANTE_SECHE = [1.05, 0.84, 0.45];
 
 const play = {
   swingT: 0, swingHit: false, cool: 0, fish: null, bow: 0, arrows: [], flyers: [], ghost: null, rotY: 0, eatT: 0,
@@ -130,8 +133,10 @@ const play = {
     const c = this.cellAt(eye, f);
     this.cool = 0.15;
     if (!c || !farm.crop(c.x, c.z)) return;
+    const lasse = farm.usure(farm.cellKey(c.x, c.z)) >= TERRE.fatigue[0];
     if (!farm.fertilize(c.x, c.z, it.fert)) return;
     farm.take(id, 1);
+    if (lasse && performance.now() > (this.engraisT || 0)) { this.engraisT = performance.now() + 90000; ui.subtitle('', '(La terre boit l’engrais. Elle reprendra des forces.)', 3); }
     sound.plant && sound.plant();
     puffAt(c.x, c.y + 0.1, c.z, [70, 55, 35], 6, 1, false);
   },
@@ -367,6 +372,15 @@ const play = {
     c.st = -1;
     farm.dirtyProps = true;
     if (!silent) sound.pop();
+    // la terre s'épuise : une récolte de plus depuis le dernier engrais (au-delà de cinq, elle le dit)
+    const us = farm.recolte(x, z, c);
+    if (us >= TERRE.fatigue[0]) this.terreLasse(us);
+  },
+  terreLasse(n) {
+    const t = performance.now();
+    if (t < (this.lasseT || 0)) return;
+    this.lasseT = t + 90000;
+    ui.subtitle('', n >= TERRE.fatigue[1] ? '(La terre est épuisée. Sans engrais, plus rien n’y poussera qu’à grand-peine.)' : '(La terre s’épuise. Il lui faudrait de l’engrais.)', 3.5);
   },
 
   // ------------------------------------------------------------- manger
@@ -677,11 +691,15 @@ const play = {
       const y = w.heightAt(x, z);
       if (!c.tree) {
         PE.frame(x, y, z, 0, 1);
-        PE.box(0, 0.02, 0, 0.96, 0.08, 0.96, c.fert ? [0.92, 0.88, 0.8] : WHITE, tx(farm.wet(c) ? TL.soilWet : TL.soil));
+        // la terre fatiguée pâlit (farm.s.sol : au-delà de cinq récoltes sans engrais, puis de dix)
+        const us = farm.usure(k);
+        PE.box(0, 0.02, 0, 0.96, 0.08, 0.96, us >= TERRE.fatigue[1] ? SOL_EPUISE : us >= TERRE.fatigue[0] ? SOL_LAS : c.fert ? [0.92, 0.88, 0.8] : WHITE, tx(farm.wet(c) ? TL.soilWet : TL.soil));
       }
       if (c.c) {
         PE.frame(x, y + (c.tree ? 0 : 0.06), z, hash2i(x | 0, z | 0, 3) * 0.6, cropScale(c, x, z));
+        if (c.fl && !c.dead) PE.tint = PLANTE_SECHE; // son dernier jour sans eau : elle jaunit
         cropDraw(PE, c, farm.growth(c), farm.ripe(c));
+        PE.tint = null;
       }
     }
     buf.ver = (buf.ver || 0) + 1;

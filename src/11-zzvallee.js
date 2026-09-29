@@ -80,7 +80,8 @@ const vallee = {
     const V = this.st(), w = game.world, c = weather.cur, prev = V.flood;
     if (!w || strange.inEnvers()) return;
     const tgt = c.rain > 0.5 ? (c.storm > 0.5 ? 1.1 : 0.55) : 0;
-    if (V.flood < tgt) V.flood = Math.min(tgt, V.flood + dtH * (c.storm > 0.5 ? 0.3 : 0.12));
+    // l'eau déborde après quatre heures de pluie, ou une heure et demie d'orage (une averse ne suffit plus)
+    if (V.flood < tgt) V.flood = Math.min(tgt, V.flood + dtH * (c.storm > 0.5 ? 0.2 : 0.08));
     else if (V.flood > tgt) V.flood = Math.max(tgt, V.flood - dtH * (c.rain > 0.3 ? 0.03 : 0.1));
     if (V.flood > 0.05) { // cultures noyées
       const lvl = this.base(w) + V.flood;

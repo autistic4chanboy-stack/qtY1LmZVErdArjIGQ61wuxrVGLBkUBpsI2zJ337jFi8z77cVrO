@@ -4,6 +4,12 @@
 // ============================================================================
 
 const FARM_KEY = 'prairie.ferme', FARM_V = 2, HISTORY_KEY = 'prairie.versions';
+// La terre (mesurée par tools/equilibrage/ferme.js) : une case arrosée, ou mouillée par la pluie, reste humide deux
+// jours de jeu (humide) ; sèche, sa culture tient encore deux jours (seche) avant de mourir, et une case labourée vide
+// redevient de l'herbe au même rythme ; la canicule presse l'un et l'autre de moitié (chaleur). Une case s'épuise : au-delà
+// de cinq récoltes sans engrais, la culture y pousse deux fois moins vite, au-delà de dix quatre fois (fatigue, lenteur) ;
+// l'engrais remet le compte à zéro, et deux jours sous l'herbe en effacent une récolte (jachere). Compte : farm.s.sol.
+const TERRE = { humide: 48, seche: 48, chaleur: 1.5, fatigue: [5, 10], lenteur: [1, 0.5, 0.25], jachere: 48 };
 // recettes connues dès le départ (les autres s'apprennent auprès des habitants)
 const LOCKED_RECIPES = new Set(['statue', 'lampadaire', 'girouette', 'brouette', 'hache_acier', 'pioche_acier', 'puits_deco', 'arche_fleurie', 'parterre', 'ruche', 'tonneau', 'nichoir', 'lanterne', 'panneau', 'banc', 'table', 'citrouille_sculptee', 'meule', 'boussole', 'montre']);
 // Objets de quête : ajoutés au catalogue des objets
@@ -37,7 +43,7 @@ const farm = {
       inv: { houe: 1, arrosoir: 1, hache_pierre: 1, pioche_pierre: 1, graines_radis: 5, graines_ble: 3, pain: 3, lanterne: 1, bougie: 2 },
       looted: {}, fouilles: [], shaken: {},
       hand: 'main', water: 0, known: {}, player: null,
-      removed: {}, objHp: {}, forage: {}, crops: {}, props: [], propData: {}, gone: {},
+      removed: {}, objHp: {}, forage: {}, crops: {}, sol: {}, props: [], propData: {}, gone: {},
       chests: { coffre_ferme: {} }, ship: {}, animals: [], pending: [], dog: { name: 'Filou', alive: true },
       npcs: {}, quests: {}, notes: {}, mail: [], flags: {}, rep: { crimes: [], infamy: 0, hero: 0 },
       strange: null, deliveries: null, weather: null, stats: { crops: 0, fish: 0, sold: 0, earned: 0 }, dead: [],
@@ -71,6 +77,7 @@ const farm = {
       for (const k in s.forage) s.forage[k] = s.hours - 12;
     }
     s.looted = s.looted || {}; s.fouilles = s.fouilles || []; s.shaken = s.shaken || {};
+    if (!s.sol || typeof s.sol !== 'object') s.sol = {}; // fatigue du sol (une ancienne partie : toutes les cases reposées)
     s.v = FARM_V;
   },
   // Nouvelle partie : quelques rangs déjà labourés près de l'épouvantail
@@ -193,6 +200,7 @@ const farm = {
     const k = this.cellKey(x, z);
     if (this.s.crops[k]) return false;
     this.s.crops[k] = { c: null, g: 0, wet: 0, dryH: 0, t: this.s.hours };
+    this.jachere(k);
     this.dirtyProps = true;
     return true;
   },
@@ -206,18 +214,55 @@ const farm = {
   },
   wet(c) { return c && (c.wet > this.s.hours || this.raining); },
   isNight() { const h = (this.w ? this.w.time : 0.5) * 24; return h >= 20.5 || h < 5.5; },
-  // Arroser : la terre reste humide une dizaine d'heures
+  // Arroser : la terre reste humide deux jours ; on peut y revenir une fois la demi-journée passée
   water(x, z) {
     const c = this.crop(x, z);
-    if (!c || c.wet > this.s.hours + 6) return false;
-    c.wet = this.s.hours + 10; this.dirtyProps = true;
+    if (!c || c.wet > this.s.hours + TERRE.humide - 12) return false;
+    c.wet = this.s.hours + TERRE.humide; this.dirtyProps = true;
     return true;
   },
+  // L'engrais : son coup de pouce à la culture (fert 1 : une fois et demie plus vite, 2 : deux fois), et la terre
+  // fatiguée repart de zéro. Une case déjà nourrie ne le reprend que si elle a donné depuis.
   fertilize(x, z, k) {
     const c = this.crop(x, z);
-    if (!c || (c.fert || 0) >= k) return false;
-    c.fert = k; this.dirtyProps = true;
+    if (!c) return false;
+    const key = this.cellKey(x, z);
+    if ((c.fert || 0) >= k && !this.usure(key)) return false;
+    c.fert = Math.max(c.fert || 0, k);
+    if (this.s.sol) delete this.s.sol[key];
+    this.dirtyProps = true;
     return true;
+  },
+  // ------------------------------------------------------------- fatigue du sol (farm.s.sol[case] = { n : récoltes depuis
+  // le dernier engrais, r : heure où la case est retournée à l'herbe }) ; les arbres n'épuisent pas la terre
+  usure(k) { const u = this.s.sol && this.s.sol[k]; return u ? u.n : 0; },
+  lenteur(n) { return n >= TERRE.fatigue[1] ? TERRE.lenteur[2] : n >= TERRE.fatigue[0] ? TERRE.lenteur[1] : TERRE.lenteur[0]; },
+  // une récolte de plus sur la case (play.harvestCrop) : renvoie le compte
+  recolte(x, z, c) {
+    if (!c || c.tree) return 0;
+    const k = this.cellKey(x, z), S = this.s.sol || (this.s.sol = {}), u = S[k] || (S[k] = { n: 0 });
+    u.n++; delete u.r;
+    if (u.n === TERRE.fatigue[0] || u.n === TERRE.fatigue[1]) this.dirtyProps = true; // la terre pâlit
+    return u.n;
+  },
+  // la case est de nouveau labourée : les jours passés sous l'herbe ont reposé la terre
+  jachere(k) {
+    const S = this.s.sol, u = S && S[k];
+    if (!u || u.r === undefined) return;
+    u.n -= Math.floor(Math.max(0, this.s.hours - u.r) / TERRE.jachere);
+    delete u.r;
+    if (u.n <= 0) delete S[k];
+  },
+  // chaque matin : les cases retournées à l'herbe (quelle qu'en soit la raison) commencent leur repos
+  jachereJour() {
+    const S = this.s.sol;
+    if (!S) return;
+    for (const k in S) {
+      const u = S[k];
+      if (this.s.crops[k]) { if (u.r !== undefined) this.jachere(k); }
+      else if (u.r === undefined) u.r = this.s.hours;
+      else if (u.n <= Math.floor((this.s.hours - u.r) / TERRE.jachere)) delete S[k];
+    }
   },
   ripe(c) { return c && c.c && !c.dead && c.g >= CROPS[c.c].h; },
   growth(c) { return c && c.c ? clamp(c.g / CROPS[c.c].h, 0, 1) : 0; },
@@ -227,37 +272,54 @@ const farm = {
   tick(dtH, ctx) {
     const s = this.s, w = this.w;
     if (dtH <= 0) return;
-    this.raining = ctx.rain > 0.35 && !strange.inEnvers();
-    // arroseurs : toutes les heures, les cases autour restent humides
+    const pluie = ctx.rain > 0.35 && !strange.inEnvers(), HUM = TERRE.humide, hot = ctx.heat ? TERRE.chaleur : 1;
+    if (pluie !== this.raining) this.dirtyProps = true; // la terre fonce (ou s'éclaircit) d'un coup
+    this.raining = pluie;
+    // arroseurs : toutes les demi-heures, les cases à portée restent humides (deux jours, comme à l'arrosoir)
     this.sprT = (this.sprT || 0) + dtH;
     if (this.sprT >= 0.5) {
       this.sprT = 0;
       for (const q of w.props) {
         if (q.gone || !PLACEABLES[q.id] || !PLACEABLES[q.id].sprinkler) continue;
-        const R = PLACEABLES[q.id].sprinkler;
+        const R = PLACEABLES[q.id].sprinkler, x0 = Math.floor(q.x), z0 = Math.floor(q.z);
         for (let dz = -R; dz <= R; dz++) for (let dx = -R; dx <= R; dx++) {
-          const c = this.crop(q.x + dx, q.z + dz);
-          if (c && c.wet < s.hours + 1.5) { if (!(c.wet > s.hours)) this.dirtyProps = true; c.wet = s.hours + 2; }
+          const c = s.crops[(x0 + dx) + ',' + (z0 + dz)];
+          if (c && !(c.wet > s.hours + HUM - 6)) { if (!(c.wet > s.hours)) this.dirtyProps = true; c.wet = s.hours + HUM; }
         }
       }
     }
     for (const k in s.crops) {
       const c = s.crops[k];
-      const wet = c.tree || c.wet > s.hours || this.raining;
-      if (!c.c) { if (!wet && s.hours - (c.t || 0) > 48 && Math.random() < dtH * 0.02) { delete s.crops[k]; this.dirtyProps = true; } continue; }
+      // la pluie mouille toute la terre pour deux jours ; la canicule la sèche une fois et demie plus vite
+      if (pluie) { if (!(c.wet > s.hours + HUM - 1)) c.wet = s.hours + HUM; }
+      else if (hot > 1 && c.wet > s.hours) c.wet -= dtH * (hot - 1);
+      const wet = c.tree || c.wet > s.hours || pluie;
+      if (!c.c) {
+        // terre labourée vide : humide ou fraîchement retournée, elle tient ; puis deux jours secs, et l'herbe revient
+        // (un peu plus ou un peu moins selon la case : tout un champ ne reverdit pas d'un seul coup)
+        if (wet !== !!c.wv) { c.wv = wet; this.dirtyProps = true; }
+        if (wet || s.hours - (c.t || 0) < HUM) c.dryH = 0;
+        else if ((c.dryH = (c.dryH || 0) + dtH * hot) > TERRE.seche && c.dryH > TERRE.seche + hash2i(parseInt(k, 10), +k.slice(k.indexOf(',') + 1), 7) * 3) {
+          delete s.crops[k]; this.dirtyProps = true;
+          const u = s.sol && s.sol[k]; if (u) u.r = s.hours; // la jachère commence
+        }
+        continue;
+      }
       if (c.dead) continue;
       const C = CROPS[c.c];
       const wasRipe = c.g >= C.h;
       if (wet && C.night && !this.isNight()) { c.dryH = 0; continue; } // la mandragore ne pousse que la nuit
       if (wet) {
-        const k2 = (c.fert === 2 ? 2 : c.fert === 1 ? 1.5 : 1) * (ctx.heat && !c.wet ? 0.6 : 1);
+        const k2 = (c.fert === 2 ? 2 : c.fert === 1 ? 1.5 : 1) * (ctx.heat && !c.wet ? 0.6 : 1) * (c.tree ? 1 : this.lenteur(this.usure(k)));
         c.g = Math.min(C.h, c.g + dtH * k2); c.dryH = 0;
       } else {
-        c.dryH = (c.dryH || 0) + dtH * (ctx.heat ? 1.6 : 1);
-        if (c.dryH > 30 && c.g < C.h) { c.dead = true; this.dirtyProps = true; }
+        c.dryH = (c.dryH || 0) + dtH * hot;
+        if (c.dryH > TERRE.seche && c.g < C.h) { c.dead = true; this.dirtyProps = true; }
       }
+      // la plante jaunit pendant son dernier jour sans eau (play.buildProps)
+      const fl = !wet && c.dryH > TERRE.seche / 2 ? 1 : 0;
       const st = c.g >= C.h ? 5 : Math.floor(c.g / C.h * 5);
-      if (st !== c.st || (wet !== !!c.wv)) { c.st = st; c.wv = wet; this.dirtyProps = true; }
+      if (st !== c.st || (wet !== !!c.wv) || fl !== (c.fl || 0)) { c.st = st; c.wv = wet; c.fl = fl; this.dirtyProps = true; }
       if (!wasRipe && c.g >= C.h) { this.dirtyProps = true; if (C.giant && c.big === undefined) c.big = Math.random() < 0.05 ? 1 : 0; }
       if (ctx.storm && wasRipe && Math.random() < dtH * 0.01) { c.dead = true; this.dirtyProps = true; }
     }
@@ -296,6 +358,8 @@ const farm = {
       const C = CROPS[c.c];
       if (wx.frost && C.frost && c.g < C.h * 0.5) { c.dead = true; report.frost++; }
     }
+    // la terre qui se repose sous l'herbe (fatigue du sol)
+    this.jachereJour();
     // bêtes : humeur
     for (const a of s.animals) {
       if (a.dead) continue;

@@ -24,8 +24,8 @@ defItem('caisse_vivres', 'Caisse de vivres', 'nourriture', 0, ['objet', 'coffre'
 defItem('corde', 'Corde', 'materiau', 1, ['fibre', '#b89060']);
 defItem('toile', 'Toile de lin', 'materiau', 1, ['cuir', '#e4dcc4']);
 defItem('farine', 'Farine', 'materiau', 3, ['sac', '#f2eee2']);
-defItem('engrais', 'Engrais', 'materiau', 1, ['sac', '#5a4a30'], { fert: 1, desc: 'Sur une culture : elle pousse une fois et demie plus vite.' });
-defItem('engrais_riche', 'Engrais riche', 'materiau', 3, ['sac', '#2e2216'], { fert: 2, desc: 'Sur une culture : elle pousse deux fois plus vite.' });
+defItem('engrais', 'Engrais', 'materiau', 1, ['sac', '#5a4a30'], { fert: 1, desc: 'Sur une culture : elle pousse une fois et demie plus vite. Une terre fatiguée par les récoltes y reprend des forces.' });
+defItem('engrais_riche', 'Engrais riche', 'materiau', 3, ['sac', '#2e2216'], { fert: 2, desc: 'Sur une culture : elle pousse deux fois plus vite. Une terre fatiguée par les récoltes y reprend des forces.' });
 // produits transformés
 defItem('cidre', 'Cidre', 'nourriture', 4, ['bouteille', '#d8a040'], { food: 8, heal: 6 });
 defItem('vin', 'Vin de fruits', 'nourriture', 5, ['bouteille', '#8a2040'], { food: 6, heal: 4 });
@@ -61,7 +61,8 @@ defItem('miroir_poche', 'Miroir de poche', 'outil', 0, ['montre', '#b8b8c8'], { 
 
 // ---------------------------------------------------------------- objets à poser en plus (machines, arrosage, décor)
 Object.assign(PLACEABLES, {
-  arroseur: { name: 'Arroseur', price: 66, sprinkler: 1 }, arroseur_fer: { name: 'Arroseur de fer', price: 127, sprinkler: 2 },
+  // arroseurs : la portée (en cases autour de lui) ; il garde humide un carré de 7 × 7 cases, celui de fer de 9 × 9
+  arroseur: { name: 'Arroseur', price: 66, sprinkler: 3 }, arroseur_fer: { name: 'Arroseur de fer', price: 127, sprinkler: 4 },
   composteur: { name: 'Composteur', price: 1, machine: true }, baratte: { name: 'Baratte', price: 30, machine: true },
   fumoir: { name: 'Fumoir', price: 30, machine: true }, presse: { name: 'Presse', price: 60, machine: true },
   moulin_a_bras: { name: 'Moulin à bras', price: 1, machine: true },
@@ -75,6 +76,8 @@ for (const id of ['arroseur', 'arroseur_fer', 'composteur', 'baratte', 'fumoir',
   const p = PLACEABLES[id];
   defItem(id, p.name, 'objet', p.price, ['objet', id], { place: id });
 }
+ITEMS.arroseur.desc = 'Posé au milieu d’un champ, il garde humide la terre alentour : un carré de sept cases de côté.';
+ITEMS.arroseur_fer.desc = 'Posé au milieu d’un champ, il garde humide la terre alentour : un carré de neuf cases de côté.';
 
 // ---------------------------------------------------------------- machines : on y met des produits, on revient plus tard (heures de jeu)
 const MACHINES = {
