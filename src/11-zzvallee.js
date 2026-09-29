@@ -120,7 +120,8 @@ const vallee = {
       if ((sky.night > 0.5 || (this.snowK > 0.35 && alt > sl + 25)) && !warm) {
         this.coldAcc += dt;
         if (!this.coldMsg) { this.coldMsg = 1; ui.subtitle('', '(Le froid vous mord les doigts. Il faudrait du feu, ou un toit.)', 4.5); }
-        if (this.coldAcc > 2) { this.coldAcc = 0; const pn = strange.placeName(p.pos); play.hurt(2, null, 'Mort de froid' + (pn ? ' — ' + pn : ' en montagne')); }
+        // 2 PV toutes les 4 s : 25 PV par heure de jeu, quatre heures sans feu ni toit pour en mourir
+        if (this.coldAcc > 4) { this.coldAcc = 0; const pn = strange.placeName(p.pos); play.hurt(2, null, 'Mort de froid' + (pn ? ' — ' + pn : ' en montagne')); }
       } else this.coldAcc = 0;
     } else { this.coldMsg = 0; this.coldAcc = 0; }
     // pêche sous la glace

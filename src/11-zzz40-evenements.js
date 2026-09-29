@@ -544,7 +544,8 @@ const evNeige = {
     if ((nuit || E.neigeK > 0.6) && !chaud && !game.sleeping && !cine.on) {
       this.coldAcc += dt;
       if (this.coldAcc > 1 && this.cold1 !== s.day) { this.cold1 = s.day; ui.subtitle('', '(Le froid vous mord les doigts, les oreilles. Il faudrait du feu, ou un toit.)', 4.5); }
-      if (this.coldAcc > 14) { this.coldAcc = 11; const pn = strange.placeName(p.pos); play.hurt(3, null, 'Mort de froid, un jour de neige' + (pn ? ' — ' + pn : '')); }
+      // 3 PV toutes les 6 s (25 PV par heure de jeu) : quatre heures dehors, la nuit, pour en mourir
+      if (this.coldAcc > 14) { this.coldAcc = 8; const pn = strange.placeName(p.pos); play.hurt(3, null, 'Mort de froid, un jour de neige' + (pn ? ' — ' + pn : '')); }
     } else this.coldAcc = Math.max(0, this.coldAcc - dt * 2);
   },
   sky(sky) {
@@ -768,7 +769,8 @@ const EV_FX = {
       }
       E.tapT -= dt;
       if (E.tapT <= 0 && sound.ok) { E.tapT = 0.05; const t = sound.at(); for (let i = 0; i < 3; i++) sound.noiseHit(t + Math.random() * 0.05, 0.02, 'bandpass', 2200 + Math.random() * 2600, 3, 0.012 * k, sound.amb); }
-      if (!w.covered(eye[0], eye[1], eye[2]) && !game.sleeping) { E.hurtT += dt; if (E.hurtT > 1.6) { E.hurtT = 0; play.hurt(1, null, 'Lapidé par la grêle'); } }
+      // un grêlon qui fait mal toutes les 3,2 s : une vingtaine de PV si l'on reste dehors toute l'averse
+      if (!w.covered(eye[0], eye[1], eye[2]) && !game.sleeping) { E.hurtT += dt; if (E.hurtT > 3.2) { E.hurtT = 0; play.hurt(1, null, 'Lapidé par la grêle'); } }
     },
   },
   // ---- le tremblement de terre : Durn se retourne

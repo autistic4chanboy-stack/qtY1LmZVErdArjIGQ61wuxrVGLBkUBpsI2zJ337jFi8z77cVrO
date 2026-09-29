@@ -224,8 +224,9 @@ const EFFETS = {
 const ALIMENTS_EFFETS = {
   // ---- viandes et poissons (crus : ce sont les poissons tels qu'on les pêche)
   viande: { c: 'de la viande avariée', r: [['nausee', 0.35, 30, 120], ['coliques', 0.15, 60, 200], ['poison', 0.1, 60, 240, 1], ['fievre', 0.06, 150, 300]] },
-  anguille: { c: 'du sang d’anguille', r: [['poison', 0.6, 20, 90, 2], ['nausee', 0.7, 10, 60], ['vomir', 0.5, 40, 120]] },
-  anguille_argent: { c: 'du sang d’anguille', r: [['poison', 0.5, 20, 90, 2], ['nausee', 0.6, 10, 60], ['hallucinations', 0.3, 60, 180]] },
+  // (le sang d'anguille rend très malade, sans tuer souvent : un poisson de pêche ordinaire)
+  anguille: { c: 'du sang d’anguille', r: [['poison', 0.6, 20, 90, 1], ['nausee', 0.7, 10, 60], ['vomir', 0.5, 40, 120]] },
+  anguille_argent: { c: 'du sang d’anguille', r: [['poison', 0.5, 20, 90, 1], ['nausee', 0.6, 10, 60], ['hallucinations', 0.3, 60, 180]] },
   barbeau: { c: 'des œufs de barbeau', r: [['coliques', 0.5, 40, 150], ['vomir', 0.4, 60, 180]] },
   poisson_chat: { r: [['nausee', 0.3, 20, 90]] },
   poisson_lune: { r: [['vision_nuit', 0.75, 30, 90, 1, 200, 300], ['calme', 0.5, 20, 60]] },
@@ -358,8 +359,8 @@ const effets = {
       this.declencher(r[0], { delai: lerp(r[2], r[3], Math.random()), k: r[4] || 1, duree: r[5] ? lerp(r[5], r[6] || r[5], Math.random()) : undefined, src: id, cause: R.c });
     }
     // bien manger remonte le moral ; la tisane chasse la gueule de bois
-    if (it.cat === 'nourriture' && (it.food || 0) >= 18 && !it.alcool) esprit.changer(1.2, 'bon repas', 3.6);
-    else if ((it.food || 0) >= 4 && !it.raw && !it.poison && !it.alcool) esprit.changer(0.3, 'manger', 1.5);
+    if (it.cat === 'nourriture' && (it.food || 0) >= 18 && !it.alcool) esprit.changer(0.6, 'bon repas', 1.8);
+    else if ((it.food || 0) >= 4 && !it.raw && !it.poison && !it.alcool) esprit.changer(0.2, 'manger', 0.6);
     if (typeof alcool !== 'undefined' && ['tisane', 'infusion', 'porridge', 'soupe', 'soupe_oignon'].includes(id)) alcool.soulager();
   },
   // déclenche un effet : tout de suite, ou après un délai (secondes réelles, 5 minutes au plus)
