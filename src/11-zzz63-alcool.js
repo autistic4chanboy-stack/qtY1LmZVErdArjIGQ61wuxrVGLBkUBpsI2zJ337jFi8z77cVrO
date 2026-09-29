@@ -162,7 +162,7 @@ const alcool = {
     A.estomac += u; A.total += u;
     if (A.jourDay !== s.day) { A.jourDay = s.day; A.jourN = 0; }
     A.jourN += u;
-    esprit.changer(0.8, 'boire', 2.4);
+    esprit.changer(0.5, 'boire', 1); // (un verre remonte un peu le moral : moins qu'un bon repas, voir survie.js)
     if (this.gueule()) { A.gueule = Math.max(s.hours, A.gueule - 2); effets.dire('(Le mal de tête recule un peu. Le remède du cheval.)'); }
     sound.gorgee && sound.gorgee(u);
   },
