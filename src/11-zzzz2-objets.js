@@ -300,32 +300,50 @@ Object.assign(SoundEngine.prototype, {
 });
 
 // ---------------------------------------------------------------- utilitaires
-const OBJ_BB = {}; // id -> boîte englobante mesurée sur le modèle (repère de l'objet), ou null
 const OBJ_M = new Float32Array(12);
-function objMesure(id) {
-  if (id in OBJ_BB) return OBJ_BB[id];
-  const fn = PROP_MODELS[id];
-  let bb = null;
+// le modèle d'un objet posé, relevé une fois (par identifiant, variante et données : une charrette chargée n'a pas la forme
+// d'une charrette vide) : ses boîtes { M (3 × 4, comme m34TR), h (demi-tailles) } et sa boîte englobante, repère de l'objet
+const OBJ_MODELES = new Map();
+function objModele(q) {
+  if (typeof q === 'string') q = { id: q };
+  let k = q.id + '|' + (q.v ?? '');
+  if (q.data) { try { k += '|' + JSON.stringify(q.data); } catch (e) { /* rien */ } }
+  const c = OBJ_MODELES.get(k);
+  if (c) return c;
+  const fn = PROP_MODELS[q.id], L = [];
+  let ok = !!fn;
   if (fn) {
-    const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
-    let n = 0;
-    const rec = (cx, cy, cz, sx, sy, sz) => {
-      if (![cx, cy, cz, sx, sy, sz].every(Number.isFinite)) return;
-      n++;
-      const h = [Math.abs(sx) / 2, Math.abs(sy) / 2, Math.abs(sz) / 2], c = [cx, cy, cz];
-      for (let i = 0; i < 3; i++) { mn[i] = Math.min(mn[i], c[i] - h[i]); mx[i] = Math.max(mx[i], c[i] + h[i]); }
+    const rec = (cx, cy, cz, sx, sy, sz, ry, rx, rz) => {
+      if (![cx, cy, cz, sx, sy, sz].every(Number.isFinite) || L.length > 120) return;
+      const M = m34TR(new Float32Array(12), cx, cy, cz, rx || 0, ry || 0, rz || 0);
+      L.push({ M, h: [Math.max(0.012, Math.abs(sx) / 2), Math.max(0.012, Math.abs(sy) / 2), Math.max(0.012, Math.abs(sz) / 2)] });
     };
     const E = { M: new Float32Array(12), _L: new Float32Array(12), _O: new Float32Array(12), fl: 0, tint: null, buf: { box() {} },
-      box(cx, cy, cz, sx, sy, sz) { rec(cx, cy, cz, sx, sy, sz); }, bx(cx, y0, cz, sx, sy, sz) { rec(cx, y0 + sy / 2, cz, sx, sy, sz); }, frame() {} };
+      box(cx, cy, cz, sx, sy, sz, col, code, ry, rx, rz) { rec(cx, cy, cz, sx, sy, sz, ry, rx, rz); },
+      bx(cx, y0, cz, sx, sy, sz, col, code, ry, rx, rz) { rec(cx, y0 + sy / 2, cz, sx, sy, sz, ry, rx, rz); }, frame() {} };
     const b0 = PE.buf;
-    PE.buf = { box() {} }; // (un modèle qui dessinerait par PE ne laisse rien derrière lui)
-    try { fn(E, { id, x: 0, y: 0, z: 0, r: 0, s: 1, data: {} }, { night: false, t: 0, wind: 0, hour: 12 }); } catch (e) { /* modèle capricieux : pas de boîte */ }
+    PE.buf = { box() {} }; // (un modèle qui dessinerait directement par PE ne laisse rien derrière lui)
+    let data = {};
+    try { if (q.data) data = JSON.parse(JSON.stringify(q.data)); } catch (e) { data = {}; }
+    try { fn(E, { id: q.id, x: 0, y: 0, z: 0, r: 0, s: 1, v: q.v, data }, { night: false, t: 0, wind: 0, hour: 12 }); } catch (e) { ok = false; }
     PE.buf = b0;
-    if (n) bb = { x0: mn[0], x1: mx[0], y0: mn[1], y1: mx[1], z0: mn[2], z1: mx[2] };
   }
-  OBJ_BB[id] = bb;
-  return bb;
+  let bb = null;
+  if (L.length) {
+    const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+    for (const B of L) for (let i = 0; i < 3; i++) {
+      const e = Math.abs(B.M[i * 4]) * B.h[0] + Math.abs(B.M[i * 4 + 1]) * B.h[1] + Math.abs(B.M[i * 4 + 2]) * B.h[2], m = B.M[i * 4 + 3];
+      mn[i] = Math.min(mn[i], m - e); mx[i] = Math.max(mx[i], m + e);
+    }
+    bb = { x0: mn[0], x1: mx[0], y0: mn[1], y1: mx[1], z0: mn[2], z1: mx[2] };
+  }
+  const r = { bb, formes: ok && L.length && L.length <= 120 ? L : null };
+  if (OBJ_MODELES.size > 800) OBJ_MODELES.clear();
+  OBJ_MODELES.set(k, r);
+  return r;
 }
+const objMesure = (q) => objModele(q).bb;
+const objFormes = (q) => objModele(q).formes;
 const objCol = (c, k) => [clamp(c[0] / 255 * k, 0, 1), clamp(c[1] / 255 * k, 0, 1), clamp(c[2] / 255 * k, 0, 1)];
 
 // ============================================================================
@@ -358,16 +376,14 @@ const objets = {
   pense(k, texte, d) { const t = performance.now(); if ((this.penseT[k] || 0) > t) return; this.penseT[k] = t + 7000; ui.subtitle('', texte, d || 2.8); },
 
   // ------------------------------------------------------------------ la boîte d'un objet (monde) : sa collision, sinon son modèle
-  boite(q, large) {
-    const c = PROP_COLL[q.id], s = q.s || 1;
+  // (modele : la boîte englobante du modèle plutôt que la collision, pour viser ; large : un peu plus grande, pour les petits objets)
+  boite(q, large, modele) {
+    const c = PROP_COLL[q.id], s = q.s || 1, bb = !c || modele ? objMesure(q) : null;
     let hx, hz, y0, y1, cx = 0, cz = 0;
-    if (c) { hx = c[0] * s; hz = c[1] * s; y0 = 0; y1 = c[2] * s; }
-    else {
-      const bb = objMesure(q.id);
-      if (!bb) return null;
-      if (Math.max(bb.x1 - bb.x0, bb.y1 - bb.y0, bb.z1 - bb.z0) > 4) return null; // ponts, ailes de moulin, échelles : pas de boîte
+    if (bb && Math.max(bb.x1 - bb.x0, bb.y1 - bb.y0, bb.z1 - bb.z0) <= 4) {
       hx = (bb.x1 - bb.x0) / 2 * s; hz = (bb.z1 - bb.z0) / 2 * s; cx = (bb.x0 + bb.x1) / 2 * s; cz = (bb.z0 + bb.z1) / 2 * s; y0 = bb.y0 * s; y1 = bb.y1 * s;
-    }
+    } else if (c) { hx = c[0] * s; hz = c[1] * s; y0 = 0; y1 = c[2] * s; }
+    else return null; // ponts, ailes de moulin, échelles : pas de boîte
     const m = large ? 0.08 : 0.02, mn = large ? 0.15 : 0.05;
     hx = Math.max(hx + m, mn); hz = Math.max(hz + m, mn);
     if (y1 - y0 < (large ? 0.24 : 0.08)) y1 = y0 + (large ? 0.24 : 0.08);
@@ -375,6 +391,37 @@ const objets = {
     return { x: q.x + cx * co + cz * si, y: q.y + y0, z: q.z - cx * si + cz * co, sx: hx * 2, sy: y1 - y0, sz: hz * 2, r };
   },
   distBoite(B, x, z) { const [lx, lz] = World.blockLocal(B, x, z); return Math.hypot(Math.max(0, Math.abs(lx) - B.sx / 2), Math.max(0, Math.abs(lz) - B.sz / 2)); },
+  // le rayon sur les boîtes du modèle : { t, lp (point), ln (normale) dans le repère de l'objet, n (normale, monde) } ; null s'il
+  // passe entre elles ; undefined si le modèle n'a pas de boîtes lisibles (la boîte englobante suffit alors)
+  rayForme(q, eye, f) {
+    const L = objFormes(q);
+    if (!L) return undefined;
+    const r = q.r || 0, s = q.s || 1, c = Math.cos(r), n = Math.sin(r);
+    const dx = eye[0] - q.x, dy = eye[1] - q.y, dz = eye[2] - q.z;
+    const lo = [(c * dx - n * dz) / s, dy / s, (n * dx + c * dz) / s], ld = [(c * f[0] - n * f[2]) / s, f[1] / s, (n * f[0] + c * f[2]) / s];
+    let best = null;
+    for (const B of L) {
+      const M = B.M, px = lo[0] - M[3], py = lo[1] - M[7], pz = lo[2] - M[11];
+      const o = [M[0] * px + M[4] * py + M[8] * pz, M[1] * px + M[5] * py + M[9] * pz, M[2] * px + M[6] * py + M[10] * pz];
+      const d = [M[0] * ld[0] + M[4] * ld[1] + M[8] * ld[2], M[1] * ld[0] + M[5] * ld[1] + M[9] * ld[2], M[2] * ld[0] + M[6] * ld[1] + M[10] * ld[2]];
+      let tn = -Infinity, tf = Infinity, ax = -1, sg = 0, ok = true;
+      for (let a = 0; a < 3; a++) {
+        const h = B.h[a];
+        if (Math.abs(d[a]) < 1e-9) { if (o[a] < -h || o[a] > h) { ok = false; break; } continue; }
+        let t1 = (-h - o[a]) / d[a], t2 = (h - o[a]) / d[a], g = -1;
+        if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; g = 1; }
+        if (t1 > tn) { tn = t1; ax = a; sg = g; }
+        if (t2 < tf) tf = t2;
+        if (tn > tf || tf < 0) { ok = false; break; }
+      }
+      if (!ok || tn < 0 || ax < 0 || (best && tn >= best.t)) continue;
+      best = { t: tn, ln: [M[ax] * sg, M[4 + ax] * sg, M[8 + ax] * sg] };
+    }
+    if (!best) return null;
+    best.lp = [lo[0] + ld[0] * best.t, lo[1] + ld[1] * best.t, lo[2] + ld[2] * best.t];
+    best.n = [c * best.ln[0] + n * best.ln[2], best.ln[1], -n * best.ln[0] + c * best.ln[2]];
+    return best;
+  },
   // un objet posé par le joueur (sauvegardé dans farm.s.props)
   aJoueur(q) { return farm.s.props.some((p) => p.id === q.id && Math.abs(p.x - q.x) < 0.01 && Math.abs(p.z - q.z) < 0.01); },
   cle(q, i) {
@@ -523,16 +570,24 @@ const objets = {
       if (!w.live(q)) continue;
       const dx = q.x - eye[0], dz = q.z - eye[2];
       if (dx * dx + dz * dz > R2) continue;
-      const B = this.boite(q);
+      const B = this.boite(q, false, true);
       if (!B) continue;
       const h = w.raycastBlock(B, eye, f);
-      if (h && h.t < bt) { bt = h.t; best = { q, t: h.t, n: h.n }; }
+      if (!h || h.t >= bt) continue;
+      const fm = this.rayForme(q, eye, f);
+      if (fm === null) continue; // entre les pieds d'une chaise, sous une table : rien de touché
+      if (!fm) { bt = h.t; best = { q, t: h.t, n: h.n }; continue; }
+      if (fm.t < bt) { bt = fm.t; best = { q, t: fm.t, n: fm.n, lp: fm.lp, ln: fm.ln }; }
     }
     for (let i = 0; i < w.doors.length; i++) {
       const dr = w.doors[i];
       if (dr.a > 0.5 || dr.deco || Math.abs(dr.x - eye[0]) > dist + 2 || Math.abs(dr.z - eye[2]) > dist + 2) continue;
       const h = w.raycastBlock(w.doorBox(dr), eye, f);
-      if (h && h.t < bt) { bt = h.t; best = { dr, i, t: h.t, n: h.n }; }
+      if (h && h.t < bt) {
+        bt = h.t;
+        const px = eye[0] + f[0] * h.t - dr.x, pz = eye[2] + f[2] * h.t - dr.z, c = Math.cos(dr.r), n = Math.sin(dr.r);
+        best = { dr, i, t: h.t, n: h.n, lp: [c * px - n * pz, eye[1] + f[1] * h.t - dr.y, n * px + c * pz], ln: h.ln };
+      }
     }
     if (!best) return null;
     const th = w.raycastTerrain(eye, f, bt);
@@ -578,6 +633,7 @@ const objets = {
     const dmg = base * k * (BUFF.on('force') ? 2 : 1);
     const S = this.S(), key = P.cle, E = S.pv[key] || { d: 0, j: farm.s.day };
     E.d += dmg; E.j = farm.s.day;
+    this.marque(E, c);
     this.impact(P.casse.mat, [x, y, z], c.n, dmg / P.casse.pv);
     if (E.d < P.casse.pv) {
       S.pv[key] = E;
@@ -587,6 +643,13 @@ const objets = {
     delete S.pv[key];
     this.casser(q, P, [x, y, z]);
     return true;
+  },
+  // l'endroit du coup (repère de l'objet ou de la porte), pour y dessiner les fissures
+  marque(E, c) {
+    if (!c.lp || !c.ln) return;
+    const r2 = (v) => Math.round(v * 100) / 100;
+    (E.h || (E.h = [])).push([...c.lp.map(r2), ...c.ln.map(r2)]);
+    if (E.h.length > 6) E.h.shift();
   },
   // les éclats d'un coup
   impact(m, p, n, k) {
@@ -672,6 +735,7 @@ const objets = {
     const dmg = base * k * (BUFF.on('force') ? 2 : 1), pv = this.porteSolidite(dr);
     const S = this.S(), key = 'd:' + c.i, E = S.pv[key] || { d: 0, j: farm.s.day };
     E.d += dmg; E.j = farm.s.day;
+    this.marque(E, c);
     this.impact('bois', [x, y, z], c.n, dmg / pv);
     sound.knock && sound.knock(1);
     const L = this.lieuBld(dr.bld);
@@ -942,11 +1006,11 @@ const objets = {
     // les fissures de ce qui a pris des coups
     for (const k in S.pv) {
       const E = S.pv[k];
-      if (k.startsWith('d:')) { const dr = w.doors[+k.slice(2)]; if (dr && dr.a < 0.5 && Math.abs(dr.x - cam[0]) < 40 && Math.abs(dr.z - cam[2]) < 40) this.dessinerFissuresPorte(dr, E.d / this.porteSolidite(dr), k); continue; }
+      if (k.startsWith('d:')) { const dr = w.doors[+k.slice(2)]; if (dr && dr.a < 0.5 && Math.abs(dr.x - cam[0]) < 40 && Math.abs(dr.z - cam[2]) < 40) this.dessinerFissuresPorte(dr, E, k); continue; }
       const q = this.objetDe(k);
       if (!q || !w.live(q) || Math.abs(q.x - cam[0]) > 40 || Math.abs(q.z - cam[2]) > 40) continue;
       const P = this.profil(q);
-      if (P && P.casse) this.dessinerFissures(q, P, E.d / P.casse.pv, k);
+      if (P && P.casse) this.dessinerFissures(q, P, E, k);
     }
   },
   objetDe(k) {
@@ -972,25 +1036,60 @@ const objets = {
       PE.box(x, sy / 2, z, sx, sy, sz, col, TL[M.tuile] ?? TL.plain, rnd() * TAU, (rnd() - 0.5) * 0.3, (rnd() - 0.5) * 0.3);
     }
   },
+  // le tas : une tache de ce qui s'est répandu (les objets eux-mêmes sont des icônes posées au sol : icones())
   dessinerTas(T) {
     const rnd = mulberry32(T.id.length * 131 + Math.round(T.x * 7) + Math.round(T.z * 13));
-    PE.frame(T.x, T.y, T.z, 0, 1);
-    let i = 0;
-    for (const [id, n] of T.o) {
-      const It = ITEMS[id], c = id === 'argent' ? '#d8b040' : It && It.ic && typeof It.ic[1] === 'string' && It.ic[1][0] === '#' ? It.ic[1] : '#a08868';
-      const col = rgbf(c), m = Math.min(3, Math.max(1, Math.ceil(n / 3)));
-      for (let k = 0; k < m; k++, i++) {
-        const a = rnd() * TAU, d = 0.05 + rnd() * 0.22, s = id === 'argent' ? 0.05 : 0.09 + rnd() * 0.06;
-        PE.box(Math.cos(a) * d, (id === 'argent' ? 0.006 : s * 0.35) + k * 0.02, Math.sin(a) * d, s, id === 'argent' ? 0.012 : s * 0.7, s * (0.8 + rnd() * 0.5), col, id === 'argent' ? TL.gold : TL.plain, rnd() * TAU, (rnd() - 0.5) * 0.4, 0);
+    PE.frame(T.x, T.y, T.z, rnd() * TAU, 1);
+    PE.box(0, 0.004, 0, 0.62, 0.008, 0.46, [0.3, 0.24, 0.17], TL.soil);
+    for (let k = 0; k < 4; k++) { const a = rnd() * TAU, d = 0.2 + rnd() * 0.14; PE.box(Math.cos(a) * d, 0.012, Math.sin(a) * d, 0.08, 0.02, 0.05, [0.62, 0.5, 0.34], TL.straw, rnd() * TAU); }
+  },
+  // les icônes des objets répandus, debout au sol (dans le tampon des icônes qui volent vers soi : 64 places)
+  icones(D, n) {
+    const S = this.S();
+    if (!S || !S.tas.length || !game.world || game.world !== farm.w) return n;
+    const cap = Math.floor(D.length / 13), p = game.player.pos;
+    for (const T of S.tas) {
+      if (Math.abs(T.x - p[0]) > 24 || Math.abs(T.z - p[2]) > 24) continue;
+      const rnd = mulberry32(T.id.length * 977 + Math.round(T.x * 11) + Math.round(T.z * 5));
+      let k = 0;
+      for (const [id] of T.o) {
+        if (n >= cap || k >= 6) break;
+        const s = ATLAS.sprites['it_' + (id === 'argent' ? 'vieille_piece' : id)];
+        if (!s) continue;
+        const a = k * 2.4 + rnd(), d = k ? 0.13 + rnd() * 0.12 : 0.02, o = n * 13, size = 0.24;
+        D[o] = T.x + Math.cos(a) * d; D[o + 1] = T.y + 0.01; D[o + 2] = T.z + Math.sin(a) * d; D[o + 3] = size; D[o + 4] = size;
+        D[o + 5] = s.u0; D[o + 6] = s.v0; D[o + 7] = s.u1; D[o + 8] = s.v1; D[o + 9] = 0; D[o + 10] = 1; D[o + 11] = 0; D[o + 12] = 0;
+        n++; k++;
       }
-      if (i > 14) break;
+    }
+    return n;
+  },
+  // une étoile de fêlures au point d'un coup (h : [x, y, z, nx, ny, nz] dans le repère courant de PE) ; sur le bois, des échardes
+  etoile(h, ratio, m, rnd) {
+    const [x, y, z, nx, ny, nz] = h, len = 0.1 + Math.min(1, ratio) * 0.24, e = 0.012, cx = x + nx * e, cy = y + ny * e, cz = z + nz * e;
+    const ax = Math.abs(nx) >= Math.abs(ny) && Math.abs(nx) >= Math.abs(nz) ? 0 : Math.abs(nz) >= Math.abs(ny) ? 2 : 1;
+    const dark = m === 'metal' ? [0.84, 0.84, 0.88] : m === 'bois' ? [0.09, 0.06, 0.04] : [0.2, 0.19, 0.18], M = OBJ_MAT[m] || OBJ_MAT.bois;
+    const clair = objCol(M.col2, 1.2), tu = TL[M.tuile] ?? TL.plain;
+    for (let k = 0; k < 4; k++) {
+      const a = rnd() * 0.8 + k * 0.8, l = len * (0.55 + rnd() * 0.6), wd = k ? 0.022 : 0.032;
+      if (ax === 2) PE.box(cx, cy, cz, wd, l, 0.012, dark, TL.plain, 0, 0, a);
+      else if (ax === 0) PE.box(cx, cy, cz, 0.012, l, wd, dark, TL.plain, 0, a, 0);
+      else PE.box(cx, cy, cz, wd, 0.012, l, dark, TL.plain, a, 0, 0);
+    }
+    if (m !== 'bois' && m !== 'pierre') return;
+    for (let k = 0; k < 3; k++) {
+      const u = (rnd() - 0.5) * len * 0.9, v = (rnd() - 0.5) * len * 0.9, l = m === 'bois' ? 0.06 + rnd() * 0.07 : 0.03, t = (rnd() - 0.5) * 0.9;
+      if (ax === 2) PE.box(cx + u, cy + v, cz + nz * l * 0.4, 0.024, 0.024, l, clair, tu, t, t * 0.5, 0);
+      else if (ax === 0) PE.box(cx + nx * l * 0.4, cy + v, cz + u, l, 0.024, 0.024, clair, tu, 0, t, t * 0.5);
+      else PE.box(cx + u, cy + ny * l * 0.4, cz + v, 0.024, l, 0.024, clair, tu, t, 0, t * 0.5);
     }
   },
-  dessinerFissures(q, P, ratio, k) {
-    const B = P.B || this.boite(q);
-    if (!B) return;
-    const rnd = mulberry32((k.length * 7919 + Math.round(q.x * 31) + Math.round(q.z * 17)) >>> 0), n = Math.min(6, Math.ceil(ratio * 6));
+  dessinerFissures(q, P, E, k) {
+    const ratio = E.d / P.casse.pv, rnd = mulberry32((k.length * 7919 + Math.round(q.x * 31) + Math.round(q.z * 17)) >>> 0);
     const dark = P.casse.mat === 'bois' ? [0.16, 0.11, 0.07] : P.casse.mat === 'metal' ? [0.78, 0.78, 0.8] : [0.3, 0.29, 0.27];
+    if (E.h && E.h.length) { PE.frame(q.x, q.y, q.z, q.r || 0, q.s || 1); for (const h of E.h) this.etoile(h, ratio, P.casse.mat, rnd); return; }
+    const B = P.B || this.boite(q), n = Math.min(6, Math.ceil(ratio * 6));
+    if (!B) return;
     PE.frame(B.x, B.y, B.z, B.r, 1);
     for (let i = 0; i < n; i++) {
       const face = (rnd() * 4) | 0, u = rnd() - 0.5, v = 0.15 + rnd() * 0.7, len = Math.min(B.sy * 0.5, 0.12 + rnd() * 0.3), tilt = (rnd() - 0.5) * 1.4;
@@ -998,9 +1097,11 @@ const objets = {
       else { const x = (face === 2 ? 0.5 : -0.5) * B.sx + (face === 2 ? 0.006 : -0.006); PE.box(x, v * B.sy, u * B.sz * 0.8, 0.012, len, 0.022, dark, TL.plain, 0, tilt, 0); }
     }
   },
-  dessinerFissuresPorte(dr, ratio, k) {
-    const rnd = mulberry32((k.length * 104729 + Math.round(dr.x * 13)) >>> 0), n = Math.min(7, Math.ceil(ratio * 7)), dark = [0.14, 0.1, 0.06];
+  dessinerFissuresPorte(dr, E, k) {
+    const ratio = E.d / this.porteSolidite(dr), rnd = mulberry32((k.length * 104729 + Math.round(dr.x * 13)) >>> 0), n = Math.min(7, Math.ceil(ratio * 7)), dark = [0.14, 0.1, 0.06];
     PE.frame(dr.x, dr.y, dr.z, dr.r, 1);
+    // (le vantail fait 7 cm : les fêlures se posent sur ses faces, pas sur la boîte de collision)
+    if (E.h && E.h.length) { for (const h of E.h) this.etoile([h[0], h[1], Math.sign(h[2] || h[5] || 1) * 0.028, h[3], h[4], h[5]], ratio * 1.3, 'bois', rnd); return; }
     for (let i = 0; i < n; i++) {
       const u = (rnd() - 0.5) * dr.w * 0.7, v = 0.3 + rnd() * (dr.h - 0.6), len = 0.15 + rnd() * 0.35, tilt = (rnd() - 0.5) * 1.2;
       for (const z of [-0.07, 0.07]) PE.box(u, v, z, 0.024, len, 0.012, dark, TL.plain, 0, 0, tilt);
@@ -1118,26 +1219,40 @@ const objets = {
   },
 };
 
-// ---------------------------------------------------------------- une porte enfoncée : grande ouverte, un trou dans les planches, la serrure qui pend
+// ---------------------------------------------------------------- une porte enfoncée : arrachée de ses gonds, tombée à plat derrière le seuil
+// (l'encadrement reste ; le vantail gît à l'intérieur, la face de la rue en l'air, un trou dans les planches ; on marche dessus)
 {
   const _ed = emitDoor;
   emitDoor = function (buf, d, fl) {
     if (!d || !d.casse) return _ed(buf, d, fl);
-    // (le style de la porte est calculé une fois, sur la porte elle-même, avant la copie)
-    const double = typeof PORTES !== 'undefined' && PORTES.style ? PORTES.style(d).double : d.w > 1.8, lw = double ? d.w / 2 : d.w;
-    const a = Math.max(d.a || 0, 1.2) + 0.32, dd = Object.assign({}, d, { a });
-    _ed(buf, dd, fl);
-    m34Root(PE.M, d.x, d.y, d.z, d.r, 1);
-    m34TR(PE._L, -d.w / 2, 0, 0, 0, -a, 0);
-    m34Mul(OBJ_M, PE.M, PE._L);
-    PE.M.set(OBJ_M);
-    PE.buf = buf; PE.fl = fl || 0;
-    const u = lw * 0.52, v = d.h * 0.47, noir = [0.06, 0.045, 0.035], clair = [0.78, 0.62, 0.42];
-    PE.box(u, v, 0, 0.3, 0.44, 0.085, noir, TL.plain);
-    for (const [du, dv, l, rz] of [[-0.16, 0.12, 0.26, 0.5], [0.15, -0.14, 0.3, -0.6], [0.02, 0.24, 0.22, 1.2], [-0.12, -0.2, 0.24, -1.1], [0.17, 0.16, 0.2, 0.9]]) {
-      PE.box(u + du, v + dv, -0.02, 0.035, l, 0.04, clair, TL.wood, 0, 0, rz);
+    const S = typeof PORTES !== 'undefined' && PORTES.style ? PORTES.style(d) : null;
+    const col = S ? S.col : [0.55, 0.4, 0.26], st = S ? S.st : 'rustique';
+    const tuile = st === 'ville' || st === 'mairie' || st === 'double' ? TL.portePanneau : st === 'boutique' ? TL.porteBasPanneau
+      : st === 'auberge' || st === 'poterne' || st === 'eglise' ? TL.porteClous : (TL.porteBois ?? TL.wood);
+    const w = d.w, h = d.h, t = 0.07, dark = [col[0] * 0.7, col[1] * 0.7, col[2] * 0.7], clair = [0.8, 0.64, 0.44], noir = [0.07, 0.05, 0.04], fer = [0.25, 0.25, 0.28];
+    PE.buf = buf; PE.fl = 0; PE.tint = null;
+    const R = m34Root(OBJ_M, d.x, d.y, d.z, d.r, 1);
+    if (S && S.cadre && typeof porteCadre === 'function') { PE.M.set(R); try { porteCadre(d, S, 2); } catch (e) { /* rien */ } }
+    // les gonds arrachés, et le chambranle éclaté côté serrure
+    PE.M.set(R); PE.fl = fl || 0;
+    for (const y of [0.3, h - 0.34]) PE.box(-w / 2 + 0.03, y, 0, 0.06, 0.07, 0.07, fer, TL.iron, 0, 0, 0.4);
+    PE.box(w / 2 - 0.04, h * 0.47, -0.03, 0.05, 0.36, 0.05, clair, TL.wood, 0, 0, 0.22);
+    PE.box(w / 2 - 0.07, h * 0.55, -0.04, 0.03, 0.18, 0.03, clair, TL.wood, 0, 0, -0.5);
+    // le vantail, basculé vers l'intérieur autour du seuil (un peu de travers), posé sur le plancher (relevé une fois)
+    if (d._u2sol === undefined && game.world) {
+      const nx = Math.sin(d.r), nz = Math.cos(d.r), g = game.world.groundAt(d.x + nx * 1.1, d.z + nz * 1.1, d.y + 0.7, 0.9);
+      d._u2sol = isFinite(g) ? clamp(g - d.y, -0.2, 0.5) : 0;
     }
-    PE.box(lw - 0.17, d.h * 0.4, -0.055, 0.1, 0.13, 0.035, [0.28, 0.28, 0.3], TL.iron, 0, 0, 0.55); // la serrure arrachée
+    m34TR(PE._L, 0.05, (d._u2sol || 0) + t / 2 + 0.012, 0.14, Math.PI / 2, 0.1, 0);
+    m34Mul(PE.M, R, PE._L);
+    PE.box(0, h / 2, 0, w - 0.06, h - 0.04, t, col, tuile);
+    for (const y of [0.26, h - 0.34]) PE.box(0, y, -t / 2 - 0.016, w - 0.12, 0.13, 0.032, dark, tuile);
+    const u = w * 0.08, v = h * 0.5;
+    PE.box(u, v, -t / 2 - 0.004, 0.32, 0.46, 0.012, noir, TL.plain);
+    for (const [du, dv, l, rz] of [[-0.17, 0.12, 0.28, 0.5], [0.16, -0.15, 0.3, -0.6], [0.02, 0.26, 0.22, 1.2], [-0.13, -0.21, 0.24, -1.1], [0.18, 0.17, 0.2, 0.9]]) {
+      PE.box(u + du, v + dv, -t / 2 - 0.02, 0.035, l, 0.04, clair, TL.wood, 0, 0, rz);
+    }
+    PE.box(w / 2 - 0.17, h * 0.42, -t / 2 - 0.02, 0.1, 0.13, 0.035, fer, TL.iron, 0, 0, 0.55); // la serrure, arrachée avec son pêne
     PE.fl = 0;
   };
 }
@@ -1154,6 +1269,15 @@ const objets = {
       if (pris) { this.pendingHit = null; if (h.kind === 'faux') this.scythe(h.eye, h.f); return; }
     }
     return _rh();
+  };
+}
+// les objets répandus au sol : leurs icônes, avec celles qui volent vers soi
+{
+  const _af = play.appendFlyers.bind(play);
+  play.appendFlyers = function (D, n) {
+    n = _af(D, n);
+    try { if (farm.s) n = objets.icones(D, n); } catch (e) { console.error('objets.icones', e); }
+    return n;
   };
 }
 // la houe ne frappe pas d'elle-même : sur une poterie, un verre, un sac, elle sert d'outil
