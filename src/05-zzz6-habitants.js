@@ -20,7 +20,7 @@ const NPC_NEW = [
     look: { skin: '#e0c0a0', hair: '#6a6a70', hairStyle: 'chauve', beard: 'longue', hat: null, top: '#3a2a4a', bottom: '#2a2a30', dress: false, apron: '#6a5a3a', height: 0.98, build: 'mince', coat: true },
     schedule: [[6.5, 'home'], [8, 'work'], [12, 'auberge'], [13.5, 'work'], [19, 'place'], [20, 'home']],
     likes: ['gentiane', 'edelweiss', 'fleur_lune', 'champi_lumineux'], loves: ['lys_cimes', 'fleur_temple'], dislikes: ['pain', 'foin'],
-    shop: { name: 'Échoppe de l’alchimiste', sells: [['fiole', 8], ['table_alchimie', 450], ['bandage', 15], ['potion_soin', 90], ['antidote', 110], ['baume_moelle', 220], ['eau_lustrale', 180], ['sel', 5], ['poudre_os', 14], ['livre_herbier', 90]],
+    shop: { name: 'Échoppe de l’alchimiste', sells: [['fiole', 8], ['table_alchimie', 450], ['bandage', 15], ['potion_soin', 90], ['antidote', 110], ['baume_moelle', 220], ['eau_lustrale', 180], ['sel', 10], ['poudre_os', 14], ['livre_herbier', 90]],
       buys: ['herbes', 'champignon', 'trefle', 'champi_lumineux', 'fleur_lune', 'rosee', 'venin', 'mue_serpent', 'plume_hibou', 'aile_chauve_souris', 'eclat', 'mandragore', 'graisse_ours', 'griffe_ours', 'peau_salamandre', 'plume_aigle', 'plume_bleue', 'ecaille_tortue'] },
     lines: {
       intro: 'Hm ? Ah. Un client. Ou un curieux. {nom} Fauvel, alchimiste. Si vous avez trouvé une plante que vous ne connaissez pas, apportez-la-moi : je vous dirai ce que c’est. Et si c’est un poison, je vous dirai combien de temps il vous reste.',
@@ -171,7 +171,7 @@ const NPC_NEW = [
     look: { skin: '#c89a78', hair: '#1a1410', hairStyle: 'queue', beard: null, hat: 'voile', hatCol: '#8a2a3a', top: '#b0503a', bottom: '#5a3a5a', dress: true, apron: '#d8c080', height: 0.97, build: 'normal', bust: 0.95, hips: 1.05 },
     schedule: [[6.5, 'home'], [7.5, 'marche'], [18.5, 'auberge'], [20.5, 'home']],
     likes: ['miel', 'fleur', 'confiture'], loves: ['perle', 'poisson_source'], dislikes: ['venin', 'viande'],
-    shop: { name: 'Les ballots de Carrez', sells: [['toile', 24], ['bandage', 14], ['attelle', 30], ['fiole', 9], ['sel', 5], ['corde', 13], ['carte_nord', 125], ['carte_est', 95], ['carte_monts', 155], ['graines_basilic', 12], ['graines_lavande', 16], ['livre_manuel_cuisine', 55], ['livre_sciences', 60], ['livre_poissons', 72], ['appeau', 40]],
+    shop: { name: 'Les ballots de Carrez', sells: [['toile', 24], ['bandage', 14], ['attelle', 30], ['fiole', 9], ['sel', 10], ['corde', 13], ['carte_nord', 125], ['carte_est', 95], ['carte_monts', 155], ['graines_basilic', 12], ['graines_lavande', 16], ['livre_manuel_cuisine', 55], ['livre_sciences', 60], ['livre_poissons', 72], ['appeau', 40]],
       buys: ['fleur', 'miel', 'laine', 'poisson', 'toile', 'huile', 'lavande', 'confiture'] },
     lines: {
       intro: '{nom} Carrez, marchande de tout et d’ailleurs. Tissus, épices, remèdes, cartes du nord. Et je ne raconte pas d’histoires : ça, c’est mon concurrent.',

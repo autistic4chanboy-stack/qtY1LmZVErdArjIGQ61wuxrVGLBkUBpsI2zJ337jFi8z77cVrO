@@ -12,7 +12,7 @@ const ICON3D = {
       this.tiles = [];
       const cv = SKIN.canvas;
       if (!cv) return [180, 180, 180];
-      const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+      const d = SKIN.pb && SKIN.pb.w === cv.width ? SKIN.pb.d : cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
       for (let t = 0; t < 256; t++) {
         const ox = (t % 16) * 16, oy = Math.floor(t / 16) * 16;
         let r = 0, g = 0, b = 0, n = 0;

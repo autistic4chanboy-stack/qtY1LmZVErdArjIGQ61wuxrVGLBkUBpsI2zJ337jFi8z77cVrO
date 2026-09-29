@@ -64,23 +64,23 @@ for (const [id, name, h, drop] of FLORA_WILD) {
 OBJ_TYPES.forEach((t, i) => { OBJ_INDEX[t.id] = i; });
 
 // ce qu'on en tire
-defItem('chataigne', 'Châtaignes', 'cueillette', 8, ['baies', '#7a4a24'], { food: 5, heal: 2 });
-defItem('noix', 'Noix', 'cueillette', 10, ['rond', '#b8966a'], { food: 5, heal: 2 });
-defItem('cerise', 'Cerises', 'cueillette', 9, ['baies', '#c81c30'], { food: 4, heal: 2 });
-defItem('poire', 'Poire', 'cueillette', 11, ['rond', '#c8c850'], { food: 6, heal: 2 });
-defItem('prune', 'Prunes', 'cueillette', 9, ['baies', '#5a2a6a'], { food: 5, heal: 2 });
-defItem('fleur_tilleul', 'Fleurs de tilleul', 'cueillette', 12, ['herbes', '#e8e0a0'], { desc: 'En tisane, elles font dormir les enfants et les inquiets.' });
-defItem('baies_houx', 'Baies de houx', 'cueillette', 6, ['baies', '#c81818'], { desc: 'Jolies, et toxiques. Les oiseaux, eux, les mangent.' });
-defItem('digitale', 'Digitale', 'cueillette', 30, ['c2_fleur', '#c060b0', '#f0d0f0'], { food: 1, heal: -20, poison: true, desc: 'Le cœur s’emballe, puis ralentit. La guérisseuse sait la doser.' });
-defItem('orchidee', 'Orchidée sauvage', 'cueillette', 45, ['c2_fleur', '#e080c0', '#6a3a5a'], { desc: 'Rare. On dit qu’elle ne pousse que là où personne n’a marché depuis cent ans.' });
-defItem('pissenlit', 'Pissenlits', 'cueillette', 4, ['c2_salade', '#7ab040', '#f0d030'], { food: 4, heal: 3 });
-defItem('reine_pres', 'Reine-des-prés', 'cueillette', 12, ['herbes', '#f0ead0'], { heal: 8, desc: 'Contre la fièvre et les douleurs.' });
-defItem('achillee', 'Achillée', 'cueillette', 12, ['herbes', '#f4f4ec'], { heal: 10, desc: 'L’herbe aux charpentiers : elle ferme les coupures.' });
-defItem('gentiane', 'Gentiane', 'cueillette', 40, ['c2_fleur', '#2040c0', '#f0f0f0'], { heal: 12, desc: 'Amère comme la montagne. La guérisseuse la paie bien.' });
-defItem('edelweiss', 'Edelweiss', 'cueillette', 150, ['c2_fleur', '#f0f0e8', '#d8c878'], { desc: 'L’étoile des neiges. On la cueille au bord des précipices, dit-on, pour prouver qu’on existe.' });
-defItem('cynorhodon', 'Cynorhodons', 'cueillette', 7, ['baies', '#d03020'], { food: 3, heal: 4 });
-defItem('baies_sureau', 'Baies de sureau', 'cueillette', 7, ['baies', '#2a1830'], { food: 3, heal: 2 });
-defItem('chataignes_grillees', 'Châtaignes grillées', 'nourriture', 32, ['baies', '#6a3a1a'], { food: 18, heal: 6 });
+defItem('chataigne', 'Châtaignes', 'cueillette', 1, ['baies', '#7a4a24'], { food: 5, heal: 2 });
+defItem('noix', 'Noix', 'cueillette', 2, ['rond', '#b8966a'], { food: 5, heal: 2 });
+defItem('cerise', 'Cerises', 'cueillette', 1, ['baies', '#c81c30'], { food: 4, heal: 2 });
+defItem('poire', 'Poire', 'cueillette', 2, ['rond', '#c8c850'], { food: 6, heal: 2 });
+defItem('prune', 'Prunes', 'cueillette', 1, ['baies', '#5a2a6a'], { food: 5, heal: 2 });
+defItem('fleur_tilleul', 'Fleurs de tilleul', 'cueillette', 2, ['herbes', '#e8e0a0'], { desc: 'En tisane, elles font dormir les enfants et les inquiets.' });
+defItem('baies_houx', 'Baies de houx', 'cueillette', 1, ['baies', '#c81818'], { desc: 'Jolies, et toxiques. Les oiseaux, eux, les mangent.' });
+defItem('digitale', 'Digitale', 'cueillette', 5, ['c2_fleur', '#c060b0', '#f0d0f0'], { food: 1, heal: -20, poison: true, desc: 'Le cœur s’emballe, puis ralentit. La guérisseuse sait la doser.' });
+defItem('orchidee', 'Orchidée sauvage', 'cueillette', 8, ['c2_fleur', '#e080c0', '#6a3a5a'], { desc: 'Rare. On dit qu’elle ne pousse que là où personne n’a marché depuis cent ans.' });
+defItem('pissenlit', 'Pissenlits', 'cueillette', 1, ['c2_salade', '#7ab040', '#f0d030'], { food: 4, heal: 3 });
+defItem('reine_pres', 'Reine-des-prés', 'cueillette', 2, ['herbes', '#f0ead0'], { heal: 8, desc: 'Contre la fièvre et les douleurs.' });
+defItem('achillee', 'Achillée', 'cueillette', 2, ['herbes', '#f4f4ec'], { heal: 10, desc: 'L’herbe aux charpentiers : elle ferme les coupures.' });
+defItem('gentiane', 'Gentiane', 'cueillette', 6, ['c2_fleur', '#2040c0', '#f0f0f0'], { heal: 12, desc: 'Amère comme la montagne. La guérisseuse la paie bien.' });
+defItem('edelweiss', 'Edelweiss', 'cueillette', 10, ['c2_fleur', '#f0f0e8', '#d8c878'], { desc: 'L’étoile des neiges. On la cueille au bord des précipices, dit-on, pour prouver qu’on existe.' });
+defItem('cynorhodon', 'Cynorhodons', 'cueillette', 1, ['baies', '#d03020'], { food: 3, heal: 4 });
+defItem('baies_sureau', 'Baies de sureau', 'cueillette', 1, ['baies', '#2a1830'], { food: 3, heal: 2 });
+defItem('chataignes_grillees', 'Châtaignes grillées', 'nourriture', 5, ['baies', '#6a3a1a'], { food: 18, heal: 6 });
 ITEM_GROUPS.fruit.push('cerise', 'poire', 'prune', 'cynorhodon', 'baies_sureau');
 ITEM_GROUPS.aromate.push('reine_pres', 'achillee', 'fleur_tilleul');
 RECIPES.push(

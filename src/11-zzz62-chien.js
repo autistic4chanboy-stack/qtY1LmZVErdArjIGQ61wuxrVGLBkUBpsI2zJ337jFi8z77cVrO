@@ -29,10 +29,10 @@ function chienValeur(id) {
 const CHIEN_NOMS = ['Filou', 'Médor', 'Pataud', 'Finaud', 'Mirza', 'Fidèle', 'Ravageot', 'Brisquet', 'Sultan', 'Pastis'];
 
 // ---------------------------------------------------------------- la gamelle, la pâtée, le chiot, la tombe
-PLACEABLES.gamelle = { name: 'Gamelle du chien', price: 14 };
-defItem('gamelle', 'Gamelle du chien', 'objet', 14, ['objet', 'gamelle'], { place: 'gamelle', desc: 'À poser à la ferme. E dessus avec de quoi manger en main pour la remplir : le chien y mange quand il a faim.' });
-defItem('patee', 'Pâtée pour chien', 'nourriture', 14, ['bol', '#8a6a4a'], { food: 6, heal: 0, desc: 'Des restes, de la viande, du pain trempé. Pour le chien. En principe.' });
-defItem('chiot', 'Chiot', 'objet', 120, ['animal', '#b08450'], { desc: 'Clic : l’adopter. Un chien pour la ferme (s’il n’y en a plus).' });
+PLACEABLES.gamelle = { name: 'Gamelle du chien', price: 1 };
+defItem('gamelle', 'Gamelle du chien', 'objet', 1, ['objet', 'gamelle'], { place: 'gamelle', desc: 'À poser à la ferme. E dessus avec de quoi manger en main pour la remplir : le chien y mange quand il a faim.' });
+defItem('patee', 'Pâtée pour chien', 'nourriture', 2, ['bol', '#8a6a4a'], { food: 6, heal: 0, desc: 'Des restes, de la viande, du pain trempé. Pour le chien. En principe.' });
+defItem('chiot', 'Chiot', 'objet', 60, ['animal', '#b08450'], { desc: 'Clic : l’adopter. Un chien pour la ferme (s’il n’y en a plus).' });
 RECIPES.push(
   { out: 'gamelle', n: 1, need: { bois: 2 }, st: null },
   { out: 'patee', n: 2, need: { viande: 1, pain: 1 }, st: 'feu' },

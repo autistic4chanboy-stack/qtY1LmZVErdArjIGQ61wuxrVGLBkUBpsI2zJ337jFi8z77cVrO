@@ -16,12 +16,13 @@
 //  API : locations (« location » est pris par le navigateur) — locataire(clé),
 //        louer(clé), payer(clé), rendre(clé), expulser(clé), ecriteau(clé), S()
 // ============================================================================
+// loyers à la semaine de douze jours (équilibrage : 12 à 18 pièces la nuit, un peu moins que la chambre de l'auberge)
 const LOC_MAISONS = {
-  vide4: { nom: 'la maison Vernet', court: 'maison Vernet', rue: 'du côté ouest, derrière la forge', loyer: 84, cle: 'cle_vernet',
+  vide4: { nom: 'la maison Vernet', court: 'maison Vernet', rue: 'du côté ouest, derrière la forge', loyer: 150, cle: 'cle_vernet',
     desc: 'Une pièce, un lit, un coffre cerclé de fer, une cheminée qui tire bien. La veuve Vernet est partie vivre chez sa fille, en bas de la vallée.' },
-  vide5: { nom: 'la maison Delorme', court: 'maison Delorme', rue: 'du côté est, contre le rempart', loyer: 96, cle: 'cle_delorme',
+  vide5: { nom: 'la maison Delorme', court: 'maison Delorme', rue: 'du côté est, contre le rempart', loyer: 170, cle: 'cle_delorme',
     desc: 'Une pièce claire, un lit, un coffre, une cheminée. Les Delorme sont partis un matin, sans laisser d’adresse. Leurs volets, eux, sont restés.' },
-  maison_rempart: { nom: 'la maison du Rempart', court: 'maison du Rempart', rue: 'au nord-est, derrière la poste, au pied du rempart', loyer: 120, cle: 'cle_rempart',
+  maison_rempart: { nom: 'la maison du Rempart', court: 'maison du Rempart', rue: 'au nord-est, derrière la poste, au pied du rempart', loyer: 210, cle: 'cle_rempart',
     desc: 'Une maison de pierre neuve, contre le rempart. Un lit, un coffre, une cheminée, des rayonnages. Elle avait été bâtie pour un sergent du guet qui n’est jamais venu.' },
 };
 defItem('cle_vernet', 'Clé de la maison Vernet', 'quete', 0, ['cle', '#9a7a4a'], { desc: 'Une clé de fer, un peu tordue, au bout d’une ficelle. La porte de la maison Vernet, en ville.' });

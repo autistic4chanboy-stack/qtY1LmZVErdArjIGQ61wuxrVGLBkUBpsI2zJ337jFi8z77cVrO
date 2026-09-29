@@ -3,11 +3,11 @@
 //  ce qu'on trouve au refuge du col et au fond des crevasses
 // ============================================================================
 Object.assign(FISH, {
-  goujon: { name: 'Goujon', price: 12, where: ['riviere'], time: 'jour', w: 6, col: '#9aa08a' },
-  ombre: { name: 'Ombre commun', price: 50, where: ['riviere'], time: 'jour', w: 2, col: '#8a9098', rain: true },
-  omble: { name: 'Omble chevalier', price: 95, where: ['lac_gele'], time: 'tout', w: 4, col: '#c86848' },
-  lotte: { name: 'Lotte', price: 70, where: ['lac_gele', 'lac_noir'], time: 'nuit', w: 2, col: '#6a6448' },
-  vieux_silure: { name: 'Le vieux silure du lac Noir', price: 650, where: ['lac_noir'], time: 'nuit', w: 0.12, col: '#22221e' },
+  goujon: { name: 'Goujon', price: 3, where: ['riviere'], time: 'jour', w: 6, col: '#9aa08a' },
+  ombre: { name: 'Ombre commun', price: 13, where: ['riviere'], time: 'jour', w: 2, col: '#8a9098', rain: true },
+  omble: { name: 'Omble chevalier', price: 24, where: ['lac_gele'], time: 'tout', w: 4, col: '#c86848' },
+  lotte: { name: 'Lotte', price: 18, where: ['lac_gele', 'lac_noir'], time: 'nuit', w: 2, col: '#6a6448' },
+  vieux_silure: { name: 'Le vieux silure du lac Noir', price: 140, where: ['lac_noir'], time: 'nuit', w: 0.12, col: '#22221e' },
 });
 for (const id of ['goujon', 'ombre', 'omble', 'lotte', 'vieux_silure']) { defItem(id, FISH[id].name, 'poisson', FISH[id].price, ['poisson', FISH[id].col], { food: 6, heal: 2, raw: true }); ITEM_GROUPS.poisson.push(id); }
 ITEMS.vieux_silure.desc = 'Long comme un homme. Ses barbillons ont l’air de vous chercher encore.';

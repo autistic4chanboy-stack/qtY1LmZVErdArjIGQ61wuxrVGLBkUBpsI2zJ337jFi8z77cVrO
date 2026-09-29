@@ -11,7 +11,8 @@ const CATALOGUE = String.raw`(() => {
   const pnj = (d, niv) => ({ id: d.id, d, name: d.name, st: { alive: true, amitie: niv * 100 }, __niv: niv });
   const achats = [], ventes = [];
   const prixPNJ = (d, id, p, achat) => NIV.map((v) => ui.shopPrice(pnj(d, v), id, p, achat));
-  const ACH = (ou, id, prix, note) => { if (ITEMS[id]) achats.push({ ou, id, prix: Array.isArray(prix) ? prix : [prix, prix, prix, prix], note: note || '' }); };
+  // brut : le prix écrit dans la table ; pnj : vendu par un habitant (remise d'amitié)
+  const ACH = (ou, id, prix, note, brut) => { if (ITEMS[id]) achats.push({ ou, id, prix: Array.isArray(prix) ? prix : [prix, prix, prix, prix], note: note || '', brut: brut || 0, pnj: Array.isArray(prix) }); };
   const VEN = (ou, id, prix, note) => { if (ITEMS[id] && ITEMS[id].price > 0) ventes.push({ ou, id, prix: Array.isArray(prix) ? prix : [prix, prix, prix, prix], note: note || '' }); };
   // les colporteurs, le maire et l'aubergiste recèlent les petites choses (ajouté au chargement d'une partie : 11-zzz90-vol.js)
   { const h = HOOKS.load.find((f) => String(f).includes('mouchoir_brode')); if (h) { const S0 = vol.S, h0 = vol.hooked; vol.S = () => ({}); vol.hooked = true; try { h(); } finally { vol.S = S0; vol.hooked = h0; } } }
@@ -27,9 +28,9 @@ const CATALOGUE = String.raw`(() => {
       for (const k in H.ici) for (const e of H.ici[k]) sells.push([e[0], e[1], 'hotte, ' + k]);
       for (const e of H.rares) sells.push([e[0], e[1], 'hotte, rare']);
     }
-    for (const [id, p, note] of sells) { if (ITEMS[id] && !ITEMS[id].animal) ACH(d.id, id, prixPNJ(d, id, p, true), note); }
+    for (const [id, p, note] of sells) { if (ITEMS[id] && !ITEMS[id].animal) ACH(d.id, id, prixPNJ(d, id, p, true), note, p); }
     // les reprises : quand un marchand meurt, un autre reprend une part de son étal (prix de base × 1,2)
-    for (const mort in SOC_REPRISE) for (const [qui, L] of SOC_REPRISE[mort]) if (qui === d.id) for (const id of L) if (ITEMS[id] && !ITEMS[id].animal) ACH(d.id, id, prixPNJ(d, id, Math.round(societe.prixBase(id) * 1.2), true), 'reprise de ' + mort);
+    for (const mort in SOC_REPRISE) for (const [qui, L] of SOC_REPRISE[mort]) if (qui === d.id) for (const id of L) if (ITEMS[id] && !ITEMS[id].animal) { const p = Math.round(societe.prixBase(id) * 1.2); ACH(d.id, id, prixPNJ(d, id, p, true), 'reprise de ' + mort, p); }
     // ce qu'on vend
     const buys = (S.buys || []).slice();
     if (buys.includes('poisson')) for (const f in FISH) if (!buys.includes(f)) buys.push(f);
@@ -37,11 +38,11 @@ const CATALOGUE = String.raw`(() => {
   }
   // les étals du Marchedi (prix fixes) et le brocanteur (trésors, 60 %)
   for (const R of ACT_ETALS) {
-    for (const [id, p] of R.vend) ACH('étal ' + R.id, id, p);
+    for (const [id, p] of R.vend) ACH('étal ' + R.id, id, p, '', p);
     if (R.achete) for (const id in ITEMS) if (ITEMS[id].cat === 'tresor' && ITEMS[id].price > 0) VEN('étal ' + R.id, id, Math.max(1, Math.round(ITEMS[id].price * 0.6)));
   }
   // le marchand de joie : les pilules, et il rachète les souvenirs du monde des bonbons (× 1,2)
-  ACH('marchand de joie', 'pilule_joie', 20, 'trois pour 60');
+  ACH('marchand de joie', 'pilule_joie', 20, 'trois pour 60', 20);
   { const src = String(pilules.boutique); const m = /\[([^\]]*)\]\.filter\(\(id\) => ITEMS\[id\] && farm\.count/.exec(src); if (m) for (const id of eval('[' + m[1] + ']')) VEN('marchand de joie', id, Math.round(ITEMS[id].price * 1.2)); }
   // la caisse d'expédition : le prix de base, pour tout ce qui n'est pas un outil
   for (const id in ITEMS) if (ITEMS[id].price > 0 && ITEMS[id].cat !== 'outil') VEN('caisse', id, ITEMS[id].price);
@@ -72,6 +73,69 @@ function boucles(J, c, log) {
     log(`${out.length} achat(s)-revente sans perte :`);
     for (const b of out) log(`  ${b.id.padEnd(22)} acheté ${String(b.a.p).padStart(4)} (${b.a.ou}${b.a.note ? ', ' + b.a.note : ''}, amitié ${b.a.niv})  revendu ${String(b.v.p).padStart(4)} (${b.v.ou}, amitié ${b.v.niv})  gain ${b.gain}`);
   }
+  return out;
+}
+
+// ---------------------------------------------------------------- 1 bis. les étals eux-mêmes (sans le garde-fou de ui.shopPrice)
+// Le garde-fou empêche toute boucle chez les habitants ; on vérifie en plus que les tables le rendent inutile : au
+// mieux de l'amitié, un prix d'étal doit rester au-dessus de la meilleure revente (sinon, c'est la table qu'il faut revoir).
+function etalsSolides(J, c, log) {
+  const kA = J.ev(`typeof ui.shopK === 'function' ? ui.shopK(10, true) : 0.88`);
+  const out = [];
+  for (const e of c.achats) {
+    if (!e.brut) continue;
+    const p = e.pnj ? Math.max(1, Math.round(e.brut * kA)) : e.brut, v = c.maxVente(e.id);
+    if (v && p <= v.p) out.push({ e, p, v });
+  }
+  if (!out.length) log(`Tous les prix d'étal (${c.achats.filter((e) => e.brut).length}), remise d'amitié comprise, restent au-dessus de la meilleure revente.`);
+  else for (const { e, p, v } of out) log(`  table trop basse : ${e.id} à ${e.brut} chez ${e.ou}${e.note ? ' (' + e.note + ')' : ''} → ${p} au mieux de l'amitié, revendu ${v.p} (${v.ou})`);
+  return out;
+}
+
+// ---------------------------------------------------------------- 2. transformations (acheter, fabriquer, revendre)
+// Toute recette (établi, four, feu, machines, alambic, table d'alchimiste) dont TOUS les ingrédients s'achètent :
+// ce qu'elle rend, revendu au mieux, doit valoir moins que ses ingrédients achetés au mieux. Les chaînes comptent
+// (un objet fabriqué avec des achats sert d'ingrédient à un autre) : coût minimal par point fixe.
+function transformations(J, c, log) {
+  const D = JSON.parse(J.ev(`JSON.stringify({ R: RECIPES, M: MACHINES, G: ITEM_GROUPS, POT: Object.fromEntries(Object.keys(POTIONS).filter((k) => POTIONS[k].need).map((k) => [k, POTIONS[k].need])) })`));
+  const recettes = [];
+  for (const r of D.R) recettes.push({ ou: 'recette' + (r.st ? ' (' + r.st + ')' : ''), need: r.need, out: r.out, n: r.n });
+  for (const m in D.M) for (const r of D.M[m]) recettes.push({ ou: 'machine ' + m, need: r.in, out: r.out[0], n: r.out[1] });
+  for (const id in D.POT) { const need = { fiole: 1 }; for (const k of D.POT[id]) need[k] = (need[k] || 0) + 1; recettes.push({ ou: 'alambic', need, out: id, n: 1 }); }
+  const cout = {};
+  for (const id in c.A) cout[id] = c.minAchat(id).p;
+  const cIng = (k) => (D.G[k] ? Math.min(...D.G[k].map((x) => (cout[x] === undefined ? Infinity : cout[x]))) : (cout[k] === undefined ? Infinity : cout[k]));
+  for (let it = 0; it < 8; it++) for (const r of recettes) {
+    let s = 0;
+    for (const k in r.need) s += r.need[k] * cIng(k);
+    if (s / r.n < (cout[r.out] === undefined ? Infinity : cout[r.out])) cout[r.out] = s / r.n;
+  }
+  const out = [];
+  for (const r of recettes) {
+    let s = 0;
+    for (const k in r.need) s += r.need[k] * cIng(k);
+    const v = c.maxVente(r.out);
+    if (s < Infinity && v && v.p * r.n > s) out.push({ r, s, v: v.p * r.n });
+  }
+  // la table d'alchimiste : deux à quatre ingrédients achetables et une fiole (deux, si le mélange est fort)
+  const ing = JSON.parse(J.ev('JSON.stringify(Object.keys(ESSENCES))')).filter((k) => cout[k] !== undefined && cout[k] < Infinity);
+  const fiole = cout.fiole === undefined ? Infinity : cout.fiole;
+  let essais = 0;
+  const combo = (start, pris) => {
+    if (pris.length >= 2) {
+      essais++;
+      const R = J.avec(pris, 'alchimie.calculer(__v)'), doses = R.fort && R.res !== 'bouillie' ? 2 : 1;
+      const rendues = pris.filter((k) => ['rosee', 'eau_benite', 'venin'].includes(k)).length;
+      const s = pris.reduce((a, k) => a + cout[k], 0) + (doses - rendues) * fiole, v = c.maxVente(R.res);
+      if (v && v.p * doses > s) out.push({ r: { ou: 'table d’alchimiste', need: pris, out: R.res, n: doses }, s, v: v.p * doses });
+    }
+    if (pris.length === 4) return;
+    for (let i = start; i < ing.length; i++) combo(i, pris.concat(ing[i]));
+  };
+  if (fiole < Infinity) combo(0, []);
+  log(`${recettes.length} recettes et transformations (+ ${essais} mélanges de la table d'alchimiste avec ${ing.length} ingrédients achetables).`);
+  if (!out.length) log('Aucune transformation gagnante à partir d’achats seulement.');
+  else for (const { r, s, v } of out.slice(0, 40)) log(`  ${r.out} ×${r.n} (${r.ou}) : ingrédients achetés ${Math.round(s)} → revendu ${v}  ← ${Array.isArray(r.need) ? r.need.join(' + ') : Object.entries(r.need).map(([k, n]) => n + ' ' + k).join(' + ')}`);
   return out;
 }
 
@@ -231,15 +295,20 @@ function cueillette(D, v, dens) {
   }
   return out;
 }
-function secouer(D, v, dens) {
+function secouer(J, D, v, dens) {
+  // 13-main.js shakeTree : des pommes au pommier ; ailleurs, parfois un nid, une plume, une graine (butin « arbre »)
+  const src = lireSource(J, '13-main.js');
+  const [, pa, pb] = src.match(/got = \[\['pomme', (\d+) \+ Math\.floor\(Math\.random\(\) \* (\d+)\)\]\]/);
+  const pArbre = +src.match(/else if \(Math\.random\(\) < ([\d.]+)\) got = rollLoot\('arbre'\)/)[1];
+  const pommes = +pa + (+pb - 1) / 2;
   const out = [];
   for (const id in dens) {
     const H = D.HARVEST[id];
     if (!H || H.tool !== 'hache') continue;
     let val = 0;
-    if (id === 'apple') val = 2 * v('pomme');                       // 13-main.js shakeTree : 1 à 3 pommes
+    if (id === 'apple') val = pommes * v('pomme');
     else if (H.fruit) val = moyenne([H.fruit], v);                   // 11-zzvallee.js : les fruitiers
-    else if (['oak', 'birch', 'pine'].includes(id)) val = 0.45 * esperance(D, 'arbre', v);
+    else if (['oak', 'birch', 'pine'].includes(id)) val = pArbre * esperance(D, 'arbre', v);
     else continue;
     const t = temps(dens[id].nn);
     out.push({ id, val, t, parS: val / t, n: dens[id].n, pres: dens[id].pres });
@@ -319,7 +388,7 @@ async function rendements(J, log, opts = {}) {
     const pres = Q.filter((q) => q.pres > 0), totV = pres.reduce((a, q) => a + q.pres * q.val, 0), totT = pres.reduce((a, q) => a + q.pres * q.t, 0);
     const melange = totV / totT;
     log(`Cueillette mêlée près de la ferme (tout ce qui pousse à moins de 600 m, au prorata) : ${f2(melange)} pièce/s, ${Math.round(melange * jourS)} /jour.`);
-    const S = secouer(D, v, dens).sort((a, b) => b.parS - a.parS);
+    const S = secouer(J, D, v, dens).sort((a, b) => b.parS - a.parS);
     log('\n## Arbres secoués (une fois par jour et par arbre)');
     for (const s of S) log(`${s.id.padEnd(12)} ${f1(s.val).padStart(6)} par arbre, ${f1(s.t)} s  → ${f2(s.parS)} pièce/s   (${s.n} arbres, ${s.pres} à moins de 600 m)`);
     const Bu = bucheron(D, v, dens), Ca = carrier(D, v, dens);
@@ -346,8 +415,12 @@ module.exports = {
     log('\n# 1. Achat-revente (tous les points d’achat et de vente, amitié 0 à 10)');
     const B = boucles(J, c, log);
     if (B.length) echecs++;
+    log('\n# 1 bis. Les tables d’étal, sans le garde-fou');
+    if (etalsSolides(J, c, log).length) echecs++;
+    log('\n# 2. Transformations : acheter, fabriquer, revendre');
+    if (transformations(J, c, log).length) echecs++;
     log('\n# 3. Rendements (modèle)');
-    await rendements(J, log);
+    await rendements(J, log, { sansVallee: !!process.env.EQ_RAPIDE });   // EQ_RAPIDE=1 : sans générer la vallée (densités)
     return { echecs };
   },
 };

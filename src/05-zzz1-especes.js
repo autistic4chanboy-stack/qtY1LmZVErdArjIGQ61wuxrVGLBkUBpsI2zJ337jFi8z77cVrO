@@ -60,7 +60,7 @@ const PLANTES3 = [
 ];
 {
   const IC = { lys_cimes: ['c2_fleur', '#f4f8ff', '#b0c8e0'], mousse_nains: ['lichen', '#d8b040'], asphodele: ['c2_fleur', '#f0e0e8', '#c07890'], fleur_temple: ['c2_fleur', '#9a9a98', '#5a5a58'] };
-  const PRIX = [6, 14, 30, 60, 120];
+  const PRIX = [1, 2, 5, 12, 25]; // selon la rareté (équilibrage : était 6, 14, 30, 60, 120)
   for (const [id, name, single, h, drop, hab, rar, fx] of PLANTES3) {
     OBJ_TYPES.push({ id, name, cat: 'Fleurs', spr: ['w3_' + id], h, col: 0, sway: 0.12, spacing: 0.9, sink: 0.04 });
     HARVEST[id] = { tool: 'main', hp: 0, drop: [drop], regrow: 48 };
@@ -76,17 +76,17 @@ PLANTES_BANALES.add('pissenlit');
 
 // ---------------------------------------------------------------- poissons des eaux nouvelles
 Object.assign(FISH, {
-  carpe_miroir: { name: 'Carpe miroir', price: 45, where: ['douves', 'etang'], time: 'tout', w: 3, col: '#b89a4a' },
-  brochet_douves: { name: 'Le vieux brochet des douves', price: 380, where: ['douves'], time: 'nuit', w: 0.15, col: '#4a5a3a' },
-  truite_arc: { name: 'Truite arc-en-ciel', price: 60, where: ['riviere', 'lac'], time: 'jour', w: 1.2, col: '#c89090' },
-  poisson_source: { name: 'Poisson des sources', price: 35, where: ['bains'], time: 'tout', w: 4, col: '#e0c8a0' },
-  anguille_argent: { name: 'Anguille d’argent', price: 160, where: ['bains', 'souterrain'], time: 'nuit', w: 0.5, col: '#d0d8e0' },
-  ecrevisse_aveugle: { name: 'Écrevisse aveugle', price: 55, where: ['souterrain'], time: 'tout', w: 2, col: '#f0e8e0' },
-  truite_pierre: { name: 'Truite de pierre', price: 90, where: ['souterrain'], time: 'tout', w: 1.5, col: '#8a8a88' },
-  poisson_ancien: { name: 'Poisson des Anciens', price: 1200, where: ['temple'], time: 'tout', w: 0.08, col: '#e8d080' },
-  lamproie: { name: 'Lamproie', price: 40, where: ['riviere', 'douves'], time: 'nuit', w: 1.5, col: '#5a5048' },
-  gremille: { name: 'Grémille', price: 14, where: ['lac', 'etang', 'douves'], time: 'jour', w: 4, col: '#9a9a6a' },
-  blennie: { name: 'Blennie des sources', price: 22, where: ['bains', 'riviere'], time: 'jour', w: 3, col: '#8a9a7a' },
+  carpe_miroir: { name: 'Carpe miroir', price: 11, where: ['douves', 'etang'], time: 'tout', w: 3, col: '#b89a4a' },
+  brochet_douves: { name: 'Le vieux brochet des douves', price: 85, where: ['douves'], time: 'nuit', w: 0.15, col: '#4a5a3a' },
+  truite_arc: { name: 'Truite arc-en-ciel', price: 15, where: ['riviere', 'lac'], time: 'jour', w: 1.2, col: '#c89090' },
+  poisson_source: { name: 'Poisson des sources', price: 9, where: ['bains'], time: 'tout', w: 4, col: '#e0c8a0' },
+  anguille_argent: { name: 'Anguille d’argent', price: 30, where: ['bains', 'souterrain'], time: 'nuit', w: 0.5, col: '#d0d8e0' },
+  ecrevisse_aveugle: { name: 'Écrevisse aveugle', price: 12, where: ['souterrain'], time: 'tout', w: 2, col: '#f0e8e0' },
+  truite_pierre: { name: 'Truite de pierre', price: 18, where: ['souterrain'], time: 'tout', w: 1.5, col: '#8a8a88' },
+  poisson_ancien: { name: 'Poisson des Anciens', price: 200, where: ['temple'], time: 'tout', w: 0.08, col: '#e8d080' },
+  lamproie: { name: 'Lamproie', price: 10, where: ['riviere', 'douves'], time: 'nuit', w: 1.5, col: '#5a5048' },
+  gremille: { name: 'Grémille', price: 4, where: ['lac', 'etang', 'douves'], time: 'jour', w: 4, col: '#9a9a6a' },
+  blennie: { name: 'Blennie des sources', price: 6, where: ['bains', 'riviere'], time: 'jour', w: 3, col: '#8a9a7a' },
 });
 for (const id of ['carpe_miroir', 'brochet_douves', 'truite_arc', 'poisson_source', 'anguille_argent', 'ecrevisse_aveugle', 'truite_pierre', 'poisson_ancien', 'lamproie', 'gremille', 'blennie']) {
   defItem(id, FISH[id].name, 'poisson', FISH[id].price, ['poisson', FISH[id].col], { food: 6, heal: 2, raw: true });
@@ -170,13 +170,13 @@ Object.assign(POTIONS, {
 });
 for (const id of ['fiole_poison', 'potion_chaleur', 'potion_sang_froid', 'potion_regeneration', 'baume_moelle', 'eau_lustrale', 'potion_givre', 'philtre_morts', 'appat_empoisonne', 'fiel_noir', 'potion_soleil', 'potion_peau_pierre', 'potion_memoire', 'potion_songe']) {
   const P = POTIONS[id];
-  defItem(id, P.name, 'potion', 60 + (P.h > 6 ? 30 : 0), ['fiole', P.col], { potion: id, desc: P.desc });
+  defItem(id, P.name, 'potion', 10 + (P.h > 6 ? 6 : 0), ['fiole', P.col], { potion: id, desc: P.desc });
 }
-ITEMS.baume_moelle.price = 180; ITEMS.eau_lustrale.price = 150; ITEMS.fiel_noir.price = 5; ITEMS.fiole_poison.price = 20; ITEMS.appat_empoisonne.price = 25;
+ITEMS.baume_moelle.price = 20; ITEMS.eau_lustrale.price = 20; ITEMS.fiel_noir.price = 2; ITEMS.fiole_poison.price = 4; ITEMS.appat_empoisonne.price = 5;
 // ingrédients en plus
-defItem('graisse_ours', 'Graisse d’ours', 'materiau', 40, ['pot', '#e8d8a8'], { alch: true, desc: 'Contre le froid, dit-on, et contre les engelures.' });
-defItem('griffe_ours', 'Griffe d’ours', 'materiau', 55, ['croc', '#3a2a20'], { alch: true, desc: 'Longue comme un doigt, et bien plus dure.' });
-defItem('sel', 'Sel', 'materiau', 4, ['sachet', '#f0f0f0'], { alch: true, desc: 'Du sel gris, en gros grains. Il conserve, et il protège, disent les vieux.' });
-defItem('cendre_sacree', 'Cendre sacrée', 'materiau', 60, ['sachet', '#8a8078'], { alch: true, desc: 'Ramassée au pied de l’autel d’un temple que personne ne connaît.' });
-defItem('poussiere_etoile', 'Poussière d’étoile', 'materiau', 200, ['sachet', '#d0d8ff'], { alch: true, desc: 'Tombée du ciel une nuit d’étoiles filantes. Elle brille encore un peu.' });
+defItem('graisse_ours', 'Graisse d’ours', 'materiau', 10, ['pot', '#e8d8a8'], { alch: true, desc: 'Contre le froid, dit-on, et contre les engelures.' });
+defItem('griffe_ours', 'Griffe d’ours', 'materiau', 12, ['croc', '#3a2a20'], { alch: true, desc: 'Longue comme un doigt, et bien plus dure.' });
+defItem('sel', 'Sel', 'materiau', 2, ['sachet', '#f0f0f0'], { alch: true, desc: 'Du sel gris, en gros grains. Il conserve, et il protège, disent les vieux.' });
+defItem('cendre_sacree', 'Cendre sacrée', 'materiau', 25, ['sachet', '#8a8078'], { alch: true, desc: 'Ramassée au pied de l’autel d’un temple que personne ne connaît.' });
+defItem('poussiere_etoile', 'Poussière d’étoile', 'materiau', 70, ['sachet', '#d0d8ff'], { alch: true, desc: 'Tombée du ciel une nuit d’étoiles filantes. Elle brille encore un peu.' });
 for (const id of Object.keys(ESSENCES)) if (ITEMS[id] && !ITEMS[id].alch && id !== 'viande' && id !== 'oeuf' && id !== 'lait' && id !== 'miel' && id !== 'carpe') ITEMS[id].alch = true;
