@@ -87,8 +87,8 @@ peut pas acheter de bêtes. (Les parties commencées avant cette version gardent
   habitants de métier (« Vous pourriez m'apprendre à fabriquer quelque chose ? »).
 - **Machines** : tonneau, baratte, fumoir, presse, meule à bras, composteur. On y dépose des produits (E), on revient
   quelques heures plus tard chercher cidre, vin, beurre, fromage, huile, jus, farine, fumaisons ou engrais.
-- **Fouille** (jamais chez les habitants) : coffres, tonneaux et caisses des campements, ruines, hameau, chapelle, phare,
-  mines, barques et charrettes renversées se remplissent de nouveau au bout de 3 jours. Chaque matin, de la terre
+- **Fouille** : coffres, tonneaux et caisses des campements, ruines, hameau, chapelle, phare, mines, barques et
+  charrettes renversées se remplissent de nouveau au bout de 3 jours (chez les habitants, c'est voler : voir « Fouiller »). Chaque matin, de la terre
   remuée apparaît çà et là : on y creuse à la houe. Secouer un arbre (E) fait tomber fruits, nids ou graines.
 - **Commerce** : on achète et vend chez les habitants (Maj+clic : par 5, Ctrl+clic : par 20, bouton « Tout vendre ») ;
   la caisse d'expédition est relevée chaque matin (« Tout déposer »).
@@ -187,6 +187,43 @@ Les commandes sont dans le menu **Commandes** (Échap).
   Jalousie si l'on en courtise deux ; la mort de l'être aimé pèse lourd sur l'esprit.
 - **Les douves** de la ville : on peut y descendre, y nager, et en ressortir par les échelles.
 
+**Dormir, se loger, fouiller, s'occuper**
+- **Dormir à toute heure**, dans chaque lit de la vallée (une quarantaine : la ferme, les maisons, les chambres de
+  l'auberge, les lieux abandonnés) : E sur le lit, « Dormir ici », et l'on se réveille le lendemain à six heures (le jour,
+  le jeu le demande d'abord). La chambre de l'auberge se loue à l'aubergiste. Dans le lit de quelqu'un : s'il est là, il
+  proteste ; s'il rentre pendant la nuit, il vous trouve (amitié en chute, intrusion, et dehors).
+- **Plus d'évanouissement** à trois heures du matin : à la place, la **fatigue**. Après seize heures debout, les
+  paupières s'alourdissent, la vue se voile, l'endurance revient moins vite, la mentalité s'abîme plus vite et l'étrange
+  se montre davantage ; très tard, les yeux se ferment tout seuls, une seconde. Une nuit de sommeil efface tout.
+- **Louer une maison en ville** : trois maisons à louer (la maison Vernet, la maison Delorme contre le rempart, la maison
+  du Rempart au nord-est), avec un écriteau « À louer » devant chacune (E : le prix à la semaine de douze jours) ; le
+  maire s'en occupe aussi. Le locataire a la clé (la porte se referme à clé derrière lui), le lit et un coffre cerclé de
+  fer. Loyer dû chaque semaine : avis d'échéance, lettre de rappel au troisième jour de retard, expulsion au sixième (le
+  coffre est saisi, on le reprend à la mairie contre la dette). « Rendre les clés » quand on veut.
+- **Crocheter** : avec un jeu de crochets (le colporteur, le forgeron, ou l'établi), E sur une porte fermée à clé :
+  « Frapper » ou « Crocheter ». Petit jeu d'adresse : les goupilles montent et descendent, on cale chacune quand elle
+  affleure la ligne (Espace, E ou clic) ; plus la serrure est bonne, plus elles sont nombreuses et rapides. Un raté fait
+  du bruit (l'habitant peut se réveiller, un passant peut voir) et peut casser un crochet ; fatigué ou ivre, les mains
+  tremblent. Vu : c'est une effraction. De l'intérieur, une porte fermée à clé s'ouvre toujours (le verrou).
+- **La poterne** du rempart est : une petite porte qui s'ouvre **de l'intérieur seulement** — on sort de la ville même
+  ponts levés, elle se referme derrière soi ; dehors, ni serrure ni poignée. Pour rentrer : les douves et leurs échelles.
+- **De vraies portes** : planches, pentures, clous, serrures et encadrements, différentes selon la maison (ferme,
+  maisons de ville peintes, boutiques vitrées, auberge cloutée, mairie, garde bardée de fer, bibliothèque et église à
+  deux battants, roulottes).
+- **Fouiller** : plus de cent endroits dans la ville, le hameau et les lieux habités (armoires, commodes, buffets, malles,
+  secrétaire et coffre-fort de la mairie, tiroirs-caisses, cave de l'auberge par la trappe, pétrin, casiers de la poste,
+  sacristie et tronc des pauvres, apothicaire, sellerie, charrettes, étals, poulaillers, poubelles…). Chacun a son butin
+  (objets du quotidien, pièces, nourriture, outils, parfois un objet rare) et souvent des lettres et papiers intimes qui
+  racontent les habitants (onglet Lettres de la sacoche). Chez quelqu'un, c'est voler : vu, l'amitié chute et le garde
+  accourt ; pas vu, l'habitant se plaint le lendemain. Certains meubles ferment à clé (une clé trouvée ou volée, ou les
+  crochets). Sept **cachettes** n'apparaissent qu'à qui a lu le bon papier. Tout se remplit avec le temps.
+- **Des choses à faire** : à Valbrume, les dés et le vingt-et-un de l'auberge (gare aux dés pipés), le bras de fer, la
+  tournée payée, la veillée du Veilledi (contes au coin du feu), le tableau des petits travaux de la mairie, le puits aux
+  souhaits, la diseuse de bonne aventure (qui lit l'almanach), le crieur public, le violoneux des rues, la vue du clocher,
+  les cierges, les tombes qu'on fleurit, les étals du Marchedi (brocanteur, curiosités, grainier des Monts, fromagère) ;
+  à Clairpré, le jeu de quilles, le four banal et la tombola du Foiredi ; ailleurs, le concours de tir du Chassedi au
+  relais de chasse et le concours de pêche du Pêchedi au ponton.
+
 **Chasse et attelage**
 - **Fusil de chasse à lunette** (le chasseur le vend, ou on le fabrique) : bouton droit maintenu pour viser (la respiration
   fait danser le réticule, Maj retient le souffle), clic pour tirer, une cartouche par coup. Les bêtes abattues se dépècent
@@ -284,9 +321,10 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzz6*.js` | mentalité, ce qu'on mange, le chien, l'alcool |
 | `11-zzz7*.js` | autres mondes : pays des bonbons, Ténèbres, cauchemar, Enfers |
 | `11-zzz8*.js` | objets légendaires et mythiques, l'Homme long, la Fondation |
-| `11-zzz9*.js` | vol à la tire, prison (cachot, rançon, carrière, évasion), sentiments |
+| `11-zzz9*.js` | vol à la tire, prison (cachot, rançon, carrière, évasion), sentiments ; sommeil et fatigue, lits, maisons à louer, crochetage et poterne, fouilles et cachettes, activités des villes et villages |
+| `07-zzzzzzz-portes.js` | les portes (modèles selon le bâtiment, trois niveaux de détail) |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
-| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) |
+| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus bas) |
 | `shell.html` | HTML + CSS |
 
 Après une modification, régénérer le fichier unique :
