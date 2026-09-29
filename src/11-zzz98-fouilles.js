@@ -815,7 +815,8 @@ const fouilles = {
     if (d.cle && farm.count(d.cle)) { S.ouverts[it.id] = s.day; sound.lock && sound.lock(false); ui.subtitle('', '(La clé tourne sans un bruit. Clic.)', 2.5); return true; }
     if (typeof crochetage !== 'undefined' && crochetage && typeof crochetage.tenter === 'function') {
       let ok = false;
-      try { ok = await crochetage.tenter({ difficulte: d.lock, bruit: Math.min(1, 0.25 + d.lock * 0.12), x: it.x, z: it.z, proprietaire: d.own || null }); } catch (e) { console.error('crochetage', e); ok = false; }
+      const titre = String(it.name || '').replace(/^(Fouiller|Ouvrir|Forcer|Descendre à) (le |la |les |l’)?/, (m0, v, art) => (art || '')).replace(/^./, (c) => c.toUpperCase());
+      try { ok = await crochetage.tenter({ difficulte: d.lock, bruit: Math.min(1, 0.25 + d.lock * 0.12), x: it.x, z: it.z, proprietaire: d.own || null, titre }); } catch (e) { console.error('crochetage', e); ok = false; }
       if (ok) { S.ouverts[it.id] = s.day; return true; }
       return false;
     }

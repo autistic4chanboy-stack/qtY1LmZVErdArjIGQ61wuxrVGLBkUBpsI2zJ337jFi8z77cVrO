@@ -171,8 +171,9 @@ Object.assign(PROP_MODELS, {
   // la tente de la diseuse (ouverte à l'avant, +z), un tabouret, une petite table, une bougie
   tente_diseuse(E) {
     const c = rgbf('#5a1a2a'), c2 = rgbf('#8a6a2a');
-    E.box(-0.82, 1.05, 0, 0.08, 2.35, 2.2, c, TL.cloth2, 0, 0, 0.4); E.box(0.82, 1.05, 0, 0.08, 2.35, 2.2, c, TL.cloth2, 0, 0, -0.4);
-    E.bx(0, 0, -1.08, 2.0, 2.0, 0.06, c, TL.cloth2); E.bx(0, 2.05, 0, 0.12, 0.12, 2.3, WHITE, TL.darkwood);
+    E.box(-0.82, 1.05, 0, 0.08, 2.35, 2.2, c, TL.cloth2, 0, 0, -0.4); E.box(0.82, 1.05, 0, 0.08, 2.35, 2.2, c, TL.cloth2, 0, 0, 0.4);
+    E.bx(0, 2.08, 0, 0.9, 0.06, 2.2, c, TL.cloth2);
+    E.bx(0, 0, -1.08, 2.4, 1.1, 0.06, c, TL.cloth2); E.bx(0, 1.1, -1.08, 1.6, 0.6, 0.06, c, TL.cloth2); E.bx(0, 1.7, -1.08, 0.95, 0.4, 0.06, c, TL.cloth2); E.bx(0, 2.05, 0, 0.12, 0.12, 2.3, WHITE, TL.darkwood);
     for (const s of [-1, 1]) E.box(s * 0.62, 1.0, 1.1, 0.42, 2.0, 0.05, c, TL.cloth2, s * 0.35);
     for (let i = 0; i < 9; i++) E.box(-0.72 + i * 0.18, 2.1 - Math.abs(i - 4) * 0.11, 1.14, 0.06, 0.1, 0.02, c2, TL.plain);
     E.bx(0, 0, -0.35, 0.4, 0.45, 0.4, WHITE, TL.darkwood);
@@ -372,6 +373,7 @@ function activitesGen(w, seed) {
     const libreArbres = (x, z, r) => !arbres.some((o) => Math.hypot(o.x - x, o.z - z) < r);
     let cible = null;
     for (let d = 14; d <= 20 && !cible; d += 2) for (const lat of [0, -3, 3, -6, 6]) {
+      if (cible) break;
       const [x, z] = B.toWorld(f, lat, -re.D / 2 - d), y = w.heightAt(x, z);
       if (Math.abs(y - f.y) > 2.5 || y < WL + 0.4 || !pointFree(w, x, z, 0.8) || !libreArbres(x, z, 1.6)) continue;
       const [sx, sz] = B.toWorld(f, lat * 0.2, -re.D / 2 - 2.5);
