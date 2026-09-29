@@ -21,9 +21,11 @@
 //  - Le fermier mort attend le fermier suivant, là où il est tombé, avec ce
 //    qu'il avait en poche (localStorage 'prairie.depouilles', d'une partie à
 //    l'autre) ; enterré, son tertre reste pour ceux qui viennent après.
+//  - Un géant abattu (11-zzz51 le couchait déjà) passe par les mêmes jours,
+//    plus lentement ; sa besace se fouille ; on ne l'enterre pas.
 //  État : farm.s.depouilles = { v, n, corps: [{ id, t: 'npc'|'chien'|'chasseur'|
-//         'fermier', x, y, z, r, pose, j (jour de la mort), cause, qui, nom, poches,
-//         … }], vus: { 'pnj:id': jour }, importe }
+//         'fermier'|'geant', x, y, z, r, pose, j (jour de la mort), cause, qui, nom,
+//         poches, … }], vus: { 'pnj:id': jour }, importe }
 //  API : depouilles (liste(), stade(rec), ajouter(o), fouiller(rec), enterrer(rec),
 //        pres(x, z, r), D() (les fermiers morts), noterFermier(cause)…)
 // ============================================================================
@@ -44,6 +46,7 @@ const DEP_POCHES = {
   naturiste_a: { nu: true }, naturiste_b: { nu: true }, naturiste_c: { nu: true },
 };
 const DEP_CHASSEUR = { b: [4, 18], m: ['cartouche', 'tabac', 'pain', 'corde'], p: ['couteau_poche', 'tabatiere'] };
+const DEP_GEANT = { b: [0, 0], m: ['os', 'fossile', 'plume_aigle', 'vieille_piece'], p: ['gemme'] }; // sa besace : ce qu'il trouvait là-haut
 const DEP_CRIS = [
   'Vous fouillez un mort ?! Au garde !',
   'Sacrilège ! On ne détrousse pas les morts !',
@@ -84,8 +87,10 @@ const depouilles = {
   liste() { const S = this.S(); return S ? S.corps : []; },
   // les corps à moins de r mètres d'un point
   pres(x, z, r) { return this.liste().filter((c) => Math.hypot(c.x - x, c.z - z) < (r || 3)); },
-  // 0 : le jour même ; 1 : cire (1-2 jours) ; 2 : restes (3-6) ; 3 : os
-  stade(rec) { const a = farm.s.day - rec.j; return a <= 0 ? 0 : a <= 2 ? 1 : a <= 6 ? 2 : 3; },
+  // 0 : le jour même ; 1 : cire (1-2 jours) ; 2 : restes (3-6) ; 3 : os (un géant : deux fois plus lentement)
+  stade(rec) { const a = (farm.s.day - rec.j) / (rec.t === 'geant' ? 2 : 1); return a <= 0 ? 0 : a <= 2 ? 1 : a <= 6 ? 2 : 3; },
+  geant(rec) { return rec.t === 'geant'; },
+  taille(rec) { return rec.t === 'geant' ? rec.s || 4.4 : 1; },
   npc(rec) { return rec.t === 'npc' ? npcs.byId[rec.qui] || null : null; },
   fem(rec) { if (rec.t === 'npc') { const d = NPC_BY_ID[rec.qui]; return !!(d && d.gender === 'f'); } return !!rec.fem; },
   enfant(rec) { const d = rec.t === 'npc' && NPC_BY_ID[rec.qui]; return !!(d && (d.age || 30) < 14); },
@@ -106,7 +111,7 @@ const depouilles = {
     const S = this.S(), s = farm.s, w = game.world;
     if (!S || !w || !isFinite(o.x) || !isFinite(o.z)) return null;
     const rec = { id: o.id || 'c' + (++S.n), t: o.t, j: o.j ?? s.day, cause: o.cause || null };
-    for (const k of ['qui', 'nom', 'v', 'fem', 'run', 'poches', 'masque', 'nomConnu']) if (o[k] !== undefined && o[k] !== null) rec[k] = o[k];
+    for (const k of ['qui', 'nom', 'v', 'fem', 'run', 'poches', 'masque', 'nomConnu', 'i', 's']) if (o[k] !== undefined && o[k] !== null) rec[k] = o[k];
     const H = hashString(rec.id + ':' + (rec.qui || rec.t) + ':' + (s.seed | 0)) >>> 0;
     rec.pose = o.pose || (rec.t === 'chien' ? 'cote' : ['dos', 'ventre', 'cote'][H % 3]);
     const lit = rec.pose === 'lit';
@@ -114,17 +119,17 @@ const depouilles = {
     if (!lit) {
       const h = w.heightAt(x, z), g = w.groundAt(x, z, (isFinite(y) ? y : h) + 0.6, 0.8);
       y = g > -1e8 ? g : isFinite(y) ? y : h;
-      if (rec.t !== 'chien') r = this.cap(x, z, y, r, 0.85);
+      if (rec.t !== 'chien' && rec.t !== 'geant') r = this.cap(x, z, y, r, 0.85);
     }
     rec.x = depR2(x); rec.y = depR2(y); rec.z = depR2(z); rec.r = depR2(r);
     // sur la terre, dehors : il épouse la pente
     if (!lit && Math.abs(w.heightAt(x, z) - y) < 0.3 && !w.covered(x, y + 1.0, z)) {
       rec.sol = 1;
-      const L = rec.t === 'chien' ? 0.4 : 0.85, sx = Math.sin(r), cz = Math.cos(r), lx = Math.cos(r), lz = -Math.sin(r);
+      const k = this.taille(rec), L = (rec.t === 'chien' ? 0.4 : 0.85) * k, sx = Math.sin(r), cz = Math.cos(r), lx = Math.cos(r), lz = -Math.sin(r);
       const hH = w.heightAt(x + sx * L, z + cz * L), hF = w.heightAt(x - sx * L, z - cz * L);
-      const hR = w.heightAt(x + lx * 0.3, z + lz * 0.3), hL = w.heightAt(x - lx * 0.3, z - lz * 0.3);
+      const hR = w.heightAt(x + lx * 0.3 * k, z + lz * 0.3 * k), hL = w.heightAt(x - lx * 0.3 * k, z - lz * 0.3 * k);
       rec.pa = depR2(clamp(Math.atan2(hH - hF, 2 * L), -0.5, 0.5));
-      rec.pl = depR2(clamp(Math.atan2(hR - hL, 0.6), -0.4, 0.4));
+      rec.pl = depR2(clamp(Math.atan2(hR - hL, 0.6 * k), -0.4, 0.4));
     }
     S.corps.push(rec);
     this.cache.delete(rec.id);
@@ -202,6 +207,26 @@ const depouilles = {
     if (rec) { rec.vu0 = 1; rec.vs = 0; rec.vj = farm.s.day; }
     return rec;
   },
+  // un géant abattu (11-zzz51) : il tombe à la renverse, là où il était ; m : son entrée dans farm.s.lieux.geants.morts
+  geantMort(g, m, vu) {
+    const S = this.S();
+    if (!S || !game.world || typeof GEANT_LOOKS === 'undefined' || !GEANT_LOOKS[g.i] || S.corps.some((c) => c.t === 'geant' && c.i === g.i)) return null;
+    const rec = this.ajouter({ id: 'g' + g.i, t: 'geant', i: g.i, s: GEANT_TAILLES[g.i] || 4.4, fem: GEANT_LOOKS[g.i].dress ? 1 : 0, nom: GEANT_NOMS[g.i] || null, x: g.x, y: g.y, z: g.z, r: (g.heading || 0) + Math.PI, pose: 'dos', cause: 'joueur', j: m && isFinite(m.day) ? m.day : farm.s.day });
+    if (rec && vu) { rec.vu0 = 1; rec.vs = 0; rec.vj = farm.s.day; }
+    return rec;
+  },
+  // les géants morts avant ce module, ou par un autre chemin
+  migrerGeants() {
+    const L = farm.s.lieux;
+    if (typeof lieux === 'undefined' || !L || !L.geants || !Array.isArray(L.geants.morts)) return;
+    for (const m of L.geants.morts) {
+      const g = lieux.geants.find((q) => q.i === m.i) || { i: m.i, x: m.x, z: m.z, heading: m.h || 0 };
+      if (!isFinite(g.y)) g.y = game.world.heightAt(g.x, g.z);
+      this.geantMort(g, m);
+    }
+  },
+  // les géants couchés par ce module ne sont plus dessinés par lieux.drawGeants
+  geantCouche(g) { const S = farm.s && farm.s.depouilles; return !!(g.mort && S && S.corps && S.corps.some((c) => c.t === 'geant' && c.i === g.i)); },
 
   // ------------------------------------------------------------------ le fermier mort, pour celui qui vient après
   D() { const D = store.get(DEP_KEY, null); return D && Array.isArray(D.corps) ? D : { v: 1, corps: [] }; },
@@ -285,6 +310,7 @@ const depouilles = {
     }
     if (rec.t === 'chasseur') return Object.assign({}, typeof SOC_CHASSEUR_LOOK !== 'undefined' ? SOC_CHASSEUR_LOOK : DEP_FERMIER, { held: null });
     if (rec.t === 'fermier') return Object.assign({}, rec.fem ? DEP_FERMIERE : DEP_FERMIER);
+    if (rec.t === 'geant') return typeof GEANT_LOOKS !== 'undefined' && GEANT_LOOKS[rec.i] ? Object.assign({}, GEANT_LOOKS[rec.i], { held: null }) : null;
     return null;
   },
   lookStade(look, st) {
@@ -442,7 +468,7 @@ const depouilles = {
       const hipY = rig.hipY || 0.88;
       if (rig.has('hips')) rig.part('hips').p[1] = hipY;
       this.poser(rig, rec.pose);
-      s = look.height || 1;
+      s = rec.t === 'geant' ? this.taille(rec) : look.height || 1;
       F0 = depMul(depMat(0, 0, 0, 0, 0, -hipY), depMul(DEP_L, depMat(0, DEP_ROLL[rec.pose] || 0, 0)));
       core = DEP_CORE;
     }
@@ -479,11 +505,12 @@ const depouilles = {
   draw(buf, sbuf, cam) {
     const S = this.S();
     if (!S || !S.corps.length || this.cachesMonde()) return;
-    const sky = game.sky, maxD = Math.min(95, (sky ? sky.fog[1] : 150) + 12), m2 = maxD * maxD;
+    const sky = game.sky, fog = sky ? sky.fog[1] : 150, maxD = Math.min(95, fog + 12), m2 = maxD * maxD;
+    const gD = Math.max(160, Math.min(600, fog + 80)), g2 = gD * gD; // un géant se voit de loin (comme dans 11-zzz51)
     const tg = game.target && game.target.depouille;
     for (const rec of S.corps) {
       const dx = rec.x - cam[0], dz = rec.z - cam[2];
-      if (dx * dx + dz * dz > m2 || Math.abs(rec.y - cam[1]) > 45) continue;
+      if (rec.t === 'geant' ? dx * dx + dz * dz > g2 : dx * dx + dz * dz > m2 || Math.abs(rec.y - cam[1]) > 45) continue;
       const R = this.rt(rec);
       if (!R) continue;
       if (tg === rec || !R.inst) { drawRigM(buf, R.rig, R.M, tg === rec ? FX_HI : 0); continue; } // (visé : en surbrillance)
@@ -510,6 +537,10 @@ const depouilles = {
   etiquette(rec) {
     const nom = this.nom(rec), pelle = this.pelleEnMain();
     if (rec.t === 'chien') return `Enterrer ${rec.nom || 'le chien'}`;
+    if (rec.t === 'geant') {
+      if (!pelle && this.aDesPoches(rec)) return rec.fem ? 'Fouiller la besace de la géante' : 'Fouiller la besace du géant';
+      return pelle ? (rec.fem ? 'Enterrer la géante' : 'Enterrer le géant') : null;
+    }
     if (!pelle && this.aDesPoches(rec)) return nom ? (depElide(nom) ? `Fouiller le corps d’${nom}` : `Fouiller le corps de ${nom}`) : 'Fouiller le corps';
     if (pelle || farm.bestTool('pelle')) return nom ? `Enterrer ${nom}` : 'Enterrer le corps';
     return 'Enterrer le corps (il faudrait une pelle)';
@@ -518,29 +549,34 @@ const depouilles = {
     const S = this.S();
     if (!S || !S.corps.length || this.cachesMonde()) return;
     const w = game.world;
-    let best = null, bt = 2.9;
+    let best = null, bt = 2.9, lab = null;
     for (const rec of S.corps) {
-      if (Math.abs(rec.x - eye[0]) > 4 || Math.abs(rec.z - eye[2]) > 4 || Math.abs(rec.y - eye[1]) > 3.5) continue;
+      // (un géant : le corps est long comme une grange ; on vise plus large, et de plus loin)
+      const k = this.taille(rec), G = k > 1, lim = G ? 3 + 0.95 * k : 4;
+      if (Math.abs(rec.x - eye[0]) > lim || Math.abs(rec.z - eye[2]) > lim || Math.abs(rec.y - eye[1]) > 3.5 + (G ? 0.4 * k : 0)) continue;
       const R = this.rt(rec);
       if (!R) continue;
-      const rad = rec.t === 'chien' ? 0.3 : 0.36;
-      for (let i = 0; i <= 4; i++) {
-        const k = i / 4, A = k <= 0.5 ? R.pts[0] : R.pts[1], B = k <= 0.5 ? R.pts[1] : R.pts[2], u = k <= 0.5 ? k * 2 : (k - 0.5) * 2;
+      const e = this.etiquette(rec);
+      if (!e) continue;
+      const rad = rec.t === 'chien' ? 0.3 : G ? 0.3 * k : 0.36, N = G ? 8 : 4, tMax = G ? 2.9 + rad : 2.9;
+      for (let i = 0; i <= N; i++) {
+        const q = i / N, A = q <= 0.5 ? R.pts[0] : R.pts[1], B = q <= 0.5 ? R.pts[1] : R.pts[2], u = q <= 0.5 ? q * 2 : (q - 0.5) * 2;
         const px = lerp(A[0], B[0], u) - eye[0], py = lerp(A[1], B[1], u) - eye[1], pz = lerp(A[2], B[2], u) - eye[2];
         const tt = px * f[0] + py * f[1] + pz * f[2];
-        if (tt < 0.2 || tt >= bt) continue;
+        if (tt < 0.2 || tt >= Math.min(tMax, best ? bt : tMax)) continue;
         const qx = px - f[0] * tt, qy = py - f[1] * tt, qz = pz - f[2] * tt;
         if (qx * qx + qy * qy + qz * qz > rad * rad) continue;
         const d = Math.hypot(px, py, pz) || 1, bh = w.raycastBlocks(eye, [px / d, py / d, pz / d], d - 0.25);
         if (bh && !(bh.block && bh.block.hidden)) continue;
-        bt = tt; best = rec;
+        bt = tt; best = rec; lab = e;
       }
     }
     // un regard posé sur le corps l'emporte sur ce qui est dessous (le lit, visé par 11-zzz95, l'herbe…)
-    if (best) cand({ kind: 'hook', use: () => this.utiliser(best), depouille: best, f2lab: this.etiquette(best) }, Math.max(0.25, bt * 0.5));
+    if (best) cand({ kind: 'hook', use: () => this.utiliser(best), depouille: best, f2lab: lab }, Math.max(0.25, Math.min(bt, 2.9) * 0.5));
   },
   utiliser(rec) {
     if (!farm.s || !rec || game.sleeping || game.dying || (typeof cine !== 'undefined' && cine.on)) return;
+    if (rec.t === 'geant') return !this.pelleEnMain() && this.aDesPoches(rec) ? this.fouiller(rec) : this.enterrer(rec);
     if (this.pelleEnMain() || rec.t === 'chien') return this.enterrer(rec);
     if (this.aDesPoches(rec)) return this.fouiller(rec);
     if (farm.bestTool('pelle')) return this.enterrer(rec);
@@ -561,6 +597,7 @@ const depouilles = {
     let P = null;
     if (rec.t === 'npc') P = (typeof VOL_POCHES !== 'undefined' && VOL_POCHES[rec.qui]) || DEP_POCHES[rec.qui] || DEP_POCHES._;
     else if (rec.t === 'chasseur') P = DEP_CHASSEUR;
+    else if (rec.t === 'geant') P = DEP_GEANT;
     if (!P || P.nu) return out;
     if (P.b && P.b[1] > 0) add('argent', int(P.b[0], P.b[1]));
     const m = (P.m || []).slice();
@@ -574,6 +611,7 @@ const depouilles = {
   },
   titrePoches(rec) {
     if (rec.t === 'chasseur') return 'Les poches du chasseur de primes';
+    if (rec.t === 'geant') return rec.fem ? 'La besace de la géante' : 'La besace du géant';
     const nom = this.nom(rec);
     if (nom) return depElide(nom) ? `Les poches d’${nom}` : `Les poches de ${nom}`;
     return this.fem(rec) ? 'Les poches de l’inconnue' : 'Les poches de l’inconnu';
@@ -593,6 +631,7 @@ const depouilles = {
     }
     if (!rec.poches.length) {
       if (this.nu(rec)) ui.subtitle('', this.fem(rec) ? '(Elle n’a rien sur elle. Aux Sources, on ne porte rien.)' : '(Il n’a rien sur lui. Aux Sources, on ne porte rien.)', 3.5);
+      else if (rec.t === 'geant') ui.subtitle('', '(Sa besace est vide. Une besace où vous tiendriez tout entier.)', 3.5);
       else if (rec.t !== 'fermier' || !premier) ui.subtitle('', '(Ses poches sont vides.)', 3);
       return;
     }
@@ -612,7 +651,8 @@ const depouilles = {
     }
     rec.poches = [];
     this.syncFermier(rec);
-    ui.subtitle('', bits.length ? `(Dans ses poches : ${bits.join(', ')}.)` : '(Ses poches sont vides.)', 4);
+    const ou = rec.t === 'geant' ? 'Dans sa besace' : 'Dans ses poches';
+    ui.subtitle('', bits.length ? `(${ou} : ${bits.join(', ')}.)` : rec.t === 'geant' ? '(Sa besace est vide.)' : '(Ses poches sont vides.)', 4);
   },
   // le menu de butin a donné n « id » au fermier : on l'ôte des poches
   retirer(rec, id, n) {
@@ -693,6 +733,7 @@ const depouilles = {
   async enterrer(rec) {
     const s = farm.s, S = this.S();
     if (!S || !S.corps.includes(rec) || game.sleeping || game.dying) return;
+    if (rec.t === 'geant') { sound.click && sound.click(); ui.subtitle('', '(Il faudrait des jours, et dix hommes, pour lui creuser une fosse. On laisse les géants là où ils tombent.)', 5); return; }
     const chienRec = rec.t === 'chien';
     if (!chienRec && !farm.bestTool('pelle')) { sound.click && sound.click(); ui.subtitle('', '(Il faudrait une pelle pour lui creuser une tombe.)', 3); return; }
     const lieu = this.lieuTombe(rec), st = this.stade(rec), fem = this.fem(rec);
@@ -707,6 +748,7 @@ const depouilles = {
       if (i >= 0) S.corps.splice(i, 1);
       this.cache.delete(rec.id);
       for (const k of Object.keys(S.vus)) if (k.endsWith(':' + rec.id)) delete S.vus[k];
+      if (typeof butin !== 'undefined' && butin && typeof butin.oublier === 'function') try { butin.oublier('depouille:' + rec.id); } catch (e) { console.error(e); } // (ce que le menu de butin gardait de ses poches)
       if (chienRec) {
         farm.addProp({ id: 'tombe_chien', x: lieu.x, y: lieu.y, z: lieu.z, r: lieu.r });
         const C = s.chien;
@@ -762,6 +804,7 @@ const depouilles = {
     const S = this.S(), w = game.world, s = farm.s;
     if (!S.corps.length || game.sleeping || this.cachesMonde()) return;
     for (const rec of S.corps) {
+      if (rec.t === 'geant') continue; // (là-haut, personne ne monte)
       for (const n of npcs.list) {
         if (!n.st.alive || n.vanished || n.hunting || n.sleep || n.state === 'sleep' || n.state === 'gone' || n.talking || n._dep || n.id === rec.qui) continue;
         if ((n.fleeT || 0) > 0 || (n.poursuite || 0) > game.time || (n.alerte && n.alerte.t > game.time)) continue;
@@ -838,6 +881,12 @@ const depouilles = {
   // ------------------------------------------------------------------ ce que voit le fermier
   pensee(rec, st, neuf) {
     const fem = this.fem(rec), nom = this.nom(rec);
+    if (rec.t === 'geant') {
+      if (st >= 3) return '(Des os longs comme des poutres, et une cage de côtes où l’on tiendrait debout.)';
+      if (st === 2) return '(L’odeur vous arrive de très loin, bien avant le reste. Les corbeaux tournent au-dessus, par dizaines.)';
+      if (st === 1) return fem ? '(La géante est toujours là. Sa peau a pris la couleur de la cire.)' : '(Le géant est toujours là. Sa peau a pris la couleur de la cire.)';
+      return fem ? '(La géante ne bouge plus. Couchée là, elle est longue comme une grange.)' : '(Le géant ne bouge plus. Couché là, il est long comme une grange.)';
+    }
     if (rec.t === 'chien') return st >= 3 ? `(Des os, et le creux que faisait ${rec.nom} dans l’herbe.)` : st >= 1 ? `(${rec.nom} est toujours là. Il faudrait l’enterrer.)` : `(${rec.nom} est couché là. Il ne bouge plus. Il ne se relèvera pas.)`;
     if (rec.t === 'fermier' && neuf) {
       if (st >= 3) return '(Des os, dans des habits de ferme. Les mêmes que les vôtres.)';
@@ -857,8 +906,9 @@ const depouilles = {
     for (const rec of S.corps) {
       const st = this.stade(rec);
       if (rec.vj === s.day && rec.vs === st) continue;
-      if (Math.abs(rec.x - p.pos[0]) > 14 || Math.abs(rec.z - p.pos[2]) > 14 || Math.abs(rec.y - p.pos[1]) > 4) continue;
-      if (!espritVoit(rec.x, rec.y + 0.3, rec.z, 14)) continue;
+      const k = this.taille(rec), D = k > 1 ? 34 : 14; // (un géant se voit de plus loin)
+      if (Math.abs(rec.x - p.pos[0]) > D || Math.abs(rec.z - p.pos[2]) > D || Math.abs(rec.y - p.pos[1]) > 4 * k) continue;
+      if (!espritVoit(rec.x, rec.y + 0.3 * k, rec.z, D)) continue;
       const neuf = !rec.vu0;
       if (neuf || rec.vs !== st) { rec.vs = st; const t = this.pensee(rec, st, neuf); if (t && !ui.panel) ui.subtitle('', t, 4.5); }
       if (rec.vj !== s.day) {
@@ -880,8 +930,8 @@ const depouilles = {
       if (st < 1 || st > 2) continue;
       const dx = rec.x - p.pos[0], dz = rec.z - p.pos[2];
       if (Math.abs(dx) > 90 || Math.abs(dz) > 90) continue;
-      const d = Math.hypot(dx, dz);
-      if (d < 9 && Math.random() < dt * 7) particles.spawn(rec.x + (Math.random() - 0.5) * 0.9, rec.y + 0.15 + Math.random() * 0.45, rec.z + (Math.random() - 0.5) * 0.9, (Math.random() - 0.5) * 1.4, (Math.random() - 0.3) * 0.6, (Math.random() - 0.5) * 1.4, [0.05, 0.05, 0.04, 1], 0.022, 0.5 + Math.random() * 0.4, 0, false);
+      const d = Math.hypot(dx, dz), k = this.taille(rec), e = k > 1 ? k * 0.55 : 1;
+      if (d < (k > 1 ? 9 + 2 * k : 9) && Math.random() < dt * 7 * e) particles.spawn(rec.x + (Math.random() - 0.5) * 0.9 * e, rec.y + 0.15 + Math.random() * 0.45 * e, rec.z + (Math.random() - 0.5) * 0.9 * e, (Math.random() - 0.5) * 1.4, (Math.random() - 0.3) * 0.6, (Math.random() - 0.5) * 1.4, [0.05, 0.05, 0.04, 1], 0.022, 0.5 + Math.random() * 0.4, 0, false);
       if (d < 5) {
         const R = this.cache.get(rec.id);
         if (R) { R.mT = (R.mT ?? 0.5) - dt; if (R.mT <= 0) { R.mT = 4 + Math.random() * 4; sound.mouches && sound.mouches(clamp(1 - d / 5, 0.2, 1)); } }
@@ -890,9 +940,12 @@ const depouilles = {
     }
   },
   corbeaux(rec) {
-    const w = game.world, n = 2 + ((hashString(rec.id + ':' + farm.s.day) >>> 0) % 2);
+    const w = game.world, G = rec.t === 'geant', n = (G ? 4 : 2) + ((hashString(rec.id + ':' + farm.s.day) >>> 0) % 2);
     for (let k = 0; k < n; k++) {
-      const a = k / n * TAU + 0.7, r = 0.9 + k * 0.35, x = rec.x + Math.cos(a) * r, z = rec.z + Math.sin(a) * r;
+      // (autour d'un géant : le long du corps, de part et d'autre)
+      const a = k / n * TAU + 0.7, r = 0.9 + k * 0.35;
+      const x = G ? rec.x + Math.cos(rec.r) * (k % 2 ? 1 : -1) * (0.75 * rec.s + 0.4 + k * 0.2) + Math.sin(rec.r) * (k - n / 2) * 1.2 : rec.x + Math.cos(a) * r;
+      const z = G ? rec.z - Math.sin(rec.r) * (k % 2 ? 1 : -1) * (0.75 * rec.s + 0.4 + k * 0.2) + Math.cos(rec.r) * (k - n / 2) * 1.2 : rec.z + Math.sin(a) * r;
       const e = entities.add(w, 'crow', x, z, {});
       e.baseY = w.heightAt(x, z); e.y = e.baseY; e.still = true; e.circle = 180; e.heading = Math.atan2(rec.x - x, rec.z - z);
     }
@@ -1060,6 +1113,23 @@ Object.assign(SoundEngine.prototype, {
     return r;
   };
 }
+// un géant abattu (11-zzz51) : sa dépouille ; lieux.drawGeants ne dessine plus que les vivants (et les morts sans dépouille)
+if (typeof lieux !== 'undefined' && lieux.frapperGeant && lieux.drawGeants) {
+  const _fg = lieux.frapperGeant.bind(lieux);
+  lieux.frapperGeant = function (g, dmg) {
+    const vivant = !!(g && !g.mort);
+    const r = _fg(g, dmg);
+    try { if (vivant && g.mort && farm.s) { const M = farm.s.lieux.geants.morts; depouilles.geantMort(g, M.find((m) => m.i === g.i), true); } } catch (e) { console.error('depouilles : géant', e); }
+    return r;
+  };
+  const _dg = lieux.drawGeants.bind(lieux);
+  lieux.drawGeants = function (...a) {
+    const G = this.geants;
+    if (!farm.s || !G.some((g) => depouilles.geantCouche(g))) return _dg(...a);
+    this.geants = G.filter((g) => !depouilles.geantCouche(g));
+    try { return _dg(...a); } finally { this.geants = G; }
+  };
+}
 // le fermier meurt (game.die → farm.recordDeath) : sa dépouille attendra le suivant ; il n'y en a pas quand on quitte la vallée
 {
   const _rd = farm.recordDeath.bind(farm);
@@ -1100,5 +1170,6 @@ HOOKS.load.push((saved) => {
   for (const n of npcs.list) n._dep = null;
   try { if (!saved) D.importer(); } catch (e) { console.error('depouilles : fermiers d’avant', e); }
   try { D.migrerChien(); } catch (e) { console.error('depouilles : chien', e); }
+  try { D.migrerGeants(); } catch (e) { console.error('depouilles : géants', e); }
   try { D.restaurerTombes(); } catch (e) { console.error('depouilles : tombes', e); }
 });
