@@ -73,7 +73,7 @@ const depR2 = (v) => Math.round(v * 100) / 100;
 const depElide = (nom) => /^[aeiouyàâäéèêëîïôöûüh]/i.test(nom || '');
 
 const depouilles = {
-  cache: new Map(), t: 0, dit: -99, buf: null,
+  cache: new Map(), t: 0, dit: -99, buf: null, bud: 0,
 
   // ------------------------------------------------------------------ état
   S() {
@@ -493,10 +493,12 @@ const depouilles = {
     rig.emit(inst, M, 0);
     return { st, rig, M, pts, inst };
   },
-  rt(rec) {
+  rt(rec, lim) {
     const st = this.stade(rec);
     let R = this.cache.get(rec.id);
     if (R && R.st === st) return R.rig ? R : null;
+    // (au dessin, deux constructions au plus par image : un jour nouveau ne fait pas d'à-coup ; en attendant, l'allure d'hier)
+    if (lim) { if (this.bud <= 0) return R && R.rig ? R : null; this.bud--; }
     try { R = this.construire(rec, st); } catch (e) { console.error('depouilles : rendu', e); R = null; }
     if (!R) R = { st, rig: null };
     this.cache.set(rec.id, R);
@@ -508,10 +510,11 @@ const depouilles = {
     const sky = game.sky, fog = sky ? sky.fog[1] : 150, maxD = Math.min(95, fog + 12), m2 = maxD * maxD;
     const gD = Math.max(160, Math.min(600, fog + 80)), g2 = gD * gD; // un géant se voit de loin (comme dans 11-zzz51)
     const tg = game.target && game.target.depouille;
+    this.bud = 2;
     for (const rec of S.corps) {
       const dx = rec.x - cam[0], dz = rec.z - cam[2];
       if (rec.t === 'geant' ? dx * dx + dz * dz > g2 : dx * dx + dz * dz > m2 || Math.abs(rec.y - cam[1]) > 45) continue;
-      const R = this.rt(rec);
+      const R = this.rt(rec, true);
       if (!R) continue;
       if (tg === rec || !R.inst) { drawRigM(buf, R.rig, R.M, tg === rec ? FX_HI : 0); continue; } // (visé : en surbrillance)
       const n = R.inst.n;
@@ -1161,7 +1164,6 @@ HOOKS.update.push((dt, eye, basis, sky, playing) => {
   if (D.t <= 0) { D.t = 0.5; try { D.tick(); } catch (e) { console.error('depouilles', e); } }
   if (playing && !game.sleeping) { try { D.ambiance(dt); } catch (e) { console.error('depouilles', e); } }
 });
-HOOKS.day.push(() => { depouilles.cache.clear(); });
 HOOKS.load.push((saved) => {
   const D = depouilles;
   D.cache.clear(); D.t = 0; D.dit = -99;
