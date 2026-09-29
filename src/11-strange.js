@@ -176,7 +176,8 @@ const strange = {
     // événements programmés
     let hh = h < 6 ? h + 24 : h;
     for (const e of S.events) if (!e.done && hh >= e.h && hh < e.h + 3) { e.done = true; S.seen[e.id] = (S.seen[e.id] || 0) + 1; this.run(e.id, c); }
-    // petits frissons aléatoires la nuit (minuterie en heures de jeu : de 1,6 à 5 heures entre deux, selon la tension)
+    // petits frissons aléatoires la nuit (minuterie en heures de jeu : au moins 1,6 heure entre deux, trois en moyenne
+    // quand la tension est pleine)
     this.ambT = (this.ambT ?? 0.8) - heuresDeJeu(dt);
     if (this.ambT <= 0) {
       this.ambT = 1.6 + Math.random() * 3.6 / (0.3 + this.tension());
