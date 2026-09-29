@@ -18,9 +18,10 @@
 //    verre…). Un conteneur cassé répand son contenu par terre (butin.vider de U1 ;
 //    E pour le ramasser). Une porte, fermée à clé ou non, s'enfonce à la hache :
 //    elle reste ouverte jusqu'à ce que l'habitant la fasse réparer (trois jours).
-//  - Chez quelqu'un, dans un commerce ou en ville, vu ou entendu (on entend les
-//    coups de hache, même en dormant) : crime — effraction (une porte, les
-//    affaires de quelqu'un chez lui), vol (commerce, commune, rue), profanation
+//  - Chez quelqu'un (ou devant chez lui, à moins de quatre mètres de ses murs),
+//    dans un commerce ou en ville, vu ou entendu (on entend les coups de hache,
+//    même en dormant) : crime — effraction (une porte, les affaires de quelqu'un
+//    chez lui), vol (devant chez lui, commerce, commune, rue), profanation
 //    (tombes, croix, calvaires : et la malédiction qui va avec). Pas vu : la
 //    plainte du lendemain, la mentalité qui baisse.
 //  - Ne se cassent pas : ce qui porte une quête ou un mécanisme (OBJ_JAMAIS, les
@@ -207,7 +208,11 @@ const OBJ_KINDS_PROTEGES = new Set(['note', 'inscription', 'sign', 'mapboard', '
   'crypt', 'dig', 'registry', 'altar', 'autel_aela', 'autel_vesh', 'pierre_trois', 'dormeur', 'tombeau', 'temple_entree', 'louer', 'archives_livre',
   'alch_table', 'alambic', 'mailbox', 'water', 'cook', 'bed', 'rentbed', 'refuge', 'leg_spot', 'f2_trappe', 'benitier', 'peche_glace', 'affiche',
   'arrivages', 'book_legends', 'fente_nains', 'sigle', 'borne', 'chest', 'bell', 'oldwell', 'abbey_stone', 'fees', 'relic', 'pickup', 'lise',
-  'eboulis', 'cave', 'forage', 'moonflower', 'dream', 'bain', 'station', 'ship', 'feeder', 'clue', 'frappeurs', 'paroi', 'pray', 'fond_trappe']);
+  'eboulis', 'cave', 'forage', 'moonflower', 'dream', 'bain', 'station', 'ship', 'feeder', 'clue', 'frappeurs', 'paroi', 'pray', 'fond_trappe',
+  'abreuvoir', 'fer_mesnie', 'ev_cratere', 'ev_poussiere', 'avis_recherche', 'guichet_mairie', 'slender_page']);
+// ce qui appartient à la commune, même devant une maison (réverbères, mât du drapeau, poubelles, abreuvoirs, statues…)
+const OBJ_COMMUNS = new Set(['lampadaire', 'mat_drapeau', 'poubelle', 'poteau_attache', 'abreuvoir', 'statue', 'statue_saint', 'statue_cerf',
+  'fontaine_jardin', 'puits_deco', 'poteau_indicateur', 'panneau', 'banc', 'banc_pierre', 'bassin', 'cairn', 'calvaire', 'croix', 'tombe']);
 // les propriétés qu'un objet posé peut porter sans être « marqué » par un autre module (quête, fouille du jour, étal, affiche…)
 const OBJ_CLES_SURES = new Set(['id', 'x', 'y', 'z', 'r', 's', 'data', 'blk', 'ver', 'f2', 'rig', 'gone', 'blkOff', 'v', 'tilt', 'roue', '_grace']);
 const OBJ_TOMBES = new Set(['tombe', 'croix', 'calvaire']);
@@ -219,6 +224,11 @@ const OBJ_CRIS = {
     temoin: ['Hé ! Vous cassez les affaires de {victime} ?!', 'Au garde ! On saccage tout chez {victime} !', 'Arrêtez ! Ce n’est pas à vous, tout ça !'],
     public: ['Hé ! Qu’est-ce que vous cassez là ?!', 'Au garde ! On casse tout, ici !', 'Arrêtez ! C’est à la commune, ça !'],
   },
+  dehors: {
+    proprio: ['Hé ! C’est à moi, ça ! Arrêtez !', 'Qu’est-ce qui vous prend ?! Lâchez ça ! Au garde !', 'Vous êtes fou ?! Laissez mes affaires tranquilles !'],
+    temoin: ['Hé ! Vous cassez les affaires de {victime} ?!', 'Au garde ! On casse tout devant chez {victime} !', 'Arrêtez ! Ce n’est pas à vous, tout ça !'],
+    public: ['Hé ! Qu’est-ce que vous cassez là ?!', 'Au garde ! On casse tout, ici !', 'Arrêtez ! C’est à la commune, ça !'],
+  },
   porte: {
     proprio: ['Qui est là ?! Qui défonce ma porte ?! Au garde !', 'Arrêtez ! Au secours ! On enfonce ma porte !', 'Ma porte ! Au voleur ! À l’aide !'],
     temoin: ['Hé ! Vous enfoncez la porte de {victime} ?!', 'Au garde ! On force la porte de {victime} !', 'Arrêtez ! Au voleur ! On force une porte !'],
@@ -227,6 +237,11 @@ const OBJ_CRIS = {
   vol: {
     proprio: ['Hé ! Reposez ça ! C’est à moi !', 'Au voleur ! Chez moi, sous mes yeux !', 'Vous vous servez, maintenant ? Reposez ça !'],
     temoin: ['Hé ! Ce n’est pas à vous, ça ! C’est à {victime} !', 'Au voleur ! Là, chez {victime} !', 'Reposez ça ! Ce n’est pas chez vous !'],
+    public: ['Hé ! Ce n’est pas à vous, ça !', 'Au voleur ! On se sert, là !', 'Je vous vois, vous ! Reposez ça !'],
+  },
+  volDehors: {
+    proprio: ['Hé ! Reposez ça ! C’est à moi !', 'Au voleur ! Devant chez moi, sous mes yeux !', 'Vous vous servez, maintenant ? Reposez ça !'],
+    temoin: ['Hé ! Ce n’est pas à vous, ça ! C’est à {victime} !', 'Au voleur ! Là, devant chez {victime} !', 'Reposez ça ! Ce n’est pas à vous !'],
     public: ['Hé ! Ce n’est pas à vous, ça !', 'Au voleur ! On se sert, là !', 'Je vous vois, vous ! Reposez ça !'],
   },
   profane: {
@@ -241,6 +256,8 @@ const OBJ_PLAINTES = {
   porte: ['On a enfoncé ma porte, cette nuit. À la hache. Qui fait des choses pareilles ?', 'Vous avez vu ma porte ? Quelqu’un l’a défoncée. Je dors avec une chaise contre, maintenant.', 'On est entré chez moi en défonçant la porte. Le garde dit qu’il cherche. Il ne cherche rien du tout.'],
   casse: ['Quelqu’un est entré chez moi et a tout cassé. Des années de travail, en morceaux.', 'On a saccagé chez moi. Rien volé, ou presque : cassé. C’est pire, je trouve.', 'Mes affaires sont en miettes. Si je tenais celui qui a fait ça…'],
   vol: ['Il me manque des affaires. Quelqu’un est entré chez moi, j’en ai la certitude.', 'On m’a pris des choses. De petites choses. Mais on me les a prises.'],
+  dehors: ['On m’a cassé des affaires devant la maison, cette nuit. Des vauriens, sûrement. Il y en a toujours.', 'Quelqu’un s’en est pris à ce que j’avais devant chez moi. Je ne comprends pas qu’on fasse des choses pareilles.'],
+  volDehors: ['On m’a pris des choses devant chez moi. On ne peut même plus laisser un seau dehors.', 'Il manque des affaires, devant la maison. Hier soir, elles y étaient.'],
 };
 const OBJ_PENSEES = {
   tier: '(Le fer résiste : il faudrait au moins une pioche de fer.)',
@@ -496,27 +513,40 @@ const objets = {
     P.B = B;
     if (q.id === 'lit' && P.gen) { const L = this.lieu(q.x, q.y + 0.3, q.z); if (L.t === 'ferme') { P.protege = 'lit de la ferme'; return P; } }
     const f2p = this.f2Pris();
+    // (l'agent U1 tient la liste des meubles et de leurs fouilles : quand il est là, c'est la sienne qui fait foi)
+    const u1 = this.u1Inter(q);
+    if (u1 && typeof u1.kind === 'string' && u1.kind.startsWith('fond_')) { P.protege = 'usage : ' + u1.kind; return P; }
     for (const it of w.inter) {
       if (!it || Math.abs(it.x - q.x) > 4 || Math.abs(it.z - q.z) > 4) continue;
       if (it.y < B.y - 1.5 || it.y > B.y + B.sy + 2) continue;
       const d = it.data || {}, parRang = P.gen && d.prop === i;
       if (it.kind === 'f2' || it.kind === 'f2_trappe') {
         if (d.cache || it.kind === 'f2_trappe') { if (parRang || this.distBoite(B, it.x, it.z) < 0.9) { P.protege = 'cachette'; return P; } continue; }
+        if (u1 !== undefined) { if (u1 === it) P.liens.push(it); continue; }
         if (it.id === q.f2 || (!q.f2 && !f2p.has(it.id) && this.hote(it) === q)) P.liens.push(it);
         continue;
       }
-      if (it.kind === 'loot') { if (parRang || (d.prop === undefined && this.hote(it) === q)) P.liens.push(it); continue; }
+      if (it.kind === 'loot') {
+        if (u1 !== undefined) { if (u1 === it) P.liens.push(it); continue; }
+        if (parRang || (d.prop === undefined && this.hote(it) === q)) P.liens.push(it);
+        continue;
+      }
       // (l'inscription d'une vieille tombe part avec elle ; jamais celle d'un mort qu'on a enterré : data.who)
       if (it.kind === 'grave') { if (P.casse && P.casse.opt.prof && d.who === undefined && this.hote(it, OBJ_TOMBES) === q) P.liens.push(it); continue; }
       if (parRang) { if (it.kind === 'pray' && q.id === 'calvaire') { P.liens.push(it); continue; } P.protege = 'attaché : ' + it.kind; return P; }
       const k = it.kind || '';
-      if (OBJ_KINDS_PROTEGES.has(k) || k.startsWith('f2a') || k.startsWith('k_') || k.startsWith('biblio')) {
+      if (OBJ_KINDS_PROTEGES.has(k) || k.startsWith('f2a') || k.startsWith('k_') || k.startsWith('biblio') || k.startsWith('fond_')) {
         if (this.distBoite(B, it.x, it.z) < 0.35 || this.hote(it) === q) { P.protege = 'usage : ' + k; return P; }
       }
     }
     return P;
   },
   conteneur(q) { try { return !!(typeof butin !== 'undefined' && butin && typeof butin.conteneur === 'function' && butin.conteneur(q)); } catch (e) { return false; } },
+  // la fouille que l'agent U1 attache à cet objet (null : aucune ; undefined : U1 absent, on la cherche soi-même)
+  u1Inter(q) {
+    try { if (typeof butin !== 'undefined' && butin && typeof butin.interDe === 'function') return butin.interDe(q) || null; } catch (e) { /* rien */ }
+    return undefined;
+  },
   cassable(q) { const P = this.profil(q); return !!(P && P.casse && !P.protege); },
   ramassable(q, P) {
     P = P || this.profil(q);
@@ -530,21 +560,30 @@ const objets = {
   },
 
   // ------------------------------------------------------------------ à qui est-ce ? (x, y, z : un point de l'objet)
-  lieu(x, y, z) {
+  // dedans : la maison (lieuBld) ; à moins de 4 m de ses murs : ses abords (à l'habitant ; la cour de la ferme au joueur),
+  // sauf pour ce qui est à la commune (commun : réverbère, abreuvoir, statue…) et au cimetière
+  lieu(x, y, z, commun) {
     const w = game.world, bl = w.bld || {};
-    let bld = null;
+    let bld = null, pres = null, pd = 4;
     for (const k in bl) {
       const b = bl[k];
       if (!b || !b.f || !b.W || !b.D) continue;
-      if (Math.abs(b.f.x - x) > 20 || Math.abs(b.f.z - z) > 20) continue;
-      const [lx, lz] = World.blockLocal({ x: b.f.x, z: b.f.z, r: b.f.r }, x, z);
-      if (Math.abs(lx) < b.W / 2 + 0.25 && Math.abs(lz) < b.D / 2 + 0.25 && y > b.f.y - 1.5 && y < b.f.y + 7) { bld = k; break; }
+      if (Math.abs(b.f.x - x) > 22 || Math.abs(b.f.z - z) > 22 || y < b.f.y - 1.5 || y > b.f.y + 7) continue;
+      const [lx, lz] = World.blockLocal({ x: b.f.x, z: b.f.z, r: b.f.r }, x, z), ex = Math.abs(lx) - b.W / 2, ez = Math.abs(lz) - b.D / 2;
+      if (ex < -0.05 && ez < -0.05) { bld = k; break; }
+      const d = Math.hypot(Math.max(0, ex), Math.max(0, ez));
+      if (d < pd && !b.under) { pd = d; pres = k; }
     }
     const C = w.caveAuberge;
     if (!bld && C && Math.abs(y - C.y) < 3.5 && Math.hypot(x - C.x, z - C.z) < 6) bld = 'auberge';
     if (bld) return this.lieuBld(bld);
     const lm = w.lm || {}, ci = lm.cimetiere;
     if (ci && Math.hypot(x - ci.x, z - ci.z) < (ci.r || 13) + 6) return { t: 'cimetiere', own: null, bld: null };
+    if (pres && !commun) {
+      const L = this.lieuBld(pres);
+      if (L.t === 'maison' || L.t === 'commerce') return { t: 'abords', own: L.own, bld: pres };
+      if (L.t !== 'abandon') return L; // la cour de la ferme, une maison à louer, la maison d'un mort
+    }
     if (this.enVille(x, z)) return { t: 'public', own: null, bld: null };
     const H = lm.hameau;
     if (H && Math.hypot(x - H.x, z - H.z) < 45) { const e = npcs.byId.eleveuse; return { t: 'public', own: e && e.st.alive ? e : null, bld: null }; }
@@ -666,7 +705,7 @@ const objets = {
   casser(q, P, p) {
     const w = game.world, S = this.S(), m = P.casse.mat, gros = !!P.casse.opt.lourd || P.casse.pv >= 70;
     const B = P.B || this.boite(q) || { x: q.x, y: q.y, z: q.z, sx: 0.5, sy: 0.6, sz: 0.5, r: q.r || 0 };
-    const L = P.joueur ? { t: 'ferme', own: null, bld: null } : this.lieu(q.x, q.y + Math.min(0.6, B.sy / 2), q.z);
+    const L = P.joueur ? { t: 'ferme', own: null, bld: null } : this.lieu(q.x, q.y + Math.min(0.6, B.sy / 2), q.z, OBJ_COMMUNS.has(q.id));
     const centre = [B.x, B.y + B.sy * 0.45, B.z];
     // le contenu : ce que l'agent U1 y garde, ou ce que le joueur y avait rangé
     let contenu = [];
@@ -779,7 +818,7 @@ const objets = {
     const P = this.profil(q);
     if (!this.ramassable(q, P)) return;
     const R = P.ramasse, n = R.n || 1, pos = [q.x, q.y + 0.3, q.z];
-    const L = P.joueur ? { t: 'ferme', own: null, bld: null } : this.lieu(q.x, q.y + 0.2, q.z);
+    const L = P.joueur ? { t: 'ferme', own: null, bld: null } : this.lieu(q.x, q.y + 0.2, q.z, OBJ_COMMUNS.has(q.id));
     this.retirer(q);
     farm.give(R.item, n); play.flyer(R.item, pos, n);
     sound.pop && sound.pop();
@@ -791,8 +830,9 @@ const objets = {
     const R = P.ramasse;
     let t = R.lab || 'Ramasser';
     if (!P.joueur) {
-      const L = this.lieu(q.x, q.y + 0.2, q.z);
-      if (L.own && L.own.st.alive && (L.t === 'maison' || L.t === 'commerce')) t += L.own.st.met ? ` (chez ${L.own.name})` : ' (chez quelqu’un)';
+      const L = this.lieu(q.x, q.y + 0.2, q.z, OBJ_COMMUNS.has(q.id));
+      const devant = L.t === 'abords' ? 'devant ' : '';
+      if (L.own && L.own.st.alive && (L.t === 'maison' || L.t === 'commerce' || L.t === 'abords')) t += L.own.st.met ? ` (${devant}chez ${L.own.name})` : ` (${devant}chez quelqu’un)`;
     }
     return t;
   },
@@ -809,7 +849,8 @@ const objets = {
     if (!this.actif()) return;
     if (typeof butin !== 'undefined' && butin && typeof butin.ouvrir === 'function') {
       try {
-        butin.ouvrir({ titre: 'Ce qui est tombé', objets: T.o.map((e) => e.slice()), cle: 'u2tas:' + T.id, proprio: T.own || null, x: T.x, z: T.z,
+        butin.ouvrir({ titre: 'Ce qui est tombé', objets: T.o.map((e) => e.slice()), cle: 'u2tas:' + T.id, proprio: T.own || null, x: T.x, y: T.y, z: T.z,
+          bld: T.bld || null, lieu: T.t === 'maison' || T.t === 'commerce' ? 'maison' : 'public',
           onPris: (id, n) => this.tasPris(T, id, n), onFerme: () => this.tasFerme(T) });
         return;
       } catch (e) { console.error('butin.ouvrir', e); }
@@ -860,14 +901,15 @@ const objets = {
     const t = L.t;
     let ty = null;
     if (acte === 'porte') ty = t === 'abandon' || t === 'ferme' || t === 'nature' ? null : 'effraction';
-    else if (acte === 'casse') ty = t === 'maison' ? 'effraction' : ['commerce', 'commune', 'public', 'cimetiere'].includes(t) ? 'vol' : null;
-    else ty = ['maison', 'commerce', 'commune', 'public', 'cimetiere'].includes(t) ? 'vol' : null;
+    else if (acte === 'casse') ty = t === 'maison' ? 'effraction' : ['commerce', 'abords', 'commune', 'public', 'cimetiere'].includes(t) ? 'vol' : null;
+    else if (acte === 'tas') ty = ['maison', 'commerce', 'abords'].includes(t) ? 'vol' : null; // (ce qui s'est répandu dans la rue est à tout le monde)
+    else ty = ['maison', 'commerce', 'abords', 'commune', 'public', 'cimetiere'].includes(t) ? 'vol' : null;
     if (ty && typeof CRIME_DEF !== 'undefined' && !CRIME_DEF[ty]) ty = 'vol';
     return ty;
   },
   // un coup, un bruit : quelqu'un l'entend-il ? (une fois pris, on n'est pas repris pour la même chose avant un moment)
   ecoute(o, bruit) {
-    const L = o.L || (o.P && o.P.joueur ? null : o.q ? this.lieu(o.q.x, o.q.y + 0.3, o.q.z) : null);
+    const L = o.L || (o.P && o.P.joueur ? null : o.q ? this.lieu(o.q.x, o.q.y + 0.3, o.q.z, OBJ_COMMUNS.has(o.q.id)) : null);
     if (!L || !this.typeCrime(o.acte, L, o.P && o.P.casse && o.P.casse.opt.prof)) return;
     if ((this.alertes[o.cle] || 0) > game.time) return;
     const own = L.own && L.own.st.alive ? L.own : null;
@@ -888,7 +930,8 @@ const objets = {
     if (type) {
       if (vus.length) { this.alertes[o.cle] = game.time + 90; this.surpris(type, acte, own, vus, o.pos, L, prof); }
       else if (!deja) {
-        if (own && !prof) S.plaintes[own.id] = { j: s.day, t: acte === 'porte' ? 'porte' : acte === 'casse' ? 'casse' : 'vol' };
+        const dedans = L.t === 'maison' || L.t === 'commerce';
+        if (own && !prof) S.plaintes[own.id] = { j: s.day, t: acte === 'porte' ? 'porte' : acte === 'casse' ? (dedans ? 'casse' : 'dehors') : dedans ? 'vol' : 'volDehors' };
         if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(acte === 'porte' ? -1 : acte === 'casse' ? -0.5 : -0.4, acte === 'ramasse' || acte === 'tas' ? 'voler' : 'casser', 3);
       }
       if ((acte === 'ramasse' || acte === 'tas') && own && o.got && o.got.length) this.marquer(o.got, own.id);
@@ -902,7 +945,8 @@ const objets = {
   // pris sur le fait
   surpris(type, acte, own, vus, pos, L, prof) {
     const S = this.S(), p = game.player, g = npcs.byId.garde;
-    const C = OBJ_CRIS[prof ? 'profane' : acte === 'porte' ? 'porte' : acte === 'casse' ? 'casse' : 'vol'];
+    const dedans = !!(L && (L.t === 'maison' || L.t === 'commerce'));
+    const C = OBJ_CRIS[prof ? 'profane' : acte === 'porte' ? 'porte' : acte === 'casse' ? (dedans ? 'casse' : 'dehors') : dedans ? 'vol' : 'volDehors'];
     if (own && vus.includes(own)) npcs.say(own, pick(C.proprio), 3.5);
     else { const a = vus[0]; npcs.say(a, fmtLine(pick(own ? C.temoin : C.public), a, { victime: own ? own.name : '' }), 3.2); }
     for (const m of vus) { m.heading = Math.atan2(p.pos[0] - m.x, p.pos[2] - m.z); m.chatT = 0; }
