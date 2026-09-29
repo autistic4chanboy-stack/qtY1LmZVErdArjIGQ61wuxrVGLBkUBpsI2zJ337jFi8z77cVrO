@@ -104,7 +104,7 @@ function installerDansLeJeu(HABITUDES, DEHORS, LAVOIR, NOIR) {
     },
     // les nuits du joueur « typique » : lavandière, rêves et venues des Trois, cauchemars, marchand de joie
     nuits(seeds, v, D, tueurMasque) {
-      const R = { jours: 0, lav: 0, lavEcart: [], lavMin: 999, reves: { aela: 0, durn: 0, vesh: 0 }, reves6: { aela: 0, durn: 0, vesh: 0 }, reves12: { aela: 0, durn: 0, vesh: 0 }, aela: 0, aela6: 0, aela12: 0, vesh: 0, vesh6: 0, vesh12: 0, sommeils: 0, cauch: 0, cauchEcartMin: 999, marchand: 0, marchandAvant4: 0, lavandiereAvant: 0 };
+      const R = { jours: 0, lav: 0, lavEcart: [], lavMin: 999, reves: { aela: 0, durn: 0, vesh: 0 }, reves6: { aela: 0, durn: 0, vesh: 0 }, reves12: { aela: 0, durn: 0, vesh: 0 }, aela: 0, aela6: 0, aela12: 0, vesh: 0, vesh6: 0, vesh12: 0, sommeils: 0, cauch: 0, cauchEcartMin: 999, marchand: 0, marchandAvant4: 0, lavAvant: 0, cauchAvant: 0 };
       for (let seed = 1; seed <= seeds; seed++) {
         this.neuf(seed, v);
         const st = strange.s;
@@ -120,9 +120,9 @@ function installerDansLeJeu(HABITUDES, DEHORS, LAVOIR, NOIR) {
           let noire = evenements.nuitNoire(d);
           if (!noire && rnd() < evenements.chanceImprevue(d)) { E.nuit.imprevue = d; noire = true; }
           // la lavandière (12-zzzD-esprit.js) : fois par heure de jeu éveillée entre 22 h et 4 h, selon l'endroit
-          if (hab.heures > 0 && d - E.esprit.dernier >= L.ecart) {
+          if (hab.heures > 0 && d >= L.premierJour && d - E.esprit.dernier >= L.ecart) {
             const tx = hab.heures * (DEHORS * (1 - LAVOIR) * L.taux(false, false) + DEHORS * LAVOIR * L.taux(true, false) + (1 - DEHORS) * NOIR * L.taux(false, true) + (1 - DEHORS) * (1 - NOIR) * L.taux(false, false));
-            if (rnd() < 1 - Math.exp(-tx)) { E.esprit.dernier = d; R.lav++; if (lastLav > 0) { R.lavEcart.push(d - lastLav); R.lavMin = Math.min(R.lavMin, d - lastLav); } lastLav = d; }
+            if (rnd() < 1 - Math.exp(-tx)) { E.esprit.dernier = d; R.lav++; if (d < 4) R.lavAvant++; if (lastLav > 0) { R.lavEcart.push(d - lastLav); R.lavMin = Math.min(R.lavMin, d - lastLav); } lastLav = d; }
           }
           // Vesh, une nuit noire, à qui veille dehors vers 23 h ; Aëla, à l'aube, à qui a veillé toute la nuit dehors
           if (noire && hab.vesh && rnd() < DEHORS && rnd() < divins.chanceVesh(d)) { Dv.vesh.vu = d; R.vesh++; if (d <= 72) R.vesh6++; if (d <= 144) R.vesh12++; }
@@ -136,7 +136,7 @@ function installerDansLeJeu(HABITUDES, DEHORS, LAVOIR, NOIR) {
               Dv.reves = Dv.reves || {}; Dv.reves[DIV_REVES.indexOf(X)] = d;
               R.reves[X.qui]++; if (d <= 72) R.reves6[X.qui]++; if (d <= 144) R.reves12[X.qui]++;
             }
-            if (rnd() < cauchemar.chance('ferme')) { C.dernier = d; C.nuits++; R.cauch++; if (lastC > 0) R.cauchEcartMin = Math.min(R.cauchEcartMin, d - lastC); lastC = d; }
+            if (rnd() < cauchemar.chance('ferme')) { C.dernier = d; C.nuits++; R.cauch++; if (d < 4) R.cauchAvant++; if (lastC > 0) R.cauchEcartMin = Math.min(R.cauchEcartMin, d - lastC); lastC = d; }
           }
           // le marchand de joie (11-zzz71-bonbons.js), certains soirs
           if (rnd() < pilules.chanceMarchand(d)) { R.marchand++; if (d < 4) R.marchandAvant4++; }
@@ -296,6 +296,7 @@ module.exports = {
     const lavO = NO.lav / NO.jours;
     verif(lavO >= 1 / 42 && lavO <= 1 / 24, `lavandière, esprit ordinaire : ${unSur(NO.lav, NO.jours)} nuits (cible : une fois toutes les 2 à 3,5 semaines)`);
     verif(NTB.lav > NO.lav && NO.lav > NU.haute.lav && Math.min(NTB.lavMin, NO.lavMin) >= 4, `lavandière : plus souvent à l'esprit sombre (${unSur(NTB.lav, NTB.jours)}), jamais deux fois en moins de quatre jours`);
+    verif(MENTALITES.every(([n]) => NU[n].lavAvant === 0 && NU[n].cauchAvant === 0 && NUsans[n].cauchAvant === 0) && J.ev('lavandiere.premierJour') >= 4, 'ni lavandière ni cauchemar les trois premières nuits (hors pilules)');
     const cO = (NO.cauch + NUsans.ordinaire.cauch) / (NO.sommeils + NUsans.ordinaire.sommeils);
     verif(cO >= 1 / 45 && cO <= 1 / 25, `cauchemar, esprit ordinaire : 1 nuit sur ${f1(1 / cO)} (cible 1/25 à 1/45 ; tueur masqué en liberté : ${unSur(NO.cauch, NO.sommeils)}, pris : ${unSur(NUsans.ordinaire.cauch, NUsans.ordinaire.sommeils)})`);
     verif(NTB.cauch / NTB.sommeils > cO && NTB.cauch / NTB.sommeils <= 1 / 4 && Math.min(NTB.cauchEcartMin, NO.cauchEcartMin) >= 3, `cauchemar : plus fréquent à l'esprit sombre (${unSur(NTB.cauch, NTB.sommeils)}), jamais deux en trois nuits`);

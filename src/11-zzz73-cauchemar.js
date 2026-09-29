@@ -22,7 +22,7 @@ const cauchemar = {
     if (where === 'chene') return 0;
     const C = this.C(), s = farm.s;
     const pil = typeof pilules !== 'undefined' ? pilules.risqueCauchemar() : 1;
-    if (s.day - C.dernier < 3 && pil < 5) return 0;
+    if ((s.day - C.dernier < 3 || s.day < 4) && pil < 5) return 0; // (les pilules, elles, n'attendent pas)
     const meurtres = typeof meurtresDuJoueur === 'function' ? meurtresDuJoueur() : 0;
     return clamp(0.022 * bizarrerie() * pil * (1 + meurtres * 0.08) * (strange.killerActive() ? 1.5 : 1), 0, 0.6);
   },

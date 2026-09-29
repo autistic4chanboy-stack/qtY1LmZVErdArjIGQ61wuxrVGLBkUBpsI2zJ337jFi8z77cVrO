@@ -23,6 +23,8 @@ const lavandiere = {
   // deux chaque nuit, une fois en deux à trois semaines
   taux(pres, noir) { return 0.015 * EV_BIZ() * (pres ? 7 : noir ? 2 : 1); },
   ecart: 4, // jours au moins entre deux apparitions
+  premierJour: 4, // rien de tel les trois premières nuits
+
   // ------------------------------------------------------------ le visage (dessiné une fois, trois images)
   dessiner() {
     const W = 320, H = 200, frames = [];
@@ -74,7 +76,7 @@ const lavandiere = {
   surgir(force) {
     if (!farm.s || game.dying) return false;
     const S = this.S(), d = farm.s.day;
-    if (!force && (this.apaisee() || d - S.dernier < this.ecart || cine.on || ui.panel || game.sleeping || game.mode !== 'play')) return false;
+    if (!force && (this.apaisee() || d < this.premierJour || d - S.dernier < this.ecart || cine.on || ui.panel || game.sleeping || game.mode !== 'play')) return false;
     if (!this.frames) this.dessiner();
     this.dom();
     S.dernier = d; S.n = (S.n || 0) + 1;
