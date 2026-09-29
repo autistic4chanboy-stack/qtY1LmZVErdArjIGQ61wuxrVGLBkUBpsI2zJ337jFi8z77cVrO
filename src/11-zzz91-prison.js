@@ -587,8 +587,8 @@ const prison = {
           if (d < 6 && v > 2.4 && Math.random() < 0.3) { P.reveilNuit = farm.s.day; this.rattrape(GEOLIER_DIT.halte); return; }
         }
       }
-      // pain du matin (au jour qui se lève), soupe de midi
-      if (this.hPrev >= 0 && this.hPrev < 12 && h >= 12 && !P.travail) { this.dire(GEOLIER_DIT.soupe, 3); p.food = Math.min(100, p.food + 15); }
+      // pain du matin (au jour qui se lève), soupe de midi (une par jour : au retour de la carrière aussi)
+      if (h >= 12 && h < 20 && P.soupe !== farm.s.day && !P.travail) { P.soupe = farm.s.day; this.dire(GEOLIER_DIT.soupe, 3); p.food = Math.min(100, p.food + 15); }
       // la visite de l'être cher, le lendemain de l'arrestation, vers dix heures
       if (this.hPrev >= 0 && this.hPrev < 10 && h >= 10 && farm.s.day - (P.visite || 0) >= 2 && farm.s.day > P.entree && typeof sentiments !== 'undefined' && sentiments.visiteCachot) {
         P.visite = farm.s.day;
@@ -610,7 +610,8 @@ const prison = {
     if (!P || !P.actif) return;
     P.jours -= 1;
     this.majRancon();
-    p.food = Math.min(100, p.food + 25);
+    // (le geôlier nourrit ses prisonniers : maigre, mais on ne meurt pas de faim au cachot, même en y dormant ses jours)
+    p.food = Math.min(100, Math.max(p.food + 25, 60));
     setTimeout(() => { if (P.actif) this.dire(GEOLIER_DIT.pain, 3); }, 3500);
     if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-2, 'le cachot', 4);
     if (P.jours <= 0) P.liberable = true;
