@@ -1,7 +1,7 @@
 // ============================================================================
 //  SOCLE des nouveautés : ce qui doit attendre que la ferme (11-farm-play.js)
 //  soit chargée, et ce que partagent les autres modules 11-zzz* :
-//   - la journée de dix minutes ;
+//   - le jour de dix minutes et la nuit de dix minutes (vingt minutes pour vingt-quatre heures) ;
 //   - savoir : ce que le personnage connaît (lieux, espèces vues, plantes
 //     identifiées, recettes, mots des langues perdues, livres lus) ;
 //   - corps : chutes, jambe cassée, saignements, pentes trop raides ;
@@ -24,8 +24,10 @@ function bizarrerie() { return 1; }
 // farm.s.stats.autresMeurtres)
 function meurtresDuJoueur() { const s = farm.s; if (!s) return 0; return (s.dead || []).filter((d) => d.by === 'joueur').length + ((s.stats && s.stats.autresMeurtres) || 0); }
 
-// ---------------------------------------------------------------- une journée : dix minutes
-const JOUR_SECONDES = 600;
+// ---------------------------------------------------------------- une journée : dix minutes de jour, dix minutes de nuit
+// Le soleil est levé de 6 h à 18 h (08-renderer.js, computeSky) : avec vingt minutes réelles pour vingt-quatre heures
+// de jeu, le jour dure dix minutes et la nuit dix minutes (une heure de jeu = 50 s).
+const JOUR_SECONDES = 1200;
 HOOKS.load.push(() => { if (game.world) game.world.dayLength = JOUR_SECONDES; });
 
 // ---------------------------------------------------------------- où l'on ne bâtit pas (ni ne laboure, ni ne pose)
