@@ -19683,6 +19683,320 @@ const MONDES_RIGS = {
   },
 };
 
+// ---- 07-zzzzzzz-portes.js
+// ============================================================================
+//  PORTES : un vrai modèle de porte, à la place du panneau uni d'avant.
+//  Planches jointives (texture peinte), barres et écharpe en Z, pentures et
+//  gonds, clous de fer, anneau ou poignée, entrée de serrure, serrure à bosse
+//  côté intérieur, encadrement (montants, linteau, seuil) en bois ou en pierre
+//  selon le mur. Variantes selon le bâtiment : ferme et maisons des champs
+//  (porte à écharpe), maisons de ville (porte à panneaux peinte), boutiques
+//  (partie haute vitrée), auberge (cloutée, heurtoir), mairie, maison du garde
+//  (bandes de fer, judas), forge, roulottes, bibliothèque (deux battants),
+//  église (deux grands battants, toujours ouverts : décor seulement), poterne.
+//  Trois niveaux de détail selon la distance ; le fonctionnement (ouverture,
+//  collision, surbrillance) ne change pas. emitDoor(buf, d, fl) est remplacée.
+//  API : PORTES.style(d) (variante calculée une fois par porte), PORTES.deco
+//  (portes décoratives dessinées en plus : battants de l'église).
+// ============================================================================
+Object.assign(TL, { porteBois: 240, porteClous: 241, porteFer: 242, portePanneau: 243, porteBasPanneau: 244, porteVitre: 245, portePierre: 246 });
+
+function portesTuiles(cv) {
+  // (chaque tuile est peinte à part puis posée : pas de relecture du canevas)
+  const ctx = cv.getContext('2d');
+  const T = (idx, fn) => {
+    const img = ctx.createImageData(16, 16), D = img.data;
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      let c = fn(x, y); if (typeof c === 'number') c = [c, c, c];
+      const k = (y * 16 + x) * 4;
+      D[k] = clamp(c[0], 0, 255); D[k + 1] = clamp(c[1], 0, 255); D[k + 2] = clamp(c[2], 0, 255); D[k + 3] = 255;
+    }
+    ctx.putImageData(img, (idx % 16) * 16, Math.floor(idx / 16) * 16);
+  };
+  const N = (x, y, s) => hash2i(x, y, s);
+  // quatre planches verticales : joint sombre, arête claire, fil du bois, un nœud çà et là
+  const planches = (x, y) => {
+    const b = x & 3, k = x >> 2;
+    let v = 212 + (N(k, 0, 950) - 0.5) * 30 + (N(x, y >> 2, 951) - 0.5) * 20;
+    if (b === 3) v = 112; else if (b === 0) v += 18;
+    if (b === 1 && (y * 7 + k * 5) % 13 === 0) v -= 34;
+    if (y === 15) v -= 26;
+    return v;
+  };
+  T(TL.porteBois, planches);
+  // planches cloutées : trois rangs de gros clous forgés
+  T(TL.porteClous, (x, y) => {
+    const b = x & 3;
+    if (b === 1 && (y === 2 || y === 8 || y === 13)) return 58;
+    if (b === 1 && (y === 1 || y === 7 || y === 12)) return 168;
+    return planches(x, y);
+  });
+  // bande de fer rivetée
+  T(TL.porteFer, (x, y) => {
+    if (y === 0 || y === 15) return 92;
+    for (const c of [2, 7, 12]) {
+      const dx = x - c, dy = y - 7.5;
+      if (Math.abs(dx) <= 1 && Math.abs(dy) <= 2) return dx < 0 && dy < 0 ? 236 : dx > 0 || dy > 1 ? 84 : 186;
+    }
+    return 150 + (N(x, y, 952) - 0.5) * 34;
+  });
+  // porte à panneaux : cadre, rainure sombre, biseau clair en haut à gauche, sombre en bas à droite
+  const panneaux = (rects, fond) => (x, y) => {
+    for (const [x0, y0, x1, y1] of rects) {
+      if (x < x0 || x > x1 || y < y0 || y > y1) continue;
+      if (fond && y1 - y0 > 5 && y0 < 6) return fond(x, y);
+      if (x === x0 || x === x1 || y === y0 || y === y1) return 98;
+      if (x === x0 + 1 || y === y0 + 1) return 248;
+      if (x === x1 - 1 || y === y1 - 1) return 150;
+      return 222 + (N(x, y, 953) - 0.5) * 10;
+    }
+    return 208 + (N(x >> 1, y, 954) - 0.5) * 16 - (y === 15 ? 24 : 0);
+  };
+  T(TL.portePanneau, panneaux([[2, 2, 6, 8], [9, 2, 13, 8], [2, 10, 6, 13], [9, 10, 13, 13]]));
+  // boutique : un panneau en bas, le haut sera vitré (fond sombre derrière la vitre)
+  T(TL.porteBasPanneau, panneaux([[2, 2, 13, 8], [2, 10, 13, 13]], () => 70));
+  // vitre : verre sombre, un reflet en biais
+  T(TL.porteVitre, (x, y) => {
+    const r = (x + 15 - y) % 13;
+    if (r === 3 || r === 4) return [150, 166, 176];
+    return [56 + N(x, y, 955) * 14, 70 + N(x, y, 955) * 14, 82 + N(x, y, 955) * 12];
+  });
+  // pierre de taille : assises de quatre pixels, joints décalés
+  T(TL.portePierre, (x, y) => {
+    const k = y >> 2;
+    if ((y & 3) === 3) return 124;
+    if (x === ((k & 1) ? 7 : 15)) return 132;
+    return 198 + (N(x >> 1, y, 956 + k) - 0.5) * 36;
+  });
+}
+{
+  const _bsa = buildSkinAtlas;
+  buildSkinAtlas = function () {
+    _bsa();
+    try { portesTuiles(SKIN.canvas); } catch (e) { console.warn('portes : tuiles', e); }
+  };
+}
+
+// ---------------------------------------------------------------- variantes
+const PORTE_COUL = {
+  fer: rgbf('#4a4b52'), ferNoir: rgbf('#2e2e33'), laiton: rgbf('#c09a48'), trou: [0.04, 0.035, 0.03], vitre: WHITE,
+  bois: rgbf('#8a6a48'), chene: rgbf('#6a4c30'), cadreBois: rgbf('#86684a'), pierre: rgbf('#d4cdbd'), seuil: rgbf('#9a968c'),
+};
+const PORTE_PEINTURES = ['#3f5a45', '#4a5e72', '#6e2f28', '#5a4632', '#2f4a52', '#6a5a3a', '#4e3a4a'];
+const PORTE_STYLE_BLD = {
+  ferme: 'ferme', poulailler: 'ferme', auberge: 'auberge', bibliotheque: 'double', mairie: 'mairie', garde: 'garde', forge: 'forge',
+  boulangerie: 'boutique', poste: 'boutique', graineterie: 'boutique', vide6: 'boutique', roulotte_a: 'roulotte', roulotte_b: 'roulotte',
+};
+const PORTE_TEINTE = {
+  boulangerie: '#8a3a2a', poste: '#2f4a6a', graineterie: '#4a6a3a', vide6: '#3e2f4a', mairie: '#26364a', auberge: '#5a3e26', garde: '#4e4a42',
+  forge: '#3e3228', bibliotheque: '#4a3020', roulotte_a: '#3e6e44', roulotte_b: '#8a3434', ferme: '#8a6a48', poulailler: '#7a6040',
+};
+const PORTES = {
+  cam: [0, 0, 0],
+  deco: [],
+  _R: new Float32Array(12),
+  // variante d'une porte (calculée une fois) : style, couleur, encadrement (pierre ou bois, épaisseur du mur)
+  style(d) {
+    if (d._st) return d._st;
+    const bld = d.bld || '';
+    let st = d.poterne ? 'poterne' : d.style || PORTE_STYLE_BLD[bld] || (/^(maison_[a-d]$|maison_rempart|vide)/.test(bld) ? 'ville' : 'rustique');
+    const h = hash2i(Math.round(d.x * 4), Math.round(d.z * 4), 41);
+    let col = PORTE_TEINTE[bld] || (st === 'ville' ? PORTE_PEINTURES[(h * PORTE_PEINTURES.length) | 0] : st === 'poterne' ? '#3a2c20' : st === 'eglise' ? '#5e4228' : null);
+    col = col ? rgbf(col) : PORTE_COUL.bois.map((c) => c * (0.86 + h * 0.22));
+    // le mur au-dessus de la porte : sa matière dit si l'encadrement est de pierre ou de bois
+    let mur = -1, ep = d.ep || 0.3;
+    const w = typeof game !== 'undefined' && game.world;
+    if (w && !d.poterne && !d.deco) {
+      for (const b of w.blocks) {
+        if (Math.abs(b.x - d.x) > 0.06 || Math.abs(b.z - d.z) > 0.06 || Math.abs(b.y - (d.y + d.h + 0.03)) > 0.12) continue;
+        mur = b.m; ep = Math.min(b.sx, b.sz); break;
+      }
+    }
+    const pierre = mur === M_STONE || mur === M_STONEWIN || mur === M_BRICK || mur === M_MOSSY;
+    d._st = { st, col, pierre, ep, cadre: !d.poterne && !d.deco, double: st === 'double' || st === 'eglise' || d.w > 1.8, hy: Math.min(1.0, d.h * 0.52) };
+    return d._st;
+  },
+};
+
+// petites fonctions de pose (repère du battant : u depuis la charnière, y vers le haut, z < 0 dehors)
+let _pS = 1;
+const _pB = (u, y, z, su, sy, sz, col, code, rz) => PE.box(u * _pS, y, z, su, sy, sz, col, code, 0, 0, (rz || 0) * _pS);
+// anneau (quatre barreaux en losange) suspendu à une platine
+// (zf : la face du battant ; dir : -1 côté rue, +1 côté intérieur)
+function porteAnneau(u, y, zf, r, col, dir = -1) {
+  const k = r / 2, s = r * 1.42, q = Math.PI / 4, z = zf + dir * 0.02;
+  _pB(u, y + r + 0.02, zf + dir * 0.006, 0.06, 0.06, 0.012, col, TL.iron);
+  _pB(u + k, y + k, z, s, 0.014, 0.014, col, TL.iron, -q); _pB(u - k, y + k, z, s, 0.014, 0.014, col, TL.iron, q);
+  _pB(u + k, y - k, z, s, 0.014, 0.014, col, TL.iron, q); _pB(u - k, y - k, z, s, 0.014, 0.014, col, TL.iron, -q);
+}
+// entrée de serrure (platine + trou)
+function porteEntree(u, y, z, col) {
+  _pB(u, y, z, 0.045, 0.085, 0.01, col, TL.iron);
+  _pB(u, y - 0.008, z - 0.006, 0.013, 0.03, 0.01, PORTE_COUL.trou, TL.plain);
+}
+// poignée ronde sur rosace
+function portePoignee(u, y, z, sens, col) {
+  _pB(u, y, z, 0.06, 0.06, 0.01, col, TL.iron);
+  _pB(u, y, z + sens * 0.03, 0.045, 0.045, 0.05, col, TL.iron);
+}
+// charnières (fiches) sur le chant, visibles des deux côtés
+function porteFiches(h, t, n) {
+  const ys = n === 2 ? [0.25, h - 0.3] : [0.22, h * 0.5, h - 0.28];
+  for (const y of ys) _pB(-0.004, y, 0, 0.03, 0.11, t + 0.016, PORTE_COUL.fer, TL.iron);
+}
+
+// un battant : sens -1 (charnière à gauche, s'ouvre en tournant vers +z) ou +1 (charnière à droite)
+function porteBattant(d, S, sens, lw, fl, lod) {
+  const R = PORTES._R, h = d.h, t = 0.07, zE = -t / 2, zI = t / 2, F = PORTE_COUL;
+  m34TR(PE._L, sens < 0 ? -d.w / 2 : d.w / 2, 0, 0, 0, sens < 0 ? -d.a : d.a, 0);
+  m34Mul(_mT2, R, PE._L);
+  PE.M.set(_mT2);
+  PE.fl = fl;
+  _pS = -sens; // u (depuis la charnière) vers le milieu de la baie
+  const st = S.st, col = S.col, U = lw / 2, hy = S.hy;
+  const dark = [col[0] * 0.72, col[1] * 0.72, col[2] * 0.72];
+  const tuile = st === 'ville' || st === 'mairie' || st === 'double' ? TL.portePanneau : st === 'boutique' ? TL.porteBasPanneau : st === 'auberge' || st === 'poterne' || st === 'eglise' ? TL.porteClous : TL.porteBois;
+  // le vantail
+  _pB(U, h / 2, 0, lw - 0.012, h - 0.012, t, col, tuile);
+  if (lod === 0) { PE.fl = 0; return; }
+  const loin = lod === 1;
+  const uP = lw - (lw < 1 ? 0.12 : 0.16); // côté de la serrure
+  const principal = sens < 0; // la serrure est sur le battant de gauche (ou le seul)
+  switch (st) {
+    case 'ferme': case 'rustique': case 'forge': case 'roulotte': {
+      const yb = 0.2, yt = h - 0.34;
+      if (st !== 'roulotte') {
+        // barres et écharpe en Z, côté rue
+        _pB(U, yb + 0.065, zE - 0.016, lw - 0.1, 0.13, 0.032, dark, TL.porteBois);
+        _pB(U, yt + 0.065, zE - 0.016, lw - 0.1, 0.13, 0.032, dark, TL.porteBois);
+        const x0 = 0.14, y0 = yb + 0.13, x1 = lw - 0.14, y1 = yt, L = Math.hypot(x1 - x0, y1 - y0);
+        _pB((x0 + x1) / 2, (y0 + y1) / 2, zE - 0.016, L + 0.04, 0.12, 0.03, dark, TL.porteBois, Math.atan2(y1 - y0, x1 - x0));
+      } else {
+        // roulotte : petite fenêtre en haut
+        _pB(U, h - 0.42, 0, 0.3, 0.32, t + 0.008, F.vitre, TL.porteVitre);
+        _pB(U, h - 0.42, 0, 0.022, 0.32, t + 0.014, dark, TL.plain); _pB(U, h - 0.42, 0, 0.3, 0.022, t + 0.014, dark, TL.plain);
+      }
+      if (loin) break;
+      if (st !== 'roulotte') for (const y of [yb + 0.065, yt + 0.065]) {
+        // pentures sur les barres, gonds sur le chant
+        _pB(0.31 * lw - 0.02, y, zE - 0.038, 0.62 * lw, 0.05, 0.012, F.ferNoir, TL.porteFer);
+        _pB(0.62 * lw, y, zE - 0.038, 0.065, 0.065, 0.012, F.ferNoir, TL.iron, Math.PI / 4);
+        _pB(-0.03, y, zE - 0.02, 0.05, 0.075, 0.05, F.ferNoir, TL.iron);
+      } else porteFiches(h, t, 2);
+      if (st === 'forge') _pB(U, h * 0.5, zE - 0.012, lw - 0.06, 0.07, 0.012, F.ferNoir, TL.porteFer);
+      if (st === 'roulotte') portePoignee(uP, hy, zE, -1, F.laiton);
+      else porteAnneau(uP, hy - 0.05, zE, 0.05, F.ferNoir);
+      porteEntree(uP, hy - 0.2, zE - 0.006, F.ferNoir);
+      // dedans : serrure à bosse, loquet
+      _pB(uP + 0.02, hy - 0.15, zI + 0.025, 0.2, 0.15, 0.05, F.ferNoir, TL.iron);
+      _pB(uP - 0.06, hy + 0.04, zI + 0.012, 0.24, 0.026, 0.024, F.ferNoir, TL.iron);
+      break;
+    }
+    case 'ville': case 'mairie': case 'double': {
+      const met = st === 'ville' ? F.fer : F.laiton;
+      portePoignee(uP + 0.06, hy, zE - 0.004, -1, met);
+      if (loin) break;
+      porteFiches(h, t, 3);
+      portePoignee(uP + 0.06, hy, zI + 0.004, 1, met);
+      if (principal) { porteEntree(uP + 0.06, hy - 0.13, zE - 0.006, met); _pB(uP + 0.04, hy - 0.1, zI + 0.02, 0.16, 0.13, 0.04, F.ferNoir, TL.iron); }
+      if (st === 'ville') { _pB(U, h * 0.405, zE - 0.004, 0.24, 0.05, 0.01, met, TL.iron); _pB(U, h * 0.405, zE - 0.008, 0.19, 0.016, 0.01, F.trou, TL.plain); } // fente aux lettres
+      if (st === 'mairie' && principal) porteAnneau(U, h * 0.66, zE, 0.065, F.laiton);
+      _pB(uP + 0.02, hy + 0.5, zI + 0.012, 0.15, 0.03, 0.022, F.fer, TL.iron); // verrou
+      break;
+    }
+    case 'boutique': {
+      // partie haute vitrée, croisillons
+      const g0 = h * 0.445, g1 = h * 0.872, gw = lw - 0.24;
+      _pB(U, (g0 + g1) / 2, 0, gw, g1 - g0, t + 0.006, F.vitre, TL.porteVitre);
+      _pB(U, (g0 + g1) / 2, 0, 0.026, g1 - g0, t + 0.016, col, TL.plain);
+      _pB(U, (g0 + g1) / 2, 0, gw, 0.026, t + 0.016, col, TL.plain);
+      portePoignee(uP + 0.06, hy, zE - 0.004, -1, F.laiton);
+      if (loin) break;
+      porteFiches(h, t, 3);
+      portePoignee(uP + 0.06, hy, zI + 0.004, 1, F.laiton);
+      porteEntree(uP + 0.06, hy - 0.13, zE - 0.006, F.laiton);
+      _pB(U, 0.09, zE - 0.004, lw - 0.14, 0.15, 0.008, F.laiton, TL.iron); // plaque de propreté
+      _pB(uP + 0.04, hy - 0.1, zI + 0.02, 0.16, 0.13, 0.04, F.ferNoir, TL.iron);
+      break;
+    }
+    case 'auberge': case 'garde': case 'poterne': case 'eglise': {
+      // bandes de fer rivetées (l'église : longues pentures)
+      const ys = st === 'eglise' ? [0.35, h * 0.5, h - 0.45] : st === 'poterne' ? [0.26, h * 0.5, h - 0.3] : st === 'garde' ? [0.24, h * 0.52, h - 0.3] : [0.3, h - 0.36];
+      for (const y of ys) {
+        if (st === 'eglise') { _pB(0.36 * lw, y, zE - 0.008, 0.72 * lw, 0.07, 0.014, F.ferNoir, TL.porteFer); if (!loin) _pB(0.72 * lw, y, zE - 0.008, 0.09, 0.09, 0.014, F.ferNoir, TL.iron, Math.PI / 4); }
+        else _pB(U, y, zE - 0.008, lw - 0.04, st === 'poterne' ? 0.085 : 0.065, 0.014, F.ferNoir, TL.porteFer);
+      }
+      if (st === 'poterne') {
+        // dehors : ni poignée ni serrure. Dedans : un gros verrou et un anneau pour tirer
+        if (loin) break;
+        _pB(uP - 0.04, 1.0, zI + 0.02, 0.36, 0.045, 0.03, F.ferNoir, TL.iron);
+        _pB(uP - 0.18, 1.0, zI + 0.03, 0.05, 0.08, 0.05, F.ferNoir, TL.iron); _pB(uP + 0.08, 1.0, zI + 0.03, 0.05, 0.08, 0.05, F.ferNoir, TL.iron);
+        porteAnneau(uP - 0.04, 0.82, zI, 0.05, F.ferNoir, 1);
+        _pB(-0.03, 0.3, zI + 0.02, 0.05, 0.08, 0.05, F.ferNoir, TL.iron); _pB(-0.03, h - 0.3, zI + 0.02, 0.05, 0.08, 0.05, F.ferNoir, TL.iron);
+        break;
+      }
+      if (st === 'garde' && !loin) {
+        // judas grillagé
+        _pB(U, h * 0.74, zE - 0.004, 0.16, 0.12, 0.01, PORTE_COUL.trou, TL.plain);
+        _pB(U - 0.04, h * 0.74, zE - 0.012, 0.014, 0.12, 0.014, F.ferNoir, TL.iron); _pB(U + 0.04, h * 0.74, zE - 0.012, 0.014, 0.12, 0.014, F.ferNoir, TL.iron);
+      }
+      if (st === 'auberge' && !loin) porteAnneau(U, h * 0.66, zE, 0.075, F.ferNoir); // heurtoir
+      if (principal) porteAnneau(uP, hy - 0.05, zE, 0.05, F.ferNoir);
+      if (loin) break;
+      if (principal) { porteEntree(uP, hy - 0.2, zE - 0.006, F.ferNoir); _pB(uP + 0.02, hy - 0.15, zI + 0.025, 0.2, 0.15, 0.05, F.ferNoir, TL.iron); }
+      for (const y of ys) _pB(-0.03, y, zE - 0.02, 0.05, 0.075, 0.05, F.ferNoir, TL.iron);
+      break;
+    }
+  }
+  PE.fl = 0;
+}
+
+// encadrement fixe (dans le repère de la porte : baie centrée en x = 0, mur d'épaisseur ep centré en z = 0)
+function porteCadre(d, S, lod) {
+  const ow = d.w + 0.06, oh = d.h + 0.03, ep = S.ep, F = PORTE_COUL;
+  const pierre = S.pierre, cw = pierre ? 0.2 : 0.12, cd = pierre ? 0.06 : 0.04, lh = pierre ? 0.24 : 0.15;
+  const col = pierre ? F.pierre : F.cadreBois, tile = pierre ? TL.portePierre : TL.darkwood;
+  const ze = -ep / 2 - cd / 2;
+  PE.bx(-(ow / 2 + cw / 2), -0.02, ze, cw, oh + 0.02, cd, col, tile);
+  PE.bx(ow / 2 + cw / 2, -0.02, ze, cw, oh + 0.02, cd, col, tile);
+  PE.bx(0, oh, ze, ow + 2 * cw + 0.04, lh, cd + 0.01, col, tile);
+  if (pierre) PE.bx(0, oh - 0.02, ze - 0.012, 0.17, lh + 0.06, cd + 0.02, col, tile);
+  PE.bx(0, -0.09, -0.08, ow + 0.16, 0.1, ep + 0.26, F.seuil, TL.stone);
+  if (lod < 2 || pierre) return;
+  const zi = ep / 2 + cd / 2;
+  PE.bx(-(ow / 2 + cw / 2) - 0.012, -0.02, zi, cw, oh + 0.02, cd, col, tile);
+  PE.bx(ow / 2 + cw / 2 + 0.012, -0.02, zi, cw, oh + 0.02, cd, col, tile);
+  PE.bx(0, oh, zi, ow + 2 * cw + 0.06, lh, cd, col, tile);
+}
+
+// ---------------------------------------------------------------- remplace le panneau d'origine
+emitDoor = function (buf, d, fl) {
+  const S = PORTES.style(d), R = PORTES._R;
+  const dx = d.x - PORTES.cam[0], dz = d.z - PORTES.cam[2], d2 = dx * dx + dz * dz;
+  const lod = d2 < 24 * 24 ? 2 : d2 < 62 * 62 ? 1 : 0;
+  PE.buf = buf;
+  m34Root(R, d.x, d.y, d.z, d.r, 1);
+  PE.fl = 0;
+  if (S.cadre && lod > 0) { PE.M.set(R); porteCadre(d, S, lod); }
+  if (S.double) { porteBattant(d, S, -1, d.w / 2, fl || 0, lod); porteBattant(d, S, 1, d.w / 2, fl || 0, lod); }
+  else porteBattant(d, S, -1, d.w, fl || 0, lod);
+  PE.fl = 0; _pS = 1;
+};
+
+// la caméra (pour le niveau de détail) et les portes décoratives
+HOOKS.draw.push((buf, sbuf, cam) => {
+  PORTES.cam[0] = cam[0]; PORTES.cam[1] = cam[1]; PORTES.cam[2] = cam[2];
+  for (const d of PORTES.deco) if (Math.abs(d.x - cam[0]) < 110 && Math.abs(d.z - cam[2]) < 110) emitDoor(buf, d, 0);
+});
+// les deux grands battants de l'église, ouverts contre les murs du clocher (décor : ni collision, ni touche E)
+HOOKS.load.push(() => {
+  PORTES.deco = [];
+  const w = game.world, B = w && w.bld && w.bld.eglise;
+  if (!B || !B.f) return;
+  const f = B.f, c = Math.cos(f.r), s = Math.sin(f.r), lz = -13.64;
+  PORTES.deco.push({ x: f.x + lz * s, y: f.y + 0.02, z: f.z + lz * c, r: f.r, w: 1.94, h: 3.14, a: 1.42, open: 1, style: 'eglise', deco: true });
+});
+
 // ---- 08-renderer.js
 // ============================================================================
 //  RENDU : cycle jour/nuit, terrain par morceaux, sprites, herbe, eau, blocs
@@ -46357,6 +46671,1267 @@ HOOKS.load.push(() => {
   ui.renderSatchel = function () {
     _rsat();
     try { if (this.satTab === 'carnet' && farm.s) sentiments.carnet($('#satchel .body')); } catch (e) { console.error(e); }
+  };
+});
+
+// ---- 11-zzz95-sommeil.js
+// ============================================================================
+//  LE SOMMEIL
+//  - On dort à toute heure : se coucher mène au lendemain matin, six heures (la
+//    nuit, au matin qui vient ; le jour, on le demande d'abord).
+//  - Plus d'évanouissement à trois heures du matin. À la place, la FATIGUE
+//    (heures passées sans dormir, sauvegardées) : paupières lourdes, vue qui se
+//    voile, endurance qui revient moins vite, pensées du personnage, la
+//    mentalité qui s'abîme plus vite (raison « fatigue », et les coups durs
+//    pèsent plus lourd), l'étrange un peu plus fréquent ; très tard, des yeux
+//    qui se ferment tout seuls, une seconde. Dormir remet tout à zéro.
+//  - Chaque lit de la vallée : E dessus, « Dormir ici ». Chez soi, dans une
+//    maison louée, dans un lieu public ou abandonné : on dort. Dans le lit de
+//    quelqu'un : s'il est là et réveillé, il proteste ; s'il rentre pendant la
+//    nuit (ou s'il dort dans la pièce), il vous trouve : réplique, amitié en
+//    chute, souvenir, intrusion (societe.crime), et dehors.
+//  - La génération nouvelle de ce lot (après tout le reste, tirage propre) :
+//    la maison du Rempart (troisième maison à louer), coffres et écriteaux des
+//    maisons à louer, la poterne du mur est (voir 11-zzz97-crochetage.js).
+//  État : farm.s.sommeil = { debout (heures de jeu au réveil), nuits, veilleMax }.
+//  API : sommeil (veille(), stade(), k(), litE(q), infoLit(q), lits).
+// ============================================================================
+Object.assign(LIEU_NAMES, { maison_rempart: 'la maison du Rempart', poterne: 'la poterne' });
+const LOC_CLES = ['vide4', 'vide5', 'maison_rempart'];
+// lits : demi-largeur, demi-longueur, hauteur du dessus
+const LIT_TAILLE = { lit: [0.53, 1.03, 0.5], lit_geant: [2.8, 5.5, 1.2], paillasse: [0.45, 0.95, 0.16], fond_lit: [0.5, 0.9, 0.48], fond_paillasse: [0.55, 0.5, 0.42] };
+const LIT_INTERS = new Set(['bed', 'rentbed', 'refuge', 'k_paillasse']);
+
+const FATIGUE_PENSEES = [
+  null,
+  ['(Vous bâillez sans pouvoir vous retenir.)', '(Un bon lit ne serait pas de refus.)', '(La journée a été longue. Les jambes le disent avant la tête.)'],
+  ['(Vos paupières pèsent de plus en plus lourd.)', '(Vous vous surprenez à fixer le vide, la bouche ouverte.)', '(Il faudrait dormir. Un lit, une paillasse, n’importe quoi.)', '(Vos pensées s’emmêlent comme de la laine mouillée.)'],
+  ['(Vous relisez trois fois la même pensée sans la comprendre.)', '(Le sol tangue doucement. Ce n’est pas le sol.)', '(Vos mains tremblent un peu. Le froid, sans doute. Ce n’est pas le froid.)', '(Vous avez oublié ce que vous étiez venu faire ici.)', '(Chaque bruit vous fait sursauter, et vous ne savez plus d’où il vient.)'],
+  ['(Quelqu’un a parlé, tout près. Ou vous avez rêvé debout.)', '(Les contours des choses bougent quand on ne les regarde pas.)', '(Dormir. Il faut dormir. Tout de suite, n’importe où.)', '(Vos yeux se sont fermés. Combien de temps ?)', '(Vous ne savez plus depuis quand vous êtes debout. La vallée, elle, le sait.)'],
+];
+const FATIGUE_ENTREE = [null, '(La fatigue vient. Une bonne fatigue, pour l’instant.)', '(Vous devriez aller dormir. Le corps le réclame.)', '(Vous n’avez pas dormi. Tout devient lointain, et un peu faux.)', '(Cela fait trop longtemps. Quelque chose, en vous, commence à céder.)'];
+// l'habitant qui vous trouve dans son lit
+const LIT_DECOUVERT = {
+  ami: ['Vous ? Dans mon lit ? … Vous auriez pu demander, au moins. Allez, debout. Et on n’en parle plus.', 'Ça alors. Je rentre, et je vous trouve là, comme chez vous. Debout, voyons. Vous me devez une explication, un jour.'],
+  autre: ['Qu’est-ce que vous faites dans mon lit ?! Dehors ! Dehors, ou j’appelle le garde !', 'Au voleur ! … Non, pire : dans mon lit ! Sortez de chez moi, tout de suite !', 'Mais… qui êtes-vous ? Qu’est-ce que vous faites là ? Dehors ! Et que je ne vous revoie pas !'],
+  matin: ['Je me lève, et qu’est-ce que je trouve ? Vous, dans le lit, comme un chat de gouttière ! Dehors !', 'Vous avez dormi ici ? Chez moi ? Toute la nuit ? … Sortez. Sortez avant que je crie.'],
+  enfant: 'Dans le lit de ma fille ?! Mais vous êtes fou ! Sortez de chez moi, sortez, ou j’appelle le garde !',
+  garde: 'Dans le lit du garde ! Vous ne manquez pas d’air. Dehors. Et estimez-vous heureux que je ne vous mette pas au cachot.',
+};
+const LIT_PROTESTE = ['Hé ! C’est mon lit, ça. Vous vous croyez à l’auberge ?', 'Pas question. Mon lit, c’est mon lit.', 'Vous plaisantez ? Allez dormir chez vous.', 'Ah non. On ne se couche pas chez les gens comme ça.'];
+
+const sommeil = {
+  lits: null, nProps: -1, ctx: null, tickT: 0, lastH: null, lastSt: null, stadePrev: 0,
+  pensT: 90, blinkT: 8, blink: 0, blinkPh: 0, blinkHold: 0, vignette: 0, ferme: 0, flou: 0, murmT: 80, figT: 120,
+  el: null, elH: null, elB: null, elK: -1, elF: -1,
+
+  // ------------------------------------------------------------------ l'état
+  S() {
+    const s = farm.s;
+    if (!s) return null;
+    if (!s.sommeil || typeof s.sommeil.debout !== 'number' || !isFinite(s.sommeil.debout)) s.sommeil = { debout: s.hours - this.depuisAube(), nuits: 0, veilleMax: 0 };
+    return s.sommeil;
+  },
+  depuisAube() { return typeof game !== 'undefined' && game.world ? (game.world.time * 24 - 6 + 24) % 24 : 0; },
+  veille() { const S = this.S(); return S ? Math.max(0, farm.s.hours - S.debout) : 0; },
+  // fatigue ressentie (la vigueur la repousse)
+  eff() { let v = this.veille(); if (typeof BUFF !== 'undefined' && BUFF.on('vigueur')) v -= 10; return Math.max(0, v); },
+  stade() { const v = this.eff(); return v >= 34 ? 4 : v >= 26 ? 3 : v >= 20 ? 2 : v >= 16 ? 1 : 0; },
+  k() { return farm.s ? clamp((this.eff() - 16) / 24, 0, 1) : 0; },
+  reveille(heures) {
+    const S = this.S(), s = farm.s;
+    if (!S) return;
+    S.veilleMax = Math.max(S.veilleMax || 0, this.veille());
+    if (heures === undefined) S.debout = s.hours;
+    else S.debout = Math.min(s.hours, S.debout + heures);
+    this.stadePrev = this.stade(); this.pensT = 120 + Math.random() * 120;
+  },
+
+  // ------------------------------------------------------------------ chaque image
+  update(dt, eye, basis, sky, playing) {
+    const s = farm.s, p = game.player, S = this.S();
+    if (!S) return;
+    const actif = game.mode === 'play' && !game.dying && !game.sleeping && !(typeof cine !== 'undefined' && cine.on);
+    const st = actif ? this.stade() : 0, k = this.k();
+    // l'endurance revient moins vite
+    if (actif && this.lastSt !== null && p.stamina > this.lastSt && p.stamina - this.lastSt < 0.08 && st >= 1) {
+      const f = [1, 0.85, 0.65, 0.45, 0.35][st];
+      p.stamina = this.lastSt + (p.stamina - this.lastSt) * f;
+    }
+    this.lastSt = p.stamina;
+    // la mentalité s'use (deux fois par seconde, au prorata des heures de jeu)
+    this.tickT -= dt;
+    if (this.tickT <= 0) {
+      this.tickT = 0.5;
+      let dh = this.lastH === null ? 0 : s.hours - this.lastH;
+      this.lastH = s.hours;
+      if (!(dh > 0) || dh > 3 || game.sleeping) dh = 0;
+      if (dh && st >= 2 && typeof esprit !== 'undefined' && esprit.changer) {
+        const rate = ([0, 0, 0.45, 0.9, 1.5][st]) + Math.max(0, this.eff() - 40) * 0.05;
+        esprit.changer(-rate * dh, 'fatigue', 18);
+      }
+      if (this.lits && game.world.props.length !== this.nProps) this.listerLits();
+    }
+    // pensées : à chaque palier franchi, puis de temps en temps
+    if (actif && st > this.stadePrev && FATIGUE_ENTREE[st]) { this.dire(FATIGUE_ENTREE[st], 4.5); this.pensT = 90 + Math.random() * 60; }
+    if (actif) this.stadePrev = st;
+    this.pensT -= dt;
+    if (actif && st >= 1 && this.pensT <= 0) {
+      this.pensT = [0, 260, 170, 115, 80][st] * (0.7 + Math.random() * 0.6);
+      this.dire(pick(FATIGUE_PENSEES[st]), 4);
+      if (st >= 1 && Math.random() < 0.5) sound.breath && sound.breath(1.3);
+    }
+    // l'étrange : des murmures, une silhouette au coin de l'œil
+    if (actif && st >= 3) {
+      this.murmT -= dt;
+      if (this.murmT <= 0) { this.murmT = (st >= 4 ? 45 : 90) + Math.random() * 90; sound.whisper && sound.whisper(Math.random() * 2 - 1, 0.12 + k * 0.2); }
+      if (st >= 4 && typeof esprit !== 'undefined' && esprit.silhouette) {
+        this.figT -= dt;
+        if (this.figT <= 0) { this.figT = 100 + Math.random() * 140; if (!esprit.silhouette(eye, basis)) this.figT = 15; }
+      }
+    }
+    // les paupières : lourdes, des clignements lents ; à bout, les yeux se ferment tout seuls une seconde
+    let base = actif ? [0, 0, 0.05, 0.1, 0.16][st] + (st >= 2 ? Math.sin(game.time * 0.7) * 0.02 : 0) : 0;
+    if (actif && st >= 2) {
+      this.blinkT -= dt;
+      if (this.blinkPh === 0 && this.blinkT <= 0) {
+        const micro = st >= 4 && Math.random() < 0.4;
+        this.blinkPh = 1; this.blinkHold = micro ? 0.8 + Math.random() * 0.9 : 0.05 + Math.random() * (st >= 3 ? 0.35 : 0.15);
+        this.blinkT = micro ? 35 + Math.random() * 35 : [0, 0, 11, 7, 5][st] * (0.6 + Math.random() * 0.8);
+        if (micro) setTimeout(() => sound.breath && sound.breath(1.1), 400);
+      }
+    } else { this.blinkPh = 0; this.blink = 0; }
+    if (this.blinkPh === 1) { this.blink = Math.min(1, this.blink + dt / 0.28); if (this.blink >= 1) this.blinkPh = 2; }
+    else if (this.blinkPh === 2) { this.blinkHold -= dt; if (this.blinkHold <= 0) this.blinkPh = 3; }
+    else if (this.blinkPh === 3) { this.blink = Math.max(0, this.blink - dt / 0.4); if (this.blink <= 0) this.blinkPh = 0; }
+    this.ferme = Math.min(1.12, base + this.blink * (st >= 3 ? 1.12 : 0.85));
+    this.flou = actif && st >= 3 ? 0.35 + k * 0.8 : 0;
+    this.vignette = actif && st >= 2 ? 0.1 + k * 0.4 : 0;
+    this.paupieres();
+  },
+  dire(t, dur) {
+    if (!t || ui.panel || (typeof cine !== 'undefined' && cine.on)) return;
+    ui.subtitle('', t, dur || 4);
+  },
+  // voile noir en haut et en bas de l'écran, flou léger
+  paupieres() {
+    if (typeof document === 'undefined' || !document.body) return;
+    const c = Math.round(this.ferme * 100) / 100, f = Math.round(this.flou * 20) / 20;
+    if (c === this.elK && f === this.elF) return;
+    if (!this.el) {
+      const el = this.el = document.createElement('div');
+      el.id = 'm95-paupieres';
+      el.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;';
+      const mk = (top) => { const d = document.createElement('div'); d.style.cssText = `position:absolute;left:-5%;right:-5%;height:62%;${top ? 'top:0' : 'bottom:0'};background:linear-gradient(${top ? 'to bottom' : 'to top'},#000 0%,#000 78%,rgba(0,0,0,0.6) 90%,rgba(0,0,0,0) 100%);transform:translateY(${top ? -101 : 101}%);will-change:transform;`; el.appendChild(d); return d; };
+      this.elH = mk(true); this.elB = mk(false);
+      const gl = document.getElementById('gl');
+      if (gl && gl.parentNode) gl.parentNode.insertBefore(el, gl.nextSibling); else document.body.appendChild(el);
+    }
+    this.elK = c; this.elF = f;
+    const t = -101 + Math.min(1, c) * 101;
+    this.elH.style.transform = `translateY(${t.toFixed(1)}%)`;
+    this.elB.style.transform = `translateY(${(-t).toFixed(1)}%)`;
+    const fl = f > 0.05 ? `blur(${f.toFixed(2)}px)` : '';
+    this.el.style.backdropFilter = fl; this.el.style.webkitBackdropFilter = fl;
+  },
+
+  // ------------------------------------------------------------------ les lits
+  listerLits() {
+    const w = game.world;
+    this.nProps = w.props.length;
+    const old = new Map((this.lits || []).map((L) => [L.q, L]));
+    this.lits = [];
+    for (const q of w.props) {
+      if (!LIT_TAILLE[q.id] || q.gone) continue;
+      if (old.has(q)) { this.lits.push(old.get(q)); continue; }
+      const aInter = (w.inter || []).some((it) => LIT_INTERS.has(it.kind) && Math.hypot(it.x - q.x, it.z - q.z) < 1.6 && Math.abs(it.y - q.y) < 3);
+      this.lits.push({ q, bld: this.bldDe(q), aInter });
+    }
+  },
+  bldDe(q) {
+    const w = game.world;
+    for (const k in w.bld) {
+      const B = w.bld[k], f = B.f;
+      if (!f || Math.abs(q.y - B.y) > 3) continue;
+      const [lx, lz] = World.blockLocal({ x: f.x, z: f.z, r: f.r }, q.x, q.z);
+      if (Math.abs(lx) < B.W / 2 + 0.2 && Math.abs(lz) < B.D / 2 + 0.2) return k;
+    }
+    return null;
+  },
+  // à qui est ce lit ? { cat: ferme|location|conjoint|vide|public|autrui|mort|cachot|geant, bld, n (propriétaire), co (autres habitants) }
+  infoLit(q) {
+    const L = (this.lits || []).find((l) => l.q === q) || { q, bld: this.bldDe(q) };
+    const w = game.world, bld = L.bld, B = bld && w.bld[bld];
+    if (q.id === 'paillasse' && w.prison && Math.hypot(q.x - PRISON_POS.x, q.z - PRISON_POS.z) < 30) return { cat: 'cachot', bld };
+    if (q.id === 'lit_geant') return { cat: 'geant', bld };
+    if (!bld) return { cat: q.id === 'fond_lit' || q.id === 'fond_paillasse' ? 'public' : 'vide', bld };
+    if (bld === 'ferme') return { cat: 'ferme', bld };
+    if (typeof locations !== 'undefined' && locations.locataire(bld)) return { cat: 'location', bld };
+    const vivants = npcs.list.filter((n) => n.d.home === bld && n.st.alive && !n.vanished);
+    const morts = npcs.list.filter((n) => n.d.home === bld && !n.st.alive);
+    let n = null;
+    if (vivants.length) {
+      // le lit de qui ? (le second lit de la boulangerie est celui de la petite)
+      const sp = B.spots || {}, dB2 = sp.bed2 ? Math.hypot(sp.bed2.x - q.x, sp.bed2.z - q.z) : 99;
+      n = (dB2 < 0.6 && vivants.find((m) => m.id === 'fillette')) || vivants.find((m) => m.id !== 'fillette') || vivants[0];
+    } else {
+      const trav = npcs.list.find((m) => m.d.work === bld && m.st.alive && !m.vanished);
+      if (trav) n = trav;
+    }
+    const conj = typeof sentiments !== 'undefined' && sentiments.conjoint ? sentiments.conjoint() : null;
+    if (n && conj && (n === conj || (n.id === 'fillette' && conj.id === 'boulangere'))) return { cat: 'conjoint', bld, n };
+    if (n) return { cat: 'autrui', bld, n, co: vivants.filter((m) => m !== n) };
+    if (morts.length) return { cat: 'mort', bld, n: morts[0] };
+    return { cat: bld === 'refuge' || bld === 'relais_chasse' ? 'public' : 'vide', bld };
+  },
+  // E sur un lit
+  litE(q) {
+    const I = this.infoLit(q), s = farm.s;
+    switch (I.cat) {
+      case 'cachot': {
+        const P = typeof prison !== 'undefined' && prison.S();
+        if (P && P.actif) { game.sleep('cachot'); return; }
+        ui.subtitle('', '(De la paille qui pique, et qui sent la peur des autres.)', 3); return;
+      }
+      case 'ferme': return this.coucher('ferme', q, I);
+      case 'location': return this.coucher('location', q, I);
+      case 'conjoint': return this.coucher('lit', q, I);
+      case 'geant': return this.coucher('geant', q, I);
+      case 'mort': return this.coucher('lit', q, I);
+      case 'vide': case 'public': return this.coucher(q.id === 'paillasse' || q.id === 'fond_paillasse' ? 'paille' : 'lit', q, I);
+    }
+    // le lit de quelqu'un
+    const n = I.n, B = game.world.bld[I.bld], p = game.player;
+    const ici = (m) => m.st.alive && m.inside === I.bld && Math.hypot(m.x - p.pos[0], m.z - p.pos[2]) < 16;
+    if (ici(n) && n.state === 'sleep') {
+      const dans = Math.hypot(n.x - q.x, n.z - q.z) < 1.3;
+      if (dans) { ui.subtitle('', `(${n.st.met ? n.name : 'Quelqu’un'} dort déjà dans ce lit, et ronfle doucement.)`, 3); return; }
+    }
+    const debout = [n, ...(I.co || [])].find((m) => ici(m) && m.state !== 'sleep' && !m.sleep);
+    if (debout) {
+      npcs.say(debout, pick(LIT_PROTESTE), 3);
+      npcs.addAmitie(debout, -3); npcs.remember(debout, 'lit_demande');
+      return;
+    }
+    // quelqu'un dort dans la pièce : il vous trouvera au matin ; le propriétaire rentre-t-il avant six heures ?
+    const dormeur = [n, ...(I.co || [])].find((m) => ici(m) && (m.state === 'sleep' || m.sleep));
+    const arrivee = ici(n) ? null : this.arrivee(n, I.bld);
+    I.arrivee = arrivee; I.matin = !arrivee && dormeur ? dormeur : null;
+    this.coucher('lit', q, I);
+  },
+  // heure (0..30) à laquelle l'habitant rentre chez lui avant le matin qui vient, ou null
+  arrivee(n, bld) {
+    if (!n || !n.st.alive || n.vanished || n.hunting || n.d.home !== bld) return null;
+    const h0 = npcs.hour(), fin = h0 < 6 ? 6 : 30;
+    for (let h = h0 + 0.25; h < fin - 0.25; h += 0.25) {
+      const sp = npcs.schedulePlace(n, h % 24);
+      if (sp && sp.place === 'home') return h;
+    }
+    return null;
+  },
+  coucher(where, q, I) {
+    this.ctx = { where, q, I, x: q.x, z: q.z };
+    game.trySleep(where);
+  },
+  // le contexte d'un coucher (valable si l'on est encore près du lit)
+  prendreCtx(where) {
+    const c = this.ctx, p = game.player;
+    this.ctx = null;
+    if (!c || c.where !== where || Math.hypot(c.x - p.pos[0], c.z - p.pos[2]) > 5) return null;
+    return c;
+  },
+  // réveil : ce que la mentalité en pense (un vrai lit vaut celui de l'auberge)
+  pourEsprit(where) {
+    if (where === 'location' || where === 'lit' || where === 'geant') return 'auberge';
+    return where;
+  },
+  apres(where, c) {
+    this.reveille();
+    const S = this.S(), s = farm.s;
+    S.nuits = (S.nuits || 0) + 1;
+    S.dernier = { jour: s.day, ou: where };
+    if (c && c.I) {
+      const I = c.I;
+      if (I.matin) setTimeout(() => this.decouvert(I.matin, I, 'matin'), 2400);
+      else if (I.cat === 'mort') { if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-2, 'le lit d’un mort', 4); setTimeout(() => ui.subtitle('', `(Le lit de ${I.n.name}. Les draps ont gardé son odeur. Personne n’y dormira plus.)`, 5), 2600); }
+      else if (I.cat === 'geant') setTimeout(() => ui.subtitle('', '(Vous avez dormi dans un pli de la fourrure, comme un enfant dans le manteau de son père. Ça sentait la fumée et la bête.)', 5), 2600);
+      else if (I.cat === 'conjoint') setTimeout(() => ui.subtitle('', `(Chez ${I.n.name}, dans ses draps. Vous avez bien dormi.)`, 4), 2600);
+    }
+    if (where === 'ferme' && typeof sentiments !== 'undefined' && sentiments.conjoint) {
+      const cj = sentiments.conjoint();
+      if (cj && Math.random() < 0.5) setTimeout(() => { if (!game.dying && !ui.panel) ui.subtitle('', `(${cj.name} s’est levé${cj.d.gender === 'f' ? 'e' : ''} sans vous réveiller. Sa place est encore tiède.)`, 4.5); }, 5200);
+    }
+  },
+  // l'habitant rentre et vous trouve : on se réveille en pleine nuit
+  async interrompu(where, c) {
+    const w = game.world, p = game.player, s = farm.s, I = c.I, n = I.n;
+    game.sleeping = true;
+    ui.close(true);
+    await ui.fade(true, '', 1100);
+    try {
+      const h0 = npcs.hour(), dh = Math.max(0.25, I.arrivee - h0);
+      game.skipHours(dh);
+      w.time = (I.arrivee % 24) / 24; game.lastT = w.time;
+      npcs.snap(w);
+      p.hp = Math.min(100, p.hp + 5 * dh); p.stamina = Math.max(p.stamina, 0.6);
+      this.reveille(dh * 1.5);
+      $('#fade-text').textContent = '';
+      await new Promise((r) => setTimeout(r, 700));
+    } catch (e) { console.error(e); }
+    await ui.fade(false, '', 600);
+    game.sleeping = false;
+    this.decouvert(n, I, 'nuit');
+  },
+  // la scène : l'habitant (ou sa mère) vous trouve ; amitié, souvenir, intrusion ; et dehors
+  decouvert(n, I, quand) {
+    if (!n || !n.st.alive || game.dying) return;
+    const w = game.world, p = game.player, B = w.bld[I.bld];
+    let qui = n, txt;
+    const mere = n.id === 'fillette' && npcs.alive('boulangere') && npcs.byId.boulangere.d.home === I.bld ? npcs.byId.boulangere : null;
+    if (mere) { qui = mere; txt = LIT_DECOUVERT.enfant; }
+    else if (n.id === 'garde') txt = LIT_DECOUVERT.garde;
+    else if (npcs.level(n) >= 6) txt = pick(LIT_DECOUVERT.ami);
+    else txt = pick(quand === 'matin' ? LIT_DECOUVERT.matin : LIT_DECOUVERT.autre);
+    // il est là, au pied du lit
+    const q = I.q || null, bx = q ? q.x : p.pos[0], bz = q ? q.z : p.pos[2];
+    const m = B && w.nav.nodes[B.nMid];
+    if (m) { qui.x = m.x; qui.z = m.z; qui.y = B.y; }
+    qui.state = 'idle'; qui.inside = I.bld; qui.heading = Math.atan2(p.pos[0] - qui.x, p.pos[2] - qui.z); qui.move = 0; qui.path = []; qui.pi = 0;
+    npcs.say(qui, txt, 4.5);
+    const ami = npcs.level(qui) >= 6 && !mere;
+    npcs.addAmitie(qui, ami ? -15 : mere ? -60 : -45);
+    npcs.remember(qui, 'lit', { quand });
+    if (!ami) {
+      try { if (typeof societe !== 'undefined' && societe.crime && CRIME_DEF.intrusion) societe.crime({ type: 'intrusion', victime: qui.id, x: bx, z: bz, temoins: [qui.id] }); } catch (e) { console.error(e); }
+      if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-2, 'honte', 4);
+    }
+    // dehors, devant la porte
+    setTimeout(() => {
+      if (game.dying || !B) return;
+      ui.fade(true, '', 500).then(() => {
+        const o = w.nav.nodes[B.nOut] || { x: B.out[0], z: B.out[1] };
+        p.pos = [o.x, w.groundAt(o.x, o.z, B.y + 1, 0.8), o.z]; p.vel = [0, 0, 0];
+        const dr = w.doors[B.door];
+        if (dr) { dr.open = 0; dr.a = 0; const h = npcs.hour(); if (h >= 20.5 || h < 6) dr.locked = true; }
+        ui.subtitle('', ami ? '(Vous voilà sur le pas de la porte, les cheveux en bataille.)' : '(La porte claque dans votre dos. Un verrou. Puis plus rien.)', 4);
+        ui.fade(false, '', 700);
+      });
+    }, 4300);
+  },
+};
+
+// ---------------------------------------------------------------- l'étrange suit la fatigue
+{
+  const _biz = bizarrerie;
+  bizarrerie = function () { const b = _biz(); try { return b * (1 + 0.5 * sommeil.k()); } catch (e) { return b; } };
+}
+// quand on est fatigué, les coups durs pèsent plus lourd sur la mentalité
+if (typeof esprit !== 'undefined' && esprit.changer) {
+  const _ch = esprit.changer.bind(esprit);
+  esprit.changer = function (delta, raison, plafond) {
+    if (delta < 0 && raison !== 'fatigue' && farm.s) { const st = sommeil.stade(); if (st >= 2) delta *= [1, 1, 1.2, 1.4, 1.6][st]; }
+    return _ch(delta, raison, plafond);
+  };
+}
+// la chambre de l'auberge se loue aussi le jour (on peut dormir de jour)
+{
+  const _choose = talk.choose.bind(talk);
+  talk.choose = function (act) {
+    if (act === 'rent' && this.n && this.n.d.id === 'aubergiste' && farm.s) {
+      const h = npcs.hour();
+      if (h > 5 && h < 18) {
+        if (!farm.pay(20)) return this.view('Vingt pièces, même en plein jour. Et je ne fais pas crédit.', this.options());
+        farm.s.flags.rented = farm.s.day; sound.coin && sound.coin();
+        return this.view('En plein jour ? … Chacun ses heures. Vingt pièces, et je vous tire les rideaux. Le lit du fond est à vous.', this.options());
+      }
+    }
+    return _choose(act);
+  };
+}
+
+// ---------------------------------------------------------------- branchements
+// dormir à toute heure : la version de base passe avant tous les emballages (bibliothèque…)
+HOOKS.load.unshift(() => {
+  if (game._m95Base) return;
+  game._m95Base = true;
+  game.trySleep = function (where) {
+    const h = npcs.hour();
+    if (h >= 6 && h < 18.5) {
+      const c = sommeil.ctx;
+      ui.choice('Dormir', 'Il fait jour. Si vous vous couchez maintenant, vous ne vous réveillerez que demain matin, à six heures.', [
+        { label: 'Dormir jusqu’à demain matin', fn: () => { ui.close(true); sommeil.ctx = c; this.sleep(where); } },
+        { label: 'Pas maintenant', fn: () => { sommeil.ctx = null; ui.close(); } },
+      ]);
+      return;
+    }
+    this.sleep(where);
+  };
+});
+HOOKS.load.push((saved) => {
+  sommeil.lits = null; sommeil.nProps = -1; sommeil.ctx = null; sommeil.lastH = null; sommeil.lastSt = null;
+  sommeil.blink = 0; sommeil.blinkPh = 0; sommeil.ferme = 0; sommeil.flou = 0; sommeil.vignette = 0;
+  if (farm.s) { if (!saved) farm.s.sommeil = null; sommeil.S(); sommeil.stadePrev = sommeil.stade(); }
+  sommeil.listerLits();
+  sommeil.paupieres();
+  if (game._m95) return;
+  game._m95 = true;
+  // le sommeil (par-dessus tous les autres emballages : cauchemars, rêves, prison…)
+  const _sleep = game.sleep.bind(game);
+  game.sleep = async function (where) {
+    if (this.sleeping || this.dying || !farm.s) return _sleep(where);
+    const s0 = farm.s, d0 = s0.day, c = sommeil.prendreCtx(where);
+    if (c && c.I && c.I.arrivee) return sommeil.interrompu(where, c);
+    const r = await _sleep(where);
+    try { if (farm.s === s0 && farm.s.day > d0 && !game.dying) sommeil.apres(where, c); } catch (e) { console.error(e); }
+    return r;
+  };
+  // plus d'évanouissement à trois heures du matin : la fatigue a pris sa place
+  sommeil._faint = game.faint.bind(game);
+  game.faint = function () { return undefined; };
+  // en quittant la partie pour le mode création, on rouvre les yeux
+  const _cre = game.enterCreative.bind(game);
+  game.enterCreative = function () { sommeil.ferme = 0; sommeil.flou = 0; sommeil.vignette = 0; sommeil.paupieres(); return _cre(); };
+  // le réveil vu par la mentalité : un lit loué ou prêté vaut celui de l'auberge
+  if (typeof esprit !== 'undefined' && esprit.reveil) {
+    const _rv = esprit.reveil.bind(esprit);
+    esprit.reveil = function (where, ...a) { return _rv(sommeil.pourEsprit(where), ...a); };
+  }
+});
+HOOKS.update.push((dt, eye, basis, sky, playing) => {
+  if (!farm.s || game.kind !== 'farm') return;
+  sommeil.update(dt, eye, basis, sky, playing);
+  const t = game.target;
+  if (t && t.kind === 'hook' && t.lit) game.hiProp = t.lit;
+});
+HOOKS.fx.push((fx) => { if (sommeil.vignette > 0) fx[0] = Math.max(fx[0], sommeil.vignette); });
+// E sur un lit : « Dormir ici »
+HOOKS.target.push((eye, f, cand) => {
+  if (!farm.s || !sommeil.lits) return;
+  const w = game.world;
+  for (const L of sommeil.lits) {
+    const q = L.q;
+    if (L.aInter || q.gone) continue;
+    const T = LIT_TAILLE[q.id], R = Math.max(T[0], T[1]) + 2.8;
+    if (Math.abs(q.x - eye[0]) > R || Math.abs(q.z - eye[2]) > R) continue;
+    // le regard tombe sur le dessus du lit (ou, de biais et à l'horizontale, sur son flanc : le lit des géants)
+    const top = q.y + T[2], box = { x: q.x, z: q.z, r: q.r };
+    let d = null, net = false;
+    if (f[1] < -0.04) {
+      const t = (top - eye[1]) / f[1];
+      if (t > 0 && t < 2.8) { const [lx, lz] = World.blockLocal(box, eye[0] + f[0] * t, eye[2] + f[2] * t); if (Math.abs(lx) < T[0] + 0.08 && Math.abs(lz) < T[1] + 0.08) { d = t; net = true; } }
+    }
+    if (d === null && q.id === 'lit_geant') {
+      const [lx, lz] = World.blockLocal(box, eye[0], eye[2]);
+      const [wx, wz] = World.blockToWorldDir(box, clamp(lx, -T[0], T[0]), clamp(lz, -T[1], T[1]));
+      const dx = q.x + wx - eye[0], dy = top - 0.3 - eye[1], dz = q.z + wz - eye[2], dd = Math.hypot(dx, dy, dz);
+      if (dd < 2.6 && (dx * f[0] + dy * f[1] + dz * f[2]) / (dd || 1) > 0.8) d = dd;
+    }
+    if (d === null) continue;
+    const bh = w.raycastBlocks(eye, f, d - 0.2);
+    if (bh && !bh.block.hidden) continue;
+    // un regard posé sur le lit l'emporte sur les objets voisins, visés plus largement
+    cand({ kind: 'hook', lit: q, use: () => sommeil.litE(q) }, net ? Math.max(0.3, d * 0.6) : d + 0.25);
+  }
+});
+
+// ---------------------------------------------------------------- modèles : coffre de la maison louée, écriteau « À louer »
+Object.assign(PROP_MODELS, {
+  coffre_loc(E) {
+    E.bx(0, 0, 0, 0.9, 0.48, 0.56, WHITE, tx(TL.wood, TL.chest)); E.bx(0, 0.48, 0, 0.94, 0.14, 0.6, WHITE, TL.darkwood);
+    for (const x of [-0.3, 0.3]) E.bx(x, 0, 0, 0.06, 0.63, 0.61, PC.iron, TL.iron);
+    E.bx(0, 0.28, 0.29, 0.1, 0.13, 0.04, rgbf('#3a3a40'), TL.iron); E.bx(0, 0.37, 0.305, 0.06, 0.06, 0.02, rgbf('#6a6a72'), TL.iron);
+  },
+  ecriteau_louer(E, o) {
+    E.bx(0, 0, 0, 0.09, 1.72, 0.09, WHITE, TL.darkwood); E.bx(0, 1.6, 0.18, 0.06, 0.06, 0.42, WHITE, TL.darkwood);
+    E.bx(-0.2, 1.1, 0.34, 0.012, 0.5, 0.012, rgbf('#555'), TL.iron); E.bx(0.2, 1.1, 0.34, 0.012, 0.5, 0.012, rgbf('#555'), TL.iron);
+    E.bx(0, 0.86, 0.34, 0.62, 0.34, 0.035, [1.12, 1.02, 0.94], tx(TL.wood, TL.sign));
+    const loue = o.data && o.data.loc && typeof locations !== 'undefined' && locations.locataire(o.data.loc);
+    if (loue) E.box(0, 1.03, 0.36, 0.66, 0.08, 0.012, rgbf('#8a2a22'), TL.plain, 0, 0, 0.28);
+  },
+});
+Object.assign(PROP_COLL, { coffre_loc: [0.45, 0.28, 0.62], ecriteau_louer: [0.08, 0.08, 1.7] });
+
+// ============================================================================
+//  GÉNÉRATION (après tout le reste de la vallée, tirage propre) : la maison du
+//  Rempart, coffres et écriteaux des trois maisons à louer, la poterne du mur est
+// ============================================================================
+// segment [a, b] coupe-t-il le rectangle (repère f, demi-côtés hw, hd) ?
+function m95SegRect(f, hw, hd, ax, az, bx, bz) {
+  const [x0, z0] = World.blockLocal(f, ax, az), [x1, z1] = World.blockLocal(f, bx, bz);
+  let t0 = 0, t1 = 1;
+  const dx = x1 - x0, dz = z1 - z0;
+  for (const [p, q] of [[-dx, x0 + hw], [dx, hw - x0], [-dz, z0 + hd], [dz, hd - z0]]) {
+    if (Math.abs(p) < 1e-9) { if (q < 0) return false; continue; }
+    const r = q / p;
+    if (p < 0) { if (r > t1) return false; if (r > t0) t0 = r; } else { if (r < t0) return false; if (r < t1) t1 = r; }
+  }
+  return t0 <= t1;
+}
+function m95Libre(w, f, hw, hd, y0) {
+  for (let lz = -hd; lz <= hd + 0.01; lz += 1) for (let lx = -hw; lx <= hw + 0.01; lx += 1) {
+    const c = Math.cos(f.r), s = Math.sin(f.r), x = f.x + lx * c + lz * s, z = f.z - lx * s + lz * c;
+    if (Math.abs(w.heightAt(x, z) - y0) > 0.35 || !pointFree(w, x, z, 0.3)) return false;
+    let obj = false;
+    w.query(x, z, 1.2, (o) => { if (!o.gone && Math.hypot(o.x - x, o.z - z) < 1.0) obj = true; }, null);
+    if (obj) return false;
+  }
+  return true;
+}
+function m95Generer(w, seed) {
+  const T = w.townInfo;
+  if (!T || !w.bld || !w.bld.vide4) return;
+  const rnd = mulberry32((((seed | 0) * 977) + 53) >>> 0);
+  const B = new Builder(w, rnd, new Uint8Array(w.W * w.W));
+  const y0 = w.heightAt(T.x, T.z), N = w.nav;
+  w.grid = null;
+  // ------------------------------------------------ la maison du Rempart (au nord-est, entre le garde et le rempart)
+  let maison = null;
+  for (const [lx, lz] of [[22, -37], [21, -36.5], [23, -37.5], [20, -37], [22, -35.5]]) {
+    const f = { x: T.x + lx, y: y0, z: T.z + lz, r: Math.PI };
+    if (!m95Libre(w, f, 5.2, 4.7, y0)) continue;
+    const n0 = N.nodes.length;
+    maison = B.building('maison_rempart', f, 8, 7, { floors: 2, wall: M_STONE, win: M_STONEWIN, roof: M_SLATE, chimney: true, roofH: 3, noLight: true }, function (bf, W, D, B2) {
+      this.furnishHome(bf, W, D, B2, { bedCol: '#6a4a7a', shelf: 'livres' });
+    });
+    // les chemins qui traversaient la parcelle
+    N.edges = N.edges.filter(([a, b, fl]) => fl || a >= n0 || b >= n0 || !m95SegRect(f, 4.6, 4.1, N.nodes[a].x, N.nodes[a].z, N.nodes[b].x, N.nodes[b].z));
+    for (const [px, pz] of [[-2.6, -4.2], [2.6, -4.2]]) B.propRel(f, 'pot_fleurs', px, 0, pz, 0);
+    break;
+  }
+  // ------------------------------------------------ coffres et écriteaux des maisons à louer
+  w.locations = {};
+  for (const key of LOC_CLES) {
+    const Bk = w.bld[key];
+    if (!Bk || !Bk.f) continue;
+    const f = Bk.f, W = Bk.W, D = Bk.D;
+    const coffre = B.propRel(f, 'coffre_loc', -W / 2 + 2.05, 0.15, D / 2 - 0.62, Math.PI, { loc: key });
+    const panneau = B.propRel(f, 'ecriteau_louer', 1.55, 0, -D / 2 - 0.62, Math.PI, { loc: key });
+    const it = B.interRel(f, 'louer', 'louer_' + key, 1.55, 1.15, -D / 2 - 0.62, 'Lire l’écriteau', { maison: key });
+    w.locations[key] = { coffre: [coffre.x, coffre.y, coffre.z], ecriteau: [it.x, it.y, it.z], door: Bk.door };
+  }
+  // ------------------------------------------------ la poterne : une porte basse dans le mur est
+  try { m95Poterne(w, T, y0); } catch (e) { console.error('poterne', e); }
+  // ------------------------------------------------ le réseau des chemins (îlots repartis de zéro, villages habités)
+  if (maison) {
+    for (const q of N.nodes) delete q.iso;
+    finalizeNav(w);
+    const seen = new Set();
+    for (let i = 0; i < N.nodes.length; i++) {
+      if (!/^village:/.test(N.nodes[i].tag)) continue;
+      const Q = [i]; seen.add(i);
+      while (Q.length) { const c = Q.shift(); N.nodes[c].iso = false; for (const e of N.adj[c]) if (!seen.has(e.to)) { seen.add(e.to); Q.push(e.to); } }
+    }
+  }
+  w.objectsDirty = true; w.grid = null; w.blocksDirty = true; w.coverDirty = true; w.shadeDirty = true;
+}
+// la poterne : le segment de rempart est découpé (deux morceaux, un linteau, un seuil) et encadré de pierre
+function m95Poterne(w, T, y0) {
+  const X = T.x + 46, cible = T.z + 4.4;
+  const b = w.blocks.find((q) => q.m === M_STONE && Math.abs(q.x - X) < 0.08 && Math.abs(Math.abs(q.r) - Math.PI / 2) < 0.02 && q.sy > 7 && q.sz > 1.1 && q.sz < 1.3 && Math.abs(q.z - cible) < q.sx / 2 - 1.4);
+  if (!b) return;
+  const ow = 1.2, oh = 2.2, zc = cible;
+  // repère du bloc : u (x local) va vers -z monde
+  const z0 = b.z, u0 = z0 - zc, uA = -b.sx / 2, uB = b.sx / 2, top = b.y + b.sy, zOf = (u) => z0 - u;
+  const piece = (ua, ub, y, sy, m, dz, sz, dx) => ({ x: b.x + (dx || 0), y, z: zOf((ua + ub) / 2) + (dz || 0), sx: ub - ua, sy, sz: sz || b.sz, r: b.r, m: m ?? b.m, sh: b.sh || 0 });
+  const droite = piece(u0 + ow / 2, uB, b.y, b.sy);
+  Object.assign(b, piece(uA, u0 - ow / 2, b.y, b.sy));
+  w.blocks.push(droite);
+  w.blocks.push(piece(u0 - ow / 2 - 0.01, u0 + ow / 2 + 0.01, y0 + oh, top - (y0 + oh)));     // linteau (jusqu'au chemin de ronde)
+  w.blocks.push(piece(u0 - ow / 2 - 0.01, u0 + ow / 2 + 0.01, b.y, y0 + 0.02 - b.y));        // seuil et fondation
+  // encadrement : pierres de taille moussues côté douves, montants et linteau de bois côté ville
+  const out = b.sz / 2 + 0.05, inn = -b.sz / 2 - 0.05;
+  w.blocks.push(piece(u0 - ow / 2 - 0.34, u0 - ow / 2, y0 - 0.9, oh + 0.9, M_MOSSY, 0, 0.12, out));
+  w.blocks.push(piece(u0 + ow / 2, u0 + ow / 2 + 0.34, y0 - 0.9, oh + 0.9, M_MOSSY, 0, 0.12, out));
+  w.blocks.push(piece(u0 - ow / 2 - 0.4, u0 + ow / 2 + 0.4, y0 + oh, 0.42, M_MOSSY, 0, 0.14, out));
+  w.blocks.push(piece(u0 - ow / 2 - 0.22, u0 - ow / 2, y0, oh, M_LOGS, 0, 0.12, inn));
+  w.blocks.push(piece(u0 + ow / 2, u0 + ow / 2 + 0.22, y0, oh, M_LOGS, 0, 0.12, inn));
+  w.blocks.push(piece(u0 - ow / 2 - 0.3, u0 + ow / 2 + 0.3, y0 + oh, 0.2, M_LOGS, 0, 0.14, inn));
+  // la porte, au nu intérieur du mur ; elle s'ouvre vers la ville
+  const d = { x: b.x - b.sz / 2 + 0.045, y: y0 + 0.03, z: zc, r: -Math.PI / 2, w: 1.14, h: 2.12, a: 0, open: 0, locked: true, bld: null, poterne: true };
+  w.doors.push(d);
+  w.poterne = { door: w.doors.length - 1, x: d.x, z: d.z, y: y0, dehors: [b.x + b.sz / 2 + 0.7, zc], dedans: [b.x - b.sz / 2 - 1.2, zc] };
+  const Lm = w.lm || (w.lm = {});
+  Lm.poterne = { key: 'poterne', name: LIEU_NAMES.poterne, x: d.x, z: d.z, y: y0, r: 4 };
+}
+{
+  const _gv = generateValley;
+  generateValley = async function (seed, progress, gen) {
+    const w = await _gv(seed, progress, gen);
+    if (w && w.designed && w.townInfo) { try { m95Generer(w, w.seed || seed); } catch (e) { console.error('sommeil : génération', e); } }
+    return w;
+  };
+}
+
+// ---- 11-zzz96-location.js
+// ============================================================================
+//  LOUER UNE MAISON EN VILLE
+//  Trois maisons à louer : la maison Vernet (à l'ouest), la maison Delorme (à
+//  l'est, contre le rempart) et la maison du Rempart (neuve, au nord-est, bâtie
+//  par la génération de 11-zzz95-sommeil.js). Devant chacune, un écriteau « À
+//  louer » (E : le prix à la semaine de douze jours, le bail) ; le maire s'en
+//  occupe aussi (« Les maisons à louer »).
+//  Locataire : la clé (la porte s'ouvre pour vous et se referme à clé derrière
+//  vous ; elle reste fermée aux autres), le lit (on y dort comme chez soi), un
+//  coffre cerclé de fer, le loyer dû chaque semaine : avis d'échéance, lettre de
+//  rappel au troisième jour, expulsion au sixième (les affaires du coffre sont
+//  saisies, on les reprend à la mairie contre la dette). Fin du bail quand on
+//  veut (« Rendre les clés »).
+//  État : farm.s.location = { baux: { clé: { debut, echeance, du, depuis,
+//         rappel, coffre } }, saisies: { clé: { objets, dette, jour } }, anciens }
+//  API : locations (« location » est pris par le navigateur) — locataire(clé),
+//        louer(clé), payer(clé), rendre(clé), expulser(clé), ecriteau(clé), S()
+// ============================================================================
+const LOC_MAISONS = {
+  vide4: { nom: 'la maison Vernet', court: 'maison Vernet', rue: 'du côté ouest, derrière la forge', loyer: 84, cle: 'cle_vernet',
+    desc: 'Une pièce, un lit, un coffre cerclé de fer, une cheminée qui tire bien. La veuve Vernet est partie vivre chez sa fille, en bas de la vallée.' },
+  vide5: { nom: 'la maison Delorme', court: 'maison Delorme', rue: 'du côté est, contre le rempart', loyer: 96, cle: 'cle_delorme',
+    desc: 'Une pièce claire, un lit, un coffre, une cheminée. Les Delorme sont partis un matin, sans laisser d’adresse. Leurs volets, eux, sont restés.' },
+  maison_rempart: { nom: 'la maison du Rempart', court: 'maison du Rempart', rue: 'au nord-est, derrière la poste, au pied du rempart', loyer: 120, cle: 'cle_rempart',
+    desc: 'Une maison de pierre neuve, contre le rempart. Un lit, un coffre, une cheminée, des rayonnages. Elle avait été bâtie pour un sergent du guet qui n’est jamais venu.' },
+};
+defItem('cle_vernet', 'Clé de la maison Vernet', 'quete', 0, ['cle', '#9a7a4a'], { desc: 'Une clé de fer, un peu tordue, au bout d’une ficelle. La porte de la maison Vernet, en ville.' });
+defItem('cle_delorme', 'Clé de la maison Delorme', 'quete', 0, ['cle', '#8a8a92'], { desc: 'Une clé longue et fine. La porte de la maison Delorme, contre le rempart est.' });
+defItem('cle_rempart', 'Clé de la maison du Rempart', 'quete', 0, ['cle', '#6a6a72'], { desc: 'Une clé neuve, qui n’a encore ouvert que deux fois. La maison du Rempart, au nord-est de la ville.' });
+
+const locations = {
+  S() {
+    const s = farm.s;
+    if (!s) return null;
+    const L = s.location || (s.location = {});
+    L.baux = L.baux || {}; L.saisies = L.saisies || {}; L.anciens = L.anciens || 0;
+    return L;
+  },
+  locataire(k) { const L = farm.s && farm.s.location; return !!(L && L.baux && L.baux[k]); },
+  bail(k) { const L = this.S(); return L ? L.baux[k] : null; },
+  M(k) { return LOC_MAISONS[k]; },
+  existe(k) { const w = typeof game !== 'undefined' && game.world; return !!(LOC_MAISONS[k] && w && w.bld && w.bld[k] && w.locations && w.locations[k]); },
+  signataire() { return npcs.alive('maire') ? 'La mairie de ' + farm.names.ville : 'Le greffe de ' + farm.names.ville; },
+  jourNom(d) { return typeof cal !== 'undefined' ? `${cal.nom(d)} ${d}` : `jour ${d}`; },
+  porte(k) { const w = game.world, B = w.bld[k]; return B && B.door >= 0 ? w.doors[B.door] : null; },
+
+  // ------------------------------------------------------------------ le bail
+  louer(k) {
+    const M = this.M(k), L = this.S(), s = farm.s;
+    if (!M || !this.existe(k)) return 'absente';
+    if (L.baux[k]) return 'deja';
+    if (!farm.pay(M.loyer)) return 'pauvre';
+    L.baux[k] = { debut: s.day, echeance: s.day + 12, du: 0, depuis: 0, rappel: false, coffre: {} };
+    if (ITEMS[M.cle]) farm.give(M.cle, 1);
+    sound.coin && sound.coin(); setTimeout(() => sound.lock && sound.lock(false), 200);
+    farm.mail(this.signataire(), 'Bail — ' + M.court,
+      `Entre la commune de ${farm.names.ville}, propriétaire, et ${s.prenom || 'l’occupant de la vieille ferme'}, locataire, il est convenu ce qui suit.\n\n` +
+      `${M.nom.charAt(0).toUpperCase() + M.nom.slice(1)}, ${M.rue}, est louée à la semaine de douze jours, pour ${M.loyer} pièces, payables d’avance. La première semaine est réglée ce jour ; la suivante sera due le ${this.jourNom(s.day + 12)}.\n\n` +
+      `Le loyer se règle à la mairie, ou sur l’écriteau de la maison. Passé trois jours, une lettre de rappel ; passé six, l’expulsion, et ce qui se trouve dans le coffre sera gardé à la mairie jusqu’à paiement.\n\n` +
+      `Le locataire peut rendre les clés quand il le veut. La commune ne rembourse pas la semaine commencée.`);
+    farm.dirtyProps = true;
+    this.appliquerPortes();
+    return 'ok';
+  },
+  payer(k) {
+    const M = this.M(k), B = this.bail(k);
+    if (!M || !B) return 'rien';
+    const s = farm.s;
+    if (B.du > 0) {
+      if (!farm.pay(B.du)) return 'pauvre';
+      const p = B.du;
+      B.du = 0; B.depuis = 0; B.rappel = false;
+      sound.coin && sound.coin();
+      farm.mail(this.signataire(), 'Quittance — ' + M.court, `Reçu de ${s.prenom || 'l’intéressé'} la somme de ${p} pièces, pour le loyer de ${M.nom}. La prochaine échéance tombe le ${this.jourNom(B.echeance)}.`);
+      return 'ok';
+    }
+    // rien de dû : une semaine d'avance
+    if (!farm.pay(M.loyer)) return 'pauvre';
+    B.echeance += 12;
+    sound.coin && sound.coin();
+    farm.mail(this.signataire(), 'Quittance — ' + M.court, `Reçu de ${s.prenom || 'l’intéressé'} la somme de ${M.loyer} pièces, loyer d’avance de ${M.nom}. La prochaine échéance tombe le ${this.jourNom(B.echeance)}.`);
+    return 'avance';
+  },
+  rendre(k) {
+    const M = this.M(k), L = this.S(), B = L && L.baux[k];
+    if (!M || !B) return 'rien';
+    const repris = [];
+    for (const id in B.coffre) if (ITEMS[id] && B.coffre[id] > 0) { farm.give(id, B.coffre[id]); repris.push(itemName(id).toLowerCase()); }
+    if (B.du > 0) L.saisies[k] = { objets: {}, dette: B.du, jour: farm.s.day };
+    delete L.baux[k]; L.anciens++;
+    if (farm.count(M.cle)) farm.take(M.cle, farm.count(M.cle));
+    farm.mail(this.signataire(), 'Congé — ' + M.court, `La commune prend acte du congé donné par ${farm.s.prenom || 'le locataire'} pour ${M.nom}. Les clés ont été rendues.${B.du > 0 ? `\n\nIl reste dû ${B.du} pièces, à régler à la mairie.` : ''}`);
+    farm.dirtyProps = true;
+    this.appliquerPortes(true);
+    return repris.length ? repris : 'ok';
+  },
+  expulser(k) {
+    const M = this.M(k), L = this.S(), B = L && L.baux[k];
+    if (!M || !B) return;
+    const objets = Object.assign({}, B.coffre), n = Object.keys(objets).filter((id) => objets[id] > 0).length;
+    L.saisies[k] = { objets, dette: B.du, jour: farm.s.day };
+    delete L.baux[k]; L.anciens++;
+    if (farm.count(M.cle)) farm.take(M.cle, farm.count(M.cle));
+    farm.mail(this.signataire(), 'Avis d’expulsion — ' + M.court,
+      `Le loyer de ${M.nom} n’a pas été réglé malgré notre rappel. Le bail est rompu ce jour, la serrure a été changée.\n\n` +
+      (n ? `Ce que contenait le coffre a été porté à la mairie. Il vous sera rendu contre le paiement de la dette : ${B.du} pièces.` : `Il reste dû ${B.du} pièces, à régler à la mairie.`) + '\n\nLa commune regrette.');
+    farm.dirtyProps = true;
+    this.appliquerPortes(true);
+    // le locataire était dedans : on le met à la porte
+    if (game.insideBuilding(k)) setTimeout(() => ui.subtitle('', '(Des pas dehors, une clé qui tourne dans la serrure, une autre. On a changé la serrure pendant que vous étiez là.)', 5), 1500);
+  },
+  recuperer(k) {
+    const L = this.S(), Z = L && L.saisies[k];
+    if (!Z) return 'rien';
+    if (Z.dette > 0 && !farm.pay(Z.dette)) return 'pauvre';
+    if (Z.dette > 0) sound.coin && sound.coin();
+    for (const id in Z.objets) if (ITEMS[id] && Z.objets[id] > 0) farm.give(id, Z.objets[id]);
+    delete L.saisies[k];
+    return 'ok';
+  },
+  // chaque matin : échéances, rappels, expulsions
+  jour() {
+    const L = this.S(), s = farm.s;
+    if (!L) return;
+    for (const k of Object.keys(L.baux)) {
+      const B = L.baux[k], M = this.M(k);
+      if (!M) { delete L.baux[k]; continue; }
+      if (s.day >= B.echeance) {
+        B.du += M.loyer; B.echeance += 12;
+        if (!B.depuis) B.depuis = s.day;
+        farm.mail(this.signataire(), 'Avis d’échéance — ' + M.court, `Le loyer de la semaine qui commence est dû : ${M.loyer} pièces${B.du > M.loyer ? ` (${B.du} en tout, avec l’arriéré)` : ''}, pour ${M.nom}. À régler à la mairie, ou sur l’écriteau de la maison.`);
+      }
+      if (B.du > 0 && B.depuis) {
+        const retard = s.day - B.depuis;
+        if (retard >= 6) { this.expulser(k); continue; }
+        if (retard >= 3 && !B.rappel) {
+          B.rappel = true;
+          farm.mail(this.signataire(), 'Rappel — ' + M.court, `Nous n’avons toujours pas reçu le loyer de ${M.nom} : ${B.du} pièces. Sans paiement d’ici trois jours, le bail sera rompu et la serrure changée.\n\nLe maire.`);
+        }
+      }
+    }
+  },
+
+  // ------------------------------------------------------------------ les portes : fermées à clé, sauf pour le locataire qui ouvre
+  appliquerPortes(ferme) {
+    const w = game.world;
+    for (const k in LOC_MAISONS) {
+      const dr = this.porte(k);
+      if (!dr) continue;
+      if (dr.crocheteT > game.time) continue;
+      if (ferme && dr.open && !game.insideBuilding(k)) { dr.open = 0; }
+      dr.locked = !dr.open;
+    }
+  },
+
+  // ------------------------------------------------------------------ l'écriteau, le coffre
+  ecriteau(k) {
+    const M = this.M(k), L = this.S(), B = L && L.baux[k];
+    if (!M) return;
+    const titre = M.nom.charAt(0).toUpperCase() + M.nom.slice(1);
+    if (!B) {
+      const Z = L && L.saisies[k];
+      ui.choice(`À louer — ${titre}`, `${M.desc} ${M.loyer} pièces la semaine (douze jours), payables d’avance. S’adresser à la mairie, ou glisser la somme dans la fente de l’écriteau : la commune passe la relever.`, [
+        { label: `Louer pour une semaine (${M.loyer} pièces)`, fn: () => {
+          ui.close(true);
+          if (Z && Z.dette > 0) { ui.subtitle('', `(Sous l’écriteau, un papier à votre nom : « Dette de ${Z.dette} pièces. Voir le maire. »)`, 4); return; }
+          const r = this.louer(k);
+          if (r === 'pauvre') ui.subtitle('', `(Vous n’avez pas ${M.loyer} pièces.)`, 2.5);
+          else if (r === 'ok') ui.subtitle('', `(Les pièces tombent dans la fente. Derrière l’écriteau, pendue à un clou, une clé. ${titre} est à vous pour douze jours.)`, 5);
+        } },
+        { label: 'Pas maintenant', fn: () => ui.close() },
+      ]);
+      return;
+    }
+    const s = farm.s, du = B.du;
+    const opts = [];
+    if (du > 0) opts.push({ label: `Payer le loyer dû (${du} pièces)`, fn: () => { ui.close(true); const r = this.payer(k); ui.subtitle('', r === 'pauvre' ? `(Vous n’avez pas ${du} pièces.)` : '(Les pièces tombent dans la fente. Vous voilà quitte.)', 3); } });
+    else opts.push({ label: `Payer une semaine d’avance (${M.loyer} pièces)`, fn: () => { ui.close(true); const r = this.payer(k); ui.subtitle('', r === 'pauvre' ? `(Vous n’avez pas ${M.loyer} pièces.)` : `(Douze jours de plus. Prochaine échéance : ${this.jourNom(B.echeance)}.)`, 3.5); } });
+    opts.push({ label: 'Rendre les clés (fin du bail)', fn: () => this.confirmerRendre(k) });
+    opts.push({ label: 'Refermer', fn: () => ui.close() });
+    ui.choice(`${titre} — louée`, `Vous êtes locataire depuis le ${this.jourNom(B.debut)}. ${du > 0 ? `Loyer dû : ${du} pièces${B.rappel ? ' (rappel reçu)' : ''}.` : `Loyer réglé jusqu’au ${this.jourNom(B.echeance)}.`}`, opts);
+  },
+  confirmerRendre(k) {
+    const M = this.M(k), B = this.bail(k);
+    if (!B) return;
+    const n = Object.keys(B.coffre).filter((id) => B.coffre[id] > 0).length;
+    ui.choice('Rendre les clés', `Le bail de ${M.nom} prendra fin aujourd’hui. La semaine commencée n’est pas remboursée.${n ? ' Vous reprendrez ce qu’il y a dans le coffre.' : ''}`, [
+      { label: 'Rendre les clés', fn: () => { ui.close(true); const r = this.rendre(k); ui.subtitle('', Array.isArray(r) ? `(Vous reprenez vos affaires : ${r.join(', ')}. La clé retourne à la mairie.)` : '(La clé retourne à la mairie.)', 4); } },
+      { label: 'Garder la maison', fn: () => ui.close() },
+    ]);
+  },
+  coffre(q) {
+    const k = q.data && q.data.loc, M = this.M(k), B = this.bail(k);
+    if (!M) return false;
+    if (B) { sound.lootOpen && sound.lootOpen(); ui.openStore('Coffre — ' + M.court, B.coffre, 'chest'); return true; }
+    const opts = [{ label: 'Laisser', fn: () => ui.close() }];
+    if (typeof crochetage !== 'undefined' && crochetage.tenter) opts.unshift({ label: 'Crocheter le cadenas', fn: async () => {
+      ui.close(true);
+      const ok = await crochetage.tenter({ difficulte: 2, bruit: 0.5, x: q.x, z: q.z, proprietaire: null, titre: 'Le cadenas du coffre' });
+      if (ok) ui.subtitle('', '(Le cadenas cède. Le coffre est vide : on ne laisse rien dans une maison à louer.)', 4);
+    } });
+    ui.choice('Un coffre cerclé de fer', 'Fermé d’un cadenas neuf. Il appartient à la commune, comme la maison.', opts);
+    return true;
+  },
+};
+
+// ---------------------------------------------------------------- l'écriteau, le coffre, le maire
+HOOKS.inter.louer = (it) => locations.ecriteau(it.data && it.data.maison);
+HOOKS.propPre.coffre_loc = (q) => locations.coffre(q);
+PROP_USE_MORE.coffre_loc = 1;
+{
+  const _opts = talk.options.bind(talk);
+  talk.options = function () {
+    const opts = _opts();
+    try {
+      const n = this.n;
+      if (n && n.d.id === 'maire' && farm.s && Object.keys(LOC_MAISONS).some((k) => locations.existe(k))) {
+        const i = opts.findIndex((o) => o.act === 'bye');
+        opts.splice(i >= 0 ? i : opts.length, 0, { label: 'Les maisons à louer', act: 'loc:liste' });
+      }
+    } catch (e) { console.error(e); }
+    return opts;
+  };
+  const _choose = talk.choose.bind(talk);
+  talk.choose = function (act) {
+    if (typeof act !== 'string' || !act.startsWith('loc:') || !this.n) return _choose(act);
+    const [, cmd, k] = act.split(':'), M = LOC_MAISONS[k], L = locations.S();
+    const retour = () => this.view(locations.texteMaire(), locations.optionsMaire());
+    if (cmd === 'liste') return retour();
+    if (cmd === 'louer') {
+      const Z = L.saisies[k];
+      if (Z && Z.dette > 0) return this.view(`Vous nous devez encore ${Z.dette} pièces pour ${M.nom}. Réglez d’abord, on verra ensuite.`, locations.optionsMaire());
+      const r = locations.louer(k);
+      if (r === 'pauvre') return this.view(`${M.loyer} pièces la semaine, d’avance. C’est la règle, et ce n’est pas moi qui l’ai faite. Enfin, si.`, locations.optionsMaire());
+      if (r !== 'ok') return retour();
+      return this.view(`Voici la clé de ${M.nom}. Le bail vous arrivera par la poste, en bonne et due forme. Ne perdez pas la clé : la serrure coûte plus cher que la maison.`, locations.optionsMaire());
+    }
+    if (cmd === 'payer') {
+      const r = locations.payer(k);
+      if (r === 'pauvre') return this.view('Il vous manque de quoi. Revenez quand votre bourse aura repris des couleurs.', locations.optionsMaire());
+      return this.view(r === 'avance' ? 'Une semaine d’avance ? Si tout le monde faisait comme vous, j’aurais le temps de lire le journal.' : 'Voilà qui est réglé. La quittance suivra.', locations.optionsMaire());
+    }
+    if (cmd === 'rendre') {
+      const r = locations.rendre(k);
+      return this.view(`C’est noté. ${M.nom.charAt(0).toUpperCase() + M.nom.slice(1)} redevient libre.${Array.isArray(r) ? ' Vos affaires du coffre vous ont été rendues.' : ''}`, locations.optionsMaire());
+    }
+    if (cmd === 'saisie') {
+      const Z = L.saisies[k], r = locations.recuperer(k);
+      if (r === 'pauvre') return this.view(`La dette est de ${Z.dette} pièces. Pas une de moins.`, locations.optionsMaire());
+      return this.view('Voilà vos affaires. Tout y est, je les ai comptées moi-même. Deux fois.', locations.optionsMaire());
+    }
+    return retour();
+  };
+}
+Object.assign(locations, {
+  texteMaire() {
+    const L = this.S(), lignes = [];
+    for (const k in LOC_MAISONS) {
+      if (!this.existe(k)) continue;
+      const M = LOC_MAISONS[k], B = L.baux[k], Z = L.saisies[k];
+      if (B) lignes.push(`${M.nom.charAt(0).toUpperCase() + M.nom.slice(1)} : à vous${B.du > 0 ? `, ${B.du} pièces dues` : `, réglée jusqu’au ${this.jourNom(B.echeance)}`}.`);
+      else lignes.push(`${M.nom.charAt(0).toUpperCase() + M.nom.slice(1)}, ${M.rue} : libre, ${M.loyer} pièces la semaine.${Z ? ` (Vos affaires y sont gardées : ${Z.dette} pièces de dette.)` : ''}`);
+    }
+    return 'La commune a trois maisons à louer, à la semaine de douze jours, payée d’avance. ' + lignes.join(' ');
+  },
+  optionsMaire() {
+    const L = this.S(), o = [];
+    for (const k in LOC_MAISONS) {
+      if (!this.existe(k)) continue;
+      const M = LOC_MAISONS[k], B = L.baux[k], Z = L.saisies[k];
+      if (!B) o.push({ label: `Louer ${M.nom} (${M.loyer} pièces)`, act: 'loc:louer:' + k });
+      else {
+        o.push({ label: B.du > 0 ? `Payer le loyer de ${M.nom} (${B.du} pièces)` : `Payer une semaine d’avance pour ${M.nom} (${M.loyer} pièces)`, act: 'loc:payer:' + k });
+        o.push({ label: `Rendre les clés de ${M.nom}`, act: 'loc:rendre:' + k });
+      }
+      if (Z) o.push({ label: `Reprendre mes affaires de ${M.nom} (${Z.dette} pièces)`, act: 'loc:saisie:' + k });
+    }
+    o.push({ label: 'Parlons d’autre chose', act: 'chat' });
+    return o;
+  },
+});
+
+// ---------------------------------------------------------------- branchements
+HOOKS.day.push(() => { if (farm.s) locations.jour(); });
+HOOKS.load.push(() => {
+  locations.S();
+  if (!game.world.locations) return;
+  locations.appliquerPortes(true);
+  if (game._m96) return;
+  game._m96 = true;
+  // la clé du locataire : la porte s'ouvre, et se referme à clé derrière lui
+  const _ud = game.useDoor.bind(game);
+  game.useDoor = function (dr) {
+    const k = dr && dr.bld;
+    if (k && LOC_MAISONS[k] && locations.locataire(k)) {
+      if (dr.locked || !dr.open) { dr.locked = false; dr.open = 1; dr.playerClosed = false; sound.lock && sound.lock(false); sound.door(true); return; }
+      dr.open = 0; dr.playerClosed = true; sound.door(false);
+      if (!game.insideBuilding(k)) { dr.locked = true; setTimeout(() => sound.lock && sound.lock(true), 250); }
+      return;
+    }
+    return _ud(dr);
+  };
+  // les maisons à louer restent fermées à clé (pas seulement la nuit)
+  const _doors = npcs.updateDoors.bind(npcs);
+  npcs.updateDoors = function (w, instant) {
+    _doors(w, instant);
+    if (!farm.s || strange.redNight()) return;
+    for (const k in LOC_MAISONS) {
+      const dr = locations.porte(k);
+      if (!dr || dr.crocheteT > game.time) continue;
+      if (!locations.locataire(k) && dr.open && !this.someoneInDoor(dr) && !game.insideBuilding(k)) dr.open = 0;
+      dr.locked = !dr.open;
+      if (instant) dr.a = dr.open ? 1.5 : 0;
+    }
+  };
+});
+
+// ---- 11-zzz97-crochetage.js
+// ============================================================================
+//  CROCHETER — et la POTERNE
+//  - Un jeu de crochets (objet : le colporteur, le forgeron ; fabricable à
+//    l'établi, recette à découvrir). E sur une porte fermée à clé : « Frapper »
+//    ou « Crocheter ». Petit jeu d'adresse : les goupilles montent et descendent,
+//    on cale chacune quand elle affleure la ligne (Espace, E ou clic) ; plus la
+//    serrure est bonne, plus il y en a et plus elles vont vite. Un raté fait du
+//    bruit, peut faire retomber la goupille d'avant, peut casser un crochet
+//    (quatre par jeu). Le bruit peut réveiller l'habitant ; un passant peut
+//    vous voir. Réussi : la porte s'ouvre. Vu ou pris : crime « effraction »
+//    (societe.crime), mentalité en baisse. Fatigué ou ivre, les mains tremblent.
+//  - La poterne, dans le rempart est : elle s'ouvre de l'intérieur seulement
+//    (on sort de la ville même ponts levés), se referme derrière soi ; dehors,
+//    ni serrure ni poignée : on ne l'ouvre pas, on ne la crochète pas. On
+//    descend dans les douves, on remonte par les échelles.
+//  - De l'intérieur d'une maison, une porte fermée à clé s'ouvre (le verrou).
+//  État : farm.s.crochet = { casses, reussis, rates, pris }.
+//  API : crochetage.tenter({ difficulte (1..5), bruit (×), x, z, proprietaire
+//        (id d'habitant ou null), titre?, crime? }) → Promise<boolean> ;
+//        crochetage.porte(dr), crochetage.jeu (partie en cours), poterne.
+// ============================================================================
+defItem('crochets', 'Jeu de crochets', 'outil', 60, ['cle', '#b0b4bc'], { desc: 'Des tiges d’acier recourbées et une clé de tension, roulées dans un cuir. E sur une porte fermée à clé : « Crocheter ». Quatre crochets par jeu ; ils cassent.' });
+RECIPES.push({ out: 'crochets', n: 1, need: { lingot_fer: 1, cuir: 1 }, st: 'etabli' });
+{
+  const D = (id) => NPC_DATA.find((d) => d.id === id);
+  const c = D('colporteur'), f = D('forgeron');
+  if (c && c.shop) c.shop.sells.push(['crochets', 55]);
+  if (f && f.shop) f.shop.sells.push(['crochets', 75]);
+}
+if (typeof CRIME_DEF !== 'undefined') {
+  if (!CRIME_DEF.effraction) CRIME_DEF.effraction = { prime: 50, grav: 2, oubli: 10, violent: false };
+  if (!CRIME_DEF.intrusion) CRIME_DEF.intrusion = { prime: 20, grav: 1, oubli: 6, violent: false };
+  if (typeof PRISON_PEINE !== 'undefined') { PRISON_PEINE.effraction = PRISON_PEINE.effraction || 1; PRISON_PEINE.intrusion = PRISON_PEINE.intrusion || 1; }
+  const _lib = societe.libelle.bind(societe);
+  societe.libelle = function (C) {
+    if (C && (C.type === 'effraction' || C.type === 'intrusion')) {
+      const nm = C.victime ? this.nomComplet(C.victime) : null;
+      return C.type === 'effraction' ? (nm ? `une effraction chez ${nm}` : 'une effraction') : (nm ? `une intrusion chez ${nm}` : 'une intrusion');
+    }
+    return _lib(C);
+  };
+}
+Object.assign(SoundEngine.prototype, {
+  crocCale() { if (!this.ok) return; const t = this.at(); this.tone(t, 'square', 2300, 1700, 0.018, 0.025); this.noiseHit(t + 0.01, 0.02, 'bandpass', 3800, 3, 0.03); },
+  crocRate() { if (!this.ok) return; const t = this.at(); for (let i = 0; i < 4; i++) this.noiseHit(t + i * 0.05, 0.06, 'bandpass', 2600 - i * 200, 4, 0.05); this.tone(t, 'square', 700, 520, 0.05, 0.02); },
+  crocCasse() { if (!this.ok) return; const t = this.at(); this.tone(t, 'square', 3100, 900, 0.03, 0.06); this.noiseHit(t, 0.05, 'highpass', 3000, 1, 0.08); this.tone(t + 0.12, 'triangle', 1900, 1900, 0.08, 0.02); },
+});
+const CROC_PINS = [2, 3, 4, 5, 6], CROC_ZONE = [0.17, 0.14, 0.115, 0.095, 0.08], CROC_VIT = [0.55, 0.7, 0.85, 1.0, 1.2], CROC_CASSE = [0.06, 0.1, 0.14, 0.2, 0.26];
+const CROC_SERRURE = ['une serrure de rien du tout', 'une serrure simple', 'une bonne serrure', 'une serrure solide, bien huilée', 'une serrure de maître'];
+
+const crochetage = {
+  jeu: null,
+  S() { const s = farm.s; if (!s) return null; return s.crochet || (s.crochet = { casses: 0, reussis: 0, rates: 0, pris: 0 }); },
+  // crochets qui restent dans le jeu entamé (et jeux entiers en réserve)
+  restants() { const S = this.S(); return farm.count('crochets') ? 4 - (S.casses || 0) + (farm.count('crochets') - 1) * 4 : 0; },
+
+  // ------------------------------------------------------------------ l'API
+  tenter(o) {
+    o = o || {};
+    if (this.jeu || !farm.s) return Promise.resolve(false);
+    if (!farm.count('crochets')) { ui.subtitle('', '(Il vous faudrait un jeu de crochets. Le colporteur en a, dit-on. Le forgeron aussi, sous le comptoir.)', 4); return Promise.resolve(false); }
+    const d = clamp(Math.round(o.difficulte || 2), 1, 5);
+    return new Promise((res) => this.ouvrir(o, d, res));
+  },
+  ouvrir(o, d, res) {
+    const p = game.player, x = o.x ?? p.pos[0], z = o.z ?? p.pos[2];
+    // les mains tremblent : fatigue, alcool
+    let k = 1;
+    if (typeof sommeil !== 'undefined') k *= 1 - 0.35 * sommeil.k();
+    try { if (typeof alcool !== 'undefined' && alcool.S() && alcool.S().g > 1) k *= 0.8; } catch (e) { /* rien */ }
+    const pins = [];
+    for (let i = 0; i < CROC_PINS[d - 1]; i++) pins.push({ v: CROC_VIT[d - 1] * (0.75 + Math.random() * 0.5), ph: Math.random(), ok: false, pos: 0.5 });
+    this.jeu = { o, d, x, z, res, pins, i: 0, t: 0, bruit: 0, zone: CROC_ZONE[d - 1] * k, tremble: 1 - k, fini: false, finT: 0, issue: false, veilleT: 0, msg: '', msgT: 0,
+      temoins: npcs.witnesses(x, z).filter((m) => m.id !== o.proprietaire || !m.sleep).map((m) => m.id) };
+    this.panneau(o.titre || 'Crocheter la serrure');
+  },
+  panneau(titre) {
+    if (!$('#crochetage')) {
+      const d = document.createElement('div'); d.id = 'crochetage'; d.className = 'pp-panel'; $('#paper').appendChild(d);
+      const st = document.createElement('style'); st.id = 'crochetage-css';
+      st.textContent = '#crochetage{width:min(560px,calc(100vw - 24px))}#crochetage canvas{display:block;width:480px;max-width:100%;height:auto;aspect-ratio:16/9;image-rendering:pixelated;margin:8px auto 6px;cursor:pointer;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(60,40,20,.4)}#crochetage .croc-l{display:flex;justify-content:space-between;font-size:14px;color:#5a4a36;margin:0 4px 6px}#crochetage .opts{display:flex;gap:10px;justify-content:center;margin-top:6px}#crochetage .opts button{background:rgba(255,255,255,.35);border:1px solid rgba(90,70,40,.35);border-radius:4px;padding:5px 14px;font-size:15px;color:#3d2e1c}#crochetage .croc-m{text-align:center;min-height:20px;font-style:italic;color:#6a3a22}';
+      document.head.appendChild(st);
+    }
+    ui.open('#crochetage', `<div class="tabs"><b>${esc(titre)}</b><button class="x" data-close>✕</button></div>
+      <div class="body"><canvas width="160" height="90"></canvas>
+      <div class="croc-l"><span class="croc-e"></span><span class="croc-c"></span></div>
+      <div class="croc-m"></div>
+      <div class="hint">Calez chaque goupille quand elle affleure la ligne dorée : Espace, E ou clic. Un raté fait du bruit.</div>
+      <div class="opts"><button data-croc="caler">Caler la goupille</button><button data-croc="stop">Renoncer</button></div></div>`);
+    $('#crochetage [data-close]').onclick = () => ui.close();
+    $('#crochetage [data-croc="caler"]').onclick = () => this.caler();
+    $('#crochetage [data-croc="stop"]').onclick = () => ui.close();
+    $('#crochetage canvas').onclick = () => this.caler();
+    this.dessiner();
+  },
+  // position de la goupille en cours (0..1, dent de scie adoucie), et la zone
+  posPin(P, t) { const u = (P.v * t + P.ph) % 1, tri = u < 0.5 ? u * 2 : 2 - u * 2; return tri; },
+  dansZone() { const J = this.jeu; if (!J || J.fini) return false; const P = J.pins[J.i]; return Math.abs(P.pos - 0.5) < J.zone; },
+  caler() {
+    const J = this.jeu;
+    if (!J || J.fini) return;
+    const P = J.pins[J.i];
+    if (Math.abs(P.pos - 0.5) < J.zone) {
+      P.ok = true; P.pos = 0.5; J.i++; sound.crocCale && sound.crocCale();
+      this.bruit(0.15);
+      if (J.i >= J.pins.length) this.finir(true, 'La serrure cède.');
+      return;
+    }
+    // raté : bruit, goupille d'avant qui retombe, crochet qui casse
+    sound.crocRate && sound.crocRate();
+    J.msg = pick(['Le crochet ripe.', 'Trop tôt.', 'Trop tard.', 'Ça accroche, puis plus rien.']); J.msgT = 1.4;
+    this.S().rates++;
+    this.bruit(1);
+    if (J.d >= 3 && J.i > 0 && Math.random() < [0, 0, 0.5, 0.65, 0.8][J.d - 1]) { J.i--; J.pins[J.i].ok = false; J.msg = 'Une goupille retombe.'; }
+    if (Math.random() < CROC_CASSE[J.d - 1]) {
+      const S = this.S();
+      sound.crocCasse && sound.crocCasse();
+      this.bruit(0.8);
+      S.casses = (S.casses || 0) + 1; J.msg = 'Le crochet casse net.';
+      if (S.casses >= 4) { S.casses = 0; farm.take('crochets', 1); if (!farm.count('crochets')) { this.finir(false, 'Votre dernier crochet vient de casser.'); return; } J.msg = 'Le dernier crochet du jeu casse : vous en ouvrez un autre.'; }
+    }
+  },
+  // un bruit : qui l'entend ?
+  bruit(b) {
+    const J = this.jeu;
+    if (!J || J.fini) return;
+    b *= J.o.bruit ?? 1;
+    J.bruit += b;
+    if (b < 0.3) return;
+    for (const m of npcs.list) {
+      if (!m.st.alive || m.vanished || m.hunting || m.state === 'gone') continue;
+      const dd = Math.hypot(m.x - J.x, m.z - J.z);
+      if (dd > 14) continue;
+      const dort = m.state === 'sleep' || m.sleep, chezLui = m.id === J.o.proprietaire || dd < 5;
+      const pch = dort ? (chezLui ? 0.11 : 0.04) * b : m.inside ? (chezLui ? 0.35 : 0.06) * b : dd < 9 ? 0.5 * b : 0.15 * b;
+      if (Math.random() < pch) { this.pris(m, dort); return; }
+    }
+  },
+  pris(m, dormait) {
+    const J = this.jeu;
+    if (!J || J.fini) return;
+    npcs.say(m, dormait ? pick(['Hein ?! … Qui est là ?! Au voleur !', 'Qu’est-ce que… Qui touche à ma porte ?! Au voleur !']) : pick(['Hé ! Vous, là ! Qu’est-ce que vous fabriquez à cette porte ?', 'Au voleur ! Il force la porte !', 'Je vous vois ! Lâchez cette serrure !']), 3.5);
+    if (!dormait) m.fleeT = Math.max(m.fleeT || 0, 3);
+    this.S().pris++;
+    const crime = J.o.crime === undefined ? 'effraction' : J.o.crime;
+    try { if (crime && typeof societe !== 'undefined' && societe.crime && CRIME_DEF[crime]) societe.crime({ type: crime, victime: J.o.proprietaire || null, x: J.x, z: J.z, temoins: [m.id] }); } catch (e) { console.error(e); }
+    if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-3, 'effraction', 6);
+    npcs.remember(m, 'effraction');
+    this.finir(false, dormait ? 'Une lumière s’allume derrière la porte.' : 'On vous a vu.');
+  },
+  finir(ok, msg) {
+    const J = this.jeu;
+    if (!J || J.fini) return;
+    J.fini = true; J.issue = ok; J.msg = msg || ''; J.msgT = 3; J.finT = ok ? 0.7 : 1.1;
+    if (ok) {
+      this.S().reussis++;
+      sound.lock && sound.lock(false);
+      if (J.o.proprietaire && typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-1, 'effraction', 3);
+    }
+  },
+  update(dt) {
+    const J = this.jeu;
+    if (!J) return;
+    // panneau fermé (Échap, croix, autre panneau) : on renonce
+    if (ui.panel !== '#crochetage') { if (!J.fini) { J.fini = true; J.issue = false; } this.clore(); return; }
+    J.t += dt;
+    if (J.msgT > 0) J.msgT -= dt;
+    if (J.fini) { J.finT -= dt; this.dessiner(); if (J.finT <= 0) { ui.close(); this.clore(); } return; }
+    const P = J.pins[J.i];
+    P.pos = this.posPin(P, J.t) + (J.tremble > 0 ? Math.sin(J.t * 23) * 0.03 * J.tremble : 0);
+    // un passant voit la scène (moins dans la nuit)
+    J.veilleT -= dt;
+    if (J.veilleT <= 0) {
+      J.veilleT = 0.5;
+      const h = npcs.hour(), nuit = h >= 21 || h < 5.5;
+      for (const id of J.temoins) {
+        const m = npcs.byId[id];
+        if (!m || !m.st.alive || m.sleep || m.state === 'sleep') continue;
+        const dd = Math.hypot(m.x - J.x, m.z - J.z);
+        if (dd > 28 || !(dd < 6 || segClear(game.world, m.x, m.z, J.x, J.z))) continue;
+        if (Math.random() < (nuit ? 0.03 : 0.12) * (dd < 10 ? 2 : 1)) { this.pris(m, false); break; }
+      }
+    }
+    this.dessiner();
+  },
+  clore() {
+    const J = this.jeu;
+    this.jeu = null;
+    if (J && J.res) J.res(!!J.issue);
+  },
+  // ------------------------------------------------------------------ le dessin (160 × 90, grossi)
+  dessiner() {
+    const J = this.jeu, cv = $('#crochetage canvas');
+    if (!J || !cv) return;
+    const c = cv.getContext('2d'), n = J.pins.length, x0 = 34, x1 = 150, sp = (x1 - x0) / n, yL = 46;
+    c.fillStyle = '#17120d'; c.fillRect(0, 0, 160, 90);
+    // le barillet, la ligne de rupture
+    c.fillStyle = '#6e5424'; c.fillRect(24, 40, 132, 36);
+    c.fillStyle = '#8a6a30'; c.fillRect(24, 40, 132, 2);
+    c.fillStyle = '#3a2a12'; c.fillRect(24, 60, 132, 7);
+    c.fillStyle = '#4a3a2a'; c.fillRect(24, 12, 132, 28);
+    const zone = this.dansZone();
+    c.fillStyle = zone ? '#b8e07a' : '#d8b24a'; c.fillRect(24, yL, 132, 1);
+    // les goupilles : ressort, goupille menante (acier), goupille de clé (laiton)
+    for (let i = 0; i < n; i++) {
+      const P = J.pins[i], cx = Math.round(x0 + sp * (i + 0.5)) - 3, cur = i === J.i && !J.fini;
+      const pos = P.ok ? 0.5 : i === J.i ? P.pos : 0.08;
+      const top = Math.round(yL + 1 + (0.5 - pos) * 30); // haut de la goupille de clé (le joint affleure la ligne à 0,5)
+      c.fillStyle = '#2a2016'; c.fillRect(cx - 1, 12, 8, 55);
+      c.fillStyle = '#8a8a90'; for (let y = 13; y < top - 13; y += 2) c.fillRect(cx + ((y >> 1) & 1 ? 1 : 3), y, 3, 1);
+      c.fillStyle = P.ok ? '#d0d4dc' : '#a4a8b0'; c.fillRect(cx, top - 12, 6, 11);
+      c.fillStyle = P.ok ? '#f0c860' : cur ? '#d8a848' : '#b08838'; c.fillRect(cx, top, 6, 14); c.fillRect(cx + 1, top + 14, 4, 2);
+      if (cur) { c.fillStyle = zone ? '#b8e07a' : '#f4e2a0'; c.fillRect(cx - 2, top - 1, 1, 16); c.fillRect(cx + 7, top - 1, 1, 16); }
+    }
+    // le crochet, sous la goupille en cours ; la clé de tension
+    if (!J.fini || J.issue) {
+      const i = Math.min(J.i, n - 1), cx = Math.round(x0 + sp * (i + 0.5));
+      c.fillStyle = '#c8ccd4'; c.fillRect(4, 70, cx - 4, 2); c.fillRect(cx - 1, 66, 2, 5);
+    }
+    c.fillStyle = '#9a9ea8'; c.fillRect(6, 74, 18, 3); c.fillRect(6, 62, 3, 13);
+    // le bruit
+    c.fillStyle = '#3a2a1a'; c.fillRect(4, 4, 40, 4);
+    c.fillStyle = J.bruit > 3 ? '#d05030' : '#c89a40'; c.fillRect(4, 4, Math.min(40, J.bruit * 8), 4);
+    const e = $('#crochetage .croc-e'), k = $('#crochetage .croc-c'), m = $('#crochetage .croc-m');
+    if (e) e.textContent = `${CROC_SERRURE[J.d - 1].charAt(0).toUpperCase() + CROC_SERRURE[J.d - 1].slice(1)} — goupille ${Math.min(J.i + 1, n)} sur ${n}`;
+    if (k) k.textContent = `Crochets : ${this.restants()}`;
+    if (m) m.textContent = J.msgT > 0 ? J.msg : '';
+  },
+
+  // ------------------------------------------------------------------ les portes
+  difficulte(dr) {
+    const k = dr.bld || '';
+    if (k === 'garde' || k === 'mairie' || k === 'bibliotheque') return 4;
+    if (SHOP_DOORS.has(k) || k === 'vide6') return 3;
+    if (/^(roulotte|cabane|hutte|source|refuge|relais|ranch|maison_hameau)/.test(k) || k === 'poulailler') return 1;
+    return 2;
+  },
+  habitant(dr) {
+    const k = dr.bld;
+    if (!k) return null;
+    return npcs.list.find((n) => n.d.home === k && n.st.alive && !n.vanished) || npcs.list.find((n) => n.d.work === k && n.st.alive && !n.vanished) || null;
+  },
+  nomPorte(dr) {
+    const k = dr.bld, w = game.world;
+    if (typeof LOC_MAISONS !== 'undefined' && LOC_MAISONS[k]) return 'La porte de ' + LOC_MAISONS[k].nom + ', à louer';
+    const n = this.habitant(dr);
+    if (n && n.st.met) return `La porte de chez ${n.name}`;
+    const B = w.bld && w.bld[k];
+    return B && B.name && B.name !== k ? 'La porte de ' + B.name : 'Une porte';
+  },
+  menuPorte(dr, frapper) {
+    const d = this.difficulte(dr), a = farm.count('crochets');
+    ui.choice(this.nomPorte(dr), `Fermée à clé. Par le trou de la serrure, on devine ${CROC_SERRURE[d - 1]}.`, [
+      { label: 'Frapper', fn: () => { ui.close(true); this.frapper(dr, frapper); } },
+      { label: a ? 'Crocheter la serrure' : 'Crocheter (il faudrait un jeu de crochets)', fn: () => { ui.close(true); this.porte(dr); } },
+      { label: 'Laisser', fn: () => ui.close() },
+    ]);
+  },
+  frapper(dr, frapper) {
+    const k = dr.bld;
+    const vide = k && !npcs.list.some((n) => n.d.home === k && n.st.alive && !n.vanished) && !dr.scelle;
+    frapper(dr);
+    if (vide && !strange.redNight()) setTimeout(() => ui.subtitle('', typeof LOC_MAISONS !== 'undefined' && LOC_MAISONS[k] ? '(Personne. Derrière la porte, une maison vide qui attend un locataire.)' : '(Personne ne répond.)', 3), 1600);
+  },
+  async porte(dr) {
+    const n = this.habitant(dr);
+    const ok = await this.tenter({ difficulte: this.difficulte(dr), bruit: 1, x: dr.x, z: dr.z, proprietaire: n ? n.id : null, titre: this.nomPorte(dr) });
+    if (!ok) return false;
+    dr.locked = false; dr.open = 1; dr.playerClosed = false; dr.crocheteT = game.time + 25;
+    setTimeout(() => sound.door && sound.door(true), 150);
+    ui.subtitle('', '(Un déclic, puis un autre. La porte s’entrouvre sans un bruit.)', 3.5);
+    return true;
+  },
+};
+
+// ============================================================================
+//  LA POTERNE
+// ============================================================================
+const poterne = {
+  D() { const w = game.world, P = w && w.poterne; return P ? w.doors[P.door] : null; },
+  // > 0 : côté ville ; < 0 : côté douves
+  cote(dr) { const p = game.player, c = Math.cos(dr.r), s = Math.sin(dr.r), dx = p.pos[0] - dr.x, dz = p.pos[2] - dr.z; return dx * s + dz * c; },
+  utiliser(dr) {
+    if (this.cote(dr) < 0) {
+      sound.knock && sound.knock(1);
+      ui.subtitle('', '(Une porte basse, bardée de fer. De ce côté, ni poignée ni serrure : elle ne s’ouvre que de l’intérieur.)', 4.5);
+      return;
+    }
+    if (dr.open) { dr.open = 0; dr.locked = true; sound.door(false); setTimeout(() => sound.lock && sound.lock(true), 220); return; }
+    dr.locked = false; dr.open = 1; sound.lock && sound.lock(false); setTimeout(() => sound.door(true), 150);
+    const h = npcs.hour();
+    ui.subtitle('', h >= 21 || h < 6 ? '(Vous tirez le gros verrou. La poterne s’ouvre sur la nuit, et sur l’odeur de l’eau des douves.)' : '(Vous tirez le gros verrou. La poterne s’ouvre sur les douves.)', 4);
+    if (!farm.s.flags.poterneVue) { farm.s.flags.poterneVue = 1; setTimeout(() => ui.subtitle('', '(Elle se refermera derrière vous. De l’autre côté, il faudra descendre dans l’eau, et remonter par une échelle.)', 5), 4500); }
+  },
+  // elle se referme derrière soi (et si l'on s'en va sans passer)
+  update() {
+    const dr = this.D();
+    if (!dr || !dr.open) return;
+    const p = game.player, lz = this.cote(dr), d = Math.hypot(p.pos[0] - dr.x, p.pos[2] - dr.z);
+    if (lz < -1.5 || d > 5) {
+      dr.open = 0; dr.locked = true;
+      if (lz < 0 && d < 12) {
+        setTimeout(() => { sound.door(false); setTimeout(() => sound.lock && sound.lock(true), 350); }, 300);
+        ui.subtitle('', '(Derrière vous, la poterne se referme d’elle-même. Un pêne claque, de l’autre côté.)', 4);
+      }
+    }
+  },
+};
+
+// ---------------------------------------------------------------- branchements
+HOOKS.update.push((dt) => { if (!farm.s || game.kind !== 'farm') return; crochetage.update(dt); poterne.update(); });
+HOOKS.death.push(() => { if (crochetage.jeu) { crochetage.jeu.fini = true; crochetage.jeu.issue = false; crochetage.clore(); } return false; });
+window.addEventListener('keydown', (e) => {
+  if (!crochetage.jeu || ui.panel !== '#crochetage' || e.repeat) return;
+  if (e.code === 'Space' || e.code === 'KeyE' || e.code === 'Enter') { e.preventDefault(); crochetage.caler(); }
+}, true);
+HOOKS.load.push(() => {
+  crochetage.jeu = null;
+  crochetage.S();
+  const P = poterne.D();
+  if (P) { P.open = 0; P.a = 0; P.locked = true; }
+  if (game._m97) return;
+  game._m97 = true;
+  // E sur une porte : la poterne ; de l'intérieur, le verrou ; fermée à clé : frapper ou crocheter
+  const _ud = game.useDoor.bind(game);
+  game.useDoor = function (dr) {
+    if (!dr) return;
+    if (dr.poterne) return poterne.utiliser(dr);
+    if (dr.locked) {
+      const k = dr.bld;
+      const aMoi = k === 'ferme' || k === 'poulailler' || (typeof locations !== 'undefined' && locations.locataire(k));
+      const cle = typeof legendaires !== 'undefined' && legendaires.porte && legendaires.porte('cle_aelim');
+      if (!aMoi && !cle) {
+        if (k && game.insideBuilding(k)) {
+          dr.locked = false; dr.open = 1; dr.crocheteT = game.time + 8;
+          sound.lock && sound.lock(false); sound.door(true);
+          ui.subtitle('', '(Vous tirez le verrou de l’intérieur.)', 2.5);
+          return;
+        }
+        return crochetage.menuPorte(dr, _ud);
+      }
+    }
+    return _ud(dr);
+  };
+  // une porte crochetée reste ouverte le temps d'entrer ; la poterne n'obéit qu'à elle-même
+  const _doors = npcs.updateDoors.bind(npcs);
+  npcs.updateDoors = function (w, instant) {
+    const garde = [];
+    for (const dr of w.doors) if (dr.crocheteT > game.time) garde.push([dr, dr.open]);
+    _doors(w, instant);
+    for (const [dr, o] of garde) { dr.locked = false; if (o) dr.open = 1; }
   };
 });
 
