@@ -170,6 +170,24 @@ Les commandes sont dans le menu **Commandes** (Échap).
   selon le jour (jusqu'à la ferme) et portent les nouvelles, le chasseur du relais, les gens des Sources, deux nains.
 - **La mort est définitive** : un habitant mort emporte ses quêtes et ses répliques à jamais (carnet : « † ne pourra plus
   se faire »), sa maison est mise sous scellés, son commerce repris ; la nouvelle court de village en village.
+- **Les corps restent au sol** : un habitant tué (par vous, par le tueur, par l'ours, par la fièvre…), le chien, un
+  chasseur de primes abattu restent couchés là où ils sont tombés — dans l'herbe, dans la rue, dans leur lit —, sauvegardés
+  d'une journée à l'autre, jusqu'à ce que quelqu'un les enterre. Et personne ne le fera : dans la vallée, on ne relève pas
+  les morts. On grave leur nom au cimetière, sur une tombe vide ; la maison est mise sous scellés ; le corps, lui, attend.
+- **Les jours passent sur eux**, sobrement : pâles le jour même, couleur de cire le lendemain, puis des restes affaissés,
+  puis des os dans des vêtements vides. Les mouches, le jour ; les corbeaux s'y posent quand on arrive de loin.
+- **E sur un corps** : fouiller ses poches (des pièces, les objets de son métier, parfois ce qu'une quête cherchait ; le
+  menu de butin permet de choisir). Sous les yeux d'un habitant, c'est une **profanation**. **Avec une pelle**, on
+  l'enterre là où il est tombé : un tertre et une croix de deux bâtons liés (sur les pavés, on le traîne jusqu'à la terre
+  meuble ; sur la roche ou sous la montagne, un tas de pierres ; mort dans son lit, on le porte dehors). Un clic de pelle
+  sur le corps fait de même. E sur la croix : le nom qu'on y a gravé. Le chien s'enterre à mains nues.
+- **Les habitants qui voient un corps** s'arrêtent, se signent, reculent ; ils crient, ou prient, ou appellent le mort par
+  son nom — et en parlent les jours suivants. Ceux qui vous voient l'enterrer vous remercient, ses proches l'apprennent.
+- **Le fermier d'avant** : quand vous mourez dans la vallée, votre corps reste où vous êtes tombé, pour le fermier suivant —
+  vos habits, vos poches, et dans la veste la même lettre du notaire, à un autre prénom. Enterré, son tertre reste pour
+  ceux qui viendront après.
+- **Un géant abattu** tombe à la renverse et reste là, long comme une grange ; il passe par les mêmes jours, deux fois plus
+  lentement, jusqu'aux os longs comme des poutres. Sa besace se fouille. On ne l'enterre pas.
 - **Avis de recherche** : un crime vu est su dans le village des témoins, puis ailleurs au fil des jours (postière, garde,
   colporteurs). Une prime est mise sur votre tête, des affiches « RECHERCHÉ » sont clouées, on refuse de vous parler, le
   garde somme, arrête ou frappe, des chasseurs de primes rôdent. La prime se paie au garde, au maire, ou s'oublie.
@@ -217,6 +235,57 @@ Les commandes sont dans le menu **Commandes** (Échap).
   racontent les habitants (onglet Lettres de la sacoche). Chez quelqu'un, c'est voler : vu, l'amitié chute et le garde
   accourt ; pas vu, l'habitant se plaint le lendemain. Certains meubles ferment à clé (une clé trouvée ou volée, ou les
   crochets). Sept **cachettes** n'apparaissent qu'à qui a lu le bon papier. Tout se remplit avec le temps.
+- **On choisit ce qu'on prend** : chaque conteneur ouvre un **menu de butin** (armoires, commodes, malles, coffres,
+  tonneaux, caisses, sacs, étagères, tiroirs, charrettes, cachettes, coffres des ruines, des campements, des épaves, du
+  temple et des archives, casiers de la Fondation, coffre du greffe, coffres qu'on déterre, et ce qu'on ouvre en main :
+  coffre englouti, caisse de vivres, sac de graines). Chaque objet y a son icône, sa quantité et une courte description ;
+  un clic prend la pile, Maj+clic ou −/+ une quantité choisie, « Tout prendre » le reste (clavier : flèches, Entrée,
+  1 à 9, T ; E ou Échap referment). Ce qu'on laisse **reste dedans**, même après avoir rechargé la partie, jusqu'à ce
+  que le conteneur se remplisse de nouveau. Un papier trouvé se lit en refermant.
+- **Tout meuble se fouille** : en plus des cent endroits d'avant, près d'une centaine de meubles de la vallée — étagères des
+  maisons et des boutiques, tiroirs des tables, tonneaux, caisses et sacs, wagonnets et caisses des galeries, tas de bois,
+  charrettes abandonnées, caisses de la crypte… Le butin dépend du meuble et du lieu (le pain à la boulangerie, les
+  timbres à la poste, les semences chez la grainetière, les bocaux chez l'alchimiste, le minerai à la mine, les
+  souvenirs des maisons vides) ; chez quelqu'un c'est à lui, dans la rue à tout le monde, dans les ruines à personne.
+- **Le vol, finement** : ouvrir chez quelqu'un sous les yeux d'un témoin (le menu le dit : « … vous regarde ») puis
+  refermer sans rien prendre, c'est un soupçon — une remarque, un peu d'amitié en moins. Prendre, c'est voler : les cris,
+  le garde, la prime ; pas vu, la plainte du lendemain. Au temple, la malédiction tombe au premier objet pris, pas avant.
+- **La boutique** : la liste ne remonte plus en haut après un achat ou une vente. Un clic sur un article ouvre un encart :
+  sa description, le prix à l'unité, ce qu'on en a déjà, la quantité (−/+, saisie, « Maximum »), le total, puis
+  « Confirmer » ou « Annuler » (Entrée, Échap) — pour vendre aussi. Un article trop cher s'ouvre quand même, pour le
+  lire (« Il vous manque… »). Maj+clic et Ctrl+clic achètent ou vendent toujours par 5 et par 20 ; « Tout vendre » reste.
+- **Ramasser** : E sur un petit objet posé le met dans la sacoche — bougies, lanternes (au sol, suspendues, grandes),
+  chaises, pots de fleurs, nains de jardin, citrouilles, tapis (on le roule), livres (un « livre abîmé »), poupées,
+  ossements, sacs de grain (un clic en main l'ouvre : blé, avoine, orge, seigle). Ce qui se pose se repose ensuite où
+  l'on veut. Chez quelqu'un, dans une boutique, à l'église ou devant sa porte, c'est voler, et l'étiquette le dit
+  (« chez Mathilde », « devant chez quelqu'un »). Les meubles et les conteneurs restent au menu de butin ; ce qui a
+  déjà un usage le garde.
+- **Tout se casse, avec le bon outil** : le bois à la hache (meubles, caisses, tonneaux, lits, clôtures, charrettes,
+  barques, ruches, étais des galeries…), la pierre et le fer à la pioche (statues, calvaires, tombes, murets,
+  abreuvoirs, cairns, meules, réverbères ; l'enclume et le coffre-fort veulent une pioche de fer), la poterie, le
+  verre, la paille et la toile avec n'importe quel outil. Le mauvais outil rebondit (« Du bois : il faudrait une
+  hache. »). Plusieurs coups selon la solidité et l'outil : des fêlures là où l'on frappe, des éclats qui volent et
+  retombent, de la poussière, un bruit pour chaque matière. Il reste des débris trois jours, et l'on récupère des
+  matériaux : bûches, clous, pierres, ferraille, éclats de verre, argile, toile, corde, foin… Ce qu'on a posé soi-même
+  se casse aussi (le marteau, lui, le démonte toujours) ; ce qui est cassé le reste, même après avoir rechargé la partie.
+- **Ce qu'il y avait dedans tombe** : une armoire, une malle, un tonneau, un coffre ou une charrette chargée qu'on
+  casse répandent leur contenu au pied des débris (les objets y restent posés, bien visibles) ; E ouvre le menu de
+  butin sur « Ce qui est tombé ». Ce qu'on y laisse attend trois jours. La fouille du meuble disparaît avec lui.
+- **Enfoncer une porte** : à la hache, fermée à clé ou non, une porte de maison, de boutique ou de roulotte cède au bout
+  de quelques coups (bien plus pour la mairie, la garde, l'auberge, la bibliothèque). Arrachée de ses gonds, elle gît à
+  plat derrière le seuil, la serrure pendante, et ne se referme plus, jusqu'à ce que l'habitant la fasse réparer, trois
+  jours plus tard. Les coups s'entendent de loin, et réveillent ceux qui dorment. Ni la ferme, ni l'église, ni la
+  poterne, ni le temple, ni le cachot.
+- **Casser a des suites** : chez quelqu'un, c'est une **effraction** ; devant chez lui, dans une boutique, en ville ou au
+  cimetière, un **vol**. Vu ou entendu : les cris (« Mes meubles ! Vous êtes fou ?! »), l'amitié qui s'effondre, le
+  garde qui accourt, la prime. Pas vu : la plainte du lendemain (« On a enfoncé ma porte, cette nuit. À la hache. ») et
+  la mentalité qui baisse. Dans les ruines, on ne vole personne, mais un passant le prend mal. Une tombe ou une croix
+  brisée, c'est une **profanation**, et ce qui dort dessous s'en souvient (le sommeil ne vient plus) ; abattre une
+  croix de chemin porte malchance, jusqu'à ce qu'on s'en confesse au curé.
+- **Ce qui ne se casse pas** : ce qui porte une quête ou un mécanisme — pierres, autels et portes du temple, dormeur,
+  bornes gravées, stèles, cachettes, affiches, étals du marché, tombes neuves, lit et coffre de la ferme, charrette
+  attelée, niche et gamelle du chien, écriteaux « À louer », machines au travail (on attend qu'elles aient fini) —, le
+  cachot, les bâtiments, le terrain, les arbres et les rochers (qui ont déjà leurs outils).
 - **Des choses à faire** : à Valbrume, les dés et le vingt-et-un de l'auberge (gare aux dés pipés), le bras de fer, la
   tournée payée, la veillée du Veilledi (contes au coin du feu), le tableau des petits travaux de la mairie, le puits aux
   souhaits, la diseuse de bonne aventure (qui lit l'almanach), le crieur public, le violoneux des rues, la vue du clocher,
@@ -558,6 +627,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzz8*.js` | objets légendaires et mythiques, l'Homme long, la Fondation |
 | `11-zzz9*.js` | vol à la tire, prison (cachot, rançon, carrière, évasion), sentiments ; sommeil et fatigue, lits, maisons à louer, crochetage et poterne, fouilles et cachettes, activités des villes et villages |
 | `07-zzzzzzz-portes.js` | les portes (modèles selon le bâtiment, trois niveaux de détail) |
+| `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
 | `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus bas) |
 | `shell.html` | HTML + CSS |
