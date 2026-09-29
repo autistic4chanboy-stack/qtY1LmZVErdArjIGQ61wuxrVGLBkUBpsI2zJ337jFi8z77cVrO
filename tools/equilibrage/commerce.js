@@ -36,6 +36,8 @@ const CATALOGUE = String.raw`(() => {
     if (buys.includes('poisson')) for (const f in FISH) if (!buys.includes(f)) buys.push(f);
     for (const id of buys) if (ITEMS[id] && ITEMS[id].price > 0) VEN(d.id, id, prixPNJ(d, id, ITEMS[id].price, false));
   }
+  // le garde-meuble de la commune (le maire : 11-zzzz4-meubles.js), aux prix de l'amitié du maire
+  if (typeof MEUBLES_GARDE !== 'undefined') { const d = NPC_DATA.find((x) => x.id === 'maire'); if (d) for (const [id, p] of MEUBLES_GARDE.sells) if (ITEMS[id]) ACH('garde-meuble', id, prixPNJ(d, id, p, true), '', p); }
   // les étals du Marchedi (prix fixes) et le brocanteur (trésors, 60 %)
   for (const R of ACT_ETALS) {
     for (const [id, p] of R.vend) ACH('étal ' + R.id, id, p, '', p);
@@ -495,6 +497,23 @@ function couts(J, R, log) {
     log(`loyer ${k} : ${l} la semaine (${(l / 12).toFixed(1)} la nuit ; chambre de l'auberge 20) = ${(l / debut).toFixed(2)} journée du début`);
     if (l >= auberge) E.push(`loyer ${k} (${l}) plus cher que douze nuits à l'auberge (${auberge})`);
     if (l < 0.3 * debut) E.push(`loyer ${k} (${l}) dérisoire (moins d'un tiers de journée du début par semaine)`);
+  }
+  // acheter une maison (11-zzzz4-meubles.js) : plusieurs semaines de loyer, un but du milieu de partie ; la revente perd
+  const V = JSON.parse(J.ev(`JSON.stringify(typeof meubles !== 'undefined' ? { maisons: Object.fromEntries(Object.keys(LOC_MAISONS).map((k) => [LOC_MAISONS[k].court, { loyer: LOC_MAISONS[k].loyer, achat: meubles.prixAchat(k), revente: meubles.prixRevente(k) }])),
+    garde: Object.fromEntries(MEUBLES_GARDE.sells) } : { maisons: {}, garde: {} })`));
+  for (const k in V.maisons) {
+    const m = V.maisons[k], sem = m.achat / m.loyer, jm = m.achat / milieu;
+    log(`achat ${k} : ${m.achat} = ${sem.toFixed(0)} semaines de loyer, ${(m.achat / debut).toFixed(1)} journées du début, ${jm.toFixed(1)} du milieu ; revendue ${m.revente}`);
+    if (sem < 10 || sem > 40) E.push(`achat ${k} (${m.achat}) : ${sem.toFixed(1)} semaines de loyer, hors 10-40`);
+    if (jm < 1.5 || jm > 6) E.push(`achat ${k} (${m.achat}) : ${jm.toFixed(1)} journées du milieu, hors 1,5-6`);
+    if (m.revente >= m.achat * 0.75) E.push(`revente ${k} (${m.revente}) trop proche du prix d'achat (${m.achat})`);
+  }
+  // meubler une pièce au garde-meuble de la commune : lit, armoire, table, deux chaises, commode, tapis, chandelier
+  const piece = ['lit', 'armoire', 'table', 'chaise', 'chaise', 'commode', 'tapis', 'chandelier'];
+  if (piece.every((id) => V.garde[id])) {
+    const c = piece.reduce((a, id) => a + V.garde[id], 0), jm = c / milieu;
+    log(`meubler une pièce (${piece.join(', ')}) au garde-meuble : ${c} = ${(c / debut).toFixed(1)} journées du début, ${jm.toFixed(2)} du milieu`);
+    if (jm < 0.3 || jm > 2) E.push(`meubler une pièce : ${c}, ${jm.toFixed(2)} journées du milieu, hors 0,3-2`);
   }
   for (const e of E) log('  HORS BORNES : ' + e);
   return E;
