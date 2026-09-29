@@ -10588,7 +10588,9 @@ Object.assign(FISH, {
   anguille_argent: { name: 'Anguille d’argent', price: 160, where: ['bains', 'souterrain'], time: 'nuit', w: 0.5, col: '#d0d8e0' },
   ecrevisse_aveugle: { name: 'Écrevisse aveugle', price: 55, where: ['souterrain'], time: 'tout', w: 2, col: '#f0e8e0' },
   truite_pierre: { name: 'Truite de pierre', price: 90, where: ['souterrain'], time: 'tout', w: 1.5, col: '#8a8a88' },
-  poisson_ancien: { name: 'Poisson des Anciens', price: 1200, where: ['temple'], time: 'tout', w: 0.08, col: '#e8d080' },
+  // 0,025 : seul poisson légendaire d'une eau où il n'y en a que trois, il sortait une prise sur trente ; une sur
+  // quatre-vingt-dix, comme les autres légendes (tools/equilibrage/hasard.js)
+  poisson_ancien: { name: 'Poisson des Anciens', price: 1200, where: ['temple'], time: 'tout', w: 0.025, col: '#e8d080' },
   lamproie: { name: 'Lamproie', price: 40, where: ['riviere', 'douves'], time: 'nuit', w: 1.5, col: '#5a5048' },
   gremille: { name: 'Grémille', price: 14, where: ['lac', 'etang', 'douves'], time: 'jour', w: 4, col: '#9a9a6a' },
   blennie: { name: 'Blennie des sources', price: 22, where: ['bains', 'riviere'], time: 'jour', w: 3, col: '#8a9a7a' },
@@ -25059,6 +25061,11 @@ const strange = {
     return clamp(t, 0, 1);
   },
   maxLevel() { const t = this.tension(); return t < 0.14 ? 0 : t < 0.38 ? 1 : t < 0.6 ? 2 : 3; },
+  // les chances du jour, pour un esprit ordinaire (11-zzz60-esprit.js les module par bizarrerie() ; mesure :
+  // tools/equilibrage/hasard.js) : une nuit rouge une nuit sur douze quand la tension est pleine (jamais deux de suite) ;
+  // quelques événements étranges par semaine (le carnet des 44 étrangetés, trois fois chacune, dure ainsi des mois)
+  chanceRouge() { return 0.055 + this.tension() * 0.045; },
+  chanceEvenements() { return 0.12 + this.tension() * 0.13; },
   isKiller(id) { return this.s && this.s.killer === id; },
   killerPhase() { const S = this.s; if (!S || S.kDead || S.kCaught) return 0; const d = farm.s.day; return d >= S.kDay ? 2 : d >= S.kDay - 3 ? 1 : 0; },
   killerActive() { return this.killerPhase() === 2; },
@@ -25098,11 +25105,11 @@ const strange = {
       if (rnd() < pM && S.victims.length < 4) this.murder();
     }
     // décide de la nuit rouge à venir
-    S.redTonight = d >= S.redMin && S.lastRed < d - 1 && (rnd() < 0.12 + this.tension() * 0.12 || (S.redCount === 0 && d >= S.redMin + 3));
+    S.redTonight = d >= S.redMin && S.lastRed < d - 1 && (rnd() < this.chanceRouge() || (S.redCount === 0 && d >= S.redMin + 3));
     // glissement de version (rare, toujours un matin)
-    // événements du jour
+    // événements du jour : le plus souvent un seul, parfois deux quand la tension monte
     S.events = [];
-    const n = rnd() < 0.35 + this.tension() * 0.5 ? 1 + Math.floor(rnd() * (1 + this.tension() * 3)) : 0;
+    const n = rnd() < this.chanceEvenements() ? 1 + (rnd() < this.tension() * 0.15 ? 1 : 0) : 0;
     const maxL = this.maxLevel();
     const pool = EVENT_DEFS.filter((e) => e.lvl <= maxL && (S.seen[e.id] || 0) < 3);
     for (let k = 0; k < n && pool.length; k++) {
@@ -25168,16 +25175,17 @@ const strange = {
     // événements programmés
     let hh = h < 6 ? h + 24 : h;
     for (const e of S.events) if (!e.done && hh >= e.h && hh < e.h + 3) { e.done = true; S.seen[e.id] = (S.seen[e.id] || 0) + 1; this.run(e.id, c); }
-    // petits frissons aléatoires la nuit
-    this.ambT = (this.ambT || 20) - dt;
+    // petits frissons aléatoires la nuit (minuterie en heures de jeu : au moins 1,6 heure entre deux, trois en moyenne
+    // quand la tension est pleine)
+    this.ambT = (this.ambT ?? 0.8) - heuresDeJeu(dt);
     if (this.ambT <= 0) {
-      this.ambT = 40 + Math.random() * 90 / (0.3 + this.tension());
+      this.ambT = 1.6 + Math.random() * 3.6 / (0.3 + this.tension());
       if (c.night > 0.5 && Math.random() < this.tension()) { const pool = ['murmure', 'echo', 'lampes']; if (this.maxLevel() >= 1) pool.push('toctoc', 'silhouette'); this.run(pool[(Math.random() * pool.length) | 0], c); }
     }
     // tueur
     this.updateKiller(dt, c);
     // pâles et veilleur (nuits rouges, Envers)
-    if ((S.red && (h >= 21.5 || h < 5)) || S.envers) this.ensurePales(c);
+    if ((S.red && (h >= 21.5 || h < 5)) || S.envers) this.ensurePales(c, dt);
     this.fear = 0;
     this.glitchT = Math.max(0, this.glitchT - dt);
     this.freezeT = Math.max(0, this.freezeT - dt);
@@ -25281,10 +25289,11 @@ const strange = {
     const rig = ANIMAL_RIGS.deer(0, true);
     this.ents.push({ kind: 'stag', x, z, y: w.heightAt(x, z), rig, t: 0, heading: 0, life: 300, tgt, phase: 0 });
   },
-  ensurePales(c) {
+  ensurePales(c, dt) {
     const S = this.s, p = game.player, w = game.world;
     const n = this.ents.filter((e) => e.kind === 'pale').length, want = S.envers ? 6 : 3;
-    if (n < want && Math.random() < 0.02) {
+    // 1,2 fois par seconde (c'était 2 % par image : deux fois moins à 30 images/s qu'à 60)
+    if (n < want && Math.random() < (dt ?? 1 / 60) * 1.2) {
       const a = Math.random() * TAU, d = 45 + Math.random() * 30, x = p.pos[0] + Math.sin(a) * d, z = p.pos[2] + Math.cos(a) * d;
       if (w.inside(x, z, 20) && w.heightAt(x, z) > w.waterLevel) this.ents.push({ kind: 'pale', x, z, y: w.heightAt(x, z), rig: paleRig(false), t: 0, heading: 0, life: 1e9 });
     }
@@ -33915,6 +33924,30 @@ HOOKS.load.push(() => {
 //  État sauvegardé : farm.s.ev. Essais : evenements.declencher(id).
 // ============================================================================
 const EV_BIZ = () => (typeof bizarrerie === 'function' ? bizarrerie() : 1);
+// ---------------------------------------------------------------- les fréquences (mesurées par tools/equilibrage/hasard.js)
+// Ce qui se tire une fois par jour garde sa fréquence par jour de jeu, quelle que soit la durée d'une journée. Ce qui se
+// tire au fil du temps (lavandière, Slender, frissons de la nuit…) passe par hasardHeure : un nombre de fois PAR HEURE
+// DE JEU, qui ne dépend ni des images par seconde ni de JOUR_SECONDES.
+const EV_FREQ = {
+  nuitNoire: 0.1,       // tirage du soir : une nuit noire sur dix environ (jamais deux de suite), dès le quatrième soir
+  nuitImprevue: 0.01,   // une nuit noire que l'almanach n'annonce pas : 1 % des soirs × bizarrerie
+  soleil: 0.035,        // soleil écrasant : un jour sur vingt-huit
+  neige: 0.032,         // neige partout : un jour sur trente
+  tornade: 0.15,        // part des jours d'orage ou de canicule qui en font une : une tornade toutes les quatre semaines
+  tueur: 0.065,         // l'homme au long manteau : un soir sur quinze × bizarrerie, une fois l'écart passé…
+  tueurJour: 13,        // … jamais la première semaine (douze jours)…
+  tueurEcart: 20,       // … et jamais deux passages en vingt jours : un toutes les trois semaines environ (il tue
+                        // à chaque passage : plus souvent, une longue partie viderait les villages)
+};
+// heures de jeu écoulées pendant dt secondes réelles, comme dans game.loop : le temps accéléré compte ; en pause, en
+// dormant (le sommeil saute les heures, sans tirage), en mourant ou quand le temps s'arrête, rien ne passe
+function heuresDeJeu(dt) {
+  if (game.mode === 'menu' || game.sleeping || game.dying || (strange.freezeT || 0) > 0) return 0;
+  const w = game.world;
+  return dt * (game.fastTime ? 60 : 1) * (game.timeScale ?? 1) * 24 / ((w && w.dayLength) || JOUR_SECONDES);
+}
+// pour un tirage fait toutes les dt secondes réelles : la chance d'un événement qui arrive « parHeure » fois par heure de jeu
+function hasardHeure(parHeure, dt) { return parHeure > 0 ? 1 - Math.exp(-parHeure * heuresDeJeu(dt)) : 0; }
 // heure « de la nuit » : après minuit, on compte 24, 25… (le jour ne change qu'à 6 h)
 const evHH = () => { const h = npcs.hour(); return h < 6 ? h + 24 : h; };
 
@@ -34051,18 +34084,24 @@ const evenements = {
     if (!P) { P = EV_PLAN0(farm.s ? farm.s.seed : 0, d); this._plans.set(key, P); if (this._plans.size > 200) this._plans.clear(); }
     return P;
   },
-  // les nuits noires : environ une nuit sur quatorze, jamais deux de suite, jamais avant le troisième soir
-  nuitNoireBrute(d) { return d >= 3 && this.alea(d, 1) < 0.075; },
+  // les nuits noires : environ une nuit sur dix (avec les imprévues), jamais deux de suite, jamais avant le quatrième soir
+  nuitNoireBrute(d) { return d >= 4 && this.alea(d, 1) < EV_FREQ.nuitNoire; },
   nuitNoire(d) { if (d === undefined) d = farm.s ? farm.s.day : 1; return this.nuitNoireBrute(d) && !this.nuitNoireBrute(d - 1); },
+  // une nuit noire que l'almanach n'annonce pas (tirée au soir, selon l'esprit du personnage ; jamais deux de suite)
+  chanceImprevue(d) {
+    if (d === undefined) d = farm.s ? farm.s.day : 1;
+    if (d < 4 || this.nuitNoire(d) || this.nuitNoire(d - 1) || this.nuitNoire(d + 1) || (farm.s && this.S().nuit.imprevue === d - 1)) return 0;
+    return EV_FREQ.nuitImprevue * EV_BIZ();
+  },
   // les jours de neige (grand froid) et de soleil écrasant
-  soleil(d) { if (d === undefined) d = farm.s ? farm.s.day : 1; return d >= 3 && this.alea(d, 3) < 0.035; },
-  neige(d) { if (d === undefined) d = farm.s ? farm.s.day : 1; return d >= 4 && this.alea(d, 2) < 0.032 && !this.soleil(d); },
-  // la tornade : un jour d'orage ou de canicule, très rarement (heure de formation, ou null)
+  soleil(d) { if (d === undefined) d = farm.s ? farm.s.day : 1; return d >= 3 && this.alea(d, 3) < EV_FREQ.soleil; },
+  neige(d) { if (d === undefined) d = farm.s ? farm.s.day : 1; return d >= 4 && this.alea(d, 2) < EV_FREQ.neige && !this.soleil(d); },
+  // la tornade : un jour d'orage ou de canicule, très rarement (heure de formation, ou null) ; jamais deux en douze jours
   tornadeBrute(d) {
     if (d < 6 || this.soleil(d) || this.neige(d)) return null;
     const P = this.planBase(d);
     if (!P.storm && !P.heat) return null;
-    if (this.alea(d, 4) >= 0.08) return null;
+    if (this.alea(d, 4) >= EV_FREQ.tornade) return null;
     const r = this.alea(d, 9);
     if (P.storm) { const e = P.plan.find(([, x]) => x === 'storm'); return Math.min(21, (e ? e[0] : 14) + 0.4 + r * 1.6); }
     return 15.5 + r * 2.5;
@@ -34074,13 +34113,13 @@ const evenements = {
     for (let k = 1; k <= 12; k++) if (this.tornadeBrute(d - k) !== null) return null;
     return t;
   },
-  // l'homme au long manteau : pas avant le cinquième soir, jamais deux fois en vingt jours
-  tueurBrut(d) { return d >= 5 && this.alea(d, 5) < 0.06 * EV_BIZ(); },
+  // l'homme au long manteau : pas avant le treizième soir (jamais la première semaine), jamais une nuit noire, jamais deux
+  // passages en vingt jours (on compte depuis son dernier passage : plus d'esprit sombre, plus de soirs tirés, donc plus
+  // de passages — une règle sur les seuls tirages le rendait au contraire plus rare)
+  tueurBrut(d) { return d >= EV_FREQ.tueurJour && this.alea(d, 5) < EV_FREQ.tueur * EV_BIZ(); },
   tueur(d) {
     if (d === undefined) d = farm.s ? farm.s.day : 1;
-    if (!this.tueurBrut(d) || this.nuitNoire(d)) return false;
-    for (let k = 1; k < 20; k++) if (this.tueurBrut(d - k) && !this.nuitNoire(d - k)) return false;
-    return d - this.S().tueur.dernier >= 20;
+    return this.tueurBrut(d) && !this.nuitNoire(d) && d - this.S().tueur.dernier >= EV_FREQ.tueurEcart;
   },
   // le prodige du jour (tiré une fois par jour : la bizarrerie du moment en change la fréquence)
   prodige(d) {
@@ -34092,7 +34131,8 @@ const evenements = {
     let out = { d, id: null };
     if (this.alea(d, 6) < 0.22 * Math.min(2.2, 0.7 + biz * 0.3)) {
       const P = weather.dayPlan(farm.s.seed, d);
-      const pool = Object.keys(PRODIGES).filter((id) => PRODIGES[id].peut(P, d));
+      // les prodiges étranges (géant, séisme, cloches…) attendent le quatrième jour
+      const pool = Object.keys(PRODIGES).filter((id) => PRODIGES[id].peut(P, d) && (d >= 4 || !PRODIGES[id].etrange));
       let tot = 0;
       for (const id of pool) tot += PRODIGES[id].poids * (PRODIGES[id].etrange ? biz : 1);
       let r = this.alea(d, 7) * tot;
@@ -34200,7 +34240,7 @@ const evenements = {
       this.progT = 1;
       const d = s.day;
       // une nuit noire non prédite (rarissime, selon l'esprit du personnage)
-      if (hh >= 19 && hh < 19.6 && S.nuit.tirage !== d) { S.nuit.tirage = d; if (!this.nuitNoire(d) && Math.random() < 0.012 * EV_BIZ()) S.nuit.imprevue = d; }
+      if (hh >= 19 && hh < 19.6 && S.nuit.tirage !== d) { S.nuit.tirage = d; if (Math.random() < this.chanceImprevue(d)) S.nuit.imprevue = d; }
       // le prodige du jour
       const P = this.prodige(d);
       if (P && !S.faits[P.id + ':' + d] && hh >= P.h && hh < P.h + 2.5 && !envers) this.lancer(P.id);
@@ -34679,8 +34719,8 @@ const EV_FX = {
       this.reagir('seisme');
       entities.scare(game.player.pos[0], game.player.pos[2], 200);
       for (const e of entities.list) if (e.kind === 'dog' && e.owner) sound.bark && sound.bark(1, 0);
-      // rarement, on voit Durn lui-même se lever sur la montagne
-      if (typeof divins !== 'undefined' && Math.random() < 0.08 * EV_BIZ()) setTimeout(() => divins.apparaitre('durn'), 4200);
+      // rarement, on voit Durn lui-même se lever sur la montagne (une fois dans une vie, comme Aëla et Vesh)
+      if (typeof divins !== 'undefined' && !divins.S().durn.vu && Math.random() < divins.chanceDurn()) setTimeout(() => divins.apparaitre('durn'), 4200);
     },
     update(E, dt, eye) {
       const k = Math.sin(clamp(E.k, 0, 1) * Math.PI);
@@ -35050,6 +35090,20 @@ const divins = {
     if (!S.veille || typeof S.veille !== 'object') S.veille = {};
     return S;
   },
+  // ------------------------------------------------------------ les chances (très, très rares ; tools/equilibrage/hasard.js)
+  // Chacun des Trois prend contact environ une fois en six à douze semaines (surtout en rêve : six rêves en tout), et ne
+  // vient sur le monde qu'une fois dans une vie.
+  // un rêve, par nuit de sommeil : 3 % × bizarrerie (+2 % si l'on a vu le temple, +2 % après un pacte avec Vesh)
+  chanceReve() {
+    const S = this.S(), tvu = typeof temple !== 'undefined' && temple.S && temple.S().vu;
+    return 0.03 * EV_BIZ() + (tvu ? 0.02 : 0) + ((S.vesh.pactes || 0) ? 0.02 : 0);
+  },
+  // Aëla au lever du jour, à qui veille dehors (dès le dixième jour) ; Vesh, une nuit noire, à qui veille dehors vers
+  // 23 h (dès le huitième) ; Durn, quand la terre tremble : pour un joueur ordinaire, chacun dans une partie sur trois
+  // ou quatre au bout de six mois de jeu
+  chanceAela(d) { return d >= 10 && !this.S().aela.vu ? 0.012 * EV_BIZ() : 0; },
+  chanceVesh(d) { return d >= 8 && !this.S().vesh.vu ? 0.06 * EV_BIZ() : 0; },
+  chanceDurn() { return this.S().durn.vu ? 0 : 0.03 * EV_BIZ(); },
   // ------------------------------------------------------------ parler aëlin : la phrase, puis ce qu'on en comprend
   comprendre(txt, sens) {
     let t = null;
@@ -35099,14 +35153,14 @@ const divins = {
     // --- Aëla, rarissime, au lever du jour (une fois dans une vie)
     if (hh >= 29.2 && hh < 29.8 && S.aela.tirage !== d) {
       S.aela.tirage = d;
-      if (!S.aela.vu && d >= 10 && Math.random() < 0.012 * EV_BIZ() && evenements.dehors()) this.apparaitre('aela', {});
+      if (Math.random() < this.chanceAela(d) && evenements.dehors()) this.apparaitre('aela', {});
       // quand l'ombre est tout près, une voix chaude, à l'aube, dit où chercher
       else if (malediction.a('ombre') && malediction.S().ombre && malediction.S().ombre.d < 45 && Math.random() < 0.6) { sound.ok && sound.voice(sound.at(), 'sine', 440, 660, 2.5, 0.015, sound.lp(1200, sound.amb)); this.parler('aela', 'aela_appel', 600); }
     }
     // --- Vesh : pendant une nuit noire, rarissime, il vient éteindre les étoiles
     if (typeof evenements !== 'undefined' && evenements.noirK > 0.9 && hh >= 23 && hh < 25.5 && S.vesh.tirage !== d) {
       S.vesh.tirage = d;
-      if (!S.vesh.vu && d >= 8 && Math.random() < 0.2 * EV_BIZ() && evenements.dehors()) this.apparaitre('vesh', {});
+      if (Math.random() < this.chanceVesh(d) && evenements.dehors()) this.apparaitre('vesh', {});
     }
   },
   sky(sky) {
@@ -35293,9 +35347,8 @@ HOOKS.load.push(() => {
   const _sleep = game.sleep.bind(game);
   game.sleep = async function (where) {
     const s = farm.s, S = divins.S();
-    const tvu = typeof temple !== 'undefined' && temple.S && temple.S().vu;
-    const p = 0.08 * EV_BIZ() + (tvu ? 0.08 : 0) + ((S.vesh.pactes || 0) ? 0.06 : 0);
-    const reve = s && !s.over && Math.random() < p ? pick(DIV_REVES.filter((R) => !(S.reves || {})[DIV_REVES.indexOf(R)])) : null;
+    const reste = DIV_REVES.filter((R) => !(S.reves || {})[DIV_REVES.indexOf(R)]);
+    const reve = s && !s.over && reste.length && Math.random() < divins.chanceReve() ? pick(reste) : null;
     await _sleep(where);
     if (reve && !game.dying && farm.s && !farm.s.over) {
       S.reves = S.reves || {}; S.reves[DIV_REVES.indexOf(reve)] = farm.s.day;
@@ -35560,11 +35613,12 @@ const malOmbre = {
     }
     return r;
   };
-  // les cygnes de la Dame (quand ils meurent de notre main)
+  // les cygnes de la Dame (quand ils meurent de notre main : jamais du coup de fusil d'un habitant, même tout près de nous)
   const _dmg = entities.damage.bind(entities);
   entities.damage = function (e, dmg, fx, fz) {
+    const parUnHabitant = typeof chasse !== 'undefined' && !!chasse._src; // (lu avant : la chasse l'efface au passage)
     const died = _dmg(e, dmg, fx, fz);
-    if (died && e.cfg && e.cfg.sacre === 'dame' && !e.owner && farm.s && game.player && Math.hypot((fx ?? e.x) - game.player.pos[0], (fz ?? e.z) - game.player.pos[2]) < 250) malediction.frapper('malchance', 'cygne');
+    if (died && !parUnHabitant && e.cfg && e.cfg.sacre === 'dame' && !e.owner && farm.s && game.player && Math.hypot((fx ?? e.x) - game.player.pos[0], (fz ?? e.z) - game.player.pos[2]) < 250) malediction.frapper('malchance', 'cygne');
     return died;
   };
   // le Cerf blanc (on ne frappe pas le Cerf blanc)
@@ -36205,7 +36259,7 @@ const cinematiques = {
     const poussiere = () => { for (let i = 0; i < 3; i++) particles.spawn(F.x + (Math.random() - 0.5) * 50, dy + Math.random() * 6, F.z + (Math.random() - 0.5) * 50, (Math.random() - 0.5) * 3, 1 + Math.random() * 2, (Math.random() - 0.5) * 3, [0.55, 0.52, 0.46, 0.6], 6 + Math.random() * 6, 5, 0, false); };
     return cine.jouer([
       { dur: 3, de: { pos: e, look: [lerp(e[0], dx, 0.2), e[1] + 12, lerp(e[2], dz, 0.2)] }, secousse: 0.08, texte: '(La terre gronde. Pas un orage : c’est la montagne.)', debut: () => { sound.rumble && sound.rumble(); game.shakeT = 1; } },
-      { dur: 7, de: { pos: cam, look: [dx, dy + 8, dz] }, a: { pos: cam, look: [dx, dy + 30, dz] }, secousse: 0.05, texte: '(Un pan de montagne se détache. Il a des épaules, une tête. Il se lève.)', debut: () => { sound.rumble && sound.rumble(); }, chaque: (t) => { const k = cinEase(clamp(t / 6.5, 0, 1)); F.y = dy - 52 + k * 52; F.lean = 0.5 * (1 - k); poussiere(); if (Math.random() < 0.02) sound.rumble && sound.rumble(); } },
+      { dur: 7, de: { pos: cam, look: [dx, dy + 8, dz] }, a: { pos: cam, look: [dx, dy + 30, dz] }, secousse: 0.05, texte: '(Un pan de montagne se détache. Il a des épaules, une tête. Il se lève.)', debut: () => { sound.rumble && sound.rumble(); }, chaque: (t, dt) => { const k = cinEase(clamp(t / 6.5, 0, 1)); F.y = dy - 52 + k * 52; F.lean = 0.5 * (1 - k); poussiere(); if (Math.random() < (dt || 1 / 60) * 1.2) sound.rumble && sound.rumble(); } },
       { dur: 5, de: { pos: cam2, look: tete() }, a: { pos: cam2, look: tete() }, secousse: 0.03, debut: () => { F.y = dy; F.lean = 0; F.bras = 0.3; divins.parler('durn', opts.colere ? 'durn_colere' : 'durn_leve', 300); } },
       { dur: 4.5, de: { pos: cam, look: [dx, dy + 30, dz] }, a: { pos: cam, look: [dx, dy + 10, dz] }, texte: '(Puis il se recouche, lentement, et la montagne redevient la montagne.)', chaque: (t) => { const k = cinEase(clamp(t / 4.5, 0, 1)); F.y = dy - k * 52; F.lean = 0.5 * k; poussiere(); } },
       { dur: 1.2, de: { pos: cam, look: [dx, dy + 10, dz] }, fondu: 'noir', fin },
@@ -36221,7 +36275,7 @@ const cinematiques = {
     const fin = () => { divins.fig = null; divins.fogMin = 0; divins.etoiles = -1; };
     return cine.jouer([
       { dur: 3.6, de: { pos: e, look: [ciel[0], ciel[1] - 15, ciel[2]] }, a: { pos: e, look: ciel }, texte: '(Les étoiles sont revenues. Toutes. Plus nombreuses qu’elles ne l’ont jamais été.)' },
-      { dur: 7, de: { pos: e, look: [vx, vy + 20, vz] }, a: { pos: e, look: [vx, vy + 55, vz] }, texte: '(Quelque chose se lève à l’horizon. Plus noir que la nuit. Là où il passe, les étoiles s’éteignent.)', chaque: (t) => { const k = cinEase(clamp(t / 7, 0, 1)); F.y = vy - 80 + k * 80; F.bras = k; divins.etoiles = 1 - k * 0.75; if (Math.random() < 0.05) sound.whisper && sound.whisper(Math.random() * 2 - 1, 0.5); } },
+      { dur: 7, de: { pos: e, look: [vx, vy + 20, vz] }, a: { pos: e, look: [vx, vy + 55, vz] }, texte: '(Quelque chose se lève à l’horizon. Plus noir que la nuit. Là où il passe, les étoiles s’éteignent.)', chaque: (t, dt) => { const k = cinEase(clamp(t / 7, 0, 1)); F.y = vy - 80 + k * 80; F.bras = k; divins.etoiles = 1 - k * 0.75; if (Math.random() < (dt || 1 / 60) * 3) sound.whisper && sound.whisper(Math.random() * 2 - 1, 0.5); } },
       { dur: 4.5, de: { pos: e, look: [vx, vy + 55, vz] }, debut: () => divins.parler('vesh', 'vesh_etoiles', 200), chaque: (t) => { divins.etoiles = 0.25 * (1 - clamp(t / 4, 0, 1)); } },
       { dur: 1.4, de: { pos: e, look: [vx, vy + 40, vz] }, fondu: 'noir', fin },
     ], { apres: fin });
@@ -38930,42 +38984,53 @@ const faim = {
 };
 
 // ============================================================================
-//  L'ÉTRANGE SUIT L'ESPRIT : bizarrerie() de 1 (esprit clair, au-dessus de 70)
-//  à 3 (esprit en ruine) ; appliqué aux hasards de l'étrange existant
+//  L'ÉTRANGE SUIT L'ESPRIT : bizarrerie() de 0,6 (esprit clair, 100) à 1
+//  (esprit ordinaire, 70) puis 2,5 (esprit en ruine, 0) ; la fatigue la pousse
+//  encore (11-zzz95-sommeil.js), jamais au-delà de BIZ_MAX. Elle multiplie les
+//  chances de l'étrange : nuits rouges et événements (ci-dessous), nuits noires
+//  imprévues, tueur errant, prodiges étranges, lavandière, rêves et venues des
+//  Trois, cauchemars, marchand de joie… (mesures : tools/equilibrage/hasard.js)
 // ============================================================================
-bizarrerie = function () {
-  const v = esprit.niveau();
-  return v >= 70 ? 1 : 1 + 2 * Math.pow((70 - v) / 70, 1.2);
-};
+const BIZ_MIN = 0.6, BIZ_MAX = 2.5;
+function bizarrerieDe(v) {
+  v = clamp(+v || 0, 0, 100);
+  return v >= 70 ? 1 - (1 - BIZ_MIN) * (v - 70) / 30 : 1 + (BIZ_MAX - 1) * Math.pow((70 - v) / 70, 1.2);
+}
+bizarrerie = function () { return bizarrerieDe(esprit.niveau()); };
 {
-  // les événements du jour : plus nombreux, et les nuits rouges plus fréquentes
+  // les événements du jour et les nuits rouges suivent l'esprit, dans les deux sens
   const _newDay = strange.newDay.bind(strange);
   strange.newDay = function (nightInfo) {
     const r = _newDay(nightInfo);
     try { espritEtrange(this); } catch (e) { console.error(e); }
     return r;
   };
-  // un esprit en ruine voit plus loin dans l'étrange
+  // un esprit en ruine voit plus loin dans l'étrange (pas les trois premiers jours : rien de grand avant le quatrième)
   const _maxLevel = strange.maxLevel.bind(strange);
-  strange.maxLevel = function () { const l = _maxLevel(); return bizarrerie() >= 2.2 ? Math.min(3, l + 1) : l; };
-  // les petits frissons de la nuit : plus rapprochés
+  strange.maxLevel = function () { const l = _maxLevel(); return bizarrerie() >= 2.2 && farm.s && farm.s.day >= 4 ? Math.min(3, l + 1) : l; };
+  // les petits frissons de la nuit : plus rapprochés quand l'esprit s'assombrit, plus rares quand il est clair
+  // (la minuterie compte en heures de jeu : elle s'écoule ici b fois plus vite)
   const _upd = strange.update.bind(strange);
-  strange.update = function (dt, c) { const b = bizarrerie(); if (b > 1 && this.ambT > 0) this.ambT -= dt * (b - 1); return _upd(dt, c); };
+  strange.update = function (dt, c) { const b = bizarrerie(); if (this.ambT > 0) this.ambT -= heuresDeJeu(dt) * (b - 1); return _upd(dt, c); };
 }
 function espritEtrange(st) {
   const b = bizarrerie(), S = st.s, s = farm.s, d = s.day;
-  if (!S || b <= 1.001) return;
+  if (!S || Math.abs(b - 1) < 0.001) return;
   const t = st.tension();
-  // nuit rouge : probabilité du jour multipliée par b
-  if (!S.redTonight && d >= S.redMin && S.lastRed < d - 1) {
-    const p = 0.12 + t * 0.12, pb = Math.min(0.9, p * b);
-    if (Math.random() < (pb - p) / (1 - p)) S.redTonight = true;
-  }
-  // événements du jour
-  const p0 = 0.35 + t * 0.5, pb = Math.min(0.97, p0 * b);
+  // nuit rouge : la chance du soir multipliée par b ; jamais une nuit noire (l'almanach doit rester juste) ; la toute
+  // première, qui vient toujours, reste
+  const p = st.chanceRouge(), premiere = S.redCount === 0 && d >= S.redMin + 3;
+  const noire = typeof evenements !== 'undefined' && evenements.nuitNoire(d);
+  if (b > 1) {
+    if (!S.redTonight && !noire && d >= S.redMin && S.lastRed < d - 1) { const pb = Math.min(0.5, p * b); if (Math.random() < (pb - p) / (1 - p)) S.redTonight = true; }
+  } else if (S.redTonight && !premiere && Math.random() > b) S.redTonight = false;
+  // événements du jour : un esprit clair en voit moins…
+  if (b < 1) { S.events = S.events.filter((e) => (d === 2 && e.id === 'epouvantail') || Math.random() < b); return; }
+  // … un esprit sombre, davantage
+  const p0 = st.chanceEvenements(), pb = Math.min(0.9, p0 * b);
   let extra = 0;
-  if (!S.events.length) { if (Math.random() < (pb - p0) / Math.max(0.01, 1 - p0)) extra = 1 + Math.floor(Math.random() * (1 + t * 3)); }
-  else if (Math.random() < (b - 1) * 0.5) extra = 1;
+  if (!S.events.length) { if (Math.random() < (pb - p0) / Math.max(0.01, 1 - p0)) extra = 1 + (Math.random() < t * 0.15 ? 1 : 0); }
+  else if (Math.random() < (b - 1) * 0.25) extra = 1;
   if (!extra) return;
   const maxL = st.maxLevel();
   const pool = EVENT_DEFS.filter((e) => e.lvl <= maxL && (S.seen[e.id] || 0) < 3 && !S.events.some((x) => x.id === e.id));
@@ -41371,8 +41436,11 @@ const pilules = {
       P.sol.push({ x: Math.round(x * 10) / 10, z: Math.round(z * 10) / 10, j: farm.s.day, n: rnd() < 0.2 ? 2 : 1, id: farm.s.day * 10 + k });
     }
     // le marchand de joie viendra-t-il ce soir ?
-    P.marchand = rnd() < 0.3 * bizarrerie() && farm.s.day >= 2 ? { j: farm.s.day, h: 19 + rnd() * 2.5 } : null;
+    P.marchand = rnd() < this.chanceMarchand(farm.s.day) ? { j: farm.s.day, h: 19 + rnd() * 2.5 } : null;
   },
+  // certains soirs seulement : un par semaine environ pour un esprit ordinaire (× bizarrerie), pas avant le quatrième
+  // jour (tools/equilibrage/hasard.js)
+  chanceMarchand(d) { return d >= 4 ? Math.min(0.5, 0.09 * bizarrerie()) : 0; },
   // ------------------------------------------------------------- pilules par terre
   updateSol(dt) {
     this.solT = (this.solT || 0) - dt;
@@ -42041,7 +42109,9 @@ MONDES.tenebres = {
 //  fort, il crie. S'il vous rattrape, vous vous réveillez en hurlant ; si vous
 //  trouvez l'issue, vous vous réveillez en sueur. On n'y meurt pas : c'est un
 //  rêve. (Mais un objet, parfois, vous suit jusqu'au matin.)
-//  Probabilité par nuit : 1,5 % × bizarrerie() × (pilules, meurtres…).
+//  Probabilité par nuit : 2,2 % × bizarrerie() × (pilules, meurtres…), jamais
+//  deux cauchemars en trois nuits : une nuit sur quarante environ pour un esprit
+//  ordinaire (tools/equilibrage/hasard.js), bien plus à l'esprit sombre.
 //  mondes.entrer('cauchemar') : rêver tout de suite (essais).
 // ============================================================================
 defItem('dessin_reve', 'Dessin d’enfant', 'ailleurs', 60, ['md_dessin', '#2a2020'], { desc: 'Un dessin au crayon : un homme avec un sac sur la tête, qui tient la main d’un enfant. Vous l’avez rapporté d’un rêve. Au dos, votre nom, d’une écriture que vous ne connaissez pas.' });
@@ -42054,9 +42124,9 @@ const cauchemar = {
     if (where === 'chene') return 0;
     const C = this.C(), s = farm.s;
     const pil = typeof pilules !== 'undefined' ? pilules.risqueCauchemar() : 1;
-    if (s.day - C.dernier < 3 && pil < 5) return 0;
+    if ((s.day - C.dernier < 3 || s.day < 4) && pil < 5) return 0; // (les pilules, elles, n'attendent pas)
     const meurtres = typeof meurtresDuJoueur === 'function' ? meurtresDuJoueur() : 0;
-    return clamp(0.015 * bizarrerie() * pil * (1 + meurtres * 0.08) * (strange.killerActive() ? 1.5 : 1), 0, 0.6);
+    return clamp(0.022 * bizarrerie() * pil * (1 + meurtres * 0.08) * (strange.killerActive() ? 1.5 : 1), 0, 0.6);
   },
   // le rêve : de l'endormissement au réveil (puis la nuit continue normalement)
   async rever(where, suite) {
@@ -44128,7 +44198,8 @@ const slender = {
       this.dehors = !p.underground && !w.covered(eye[0], eye[1], eye[2]) && !strange.inEnvers();
     }
     const nuit = sky.night, brume = weather.cur.fog || 0, dansBois = this.bois >= 12;
-    // naissance d'une apparition (toutes les cinq secondes)
+    // naissance d'une apparition (un tirage toutes les cinq secondes, à la mesure des heures de jeu écoulées : la traque
+    // vient 0,06 à 0,21 fois par heure de jeu passée la nuit dans les bois, le guet 0,02 à 0,07 fois par heure ailleurs)
     this.spawnT -= dt;
     if (!this.e && this.spawnT <= 0) {
       this.spawnT = 5;
@@ -44136,8 +44207,8 @@ const slender = {
       const att = this.attention(), B = bizarrerie();
       if (!repit && this.dehors && s.day >= 2) {
         const pages = this.nbPages();
-        if (dansBois && pages > 0 && nuit > 0.45 && s.hours - (S.derniere || -99) > 10 && Math.random() < (0.012 + att * 0.03) * B) this.apparaitre('traque');
-        else if (!dansBois && (nuit > 0.25 || brume > 0.5 || (pages >= 4 && sky.day > 0.5 && Math.random() < 0.3)) && Math.random() < (0.004 + att * 0.01) * B) this.apparaitre('guet');
+        if (dansBois && pages > 0 && nuit > 0.45 && s.hours - (S.derniere || -99) > 10 && Math.random() < hasardHeure((0.06 + att * 0.15) * B, 5)) this.apparaitre('traque');
+        else if (!dansBois && (nuit > 0.25 || brume > 0.5 || (pages >= 4 && sky.day > 0.5 && Math.random() < 0.3)) && Math.random() < hasardHeure((0.02 + att * 0.05) * B, 5)) this.apparaitre('guet');
       }
     }
     const e = this.e;
@@ -44962,12 +45033,12 @@ const fondation = {
       this.humT = (this.humT || 0) - dt;
       if (this.humT <= 0 && sound.ok) { this.humT = 5.5; sound.tone(sound.at(), 'sine', 55, 55, 6, 0.018, null, 1.5); }
     }
-    // la nuit, près de la cabane : parfois, une silhouette jaune qui descend
+    // la nuit, près de la cabane : parfois, une silhouette jaune qui descend (0,1 fois par heure de jeu × bizarrerie)
     this.surfT = (this.surfT || 0) - dt;
     if (this.surfT <= 0) {
       this.surfT = 3;
       const T = F.trappe, d = Math.hypot(p.pos[0] - T[0], p.pos[2] - T[2]);
-      if (!this.surface && !S.evacue && sky.night > 0.5 && d > 35 && d < 170 && !p.underground && Math.random() < 0.012 * bizarrerie()) {
+      if (!this.surface && !S.evacue && sky.night > 0.5 && d > 35 && d < 170 && !p.underground && Math.random() < hasardHeure(0.1 * bizarrerie(), 3)) {
         const a = Math.atan2(p.pos[0] - T[0], p.pos[2] - T[2]) + (Math.random() - 0.5) * 2.4, x = T[0] + Math.sin(a) * 26, z = T[2] + Math.cos(a) * 26;
         this.surface = { x, z, y: game.world.heightAt(x, z), heading: 0, phase: 0, t: 0, rig: rigChercheur(pick(FOND_CHERCHEURS).col) };
       }
@@ -47545,10 +47616,10 @@ const sommeil = {
   },
 };
 
-// ---------------------------------------------------------------- l'étrange suit la fatigue
+// ---------------------------------------------------------------- l'étrange suit la fatigue (jamais au-delà de BIZ_MAX : 11-zzz60-esprit.js)
 {
   const _biz = bizarrerie;
-  bizarrerie = function () { const b = _biz(); try { return b * (1 + 0.5 * sommeil.k()); } catch (e) { return b; } };
+  bizarrerie = function () { const b = _biz(); try { return Math.min(BIZ_MAX, b * (1 + 0.5 * sommeil.k())); } catch (e) { return b; } };
 }
 // quand on est fatigué, les coups durs pèsent plus lourd sur la mentalité
 if (typeof esprit !== 'undefined' && esprit.changer) {
@@ -52120,7 +52191,8 @@ ui.grimoireBody = function () { alchimie.css(); return alchimie.carnetHTML(); };
 //  Marthe Aubry s'est noyée au lavoir, un soir de Lavedi, en lavant le linceul
 //  de son petit. Depuis, certaines nuits, on entend battre le linge au lavoir ;
 //  et très rarement, elle surgit : un visage plein écran, un cri, une secousse
-//  (jamais deux fois de suite : il faut au moins deux jours entre deux).
+//  (une fois toutes les deux ou trois semaines, plus souvent à l'esprit sombre ;
+//  jamais deux fois de suite : au moins quatre jours entre deux).
 //  Le secret : les nuits où elle lave, un drap blanc attend au lavoir ; si l'on
 //  prend l'autre bout et qu'on tord dans son sens à elle (les vieux le savent :
 //  on le dit à qui a déjà vu son visage), elle est apaisée pour toujours.
@@ -52133,6 +52205,14 @@ const lavandiere = {
   sens() { return ((farm.s.seed >>> 0) % 2) ? 'gauche' : 'droite'; },
   lavoir() { const w = game.world; if (w.lavoir) return { x: w.lavoir.x, z: w.lavoir.z }; const L = w.lm.lavoir; return L ? { x: L.x, z: L.z } : null; },
   apaisee() { return !!this.S().apaise; },
+  // ------------------------------------------------------------ sa fréquence (tools/equilibrage/hasard.js)
+  // fois par heure de jeu passée éveillé la nuit (22 h – 4 h) : 0,015 dehors × bizarrerie, sept fois plus à moins de
+  // soixante pas du lavoir, deux fois plus dans le noir d'une maison sans lanterne ; soit, pour qui veille une heure ou
+  // deux chaque nuit, une fois en deux à trois semaines
+  taux(pres, noir) { return 0.015 * EV_BIZ() * (pres ? 7 : noir ? 2 : 1); },
+  ecart: 4, // jours au moins entre deux apparitions
+  premierJour: 4, // rien de tel les trois premières nuits
+
   // ------------------------------------------------------------ le visage (dessiné une fois, trois images)
   dessiner() {
     const W = 320, H = 200, frames = [];
@@ -52184,7 +52264,7 @@ const lavandiere = {
   surgir(force) {
     if (!farm.s || game.dying) return false;
     const S = this.S(), d = farm.s.day;
-    if (!force && (this.apaisee() || S.dernier >= d - 1 || cine.on || ui.panel || game.sleeping || game.mode !== 'play')) return false;
+    if (!force && (this.apaisee() || d < this.premierJour || d - S.dernier < this.ecart || cine.on || ui.panel || game.sleeping || game.mode !== 'play')) return false;
     if (!this.frames) this.dessiner();
     this.dom();
     S.dernier = d; S.n = (S.n || 0) + 1;
@@ -52226,14 +52306,13 @@ const lavandiere = {
         if (!this.ditBattoir) { this.ditBattoir = true; ui.subtitle('', '(Du côté du lavoir, quelqu’un bat le linge. À cette heure-ci.)', 4); }
       }
     }
-    // très rarement, elle surgit (plus souvent près du lavoir, ou seul dans le noir)
+    // très rarement, elle surgit (plus souvent près du lavoir, ou seul dans le noir) : un tirage toutes les cinq
+    // secondes, à la mesure des heures de jeu écoulées (voir taux)
     this.tirT = (this.tirT || 0) - dt;
     if (this.tirT <= 0) {
       this.tirT = 5;
       const w = game.world, noir = !game.lantern && (w.covered(eye[0], eye[1], eye[2]) || p.underground);
-      let pr = 0.0035 * EV_BIZ();
-      if (dL < 60) pr *= 7; else if (noir) pr *= 2;
-      if (Math.random() < pr) this.surgir(false);
+      if (Math.random() < hasardHeure(this.taux(dL < 60, noir), 5)) this.surgir(false);
     }
   },
   // les nuits où elle lave : une sur trois (et toujours les Lavedi)
@@ -52524,7 +52603,7 @@ HOOKS.draw.push((buf, sbuf, cam, t) => tornade.draw(buf, sbuf, cam, t));
 // ---- 12-zzzD-tueur.js
 // ============================================================================
 //  L'HOMME AU LONG MANTEAU (le tueur errant ; rien à voir avec le tueur caché
-//  parmi les habitants). Rare : pas avant le cinquième soir, au plus une fois
+//  parmi les habitants). Rare : pas avant le treizième soir, au plus une fois
 //  en vingt jours (evenements.tueur(jour)). Une nuit, un inconnu arrive, rôde,
 //  tue UN habitant resté dehors — ou le joueur, s'il le rattrape (d'un coup) —
 //  puis disparaît pour de bon. Signes : des pas, une silhouette au bord de la
