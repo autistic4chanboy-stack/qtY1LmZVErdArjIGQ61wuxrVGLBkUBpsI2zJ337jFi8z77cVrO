@@ -277,6 +277,241 @@ Les commandes sont dans le menu **Commandes** (Échap).
 Éditeur de monde séparé : relief, peinture du sol, objets, animaux, blocs. **Exporter** télécharge un fichier
 `.prairie.json`, rechargeable avec **Importer**.
 
+## Équilibrage
+
+Le jeu a été équilibré d'un bloc, en mesurant d'abord : chaque système avait été écrit avec ses propres nombres, et
+la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Quatre domaines, chacun avec sa mesure
+et ses vérifications dans `tools/equilibrage/` : le jeu entier est chargé dans une machine virtuelle node (sans
+navigateur, `tools/equilibrage/vm.js`), ses propres fonctions calculent les rendements, les espérances et les
+fréquences, et la commande échoue si l'on recasse un équilibre :
+
+```bash
+node tools/equilibrage.js                 # les quatre domaines (≈ 3 min)
+node tools/equilibrage.js commerce        # ou un seul : commerce, risques, survie, hasard
+```
+
+Aucun réglage ne touche à la génération de la vallée : les anciennes parties retrouvent leurs objets (l'empreinte des
+98 896 objets, 1 308 objets posés et 516 interactions d'origine de la graine 1234 est vérifiée : `empreinte(w, n)`).
+
+### Commerce et rendements
+
+**Le constat.** Avec la journée de vingt minutes, tout ce qui se récolte rapportait dix à trente fois trop face aux
+coûts du jeu (poule 150, vache 900, cheval 2 500, loyer 84 la semaine) : un champ de radis ≈ 3 800 pièces par jour,
+la pêche ≈ 3 000, le bassin du temple ≈ 16 000, un cochon ≈ 460 ; soixante achats-reventes étaient gagnants (lingot
+d'acier acheté 123 à la forge, revendu 198 ; plan de grange 1 100 → 1 200 à la caisse), la table d'alchimiste faisait
+des potions à 45 avec trois baies achetées 8, et les lentilles récoltées devenaient des « lentilles de verre » à 60.
+
+**Les cibles.** On garde les coûts (ce que tout le monde voit en boutique, les quêtes, les amendes) et l'on ramène la
+production à leur échelle. Une journée entière de travail honnête rapporte **≈ 300-450 pièces au début**,
+**≈ 1 000-2 000 au milieu** (outils de fer, bêtes, grand champ), **≈ 3 000-5 000 plus tard** ; se nourrir coûte
+≈ 35-45 par jour. Une activité pratiquée à plein rend ≈ 0,3-0,5 pièce par seconde au début, ≈ 1 au milieu,
+1,5-2,5 dans les coins rares. Une bête se rembourse en une dizaine de jours. **Aucun achat-revente gagnant, jamais**,
+ni en fabriquant, distillant ou mêlant à la table d'alchimiste ce qu'on a acheté.
+
+**Les règles de prix.** Le prix d'un objet (`ITEMS[…].price`) est ce que paient la caisse et les marchands.
+- Ce qu'on récolte est réglé sur ces débits (cultures : 3 à 6 pièces de marge par case et par jour, graines déduites).
+- Bois, pierres, fibres, foin, terre, sable ne se revendent plus (il y en a partout) ; le charbon vaut 1.
+- Ce qui se fabrique ou se transforme vaut ses ingrédients × 1,15 à 1,35 (la recette la moins chère fait foi).
+- Ce qu'on ne fait qu'acheter se revend moitié prix ; trésors et curiosités : moitié de l'ancien prix.
+- Garde-fou dans `ui.shopPrice` : on n'achète jamais au prix où l'on pourrait revendre ailleurs (caisse, marchands au
+  mieux de l'amitié, marchand de joie) ; les tables d'étal le rendent de toute façon inutile.
+
+| Réglage | Avant | Après |
+|---|---|---|
+| Pousse des cultures (terre humide) | radis 2 h, chou 6 h, citrouille 10 h | × 4 : 8 h, 24 h, 40 h ; repousse × 6 |
+| Prix des récoltes | radis 8, carotte 12, chou 32, citrouille 85, tomate 14 | 3, 6, 19, 36, 2 |
+| Pêche : touche | 3 à 11 s (sous la glace : 5 à 15 s) | 8 à 28 s partout ; coffre englouti 4 % → 1 % ; perle 1,5 % |
+| Concours de pêche : prises des habitants | pêcheur 55-130 … | au quart, comme les poissons (pêcheur 14-33) |
+| Poissons | carpe 30, brochet 70, silure 120, reine du lac 900, poisson aveugle 250 | 8, 18, 27, 200, 25 |
+| Bêtes : heures entre deux produits | poule 7, vache 9, mouton 14, cochon 7 | 16, 12, 36, 20 (≈ 2 œufs, 3 traites par jour) |
+| Produits des bêtes | œuf 15, lait 30, laine 45, truffe 160, miel 70 | 7, 22, 30, 50, 5 |
+| Cueillette | fleur 6, champignon 14, herbes 18, pomme 10, edelweiss 150 | 1, 2, 3, 1, 10 ; plantes rares par rareté 1-25 |
+| Chasse | viande 25, cuir 30, fourrure 70, bois de cerf 90, trophée 180 | 5, 6, 12, 20, 60 |
+| Minerais et lingots | cuivre 12/50, fer 20/80, acier 180, or 45/220, gemme 300 | 4/15, 7/25, 61, 16/56, 80 |
+| Potions | 60 à 400 | 10 à 60 |
+| Arbres secoués | 1-3 pommes ; un nid 45 % du temps | 0-2 pommes ; 15 % |
+| Étals relevés | sel 5, baies 8 (guérisseuse), fromage 25 (auberge), géode 35 (Marchedi) | 10, 12, 60, 45 |
+| Loyers en ville (semaine de 12 jours) | 84 / 96 / 120 | 150 / 170 / 210 (la chambre de l'auberge : 20 la nuit) |
+
+| Mesure (par jour de jeu) | Avant | Après |
+|---|---|---|
+| Champ de départ (54 cases) | ≈ 3 800 | ≈ 260 |
+| Pêche, grand lac, canne de base | ≈ 2 900 | ≈ 310 (≈ 200 mesurés en jeu sur 16 prises) |
+| Bassin du temple, canne de fer | ≈ 26 000 | ≈ 1 600 |
+| Cueillette mêlée près de la ferme | ≈ 1 500 | ≈ 280 |
+| Bois (0,28 pièce/s), rochers (0,54 /s) | 2,8 /s, 3,2 /s | |
+| Poule / vache / cochon | 77 / 120 / 460 | 16 / 66 / 50 |
+| Achats-reventes gagnants ; transformations d'achats gagnantes | 60 ; 29 | 0 ; 0 |
+
+**Relancer la mesure.** `node tools/equilibrage.js commerce` (≈ 70 s : la vallée est générée pour mesurer la densité
+des plantes et des arbres ; `EQ_RAPIDE=1` s'en passe). L'outil inventorie tous les points d'achat et de vente (étals,
+graineterie du jour, hottes des colporteurs, reprises, étals du Marchedi, marchand de joie, recel, caisse), cherche les
+achats-reventes et les transformations gagnantes (recettes, machines, alambic, 6 000 mélanges de la table
+d'alchimiste), modélise les revenus de chaque activité avec les gestes et délais du jeu, et échoue si un rendement sort
+de ses bornes (`CIBLES`), si une table d'étal repasse sous la revente ou si un loyer devient dérisoire.
+
+### Les risques : l'argent du crime et du hasard, et ses peines
+
+Mesuré par l'outil (`tools/equilibrage/risques.js`, ≈ 1 min : la vallée de la graine 1234 est générée pour compter
+coffres, fouilles et points à creuser), avec les vraies tables et formules du jeu. Toutes les sommes sont aussi
+exprimées en jours de revenus honnêtes (échelle du commerce : 250-400 pièces par jour de jeu au début, 1000-1500 au
+milieu, 2000-4000 ensuite ; une journée dure vingt minutes). Un objet trouvé vaut son prix ; un objet qui s'ouvre
+(coffre englouti, géode) vaut son contenu ; une carte au trésor vaut son trésor.
+
+**Cibles**
+- Le crime peut tenter, il ne paie pas : risque compté (amende, amitié perdue), faire les poches ou fouiller chez
+  quelqu'un rapporte moins que le travail ; seules quelques belles occasions (la cave de l'auberge, la nuit, tous les
+  deux ou trois jours) valent le détour, jamais plus, à la minute, que le travail du milieu de partie.
+- Des peines proportionnées : l'amende d'un vol vaut une demi-journée des débuts, un meurtre trois jours ; la rançon
+  est lourde mais payable (la prime, les jours rachetés, un dixième de la bourse) et baisse avec la peine qui reste ;
+  la plus longue peine se fait en moins de trois minutes réelles en dormant sur la paille (la carrière compte double).
+- Les trésors récompensent l'exploration une fois : un coffre de tombe, de temple, de crevasse ou du clocher englouti
+  est plein à la première ouverture, puis il n'y revient que de la poussière ; les coffres que des vivants regarnissent
+  (campements, charrettes, contrebandiers, mines) rapportent peu à la tournée.
+- La maison gagne, modérément : vingt-et-un −2,6 % au mieux, tombola −25 % ; le passe-dix entre habitués est égal.
+- Emprunter ne décourage pas : 10 à 20 pièces le jour pour un livre ; une carte empruntée sept jours coûte moins de
+  la moitié de son prix.
+
+**Réglages (avant → après)**
+
+| Réglage | Avant | Après |
+|---|---|---|
+| Tournée des coffres du temple (tous les 3 jours) | ≈ 1 400 pièces / jour (la malédiction se levait pour 300) | pleins une fois, puis ≈ 35 |
+| Tournée de tous les coffres ordinaires | ≈ 3 200 / jour | ≈ 1 000 / jour (le plus riche des lieux : 157) |
+| Carte au trésor (trésor) ; étal des curiosités | ≈ 820, achat à 70 sans limite | ≈ 235 (trois ou quatre trouvailles, 60 à 160 pièces) ; une pièce de chaque par semaine |
+| Coffre englouti (4 % des prises à la pêche) | ≈ 430 | ≈ 125 |
+| Terre remuée du jour (neuf trous) | ≈ 500 / jour | ≈ 250 / jour |
+| Fouilles : cave de l'auberge, tonneaux, étals | un casier 224, un « pichet » 124, un étal 76 | 179, 71, ≤ 51 (une chose) |
+| Maisons des disparus (armoires, malles) | se regarnissaient en 3-4 jours | en 12 à 16 jours |
+| Primes : vol, effraction, agression, meurtre | 45, 50, 60, 350 | 150, 150, 200, 900 (récidive jusqu'au double) |
+| Oubli d'un vol, d'un meurtre (sans récidive) | 10, 45 jours (3 h, 15 h de jeu) | 6, 30 jours (2 h, 10 h) |
+| Chasseurs de primes ; le garde à la ferme | dès 150 ; dès 90 | dès 500 ; dès 250 |
+| Rançon d'un premier vol ; d'un meurtre | 80 ; 615 | ≈ 315 ; ≈ 2 100 (baisse chaque jour) |
+| Faire sa peine | le geôlier ne disait pas qu'on peut dormir ; pain +25 | il le dit (quelques secondes réelles par jour) ; la faim remonte à 60 au moins chaque matin |
+| Poche réussie | ≈ 35 | ≈ 42 (risque compté : toujours perdant) |
+| Crochetage vu par un passant | 12 % par demi-seconde, où qu'il regarde | de dos : le cinquième, de côté : la moitié |
+| Tombola | billet à 5 pour un lot moyen de 15 (+ 200 %) | billet à 8 aux nouveaux prix du commerce (rend 75 %) |
+| Concours de pêche | scores tirés au hasard ; toutes les prises comptaient | les habitants pêchent dans le lac ; prises du lac seules ; gagné ≈ 1 fois sur 5 |
+| Carte empruntée 7 jours | ≈ 90 % du prix d'achat | ≈ 45 % |
+
+**Où sont les réglages.** `LOOT` et `LOOT_RESTE` (05-zfarm-content.js : tables de butin, trésors qui s'épuisent,
+`rollLoot`), les butins ajoutés de 05-zzitems-more.js (carte au trésor, contrebandiers) ; `CRIME_DEF` et les seuils de
+`societe.jour` (11-zzz50-societe.js), l'évasion (11-zzz91), l'effraction et l'intrusion (11-zzz97) ;
+`prison.peine`, `prison.prixRancon`, `prison.majRancon`, la ration (11-zzz91-prison.js) ; `VOL_POCHES`
+(11-zzz90-vol.js) ; les tables `f2_*`, `F2_TYPES` et `fouilles.refill` (11-zzz98-fouilles.js) ; le crochetage
+(`CROC_*`, le passant qui regarde, 11-zzz97) ; `BIBLIO` et `biblio.catalogue` (11-zzz21) ; `activites.BILLET`,
+`activites.piece`, `activites.prisesPNJ` (11-zzz99-activites.js).
+
+**Relancer la mesure.** `node tools/equilibrage.js risques` affiche les tableaux (espérance par tentative et par
+minute réelle de chaque activité risquée, risque compté) et échoue si l'on recasse l'un de ces équilibres (un trésor
+scellé qui se regarnit, une carte qui rapporte une fortune, une amende de vol hors de la demi-journée, une tombola qui
+rend plus qu'elle ne coûte, un étal qui vend à la chaîne, un crime plus rentable que le travail…).
+
+### Survie : le corps et l'esprit du personnage
+
+Mesuré avec la journée de 20 minutes (10 min de jour, 10 min de nuit : une heure de jeu = 50 s). Le vrai code du
+jeu tourne dans l'outil (`tools/equilibrage/survie.js`) : un joueur factice dans un monde plat, et les vraies
+fonctions (`play.updateBody`, `play.nuit`, `Player.update` et `corps.chute`, `entities.wolfAI`, `chasse.charger`,
+`vallee.update`, `evNeige.update`, `effets`, `alcool`, `esprit.update`, `sommeil.update`). Le hasard est tiré à
+graine fixe : les chiffres sont reproductibles.
+
+**Cibles, et pourquoi**
+
+- *Manger* : trois vrais repas par jour (≈ 70 de faim par journée, nuit comprise : 3,5 pains, 2,3 soupes ou
+  1,4 ragoût). La cuisine compte : un poisson cru nourrit cinq fois moins qu'un poisson grillé.
+- *Mourir de faim* : ni d'un coup, ni sans conséquence. Rassasié, on tient 30 h debout sans manger ; le ventre
+  vide, la vie s'en va en une demi-journée (12 h de jeu, 10 min réelles) ; des premiers gargouillis à la mort,
+  environ une journée. Dormir ne sauve plus de la faim.
+- *La vie qui remonte* : 2,5 PV par heure debout le ventre plein, 5 en dormant : une nuit et une demi-journée
+  pour se remettre d'un grand coup (30 → 100 PV). Une vraie plaie ne guérit pas en dormant : il faut un bandage.
+- *Le temps de réagir* : aucune bête ne tue d'un seul coup quelqu'un en pleine santé ; une meute laisse au moins
+  10 s après la première morsure (lanterne, feu, abri) ; les ours menacés tuent parfois (un tiers), moins si l'on
+  fait le mort ; le froid tue en quelques heures de jeu, pas en quelques minutes. Restent d'un coup, voulus : le
+  tueur, le géant, le bibliothécaire, les Pâles, la balle du chasseur (un quart du temps), une chute de 12 m.
+- *La mentalité* bouge vraiment petit à petit : une journée ordinaire la garde haute (≈ +6), les méfaits, la
+  chasse et les nuits dehors sans lumière la font glisser en jours, la fatigue plus vite encore (voulu) ; elle
+  remonte de 30 à 60 en trois à cinq jours, plus vite avec les quêtes, la prière, les bains, les veillées.
+
+**Réglages (avant → après)**
+
+| Réglage | Avant | Après |
+|---|---|---|
+| Le ventre vide (11-farm-play.js, `CORPS_JOUR`) | −0,25 PV/s : mort en 8 h de jeu | −200 PV par journée : mort en 12 h |
+| La nuit (`play.nuit`, appelée par `game.sleep`) | +40 PV, −18 de faim, quelle que soit la nuit | 5 PV et 2,25 de faim par heure dormie ; le ventre vide, pas de soin et la faim ronge (réveil à 5 PV au moins) ; une plaie ouverte empêche de guérir, une égratignure se referme |
+| Dormir sans manger, trois nuits de 12 h | 100 → 100 → 100 PV (on survivait en dormant) | 100 → 5 → 5 PV |
+| Loups (10-entities.js) | la meute tue en 7 s après la 1re morsure, jusqu'à 84 PV en 5 s | le loup recule 2 à 4 s après avoir mordu, la meute ne mord qu'un loup à la fois (1,8 s) : 17 s en moyenne (au pire 14 s), 42 PV en 5 s au plus ; un loup seul : 22 → 44 s |
+| Ours : faire le mort (11-zzz30-chasse.js) | sans effet (l'immobilité était lue après le recul du coup) | marche : mort 30 % → 7 % en pleine santé |
+| Froid de la montagne (11-zzvallee.js) | 1 PV/s : mort en 2 h de jeu | 0,5 PV/s : 4 h |
+| Froid d'un jour de neige (11-zzz40-evenements.js) | mort en 2,3 h | 4,2 h |
+| Grêle, toute l'averse dehors (idem) | 43 PV | 21 PV |
+| Accident de chasse (tapi à portée, le Chassedi) | 1/700 par seconde réelle : 11 %/h de jeu | 3,5 % par heure de jeu (× 1,4 accroupi) : 5 %/h, comme avec la journée de 10 min |
+| Anguille crue (11-zzz61-nourriture.js) | poison fort : tue 13 % du temps (48 % affamé) | poison léger : 1 à 2 % |
+| Mentalité, journée ordinaire (11-zzz60-esprit.js…) | +13/jour (100 en deux jours ; les méfaits n'y changeaient rien) | ≈ +6/jour |
+| Mentalité, méfaits / chasse / nuit dehors sans lumière | +1 / +4 / +10 par jour | −5,6 / −2,2 / +3,8 par jour |
+| Apports de la mentalité | sommeil 4 (auberge 3), soleil 0,35/h (plafond 4), bon repas 1,2 (3,6), chien 1,5 + caresse 0,7, verre 0,8 (2,4) ; hausse ≤ 20/jour | sommeil 2 (1,5), soleil 0,2/h (2), bon repas 0,6 (1,8), chien 0,8 + caresse 0,4, verre 0,5 (1) ; hausse ≤ 12/jour |
+
+Mesuré et gardé tel quel : les chutes (rien sous 3 m, la jambe peut casser dès 5 m, 12 m tuent ; jambe cassée
+48 h à 40 % de son pas, 12 h avec une attelle), l'ours en furie (26–40 par coup, un tiers de morts en pleine
+santé : il faut le menacer pour qu'il charge), le sanglier (35 PV, ne tue pas), la vipère, les grands poisons
+(aconit ≈ 45 %, belladone ≈ 50 %, colchique ≈ 75 % de morts ; le premier effet vient en moyenne après 25 s à
+3 min, le temps de chercher un antidote), l'alcool (trois gnôles d'un coup
+font tomber), la noyade (33 s), la fatigue et ses effets sur l'esprit, les pilules et leur retombée, le chien
+(3 jours sans manger).
+
+**Relancer la mesure** : `node tools/equilibrage.js survie` (≈ 20 s) affiche les tableaux et échoue si une cible
+est manquée (un retour aux anciennes valeurs est détecté).
+
+### Le hasard : ce qui arrive, et combien de fois
+
+Tout ce qui arrive par hasard pendant la partie est mesuré par semaine de douze jours de jeu (une journée : vingt
+minutes réelles), sur deux cents parties simulées, en appelant les fonctions du jeu. Les fréquences suivent la
+mentalité par `bizarrerie()` : un esprit clair éloigne l'étrange, un esprit en ruine l'attire, sans qu'une rareté
+devienne jamais quotidienne.
+
+**Cibles, et pourquoi.** Rien de grand les trois premiers jours (le joueur découvre sa ferme). Quelques petits
+événements par semaine, pas vingt : l'étrange doit rester une touche, et le carnet des quarante-quatre étrangetés
+(trois fois chacune) doit durer des mois. Les grandes nuits (noire, rouge, tueur errant) se partagent la semaine sans
+devenir une routine : environ une nuit sur dix chacune pour les deux premières, un passage du tueur toutes les trois
+semaines environ, jamais la première (il tue à chaque passage : plus souvent, une longue partie viderait les
+villages). Les Trois restent « très très rares » : un contact (un rêve, le plus souvent) tous les deux mois environ
+pour chacun, une venue sur le monde dans une partie sur quatre. Ce qui se tire au fil du temps
+(lavandière, Slender, chercheurs de la Fondation, frissons de la nuit) compte en heures de jeu (`hasardHeure`) : ni
+les images par seconde ni la durée d'une journée n'en changent la fréquence. Une malédiction ne tombe jamais que de la
+main du joueur.
+
+| Par semaine de 12 jours (joueur typique, esprit ordinaire) | Avant | Après |
+|---|---|---|
+| `bizarrerie()` selon la mentalité | 1 (esprit ≥ 70) à 3 ; 4,5 épuisé | 0,6 (100) · 1 (70) · 2,5 (0) ; jamais plus de 2,5 |
+| Nuit noire (avec les imprévues) | 1 nuit sur 12, dès le 1er soir | 1 sur 10, dès le 4e soir, jamais deux de suite |
+| Tornade | 1 tous les 89 jours | 1 tous les 54 jours (≈ 4 semaines) |
+| Tueur errant | 1 tous les 52 j ; 113 j à l'esprit sombre (la règle de vingt jours sur les seuls tirages l'étouffait) ; dès le jour 5 | 1 tous les 37 j (45 esprit clair, 26 sombre) ; jamais avant le jour 13 |
+| Nuit rouge | 1 nuit sur 5,6 (2,5 esprit sombre) | 1 sur 12,5 (19 clair, 6 sombre) |
+| Événements étranges | 20 par semaine ; carnet épuisé en 5 semaines | 3,4 (2,2 clair, 8,9 sombre) ; carnet > 24 semaines |
+| Lavandière (le visage qui hurle) | 1 nuit sur 14, deux jours d'écart | 1 sur 31 (45 clair, 15 sombre), quatre jours d'écart, jamais les trois premières nuits |
+| Rêves des Trois | 8 % des nuits : les six rêves en six semaines | 3 % : un contact par dieu en 6 à 8 semaines |
+| Venues sur le monde en 24 semaines | Vesh 57 % des parties, Durn 70 % (sans limite) | Vesh 26 %, Durn 24 % (une fois dans une vie), Aëla 5 % |
+| Cauchemar | 1 nuit sur 56 | 1 sur 40 (61 clair, 18 sombre) ; jamais deux en trois nuits, ni les trois premières (hors pilules) |
+| Marchand de joie | 3,6 soirs, dès le jour 2 | 1,1 soir, dès le jour 4 |
+| Pâles des nuits rouges | 2 % par image | 1,2 par seconde |
+| Poisson des Anciens (temple) | 1 prise sur 29 | 1 sur 89, comme les autres légendes (1/85 à 1/590) |
+| Cygne de la Dame abattu par un chasseur près de vous | vous maudissait | seulement de votre main |
+
+Inchangés, vérifiés : soleil écrasant 1 jour sur 29, neige partout 1 sur 32, prodiges 2,6 par semaine (les étranges
+dès le 4e jour), deux passages de colporteurs par semaine à la ferme, Slender 1 partie sur 499,0 et Fondation 1 sur
+119,7 sur le milliard de graines possibles (l'écart vient du générateur ; la Fondation est décidée à la génération :
+on n'y touche pas).
+
+**Où sont les réglages.** `EV_FREQ` (11-zzz40-evenements.js : nuits noires, soleil, neige, tornade, tueur) ;
+`strange.chanceRouge()` et `chanceEvenements()` (11-strange.js) ; `bizarrerieDe()`, `BIZ_MIN`, `BIZ_MAX` et l'effet
+de l'esprit sur l'étrange (11-zzz60-esprit.js) ; `lavandiere.taux()` et `ecart` ; `divins.chanceReve/Aela/Vesh/Durn()` ;
+`cauchemar.chance()` ; `pilules.chanceMarchand()` ; les poids `w` des poissons.
+
+**Relancer la mesure.** `node tools/equilibrage.js hasard` (≈ 15 s ; `HASARD_GRAINES=n` pour simuler n parties par
+profil). Quatre esprits (mentalité 95, 70, 35, 5) ; le joueur « typique » se couche à 21 h 30 (15 % des nuits), 23 h
+(55 %), 2 h (25 %) ou veille toute la nuit (5 %), dehors 60 % du temps, près du lavoir un vingtième de ce temps.
+L'outil échoue si l'on recasse l'équilibre (tueur la première semaine, anciennes nuits rouges, ancienne
+`bizarrerie()`, lavandière plus fréquente, rêves trop serrés…).
+
 ## Modifier le code
 
 Les sources sont dans `src/` (triées par nom = ordre de chargement) :
