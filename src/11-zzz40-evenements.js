@@ -15,6 +15,29 @@
 //  État sauvegardé : farm.s.ev. Essais : evenements.declencher(id).
 // ============================================================================
 const EV_BIZ = () => (typeof bizarrerie === 'function' ? bizarrerie() : 1);
+// ---------------------------------------------------------------- les fréquences (mesurées par tools/equilibrage/hasard.js)
+// Ce qui se tire une fois par jour garde sa fréquence par jour de jeu, quelle que soit la durée d'une journée. Ce qui se
+// tire au fil du temps (lavandière, Slender, frissons de la nuit…) passe par hasardHeure : un nombre de fois PAR HEURE
+// DE JEU, qui ne dépend ni des images par seconde ni de JOUR_SECONDES.
+const EV_FREQ = {
+  nuitNoire: 0.1,       // tirage du soir : une nuit noire sur dix environ (jamais deux de suite), dès le quatrième soir
+  nuitImprevue: 0.01,   // une nuit noire que l'almanach n'annonce pas : 1 % des soirs × bizarrerie
+  soleil: 0.035,        // soleil écrasant : un jour sur vingt-huit
+  neige: 0.032,         // neige partout : un jour sur trente
+  tornade: 0.15,        // part des jours d'orage ou de canicule qui en font une : une tornade toutes les quatre semaines
+  tueur: 0.085,         // l'homme au long manteau : un soir sur douze × bizarrerie, une fois l'écart passé…
+  tueurJour: 13,        // … jamais la première semaine (douze jours)…
+  tueurEcart: 20,       // … et jamais deux passages en vingt jours : un toutes les quatre à cinq semaines
+};
+// heures de jeu écoulées pendant dt secondes réelles, comme dans game.loop : le temps accéléré compte ; en pause, en
+// dormant (le sommeil saute les heures, sans tirage), en mourant ou quand le temps s'arrête, rien ne passe
+function heuresDeJeu(dt) {
+  if (game.mode === 'menu' || game.sleeping || game.dying || (strange.freezeT || 0) > 0) return 0;
+  const w = game.world;
+  return dt * (game.fastTime ? 60 : 1) * (game.timeScale ?? 1) * 24 / ((w && w.dayLength) || JOUR_SECONDES);
+}
+// pour un tirage fait toutes les dt secondes réelles : la chance d'un événement qui arrive « parHeure » fois par heure de jeu
+function hasardHeure(parHeure, dt) { return parHeure > 0 ? 1 - Math.exp(-parHeure * heuresDeJeu(dt)) : 0; }
 // heure « de la nuit » : après minuit, on compte 24, 25… (le jour ne change qu'à 6 h)
 const evHH = () => { const h = npcs.hour(); return h < 6 ? h + 24 : h; };
 
@@ -151,18 +174,24 @@ const evenements = {
     if (!P) { P = EV_PLAN0(farm.s ? farm.s.seed : 0, d); this._plans.set(key, P); if (this._plans.size > 200) this._plans.clear(); }
     return P;
   },
-  // les nuits noires : environ une nuit sur quatorze, jamais deux de suite, jamais avant le troisième soir
-  nuitNoireBrute(d) { return d >= 3 && this.alea(d, 1) < 0.075; },
+  // les nuits noires : environ une nuit sur dix (avec les imprévues), jamais deux de suite, jamais avant le quatrième soir
+  nuitNoireBrute(d) { return d >= 4 && this.alea(d, 1) < EV_FREQ.nuitNoire; },
   nuitNoire(d) { if (d === undefined) d = farm.s ? farm.s.day : 1; return this.nuitNoireBrute(d) && !this.nuitNoireBrute(d - 1); },
+  // une nuit noire que l'almanach n'annonce pas (tirée au soir, selon l'esprit du personnage ; jamais deux de suite)
+  chanceImprevue(d) {
+    if (d === undefined) d = farm.s ? farm.s.day : 1;
+    if (d < 4 || this.nuitNoire(d) || this.nuitNoire(d - 1) || this.nuitNoire(d + 1) || (farm.s && this.S().nuit.imprevue === d - 1)) return 0;
+    return EV_FREQ.nuitImprevue * EV_BIZ();
+  },
   // les jours de neige (grand froid) et de soleil écrasant
-  soleil(d) { if (d === undefined) d = farm.s ? farm.s.day : 1; return d >= 3 && this.alea(d, 3) < 0.035; },
-  neige(d) { if (d === undefined) d = farm.s ? farm.s.day : 1; return d >= 4 && this.alea(d, 2) < 0.032 && !this.soleil(d); },
-  // la tornade : un jour d'orage ou de canicule, très rarement (heure de formation, ou null)
+  soleil(d) { if (d === undefined) d = farm.s ? farm.s.day : 1; return d >= 3 && this.alea(d, 3) < EV_FREQ.soleil; },
+  neige(d) { if (d === undefined) d = farm.s ? farm.s.day : 1; return d >= 4 && this.alea(d, 2) < EV_FREQ.neige && !this.soleil(d); },
+  // la tornade : un jour d'orage ou de canicule, très rarement (heure de formation, ou null) ; jamais deux en douze jours
   tornadeBrute(d) {
     if (d < 6 || this.soleil(d) || this.neige(d)) return null;
     const P = this.planBase(d);
     if (!P.storm && !P.heat) return null;
-    if (this.alea(d, 4) >= 0.08) return null;
+    if (this.alea(d, 4) >= EV_FREQ.tornade) return null;
     const r = this.alea(d, 9);
     if (P.storm) { const e = P.plan.find(([, x]) => x === 'storm'); return Math.min(21, (e ? e[0] : 14) + 0.4 + r * 1.6); }
     return 15.5 + r * 2.5;
@@ -174,13 +203,13 @@ const evenements = {
     for (let k = 1; k <= 12; k++) if (this.tornadeBrute(d - k) !== null) return null;
     return t;
   },
-  // l'homme au long manteau : pas avant le cinquième soir, jamais deux fois en vingt jours
-  tueurBrut(d) { return d >= 5 && this.alea(d, 5) < 0.06 * EV_BIZ(); },
+  // l'homme au long manteau : pas avant le treizième soir (jamais la première semaine), jamais une nuit noire, jamais deux
+  // passages en vingt jours (on compte depuis son dernier passage : plus d'esprit sombre, plus de soirs tirés, donc plus
+  // de passages — une règle sur les seuls tirages le rendait au contraire plus rare)
+  tueurBrut(d) { return d >= EV_FREQ.tueurJour && this.alea(d, 5) < EV_FREQ.tueur * EV_BIZ(); },
   tueur(d) {
     if (d === undefined) d = farm.s ? farm.s.day : 1;
-    if (!this.tueurBrut(d) || this.nuitNoire(d)) return false;
-    for (let k = 1; k < 20; k++) if (this.tueurBrut(d - k) && !this.nuitNoire(d - k)) return false;
-    return d - this.S().tueur.dernier >= 20;
+    return this.tueurBrut(d) && !this.nuitNoire(d) && d - this.S().tueur.dernier >= EV_FREQ.tueurEcart;
   },
   // le prodige du jour (tiré une fois par jour : la bizarrerie du moment en change la fréquence)
   prodige(d) {
@@ -192,7 +221,8 @@ const evenements = {
     let out = { d, id: null };
     if (this.alea(d, 6) < 0.22 * Math.min(2.2, 0.7 + biz * 0.3)) {
       const P = weather.dayPlan(farm.s.seed, d);
-      const pool = Object.keys(PRODIGES).filter((id) => PRODIGES[id].peut(P, d));
+      // les prodiges étranges (géant, séisme, cloches…) attendent le quatrième jour
+      const pool = Object.keys(PRODIGES).filter((id) => PRODIGES[id].peut(P, d) && (d >= 4 || !PRODIGES[id].etrange));
       let tot = 0;
       for (const id of pool) tot += PRODIGES[id].poids * (PRODIGES[id].etrange ? biz : 1);
       let r = this.alea(d, 7) * tot;
@@ -300,7 +330,7 @@ const evenements = {
       this.progT = 1;
       const d = s.day;
       // une nuit noire non prédite (rarissime, selon l'esprit du personnage)
-      if (hh >= 19 && hh < 19.6 && S.nuit.tirage !== d) { S.nuit.tirage = d; if (!this.nuitNoire(d) && Math.random() < 0.012 * EV_BIZ()) S.nuit.imprevue = d; }
+      if (hh >= 19 && hh < 19.6 && S.nuit.tirage !== d) { S.nuit.tirage = d; if (Math.random() < this.chanceImprevue(d)) S.nuit.imprevue = d; }
       // le prodige du jour
       const P = this.prodige(d);
       if (P && !S.faits[P.id + ':' + d] && hh >= P.h && hh < P.h + 2.5 && !envers) this.lancer(P.id);
@@ -779,8 +809,8 @@ const EV_FX = {
       this.reagir('seisme');
       entities.scare(game.player.pos[0], game.player.pos[2], 200);
       for (const e of entities.list) if (e.kind === 'dog' && e.owner) sound.bark && sound.bark(1, 0);
-      // rarement, on voit Durn lui-même se lever sur la montagne
-      if (typeof divins !== 'undefined' && Math.random() < 0.08 * EV_BIZ()) setTimeout(() => divins.apparaitre('durn'), 4200);
+      // rarement, on voit Durn lui-même se lever sur la montagne (une fois dans une vie, comme Aëla et Vesh)
+      if (typeof divins !== 'undefined' && !divins.S().durn.vu && Math.random() < divins.chanceDurn()) setTimeout(() => divins.apparaitre('durn'), 4200);
     },
     update(E, dt, eye) {
       const k = Math.sin(clamp(E.k, 0, 1) * Math.PI);

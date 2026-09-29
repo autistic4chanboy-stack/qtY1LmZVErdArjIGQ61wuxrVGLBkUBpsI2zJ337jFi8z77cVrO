@@ -83,7 +83,9 @@ Object.assign(FISH, {
   anguille_argent: { name: 'Anguille d’argent', price: 160, where: ['bains', 'souterrain'], time: 'nuit', w: 0.5, col: '#d0d8e0' },
   ecrevisse_aveugle: { name: 'Écrevisse aveugle', price: 55, where: ['souterrain'], time: 'tout', w: 2, col: '#f0e8e0' },
   truite_pierre: { name: 'Truite de pierre', price: 90, where: ['souterrain'], time: 'tout', w: 1.5, col: '#8a8a88' },
-  poisson_ancien: { name: 'Poisson des Anciens', price: 1200, where: ['temple'], time: 'tout', w: 0.08, col: '#e8d080' },
+  // 0,025 : seul poisson légendaire d'une eau où il n'y en a que trois, il sortait une prise sur trente ; une sur
+  // quatre-vingt-dix, comme les autres légendes (tools/equilibrage/hasard.js)
+  poisson_ancien: { name: 'Poisson des Anciens', price: 1200, where: ['temple'], time: 'tout', w: 0.025, col: '#e8d080' },
   lamproie: { name: 'Lamproie', price: 40, where: ['riviere', 'douves'], time: 'nuit', w: 1.5, col: '#5a5048' },
   gremille: { name: 'Grémille', price: 14, where: ['lac', 'etang', 'douves'], time: 'jour', w: 4, col: '#9a9a6a' },
   blennie: { name: 'Blennie des sources', price: 22, where: ['bains', 'riviere'], time: 'jour', w: 3, col: '#8a9a7a' },

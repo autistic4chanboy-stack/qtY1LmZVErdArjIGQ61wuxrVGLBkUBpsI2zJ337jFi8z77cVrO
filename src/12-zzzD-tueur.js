@@ -1,6 +1,6 @@
 // ============================================================================
 //  L'HOMME AU LONG MANTEAU (le tueur errant ; rien à voir avec le tueur caché
-//  parmi les habitants). Rare : pas avant le cinquième soir, au plus une fois
+//  parmi les habitants). Rare : pas avant le treizième soir, au plus une fois
 //  en vingt jours (evenements.tueur(jour)). Une nuit, un inconnu arrive, rôde,
 //  tue UN habitant resté dehors — ou le joueur, s'il le rattrape (d'un coup) —
 //  puis disparaît pour de bon. Signes : des pas, une silhouette au bord de la

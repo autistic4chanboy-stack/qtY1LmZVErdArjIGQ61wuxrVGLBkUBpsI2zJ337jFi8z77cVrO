@@ -47,6 +47,20 @@ const divins = {
     if (!S.veille || typeof S.veille !== 'object') S.veille = {};
     return S;
   },
+  // ------------------------------------------------------------ les chances (très, très rares ; tools/equilibrage/hasard.js)
+  // Chacun des Trois prend contact environ une fois en six à douze semaines (surtout en rêve : six rêves en tout), et ne
+  // vient sur le monde qu'une fois dans une vie.
+  // un rêve, par nuit de sommeil : 3 % × bizarrerie (+2 % si l'on a vu le temple, +2 % après un pacte avec Vesh)
+  chanceReve() {
+    const S = this.S(), tvu = typeof temple !== 'undefined' && temple.S && temple.S().vu;
+    return 0.03 * EV_BIZ() + (tvu ? 0.02 : 0) + ((S.vesh.pactes || 0) ? 0.02 : 0);
+  },
+  // Aëla au lever du jour, à qui veille dehors (dès le dixième jour) ; Vesh, une nuit noire, à qui veille dehors vers
+  // 23 h (dès le huitième) ; Durn, quand la terre tremble : pour un joueur ordinaire, chacun dans une partie sur trois
+  // ou quatre au bout de six mois de jeu
+  chanceAela(d) { return d >= 10 && !this.S().aela.vu ? 0.012 * EV_BIZ() : 0; },
+  chanceVesh(d) { return d >= 8 && !this.S().vesh.vu ? 0.06 * EV_BIZ() : 0; },
+  chanceDurn() { return this.S().durn.vu ? 0 : 0.03 * EV_BIZ(); },
   // ------------------------------------------------------------ parler aëlin : la phrase, puis ce qu'on en comprend
   comprendre(txt, sens) {
     let t = null;
@@ -96,14 +110,14 @@ const divins = {
     // --- Aëla, rarissime, au lever du jour (une fois dans une vie)
     if (hh >= 29.2 && hh < 29.8 && S.aela.tirage !== d) {
       S.aela.tirage = d;
-      if (!S.aela.vu && d >= 10 && Math.random() < 0.012 * EV_BIZ() && evenements.dehors()) this.apparaitre('aela', {});
+      if (Math.random() < this.chanceAela(d) && evenements.dehors()) this.apparaitre('aela', {});
       // quand l'ombre est tout près, une voix chaude, à l'aube, dit où chercher
       else if (malediction.a('ombre') && malediction.S().ombre && malediction.S().ombre.d < 45 && Math.random() < 0.6) { sound.ok && sound.voice(sound.at(), 'sine', 440, 660, 2.5, 0.015, sound.lp(1200, sound.amb)); this.parler('aela', 'aela_appel', 600); }
     }
     // --- Vesh : pendant une nuit noire, rarissime, il vient éteindre les étoiles
     if (typeof evenements !== 'undefined' && evenements.noirK > 0.9 && hh >= 23 && hh < 25.5 && S.vesh.tirage !== d) {
       S.vesh.tirage = d;
-      if (!S.vesh.vu && d >= 8 && Math.random() < 0.2 * EV_BIZ() && evenements.dehors()) this.apparaitre('vesh', {});
+      if (Math.random() < this.chanceVesh(d) && evenements.dehors()) this.apparaitre('vesh', {});
     }
   },
   sky(sky) {
@@ -290,9 +304,8 @@ HOOKS.load.push(() => {
   const _sleep = game.sleep.bind(game);
   game.sleep = async function (where) {
     const s = farm.s, S = divins.S();
-    const tvu = typeof temple !== 'undefined' && temple.S && temple.S().vu;
-    const p = 0.08 * EV_BIZ() + (tvu ? 0.08 : 0) + ((S.vesh.pactes || 0) ? 0.06 : 0);
-    const reve = s && !s.over && Math.random() < p ? pick(DIV_REVES.filter((R) => !(S.reves || {})[DIV_REVES.indexOf(R)])) : null;
+    const reste = DIV_REVES.filter((R) => !(S.reves || {})[DIV_REVES.indexOf(R)]);
+    const reve = s && !s.over && reste.length && Math.random() < divins.chanceReve() ? pick(reste) : null;
     await _sleep(where);
     if (reve && !game.dying && farm.s && !farm.s.over) {
       S.reves = S.reves || {}; S.reves[DIV_REVES.indexOf(reve)] = farm.s.day;

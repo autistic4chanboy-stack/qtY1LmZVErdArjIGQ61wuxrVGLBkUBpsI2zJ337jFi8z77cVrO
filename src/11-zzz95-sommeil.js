@@ -343,10 +343,10 @@ const sommeil = {
   },
 };
 
-// ---------------------------------------------------------------- l'étrange suit la fatigue
+// ---------------------------------------------------------------- l'étrange suit la fatigue (jamais au-delà de BIZ_MAX : 11-zzz60-esprit.js)
 {
   const _biz = bizarrerie;
-  bizarrerie = function () { const b = _biz(); try { return b * (1 + 0.5 * sommeil.k()); } catch (e) { return b; } };
+  bizarrerie = function () { const b = _biz(); try { return Math.min(BIZ_MAX, b * (1 + 0.5 * sommeil.k())); } catch (e) { return b; } };
 }
 // quand on est fatigué, les coups durs pèsent plus lourd sur la mentalité
 if (typeof esprit !== 'undefined' && esprit.changer) {
