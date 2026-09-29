@@ -175,7 +175,7 @@ function addPrison(w, seed) {
 // ---------------------------------------------------------------- le geôlier
 const GEOLIER = { nom: 'Brac, le geôlier', look: { skin: '#c89a78', hair: '#6a6560', hairStyle: 'court', beard: 'longue', hat: 'casquette', hatCol: '#2a2a30', top: '#4a4238', bottom: '#2e2a26', dress: false, apron: null, coat: true, build: 'rond', height: 1.02, held: null } };
 const GEOLIER_DIT = {
-  accueil: 'Honoré Brac, geôlier. Vous en avez pour {jours}. La rançon, c’est {rancon} pièces. Ou la carrière, au petit jour : une journée de cailloux vaut deux jours de paille. Frappez à la grille quand vous vous serez décidé{e}.',
+  accueil: 'Honoré Brac, geôlier. Vous en avez pour {jours}. La rançon, c’est {rancon} pièces. Ou la carrière, au petit jour : une journée de cailloux vaut deux jours de paille. Sinon, la paille : on dort, et les jours passent. Frappez à la grille quand vous vous serez décidé{e}.',
   combien: ['Encore {jours}. Je compte pour vous, ne vous en faites pas.', 'Il vous reste {jours}. Ici, les jours sont longs, mais ils passent. Comme partout.', '{jours}, et puis la porte. Si vous êtes sage.'],
   pauvre: 'Vous n’avez pas le compte. Ici, on ne fait pas crédit : on fait des jours.',
   rancon: 'C’est bien de l’argent. Il sent la ferme. Allez, dehors. Et que je ne vous revoie pas.',
