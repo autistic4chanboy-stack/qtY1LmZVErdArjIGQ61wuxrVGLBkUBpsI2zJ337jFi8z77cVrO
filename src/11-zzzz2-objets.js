@@ -1036,6 +1036,32 @@ const objets = {
   brancher() {
     if (game._u2objets) return;
     game._u2objets = true;
+    // les icônes 3D des objets ramassés (chaise, lanterne, pot…) : la couleur moyenne des tuiles du « skin » se lit sur
+    // une copie du canevas, une seule fois (sans quoi le canevas des peaux, déjà relu par 07-zzzzz-personnages, fait
+    // afficher au navigateur un avertissement de relectures multiples)
+    if (typeof ICON3D !== 'undefined' && ICON3D.tileAvg && !ICON3D._u2) {
+      ICON3D._u2 = true;
+      const _ta = ICON3D.tileAvg.bind(ICON3D);
+      ICON3D.tileAvg = function (idx) {
+        if (!this.tiles && SKIN.canvas && typeof document !== 'undefined') {
+          try {
+            const src = SKIN.canvas, cv = document.createElement('canvas');
+            cv.width = src.width; cv.height = src.height;
+            const c = cv.getContext('2d', { willReadFrequently: true });
+            c.drawImage(src, 0, 0);
+            const d = c.getImageData(0, 0, cv.width, cv.height).data, tiles = [];
+            for (let t = 0; t < 256; t++) {
+              const ox = (t % 16) * 16, oy = Math.floor(t / 16) * 16;
+              let r = 0, g = 0, b = 0, n = 0;
+              for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const k = ((oy + y) * cv.width + ox + x) * 4; if (d[k + 3] < 10) continue; r += d[k]; g += d[k + 1]; b += d[k + 2]; n++; }
+              tiles[t] = n ? [r / n, g / n, b / n] : [200, 200, 200];
+            }
+            this.tiles = tiles;
+          } catch (e) { /* on laisse faire l'original */ }
+        }
+        return _ta(idx);
+      };
+    }
     // une porte enfoncée ne se referme plus
     const _ud = game.useDoor.bind(game);
     game.useDoor = function (dr) {
@@ -1067,7 +1093,8 @@ const objets = {
     for (const T of S.tas) {
       if (Math.abs(T.x - eye[0]) > 3.5 || Math.abs(T.z - eye[2]) > 3.5) continue;
       const h = w.raycastBlock({ x: T.x, y: T.y - 0.05, z: T.z, sx: 0.8, sy: 0.4, sz: 0.8, r: 0 }, eye, f);
-      if (h && h.t < 2.6) cand({ kind: 'hook', use: () => objets.prendreTas(T), f2lab: 'Ramasser ce qui est tombé' }, h.t);
+      // (le regard posé droit dessus : il l'emporte sur une interaction voisine, un peu de biais)
+      if (h && h.t < 2.6) cand({ kind: 'hook', use: () => objets.prendreTas(T), f2lab: 'Ramasser ce qui est tombé' }, h.t * 0.7);
     }
     let best = null, bt = 2.6;
     for (const q of w.props) {
@@ -1087,7 +1114,7 @@ const objets = {
     const bh = w.raycastBlocks(eye, f, bt);
     if (bh && !bh.block.hidden && bh.t < bt - 0.08) return;
     const q = best.q;
-    cand({ kind: 'hook', use: () => objets.ramasser(q), lit: q, f2lab: this.etiquette(q, best.P) }, bt + 0.02);
+    cand({ kind: 'hook', use: () => objets.ramasser(q), lit: q, f2lab: this.etiquette(q, best.P) }, bt * 0.8 + 0.02);
   },
 };
 
