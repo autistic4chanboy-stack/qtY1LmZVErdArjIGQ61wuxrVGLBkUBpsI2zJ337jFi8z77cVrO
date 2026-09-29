@@ -411,6 +411,9 @@ HOOKS.load.push((saved) => {
   // plus d'évanouissement à trois heures du matin : la fatigue a pris sa place
   sommeil._faint = game.faint.bind(game);
   game.faint = function () { return undefined; };
+  // en quittant la partie pour le mode création, on rouvre les yeux
+  const _cre = game.enterCreative.bind(game);
+  game.enterCreative = function () { sommeil.ferme = 0; sommeil.flou = 0; sommeil.vignette = 0; sommeil.paupieres(); return _cre(); };
   // le réveil vu par la mentalité : un lit loué ou prêté vaut celui de l'auberge
   if (typeof esprit !== 'undefined' && esprit.reveil) {
     const _rv = esprit.reveil.bind(esprit);
@@ -431,19 +434,26 @@ HOOKS.target.push((eye, f, cand) => {
   for (const L of sommeil.lits) {
     const q = L.q;
     if (L.aInter || q.gone) continue;
-    const T = LIT_TAILLE[q.id], R = Math.max(T[0], T[1]) + 2.6;
+    const T = LIT_TAILLE[q.id], R = Math.max(T[0], T[1]) + 2.8;
     if (Math.abs(q.x - eye[0]) > R || Math.abs(q.z - eye[2]) > R) continue;
-    // point du lit le plus proche du regard
-    const [lx, lz] = World.blockLocal({ x: q.x, z: q.z, r: q.r }, eye[0], eye[2]);
-    const cx = clamp(lx, -T[0] + 0.15, T[0] - 0.15), cz = clamp(lz, -T[1] + 0.15, T[1] - 0.15);
-    const [wx, wz] = World.blockToWorldDir({ r: q.r }, cx, cz);
-    const px = q.x + wx, pz = q.z + wz, py = q.y + T[2];
-    const dx = px - eye[0], dy = py - eye[1], dz = pz - eye[2], d = Math.hypot(dx, dy, dz);
-    if (d > 2.7) continue;
-    if ((dx * f[0] + dy * f[1] + dz * f[2]) / (d || 1) < 0.62) continue;
-    const bh = w.raycastBlocks(eye, [dx / d, dy / d, dz / d], d - 0.35);
+    // le regard tombe sur le dessus du lit (ou, de biais et à l'horizontale, sur son flanc : le lit des géants)
+    const top = q.y + T[2], box = { x: q.x, z: q.z, r: q.r };
+    let d = null, net = false;
+    if (f[1] < -0.04) {
+      const t = (top - eye[1]) / f[1];
+      if (t > 0 && t < 2.8) { const [lx, lz] = World.blockLocal(box, eye[0] + f[0] * t, eye[2] + f[2] * t); if (Math.abs(lx) < T[0] + 0.08 && Math.abs(lz) < T[1] + 0.08) { d = t; net = true; } }
+    }
+    if (d === null && q.id === 'lit_geant') {
+      const [lx, lz] = World.blockLocal(box, eye[0], eye[2]);
+      const [wx, wz] = World.blockToWorldDir(box, clamp(lx, -T[0], T[0]), clamp(lz, -T[1], T[1]));
+      const dx = q.x + wx - eye[0], dy = top - 0.3 - eye[1], dz = q.z + wz - eye[2], dd = Math.hypot(dx, dy, dz);
+      if (dd < 2.6 && (dx * f[0] + dy * f[1] + dz * f[2]) / (dd || 1) > 0.8) d = dd;
+    }
+    if (d === null) continue;
+    const bh = w.raycastBlocks(eye, f, d - 0.2);
     if (bh && !bh.block.hidden) continue;
-    cand({ kind: 'hook', lit: q, use: () => sommeil.litE(q) }, d + 0.3);
+    // un regard posé sur le lit l'emporte sur les objets voisins, visés plus largement
+    cand({ kind: 'hook', lit: q, use: () => sommeil.litE(q) }, net ? Math.max(0.3, d * 0.6) : d + 0.25);
   }
 });
 
