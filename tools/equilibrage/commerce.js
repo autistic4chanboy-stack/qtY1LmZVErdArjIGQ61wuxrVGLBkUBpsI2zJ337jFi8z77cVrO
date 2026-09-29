@@ -406,9 +406,88 @@ async function rendements(J, log, opts = {}) {
   return R;
 }
 
+// ---------------------------------------------------------------- 3 bis. les cibles (voir scratchpad/eq/echelle.md et le README)
+// Début : 300-450 pièces pour une journée de travail honnête ; milieu : 1 000-2 000 ; plus tard : 3 000-5 000.
+// Une activité pratiquée à plein rapporte ≈ 0,3-0,5 pièce/s au début, ≈ 1 au milieu, 1,5-2,5 plus tard.
+const CIBLES = {
+  margeCase: [1.5, 8],        // marge d'une culture, par case et par jour (deux passages)
+  champDepart: [120, 350],    // champ de départ (54 cases), meilleure graine toujours en rayon
+  assiduMax: 12,              // marge par case et par jour avec quatre passages
+  pecheDebut: [0.2, 0.6],     // grand lac, rivière, étang, de jour, canne de base (pièces/s)
+  pecheMax: 2.6,              // n'importe où, canne de fer
+  retourBete: [5, 20],        // jours pour rembourser une bête (nourrie)
+  cueilletteMelee: 0.6,       // près de la ferme (pièces/s)
+  valeurPlante: 30,           // ce que rapporte une plante cueillie, au plus
+  secouerCommun: 0.5,         // pommiers, chênes, bouleaux, pins (pièces/s)
+  bois: 0.5,                  // bûcheron + charbon, hache de pierre
+  pierre: 1.0,                // rochers (qui ne repoussent pas)
+};
+function bornes(R, log) {
+  const E = [], hors = (x, [a, b]) => !(x >= a && x <= b);
+  for (const c of R.C) if (c.id !== 'mandragore' && hors(c.marge, CIBLES.margeCase)) E.push(`culture ${c.id} : marge ${c.marge.toFixed(1)} /case/jour, hors ${CIBLES.margeCase.join('-')}`);
+  const champ = R.champ * R.meilleureBase.marge;
+  if (hors(champ, CIBLES.champDepart)) E.push(`champ de départ : ${Math.round(champ)} /jour, hors ${CIBLES.champDepart.join('-')}`);
+  if (R.diligent[0].marge > CIBLES.assiduMax) E.push(`joueur assidu : ${R.diligent[0].marge.toFixed(1)} /case/jour (${R.diligent[0].id}) > ${CIBLES.assiduMax}`);
+  for (const p of R.Pe.out) {
+    if (['lac', 'riviere', 'etang'].includes(p.z) && !p.nuit && p.canne === 'canne' && hors(p.parS, CIBLES.pecheDebut)) E.push(`pêche ${p.z} (canne de base, jour) : ${p.parS.toFixed(2)} /s, hors ${CIBLES.pecheDebut.join('-')}`);
+    if (p.parS > CIBLES.pecheMax) E.push(`pêche ${p.z} ${p.nuit ? 'nuit' : 'jour'} (${p.canne}) : ${p.parS.toFixed(2)} /s > ${CIBLES.pecheMax}`);
+  }
+  for (const b of R.B) if (hors(b.retour, CIBLES.retourBete)) E.push(`${b.id} : remboursée en ${b.retour.toFixed(1)} jours, hors ${CIBLES.retourBete.join('-')}`);
+  if (R.Q) {
+    if (R.melange > CIBLES.cueilletteMelee) E.push(`cueillette mêlée : ${R.melange.toFixed(2)} /s > ${CIBLES.cueilletteMelee}`);
+    for (const q of R.Q) if (q.val > CIBLES.valeurPlante) E.push(`cueillette ${q.id} : ${q.val} par plante > ${CIBLES.valeurPlante}`);
+    for (const s of R.S) if (['apple', 'oak', 'birch', 'pine'].includes(s.id) && s.parS > CIBLES.secouerCommun) E.push(`arbres secoués (${s.id}) : ${s.parS.toFixed(2)} /s > ${CIBLES.secouerCommun}`);
+    if (R.Bu[0].parS > CIBLES.bois) E.push(`bois : ${R.Bu[0].parS.toFixed(2)} /s > ${CIBLES.bois}`);
+    for (const c of R.Ca) if (c.parS > CIBLES.pierre) E.push(`pierre : ${c.parS.toFixed(2)} /s > ${CIBLES.pierre}`);
+  }
+  if (!E.length) log('Tous les rendements sont dans leurs bornes (' + Object.keys(CIBLES).join(', ') + ').');
+  for (const e of E) log('  HORS BORNES : ' + e);
+  return E;
+}
+
+// ---------------------------------------------------------------- 4. valeur ajoutée par la cuisine, l'établi et les machines (à partir de la récolte)
+// Au prix de base des ingrédients (le moins cher d'un groupe) : ce que rapporte une recette de plus que ses ingrédients.
+// Une recette instantanée ne doit pas créer de valeur de rien (sinon : récolter, fabriquer, revendre à l'infini).
+function valeurAjoutee(J, R, log) {
+  const D = R.D, v = R.v;
+  const vIng = (k) => (D.groupes[k] ? Math.min(...D.groupes[k].filter((x) => D.items[x]).map((x) => v(x))) : v(k));
+  const lignes = [];
+  for (const r of D.recettes) { if (!D.items[r.out] || D.items[r.out].cat === 'outil') continue; let s = 0; for (const k in r.need) s += r.need[k] * vIng(k); lignes.push({ ou: r.st || 'main', out: r.out, n: r.n, s, o: r.n * v(r.out), h: 0 }); }
+  for (const m in D.machines) for (const r of D.machines[m]) { let s = 0; for (const k in r.in) s += r.in[k] * vIng(k); lignes.push({ ou: m, out: r.out[0], n: r.out[1], s, o: r.out[1] * v(r.out[0]), h: r.h }); }
+  const E = [];
+  for (const l of lignes) {
+    const gain = l.o - l.s, borne = l.h ? Math.max(8, 0.5 * l.s) : Math.max(5, 0.4 * l.s);
+    if (gain > borne) E.push(l);
+  }
+  lignes.sort((a, b) => (b.o - b.s) - (a.o - a.s));
+  log(`${lignes.length} recettes et machines ; les plus rémunératrices (gain au prix de base des ingrédients) :`);
+  for (const l of lignes.slice(0, 12)) log(`  ${l.out} ×${l.n} (${l.ou}${l.h ? ', ' + l.h + ' h' : ''}) : ingrédients ${l.s.toFixed(0)} → ${l.o} (${l.o - l.s >= 0 ? '+' : ''}${(l.o - l.s).toFixed(0)})`);
+  for (const l of E) log(`  TROP RÉMUNÉRATRICE : ${l.out} (${l.ou}) : ${l.s.toFixed(0)} → ${l.o}`);
+  return E;
+}
+
+// ---------------------------------------------------------------- 5. coûts : en journées de revenu du moment
+function couts(J, R, log) {
+  const P = JSON.parse(J.ev(`JSON.stringify({ items: Object.fromEntries(['poule', 'vache', 'mouton', 'cochon', 'cheval', 'plan_poulailler', 'plan_grange', 'hache_fer', 'hache_acier', 'fusil', 'arrosoir_cuivre', 'houe_fer', 'livre_bestiaire', 'table_alchimie'].map((id) => [id, (() => { let m = 0; for (const d of NPC_DATA) if (d.shop) for (const [k, p] of d.shop.sells || []) if (k === id && p > 0 && (!m || p < m)) m = p; return m; })()])),
+    loyers: typeof LOC_MAISONS !== 'undefined' ? Object.fromEntries(Object.entries(LOC_MAISONS).map(([k, M]) => [M.court, M.loyer])) : {} })`));
+  const debut = 375, milieu = 1500, E = [];
+  log(`Journée de revenu : début ≈ ${debut}, milieu ≈ ${milieu} (voir l'échelle).`);
+  log('coût                    prix   jours (début)  jours (milieu)');
+  for (const id in P.items) if (P.items[id]) log(`${id.padEnd(22)} ${String(P.items[id]).padStart(6)} ${(P.items[id] / debut).toFixed(1).padStart(10)} ${(P.items[id] / milieu).toFixed(1).padStart(12)}`);
+  const auberge = 20 * 12;
+  for (const k in P.loyers) {
+    const l = P.loyers[k];
+    log(`loyer ${k} : ${l} la semaine (${(l / 12).toFixed(1)} la nuit ; chambre de l'auberge 20) = ${(l / debut).toFixed(2)} journée du début`);
+    if (l >= auberge) E.push(`loyer ${k} (${l}) plus cher que douze nuits à l'auberge (${auberge})`);
+    if (l < 0.3 * debut) E.push(`loyer ${k} (${l}) dérisoire (moins d'un tiers de journée du début par semaine)`);
+  }
+  for (const e of E) log('  HORS BORNES : ' + e);
+  return E;
+}
+
 module.exports = {
   titre: 'Commerce : prix, étals, boucles d’argent, rendements, coûts',
-  catalogue, boucles, rendements, donnees, valeurs, esperance, HYP,
+  catalogue, boucles, rendements, donnees, valeurs, esperance, HYP, CIBLES,
   async verifier(J, log) {
     let echecs = 0;
     const c = catalogue(J);
@@ -420,7 +499,13 @@ module.exports = {
     log('\n# 2. Transformations : acheter, fabriquer, revendre');
     if (transformations(J, c, log).length) echecs++;
     log('\n# 3. Rendements (modèle)');
-    await rendements(J, log, { sansVallee: !!process.env.EQ_RAPIDE });   // EQ_RAPIDE=1 : sans générer la vallée (densités)
+    const R = await rendements(J, log, { sansVallee: !!process.env.EQ_RAPIDE });   // EQ_RAPIDE=1 : sans générer la vallée (densités)
+    log('\n# 3 bis. Rendements : les bornes');
+    if (bornes(R, log).length) echecs++;
+    log('\n# 4. Valeur ajoutée (cuisine, établi, machines), au prix de base des ingrédients');
+    if (valeurAjoutee(J, R, log).length) echecs++;
+    log('\n# 5. Coûts, en journées de revenu');
+    if (couts(J, R, log).length) echecs++;
     return { echecs };
   },
 };
