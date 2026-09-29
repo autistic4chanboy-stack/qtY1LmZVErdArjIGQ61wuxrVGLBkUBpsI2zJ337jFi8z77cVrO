@@ -1,6 +1,6 @@
 // ============================================================================
-//  LE CALENDRIER : une semaine de douze jours, de Primedi à Vorndi (une journée
-//  dure dix minutes). Chaque habitant a sa semaine : grand marché de Valbrume,
+//  LE CALENDRIER : une semaine de douze jours, de Primedi à Vorndi (le jour dure
+//  dix minutes, la nuit dix minutes). Chaque habitant a sa semaine : grand marché de Valbrume,
 //  lessive au lavoir, jour de la Mère, jour de chasse, de pêche, messe de
 //  l'Orédi, foire de Clairpré, veillées, jour chômé, jour des morts ; chacun a
 //  aussi son jour à lui (une visite, une promenade). Les colporteurs vont d'un
