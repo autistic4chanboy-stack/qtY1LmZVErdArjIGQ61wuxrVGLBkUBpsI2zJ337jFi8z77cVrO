@@ -148,8 +148,11 @@ const pilules = {
       P.sol.push({ x: Math.round(x * 10) / 10, z: Math.round(z * 10) / 10, j: farm.s.day, n: rnd() < 0.2 ? 2 : 1, id: farm.s.day * 10 + k });
     }
     // le marchand de joie viendra-t-il ce soir ?
-    P.marchand = rnd() < 0.3 * bizarrerie() && farm.s.day >= 2 ? { j: farm.s.day, h: 19 + rnd() * 2.5 } : null;
+    P.marchand = rnd() < this.chanceMarchand(farm.s.day) ? { j: farm.s.day, h: 19 + rnd() * 2.5 } : null;
   },
+  // certains soirs seulement : un par semaine environ pour un esprit ordinaire (× bizarrerie), pas avant le quatrième
+  // jour (tools/equilibrage/hasard.js)
+  chanceMarchand(d) { return d >= 4 ? Math.min(0.5, 0.09 * bizarrerie()) : 0; },
   // ------------------------------------------------------------- pilules par terre
   updateSol(dt) {
     this.solT = (this.solT || 0) - dt;

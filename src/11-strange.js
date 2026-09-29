@@ -62,6 +62,11 @@ const strange = {
     return clamp(t, 0, 1);
   },
   maxLevel() { const t = this.tension(); return t < 0.14 ? 0 : t < 0.38 ? 1 : t < 0.6 ? 2 : 3; },
+  // les chances du jour, pour un esprit ordinaire (11-zzz60-esprit.js les module par bizarrerie() ; mesure :
+  // tools/equilibrage/hasard.js) : une nuit rouge une nuit sur douze quand la tension est pleine (jamais deux de suite) ;
+  // quelques événements étranges par semaine (le carnet des 44 étrangetés, trois fois chacune, dure ainsi des mois)
+  chanceRouge() { return 0.055 + this.tension() * 0.045; },
+  chanceEvenements() { return 0.12 + this.tension() * 0.13; },
   isKiller(id) { return this.s && this.s.killer === id; },
   killerPhase() { const S = this.s; if (!S || S.kDead || S.kCaught) return 0; const d = farm.s.day; return d >= S.kDay ? 2 : d >= S.kDay - 3 ? 1 : 0; },
   killerActive() { return this.killerPhase() === 2; },
@@ -101,11 +106,11 @@ const strange = {
       if (rnd() < pM && S.victims.length < 4) this.murder();
     }
     // décide de la nuit rouge à venir
-    S.redTonight = d >= S.redMin && S.lastRed < d - 1 && (rnd() < 0.12 + this.tension() * 0.12 || (S.redCount === 0 && d >= S.redMin + 3));
+    S.redTonight = d >= S.redMin && S.lastRed < d - 1 && (rnd() < this.chanceRouge() || (S.redCount === 0 && d >= S.redMin + 3));
     // glissement de version (rare, toujours un matin)
-    // événements du jour
+    // événements du jour : le plus souvent un seul, parfois deux quand la tension monte
     S.events = [];
-    const n = rnd() < 0.35 + this.tension() * 0.5 ? 1 + Math.floor(rnd() * (1 + this.tension() * 3)) : 0;
+    const n = rnd() < this.chanceEvenements() ? 1 + (rnd() < this.tension() * 0.15 ? 1 : 0) : 0;
     const maxL = this.maxLevel();
     const pool = EVENT_DEFS.filter((e) => e.lvl <= maxL && (S.seen[e.id] || 0) < 3);
     for (let k = 0; k < n && pool.length; k++) {
@@ -171,16 +176,17 @@ const strange = {
     // événements programmés
     let hh = h < 6 ? h + 24 : h;
     for (const e of S.events) if (!e.done && hh >= e.h && hh < e.h + 3) { e.done = true; S.seen[e.id] = (S.seen[e.id] || 0) + 1; this.run(e.id, c); }
-    // petits frissons aléatoires la nuit
-    this.ambT = (this.ambT || 20) - dt;
+    // petits frissons aléatoires la nuit (minuterie en heures de jeu : au moins 1,6 heure entre deux, trois en moyenne
+    // quand la tension est pleine)
+    this.ambT = (this.ambT ?? 0.8) - heuresDeJeu(dt);
     if (this.ambT <= 0) {
-      this.ambT = 40 + Math.random() * 90 / (0.3 + this.tension());
+      this.ambT = 1.6 + Math.random() * 3.6 / (0.3 + this.tension());
       if (c.night > 0.5 && Math.random() < this.tension()) { const pool = ['murmure', 'echo', 'lampes']; if (this.maxLevel() >= 1) pool.push('toctoc', 'silhouette'); this.run(pool[(Math.random() * pool.length) | 0], c); }
     }
     // tueur
     this.updateKiller(dt, c);
     // pâles et veilleur (nuits rouges, Envers)
-    if ((S.red && (h >= 21.5 || h < 5)) || S.envers) this.ensurePales(c);
+    if ((S.red && (h >= 21.5 || h < 5)) || S.envers) this.ensurePales(c, dt);
     this.fear = 0;
     this.glitchT = Math.max(0, this.glitchT - dt);
     this.freezeT = Math.max(0, this.freezeT - dt);
@@ -284,10 +290,11 @@ const strange = {
     const rig = ANIMAL_RIGS.deer(0, true);
     this.ents.push({ kind: 'stag', x, z, y: w.heightAt(x, z), rig, t: 0, heading: 0, life: 300, tgt, phase: 0 });
   },
-  ensurePales(c) {
+  ensurePales(c, dt) {
     const S = this.s, p = game.player, w = game.world;
     const n = this.ents.filter((e) => e.kind === 'pale').length, want = S.envers ? 6 : 3;
-    if (n < want && Math.random() < 0.02) {
+    // 1,2 fois par seconde (c'était 2 % par image : deux fois moins à 30 images/s qu'à 60)
+    if (n < want && Math.random() < (dt ?? 1 / 60) * 1.2) {
       const a = Math.random() * TAU, d = 45 + Math.random() * 30, x = p.pos[0] + Math.sin(a) * d, z = p.pos[2] + Math.cos(a) * d;
       if (w.inside(x, z, 20) && w.heightAt(x, z) > w.waterLevel) this.ents.push({ kind: 'pale', x, z, y: w.heightAt(x, z), rig: paleRig(false), t: 0, heading: 0, life: 1e9 });
     }

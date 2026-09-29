@@ -654,12 +654,12 @@ const fondation = {
       this.humT = (this.humT || 0) - dt;
       if (this.humT <= 0 && sound.ok) { this.humT = 5.5; sound.tone(sound.at(), 'sine', 55, 55, 6, 0.018, null, 1.5); }
     }
-    // la nuit, près de la cabane : parfois, une silhouette jaune qui descend
+    // la nuit, près de la cabane : parfois, une silhouette jaune qui descend (0,1 fois par heure de jeu × bizarrerie)
     this.surfT = (this.surfT || 0) - dt;
     if (this.surfT <= 0) {
       this.surfT = 3;
       const T = F.trappe, d = Math.hypot(p.pos[0] - T[0], p.pos[2] - T[2]);
-      if (!this.surface && !S.evacue && sky.night > 0.5 && d > 35 && d < 170 && !p.underground && Math.random() < 0.012 * bizarrerie()) {
+      if (!this.surface && !S.evacue && sky.night > 0.5 && d > 35 && d < 170 && !p.underground && Math.random() < hasardHeure(0.1 * bizarrerie(), 3)) {
         const a = Math.atan2(p.pos[0] - T[0], p.pos[2] - T[2]) + (Math.random() - 0.5) * 2.4, x = T[0] + Math.sin(a) * 26, z = T[2] + Math.cos(a) * 26;
         this.surface = { x, z, y: game.world.heightAt(x, z), heading: 0, phase: 0, t: 0, rig: rigChercheur(pick(FOND_CHERCHEURS).col) };
       }

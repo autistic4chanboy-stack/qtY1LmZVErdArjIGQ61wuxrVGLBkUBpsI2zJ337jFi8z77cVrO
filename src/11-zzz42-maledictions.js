@@ -239,11 +239,12 @@ const malOmbre = {
     }
     return r;
   };
-  // les cygnes de la Dame (quand ils meurent de notre main)
+  // les cygnes de la Dame (quand ils meurent de notre main : jamais du coup de fusil d'un habitant, même tout près de nous)
   const _dmg = entities.damage.bind(entities);
   entities.damage = function (e, dmg, fx, fz) {
+    const parUnHabitant = typeof chasse !== 'undefined' && !!chasse._src; // (lu avant : la chasse l'efface au passage)
     const died = _dmg(e, dmg, fx, fz);
-    if (died && e.cfg && e.cfg.sacre === 'dame' && !e.owner && farm.s && game.player && Math.hypot((fx ?? e.x) - game.player.pos[0], (fz ?? e.z) - game.player.pos[2]) < 250) malediction.frapper('malchance', 'cygne');
+    if (died && !parUnHabitant && e.cfg && e.cfg.sacre === 'dame' && !e.owner && farm.s && game.player && Math.hypot((fx ?? e.x) - game.player.pos[0], (fz ?? e.z) - game.player.pos[2]) < 250) malediction.frapper('malchance', 'cygne');
     return died;
   };
   // le Cerf blanc (on ne frappe pas le Cerf blanc)
