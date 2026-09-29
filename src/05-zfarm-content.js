@@ -195,27 +195,61 @@ const LOOT = {
   campement: { rolls: [2, 4], items: [['pain', 1, 2, 4], ['bougie', 1, 3, 4], ['corde', 1, 2, 3], ['fleche', 3, 8, 4], ['charbon', 1, 3, 3], ['sac_graines', 1, 1, 3], ['cuir', 1, 2, 2], ['argent', 10, 45, 4], ['vieille_piece', 1, 1, 1], ['caisse_vivres', 1, 1, 1], ['lanterne', 1, 1, 0.3]] },
   charrette: { rolls: [2, 3], items: [['bois', 3, 8, 4], ['pomme', 2, 5, 3], ['farine', 1, 2, 2], ['corde', 1, 2, 2], ['graines_patate', 3, 6, 2], ['argent', 15, 50, 3], ['caisse_vivres', 1, 1, 1], ['toile', 1, 2, 1]] },
   barque: { rolls: [1, 3], items: [['carpe', 1, 2, 3], ['corde', 1, 2, 3], ['fleche', 2, 5, 2], ['perle', 1, 1, 0.6], ['coffre_peche', 1, 1, 0.8], ['argent', 10, 40, 3], ['canne', 1, 1, 0.5]] },
-  ruines: { rolls: [2, 4], items: [['vieille_piece', 1, 3, 5], ['tesson', 1, 3, 5], ['bijou', 1, 1, 1], ['relique', 1, 1, 0.5], ['figurine', 1, 1, 1], ['argent', 20, 80, 4], ['lingot_fer', 1, 1, 1], ['graines_melon', 2, 4, 1], ['geode', 1, 2, 2]] },
+  ruines: { rolls: [1, 3], items: [['vieille_piece', 1, 3, 5], ['tesson', 1, 3, 5], ['bijou', 1, 1, 1], ['relique', 1, 1, 0.5], ['figurine', 1, 1, 1], ['argent', 20, 80, 4], ['lingot_fer', 1, 1, 1], ['graines_melon', 2, 4, 1], ['geode', 1, 2, 2]] },
   hameau: { rolls: [1, 3], items: [['tesson', 1, 2, 4], ['bougie', 1, 2, 3], ['vieille_piece', 1, 2, 3], ['sac_graines', 1, 1, 3], ['poupee_chiffon', 0, 0, 0], ['figurine', 1, 1, 1], ['argent', 5, 30, 3], ['corde', 1, 1, 2]] },
   chapelle: { rolls: [1, 3], items: [['bougie', 2, 4, 5], ['vieille_piece', 1, 3, 3], ['relique', 1, 1, 1], ['bijou', 1, 1, 0.6], ['argent', 10, 60, 3], ['livre', 0, 0, 0]] },
   marais: { rolls: [1, 3], items: [['herbes', 1, 3, 4], ['champignon', 1, 3, 4], ['anguille', 1, 1, 2], ['bougie', 1, 2, 2], ['relique', 1, 1, 0.4], ['argent', 5, 40, 3], ['plume_noire', 1, 3, 2]] },
   phare: { rolls: [2, 3], items: [['charbon', 2, 5, 4], ['corde', 1, 3, 3], ['bougie', 2, 4, 3], ['perle', 1, 1, 0.8], ['lingot_cuivre', 1, 2, 2], ['argent', 20, 70, 3], ['boussole', 1, 1, 0.3]] },
   tour: { rolls: [2, 3], items: [['fleche', 4, 10, 4], ['fleche_fer', 2, 5, 1], ['corde', 1, 2, 3], ['pain', 1, 2, 2], ['lingot_fer', 1, 2, 2], ['argent', 20, 60, 3], ['bijou', 1, 1, 0.5]] },
-  mine: { rolls: [2, 4], items: [['charbon', 2, 6, 5], ['minerai_cuivre', 2, 5, 5], ['minerai_fer', 1, 4, 3], ['lingot_cuivre', 1, 2, 2], ['geode', 1, 2, 3], ['bougie', 1, 3, 2], ['argent', 10, 50, 2], ['fossile', 1, 1, 0.8]] },
+  mine: { rolls: [2, 3], items: [['charbon', 2, 6, 5], ['minerai_cuivre', 2, 5, 5], ['minerai_fer', 1, 4, 3], ['lingot_cuivre', 1, 2, 2], ['geode', 1, 2, 3], ['bougie', 1, 3, 2], ['argent', 10, 50, 2], ['fossile', 1, 1, 0.8]] },
   profond: { rolls: [2, 4], items: [['minerai_or', 1, 3, 4], ['gemme', 1, 2, 2], ['geode', 2, 3, 4], ['lingot_fer', 1, 3, 3], ['fossile', 1, 2, 2], ['relique', 1, 1, 0.6], ['argent', 40, 150, 3]] },
   cave: { rolls: [2, 4], items: [['cidre', 1, 2, 3], ['vin', 1, 1, 1], ['farine', 1, 2, 3], ['bougie', 1, 3, 3], ['graines_citrouille', 1, 3, 2], ['vieille_piece', 1, 2, 2], ['argent', 20, 60, 3], ['conserve', 0, 0, 0]] },
   crypte: { rolls: [2, 4], items: [['relique', 1, 2, 3], ['bijou', 1, 2, 3], ['vieille_piece', 2, 5, 4], ['lingot_or', 1, 2, 2], ['gemme', 1, 1, 1], ['bougie', 2, 4, 2], ['argent', 60, 200, 3]] },
   envers: { rolls: [1, 3], items: [['eclat', 1, 3, 7], ['relique', 1, 1, 1], ['bijou', 1, 1, 1], ['poisson_aveugle', 1, 1, 1], ['vieille_piece', 1, 3, 2]] },
-  fouille: { rolls: [1, 2], items: [['vieille_piece', 1, 2, 4], ['tesson', 1, 2, 5], ['fossile', 1, 1, 1], ['sac_graines', 1, 1, 3], ['minerai_cuivre', 1, 3, 3], ['minerai_fer', 1, 2, 2], ['geode', 1, 1, 2], ['argent', 5, 30, 3], ['relique', 1, 1, 0.3], ['bijou', 1, 1, 0.4], ['figurine', 1, 1, 0.3], ['charbon', 1, 2, 2]] },
-  peche: { rolls: [2, 4], items: [['perle', 1, 1, 2], ['vieille_piece', 1, 3, 4], ['bijou', 1, 1, 1], ['lingot_or', 1, 1, 1], ['gemme', 1, 1, 1], ['argent', 30, 120, 3], ['relique', 1, 1, 0.5]] },
+  // la terre remuée du jour (neuf trous autour de la ferme) : une trouvaille par trou, moins de trente pièces
+  fouille: { rolls: [1, 1], items: [['vieille_piece', 1, 1, 2], ['tesson', 1, 1, 5], ['fossile', 1, 1, 0.5], ['sac_graines', 1, 1, 3], ['minerai_cuivre', 1, 3, 3], ['minerai_fer', 1, 2, 2], ['geode', 1, 1, 1], ['argent', 5, 30, 3], ['relique', 1, 1, 0.3], ['bijou', 1, 1, 0.4], ['figurine', 1, 1, 0.3], ['charbon', 1, 2, 2]] },
+  // le coffre englouti : une prise sur vingt-cinq à la pêche, le premier prix du concours ; une bonne surprise (≈ 4 poissons)
+  peche: { rolls: [1, 3], items: [['vieille_piece', 1, 2, 5], ['argent', 10, 50, 4], ['perle', 1, 1, 1], ['bijou', 1, 1, 0.5], ['lingot_or', 1, 1, 0.3], ['gemme', 1, 1, 0.2], ['relique', 1, 1, 0.2], ['corde', 1, 1, 2], ['tesson', 1, 1, 2]] },
   geode: { rolls: [1, 2], items: [['minerai_cuivre', 2, 4, 4], ['minerai_fer', 1, 3, 3], ['minerai_or', 1, 2, 2], ['gemme', 1, 1, 1], ['charbon', 1, 3, 2], ['fossile', 1, 1, 0.6]] },
   graines: { rolls: [1, 2], items: [['graines_radis', 3, 6, 5], ['graines_ble', 3, 6, 5], ['graines_carotte', 2, 5, 4], ['graines_lin', 2, 5, 3], ['graines_betterave', 2, 4, 3], ['graines_haricot', 2, 3, 2], ['graines_fraise', 1, 3, 1.5], ['graines_tomate', 1, 3, 1.5], ['graines_mais', 1, 3, 1.5], ['graines_melon', 1, 2, 0.8], ['graines_citrouille', 1, 2, 0.6], ['graines_tournesol', 1, 3, 1.5]] },
   vivres: { rolls: [2, 3], items: [['pain', 1, 3, 5], ['fromage', 1, 1, 2], ['pomme', 2, 4, 4], ['viande_fumee', 1, 1, 1], ['cidre', 1, 1, 1], ['confiture', 1, 1, 1], ['omelette', 1, 1, 1]] },
   arbre: { rolls: [1, 1], items: [['plume', 1, 2, 4], ['oeuf', 1, 1, 2], ['sac_graines', 1, 1, 2], ['fibre', 1, 3, 4], ['bois', 1, 2, 4], ['vieille_piece', 1, 1, 0.5], ['figurine', 1, 1, 0.15], ['baies', 1, 3, 2]] },
 };
+// Les trésors scellés ne se remplissent pas : les coffres des lieux se regarnissent tous les trois jours, mais ce qui
+// dormait dans une tombe, un temple, une crevasse ou au fond du lac n'y revient pas. Une table qui a un « reste » ne
+// donne son plein que tant qu'il reste des coffres jamais ouverts de cette table dans la vallée (farm.s.tresors :
+// tirages déjà faits, par table) ; ensuite, la table du reste (ce que le temps y ramène : de la poussière, des os, un
+// peu de cire). Sans cela, le temple et la crypte rapportaient plus, à la tournée, qu'une ferme entière.
+const LOOT_RESTE = {
+  temple: 'reste_temple', temple_or: 'reste_temple', crypte: 'reste_tombe', crevasse: 'reste_glace', clocher: 'reste_noye',
+  profond: 'reste_roche', cristaux: 'reste_roche', cercle_cache: 'reste_roche', grotte_peinte: 'reste_roche', bete: 'reste_roche',
+  archives: 'reste_papiers', scriptorium: 'reste_papiers',
+};
+Object.assign(LOOT, {
+  reste_temple: { rolls: [1, 1], items: [['cendre_sacree', 1, 1, 3], ['bougie', 1, 2, 3], ['tesson', 1, 1, 2], ['vieille_piece', 1, 1, 1], ['poussiere_etoile', 1, 1, 0.15]] },
+  reste_tombe: { rolls: [1, 2], items: [['os', 1, 3, 5], ['bougie', 1, 2, 3], ['tesson', 1, 1, 2], ['vieille_piece', 1, 1, 0.8], ['eau_benite', 1, 1, 0.5]] },
+  reste_glace: { rolls: [1, 1], items: [['os', 1, 2, 4], ['corde', 1, 1, 2], ['edelweiss', 1, 1, 0.6], ['vieille_piece', 1, 1, 0.2]] },
+  reste_noye: { rolls: [1, 1], items: [['tesson', 1, 2, 4], ['vieille_piece', 1, 1, 2], ['anguille', 1, 1, 1], ['perle', 1, 1, 0.1]] },
+  reste_roche: { rolls: [1, 1], items: [['os', 1, 2, 4], ['silex', 1, 2, 3], ['tesson', 1, 1, 1], ['champi_lumineux', 1, 1, 0.6], ['geode', 1, 1, 0.5], ['vieille_piece', 1, 1, 0.2]] },
+  reste_papiers: { rolls: [1, 2], items: [['bougie', 1, 2, 4], ['plume', 1, 2, 3], ['cire', 1, 1, 2], ['fiole', 1, 1, 1], ['vieille_piece', 1, 1, 0.4]] },
+});
+// combien de trésors pleins d'une table dort dans la vallée (coffres et points à creuser qui la tirent)
+function lootPleins(key) {
+  const w = typeof game !== 'undefined' && game ? game.world : null;
+  if (!w || !w.inter) return 1;
+  const C = w.lootPleins || (w.lootPleins = {});
+  if (C[key] === undefined) C[key] = Math.max(1, w.inter.filter((i) => i.data && ((i.kind === 'loot' && i.data.table === key) || (i.kind === 'dig' && i.data.loot === key))).length);
+  return C[key];
+}
 // Tirage d'un butin : liste [[objet, n], …]
 function rollLoot(key, rnd) {
-  const T = LOOT[key] || LOOT.fouille;
+  let T = LOOT[key] || LOOT.fouille;
+  const reste = LOOT_RESTE[key];
+  if (reste && LOOT[reste] && typeof farm !== 'undefined' && farm.s) {
+    const R = farm.s.tresors || (farm.s.tresors = {});
+    if ((R[key] || 0) >= lootPleins(key)) T = LOOT[reste];
+    R[key] = (R[key] || 0) + 1;
+  }
   rnd = rnd || Math.random;
   const items = T.items.filter((e) => e[3] > 0 && (e[0] === 'argent' || ITEMS[e[0]]));
   const tot = items.reduce((a, e) => a + e[3], 0);

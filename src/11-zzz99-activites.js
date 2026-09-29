@@ -777,7 +777,7 @@ const activites = {
     const an = cal.annonce().replace(/^\(|\)$/g, '');
     if (an) out.push(an);
     try { const k = weather.tomorrow(); out.push({ soleil: 'Demain, du beau temps, à ce qu’on dit.', pluie: 'Demain, de la pluie : rentrez le foin.', orage: 'Demain, de l’orage : rentrez les bêtes.', gel: 'Demain à l’aube, du gel : couvrez les semis.', brouillard: 'Demain matin, du brouillard : ne vous écartez pas des chemins.' }[k] || 'Demain, le temps qu’il plaira au ciel.'); } catch (e) { /* rien */ }
-    const dem = { marche: 'Demain, grand marché sur la place, avec les étals des Monts !', foire: `Demain, foire à ${farm.names.hameau}, avec la tombola ! Billets à cinq pièces.`, chasse: 'Demain, Chassedi : concours de tir au relais de chasse ! Et portez du rouge en forêt.', peche: 'Demain, Pêchedi : concours de pêche au ponton du lac !', veillee: 'Demain soir, veillée à l’auberge : on contera.', messe: 'Demain, messe à dix heures en l’église.', morts: 'Demain, Vorndi, jour des morts : fleurissez vos tombes, et rentrez avant la nuit.' }[dm];
+    const dem = { marche: 'Demain, grand marché sur la place, avec les étals des Monts !', foire: `Demain, foire à ${farm.names.hameau}, avec la tombola ! Billets à vingt pièces.`, chasse: 'Demain, Chassedi : concours de tir au relais de chasse ! Et portez du rouge en forêt.', peche: 'Demain, Pêchedi : concours de pêche au ponton du lac !', veillee: 'Demain soir, veillée à l’auberge : on contera.', messe: 'Demain, messe à dix heures en l’église.', morts: 'Demain, Vorndi, jour des morts : fleurissez vos tombes, et rentrez avant la nuit.' }[dm];
     if (dem) out.push(dem);
     for (const d of (s.dead || []).filter((q) => s.day - q.day <= 2)) { const n = npcs.byId[d.id]; const qui = d.name + (n ? ' ' + n.d.surname : ''); out.push(n && n.d.gender === 'f' ? `Avis de décès : ${qui}. Priez pour elle.` : `Avis de décès : ${qui}. Priez pour lui.`); }
     const de = (t) => (/^une? /.test(t) ? 'd’' + t : /^le /.test(t) ? 'du ' + t.slice(3) : /^du /.test(t) ? 'de ' + t.slice(3) : 'de ' + t);
@@ -941,11 +941,21 @@ const activites = {
     while (L.length && out.length < R.n) out.push(L.splice((rnd() * L.length) | 0, 1)[0]);
     return out;
   },
+  // la brocante et les curiosités n'ont qu'une pièce de chaque, pour la semaine (une carte au trésor, une géode
+  // achetées à la chaîne rapportaient plus qu'elles ne coûtaient) ; les fromages et les graines, à volonté
+  piece(R, id, prendre) {
+    if (R.id !== 'brocanteur' && R.id !== 'curiosites') return false;
+    const A = this.S(), sem = Math.floor(farm.s.day / 12);
+    if (!A.etalsPris || A.etalsPris.sem !== sem) A.etalsPris = { sem, ids: {} };
+    const k = R.id + ':' + id, deja = !!A.etalsPris.ids[k];
+    if (prendre) A.etalsPris.ids[k] = 1;
+    return deja;
+  },
   etal(it) {
     const R = this.roleEtal(it), s = farm.s;
     if (!R) return;
     const pos = [it.x, it.y + 0.3, it.z], opts = [];
-    for (const [id, prix] of this.offre(R)) opts.push({ label: `Acheter : ${itemName(id)} — ${prix} pièces`, fn: () => { if (!farm.pay(prix)) { ui.subtitle(R.nom, 'Il vous manque des pièces. Revenez quand votre bourse aura grandi.', 3); return; } farm.give(id, 1); play.flyer && play.flyer(id, pos, 1); sound.coin && sound.coin(); this.etal(it); } });
+    for (const [id, prix] of this.offre(R)) if (!this.piece(R, id)) opts.push({ label: `Acheter : ${itemName(id)} — ${prix} pièces`, fn: () => { if (!farm.pay(prix)) { ui.subtitle(R.nom, 'Il vous manque des pièces. Revenez quand votre bourse aura grandi.', 3); return; } this.piece(R, id, true); farm.give(id, 1); play.flyer && play.flyer(id, pos, 1); sound.coin && sound.coin(); this.etal(it); } });
     if (R.achete) {
       const vendus = this.fait('brocante');
       const T = Object.keys(s.inv).filter((id) => ITEMS[id] && ITEMS[id].cat === 'tresor' && ITEMS[id].price > 0 && farm.count(id)).slice(0, 8);
@@ -1043,6 +1053,9 @@ const activites = {
 
   // ================================================================ la tombola du Foiredi
   TIRAGE_H: 15,
+  // le billet : les huit lots valent environ les trois quarts de ce que rapportent les cinquante billets (la tombola
+  // paie la fête ; à cinq pièces, un billet en rapportait trois fois son prix)
+  BILLET: 20,
   tirage() { const s = farm.s, rnd = mulberry32(((s.seed | 0) * 5 + s.day * 313) >>> 0), L = []; while (L.length < 8) { const n = 1 + ((rnd() * 50) | 0); if (!L.includes(n)) L.push(n); } return L; },
   LOTS: [['poule', 1, 'une poule pondeuse, vivante'], ['viande_fumee', 2, 'un jambon fumé'], ['montre', 1, 'une montre de gousset'], ['bouquet', 1, 'un bouquet'], ['confiture', 2, 'deux pots de confiture'], ['cidre', 2, 'deux bouteilles de cidre'], ['fromage', 1, 'un fromage'], ['livre_contes', 1, 'un livre de contes']],
   tombola() {
@@ -1052,7 +1065,7 @@ const activites = {
     const TB = A.tombola;
     if (h < this.TIRAGE_H) {
       const opts = [];
-      if (TB.billets.length < 3 && s.money >= 5) opts.push({ label: 'Acheter un billet (5 pièces)', fn: () => { if (!farm.pay(5)) return; let n; do { n = 1 + ((Math.random() * 50) | 0); } while (TB.billets.includes(n)); TB.billets.push(n); sound.coin && sound.coin(); this.tombola(); } });
+      if (TB.billets.length < 3 && s.money >= this.BILLET) opts.push({ label: 'Acheter un billet (20 pièces)', fn: () => { if (!farm.pay(this.BILLET)) return; let n; do { n = 1 + ((Math.random() * 50) | 0); } while (TB.billets.includes(n)); TB.billets.push(n); sound.coin && sound.coin(); this.tombola(); } });
       opts.push({ label: 'Partir', fn: () => ui.close() });
       ui.choice('La tombola de la foire', `Un tambour de bois plein de billets pliés. Les lots s’alignent sur une planche : ${this.LOTS.slice(0, 4).map((l) => l[2]).join(', ')}… Tirage à trois heures.${TB.billets.length ? ' Vos billets : ' + TB.billets.join(', ') + '.' : ''}${TB.billets.length >= 3 ? ' (Trois billets par personne.)' : ''}`, opts);
       return;
@@ -1077,6 +1090,15 @@ const activites = {
 
   // ================================================================ le concours de tir du Chassedi
   scoresPNJ(k, noms) { const s = farm.s, rnd = mulberry32(((s.seed | 0) * 17 + s.day * 71 + k) >>> 0); return noms.map(([id, a, b]) => [id, Math.round(a + rnd() * (b - a))]).filter(([id]) => npcs.alive ? npcs.alive(id) : true); },
+  // le concours de pêche : chacun présente la plus belle de ses prises du jour, tirées comme les vôtres dans le lac
+  // (les poissons de jour et de toute heure) : le classement suit les prix des poissons, quels qu'ils soient
+  prisesPNJ(k, noms) {
+    const s = farm.s, rnd = mulberry32(((s.seed | 0) * 17 + s.day * 71 + k) >>> 0);
+    const L = Object.keys(FISH).filter((id) => ITEMS[id] && FISH[id].where.includes('lac') && FISH[id].time !== 'nuit' && !FISH[id].moon);
+    const tot = L.reduce((a, id) => a + FISH[id].w, 0);
+    const prise = () => { let r = rnd() * tot; for (const id of L) { r -= FISH[id].w; if (r <= 0) return id; } return L[L.length - 1]; };
+    return noms.map(([id, n]) => { let best = 0; for (let i = 0; i < n; i++) best = Math.max(best, ITEMS[prise()].price || 0); return [id, best]; }).filter(([id]) => npcs.alive ? npcs.alive(id) : true);
+  },
   tir() {
     const s = farm.s, A = this.S(), h = this.h();
     if (!cal.is('chasse') || h < 9 || h >= 17) { ui.read('Le concours de tir', 'Concours de tir, chaque Chassedi, de neuf heures à cinq heures. Trois coups à quinze pas, sur la cible de paille. Inscription : cinq pièces.\n\nPremier prix : soixante pièces et six cartouches. Deuxième : vingt-cinq pièces. Troisième : trois cartouches.\n\nPortez du rouge en forêt.', 'Le relais de chasse'); return; }
@@ -1160,7 +1182,8 @@ const activites = {
     if (h < 16) { ui.subtitle('', P.best ? `(Votre plus belle prise, pour l’instant : ${itemName(P.best.id).toLowerCase()}. On présente à quatre heures.)` : '(Rien de pris pour l’instant. Il reste jusqu’à quatre heures.)', 3.5); return; }
     if (h >= 20) { ui.subtitle('', '(Trop tard : le jury est rentré souper.)', 3); P.fini = true; return; }
     P.fini = true;
-    const L = this.scoresPNJ(2, [['pecheur', 55, 130], ['maire', 18, 48], ['aubergiste', 22, 55], ['fillette', 6, 28], ['colporteur', 15, 42]]);
+    // (le pêcheur a lancé sa ligne dès l'aube : six prises ; les autres, une à trois)
+    const L = this.prisesPNJ(2, [['pecheur', 6], ['maire', 2], ['aubergiste', 3], ['fillette', 1], ['colporteur', 2]]);
     const moi = P.best ? P.best.prix : 0;
     L.push(['vous', moi]); L.sort((a, b) => b[1] - a[1]);
     const rang = L.findIndex((q) => q[0] === 'vous') + 1;
@@ -1312,7 +1335,7 @@ const activites = {
     const _cf = play.catchFish.bind(play);
     play.catchFish = function (F) {
       const A = activites.S(), avant = {};
-      const P = A && A.peche && A.peche.j === farm.s.day && !A.peche.fini && npcs.hour() < 16 ? A.peche : null;
+      const P = A && A.peche && A.peche.j === farm.s.day && !A.peche.fini && npcs.hour() < 16 && F && F.zone === 'lac' ? A.peche : null;
       if (P) for (const k in FISH) avant[k] = farm.count(k);
       const r = _cf(F);
       if (P) for (const k in FISH) if (farm.count(k) > avant[k] && ITEMS[k]) { const prix = ITEMS[k].price || 0; if (!P.best || prix > P.best.prix) { P.best = { id: k, prix }; setTimeout(() => ui.subtitle('', `(Pour le concours : ${itemName(k).toLowerCase()}. Votre plus belle prise.)`, 3), 800); } }

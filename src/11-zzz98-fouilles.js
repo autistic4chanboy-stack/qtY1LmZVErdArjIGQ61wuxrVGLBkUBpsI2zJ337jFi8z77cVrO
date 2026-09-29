@@ -55,19 +55,22 @@ defItem('cle_bureau', 'Petite clé de laiton', 'quete', 0, ['cle', '#d0b060'], {
 defItem('cle_cave', 'Clé de la cave', 'quete', 0, ['cle', '#6a6a70'], { unique: true, desc: 'Une grosse clé de fer, attachée à un bouchon de liège. « Cave — ne pas descendre seul. »' });
 
 // ---------------------------------------------------------------- tables de butin : [objet, min, max, poids]
+// (ce que vaut une fouille : un meuble ordinaire, 10 à 40 pièces ; un tiroir-caisse, une malle, un tonneau, 30 à 70 ;
+// le secrétaire, la cave, le coffre-fort de la commune, 100 à 200. On chaparde une seule chose à un étal ; on remplit
+// un seul pichet au tonneau)
 Object.assign(LOOT, {
   f2_armoire: { rolls: [1, 3], items: [['toile', 1, 2, 4], ['laine', 1, 1, 1], ['mouchoir_brode', 1, 1, 2], ['boutons_nacre', 1, 1, 2], ['ruban', 1, 1, 2], ['bougie', 1, 2, 3], ['savon', 1, 1, 2], ['argent', 3, 18, 3], ['peigne_corne', 1, 1, 1.5], ['eau_cologne', 1, 1, 0.6], ['vieille_piece', 1, 1, 0.5], ['bijou', 1, 1, 0.2], ['medaillon_portrait', 1, 1, 0.25], ['meche_cheveux', 1, 1, 0.3]] },
   f2_archives: { rolls: [1, 2], items: [['bougie', 1, 3, 3], ['cire', 1, 1, 3], ['plume', 1, 3, 2], ['encrier', 1, 1, 1], ['timbres', 1, 1, 1], ['vieille_piece', 1, 1, 1], ['argent', 2, 10, 1], ['cle_bureau', 1, 1, 0.7], ['carte_vallee', 1, 1, 0.15]] },
   f2_commode: { rolls: [1, 3], items: [['de_coudre', 1, 1, 2], ['bobine_fil', 1, 3, 3], ['boutons_nacre', 1, 1, 2], ['ruban', 1, 1, 2], ['mouchoir_brode', 1, 1, 2], ['image_pieuse', 1, 1, 2], ['besicles', 1, 1, 0.8], ['argent', 2, 15, 3], ['bougie', 1, 2, 2], ['tabac', 1, 1, 1], ['bille', 1, 2, 0.5], ['montre', 1, 1, 0.1], ['bijou', 1, 1, 0.2], ['meche_cheveux', 1, 1, 0.4]] },
   f2_buffet: { rolls: [1, 3], items: [['cuillere_argent', 1, 2, 1.5], ['bougeoir', 1, 1, 1], ['toile', 1, 1, 2], ['pain', 1, 2, 2], ['fromage', 1, 1, 1.5], ['confiture', 1, 1, 1.5], ['cidre', 1, 1, 1], ['vin', 1, 1, 0.6], ['sel', 1, 2, 2], ['miel', 1, 1, 0.5], ['argent', 2, 10, 1], ['bougie', 1, 2, 2], ['jeu_cartes', 1, 1, 0.5]] },
-  f2_malle: { rolls: [1, 3], items: [['toile', 1, 2, 3], ['laine', 1, 2, 2], ['cuir', 1, 1, 1.5], ['corde', 1, 1, 2], ['bougie', 1, 2, 2], ['vieille_piece', 1, 2, 1.5], ['bijou', 1, 1, 0.4], ['montre', 1, 1, 0.2], ['boussole', 1, 1, 0.2], ['carte_tresor', 1, 1, 0.3], ['figurine', 1, 1, 0.6], ['livre_contes', 1, 1, 0.15], ['argent', 5, 30, 2], ['meche_cheveux', 1, 1, 0.3], ['tabatiere', 1, 1, 0.3], ['lanterne', 1, 1, 0.15]] },
+  f2_malle: { rolls: [1, 2], items: [['toile', 1, 2, 3], ['laine', 1, 2, 2], ['cuir', 1, 1, 1.5], ['corde', 1, 1, 2], ['bougie', 1, 2, 2], ['vieille_piece', 1, 2, 1.5], ['bijou', 1, 1, 0.4], ['montre', 1, 1, 0.2], ['boussole', 1, 1, 0.2], ['carte_tresor', 1, 1, 0.3], ['figurine', 1, 1, 0.6], ['livre_contes', 1, 1, 0.15], ['argent', 5, 30, 2], ['meche_cheveux', 1, 1, 0.3], ['tabatiere', 1, 1, 0.3], ['lanterne', 1, 1, 0.15]] },
   f2_secretaire: { rolls: [2, 3], items: [['argent', 10, 45, 3], ['cire', 1, 1, 3], ['encrier', 1, 1, 1.5], ['plume', 1, 3, 2], ['timbres', 1, 1, 1.5], ['vieille_piece', 1, 2, 2], ['tabatiere', 1, 1, 0.6], ['bijou', 1, 1, 0.3], ['besicles', 1, 1, 0.8]] },
   f2_coffre_commune: { rolls: [1, 2], items: [['argent', 40, 140, 5], ['vieille_piece', 1, 3, 2], ['lingot_or', 1, 1, 0.2], ['bijou', 1, 1, 0.5], ['relique', 1, 1, 0.15]] },
   f2_caisse_auberge: { rolls: [1, 2], items: [['argent', 8, 40, 7], ['jeu_cartes', 1, 1, 0.8], ['des_pipes', 1, 1, 0.6], ['cle_cave', 1, 1, 0.7], ['tabac', 1, 1, 0.8]] },
   f2_caisse_boulangerie: { rolls: [1, 2], items: [['argent', 5, 30, 7], ['pain', 1, 1, 2], ['brioche', 1, 1, 1], ['ruban', 1, 1, 0.5]] },
   f2_caisse_poste: { rolls: [1, 2], items: [['argent', 5, 28, 6], ['timbres', 1, 2, 3], ['cire', 1, 1, 1.5], ['plume', 1, 2, 1]] },
   f2_caisse_graineterie: { rolls: [1, 2], items: [['argent', 6, 32, 7], ['graines_tournesol', 2, 4, 1], ['graines_fraise', 1, 3, 1], ['sac_graines', 1, 1, 1]] },
-  f2_tonneaux: { rolls: [1, 2], items: [['cidre', 1, 2, 4], ['vin', 1, 1, 2], ['biere', 1, 1, 2], ['cervoise', 1, 1, 1], ['eau_de_vie_cidre', 1, 1, 0.4]] },
+  f2_tonneaux: { rolls: [1, 1], items: [['cidre', 1, 1, 4], ['vin', 1, 1, 2], ['biere', 1, 1, 2], ['cervoise', 1, 1, 1], ['eau_de_vie_cidre', 1, 1, 0.4]] },
   f2_petrin: { rolls: [1, 2], items: [['farine', 1, 3, 5], ['sel', 1, 1, 2], ['pain', 1, 2, 2], ['brioche', 1, 1, 1], ['argent', 1, 8, 0.6], ['bijou', 1, 1, 0.12]] },
   f2_tresors: { rolls: [1, 2], items: [['bille', 1, 4, 4], ['ruban', 1, 1, 3], ['figurine', 1, 1, 1.5], ['plume', 1, 2, 2], ['image_pieuse', 1, 1, 1], ['fleur', 1, 2, 1], ['tesson', 1, 1, 1], ['vieille_piece', 1, 1, 0.4]] },
   f2_tri: { rolls: [1, 1], items: [['timbres', 1, 1, 2], ['argent', 1, 6, 1], ['cire', 1, 1, 1]] },
@@ -83,20 +86,20 @@ Object.assign(LOOT, {
   f2_tronc: { rolls: [1, 1], items: [['argent', 3, 25, 8], ['vieille_piece', 1, 1, 0.4], ['boutons_nacre', 1, 1, 1]] },
   f2_apothicaire: { rolls: [1, 3], items: [['fiole', 1, 3, 4], ['sel', 1, 2, 3], ['lichen', 1, 2, 2], ['herbes', 1, 2, 2], ['rosee', 1, 1, 1.5], ['venin', 1, 1, 1], ['mue_serpent', 1, 1, 1], ['poudre_os', 1, 2, 1.5], ['aile_chauve_souris', 1, 1, 1], ['champi_lumineux', 1, 1, 0.8], ['mandragore', 1, 1, 0.2], ['potion_soin', 1, 1, 0.4], ['antidote', 1, 1, 0.3], ['argent', 2, 12, 1]] },
   f2_charrette_foin: { rolls: [1, 2], items: [['foin', 2, 5, 5], ['avoine', 1, 3, 2], ['corde', 1, 1, 1], ['pomme', 1, 3, 1]] },
-  f2_charrette_tonneaux: { rolls: [1, 2], items: [['cidre', 1, 2, 4], ['vin', 1, 1, 1.5], ['biere', 1, 1, 1.5], ['huile', 1, 1, 0.6]] },
-  f2_legumes: { rolls: [1, 2], items: [['carotte', 1, 3, 3], ['chou', 1, 1, 2], ['patate', 2, 4, 3], ['poireau', 1, 2, 2], ['oignon', 1, 3, 2], ['navet', 1, 3, 2], ['betterave', 1, 2, 1]] },
-  f2_fruits: { rolls: [1, 2], items: [['pomme', 2, 4, 4], ['poire', 1, 3, 3], ['prune', 2, 4, 2], ['cerise', 2, 5, 2], ['noix', 2, 4, 1]] },
-  f2_fromages: { rolls: [1, 2], items: [['fromage', 1, 1, 4], ['fromage_chevre', 1, 1, 2], ['beurre', 1, 1, 2], ['oeuf', 1, 3, 2], ['lait', 1, 1, 1]] },
-  f2_poissons: { rolls: [1, 2], items: [['gardon', 1, 2, 4], ['perche', 1, 1, 3], ['carpe', 1, 1, 2], ['poisson_fume', 1, 1, 1], ['ecrevisse', 1, 3, 1]] },
-  f2_pains: { rolls: [1, 2], items: [['pain', 1, 2, 5], ['brioche', 1, 1, 2], ['galette', 1, 1, 1.5], ['pain_mais', 1, 1, 1]] },
+  f2_charrette_tonneaux: { rolls: [1, 1], items: [['cidre', 1, 1, 4], ['vin', 1, 1, 1.5], ['biere', 1, 1, 1.5], ['huile', 1, 1, 0.6]] },
+  f2_legumes: { rolls: [1, 1], items: [['carotte', 1, 3, 3], ['chou', 1, 1, 2], ['patate', 2, 4, 3], ['poireau', 1, 2, 2], ['oignon', 1, 3, 2], ['navet', 1, 3, 2], ['betterave', 1, 2, 1]] },
+  f2_fruits: { rolls: [1, 1], items: [['pomme', 2, 4, 4], ['poire', 1, 3, 3], ['prune', 2, 4, 2], ['cerise', 2, 5, 2], ['noix', 2, 4, 1]] },
+  f2_fromages: { rolls: [1, 1], items: [['fromage', 1, 1, 4], ['fromage_chevre', 1, 1, 2], ['beurre', 1, 1, 2], ['oeuf', 1, 3, 2], ['lait', 1, 1, 1]] },
+  f2_poissons: { rolls: [1, 1], items: [['gardon', 1, 2, 4], ['perche', 1, 1, 3], ['carpe', 1, 1, 2], ['poisson_fume', 1, 1, 1], ['ecrevisse', 1, 3, 1]] },
+  f2_pains: { rolls: [1, 1], items: [['pain', 1, 2, 5], ['brioche', 1, 1, 2], ['galette', 1, 1, 1.5], ['pain_mais', 1, 1, 1]] },
   f2_poteries: { rolls: [1, 1], items: [['argile', 1, 3, 3], ['tesson', 1, 2, 3], ['pot_fleurs', 1, 1, 1], ['argent', 1, 5, 0.5]] },
-  f2_fleurs: { rolls: [1, 2], items: [['fleur', 2, 4, 4], ['bouquet', 1, 1, 2], ['rose', 1, 2, 1.5], ['tulipe', 1, 2, 1.5], ['lavande', 1, 2, 1]] },
-  f2_tissus: { rolls: [1, 2], items: [['toile', 1, 2, 4], ['laine', 1, 2, 2], ['ruban', 1, 1, 2], ['mouchoir_brode', 1, 1, 1.5], ['boutons_nacre', 1, 1, 1.5], ['bobine_fil', 1, 2, 2]] },
+  f2_fleurs: { rolls: [1, 1], items: [['fleur', 2, 4, 4], ['bouquet', 1, 1, 2], ['rose', 1, 2, 1.5], ['tulipe', 1, 2, 1.5], ['lavande', 1, 2, 1]] },
+  f2_tissus: { rolls: [1, 1], items: [['toile', 1, 2, 4], ['laine', 1, 2, 2], ['ruban', 1, 1, 2], ['mouchoir_brode', 1, 1, 1.5], ['boutons_nacre', 1, 1, 1.5], ['bobine_fil', 1, 2, 2]] },
   f2_bois: { rolls: [1, 1], items: [['bois', 2, 5, 8], ['oeuf', 1, 1, 0.5], ['fibre', 1, 2, 1], ['vieille_piece', 1, 1, 0.2], ['couteau_poche', 1, 1, 0.1]] },
   f2_linge: { rolls: [1, 1], items: [['toile', 1, 1, 4], ['mouchoir_brode', 1, 1, 2], ['laine', 1, 1, 1], ['ruban', 1, 1, 1]] },
   f2_oeufs: { rolls: [1, 1], items: [['oeuf', 1, 3, 10], ['plume', 1, 2, 2]] },
   f2_boite: { rolls: [1, 1], items: [['timbres', 1, 1, 1], ['argent', 1, 5, 1]] },
-  f2_poubelle: { rolls: [1, 2], items: [['os', 1, 2, 3], ['tesson', 1, 2, 3], ['charbon', 1, 1, 1], ['bougie', 1, 1, 1], ['pain', 1, 1, 0.5], ['pomme', 1, 1, 0.5], ['plume', 1, 2, 1], ['fibre', 1, 2, 1], ['vieille_piece', 1, 1, 0.2], ['bijou', 1, 1, 0.05], ['pilule_joie', 1, 1, 0.25], ['boutons_nacre', 1, 1, 0.4], ['bille', 1, 1, 0.3], ['besicles', 1, 1, 0.1]] },
+  f2_poubelle: { rolls: [1, 1], items: [['os', 1, 2, 3], ['tesson', 1, 1, 1.5], ['charbon', 1, 1, 1], ['bougie', 1, 1, 1], ['pain', 1, 1, 0.5], ['pomme', 1, 1, 0.5], ['plume', 1, 2, 1], ['fibre', 1, 2, 1], ['vieille_piece', 1, 1, 0.2], ['bijou', 1, 1, 0.05], ['pilule_joie', 1, 1, 0.25], ['boutons_nacre', 1, 1, 0.4], ['bille', 1, 1, 0.3], ['besicles', 1, 1, 0.1]] },
   f2_foin: { rolls: [1, 1], items: [['foin', 2, 5, 6], ['oeuf', 1, 2, 1.5], ['plume', 1, 1, 1], ['bijou', 1, 1, 0.1], ['montre', 1, 1, 0.08], ['fibre', 1, 2, 1]] },
   f2_grange_sacs: { rolls: [1, 2], items: [['avoine', 1, 3, 4], ['orge', 1, 3, 2], ['seigle', 1, 3, 2], ['farine', 1, 1, 1], ['sac_graines', 1, 1, 1]] },
   f2_sellerie: { rolls: [1, 2], items: [['cuir', 1, 1, 3], ['corde', 1, 1, 3], ['friandise', 1, 2, 2], ['fer_cheval', 1, 1, 2], ['selle', 1, 1, 0.15], ['harnais', 1, 1, 0.1], ['argent', 2, 10, 0.8]] },
@@ -109,9 +112,9 @@ Object.assign(LOOT, {
   f2_nain: { rolls: [1, 2], items: [['lentille', 1, 1, 1], ['gemme', 1, 1, 0.8], ['lingot_fer', 1, 2, 2], ['lingot_acier', 1, 1, 0.5], ['minerai_or', 1, 2, 1], ['mousse_nains', 1, 2, 2], ['pain', 1, 1, 1], ['argent', 5, 20, 0.5]] },
   f2_abandon: { rolls: [1, 2], items: [['toile', 1, 1, 3], ['laine', 1, 1, 1], ['bougie', 1, 2, 2], ['vieille_piece', 1, 1, 1], ['tesson', 1, 1, 1], ['mouchoir_brode', 1, 1, 1], ['boutons_nacre', 1, 1, 1], ['meche_cheveux', 1, 1, 0.5], ['bijou', 1, 1, 0.3], ['image_pieuse', 1, 1, 1], ['livre_contes', 1, 1, 0.1]] },
   f2_abandon_commode: { rolls: [1, 2], items: [['bobine_fil', 1, 2, 2], ['de_coudre', 1, 1, 1.5], ['besicles', 1, 1, 0.8], ['image_pieuse', 1, 1, 2], ['bougie', 1, 1, 2], ['argent', 1, 8, 1], ['bille', 1, 2, 1], ['meche_cheveux', 1, 1, 0.5], ['vieille_piece', 1, 1, 0.6]] },
-  f2_cave_tonneaux: { rolls: [1, 2], items: [['cidre', 1, 2, 4], ['vin', 1, 2, 3], ['biere', 1, 1, 2], ['cervoise', 1, 1, 1], ['eau_de_vie_cidre', 1, 1, 0.6]] },
-  f2_cave_casier: { rolls: [1, 2], items: [['vin', 1, 2, 5], ['eau_de_vie_poire', 1, 1, 0.6], ['kirsch', 1, 1, 0.5], ['marc', 1, 1, 0.5], ['fine', 1, 1, 0.3], ['liqueur_cassis', 1, 1, 0.5], ['hydromel', 1, 1, 0.4]] },
-  f2_cave_jambons: { rolls: [1, 2], items: [['viande_fumee', 1, 2, 5], ['fromage', 1, 1, 2], ['oignon', 1, 3, 1], ['ail', 1, 3, 1]] },
+  f2_cave_tonneaux: { rolls: [1, 1], items: [['cidre', 1, 1, 4], ['vin', 1, 1, 3], ['biere', 1, 1, 2], ['cervoise', 1, 1, 1], ['eau_de_vie_cidre', 1, 1, 0.6]] },
+  f2_cave_casier: { rolls: [1, 2], items: [['vin', 1, 1, 5], ['eau_de_vie_poire', 1, 1, 0.6], ['kirsch', 1, 1, 0.5], ['marc', 1, 1, 0.5], ['fine', 1, 1, 0.3], ['liqueur_cassis', 1, 1, 0.5], ['hydromel', 1, 1, 0.4]] },
+  f2_cave_jambons: { rolls: [1, 1], items: [['viande_fumee', 1, 1, 5], ['fromage', 1, 1, 2], ['oignon', 1, 3, 1], ['ail', 1, 3, 1]] },
   f2_cave_caisse: { rolls: [1, 3], items: [['farine', 1, 2, 3], ['sel', 1, 2, 2], ['pomme', 1, 3, 3], ['patate', 2, 4, 2], ['oignon', 1, 3, 2], ['bougie', 1, 2, 2], ['argent', 2, 12, 1], ['vieille_piece', 1, 1, 0.5], ['jeu_cartes', 1, 1, 0.3]] },
 });
 
@@ -142,7 +145,7 @@ const F2_TYPES = {
   linge: { lab: 'Décrocher du linge', table: 'f2_linge', d: 0.8, son: 'tissu', p: 0, r: 2, h: 1.5, vides: ['(Il ne sèche plus que des torchons troués.)'] },
   poulailler: { lab: 'Chaparder des œufs', table: 'f2_oeufs', d: 1.0, son: 'poule', p: 0, r: 1, h: 0.6, vides: ['(Pas un œuf. Les poules vous regardent de travers.)'] },
   boite_lettres: { lab: 'Fouiller la boîte aux lettres', table: 'f2_boite', d: 1.2, son: 'papier', p: 0.9, r: 1, h: 1.1 },
-  poubelle: { lab: 'Fouiller la poubelle', table: 'f2_poubelle', d: 1.2, son: 'metal', p: 0.35, r: 1, h: 0.8, vides: ['(Rien que des épluchures et de la cendre.)', '(Il n’y a plus que des épluchures.)'] },
+  poubelle: { lab: 'Fouiller la poubelle', table: 'f2_poubelle', d: 1.2, son: 'metal', p: 0.35, r: 2, h: 0.8, vides: ['(Rien que des épluchures et de la cendre.)', '(Il n’y a plus que des épluchures.)'] },
   foin: { lab: 'Fouiller le foin', table: 'f2_foin', d: 1.8, son: 'foin', p: 0, r: 3, h: 0.8 },
   sacs_avoine: { lab: 'Fouiller les sacs d’avoine', table: 'f2_grange_sacs', d: 1.2, son: 'grain', p: 0, r: 3, h: 0.6 },
   sellerie: { lab: 'Fouiller la sellerie', table: 'f2_sellerie', d: 1.4, son: 'cuir', p: 0.25, r: 3, h: 0.9 },
@@ -778,7 +781,14 @@ const fouilles = {
   },
   type(it) { return F2_TYPES[it.data.t] || F2_TYPES.malle; },
   table(it) { return it.data.table || this.type(it).table; },
-  refill(it) { return it.data.refill || this.type(it).r || 3; },
+  // (chez les disparus et les morts, personne ne regarnit les armoires : une semaine, au moins, avant qu'il y ait de
+  // nouveau quelque chose à prendre ; sinon, une tournée des maisons vides rapportait autant qu'un champ)
+  refill(it) {
+    const r = it.data.refill || this.type(it).r || 3;
+    if (it.data.cache) return r;
+    const own = it.data.own && npcs.byId ? npcs.byId[it.data.own] : null;
+    return it.data.lieu === 'abandon' || (own && !own.st.alive) ? Math.max(12, r * 4) : r;
+  },
   vide(it) {
     const S = this.S(), d = it.data;
     if (!S) return false;
