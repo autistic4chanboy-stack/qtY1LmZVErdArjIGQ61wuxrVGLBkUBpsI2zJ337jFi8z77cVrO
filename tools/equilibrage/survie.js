@@ -235,7 +235,10 @@ function mesurerBetes(G, log, echec) {
   const premier = moy(W.map((r) => (r.coups[0] ? r.coups[0].t : 120))), morts = W.filter((r) => r.mort !== null);
   const duree = moy(morts.map((r) => r.mort - r.coups[0].t));
   const dur1 = moy(W1.filter((r) => r.mort !== null).map((r) => r.mort - r.coups[0].t));
-  R.loups = { premier, duree, dur1, morts: morts.length / W.length, coup: moy(W.map((r) => moy(r.coups.map((c) => c.d)))), lanterne: moy(WL.map((r) => r.coups.length)) };
+  const dureeMin = Math.min(...morts.map((r) => r.mort - r.coups[0].t));
+  // la pire rafale : les PV perdus en 5 s, au pire moment, sur tous les essais
+  const rafale = Math.max(...W.map((r) => Math.max(0, ...r.coups.map((c0) => r.coups.filter((c) => c.t >= c0.t && c.t - c0.t < 5).reduce((s, c) => s + c.d, 0)))));
+  R.loups = { premier, duree, dureeMin, rafale, dur1, morts: morts.length / W.length, coup: moy(W.map((r) => moy(r.coups.map((c) => c.d)))), lanterne: moy(WL.map((r) => r.coups.length)) };
   // --- l'ours et le sanglier en furie (on s'est trop approché) : ce qu'une charge coûte, en pleine santé
   const furie = (kind, o) => {
     G.nouvelle();
@@ -257,7 +260,7 @@ function mesurerBetes(G, log, echec) {
   R.vipere = { pv: 100 - rv.hp, morsures: rv.coups.length };
   const T = G.CHASSE_DANGER;
   tableau(log, ['menace', 'avant le 1er coup', 'coup', 'PV perdus', 'mort (100 PV)', 'remarque'], [
-    ['3 loups, sans lumière', f1(R.loups.premier) + ' s', f0(R.loups.coup), '—', pc(R.loups.morts), `mort ${f1(R.loups.duree)} s après la 1re morsure (un seul loup : ${f1(R.loups.dur1)} s)`],
+    ['3 loups, sans lumière', f1(R.loups.premier) + ' s', f0(R.loups.coup), '—', pc(R.loups.morts), `mort ${f1(R.loups.duree)} s après la 1re morsure (au plus vite ${f1(R.loups.dureeMin)} s ; pire rafale : ${f0(R.loups.rafale)} PV en 5 s ; un seul loup : ${f1(R.loups.dur1)} s)`],
     ['3 loups, lanterne allumée', '—', '—', '—', '—', `${f1(R.loups.lanterne)} morsure(s) : ils n’approchent pas`],
     ['ours en furie', f1(R.ours.t1) + ' s', `${T.bear.degats[0]}–${T.bear.degats[1]}`, f0(R.ours.pv), pc(R.ours.mort), `${f1(R.ours.coups)} coups ; faire le mort : ${f0(R.ours.pvMort)} PV, ${pc(R.ours.mortMort)}`],
     ['sanglier en furie', f1(R.sanglier.t1) + ' s', `${T.boar.degats[0]}–${T.boar.degats[1]}`, f0(R.sanglier.pv), pc(R.sanglier.mort), `${f1(R.sanglier.coups)} coups ; faire le mort : ${f0(R.sanglier.pvMort)} PV`],
@@ -269,7 +272,8 @@ function mesurerBetes(G, log, echec) {
   // mourir d'une meute sans lumière) ; aucun premier coup ne tue en pleine santé ; la lanterne éloigne les loups ;
   // une furie d'ours tue parfois (un tiers au plus), un sanglier presque jamais ; faire le mort aide
   if (R.loups.premier < 3) echec(`les loups mordent ${f1(R.loups.premier)} s après vous avoir repéré (cible : 3 s au moins)`);
-  if (R.loups.duree < 10) echec(`une meute tue en ${f1(R.loups.duree)} s après la première morsure (cible : 10 s au moins, le temps d’allumer la lanterne ou de fuir à l’abri)`);
+  if (R.loups.dureeMin < 10) echec(`une meute tue en ${f1(R.loups.dureeMin)} s après la première morsure, au pire (cible : 10 s au moins, le temps d’allumer la lanterne ou de fuir à l’abri)`);
+  if (R.loups.rafale > 50) echec(`une meute peut prendre ${f0(R.loups.rafale)} PV en 5 s (cible : 50 au plus, pas de curée d’un coup)`);
   if (R.loups.lanterne > 0.5) echec('la lanterne allumée n’éloigne plus les loups');
   if (R.ours.max1 >= 100 || R.sanglier.max1 >= 100) echec('un premier coup tue quelqu’un en pleine santé');
   if (!(R.ours.mort > 0.05 && R.ours.mort <= 0.35)) echec(`une furie d’ours tue ${pc(R.ours.mort)} du temps en pleine santé (cible : 5 à 35 %)`);
