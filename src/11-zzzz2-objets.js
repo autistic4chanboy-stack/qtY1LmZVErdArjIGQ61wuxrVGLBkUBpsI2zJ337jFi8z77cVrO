@@ -260,7 +260,7 @@ const OBJ_PLAINTES = {
   volDehors: ['On m’a pris des choses devant chez moi. On ne peut même plus laisser un seau dehors.', 'Il manque des affaires, devant la maison. Hier soir, elles y étaient.'],
 };
 const OBJ_PENSEES = {
-  tier: '(Le fer résiste : il faudrait au moins une pioche de fer.)',
+  tier: '(Le fer résiste : il faudrait au moins une pioche {t}.)',
   machine: '(Quelque chose travaille encore là-dedans. Mieux vaut attendre que ce soit fini.)',
   porteOutil: '(Une porte, ça s’enfonce à la hache.)',
   porteCede: '(La porte cède dans un craquement. La serrure pend, arrachée.)',
@@ -665,7 +665,8 @@ const objets = {
     }
     if (P.casse.opt.tier && kind === 'pioche' && tier < P.casse.opt.tier) {
       puffAt(x, y, z, M.col, 4, 1.4, true); sound.objetCoup && sound.objetCoup(P.casse.mat, 0.6);
-      this.pense('tier', OBJ_PENSEES.tier);
+      const tn = (typeof TIERS !== 'undefined' && TIER_NAMES[TIERS[P.casse.opt.tier]]) || 'de fer';
+      this.pense('tier', OBJ_PENSEES.tier.replace('{t}', tn.replace("'", '’')));
       return true;
     }
     if (q.data && q.data.m && MACHINES[q.id]) { sound.impact && sound.impact('soft'); this.pense('machine', OBJ_PENSEES.machine); return true; }
