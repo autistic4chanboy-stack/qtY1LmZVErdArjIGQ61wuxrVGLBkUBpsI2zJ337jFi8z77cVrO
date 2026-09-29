@@ -114,8 +114,9 @@ const CROPS = {
   melon: { name: 'Melon', h: 32, regrow: 0, yield: [1, 1], frost: true, col: '#7ab050' },
   citrouille: { name: 'Citrouille', h: 40, regrow: 0, yield: [1, 1], frost: true, col: '#e88a20' },
 };
-// prix de revente : 3 à 6 pièces de marge par case et par jour, graines déduites (équilibrage, tools/equilibrage/commerce.js)
-const CROP_PRICE = { radis: 3, ble: 2, carotte: 6, lin: 3, patate: 3, betterave: 7, haricot: 1, fraise: 2, tournesol: 5, chou: 19, tomate: 2, mais: 2, melon: 32, citrouille: 36 };
+// prix de revente : 2 à 8 pièces de marge par case et par jour, graines et engrais déduits (équilibrage,
+// tools/equilibrage/commerce.js ; la terre humide deux jours a fait baisser chou et melon : 19 → 18, 32 → 30)
+const CROP_PRICE = { radis: 3, ble: 2, carotte: 6, lin: 3, patate: 3, betterave: 7, haricot: 1, fraise: 2, tournesol: 5, chou: 18, tomate: 2, mais: 2, melon: 30, citrouille: 36 };
 const SEED_PRICE = { radis: 3, ble: 3, carotte: 5, lin: 3, patate: 7, betterave: 6, haricot: 9, fraise: 16, tournesol: 10, chou: 14, tomate: 12, mais: 12, melon: 25, citrouille: 30 };
 for (const id in CROPS) {
   const c = CROPS[id];

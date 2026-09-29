@@ -367,8 +367,10 @@ const play = {
     else if (ITEMS['graines_' + c.c] && Math.random() < (C.regrow ? 0.05 : 0.12)) farm.give('graines_' + c.c, 1); // quelques graines reviennent
     if (item === 'mandragore') { sound.scream2 && sound.scream2(); ui.subtitle('', '(La racine hurle en sortant de terre. Puis plus rien.)', 3.5); strange.glitchT = Math.max(strange.glitchT || 0, 0.3); }
     farm.s.stats.crops += n;
+    // le coup de pouce de l'engrais vaut jusqu'à la récolte, que la plante repousse ou non
+    c.fert = 0;
     if (C.regrow) c.g = C.h - C.regrow;
-    else { c.c = null; c.g = 0; c.fert = 0; delete c.vr; delete c.big; }
+    else { c.c = null; c.g = 0; delete c.vr; delete c.big; }
     c.st = -1;
     farm.dirtyProps = true;
     if (!silent) sound.pop();

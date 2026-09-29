@@ -24,8 +24,8 @@ defItem('caisse_vivres', 'Caisse de vivres', 'nourriture', 0, ['objet', 'coffre'
 defItem('corde', 'Corde', 'materiau', 1, ['fibre', '#b89060']);
 defItem('toile', 'Toile de lin', 'materiau', 1, ['cuir', '#e4dcc4']);
 defItem('farine', 'Farine', 'materiau', 3, ['sac', '#f2eee2']);
-defItem('engrais', 'Engrais', 'materiau', 1, ['sac', '#5a4a30'], { fert: 1, desc: 'Sur une culture : elle pousse une fois et demie plus vite. Une terre fatiguée par les récoltes y reprend des forces.' });
-defItem('engrais_riche', 'Engrais riche', 'materiau', 3, ['sac', '#2e2216'], { fert: 2, desc: 'Sur une culture : elle pousse deux fois plus vite. Une terre fatiguée par les récoltes y reprend des forces.' });
+defItem('engrais', 'Engrais', 'materiau', 1, ['sac', '#5a4a30'], { fert: 1, desc: 'Sur une culture : elle pousse une fois et demie plus vite, jusqu’à la récolte. Une terre fatiguée par les récoltes y reprend des forces.' });
+defItem('engrais_riche', 'Engrais riche', 'materiau', 3, ['sac', '#2e2216'], { fert: 2, desc: 'Sur une culture : elle pousse deux fois plus vite, jusqu’à la récolte. Une terre fatiguée par les récoltes y reprend des forces.' });
 // produits transformés
 defItem('cidre', 'Cidre', 'nourriture', 4, ['bouteille', '#d8a040'], { food: 8, heal: 6 });
 defItem('vin', 'Vin de fruits', 'nourriture', 5, ['bouteille', '#8a2040'], { food: 6, heal: 4 });
@@ -174,7 +174,7 @@ PREY.deer.drop.push(['sac_graines', 0, 1, 0.1]);
     // graines en tête, des moins chères aux plus chères
     const isSeed = (e) => e[0].startsWith('graines_');
     G.shop.sells.sort((a, b) => (isSeed(b) - isSeed(a)) || (isSeed(a) ? a[1] - b[1] : 0));
-    G.shop.sells.push(['engrais', 10], ['arroseur', 180], ['composteur', 90]);
+    G.shop.sells.push(['engrais', 2], ['arroseur', 180], ['composteur', 90]);
   }
   const F = S('forgeron');
   if (F && F.shop) { F.shop.sells.push(['arrosoir_cuivre', 240], ['houe_fer', 320], ['fleche_fer', 12]); F.shop.buys.push('geode', 'croc', 'defense'); }

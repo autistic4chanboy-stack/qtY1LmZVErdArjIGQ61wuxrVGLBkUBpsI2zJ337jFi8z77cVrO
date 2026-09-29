@@ -75,7 +75,7 @@ const CROPS_MORE = {
     v: [['Rouge', '#e02020', 3], ['Blanche', '#f0e8c8', 1]] },
   cassis: { n: 'Cassis', h: 28, re: 15, y: [2, 3], col: '#2a1a3a', t: 'buisson', p: { grappes: true, berry: 0.04, n: 6 }, ic: ['grappe', '#2a1a3a'], pr: 2, sp: 14, g: 'fruit', sn: 'Boutures de cassissier' },
   myrtille: { n: 'Myrtilles', h: 28, re: 15, y: [2, 3], col: '#3a4aa0', t: 'buisson', p: { low: true, berry: 0.04, n: 14 }, ic: ['baie', '#3a4aa0'], pr: 2, sp: 16, g: 'fruit', sn: 'Plants de myrtillier' },
-  raisin: { n: 'Raisin', h: 40, re: 24, y: [2, 3], col: '#4a2a5a', t: 'treille', p: { grapes: true }, ic: ['raisin', '#4a2a5a'], pr: 4, sp: 22, g: 'fruit', sn: 'Pieds de vigne',
+  raisin: { n: 'Raisin', h: 40, re: 28, y: [2, 3], col: '#4a2a5a', t: 'treille', p: { grapes: true }, ic: ['raisin', '#4a2a5a'], pr: 4, sp: 22, g: 'fruit', sn: 'Pieds de vigne',
     v: [['Pinot noir', '#4a2a5a', 3], ['Chardonnay', '#c8d070', 2], ['Muscat rosé', '#c87090', 1]] },
   // ---- aromates et plantes médicinales
   basilic: { n: 'Basilic', h: 12, re: 12, y: [1, 2], col: '#3a9a3a', t: 'aromate', p: { h: 0.35, big: true }, ic: ['herbe', '#3a9a3a'], pr: 3, sp: 5, g: 'aromate',
