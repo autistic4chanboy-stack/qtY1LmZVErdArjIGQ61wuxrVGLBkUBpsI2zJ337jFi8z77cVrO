@@ -688,10 +688,11 @@ const game = {
     if (where === 'dehors' && !w.covered(...p.eyePos()) && strange.killerActive() && !BUFF.on('pacte_nuit') && Math.random() < 0.5) { this.sleeping = false; this.die('Endormi dehors, une nuit où l’on ne dort pas dehors'); return; }
     const hBefore = npcs.hour();
     this.killerNight = this.killerNight || (strange.killerActive() && !strange.s.red);
-    this.skipHours(((0.25 - w.time + 1) % 1) * 24);
+    const hNuit = ((0.25 - w.time + 1) % 1) * 24;
+    this.skipHours(hNuit);
     w.time = 0.25; this.dayStart();
     this.lastT = w.time;
-    p.hp = Math.min(100, p.hp + 40); p.food = Math.max(0, p.food - 18); p.stamina = 1;
+    play.nuit(hNuit); // le corps pendant la nuit : la faim, la vie (11-farm-play.js)
     if (where === 'auberge') s.flags.rented = 0;
     npcs.snap(w);
     for (const e of entities.list) if (e.owner && e.shelter) { e.x = e.shelter.x + (Math.random() - 0.5) * 3; e.z = e.shelter.z + (Math.random() - 0.5) * 3; e.y = entities.groundY(w, e, e.x, e.z); e.state = 'idle'; }

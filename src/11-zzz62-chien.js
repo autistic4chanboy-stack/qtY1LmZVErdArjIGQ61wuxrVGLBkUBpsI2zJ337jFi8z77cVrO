@@ -116,14 +116,14 @@ const chien = {
     s.dog.love = (s.dog.love || 0) + 1;
     const first = C.nourriJour !== s.day;
     C.nourriJour = s.day;
-    esprit.changer(main ? (first ? 1.5 : 0.4) : (first ? 0.8 : 0.2), 'chien nourri', 3);
+    esprit.changer(main ? (first ? 0.8 : 0.2) : (first ? 0.5 : 0.1), 'chien nourri', 1.2);
   },
   caresser(e) {
     const s = farm.s, C = this.C(), nom = this.nom(), st = this.stade();
     if (e) { e.wag = st < 2; e.lookY = 0; }
     sound.bark && sound.bark(0.35);
     s.dog.love = (s.dog.love || 0) + 1;
-    if (s.hours - (C.caresse ?? -99) > 2) esprit.changer(st >= 1 ? 0.3 : 0.7, 'caresser le chien', 2.1);
+    if (s.hours - (C.caresse ?? -99) > 2) esprit.changer(st >= 1 ? 0.2 : 0.4, 'caresser le chien', 0.8);
     C.caresse = s.hours;
     ui.subtitle('', st >= 2 ? `(${nom} se laisse faire. Sous la main, on sent les côtes.)` : st === 1 ? `(${nom} se laisse gratter, mais son ventre gargouille.)` : pick([`(${nom} remue la queue et vous pousse la main du museau.)`, `(${nom} se roule dans l’herbe, les pattes en l’air.)`, `(${nom} pose la tête sur votre genou et ferme les yeux.)`]), 3);
   },

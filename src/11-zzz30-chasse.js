@@ -870,6 +870,8 @@ const chasse = {
       F.coups++;
       const [a, b] = T.degats;
       let dmg = a + Math.random() * (b - a);
+      // faire le mort : accroupi et immobile AVANT le coup (le coup, lui, vous projette)
+      const pj = game.player, immobile = !n && c.crouch && Math.hypot(pj.vel[0], pj.vel[2]) < 0.3;
       if (n) {
         npcs.hurt(n, dmg * 1.2, e.kind === 'bear' ? 'ours' : 'sanglier');
         if (n.st.alive) npcs.say(n, pick(['Aaah ! À l’aide !', 'Recule ! Recule, sale bête !', 'Mon Dieu !']), 2);
@@ -884,7 +886,6 @@ const chasse = {
       this.sonGrogne(e, true);
       // puis la bête rompt, le plus souvent
       let pFin = F.coups >= T.coupsMax ? 1 : F.coups === 1 ? 0.3 : 0.55;
-      const p = game.player, immobile = !n && c.crouch && Math.hypot(p.vel[0], p.vel[2]) < 0.3;
       if (immobile) pFin = Math.max(pFin, 0.75); // faire le mort
       if (Math.random() < pFin) F.fin = 1 + Math.random();
       if (e.kind === 'boar' && F.fin < 0) F.passe = 1.4;
@@ -1073,7 +1074,8 @@ const chasse = {
       if (!(p.crouch > 0.5 || this.immobileT > 4)) continue;
       if (!this.ligneDeVue([n.x, n.y + 1.6, n.z], [p.pos[0], p.pos[1] + 0.9, p.pos[2]])) continue;
       const h = npcs.hour();
-      let P = (1 / 700) * (p.crouch > 0.5 ? 1.4 : 1) * (h < 7.5 || h > 17.5 ? 1.5 : 1);
+      // 3,5 % par heure de jeu passée tapi à portée (quel que soit le temps réel d'une journée)
+      let P = 0.035 / (JOUR_SECONDES / 24) * (p.crouch > 0.5 ? 1.4 : 1) * (h < 7.5 || h > 17.5 ? 1.5 : 1);
       if (this.hasard !== null) P = this.hasard;
       if (Math.random() < P) { this.debutAccident(n); return; }
     }

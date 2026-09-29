@@ -15,7 +15,9 @@
 // ============================================================================
 const ESPRIT_DEPART = 80;
 const ESPRIT_BAISSE_JOUR = 28; // au plus, par jour de jeu (toutes raisons confondues)
-const ESPRIT_HAUSSE_JOUR = 20;
+// une journée ordinaire (sommeil, soleil, repas, chien) rapporte environ +6 ; les méfaits la font glisser ; on remonte
+// de 30 à 60 en trois à cinq jours (tools/equilibrage/survie.js, « la mentalité ») : au plus +12 par jour
+const ESPRIT_HAUSSE_JOUR = 12;
 
 const ESPRIT_PENSEES = {
   haut: [
@@ -152,7 +154,7 @@ const esprit = {
     if (dh) {
       const pluie = typeof vallee !== 'undefined' && vallee.rainK !== undefined ? vallee.rainK : weather.cur.rain;
       // la journée au soleil
-      if (sky.day > 0.55 && !cov && !env && !red && pluie < 0.35) this.changer(0.35 * dh, 'soleil', 4);
+      if (sky.day > 0.55 && !cov && !env && !red && pluie < 0.35) this.changer(0.2 * dh, 'soleil', 2);
       // la nuit dehors, loin des lumières
       if (sky.night > 0.55 && !cov && !env && !this.presLumiere(eye)) {
         const lant = game.lantern && farm.count('lanterne');
@@ -291,10 +293,10 @@ const esprit = {
   reveil(where, v0, food0, h0) {
     const s = farm.s, p = game.player;
     const lit = where === 'ferme' || where === 'auberge';
-    let bonus = where === 'ferme' ? 4 : where === 'auberge' ? 3 : -1;
+    let bonus = where === 'ferme' ? 2 : where === 'auberge' ? 1.5 : -1;
     let txt = null;
     const agite = v0 < 35 && Math.random() < 0.35 + (35 - v0) / 50;
-    if (agite) { bonus = lit ? 0.8 : -1.5; p.hp = Math.max(1, p.hp - 14); p.stamina = Math.min(p.stamina, 0.6); txt = pick(ESPRIT_PENSEES.agite); }
+    if (agite) { bonus = lit ? 0.5 : -1.5; p.hp = Math.max(1, p.hp - 14); p.stamina = Math.min(p.stamina, 0.6); txt = pick(ESPRIT_PENSEES.agite); }
     else if (food0 < 12) { bonus *= 0.5; txt = ESPRIT_PENSEES.ventre_vide; }
     else if (lit && v0 >= 60 && Math.random() < 0.25) txt = pick(ESPRIT_PENSEES.repose);
     if (typeof alcool !== 'undefined' && alcool.S() && alcool.S().g > 2.5) bonus = Math.min(bonus, 0.5);

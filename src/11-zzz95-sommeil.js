@@ -296,7 +296,8 @@ const sommeil = {
       game.skipHours(dh);
       w.time = (I.arrivee % 24) / 24; game.lastT = w.time;
       npcs.snap(w);
-      p.hp = Math.min(100, p.hp + 5 * dh); p.stamina = Math.max(p.stamina, 0.6);
+      const st0 = p.stamina;
+      play.nuit(dh); p.stamina = Math.max(st0, 0.6); // (le corps pendant ces quelques heures : la faim, la vie)
       this.reveille(dh * 1.5);
       $('#fade-text').textContent = '';
       await new Promise((r) => setTimeout(r, 700));
