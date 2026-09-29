@@ -341,8 +341,12 @@ const butin = {
   ouvrir(o) {
     o = o || {};
     if (!farm.s || typeof game === 'undefined' || !game.world) return false;
+    // (mourant, endormi, pendant une cinématique : pas maintenant ; ce qui est gardé attend)
+    if (game.dying || game.sleeping || (typeof cine !== 'undefined' && cine.on)) return false;
     const B = this.S();
-    let C = o.contenu || (o.cle && B.c[o.cle] && B.c[o.cle].src === 'ext' ? B.c[o.cle] : null);
+    // une clé déjà connue : son contenu gardé compte (même si « objets » est redonné) ; butin.oublier(cle) pour repartir de zéro
+    const garde = !o.contenu && o.cle && B.c[o.cle] && B.c[o.cle].src === 'ext' ? B.c[o.cle] : null;
+    let C = o.contenu || garde;
     if (!C) {
       const L = typeof o.objets === 'function' ? o.objets() : o.objets;
       C = { src: 'ext', j: farm.s.day, o: this.nettoyer(L), pap: o.papier || null };
@@ -357,7 +361,7 @@ const butin = {
     }
     if (this.sess) ui.close(true);
     if (this.sess) this.clore();
-    const S = { o, C, pris: [], sel: 0, k: 0, kPour: null, vus: [], cri: null, vol: false, agi: false, attrape: false, papier: null, premier: false };
+    const S = { o, C, pris: [], sel: 0, k: 0, kPour: null, vus: [], cri: null, vol: false, agi: false, attrape: false, papier: null, premier: false, videAvant: !!garde && !this.plein(garde) };
     this.sess = S;
     try { this.ouvertureSociale(S); } catch (e) { console.error('butin', e); }
     if (this.sess !== S) return false;
@@ -450,7 +454,7 @@ const butin = {
     if (e.k === 'argent') { farm.earn(n); sound.coin && sound.coin(); } else { farm.give(e.k, n); sound.pop && sound.pop(); }
     S.pris.push([e.k, n]);
     const B = this.S(); B.n = (B.n || 0) + n;
-    if (S.vol && S.vivant && S.own) fouilles.marquer([[e.k, n]], S.own.id, S.T);
+    if (e.k !== 'argent' && S.vol && S.vivant && S.own) fouilles.marquer([[e.k, n]], S.own.id, S.T); // (les objets pris chez quelqu'un se reconnaissent)
     if (S.o.onPris) try { S.o.onPris(e.k, n); } catch (err) { console.error(err); }
   },
   apres(S) {
@@ -490,7 +494,7 @@ const butin = {
   // ------------------------------------------------------------------ le panneau
   htmlListe(S) {
     const E = this.entrees(S);
-    if (!E.length) return `<p class="bu-vide">${S.pris.length ? '(Il n’y a plus rien.)' : '(Rien qui vaille la peine. Des miettes, de la poussière.)'}</p>`;
+    if (!E.length) return `<p class="bu-vide">${S.pris.length || S.videAvant ? '(Il n’y a plus rien.)' : '(Rien qui vaille la peine. Des miettes, de la poussière.)'}</p>`;
     S.sel = clamp(S.sel, 0, E.length - 1);
     return E.map((e, j) => `<button class="row bu-it${j === S.sel ? ' on' : ''}" data-bu="${j}"><kbd>${j < 9 ? j + 1 : ''}</kbd><img src="${this.iconeEntree(e)}" alt=""><span>${esc(this.nomEntree(e))}</span><i>${e.pap ? '' : e.k === 'argent' ? e.n : '×' + e.n}</i></button>`).join('');
   },
@@ -547,7 +551,7 @@ const butin = {
     const moins = inf.querySelector('[data-q="-"]'), plus = inf.querySelector('[data-q="+"]'), inp = inf.querySelector('.bu-n'), pr = inf.querySelector('[data-prendre]');
     if (moins) moins.onclick = () => this.quantite(-1);
     if (plus) plus.onclick = () => this.quantite(1);
-    if (inp) inp.oninput = () => { const e = this.entrees(S)[S.sel], v = parseInt(inp.value.replace(/\D/g, ''), 10); if (e && v > 0) S.k = clamp(v, 1, e.n); };
+    if (inp) { inp.oninput = () => { const e = this.entrees(S)[S.sel], v = parseInt(inp.value.replace(/\D/g, ''), 10); if (e && v > 0) S.k = clamp(v, 1, e.n); }; inp.onchange = () => { inp.value = S.k; }; }
     if (pr) pr.onclick = () => this.prendre(S.sel, S.k);
   },
   choisir(j) {
@@ -574,9 +578,12 @@ const butin = {
   },
   clavier(e) {
     const S = this.sess, c = e.code;
-    if (c === 'Escape') return; // (le jeu referme le panneau)
     const a = document.activeElement, saisie = !!(a && a.classList && a.classList.contains('bu-n'));
+    // Échap : le jeu referme le panneau (depuis la saisie aussi, d'un seul coup)
+    if (c === 'Escape') { if (saisie) { e.preventDefault(); e.stopImmediatePropagation(); a.blur(); ui.close(); } return; }
     if (saisie && /^(Digit|Numpad)[0-9]$|^Backspace$|^Delete$|^Tab$/.test(c)) return;
+    // (un bouton du panneau qui a gardé le focus ne doit pas se déclencher en plus : Espace, Entrée)
+    if (a && a.tagName === 'BUTTON' && a.closest && a.closest('#butin')) a.blur();
     let fait = true;
     if (c === 'KeyE') { if (!e.repeat) { this.eFerme = true; ui.close(); } }
     else if (c === 'ArrowDown') this.choisir(S.sel + 1);
@@ -744,11 +751,13 @@ const butin = {
     const v = document.createElement('div'); v.className = 'bu-voile'; v.onclick = () => this.fermerEncart();
     const d = document.createElement('div'); d.className = 'bu-encart';
     el.appendChild(v); el.appendChild(d);
-    const it = ITEMS[E.id], cat = ITEM_CAT_NAMES[it.cat] || '', rs = this.raison(E), n = farm.count(E.id);
+    const it = ITEMS[E.id], cat = ITEM_CAT_NAMES[it.cat] || '', rs = this.raison(E), s = farm.s;
+    // (une bête : on compte celles de la ferme, et celles qu'on attend)
+    const n = it.animal ? s.animals.filter((a) => a.kind === it.animal).length + s.pending.filter((q) => q.kind === it.animal).length : farm.count(E.id);
     d.innerHTML = `<div class="bu-e-tete"><img src="${iconURL(E.id)}" alt=""><div><b>${esc(itemName(E.id))}</b>${cat ? `<small>${esc(cat)}</small>` : ''}</div></div>
       <p class="bu-e-desc">${esc(this.description(E.id))}</p>
       <div class="bu-e-l"><span>${E.achat ? 'Prix à l’unité' : 'Prix de reprise, à l’unité'}</span><b>${E.pr > 1 ? `${E.pr} pièces` : '1 pièce'}</b></div>
-      <div class="bu-e-l"><span>Dans votre sacoche</span><b>${n}</b></div>
+      <div class="bu-e-l"><span>${it.animal ? 'À la ferme' : 'Dans votre sacoche'}</span><b>${n}</b></div>
       <div class="bu-e-l"><span>Votre bourse</span><b>${farm.s.money > 1 ? `${farm.s.money} pièces` : `${farm.s.money} pièce`}</b></div>
       <div class="bu-e-qte"><span>Quantité</span><button class="bu-b sec" data-eq="-" title="Un de moins">−</button><input class="bu-e-n" type="text" inputmode="numeric" value="${E.k}"><button class="bu-b sec" data-eq="+" title="Un de plus">+</button><button class="bu-b sec" data-eq="max">Maximum (${E.max})</button></div>
       <div class="bu-e-total"><span>Total</span><b class="bu-e-tot"></b></div>
@@ -761,6 +770,7 @@ const butin = {
     d.querySelector('[data-econfirmer]').onclick = () => this.confirmerEncart();
     const inp = d.querySelector('.bu-e-n');
     inp.oninput = () => { const x = parseInt(inp.value.replace(/\D/g, ''), 10); E.k = clamp(x || 0, 0, E.max); this.totalEncart(); };
+    inp.onchange = () => { inp.value = E.k; };
     this.totalEncart();
     sound.page && sound.page();
   },
@@ -821,7 +831,7 @@ const butin = {
 #butin { width: min(660px, calc(100vw - 24px)); }
 #butin .tabs b .bu-chez { font-size: 13px; font-style: italic; color: #7a6a52; margin-left: 6px; }
 #butin .body { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; padding: 12px 16px 10px; min-height: 170px; }
-#butin .bu-liste { display: flex; flex-direction: column; gap: 4px; max-height: min(330px, 44vh); overflow-y: auto; scrollbar-width: thin; padding-right: 2px; }
+#butin .bu-liste { display: flex; flex-direction: column; gap: 4px; max-height: min(392px, 52vh); overflow-y: auto; scrollbar-width: thin; padding-right: 2px; }
 #butin .bu-it { margin: 0; cursor: pointer; }
 #butin .bu-it kbd { flex: none; min-width: 17px; padding: 0 3px; border: 1px solid rgba(90,70,40,.35); border-radius: 3px; font: 11px Georgia, serif; color: #7a5e3a; text-align: center; background: rgba(255,255,255,.3); }
 #butin .bu-it.on { border-color: #8a5a2a; background: rgba(255,228,165,.7); box-shadow: inset 3px 0 0 #8a5a2a; }
@@ -843,7 +853,7 @@ const butin = {
 .bu-b:disabled { opacity: .45; cursor: default; }
 #butin .bu-n, #shop .bu-e-n { width: 50px; padding: 4px 2px; text-align: center; font: 15px Georgia, serif; color: #2d2216; background: rgba(255,255,255,.65); border: 1px solid rgba(90,70,40,.4); border-radius: 3px; }
 #shop .row.bu-non { opacity: .5; }
-#shop .bu-voile { position: absolute; inset: 0; background: rgba(40,30,15,.3); z-index: 3; }
+#shop .bu-voile { position: absolute; inset: 0; background: rgba(40,30,15,.4); z-index: 3; }
 #shop .bu-encart { position: absolute; left: 50%; bottom: 50px; transform: translateX(-50%); width: min(440px, calc(100% - 28px)); z-index: 4; background: #efe6cf; border: 1px solid rgba(90,70,40,.45); border-radius: 4px; box-shadow: 0 12px 34px rgba(0,0,0,.45), inset 0 0 34px rgba(120,90,40,.18); padding: 14px 16px 12px; font-size: 14px; color: #33291d; }
 #shop .bu-e-tete { display: flex; gap: 10px; align-items: center; }
 #shop .bu-e-tete img { width: 40px; height: 40px; image-rendering: pixelated; flex: none; }
@@ -858,6 +868,12 @@ const butin = {
 #shop .bu-e-raison { margin: 6px 0 0; color: #9a3a2a; font-style: italic; font-size: 13px; }
 #shop .bu-e-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 #shop .bu-pied-aide { font-style: italic; }
+@media (max-width: 560px) {
+  #butin .body { grid-template-columns: 1fr; }
+  #butin .bu-info { border-left: 0; padding-left: 0; border-top: 1px dashed rgba(90,70,40,.3); padding-top: 10px; }
+  #butin .bu-liste { max-height: 30vh; }
+  #butin .bu-aide { display: none; }
+}
 `;
     document.head.appendChild(st);
   },
@@ -894,6 +910,13 @@ const butin = {
   dig.secretDig = function (q, c) { if (!butin.pret()) return _sd(q, c); const L = butin.capturer(() => _sd(q, c)); if (L.length) butin.coffreDeterre('tresor:' + q.id, q.x, q.z, L); };
   const _md = dig.mapDig.bind(dig);
   dig.mapDig = function (m, c) { if (!butin.pret()) return _md(m, c); const L = butin.capturer(() => _md(m, c)); if (L.length) butin.coffreDeterre('tresor:' + m.id, m.x, m.z, L); };
+  // les coffres enterrés des énigmes et des caches (houe, pelle) ; la terre remuée du jour, elle, donne d'un coup
+  const _du = play.digUp.bind(play);
+  play.digUp = function (it) {
+    if (!it || !it.data || it.data.daily || !butin.pret() || !farm.propByKind('coffre_enterre', [it.x, it.z], 2)) return _du(it);
+    const L = butin.capturer(() => _du(it));
+    if (L.length) butin.coffreDeterre('tresor:' + it.id, it.x, it.z, L);
+  };
   // le temple : « Prendre » ouvre le menu ; la malédiction tombe au premier objet pris, pas à l'ouverture
   const _tc = temple.coffre.bind(temple);
   temple.coffre = function (it) {
