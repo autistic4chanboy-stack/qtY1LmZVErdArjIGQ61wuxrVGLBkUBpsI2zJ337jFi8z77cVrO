@@ -301,8 +301,8 @@ function mesurerMilieux(G, log, echec) {
   // le froid de la montagne, la nuit, sans feu ni toit (vallee.update)
   p = G.nouvelle(); p.pos = [1500, 30, 1500]; p.food = 90;
   Object.assign(w, { designed: true, snowLine: 20, baseWater: 0 });
-  G.vallee.coldAcc = 0; G.vallee.coldMsg = 0;
-  t = 0; while (!G.mort && t < 1200) { G.vallee.update(dt, p.eyePos(), basis, nuit); t += dt; }
+  if (G.farm.s) G.farm.s.gel = { k: 0 };
+  t = 0; while (!G.mort && t < 1500) { G.vallee.update(dt, p.eyePos(), basis, nuit); t += dt; }
   const montagne = t; w.designed = false;
   // un jour de grand froid (neige dans toute la vallée), la nuit, dehors, sans feu (evNeige.update)
   const E = G.evenements;
@@ -327,14 +327,15 @@ function mesurerMilieux(G, log, echec) {
   const hj = (s) => `${f0(s)} s (${f1(s / H)} h de jeu)`;
   tableau(log, ['menace', 'jusqu’à la mort', 'remarque'], [
     ['noyade (sous l’eau)', hj(noyade), 'le souffle tient 25 s, puis la vie part vite'],
-    ['froid : montagne, la nuit', hj(montagne), 'sans feu ni toit ; la faim y vient deux fois plus vite'],
+    ['froid : montagne, la nuit', hj(montagne), 'on gèle petit à petit (le givre gagne l’écran), sans feu ni toit ; la faim y vient deux fois plus vite'],
     ['froid : jour de neige, la nuit', neige ? hj(neige) : '—', 'dehors, sans feu, sans manteau de fourrure'],
     ['grêle (toute l’averse dehors)', grele !== null ? `${f0(grele)} PV perdus` : '—', `l’averse dure ${dureeGrele} h de jeu`],
   ]);
   // cibles : l'eau tue vite (quelques dizaines de secondes) ; le froid tue petit à petit : quelques heures de jeu
   // pour trouver un feu, un toit ou redescendre ; la grêle blesse sans tuer
   if (!(noyade >= 20 && noyade <= 60)) echec(`noyade en ${f0(noyade)} s (cible : 20 à 60 s)`);
-  if (!(montagne / H >= 3 && montagne / H <= 8)) echec(`le froid de la montagne tue en ${f1(montagne / H)} h de jeu (cible : 3 à 8 h, le temps de trouver un feu ou un toit)`);
+  // (le gel de la montagne : quinze minutes réelles de grand froid, à la demande du joueur ; le jour de neige garde ses 3 à 8 h)
+  if (!(montagne >= 14 * 60 && montagne <= 16 * 60)) echec(`le froid de la montagne tue en ${f0(montagne / 60)} min réelles (cible : 15 min, on gèle petit à petit)`);
   if (neige !== null && !(neige / H >= 3 && neige / H <= 8)) echec(`le froid d’un jour de neige tue en ${f1(neige / H)} h de jeu (cible : 3 à 8 h)`);
   if (grele !== null && !(grele > 5 && grele <= 35)) echec(`une averse de grêle coûte ${f0(grele)} PV (cible : 5 à 35, elle blesse sans tuer)`);
 

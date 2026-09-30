@@ -95,7 +95,7 @@ SoundEngine.OISEAUX = {
   hauteurs: [['alouette', 1]],
 };
 // combien de fois un chanteur reprend sa phrase (de…, à…), et le silence entre deux reprises (s, en plus du chant)
-SoundEngine.PHRASES = { merle: [1, 3, 3.5], mesange: [1, 3, 2.5], pinson: [2, 4, 3], tourterelle: [1, 2, 2.5], coucou: [2, 5, 0.6], alouette: [0, 1, 1], moineau: [1, 2, 2], pic: [0, 1, 6] };
+SoundEngine.PHRASES = { merle: [1, 2, 4], mesange: [1, 2, 3], pinson: [1, 3, 3.5], tourterelle: [1, 2, 3], coucou: [1, 3, 1.2], alouette: [0, 1, 2], moineau: [1, 2, 2.5], pic: [0, 0, 6] };
 
 Object.assign(SoundEngine.prototype, {
   // ---------------------------------------------------------------- boucles placées
@@ -254,7 +254,7 @@ Object.assign(SoundEngine.prototype, {
         S.oiseauT = C.pause * (0.8 + R() * 0.5);
       } else {
         S.chanteur = null;
-        const base = bois ? 9 : biome === 'ville' ? 24 : biome === 'ferme' ? 14 : 17;
+        const base = bois ? 13 : biome === 'ville' ? 28 : biome === 'ferme' ? 18 : 22;
         S.oiseauT = base * (0.6 + R() * 0.9) * (aube ? 0.55 : 1) / Math.max(0.35, jour);
         // (un autre oiseau chante encore, ici ou une bête du bois : on attend qu'il se taise)
         if (peut && this.ctx && (this.oiseauxFin || 0) > this.ctx.currentTime + 0.3) S.oiseauT = 1.5 + R() * 2.5;

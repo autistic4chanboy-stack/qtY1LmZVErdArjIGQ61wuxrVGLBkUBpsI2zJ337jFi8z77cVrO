@@ -114,17 +114,14 @@ const vallee = {
     this.bolts = this.bolts.filter((b) => b.t > 0);
     // le feu
     this.fireUpdate(dt, eye, basis);
-    // le froid, là-haut
+    // le froid, là-haut : on gèle petit à petit (11-zzvallee0-gel.js) — un quart d'heure de grand froid, sans feu ni
+    // toit, et c'est la fin ; au chaud, le givre recule vite, et fond lentement ailleurs
     if (w.designed && alt > sl - 4 && !p.underground && !strange.inEnvers()) {
       p.food = Math.max(0, p.food - dt / w.dayLength * CORPS_JOUR.faim); // la faim vient deux fois plus vite
       const inside = w.covered(eye[0], eye[1], eye[2]), warm = inside || game.nearFire(p.pos) || this.fireNear > 0.6;
-      if ((sky.night > 0.5 || (this.snowK > 0.35 && alt > sl + 25)) && !warm) {
-        this.coldAcc += dt;
-        if (!this.coldMsg) { this.coldMsg = 1; ui.subtitle('', '(Le froid vous mord les doigts.)', 3.5); }
-        // 2 PV toutes les 4 s : 25 PV par heure de jeu, quatre heures sans feu ni toit pour en mourir
-        if (this.coldAcc > 4) { this.coldAcc = 0; const pn = strange.placeName(p.pos); play.hurt(2, null, 'Mort de froid' + (pn ? ' — ' + pn : ' en montagne')); }
-      } else this.coldAcc = 0;
-    } else { this.coldMsg = 0; this.coldAcc = 0; }
+      if ((sky.night > 0.5 || (this.snowK > 0.35 && alt > sl + 25)) && !warm) gel.geler(dt);
+      else gel.degeler(dt, warm);
+    } else gel.degeler(dt, p.underground || w.covered(eye[0], eye[1], eye[2]) || game.nearFire(p.pos));
     // pêche sous la glace
     const F = this.fish;
     if (F) {

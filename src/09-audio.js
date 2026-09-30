@@ -823,7 +823,7 @@ SoundEngine.TAMPONS = {
   }],
 };
 // volumes de base des pas (crête)
-SoundEngine.PAS = { herbe: 0.036, terre: 0.042, pierre: 0.07, bois: 0.03, eau: 0.042, neige: 0.036 };
+SoundEngine.PAS = { herbe: 0.028, terre: 0.034, pierre: 0.066, bois: 0.025, eau: 0.038, neige: 0.03 };
 
 Object.assign(SoundEngine.prototype, {
   // un tampon de la bibliothèque (variantes gardées : n par sorte)
