@@ -1612,7 +1612,8 @@ function planDessous(G, DB) {
     const inter = w.inter.filter((it) => isFinite(it.x) && (/^sout_/.test(it.kind) || ((it.y < SOUT_TOP || it.y < w.heightAt(it.x, it.z) - 3) && reg(it.x, it.z)))).map((it) => [it.kind, it.id, it.name || '', r1(it.x), r1(it.y), r1(it.z), String((it.data && (it.data.ins || it.data.k || it.data.table || it.data.n)) ?? '')]);
     const lm = Object.values(w.lm).filter((L) => L.souterrain || /^sout_/.test(L.key) || (L.under && reg(L.x, L.z))).map((L) => [L.key, L.name, r1(L.x), r1(L.z), r1(L.y || 0), L.r || 6, L.souterrain ? 1 : 0]);
     const V = w.soutVillage, pt = (a) => (a ? [r1(a[0]), r1(a[1])] : null);
-    const village = V ? { c: V.c ? [r1(V.c[0]), r1(V.c[1])] : null, appel: pt(V.appel), garde: pt(V.garde), entree: pt(V.entree), encoches: V.encoches ? [r1(V.encoches.x), r1(V.encoches.z)] : null, rive: pt(V.rive), planches: (V.planches || []).map(pt), claies: (V.claies || []).map(pt), huttes: (V.huttes || []).map((H) => [r1(H.x), r1(H.z)]) } : null;
+    // (le centre et la pierre d'appel sont rangés x, y, z ; le reste x, z)
+    const village = V ? { c: V.c ? [r1(V.c[0]), r1(V.c[2])] : null, appel: V.appel ? [r1(V.appel[0]), r1(V.appel[2])] : null, garde: pt(V.garde), entree: pt(V.entree), encoches: V.encoches ? [r1(V.encoches.x), r1(V.encoches.z)] : null, rive: pt(V.rive), planches: (V.planches || []).map(pt), claies: (V.claies || []).map(pt), huttes: (V.huttes || []).map((H) => [r1(H.x), r1(H.z)]) } : null;
     const X = w.soutSecrets || {}, Rt = w.soutRetours || {};
     return {
       salles: SOUT_PLAN.salles.map((s) => [s[0], s[1], s[2], s[3], s[4]]), lacs: SOUT_PLAN.lacs.map((s) => [s[0], s[1], s[2], s[3], s[4]]), riviere: SOUT_PLAN.riviere, gouffres: SOUT_PLAN.gouffres,
@@ -3925,7 +3926,7 @@ function buildWiki(DB) {
     P('cat:commandes', { t: 'Commandes et mécaniques', s: 'Touches et gestes', c: [], i: '⌨', h });
   }
 
-  return { pages: [...pages.values()], cats, other, used: [...used], SAFE_INTER, safeInter, VIE_MAP };
+  return { pages: [...pages.values()], cats, other, used: [...used], SAFE_INTER, safeInter, VIE_MAP, ids: new Set(pages.keys()), titles: Object.fromEntries([...pages.values()].map((p) => [p.id, p.t])), C2T: typeof C2T === 'undefined' ? {} : C2T };
 }
 
 // ---------------------------------------------------------------- les données de la carte (pour la page)
@@ -3942,7 +3943,8 @@ function buildMapData(DB, wiki) {
   const homes = {};
   for (const d of NPCS) for (const b of uniq([d.home, d.work].filter(Boolean))) (homes[b] || (homes[b] = [])).push([d.id, `${(d.names || [])[0] || ''} ${d.surname || ''}`.trim(), d.home === b ? 1 : 0, d.role || '']);
   const SAFE = wiki.SAFE_INTER;
-  const poi = (W.inter || []).map((it) => [it.kind, it.name || it.kind, it.x, it.z, (wiki.safeInter ? wiki.safeInter(it) : SAFE.has(it.kind)) ? 0 : 1, it.data ? String(it.data.table || it.data.ins || it.data.kind || it.data.sigle || it.data.faith || it.data.key || '') : '']);
+  // (ce qui est à cent mètres sous la vallée — le Dessous, les mondes à part — va sur leurs plans, pas sur celle-ci)
+  const poi = (W.inter || []).filter((it) => !(it.y < -40)).map((it) => [it.kind, it.name || it.kind, it.x, it.z, (wiki.safeInter ? wiki.safeInter(it) : SAFE.has(it.kind)) ? 0 : 1, it.data ? String(it.data.table || it.data.ins || it.data.kind || it.data.sigle || it.data.faith || it.data.key || '') : '']);
   const spawns = {};
   for (const t of OT) if (t.animal && t.animal !== 'villager') (spawns[t.animal] || (spawns[t.animal] = [])).push(t.id);
   const spNames = {};
@@ -3954,7 +3956,11 @@ function buildMapData(DB, wiki) {
     size: W.size, wl: W.waterLevel, knots: W.altKnots, shadeFlat: W.shadeFlat, snow: W.snowLine,
     grids: { ground: W.ground, shade: W.shade, alt: W.alt, forest: W.forest, milieu: W.milieu },
     mats: (DB.derived.mats || []).map((m) => [m.id, m.avg]), milieux: (W.milieuKeys || []).map((k) => [k, HAB[k] || k]),
-    lm: (W.lm || []).map((L) => [L.key, L.name, L.x, L.z, L.r, (L.secret ? 1 : 0) | (L.under ? 2 : 0), L.fish || '', L.y]),
+    // (drapeaux : 1 secret, 2 sous terre, 4 un lieu perdu, 8 un village des deux peuples)
+    lm: (W.lm || []).filter((L) => !L.souterrain).map((L) => [L.key, L.name, L.x, L.z, L.r, (L.secret ? 1 : 0) | (L.under ? 2 : 0) | (L.c2 ? 4 : 0) | (L.peuple ? 8 : 0), L.fish || '', L.y]),
+    // les lieux perdus : [lieu-dit, sorte] ; les sortes : [nom, signe, fiche]
+    c2: (W.lm || []).filter((L) => L.c2).map((L) => [L.key, L.c2]), c2t: wiki.C2T || {},
+    peuples: (W.lm || []).filter((L) => L.peuple).map((L) => [L.key, L.peuple, 'peuple:' + L.peuple]),
     bld: (W.bld || []).map((B) => [B.key, /^vide\d*$/.test(B.name) ? 'maison vide' : B.name, B.x, B.z, B.under ? 1 : 0]),
     homes, nav: W.nav, poi, props: (W.props || []).filter((p) => PROP_LABELS[p[0]]).map((p) => [p[0], p[1], p[2]]), propLabels: PROP_LABELS,
     fish: W.fishZones || [], fishBy, eaux: EAUX, lakes: W.lakes || [], pools: W.pools || [], moat: W.moat, bridges: W.bridges || [], crevasses: W.crevasses || [],
@@ -3962,6 +3968,131 @@ function buildMapData(DB, wiki) {
     vie: wiki.VIE_MAP || null,
     blocks: W.blocks, species: W.species, spawns, spNames, sigils: Object.fromEntries(Object.entries(SIGT).map(([k, v]) => [k, (v && v.titre) || k])),
   };
+}
+
+// ---------------------------------------------------------------- les plans (le Dessous, les autres mondes) : leur image et leurs repères
+// Un repère : { l: couche, x, z (mètres), t: nom, s: sous-titre, p: fiche, i: signe, c: couleur, k: 'zone' | 'pt' | 'dot' | 'fl',
+// r: rayon (zone), a: angle (flèche), x2: secret }. Les couches : [clé, nom, secrète, allumée].
+const PLAN_DECORS = {
+  'ENF.pont': ['le gué d’os', '═'], 'ENF.pupitre': ['le registre du Recenseur', '▤'], 'ENF.table': ['la table servie', '▭'], 'ENF.puits': ['le puits des noms', '◎'], 'ENF.porte': ['la Porte noire', '▮'], 'ENF.autel': ['l’autel devant la Porte', '▬'],
+  'CM.lit': ['le lit', '▭'], 'CM.table': ['la table, et la lettre du notaire', '✉'], 'CM.chaiseEnvers': ['la chaise, au plafond', '⊥'], 'CM.berceuse': ['la berceuse qui se balance', '◡'], 'CM.portrait': ['le portrait sans visage', '▢'], 'CM.cheminee': ['la cheminée', '▦'], 'CM.fenetre': ['la fenêtre rouge', '▯'], 'CM.poupee': ['la poupée', '•'], 'CM.armoire': ['l’armoire qui s’ouvre', '▮'], 'CM.dessin': ['le dessin d’enfant', '✎'], 'CM.issue': ['l’issue : une porte de lumière', '☼'],
+  'BB.herse': ['la porte du château', '⌂'], 'BB.trone': ['le trône du roi de sucre', '♛'], 'BB.fontaine': ['la fontaine', '◎'], 'BB.bonbonTable': ['une table de bonbons', '▭'],
+  'TNM.autel': ['l’autel', '▬'], 'TNM.coeur': ['le cœur noir', '♥'], 'TNM.gibet': ['le gibet', '⊓'], 'TNM.cle': ['la clé des cages', '⚷'],
+};
+const PLAN_ZONES = {
+  enfers: [['ENF.lave', 'le fleuve de braise'], ['@depart', 'la grève de cendre'], ['ENF.stele', 'le champ des âmes', 'betes:ame'], ['ENF.porte', 'la Porte noire']],
+  cauchemar: [['@L:maison', 'la maison-souvenir'], ['@L:couloir', 'le couloir qui ne finit pas'], ['@L:issue', 'l’issue']],
+  bonbons: [['BB.trone', 'le château de dragées'], ['BB.cheminee', 'les maisons de pain d’épice'], ['BB.pave', 'le sentier de dragées']],
+  tenebres: [['TNM.vitrail', 'la cathédrale'], ['TNM.cage', 'les cages']],
+};
+function buildPlansData(DB, wiki) {
+  const T = (n, d) => (DB.tables[n] ? DB.tables[n].v : d), has = (id) => wiki.ids.has(id), pg = (id, alt) => (has(id) ? id : alt && has(alt) ? alt : '');
+  const ITEMS = T('ITEMS', {}), r1 = (v) => Math.round(v * 10) / 10, out = [];
+  const titre = (id) => (wiki.titles && wiki.titles[id]) || id;
+  // ---- le Dessous
+  const S = DB.world.dessous;
+  if (S && S.raw) {
+    const R = S.raw, marks = [], Z = R.zones || {};
+    const M = (o) => { o.x = r1(o.x); o.z = r1(o.z); marks.push(o); return o; };
+    const salle = (k) => pg('li:sout_' + k, 'sys:dessous');
+    for (const [k, x, z, rx, rz] of R.salles || []) M({ l: 'salles', k: 'zone', x, z, r: Math.max(rx, rz), t: cap(Z[k] || k), p: salle(k), x2: k === 'dormeurs' ? 1 : 0 });
+    for (const [k, x, z, rx, rz] of R.lacs || []) M({ l: 'salles', k: 'zone', x, z, r: Math.max(rx, rz), t: cap(Z[k] || k), p: salle(k), c: 'eau' });
+    for (const L of R.lm || []) {
+      const [key, name, x, z, y, r] = L;
+      if (key === 'sout_riviere' || key === 'sout_mines') M({ l: 'salles', k: 'zone', x, z, r: Math.max(40, r), t: cap(name), p: pg('li:' + key, 'sys:dessous'), c: key === 'sout_riviere' ? 'eau' : '' });
+      else if (key === 'sout_hameau_c') continue; // (le nom du hameau est celui de sa salle)
+      else if (key === 'sout_cave') M({ l: 'entree', k: 'pt', x, z, t: cap(name), s: 'Sous la rue de Valbrume : des os, des traits sur le mur, un puits', p: pg('li:sout_cave', 'sout:entree'), i: '⚿' });
+      else if (key === 'sout_tombeau') M({ l: 'caches', k: 'pt', x, z, t: cap(name), s: 'Fermé d’une dalle taillée d’un œil', p: pg('li:sout_tombeau', 'sout:tombeau'), i: '⛫' });
+      else if (!L[6] && !/^sout_/.test(key)) M({ l: 'lahaut', k: 'pt', x, z, t: cap(name), s: `Un dessous de là-haut, ${Math.round(-y) > 0 ? Math.round(-y) + ' m sous l’eau ou la terre' : 'juste sous la surface'}`, p: pg('li:' + key), i: '⛏' });
+    }
+    const V = R.village || {};
+    const hm = (k, x, z, t, s, p, i) => { if (x !== undefined && x !== null && z > 0) M({ l: 'hameau', k: 'pt', x, z, t, s, p, i }); };
+    if (V.appel) hm(0, V.appel[0], V.appel[1], 'la pierre d’appel', 'Marquée de trois entailles, à l’entrée du hameau, dans le noir', pg('sout:gens'), '◈');
+    for (const it of R.inter || []) {
+      const [kind, id, name, x, y, z, d] = it;
+      if (kind === 'sout_pain') hm(0, x, z, 'la pierre au pain', 'Au milieu du hameau', pg('sout:gens'), '◍');
+      else if (kind === 'lire' && id === 'sout_jours') hm(0, x, z, 'le mur des jours', 'Des encoches par paquets de cinq, des milliers', pg('sout:encoches'), '▥');
+      else if (kind === 'sout_carnet') M({ l: 'caches', k: 'pt', x, z, t: 'la cabane vide', s: 'Celle du onzième ; sous la couche, un carnet', p: pg('it:carnet_onz', 'sout:gens'), i: '✎' });
+      else if (kind === 'sout_grille') M({ l: 'entree', k: 'pt', x, z, t: 'la grille de l’exutoire', s: 'Dans les douves de Valbrume, au pied de la tour : le passage caché', p: pg('sout:entree'), i: '▦' });
+      else if (kind === 'sout_remonter') M({ l: 'entree', k: 'pt', x: x + 3, z: z + 3, t: 'le pied du puits', s: 'Les barreaux montent à la cave des Murés', p: pg('sout:entree'), i: '⇡' });
+      else if (kind === 'sout_sortie') M({ l: 'sorties', k: 'pt', x, z, t: d === 'mine' ? 'le vieux puits de la mine' : d === 'chene' ? 'les racines du grand chêne' : cap(name), s: d === 'mine' ? 'Des barreaux montent aux Galeries de la mine' : d === 'chene' ? 'On sort au pied du grand chêne' : '', p: pg('sout:retours'), i: '⇡' });
+      else if (kind === 'sout_trou') M({ l: 'sorties', k: 'pt', x, z, t: d === 'mine' ? 'la pierre qui bouchait le trou (les Galeries)' : 'le trou entre les racines', s: 'D’en haut : on ne passe qu’une fois sorti par là', p: pg('sout:retours'), i: '⇣' });
+      else if (kind === 'inscription' && /^ins_/.test(id)) { const ins = id.slice(4); M({ l: ins === 'a_oeil' ? 'caches' : 'inscr', k: 'pt', x, z, t: 'une pierre gravée', s: 'En Hautes Lettres', p: pg('ins:' + ins), i: '𐌰' }); }
+      else if (kind === 'sout_enc' && id === 'sout_enc_e_onz') hm(0, x, z, 'les dalles d’encoches', 'Dans la maison du vieux : six dalles', pg('sout:encoches'), '▤');
+    }
+    for (const [k, nom, dit] of R.gens || []) {
+      const at = { un: V.encoches, deu: V.planches && V.planches[0], tre: V.c && [V.c[0] + 2, V.c[1] - 1.5], katr: V.rive, sin: V.huttes && V.huttes[1], si: V.claies && V.claies[0], se: V.garde, ui: V.huttes && V.huttes[2], neu: V.c && [V.c[0] + 3, V.c[1] + 2], di: V.entree }[k];
+      if (at && at[1] > 0) M({ l: 'gens', k: 'dot', x: at[0], z: at[1], t: `${nom}, ${dit}`, s: 'Ceux d’en bas', p: pg('sout:g:' + k, 'sout:gens'), c: 'gens' });
+    }
+    // les secrets : ceux qui dorment sous la goutte, le Hoûm, les vasques, les minerais, les flèches du géomètre, les repères
+    if ((R.dormeurs || []).length) { const d = R.dormeurs, x = d.reduce((a, q) => a + q[0], 0) / d.length, z = d.reduce((a, q) => a + q[1], 0) / d.length; M({ l: 'caches', k: 'pt', x, z, t: `${d.length} dormeurs`, s: 'Ceux d’en bas couchent leurs morts sous la goutte', p: salle('dormeurs'), i: '✝' }); }
+    const gf = (R.salles || []).find((q) => q[0] === 'gouffres');
+    if (gf) M({ l: 'caches', k: 'pt', x: gf[1] + 20, z: gf[2] - 18, t: 'le Hoûm', s: 'Aux Gouffres et à la Salle des Échos : il chasse au bruit', p: pg('sout:houm'), i: '☊' });
+    const P = R.props || {};
+    const MINC = { galene: '#7a808c', magnetite: '#2e2c30', soufre: '#e0c840', salpetre: '#ece8de', luisante: '#5ae8c0', cristal: '#bfe0ff' };
+    const MINI = { galene: 'galene', magnetite: 'magnetite', soufre: 'soufre', salpetre: 'salpetre', luisante: 'luisante', cristal: 'cristal_roche' };
+    for (const [x, z, , m] of P.sout_filon || []) M({ l: 'minerais', k: 'dot', x, z, t: cap((ITEMS[MINI[m]] && ITEMS[MINI[m]].name) || m), s: 'Un filon (pioche)', p: pg('it:' + MINI[m], 'sout:minerais'), c: MINC[m] || '#aaa', x2: 1 });
+    for (const [x, z] of P.sout_vasque || []) M({ l: 'minerais', k: 'dot', x, z, t: 'une vasque', s: 'Au fond, une perle des cavernes', p: pg('it:perle_caverne', 'sout:minerais'), c: '#f0ece0', x2: 1 });
+    const CUE = Object.fromEntries((R.cueillettes || []).map((c) => [c[0], c[1]]));
+    for (const id of ['sout_pied_pierre', 'sout_mousse', 'sout_lichen', 'sout_fougere', 'sout_algue', 'sout_suie', 'sout_guano']) for (const [x, z] of P[id] || []) { const it = CUE[id]; M({ l: 'plantes', k: 'dot', x, z, t: cap((ITEMS[it] && ITEMS[it].name) || it), s: 'Se cueille (E)', p: pg('it:' + it, 'sout:plantes'), c: '#8ac86a' }); }
+    { const L = P.sout_champi || []; for (let i = 0; i < L.length; i += 3) M({ l: 'plantes', k: 'dot', x: L[i][0], z: L[i][1], t: 'des champignons lumineux', s: 'Ils se cueillent, et repoussent', p: pg('it:champi_lumineux', 'sout:plantes'), c: '#6ad8e8' }); }
+    const NIDS = { chauve: ['une colonie de chauves-souris', '#6a5a7a'], protee: ['des protées, au bord de l’eau', '#f0c8c0'], ecrevisse: ['des écrevisses aveugles', '#e8dcc8'], grillon: ['des grillons des cavernes', '#c8b89a'], scolopendre: ['une scolopendre', '#b8502a'] };
+    for (const [k, x, z, n] of R.nids || []) { const N = NIDS[k] || [k, '#aaa']; M({ l: 'betes', k: 'dot', x, z, t: N[0] + (n > 1 && k !== 'scolopendre' ? ` (${n})` : ''), s: 'Les bêtes d’en bas', p: pg('sout:betes'), c: N[1] }); }
+    for (const [x, z, a] of P.sout_fleche || []) M({ l: 'fleches', k: 'fl', x, z, a, t: 'une flèche au charbon', s: 'Le géomètre, 1872 : la pointe vers la mine', p: pg('sout:retours'), x2: 1 });
+    for (const [x, z] of P.sout_cairn || []) M({ l: 'reperes', k: 'dot', x, z, t: 'un tas de pierres', s: 'Trois entailles : le signe de ceux d’en bas', p: pg('sout:noir', 'sout:gens'), c: '#d8c8a8' });
+    out.push({
+      id: 'dessous', t: 'Le Dessous', i: '⛏', s: `Sous la vallée, de ${Math.round(-(S.wl || -150) - 30)} à ${Math.round(-(S.wl || -150) + 40)} mètres sous l’herbe : le plan des galeries, dessiné depuis le sol et la voûte du jeu.`,
+      img: S.img, x0: S.x0, z0: S.z0, x1: S.x1, z1: S.z1, ppm: S.ppm, bg: '#36312d', coords: 1, surface: 1, lahaut: 1, p: pg('sys:dessous'),
+      layers: [['salles', 'Les salles, les lacs, la rivière', 0, 1], ['hameau', 'Le Hameau d’En-Bas', 0, 1], ['gens', 'Ceux d’en bas', 0, 1], ['inscr', 'Les pierres gravées', 0, 1], ['reperes', 'Les tas de pierres (repères)', 0, 1], ['plantes', 'Les plantes d’en bas', 0, 0], ['betes', 'Les bêtes d’en bas', 0, 0], ['surface', 'La vallée au-dessus, en transparence', 0, 0],
+        ['entree', 'Le passage de Valbrume', 1, 1], ['sorties', 'Les autres sorties', 1, 1], ['caches', 'Ce qui se cache', 1, 1], ['minerais', 'Les minerais, les vasques', 1, 1], ['fleches', 'Les flèches du géomètre', 1, 0], ['lahaut', 'Les dessous de là-haut (mine, clocher…)', 1, 1]],
+      marks,
+    });
+  }
+  // ---- les autres mondes
+  const ST = T('ENFERS_STELES', []);
+  for (const [nom, o] of Object.entries(DB.world.mondes || {})) {
+    if (!o || !o.img) continue;
+    const marks = [], page = pg('monde:' + nom, 'sys:mondes');
+    const M = (m) => { m.x = r1(m.x); m.z = r1(m.z); marks.push(m); return m; };
+    const byM = {};
+    for (const c of o.choses || []) (byM[c.m] || (byM[c.m] = [])).push(c);
+    const mid = (L) => [L.reduce((a, c) => a + c.x, 0) / L.length, L.reduce((a, c) => a + c.z, 0) / L.length];
+    const ext = (L) => Math.max(8, ...L.map((c) => Math.hypot(c.x - mid(L)[0], c.z - mid(L)[1])));
+    // les étendues (des noms posés sur une région du plan)
+    for (const [src, t, alt] of PLAN_ZONES[nom] || []) {
+      let at = null, r = 20;
+      if (src === '@depart' && o.depart) at = [o.depart[0], o.depart[2] + 4];
+      else if (src.startsWith('@L:') && o.L && o.fond) { const L = o.L, seg = src.slice(3) === 'maison' ? L.maison : src.slice(3) === 'couloir' ? L.couloir : [L.couloir[1], L.fin]; at = [o.fond.x, o.fond.z + (seg[0] + seg[1]) / 2]; r = (seg[1] - seg[0]) / 2; }
+      else if (alt === 'betes:ame') { const A = (o.betes || []).filter((b) => b.k === 'ame' && !b.nom); at = A.length ? mid(A) : o.fond ? [o.fond.x, o.fond.z - 14] : null; }
+      else if (byM[src]) { at = mid(byM[src]); r = ext(byM[src]); }
+      if (at) M({ l: 'noms', k: 'zone', x: at[0], z: at[1], r: Math.max(12, r), t: cap(t), p: page });
+    }
+    for (const [m, L] of Object.entries(byM)) {
+      const d = PLAN_DECORS[m];
+      if (m === 'ENF.stele') L.forEach((c) => { const S2 = ST[c.v]; M({ l: 'decors', k: 'pt', x: c.x, z: c.z, t: S2 ? 'Stèle : « ' + S2[0] + ' »' : 'une stèle', s: 'Gravée dans la pierre noire (E : la lire)', p: page, i: '▮' }); });
+      else if (d) for (const c of L.slice(0, 3)) M({ l: 'decors', k: 'pt', x: c.x, z: c.z, t: cap(d[0]), s: '', p: page, i: d[1] });
+    }
+    for (const c of o.choses || []) if (c.item && has('it:' + c.item)) M({ l: 'cueillir', k: 'dot', x: c.x, z: c.z, t: cap(titre('it:' + c.item)), s: 'Se ramasse', p: 'it:' + c.item, c: '#e8d070' });
+    const seen = {};
+    for (const b of o.betes || []) {
+      const p2 = pg('an:m:' + b.k, page), n = seen[b.k] = (seen[b.k] || 0) + 1;
+      const t = b.nom ? b.nom : cap(titre(p2) || b.k);
+      if (!b.nom && n > 1) continue; // (une seule étiquette par espèce ; les autres, de simples points)
+      M({ l: 'betes', k: 'pt', x: b.x, z: b.z, t, s: b.nom ? 'Une âme, près de la Porte' : '', p: p2, i: b.k === 'gardien' ? '☉' : b.k === 'ame' ? '☁' : '✱' });
+    }
+    for (const b of o.betes || []) if (!b.nom && seen[b.k] > 1) M({ l: 'betes', k: 'dot', x: b.x, z: b.z, t: cap(titre(pg('an:m:' + b.k, page)) || b.k), s: '', p: pg('an:m:' + b.k, page), c: '#d8b8a8' });
+    const TT = { enfers: 'Les Enfers', cauchemar: 'Le cauchemar', bonbons: 'Le pays des bonbons', tenebres: 'Les Ténèbres' };
+    const NOTE = {
+      enfers: 'Sous la vallée, sous l’Envers même : ce que le monde construit quand on y descend (les âmes du champ sont celles de vos victimes : ici, une partie neuve n’en a pas).',
+      cauchemar: 'Le rêve qui tourne mal : la maison-souvenir, le couloir qui boucle, l’issue au bout.',
+      bonbons: 'Une vision qui se dresse autour de l’endroit où l’on est (ici : devant la ferme) ; la disposition change à chaque fois.',
+      tenebres: 'Une vision qui se dresse autour de l’endroit où l’on est (ici : devant la ferme) ; la disposition change à chaque fois.',
+    };
+    out.push({ id: nom, t: TT[nom] || cap(o.titre || nom), i: { enfers: '🜂', cauchemar: '☾', bonbons: '🍬', tenebres: '🜏' }[nom] || '◐', s: NOTE[nom] || '', img: o.img, x0: o.x0, z0: o.z0, x1: o.x1, z1: o.z1, ppm: o.ppm, bg: { enfers: '#1a0c0a', cauchemar: '#0e0d0d', bonbons: '#eccede', tenebres: '#101016' }[nom] || '#222', coords: 0, p: page,
+      layers: [['noms', 'Les lieux', 0, 1], ['decors', 'Ce qui s’y dresse', 0, 1], ['betes', 'Ce qui y vit', 0, 1], ['cueillir', 'Ce qu’on y ramasse', 0, 1]], marks });
+  }
+  const ORD = ['dessous', 'enfers', 'cauchemar', 'bonbons', 'tenebres'];
+  return out.sort((a, b) => ORD.indexOf(a.id) - ORD.indexOf(b.id));
 }
 
 // ============================================================================
@@ -4021,7 +4152,7 @@ function CLIENT(D) {
 
   // ---------------------------------------------------------------- navigation (catégories)
   function renderNav() {
-    $('#nav').innerHTML = `<a class="navmap" href="#/carte">🗺 La carte de la vallée</a>` + CATS.map((c) => {
+    $('#nav').innerHTML = `<a class="navmap" href="#/carte">🗺 Les cartes <small>vallée, Dessous, Enfers…</small></a>` + CATS.map((c) => {
       const n = c.groups ? c.groups.reduce((a, g) => a + g.ids.filter((id) => visible(PAGES.get(id))).length, 0) : 0;
       if (!n && !c.page && !PAGES.has('cat:' + c.id)) return '';
       if (!reveal && !n && !c.page) return '';
@@ -4031,7 +4162,7 @@ function CLIENT(D) {
 
   // ---------------------------------------------------------------- vues
   let mode = '';
-  const setMode = (m) => { if (mode === m) return; mode = m; document.body.dataset.mode = m; if (m !== 'map') MAP.stop(); };
+  const setMode = (m) => { if (mode === m) return; mode = m; document.body.dataset.mode = m; if (m !== 'map') { MAP.stop(); if (VIEW && VIEW.stop) VIEW.stop(); } };
   const crumbs = (items) => `<nav class="crumbs">${items.map(([t, h]) => (h ? `<a href="${h}">${esc(t)}</a>` : `<span>${esc(t)}</span>`)).join(' › ')}</nav>`;
   const secretNote = '<div class="secret-page"><p>Cette fiche est un <b>secret</b> : un lieu caché, une solution, une chose qu’on découvre en jouant.</p><p><button class="btn" data-reveal>🔒 Révéler les secrets</button></p></div>';
   const card = (p) => `<a class="card${p.x ? ' is-sec' : ''}" href="#/p/${encodeURIComponent(p.id)}">${iconHTML(p.i, 36)}<span class="ct">${esc(p.t)}</span>${p.s ? `<span class="cs">${esc(p.s)}</span>` : ''}</a>`;
@@ -4043,6 +4174,7 @@ function CLIENT(D) {
       <header class="hd"><div><h1>Prairie — le wiki de la vallée</h1><p class="sub">Tout ce que contient la vallée : ses gens, ses bêtes, ses plantes, ses objets, ses langues perdues et ses secrets. ${total} fiches.</p></div></header>
       <p class="lead">Ce compagnon se lit à côté du jeu. Il a été tiré du jeu lui-même, le ${new Date(D.meta.built).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}. Dans le jeu, il n’y a jamais de carte de toute la vallée : ici, si.</p>
       <p><a class="btn big" href="#/carte">🗺 Ouvrir la carte de la vallée</a> ${reveal ? '' : '<button class="btn" data-reveal>🔒 Révéler les secrets</button>'}</p>
+      ${(D.plans || []).length ? `<p class="plans">Et les plans de ce qui n’est pas sur la carte : ${(D.plans || []).map((P) => `<a class="btn" href="#/plan/${P.id}">${esc(P.i || '')} ${esc(P.t)}</a>`).join(' ')}</p>` : ''}
       <div class="cats">${CATS.map((c) => { const n = c.groups ? c.groups.reduce((a, g) => a + g.ids.filter((id) => visible(PAGES.get(id))).length, 0) : 0; if (!n && !c.page) return ''; return `<a class="catcard" href="#/cat/${c.id}"><b>${esc(c.t)}</b>${n ? ` <small>${n}</small>` : ''}<span>${esc(c.d || '')}</span></a>`; }).join('')}</div>
       ${D.log && D.log.length ? `<details class="log"><summary>Journal de construction (${D.log.length})</summary><ul>${D.log.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>` : ''}
     </article>`;
@@ -4252,14 +4384,43 @@ function CLIENT(D) {
 
   // ---------------------------------------------------------------- LA CARTE
   const M = D.map;
+  // la vue active : la carte de la vallée (MAP) ou un plan (le Dessous, les Enfers…) ; les gestes et les outils vont à elle
+  let VIEW = null;
+  const V = () => VIEW || MAP;
+  // étiquettes sans chevauchement (les plus importantes d'abord), l'échelle et le nord : communes à la carte et aux plans
+  const LABEL_FONT = { region: (l) => 'italic 600 ' + Math.round(13 + Math.min(8, l.pr * 2)) + 'px Georgia, serif', town: () => '600 13px Georgia, serif', npc: () => '11px Georgia, serif', bld: () => '11px Georgia, serif', peuple: () => 'italic 700 14px Georgia, serif', lieu2: () => 'italic 11px Georgia, serif', salle: (l) => 'italic 600 ' + Math.round(12 + Math.min(6, l.pr)) + 'px Georgia, serif' };
+  const LABEL_COL = { secret: '#8a1e14', rent: '#2c5a2a', act: '#6a2e10', under: '#4a2a6a', water: '#1e4a6a', region: 'rgba(60,44,28,.78)', npc: '#7a2414', bld: '#4a3826', lieu2: '#1e3a3a', peuple: '#2e4a1e' };
+  function drawLabels(c, labels, dark) {
+    labels.sort((a, b) => b.pr - a.pr);
+    const placed = [];
+    for (const l of labels) {
+      c.font = (LABEL_FONT[l.cls] || (() => 'italic 12px Georgia, serif'))(l);
+      const w = c.measureText(l.t).width, h = 14;
+      const x0 = l.left ? l.x : l.x - w / 2, y0 = l.y - h / 2;
+      if (placed.some((p) => x0 < p[0] + p[2] && x0 + w > p[0] && y0 < p[1] + p[3] && y0 + h > p[1])) continue;
+      placed.push([x0 - 2, y0 - 1, w + 4, h + 2]);
+      c.textAlign = 'left'; c.textBaseline = 'middle';
+      c.lineWidth = 3; c.strokeStyle = dark ? 'rgba(20,16,14,.85)' : 'rgba(246,238,216,.85)'; c.strokeText(l.t, x0, l.y);
+      c.fillStyle = l.col || (dark ? (l.cls === 'secret' ? '#ff9a80' : l.cls === 'water' ? '#a8d0f0' : l.cls === 'salle' ? '#f4e6c4' : '#e8dcc0') : LABEL_COL[l.cls] || '#2a1d12');
+      c.fillText(l.t, x0, l.y);
+    }
+  }
+  function drawScale(c, W, H, k, dark) {
+    const target = 120 / k, pw = Math.pow(10, Math.floor(Math.log10(target))), step = [1, 2, 5, 10].map((m) => m * pw).find((s) => s >= target * 0.6) || pw;
+    const bw = step * k, ink = dark ? '#f0e4c8' : '#2a1d12';
+    c.fillStyle = dark ? 'rgba(20,16,14,.8)' : 'rgba(246,238,216,.85)'; c.fillRect(12, H - 34, bw + 16, 24);
+    c.fillStyle = ink; c.fillRect(20, H - 18, bw, 3); c.fillRect(20, H - 23, 1.5, 8); c.fillRect(20 + bw - 1.5, H - 23, 1.5, 8);
+    c.font = '11px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.fillText(step >= 1000 ? step / 1000 + ' km' : step + ' m', 20 + bw / 2, H - 22);
+    c.textAlign = 'center'; c.font = '600 13px Georgia, serif'; c.fillStyle = ink; c.fillText('N', W - 24, 98); c.beginPath(); c.moveTo(W - 24, 102); c.lineTo(W - 29, 116); c.lineTo(W - 24, 112); c.lineTo(W - 19, 116); c.closePath(); c.fill();
+  }
   const MAP = {
     ready: false, raf: 0, cv: null, ctx: null, base: null, dpr: 1, cx: M.size / 2, cz: M.size / 2, k: 0.3,
-    layers: Object.assign({ relief: 1, eaux: 1, roches: 1, forets: 1, chemins: 1, courbes: 0, milieux: 0, batiments: 1, lieux: 1, habitants: 1, peche: 0, panneaux: 0, details: 1, zones: 0, louer: 1, activites: 1, fouilles: 0, secrets: 1, souterrains: 1, cachettes: 0, tresors: 1, rares: 0 }, store.get('layers', {})),
+    layers: Object.assign({ relief: 1, eaux: 1, roches: 1, forets: 1, chemins: 1, courbes: 0, milieux: 0, batiments: 1, lieux: 1, lieux2: 1, peuples: 1, habitants: 1, peche: 0, panneaux: 0, details: 1, zones: 0, louer: 1, activites: 1, fouilles: 0, secrets: 1, souterrains: 1, cachettes: 0, tresors: 1, rares: 0 }, store.get('layers', {})),
     sel: null, hl: null, hover: null, G: null,
     LAYERS: [
       ['Fond', [['relief', 'Relief ombré'], ['eaux', 'Eaux'], ['roches', 'Neige et roches'], ['forets', 'Forêts'], ['courbes', 'Courbes de niveau (10 m)'], ['milieux', 'Milieux (couleurs)']]],
       ['Tracés', [['chemins', 'Chemins'], ['batiments', 'Bâtiments'], ['details', 'Détails (ponts, croix, pierres…)'], ['zones', 'Zones où l’on ne bâtit pas'], ['peche', 'Zones de pêche'], ['panneaux', 'Panneaux et poteaux']]],
-      ['Noms', [['lieux', 'Lieux-dits'], ['habitants', 'Maisons des habitants']]],
+      ['Noms', [['lieux', 'Lieux-dits'], ['lieux2', 'Lieux (un tous les 200 m)'], ['peuples', 'Les deux peuples (les Planches, l’estive)'], ['habitants', 'Maisons des habitants']]],
       ['La vie des villes', [['louer', 'Maisons à louer, la poterne'], ['activites', 'Activités (jeux, concours, veillée…)'], ['fouilles', 'Où fouiller (de près)']]],
       ['Secrets', [['secrets', 'Lieux secrets'], ['souterrains', 'Souterrains'], ['tresors', 'Trésors et grottes'], ['cachettes', 'Cachettes, coffres, notes…'], ['rares', 'Plantes rares']], true],
     ],
@@ -4338,54 +4499,43 @@ function CLIENT(D) {
     start(arg) {
       const wrap = $('#mapwrap');
       if (!this.cv) this.build(wrap);
+      this.panel();
       if (!this.G) { $('#maploading').hidden = false; setTimeout(() => { try { this.init(); this.compose(); } catch (e) { $('#maploading').textContent = 'La carte n’a pas pu être dessinée : ' + e.message; return; } $('#maploading').hidden = true; this.ready = true; this.resize(); this.go(arg); }, 30); return; }
       this.ready = true; this.resize(); this.go(arg);
     },
     stop() { cancelAnimationFrame(this.raf); this.raf = 0; },
+    fitAll() { this.fit(M.size / 2, M.size / 2, M.size / 2); this.hl = null; this.sel = null; this.info(null); this.req(); },
+    // (une seule fois : le canevas, les gestes, les boutons et la recherche vont à la vue active, la vallée ou un plan)
     build(wrap) {
       this.cv = $('#map'); this.ctx = this.cv.getContext('2d');
-      this.panel();
-      window.addEventListener('resize', () => { if (mode === 'map') this.resize(); });
+      window.addEventListener('resize', () => { if (mode === 'map') V().resize(); });
       // glisser, molette, pincer
       const pts = new Map(); let drag = null, moved = 0, pinch = null;
       const cv = this.cv;
-      cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); moved = 0; if (pts.size === 1) drag = [e.clientX, e.clientY, this.cx, this.cz]; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), k: this.k, mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 }; drag = null; } });
+      cv.addEventListener('pointerdown', (e) => { const S = V(); cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); moved = 0; if (pts.size === 1) drag = [e.clientX, e.clientY, S.cx, S.cz]; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), k: S.k, mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 }; drag = null; } });
       cv.addEventListener('pointermove', (e) => {
-        if (!pts.has(e.pointerId)) { this.hoverAt(e.clientX, e.clientY); return; }
+        const S = V();
+        if (!pts.has(e.pointerId)) { S.hoverAt(e.clientX, e.clientY); return; }
         pts.set(e.pointerId, [e.clientX, e.clientY]);
-        if (pinch && pts.size >= 2) { const [a, b] = [...pts.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); this.zoomAt(pinch.mx, pinch.my, pinch.k * d / Math.max(10, pinch.d), true); moved = 99; return; }
-        if (drag) { const dx = e.clientX - drag[0], dy = e.clientY - drag[1]; moved = Math.max(moved, Math.abs(dx) + Math.abs(dy)); this.cx = drag[2] - dx / this.k; this.cz = drag[3] - dy / this.k; this.clampView(); this.req(); }
+        if (pinch && pts.size >= 2) { const [a, b] = [...pts.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); S.zoomAt(pinch.mx, pinch.my, pinch.k * d / Math.max(10, pinch.d), true); moved = 99; return; }
+        if (drag) { const dx = e.clientX - drag[0], dy = e.clientY - drag[1]; moved = Math.max(moved, Math.abs(dx) + Math.abs(dy)); S.cx = drag[2] - dx / S.k; S.cz = drag[3] - dy / S.k; S.clampView(); S.req(); }
       });
-      const up = (e) => { if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if (pts.size < 2) pinch = null; if (pts.size === 0) { if (drag && moved < 6) this.click(e.clientX, e.clientY); drag = null; } else if (pts.size === 1) { const [p] = [...pts.values()]; drag = [p[0], p[1], this.cx, this.cz]; } };
+      const up = (e) => { const S = V(); if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if (pts.size < 2) pinch = null; if (pts.size === 0) { if (drag && moved < 6) S.click(e.clientX, e.clientY); drag = null; } else if (pts.size === 1) { const [p] = [...pts.values()]; drag = [p[0], p[1], S.cx, S.cz]; } };
       cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
-      cv.addEventListener('wheel', (e) => { e.preventDefault(); const f = Math.exp(-Math.sign(e.deltaY) * Math.min(1, Math.abs(e.deltaY) / (e.deltaMode ? 3 : 100)) * 0.35); this.zoomAt(e.clientX, e.clientY, this.k * f); }, { passive: false });
-      cv.addEventListener('dblclick', (e) => this.zoomAt(e.clientX, e.clientY, this.k * 2));
-      $('#zin').onclick = () => { const r = cv.getBoundingClientRect(); this.zoomAt(r.left + r.width / 2, r.top + r.height / 2, this.k * 1.6); };
-      $('#zout').onclick = () => { const r = cv.getBoundingClientRect(); this.zoomAt(r.left + r.width / 2, r.top + r.height / 2, this.k / 1.6); };
-      $('#zall').onclick = () => { this.fit(M.size / 2, M.size / 2, M.size / 2); this.hl = null; this.sel = null; this.info(null); this.req(); };
+      cv.addEventListener('wheel', (e) => { e.preventDefault(); const S = V(), f = Math.exp(-Math.sign(e.deltaY) * Math.min(1, Math.abs(e.deltaY) / (e.deltaMode ? 3 : 100)) * 0.35); S.zoomAt(e.clientX, e.clientY, S.k * f); }, { passive: false });
+      cv.addEventListener('dblclick', (e) => V().zoomAt(e.clientX, e.clientY, V().k * 2));
+      $('#zin').onclick = () => { const r = cv.getBoundingClientRect(); V().zoomAt(r.left + r.width / 2, r.top + r.height / 2, V().k * 1.6); };
+      $('#zout').onclick = () => { const r = cv.getBoundingClientRect(); V().zoomAt(r.left + r.width / 2, r.top + r.height / 2, V().k / 1.6); };
+      $('#zall').onclick = () => V().fitAll();
       $('#layerbtn').onclick = () => $('#layers').classList.toggle('open');
-      // recherche sur la carte
+      $('#layers').addEventListener('change', (e) => { const k = e.target.dataset.l; if (k) V().onLayer(k, e.target.checked); });
+      // recherche sur la carte (celle de la vue active)
       const mq = $('#mq'), ms = $('#msug');
-      const feats = () => {
-        const f = [];
-        for (const L of M.lm) if (reveal || !L[5]) f.push({ t: L[1], s: L[5] & 2 ? 'souterrain' : L[5] & 1 ? 'lieu secret' : 'lieu-dit', go: () => this.go('li:' + L[0]) });
-        for (const B of M.bld) if (!f.some((q) => norm(q.t) === norm(B[1])) && (reveal || !B[4])) f.push({ t: B[1], s: 'bâtiment', go: () => this.go('li:' + B[0]) });
-        for (const [b, a] of Object.entries(M.homes)) for (const [id, nm, home, role] of a) if (home && (reveal || !(PAGES.get('pnj:' + id) || {}).x)) f.push({ t: nm, s: role + ' — sa maison', go: () => this.go('li:' + b) });
-        for (const [id, nm] of Object.entries(M.spNames)) { const pg = PAGES.get('pl:' + id); if (pg && visible(pg)) f.push({ t: nm, s: 'où elle pousse', go: () => this.go('pl:' + id) }); }
-        for (const [k, a] of Object.entries(M.spawns)) { const pg = PAGES.get('an:' + k); if (pg && visible(pg)) f.push({ t: pg.t, s: 'où la trouver', go: () => this.go('an:' + k) }); }
-        const V = M.vie;
-        if (V) {
-          for (const q of V.louer) f.push({ t: q[1], s: 'maison à louer', go: () => { this.layers.louer = 1; this.go('xy:' + q[2] + ',' + q[3]); } });
-          if (V.poterne) f.push({ t: V.poterne[2], s: 'porte du rempart', go: () => { this.layers.louer = 1; this.go('xy:' + V.poterne[0] + ',' + V.poterne[1]); } });
-          for (const q of V.act) f.push({ t: q[1], s: 'activité', go: () => { this.layers.activites = 1; this.go('xy:' + q[2] + ',' + q[3]); } });
-        }
-        return f;
-      };
       let list = [];
       mq.addEventListener('input', () => {
         const v = norm(mq.value.trim());
         if (v.length < 2) { ms.hidden = true; return; }
-        list = feats().filter((f) => norm(f.t).includes(v)).sort((a, b) => norm(a.t).indexOf(v) - norm(b.t).indexOf(v) || a.t.length - b.t.length).slice(0, 12);
+        list = V().feats().filter((f) => norm(f.t).includes(v)).sort((a, b) => norm(a.t).indexOf(v) - norm(b.t).indexOf(v) || a.t.length - b.t.length).slice(0, 12);
         ms.innerHTML = list.map((f, i) => `<a href="#" data-i="${i}"><span>${esc(f.t)}</span><small>${esc(f.s)}</small></a>`).join('') || '<p>Rien.</p>';
         ms.hidden = false;
       });
@@ -4394,19 +4544,33 @@ function CLIENT(D) {
       mq.addEventListener('keydown', (e) => { if (e.key === 'Enter' && list[0]) { ms.hidden = true; mq.blur(); list[0].go(); } if (e.key === 'Escape') { ms.hidden = true; mq.blur(); } });
       mq.addEventListener('blur', () => setTimeout(() => { ms.hidden = true; }, 150));
     },
+    // ce que la recherche de la carte connaît
+    feats() {
+      const f = [];
+      for (const L of M.lm) if ((reveal || !(L[5] & 3)) && !(L[5] & 4)) f.push({ t: L[1], s: L[5] & 2 ? 'souterrain' : L[5] & 1 ? 'lieu secret' : L[5] & 8 ? 'un des deux peuples' : 'lieu-dit', go: () => this.go('li:' + L[0]) });
+      for (const [key, t] of M.c2 || []) { const L = M.lm.find((q) => q[0] === key), T = (M.c2t || {})[t]; if (L) f.push({ t: L[1], s: 'lieu perdu' + (T ? ' — ' + T[0].toLowerCase() : ''), go: () => { this.layers.lieux2 = 1; this.go('li:' + key); } }); }
+      for (const B of M.bld) if (!f.some((q) => norm(q.t) === norm(B[1])) && (reveal || !B[4])) f.push({ t: B[1], s: 'bâtiment', go: () => this.go('li:' + B[0]) });
+      for (const [b, a] of Object.entries(M.homes)) for (const [id, nm, home, role] of a) if (home && (reveal || !(PAGES.get('pnj:' + id) || {}).x)) f.push({ t: nm, s: role + ' — sa maison', go: () => this.go('li:' + b) });
+      for (const [id, nm] of Object.entries(M.spNames)) { const pg = PAGES.get('pl:' + id); if (pg && visible(pg)) f.push({ t: nm, s: 'où elle pousse', go: () => this.go('pl:' + id) }); }
+      for (const [k, a] of Object.entries(M.spawns)) { const pg = PAGES.get('an:' + k); if (pg && visible(pg)) f.push({ t: pg.t, s: 'où la trouver', go: () => this.go('an:' + k) }); }
+      const V = M.vie;
+      if (V) {
+        for (const q of V.louer) f.push({ t: q[1], s: 'maison à louer', go: () => { this.layers.louer = 1; this.go('xy:' + q[2] + ',' + q[3]); } });
+        if (V.poterne) f.push({ t: V.poterne[2], s: 'porte du rempart', go: () => { this.layers.louer = 1; this.go('xy:' + V.poterne[0] + ',' + V.poterne[1]); } });
+        for (const q of V.act) f.push({ t: q[1], s: 'activité', go: () => { this.layers.activites = 1; this.go('xy:' + q[2] + ',' + q[3]); } });
+      }
+      return f;
+    },
     panel() {
       const el = $('#layers');
       el.innerHTML = '<button class="x" aria-label="Fermer">×</button>' + this.LAYERS.map(([t, a, sec]) => `<fieldset class="${sec ? 'secl' : ''}"${sec && !reveal ? ' hidden' : ''}><legend>${esc(t)}</legend>${a.map(([k, n]) => `<label><input type="checkbox" data-l="${k}" ${this.layers[k] ? 'checked' : ''}> ${esc(n)}</label>`).join('')}</fieldset>`).join('') + '<div id="legend"></div>';
       el.querySelector('.x').onclick = () => el.classList.remove('open');
-      if (this.panelBound) { this.legend(); return; }
-      this.panelBound = true;
-      el.addEventListener('change', (e) => {
-        const k = e.target.dataset.l; if (!k) return;
-        this.layers[k] = e.target.checked ? 1 : 0; store.set('layers', this.layers);
-        if (['relief', 'eaux', 'roches', 'forets', 'courbes', 'milieux', 'chemins'].includes(k)) { if (k !== 'milieux' || !e.target.checked) { if (this.hl && this.hl.mil) this.hl = null; } this.compose(); }
-        this.legend(); this.req();
-      });
       this.legend();
+    },
+    onLayer(k, on) {
+      this.layers[k] = on ? 1 : 0; store.set('layers', this.layers);
+      if (['relief', 'eaux', 'roches', 'forets', 'courbes', 'milieux', 'chemins'].includes(k)) { if (k !== 'milieux' || !on) { if (this.hl && this.hl.mil) this.hl = null; } this.compose(); }
+      this.legend(); this.req();
     },
     legend() {
       const el = $('#legend'); if (!el) return;
@@ -4430,7 +4594,7 @@ function CLIENT(D) {
     },
     toWorld(sx, sy) { const r = this.cv.getBoundingClientRect(); return [this.cx + (sx - r.left - this.W / 2) / this.k, this.cz + (sy - r.top - this.H / 2) / this.k]; },
     toScreen(x, z) { return [(x - this.cx) * this.k + this.W / 2, (z - this.cz) * this.k + this.H / 2]; },
-    req() { if (!this.raf && this.ready && mode === 'map') this.raf = requestAnimationFrame(() => { this.raf = 0; this.draw(); }); },
+    req() { if (!this.raf && this.ready && mode === 'map' && V() === this) this.raf = requestAnimationFrame(() => { this.raf = 0; this.draw(); }); },
     // aller vers une cible (lien #/carte/…)
     go(arg) {
       this.hl = null; this.sel = null;
@@ -4582,9 +4746,30 @@ function CLIENT(D) {
         marks.push({ x: sx, y: sy, r: 7, f: { kind: 'li', key: Bd[0], x: Bd[2], z: Bd[3] } });
         if (k > 1.6) labels.push({ x: sx, y: sy, t: Bd[1], pr: 2, cls: 'bld' });
       }
+      // les lieux perdus (un tous les deux cents mètres), chacun le signe de sa sorte
+      if (L.lieux2 && k > 0.12) {
+        this.lmIdx = this.lmIdx || new Map(M.lm.map((q) => [q[0], q]));
+        for (const [key, t] of M.c2 || []) {
+          const Lm = this.lmIdx.get(key); if (!Lm || !inV(Lm[2], Lm[3], 30)) continue;
+          const TY = (M.c2t || {})[t] || ['', '•'], [sx, sy] = T(Lm[2], Lm[3]), rr = k > 0.5 ? 6.5 : 4.5;
+          c.beginPath(); c.moveTo(sx, sy - rr); c.lineTo(sx + rr, sy); c.lineTo(sx, sy + rr); c.lineTo(sx - rr, sy); c.closePath();
+          c.fillStyle = 'rgba(244,236,212,.95)'; c.fill(); c.strokeStyle = '#2c4c4c'; c.lineWidth = 1.2; c.stroke();
+          if (k > 0.5) { c.font = '9px serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#1e3a3a'; c.fillText(TY[1] || '•', sx, sy + 0.5); }
+          marks.push({ x: sx, y: sy, r: 9, f: { kind: 'li', key, x: Lm[2], z: Lm[3] } });
+          if (k > 0.9) labels.push({ x: sx + 8, y: sy, t: Lm[1], pr: 2.4, cls: 'lieu2', left: true });
+        }
+      }
+      // les deux peuples : leur village
+      if (L.peuples) for (const [key] of M.peuples || []) {
+        const Lm = (this.lmIdx || (this.lmIdx = new Map(M.lm.map((q) => [q[0], q])))).get(key); if (!Lm || !inV(Lm[2], Lm[3], 200)) continue;
+        const [sx, sy] = dot(Lm[2], Lm[3], 6, '#3a5a2a', '#fbf2dc');
+        marks.push({ x: sx, y: sy, r: 11, f: { kind: 'li', key, x: Lm[2], z: Lm[3] } });
+        if (k > 0.1) labels.push({ x: sx + 9, y: sy, t: Lm[1], pr: 6, cls: 'peuple', left: true });
+      }
       // lieux-dits
       if (L.lieux || L.secrets || L.souterrains) for (const Lm of M.lm) {
         const sec = Lm[5] & 1, und = Lm[5] & 2;
+        if (Lm[5] & 4 || Lm[5] & 8) continue; // (les lieux perdus, les villages des peuples : leurs couches à eux)
         if (und ? !(reveal && L.souterrains) : sec ? !(reveal && L.secrets) : !L.lieux) continue;
         const r = Lm[4];
         if (!inV(Lm[2], Lm[3], r + 200)) continue;
@@ -4599,29 +4784,8 @@ function CLIENT(D) {
       }
       // sélection
       if (this.sel) { const [sx, sy] = T(this.sel.x, this.sel.z); c.strokeStyle = 'rgba(160,30,20,.95)'; c.lineWidth = 2.2; c.beginPath(); c.arc(sx, sy, Math.max(10, (this.sel.r || 6) * k), 0, Math.PI * 2); c.stroke(); }
-      // étiquettes (sans chevauchement)
-      labels.sort((a, b) => b.pr - a.pr);
-      const placed = [];
-      for (const l of labels) {
-        const f = l.cls === 'region' ? 'italic 600 ' + Math.round(13 + Math.min(8, l.pr * 2)) + 'px Georgia, serif' : l.cls === 'town' ? '600 13px Georgia, serif' : l.cls === 'npc' || l.cls === 'bld' ? '11px Georgia, serif' : 'italic 12px Georgia, serif';
-        c.font = f;
-        const w = c.measureText(l.t).width, h = 14;
-        const x0 = l.left ? l.x : l.x - w / 2, y0 = l.y - h / 2;
-        if (placed.some((p) => x0 < p[0] + p[2] && x0 + w > p[0] && y0 < p[1] + p[3] && y0 + h > p[1])) continue;
-        placed.push([x0 - 2, y0 - 1, w + 4, h + 2]);
-        c.textAlign = 'left'; c.textBaseline = 'middle';
-        c.lineWidth = 3; c.strokeStyle = 'rgba(246,238,216,.85)'; c.strokeText(l.t, x0, l.y);
-        c.fillStyle = l.cls === 'secret' ? '#8a1e14' : l.cls === 'rent' ? '#2c5a2a' : l.cls === 'act' ? '#6a2e10' : l.cls === 'under' ? '#4a2a6a' : l.cls === 'water' ? '#1e4a6a' : l.cls === 'region' ? 'rgba(60,44,28,.78)' : l.cls === 'npc' ? '#7a2414' : l.cls === 'bld' ? '#4a3826' : '#2a1d12';
-        c.fillText(l.t, x0, l.y);
-      }
-      // échelle
-      const target = 120 / k, pw = Math.pow(10, Math.floor(Math.log10(target))), step = [1, 2, 5, 10].map((m) => m * pw).find((s) => s >= target * 0.6) || pw;
-      const bw = step * k;
-      c.fillStyle = 'rgba(246,238,216,.85)'; c.fillRect(12, H - 34, bw + 16, 24);
-      c.fillStyle = '#2a1d12'; c.fillRect(20, H - 18, bw, 3); c.fillRect(20, H - 23, 1.5, 8); c.fillRect(20 + bw - 1.5, H - 23, 1.5, 8);
-      c.font = '11px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.fillText(step >= 1000 ? step / 1000 + ' km' : step + ' m', 20 + bw / 2, H - 22);
-      // nord
-      c.textAlign = 'center'; c.font = '600 13px Georgia, serif'; c.fillStyle = '#2a1d12'; c.fillText('N', W - 24, 58); c.beginPath(); c.moveTo(W - 24, 62); c.lineTo(W - 29, 76); c.lineTo(W - 24, 72); c.lineTo(W - 19, 76); c.closePath(); c.fill();
+      drawLabels(c, labels);
+      drawScale(c, W, H, k, false);
     },
     sym(id) { return { poteau_dir: '⇞', panneau_carte: '▦', calvaire: '✝', croix: '✝', pierre_dressee: '▲', dolmen: '⊓', stele: '▮', cairn: '⩓', pont_bois: '═', tombe: '†', moulin_ailes: '✢', ponton: '⊏', barque: '◡', tente: '⛺', feu_camp: '♨', statue: '♜', monument: '♜', ruche: '⬢', four_pain: '⌂', abreuvoir: '▭', lampadaire: '•', puits_deco: '◎', cascade: '≋' }[id] || '·'; },
     // ------------------------------------------------------------ survol, clic, fiche
@@ -4665,7 +4829,11 @@ function CLIENT(D) {
         const who = (M.homes[f.key] || []).filter(([id]) => visible(PAGES.get('pnj:' + id)));
         if (who.length) h += `<p>${who.map(([id, nm, home, role]) => `<a href="#/p/${encodeURIComponent('pnj:' + id)}">${esc(nm)}</a> <small>${esc(role)}${home ? '' : ' (y travaille)'}</small>`).join('<br>')}</p>`;
         if (L && L[6] && M.fishBy[L[6]]) h += `<p><b>Pêche :</b> ${M.fishBy[L[6]].slice(0, 12).map(([id, n]) => `<a href="#/p/${encodeURIComponent('it:' + id)}">${esc(n)}</a>`).join(', ')}${M.fishBy[L[6]].length > 12 ? '…' : ''}</p>`;
+        const c2 = (M.c2 || []).find((q) => q[0] === f.key), TY = c2 && (M.c2t || {})[c2[1]];
+        if (TY) h += `<p>Un lieu perdu : ${PAGES.has(TY[2]) ? `<a href="#/p/${encodeURIComponent(TY[2])}">${esc(TY[0])}</a>` : esc(TY[0])}</p>`;
+        const pe = (M.peuples || []).find((q) => q[0] === f.key);
         h += pgLink('li:' + f.key);
+        if (pe) h += ' ' + pgLink(pe[2], 'Le peuple');
       } else if (f.kind === 'sp') {
         h += `<h3>${esc(f.title)}</h3><p>${f.n ? `${f.total} dans la vallée${f.total > f.n ? ` (${f.n} montrés)` : ''}.` : 'Aucune dans la vallée.'}</p>${f.page ? pgLink(f.page) : ''}`;
       } else if (f.kind === 'mil') {
@@ -4697,10 +4865,189 @@ function CLIENT(D) {
       el.hidden = false;
     },
   };
+  // ---------------------------------------------------------------- LES PLANS (le Dessous, les Enfers, les autres mondes)
+  // Une image dessinée par l'outil, des repères par-dessus (couches, secrets), même maniement que la carte de la vallée.
+  function makePlan(P) {
+    const store2 = store.get('plan.' + P.id, {});
+    const layers = {}; for (const [k, , , on] of P.layers) layers[k] = store2[k] !== undefined ? store2[k] : on;
+    const dark = P.id !== 'bonbons';
+    const PV = {
+      id: P.id, P, ready: false, raf: 0, cx: (P.x0 + P.x1) / 2, cz: (P.z0 + P.z1) / 2, k: 1, W: 1, H: 1, dpr: 1, img: null, layers, sel: null, marks: [], fitted: false,
+      start(arg) {
+        this.ready = false;
+        if (!this.img) {
+          $('#maploading').textContent = 'Le plan se dessine…'; $('#maploading').hidden = false;
+          const im = new Image();
+          im.onload = () => { this.img = im; $('#maploading').hidden = true; this.ready = true; this.resize(); this.go(arg); };
+          im.onerror = () => { $('#maploading').textContent = 'Le plan n’a pas pu être affiché.'; };
+          im.src = P.img.url;
+          this.panel();
+          return;
+        }
+        this.panel(); this.ready = true; this.resize(); this.go(arg);
+      },
+      stop() { cancelAnimationFrame(this.raf); this.raf = 0; },
+      resize() {
+        const cv = MAP.cv, r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+        this.dpr = dpr; cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
+        this.W = r.width; this.H = r.height;
+        if (!this.fitted) { this.fitted = true; this.fitAll(true); }
+        this.req();
+      },
+      span() { return Math.max(P.x1 - P.x0, P.z1 - P.z0); },
+      fit(x, z, r) { this.cx = x; this.cz = z; this.k = Math.min(Math.min(this.W, this.H) / (2 * Math.max(4, r)), 40); this.clampView(); this.req(); },
+      fitAll(silent) { this.cx = (P.x0 + P.x1) / 2; this.cz = (P.z0 + P.z1) / 2; this.k = Math.min((this.W - 20) / (P.x1 - P.x0), (this.H - 110) / (P.z1 - P.z0)); this.clampView(); this.sel = null; if (!silent) this.info(null); this.req(); },
+      clampView() { const m = this.span(); this.cx = Math.max(P.x0 - m * 0.1, Math.min(P.x1 + m * 0.1, this.cx)); this.cz = Math.max(P.z0 - m * 0.1, Math.min(P.z1 + m * 0.1, this.cz)); this.k = Math.max(Math.min(this.W, this.H) / (m * 1.5), Math.min(P.ppm * 10, this.k)); },
+      zoomAt: MAP.zoomAt, toWorld: MAP.toWorld, toScreen: MAP.toScreen,
+      get cv() { return MAP.cv; },
+      req() { if (!this.raf && this.ready && mode === 'map' && V() === this) this.raf = requestAnimationFrame(() => { this.raf = 0; this.draw(); }); },
+      shown(m) { return this.layers[m.l] && (reveal || !(m.x2 || this.secretLayer(m.l))); },
+      secretLayer(l) { const L = P.layers.find((q) => q[0] === l); return !!(L && L[2]); },
+      // aller vers une cible : li:clé (un repère qui mène à cette fiche), p:fiche, xy:x,z, t:nom
+      go(arg) {
+        this.sel = null;
+        if (!arg) { this.info(null); this.req(); return; }
+        const [kind, ...rest] = arg.split(':'); const v = rest.join(':');
+        let m = null;
+        if (kind === 'li' || kind === 'p') { const id = kind === 'li' ? 'li:' + v : v; m = P.marks.find((q) => q.p === id && (q.k === 'zone' || q.k === 'pt')) || P.marks.find((q) => q.p === id); }
+        else if (kind === 't') m = P.marks.find((q) => norm(q.t) === norm(v));
+        else if (kind === 'xy') { const [x, z] = v.split(',').map(Number); this.sel = { x, z, r: 3 }; this.fit(x, z, 40); this.info({ x, z }); return; }
+        if (m) {
+          if (!this.layers[m.l]) { this.layers[m.l] = 1; this.panel(); }
+          this.sel = { x: m.x, z: m.z, r: m.k === 'zone' ? m.r : 3 };
+          this.fit(m.x, m.z, m.k === 'zone' ? Math.max(40, m.r * 1.6) : 45);
+          this.info(this.visibleMark(m) ? m : null);
+        } else this.info(null);
+        this.req();
+      },
+      visibleMark(m) { return !(m.x2 || this.secretLayer(m.l)) || reveal; },
+      draw() {
+        const c = MAP.ctx, dpr = this.dpr, W = this.W, H = this.H, k = this.k;
+        c.setTransform(dpr, 0, 0, dpr, 0, 0);
+        c.fillStyle = P.bg || '#222'; c.fillRect(0, 0, W, H);
+        const T = (x, z) => [(x - this.cx) * k + W / 2, (z - this.cz) * k + H / 2];
+        c.setTransform(dpr * k, 0, 0, dpr * k, dpr * (W / 2 - this.cx * k), dpr * (H / 2 - this.cz * k));
+        c.imageSmoothingEnabled = k * 1 < P.ppm * 1.2;
+        if (this.img) c.drawImage(this.img, P.x0, P.z0, P.img.w / P.ppm, P.img.h / P.ppm);
+        const px = 1 / k;
+        // la vallée au-dessus, en transparence (le Dessous est sous la vallée : mêmes mètres)
+        if (P.surface && this.layers.surface) {
+          if (!MAP.G) { try { MAP.init(); MAP.compose(); } catch (e) { /* tant pis */ } }
+          if (MAP.base) { c.globalAlpha = 0.3; c.imageSmoothingEnabled = true; c.drawImage(MAP.base, 0, 0, M.size, M.size); c.globalAlpha = 1; }
+        }
+        // les dessous de là-haut (la mine, le clocher…) : les blocs enfouis de la vallée, dans l'emprise du plan
+        if (P.lahaut && this.layers.lahaut && reveal) {
+          if (!MAP.G) { try { MAP.init(); } catch (e) { /* tant pis */ } }
+          const B = MAP.G && MAP.G.blocks;
+          if (B) {
+            c.lineWidth = 0.4 * px; c.strokeStyle = 'rgba(230,210,255,.7)'; c.fillStyle = 'rgba(150,110,190,.55)';
+            for (let i = 0; i < M.blocks.n; i++) {
+              const o = i * 8; if (!B[o + 7]) continue;
+              const x = B[o] / 10, z = B[o + 1] / 10, sx = B[o + 2] / 10, sz = B[o + 3] / 10, r = B[o + 4] / 1000;
+              if (x < P.x0 || x > P.x1 || z < P.z0 || z > P.z1) continue;
+              c.save(); c.translate(x, z); c.rotate(-r); c.fillRect(-sx / 2, -sz / 2, sx, sz); if (sx * k > 3) c.strokeRect(-sx / 2, -sz / 2, sx, sz); c.restore();
+            }
+          }
+        }
+        c.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const marks = []; this.marks = marks;
+        const labels = [];
+        const vx0 = this.cx - W / 2 / k, vx1 = this.cx + W / 2 / k, vz0 = this.cz - H / 2 / k, vz1 = this.cz + H / 2 / k;
+        const inV = (x, z, m = 0) => x > vx0 - m && x < vx1 + m && z > vz0 - m && z < vz1 + m;
+        for (const m of P.marks) {
+          if (!this.shown(m) || !inV(m.x, m.z, m.k === 'zone' ? m.r : 20)) continue;
+          const [sx, sy] = T(m.x, m.z), sec = !!(m.x2 || this.secretLayer(m.l));
+          if (m.k === 'zone') {
+            if (k * m.r < 14 && !(this.sel && this.sel.x === m.x && this.sel.z === m.z)) continue;
+            labels.push({ x: sx, y: sy, t: m.t, pr: 4 + Math.min(4, m.r / 30), cls: sec ? 'secret' : m.c === 'eau' ? 'water' : 'salle' });
+            marks.push({ x: sx, y: sy, r: 14, f: m });
+          } else if (m.k === 'dot') {
+            if (k < 0.35 && m.l !== 'gens') continue;
+            const rr = m.l === 'gens' ? 4 : Math.max(2.2, Math.min(4, k * 1.6));
+            c.beginPath(); c.arc(sx, sy, rr, 0, Math.PI * 2); c.fillStyle = m.c === 'gens' ? '#f4ecd8' : m.c || '#ccc'; c.fill(); c.lineWidth = 1; c.strokeStyle = sec ? '#ff6a50' : dark ? 'rgba(0,0,0,.75)' : 'rgba(60,40,20,.7)'; c.stroke();
+            marks.push({ x: sx, y: sy, r: 7, f: m });
+            if (m.l === 'gens' && k > 1.2) labels.push({ x: sx + 6, y: sy, t: m.t.split(',')[0], pr: 2, cls: 'npc', left: true, col: dark ? '#f4d8b0' : '#7a2414' });
+          } else if (m.k === 'fl') {
+            if (k < 0.5) continue;
+            c.save(); c.translate(sx, sy); c.rotate(-(m.a || 0) + Math.PI); c.strokeStyle = '#1a1612'; c.fillStyle = '#e8e0d0'; c.lineWidth = 1;
+            c.beginPath(); c.moveTo(0, -6); c.lineTo(4, 2); c.lineTo(1.2, 1); c.lineTo(1.2, 6); c.lineTo(-1.2, 6); c.lineTo(-1.2, 1); c.lineTo(-4, 2); c.closePath(); c.fill(); c.stroke(); c.restore();
+            marks.push({ x: sx, y: sy, r: 7, f: m });
+          } else {
+            const rr = m.big ? 8.5 : 7;
+            c.beginPath(); c.arc(sx, sy, rr, 0, Math.PI * 2); c.fillStyle = sec ? 'rgba(90,20,14,.92)' : 'rgba(251,242,220,.95)'; c.fill(); c.lineWidth = 1.3; c.strokeStyle = sec ? '#ffb090' : '#5a3a1a'; c.stroke();
+            c.font = '10px serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = sec ? '#ffe8d8' : '#3a2410'; c.fillText(m.i || '•', sx, sy + 0.5);
+            marks.push({ x: sx, y: sy, r: 10, f: m });
+            if (k > (m.big ? 0.25 : 0.9)) labels.push({ x: sx + rr + 3, y: sy, t: m.t, pr: m.big ? 7 : 3, cls: sec ? 'secret' : 'place', left: true });
+          }
+        }
+        if (this.sel) { const [sx, sy] = T(this.sel.x, this.sel.z); c.strokeStyle = dark ? 'rgba(255,190,120,.95)' : 'rgba(160,30,20,.95)'; c.lineWidth = 2.2; c.beginPath(); c.arc(sx, sy, Math.max(12, (this.sel.r || 3) * k), 0, Math.PI * 2); c.stroke(); }
+        drawLabels(c, labels, dark);
+        drawScale(c, W, H, k, dark);
+      },
+      hoverAt(sx, sy) {
+        const el = $('#mapinfo'); if (!el) return;
+        const [x, z] = this.toWorld(sx, sy), m = this.nearZone(x, z);
+        el.textContent = P.coords ? `x ${Math.round(x)} · z ${Math.round(z)}${m ? ' · ' + m.t : ''}` : (m ? m.t : P.t);
+        MAP.cv.style.cursor = this.hit(sx, sy) ? 'pointer' : 'grab';
+      },
+      nearZone(x, z) { let best = null, bd = 1e9; for (const m of P.marks) { if (m.k !== 'zone' || !this.shown(m)) continue; const d = Math.hypot(m.x - x, m.z - z) / (m.r || 10); if (d < bd) { bd = d; best = m; } } return bd < 1.3 ? best : null; },
+      hit: MAP.hit,
+      click(sx, sy) {
+        const f = this.hit(sx, sy);
+        if (f) { this.sel = { x: f.x, z: f.z, r: f.k === 'zone' ? Math.min(f.r, 30) : 3 }; this.info(f); this.req(); return; }
+        const [x, z] = this.toWorld(sx, sy);
+        if (x < P.x0 || z < P.z0 || x > P.x1 || z > P.z1) { this.info(null); return; }
+        this.sel = { x, z, r: 3 }; this.info({ x, z }); this.req();
+      },
+      info(f) {
+        const el = $('#mapcard');
+        if (!f) { el.hidden = true; return; }
+        const pgLink = (id, t) => { const p = PAGES.get(id); return p && visible(p) ? `<a class="btn" href="#/p/${encodeURIComponent(id)}">${esc(t || 'Ouvrir la fiche')}</a>` : ''; };
+        let h = '';
+        if (f.t) {
+          h += `<h3>${esc(f.t)}</h3>${f.s ? `<p class="sub">${esc(f.s)}</p>` : ''}`;
+          if (P.coords) h += `<p>x ${Math.round(f.x)} · z ${Math.round(f.z)}</p>`;
+          if (f.p) h += pgLink(f.p);
+        } else {
+          const m = this.nearZone(f.x, f.z);
+          h += `<h3>${esc(m ? m.t : P.t)}</h3>${P.coords ? `<p>x ${Math.round(f.x)} · z ${Math.round(f.z)}</p>` : ''}${m && m.p ? pgLink(m.p) : P.p ? pgLink(P.p) : ''}`;
+        }
+        el.innerHTML = '<button class="x" aria-label="Fermer">×</button>' + h;
+        el.querySelector('.x').onclick = () => { el.hidden = true; this.sel = null; this.req(); };
+        el.hidden = false;
+      },
+      panel() {
+        const el = $('#layers');
+        const fs = (sec) => P.layers.filter((q) => !!q[2] === sec).map(([k2, n]) => `<label><input type="checkbox" data-l="${k2}" ${this.layers[k2] ? 'checked' : ''}> ${esc(n)}</label>`).join('');
+        el.innerHTML = '<button class="x" aria-label="Fermer">×</button>' + `<fieldset><legend>${esc(P.t)}</legend>${fs(false)}</fieldset>` + (P.layers.some((q) => q[2]) ? `<fieldset class="secl"${reveal ? '' : ' hidden'}><legend>Secrets</legend>${fs(true)}</fieldset>` : '') + `<p class="note">${esc(P.s || '')}</p>` + (P.p && PAGES.has(P.p) ? `<p><a href="#/p/${encodeURIComponent(P.p)}">La fiche</a></p>` : '');
+        el.querySelector('.x').onclick = () => el.classList.remove('open');
+      },
+      onLayer(k2, on) { this.layers[k2] = on ? 1 : 0; const s = {}; for (const k3 of Object.keys(this.layers)) s[k3] = this.layers[k3]; store.set('plan.' + P.id, s); this.req(); },
+      feats() { return P.marks.filter((m) => this.visibleMark(m) && m.k !== 'dot' && m.k !== 'fl').concat(P.marks.filter((m) => this.visibleMark(m) && m.k === 'dot' && m.l === 'gens')).map((m) => ({ t: m.t, s: m.s || P.t, go: () => { if (!this.layers[m.l]) { this.layers[m.l] = 1; this.panel(); } this.sel = { x: m.x, z: m.z, r: m.k === 'zone' ? m.r : 3 }; this.fit(m.x, m.z, m.k === 'zone' ? Math.max(40, m.r * 1.6) : 45); this.info(m); } })); },
+    };
+    return PV;
+  }
+  const PLANS = {};
+  for (const P of D.plans || []) PLANS[P.id] = makePlan(P);
+  // les onglets, en haut de la carte : la vallée, puis chaque plan
+  function renderTabs(cur) {
+    const el = $('#maptabs'); if (!el) return;
+    el.innerHTML = `<a href="#/carte" data-t="vallee"${cur === 'vallee' ? ' class="on"' : ''}>🗺 La vallée</a>` + (D.plans || []).map((P) => `<a href="#/plan/${P.id}" data-t="${P.id}"${cur === P.id ? ' class="on"' : ''}>${esc(P.i || '')} ${esc(P.t)}</a>`).join('');
+  }
   function showMap(arg) {
     setMode('map'); activeNav('carte');
-    if (MAP.cv) MAP.panel();
+    if (VIEW && VIEW !== MAP) VIEW.stop();
+    VIEW = MAP; renderTabs('vallee'); $('#mq').value = ''; $('#mapcard').hidden = true;
     MAP.start(arg);
+  }
+  function showPlan(id, arg) {
+    const PV = PLANS[id];
+    if (!PV) return showMap('');
+    setMode('map'); activeNav('carte');
+    if (!MAP.cv) MAP.build($('#mapwrap'));
+    if (VIEW && VIEW !== PV) VIEW.stop();
+    VIEW = PV; renderTabs(id); $('#mq').value = ''; $('#mapcard').hidden = true;
+    PV.start(arg);
   }
   setTimeout(() => { try { if (!IDX) buildIndex(); } catch (e) { /* plus tard */ } }, 1500);
 
@@ -4711,6 +5058,7 @@ function CLIENT(D) {
     if (kind === 'p') showPage(arg);
     else if (kind === 'cat') showCat(arg);
     else if (kind === 'carte') showMap(arg);
+    else if (kind === 'plan') { const j = arg.indexOf('/'); showPlan(j < 0 ? arg : arg.slice(0, j), j < 0 ? '' : arg.slice(j + 1)); }
     else if (kind === 'cherche') showSearch(arg);
     else showHome();
   }
@@ -4721,7 +5069,7 @@ function CLIENT(D) {
   $('#nav').addEventListener('click', (e) => { if (e.target.closest('a')) document.body.classList.remove('navopen'); });
   renderNav();
   route();
-  window.PRAIRIE_WIKI = { D, MAP, search, PAGES };
+  window.PRAIRIE_WIKI = { D, MAP, PLANS, search, PAGES, get VIEW() { return V(); } };
 }
 
 // ============================================================================
@@ -4881,7 +5229,11 @@ body[data-mode="map"] #mapwrap { display: block; }
 .short { display: none; }
 body[data-mode="map"] #main, body[data-mode="map"] #nav { display: none; }
 #map { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; background: #d9cba6; }
-#maptools { position: absolute; top: 12px; left: 12px; display: flex; gap: 6px; align-items: flex-start; z-index: 5; flex-wrap: wrap; max-width: calc(100% - 24px); }
+#maptabs { position: absolute; top: 0; left: 0; right: 0; z-index: 7; display: flex; gap: 4px; padding: 6px 10px; background: rgba(241,231,207,.94); border-bottom: 1px solid rgba(90,60,30,.35); box-shadow: 0 2px 8px rgba(40,25,10,.18); overflow-x: auto; white-space: nowrap; scrollbar-width: thin; }
+#maptabs a { border: 1px solid transparent; border-radius: 4px; padding: 3px 10px; color: var(--ink); font-size: .95em; }
+#maptabs a:hover { background: rgba(160,110,50,.15); }
+#maptabs a.on { background: var(--card); border-color: rgba(90,60,30,.45); font-weight: 600; box-shadow: 0 1px 2px rgba(60,40,20,.2); }
+#maptools { position: absolute; top: 50px; left: 12px; display: flex; gap: 6px; align-items: flex-start; z-index: 5; flex-wrap: wrap; max-width: calc(100% - 24px); }
 #maptools .mq { position: relative; }
 #mq { width: 250px; max-width: 60vw; padding: 6px 10px; border: 1px solid rgba(90,60,30,.5); border-radius: 4px; background: #f8f0dc; font: inherit; font-size: .95em; }
 #msug { position: absolute; top: 100%; left: 0; width: 320px; max-width: 80vw; margin-top: 3px; background: var(--card); border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 6px 18px rgba(40,25,10,.3); max-height: 60vh; overflow: auto; }
@@ -4890,7 +5242,7 @@ body[data-mode="map"] #main, body[data-mode="map"] #nav { display: none; }
 #msug a:hover { background: var(--hl); }
 #msug p { margin: 6px 10px; }
 #maptools button { min-width: 34px; justify-content: center; }
-#layers { position: absolute; top: 56px; left: 12px; z-index: 6; background: var(--card); border: 1px solid rgba(90,60,30,.4); border-radius: 4px; padding: 8px 12px 10px; box-shadow: 0 4px 14px rgba(40,25,10,.25); display: none; max-height: calc(100% - 80px); overflow: auto; font-size: .92em; width: 280px; max-width: calc(100% - 24px); }
+#layers { position: absolute; top: 94px; left: 12px; z-index: 6; background: var(--card); border: 1px solid rgba(90,60,30,.4); border-radius: 4px; padding: 8px 12px 10px; box-shadow: 0 4px 14px rgba(40,25,10,.25); display: none; max-height: calc(100% - 80px); overflow: auto; font-size: .92em; width: 280px; max-width: calc(100% - 24px); }
 #layers.open { display: block; }
 #layers fieldset { border: 0; border-top: 1px solid var(--line); margin: 6px 0 0; padding: 4px 0 0; }
 #layers legend { font-variant: small-caps; color: var(--ink2); padding: 0 4px 0 0; }
@@ -4936,6 +5288,7 @@ function writeHTML(DB) {
   say('fiches du wiki…');
   const wiki = buildWiki(DB);
   const map = buildMapData(DB, wiki);
+  const plans = buildPlansData(DB, wiki);
   // plantes rares (rareté ≥ 2) : positions pour la couche secrète
   {
     const T = (n, d) => (DB.tables[n] ? DB.tables[n].v : d);
@@ -4954,7 +5307,7 @@ function writeHTML(DB) {
     pages: wiki.pages.map((p) => { const o = { id: p.id, t: p.t, s: p.s, c: p.c, i: p.i, h: p.h }; if (p.x) o.x = 1; if (p.fig) o.fig = p.fig; return o; }),
     icons: { url: DB.images.icons.url, cols: DB.images.icons.cols, n: DB.images.icons.n },
     figures: { url: DB.images.figures.url, w: DB.images.figures.w, h: DB.images.figures.h },
-    langCode: DB.derived.langCode || '', map,
+    langCode: DB.derived.langCode || '', map, plans,
   };
   const json = JSON.stringify(D).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
   const html = `<!DOCTYPE html>
@@ -4979,6 +5332,7 @@ function writeHTML(DB) {
   <nav id="nav" aria-label="Sections"></nav>
   <main id="main"></main>
   <div id="mapwrap">
+    <nav id="maptabs" aria-label="Les cartes"></nav>
     <canvas id="map" aria-label="Carte de la vallée"></canvas>
     <div id="maptools"><div class="mq"><input id="mq" type="search" placeholder="Chercher sur la carte…" autocomplete="off"><div id="msug" hidden></div></div><button class="btn" id="layerbtn" title="Couches">☰ Couches</button><button class="btn" id="zin" title="Zoomer">+</button><button class="btn" id="zout" title="Dézoomer">−</button><button class="btn" id="zall" title="Toute la vallée">⤢</button></div>
     <div id="layers"></div>
@@ -4998,7 +5352,7 @@ function writeHTML(DB) {
   if (/<\/script/i.test(json) || /<\/script/i.test(CLIENT.toString())) throw new Error('les données contiennent « </script » : le fichier serait cassé');
   fs.writeFileSync(OUT, html);
   const kb = (s) => Math.round(Buffer.byteLength(s) / 1024);
-  say(`écrit ${path.relative(process.cwd(), OUT) || OUT} : ${kb(html)} Ko (fiches ${kb(JSON.stringify(D.pages))} Ko, carte ${kb(JSON.stringify(map))} Ko, icônes ${kb(D.icons.url)} Ko, figurines ${kb(D.figures.url)} Ko) — ${D.pages.length} fiches, ${wiki.cats.length} sections, ${wiki.other.length} « autres tables »`);
+  say(`écrit ${path.relative(process.cwd(), OUT) || OUT} : ${kb(html)} Ko (fiches ${kb(JSON.stringify(D.pages))} Ko, carte ${kb(JSON.stringify(map))} Ko, plans ${kb(JSON.stringify(plans))} Ko, icônes ${kb(D.icons.url)} Ko, figurines ${kb(D.figures.url)} Ko) — ${D.pages.length} fiches, ${wiki.cats.length} sections, ${wiki.other.length} « autres tables »`);
   return { D, wiki };
 }
 
