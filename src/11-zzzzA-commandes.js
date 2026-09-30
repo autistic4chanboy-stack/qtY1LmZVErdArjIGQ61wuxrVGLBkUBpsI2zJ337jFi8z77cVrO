@@ -50,6 +50,9 @@ const CMD_DIT = {
   pose: ['Pour vous. C’est réglé d’avance.', 'Votre colis. Tout y est, je crois.', 'Posé là. Bonne journée.', 'Voilà. La tournée m’attend.'],
   pluie: ['Il a pris un peu d’eau. Le dedans est sec.', 'Voilà. Je ne m’attarde pas, avec ce temps.'],
   parler: ['Je ne fais que porter. Les commandes, c’est au carnet.', 'La tournée n’attend pas.', 'Le matin, toujours le matin. Le soir, je ne roule pas.', 'Écrivez aujourd’hui, je passe demain.', 'Hue.'],
+  // (certains matins)
+  rouge: ['Le cheval n’a pas voulu passer le calvaire avant l’aube. Il sait des choses, cette bête.'],
+  tueur: ['Fermez bien, ce soir. On dit des choses, sur la route.'],
 };
 // ce qu'on trouve parfois dans un colis qu'on a ouvert en route
 const CMD_LAISSE = ['meche_cheveux', 'bille', 'tesson', 'os', 'plume'];
@@ -594,7 +597,7 @@ const commandes = {
         m.porte = false;
         this.arrivee(T.D, T.o, T.de, T.L, true, T.spot);
         sound.place && sound.place();
-        if (!T.dit && Math.hypot(m.x - p.pos[0], m.z - p.pos[2]) < 10 && Math.random() < 0.75) { T.dit = true; this.dire(weather.cur && weather.cur.rain > 0.35 ? pick(CMD_DIT.pluie) : pick(CMD_DIT.pose)); }
+        if (!T.dit && Math.hypot(m.x - p.pos[0], m.z - p.pos[2]) < 10 && Math.random() < 0.75) { T.dit = true; this.dire(this.replique()); }
       }
       if (T.t > 1.1) { T.etat = 'revient'; T.t = 0; }
     } else if (T.etat === 'demi') {
@@ -634,6 +637,16 @@ const commandes = {
     if (T && T.m.porte) { T.m.porte = false; this.arrivee(T.D, T.o, T.de, T.L, false, T.spot); }
   },
   dire(t) { ui.subtitle('Le voiturier', t, 3.2); },
+  // ce qu'il dit en posant le colis (le temps qu'il fait ; certains matins, autre chose)
+  replique() {
+    try {
+      if (typeof strange !== 'undefined') {
+        if (strange.wasRedNight && strange.wasRedNight() && Math.random() < 0.6) return pick(CMD_DIT.rouge);
+        if (strange.killerActive && strange.killerActive() && Math.random() < 0.5) return pick(CMD_DIT.tueur);
+      }
+    } catch (e) { /* le temps qu'il fait */ }
+    return weather.cur && weather.cur.rain > 0.35 ? pick(CMD_DIT.pluie) : pick(CMD_DIT.pose);
+  },
   parler() {
     const T = this.tour;
     if (!T) return;
