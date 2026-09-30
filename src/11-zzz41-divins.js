@@ -178,10 +178,10 @@ const divins = {
   // ------------------------------------------------------------ la voix des nuits noires (Vesh)
   voix() {
     const S = this.S(), s = farm.s;
-    ui.choice('Dans le noir', `(La voix murmure votre nom, tout contre vous. « ${s.prenom || (s.fem ? 'Jeanne' : 'Jean')}… » Elle attend.)`, [
+    ui.choice('Dans le noir', `(Une voix, tout contre vous : « ${s.prenom || (s.fem ? 'Jeanne' : 'Jean')}… » Elle attend.)`, [
       { label: 'Répondre', fn: () => { ui.close(true); S.vesh.repondu = (S.vesh.repondu || 0) + 1; evenements.S().nuit.repondu = s.day; evenements.voix = null; sound.whisper && sound.whisper(0, 1); this.parler('vesh', 'vesh_offre', 300); setTimeout(() => this.pacte('voix'), 5200); } },
       { label: 'Dire son nom : « Vesh »', fn: () => { ui.close(true); evenements.S().nuit.repondu = s.day; evenements.voix = null; this.parler('vesh', 'vesh_nom', 200); S.vesh.nom = s.day; setTimeout(() => { malediction.frapper('ombre', 'voix'); if (!S.vesh.vu && evenements.dehors()) this.apparaitre('vesh', { nom: true }); }, 3800); } },
-      { label: 'Se taire, et reculer', fn: () => { ui.close(); evenements.S().nuit.tu = s.day; evenements.voix = null; setTimeout(() => ui.subtitle('', '(Vous ne dites rien. Le murmure s’éloigne, déçu. Il reviendra une autre nuit.)', 4), 400); } },
+      { label: 'Se taire, et reculer', fn: () => { ui.close(); evenements.S().nuit.tu = s.day; evenements.voix = null; } },
     ]);
   },
   // un pacte avec Vesh : un don, qui se paiera
@@ -194,8 +194,8 @@ const divins = {
       { label: 'Le savoir des Aëlim', fn: () => this.conclure('savoir', source) },
     ];
     if (malediction.a()) opts.push({ label: 'Qu’on m’ôte ce qui pèse sur moi', fn: () => this.conclure('lever', source) });
-    opts.push({ label: 'Refuser', fn: () => { ui.close(); if (source === 'voix') { setTimeout(() => { ui.subtitle('Vesh', 'ta kala … ta rhua', 4); malediction.frapper('sommeil', 'voix'); }, 800); } else ui.subtitle('', '(Vous retirez votre main. La pierre noire est froide, maintenant, comme vexée.)', 3.5); } });
-    ui.choice('Vesh', '(Une voix sans souffle, tout contre votre oreille. Elle vous offre quelque chose. Ce qui est donné sera repris, d’une manière ou d’une autre.)', opts);
+    opts.push({ label: 'Refuser', fn: () => { ui.close(); if (source === 'voix') { setTimeout(() => { ui.subtitle('Vesh', 'ta kala … ta rhua', 4); malediction.frapper('sommeil', 'voix'); }, 800); } } });
+    ui.choice('Vesh', '(Une voix sans souffle, tout contre votre oreille. Elle offre.)', opts);
   },
   conclure(quoi, source) {
     const S = this.S(), s = farm.s;
@@ -204,7 +204,7 @@ const divins = {
     BUFF.add('pacte', 30);
     if (typeof faith !== 'undefined') { faith.add('dessous', 3); faith.add('eglise', -3); }
     sound.whisper && sound.whisper(0, 1); strange.glitchT = Math.max(strange.glitchT || 0, 0.8);
-    if (quoi === 'or') { const n = 250 + Math.floor(Math.random() * 300); farm.earn(n); sound.coin && sound.coin(); ui.subtitle('', `(Vos poches sont lourdes : ${n} pièces. Elles sont froides comme la nuit.)`, 4.5); }
+    if (quoi === 'or') { const n = 250 + Math.floor(Math.random() * 300); farm.earn(n); sound.coin && sound.coin(); ui.subtitle('', `(Vos poches sont lourdes : ${n} pièces.)`, 3.5); }
     else if (quoi === 'nuit') { BUFF.add('pacte_nuit', 72); BUFF.add('nyctalopie', 72); ui.subtitle('Vesh', '… la nuit ne te voit plus. Toi, tu la vois …', 4.5); }
     else if (quoi === 'savoir') {
       const lex = Object.keys(LANGUES.aelin.lex).filter((m) => !savoir.motConnu('aelin', m)).sort(() => Math.random() - 0.5).slice(0, 8);
@@ -259,7 +259,7 @@ const divins = {
     const premier = S.aela.prie !== s.day;
     S.aela.prie = s.day;
     game.sleeping = true;
-    await ui.fade(true, item ? 'Vous posez l’offrande sur la pierre blanche. Il fait plus chaud, d’un coup, comme au soleil.' : 'Vous vous agenouillez. La pierre est tiède. Quelque chose écoute.', 900);
+    await ui.fade(true, '', 900);
     await new Promise((r) => setTimeout(r, 2200));
     await ui.fade(false, '', 900);
     game.sleeping = false;
@@ -272,7 +272,7 @@ const divins = {
       const lourdes = ids.filter((k) => !MALEDICTIONS[k].petite);
       if (item && (val || 0) >= 4) malediction.lever('toutes');
       else if (item && (val || 0) >= 2 && lourdes.some((k) => k !== 'ombre')) { malediction.lever(lourdes.find((k) => k !== 'ombre')); malediction.leverPetites(true); }
-      else if (!malediction.leverPetites()) ui.subtitle('', lourdes.includes('ombre') ? '(La chaleur recule devant ce qui vous suit. Il faudrait plus : une fleur de ce temple, ou une poussière d’étoile.)' : '(Ce qui pèse sur vous est trop lourd pour une simple prière.)', 5);
+      else if (!malediction.leverPetites()) ui.subtitle('', lourdes.includes('ombre') ? '(La chaleur recule devant ce qui vous suit. Il faudrait une offrande plus rare.)' : '(Ce qui pèse sur vous est trop lourd pour une simple prière.)', 5);
     }
     this.parler('aela', ids.length ? 'aela_lever' : 'aela_don', 1200);
     if (typeof faith !== 'undefined') faith.add('anciens', 1);
@@ -280,7 +280,7 @@ const divins = {
   // Vesh, à son autel noir : un pacte
   autelVesh(it) {
     const s = farm.s, h = npcs.hour();
-    if (h > 6 && h < 20 && !(typeof evenements !== 'undefined' && evenements.noirK > 0.3)) { ui.subtitle('', '(La pierre noire ne répond pas. Pas en plein jour. Même ici, sous la montagne, elle sait quelle heure il est.)', 4.5); return; }
+    if (h > 6 && h < 20 && !(typeof evenements !== 'undefined' && evenements.noirK > 0.3)) { ui.subtitle('', '(La pierre noire ne répond pas. Pas en plein jour.)', 3.5); return; }
     sound.whisper && sound.whisper(0, 0.9);
     this.parler('vesh', 'vesh_appel', 200);
     setTimeout(() => { if (!game.dying) this.pacte('autel'); }, 4200);
@@ -316,7 +316,7 @@ HOOKS.load.push(() => {
   const _hurt = play.hurt.bind(play);
   play.hurt = function (dmg, src, cause) { if (BUFF.on('pierre') && dmg > 0 && dmg < 900) dmg *= 0.5; return _hurt(dmg, src, cause); };
   const _cj = corps.casserJambe.bind(corps);
-  corps.casserJambe = function (cause) { if (BUFF.on('pierre')) { ui.subtitle('', '(Le choc remonte dans vos os, mais ils tiennent. La pierre est avec vous.)', 3); return; } return _cj(cause); };
+  corps.casserJambe = function (cause) { if (BUFF.on('pierre')) { ui.subtitle('', '(Le choc remonte dans vos os, mais ils tiennent.)', 3); return; } return _cj(cause); };
 });
 
 // ---------------------------------------------------------------- branchements

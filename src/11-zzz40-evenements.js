@@ -405,8 +405,8 @@ const evenements = {
     // annonces du matin
     setTimeout(() => {
       if (game.dying || !farm.s) return;
-      if (this.jourNeige()) ui.subtitle('', '(Le ciel est blanc et bas. Il fait un froid à fendre les pierres, jusque dans la vallée.)', 5);
-      else if (this.jourSoleil()) ui.subtitle('', '(Le ciel est blanc de chaleur. Le soleil tape déjà comme à midi. Mieux vaut ne pas le regarder.)', 5);
+      if (this.jourNeige()) ui.subtitle('', '(Un froid à fendre les pierres, ce matin.)', 4);
+      else if (this.jourSoleil()) ui.subtitle('', '(Le soleil tape déjà comme à midi.)', 4);
     }, 7800);
   },
 };
@@ -450,7 +450,7 @@ const evNuitNoire = {
     if (k > 0.25 && S.nuit.debut !== s.day && !game.sleeping && !cine.on && !ui.panel) {
       S.nuit.debut = s.day;
       if (E.dehors() && typeof cinematiques !== 'undefined') cinematiques.nuitNoire();
-      else ui.subtitle('', '(Dehors, la nuit est devenue noire. Plus de lune, plus une étoile. Rien.)', 5);
+      else ui.subtitle('', '(Dehors, la nuit est devenue noire.)', 4);
     }
     // la voix : quelque part dans le noir, à une trentaine de pas ; elle se déplace quand on s'éloigne
     if (!E.voix && k > 0.6 && S.nuit.tu !== s.day && S.nuit.repondu !== s.day && !p.underground) E.voix = evNuitNoire.placerVoix(28 + Math.random() * 14);
@@ -460,7 +460,7 @@ const evNuitNoire = {
       if (d > 70 || p.underground) E.voix = evNuitNoire.placerVoix(30 + Math.random() * 10);
       // une brume froide, là où elle attend
       if (d < 40 && Math.random() < dt * 5) particles.spawn(V.x + (Math.random() - 0.5) * 1.2, V.y + 0.3 + Math.random() * 1.6, V.z + (Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 0.3, 0.15, (Math.random() - 0.5) * 0.3, [0.06, 0.05, 0.1, 0.35], 0.4, 2.5, 0, false);
-      if (d < 7 && !V.vu && !ui.panel) { V.vu = true; ui.subtitle('', '(Il y a quelqu’un, là, tout près. Vous ne le voyez pas. Vous l’entendez respirer.)', 4); }
+      if (d < 7 && !V.vu && !ui.panel) { V.vu = true; ui.subtitle('', '(Quelqu’un respire, tout près.)', 3.5); }
     }
     // les murmures (spatialisés : ils viennent de la voix, ou de partout)
     this.whT -= dt * (0.6 + 0.4 * EV_BIZ());
@@ -483,8 +483,8 @@ const evNuitNoire = {
       const nom = s.prenom || (s.fem ? 'Jeanne' : 'Jean');
       const Vd = V ? Math.hypot(V.x - p.pos[0], V.z - p.pos[2]) : 99;
       const L = Vd < 10
-        ? [`(… « ${nom} »… C’est tout près. Ça attend que vous répondiez …)`, `(… « ${nom}, viens » …)`, '(… une voix sans souffle, juste à côté de votre oreille …)']
-        : ['(… quelqu’un murmure votre nom …)', `(… « ${nom} »… très loin, ou tout près …)`, '(… des murmures, dehors. On dirait qu’on vous appelle …)', '(… votre nom, encore, dans le noir …)'];
+        ? [`(… « ${nom} » …)`, `(… « ${nom}, viens » …)`]
+        : ['(… quelqu’un murmure votre nom …)', '(… votre nom, encore, dans le noir …)'];
       ui.subtitle('', pick(L), 4);
     }
     // on a peur, dans le noir
@@ -562,7 +562,7 @@ const evNeige = {
     else if (S.neigeSol > 0) S.neigeSol = Math.max(0, S.neigeSol - dH * (jour ? 0.02 : c.heat > 0.5 ? 0.15 : 0.06));
     if (!jour) { this.coldAcc = 0; return; }
     // on l'annonce quand elle commence à tomber
-    if (E.neigeK > 0.2 && this.dit !== s.day && E.dehors()) { this.dit = s.day; ui.subtitle('', '(Il neige. Partout : sur les prés, sur les toits, jusque dans la vallée.)', 4.5); evenements.retenir('neige'); evenements.reagir('neige'); }
+    if (E.neigeK > 0.2 && this.dit !== s.day && E.dehors()) { this.dit = s.day; evenements.retenir('neige'); evenements.reagir('neige'); }
     // le froid : comme en montagne (faim plus vite ; la nuit, ou sous la neige, sans feu ni toit, il tue)
     const inside = w.covered(eye[0], eye[1], eye[2]) || p.underground;
     if (inside) { this.coldAcc = 0; return; }
@@ -574,7 +574,7 @@ const evNeige = {
     if (this.souffleT <= 0) { this.souffleT = 2.2 + Math.random(); const f = basis.f; particles.spawn(eye[0] + f[0] * 0.45, eye[1] - 0.12, eye[2] + f[2] * 0.45, f[0] * 0.3, 0.12, f[2] * 0.3, [0.9, 0.92, 0.95, 0.35], 0.12, 1.4, -0.05, false); particles.list[particles.list.length - 1].grow = 2; }
     if ((nuit || E.neigeK > 0.6) && !chaud && !game.sleeping && !cine.on) {
       this.coldAcc += dt;
-      if (this.coldAcc > 1 && this.cold1 !== s.day) { this.cold1 = s.day; ui.subtitle('', '(Le froid vous mord les doigts, les oreilles. Il faudrait du feu, ou un toit.)', 4.5); }
+      if (this.coldAcc > 1 && this.cold1 !== s.day) { this.cold1 = s.day; ui.subtitle('', '(Le froid vous mord les doigts.)', 3.5); }
       // 3 PV toutes les 6 s (25 PV par heure de jeu) : quatre heures dehors, la nuit, pour en mourir
       if (this.coldAcc > 14) { this.coldAcc = 8; const pn = strange.placeName(p.pos); play.hurt(3, null, 'Mort de froid, un jour de neige' + (pn ? ' — ' + pn : '')); }
     } else this.coldAcc = Math.max(0, this.coldAcc - dt * 2);
@@ -615,12 +615,12 @@ const evSoleil = {
       if (this.visible && c > 0.9) this.glare = clamp((c - 0.9) / 0.09, 0, 1) * sky.sunVis;
       if (this.visible && c > 0.985 && sky.sunVis > 0.4) {
         this.stareT += dt;
-        if (this.stareT > 1.3 && this.warn !== Math.floor(s.hours)) { this.warn = Math.floor(s.hours); ui.subtitle('', protege ? '(La potion vous protège. Vous regardez le soleil en face, et il ne vous fait rien.)' : '(Le soleil vous brûle les yeux. Détournez le regard !)', 2.5); }
+        if (this.stareT > 1.3 && this.warn !== Math.floor(s.hours)) { this.warn = Math.floor(s.hours); ui.subtitle('', protege ? '(La potion vous protège.)' : '(Le soleil vous brûle les yeux.)', 2.5); }
         if (this.stareT > 2.5 && !protege) {
           const first = T.a < 0.01;
           T.a = Math.min(0.96, T.a + dt * 0.9);
           T.r = Math.min(34, Math.max(T.r, 5 + (this.stareT - 2.5) * 5));
-          if (first) { sound.hurt && sound.hurt(5); ui.subtitle('', '(Une tache noire vous est restée au milieu des yeux. Elle ne part pas.)', 4); }
+          if (first) sound.hurt && sound.hurt(5);
         }
       } else this.stareT = Math.max(0, this.stareT - dt * 3);
     } else this.stareT = Math.max(0, this.stareT - dt * 3);
@@ -630,7 +630,7 @@ const evSoleil = {
       if (h > 10.5 && h < 17 && !w.covered(eye[0], eye[1], eye[2]) && !p.underground && game.mode === 'play' && !game.sleeping) {
         p.food = Math.max(0, p.food - dt / w.dayLength * 25);
         if (p.sprinting) p.stamina = Math.max(0, p.stamina - dt * 0.03);
-        if (this.dit !== s.day && h > 11) { this.dit = s.day; ui.subtitle('', '(La chaleur écrase tout. L’air tremble au-dessus des prés.)', 4); evenements.retenir('soleil'); evenements.reagir('soleil'); }
+        if (this.dit !== s.day && h > 11) { this.dit = s.day; evenements.retenir('soleil'); evenements.reagir('soleil'); }
       }
     }
     this.dom();
@@ -696,7 +696,6 @@ const EV_FX = {
   etoiles: {
     debut(E) {
       E.traits = []; E.spawnT = 0;
-      if (this.dehors()) setTimeout(() => ui.subtitle('', '(Une étoile file. Puis une autre. Puis des dizaines. Le ciel entier se met à pleuvoir.)', 5), 2500);
       this.reagir('etoiles');
       // au matin, on trouvera de la poussière d'étoile quelque part près de la ferme
       const w = game.world, F = w.farm.f;
@@ -737,7 +736,7 @@ const EV_FX = {
   },
   // ---- l'aurore : des voiles verts et violets au nord
   aurore: {
-    debut(E) { E.ph = Math.random() * 10; if (this.dehors()) setTimeout(() => ui.subtitle('', '(Au nord, le ciel s’allume. Des voiles verts qui ondulent, lentement, sans un bruit.)', 5), 2000); this.reagir('aurore'); },
+    debut(E) { E.ph = Math.random() * 10; this.reagir('aurore'); },
     update(E, dt, eye) {
       if (game.player.underground) return;
       const k = Math.min(1, E.k * 6, (1 - E.k) * 5);
@@ -764,7 +763,7 @@ const EV_FX = {
     debut(E) { E.dit = false; sound.silence && sound.silence(40); this.reagir('eclipse'); },
     update(E) {
       const k = this.eclipseK(E);
-      if (k > 0.6 && !E.dit) { E.dit = true; if (!game.player.underground) ui.subtitle('', '(Le soleil se fait manger. En plein jour, il fait nuit ; les oiseaux se taisent ; un chien hurle quelque part.)', 5); sound.howl && sound.howl(80); }
+      if (k > 0.6 && !E.dit) { E.dit = true; sound.howl && sound.howl(80); }
     },
     sky(E, sky) {
       const k = this.eclipseK(E);
@@ -784,7 +783,6 @@ const EV_FX = {
       let n = 0;
       for (const k in farm.s.crops) { const c = farm.s.crops[k]; if (c.c && !c.dead && !c.tree && CROPS[c.c] && c.g < CROPS[c.c].h * 0.6 && Math.random() < 0.3) { c.dead = true; n++; } }
       if (n) farm.dirtyProps = true;
-      if (this.dehors()) ui.subtitle('', '(Des grêlons. Gros comme des noix. Ils rebondissent sur la terre et vous frappent le crâne.)', 4.5);
       this.reagir('grele');
       entities.scare(game.player.pos[0], game.player.pos[2], 80);
     },
@@ -808,7 +806,6 @@ const EV_FX = {
   seisme: {
     debut(E) {
       sound.rumble && sound.rumble(); setTimeout(() => sound.rumble && sound.rumble(), 1600);
-      if (!game.sleeping) ui.subtitle('', '(La terre tremble. Longtemps. Les vitres chantent, les bêtes crient. Puis, plus rien.)', 5);
       this.reagir('seisme');
       entities.scare(game.player.pos[0], game.player.pos[2], 200);
       for (const e of entities.list) if (e.kind === 'dog' && e.owner) sound.bark && sound.bark(1, 0);
@@ -823,7 +820,7 @@ const EV_FX = {
   },
   // ---- le mur de brouillard
   brouillard: {
-    debut(E) { if (!game.player.underground) setTimeout(() => ui.subtitle('', '(Un mur blanc descend des collines. En une minute, on n’y voit plus à dix pas.)', 5), 800); this.reagir('brouillard'); E.voixT = 20; },
+    debut(E) { this.reagir('brouillard'); E.voixT = 20; },
     update(E, dt) {
       const k = this.brouillardK(E);
       weather.cur.fog = Math.max(weather.cur.fog, k);
@@ -845,7 +842,6 @@ const EV_FX = {
       for (let i = 0; i < 7; i++) { const t = i / 6, x = bx + Math.sin(a0) * (1 - t) * 60, z = bz + Math.cos(a0) * (1 - t) * 60; E.feux.push({ x, z, bx: x, bz: z, y: evSol(x, z) + 0.9, ph: Math.random() * 6, i }); }
       E.cache = { x: bx, z: bz };
       const p = game.player.pos;
-      if (Math.hypot(p[0] - L.x, p[2] - L.z) < 260 && !game.player.underground) setTimeout(() => ui.subtitle('', '(Du côté du marais, des lumières bleues. Elles attendent, en file, comme si elles montraient un chemin.)', 5), 1500);
     },
     update(E, dt) {
       const p = game.player;
@@ -862,7 +858,7 @@ const EV_FX = {
         S.follets = { x: E.cache.x, z: E.cache.z, id: 'follets_' + farm.s.day };
         evPoserInter();
         particles.spawn(E.cache.x, evSol(E.cache.x, E.cache.z) + 0.3, E.cache.z, 0, 1.5, 0, [0.4, 0.9, 1.2, 0.8], 0.3, 1.5, -0.5, true);
-        ui.subtitle('', '(Le dernier feu s’enfonce dans la terre, sans un bruit. La terre, là, a été remuée il y a longtemps.)', 5);
+        ui.subtitle('', '(La terre, là, a été remuée il y a longtemps.)', 4);
         void w;
       }
       if (npcs.hour() > 5 && npcs.hour() < 19) E.stop = true;
@@ -886,7 +882,6 @@ const EV_FX = {
       E.n = 0; E.t0 = 0;
       const T = game.world.townInfo, p = game.player.pos;
       E.k = 0; E.vol = T ? clamp(1 - Math.hypot(p[0] - T.x, p[2] - T.z) / 1000, 0.08, 1) : 0.3;
-      setTimeout(() => ui.subtitle('', '(Les cloches sonnent. Un glas, lent. Personne ne tient la corde.)', 4.5), 3000);
       this.reagir('cloches');
     },
     update(E, dt) { E.t0 -= dt; if (E.t0 <= 0 && E.n < 9) { E.t0 = 3.2; E.n++; sound.bell && sound.bell(E.vol); } if (E.n >= 9 && E.t0 <= 0) E.stop = true; },
@@ -899,7 +894,6 @@ const EV_FX = {
       E.cible = pt; E.phase = 0; E.t0 = 0;
       const az = Math.random() * TAU;
       E.depart = [pt.x + Math.sin(az) * 700, pt.y + 420, pt.z + Math.cos(az) * 700];
-      if (!game.player.underground) setTimeout(() => ui.subtitle('', '(Une boule de feu traverse le ciel, en silence. Puis elle tombe derrière les arbres.)', 4.5), 600);
       this.reagir('meteorite');
     },
     update(E, dt) {
@@ -948,7 +942,6 @@ const EV_FX = {
         E.vols.push({ x: x0 - E.dir[0] * v * 40, z: z0 - E.dir[1] * v * 40, h: 34 + Math.random() * 14, n });
       }
       E.cri = 0;
-      if (!game.player.underground) setTimeout(() => ui.subtitle('', '(Un grand vol d’oies sauvages passe, très haut, en criant. Il n’en finit pas.)', 4.5), 1800);
       this.reagir('oiseaux');
     },
     update(E, dt) {
@@ -979,7 +972,6 @@ const EV_FX = {
   grenouilles: {
     debut(E) {
       E.chute = []; E.spawnT = 0; E.n = 0;
-      if (this.dehors()) setTimeout(() => ui.subtitle('', '(Il pleut… des grenouilles. Des dizaines de grenouilles, qui tombent du ciel et repartent en sautant.)', 5), 1500);
       this.reagir('grenouilles');
     },
     update(E, dt, eye) {
@@ -1036,7 +1028,6 @@ const EV_FX = {
         const dx = E.x - eye[0], dz = E.z - eye[2], d = Math.hypot(dx, dz);
         if ((dx * basis.f[0] + dz * basis.f[2]) / d > 0.85 && !game.world.covered(eye[0], eye[1], eye[2])) {
           E.vu = true; this.retenir('geant');
-          ui.subtitle('', '(Sur la crête, dans la brume de l’aube, quelque chose marche. Grand comme trois maisons. Il ne regarde pas en bas.)', 5.5);
           sound.rumble && sound.rumble();
         }
       }
@@ -1070,14 +1061,13 @@ HOOKS.inter.ev_cratere = (it) => {
   const w = game.world, q = w.props.find((p) => p.id === 'ev_cratere' && Math.hypot(p.x - it.x, p.z - it.z) < 0.5);
   if (!q) return;
   const d = q.data || {};
-  if (d.pris) { ui.subtitle('', '(Il ne reste que de la terre brûlée et une pierre noire, froide, trop lourde pour vous.)', 3); return; }
-  if (farm.s.hours - (d.h || 0) < 2.5) { ui.subtitle('', '(La pierre est encore brûlante. L’herbe fume tout autour.)', 3); return; }
+  if (d.pris) { ui.subtitle('', '(Il ne reste que la pierre, trop lourde pour vous.)', 3); return; }
+  if (farm.s.hours - (d.h || 0) < 2.5) { ui.subtitle('', '(La pierre est encore brûlante.)', 2.5); return; }
   farm.setPropData(q, { pris: 1 });
   const n = 2 + ((Math.random() * 2) | 0);
   farm.give('poussiere_etoile', n); play.flyer('poussiere_etoile', [it.x, it.y + 0.3, it.z], n);
   if (Math.random() < 0.5) { farm.give('gemme', 1); play.flyer('gemme', [it.x, it.y + 0.3, it.z], 1); }
   sound.pop && sound.pop();
-  ui.subtitle('', '(Autour de la pierre tombée du ciel, une poussière qui brille encore. Vous en remplissez vos poches.)', 4);
   it.name = '';
 };
 // ---------------------------------------------------------------- ce qu'on trouve après coup (poussière d'étoile, cache des follets, cratères)
@@ -1099,7 +1089,6 @@ HOOKS.inter.ev_poussiere = (it) => {
   if (!S.poussiere) return;
   S.poussiere = null;
   farm.give('poussiere_etoile', 1); play.flyer('poussiere_etoile', [it.x, it.y, it.z], 1); sound.pop && sound.pop();
-  ui.subtitle('', '(Dans l’herbe, une poignée de poussière qui brille encore. Tombée cette nuit, avec les étoiles.)', 4);
   game.world.inter = game.world.inter.filter((i) => i !== it);
 };
 function evDessinPoussiere(buf, cam, t) {

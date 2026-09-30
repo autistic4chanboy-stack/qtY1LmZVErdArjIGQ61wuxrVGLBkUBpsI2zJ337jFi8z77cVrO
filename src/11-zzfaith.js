@@ -33,7 +33,7 @@ const faith = {
     opts.push({ label: today ? 'Prier encore (vous l’avez déjà fait aujourd’hui)' : 'Prier', fn: () => this.pray(it) });
     const val = OFFER_VALUE[d.faith] && it2 ? (OFFER_VALUE[d.faith][hand] ?? (d.faith === 'anciens' && it2.cat === 'culture' ? 3 : d.faith === 'dessous' && it2.cat === 'chasse' ? 1 : null)) : null;
     if (val !== null && val !== undefined && farm.count(hand)) opts.push({ label: 'Déposer en offrande : ' + it2.name, fn: () => this.offer(it, hand, val) });
-    if (d.faith === 'eglise' && s.money >= 5 && (kind === 'eglise' || kind === 'calvaire')) opts.push({ label: 'Glisser une pièce dans le tronc (5)', fn: () => { farm.pay(5); this.add('eglise', 1); sound.coin && sound.coin(); ui.close(); ui.subtitle('', '(La pièce tinte tout au fond.)', 2); } });
+    if (d.faith === 'eglise' && s.money >= 5 && (kind === 'eglise' || kind === 'calvaire')) opts.push({ label: 'Glisser une pièce dans le tronc (5)', fn: () => { farm.pay(5); this.add('eglise', 1); sound.coin && sound.coin(); ui.close(); } });
     if (d.faith === 'dessous') opts.push({ label: 'Demander quelque chose…', fn: () => this.pactMenu(it) });
     opts.push({ label: 'Partir', fn: () => ui.close() });
     ui.choice(title, desc ? fmtLine(desc, null) : '', opts);
@@ -100,13 +100,11 @@ const faith = {
           if (typeof myths !== 'undefined') myths.found('dame_du_lac');
           farm.give('larme_dame', 1); play.flyer('larme_dame', [it.x, it.y, it.z], 1); BUFF.add('lac', 24);
           sound.splash && sound.splash();
-          ui.subtitle('', '(Une goutte glisse sur la joue de pierre et tombe dans votre main. Elle ne sèche pas.)', 4.5);
-          if (F.offers.dame >= 2 && this.lvl('anciens') >= 1 && !s.flags.got_relique_dame) { s.flags.got_relique_dame = 1; setTimeout(() => { farm.give('relique_dame', 1); play.flyer('relique_dame', [it.x, it.y, it.z], 1); ui.subtitle('', '(Au bord de l’eau, un anneau que personne n’a jeté vient d’échouer.)', 4); }, 2500); }
-        } else ui.subtitle('', '(La pierre reste froide. La Dame ne se montre qu’à la nuit.)', 3);
+          if (F.offers.dame >= 2 && this.lvl('anciens') >= 1 && !s.flags.got_relique_dame) { s.flags.got_relique_dame = 1; setTimeout(() => { farm.give('relique_dame', 1); play.flyer('relique_dame', [it.x, it.y, it.z], 1); }, 2500); }
+        } else ui.subtitle('', '(La pierre reste froide. Pas le jour.)', 3);
       } else ui.subtitle('', pick(this.text(['anciens', 'signes_bon'], ['(Les feuilles frémissent.)'])), 3.5);
     } else if (d.faith === 'eglise') {
-      if (item === 'bougie') { BUFF.add('cierge', 12); ui.subtitle('', '(Le cierge prend du premier coup. La flamme ne tremble pas.)', 3); }
-      else ui.subtitle('', '(Vous laissez votre offrande au pied de la croix.)', 2.5);
+      if (item === 'bougie') { BUFF.add('cierge', 12); ui.subtitle('', '(La flamme du cierge ne tremble pas.)', 3); }
     } else ui.subtitle('???', fmtLine(pick(this.text(['dessous', 'reponses'], ['… merci…'])), null), 3.5);
   },
   // --------------------------------------------------------------- les pactes de Ceux d'En-Dessous
@@ -116,7 +114,7 @@ const faith = {
     const has = ['viande', 'os', 'plume_noire', 'eclat'].filter((k) => farm.count(k));
     const need = has.length ? has[0] : null;
     const ask = (what) => () => this.pact(it, what, need);
-    ui.choice('Demander quelque chose', need ? '(Il faudra laisser quelque chose en échange : ' + itemName(need).toLowerCase() + '. Et le prix viendra plus tard.)' : '(Ils ne donnent rien pour rien. Il faudrait de la viande, des os, une plume noire, un éclat…)', need ? [
+    ui.choice('Demander quelque chose', need ? '(En échange : ' + itemName(need).toLowerCase() + '.)' : '(Ils ne donnent rien pour rien.)', need ? [
       { label: 'L’or', fn: ask('or') }, { label: 'La récolte', fn: ask('recolte') }, { label: 'La nuit : qu’elle ne me voie pas', fn: ask('nuit') }, { label: 'Le savoir : ce qui est caché', fn: ask('savoir') }, { label: 'Rien. Partir.', fn: () => ui.close() },
     ] : [{ label: 'Partir', fn: () => ui.close() }]);
   },
@@ -129,8 +127,8 @@ const faith = {
     s.flags.prixDu = s.day + 1;
     BUFF.add('pacte', 30);
     sound.whisper && sound.whisper(0, 1); strange.glitchT = 0.8;
-    if (what === 'or') { const n = 120 + Math.floor(Math.random() * 200); farm.earn(n); sound.coin && sound.coin(); ui.subtitle('???', '… prends…', 3); ui.subtitle('', `(Il y a ${n} pièces dans votre poche. Elles sont froides.)`, 4); }
-    else if (what === 'recolte') { for (const k in s.crops) { const c = s.crops[k]; if (c.c && !c.dead) c.g = Math.min(CROPS[c.c].h, c.g + 8); } farm.dirtyProps = true; ui.subtitle('', '(Dans le champ, tout a poussé d’un coup. Trop vite. Trop vert.)', 4); }
+    if (what === 'or') { const n = 120 + Math.floor(Math.random() * 200); farm.earn(n); sound.coin && sound.coin(); ui.subtitle('???', '… prends…', 3); ui.subtitle('', `(${n} pièces dans votre poche.)`, 3.5); }
+    else if (what === 'recolte') { for (const k in s.crops) { const c = s.crops[k]; if (c.c && !c.dead) c.g = Math.min(CROPS[c.c].h, c.g + 8); } farm.dirtyProps = true; ui.subtitle('', '(Dans le champ, tout a poussé d’un coup.)', 4); }
     else if (what === 'nuit') { BUFF.add('pacte_nuit', 20); ui.subtitle('???', '… cette nuit, tu n’existes pas…', 3.5); }
     else {
       const w = game.world, p = game.player.pos;
@@ -161,8 +159,8 @@ function npcsNotice(f) {
 HOOKS.inter.pray = (it) => faith.open(it);
 HOOKS.inter.benitier = (it) => {
   const s = farm.s;
-  if (farm.count('fiole') && s.flags.benitier !== s.day) { s.flags.benitier = s.day; farm.take('fiole', 1); farm.give('eau_benite', 1); play.flyer('eau_benite', [it.x, it.y, it.z], 1); sound.pour && sound.pour(); ui.subtitle('', fmtLine(faith.text(['eglise', 'benitier'], '(L’eau est glacée, et pourtant elle réchauffe.)'), null), 3); return; }
-  BUFF.add('grace', 1); ui.subtitle('', farm.count('fiole') ? '(Vous vous signez. On ne remplit qu’une fiole par jour, dit l’écriteau.)' : '(Vous vous signez. Avec une fiole vide, on pourrait emporter un peu d’eau bénite.)', 3);
+  if (farm.count('fiole') && s.flags.benitier !== s.day) { s.flags.benitier = s.day; farm.take('fiole', 1); farm.give('eau_benite', 1); play.flyer('eau_benite', [it.x, it.y, it.z], 1); sound.pour && sound.pour(); return; }
+  BUFF.add('grace', 1); if (farm.count('fiole')) ui.subtitle('', '(Une fiole par jour, dit l’écriteau.)', 3);
 };
 // vieux puits : pièces, vœux, et la descente (nuits rouges, philtre)
 HOOKS.interPre.oldwell = (it) => {
@@ -194,7 +192,7 @@ function wishWell(it) {
 // la tombe de Lise
 HOOKS.inter.lise = (it) => {
   const s = farm.s, q = game.world.props[it.data.prop];
-  if (s.flags.liseApaisee) { ui.subtitle('', '(Les fleurs sont toujours fraîches. Personne ne les a changées.)', 3); return; }
+  if (s.flags.liseApaisee) { ui.subtitle('', '(Les fleurs sont toujours fraîches.)', 3); return; }
   if (farm.count('fleur') || farm.count('fleur_lune')) {
     farm.take(farm.count('fleur_lune') ? 'fleur_lune' : 'fleur', 1);
     s.flags.liseApaisee = s.day;
@@ -218,7 +216,7 @@ HOOKS.inter.fees = (it) => {
   faith.add('anciens', 1);
   farm.give('champi_lumineux', 2); play.flyer('champi_lumineux', [it.x, it.y, it.z], 2);
   sound.whisper && sound.whisper(0, 0.3); strange.glitchT = 0.4;
-  ui.subtitle('', '(Vous entrez dans la ronde. Quelque chose rit, tout bas, et s’éloigne. Il vous reste deux champignons qui luisent dans la main.)', 4.5);
+  ui.subtitle('', '(Quelque chose rit, tout bas, et s’éloigne.)', 3.5);
 };
 
 // ---------------------------------------------------------------- la messe du dimanche (tous les 7 jours, 10 h – 11 h 30)

@@ -21,19 +21,17 @@ const ESPRIT_HAUSSE_JOUR = 12;
 
 const ESPRIT_PENSEES = {
   haut: [
-    '(Vous vous sentez bien, ici. Presque chez vous.)',
-    '(L’air sent le foin coupé. Pour un peu, vous chanteriez.)',
+    '(Vous vous sentez bien, ici.)',
+    '(L’air sent le foin coupé.)',
     '(Une bonne fatigue, celle des jours utiles.)',
   ],
   bas: [
-    '(Vous n’arrivez plus à penser à autre chose.)',
     '(Il y a trop de silence, dans cette vallée.)',
     '(Vous comptez vos pas sans le vouloir.)',
-    '(Vous avez l’impression d’avoir oublié quelque chose d’important. Mais quoi ?)',
-    '(Les gens d’ici vous regardent drôlement. Ou c’est vous qui les regardez drôlement.)',
+    '(Vous avez oublié quelque chose d’important. Mais quoi ?)',
+    '(Les gens d’ici vous regardent drôlement.)',
   ],
   tres_bas: [
-    '(Quelque chose vous suit. Quand vous vous retournez, il n’y a que le chemin.)',
     '(Vous ne vous souvenez plus de la dernière fois où vous avez ri.)',
     '(Vos mains tremblent. Vous les cachez, sans savoir de qui.)',
     '(Une voix, tout près, a dit votre nom. Il n’y a personne.)',
@@ -51,14 +49,13 @@ const ESPRIT_PENSEES = {
     80: '(Vous vous surprenez à siffloter.)',
   },
   agite: [
-    '(Vous avez mal dormi : des pas dans le grenier toute la nuit, et le même rêve, encore.)',
-    '(Une nuit à guetter la porte. Vous vous êtes endormi à l’aube, les poings serrés.)',
-    '(Quelqu’un vous regardait dormir. Vous en êtes sûr. Il n’y avait personne.)',
+    '(Vous avez mal dormi : des pas dans le grenier toute la nuit.)',
+    '(Une nuit à guetter la porte.)',
+    '(Quelqu’un vous regardait dormir. Il n’y avait personne.)',
   ],
   ventre_vide: '(Le ventre vide vous a réveillé plusieurs fois.)',
   repose: [
     '(Une vraie nuit, profonde, sans rêve.)',
-    '(Vous vous réveillez reposé, pour une fois.)',
   ],
 };
 // ce que le carnet en dit (jamais de chiffre)
@@ -73,8 +70,8 @@ const ESPRIT_CARNET = [
 ];
 const FAIM_PHRASES = {
   creux: ['(Votre ventre gargouille.)', '(Vous mangeriez bien quelque chose.)'],
-  faim: ['(Le cœur cogne, les mains tremblent un peu : il faut manger.)', '(Vous avez les jambes en coton. La faim.)'],
-  famine: ['(Tout tourne. Si vous ne mangez pas, vous allez tomber.)', '(Votre cœur bat à tout rompre. Manger. Maintenant.)'],
+  faim: ['(Le cœur cogne, les mains tremblent un peu.)', '(Vous avez les jambes en coton. La faim.)'],
+  famine: ['(Tout tourne. Vous allez tomber.)', '(Votre cœur bat à tout rompre.)'],
 };
 
 const esprit = {
