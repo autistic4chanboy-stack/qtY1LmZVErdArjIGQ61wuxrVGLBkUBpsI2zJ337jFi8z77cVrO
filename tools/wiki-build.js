@@ -4086,7 +4086,7 @@ function buildWiki(DB) {
       h += `<p>${planBtn('dessous', 'li:sout_hameau', 'Le hameau sur le plan')} ${lk('parler:bas', 'Le parler d’en bas')} · ${lk('sout:encoches', 'Les dalles d’encoches')}</p>`;
       if (SENTRE.length) h += `<h3>Ce qu’ils se disent entre eux</h3><p class="note">Entendu de loin, dans le noir.</p><ul class="qs">${SENTRE.map(([a, t, b, r]) => `<li>${GD[a] ? link('sout:g:' + a, GD[a].nom) : esc(a)} : <i>${esc(t)}</i> — ${GD[b] ? link('sout:g:' + b, GD[b].nom) : esc(b)} : <i>${esc(r)}</i></li>`).join('')}</ul>`;
       if (DS.gens) h += SEC(`<h3>Ce qui ne se dit pas</h3>${solRows(DS.gens)}`, 'Comment on entre chez eux, et le reste, est masqué : révélez les secrets.');
-      SP('sout:gens', { t: 'Ceux d’en bas', s: 'Dix pâles, au Hameau d’En-Bas', c: ['dessous'], i: '☻', h }, FS(5));
+      SP('sout:gens', { t: 'Ceux d’en bas', s: 'Dix pâles, au Hameau d’En-Bas', c: ['dessous'], i: FIG['sout:un'] && FIG['sout:un'].bust ? 'fg:' + FIG['sout:un'].bust.join(',') : '☻', h }, FS(5));
     }
     // ---- le parler d'en bas : jamais traduit en jeu (le lexique : secrets)
     {
@@ -4167,7 +4167,7 @@ function buildWiki(DB) {
       const p = pages.get('li:' + L.key);
       if (!p) continue;
       const k = L.key.replace(/^sout_/, '');
-      if (L.key === 'sout_hameau_c') { Object.assign(p, { t: 'Le cœur du Hameau d’En-Bas', s: 'Sous terre', x: 0, g: 'Le Dessous', h: `<p>La place du hameau : la pierre au pain, les cabanes en ruche, les claies. Voir ${link('li:sout_hameau')}.</p><p>${planBtn('dessous', 'li:sout_hameau')}</p>` }); addCat(p.id, 'dessous'); continue; }
+      if (L.key === 'sout_hameau_c') { Object.assign(p, { t: 'Le cœur du Hameau d’En-Bas', s: 'Le Dessous', x: 0, g: 'Le Dessous', h: `<p>La place du hameau : la pierre au pain, les cabanes en ruche, les claies. Voir ${link('li:sout_hameau')}.</p><p>${planBtn('dessous', 'li:sout_hameau')}</p>` }); addCat(p.id, 'dessous'); continue; }
       let h = `<dl class="kv"><dt>Où</dt><dd>${k === 'cave' ? `sous la rue de Valbrume, derrière la grille des douves ; un puits descend au ${link('li:sout_seuil', 'Seuil')}` : `${link('sys:dessous', 'le Dessous')}, à ${depth(L.y)} m sous l’eau de la vallée`}</dd>`;
       if (L.r >= 12) h += `<dt>Étendue</dt><dd>${Math.round(L.r * 2)} m environ</dd>`;
       const up = k === 'cave' ? null : placeAt(L.x, L.z, false);
