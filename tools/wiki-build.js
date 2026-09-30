@@ -527,6 +527,516 @@ function extractRoutines(G) {
   })()`);
 }
 
+// ---------------------------------------------------------------- la vie de la vallée : ce que font les nouveautés, mesuré dans le jeu
+// Exécuté DANS la machine virtuelle, la vallée générée (aucune variable de ce fichier n'y est visible) : on appelle les
+// fonctions du jeu (qui dort dans quel lit, quelle serrure a quelle porte, ce qui se casse, quand ouvre la tente de la
+// diseuse, ce que rapporte un concours…) en remplaçant, le temps d'un appel, ce qui montrerait quelque chose à l'écran.
+function vieProbe() {
+  const out = { err: [] }, w = game.world, s = farm.s;
+  const r1 = (v) => Math.round(v * 10) / 10, r2 = (v) => Math.round(v * 100) / 100;
+  const ok = (k, fn) => { try { const v = fn(); if (v !== undefined) out[k] = v; } catch (e) { out.err.push(k + ' : ' + (e && e.message)); } };
+  const rnd0 = Math.random, st0 = globalThis.setTimeout, si0 = globalThis.setInterval;
+  const seq = (a, rest) => { let i = 0; return () => (i < a.length ? a[i++] : rest === undefined ? 0.5 : rest); };
+  // les habitants (chacun à sa place de la journée), le fermier, les objets générés
+  ok('init', () => {
+    if (!game.player) game.player = { pos: [0, 0, 0], vel: [0, 0, 0], yaw: 0, hp: 100, food: 80, stamina: 1 };
+    if (!s.npcs) s.npcs = {};
+    if (!s.quests) s.quests = {};
+    if (!s.flags) s.flags = {};
+    try { npcs.init(w, s); } catch (e) { out.err.push('habitants : ' + (e && e.message)); }
+    farm.genProps = w.props.length;
+    try { if (typeof butin !== 'undefined' && butin.indexer) butin.indexer(); } catch (e) { out.err.push('butin : ' + (e && e.message)); }
+    return npcs.list.length;
+  });
+  // le jour et la nuit : le soleil du jeu (computeSky), minute par minute
+  ok('ciel', () => {
+    const up = (h) => computeSky(((h % 24) + 24) % 24 / 24, 200, {}).sunDir[1] > 0;
+    let lever = null, coucher = null;
+    for (let m = 1; m <= 24 * 60; m++) { const a = up((m - 1) / 60), b = up(m / 60); if (!a && b) lever = m / 60; if (a && !b) coucher = m / 60; }
+    return { lever, coucher, jour: typeof JOUR_SECONDES !== 'undefined' ? JOUR_SECONDES : null, dayLength: w.dayLength || null };
+  });
+  // la fatigue : les stades selon les heures de veille (et avec la vigueur), et leur force
+  ok('fatigue', () => {
+    if (typeof sommeil === 'undefined') return undefined;
+    const V0 = sommeil.veille, B0 = BUFF.on;
+    let V = 0, vig = false;
+    sommeil.veille = () => V; BUFF.on = (id) => vig && id === 'vigueur';
+    try {
+      const seuils = (flag) => { vig = flag; const o = []; let st = -1; for (V = 0; V <= 80; V += 0.25) { const x = sommeil.stade(); if (x !== st) { o.push([x, V]); st = x; } } return o; };
+      const a = seuils(false), b = seuils(true);
+      vig = false;
+      const k = []; for (V = 0; V <= 60; V += 1) k.push([V, r2(sommeil.k())]);
+      return { seuils: a, vigueur: b, k };
+    } finally { sommeil.veille = V0; BUFF.on = B0; }
+  });
+  // les lits de la vallée : à qui ils sont (sommeil.infoLit)
+  ok('lits', () => (typeof sommeil === 'undefined' ? undefined : w.props.filter((q) => !q.gone && LIT_TAILLE[q.id]).map((q) => {
+    let I = null; try { I = sommeil.infoLit(q); } catch (e) { I = null; }
+    return [q.id, r1(q.x), r1(q.z), I ? I.cat : '?', (I && I.bld) || null, I && I.n ? I.n.id : null];
+  })));
+  // les portes : leur allure, leur serrure, leur solidité à la hache, à qui elles sont
+  ok('portes', () => w.doors.map((dr, i) => {
+    const o = { i, bld: dr.bld || null, x: r1(dr.x), z: r1(dr.z), w: r1(dr.w || 0), h: r1(dr.h || 0) };
+    if (dr.poterne) o.poterne = 1;
+    if (dr.deco) o.deco = 1;
+    try { const S = PORTES.style(dr); o.st = S.st; o.pierre = S.pierre ? 1 : 0; o.double = S.double ? 1 : 0; } catch (e) { /* rien */ }
+    try { if (!dr.poterne) o.diff = crochetage.difficulte(dr); } catch (e) { /* rien */ }
+    try { o.sol = objets.porteInterdite(dr) ? 0 : objets.porteSolidite(dr); } catch (e) { /* rien */ }
+    try { const L = objets.lieuBld(dr.bld); o.lieu = L.t; o.own = L.own ? L.own.id : null; o.crime = objets.typeCrime('porte', L, null); } catch (e) { /* rien */ }
+    try { o.nom = crochetage.nomPorte(dr); } catch (e) { /* rien */ }
+    return o;
+  }));
+  // ce qui se casse et se ramasse, objet par objet : protégé ou non (et pourquoi), où, et le crime que ce serait
+  ok('objets', () => {
+    if (typeof objets === 'undefined') return undefined;
+    const agg = {}, add = (o, k) => { o[k] = (o[k] || 0) + 1; };
+    for (const q of w.props) {
+      if (q.gone || !(OBJ_CASSE[q.id] || OBJ_RAMASSE[q.id])) continue;
+      const A = agg[q.id] || (agg[q.id] = { n: 0, casse: 0, ramasse: 0, prot: {}, lieux: {}, crimes: {} });
+      A.n++;
+      let P = null;
+      try { P = objets.profil(q); } catch (e) { P = null; }
+      if (!P) { add(A.prot, 'erreur'); continue; }
+      if (P.protege) { add(A.prot, String(P.protege).split(' :')[0]); continue; }
+      if (P.casse) A.casse++;
+      try { if (objets.ramassable(q, P)) A.ramasse++; } catch (e) { /* rien */ }
+      try {
+        const L = objets.lieu(q.x, q.y + 0.3, q.z, OBJ_COMMUNS.has(q.id));
+        add(A.lieux, L.t);
+        const c = objets.typeCrime(P.casse ? 'casse' : 'ramasse', L, P.casse && P.casse.opt.prof);
+        if (c) add(A.crimes, c);
+      } catch (e) { /* rien */ }
+    }
+    return agg;
+  });
+  // les fouilles : en combien de jours chaque endroit se remplit (fouilles.refill : les maisons des disparus plus lentement)
+  ok('refill', () => { const o = {}; for (const it of w.inter) if (it.kind === 'f2') { try { o[it.id] = fouilles.refill(it); } catch (e) { /* rien */ } } return o; });
+  // la poterne : ce qu'on en voit des deux côtés, le jour, la nuit, et quand elle se referme
+  ok('poterne', () => {
+    const P = w.poterne;
+    if (!P || typeof poterne === 'undefined') return null;
+    const dr = w.doors[P.door], subs = [], sub0 = ui.subtitle, H0 = npcs.hour, pos0 = game.player.pos, vue0 = s.flags.poterneVue;
+    let H = 12;
+    npcs.hour = () => H; ui.subtitle = (a, t) => subs.push(t); globalThis.setTimeout = (f) => { try { f(); } catch (e) { /* rien */ } return 0; };
+    try {
+      const at = (p) => { game.player.pos = [p[0], (P.y || 0) + 0.1, p[1]]; };
+      const tour = (fn) => { subs.length = 0; fn(); return subs.slice(); };
+      delete s.flags.poterneVue;
+      const dehors = tour(() => { dr.open = 0; at(P.dehors); poterne.utiliser(dr); });
+      const jour = tour(() => { dr.open = 0; at(P.dedans); H = 12; poterne.utiliser(dr); });
+      const nuit = tour(() => { dr.open = 0; at(P.dedans); H = 23; poterne.utiliser(dr); });
+      const ferme = tour(() => { dr.open = 1; at(P.dehors); poterne.update(); });
+      return { x: r1(P.x), z: r1(P.z), dehors, jour, nuit, ferme };
+    } finally { npcs.hour = H0; ui.subtitle = sub0; globalThis.setTimeout = st0; game.player.pos = pos0; s.flags.poterneVue = vue0; dr.open = 0; dr.locked = true; }
+  });
+  // le crochetage : ce que dit la porte selon sa serrure, et sans crochets
+  ok('crochet', () => {
+    if (typeof crochetage === 'undefined') return undefined;
+    const cap = [], c0 = ui.choice, s0 = ui.subtitle, n0 = farm.count;
+    ui.choice = (t, d, o) => cap.push([t, d, (o || []).map((x) => x.label)]); ui.subtitle = (a, t) => cap.push(['', t]);
+    try {
+      const o = { menus: {}, sans: null };
+      for (let d = 1; d <= 5; d++) {
+        const dr = w.doors.find((q) => !q.poterne && !q.deco && q.bld && crochetage.difficulte(q) === d);
+        if (!dr) continue;
+        cap.length = 0; farm.count = () => 1;
+        crochetage.menuPorte(dr, () => {});
+        o.menus[d] = cap[0] || null;
+      }
+      cap.length = 0; farm.count = () => 0;
+      crochetage.jeu = null; crochetage.tenter({ difficulte: 2 });
+      o.sans = cap[0] ? cap[0][1] : null;
+      return o;
+    } finally { ui.choice = c0; ui.subtitle = s0; farm.count = n0; crochetage.jeu = null; }
+  });
+  // louer : les écriteaux, le mot du maire, et un bail mené jusqu'au bout sans payer (les lettres, jour après jour)
+  ok('location', () => {
+    if (typeof locations === 'undefined') return undefined;
+    const o = { ecriteaux: {}, maire: null, bail: null }, cap = [], mails = [];
+    const c0 = ui.choice, m0 = farm.mail, d0 = s.day, money0 = s.money, loc0 = s.location, inv0 = Object.assign({}, s.inv);
+    ui.choice = (t, d, opts) => cap.push([t, d, (opts || []).map((x) => x.label)]);
+    farm.mail = (from, sujet, texte) => mails.push([s.day, from, sujet, texte]);
+    globalThis.setTimeout = () => 0;
+    try {
+      s.location = undefined;
+      for (const k of Object.keys(LOC_MAISONS)) { if (!locations.existe(k)) continue; cap.length = 0; locations.ecriteau(k); o.ecriteaux[k] = cap[0] || null; }
+      o.maire = locations.texteMaire();
+      const k = Object.keys(LOC_MAISONS).find((q) => locations.existe(q));
+      if (k) {
+        s.money = 1e6;
+        const j0 = s.day;
+        locations.louer(k);
+        for (let d = j0 + 1; d <= j0 + 40 && locations.bail(k); d++) { s.day = d; locations.jour(); }
+        o.bail = { k, lettres: mails.map(([j, f, t, x]) => [j - j0, f, t, x]) };
+      }
+      return o;
+    } finally { ui.choice = c0; farm.mail = m0; globalThis.setTimeout = st0; s.day = d0; s.money = money0; s.location = loc0; s.inv = inv0; try { locations.appliquerPortes(true); } catch (e) { /* rien */ } }
+  });
+  // les morts qui restent au sol : les stades, ce qu'en pense le fermier, ce qu'on dit en les trouvant, les fosses, les poches
+  ok('depouilles', () => {
+    if (typeof depouilles === 'undefined') return undefined;
+    const D = depouilles, d0 = s.day, o = { stades: {}, pensees: {}, fosses: {}, tombes: {}, reactions: [], poches: {} };
+    const say0 = npcs.say, read0 = ui.read, t0 = game.time, pos0 = game.player.pos, lines = [], reads = [];
+    npcs.say = (n, t) => lines.push([n && n.id, t]); ui.read = (t, x, sg) => reads.push([t, x, sg]);
+    try {
+      for (const t of ['npc', 'geant']) { const L = []; for (let dd = 0; dd <= 16; dd++) { s.day = 100; L.push(D.stade({ j: 100 - dd, t })); } o.stades[t] = L; }
+      s.day = 100;
+      const cas = { homme: { t: 'npc', qui: 'forgeron' }, femme: { t: 'npc', qui: 'boulangere' }, enfant: { t: 'npc', qui: 'fillette' }, chien: { t: 'chien', nom: '{chien}' }, fermier: { t: 'fermier' }, chasseur: { t: 'chasseur' }, geant: { t: 'geant', fem: 0 } };
+      for (const [k, rec] of Object.entries(cas)) o.pensees[k] = [0, 1, 2, 3].map((st) => { try { return D.pensee(Object.assign({ id: 'w' + k }, rec), st, k === 'fermier'); } catch (e) { return null; } });
+      for (const mode of ['la', 'dehors', 'traine', 'pierres']) o.fosses[mode] = [D.texteFosse({ t: 'npc' }, { mode }, 0, false), D.texteFosse({ t: 'npc' }, { mode }, 0, true)];
+      o.fosses.os = [D.texteFosse({ t: 'npc' }, { mode: 'la' }, 3, false), D.texteFosse({ t: 'npc' }, { mode: 'pierres' }, 3, false)];
+      o.fosses.chien = [D.texteFosse({ t: 'chien', nom: '{chien}' }, { mode: 'la' }, 0, false), D.texteFosse({ t: 'chien', nom: '{chien}' }, { mode: 'la' }, 3, false)];
+      for (const [k, data] of [['fermier', { t: 'fermier', nom: '{prenom}', run: 3 }], ['inconnu', { t: 'npc', j: 40 }], ['habitant', { t: 'npc', nom: '{nom}', j: 40 }]]) { reads.length = 0; try { D.lireTombe({ data }); } catch (e) { /* rien */ } o.tombes[k] = reads[0] || null; }
+      // ce qu'ils disent en trouvant un corps
+      game.time = 1000;
+      const essais = [['cure', { t: 'npc', qui: 'forgeron' }, 0], ['garde', { t: 'npc', qui: 'forgeron' }, 0], ['fillette', { t: 'npc', qui: 'boulangere' }, 0], ['fillette', { t: 'npc', qui: 'forgeron' }, 0], ['fillette', { t: 'npc', qui: 'forgeron' }, 3], ['grainetiere', { t: 'chien', nom: '{chien}' }, 0], ['grainetiere', { t: 'fermier' }, 0], ['grainetiere', { t: 'chasseur' }, 0], ['grainetiere', { t: 'npc', qui: 'forgeron' }, 2], ['grainetiere', { t: 'npc', qui: 'forgeron' }, 3], ['forgeron', { t: 'npc', qui: 'boulangere' }, 0], ['aubergiste', { t: 'npc', qui: 'forgeron' }, 0]];
+      for (const [who, rec, st] of essais) {
+        const n = npcs.byId[who];
+        if (!n) continue;
+        D.dit = -99;
+        const R = Object.assign({ id: 'r' + o.reactions.length, j: 100 - st, x: n.x + 1, y: n.y || 0, z: n.z }, rec);
+        game.player.pos = [n.x, n.y || 0, n.z];
+        const k = lines.length;
+        Math.random = seq([0.9, 0.1]);
+        try { D.reagir(n, R, 1); } catch (e) { /* rien */ } finally { Math.random = rnd0; }
+        n._dep = null;
+        if (lines.length > k) { let t = lines[lines.length - 1][1]; const m = rec.qui && npcs.byId[rec.qui]; if (m && m.name) t = t.split(m.name).join('{npc:' + rec.qui + '}'); o.reactions.push([who, rec.t, rec.qui || null, st, t]); }
+      }
+      // les poches : le tirage du jeu, sur quatre cents morts de chaque sorte
+      const mesure = (t, qui) => {
+        const P = t === 'npc' ? ((typeof VOL_POCHES !== 'undefined' && VOL_POCHES[qui]) || DEP_POCHES[qui] || DEP_POCHES._) : t === 'chasseur' ? DEP_CHASSEUR : DEP_GEANT;
+        let n = 0, pieces = 0, objs = 0, perso = 0, rare = 0;
+        for (let i = 0; i < 400; i++) {
+          const L = D.tirer({ id: 'p' + i + qui, t, qui }); n++;
+          let p = 0, r = 0;
+          for (const [k, c] of L) { if (k === 'argent') pieces += c; else { objs += c; if ((P.p || []).includes(k)) p = 1; if ((P.r || []).includes(k)) r = 1; } }
+          perso += p; rare += r;
+        }
+        return { pieces: r1(pieces / n), objets: r2(objs / n), perso: r2(perso / n), rare: r2(rare / n), nu: !!P.nu };
+      };
+      for (const d of NPC_DATA) { try { o.poches[d.id] = mesure('npc', d.id); } catch (e) { /* rien */ } }
+      try { o.poches._chasseur = mesure('chasseur', 'chasseur'); o.poches._geant = mesure('geant', 'geant'); } catch (e) { /* rien */ }
+      return o;
+    } finally { s.day = d0; npcs.say = say0; ui.read = read0; game.time = t0; game.player.pos = pos0; Math.random = rnd0; }
+  });
+  // les activités : quand elles sont ouvertes (heure par heure, les douze jours), combien de fois par jour, les mises,
+  // ce qu'elles rapportent et ce qu'elles font (amitié, mentalité)
+  ok('act', () => {
+    if (typeof activites === 'undefined') return undefined;
+    const A = activites, R = { fen: {}, lim: {}, fx: {}, mises: {}, regles: {}, txt: {} };
+    const calls = [], SV = [];
+    let H = 12, inv = {}, lastOpts = [];
+    const rec = (...a) => { calls.push(a); };
+    const stub = (o, k, f) => { if (!o) return; SV.push([o, k, o[k], Object.prototype.hasOwnProperty.call(o, k)]); o[k] = f; };
+    stub(npcs, 'hour', () => H);
+    stub(ui, 'subtitle', (who, t) => rec('sub', who, t));
+    stub(ui, 'choice', (t, d, o) => { lastOpts = o || []; rec('choice', t, d, lastOpts.map((x) => x.label)); });
+    stub(ui, 'read', (t, x, sg) => rec('read', t, x, sg));
+    stub(ui, 'open', (id) => rec('open', id));
+    stub(ui, 'close', () => {});
+    stub(npcs, 'say', (n, t) => rec('say', n && n.id, t));
+    stub(npcs, 'addAmitie', (n, k) => rec('ami', n && n.id, k));
+    stub(npcs, 'remember', () => {});
+    stub(talk, 'view', (t) => { rec('view', t); return t; });
+    stub(farm, 'pay', (m) => { rec('pay', m); if (s.money >= m) { s.money -= m; return true; } return false; });
+    stub(farm, 'earn', (m) => { rec('earn', m); s.money += m; });
+    stub(farm, 'give', (id, n) => rec('give', id, n));
+    stub(farm, 'take', (id, n) => { rec('take', id, n); return true; });
+    stub(farm, 'count', (id) => inv[id] || 0);
+    stub(farm, 'bestTool', (k) => (inv['@' + k] ? { tool: k } : null));
+    if (typeof esprit !== 'undefined') stub(esprit, 'changer', (d, r) => rec('esprit', r2(d), r));
+    stub(BUFF, 'add', (id, h) => rec('buff', id, h));
+    if (typeof faith !== 'undefined') stub(faith, 'add', (k, n) => rec('foi', k, n));
+    if (typeof cine !== 'undefined') stub(cine, 'jouer', () => { rec('cine'); return Promise.resolve(); });
+    stub(play, 'hurt', (d) => rec('hurt', d));
+    stub(play, 'flyer', () => {});
+    stub(globalThis, 'setTimeout', () => 0);
+    stub(globalThis, 'setInterval', () => 0);
+    stub(globalThis, 'addEventListener', () => {});
+    const day0 = s.day, money0 = s.money, act0 = s.activites, hours0 = s.hours, sky0 = game.sky, time0 = game.time, hp0 = game.player.hp, hand0 = s.hand;
+    game.sky = Object.assign({}, game.sky || {}, { wet: 0, day: 1 });
+    const N = npcs.byId.forgeron || npcs.list.find((n) => n.st.alive && (n.d.age || 30) >= 16);
+    const setDay = (k, wk) => { s.day = k + 1 + 12 * (wk === undefined ? 8 : wk); s.hours = s.day * 24 + H; };
+    const dayOf = (cle) => Math.max(0, SEMAINE.findIndex((J) => J.cle === cle));
+    const reset = () => { s.activites = null; s.money = 1000; calls.length = 0; lastOpts = []; };
+    const has = (k, f) => calls.some((c) => c[0] === k && (!f || f(c)));
+    const gains = () => calls.filter((c) => /^(ami|esprit|earn|pay|give|take|buff|hurt|foi)$/.test(c[0])).map((c) => c.slice());
+    const HS = []; for (let h = 0; h < 24; h += 0.25) HS.push(h);
+    const spans = (row) => { const o = []; let a = null; row.forEach((v, i) => { if (v && a === null) a = HS[i]; if (!v && a !== null) { o.push([a, HS[i]]); a = null; } }); if (a !== null) o.push([a, 24]); return o; };
+    const essai = (fn) => { try { fn(); } catch (e) { rec('err', String(e && e.message)); } };
+    const fen = (name, fn, open, setup) => {
+      const days = [];
+      for (let k = 0; k < SEMAINE.length; k++) {
+        const row = [];
+        for (const h of HS) { H = h; setDay(k); reset(); A.quilles = null; if (setup) setup(k, h); essai(fn); row.push(open() ? 1 : 0); }
+        days.push(spans(row));
+      }
+      R.fen[name] = days;
+    };
+    const ouvert1 = (name) => { const F = R.fen[name] || []; for (let k = 0; k < F.length; k++) if (F[k].length) return [k, (F[k][0][0] + F[k][0][1]) / 2]; return [0, 12]; };
+    const lim = (name, key, fn, open, jour) => {
+      const [k, h] = jour || ouvert1(name);
+      for (let i = 0; i <= 12; i++) { H = h; setDay(k); reset(); A.quilles = null; s.activites = { jour: s.day, fait: { [key]: i }, tombes: {} }; essai(fn); if (!open()) { R.lim[name] = i; return; } }
+      R.lim[name] = null;
+    };
+    const proba = (prefix, fn, pred, setup) => {
+      const at = (x) => { reset(); if (setup) setup(); Math.random = seq(prefix.concat([x]), 0.5); try { fn(); } catch (e) { /* rien */ } finally { Math.random = rnd0; } return pred(); };
+      if (!at(0)) return 0;
+      if (at(0.9999999)) return 1;
+      let a = 0, b = 1;
+      for (let i = 0; i < 20; i++) { const m = (a + b) / 2; if (at(m)) a = m; else b = m; }
+      return Math.round(a * 1000) / 1000;
+    };
+    const fx = (name, fn, setup) => { reset(); if (setup) setup(); essai(fn); R.fx[name] = gains(); return calls.slice(); };
+    try {
+      let flag = false;
+      // ---- quand (les douze jours, quart d'heure par quart d'heure)
+      fen('des', () => A.jouerDes(N, 'des'), () => has('choice'));
+      fen('cartes', () => A.jouerDes(N, 'cartes'), () => has('choice'));
+      fen('veillee', () => A.veillee(), () => has('read'));
+      fen('diseuse', () => A.diseuse(), () => has('choice'));
+      fen('crieur', () => { flag = !!A.crieurPresent(); }, () => flag);
+      fen('violon', () => { flag = !!A.violonPresent(); }, () => flag);
+      fen('clocher', () => A.clocher(), () => has('cine'));
+      fen('quilles', () => A.quillesJouer(), () => has('choice'));
+      fen('tombola', () => A.tombola(), () => has('choice'));
+      fen('tir', () => A.tir(), () => has('open'));
+      fen('peche', () => A.peche(), () => has('pay'));
+      fen('peche_jury', () => A.peche(), () => !!(s.activites && s.activites.peche && s.activites.peche.fini) && !has('sub'), () => { s.activites = { jour: s.day, fait: {}, tombes: {}, peche: { j: s.day, best: { id: 'carpe', prix: 999 }, fini: false } }; });
+      fen('marche', () => { flag = !!A.marcheOuvert(); }, () => flag);
+      // ---- combien de fois par jour
+      lim('des', 'des', () => A.jouerDes(N, 'des'), () => has('choice'));
+      lim('cartes', 'cartes', () => A.jouerDes(N, 'cartes'), () => has('choice'));
+      lim('quilles', 'quilles', () => A.quillesJouer(), () => has('choice'));
+      lim('veillee', 'veillee', () => A.veillee(), () => has('read'));
+      lim('diseuse', 'diseuse', () => A.diseuse(), () => has('choice'));
+      lim('clocher', 'clocher', () => A.clocher(), () => has('cine'));
+      lim('voeu', 'voeu', () => A.voeu(), () => has('choice'), [0, 12]);
+      lim('cierge', 'cierge', () => A.cierge(), () => has('choice'), [0, 12]);
+      lim('tournee', 'tournee', () => A.tournee(npcs.byId.aubergiste || N), () => has('pay'), [0, 20]);
+      lim('bras', 'bras:' + N.id, () => A.brasDeFer(N), () => has('open'), [0, 12]);
+      // ---- les mises, les règles telles que les dit le jeu
+      const panneau = (name, fn, k, h, have) => { H = h; setDay(k); reset(); inv = have || {}; essai(fn); inv = {}; const c = calls.find((q) => q[0] === 'choice' || q[0] === 'read'); R.mises[name] = c ? { titre: c[1], texte: c[2], opts: c[3] || null } : null; return calls.slice(); };
+      { const [k, h] = ouvert1('des'); panneau('des', () => A.jouerDes(N, 'des'), k, h); panneau('des_pipes', () => A.jouerDes(N, 'des'), k, h, { des_pipes: 1 }); panneau('cartes', () => A.jouerDes(N, 'cartes'), k, h); }
+      { const [k, h] = ouvert1('diseuse'); panneau('diseuse', () => A.diseuse(), k, h); if (lastOpts[0]) { const o = lastOpts[0]; calls.length = 0; essai(() => o.fn()); R.fx.diseuse = gains(); const r = calls.find((q) => q[0] === 'read'); R.txt.diseuse = r ? [r[1], r[2], r[3]] : null; } }
+      panneau('voeu', () => A.voeu(), 0, 12);
+      const voeux = lastOpts.slice();
+      panneau('cierge', () => A.cierge(), 0, 12);
+      const cierges = lastOpts.slice();
+      { const [k, h] = ouvert1('quilles'); panneau('quilles', () => A.quillesJouer(), k, h); }
+      { const [k, h] = ouvert1('tombola'); panneau('tombola', () => A.tombola(), k, h); }
+      { const [k] = ouvert1('tir'); panneau('tir_ferme', () => A.tir(), (k + 1) % SEMAINE.length, 12); }
+      { const [k] = ouvert1('peche'); panneau('peche_ferme', () => A.peche(), (k + 1) % SEMAINE.length, 12); }
+      { const [k] = ouvert1('diseuse'); panneau('diseuse_ferme', () => A.diseuse(), (k + 1) % SEMAINE.length, 3); }
+      { const [k] = ouvert1('tombola'); panneau('tombola_ferme', () => A.tombola(), (k + 1) % SEMAINE.length, 12); }
+      // ---- les dés, le vingt-et-un : ce que rapporte une partie
+      H = 20; setDay(dayOf('veillee'));
+      fx('des_gagne', () => { Math.random = seq([0.99, 0.99, 0.99, 0, 0, 0]); try { A.lancerDes(N, 10, false); } finally { Math.random = rnd0; } });
+      fx('des_perd', () => { Math.random = seq([0, 0, 0, 0.99, 0.99, 0.99]); try { A.lancerDes(N, 10, false); } finally { Math.random = rnd0; } });
+      fx('des_triche', () => { Math.random = seq([0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0, 0, 0, 0]); try { A.lancerDes(N, 10, true); } finally { Math.random = rnd0; } });
+      R.regles.triche = proba([0.99, 0.99, 0.99, 0.99, 0.99, 0.99, 0, 0, 0], () => A.lancerDes(N, 10, true), () => !!(s.activites && s.activites.tricheur !== undefined));
+      const C = (v) => ({ v, c: '♠' });
+      fx('cartes_gagne', () => A.fin21({ n: N, m: 10, moi: [C('10'), C('9')], lui: [C('10'), C('7')] }));
+      fx('cartes_21', () => A.fin21({ n: N, m: 10, moi: [C('A'), C('R')], lui: [C('10'), C('7')] }));
+      fx('cartes_egal', () => A.fin21({ n: N, m: 10, moi: [C('10'), C('7')], lui: [C('10'), C('7')] }));
+      fx('cartes_perd', () => A.fin21({ n: N, m: 10, moi: [C('10'), C('6')], lui: [C('10'), C('8')] }));
+      // ---- le bras de fer, la tournée, la veillée
+      fx('bras_gagne', () => A.finBras({ n: N }, true));
+      fx('bras_perd', () => A.finBras({ n: N }, false));
+      R.regles.bras = Object.fromEntries(Object.entries(ACT_BRAS).map(([k, v]) => [k, v.f]));
+      {
+        const J0 = A.joueurs, au = npcs.byId.aubergiste || N, autres = npcs.list.filter((n) => n !== au && n.st.alive);
+        R.regles.tournee = [];
+        try {
+          for (const nb of [0, 1, 2, 3, 5, 8]) { A.joueurs = () => autres.slice(0, nb); reset(); H = 20; essai(() => A.tournee(au)); const p = calls.find((c) => c[0] === 'pay'); R.regles.tournee.push([nb, p ? p[1] : null]); }
+          A.joueurs = () => [N]; H = 20; fx('tournee', () => A.tournee(au));
+          A.joueurs = () => [N]; H = 20; setDay(dayOf('veillee')); fx('veillee', () => A.veillee());
+          R.txt.contes = [];
+          for (let wk = 0; wk < ACT_CONTES.length; wk++) { H = 20; setDay(dayOf('veillee'), wk); reset(); essai(() => A.veillee()); const c = calls.find((q) => q[0] === 'read'); R.txt.contes.push([s.day, c ? c[1] : null]); }
+        } finally { if (J0 === undefined) delete A.joueurs; else A.joueurs = J0; }
+      }
+      // ---- le puits aux souhaits, la diseuse, les cierges, les tombes
+      H = 12; setDay(0);
+      R.fx.voeux = voeux.filter((o, i) => i < voeux.length - 1).map((o) => { reset(); game.player.hp = 50; Math.random = seq([0.5]); try { o.fn(); } catch (e) { /* rien */ } finally { Math.random = rnd0; } const g = gains(); if (game.player.hp !== 50) g.push(['pv', game.player.hp - 50]); const sb = calls.find((c) => c[0] === 'sub'); return [o.label, g, sb ? sb[2] : null]; });
+      if (voeux[0]) {
+        R.regles.voeuRefus = proba([], () => voeux[0].fn(), () => has('earn'));
+        R.regles.voeuAutre = proba([], () => voeux[0].fn(), () => !has('buff'));
+      }
+      R.fx.cierges = cierges.filter((o, i) => i < cierges.length - 1).slice(0, 1).map((o) => { reset(); essai(() => o.fn()); return [o.label, gains()]; });
+      inv = { bouquet: 1 }; s.hand = null;
+      setDay(0); fx('fleurir', () => A.fleurir('wiki0', 0, 0, 0));
+      setDay(dayOf('morts')); fx('fleurir_morts', () => A.fleurir('wiki1', 0, 0, 0));
+      inv = {};
+      // ---- les quilles : mille lancers de la première boule, pour chaque visée
+      {
+        const QN = 1500, Q0 = () => ({ actif: true, lancer: 1, total: 0, debout: A.QUILLES.map(() => true), anim: A.QUILLES.map(() => ({ a: 0, t0: -1, dir: 0 })), boule: null });
+        R.regles.quilles = [-1, 0, 1].map((vise) => { let tot = 0, neuf = 0; for (let i = 0; i < QN; i++) { A.quilles = Q0(); A.lancerBoule(vise); tot += A.quilles.total; if (A.quilles.total === 9) neuf++; } return [vise, r2(tot / QN), Math.round(neuf / QN * 1000) / 1000]; });
+        setDay(dayOf('foire')); H = 12;
+        fx('quilles_9', () => { A.quilles = Object.assign(Q0(), { total: 9 }); A.finQuilles(); });
+        fx('quilles_7', () => { A.quilles = Object.assign(Q0(), { total: 7, lancer: 2 }); A.finQuilles(); });
+        A.quilles = null;
+      }
+      // ---- le four banal
+      {
+        const four = (cle, have) => { H = 10; setDay(dayOf(cle)); reset(); inv = have; essai(() => A.four()); const F = s.activites && s.activites.four; const r = { prises: calls.filter((c) => c[0] === 'take').map((c) => [c[1], c[2]]), out: F ? F.out : null, delai: F ? r2(F.pret - s.hours) : null }; inv = {}; return r; };
+        R.regles.four = { pain: four('semailles', { farine: 5, bois: 5 }), brioche: four('semailles', { farine: 5, bois: 5, beurre: 1, oeuf: 1 }), foire: four('foire', { farine: 5 }), sansBois: four('semailles', { farine: 5 }), sansFarine: four('semailles', { farine: 1, bois: 5 }) };
+      }
+      // ---- la tombola
+      {
+        const [k, h] = ouvert1('tombola'); H = h; setDay(k); reset();
+        essai(() => A.tombola());
+        let n = 0;
+        while (lastOpts.length > 1 && n < 10) { const o = lastOpts[0]; lastOpts = []; essai(() => o.fn()); n++; }
+        const p = calls.find((c) => c[0] === 'pay');
+        R.regles.tombola = { max: n, billet: p ? p[1] : null, tirage: A.TIRAGE_H, lots: A.LOTS };
+      }
+      // ---- le concours de tir : les prix selon le rang, les habitués, la main qui tremble
+      {
+        const S0 = A.scoresPNJ, own0 = Object.prototype.hasOwnProperty.call(A, 'scoresPNJ');
+        let noms = null;
+        R.regles.tir = { prix: [], noms: null, inscription: null, amp: [] };
+        try {
+          for (let rang = 1; rang <= 4; rang++) {
+            H = 10; setDay(dayOf('chasse')); reset();
+            A.scoresPNJ = (k, L) => { noms = L; return L.map(([id], i) => [id, i < rang - 1 ? 99 : -1]); };
+            essai(() => A.finTir({ coups: [[0, 0], [0, 0], [0, 0]] }));
+            R.regles.tir.prix.push([rang, calls.filter((c) => c[0] === 'earn' || c[0] === 'give').map((c) => c.slice())]);
+          }
+        } finally { if (own0) A.scoresPNJ = S0; else delete A.scoresPNJ; }
+        R.regles.tir.noms = noms;
+        const [k, h] = ouvert1('tir'); H = h; setDay(k); reset(); essai(() => A.tir());
+        const p = calls.find((c) => c[0] === 'pay'); R.regles.tir.inscription = p ? p[1] : null;
+        for (const [t, have] of [['main', {}], ['arc', { '@arc': 1 }], ['fusil', { '@fusil': 1 }]]) { inv = have; reset(); A.tirEtat = null; essai(() => A.jeuTir()); R.regles.tir.amp.push([t, A.tirEtat ? r2(A.tirEtat.amp) : null]); inv = {}; }
+      }
+      // ---- le concours de pêche
+      {
+        const P0 = A.prisesPNJ, own0 = Object.prototype.hasOwnProperty.call(A, 'prisesPNJ');
+        let noms = null;
+        R.regles.peche = { prix: [], noms: null, inscription: null };
+        try {
+          for (let rang = 1; rang <= 4; rang++) {
+            H = 17; setDay(dayOf('peche')); reset();
+            s.activites = { jour: s.day, fait: {}, tombes: {}, peche: { j: s.day, best: { id: 'carpe', prix: 500 }, fini: false } };
+            A.prisesPNJ = (k, L) => { noms = L; return L.map(([id], i) => [id, i < rang - 1 ? 1e6 : 0]); };
+            essai(() => A.peche());
+            R.regles.peche.prix.push([rang, calls.filter((c) => c[0] === 'earn' || c[0] === 'give').map((c) => c.slice())]);
+          }
+        } finally { if (own0) A.prisesPNJ = P0; else delete A.prisesPNJ; }
+        R.regles.peche.noms = noms;
+        const [k, h] = ouvert1('peche'); H = h; setDay(k); reset(); essai(() => A.peche());
+        const p = calls.find((c) => c[0] === 'pay'); R.regles.peche.inscription = p ? p[1] : null;
+      }
+      // ---- les petits travaux de la mairie, sur quatre semaines
+      {
+        const TJ = {};
+        for (let d = 1; d <= 48; d++) { s.day = d; let L = []; try { L = A.travauxDuJour(); } catch (e) { L = []; } for (const j of L) (TJ[j.t] || (TJ[j.t] = [])).push([j.pay, j.txt, j.need || null, j.n || null, j.to || null]); }
+        R.regles.travaux = TJ;
+        setDay(0); H = 12; fx('travaux', () => A.payer({ i: 0, pay: 30 }));
+      }
+      // ---- les étals du Marchedi : ce qu'ils proposent, semaine après semaine
+      R.regles.etals = (typeof ACT_ETALS !== 'undefined' ? ACT_ETALS : []).map((E) => { const sem = []; for (let wk = 0; wk < 4; wk++) { s.day = 12 * wk + 3; try { sem.push(A.offre(E)); } catch (e) { sem.push([]); } } return [E.id, sem]; });
+      // ---- le crieur : les nouvelles d'un jour (la veille du grand marché)
+      { H = 8.2; setDay(Math.max(0, dayOf('marche') - 1)); reset(); try { R.txt.crieur = A.nouvelles(); } catch (e) { R.txt.crieur = null; } }
+      // ---- le violoneux : le pourboire
+      { H = 11; setDay(0); reset(); essai(() => A.pourboire()); const o = lastOpts.slice(); R.txt.violon = calls.find((c) => c[0] === 'choice') || null; R.fx.violon = o.length > 1 ? (reset(), essai(() => o[0].fn()), gains()) : null; }
+    } finally {
+      for (const [o, k, v, own] of SV.reverse()) { if (own) o[k] = v; else delete o[k]; }
+      Math.random = rnd0; globalThis.setTimeout = st0; globalThis.setInterval = si0;
+      s.day = day0; s.money = money0; s.activites = act0; s.hours = hours0; game.sky = sky0; game.time = time0; game.player.hp = hp0; s.hand = hand0; A.quilles = null; A.tirEtat = null; A.brasEtat = null;
+    }
+    return R;
+  });
+  Math.random = rnd0; globalThis.setTimeout = st0; globalThis.setInterval = si0;
+  return out;
+}
+// ce que le code dit en toutes lettres (seuils, facteurs, délais) : lu dans les modules, là où aucune table ne le porte
+function vieTextes(G) {
+  const txt = (re) => { for (const [f, t] of G.texts) { if (!/^(11|07)-/.test(f)) continue; const m = t.match(re); if (m) return m.slice(1); } return null; };
+  const L = (s) => s.split(',').map((x) => +x.trim());
+  const R = {};
+  const g = (k, re, f) => { const m = txt(re); R[k] = m ? (f ? f(m) : m.map((x) => (/^-?\d+(?:\.\d+)?$/.test(x) ? +x : x))) : null; };
+  // le sommeil
+  g('endurance', /const f = \[([\d., ]+)\]\[st\];\s*\n\s*p\.stamina/, (m) => L(m[0]));
+  g('fatigueRythme', /const rate = \(\[([\d., ]+)\]\[st\]\) \+ Math\.max\(0, this\.eff\(\) - (\d+)\) \* ([\d.]+)/, (m) => [L(m[0]), +m[1], +m[2]]);
+  g('fatiguePlafond', /esprit\.changer\(-rate \* dh, 'fatigue', (\d+)\)/);
+  g('coupsDurs', /delta \*= \[([\d., ]+)\]\[st\]/, (m) => L(m[0]));
+  g('pensees', /this\.pensT = \[([\d., ]+)\]\[st\]/, (m) => L(m[0]));
+  g('etrangeFatigue', /b \* \(1 \+ ([\d.]+) \* sommeil\.k\(\)\)/);
+  g('murmures', /if \(actif && st >= (\d)\) \{\s*this\.murmT -= dt/);
+  g('silhouette', /if \(st >= (\d) && typeof esprit !== 'undefined' && esprit\.silhouette\)/);
+  g('microSommeil', /const micro = st >= (\d) && Math\.random\(\) < ([\d.]+)/);
+  g('dormirJour', /if \(h >= ([\d.]+) && h < ([\d.]+)\) \{\s*const c = sommeil\.ctx;\s*ui\.choice\('([^']+)', '([^']+)'/);
+  g('aubergeJour', /if \(h > (\d+) && h < (\d+)\) \{\s*if \(!farm\.pay\((\d+)\)\) return this\.view\('([^']+)'/);
+  g('aubergeSoir', /\{ label: 'Louer une chambre \((\d+) pièces\)', act: 'rent' \}/);
+  g('litProteste', /npcs\.addAmitie\(debout, (-?\d+)\)/);
+  g('litDecouvert', /npcs\.addAmitie\(qui, ami \? (-?\d+) : mere \? (-?\d+) : (-?\d+)\)/);
+  g('litAmi', /const ami = npcs\.level\(qui\) >= (\d+) && !mere/);
+  // la location
+  g('bailEcheance', /echeance: s\.day \+ (\d+), du: 0/);
+  g('bailRappel', /retard >= (\d+) && !B\.rappel/);
+  g('bailExpulsion', /if \(retard >= (\d+)\) \{ this\.expulser\(k\)/);
+  // le crochetage
+  g('crocRetombe', /if \(J\.d >= (\d) && J\.i > 0 && Math\.random\(\) < \[([\d., ]+)\]\[J\.d - 1\]\)/, (m) => [+m[0], L(m[1])]);
+  g('crocParJeu', /if \(S\.casses >= (\d+)\) \{ S\.casses = 0; farm\.take\('crochets', 1\)/);
+  g('crocEntend', /if \(dd > (\d+)\) continue;\s*const dort = m\.state === 'sleep' \|\| m\.sleep, chezLui = m\.id === J\.o\.proprietaire \|\| dd < (\d+);\s*const pch = dort \? \(chezLui \? ([\d.]+) : ([\d.]+)\) \* b : m\.inside \? \(chezLui \? ([\d.]+) : ([\d.]+)\) \* b : dd < (\d+) \? ([\d.]+) \* b : ([\d.]+) \* b/);
+  g('crocBruit', /P\.ok = true; P\.pos = 0\.5; J\.i\+\+; sound\.crocCale && sound\.crocCale\(\);\s*this\.bruit\(([\d.]+)\)[\s\S]{0,400}?this\.bruit\((\d+)\)[\s\S]{0,700}?this\.bruit\(([\d.]+)\)/);
+  g('crocVoit', /if \(dd > (\d+) \|\| !\(dd < (\d+) \|\| segClear[\s\S]{0,300}?const k = face > ([\d.-]+) \? 1 : face > ([\d.-]+) \? ([\d.]+) : ([\d.]+);\s*if \(Math\.random\(\) < \(nuit \? ([\d.]+) : ([\d.]+)\) \* \(dd < (\d+) \? (\d+) : 1\) \* k\)/);
+  g('crocMains', /k \*= 1 - ([\d.]+) \* sommeil\.k\(\);[\s\S]{0,200}?alcool\.S\(\)\.g > (\d+)\) k \*= ([\d.]+)/);
+  g('crocOuverte', /dr\.crocheteT = game\.time \+ (\d+);\s*setTimeout/);
+  g('crocEsprit', /esprit\.changer\((-?\d+), 'effraction', \d+\)/);
+  // ramasser et casser
+  g('portesRepar', /s\.day - S\.portes\[i\]\.j >= (\d+)/);
+  g('debris', /S\.debris = S\.debris\.filter\(\(D\) => s\.day - D\.j < (\d+)\)/);
+  g('tas', /S\.tas = S\.tas\.filter\(\(T\) => s\.day - T\.j < (\d+)/);
+  g('coupsEntaille', /for \(const k in S\.pv\) if \(s\.day - S\.pv\[k\]\.j >= (\d+)\) delete/);
+  g('porteBois', /if \(Math\.random\(\) < ([\d.]+)\) \{ farm\.give\('bois', 1\)[\s\S]{0,160}?if \(Math\.random\(\) < ([\d.]+)\) \{ farm\.give\('ferraille', 1\)/);
+  g('casseAmitie', /npcs\.addAmitie\(own, acte === 'ramasse' \|\| acte === 'tas' \? (-?\d+) : (-?\d+)\)/);
+  g('casseReprise', /this\.alertes\[o\.cle\] = game\.time \+ (\d+);/);
+  g('forceDouble', /const dmg = base \* k \* \(BUFF\.on\('force'\) \? (\d+) : 1\);\s*const S = this\.S\(\), key = P\.cle/);
+  // les fouilles
+  g('refillAbandon', /Math\.max\((\d+), r \* (\d+)\)/);
+  g('volAmitie', /if \(own\) \{ npcs\.addAmitie\(own, (-?\d+)\); own\.st\.anger/);
+  g('plainteJours', /for \(const id in S\.plaintes\) if \(s\.day - S\.plaintes\[id\] > (\d+)\) delete S\.plaintes\[id\];/);
+  // les dépouilles
+  g('enterrerHeures', /this\.avancer\(chienRec \? ([\d.]+) : ([\d.]+)\)/);
+  g('merci', /for \(const m of vus\) npcs\.addAmitie\(m, (\d+)\);\s*const mort = this\.npc\(rec\);[\s\S]{0,200}?npcs\.addAmitie\(m, (\d+)\); npcs\.remember\(m, 'enterre'/);
+  g('fermierAge', /const age = (\d+) \+ Math\.max\(0, s\.run - E\.run - 1\) \* (\d+);/);
+  g('nouvelleJours', /return j !== undefined && d - j <= (\d+);/);
+  // les activités
+  g('croupier', /while \(this\.valeur\(P\.lui\) < (\d+)\) P\.lui\.push/);
+  g('cibleScore', /Math\.max\(0, (\d+) - Math\.floor\(Math\.hypot\(x, y\) \* (\d+)\)\)/);
+  g('tirageSur', /const n = 1 \+ \(\(rnd\(\) \* (\d+)\) \| 0\); if \(!L\.includes\(n\)\) L\.push\(n\);/);
+  g('brocante', /if \(vendus < (\d+)\) for \(const id of T\) \{\s*const prix = Math\.max\(1, Math\.round\(ITEMS\[id\]\.price \* ([\d.]+)\)\)/);
+  g('ecoute', /if \(A\.ecoute >= (\d+) && !this\.fait\('ecoute1'\)\)[\s\S]{0,300}?if \(A\.ecoute >= (\d+) && !this\.fait\('ecoute2'\)\)/);
+  g('conteSemaine', /const C = ACT_CONTES\[Math\.floor\(farm\.s\.day \/ (\d+)\) % ACT_CONTES\.length\]/);
+  return R;
+}
+// la vie de la vallée : les mesures, les textes du code, et les figurines des portes et des meubles
+function extractVie(G, DB, FIGS) {
+  const V = G.run(`(${vieProbe.toString()})()`);
+  const vie = DB.derived.vie = jclone(V) || {};
+  for (const e of vie.err || []) DB.log.push('vie de la vallée, ' + e);
+  delete vie.err;
+  vie.re = vieTextes(G);
+  if (!FIGS || !G.has('ICON3D')) return;
+  const { shelf, fig } = FIGS;
+  const addCv = (key, expr) => { try { const cv = G.run(expr); if (cv) fig[key] = { full: shelf.add(trim(cv)) }; } catch (e) { DB.log.push('figurine ' + key + ' : ' + (e && e.message)); } };
+  // une porte de chaque sorte, prise dans la vallée (vue du dehors, fermée)
+  const vues = new Set();
+  for (const d of vie.portes || []) {
+    if (!d.st || vues.has(d.st) || d.deco) continue;
+    vues.add(d.st);
+    addCv('porte:' + d.st, `(() => { const d0 = game.world.doors[${d.i}]; const d = Object.assign({}, d0, { r: d0.r + Math.PI, a: 0, open: 0, _st: null, casse: false }); PORTES.cam = [d.x, d.y, d.z]; const boxes = ICON3D.capture((cap) => emitDoor(cap, d, 0)); return boxes.length ? ICON3D.render(boxes, 96) : null; })()`);
+  }
+  if (!vues.has('eglise')) addCv('porte:eglise', `(() => { const d = { x: 0, y: 0, z: 0, r: Math.PI, w: 1.94, h: 3.14, a: 0, open: 0, style: 'eglise', deco: true }; PORTES.cam = [0, 0, 0]; const boxes = ICON3D.capture((cap) => emitDoor(cap, d, 0)); return boxes.length ? ICON3D.render(boxes, 96) : null; })()`);
+  // les meubles qu'on fouille, ceux des maisons à louer, des activités, les lits, les tertres
+  const P = ['armoire', 'commode', 'buffet', 'malle', 'secretaire', 'coffre_fort', 'apothicaire', 'casier_tri', 'petrin', 'coffre_outils', 'poubelle', 'tronc', 'boite_tresors', 'sellerie', 'coffre_nain', 'jambons',
+    'etagere', 'tonneau', 'caisse', 'sac', 'wagonnet', 'coffre_vieux', 'coffre_loc', 'ecriteau_louer', 'porte_cierges', 'quilles_piste', 'cible', 'tente_diseuse', 'stand_tombola', 'lit', 'paillasse', 'lit_geant', 'tertre'];
+  const one = (id, data, key, S) => addCv(key, `(() => { const id = ${JSON.stringify(id)}; if (!PROP_MODELS[id]) return null; const o = { id, x: 0, y: 0, z: 0, r: 0, s: 1, data: Object.assign({ lit: true, fill: 1, open: false, m: null, vide: false, items: {} }, ${JSON.stringify(data)}) }; const T = { t: 1.3, hour: 12, night: 0, day: 1, wind: 0.3, rain: 0 }; const boxes = ICON3D.capture((cap) => { PE.buf = cap; PE.fl = 0; PE.frame(0, 0, 0, 0, 1); PROP_MODELS[id](PE, o, T); }); return boxes.length ? ICON3D.render(boxes, ${S}) : null; })()`);
+  for (const id of P) one(id, {}, 'prop:' + id, /^(quilles_piste|tente_diseuse|lit_geant)$/.test(id) ? 96 : 72);
+  one('tertre', { pierre: 1 }, 'prop:tertre_pierres', 72);
+}
+
 async function extract() {
   say('assemblage du jeu (src/NN-*.js) dans une machine virtuelle…');
   const log = [];
@@ -579,6 +1089,7 @@ async function extract() {
   }
 
   // ---------------------------------------------------------------- figurines : habitants, bêtes, apparitions, plantes
+  let FIGS = null;
   {
     const shelf = new Shelf(1024), fig = {};
     // les personnages « façon 1996 » ont des boîtes effilées (TR_FORMES), que le vertex shader déforme : le rendu
@@ -636,9 +1147,24 @@ async function extract() {
       const FC = G.get('FOND_CHERCHEURS');
       if (Array.isArray(FC) && G.has('rigChercheur')) FC.forEach((c, i) => { const cv = safe('chercheur ' + i, () => renderRig(`(() => { const r = rigChercheur(FOND_CHERCHEURS[${i}].col); try { poseChercheur(r, 0, 0, 0, false); } catch (e) {} return r; })()`, 96)); if (cv) fig['chercheur:' + i] = { full: shelf.add(trim(cv)) }; });
     }
+    // les nouveautés de la vie de la vallée : les morts qui restent au sol, à chacun de leurs stades (le fermier, un géant,
+    // le chien), et les silhouettes des activités (crieur, violoneux, diseuse, marchands du Marchedi)
+    if (G.has('depouilles') && G.has('ICON3D')) {
+      const dep = (key, rec, st, S) => { const cv = safe('dépouille ' + key, () => G.run(`(() => { const R = depouilles.construire(${JSON.stringify(rec)}, ${st}); if (!R || !R.rig) return null; const boxes = ICON3D.capture((cap) => R.rig.emit(cap, R.M, 0)); return boxes.length ? ICON3D.render(boxes, ${S}) : null; })()`)); if (cv) fig[key] = { full: shelf.add(trim(cv)) }; };
+      for (let st = 0; st <= 3; st++) dep('dep:fermier:' + st, { id: 'wiki', t: 'fermier', x: 0, y: 0, z: 0, r: 0, pose: 'dos' }, st, 112);
+      dep('dep:geant:0', { id: 'wiki-g', t: 'geant', i: 0, s: 4.4, x: 0, y: 0, z: 0, r: 0, pose: 'dos' }, 0, 140);
+      dep('dep:chien:0', { id: 'wiki-c', t: 'chien', x: 0, y: 0, z: 0, r: 0, pose: 'cote' }, 0, 80);
+      dep('dep:chien:3', { id: 'wiki-c', t: 'chien', x: 0, y: 0, z: 0, r: 0, pose: 'cote' }, 3, 80);
+    }
+    {
+      const AL = G.get('ACT_LOOKS');
+      if (AL && typeof AL === 'object') for (const k of Object.keys(AL)) { const cv = safe('figurine ' + k, () => human(`ACT_LOOKS[${JSON.stringify(k)}]`, 128, false)); if (cv) fig['act:' + k] = { full: shelf.add(trim(cv)) }; }
+      const AE = G.get('ACT_ETALS');
+      if (Array.isArray(AE)) AE.forEach((E, i) => { if (!E || !E.look) return; const cv = safe('figurine ' + E.id, () => human(`ACT_ETALS[${i}].look`, 128, false)); if (cv) fig['etal:' + E.id] = { full: shelf.add(trim(cv)) }; });
+    }
     if (renderOrig) safe('rendu d’origine', () => G.run('ICON3D.render = globalThis.__renderOrig'));
-    DB.images.figures = Object.assign(shelf.png(), { index: fig });
-    say(`${Object.keys(fig).length} figurines${renderOrig ? ' (boîtes effilées façon 1996)' : ''}`);
+    // (la planche se ferme après la génération de la vallée : les portes et les meubles s'y ajoutent, voir extractVie)
+    FIGS = { shelf, fig, renderOrig };
   }
 
   // ---------------------------------------------------------------- l'écriture des langues perdues (code du jeu embarqué)
@@ -688,6 +1214,14 @@ async function extract() {
   say('carte extraite');
   // les semaines de chacun, maintenant que les lieux existent (la première lecture n'a que les journées ordinaires)
   { const R = safe('routines (vallée)', () => extractRoutines(G), null); if (R) DB.derived.routines = R; }
+  // la vie de la vallée (lits, portes et serrures, fouilles, objets, activités, dépouilles, bail) : mesurée dans le jeu
+  safe('vie de la vallée', () => extractVie(G, DB, FIGS));
+  say('vie de la vallée mesurée');
+  // la planche des figurines (les portes et les meubles s'y sont ajoutés)
+  if (FIGS) {
+    DB.images.figures = Object.assign(FIGS.shelf.png(), { index: FIGS.fig });
+    say(`${Object.keys(FIGS.fig).length} figurines${FIGS.renderOrig ? ' (boîtes effilées façon 1996)' : ''}`);
+  }
   return DB;
 }
 
@@ -788,7 +1322,7 @@ function extractWorld(G, w, DB) {
   W.herd = w.herdSpot ? [r1(w.herdSpot.x), r1(w.herdSpot.z)] : null;
   W.farmField = w.farm && w.farm.field ? jclone(w.farm.field) : null;
   W.misc = {};
-  for (const k of ['temple', 'nains', 'geants', 'sources', 'relais', 'archives', 'maze', 'townInfo', 'abbey', 'scriptorium', 'cellar', 'crypt']) if (w[k]) W.misc[k] = jclone(Object.fromEntries(Object.entries(w[k]).filter(([, v]) => !ArrayBuffer.isView(v))));
+  for (const k of ['temple', 'nains', 'geants', 'sources', 'relais', 'archives', 'maze', 'townInfo', 'abbey', 'scriptorium', 'cellar', 'crypt', 'act', 'poterne', 'locations', 'caveAuberge', 'fouilles2', 'butin', 'prison']) if (w[k]) W.misc[k] = jclone(Object.fromEntries(Object.entries(w[k]).filter(([, v]) => !ArrayBuffer.isView(v))));
   // blocs (bâtiments, murs, ponts…) : empreintes vues de dessus ; ceux enfouis sous le terrain vont aux souterrains
   {
     const mats = DB.derived.mats || [];
