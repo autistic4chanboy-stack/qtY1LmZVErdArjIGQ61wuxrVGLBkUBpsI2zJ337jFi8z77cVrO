@@ -339,7 +339,7 @@ const meubles = {
     vous: '(Vous êtes dans le chemin.)',
     mur: '(Il faudrait un mur, tout près.)',
     place: '(Il n’y a pas la place, dans cette pièce.)',
-    dehors: '(Un meuble pareil, ça se pose à l’intérieur, chez soi.)',
+    dehors: '(Un meuble pareil, ça se pose à l’intérieur.)',
     ailleurs: '(Ce n’est pas chez vous, ici.)',
     pasMeuble: '(Dans une maison de la ville, on ne pose que des meubles.)',
   },
@@ -383,12 +383,9 @@ const meubles = {
   },
   // quelques pensées, la première fois
   premiereFois(q) {
-    const V = this.S().vus, k = this.dans(q.x, q.y + 0.3, q.z, 0), dire = (cle, t, d) => { if (V[cle]) return; V[cle] = farm.s.day; setTimeout(() => { if (!game.dying && !ui.panel) ui.subtitle('', t, d || 4); }, 500); };
-    if (k && LOC_MAISONS[k] && !V['maison:' + k]) { dire('maison:' + k, '(Le premier meuble à vous, ici. La pièce a l’air moins vide. Un peu moins.)'); return; }
-    if (q.id === 'horloge_comtoise') dire('horloge', '(Vous poussez le balancier du bout du doigt. Tic. Tac. La maison a un cœur, maintenant.)', 4.5);
-    else if (q.id === 'lit' || q.id === 'lit_clos') dire('lit', '(Vous tapotez l’oreiller. Il sent le propre, et un peu le grenier.)');
-    else if (q.id === 'tableau' && q.data && q.data.v === 1) dire('portrait', '(Le monsieur du portrait vous regarde faire. Il a l’air d’attendre quelque chose.)', 4.5);
-    else if (q.id === 'tableau' && q.data && q.data.v === 3) dire('lac', '(Il y a quelqu’un sur la rive, dans le tableau. Vous ne l’aviez pas remarqué, au grenier.)', 4.5);
+    const V = this.S().vus, dire = (cle, t, d) => { if (V[cle]) return; V[cle] = farm.s.day; setTimeout(() => { if (!game.dying && !ui.panel) ui.subtitle('', t, d || 4); }, 500); };
+    if (q.id === 'tableau' && q.data && q.data.v === 1) dire('portrait', '(Le monsieur du portrait a l’air d’attendre quelque chose.)', 4);
+    else if (q.id === 'tableau' && q.data && q.data.v === 3) dire('lac', '(Il y a quelqu’un sur la rive, dans le tableau.)', 4);
   },
 
   // ------------------------------------------------------------------ vos meubles : E pour s'en servir, maintenir E (ou E) pour les reprendre
@@ -645,7 +642,7 @@ Object.assign(meubles, {
         if (r === 'pauvre') ui.subtitle('', `(Vous n’avez pas ${prix} pièces.)`, 2.5);
         else if (r === 'loyer') ui.subtitle('', `(Sous l’écriteau, un papier à votre nom : « Loyer dû : ${locations.bail(k).du} pièces. Réglez d’abord. »)`, 4);
         else if (r === 'dette') ui.subtitle('', `(Sous l’écriteau, un papier à votre nom : « Dette de ${L.saisies[k].dette} pièces. Voir le maire. »)`, 4);
-        else if (r === 'ok') ui.subtitle('', `(Les pièces tombent dans la fente, une à une ; c’est long. ${this.titre(k)} est à vous, pour toujours.)`, 5);
+        else if (r === 'ok') ui.subtitle('', `(${this.titre(k)} est à vous, pour toujours.)`, 4);
       } },
       { label: 'Pas maintenant', fn: () => ui.close() },
     ]);
@@ -661,7 +658,7 @@ Object.assign(meubles, {
   confirmerRevente(k) {
     const pr = this.prixRevente(k);
     ui.choice('Revendre ' + LOC_MAISONS[k].nom, `La commune la reprendrait pour ${pr} pièces, la moitié de ce que vous l’avez payée. Vos meubles et ce qu’il y a dans le coffre reviendront dans votre sacoche ; la clé retournera à la mairie.`, [
-      { label: `Revendre pour ${pr} pièces`, fn: () => { ui.close(true); const r = this.revendre(k); if (Array.isArray(r)) ui.subtitle('', r.length ? `(Vous reprenez vos affaires : ${r.join(', ')}. La clé retourne à la mairie.)` : '(La clé retourne à la mairie.)', 5); } },
+      { label: `Revendre pour ${pr} pièces`, fn: () => { ui.close(true); const r = this.revendre(k); if (Array.isArray(r)) ui.subtitle('', r.length ? `(Vos affaires reviennent dans la sacoche : ${r.join(', ')}.)` : '(La clé retourne à la mairie.)', 4); } },
       { label: 'Garder la maison', fn: () => ui.close() },
     ]);
   },

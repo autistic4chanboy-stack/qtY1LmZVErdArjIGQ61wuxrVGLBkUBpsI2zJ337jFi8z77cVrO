@@ -70,7 +70,7 @@ HOOKS.inter.abbey_stone = (it) => {
     s.flags.abbayeOuverte = s.day;
     sound.rumble && sound.rumble(); game.shakeT = 0.5;
   }
-  game.teleport(it.data.to, 'La pierre pivote sur un gond de fer. Un escalier descend dans le noir.');
+  game.teleport(it.data.to, 'Un escalier descend dans le noir.');
 };
 // les Frappeurs : pain et lait dans la niche ; le lendemain, la paroi s'ouvre
 HOOKS.inter.frappeurs = (it) => {
@@ -91,7 +91,7 @@ HOOKS.inter.frappeurs = (it) => {
 HOOKS.interVis.paroi = () => true;
 HOOKS.inter.paroi = (it) => {
   const s = farm.s, w = game.world, q = w.props[it.data.prop];
-  if (s.flags.frappeursOuvert) { game.teleport(it.data.to, 'Vous vous faufilez dans la fente.'); return; }
+  if (s.flags.frappeursOuvert) { game.teleport(it.data.to, ''); return; }
   if (!s.flags.frappeursOffert || s.day <= s.flags.frappeursOffert) { sound.knock && sound.knock(2); return; }
   if (!farm.bestTool('pioche')) { ui.subtitle('', '(La fente s’est élargie. Il faudrait une pioche.)', 3); return; }
   s.flags.frappeursOuvert = s.day;
@@ -109,10 +109,10 @@ HOOKS.interPre.altar = (it) => {
   if (midnight && thirteen && w.circleRoom && !s.flags.cercleOuvert) {
     s.flags.cercleOuvert = s.day;
     sound.rumble && sound.rumble(); game.shakeT = 0.8; strange.glitchT = 0.6;
-    game.teleport(w.circleRoom.to, 'Treize pierres. La pierre du centre glisse, lentement, sur un lit de terre noire.');
+    game.teleport(w.circleRoom.to, 'La pierre du centre glisse, lentement, sur un lit de terre noire.');
     return true;
   }
-  if (s.flags.cercleOuvert && midnight && w.circleRoom) { game.teleport(w.circleRoom.to, 'Vous redescendez sous les pierres.'); return true; }
+  if (s.flags.cercleOuvert && midnight && w.circleRoom) { game.teleport(w.circleRoom.to, ''); return true; }
   const lines = [];
   lines.push(strange.inEnvers() ? '(Treize pierres. Toutes tournées vers vous.)' : '(La pierre est tiède, comme si quelqu’un venait de s’y asseoir.)');
   if (held.length) lines.push(held.length === RELICS.length ? '(Toutes les reliques. Pas à cette heure-ci.)' : `(Vous portez ${held.length} relique${held.length > 1 ? 's' : ''} sur ${RELICS.length}.)`);

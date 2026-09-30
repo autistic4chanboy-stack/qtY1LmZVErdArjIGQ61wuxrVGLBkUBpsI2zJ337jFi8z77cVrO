@@ -59,7 +59,7 @@ const crochetage = {
   tenter(o) {
     o = o || {};
     if (this.jeu || !farm.s) return Promise.resolve(false);
-    if (!farm.count('crochets')) { ui.subtitle('', '(Il vous faudrait un jeu de crochets. Le colporteur en a, dit-on. Le forgeron aussi, sous le comptoir.)', 4); return Promise.resolve(false); }
+    if (!farm.count('crochets')) { if (!penser.une('crochets', '(Il vous faudrait un jeu de crochets. Le colporteur en a, dit-on. Le forgeron aussi, sous le comptoir.)', 4)) ui.subtitle('', '(Il vous faudrait un jeu de crochets.)', 2.5); return Promise.resolve(false); }
     const d = clamp(Math.round(o.difficulte || 2), 1, 5);
     return new Promise((res) => this.ouvrir(o, d, res));
   },
@@ -266,7 +266,7 @@ const crochetage = {
     const k = dr.bld;
     const vide = k && !npcs.list.some((n) => n.d.home === k && n.st.alive && !n.vanished) && !dr.scelle;
     frapper(dr);
-    if (vide && !strange.redNight()) setTimeout(() => ui.subtitle('', typeof LOC_MAISONS !== 'undefined' && LOC_MAISONS[k] ? '(Personne. Derrière la porte, une maison vide qui attend un locataire.)' : '(Personne ne répond.)', 3), 1600);
+    if (vide && !strange.redNight()) setTimeout(() => ui.subtitle('', typeof LOC_MAISONS !== 'undefined' && LOC_MAISONS[k] ? '(Personne. La maison attend un locataire.)' : '(Personne ne répond.)', 3), 1600);
   },
   async porte(dr) {
     const n = this.habitant(dr);
@@ -274,7 +274,6 @@ const crochetage = {
     if (!ok) return false;
     dr.locked = false; dr.open = 1; dr.playerClosed = false; dr.crocheteT = game.time + 25;
     setTimeout(() => sound.door && sound.door(true), 150);
-    ui.subtitle('', '(Un déclic, puis un autre. La porte s’entrouvre sans un bruit.)', 3.5);
     return true;
   },
 };
@@ -289,14 +288,12 @@ const poterne = {
   utiliser(dr) {
     if (this.cote(dr) < 0) {
       sound.knock && sound.knock(1);
-      ui.subtitle('', '(Une porte basse, bardée de fer. De ce côté, ni poignée ni serrure : elle ne s’ouvre que de l’intérieur.)', 4.5);
+      ui.subtitle('', '(De ce côté, ni poignée ni serrure.)', 3);
       return;
     }
     if (dr.open) { dr.open = 0; dr.locked = true; sound.door(false); setTimeout(() => sound.lock && sound.lock(true), 220); return; }
     dr.locked = false; dr.open = 1; sound.lock && sound.lock(false); setTimeout(() => sound.door(true), 150);
-    const h = npcs.hour();
-    ui.subtitle('', h >= 21 || h < 6 ? '(Vous tirez le gros verrou. La poterne s’ouvre sur la nuit, et sur l’odeur de l’eau des douves.)' : '(Vous tirez le gros verrou. La poterne s’ouvre sur les douves.)', 4);
-    if (!farm.s.flags.poterneVue) { farm.s.flags.poterneVue = 1; setTimeout(() => ui.subtitle('', '(Elle se refermera derrière vous. De l’autre côté, il faudra descendre dans l’eau, et remonter par une échelle.)', 5), 4500); }
+    if (!farm.s.flags.poterneVue) { farm.s.flags.poterneVue = 1; setTimeout(() => ui.subtitle('', '(Elle se refermera derrière vous.)', 3.5), 800); }
   },
   // elle se referme derrière soi (et si l'on s'en va sans passer)
   update() {
@@ -307,7 +304,6 @@ const poterne = {
       dr.open = 0; dr.locked = true;
       if (lz < 0 && d < 12) {
         setTimeout(() => { sound.door(false); setTimeout(() => sound.lock && sound.lock(true), 350); }, 300);
-        ui.subtitle('', '(Derrière vous, la poterne se referme d’elle-même. Un pêne claque, de l’autre côté.)', 4);
       }
     }
   },
@@ -340,7 +336,6 @@ HOOKS.load.push(() => {
         if (k && game.insideBuilding(k)) {
           dr.locked = false; dr.open = 1; dr.crocheteT = game.time + 8;
           sound.lock && sound.lock(false); sound.door(true);
-          ui.subtitle('', '(Vous tirez le verrou de l’intérieur.)', 2.5);
           return;
         }
         return crochetage.menuPorte(dr, _ud);

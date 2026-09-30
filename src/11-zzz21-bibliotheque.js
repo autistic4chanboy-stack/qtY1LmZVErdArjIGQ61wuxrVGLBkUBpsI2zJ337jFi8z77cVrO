@@ -233,7 +233,7 @@ const biblio = {
     if (this.surveille() && (this.banni() || (!this.confiance() && !B.fleur))) { ui.subtitle(this.nom(), pick(['Ce rayonnage-là n’est pas pour les lecteurs.', 'Les registres du fond ne se consultent pas. Merci.']), 3); return; }
     if (!B.passage) B.passage = s.day;
     sound.door && sound.door(true);
-    game.teleport(w.archives.to, 'Vous tirez le registre noir. Le rayonnage pivote sur un escalier de pierre qui descend, longtemps, dans le froid.');
+    game.teleport(w.archives.to, 'Le rayonnage pivote sur un escalier de pierre qui descend, longtemps, dans le froid.');
   },
   // ------------------------------------------------------------ le retard : rappels, sorcier, traque
   verifier(playing) {

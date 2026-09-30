@@ -108,7 +108,7 @@ const locations = {
     farm.dirtyProps = true;
     this.appliquerPortes(true);
     // le locataire était dedans : on le met à la porte
-    if (game.insideBuilding(k)) setTimeout(() => ui.subtitle('', '(Des pas dehors, une clé qui tourne dans la serrure, une autre. On a changé la serrure pendant que vous étiez là.)', 5), 1500);
+    if (game.insideBuilding(k)) setTimeout(() => ui.subtitle('', '(Dehors, une clé tourne dans la serrure. On a changé la serrure.)', 5), 1500);
   },
   recuperer(k) {
     const L = this.S(), Z = L && L.saisies[k];
@@ -167,7 +167,7 @@ const locations = {
           if (Z && Z.dette > 0) { ui.subtitle('', `(Sous l’écriteau, un papier à votre nom : « Dette de ${Z.dette} pièces. Voir le maire. »)`, 4); return; }
           const r = this.louer(k);
           if (r === 'pauvre') ui.subtitle('', `(Vous n’avez pas ${M.loyer} pièces.)`, 2.5);
-          else if (r === 'ok') ui.subtitle('', `(Les pièces tombent dans la fente. Derrière l’écriteau, pendue à un clou, une clé. ${titre} est à vous pour douze jours.)`, 5);
+          else if (r === 'ok') ui.subtitle('', `(Derrière l’écriteau, pendue à un clou, une clé. ${titre} est à vous pour douze jours.)`, 5);
         } },
         { label: 'Pas maintenant', fn: () => ui.close() },
       ]);
@@ -175,7 +175,7 @@ const locations = {
     }
     const s = farm.s, du = B.du;
     const opts = [];
-    if (du > 0) opts.push({ label: `Payer le loyer dû (${du} pièces)`, fn: () => { ui.close(true); const r = this.payer(k); ui.subtitle('', r === 'pauvre' ? `(Vous n’avez pas ${du} pièces.)` : '(Les pièces tombent dans la fente. Vous voilà quitte.)', 3); } });
+    if (du > 0) opts.push({ label: `Payer le loyer dû (${du} pièces)`, fn: () => { ui.close(true); const r = this.payer(k); ui.subtitle('', r === 'pauvre' ? `(Vous n’avez pas ${du} pièces.)` : '(Vous voilà quitte.)', 3); } });
     else opts.push({ label: `Payer une semaine d’avance (${M.loyer} pièces)`, fn: () => { ui.close(true); const r = this.payer(k); ui.subtitle('', r === 'pauvre' ? `(Vous n’avez pas ${M.loyer} pièces.)` : `(Douze jours de plus. Prochaine échéance : ${this.jourNom(B.echeance)}.)`, 3.5); } });
     opts.push({ label: 'Rendre les clés (fin du bail)', fn: () => this.confirmerRendre(k) });
     opts.push({ label: 'Refermer', fn: () => ui.close() });
@@ -186,7 +186,7 @@ const locations = {
     if (!B) return;
     const n = Object.keys(B.coffre).filter((id) => B.coffre[id] > 0).length;
     ui.choice('Rendre les clés', `Le bail de ${M.nom} prendra fin aujourd’hui. La semaine commencée n’est pas remboursée.${n ? ' Vous reprendrez ce qu’il y a dans le coffre.' : ''}`, [
-      { label: 'Rendre les clés', fn: () => { ui.close(true); const r = this.rendre(k); ui.subtitle('', Array.isArray(r) ? `(Vous reprenez vos affaires : ${r.join(', ')}. La clé retourne à la mairie.)` : '(La clé retourne à la mairie.)', 4); } },
+      { label: 'Rendre les clés', fn: () => { ui.close(true); const r = this.rendre(k); ui.subtitle('', Array.isArray(r) ? `(Vos affaires reviennent dans la sacoche : ${r.join(', ')}.)` : '(La clé retourne à la mairie.)', 4); } },
       { label: 'Garder la maison', fn: () => ui.close() },
     ]);
   },
@@ -198,7 +198,7 @@ const locations = {
     if (typeof crochetage !== 'undefined' && crochetage.tenter) opts.unshift({ label: 'Crocheter le cadenas', fn: async () => {
       ui.close(true);
       const ok = await crochetage.tenter({ difficulte: 2, bruit: 0.5, x: q.x, z: q.z, proprietaire: null, titre: 'Le cadenas du coffre' });
-      if (ok) ui.subtitle('', '(Le cadenas cède. Le coffre est vide : on ne laisse rien dans une maison à louer.)', 4);
+      if (ok) ui.subtitle('', '(Le cadenas cède. Le coffre est vide.)', 4);
     } });
     ui.choice('Un coffre cerclé de fer', 'Fermé d’un cadenas neuf. Il appartient à la commune, comme la maison.', opts);
     return true;

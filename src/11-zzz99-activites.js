@@ -78,7 +78,7 @@ const ACT_VOEU = {
   amour: '(Quelque part, quelqu’un pense à vous. Ou c’est le vent.)',
   nuits: '(Tout au fond, quelque chose rit. Doucement. Puis plus rien.)',
   mort: '(La pièce descend sans bruit. Vous vous sentez un peu plus léger.)',
-  refus: '(La pièce remonte, posée sur l’eau, face visible. Le puits n’en veut pas. Pas aujourd’hui.)',
+  refus: '(La pièce remonte, posée sur l’eau. Le puits n’en veut pas.)',
   nom: '(Au fond du puits, une voix d’enfant dit votre prénom. Une seule fois.)',
 };
 
@@ -447,7 +447,7 @@ const activites = {
     jeu = jeu || 'des';
     if (h < 9 || h >= 23.5) { ui.subtitle('', '(Les dés dorment dans leur gobelet. Les joueurs aussi.)', 3); return; }
     n = n || this.adversaire();
-    if (!n) { ui.subtitle('', jeu === 'des' ? '(Personne pour jouer. Les dés attendent dans leur gobelet.)' : '(Personne pour jouer. Le jeu de cartes attend, corné, sur la table.)', 3); return; }
+    if (!n) { ui.subtitle('', '(Personne pour jouer.)', 3); return; }
     const J = ACT_JEU[n.d.id] || ACT_JEU._;
     if (J.refus && !J.oui) { npcs.say(n, J.refus, 3); return; }
     if (npcs.murdererKnown()) { npcs.say(n, 'Jouer avec vous ? … Non. Non merci.', 3); return; }
@@ -596,8 +596,8 @@ const activites = {
   // ================================================================ la veillée du Veilledi
   veilleeOuverte() { const h = this.h(); return cal.is('veillee') && h >= 18.5 && h < 24; },
   veillee() {
-    if (!this.veilleeOuverte()) { ui.subtitle('', '(Le feu crépite. Les contes, c’est le Veilledi soir.)', 3); return; }
-    if (this.fait('veillee')) { ui.subtitle('', '(Vous avez eu votre conte. Les autres somnolent, le menton dans la main.)', 3); return; }
+    if (!this.veilleeOuverte()) { ui.subtitle('', '(Les contes, c’est le Veilledi soir.)', 3); return; }
+    if (this.fait('veillee')) { ui.subtitle('', '(Vous avez eu votre conte.)', 3); return; }
     this.marquer('veillee');
     const L = this.joueurs('auberge');
     const conteur = L.slice().sort((a, b) => (b.d.age || 30) - (a.d.age || 30))[0] || npcs.byId.aubergiste;
@@ -644,7 +644,7 @@ const activites = {
   accepter(j) {
     const TR = this.TR();
     TR.pris[j.i] = 1;
-    if (j.t === 'livrer') { if (!farm.count('pli_mairie')) farm.give('pli_mairie', 1); TR.pli = { to: j.to, i: j.i, pay: j.pay }; ui.subtitle('', `(Vous décrochez le pli. Il est pour ${npcs.nameOf(j.to)}.)`, 3); }
+    if (j.t === 'livrer') { if (!farm.count('pli_mairie')) farm.give('pli_mairie', 1); TR.pli = { to: j.to, i: j.i, pay: j.pay }; ui.subtitle('', `(Le pli est pour ${npcs.nameOf(j.to)}.)`, 3); }
     if (j.t === 'reparer' || j.t === 'balayer') this.marqueurs();
     sound.page && sound.page();
   },
@@ -655,7 +655,7 @@ const activites = {
     const m = npcs.byId.maire;
     if (m && m.st.alive) npcs.addAmitie(m, 8);
     this.esprit(1, 'travail utile', 3);
-    ui.subtitle('', `(La commune vous doit ${j.pay} pièces. Elle paie, pour une fois.)`, 3);
+    ui.subtitle('', `(La commune paie, pour une fois : ${j.pay} pièces.)`, 3);
     this.marqueurs();
   },
   // les endroits où travailler (banc à réparer, parvis à balayer) : des interactions posées à la demande
@@ -672,7 +672,7 @@ const activites = {
     if (j.t === 'reparer' && farm.count('bois') < 2) { ui.subtitle('', '(Il faudrait deux bûches pour caler le dossier.)', 3); return; }
     if (j.t === 'reparer') farm.take('bois', 2);
     game.sleeping = true;
-    ui.fade(true, j.t === 'reparer' ? 'Vous calez, vous clouez, vous jurez un peu…' : 'Vous balayez. Les feuilles reviennent. Vous balayez encore…', 700).then(() => {
+    ui.fade(true, '', 700).then(() => {
       const w = game.world; w.time = Math.min(w.time + 0.5 / 24, 0.99); game.lastT = w.time;
       setTimeout(() => ui.fade(false, '', 700).then(() => { game.sleeping = false; this.payer(j); }), 900);
     });
@@ -689,7 +689,7 @@ const activites = {
   // ================================================================ le puits aux souhaits
   voeu() {
     const s = farm.s, p = game.player;
-    if (this.fait('voeu')) { ui.subtitle('', '(Le puits vous a déjà écouté aujourd’hui. Il n’écoute qu’une fois.)', 3); return; }
+    if (this.fait('voeu')) { ui.subtitle('', '(Le puits vous a déjà écouté aujourd’hui.)', 3); return; }
     if (s.money < 1) { ui.subtitle('', '(Il faudrait au moins une pièce.)', 2.5); return; }
     const faire = (k, fn) => () => {
       ui.close();
@@ -754,7 +754,7 @@ const activites = {
   },
   diseuse() {
     const s = farm.s;
-    if (!this.diseusePresente()) { ui.subtitle('', '(La tente est fermée. Un ruban noir noue les pans. Un écriteau : « Marchedi, Veilledi, Vorndi. De neuf heures au soir. »)', 4.5); return; }
+    if (!this.diseusePresente()) { ui.subtitle('', '(La tente est fermée. Un écriteau : « Marchedi, Veilledi, Vorndi. De neuf heures au soir. »)', 4); return; }
     if (this.fait('diseuse')) { ui.subtitle(ACT_NOMS.diseuse, ACT_DISEUSE.deja, 3); return; }
     if (s.money < 10) { ui.subtitle(ACT_NOMS.diseuse, ACT_DISEUSE.pauvre, 3.5); return; }
     ui.choice('La tente de la diseuse', 'Une odeur de cire et de cannelle. Une vieille femme aux mains couvertes de bagues bat un jeu de cartes usé jusqu’à la trame. « Dix pièces, et ce que les cartes voudront bien dire. »', [
@@ -825,7 +825,7 @@ const activites = {
     if (present && d < 9) {
       const A = this.S();
       A.ecoute = (A.ecoute || 0) + dt;
-      if (A.ecoute >= 20 && !this.fait('ecoute1')) { this.marquer('ecoute1'); this.esprit(1, 'musique', 2); ui.subtitle('', '(La musique vous détend les épaules. Vous ne saviez pas qu’elles étaient si serrées.)', 3.5); if (strange.fear) strange.fear = Math.max(0, strange.fear * 0.5); }
+      if (A.ecoute >= 20 && !this.fait('ecoute1')) { this.marquer('ecoute1'); this.esprit(1, 'musique', 2); ui.subtitle('', '(La musique vous détend les épaules.)', 3); if (strange.fear) strange.fear = Math.max(0, strange.fear * 0.5); }
       if (A.ecoute >= 60 && !this.fait('ecoute2')) { this.marquer('ecoute2'); this.esprit(1, 'musique', 2); }
     }
     const on = present && sound.ok && sound.ctx;
@@ -848,8 +848,8 @@ const activites = {
     const h = this.h(), w = game.world, C = w.act && w.act.clocher;
     if (!C) return;
     if (h < 7 || h >= 20) { ui.subtitle('', '(La porte de l’escalier est fermée à clé. Le curé la rouvre au matin.)', 3); return; }
-    if (cal.is('messe') && h >= 9.8 && h < 11.6) { ui.subtitle('', '(Pas pendant la messe. La cloche va sonner, et vous seriez dessous.)', 3); return; }
-    if (this.fait('clocher')) { ui.subtitle('', '(Vos mollets se souviennent des cent douze marches. Une fois par jour suffit.)', 3); return; }
+    if (cal.is('messe') && h >= 9.8 && h < 11.6) { ui.subtitle('', '(Pas pendant la messe.)', 3); return; }
+    if (this.fait('clocher')) { ui.subtitle('', '(Vos mollets se souviennent des cent douze marches.)', 3); return; }
     if (typeof cine === 'undefined' || !cine.jouer) return;
     this.marquer('clocher');
     const y = C.y + 14.2, dir = (a) => [Math.sin(C.r + a), Math.cos(C.r + a)];
@@ -859,9 +859,9 @@ const activites = {
     const T = w.townInfo, aT = T ? Math.atan2(T.x - C.x, T.z - C.z) : a1;
     const inquietant = pick(['Sur la route du nord, quelqu’un vous fait signe. Quand vous regardez de nouveau, il n’y a que la route.', 'Au loin, vers le hameau abandonné, une fumée monte d’une cheminée qui n’a plus de toit.', 'Les pigeons se taisent tous en même temps. Puis ils repartent, comme si de rien n’était.', 'Dans une cour, en bas, quelqu’un lève la tête vers vous. Il ne bouge plus. Il attend que vous descendiez.']);
     cine.jouer([
-      { dur: 2.6, fondu: 'noir', texte: 'Cent douze marches. Au milieu, une odeur de cire, de pigeon, et de corde mouillée.', de: vue(ex, ez, 40, a1) },
-      { dur: 7, texte: '(D’ici, la ville tient dans la main. Les toits, la place, les ponts, et les douves qui brillent.)', de: vue(Math.sin(aT), Math.cos(aT), 60, aT - 0.5), a: vue(Math.sin(aT), Math.cos(aT), 60, aT + 0.5) },
-      { dur: 7, texte: '(Et plus loin, la vallée. Les champs, les bois, la ligne sombre des Monts.)', de: vue(sx, sz, 400, a2 - 0.4), a: vue(sx, sz, 400, a2 + 0.6) },
+      { dur: 2.6, fondu: 'noir', texte: 'Cent douze marches.', de: vue(ex, ez, 40, a1) },
+      { dur: 7, de: vue(Math.sin(aT), Math.cos(aT), 60, aT - 0.5), a: vue(Math.sin(aT), Math.cos(aT), 60, aT + 0.5) },
+      { dur: 7, de: vue(sx, sz, 400, a2 - 0.4), a: vue(sx, sz, 400, a2 + 0.6) },
       { dur: 5.5, texte: `(${inquietant})`, de: vue(nx, nz, 300, a3 + 0.3), a: vue(nx, nz, 300, a3 - 0.2) },
     ], { apres: () => this.apresClocher() });
   },
@@ -873,14 +873,14 @@ const activites = {
       for (const [k, q] of L.slice(0, 6)) if (savoir.connaitreLieu(k)) vus.push(q.name);
     }
     this.esprit(1.5, 'la vue', 1.5);
-    setTimeout(() => ui.subtitle('', vus.length ? `(De là-haut, vous avez repéré ${vus.slice(0, 5).join(', ')}.)` : '(Vous redescendez, les jambes molles et la tête pleine de ciel.)', 5), 600);
+    if (vus.length) setTimeout(() => ui.subtitle('', `(De là-haut, vous avez repéré ${vus.slice(0, 5).join(', ')}.)`, 5), 600);
   },
 
   // ================================================================ les cierges
   cierge() {
     const s = farm.s;
     if (this.fait('cierge')) { ui.subtitle('', '(Votre cierge brûle déjà. Il brûlera jusqu’au soir.)', 3); return; }
-    if (s.money < 2) { ui.subtitle('', '(Deux pièces dans la fente, et on prend un cierge. Vous ne les avez pas.)', 3); return; }
+    if (s.money < 2) { ui.subtitle('', '(Vous n’avez pas deux pièces.)', 3); return; }
     const allumer = (pour, mort) => () => {
       ui.close(); if (!farm.pay(2)) return;
       this.marquer('cierge'); this.S().cierges = (this.S().cierges || 0) + 1;
@@ -889,13 +889,13 @@ const activites = {
       if (typeof faith !== 'undefined' && faith.add) faith.add('eglise', 1);
       this.esprit(1, 'cierge', 1.5);
       if (mort) { const d = NPC_BY_ID[mort.id]; for (const id in (d && d.liens) || {}) { const m = npcs.byId[id]; if (m && m.st.alive) npcs.addAmitie(m, 15); } }
-      ui.subtitle('', pour, 4);
+      if (pour) ui.subtitle('', pour, 4);
     };
     const opts = [
-      { label: 'Pour les vivants', fn: allumer('(La flamme prend du premier coup. Elle ne tremble pas.)') },
-      { label: 'Pour les morts', fn: allumer('(La flamme se couche, se relève, et monte droite. Quelqu’un a reçu.)') },
+      { label: 'Pour les vivants', fn: allumer(null) },
+      { label: 'Pour les morts', fn: allumer('(La flamme se couche, se relève, et monte droite.)') },
     ];
-    for (const d of (s.dead || []).filter((q) => s.day - q.day <= 12).slice(-3)) opts.push({ label: `Pour ${d.name}`, fn: allumer(`(Pour ${d.name}. La flamme est petite, mais elle tient.)`, d) });
+    for (const d of (s.dead || []).filter((q) => s.day - q.day <= 12).slice(-3)) opts.push({ label: `Pour ${d.name}`, fn: allumer(null, d) });
     opts.push({ label: 'Pour vous-même', fn: allumer('(Un cierge pour soi. Le curé dit que ce n’est pas interdit. Il ne dit pas que c’est permis.)') });
     opts.push({ label: 'Ne rien allumer', fn: () => ui.close() });
     ui.choice('La herse à cierges', 'Des cierges de toutes les tailles, des coulures de cire sur le fer. Deux pièces dans la fente, et on en allume un.', opts);
@@ -916,7 +916,7 @@ const activites = {
     const k = cal.is('morts') ? 2 : 1;
     this.esprit(1 * k, 'fleurir les tombes', 3);
     if (qui) { const d = NPC_BY_ID[qui]; for (const lid in (d && d.liens) || {}) { const m = npcs.byId[lid]; if (m && m.st.alive) npcs.addAmitie(m, 15); } }
-    ui.subtitle('', cal.is('morts') ? '(Le jour des morts. Vous posez les fleurs, et il vous semble qu’on vous remercie, tout bas.)' : `(Vous posez ${itemName(f).toLowerCase()} sur la pierre.)`, 3.5);
+    if (cal.is('morts')) ui.subtitle('', '(Il vous semble qu’on vous remercie, tout bas.)', 3.5);
     return true;
   },
   tombe(it) {
@@ -978,9 +978,9 @@ const activites = {
   QUILLES: [[-0.3, 2.45], [0, 2.45], [0.3, 2.45], [-0.3, 2.8], [0, 2.8], [0.3, 2.8], [-0.3, 3.15], [0, 3.15], [0.3, 3.15]],
   quillesJouer() {
     if (this.quilles && this.quilles.actif) return;
-    if (this.fait('quilles') >= 3) { ui.subtitle('', '(Trois parties, c’est assez. Les quilles aussi ont besoin de repos.)', 3); return; }
+    if (this.fait('quilles') >= 3) { ui.subtitle('', '(Trois parties, c’est assez pour aujourd’hui.)', 3); return; }
     const h = this.h();
-    if (h < 7 || h >= 21) { ui.subtitle('', '(Trop sombre pour viser. Et les quilles, la nuit, on ne sait jamais qui les relève.)', 3); return; }
+    if (h < 7 || h >= 21) { ui.subtitle('', '(Trop sombre pour viser.)', 3); return; }
     this.marquer('quilles');
     this.quilles = { actif: true, lancer: 1, total: 0, debout: this.QUILLES.map(() => true), anim: this.QUILLES.map(() => ({ a: 0, t0: -1, dir: 0 })), boule: null };
     this.viser();
@@ -1010,7 +1010,7 @@ const activites = {
     for (let k = 0; k < Math.min(n, 4); k++) setTimeout(() => sound.quille && sound.quille(1 - k * 0.15), 1000 + k * 110);
     setTimeout(() => {
       const reste = Q.debout.filter(Boolean).length;
-      ui.subtitle('', n === 9 ? '(Quille ! Les neuf d’un coup.)' : n ? `(${n} quille${n > 1 ? 's' : ''}.)` : '(La boule file entre les quilles. Pas une ne tombe.)', 2.5);
+      if (n === 9) ui.subtitle('', '(Quille ! Les neuf d’un coup.)', 2.5);
       if (Q.lancer === 1 && reste > 0) { Q.lancer = 2; setTimeout(() => this.viser(), 900); }
       else setTimeout(() => this.finQuilles(), 900);
     }, 1900);
@@ -1019,10 +1019,10 @@ const activites = {
     const Q = this.quilles, s = farm.s, H = game.world.lm.hameau;
     Q.actif = false;
     const temoins = H ? npcs.list.filter((n) => n.st.alive && !n.sleep && Math.hypot(n.x - H.x, n.z - H.z) < 40) : [];
-    if (Q.total === 9 && Q.lancer === 1) { farm.earn(10); sound.applaudir && sound.applaudir(); this.esprit(1, 'les quilles', 1); for (const n of temoins) npcs.addAmitie(n, 10); if (temoins[0]) npcs.say(temoins[0], 'Quille ! Au hameau, on paie à boire pour moins que ça !', 3.5); ui.subtitle('', '(La cagnotte des quilles : dix pièces.)', 3); }
+    if (Q.total === 9 && Q.lancer === 1) { farm.earn(10); sound.applaudir && sound.applaudir(); this.esprit(1, 'les quilles', 1); for (const n of temoins) npcs.addAmitie(n, 10); if (temoins[0]) npcs.say(temoins[0], 'Quille ! Au hameau, on paie à boire pour moins que ça !', 3.5); }
     else if (Q.total >= 7) { this.esprit(0.5, 'les quilles', 1); if (temoins[0]) npcs.say(temoins[0], 'Pas mal, pour quelqu’un de la ferme !', 3); }
     else if (temoins[0]) npcs.say(temoins[0], 'Ha ! Les quilles, ça ne s’apprend pas en un jour.', 3);
-    ui.subtitle('', `(Partie finie : ${Q.total} sur 9.)`, 3);
+    ui.subtitle('', Q.total === 9 && Q.lancer === 1 ? '(La cagnotte des quilles : dix pièces.)' : `(Partie finie : ${Q.total} sur 9.)`, 3);
     setTimeout(() => { if (this.quilles === Q) this.quilles = null; }, 2500);
   },
 
@@ -1030,16 +1030,15 @@ const activites = {
   four() {
     const A = this.S(), s = farm.s, F = A.four;
     if (F && F.j === s.day && !F.pris) {
-      if (s.hours < F.pret) { ui.subtitle('', '(Ça cuit. La croûte chante déjà un peu. Encore un moment.)', 3); return; }
+      if (s.hours < F.pret) { ui.subtitle('', '(Ça cuit encore.)', 3); return; }
       farm.give(F.out[0], F.out[1]); play.flyer && play.flyer(F.out[0], [game.player.pos[0], game.player.pos[1] + 1, game.player.pos[2]], F.out[1]);
       F.pris = true; sound.pop && sound.pop();
-      ui.subtitle('', `(Vous défournez : ${itemName(F.out[0]).toLowerCase()} (${F.out[1]}). L’odeur se répand jusqu’au ranch.)`, 3.5);
       this.esprit(0.8, 'le pain', 1);
       return;
     }
-    if (F && F.j === s.day) { ui.subtitle('', '(Une fournée par jour : le four banal est à tout le monde.)', 3); return; }
+    if (F && F.j === s.day) { ui.subtitle('', '(Une fournée par jour.)', 3); return; }
     const foire = cal.is('foire');
-    if (farm.count('farine') < 2) { ui.subtitle('', '(Il faudrait deux mesures de farine. La grainetière en vend, et le moulin en donne.)', 3.5); return; }
+    if (farm.count('farine') < 2) { ui.subtitle('', '(Il faudrait deux mesures de farine.)', 3); return; }
     if (!foire && farm.count('bois') < 1) { ui.subtitle('', '(Le four est froid. Il faudrait une bûche pour le chauffer.)', 3); return; }
     const brioche = farm.count('beurre') >= 1 && farm.count('oeuf') >= 1;
     farm.take('farine', 2); if (!foire) farm.take('bois', 1);
@@ -1048,7 +1047,7 @@ const activites = {
     sound.place && sound.place();
     const el = npcs.byId.eleveuse;
     if (el && el.st.alive && Math.hypot(el.x - game.player.pos[0], el.z - game.player.pos[2]) < 25) { npcs.addAmitie(el, 5); npcs.say(el, foire ? 'Le four est chaud, c’est la foire ! Enfournez, enfournez.' : 'Ça va sentir le bon pain jusqu’au ranch. Laissez-m’en un croûton.', 3); }
-    ui.subtitle('', foire ? '(Le four banal chauffe pour tout le hameau, jour de foire. Vous enfournez.)' : '(Vous chauffez le four, vous enfournez. Il faudra compter une heure.)', 3.5);
+    penser.une('four_banal', '(Une heure de cuisson.)', 3);
   },
 
   // ================================================================ la tombola du Foiredi
@@ -1178,7 +1177,7 @@ const activites = {
       ui.subtitle(pe && pe.st.alive && pe.st.met ? pe.name : 'Au ponton', ACT_PECHE.inscrit, 4.5);
       return;
     }
-    if (P.fini) { ui.subtitle('', '(Le concours est fini pour vous. Le lac, lui, continue.)', 3); return; }
+    if (P.fini) { ui.subtitle('', '(Le concours est fini pour vous.)', 3); return; }
     if (h < 16) { ui.subtitle('', P.best ? `(Votre plus belle prise, pour l’instant : ${itemName(P.best.id).toLowerCase()}. On présente à quatre heures.)` : '(Rien de pris pour l’instant. Il reste jusqu’à quatre heures.)', 3.5); return; }
     if (h >= 20) { ui.subtitle('', '(Trop tard : le jury est rentré souper.)', 3); P.fini = true; return; }
     P.fini = true;
