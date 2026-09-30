@@ -529,7 +529,7 @@ Les commandes sont dans le menu **Commandes** (Échap).
   pinson, tourterelle, coucou, pic, moineaux au village, alouette haut dans le ciel au-dessus des prés —, **chacun son
   tour** : un chanteur reprend sa phrase deux ou trois fois de la même branche, puis un silence, plus court à l'aube et
   en forêt ; les oiseaux des bois et des cours attendent qu'aucun autre ne chante (en forêt, 44 chants par minute
-  avant, dont un tiers du temps à plusieurs ; une douzaine aujourd'hui, presque jamais ensemble) ; la nuit, des grillons dans l'herbe (ils se taisent quand on s'approche), la chouette au loin, les grenouilles
+  avant, dont un tiers du temps à plusieurs ; une dizaine aujourd'hui, jamais ensemble, et trois quarts de silence) ; la nuit, des grillons dans l'herbe (ils se taisent quand on s'approche), la chouette au loin, les grenouilles
   au marais ; sous terre, des gouttes et un grondement sourd.
 - **Options** : « Son 3D pour casque » (coché par défaut ; décoché : simple panoramique, pour des haut-parleurs), à côté
   du volume général et du volume de l'ambiance.
