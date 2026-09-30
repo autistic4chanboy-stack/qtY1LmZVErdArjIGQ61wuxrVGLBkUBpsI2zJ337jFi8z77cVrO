@@ -395,10 +395,10 @@ const meubles = {
   aMoi(q) { const w = game.world, i = w.props.indexOf(q); return i >= farm.genProps && !!MEUBLES[q.id] && farm.s.props.some((p) => p.id === q.id && Math.abs(p.x - q.x) < 0.01 && Math.abs(p.z - q.z) < 0.01); },
   plein(q) { const I = q.data && q.data.items; return !!(I && Object.keys(I).some((k) => I[k] > 0)); },
   etiquette(q) {
-    const M = MEUBLES[q.id] || {}, le = M.le || 'le meuble', pr = M.pr || 'le', rep = `maintenir E : ${pr === 'la' ? 'la' : 'le'} reprendre`;
+    const M = MEUBLES[q.id] || {}, le = M.le || 'le meuble', pr = M.pr || 'le', rep = pr === 'la' ? 'maintenir E : la reprendre' : 'maintenir E : le reprendre'; // (phrases entières : la traduction)
     if (M.lit) return `Dormir ici · ${rep}`;
     if (M.range) return `Ouvrir ${le} · ${rep}`;
-    if (M.lampe) return `${q.data && q.data.lit ? 'Éteindre' : 'Allumer'} ${q.id === 'gueridon' ? 'la lampe' : le} · ${rep}`;
+    if (M.lampe) { const on = q.data && q.data.lit, quoi = q.id === 'gueridon' ? (on ? 'Éteindre la lampe' : 'Allumer la lampe') : (on ? 'Éteindre le chandelier' : 'Allumer le chandelier'); return `${quoi} · ${rep}`; }
     if (M.heure) return `Regarder l’heure · ${rep}`;
     return 'Reprendre ' + le;
   },
@@ -427,7 +427,7 @@ const meubles = {
   reprendre(q) {
     if (!q || !this.aMoi(q) || !game.world.live(q)) return false;
     const M = MEUBLES[q.id] || {};
-    if (this.plein(q)) { sound.impact && sound.impact('wood'); this.pense('plein', `(Il faudrait d’abord ${M.pr === 'la' ? 'la' : 'le'} vider.)`, 2.5); return false; }
+    if (this.plein(q)) { sound.impact && sound.impact('wood'); this.pense('plein', M.pr === 'la' ? '(Il faudrait d’abord la vider.)' : '(Il faudrait d’abord le vider.)', 2.5); return false; }
     const id = q.id, pos = [q.x, q.y + 0.4, q.z];
     if (typeof objets !== 'undefined' && objets.retirer) objets.retirer(q);
     else { farm.removeProp(q); q.gone = true; if (PROP_LIGHTS[q.id]) game.world.collectLights(); }
@@ -652,7 +652,8 @@ Object.assign(meubles, {
   },
   ecriteauProprio(k) {
     const P = this.maison(k), n = this.meublesDans(k).length, pr = this.prixRevente(k);
-    ui.choice(`${this.titre(k)} — à vous`, `Vous en êtes propriétaire depuis le ${locations.jourNom(P.jour)}. La clé ouvre la porte, et personne d’autre n’en a le double.${n ? ` Vous y avez installé ${n > 1 ? n + ' meubles' : 'un meuble'}.` : ''}`, [
+    const combien = n > 1 ? `${n} meubles` : 'un meuble'; // (à part : la traduction reconnaît « {0} meubles »)
+    ui.choice(`${this.titre(k)} — à vous`, `Vous en êtes propriétaire depuis le ${locations.jourNom(P.jour)}. La clé ouvre la porte, et personne d’autre n’en a le double.${n ? ` Vous y avez installé ${combien}.` : ''}`, [
       { label: `Revendre la maison à la commune (${pr} pièces)`, fn: () => this.confirmerRevente(k) },
       { label: 'Refermer', fn: () => ui.close() },
     ]);
@@ -676,7 +677,7 @@ Object.assign(locations, {
       else if (B) lignes.push(`${T} : louée par vous${B.du > 0 ? `, ${B.du} pièces dues` : `, réglée jusqu’au ${this.jourNom(B.echeance)}`} ; à vendre, ${prix} pièces.`);
       else lignes.push(`${T}, ${M.rue} : libre, ${M.loyer} pièces la semaine, ou ${prix} pièces pour l’acheter.${Z ? ` (Vos affaires y sont gardées : ${Z.dette} pièces de dette.)` : ''}`);
     }
-    return 'La commune loue ses maisons à la semaine de douze jours, payée d’avance ; elle les vend aussi, comptant, à qui veut s’établir. ' + lignes.join(' ');
+    return 'La commune loue ses maisons à la semaine de douze jours, payée d’avance ; elle les vend aussi, comptant, à qui veut s’établir.\n\n' + lignes.join('\n'); // (une ligne par maison : chacune se traduit seule)
   },
   optionsMaire() {
     const L = this.S(), o = [];
@@ -775,7 +776,7 @@ Object.assign(locations, {
   // le marteau ne démonte pas un rangement plein
   const _dm = play.dismantle.bind(play);
   play.dismantle = function (q) {
-    if (q && MEUBLES[q.id] && meubles.plein(q)) { sound.impact && sound.impact('wood'); meubles.pense('plein', `(Il faudrait d’abord ${MEUBLES[q.id].pr === 'la' ? 'la' : 'le'} vider.)`, 2.5); return; }
+    if (q && MEUBLES[q.id] && meubles.plein(q)) { sound.impact && sound.impact('wood'); meubles.pense('plein', MEUBLES[q.id].pr === 'la' ? '(Il faudrait d’abord la vider.)' : '(Il faudrait d’abord le vider.)', 2.5); return; }
     const r = _dm(q);
     meubles.cacheP = null;
     return r;
