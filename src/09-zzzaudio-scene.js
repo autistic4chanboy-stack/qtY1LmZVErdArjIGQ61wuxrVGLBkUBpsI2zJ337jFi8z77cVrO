@@ -112,7 +112,7 @@ Object.assign(SoundEngine.prototype, {
   _boucleNew(type, pos, o) {
     const c = this.ctx, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
     if (type === 'vent') { s.buffer = this.boucleTampon('bruit'); f.type = 'lowpass'; f.frequency.value = 400; f.Q.value = 0.6; }
-    else { s.buffer = this.boucleTampon(type); f.type = 'lowpass'; f.frequency.value = o.lp || 20000; f.Q.value = 0.5; }
+    else { s.buffer = this.boucleTampon(type); f.type = 'lowpass'; f.frequency.value = this.nyq(o.lp || 20000); f.Q.value = 0.5; }
     s.loop = true; s.playbackRate.value = o.rate || 1;
     g.gain.value = 0;
     s.connect(f).connect(g);
@@ -135,7 +135,7 @@ Object.assign(SoundEngine.prototype, {
       M.set(cle, x);
     }
     x.vu = now; x.niv = k;
-    if (o.lp !== undefined && x.lp !== o.lp) { if (x.lp !== undefined) x.f.frequency.setTargetAtTime(o.lp, now, 0.25); x.lp = o.lp; } // on entre, on sort : la boucle s'assourdit ou s'ouvre
+    if (o.lp !== undefined && x.lp !== o.lp) { if (x.lp !== undefined) x.f.frequency.setTargetAtTime(this.nyq(o.lp), now, 0.25); x.lp = o.lp; } // on entre, on sort : la boucle s'assourdit ou s'ouvre
     const cible = Math.max(0, k) * (o.vol || SoundEngine.VOL_BOUCLES[type] || 0.1);
     if (x.cible === undefined || Math.abs(cible - x.cible) > Math.max(0.0004, x.cible * 0.03)) { x.cible = cible; x.g.gain.setTargetAtTime(cible, now, o.tau || 0.8); }
     if (pos && x.em) {

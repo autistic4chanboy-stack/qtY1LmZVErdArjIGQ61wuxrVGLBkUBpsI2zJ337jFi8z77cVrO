@@ -216,7 +216,7 @@ class SoundEngine {
   // une source placée : entrée → absorption de l'air → proximité → panneau HRTF → bus ; envoi « distance » → réverbération
   _newEm() {
     const c = this.ctx, inp = c.createGain(), air = c.createBiquadFilter(), prox = c.createBiquadFilter(), p = c.createPanner(), xs = c.createGain();
-    air.type = 'lowpass'; air.frequency.value = 20000; air.Q.value = 0.4;
+    air.type = 'lowpass'; air.frequency.value = this.nyq(20000); air.Q.value = 0.4;
     prox.type = 'lowshelf'; prox.frequency.value = 220; prox.gain.value = 0;
     p.panningModel = this.son3d ? 'HRTF' : 'equalpower'; p.distanceModel = 'inverse'; p.refDistance = 2; p.maxDistance = 20000; p.rolloffFactor = 1;
     xs.gain.value = 0;
@@ -249,7 +249,7 @@ class SoundEngine {
       p.rolloffFactor = phys ? (o.roll === undefined ? 1 : o.roll) : 0;
     }
     // l'air mange les aigus au loin ; tout près, un peu plus de grave (effet de proximité)
-    const fc = Math.min(20000, 700 + 21000 / (1 + d / 22));
+    const fc = this.nyq(Math.min(20000, 700 + 21000 / (1 + d / 22)));
     const prox = d < 1.6 ? 5 * (1 - d / 1.6) : 0;
     const wet = (phys ? 0.32 / (1 + d / 120) : 0.36) * Math.min(1, d / 35);
     if (lisse) { em.air.frequency.setTargetAtTime(fc, t, 0.1); em.prox.gain.setTargetAtTime(prox, t, 0.1); em.xs.gain.setTargetAtTime(wet, t, 0.1); }
@@ -385,9 +385,11 @@ class SoundEngine {
 
   // ---------------------------------------------------------------- primitives (adoucies)
   at(delay) { return this.ctx.currentTime + (delay || 0) + 0.01; }
+  // une fréquence de filtre toujours sous la moitié de la fréquence d'échantillonnage (casques à 16 ou 32 kHz)
+  nyq(f) { return Math.min(f, this.ctx.sampleRate * 0.45); }
   lp(freq, dest) {
     const f = this.ctx.createBiquadFilter(), d = dest || this.sfx;
-    f.type = 'lowpass'; f.frequency.value = freq; f.connect(d);
+    f.type = 'lowpass'; f.frequency.value = this.nyq(freq); f.connect(d);
     if (d && d._em) f._em = d._em;
     return f;
   }
@@ -416,10 +418,10 @@ class SoundEngine {
   noiseHit(t, dur, type, freq, q, vol, out, sweepTo, att) {
     const c = this.ctx, R = Math.random;
     dur = Math.max(0.006, dur * (0.94 + R() * 0.12));
-    const f0 = Math.min(9000, Math.max(20, freq * (0.96 + R() * 0.08)));
+    const f0 = this.nyq(Math.min(9000, Math.max(20, freq * (0.96 + R() * 0.08))));
     const s = c.createBufferSource(); s.buffer = this.noise;
     const f = c.createBiquadFilter(); f.type = type; f.frequency.setValueAtTime(f0, t); f.Q.value = Math.min(q, 9);
-    if (sweepTo) f.frequency.exponentialRampToValueAtTime(Math.min(9000, Math.max(20, sweepTo)), t + dur);
+    if (sweepTo) f.frequency.exponentialRampToValueAtTime(this.nyq(Math.min(9000, Math.max(20, sweepTo))), t + dur);
     const g = c.createGain(); g.gain.value = 0;
     const a = att ? Math.min(att, dur * 0.8) : clamp(dur * 0.12, 0.003, 0.012);
     this.env(g, t, a, vol * (0.9 + R() * 0.2), dur);
@@ -461,7 +463,7 @@ class SoundEngine {
     const dure = type === 'square' || type === 'sawtooth';
     if (o.lp || dure) {
       const f = c.createBiquadFilter(); f.type = 'lowpass';
-      const lp = Math.min(o.lp || 20000, dure ? clamp(Math.max(f0, f1) * 6, 2400, 6000) : 20000);
+      const lp = this.nyq(Math.min(o.lp || 20000, dure ? clamp(Math.max(f0, f1) * 6, 2400, 6000) : 20000));
       f.frequency.setValueAtTime(lp, t); if (o.lp2) f.frequency.exponentialRampToValueAtTime(Math.min(o.lp2, lp), t + dur);
       node.connect(f); node = f;
     }
@@ -615,6 +617,7 @@ SoundEngine.SYN = {
   },
   // un mode de vibration (bois, pierre, métal) : sinusoïde amortie
   mode(d, sr, t0, f, tau, a) {
+    if (f > sr * 0.45) return; // au-delà de la moitié de la fréquence d'échantillonnage : on l'omet
     const i0 = Math.floor(t0 * sr), w = 2 * Math.PI * f / sr, k = Math.exp(-1 / (tau * sr)), at = Math.max(2, Math.floor(sr * 0.0008));
     let e = a, ph = Math.random() * 0.4;
     for (let i = i0, j = 0; i < d.length && e > 1e-5; i++, j++) { d[i] += Math.sin(ph) * e * (j < at ? j / at : 1); ph += w; e *= k; }
