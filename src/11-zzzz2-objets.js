@@ -832,8 +832,11 @@ const objets = {
     let t = R.lab || 'Ramasser';
     if (!P.joueur) {
       const L = this.lieu(q.x, q.y + 0.2, q.z, OBJ_COMMUNS.has(q.id));
-      const devant = L.t === 'abords' ? 'devant ' : '';
-      if (L.own && L.own.st.alive && (L.t === 'maison' || L.t === 'commerce' || L.t === 'abords')) t += L.own.st.met ? ` (${devant}chez ${L.own.name})` : ` (${devant}chez quelqu’un)`;
+      // (des phrases entières, pour la traduction : pas de « devant » recollé)
+      if (L.own && L.own.st.alive && (L.t === 'maison' || L.t === 'commerce' || L.t === 'abords')) {
+        if (L.t === 'abords') t += L.own.st.met ? ` (devant chez ${L.own.name})` : ' (devant chez quelqu’un)';
+        else t += L.own.st.met ? ` (chez ${L.own.name})` : ' (chez quelqu’un)';
+      }
     }
     return t;
   },

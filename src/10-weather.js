@@ -31,20 +31,26 @@ const weather = {
 
   pick() {
     const r = Math.random();
-    return r < 0.45 ? 'clear' : r < 0.7 ? 'cloudy' : r < 0.88 ? 'rain' : 'storm';
+    return r < 0.52 ? 'clear' : r < 0.85 ? 'cloudy' : r < 0.94 ? 'rain' : 'storm';
   },
 
-  // Programme d'une journée (mode Ferme) : [heure de début, état]
+  // Programme d'une journée (mode Ferme) : [heure de début, état]. Les heures 0 à 6 du programme d'un jour sont la
+  // nuit qui le termine (le jour change à l'aube). Il pleut environ une heure sur sept (une sur trois et demie avant :
+  // tools/equilibrage/ferme.js le mesure) : moins de jours de pluie, des averses et des orages brefs, qui se calment.
   dayPlan(seed, day) {
     const rnd = mulberry32(seed * 131 + day * 7919);
-    const r = day <= 1 ? 0 : rnd(), base = r < 0.36 ? 'clear' : r < 0.56 ? 'cloudy' : r < 0.74 ? 'rain' : r < 0.82 ? 'storm' : r < 0.9 ? 'fog' : r < 0.95 ? 'heat' : 'clear';
+    const r = day <= 1 ? 0 : rnd(), base = r < 0.41 ? 'clear' : r < 0.62 ? 'cloudy' : r < 0.74 ? 'rain' : r < 0.82 ? 'storm' : r < 0.9 ? 'fog' : r < 0.95 ? 'heat' : 'clear';
     const plan = [[0, base]];
     let kind = DAY_KIND[base];
-    if (base !== 'storm' && base !== 'rain' && rnd() < 0.3) plan.push([12 + rnd() * 6, rnd() < 0.7 ? 'rain' : 'storm']);
-    if (base === 'storm') plan.unshift([0, 'cloudy']), plan[1][0] = 10 + rnd() * 6;
+    // une averse l'après-midi, parfois orageuse : deux à cinq heures, puis le ciel reste couvert
+    if (base !== 'storm' && base !== 'rain' && rnd() < 0.22) { const h = 12 + rnd() * 6, st = rnd() < 0.6 ? 'rain' : 'storm'; plan.push([h, st], [h + 2 + rnd() * 3, 'cloudy']); }
+    // jour d'orage : matinée lourde, l'orage éclate entre 10 et 16 h et gronde deux à quatre heures, puis la pluie se calme
+    if (base === 'storm') { const h = 10 + rnd() * 6, d = 2 + rnd() * 2; plan[0] = [0, 'cloudy']; plan.push([h, 'storm'], [h + d, 'rain'], [h + d + 1 + rnd() * 2, 'cloudy']); }
+    // jour de pluie : il pleut toute la journée, ou bien le matin, puis de nouveau le soir et toute la nuit
+    if (base === 'rain' && rnd() >= 0.4) { const a = 9 + rnd() * 4, b = 17 + rnd() * 4; plan.push([a, 'cloudy'], [b, 'rain']); }
     if (base === 'fog') plan.push([10 + rnd() * 2, 'cloudy']);
     // gel au petit matin (jamais les jours de pluie)
-    const frost = day > 2 && (base === 'clear' || base === 'cloudy' || base === 'fog') && rnd() < 0.1;
+    const frost = day > 2 && (base === 'clear' || base === 'cloudy' || base === 'fog') && rnd() < 0.088;
     if (frost) { plan[0] = [0, 'frost']; plan.push([9.5, base]); kind = 'gel'; }
     return { plan: plan.sort((a, b) => a[0] - b[0]), kind, frost, rain: plan.some((p) => p[1] === 'rain' || p[1] === 'storm'), storm: plan.some((p) => p[1] === 'storm'), heat: base === 'heat' };
   },

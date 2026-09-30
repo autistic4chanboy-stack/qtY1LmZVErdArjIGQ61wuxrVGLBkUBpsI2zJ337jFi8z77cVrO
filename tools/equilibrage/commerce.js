@@ -36,6 +36,8 @@ const CATALOGUE = String.raw`(() => {
     if (buys.includes('poisson')) for (const f in FISH) if (!buys.includes(f)) buys.push(f);
     for (const id of buys) if (ITEMS[id] && ITEMS[id].price > 0) VEN(d.id, id, prixPNJ(d, id, ITEMS[id].price, false));
   }
+  // le garde-meuble de la commune (le maire : 11-zzzz4-meubles.js), aux prix de l'amitié du maire
+  if (typeof MEUBLES_GARDE !== 'undefined') { const d = NPC_DATA.find((x) => x.id === 'maire'); if (d) for (const [id, p] of MEUBLES_GARDE.sells) if (ITEMS[id]) ACH('garde-meuble', id, prixPNJ(d, id, p, true), '', p); }
   // les étals du Marchedi (prix fixes) et le brocanteur (trésors, 60 %)
   for (const R of ACT_ETALS) {
     for (const [id, p] of R.vend) ACH('étal ' + R.id, id, p, '', p);
@@ -173,7 +175,9 @@ const lireSource = (J, f) => fs.readFileSync(path.join(require('./vm.js').ROOT, 
 
 function donnees(J) {
   return JSON.parse(J.ev(`JSON.stringify({
-    J: JOUR_SECONDES, CROPS, SEED_PRICE, SEED_BASE, SEED_ROTATE, FISH, HARVEST, PREY, LOOT, VEINS,
+    J: JOUR_SECONDES, CROPS, SEED_PRICE, SEED_BASE, SEED_ROTATE, FISH, HARVEST, PREY, LOOT, VEINS, TERRE,
+    // l'engrais le moins cher en boutique (amitié 0) : on en use un sac toutes les cinq récoltes (fatigue du sol)
+    ENGRAIS: (() => { let m = 0; for (const d of NPC_DATA) if (d.shop) for (const [k, p] of d.shop.sells || []) if (k === 'engrais' && p > 0 && (!m || p < m)) m = p; return m; })(),
     CHASSE_BONUS: typeof CHASSE_BONUS !== 'undefined' ? CHASSE_BONUS : {},
     items: Object.fromEntries(Object.keys(ITEMS).map((k) => [k, { p: ITEMS[k].price, cat: ITEMS[k].cat, open: ITEMS[k].open || null, fast: ITEMS[k].fast || 0, animal: ITEMS[k].animal || null }])),
     recettes: RECIPES, machines: MACHINES, groupes: ITEM_GROUPS,
@@ -208,24 +212,30 @@ function esperance(D, cle, v) {
 const moyenne = (drop, v) => drop.reduce((a, [id, m, M, p]) => a + (p === undefined ? 1 : p) * (m + M) / 2 * v(id), 0);
 
 // ---- cultures : marge par case et par jour, régime établi sur 24 jours (passages et arrosages fixes)
-function culture(D, id, v, passages = HYP.passages) {
-  const C = D.CROPS[id], s = D.SEED_PRICE[id] || 0, fruit = C.fruit || id;
+// La terre (TERRE, 11-farm-state.js) : l'arrosage tient TERRE.humide heures ; la case s'épuise (au-delà de cinq récoltes
+// sans engrais, la pousse est divisée par deux, au-delà de dix par quatre). Le fermier « honnête » met un sac d'engrais
+// dès la cinquième récolte (acheté D.ENGRAIS pièces, ou le prix donné) : la culture pousse une fois et demie plus vite
+// jusqu'à la récolte suivante, et la terre repart de zéro. engrais === false : jamais d'engrais (pour mémoire).
+function culture(D, id, v, passages = HYP.passages, engrais = D.ENGRAIS) {
+  const C = D.CROPS[id], s = D.SEED_PRICE[id] || 0, fruit = C.fruit || id, T = D.TERRE;
   const h = C.h, r = C.regrow || 0, y = (C.yield[0] + C.yield[1]) / 2 * (C.giant ? 1.15 : 1);
-  let g = 0, wet = -1, planted = false, rec = 0, sem = 0;
+  const lenteur = (n) => (n >= T.fatigue[1] ? T.lenteur[2] : n >= T.fatigue[0] ? T.lenteur[1] : T.lenteur[0]);
+  let g = 0, wet = -1, planted = false, rec = 0, sem = 0, n = 0, fert = 0, sacs = 0;
   const jours = 24;
   for (let t = 0; t < jours * 24; t++) {
     const hh = t % 24;
     if (passages.includes(hh)) {
-      if (planted && g >= h) { rec++; if (r) g = h - r; else { planted = false; g = 0; } }
+      if (planted && g >= h) { rec++; n++; fert = 0; if (r) g = h - r; else { planted = false; g = 0; } }
+      if (engrais !== false && n >= T.fatigue[0]) { sacs++; n = 0; fert = 1; }
       if (!planted) { planted = true; sem++; g = 0; }
-      wet = t + 10;
+      wet = t + T.humide;
     }
     const nuit = hh >= 20.5 || hh < 5.5;
-    if (planted && t < wet && !(C.night && !nuit)) g = Math.min(h, g + 1);
+    if (planted && t < wet && !(C.night && !nuit)) g = Math.min(h, g + (fert ? 1.5 : 1) * lenteur(n));
   }
   const retour = C.seedBack ? (C.seedBack[0] + C.seedBack[1]) / 2 : (r ? 0.05 : 0.12);
-  const marge = (rec * y * v(fruit) - Math.max(0, sem - rec * retour) * s) / jours;
-  return { id, h, r, y, p: v(fruit), s, recJ: rec / jours, marge, base: D.SEED_BASE.includes(id) };
+  const marge = (rec * y * v(fruit) - Math.max(0, sem - rec * retour) * s - sacs * (engrais || 0)) / jours;
+  return { id, h, r, y, p: v(fruit), s, recJ: rec / jours, sacsJ: sacs / jours, marge, base: D.SEED_BASE.includes(id) };
 }
 
 // ---- pêche : durée d'une prise et valeur d'un lancer, par zone
@@ -369,14 +379,14 @@ async function rendements(J, log, opts = {}) {
   const f1 = (x) => (Math.round(x * 10) / 10).toFixed(1), f2 = (x) => x.toFixed(2);
   log(`Base de temps : une journée = ${D.J} s réelles, une heure de jeu = ${h} s ; journée active ${HYP.jourActif} h = ${jourS} s.`);
   // cultures
-  const C = Object.keys(D.CROPS).filter((id) => id !== 'pommier' && D.SEED_PRICE[id]).map((id) => culture(D, id, v));
+  const C = Object.keys(D.CROPS).filter((id) => id !== 'pommier' && D.SEED_PRICE[id]).map((id) => Object.assign(culture(D, id, v), { sans: culture(D, id, v, HYP.passages, false).marge }));
   C.sort((a, b) => b.marge - a.marge);
-  log(`\n## Cultures (passages à ${HYP.passages.join(' h et ')} h, arrosage à chaque passage ; marge = récoltes − graines, par case et par jour)`);
-  log('culture       pousse repousse  prix grain. récolte/j  marge/case/j');
-  for (const c of C) log(`${c.id.padEnd(13)} ${String(c.h).padStart(5)} ${String(c.r).padStart(7)} ${String(c.p).padStart(6)} ${String(c.s).padStart(5)} ${f2(c.recJ).padStart(8)} ${f1(c.marge).padStart(10)}${c.base ? '  (toujours en rayon)' : ''}`);
+  log(`\n## Cultures (passages à ${HYP.passages.join(' h et ')} h ; l'arrosage tient ${D.TERRE.humide} h ; un sac d'engrais à ${D.ENGRAIS} pièces dès la ${D.TERRE.fatigue[0]}e récolte, sinon la terre s'épuise ; marge = récoltes − graines − engrais, par case et par jour)`);
+  log('culture       pousse repousse  prix grain. récolte/j engrais/j  marge/case/j  (sans engrais)');
+  for (const c of C) log(`${c.id.padEnd(13)} ${String(c.h).padStart(5)} ${String(c.r).padStart(7)} ${String(c.p).padStart(6)} ${String(c.s).padStart(5)} ${f2(c.recJ).padStart(8)} ${f2(c.sacsJ).padStart(8)} ${f1(c.marge).padStart(10)} ${('(' + f1(c.sans) + ')').padStart(12)}${c.base ? '  (toujours en rayon)' : ''}`);
   const base = C.filter((c) => c.base), meilleureBase = base[0], med = C[C.length >> 1];
   const champ = 54;
-  log(`Champ de départ (${champ} cases labourées) avec la meilleure graine toujours en rayon (${meilleureBase.id}) : ${Math.round(champ * meilleureBase.marge)} /jour ; culture médiane (${med.id}) sur 200 cases : ${Math.round(200 * med.marge)} /jour.`);
+  log(`Champ de départ (${champ} cases labourées) avec la meilleure graine toujours en rayon (${meilleureBase.id}) : ${Math.round(champ * meilleureBase.marge)} /jour (${Math.round(champ * meilleureBase.sacsJ)} sacs d'engrais) ; culture médiane (${med.id}) sur 200 cases : ${Math.round(200 * med.marge)} /jour.`);
   const diligent = Object.keys(D.CROPS).filter((id) => id !== 'pommier' && D.SEED_PRICE[id]).map((id) => culture(D, id, v, [7, 11, 14, 18]));
   diligent.sort((a, b) => b.marge - a.marge);
   log(`Passages à 7, 11, 14 et 18 h (joueur assidu) : marge maximale ${f1(diligent[0].marge)} /case/jour (${diligent[0].id}).`);
@@ -495,6 +505,23 @@ function couts(J, R, log) {
     log(`loyer ${k} : ${l} la semaine (${(l / 12).toFixed(1)} la nuit ; chambre de l'auberge 20) = ${(l / debut).toFixed(2)} journée du début`);
     if (l >= auberge) E.push(`loyer ${k} (${l}) plus cher que douze nuits à l'auberge (${auberge})`);
     if (l < 0.3 * debut) E.push(`loyer ${k} (${l}) dérisoire (moins d'un tiers de journée du début par semaine)`);
+  }
+  // acheter une maison (11-zzzz4-meubles.js) : plusieurs semaines de loyer, un but du milieu de partie ; la revente perd
+  const V = JSON.parse(J.ev(`JSON.stringify(typeof meubles !== 'undefined' ? { maisons: Object.fromEntries(Object.keys(LOC_MAISONS).map((k) => [LOC_MAISONS[k].court, { loyer: LOC_MAISONS[k].loyer, achat: meubles.prixAchat(k), revente: meubles.prixRevente(k) }])),
+    garde: Object.fromEntries(MEUBLES_GARDE.sells) } : { maisons: {}, garde: {} })`));
+  for (const k in V.maisons) {
+    const m = V.maisons[k], sem = m.achat / m.loyer, jm = m.achat / milieu;
+    log(`achat ${k} : ${m.achat} = ${sem.toFixed(0)} semaines de loyer, ${(m.achat / debut).toFixed(1)} journées du début, ${jm.toFixed(1)} du milieu ; revendue ${m.revente}`);
+    if (sem < 10 || sem > 40) E.push(`achat ${k} (${m.achat}) : ${sem.toFixed(1)} semaines de loyer, hors 10-40`);
+    if (jm < 1.5 || jm > 6) E.push(`achat ${k} (${m.achat}) : ${jm.toFixed(1)} journées du milieu, hors 1,5-6`);
+    if (m.revente >= m.achat * 0.75) E.push(`revente ${k} (${m.revente}) trop proche du prix d'achat (${m.achat})`);
+  }
+  // meubler une pièce au garde-meuble de la commune : lit, armoire, table, deux chaises, commode, tapis, chandelier
+  const piece = ['lit', 'armoire', 'table', 'chaise', 'chaise', 'commode', 'tapis', 'chandelier'];
+  if (piece.every((id) => V.garde[id])) {
+    const c = piece.reduce((a, id) => a + V.garde[id], 0), jm = c / milieu;
+    log(`meubler une pièce (${piece.join(', ')}) au garde-meuble : ${c} = ${(c / debut).toFixed(1)} journées du début, ${jm.toFixed(2)} du milieu`);
+    if (jm < 0.3 || jm > 2) E.push(`meubler une pièce : ${c}, ${jm.toFixed(2)} journées du milieu, hors 0,3-2`);
   }
   for (const e of E) log('  HORS BORNES : ' + e);
   return E;

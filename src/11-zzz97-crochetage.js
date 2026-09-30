@@ -250,7 +250,9 @@ const crochetage = {
     const n = this.habitant(dr);
     if (n && n.st.met) return `La porte de chez ${n.name}`;
     const B = w.bld && w.bld[k];
-    return B && B.name && B.name !== k ? 'La porte de ' + B.name : 'Une porte';
+    if (!(B && B.name && B.name !== k)) return 'Une porte';
+    // (de + le = du, de + les = des : « la porte du ranch », pas « de le ranch »)
+    return /^le /i.test(B.name) ? 'La porte du ' + B.name.slice(3) : /^les /i.test(B.name) ? 'La porte des ' + B.name.slice(4) : 'La porte de ' + B.name;
   },
   menuPorte(dr, frapper) {
     const d = this.difficulte(dr), a = farm.count('crochets');

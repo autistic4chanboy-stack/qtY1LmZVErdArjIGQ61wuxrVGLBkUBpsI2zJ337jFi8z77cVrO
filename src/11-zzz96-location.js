@@ -161,7 +161,7 @@ const locations = {
     const titre = M.nom.charAt(0).toUpperCase() + M.nom.slice(1);
     if (!B) {
       const Z = L && L.saisies[k];
-      ui.choice(`À louer — ${titre}`, `${M.desc} ${M.loyer} pièces la semaine (douze jours), payables d’avance. S’adresser à la mairie, ou glisser la somme dans la fente de l’écriteau : la commune passe la relever.`, [
+      ui.choice(`À louer — ${titre}`, `${M.desc}\n\n${M.loyer} pièces la semaine (douze jours), payables d’avance. S’adresser à la mairie, ou glisser la somme dans la fente de l’écriteau : la commune passe la relever.`, [
         { label: `Louer pour une semaine (${M.loyer} pièces)`, fn: () => {
           ui.close(true);
           if (Z && Z.dette > 0) { ui.subtitle('', `(Sous l’écriteau, un papier à votre nom : « Dette de ${Z.dette} pièces. Voir le maire. »)`, 4); return; }

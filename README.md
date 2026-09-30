@@ -69,9 +69,26 @@ peut pas acheter de bêtes. (Les parties commencées avant cette version gardent
   Ça pousse **en heures** (un radis en 8 h de jeu, moins de 7 minutes ; une citrouille en 40 h, deux journées), même la nuit.
   Houe de fer et arrosoirs de cuivre ou de fer travaillent 3 × 3 cases ; arroseurs, engrais et semoir accélèrent encore.
   La pluie arrose, le gel tue les jeunes pousses sensibles, l'orage couche les récoltes, la canicule assèche.
+- **La terre** : une case arrosée (ou mouillée par la pluie) reste humide **deux jours** ; sèche, la culture tient encore
+  **deux jours** avant d'être perdue (la canicule presse un peu les choses). Une case labourée qu'on laisse vide reverdit
+  au même rythme. **La terre se fatigue** : chaque case compte ses récoltes ; au-delà de cinq sans engrais, on y pousse
+  deux fois plus lentement, au-delà de dix, quatre fois (la terre lasse est plus pâle, et le personnage le remarque).
+  L'engrais remet le compte à zéro (et donne toujours son coup de pouce) ; une longue jachère aussi, peu à peu.
+- **Les arroseurs** gardent humide un carré de **7 × 7 cases** (celui de fer : **9 × 9**) ; le carré se montre quand on
+  en tient un en main ou qu'on en regarde un de près.
+- **La lanterne** brûle **dix minutes** au plus, puis s'éteint (dans la dernière minute, la flamme baisse et
+  crachote). On la recharge d'un clic droit, ou en la rallumant : une fiole d'huile à lampe (la forge, les colporteurs)
+  ou d'huile de tournesol la remplit, une bougie la fait tenir cinq minutes.
+- **Le temps** : il pleut **deux fois moins** qu'avant (les crues et les orages suivent) ; sous la pluie ou la neige,
+  **ni papillons, ni lucioles** : ceux qui volaient s'en vont, ils reviennent avec le beau temps.
   Les corbeaux mangent les semis : un épouvantail ne protège qu'à **six mètres** autour de lui (dix pour celui de fer) ;
   en le tenant en main, un anneau de paille lumineux montre sa portée (et celle des autres). Les oiseaux s'en écartent.
 - **Élevage** : poules, vaches, moutons, cochons et cheval s'achètent au ranch et arrivent le lendemain.
+- **Les ruches** : le ranch vend la ruche (avec son essaim) et l'enfumoir ; on peut aussi la fabriquer. Posée hors des
+  villes, elle donne un pot de miel chaque matin (deux certains jours si des fleurs poussent autour : sauvages, en pot,
+  parterres, tournesols, lavande…) et un pain de cire tous les trois jours, jusqu'à quatre pots ; E pour récolter. Sans
+  enfumoir, les abeilles piquent ; avec, un peu de fumée et elles se calment. La cire fait des bougies (trois par pain).
+  Les ruches du hameau sont à quelqu'un.
 - **Chevaux sauvages** : une harde vit dans un grand pré, loin de tout (le panneau du ranch et les affiches de la ville
   disent où). Accroupi et immobile, une pomme, une carotte ou de l'avoine à la main, les bêtes curieuses viennent à vous ;
   E pour les nourrir (trois fois par jour) : leur confiance grandit. Quand l'une pose la tête contre votre épaule, E pour
@@ -84,7 +101,9 @@ peut pas acheter de bêtes. (Les parties commencées avant cette version gardent
   d'assemblage, avec leurs quantités, et l'on assemble : si cela fait quelque chose (et que l'établi, le four ou le feu est
   à portée), on le fabrique et la recette entre dans « Ce que vous savez faire » ; sinon, un indice sobre. On ne connaît
   au départ que les recettes de base ; les autres se trouvent en essayant, dans les manuels (livres) ou auprès des
-  habitants de métier (« Vous pourriez m'apprendre à fabriquer quelque chose ? »).
+  habitants de métier (« Vous pourriez m'apprendre à fabriquer quelque chose ? »). **Ce que les mains savent ne meurt
+  pas** : les recettes trouvées, lues ou apprises (et les mélanges d'alchimie réussis) sont gardées d'une vie à l'autre ;
+  le fermier suivant les sait dès son arrivée (« sue d'une autre vie »).
 - **Machines** : tonneau, baratte, fumoir, presse, meule à bras, composteur. On y dépose des produits (E), on revient
   quelques heures plus tard chercher cidre, vin, beurre, fromage, huile, jus, farine, fumaisons ou engrais.
 - **Fouille** : coffres, tonneaux et caisses des campements, ruines, hameau, chapelle, phare, mines, barques et
@@ -170,6 +189,24 @@ Les commandes sont dans le menu **Commandes** (Échap).
   selon le jour (jusqu'à la ferme) et portent les nouvelles, le chasseur du relais, les gens des Sources, deux nains.
 - **La mort est définitive** : un habitant mort emporte ses quêtes et ses répliques à jamais (carnet : « † ne pourra plus
   se faire »), sa maison est mise sous scellés, son commerce repris ; la nouvelle court de village en village.
+- **Les corps restent au sol** : un habitant tué (par vous, par le tueur, par l'ours, par la fièvre…), le chien, un
+  chasseur de primes abattu restent couchés là où ils sont tombés — dans l'herbe, dans la rue, dans leur lit —, sauvegardés
+  d'une journée à l'autre, jusqu'à ce que quelqu'un les enterre. Et personne ne le fera : dans la vallée, on ne relève pas
+  les morts. On grave leur nom au cimetière, sur une tombe vide ; la maison est mise sous scellés ; le corps, lui, attend.
+- **Les jours passent sur eux**, sobrement : pâles le jour même, couleur de cire le lendemain, puis des restes affaissés,
+  puis des os dans des vêtements vides. Les mouches, le jour ; les corbeaux s'y posent quand on arrive de loin.
+- **E sur un corps** : fouiller ses poches (des pièces, les objets de son métier, parfois ce qu'une quête cherchait ; le
+  menu de butin permet de choisir). Sous les yeux d'un habitant, c'est une **profanation**. **Avec une pelle**, on
+  l'enterre là où il est tombé : un tertre et une croix de deux bâtons liés (sur les pavés, on le traîne jusqu'à la terre
+  meuble ; sur la roche ou sous la montagne, un tas de pierres ; mort dans son lit, on le porte dehors). Un clic de pelle
+  sur le corps fait de même. E sur la croix : le nom qu'on y a gravé. Le chien s'enterre à mains nues.
+- **Les habitants qui voient un corps** s'arrêtent, se signent, reculent ; ils crient, ou prient, ou appellent le mort par
+  son nom — et en parlent les jours suivants. Ceux qui vous voient l'enterrer vous remercient, ses proches l'apprennent.
+- **Le fermier d'avant** : quand vous mourez dans la vallée, votre corps reste où vous êtes tombé, pour le fermier suivant —
+  vos habits, vos poches, et dans la veste la même lettre du notaire, à un autre prénom. Enterré, son tertre reste pour
+  ceux qui viendront après.
+- **Un géant abattu** tombe à la renverse et reste là, long comme une grange ; il passe par les mêmes jours, deux fois plus
+  lentement, jusqu'aux os longs comme des poutres. Sa besace se fouille. On ne l'enterre pas.
 - **Avis de recherche** : un crime vu est su dans le village des témoins, puis ailleurs au fil des jours (postière, garde,
   colporteurs). Une prime est mise sur votre tête, des affiches « RECHERCHÉ » sont clouées, on refuse de vous parler, le
   garde somme, arrête ou frappe, des chasseurs de primes rôdent. La prime se paie au garde, au maire, ou s'oublie.
@@ -200,6 +237,18 @@ Les commandes sont dans le menu **Commandes** (Échap).
   maire s'en occupe aussi. Le locataire a la clé (la porte se referme à clé derrière lui), le lit et un coffre cerclé de
   fer. Loyer dû chaque semaine : avis d'échéance, lettre de rappel au troisième jour de retard, expulsion au sixième (le
   coffre est saisi, on le reprend à la mairie contre la dette). « Rendre les clés » quand on veut.
+- **Acheter sa maison** : les trois maisons de la commune s'achètent aussi, chez le maire (« Les maisons de la commune »)
+  ou sur l'écriteau : vingt semaines de loyer, comptant. Elle est alors à vous pour toujours — la clé, le lit, le coffre,
+  plus de loyer ni d'expulsion. Un bail en cours se change en achat (le coffre suit) ; on peut la revendre à la commune,
+  moitié prix.
+- **Meubler sa maison** (celle de la ferme, une maison louée ou achetée) : un meuble en main, son fantôme suit le regard,
+  se colle aux murs et tourne d'un quart de tour (clic droit ou R) ; il refuse les murs, les autres meubles et le passage
+  devant la porte. E le reprend. Lit (on y dort), lit clos, armoire, commode, buffet, malle (on y range), étagère,
+  horloge comtoise (elle sonne les heures), chandelier, guéridon et sa lampe (E : allumer), tableau (au mur), fauteuil,
+  table, chaises, banc, coffre, tapis, pot de fleurs. Ils s'achètent au **garde-meuble de la commune** (le grenier de la
+  mairie : les successions que personne n'a réclamées) et d'occasion chez le brocanteur du Marchedi, ou se fabriquent à
+  l'établi (recettes à trouver, Manuel du menuisier ; les clous se forgent). Casser ses propres meubles n'est pas un
+  crime ; ceux d'une maison saisie partent à la mairie avec le coffre.
 - **Crocheter** : avec un jeu de crochets (le colporteur, le forgeron, ou l'établi), E sur une porte fermée à clé :
   « Frapper » ou « Crocheter ». Petit jeu d'adresse : les goupilles montent et descendent, on cale chacune quand elle
   affleure la ligne (Espace, E ou clic) ; plus la serrure est bonne, plus elles sont nombreuses et rapides. Un raté fait
@@ -217,6 +266,57 @@ Les commandes sont dans le menu **Commandes** (Échap).
   racontent les habitants (onglet Lettres de la sacoche). Chez quelqu'un, c'est voler : vu, l'amitié chute et le garde
   accourt ; pas vu, l'habitant se plaint le lendemain. Certains meubles ferment à clé (une clé trouvée ou volée, ou les
   crochets). Sept **cachettes** n'apparaissent qu'à qui a lu le bon papier. Tout se remplit avec le temps.
+- **On choisit ce qu'on prend** : chaque conteneur ouvre un **menu de butin** (armoires, commodes, malles, coffres,
+  tonneaux, caisses, sacs, étagères, tiroirs, charrettes, cachettes, coffres des ruines, des campements, des épaves, du
+  temple et des archives, casiers de la Fondation, coffre du greffe, coffres qu'on déterre, et ce qu'on ouvre en main :
+  coffre englouti, caisse de vivres, sac de graines). Chaque objet y a son icône, sa quantité et une courte description ;
+  un clic prend la pile, Maj+clic ou −/+ une quantité choisie, « Tout prendre » le reste (clavier : flèches, Entrée,
+  1 à 9, T ; E ou Échap referment). Ce qu'on laisse **reste dedans**, même après avoir rechargé la partie, jusqu'à ce
+  que le conteneur se remplisse de nouveau. Un papier trouvé se lit en refermant.
+- **Tout meuble se fouille** : en plus des cent endroits d'avant, près d'une centaine de meubles de la vallée — étagères des
+  maisons et des boutiques, tiroirs des tables, tonneaux, caisses et sacs, wagonnets et caisses des galeries, tas de bois,
+  charrettes abandonnées, caisses de la crypte… Le butin dépend du meuble et du lieu (le pain à la boulangerie, les
+  timbres à la poste, les semences chez la grainetière, les bocaux chez l'alchimiste, le minerai à la mine, les
+  souvenirs des maisons vides) ; chez quelqu'un c'est à lui, dans la rue à tout le monde, dans les ruines à personne.
+- **Le vol, finement** : ouvrir chez quelqu'un sous les yeux d'un témoin (le menu le dit : « … vous regarde ») puis
+  refermer sans rien prendre, c'est un soupçon — une remarque, un peu d'amitié en moins. Prendre, c'est voler : les cris,
+  le garde, la prime ; pas vu, la plainte du lendemain. Au temple, la malédiction tombe au premier objet pris, pas avant.
+- **La boutique** : la liste ne remonte plus en haut après un achat ou une vente. Un clic sur un article ouvre un encart :
+  sa description, le prix à l'unité, ce qu'on en a déjà, la quantité (−/+, saisie, « Maximum »), le total, puis
+  « Confirmer » ou « Annuler » (Entrée, Échap) — pour vendre aussi. Un article trop cher s'ouvre quand même, pour le
+  lire (« Il vous manque… »). Maj+clic et Ctrl+clic achètent ou vendent toujours par 5 et par 20 ; « Tout vendre » reste.
+- **Ramasser** : E sur un petit objet posé le met dans la sacoche — bougies, lanternes (au sol, suspendues, grandes),
+  chaises, pots de fleurs, nains de jardin, citrouilles, tapis (on le roule), livres (un « livre abîmé »), poupées,
+  ossements, sacs de grain (un clic en main l'ouvre : blé, avoine, orge, seigle). Ce qui se pose se repose ensuite où
+  l'on veut. Chez quelqu'un, dans une boutique, à l'église ou devant sa porte, c'est voler, et l'étiquette le dit
+  (« chez Mathilde », « devant chez quelqu'un »). Les meubles et les conteneurs restent au menu de butin ; ce qui a
+  déjà un usage le garde.
+- **Tout se casse, avec le bon outil** : le bois à la hache (meubles, caisses, tonneaux, lits, clôtures, charrettes,
+  barques, ruches, étais des galeries…), la pierre et le fer à la pioche (statues, calvaires, tombes, murets,
+  abreuvoirs, cairns, meules, réverbères ; l'enclume et le coffre-fort veulent une pioche de fer), la poterie, le
+  verre, la paille et la toile avec n'importe quel outil. Le mauvais outil rebondit (« Du bois : il faudrait une
+  hache. »). Plusieurs coups selon la solidité et l'outil : des fêlures là où l'on frappe, des éclats qui volent et
+  retombent, de la poussière, un bruit pour chaque matière. Il reste des débris trois jours, et l'on récupère des
+  matériaux : bûches, clous, pierres, ferraille, éclats de verre, argile, toile, corde, foin… Ce qu'on a posé soi-même
+  se casse aussi (le marteau, lui, le démonte toujours) ; ce qui est cassé le reste, même après avoir rechargé la partie.
+- **Ce qu'il y avait dedans tombe** : une armoire, une malle, un tonneau, un coffre ou une charrette chargée qu'on
+  casse répandent leur contenu au pied des débris (les objets y restent posés, bien visibles) ; E ouvre le menu de
+  butin sur « Ce qui est tombé ». Ce qu'on y laisse attend trois jours. La fouille du meuble disparaît avec lui.
+- **Enfoncer une porte** : à la hache, fermée à clé ou non, une porte de maison, de boutique ou de roulotte cède au bout
+  de quelques coups (bien plus pour la mairie, la garde, l'auberge, la bibliothèque). Arrachée de ses gonds, elle gît à
+  plat derrière le seuil, la serrure pendante, et ne se referme plus, jusqu'à ce que l'habitant la fasse réparer, trois
+  jours plus tard. Les coups s'entendent de loin, et réveillent ceux qui dorment. Ni la ferme, ni l'église, ni la
+  poterne, ni le temple, ni le cachot.
+- **Casser a des suites** : chez quelqu'un, c'est une **effraction** ; devant chez lui, dans une boutique, en ville ou au
+  cimetière, un **vol**. Vu ou entendu : les cris (« Mes meubles ! Vous êtes fou ?! »), l'amitié qui s'effondre, le
+  garde qui accourt, la prime. Pas vu : la plainte du lendemain (« On a enfoncé ma porte, cette nuit. À la hache. ») et
+  la mentalité qui baisse. Dans les ruines, on ne vole personne, mais un passant le prend mal. Une tombe ou une croix
+  brisée, c'est une **profanation**, et ce qui dort dessous s'en souvient (le sommeil ne vient plus) ; abattre une
+  croix de chemin porte malchance, jusqu'à ce qu'on s'en confesse au curé.
+- **Ce qui ne se casse pas** : ce qui porte une quête ou un mécanisme — pierres, autels et portes du temple, dormeur,
+  bornes gravées, stèles, cachettes, affiches, étals du marché, tombes neuves, lit et coffre de la ferme, charrette
+  attelée, niche et gamelle du chien, écriteaux « À louer », machines au travail (on attend qu'elles aient fini) —, le
+  cachot, les bâtiments, le terrain, les arbres et les rochers (qui ont déjà leurs outils).
 - **Des choses à faire** : à Valbrume, les dés et le vingt-et-un de l'auberge (gare aux dés pipés), le bras de fer, la
   tournée payée, la veillée du Veilledi (contes au coin du feu), le tableau des petits travaux de la mairie, le puits aux
   souhaits, la diseuse de bonne aventure (qui lit l'almanach), le crieur public, le violoneux des rues, la vue du clocher,
@@ -287,7 +387,7 @@ fréquences, et la commande échoue si l'on recasse un équilibre :
 
 ```bash
 node tools/equilibrage.js                 # les quatre domaines (≈ 3 min)
-node tools/equilibrage.js commerce        # ou un seul : commerce, risques, survie, hasard
+node tools/equilibrage.js commerce        # ou un seul : commerce, ferme, risques, survie, hasard
 ```
 
 Aucun réglage ne touche à la génération de la vallée : les anciennes parties retrouvent leurs objets (l'empreinte des
@@ -349,6 +449,25 @@ graineterie du jour, hottes des colporteurs, reprises, étals du Marchedi, march
 achats-reventes et les transformations gagnantes (recettes, machines, alambic, 6 000 mélanges de la table
 d'alchimiste), modélise les revenus de chaque activité avec les gestes et délais du jeu, et échoue si un rendement sort
 de ses bornes (`CIBLES`), si une table d'étal repasse sous la revente ou si un loyer devient dérisoire.
+
+### La ferme et le temps
+
+Les règles de la terre (`TERRE`, 11-farm-state.js) et du temps, mesurées sur le vrai code (`farm.tick`, `farm.water`,
+`farm.fertilize`, la récolte, `weather.dayPlan`, les crues) :
+
+| Réglage | Avant | Après |
+|---|---|---|
+| Terre arrosée ou mouillée par la pluie | humide 10 h | humide 48 h (deux jours), la canicule 32 h |
+| Culture sur terre sèche | perdue après 30 h | tient encore 48 h (deux jours), la canicule 32 h |
+| Case labourée laissée vide | redevenait herbe au hasard après 48 h | reverdit après deux jours humides et deux jours secs |
+| Fatigue du sol | — | au-delà de 5 récoltes sans engrais : pousse à 50 % ; au-delà de 10 : 25 % ; l'engrais remet à zéro, deux jours d'herbe effacent une récolte |
+| Arroseur / arroseur de fer | 3 × 3 / 5 × 5 cases | 7 × 7 / 9 × 9 cases |
+| Heures de pluie | 28,5 % | 13,8 % (jours de pluie 48 % → 38 %, longues pluies 44 % → 12 %) |
+| Crues | 5,1 par semaine, l'eau haute 33 % des heures | 3,0 par semaine, 7,6 % des heures |
+| Engrais à la graineterie ; chou, melon ; repousse du raisin | 10 ; 19, 32 ; 24 h | 2 ; 18, 30 ; 28 h (pour garder les marges du commerce avec la terre humide plus longtemps) |
+
+Orages, brouillard, gel du matin et neige partout gardent leur fréquence. Sous la pluie ou la neige, papillons et
+lucioles s'en vont. `node tools/equilibrage.js ferme` (≈ 2 s) vérifie tout cela.
 
 ### Les risques : l'argent du crime et du hasard, et ses peines
 
@@ -558,6 +677,9 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzz8*.js` | objets légendaires et mythiques, l'Homme long, la Fondation |
 | `11-zzz9*.js` | vol à la tire, prison (cachot, rançon, carrière, évasion), sentiments ; sommeil et fatigue, lits, maisons à louer, crochetage et poterne, fouilles et cachettes, activités des villes et villages |
 | `07-zzzzzzz-portes.js` | les portes (modèles selon le bâtiment, trois niveaux de détail) |
+| `11-zzzz6-*.js` | la lanterne et son huile, les ruches, la mémoire des recettes d'une vie à l'autre |
+| `11-zzzz4-ferme-temps.js`, `11-zzzz4-meubles.js`, `07-zzzzzzzz-meubles.js` | portée des arroseurs, petites bêtes sous la pluie ; acheter et meubler sa maison (meubles, garde-meuble) |
+| `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
 | `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus bas) |
 | `shell.html` | HTML + CSS |

@@ -597,18 +597,20 @@ class Renderer {
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, F.particles.data, 0, F.particles.n * 8);
       gl.drawArrays(gl.POINTS, 0, F.particles.n);
     }
-    // papillons (jour) / lucioles (nuit)
+    // papillons (jour) / lucioles (nuit) : ni les uns ni les autres sous la pluie ou la neige (ils s'en vont un à un
+    // quand elle arrive, et reviennent de même)
     gl.bindVertexArray(this.emptyVAO);
-    if (sky.day > 0.3) {
+    const fliesK = 1 - smoothstep(0.06, 0.4, Math.max(F.rain || 0, F.snow || 0));
+    if (sky.day > 0.3 && fliesK > 0.01) {
       gl.disable(gl.BLEND); gl.depthMask(true);
       this.use(this.progs.flies, Object.assign({}, U, { uMode: 1, uAmount: sky.day, uPxScale: pxScale }));
-      gl.drawArrays(gl.POINTS, 0, 110);
+      gl.drawArrays(gl.POINTS, 0, Math.round(110 * fliesK));
       gl.enable(gl.BLEND); gl.depthMask(false);
     }
-    if (sky.night > 0.05) {
+    if (sky.night > 0.05 && fliesK > 0.01) {
       gl.blendFunc(gl.ONE, gl.ONE);
       this.use(this.progs.flies, Object.assign({}, U, { uMode: 0, uAmount: sky.night, uPxScale: pxScale }));
-      gl.drawArrays(gl.POINTS, 0, 380);
+      gl.drawArrays(gl.POINTS, 0, Math.round(380 * fliesK));
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     }
 
