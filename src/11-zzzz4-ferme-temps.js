@@ -15,7 +15,8 @@ const fermeTemps = {
   // arroseurs posés (liste rafraîchie de temps en temps, comme les épouvantails)
   arroseurs() {
     const now = performance.now(), w = game.world;
-    if (now > this.sprT) { this.sprT = now + 1500; this.sprList = w.props.filter((q) => w.live(q) && PLACEABLES[q.id] && PLACEABLES[q.id].sprinkler); }
+    // (refaite aussi dès qu'un objet est posé ou retiré : l'arroseur qu'on vient de poser se voit tout de suite)
+    if (now > this.sprT || w.props.length !== this.sprN) { this.sprT = now + 1500; this.sprN = w.props.length; this.sprList = w.props.filter((q) => w.live(q) && PLACEABLES[q.id] && PLACEABLES[q.id].sprinkler); }
     return this.sprList;
   },
   // l'arroseur que l'on regarde, de près (il n'a pas d'usage à la touche E : on suit le regard)
