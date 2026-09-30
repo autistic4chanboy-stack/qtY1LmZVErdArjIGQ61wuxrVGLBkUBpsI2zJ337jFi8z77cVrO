@@ -4158,7 +4158,7 @@ function buildWiki(DB) {
 
     // ---- les salles : publiques (le plan les nomme), sauf ce qui se cache
     const SECRETES = new Set(['sout_dormeurs', 'sout_tombeau', 'sout_cave']);
-    const SL = (W.lm || []).filter((L) => L.souterrain);
+    const SL = (W.lm || []).filter((L) => L.souterrain || L.key === 'sout_cave');
     // (trois salles portent le même nom : on les distingue par leur taille ; les salles publiques d'abord, pour les liens)
     const CRI3 = { cristal_a: 'la grande salle', cristal_b: 'la salle du milieu', cristal_c: 'la petite salle' };
     for (const [k, t] of Object.entries(CRI3)) if (pages.has('li:sout_' + k)) P('li:sout_' + k).t = `${cap(SZ[k] || 'les Cristallières')} (${t})`;
@@ -4168,9 +4168,9 @@ function buildWiki(DB) {
       if (!p) continue;
       const k = L.key.replace(/^sout_/, '');
       if (L.key === 'sout_hameau_c') { Object.assign(p, { t: 'Le cœur du Hameau d’En-Bas', s: 'Sous terre', x: 0, g: 'Le Dessous', h: `<p>La place du hameau : la pierre au pain, les cabanes en ruche, les claies. Voir ${link('li:sout_hameau')}.</p><p>${planBtn('dessous', 'li:sout_hameau')}</p>` }); addCat(p.id, 'dessous'); continue; }
-      let h = `<dl class="kv"><dt>Où</dt><dd>${link('sys:dessous', 'le Dessous')}, à ${depth(L.y)} m sous l’eau de la vallée</dd>`;
+      let h = `<dl class="kv"><dt>Où</dt><dd>${k === 'cave' ? `sous la rue de Valbrume, derrière la grille des douves ; un puits descend au ${link('li:sout_seuil', 'Seuil')}` : `${link('sys:dessous', 'le Dessous')}, à ${depth(L.y)} m sous l’eau de la vallée`}</dd>`;
       if (L.r >= 12) h += `<dt>Étendue</dt><dd>${Math.round(L.r * 2)} m environ</dd>`;
-      const up = placeAt(L.x, L.z, false);
+      const up = k === 'cave' ? null : placeAt(L.x, L.z, false);
       if (up) h += `<dt>Au-dessus</dt><dd>${up.near ? 'près ' + placeLink(up.key, pres(up.key)) : placeLink(up.key)}</dd>`;
       h += `</dl><p>${planBtn('dessous', 'li:' + L.key)}</p>`;
       const dec = SDEC[k];
@@ -4377,6 +4377,7 @@ function buildWiki(DB) {
   const itemGroup = (p) => { const id = p.id.slice(3), it = ITEMS[id]; return it ? CATN[it.cat] || cap(it.cat || 'Autres') : 'Autres'; };
   const isSys = (id) => SYSP.includes(id);
   const sysGroup = (cat, t) => { const ids = byCat(cat).filter(isSys); return ids.length ? [{ t, ids }] : []; };
+  const sysFirst = (ids) => ids.sort((a, b) => b.startsWith('sys:') - a.startsWith('sys:'));
   const cats = [
     { id: 'nouveautes', t: 'Nouveautés', d: 'Tout ce qui est arrivé dans la vallée : le corps et l’esprit, les maisons et les serrures, fouiller et casser, les activités des villes, la chasse, la société, les événements, les Trois, les autres mondes, les merveilles…', page: true, nouveau: true },
     { id: 'commandes', t: 'Commandes et mécaniques', d: 'Les touches du jeu, et ce que les nouveautés y ajoutent.', page: true, nouveau: true },
@@ -4398,9 +4399,9 @@ function buildWiki(DB) {
     { id: 'cartes', t: 'Cartes des régions', d: 'Les cartes qu’on achète : jamais toute la vallée.', groups: [...sysGroup('cartes', 'Comment on les dessine'), { t: 'Cartes', ids: sortT(byCat('cartes').filter((i) => !isSys(i))) }] },
     { id: 'etrange', t: 'L’étrange', d: 'Apparitions, manifestations, lettres… (secrets).', groups: [{ t: 'L’étrange', ids: byCat('etrange') }] },
     { id: 'lieux2', t: 'Lieux perdus', d: 'Un lieu tous les deux cents mètres : croix, chapelles, pierres levées, cabanes, sources… leurs sortes, ce qu’on y lit, leurs lettres, leurs histoires (et leurs secrets).', nouveau: true, groups: [{ t: 'Les lieux perdus', ids: byCat('lieux2').filter(isSys) }, { t: 'Les sortes de lieux', ids: sortT(byCat('lieux2').filter((i) => i.startsWith('c2t:'))) }, { t: 'Les histoires à recouper', ids: byCat('lieux2').filter((i) => i.startsWith('c2h:')) }, { t: 'Les lettres', ids: sortT(byCat('lieux2').filter((i) => i.startsWith('c2l:'))) }, { t: 'Les lieux de la vallée', ids: sortT(byCat('lieux2').filter((i) => i.startsWith('li:'))) }] },
-    { id: 'peuples', t: 'Les deux peuples', d: 'Les Planches, sur le lac, et l’estive, là-haut : leurs gens, leurs coutumes, leurs parlers.', nouveau: true, groups: [{ t: 'Les deux peuples', ids: byCat('peuples').filter((i) => isSys(i) && !i.startsWith('parler:')) }, { t: 'Leurs parlers', ids: byCat('peuples').filter((i) => i.startsWith('parler:')) }, { t: 'Leurs gens', ids: sortT(byCat('peuples').filter((i) => i.startsWith('pnj:'))) }, { t: 'Leurs lieux', ids: sortT(byCat('peuples').filter((i) => i.startsWith('li:'))) }] },
-    { id: 'dessous', t: 'Le Dessous', d: 'Sous la vallée : les salles et leur plan, ceux d’en bas et leur parler, les minerais, les plantes et les bêtes d’en bas ; le passage, le Hoûm et le tombeau (secrets).', nouveau: true, groups: [{ t: 'Le Dessous', ids: byCat('dessous').filter((i) => isSys(i) && !/^(sout:g:|parler:|sout:gens|sout:encoches)/.test(i)) }, { t: 'Les salles', ids: sortT(byCat('dessous').filter((i) => i.startsWith('li:'))) }, { t: 'Ceux d’en bas', ids: byCat('dessous').filter((i) => /^(sout:gens|parler:bas|sout:encoches|sout:g:)/.test(i)) }, { t: 'Les pierres gravées', ids: byCat('dessous').filter((i) => i.startsWith('ins:')) }] },
-    { id: 'nature', t: 'La nature', d: 'Chaque plante son objet, les bois, les plantes et les bêtes nouvelles, les cris d’oiseaux, le papillon d’or.', nouveau: true, groups: [{ t: 'La nature', ids: byCat('nature').filter(isSys) }, { t: 'Les plantes nouvelles', ids: sortT(byCat('nature').filter((i) => i.startsWith('pl:'))) }, { t: 'Les bêtes nouvelles', ids: sortT(byCat('nature').filter((i) => i.startsWith('an:'))) }] },
+    { id: 'peuples', t: 'Les deux peuples', d: 'Les Planches, sur le lac, et l’estive, là-haut : leurs gens, leurs coutumes, leurs parlers.', nouveau: true, groups: [{ t: 'Les deux peuples', ids: sysFirst(byCat('peuples').filter((i) => isSys(i) && !i.startsWith('parler:'))) }, { t: 'Leurs parlers', ids: byCat('peuples').filter((i) => i.startsWith('parler:')) }, { t: 'Leurs gens', ids: sortT(byCat('peuples').filter((i) => i.startsWith('pnj:'))) }, { t: 'Leurs lieux', ids: sortT(byCat('peuples').filter((i) => i.startsWith('li:'))) }] },
+    { id: 'dessous', t: 'Le Dessous', d: 'Sous la vallée : les salles et leur plan, ceux d’en bas et leur parler, les minerais, les plantes et les bêtes d’en bas ; le passage, le Hoûm et le tombeau (secrets).', nouveau: true, groups: [{ t: 'Le Dessous', ids: sysFirst(byCat('dessous').filter((i) => isSys(i) && !/^(sout:g:|parler:|sout:gens|sout:encoches)/.test(i))) }, { t: 'Les salles', ids: sortT(byCat('dessous').filter((i) => i.startsWith('li:'))) }, { t: 'Ceux d’en bas', ids: [...['sout:gens', 'parler:bas', 'sout:encoches'].filter((i) => byCat('dessous').includes(i)), ...byCat('dessous').filter((i) => i.startsWith('sout:g:'))] }, { t: 'Les pierres gravées', ids: byCat('dessous').filter((i) => i.startsWith('ins:')) }] },
+    { id: 'nature', t: 'La nature', d: 'Chaque plante son objet, les bois, les plantes et les bêtes nouvelles, les cris d’oiseaux, le papillon d’or.', nouveau: true, groups: [{ t: 'La nature', ids: sysFirst(byCat('nature').filter(isSys)) }, { t: 'Les plantes nouvelles', ids: sortT(byCat('nature').filter((i) => i.startsWith('pl:'))) }, { t: 'Les bêtes nouvelles', ids: sortT(byCat('nature').filter((i) => i.startsWith('an:'))) }] },
     { id: 'quotidien', t: 'Au quotidien', d: 'Le carnet de commandes et le voiturier, la lanterne et son huile, les ruches, les recettes qu’on n’oublie pas, le gel là-haut, le son.', nouveau: true, groups: [{ t: 'Au quotidien', ids: byCat('quotidien') }] },
     { id: 'corps', t: 'Corps et esprit', d:'Chutes, blessures, mentalité, le sommeil et la fatigue, ce qu’on mange, le chien, l’alcool.', nouveau: true, groups: groupBy(byCat('corps'), (p) => p.g || 'Le corps et l’esprit') },
     { id: 'maisons', t: 'Maisons, lits et serrures', d: 'Dormir et la fatigue, louer une maison, l’acheter et la meubler, les portes, crocheter une serrure, la poterne.', nouveau: true, groups: groupBy(byCat('maisons'), (p) => p.g || 'Se loger') },
@@ -4452,7 +4453,8 @@ function buildWiki(DB) {
     for (const c of [...cats.filter((q) => q.nouveau), ...cats.filter((q) => !q.nouveau)]) {
       const ids = SYSP.filter((id) => { const p = pages.get(id); return p && p.c.includes(c.id) && (!p.c.length || cats.findIndex((q) => p.c.includes(q.id)) === cats.indexOf(c)); });
       if (!ids.length) continue;
-      const main = ids.filter((id) => !SUBF.test(id)), subs = ids.filter((id) => SUBF.test(id));
+      // (la fiche d'ensemble d'une section, « sys: », d'abord)
+      const main = ids.filter((id) => !SUBF.test(id)).sort((a, b) => b.startsWith('sys:') - a.startsWith('sys:')), subs = ids.filter((id) => SUBF.test(id));
       n += ids.length;
       h += `<h2><a href="#/cat/${esc(c.id)}">${esc(c.t)}</a></h2>${c.nouveau ? '' : '<p class="note">(une section d’avant, qui s’est enrichie)</p>'}<ul class="nv">${main.map((id) => { const p = pages.get(id); return `<li${p.x ? ' class="sec"' : ''}>${link(id)}${p.s ? ` <small>— ${esc(p.s)}</small>` : ''}</li>`; }).join('')}</ul>${subs.length ? `<p class="note">Et ${subs.length} fiches : ${subs.slice(0, 40).map((id) => (isSec(id) ? secS(link(id)) : link(id))).join(' · ')}${subs.length > 40 ? '…' : ''}.</p>` : ''}`;
     }
