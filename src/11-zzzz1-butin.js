@@ -758,7 +758,7 @@ const butin = {
       <p class="bu-e-desc">${esc(this.description(E.id))}</p>
       <div class="bu-e-l"><span>${E.achat ? 'Prix à l’unité' : 'Prix de reprise, à l’unité'}</span><b>${E.pr > 1 ? `${E.pr} pièces` : '1 pièce'}</b></div>
       <div class="bu-e-l"><span>${it.animal ? 'À la ferme' : 'Dans votre sacoche'}</span><b>${n}</b></div>
-      <div class="bu-e-l"><span>Votre bourse</span><b>${farm.s.money > 1 ? `${farm.s.money} pièces` : `${farm.s.money} pièce`}</b></div>
+      <div class="bu-e-l"><span>Votre bourse</span><b>${farm.s.money > 1 ? `${farm.s.money} pièces` : farm.s.money === 1 ? 'Une pièce' : 'Pas une pièce'}</b></div>
       <div class="bu-e-qte"><span>Quantité</span><button class="bu-b sec" data-eq="-" title="Un de moins">−</button><input class="bu-e-n" type="text" inputmode="numeric" value="${E.k}"><button class="bu-b sec" data-eq="+" title="Un de plus">+</button><button class="bu-b sec" data-eq="max">Maximum (${E.max})</button></div>
       <div class="bu-e-total"><span>Total</span><b class="bu-e-tot"></b></div>
       ${rs ? `<p class="bu-e-raison">${esc(rs)}</p>` : ''}
@@ -787,7 +787,7 @@ const butin = {
     const E = this.enc, d = $('#shop .bu-encart');
     if (!E || !d) return;
     const t = E.pr * E.k, tot = d.querySelector('.bu-e-tot'), ok = d.querySelector('[data-econfirmer]');
-    if (tot) tot.textContent = t > 1 ? `${t} pièces` : `${t} pièce`;
+    if (tot) tot.textContent = t > 1 ? `${t} pièces` : t === 1 ? 'Une pièce' : 'Rien';
     if (ok) ok.disabled = !(E.k > 0 && E.k <= E.max);
   },
   fermerEncart() {
