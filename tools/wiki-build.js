@@ -92,6 +92,31 @@ function encodePNG(w, h, px, ch = 4) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), pngChunk('IHDR', ihdr), pngChunk('IDAT', zlib.deflateSync(filterRows(w, h, px, ch), { level: 9, memLevel: 9 })), pngChunk('IEND', Buffer.alloc(0))]);
 }
 const pngURL = (w, h, px, ch) => 'data:image/png;base64,' + encodePNG(w, h, px, ch).toString('base64');
+// image RVB → PNG à palette (256 couleurs au plus, sinon RVB) : les plans dessinés par l'outil ont peu de teintes
+function planPNG(w, h, rgb) {
+  const idx = new Uint8Array(w * h), pal = new Map(), cols = [];
+  for (let k = 0; k < w * h; k++) {
+    const c = (rgb[k * 3] << 16) | (rgb[k * 3 + 1] << 8) | rgb[k * 3 + 2];
+    let i = pal.get(c);
+    if (i === undefined) { if (cols.length >= 256) return { url: pngURL(w, h, rgb, 3), w, h, n: -1 }; i = cols.length; pal.set(c, i); cols.push(c); }
+    idx[k] = i;
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 3;
+  const plte = Buffer.alloc(cols.length * 3);
+  cols.forEach((c, i) => { plte[i * 3] = c >> 16 & 255; plte[i * 3 + 1] = c >> 8 & 255; plte[i * 3 + 2] = c & 255; });
+  // (palette : lignes sans filtre, ou « haut » quand il fait mieux : les deux se compressent bien)
+  const raw = Buffer.alloc((w + 1) * h);
+  for (let y = 0; y < h; y++) {
+    let same = 0;
+    if (y) for (let x = 0; x < w; x++) if (idx[y * w + x] === idx[(y - 1) * w + x]) same++;
+    const up = y && same > w * 0.6;
+    raw[y * (w + 1)] = up ? 2 : 0;
+    for (let x = 0; x < w; x++) raw[y * (w + 1) + 1 + x] = up ? (idx[y * w + x] - idx[(y - 1) * w + x]) & 255 : idx[y * w + x];
+  }
+  const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), pngChunk('IHDR', ihdr), pngChunk('PLTE', plte), pngChunk('IDAT', zlib.deflateSync(raw, { level: 9, memLevel: 9 })), pngChunk('IEND', Buffer.alloc(0))]);
+  return { url: 'data:image/png;base64,' + png.toString('base64'), w, h, n: cols.length };
+}
 // grille de données compressée (lignes filtrées + deflate brut) : décodée par la page (inflate maison)
 const packGrid = (w, h, px, ch = 1) => ({ w, h, ch, z: zlib.deflateRawSync(filterRows(w, h, px, ch), { level: 9, memLevel: 9 }).toString('base64') });
 const packBytes = (buf) => ({ n: buf.byteLength, z: zlib.deflateRawSync(Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength), { level: 9 }).toString('base64') });
@@ -299,7 +324,7 @@ const TECH_TABLES = /^(GLSL_|SH$|TEX_|MAX_|CHUNK$|RING$|PC\d*$|NOC$|TL$|WHITE$|M
 // Ce qu'on garde d'un module : son en-tête (le résumé du système), ses tables et le commentaire qui les
 // précède, ses constantes simples, ses objets (« const chasse = { … } »), ses sections, les commentaires des
 // méthodes, les objets qu'il crée (defItem) et les répliques de cinématiques (« texte: … »).
-const SYS_FILE = /^(11-zzz|12-zzz|07-zzzzz)/;
+const SYS_FILE = /^(11-zzz|12-zzz|07-zzzzz|11-zzvallee0|09-zzzaudio|09-audio|13-zz-)/;
 function parseModule(text) {
   const L = text.split('\n');
   const out = { head: [], tables: {}, scal: {}, objs: [], items: [], secs: [], blocks: [], mdocs: {}, mtexts: {} };
@@ -1038,6 +1063,26 @@ function vieTextes(G) {
   g('conteSemaine', /const C = ACT_CONTES\[Math\.floor\(farm\.s\.day \/ (\d+)\) % ACT_CONTES\.length\]/);
   return R;
 }
+// ce que le code des nouveautés dit en toutes lettres (leçons de langues, options du son…), là où aucune table ne le porte
+function textesNouveautes(G) {
+  const src = (f) => (G.texts.find(([n]) => n === f) || [])[1] || '';
+  const num = (t, re) => { const m = t.match(re); return m ? m.slice(1).map((x) => (/^-?\d+(?:\.\d+)?$/.test(x) ? +x : x)) : null; };
+  const R = {};
+  const L = src('11-zzz22-langues.js');
+  R.langues = {
+    motsPrix: num(L, /if \(!farm\.pay\((\d+)\)\) return V\('Trente/), motsN: num(L, /enseigner\('aelin', (\d+), 'libraire'\)/),
+    pierrePrix: num(L, /if \(!farm\.pay\((\d+)\)\) return V\('Vingt/), nainAmitie: num(L, /npcs\.level\(n\) >= (\d+)\) O\.push\(\{ label: 'Apprenez-moi la langue des pierres'/),
+    nainQuota: num(L, /const quota = (\d+) \+ Math\.floor\(npcs\.level\(n\) \/ (\d+)\)/), cupulesAmitie: num(L, /npcs\.level\(n\) >= (\d+)\) O\.push\(\{ label: 'Que disent les cupules/),
+  };
+  const S3 = src('13-zz-son3d.js');
+  R.son = { option: (num(S3, /id="o-son3d"> ([^'<]+)'/) || [null])[0], defaut: /DEFAULT_SETTINGS\.son3d = true/.test(S3) };
+  // les options du jeu (le panneau « Options » de src/shell.html)
+  try {
+    const html = fs.readFileSync(path.join(ROOT, 'src', 'shell.html'), 'utf8'), m = html.match(/<div id="dlg-options"[\s\S]*?<div class="cols">([\s\S]*?)<\/div>\s*<div class="actions">/);
+    if (m) R.options = [...m[1].matchAll(/<label[^>]*>(?:<input[^>]*>)?\s*([^<]+?)\s*(?:<output|<input|<select|<\/label>)/g)].map((q) => q[1].trim());
+  } catch (e) { /* rien */ }
+  return R;
+}
 // la vie de la vallée : les mesures, les textes du code, et les figurines des portes et des meubles
 function extractVie(G, DB, FIGS) {
   const V = G.run(`(${vieProbe.toString()})()`);
@@ -1191,6 +1236,19 @@ async function extract() {
       dep('dep:chien:0', { id: 'wiki-c', t: 'chien', x: 0, y: 0, z: 0, r: 0, pose: 'cote' }, 0, 80);
       dep('dep:chien:3', { id: 'wiki-c', t: 'chien', x: 0, y: 0, z: 0, r: 0, pose: 'cote' }, 3, 80);
     }
+    // ceux d'en bas (le Dessous) : chacun sa figurine et son buste, comme les habitants ; le Hoûm et les bêtes d'en bas
+    {
+      const SG = G.get('SOUT_GENS');
+      if (Array.isArray(SG)) SG.forEach((g, i) => {
+        const rig = `(() => { const g = SOUT_GENS[${i}]; let r = humanRig(g.look); if (g.look.bandeau && typeof rigPlus === 'function') r = rigPlus(r, [{ name: 'bandeau', parent: 'head', p: [0, 0.15, 0.004], s: [0.3, 0.052, 0.3], col: rgbf('#3a3630'), tex: TL.cloth }]); try { poseHuman(r, { t: 0, move: 0 }); } catch (e) {} return r; })()`;
+        const full = safe('figurine ' + g.k, () => renderRig(rig, 128));
+        const bust = safe('buste ' + g.k, () => renderRig(rig.replace('return r; })()', 'for (const q of r.parts) if (/^(leg|shoe|skirt|coatTail|foot|feet|knee|thigh|shin|calf|boot|ankle|toe)/i.test(q.name)) q.hide = true; return r; })()'), 64));
+        fig['sout:' + g.k] = { full: full ? shelf.add(trim(full)) : null, bust: bust ? shelf.add(trim(bust)) : null };
+      });
+      if (G.has('soutHoum')) { const cv = safe('le Hoûm', () => renderRig('(() => { const r = soutHoum.rig(); try { poseQuad(r, { t: 0, move: 0 }); } catch (e) {} return r; })()', 128)); if (cv) fig['sout:houm'] = { full: shelf.add(trim(cv)) }; }
+      const SR = G.get('SOUT_RIGS');
+      if (SR) for (const k of Object.keys(SR)) { const cv = safe('bête d’en bas ' + k, () => renderRig(`(() => { const r = SOUT_RIGS[${JSON.stringify(k)}](); try { if (r.kind === 'bird') poseBird(r, { t: 0, move: 0 }); else if (r.kind === 'quad') poseQuad(r, { t: 0, move: 0 }); } catch (e) {} return r; })()`, 96)); if (cv) fig['sb:' + k] = { full: shelf.add(trim(cv)) }; }
+    }
     {
       const AL = G.get('ACT_LOOKS');
       if (AL && typeof AL === 'object') for (const k of Object.keys(AL)) { const cv = safe('figurine ' + k, () => human(`ACT_LOOKS[${JSON.stringify(k)}]`, 128, false)); if (cv) fig['act:' + k] = { full: shelf.add(trim(cv)) }; }
@@ -1254,6 +1312,11 @@ async function extract() {
   // l'équilibrage : la section du README qui le raconte (convertie en fiche)
   DB.derived.equilibrage = safe('README (équilibrage)', () => { const md = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8'), a = md.search(/^## Équilibrage\s*$/m); if (a < 0) return null; const b = md.slice(a + 5).search(/^## /m); return md.slice(a, b < 0 ? undefined : a + 5 + b); }, null);
   say('vie de la vallée mesurée');
+  // les plans : le Dessous, puis les autres mondes (ouverts et défaits l'un après l'autre, après tout le reste)
+  DB.world.dessous = safe('plan du Dessous', () => planDessous(G, DB), null);
+  DB.world.mondes = safe('plans des autres mondes', () => planMondes(G, DB), {});
+  DB.derived.nv = safe('nouveautés, mesures', () => textesNouveautes(G), {});
+  say(`plans dessinés : le Dessous${DB.world.dessous ? ` (${DB.world.dessous.img.w} × ${DB.world.dessous.img.h} px, ${Math.round(DB.world.dessous.img.url.length / 1024)} Ko)` : ' (absent)'}, ${Object.keys(DB.world.mondes || {}).length} autres mondes`);
   // la planche des figurines (les portes et les meubles s'y sont ajoutés)
   if (FIGS) {
     DB.images.figures = Object.assign(FIGS.shelf.png(), { index: FIGS.fig });
@@ -1341,7 +1404,10 @@ function extractWorld(G, w, DB) {
 
   // ---------------------------------------------------------------- tracés
   const r1 = (v) => Math.round(v * 10) / 10;
-  W.lm = Object.values(w.lm || {}).map((L) => ({ key: L.key, name: L.name, x: r1(L.x), z: r1(L.z), y: r1(L.y ?? w.heightAt(L.x, L.z)), r: r1(L.r || 6), secret: !!L.secret, under: !!L.under, fish: L.fish || null }));
+  W.lm = Object.values(w.lm || {}).map((L) => { const o = { key: L.key, name: L.name, x: r1(L.x), z: r1(L.z), y: r1(L.y ?? w.heightAt(L.x, L.z)), r: r1(L.r || 6), secret: !!L.secret, under: !!L.under, fish: L.fish || null }; if (L.c2) o.c2 = L.c2; if (L.peuple) o.peuple = L.peuple; if (L.souterrain) o.souterrain = 1; return o; });
+  // les lieux perdus (un tous les deux cents mètres) : leur sorte, leur carré
+  W.c2 = w.carte2 && w.carte2.lieux ? w.carte2.lieux.map((L) => [L.i, L.t, r1(L.x), r1(L.z), L.nom, L.gi, L.gj]) : null;
+  W.peuples = w.peuples ? Object.keys(w.peuples).filter((k) => k !== 'n') : null;
   W.bld = Object.values(w.bld || {}).map((B) => ({ key: B.key, name: B.name, x: r1(B.x), z: r1(B.z), y: r1(B.y), W: B.W, D: B.D, rot: B.f ? Math.round(B.f.r * 1000) / 1000 : 0, under: !!B.under }));
   W.nav = { nodes: (w.nav && w.nav.nodes || []).map((q) => [r1(q.x), r1(q.z), q.iso ? 1 : 0, q.tag || '']), edges: (w.nav && w.nav.edges || []).map((e) => (Array.isArray(e) ? [e[0], e[1]] : [e.a, e.b])) };
   W.inter = (w.inter || []).map((it) => ({ kind: it.kind, id: it.id, name: it.name || '', x: r1(it.x), y: r1(it.y ?? 0), z: r1(it.z), data: jclone(it.data ? Object.fromEntries(Object.entries(it.data).filter(([k, v]) => typeof v !== 'object' || v === null || (Array.isArray(v) && v.length < 8 && v.every((x) => typeof x !== 'object')))) : null) }));
@@ -1375,6 +1441,264 @@ function extractWorld(G, w, DB) {
     rows.sort((p, q) => p[5] - q[5]);
     W.blocks = { n: rows.length, pal, data: packBytes(Int16Array.from(rows.flat().map((v) => Math.max(-32768, Math.min(32767, v))))) };
   }
+}
+
+// ============================================================================
+//  LES PLANS : le Dessous et les autres mondes, dessinés par l'outil
+//  Le fond de chaque plan est une image calculée ici, depuis les données du
+//  jeu : pour le Dessous, le sol et la voûte des galeries (les deux reliefs de
+//  souterrain, grilles de 2 m), la matière du sol et l'eau d'en bas, puis, vus
+//  de dessus, les objets posés et les blocs qui n'existent que dessous (leurs
+//  boîtes, telles que les modèles du jeu les émettent) ; pour les autres
+//  mondes, ce que chacun construit quand on y entre (blocs, décors), capturé
+//  dans la machine virtuelle. Les repères (salles, gens, secrets…) sont posés
+//  par la page, par-dessus.
+// ============================================================================
+class Plan {
+  constructor(x0, z0, x1, z1, ppm, bg) {
+    this.x0 = x0; this.z0 = z0; this.ppm = ppm;
+    this.w = Math.max(1, Math.ceil((x1 - x0) * ppm)); this.h = Math.max(1, Math.ceil((z1 - z0) * ppm));
+    this.px = new Uint8ClampedArray(this.w * this.h * 3);
+    if (bg) for (let k = 0; k < this.w * this.h; k++) { this.px[k * 3] = bg[0]; this.px[k * 3 + 1] = bg[1]; this.px[k * 3 + 2] = bg[2]; }
+  }
+  set(i, j, c) { if (i < 0 || j < 0 || i >= this.w || j >= this.h) return; const o = (j * this.w + i) * 3; this.px[o] = c[0]; this.px[o + 1] = c[1]; this.px[o + 2] = c[2]; }
+  // polygone (coordonnées du monde), rempli aux centres des pixels ; trop petit, il marque au moins son pixel
+  poly(pts, c, min) {
+    const P = pts.map(([x, z]) => [(x - this.x0) * this.ppm, (z - this.z0) * this.ppm]);
+    let y0 = Infinity, y1 = -Infinity, sx = 0, sy = 0, n = 0;
+    for (const p of P) { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); sx += p[0]; sy += p[1]; }
+    const j0 = Math.max(0, Math.ceil(y0 - 0.5)), j1 = Math.min(this.h - 1, Math.floor(y1 - 0.5)), xs = [];
+    for (let j = j0; j <= j1; j++) {
+      const y = j + 0.5; xs.length = 0;
+      for (let a = 0, b = P.length - 1; a < P.length; b = a++) { const [xa, ya] = P[a], [xb, yb] = P[b]; if ((ya <= y) !== (yb <= y)) xs.push(xa + (y - ya) / (yb - ya) * (xb - xa)); }
+      xs.sort((p, q) => p - q);
+      for (let k = 0; k + 1 < xs.length; k += 2) for (let i = Math.max(0, Math.ceil(xs[k] - 0.5)); i <= Math.min(this.w - 1, Math.floor(xs[k + 1] - 0.5)); i++) { const o = (j * this.w + i) * 3; this.px[o] = c[0]; this.px[o + 1] = c[1]; this.px[o + 2] = c[2]; n++; }
+    }
+    if (!n && min) this.set(Math.floor(sx / P.length), Math.floor(sy / P.length), c);
+    return n;
+  }
+  // l'image : réduite à 256 couleurs (coupe médiane) puis en PNG à palette
+  png() { quantize256(this.px); return planPNG(this.w, this.h, this.px); }
+}
+// réduit les couleurs d'une image RVB à 256 au plus, sur place (coupe médiane, pondérée par le nombre de pixels)
+function quantize256(px) {
+  const n = px.length / 3, key = (k) => ((px[k * 3] >> 2) << 12) | ((px[k * 3 + 1] >> 2) << 6) | (px[k * 3 + 2] >> 2);
+  const H = new Map();
+  for (let k = 0; k < n; k++) { const q = key(k); let e = H.get(q); if (!e) H.set(q, (e = [0, 0, 0, 0])); e[0]++; e[1] += px[k * 3]; e[2] += px[k * 3 + 1]; e[3] += px[k * 3 + 2]; }
+  const cols = [...H.entries()].map(([q, e]) => ({ q, n: e[0], c: [e[1] / e[0], e[2] / e[0], e[3] / e[0]] }));
+  if (cols.length <= 256) { const exact = new Set(); for (let k = 0; k < n; k++) exact.add((px[k * 3] << 16) | (px[k * 3 + 1] << 8) | px[k * 3 + 2]); if (exact.size <= 256) return; }
+  let boxes = [cols];
+  const range = (b, ch) => { let lo = 255, hi = 0; for (const e of b) { lo = Math.min(lo, e.c[ch]); hi = Math.max(hi, e.c[ch]); } return hi - lo; };
+  while (boxes.length < 256) {
+    let best = -1, bs = -1, bch = 0;
+    boxes.forEach((b, i) => { if (b.length < 2) return; const w = b.reduce((a, e) => a + e.n, 0); for (let ch = 0; ch < 3; ch++) { const s = range(b, ch) * Math.sqrt(w); if (s > bs) { bs = s; best = i; bch = ch; } } });
+    if (best < 0 || bs <= 0) break;
+    const b = boxes[best].sort((p, q) => p.c[bch] - q.c[bch]), tot = b.reduce((a, e) => a + e.n, 0);
+    let acc = 0, cut = 1;
+    for (let i = 0; i < b.length - 1; i++) { acc += b[i].n; if (acc >= tot / 2) { cut = i + 1; break; } cut = i + 1; }
+    boxes.splice(best, 1, b.slice(0, cut), b.slice(cut));
+  }
+  const map = new Map();
+  for (const b of boxes) { const w = b.reduce((a, e) => a + e.n, 0) || 1, c = [0, 1, 2].map((ch) => Math.round(b.reduce((a, e) => a + e.c[ch] * e.n, 0) / w)); for (const e of b) map.set(e.q, c); }
+  for (let k = 0; k < n; k++) { const c = map.get(key(k)); px[k * 3] = c[0]; px[k * 3 + 1] = c[1]; px[k * 3 + 2] = c[2]; }
+}
+// les faces d'une boîte (matrice 3 × 4 du jeu : axes mis à l'échelle, puis le centre) qu'on voit d'en haut, ombrées
+const PLAN_L = (() => { const v = [-0.42, 0.8, -0.44], l = Math.hypot(...v); return v.map((x) => x / l); })();
+function boxTopFaces(M, rgb, emit, out) {
+  const A = [[M[0], M[4], M[8]], [M[1], M[5], M[9]], [M[2], M[6], M[10]]], T = [M[3], M[7], M[11]];
+  for (let ax = 0; ax < 3; ax++) for (const sg of [1, -1]) {
+    const a = A[ax], l = Math.hypot(a[0], a[1], a[2]);
+    if (!(l > 1e-6)) continue;
+    const nrm = [a[0] * sg / l, a[1] * sg / l, a[2] * sg / l];
+    if (nrm[1] < 0.02) continue;
+    const o1 = A[(ax + 1) % 3], o2 = A[(ax + 2) % 3], c = [T[0] + a[0] * sg * 0.5, T[1] + a[1] * sg * 0.5, T[2] + a[2] * sg * 0.5];
+    const pts = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([p, q]) => [c[0] + (o1[0] * p + o2[0] * q) * 0.5, c[2] + (o1[2] * p + o2[2] * q) * 0.5]);
+    const top = c[1] + Math.abs(o1[1]) * 0.5 + Math.abs(o2[1]) * 0.5;
+    const k = emit ? 1 : 0.58 + 0.42 * Math.max(0, nrm[0] * PLAN_L[0] + nrm[1] * PLAN_L[1] + nrm[2] * PLAN_L[2]);
+    out.push({ y: top, yc: c[1], pts, c: [Math.min(255, rgb[0] * k), Math.min(255, rgb[1] * k), Math.min(255, rgb[2] * k)] });
+  }
+}
+// un bloc du monde (x, y, z = pied, sx, sy, sz, rotation) en matrice de boîte
+const blocM = (x, y, z, sx, sy, sz, r) => { const c = Math.cos(r || 0), s = Math.sin(r || 0); return [sx * c, 0, sz * s, x, 0, sy, 0, y + sy / 2, -sx * s, 0, sz * c, z]; };
+// peindre des boîtes vues de dessus, de la plus basse à la plus haute
+function paintFaces(P, faces, min) { faces.sort((a, b) => a.y - b.y || a.yc - b.yc); for (const f of faces) P.poly(f.pts, f.c, min); }
+// capturer dans la machine virtuelle les boîtes qu'émet du code du jeu (le corps d'une fonction qui reçoit PE, déjà branché) :
+// [M (12), r, v, b (0-255, couleur moyenne de la face), lueur] à plat
+const CAPTURE_BOXES = `(emit) => {
+  const out = [], cap = { box(W, ox, oy, oz, sx, sy, sz, col, code) {
+    const M = new Array(12);
+    for (let r = 0; r < 3; r++) { const a0 = W[r * 4], a1 = W[r * 4 + 1], a2 = W[r * 4 + 2]; M[r * 4] = a0 * sx; M[r * 4 + 1] = a1 * sy; M[r * 4 + 2] = a2 * sz; M[r * 4 + 3] = a0 * ox + a1 * oy + a2 * oz + W[r * 4 + 3]; }
+    // (une couleur qui n'en est pas une — un modèle qui a pris la place d'une couleur du même nom — : celle de la tuile)
+    const okCol = col && typeof col !== 'function' && typeof col[0] === 'number';
+    let fc = null; try { fc = ICON3D.faceColor(okCol ? col : [1, 1, 1], code, false); } catch (e) { fc = { c: [150, 150, 150], emit: false }; }
+    out.push(...M, Math.min(255, fc.c[0]), Math.min(255, fc.c[1]), Math.min(255, fc.c[2]), fc.emit ? 1 : 0);
+  } };
+  const b0 = PE.buf, fl0 = PE.fl;
+  PE.buf = cap; PE.fl = 0;
+  try { emit(cap); } finally { PE.buf = b0; PE.fl = fl0; }
+  return out;
+}`;
+function facesOfBoxes(flat, out = []) { for (let i = 0; i + 16 <= flat.length; i += 16) boxTopFaces(flat.slice(i, i + 12), [flat[i + 12], flat[i + 13], flat[i + 14]], !!flat[i + 15], out); return out; }
+
+// ---------------------------------------------------------------- le Dessous
+const PLAN_DESSOUS_PPM = 1; // pixels par mètre
+function planDessous(G, DB) {
+  if (!G.has('souterrain') || !G.has('SOUT_PLAN')) return null;
+  G.run('souterrain.construire()');
+  const C = jclone(G.run('({ N: SOUT_N, W: SOUT_W, cell: SOUT_CELL, X0: SOUT_X0, X1: SOUT_X1, Z0: SOUT_Z0, Z1: SOUT_Z1, WL: SOUT_WL, ROCK: SOUT_ROCK, TOP: SOUT_TOP, VER: VER_SOUS, MAT: SOUT_MAT })'));
+  const F = G.run('souterrain.F'), V = G.run('souterrain.V'), FM = G.run('souterrain.FM');
+  const ppm = PLAN_DESSOUS_PPM, ROCHE = [54, 49, 45], P = new Plan(C.X0, C.Z0, C.X1, C.Z1, ppm, ROCHE), w = P.w, h = P.h;
+  const MATK = {}; for (const [k, i] of Object.entries(C.MAT || {})) MATK[i] = k;
+  // (même triangulation que le jeu : souterrain.interp)
+  const tri = (A, x, z) => {
+    const gx = Math.min(C.N - 1e-4, Math.max(0, x / C.cell)), gz = Math.min(C.N - 1e-4, Math.max(0, z / C.cell)), i = Math.floor(gx), j = Math.floor(gz), fx = gx - i, fz = gz - j, k = j * C.W + i;
+    const ha = A[k], hb = A[k + 1], hc = A[k + C.W], hd = A[k + C.W + 1];
+    return fx + fz <= 1 ? ha + (hb - ha) * fx + (hc - ha) * fz : hd + (hc - hd) * (1 - fx) + (hb - hd) * (1 - fz);
+  };
+  const fl = new Float32Array(w * h), haut = new Float32Array(w * h), op = new Uint8Array(w * h), mt = new Array(w * h);
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const x = C.X0 + (i + 0.5) / ppm, z = C.Z0 + (j + 0.5) / ppm, k = j * w + i, f = tri(F, x, z), v = tri(V, x, z);
+    fl[k] = f; haut[k] = v - f;
+    op[k] = f < C.ROCK - 1 && v - f > 0.3 ? 1 : 0;
+    if (op[k]) mt[k] = MATK[FM[Math.min(C.N, Math.round(z / C.cell)) * C.W + Math.min(C.N, Math.round(x / C.cell))]] || 'roche';
+  }
+  const SOL = { roche: [182, 170, 150], calcite: [214, 211, 198], argile: [198, 164, 122], humus: [146, 136, 104], soufre: [208, 190, 112] };
+  const EAU0 = [108, 140, 160], EAU1 = [34, 54, 84], BORD = [30, 26, 24], RIVE = [92, 82, 72];
+  const q = (v, n) => Math.round(v * n) / n;
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const k = j * w + i;
+    if (!op[k]) {
+      // la roche, et un liseré clair au ras des galeries (on lit mieux les parois)
+      let near = false; for (let dj = -2; dj <= 2 && !near; dj++) for (let di = -2; di <= 2 && !near; di++) { const ii = i + di, jj = j + dj; if (ii >= 0 && jj >= 0 && ii < w && jj < h && op[jj * w + ii] && di * di + dj * dj <= 5) near = true; }
+      if (near) P.set(i, j, RIVE);
+      continue;
+    }
+    // une paroi tout près : le trait sombre du bord
+    let bord = false; for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const ii = i + di, jj = j + dj; if (ii < 0 || jj < 0 || ii >= w || jj >= h || !op[jj * w + ii]) bord = true; }
+    if (bord) { P.set(i, j, BORD); continue; }
+    const f = fl[k];
+    let c;
+    if (f < C.WL - 0.05) { const t = q(Math.min(1, (C.WL - f) / 7), 6); c = [0, 1, 2].map((ch) => EAU0[ch] + (EAU1[ch] - EAU0[ch]) * t); }
+    else {
+      const b = SOL[mt[k]] || SOL.roche, t = q(Math.max(0, Math.min(1, (f + 160) / 115)), 8);
+      const gx = (fl[k + 1] - fl[k - 1]) * ppm / 2, gz = (fl[k + w] - fl[k - w]) * ppm / 2, n = [-gx * 1.6, 1, -gz * 1.6], nl = Math.hypot(...n);
+      const s = q(Math.max(0.55, Math.min(1.15, 0.5 + 0.62 * (n[0] * PLAN_L[0] + n[1] * PLAN_L[1] + n[2] * PLAN_L[2]) / nl)), 7);
+      const kk = (0.7 + 0.36 * t) * s;
+      c = b.map((v) => v * kk);
+      if (haut[k] < 2.05 && (i + j) % 4 === 0) c = c.map((v) => v * 0.72); // un boyau bas : on s'y baisse
+    }
+    P.set(i, j, c.map(Math.round));
+  }
+  // vus de dessus : les objets posés au sol d'en bas (pas ce qui pend de la voûte) et les blocs d'en bas
+  let faces = [];
+  try {
+    const flat = G.run(`(${CAPTURE_BOXES})(() => {
+      const w = game.world, T = { t: 1.3, hour: 12, night: 1, day: 0, wind: 0.2, rain: 0 }, SKIP = new Set(['sout_stalac', 'sout_racines', 'sout_vers', 'sout_barreaux', 'sout_echelle_racines']);
+      for (const q of w.props) { if (!(q.ver & VER_SOUS) || SKIP.has(q.id) || !PROP_MODELS[q.id]) continue; PE.frame(q.x, q.y, q.z, q.r, q.s || 1); try { PROP_MODELS[q.id](PE, q, T); } catch (e) { /* rien */ } }
+    })`);
+    facesOfBoxes(flat, faces);
+    const mats = DB.derived.mats || [];
+    const bl = jclone(G.run('game.world.blocks.filter((b) => (b.ver & VER_SOUS) && !b.hidden).map((b) => [b.x, b.y, b.z, b.sx, b.sy, b.sz, b.r || 0, b.m])')) || [];
+    for (const [x, y, z, sx, sy, sz, r, m] of bl) boxTopFaces(blocM(x, y, z, sx, sy, sz, r), (mats[m] && mats[m].avg) || [140, 130, 120], false, faces);
+  } catch (e) { DB.log.push('plan du Dessous, objets : ' + (e && e.message)); }
+  paintFaces(P, faces, true);
+  const img = P.png();
+  // ce que la page pose par-dessus : les salles du plan, les lieux, ce qui est posé, ceux d'en bas, les secrets
+  const raw = jclone(G.run(`(() => {
+    const w = game.world, r1 = (v) => Math.round(v * 10) / 10, reg = (x, z) => souterrain.dansRegion(x, z);
+    const KEEP = /^(sout_filon|sout_vasque|sout_pied_pierre|sout_mousse|sout_lichen|sout_fougere|sout_algue|sout_suie|sout_guano|sout_champi|sout_fleche|sout_cairn|sout_dormeur|sout_colonne|stele)$/;
+    const props = {};
+    for (const q of w.props) if ((q.ver & VER_SOUS) && KEEP.test(q.id)) (props[q.id] || (props[q.id] = [])).push([r1(q.x), r1(q.z), Math.round((q.r || 0) * 100) / 100, (q.data && (q.data.m || q.data.it)) || '']);
+    const inter = w.inter.filter((it) => isFinite(it.x) && (/^sout_/.test(it.kind) || ((it.y < SOUT_TOP || it.y < w.heightAt(it.x, it.z) - 3) && reg(it.x, it.z)))).map((it) => [it.kind, it.id, it.name || '', r1(it.x), r1(it.y), r1(it.z), String((it.data && (it.data.ins || it.data.k || it.data.table || it.data.n)) ?? '')]);
+    const lm = Object.values(w.lm).filter((L) => L.souterrain || /^sout_/.test(L.key) || (L.under && reg(L.x, L.z))).map((L) => [L.key, L.name, r1(L.x), r1(L.z), r1(L.y || 0), L.r || 6, L.souterrain ? 1 : 0]);
+    const V = w.soutVillage, pt = (a) => (a ? [r1(a[0]), r1(a[1])] : null);
+    const village = V ? { c: V.c ? [r1(V.c[0]), r1(V.c[1])] : null, appel: pt(V.appel), garde: pt(V.garde), entree: pt(V.entree), encoches: V.encoches ? [r1(V.encoches.x), r1(V.encoches.z)] : null, rive: pt(V.rive), planches: (V.planches || []).map(pt), claies: (V.claies || []).map(pt), huttes: (V.huttes || []).map((H) => [r1(H.x), r1(H.z)]) } : null;
+    const X = w.soutSecrets || {}, Rt = w.soutRetours || {};
+    return {
+      salles: SOUT_PLAN.salles.map((s) => [s[0], s[1], s[2], s[3], s[4]]), lacs: SOUT_PLAN.lacs.map((s) => [s[0], s[1], s[2], s[3], s[4]]), riviere: SOUT_PLAN.riviere, gouffres: SOUT_PLAN.gouffres,
+      galeries: SOUT_PLAN.galeries.map((g) => [g[0], g[1].map((p) => [r1(p[0]), r1(p[1])])]), zones: SOUT_ZONES,
+      props, inter, lm, village,
+      dormeurs: (X.dormeurs || []).map((d) => [r1(d[0]), r1(d[2])]), tombeau: X.tombeau ? [r1(X.tombeau.x), r1(X.tombeau.z)] : null,
+      sorties: (Rt.sorties || []).map((s) => ({ k: s.k, bas: [r1(s.bas[0]), r1(s.bas[2])], haut: [r1(s.haut[0]), r1(s.haut[2])] })), fleches: Rt.fleches || 0, chemin: Rt.chemin || 0,
+      nids: typeof soutBetes !== 'undefined' ? soutBetes.construireNids().map((n) => [n.k, r1(n.x), r1(n.z), n.n]) : [],
+      cueillettes: typeof SOUT_CUEILLETTES !== 'undefined' ? SOUT_CUEILLETTES.map((c) => [c[0], c[1], c[2], c[3], c[4], c[5], c[6] && c[6].m || '']) : [],
+      gens: typeof SOUT_GENS !== 'undefined' ? SOUT_GENS.map((g) => [g.k, g.nom, g.dit, g.lieu]) : [],
+    };
+  })()`)) || {};
+  return { x0: C.X0, z0: C.Z0, x1: C.X0 + w / ppm, z1: C.Z0 + h / ppm, ppm, img, wl: C.WL, faces: faces.length, open: op.reduce((a, v) => a + v, 0), raw };
+}
+
+// ---------------------------------------------------------------- les autres mondes : ce qu'ils construisent quand on y entre
+// Dans la machine virtuelle, chaque monde est ouvert comme le jeu l'ouvre (MONDES[nom].entrer, « restaurer » : sans
+// déplacer ni faire parler le personnage, posé devant la ferme pour les mondes qui se dressent autour de lui), puis
+// défait : on garde ses blocs, les boîtes de ses décors (vues de dessus) et la place de ses décors et de ses bêtes.
+const MONDES_TABLES = ['ENF', 'CM', 'BB', 'TNM'];
+function planMondes(G, DB) {
+  if (!G.has('MONDES') || !G.has('mondes')) return {};
+  const R = G.run(`(() => {
+    const out = {}, w = game.world, p0 = game.player, T = {};
+    for (const n of ${JSON.stringify(MONDES_TABLES)}) { try { T[n] = eval(n); } catch (e) { /* ce monde n'a pas de table de décors */ } }
+    const nomModele = (f) => { if (!f) return ''; for (const n in T) for (const k in T[n]) if (T[n][k] === f) return n + '.' + k; return '?'; };
+    const cap = ${CAPTURE_BOXES};
+    const F = (w.lm && w.lm.ferme) || { x: w.size / 2, z: w.size / 2 };
+    for (const nom of Object.keys(MONDES)) {
+      const D = MONDES[nom], o = { err: null, aPart: !!D.aPart, titre: D.titre || nom, fond: (typeof MONDES_FOND !== 'undefined' && MONDES_FOND[nom]) || null };
+      game.player = { pos: [F.x, w.heightAt(F.x, F.z) + 0.1, F.z], vel: [0, 0, 0], yaw: 0, pitch: 0, eyePos() { return [this.pos[0], this.pos[1] + 1.6, this.pos[2]]; } };
+      o.entree = game.player.pos.slice();
+      // (une vision se dresse autour de l'endroit où l'on est : graine fixe, pour que le plan ne change pas d'une construction à l'autre)
+      const S = mondes.S(); S.pris = {};
+      if (D.aPart) delete S[nom]; else S[nom] = { graine: 20260930, x: game.player.pos[0], z: game.player.pos[2], yaw: 0, durete: 0, fin: 0 };
+      mondes.cur = nom; mondes.blocs = []; mondes.choses = []; mondes.betes = []; mondes.caches = [];
+      try { D.entrer({ restaurer: true }); } catch (e) { o.err = String(e && e.message); }
+      o.depart = D.depart ? Array.from(D.depart) : null;
+      o.blocs = mondes.blocs.filter((b) => !b.hidden).map((b) => [b.x, b.y, b.z, b.sx, b.sy, b.sz, b.r || 0, b.m, b.ceil ? 1 : 0]);
+      o.choses = mondes.choses.map((c) => ({ x: c.x, y: c.y, z: c.z, r: c.r || 0, m: nomModele(c.modele), item: c.item || null, nom: c.nom || null, cle: c.cle || null, v: c.v === undefined ? null : c.v, prendre: !!c.prendre, lum: !!c.lumiere }));
+      o.boites = cap(() => { for (const c of mondes.choses) { if (!c.modele) continue; PE.frame(c.x, c.y, c.z, c.r, c.s); try { c.modele(PE, c, 1.3); } catch (e) { /* rien */ } } });
+      o.betes = mondes.betes.map((e) => ({ k: e.kind, x: e.x, y: e.y, z: e.z, nom: e.nom || null, role: e.role || null, assis: !!e.assis, v: e.v }));
+      o.L = D.L ? JSON.parse(JSON.stringify(D.L)) : null;
+      try { mondes.nettoyer(); } catch (e) { /* rien */ }
+      try { if (D.sortir) D.sortir({ silencieux: true, garderPos: true }); } catch (e) { /* rien */ }
+      mondes.cur = null; delete S[nom];
+      out[nom] = o;
+    }
+    game.player = p0;
+    return out;
+  })()`);
+  const mats = DB.derived.mats || [], out = {};
+  for (const [nom, o] of Object.entries(jclone(R) || {})) {
+    if (o.err) DB.log.push(`plan de ${nom} : ${o.err}`);
+    const pts = [];
+    for (const b of o.blocs) if (!b[8]) pts.push([b[0] - b[3] / 2, b[2] - b[5] / 2], [b[0] + b[3] / 2, b[2] + b[5] / 2]);
+    for (const c of o.choses) pts.push([c.x, c.z]);
+    if (pts.length < 4) continue;
+    // l'emprise : ce que le monde construit (sans les plafonds), une marge autour
+    const xs = pts.map((p) => p[0]).sort((a, b) => a - b), zs = pts.map((p) => p[1]).sort((a, b) => a - b);
+    const lo = (a) => a[Math.floor(a.length * 0.005)], hi = (a) => a[Math.ceil(a.length * 0.995) - 1];
+    const x0 = Math.floor(lo(xs) - 6), x1 = Math.ceil(hi(xs) + 6), z0 = Math.floor(lo(zs) - 6), z1 = Math.ceil(hi(zs) + 6);
+    const ppm = Math.max(2, Math.min(8, Math.floor(640 / Math.max(x1 - x0, z1 - z0))));
+    const BG = { enfers: [26, 12, 10], cauchemar: [14, 13, 13], bonbons: [236, 206, 222], tenebres: [16, 16, 22] }[nom] || [30, 28, 26];
+    const P = new Plan(x0, z0, x1, z1, ppm, BG), faces = [];
+    // une vision en surimpression : la vallée dessous (relief ombré, l'eau), teintée comme le monde la teint
+    if (!o.aPart) {
+      try {
+        const Hs = G.run('game.world.heights'), N = G.run('game.world.N'), W1 = G.run('game.world.W'), cell = G.run('game.world.cell'), WL = G.run('game.world.waterLevel');
+        const hAt = (x, z) => { const gx = Math.max(0, Math.min(N - 1.001, x / cell)), gz = Math.max(0, Math.min(N - 1.001, z / cell)), i = gx | 0, j = gz | 0, fx = gx - i, fz = gz - j, k = j * W1 + i; return (Hs[k] * (1 - fx) + Hs[k + 1] * fx) * (1 - fz) + (Hs[k + W1] * (1 - fx) + Hs[k + W1 + 1] * fx) * fz; };
+        const TEINTE = nom === 'bonbons' ? { sol: [240, 196, 220], eau: [150, 200, 230] } : { sol: [58, 52, 64], eau: [22, 26, 40] };
+        for (let j = 0; j < P.h; j++) for (let i = 0; i < P.w; i++) {
+          const x = x0 + (i + 0.5) / ppm, z = z0 + (j + 0.5) / ppm, hh = hAt(x, z);
+          if (hh < WL) { P.set(i, j, TEINTE.eau); continue; }
+          const d = 1.2, gx = (hAt(x + d, z) - hAt(x - d, z)) / (2 * d), gz = (hAt(x, z + d) - hAt(x, z - d)) / (2 * d), n = [-gx * 1.4, 1, -gz * 1.4], nl = Math.hypot(...n);
+          const s = Math.round(Math.max(0.6, Math.min(1.12, 0.45 + 0.7 * (n[0] * PLAN_L[0] + n[1] * PLAN_L[1] + n[2] * PLAN_L[2]) / nl)) * 8) / 8;
+          P.set(i, j, TEINTE.sol.map((v) => Math.round(v * s)));
+        }
+      } catch (e) { DB.log.push(`plan de ${nom}, la vallée dessous : ${e && e.message}`); }
+    }
+    for (const [x, y, z, sx, sy, sz, r, m, ceil] of o.blocs) if (!ceil) boxTopFaces(blocM(x, y, z, sx, sy, sz, r), (mats[m] && mats[m].avg) || [120, 110, 100], /braise|lave/i.test((mats[m] && mats[m].id) || ''), faces);
+    facesOfBoxes(o.boites, faces);
+    paintFaces(P, faces, true);
+    out[nom] = { titre: o.titre, aPart: o.aPart, x0, z0, x1: x0 + P.w / ppm, z1: z0 + P.h / ppm, ppm, img: P.png(), fond: o.fond, entree: o.entree, depart: o.depart, choses: o.choses, betes: o.betes, L: o.L, err: o.err };
+  }
+  return out;
 }
 
 // ============================================================================
@@ -4689,5 +5013,5 @@ async function main() {
   say('terminé');
 }
 
-module.exports = { encodePNG, pngURL, packGrid, packBytes, FakeCanvas, loadGame, URL_TO_CANVAS, jclone, extract, buildWiki, writeHTML, CLIENT };
+module.exports = { encodePNG, pngURL, packGrid, packBytes, FakeCanvas, loadGame, URL_TO_CANVAS, jclone, extract, buildWiki, writeHTML, CLIENT, Plan, planPNG, planDessous, planMondes: typeof planMondes === 'function' ? planMondes : null };
 if (require.main === module) main().then(() => process.exit(0), (e) => { console.error(e && e.stack || e); process.exit(1); });
