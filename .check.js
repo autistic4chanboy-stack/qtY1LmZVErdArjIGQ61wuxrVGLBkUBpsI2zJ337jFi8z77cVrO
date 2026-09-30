@@ -23230,7 +23230,7 @@ SoundEngine.TAMPONS = {
   }],
 };
 // volumes de base des pas (crête)
-SoundEngine.PAS = { herbe: 0.028, terre: 0.034, pierre: 0.066, bois: 0.025, eau: 0.038, neige: 0.03 };
+SoundEngine.PAS = { herbe: 0.019, terre: 0.023, pierre: 0.044, bois: 0.017, eau: 0.028, neige: 0.02 };
 
 Object.assign(SoundEngine.prototype, {
   // un tampon de la bibliothèque (variantes gardées : n par sorte)
@@ -23413,7 +23413,7 @@ Object.assign(SoundEngine.prototype, {
     if (k === 'pierre' && !this._scope && this.surNeige()) k = 'neige';
     this.pied = -this.pied;
     // (courir s'entend un peu plus, pas beaucoup ; les pas des autres, placés autour de vous, un peu moins)
-    const v = SoundEngine.PAS[k] * (0.62 + sp / 9 * 0.3) * (0.9 + R() * 0.2) * (this._scope ? 0.65 : 1);
+    const v = SoundEngine.PAS[k] * (0.52 + sp / 9 * 0.3) * (0.9 + R() * 0.2) * (this._scope ? 0.65 : 1);
     this.jouer(this.tb(k), this.at(), v, this.sfx, 0.88 + R() * 0.12, this._scope ? 0 : this.pied * 0.08);
     if (k === 'bois' && R() < 0.04) this.voice(this.at(0.05), 'sawtooth', 230 + R() * 80, 180 + R() * 40, 0.3 + R() * 0.2, 0.006, this.sfx, { bp: 700, q: 3, vib: 9, vibDepth: 12 });
   },
@@ -23862,16 +23862,18 @@ SoundEngine.BOUCLES = {
     }
     for (let k = 0, N = Math.floor(D * 45); k < N; k++) { const f = 300 + Math.pow(R(), 1.6) * 1400, t = R() * (D - 0.06); S.note(d, sr, t, 0.012 + R() * 0.03, f, f * (1.3 + R() * 0.8), 0.06 + R() * 0.12, { att: 0.15, dec: 2, c: 0.5 }); }
   }],
-  // clapotis : de petites vagues qui viennent mourir à la rive
+  // clapotis : de petites vagues qui s'enflent et viennent mourir à la rive, sans claquement (de loin, un choc sec
+  // sonnait comme un coup de feu)
   clapotis: [8, (d, sr, D) => {
-    const R = Math.random, S = SoundEngine.SYN, lo = S.bq('lp', 380, 0.7, sr), n = d.length;
+    const R = Math.random, S = SoundEngine.SYN, lo = S.bq('lp', 360, 0.7, sr), n = d.length;
     let m = 0.3, v = 0;
     for (let i = 0; i < n; i++) { if (i % 128 === 0) { v += (R() - 0.5) * 0.05 - v * 0.03; m = clamp(m + v * 0.1, 0.1, 0.5); } d[i] += lo(R() * 2 - 1) * 0.25 * m; }
-    for (let t = 0.2 + R() * 0.5; t < D - 0.6; t += 1.1 + R() * 1.6) {
-      S.bruit(d, sr, t, 0.08 + R() * 0.06, 0.25 + R() * 0.15, 0.5 + R() * 0.3, S.bq('lp', 500 + R() * 200, 0.7, sr));
-      S.bruit(d, sr, t + 0.06, 0.03, 0.12, 0.12 + R() * 0.08, S.bq('bp', 1100 + R() * 400, 0.8, sr));
-      for (let k = 0; k < 3; k++) { const f = 500 + R() * 800; S.note(d, sr, t + 0.1 + R() * 0.3, 0.02 + R() * 0.02, f, f * 1.5, 0.04 + R() * 0.04, { att: 0.12, dec: 2 }); }
+    for (let t = 0.2 + R() * 0.5; t < D - 1; t += 1.4 + R() * 1.8) {
+      S.bruit(d, sr, t, 0.22 + R() * 0.12, 0.55 + R() * 0.25, 0.3 + R() * 0.15, S.bq('lp', 380 + R() * 140, 0.7, sr));
+      S.bruit(d, sr, t + 0.2, 0.15, 0.3, 0.035 + R() * 0.03, S.bq('bp', 900 + R() * 300, 0.7, sr));
+      for (let k = 0; k < 2; k++) { const f = 450 + R() * 600; S.note(d, sr, t + 0.3 + R() * 0.4, 0.02 + R() * 0.02, f, f * 1.4, 0.02 + R() * 0.02, { att: 0.2, dec: 2 }); }
     }
+    S.lp1(d, sr, 2400);
   }],
   // feu : un souffle grave qui ondule, des crépitements, parfois une bûche qui craque
   feu: [5, (d, sr, D) => {
@@ -23879,7 +23881,7 @@ SoundEngine.BOUCLES = {
     let m = 0.5, v = 0;
     for (let i = 0; i < n; i++) { if (i % 64 === 0) { v += (R() - 0.5) * 0.12 - v * 0.05; m = clamp(m + v * 0.1, 0.2, 1); } const x = R() * 2 - 1; d[i] += lo(x) * 0.9 * m + hs(x) * 0.02; }
     for (let k = 0, N = Math.floor(D * 14); k < N; k++) { const a = Math.pow(R(), 3) * 0.9 + 0.05; S.bruit(d, sr, R() * (D - 0.02), 0.0003, 0.0015 + R() * 0.004, a, S.bq('bp', 900 + R() * 2600, 1.1, sr)); }
-    for (let k = 0, N = 1 + ((R() * 2) | 0); k < N; k++) { const t = 0.3 + R() * (D - 0.8); S.mode(d, sr, t, 380 + R() * 500, 0.02, 0.35); S.bruit(d, sr, t, 0.0005, 0.01, 0.4, S.bq('bp', 1500, 0.8, sr)); }
+    for (let k = 0, N = 1 + ((R() * 2) | 0); k < N; k++) { const t = 0.3 + R() * (D - 0.8); S.mode(d, sr, t, 380 + R() * 500, 0.02, 0.2); S.bruit(d, sr, t, 0.002, 0.012, 0.18, S.bq('bp', 1200, 0.8, sr)); }
   }],
   // gouttes de pluie tout près (sur l'herbe, sur les feuilles, dans les flaques)
   gouttes: [3, (d, sr, D) => {
@@ -23918,7 +23920,7 @@ SoundEngine.BOUCLES = {
   }, 8000],
 };
 // volume de chaque boucle (k = 1)
-SoundEngine.VOL_BOUCLES = { riviere: 0.2, clapotis: 0.22, feu: 0.22, gouttes: 0.07, feuilles: 0.06, grillon: 0.12, bourdon: 0.05, vent: 0.14 };
+SoundEngine.VOL_BOUCLES = { riviere: 0.2, clapotis: 0.12, feu: 0.22, gouttes: 0.07, feuilles: 0.06, grillon: 0.12, bourdon: 0.05, vent: 0.14 };
 // les oiseaux selon le milieu : [sorte, poids]
 SoundEngine.OISEAUX = {
   foret: [['merle', 3], ['mesange', 3], ['pinson', 3], ['pic', 0.6], ['tourterelle', 1], ['coucou', 0.15]],
@@ -24196,23 +24198,39 @@ Object.assign(SoundEngine.prototype, {
       }
       if (near) break;
     }
-    if (near && !(S.riv && best.d < near.d + 8)) S.rive = { p: [near.x, WL + 0.2, near.z], k: clamp(1.2 - near.d / 40, 0.15, 1) };
+    if (near && !(S.riv && best.d < near.d + 8)) {
+      // (les douves de la ville : une eau dormante entre deux murs, qui ne clapote presque pas)
+      const T = w.townInfo, douves = T && Math.hypot(near.x - T.x, near.z - T.z) < 110;
+      S.rive = { p: [near.x, WL + 0.2, near.z], k: clamp(1.2 - near.d / 40, 0.15, 1) * (douves ? 0.25 : 1) };
+    }
   },
   // le foyer le plus proche : feux de camp, cheminées, fours, grands feux ; arbres qui brûlent (pas les bougies)
   _feu(w, p) {
-    const px = p.pos[0], pz = p.pos[2];
-    let best = null;
+    const px = p.pos[0], pz = p.pos[2], C = [];
     for (const l of w.lights || []) {
       if (!l.flicker) continue;
       const id = l.prop ? l.prop.id : 'campfire';
       if (!SoundEngine.FEUX[id]) continue;
       const d = Math.hypot(l.x - px, l.z - pz);
-      if (d < 26 && (!best || d < best.d)) best = { d, p: [l.x, l.y - 0.3, l.z], k: SoundEngine.FEUX[id], gros: id === 'feu_geant' };
+      if (d < 26) C.push({ d, p: [l.x, l.y - 0.3, l.z], k: SoundEngine.FEUX[id], gros: id === 'feu_geant' });
     }
+    // (un feu derrière un mur ne s'entend pas : la cheminée d'une maison quand on est dehors, un feu de camp quand on
+    // est dedans ; on prend le plus proche qu'on pourrait voir)
+    C.sort((a, b) => a.d - b.d);
+    let best = null;
+    for (const c of C.slice(0, 4)) if (!this._mur(w, c.p)) { best = c; break; }
     if (typeof vallee !== 'undefined' && vallee.burning && vallee.burning.size) {
       for (const b of vallee.burning.values()) { const d = Math.hypot(b.x - px, b.z - pz); if (d < 90 && (!best || d < best.d)) best = { d, p: [b.x, b.y + b.h * 0.5, b.z], k: b.tree ? 2.5 : 1.2, gros: true }; }
     }
     return best;
+  },
+  // un mur entre l'écouteur et ce point ? (les blocs des bâtiments ; ce qui touche le point lui-même ne compte pas)
+  _mur(w, q) {
+    const L = this.L;
+    if (!L || !w.raycastBlocks) return false;
+    const o = [L.x, L.y, L.z], dx = q[0] - o[0], dy = q[1] + 0.5 - o[1], dz = q[2] - o[2], d = Math.hypot(dx, dy, dz);
+    if (d < 1.8) return false;
+    return !!w.raycastBlocks(o, [dx / d, dy / d, dz / d], d - 1.2);
   },
   // les arbres autour (pour y percher les oiseaux et la chouette)
   _arbres(w, p, S) {

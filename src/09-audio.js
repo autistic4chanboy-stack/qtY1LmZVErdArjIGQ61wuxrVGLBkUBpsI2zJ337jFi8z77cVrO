@@ -823,7 +823,7 @@ SoundEngine.TAMPONS = {
   }],
 };
 // volumes de base des pas (crête)
-SoundEngine.PAS = { herbe: 0.028, terre: 0.034, pierre: 0.066, bois: 0.025, eau: 0.038, neige: 0.03 };
+SoundEngine.PAS = { herbe: 0.019, terre: 0.023, pierre: 0.044, bois: 0.017, eau: 0.028, neige: 0.02 };
 
 Object.assign(SoundEngine.prototype, {
   // un tampon de la bibliothèque (variantes gardées : n par sorte)
@@ -1006,7 +1006,7 @@ Object.assign(SoundEngine.prototype, {
     if (k === 'pierre' && !this._scope && this.surNeige()) k = 'neige';
     this.pied = -this.pied;
     // (courir s'entend un peu plus, pas beaucoup ; les pas des autres, placés autour de vous, un peu moins)
-    const v = SoundEngine.PAS[k] * (0.62 + sp / 9 * 0.3) * (0.9 + R() * 0.2) * (this._scope ? 0.65 : 1);
+    const v = SoundEngine.PAS[k] * (0.52 + sp / 9 * 0.3) * (0.9 + R() * 0.2) * (this._scope ? 0.65 : 1);
     this.jouer(this.tb(k), this.at(), v, this.sfx, 0.88 + R() * 0.12, this._scope ? 0 : this.pied * 0.08);
     if (k === 'bois' && R() < 0.04) this.voice(this.at(0.05), 'sawtooth', 230 + R() * 80, 180 + R() * 40, 0.3 + R() * 0.2, 0.006, this.sfx, { bp: 700, q: 3, vib: 9, vibDepth: 12 });
   },
