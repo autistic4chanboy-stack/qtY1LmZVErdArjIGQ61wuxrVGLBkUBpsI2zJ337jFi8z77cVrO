@@ -54,7 +54,7 @@ HOOKS.load.push(() => {
   // une vie nouvelle qui hérite : une pensée, une seule fois
   if (n > 0 && !s.recettesHeritees && (s.run || 1) > 1) {
     s.recettesHeritees = true;
-    setTimeout(() => ui.subtitle('', n > 1 ? `(Vos mains savent des choses que vous n’avez jamais apprises. ${n} recettes vous reviennent, d’une autre vie.)` : '(Vos mains savent une chose que vous n’avez jamais apprise : une recette vous revient, d’une autre vie.)', 6), 9000);
+    setTimeout(() => ui.subtitle('', n > 1 ? `(${n} recettes vous reviennent, d’une autre vie.)` : '(Une recette vous revient, d’une autre vie.)', 4), 9000);
   }
   if (!memoireRecettes.branche) {
     memoireRecettes.branche = true;

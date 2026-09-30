@@ -584,7 +584,7 @@ const depouilles = {
     if (this.aDesPoches(rec)) return this.fouiller(rec);
     if (farm.bestTool('pelle')) return this.enterrer(rec);
     sound.click && sound.click();
-    ui.subtitle('', '(Ses poches sont vides. Il faudrait une pelle pour lui creuser une tombe.)', 3.5);
+    ui.subtitle('', '(Ses poches sont vides.)', 3.5);
   },
 
   // ------------------------------------------------------------------ fouiller
@@ -630,11 +630,11 @@ const depouilles = {
     if (rec.t === 'fermier' && premier) {
       rec.nomConnu = 1;
       this.syncFermier(rec);
-      ui.subtitle('', rec.nom ? `(Dans la poche de sa veste, une lettre du notaire, pliée en quatre. La même que la vôtre, mot pour mot. Seul le prénom change : ${rec.nom}.)` : '(Dans la poche de sa veste, une lettre du notaire, pliée en quatre. La même que la vôtre, mot pour mot.)', 7);
+      ui.subtitle('', rec.nom ? `(Dans sa poche, une lettre du notaire. La même que la vôtre, mot pour mot. Seul le prénom change : ${rec.nom}.)` : '(Dans sa poche, une lettre du notaire. La même que la vôtre, mot pour mot.)', 6);
     }
     if (!rec.poches.length) {
-      if (this.nu(rec)) ui.subtitle('', this.fem(rec) ? '(Elle n’a rien sur elle. Aux Sources, on ne porte rien.)' : '(Il n’a rien sur lui. Aux Sources, on ne porte rien.)', 3.5);
-      else if (rec.t === 'geant') ui.subtitle('', '(Sa besace est vide. Une besace où vous tiendriez tout entier.)', 3.5);
+      if (this.nu(rec)) ui.subtitle('', this.fem(rec) ? '(Elle n’a rien sur elle.)' : '(Il n’a rien sur lui.)', 3.5);
+      else if (rec.t === 'geant') ui.subtitle('', '(Sa besace est vide.)', 3.5);
       else if (rec.t !== 'fermier' || !premier) ui.subtitle('', '(Ses poches sont vides.)', 3);
       return;
     }
@@ -726,17 +726,16 @@ const depouilles = {
     return { x: rec.x, y: rec.y, z: rec.z, r: rec.r, mode: 'pierres' };
   },
   texteFosse(rec, lieu, st, fem) {
-    if (rec.t === 'chien') return st >= 3 ? `Il ne reste de ${rec.nom} que des os. Vous les rassemblez au fond d’un trou, et vous refermez la terre.` : `Vous creusez un trou, là, dans la terre meuble, et vous y couchez ${rec.nom}.`;
-    if (st >= 3) return lieu.mode === 'pierres' ? 'Il ne reste presque rien. Vous rassemblez les os, un à un, et vous les couvrez de pierres.' : 'Il ne reste presque rien à porter. Vous rassemblez les os au fond d’une fosse, un à un, et vous refermez la terre.';
-    if (lieu.mode === 'pierres') return fem ? 'Le sol est trop dur pour la pelle. Vous la recouvrez de pierres, une à une, jusqu’à ce qu’on ne la voie plus.' : 'Le sol est trop dur pour la pelle. Vous le recouvrez de pierres, une à une, jusqu’à ce qu’on ne le voie plus.';
-    if (lieu.mode === 'dehors') return fem ? 'Vous la portez dehors, à bras-le-corps, et vous lui creusez une fosse au pied du mur.' : 'Vous le portez dehors, à bras-le-corps, et vous lui creusez une fosse au pied du mur.';
-    if (lieu.mode === 'traine') return fem ? 'Le sol est trop dur, ici. Vous la traînez jusqu’à la terre meuble, un peu plus loin, et vous creusez.' : 'Le sol est trop dur, ici. Vous le traînez jusqu’à la terre meuble, un peu plus loin, et vous creusez.';
-    return fem ? 'Vous creusez une fosse, là où elle est tombée, et vous l’y couchez. La terre retombe sur elle, pelletée après pelletée.' : 'Vous creusez une fosse, là où il est tombé, et vous l’y couchez. La terre retombe sur lui, pelletée après pelletée.';
+    if (rec.t === 'chien') return '';
+    if (lieu.mode === 'pierres') return 'Le sol est trop dur pour la pelle : des pierres, une à une.';
+    if (lieu.mode === 'dehors') return 'Au pied du mur, dehors.';
+    if (lieu.mode === 'traine') return 'Le sol est trop dur, ici. Un peu plus loin, la terre est meuble.';
+    return '';
   },
   async enterrer(rec) {
     const s = farm.s, S = this.S();
     if (!S || !S.corps.includes(rec) || game.sleeping || game.dying) return;
-    if (rec.t === 'geant') { sound.click && sound.click(); ui.subtitle('', '(Il faudrait des jours, et dix hommes, pour lui creuser une fosse. On laisse les géants là où ils tombent.)', 5); return; }
+    if (rec.t === 'geant') { sound.click && sound.click(); ui.subtitle('', '(Il faudrait des jours, et dix hommes, pour lui creuser une fosse.)', 4); return; }
     const chienRec = rec.t === 'chien';
     if (!chienRec && !farm.bestTool('pelle')) { sound.click && sound.click(); ui.subtitle('', '(Il faudrait une pelle pour lui creuser une tombe.)', 3); return; }
     const lieu = this.lieuTombe(rec), st = this.stade(rec), fem = this.fem(rec);
@@ -768,7 +767,7 @@ const depouilles = {
       fait = true;
     } catch (e) { console.error('depouilles : enterrer', e); }
     try { await ui.fade(false, '', 1000); } finally { game.sleeping = false; }
-    if (fait) ui.subtitle('', chienRec ? '(Un petit tertre, un bâton en travers. C’est tout ce que vous avez su faire.)' : lieu.mode === 'pierres' ? '(Un tas de pierres, et une croix de deux bâtons liés. Les bêtes n’y toucheront pas.)' : '(Un tertre de terre fraîche, et une croix de deux bâtons liés. Ce n’est pas grand-chose. C’est mieux que rien.)', 4.5);
+    if (fait) ui.subtitle('', chienRec ? '(C’est tout ce que vous avez su faire.)' : '(Ce n’est pas grand-chose. C’est mieux que rien.)', 3.5);
   },
   // ceux qui voient remercient ; ceux qui l'aimaient l'apprennent
   merci(rec, lieu) {
@@ -885,20 +884,16 @@ const depouilles = {
   pensee(rec, st, neuf) {
     const fem = this.fem(rec), nom = this.nom(rec);
     if (rec.t === 'geant') {
-      if (st >= 3) return '(Des os longs comme des poutres, et une cage de côtes où l’on tiendrait debout.)';
-      if (st === 2) return '(L’odeur vous arrive de très loin, bien avant le reste. Les corbeaux tournent au-dessus, par dizaines.)';
-      if (st === 1) return fem ? '(La géante est toujours là. Sa peau a pris la couleur de la cire.)' : '(Le géant est toujours là. Sa peau a pris la couleur de la cire.)';
-      return fem ? '(La géante ne bouge plus. Couchée là, elle est longue comme une grange.)' : '(Le géant ne bouge plus. Couché là, il est long comme une grange.)';
+      return st === 2 ? '(L’odeur vous arrive de très loin.)' : null;
     }
-    if (rec.t === 'chien') return st >= 3 ? `(Des os, et le creux que faisait ${rec.nom} dans l’herbe.)` : st >= 1 ? `(${rec.nom} est toujours là. Il faudrait l’enterrer.)` : `(${rec.nom} est couché là. Il ne bouge plus. Il ne se relèvera pas.)`;
+    if (rec.t === 'chien') return st === 0 ? `(${rec.nom} ne se relèvera pas.)` : null;
     if (rec.t === 'fermier' && neuf) {
       if (st >= 3) return '(Des os, dans des habits de ferme. Les mêmes que les vôtres.)';
       return !!rec.fem === !!farm.s.fem ? '(Ce corps porte vos vêtements. Les mêmes, exactement.)' : '(Des habits de ferme, comme les vôtres, et les mêmes mains calleuses.)';
     }
     if (rec.t === 'chasseur' && st <= 1) return '(L’homme qui vous cherchait. Il ne cherchera plus personne.)';
-    if (st >= 3) return this.nu(rec) ? '(Des os, blanchis. Quelqu’un est mort là, et personne n’est venu.)' : '(Des os, dans des vêtements vides. Quelqu’un est mort là, il y a longtemps, et personne n’est venu.)';
-    if (st === 2) return '(L’odeur vous arrive avant tout le reste. Puis vous voyez le corps.)';
-    if (st === 1) return nom ? `(${nom} est toujours là. La peau a pris la couleur de la cire.)` : '(Le corps est toujours là. La peau a pris la couleur de la cire.)';
+    if (st >= 3 || st === 1) return null;
+    if (st === 2) return '(L’odeur vous arrive avant tout le reste.)';
     if (nom) return fem ? `(C’est ${nom}. Elle ne bouge plus.)` : `(C’est ${nom}. Il ne bouge plus.)`;
     if (this.enfant(rec)) return '(Une enfant est étendue là. Elle ne respire plus.)';
     return fem ? '(Une femme est étendue là. Elle ne respire plus.)' : '(Un homme est étendu là. Il ne respire plus.)';

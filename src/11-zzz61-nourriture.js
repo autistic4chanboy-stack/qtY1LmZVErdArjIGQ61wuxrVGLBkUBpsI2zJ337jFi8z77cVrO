@@ -14,8 +14,8 @@ const s2h = (sec) => sec * 24 / JOUR_SECONDES; // secondes réelles -> heures de
 function teinte(tint, c, a) { if (a > tint[3]) { tint[0] = c[0]; tint[1] = c[1]; tint[2] = c[2]; tint[3] = a; } }
 const MAL_NUIT = {
   1: '(Une nuit agitée, le ventre noué.)',
-  2: '(Vous avez passé la nuit à vomir, à genoux près du lit.)',
-  3: '(Une nuit de fièvre, à grelotter dans des draps trempés.)',
+  2: '(Vous avez passé la nuit à vomir.)',
+  3: '(Une nuit de fièvre.)',
 };
 // vomir : on perd ce qu'on a mangé
 function vomir(k) {
@@ -36,8 +36,8 @@ function vomir(k) {
 const EFFETS = {
   poison: {
     dur: [60, 150], mal: 2,
-    debut: ['(Une crampe vous plie en deux. Ce que vous avez mangé ne passe pas.)', '(Une sueur froide, le ventre qui se tord : quelque chose n’allait pas, dans ce repas.)'],
-    fin: '(Le mal passe. Vous êtes vidé, mais vivant.)',
+    debut: ['(Une crampe vous plie en deux.)'],
+    fin: '(Le mal passe.)',
     dmgS: (A) => 0.22 * A.k,
     tick(A, dt) {
       const p = game.player;
@@ -48,12 +48,12 @@ const EFFETS = {
       if (A.T.v <= 0) { A.T.v = 14 + Math.random() * 14; if (Math.random() < 0.55) vomir(A.k); }
       if (p.hp <= 0) { const c = 'Empoisonné par ' + (A.cause || 'ce qu’il avait mangé'); play.lastHurtBy = c; game.die(c); }
     },
-    end(A) { if (A.gueri) effets.dire('(L’antidote a fait son œuvre. Le ventre se dénoue.)'); },
+    end(A) { if (A.gueri) effets.dire('(Le ventre se dénoue.)'); },
     fx(A, fx, tint) { teinte(tint, [0.35, 0.5, 0.2], 0.05 + 0.02 * A.k); fx[2] = Math.max(fx[2], 0.1 * A.k); },
   },
   nausee: {
     dur: [30, 120], mal: 1,
-    debut: ['(Votre estomac se soulève.)', '(Une nausée, lourde. Le sol n’est plus tout à fait droit.)'],
+    debut: ['(Votre estomac se soulève.)'],
     fin: '(La nausée passe.)',
     tick(A, dt) {
       if (BUFF.on('antidote')) { A.fin = Math.min(A.fin, effets.S().t); return; }
@@ -65,7 +65,7 @@ const EFFETS = {
   vomir: { instant: true, mal: 2, start(A) { vomir(A.k); } },
   coliques: {
     dur: [60, 150], mal: 1,
-    debut: ['(Des coliques vous tordent le ventre. Mieux vaudrait rester près d’un buisson.)'],
+    debut: ['(Des coliques vous tordent le ventre.)'],
     fin: '(Les coliques s’apaisent.)',
     dmgS: (A) => 0.08 * A.k,
     tick(A, dt) {
@@ -83,21 +83,21 @@ const EFFETS = {
   fievre: {
     dur: [120, 280], mal: 3,
     debut: ['(Vous avez chaud, puis froid. La fièvre monte.)'],
-    fin: '(La fièvre tombe. Vous êtes trempé de sueur.)',
+    fin: '(La fièvre tombe.)',
     dmgS: (A) => 0.02 * A.k,
     tick(A, dt) {
       const p = game.player;
       p.hp -= dt * 0.02 * A.k;
       if (p.stamina > 0.7) p.stamina = 0.7;
       A.T.g = (A.T.g ?? 6 + Math.random() * 6) - dt;
-      if (A.T.g <= 0) { A.T.g = 10 + Math.random() * 9; game.shakeT = Math.max(game.shakeT || 0, 0.3); sound.breath && sound.breath(0.6); if (Math.random() < 0.25) effets.dire('(Vous grelottez.)'); }
+      if (A.T.g <= 0) { A.T.g = 10 + Math.random() * 9; game.shakeT = Math.max(game.shakeT || 0, 0.3); sound.breath && sound.breath(0.6); }
       if (p.hp <= 0) game.die('Emporté par la fièvre');
     },
     fx(A, fx, tint, t) { teinte(tint, [1, 0.45, 0.2], (0.04 + 0.03 * Math.sin(t * 1.7)) * A.k); fx[2] = Math.max(fx[2], 0.06 * A.k); },
   },
   somnolence: {
     dur: [60, 180],
-    debut: ['(Une grande lourdeur vous prend. Vos paupières pèsent.)', '(Vous bâillez à vous décrocher la mâchoire.)'],
+    debut: ['(Une grande lourdeur vous prend.)'],
     fin: '(La torpeur se dissipe.)',
     start() { sound.baillement && sound.baillement(); },
     tick(A, dt) {
@@ -120,8 +120,8 @@ const EFFETS = {
   },
   hallucinations: {
     dur: [90, 240],
-    debut: ['(Les couleurs se mettent à respirer.)', '(Les arbres ont des visages. Des visages patients.)', '(Quelque chose ne va pas avec la lumière.)'],
-    fin: '(Les couleurs reprennent leur place. Presque toutes.)',
+    debut: ['(Quelque chose ne va pas avec la lumière.)'],
+    fin: '(Les couleurs reprennent leur place.)',
     tick(A, dt, c) {
       play.nausea = Math.max(play.nausea || 0, 0.3 * A.k);
       A.T.s = (A.T.s ?? 6 + Math.random() * 8) - dt;
@@ -150,7 +150,7 @@ const EFFETS = {
   },
   sprint: {
     dur: [50, 110], buff: 'celerite',
-    debut: ['(Vos jambes vous démangent : vous pourriez courir jusqu’à la ville.)', '(Un feu vous monte aux joues, et aux jambes.)'],
+    debut: ['(Un feu vous monte aux joues, et aux jambes.)'],
     start() { game.player.stamina = 1; },
     tick() { const p = game.player; if (p.stamina < 0.6) p.stamina = 0.6; },
   },
@@ -171,14 +171,14 @@ const EFFETS = {
   },
   calme: {
     dur: [60, 180],
-    debut: ['(Une grande paix vous prend, comme après une longue journée.)', '(Les épaules se dénouent. Tout est calme.)'],
+    debut: ['(Les épaules se dénouent. Tout est calme.)'],
     start(A) { esprit.changer(1.2 * A.k, 'calme', 5); },
     tick() { strange.fear = (strange.fear || 0) * 0.35; },
   },
   panique: {
     dur: [40, 120],
-    debut: ['(Le cœur s’emballe. Tout vous paraît menaçant, soudain.)', '(Une peur sans objet vous serre la gorge.)'],
-    fin: '(Le cœur ralentit. Ce n’était rien. Vous croyez.)',
+    debut: ['(Une peur sans objet vous serre la gorge.)'],
+    fin: '(Le cœur ralentit.)',
     start(A) { esprit.changer(-1.2 * A.k, 'panique', 6); },
     tick(A, dt) {
       const p = game.player;
@@ -199,20 +199,20 @@ const EFFETS = {
     fx(A, fx, tint) { fx[0] = Math.max(fx[0], 0.3); teinte(tint, [0.2, 0.22, 0.25], 0.12); },
   },
   faim: { instant: true, debut: ['(Une faim de loup vous tord le ventre.)'], start(A) { const p = game.player; p.food = Math.max(0, p.food - 12 * A.k); } },
-  pique: { instant: true, debut: ['(Ça pique la langue et les lèvres. Mauvaise idée.)'], start() { const p = game.player; p.hp = Math.max(1, p.hp - 1); } },
+  pique: { instant: true, debut: ['(Ça pique la langue et les lèvres.)'], start() { const p = game.player; p.hp = Math.max(1, p.hp - 1); } },
   remede: {
     instant: true,
     start() {
       const S = effets.S();
       let ok = false;
       for (const A of S.actifs) if (A.id === 'fievre' || A.id === 'coliques') { A.fin = Math.min(A.fin, S.t + 5); ok = true; }
-      if (ok) effets.dire('(La fièvre recule. Le remède de grand-mère.)');
+      if (ok) effets.dire('(La fièvre recule.)');
     },
   },
   vue_trouble: {
     dur: [40, 90],
     debut: ['(Votre vue se brouille. Cette gnôle-là n’était pas bonne.)'],
-    fin: '(Vous y voyez de nouveau. Vous avez eu peur.)',
+    fin: '(Vous y voyez de nouveau.)',
     fx(A, fx, tint) { fx[0] = Math.max(fx[0], 0.55); fx[2] = Math.max(fx[2], 0.35); teinte(tint, [0.55, 0.55, 0.5], 0.3); },
   },
   ivresse: { instant: true, start(A) { if (typeof alcool !== 'undefined') alcool.boire(A.k, A.src); } },

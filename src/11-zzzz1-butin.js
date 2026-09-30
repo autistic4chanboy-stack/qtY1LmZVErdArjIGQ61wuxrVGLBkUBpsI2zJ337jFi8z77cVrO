@@ -472,11 +472,10 @@ const butin = {
     try {
       if (S.vol && !S.agi && S.vus.length) this.soupcon(S);
       if (S.o.it) fouilles.majProp(S.o.it);
-      if (S.pris.length) ui.subtitle('', `(Vous prenez : ${this.resume(S.pris)}.)`, 3.5);
       if (S.o.onFerme) try { S.o.onFerme(S.pris.filter((p) => p[0] !== 'papier').map((p) => p.slice(0, 2))); } catch (e) { console.error(e); }
       const pap = S.papier;
       if (pap && !S.attrape) setTimeout(() => { if (!ui.panel && !game.dying) fouilles.lirePapier(pap); }, 450);
-      else if (pap) setTimeout(() => ui.subtitle('', '(Le papier, vous le relirez plus tard : sacoche, onglet Lettres.)', 3.5), 2600);
+      else if (pap) setTimeout(() => penser.une('lettres', '(Le papier ira dans la sacoche, onglet Lettres.)', 3.5), 2600);
     } catch (e) { console.error('butin', e); }
     this.menage();
   },
@@ -494,7 +493,7 @@ const butin = {
   // ------------------------------------------------------------------ le panneau
   htmlListe(S) {
     const E = this.entrees(S);
-    if (!E.length) return `<p class="bu-vide">${S.pris.length || S.videAvant ? '(Il n’y a plus rien.)' : '(Rien qui vaille la peine. Des miettes, de la poussière.)'}</p>`;
+    if (!E.length) return `<p class="bu-vide">${S.pris.length || S.videAvant ? '(Il n’y a plus rien.)' : '(Rien qui vaille la peine.)'}</p>`;
     S.sel = clamp(S.sel, 0, E.length - 1);
     return E.map((e, j) => `<button class="row bu-it${j === S.sel ? ' on' : ''}" data-bu="${j}"><kbd>${j < 9 ? j + 1 : ''}</kbd><img src="${this.iconeEntree(e)}" alt=""><span>${esc(this.nomEntree(e))}</span><i>${e.pap ? '' : e.k === 'argent' ? e.n : '×' + e.n}</i></button>`).join('');
   },
@@ -647,7 +646,7 @@ const butin = {
       }
       if (C) {
         for (const [k, n] of C.o) if (n > 0 && this.prenable(k)) out.push([k, n]);
-        if (this.papierVisible(C)) { fouilles.garderPapier(C.pap, it); ui.subtitle('', '(Un papier glisse des débris. Vous le gardez : sacoche, onglet Lettres.)', 3.5); }
+        if (this.papierVisible(C)) { fouilles.garderPapier(C.pap, it); if (!penser.une('lettres', '(Un papier glisse des débris : sacoche, onglet Lettres.)', 3.5)) ui.subtitle('', '(Un papier glisse des débris.)', 3); }
         C.o = []; C.pap = null;
       }
       if (it.kind === 'f2') fouilles.majProp(it);

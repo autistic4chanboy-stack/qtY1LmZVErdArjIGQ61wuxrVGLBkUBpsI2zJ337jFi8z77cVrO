@@ -41,11 +41,11 @@ const lanterne = {
       if (!farm.count(id) || !farm.take(id, 1)) continue;
       S.huile = Math.min(LANTERNE_MAX, S.huile + sec);
       sound.pop && sound.pop();
-      ui.subtitle('', id === 'bougie' ? '(Vous glissez une bougie dans la lanterne. Cinq minutes de lumière.)' : '(Vous remplissez la lanterne d’huile. Dix minutes de flamme.)', 3);
+      penser.une('lanterne_' + (id === 'bougie' ? 'bougie' : 'huile'), id === 'bougie' ? '(Une bougie : cinq minutes de lumière.)' : '(De l’huile : dix minutes de flamme.)', 3);
       this.bas = false;
       return true;
     }
-    if (!auto) ui.subtitle('', '(Plus d’huile, ni de bougie. La forge et le colporteur vendent de l’huile à lampe.)', 3.5);
+    if (!auto) ui.subtitle('', '(Plus d’huile, ni de bougie.)', 2.5);
     return false;
   },
   // la flamme brûle : le temps réel qui passe, en jeu (pas en pause ni dans le sommeil)
@@ -75,11 +75,11 @@ HOOKS.load.push(() => {
   const _tog = game.toggleLantern.bind(game);
   game.toggleLantern = function () {
     if (!this.lantern && farm.count('lanterne') && lanterne.reste() <= 0 && !lanterne.recharger(true)) {
-      sound.click(); ui.subtitle('', '(La lanterne est vide. Il faudrait de l’huile à lampe, ou une bougie.)', 3); return;
+      sound.click(); ui.subtitle('', '(La lanterne est vide.)', 3); return;
     }
     lanterne.relancer = false; lanterne.eteinte = 0;
     const r = _tog();
-    if (this.lantern && lanterne.reste() < 60) ui.subtitle('', '(La mèche prend. Il reste peu d’huile.)', 2.5);
+    if (this.lantern && lanterne.reste() < 60) ui.subtitle('', '(Il reste peu d’huile.)', 2.5);
     return r;
   };
 });

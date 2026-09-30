@@ -212,7 +212,6 @@ MONDES.cauchemar = {
       const e = this.tueur;
       if (e) { let nz = e.z - f.z - L.pas; if (nz < L.couloir[0] + 1) nz = Math.max(L.couloir[0] + 1, p.pos[2] - f.z - 18); e.z = f.z + nz; e.x = f.x + clamp(e.x - f.x, -1, 1); e.y = f.y; }
       if (game.renderer) game.renderer.uploadCover(p.pos[0], p.pos[2]);
-      
       if (this.boucle === 2) sound.knock && sound.knock(3);
       if (this.boucle === L.tours) { this.porteFin.y = -9999; game.world.grid = null; game.world.blocksDirty = true; }
     }

@@ -68,13 +68,13 @@ const ruches = {
     const p = game.player, n = 1 + ((Math.random() * 3) | 0);
     play.hurt(2 + n * 1.5, null, 'Piqué à mort par des abeilles');
     sound.hurt && sound.hurt(3);
-    ui.subtitle('', n > 2 ? '(Elles vous tombent dessus. Une piqûre, deux, trois… Un enfumoir, la prochaine fois.)' : '(Aïe ! Une piqûre, au poignet. Elles n’aiment pas qu’on se serve sans fumée.)', 3.5);
+    ui.subtitle('', n > 2 ? '(Elles vous tombent dessus. Une piqûre, deux, trois…)' : '(Aïe ! Une piqûre, au poignet.)', 3.5);
     if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-0.3, 'piqûres');
     p.vel[0] += (Math.random() - 0.5) * 2; p.vel[2] += (Math.random() - 0.5) * 2;
   },
   recolter(q) {
     const d = q.data || {}, miel = d.pots !== undefined ? d.pots : (d.miel || 0), cire = d.cire || 0;
-    if (!miel && !cire) { ui.subtitle('', '(Les abeilles vont et viennent. Rien à prendre encore : revenez demain matin.)', 3); sound.click && sound.click(); return; }
+    if (!miel && !cire) { ui.subtitle('', '(Rien à prendre encore.)', 3); sound.click && sound.click(); return; }
     const fumee = farm.count('enfumoir') > 0;
     if (fumee) {
       for (let k = 0; k < 10; k++) particles.spawn(q.x + (Math.random() - 0.5) * 0.6, q.y + 0.9, q.z + (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.4, 0.5 + Math.random() * 0.5, (Math.random() - 0.5) * 0.4, [0.85, 0.85, 0.82, 0.6], 0.16, 2.2, -0.05, false);
@@ -83,7 +83,7 @@ const ruches = {
     if (miel) { farm.give('miel', miel); play.flyer('miel', [q.x, q.y + 0.8, q.z], miel); }
     if (cire) { farm.give('cire_abeille', cire); play.flyer('cire_abeille', [q.x, q.y + 0.8, q.z], cire); }
     sound.pop && sound.pop();
-    if (fumee && !this.ditFumee) { this.ditFumee = true; ui.subtitle('', '(Un peu de fumée : les abeilles se calment, et vous laissent faire.)', 3); }
+    if (fumee && !this.ditFumee) this.ditFumee = true;
   },
 };
 
@@ -93,7 +93,7 @@ HOOKS.day.push(() => { if (farm.s && game.world) ruches.matin(); });
   const avant = HOOKS.propPre.ruche;
   HOOKS.propPre.ruche = (q) => {
     if (avant && avant(q)) return true;
-    if (!ruches.estAMoi(q)) { ui.subtitle('', '(Les ruches du hameau. Elles sont à quelqu’un : on ne se sert pas.)', 3); return true; }
+    if (!ruches.estAMoi(q)) { ui.subtitle('', '(Elles sont à quelqu’un.)', 3); return true; }
     ruches.recolter(q);
     return true;
   };

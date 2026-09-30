@@ -82,7 +82,7 @@ const attelage = {
     this.anim = { t: 0, x0: q.x, z0: q.z };
     sound.equip && sound.equip(); sound.chain && sound.chain();
     sound.animal && sound.animal(e.kind === 'donkey' ? 'donkey' : 'horse', 0, 0.45);
-    ui.subtitle('', e.kind === 'donkey' ? '(Vous passez le harnais à l’âne, bouclez les sangles, glissez les brancards. La charrette est attelée.)' : '(Vous passez le harnais, bouclez les sangles, glissez les brancards. La charrette est attelée.)', 4);
+    ui.subtitle('', '(La charrette est attelée.)', 2.5);
     return true;
   },
   deteler(silencieux) {
@@ -95,7 +95,7 @@ const attelage = {
       removePropCollider(w, q); addPropCollider(w, q); w.grid = null;
     }
     this.e = null; this.q = null; this.anim = null; this.dernier = null; this.dernierH = null;
-    if (!silencieux) { ui.subtitle('', '(Vous dételez. Les brancards retombent dans l’herbe.)', 3); sound.place && sound.place(); }
+    if (!silencieux) sound.place && sound.place();
   },
   // E sur la charrette, pied à terre : son chargement (ou la dételer)
   utiliser(q) {
