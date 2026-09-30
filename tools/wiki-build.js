@@ -555,6 +555,24 @@ function vieProbe() {
     for (let m = 1; m <= 24 * 60; m++) { const a = up((m - 1) / 60), b = up(m / 60); if (!a && b) lever = m / 60; if (a && !b) coucher = m / 60; }
     return { lever, coucher, jour: typeof JOUR_SECONDES !== 'undefined' ? JOUR_SECONDES : null, dayLength: w.dayLength || null };
   });
+  // la pluie : le programme météo du jeu (weather.dayPlan) sur deux mille jours
+  ok('pluie', () => {
+    if (typeof weather === 'undefined' || !weather.dayPlan) return undefined;
+    const N = 2000, o = { jours: N, pluie: 0, orage: 0, gel: 0, canicule: 0, heures: 0 };
+    for (let d = 2; d < N + 2; d++) {
+      const P = weather.dayPlan(s.seed || 1234, d);
+      if (P.rain) o.pluie++; if (P.storm) o.orage++; if (P.frost) o.gel++; if (P.heat) o.canicule++;
+      const L = P.plan;
+      for (let i = 0; i < L.length; i++) { const a = L[i][0], b = i + 1 < L.length ? L[i + 1][0] : 24; if (L[i][1] === 'rain' || L[i][1] === 'storm') o.heures += Math.max(0, Math.min(24, b) - a); }
+    }
+    o.heures = r2(o.heures / (N * 24));
+    return o;
+  });
+  // les serrures (CROC_* : une seule déclaration, que la lecture des tables ne voit pas toute) et les outils (TOOL_DMG)
+  ok('crocT', () => (typeof CROC_ZONE === 'undefined' ? undefined : { pins: CROC_PINS, zone: CROC_ZONE, vit: CROC_VIT, casse: CROC_CASSE }));
+  ok('outils', () => ({ dmg: typeof TOOL_DMG !== 'undefined' ? TOOL_DMG : null, extra: typeof OBJ_DMG !== 'undefined' ? OBJ_DMG : null }));
+  // acheter une maison de la commune : le prix, la revente
+  ok('achat', () => (typeof meubles === 'undefined' || !meubles.prixAchat ? undefined : Object.keys(LOC_MAISONS).map((k) => [k, meubles.prixAchat(k), meubles.prixRevente ? meubles.prixRevente(k) : null])));
   // la fatigue : les stades selon les heures de veille (et avec la vigueur), et leur force
   ok('fatigue', () => {
     if (typeof sommeil === 'undefined') return undefined;
@@ -597,6 +615,7 @@ function vieProbe() {
       let P = null;
       try { P = objets.profil(q); } catch (e) { P = null; }
       if (!P) { add(A.prot, 'erreur'); continue; }
+      if (P.protege === 'erreur') { try { objets.calculer(q); } catch (e) { A.err = A.err || String((e && e.message) || e).slice(0, 160); } }
       if (P.protege) { add(A.prot, String(P.protege).split(' :')[0]); continue; }
       if (P.casse) A.casse++;
       try { if (objets.ramassable(q, P)) A.ramasse++; } catch (e) { /* rien */ }
@@ -1008,6 +1027,7 @@ function vieTextes(G) {
   g('tirageSur', /const n = 1 \+ \(\(rnd\(\) \* (\d+)\) \| 0\); if \(!L\.includes\(n\)\) L\.push\(n\);/);
   g('brocante', /if \(vendus < (\d+)\) for \(const id of T\) \{\s*const prix = Math\.max\(1, Math\.round\(ITEMS\[id\]\.price \* ([\d.]+)\)\)/);
   g('ecoute', /if \(A\.ecoute >= (\d+) && !this\.fait\('ecoute1'\)\)[\s\S]{0,300}?if \(A\.ecoute >= (\d+) && !this\.fait\('ecoute2'\)\)/);
+  g('pecheJury', /if \(h < (\d+)\) \{ ui\.subtitle\('', P\.best \?[\s\S]{0,400}?if \(h >= (\d+)\) \{ ui\.subtitle\('', '\(Trop tard : le jury/);
   g('conteSemaine', /const C = ACT_CONTES\[Math\.floor\(farm\.s\.day \/ (\d+)\) % ACT_CONTES\.length\]/);
   return R;
 }
@@ -1035,6 +1055,14 @@ function extractVie(G, DB, FIGS) {
   const one = (id, data, key, S) => addCv(key, `(() => { const id = ${JSON.stringify(id)}; if (!PROP_MODELS[id]) return null; const o = { id, x: 0, y: 0, z: 0, r: 0, s: 1, data: Object.assign({ lit: true, fill: 1, open: false, m: null, vide: false, items: {} }, ${JSON.stringify(data)}) }; const T = { t: 1.3, hour: 12, night: 0, day: 1, wind: 0.3, rain: 0 }; const boxes = ICON3D.capture((cap) => { PE.buf = cap; PE.fl = 0; PE.frame(0, 0, 0, 0, 1); PROP_MODELS[id](PE, o, T); }); return boxes.length ? ICON3D.render(boxes, ${S}) : null; })()`);
   for (const id of P) one(id, {}, 'prop:' + id, /^(quilles_piste|tente_diseuse|lit_geant)$/.test(id) ? 96 : 72);
   one('tertre', { pierre: 1 }, 'prop:tertre_pierres', 72);
+  // les arroseurs, et les meubles qu'on pose chez soi (leur modèle : l'objet posé qui les porte)
+  for (const id of ['arroseur', 'arroseur_fer']) one(id, {}, 'prop:' + id, 72);
+  const MB = G.get('MEUBLES');
+  if (MB && typeof MB === 'object') for (const [id, M] of Object.entries(MB)) {
+    const pid = G.run(`(() => { const it = ITEMS[${JSON.stringify(id)}]; return (it && it.place) || ${JSON.stringify(id)}; })()`);
+    if (!fig['prop:' + pid]) one(pid, M.data || {}, 'prop:' + pid, 72);
+    if (pid !== id && fig['prop:' + pid]) fig['meuble:' + id] = fig['prop:' + pid];
+  }
 }
 
 async function extract() {
@@ -1216,6 +1244,8 @@ async function extract() {
   { const R = safe('routines (vallée)', () => extractRoutines(G), null); if (R) DB.derived.routines = R; }
   // la vie de la vallée (lits, portes et serrures, fouilles, objets, activités, dépouilles, bail) : mesurée dans le jeu
   safe('vie de la vallée', () => extractVie(G, DB, FIGS));
+  // l'équilibrage : la section du README qui le raconte (convertie en fiche)
+  DB.derived.equilibrage = safe('README (équilibrage)', () => { const md = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8'), a = md.search(/^## Équilibrage\s*$/m); if (a < 0) return null; const b = md.slice(a + 5).search(/^## /m); return md.slice(a, b < 0 ? undefined : a + 5 + b); }, null);
   say('vie de la vallée mesurée');
   // la planche des figurines (les portes et les meubles s'y sont ajoutés)
   if (FIGS) {
@@ -2005,6 +2035,10 @@ function buildWiki(DB) {
   // ---------------------------------------------------------------- 16) LIEUX
   const inRange = (L, x, z, m = 1.1) => dist(L.x, L.z, x, z) <= (L.r || 6) * m + 3;
   const SAFE_INTER = new Set(['bed', 'chest', 'cook', 'water', 'mailbox', 'rentbed', 'bell', 'sign', 'mapboard', 'lire', 'pray', 'benitier', 'alambic', 'book_legends', 'affiche', 'arrivages', 'refuge', 'peche_glace', 'biblio', 'biblio_rayon', 'biblio_vitrine', 'bain', 'alch_table', 'ladder', 'grimper', 'forage', 'water']);
+  // (la vie des villes : les endroits à fouiller, les activités, les écriteaux se voient ; pas les cachettes ni ce qui est sous terre)
+  const CAVE_A = W.misc && W.misc.caveAuberge;
+  const sousTerre = (it) => !!((it.data && (it.data.bld === 'cave' || (BLD[it.data.bld] && BLD[it.data.bld].under))) || (CAVE_A && Math.abs(it.x - CAVE_A.x) < 20 && Math.abs(it.z - CAVE_A.z) < 20) || (W.lm || []).some((L) => L.under && dist(L.x, L.z, it.x, it.z) <= (L.r || 10) * 1.1 + 3) || !placeAt(it.x, it.z));
+  const safeInter = (it) => SAFE_INTER.has(it.kind) || /^f2a_/.test(it.kind) || it.kind === 'louer' || (it.kind === 'f2' && !!it.data && it.data.t !== 'cache' && !sousTerre(it));
   const regionOf = (x, z) => Object.entries(CARTES).filter(([, C]) => C.x !== undefined && dist(C.x, C.z, x, z) <= C.r).map(([k, C]) => IL('carte_' + k, undefined) || esc(C.titre));
   const allPlaces = [...(W.lm || []).map((L) => ({ key: L.key, L, B: BLD[L.key] || null })), ...(W.bld || []).filter((B) => !LM[B.key]).map((B) => ({ key: B.key, L: null, B }))];
   for (const { key, L, B } of allPlaces) {
@@ -2036,7 +2070,7 @@ function buildWiki(DB) {
     if (L && L.fish) { const f = fishSet(L.fish); if (f.length) h += `<h3>Pêche : ${esc(EAUX[L.fish] || L.fish)}</h3><ul class="cards">${f.map((q) => `<li>${IL(q)} ${rarTag(FR[q])}</li>`).join('')}</ul>`; }
     // ce qu'on y trouve
     const its = INTER.filter((it) => inRange({ x, z, r }, it.x, it.z, 1.05));
-    const pubI = its.filter((it) => SAFE_INTER.has(it.kind)), secI = its.filter((it) => !SAFE_INTER.has(it.kind));
+    const pubI = its.filter(safeInter), secI = its.filter((it) => !safeInter(it));
     const lab = (a) => uniq(a.map((it) => it.name || it.kind)).map((n) => { const c = a.filter((it) => (it.name || it.kind) === n).length; return `<li>${esc(n)}${c > 1 ? ' ×' + c : ''}</li>`; }).join('');
     if (pubI.length) h += `<h3>On peut y…</h3><ul class="cols">${lab(pubI)}</ul>`;
     if (secI.length) h += SEC(`<h3>Ce qui s’y cache</h3><ul class="cols">${lab(secI)}</ul>${uniq(secI.filter((it) => it.kind === 'loot' && it.data && it.data.table).map((it) => it.data.table)).map((t) => link('bt:' + t)).join(', ')}`, false);
@@ -2869,6 +2903,519 @@ function buildWiki(DB) {
     for (const D of FD) SP('scp:' + D.id, { t: `${D.id} — ${D.titre}`, s: `Dossier de confinement · classe ${D.classe || '?'}`, c: ['merveilles'], g: 'Dossiers de la Fondation', i: '▣', x: 1, h: `<dl class="kv"><dt>Désignation</dt><dd>SCP-${esc(D.id)}</dd><dt>Classe</dt><dd>${esc(D.classe || '—')}</dd></dl>${(D.s || []).map(([t, x]) => `<h3>${esc(t)}</h3>${para(x)}`).join('')}<p>${lk('sys:fondation', 'La Fondation')}</p>` });
   }
 
+  // ==== LA VIE DE LA VALLÉE : dormir, louer, acheter et meubler, crocheter, les portes, fouiller, ramasser et casser,
+  // les morts qui restent au sol, les activités, la terre, l'équilibrage (mesuré dans le jeu : DB.derived.vie) ====
+  const VIE = DB.derived.vie || {}, RE = VIE.re || {};
+  const FV = {
+    sommeil: fileHas(/^11-zzz95/), location: fileHas(/^11-zzz96/), croc: fileHas(/^11-zzz97/), fouilles: fileHas(/^11-zzz98/), activites: fileHas(/^11-zzz99/),
+    butin: fileHas(/^11-zzzz1-/), objets: fileHas(/^11-zzzz2-/), depouilles: fileHas(/^11-zzzz3-/), meubles: fileHas(/^11-zzzz4-meubles/), terre: fileHas(/^11-zzzz4-ferme/),
+    portes: fileHas(/^07-zzzzzzz-portes/), meublesModeles: fileHas(/^07-zzzzzzzz-/),
+  };
+  const LOC = T('LOC_MAISONS', {}), CRIMES = T('CRIME_DEF', {});
+  // ce que la carte montre de la vie des villes : maisons à louer et poterne, activités, endroits à fouiller
+  const VIE_MAP = { louer: [], poterne: null, act: [], f2: [] };
+  const reelle =(h) => (JOUR ? dur(h * JOUR / 24) : '');
+  const hj = (h) => `${nfmt(h)} h de jeu${JOUR ? ` <small>(${esc(reelle(h))} réelles)</small>` : ''}`;
+  const bldNom = (k) => (LOC[k] && LOC[k].nom) || (k === 'cave' ? 'la cave de l’auberge' : k === 'grange' ? 'la grange du ranch' : lieuName(k));
+  // (un lieu secret ou souterrain ne se nomme qu'une fois les secrets révélés)
+  const secPlace = (k) => !!((LM[k] && (LM[k].secret || LM[k].under)) || (BLD[k] && BLD[k].under));
+  const bldLink = (k, t) => { if (!k) return ''; const x = pages.has('li:' + k) ? placeLink(k, cap(t ?? bldNom(k))) : esc(cap(t ?? bldNom(k))); return secPlace(k) ? secS(x) : x; };
+  const ouPub = (x, z) => {
+    const L = placeAt(x, z); if (!L) return 'dans la nature';
+    const nm = lieuName(L.key), m = L.near ? nm.match(/^(les?) (.*)$/i) : null;
+    const t = !L.near ? placeLink(L.key) : m ? (m[1].toLowerCase() === 'le' ? 'près du ' : 'près des ') + placeLink(L.key, m[2]) : 'près de ' + placeLink(L.key);
+    return L.secret || L.under ? secS(t) : t;
+  };
+  const figK = (key, box, capt, href) => figInline(figRect(key), box, capt, href);
+  const semNom = (k) => (SEM[k] ? SEM[k].nom : 'jour ' + (k + 1));
+  const plage = (L) => L.map(([a, b]) => (a <= 0 && b >= 24 ? 'à toute heure' : `de ${hours(a)} à ${hours(b)}`)).join(' et ');
+  const liste = (a) => (a.length > 1 ? a.slice(0, -1).join(', ') + ' et ' + a[a.length - 1] : a[0] || '');
+  // les heures d'ouverture mesurées (les douze jours) : « le Marchedi et le Vorndi, de 9 h à 19 h »
+  const leJ = (k) => (/^[aeiouyéèêàâîôœ]/i.test(semNom(k)) ? 'l’' : 'le ') + semNom(k);
+  const jours = (ks) => (ks.length <= 3 ? liste(ks.map(leJ)) : leJ(ks[0]) + ', ' + liste(ks.slice(1).map(semNom)));
+  const fenTexte = (F) => {
+    if (!F || !F.length) return '';
+    const by = new Map();
+    F.forEach((L, k) => { if (!L.length) return; const key = JSON.stringify(L); if (!by.has(key)) by.set(key, []); by.get(key).push(k); });
+    if (!by.size) return 'jamais';
+    return [...by.entries()].map(([key, ks]) => {
+      const hors = F.map((_, k) => k).filter((k) => !ks.includes(k));
+      const q = !hors.length ? 'tous les jours' : hors.length <= 3 && ks.length > hors.length ? `tous les jours sauf ${jours(hors)}` : jours(ks);
+      return `${q}, ${plage(JSON.parse(key))}`;
+    }).join(' ; ');
+  };
+  const pieces = (n) => plur(n, 'pièce', 'pièces');
+  const signe = (v) => (v > 0 ? '+' : v < 0 ? '−' : '') + nfmt(Math.abs(v));
+  // les effets d'un geste mesuré (amitié, mentalité, argent, objets, effets, blessure, foi)
+  const fxTexte = (L) => {
+    if (!L || !L.length) return '<small>rien</small>';
+    const out = [], ami = {};
+    for (const c of L) {
+      if (c[0] === 'ami') { ami[c[2]] = ami[c[2]] || []; ami[c[2]].push(c[1]); continue; }
+      if (c[0] === 'esprit') out.push(`mentalité ${signe(c[1])}`);
+      else if (c[0] === 'earn') out.push(`on reçoit ${pieces(c[1])}`);
+      else if (c[0] === 'pay') out.push(`on paie ${pieces(c[1])}`);
+      else if (c[0] === 'give') out.push(`on reçoit ${IL(c[1], c[2] > 1 ? c[2] : undefined)}`);
+      else if (c[0] === 'take') out.push(`on donne ${IL(c[1], c[2] > 1 ? c[2] : undefined)}`);
+      else if (c[0] === 'buff') out.push(`<span class="tag">${esc(BUFFN2[c[1]] || humanKey(c[1]))}</span> ${hj(c[2])}`);
+      else if (c[0] === 'hurt') out.push(`${c[1]} points de vie perdus`);
+      else if (c[0] === 'pv') out.push(`${signe(c[1])} points de vie`);
+      else if (c[0] === 'foi') out.push(`foi ${signe(c[2])} <small>(${esc(humanKey(c[1]))})</small>`);
+    }
+    for (const [k, ids] of Object.entries(ami)) out.unshift(`amitié ${signe(+k)} <small>(${uniq(ids).map((id) => (NPC_BY[id] ? npcLink(id, npcName(id)) : esc(id))).join(', ')})</small>`);
+    return out.join(' · ');
+  };
+  const gain = (L, k) => (L || []).filter((c) => c[0] === k).reduce((a, c) => a + (c[1] || 0), 0);
+  const quotesP = (a, who) => quotes((a || []).map((t) => String(t).replace(/^\(|\)$/g, '')), who);
+  // un endroit du monde : là où il est, et le bouton de la carte
+  const ouTexte = (x, z) => `${ouPub(x, z)} ${mapBtn('xy:' + Math.round(x) + ',' + Math.round(z), 'carte')}`;
+  const nomNPC = (id) => (NPC_BY[id] ? npcLink(id, npcName(id)) : esc(humanKey(id)));
+  const pct0 = (p) => (p === null || p === undefined ? '—' : Math.round(p * 100) + ' %');
+  const TOOLD = (VIE.outils && VIE.outils.dmg) || null, TIERS_ = T('TIERS', ['pierre', 'cuivre', 'fer', 'acier']), TIERN = T('TIER_NAMES', {});
+  const coups = (pv, kind, k = 1) => { const d = TOOLD && TOOLD[kind]; if (!d || !k) return null; return (Array.isArray(d) ? d : [d]).map((v) => Math.ceil(pv / (v * k))); };
+  const catsVie = (c) => ({ c: [c] });
+
+  // ---- le temps qui passe : la fiche de la journée reçoit le jour et la nuit du soleil du jeu
+  {
+    // (le soleil passe l'horizon entre deux minutes mesurées : à cinq minutes près)
+    const C0 = VIE.ciel, p = pages.get('sys:journee');
+    const CI = C0 && C0.lever !== null && C0.coucher !== null ? Object.assign({}, C0, { lever: Math.round(C0.lever * 12) / 12, coucher: Math.round(C0.coucher * 12) / 12 }) : C0;
+    if (p && CI && CI.lever !== null && CI.coucher !== null && JOUR) {
+      const jourH = CI.coucher - CI.lever, min = (h) => nfmt(Math.round(h * JOUR / 24 / 6) / 10) + ' minutes';
+      let x = `<p class="lead">Dans la vallée, une journée entière dure ${nfmt(Math.round(JOUR / 6) / 10)} minutes de temps réel : le soleil se lève à ${hours(CI.lever)} et se couche à ${hours(CI.coucher)}, soit ${min(jourH)} de jour et ${min(24 - jourH)} de nuit. Une heure de jeu passe en ${nfmt(Math.round(JOUR / 24 * 10) / 10)} secondes. La semaine compte ${SEM.length} jours, chacun avec son nom et ses habitudes.</p>`;
+      x += `<table class="t"><tr><th>Dans la vallée</th><th>En temps réel</th></tr>${[[1, 'une heure'], [6, 'une matinée (6 heures)'], [jourH, `le jour (de ${hours(CI.lever)} à ${hours(CI.coucher)})`], [24 - jourH, 'la nuit'], [24, 'une journée'], [24 * SEM.length, `une semaine de ${SEM.length} jours`]].map(([h, t]) => `<tr><td>${esc(t)}</td><td>${esc(reelle(h))}</td></tr>`).join('')}</table>`;
+      x += `<p class="note">Le soleil est celui du jeu (sa hauteur minute par minute) ; la durée, la constante de la journée.${FV.sommeil ? ` Se coucher mène au lendemain matin : ${lk('sys:sommeil', 'dormir, et la fatigue')}.` : ''}</p>`;
+      p.h = p.h.replace(/^<p class="lead">[\s\S]*?<\/p>/, x);
+      p.s = `Journées de ${nfmt(Math.round(JOUR / 6) / 10)} minutes (${min(jourH)} de jour, ${min(24 - jourH)} de nuit), semaine de ${SEM.length} jours`;
+    }
+  }
+
+  // ---- dormir, et la fatigue
+  if (FV.sommeil) {
+    const FP = U('FATIGUE_PENSEES', []), FE = U('FATIGUE_ENTREE', []), LD = U('LIT_DECOUVERT', {}), LP = U('LIT_PROTESTE', []);
+    U('LIT_TAILLE'); U('LIT_INTERS'); U('LOC_CLES');
+    const F = VIE.fatigue || {}, S = F.seuils || [];
+    let h = intro(FV.sommeil, { skip: /génération nouvelle/i });
+    h = `<div class="figrow">${['lit', 'paillasse', 'lit_geant'].map((id) => figK('prop:' + id, 70)).join('')}</div>` + h;
+    if (S.length > 1) {
+      const vig = F.vigueur || [], dv = vig[1] && S[1] ? vig[1][1] - S[1][1] : 0;
+      const E = RE.endurance, FR = RE.fatigueRythme, CD = RE.coupsDurs, ms = RE.microSommeil;
+      h += `<h3>La fatigue, heure après heure</h3><p class="note">Les heures passées debout depuis le dernier réveil (heures de jeu). Dormir remet tout à zéro${dv ? ` ; la ${lk('eff:vigueur', 'vigueur')} repousse la fatigue de ${plur(dv, 'heure', 'heures')}` : ''}.</p><table class="t"><tr><th>Debout depuis</th><th>Ce que pense le personnage</th><th>Ce que ça fait</th></tr>${S.filter(([st]) => st > 0).map(([st, v]) => {
+        const fx = [];
+        if (E && E[st] !== undefined && E[st] < 1) fx.push(`l’endurance revient à ${Math.round(E[st] * 100)} %`);
+        if (FR && FR[0][st]) fx.push(`la mentalité baisse de ${nfmt(FR[0][st])} par heure`);
+        if (CD && CD[st] > 1) fx.push(`les coups durs pèsent ×${nfmt(CD[st])}`);
+        if (st >= 2) fx.push('paupières lourdes, clignements lents');
+        if (RE.murmures && st >= RE.murmures[0]) fx.push('vue voilée, murmures');
+        if (RE.silhouette && st >= RE.silhouette[0]) fx.push('une silhouette au coin de l’œil');
+        if (ms && st >= ms[0]) fx.push(`les yeux se ferment tout seuls, une seconde (${pct(ms[1])} des clignements)`);
+        return `<tr><th>${hj(v)}</th><td>${FE[st] ? `<i>${FILL(String(FE[st]).replace(/^\(|\)$/g, ''))}</i>` : ''}</td><td>${fx.map(esc).join(' ; ')}</td></tr>`;
+      }).join('')}</table>`;
+      if (FR) h += `<p>La mentalité s’use deux fois par seconde, au prorata des heures de jeu, et plus encore au-delà de ${FR[1]} h debout (${nfmt(FR[2])} de plus par heure)${RE.fatiguePlafond ? ` ; pas plus de ${RE.fatiguePlafond[0]} points par jour` : ''}. ${lk('sys:esprit', 'La mentalité')}.</p>`;
+      if (RE.etrangeFatigue && F.k) { const k1 = (F.k.find(([, k]) => k >= 1) || [])[0], k0 = (F.k.find(([, k]) => k > 0) || [])[0]; h += `<p>L’étrange suit la fatigue : ses hasards sont multipliés jusqu’à ×${nfmt(1 + RE.etrangeFatigue[0])}${k0 !== undefined && k1 !== undefined ? `, à partir de ${k0 - 1} h debout, au plus fort à ${k1} h` : ''}.</p>`; }
+      if (FP.some((a) => a && a.length)) h += `<details><summary>Toutes les pensées de la fatigue</summary>${FP.map((a, st) => (a && a.length ? `<h4>Stade ${st}</h4>${quotesP(a)}` : '')).join('')}</details>`;
+    }
+    const DJ = RE.dormirJour, AJ = RE.aubergeJour, AS = RE.aubergeSoir;
+    h += `<h3>Se coucher</h3><p>On dort à toute heure, et l’on se réveille le lendemain matin.${DJ ? ` De ${hours(DJ[0])} à ${hours(DJ[1])}, le jeu le demande d’abord :` : ''}</p>${DJ ? quote(DJ[3]) : ''}${AS ? `<p>À ${placeLink('auberge', 'l’auberge')}, une chambre se loue ${pieces(AS[0])} la nuit${AJ ? ` ; le jour aussi (de ${hours(AJ[0])} à ${hours(AJ[1])}, ${pieces(AJ[2])}) : « ${esc(AJ[3])} »` : ''}.${FV.location ? ` Pour la semaine : ${lk('sys:location', 'louer une maison')}.` : ''}</p>` : ''}`;
+    // les lits de la vallée
+    const LI = VIE.lits || [];
+    if (LI.length) {
+      const CAT = { ferme: 'Chez vous, à la ferme', location: 'Une maison louée ou achetée', conjoint: 'Chez l’être aimé', public: 'Refuges et relais : à tout le monde', vide: 'Maisons vides, lits abandonnés', mort: 'Chez un habitant mort', autrui: 'Chez quelqu’un', cachot: 'Au cachot', geant: 'Chez les géants' };
+      const by = {};
+      for (const [id, x, z, c, bld, own] of LI) (by[c] || (by[c] = [])).push({ id, x, z, bld, own });
+      h += `<h3>Les lits de la vallée</h3><p class="note">${plur(LI.length, 'lit', 'lits')} (lits, paillasses, lit des géants), classés comme le jeu les voit dans une partie neuve. <kbd>E</kbd> sur un lit : « Dormir ici ».</p><table class="t"><tr><th>À qui</th><th>Combien</th><th>Où</th></tr>${Object.entries(by).map(([c, L]) => `<tr><td>${esc(CAT[c] || cap(humanKey(c)))}</td><td>${L.length}</td><td>${uniq(L.map((q) => (q.own && c === 'autrui' ? nomNPC(q.own) + ' <small>(' + bldLink(q.bld) + ')</small>' : q.bld ? bldLink(q.bld) : ouPub(q.x, q.z)))).join(', ')}</td></tr>`).join('')}</table>`;
+    }
+    // dans le lit de quelqu'un
+    const LDc = RE.litDecouvert, amiN = RE.litAmi ? RE.litAmi[0] : null;
+    h += `<h3>Dans le lit de quelqu’un</h3><p>S’il est là et réveillé, il proteste${RE.litProteste ? ` (amitié ${signe(RE.litProteste[0])})` : ''} :</p>${quotes(LP)}<p>S’il rentre pendant la nuit, ou s’il dort dans la pièce, il vous trouve au réveil${LDc ? ` : amitié ${signe(LDc[2])}${amiN !== null ? ` (${signe(LDc[0])} pour un ami, à partir de l’amitié ${amiN})` : ''}, ${signe(LDc[1])} si c’est le lit de la fillette et que sa mère vous trouve` : ''}, une ${CRIMES.intrusion ? `intrusion (prime ${pieces(CRIMES.intrusion.prime)})` : 'intrusion'}, et dehors.</p>`;
+    if (Object.keys(LD).length) h += `<details><summary>Ce qu’ils disent en vous trouvant</summary>${Object.entries(LD).map(([k, v]) => `<h4>${esc({ ami: 'Un ami', autre: 'Un autre', matin: 'Au matin', enfant: 'Dans le lit de la fillette', garde: 'Le garde' }[k] || cap(humanKey(k)))}</h4>${quotes([].concat(v))}`).join('')}</details>`;
+    SP('sys:sommeil', { t: 'Dormir, et la fatigue', s: 'Se coucher à toute heure, les lits de la vallée, les heures sans sommeil', c: ['maisons', 'corps'], i: '☾', h, g: 'Dormir et se loger' }, FV.sommeil);
+  }
+
+  // ---- louer une maison (et l'acheter : 11-zzzz4-meubles.js)
+  if (FV.location && Object.keys(LOC).length) {
+    U('LOC_MAISONS');
+    const LO = VIE.location || {}, ACH = Object.fromEntries((VIE.achat || []).map(([k, a, r]) => [k, [a, r]]));
+    const KN = new Set(['nom', 'court', 'rue', 'loyer', 'cle', 'desc']);
+    let h = `<div class="figrow">${figK('prop:ecriteau_louer', 70, 'L’écriteau')}${figK('prop:coffre_loc', 60, 'Le coffre')}</div>` + intro(FV.location);
+    h += `<h3>Les maisons de la commune</h3><table class="t"><tr><th>Maison</th><th>Où</th><th>Loyer (${SEM.length} jours)</th><th>La nuit</th>${Object.keys(ACH).length ? '<th>À acheter</th><th>Revendue</th>' : ''}<th>Clé</th></tr>${Object.entries(LOC).map(([k, M]) => `<tr><td>${bldLink(k, M.nom)}</td><td>${esc(M.rue || '')}</td><td>${pieces(M.loyer)}</td><td><small>${nfmt(Math.round(M.loyer / SEM.length * 10) / 10)}</small></td>${Object.keys(ACH).length ? `<td>${ACH[k] ? pieces(ACH[k][0]) : '—'}</td><td>${ACH[k] && ACH[k][1] !== null ? pieces(ACH[k][1]) : '—'}</td>` : ''}<td>${M.cle && ITEMS[M.cle] ? IL(M.cle) : ''}</td></tr>`).join('')}</table>`;
+    h += Object.entries(LOC).map(([k, M]) => `<h4>${esc(cap(M.nom))} ${BLD[k] ? mapBtn('li:' + k, 'carte') : ''}</h4>${M.desc ? `<p>${FILL(M.desc)}</p>` : ''}${Object.keys(M).filter((q) => !KN.has(q)).length ? `<dl class="kv">${Object.keys(M).filter((q) => !KN.has(q)).map((q) => `<dt>${esc(/prix|achat|vente/i.test(q) ? 'Prix d’achat' : cap(humanKey(q)))}</dt><dd>${typeof M[q] === 'number' ? pieces(M[q]) : tree(M[q], 2)}</dd>`).join('')}</dl>` : ''}`).join('');
+    const E0 = Object.values(LO.ecriteaux || {}).find(Boolean);
+    if (E0) h += `<h3>L’écriteau</h3><p class="note">Ce qu’on lit devant la maison (<kbd>E</kbd>) :</p>${quote(E0[1])}<p>${(E0[2] || []).map((t) => `<span class="tag">${esc(t)}</span>`).join(' ')}</p>`;
+    if (LO.maire) h += `<h3>Chez le maire</h3><p>${NPC_BY.maire ? npcLink('maire') : 'Le maire'}, « Les maisons à louer » :</p>${quote(LO.maire, 'maire')}`;
+    const B = LO.bail;
+    if (B && B.lettres && B.lettres.length) {
+      const R = RE.bailRappel, X = RE.bailExpulsion;
+      h += `<h3>Le bail, jour après jour</h3><p class="note">Un bail mené dans le jeu sans payer le loyer suivant : les lettres arrivent au courrier${R && X ? ` (rappel ${R[0]} jours après l’échéance, expulsion au ${X[0]}ᵉ)` : ''}. Le coffre est saisi : on reprend ses affaires à la mairie contre la dette.</p><table class="t"><tr><th>Jour</th><th>Lettre</th></tr>${B.lettres.map(([j, from, sujet, texte]) => `<tr><td>${j === 0 ? 'le jour même' : 'jour ' + j}</td><td><details><summary>${esc(sujet)} <small>— ${esc(String(from).replace(/ de .*$/, ''))}</small></summary>${para(texte)}</details></td></tr>`).join('')}</table>`;
+    }
+    if (FV.meubles) h += `<p>${lk('sys:meubles', 'Acheter une maison, et la meubler')}</p>`;
+    h += `<p>${mapBtn('couche:louer', 'Les maisons à louer sur la carte')}</p>`;
+    const LP = (W.misc && W.misc.locations) || {};
+    for (const [k, M] of Object.entries(LOC)) {
+      const X = BLD[k] || (LP[k] && LP[k].ecriteau ? { x: LP[k].ecriteau[0], z: LP[k].ecriteau[2] } : null);
+      if (X) VIE_MAP.louer.push([k, cap(M.nom), Math.round(X.x * 10) / 10, Math.round(X.z * 10) / 10, `À louer : ${M.loyer} pièces la semaine${ACH[k] ? `, ou ${ACH[k][0]} à acheter` : ''}`, 'sys:location']);
+    }
+    SP('sys:location', { t: 'Louer une maison', s: `Trois maisons en ville, à la semaine de ${SEM.length} jours`, c: ['maisons'], i: '⌂', h, g: 'Dormir et se loger' }, FV.location);
+  }
+
+  // ---- acheter une maison, et la meubler
+  if (FV.meubles) {
+    const MB = U('MEUBLES', {}); U('MEU_PLATS'); U('MEU_BLOQUE_TOUT'); U('MEUBLES_GARDE');
+    const ACH = VIE.achat || [], SEMA = scal('MEU_SEMAINES');
+    let h = `<div class="figrow">${Object.keys(MB).map((id) => { const pid = ITEMS[id] && ITEMS[id].place ? ITEMS[id].place : id; return figK(FIG['meuble:' + id] ? 'meuble:' + id : 'prop:' + pid, 56, esc(MB[id].nom || iname(id)), pages.has('it:' + id) ? '#/p/' + encodeURIComponent('it:' + id) : ''); }).join('')}</div>` + intro(FV.meubles);
+    if (ACH.length) h += `<h3>Le prix d’une maison</h3><p class="note">${SEMA ? `${SEMA} semaines de loyer, comptant ; ` : ''}la commune la reprend à moitié prix. Un bail en cours se change en achat.</p><table class="t"><tr><th>Maison</th><th>Loyer</th><th>À acheter</th><th>Revendue</th></tr>${ACH.map(([k, a, r]) => `<tr><td>${bldLink(k)}</td><td>${LOC[k] ? pieces(LOC[k].loyer) : '—'}</td><td>${pieces(a)}</td><td>${r !== null ? pieces(r) : '—'}</td></tr>`).join('')}</table>`;
+    const usage = (M) => [M.lit ? 'on y dort' : '', M.range ? 'on y range' : '', M.lampe ? 's’allume et s’éteint' : '', M.heure ? 'sonne les heures' : '', M.mur ? 's’accroche au mur' : '', M.plat ? 'se pose à plat' : '', M.dedans ? 'à l’intérieur seulement' : ''].filter(Boolean).join(', ');
+    h += `<h3>Les meubles</h3><table class="t"><tr><th>Meuble</th><th>Garde-meuble</th><th>Caisse</th><th>Ce qu’il fait</th><th>À l’établi</th></tr>${Object.entries(MB).map(([id, M]) => `<tr><td>${ITEMS[id] ? IL(id) : esc(M.nom || id)}</td><td>${M.vente ? pieces(M.vente) : '—'}</td><td><small>${M.prix ? pieces(M.prix) : '—'}</small></td><td><small>${esc(usage(M))}</small></td><td><small>${M.recette ? needList(M.recette) : '—'}</small></td></tr>`).join('')}</table><p class="note">Le garde-meuble est au grenier de la mairie (${NPC_BY.maire ? npcLink('maire') : 'le maire'}) ; « Caisse » : ce qu’en rend la caisse d’expédition. Les recettes de l’établi se trouvent en assemblant, dans les livres et auprès des gens de métier.</p>`;
+    const livres = Object.entries(LIVRES).filter(([, L]) => (L.recettes || []).some((r) => MB[r]));
+    if (livres.length) h += `<p>Pour apprendre : ${livres.map(([b]) => IL('livre_' + b)).join(', ')}.</p>`;
+    const AE = T('ACT_ETALS', []), bro = AE.find((E) => E.id === 'brocanteur');
+    const occ = bro ? (bro.vend || []).filter(([id]) => MB[id]) : [];
+    if (occ.length) h += `<p>D’occasion, le Marchedi, chez ${esc(bro.nom)} : ${occ.map(([id, p]) => `${IL(id)} <small>${pieces(p)}</small>`).join(', ')}.</p>`;
+    SP('sys:meubles', { t: 'Acheter et meubler sa maison', s: 'Les maisons de la commune, le garde-meuble du maire, les meubles à poser', c: ['maisons'], i: '🪑', h, g: 'Dormir et se loger' }, [FV.meubles, FV.meublesModeles]);
+  }
+
+  // ---- la terre et l'arrosage
+  {
+    const TE = T('TERRE', null);
+    if (TE && (FV.terre || TE.humide)) {
+      used.add('TERRE');
+      let h = FV.terre ? intro(FV.terre) : '';
+      const doc = docOf('TERRE') || '';
+      const jr = (v) => (JOUR && v % 24 === 0 ? plur(v / 24, 'jour', 'jours') + ` <small>(${esc(reelle(v))} réelles)</small>` : hj(v));
+      const lead = TE.humide && TE.seche ? `La terre se soigne comme une bête de trait : arrosée, ou sous la pluie, elle reste humide ${jr(TE.humide)} ; sans eau, la culture tient encore ${jr(TE.seche)}, puis elle meurt${TE.fatigue ? ` ; ${TE.fatigue[0]} récoltes sans engrais, et elle s’épuise` : ''}.` : doc ? esc(cap(cleanText(doc))) : '';
+      if (lead) h = `<p class="lead">${lead}</p>` + h.replace(/^<p class="lead">/, '<p>');
+      const rows = [];
+      if (TE.humide) rows.push(['Arrosée, ou sous la pluie', `la terre reste humide ${hj(TE.humide)}`]);
+      if (TE.seche) rows.push(['Sans eau', `la culture tient encore ${hj(TE.seche)}, puis elle meurt ; une case labourée laissée vide redevient de l’herbe`]);
+      if (TE.chaleur) rows.push(['La canicule', `sèche la terre ${nfmt(TE.chaleur)} fois plus vite`]);
+      if (TE.fatigue && TE.lenteur) rows.push(['Une terre qui s’épuise', TE.fatigue.map((n, i) => `après ${n} récoltes sans engrais, la culture pousse ${TE.lenteur[i + 1] === 0.5 ? 'deux fois' : TE.lenteur[i + 1] === 0.25 ? 'quatre fois' : '×' + nfmt(1 / TE.lenteur[i + 1])} moins vite`).join(' ; ')]);
+      if (TE.jachere) rows.push(['La jachère', `chaque ${hj(TE.jachere)} sous l’herbe efface une récolte du compte`]);
+      h += `<h3>Les règles de la terre</h3><dl class="kv wide">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join('')}</dl>`;
+      const eng = Object.keys(ITEMS).filter((id) => ITEMS[id].fert);
+      if (eng.length) h += `<h3>L’engrais</h3><ul>${eng.map((id) => `<li>${IL(id)} — ${FILL(ITEMS[id].desc || '')}</li>`).join('')}</ul>`;
+      const spr = Object.entries(PLACEABLES).filter(([, P]) => P.sprinkler);
+      if (spr.length) h += `<h3>Les arroseurs</h3><div class="figrow">${spr.map(([id]) => figK('prop:' + id, 64)).join('')}</div><table class="t"><tr><th>Arroseur</th><th>Portée</th><th>Cases arrosées</th><th>Prix</th></tr>${spr.map(([id, P]) => `<tr><td>${ITEMS[id] ? IL(id) : esc(P.name)}</td><td>${plur(P.sprinkler, 'case', 'cases')} autour</td><td>${2 * P.sprinkler + 1} × ${2 * P.sprinkler + 1} (${(2 * P.sprinkler + 1) ** 2})</td><td>${P.price ? pieces(P.price) : '—'}</td></tr>`).join('')}</table><p class="note">Toutes les demi-heures, les cases à portée restent humides comme à l’arrosoir. Le carré arrosé se voit quand on tient un arroseur, ou qu’on en regarde un.</p>`;
+      const PL = VIE.pluie;
+      if (PL) h += `<h3>La pluie</h3><p>Mesuré sur ${nfmt(PL.jours)} jours du programme météo du jeu : il pleut ${freq(PL.pluie, PL.jours)} (${pct0(PL.pluie / PL.jours)} des jours, dont ${pct0(PL.orage / PL.jours)} d’orage), environ une heure sur ${nfmt(Math.round(1 / (PL.heures || 1)))} ; gel au petit matin ${pct0(PL.gel / PL.jours)} des jours, canicule ${pct0(PL.canicule / PL.jours)}. Sous la pluie, papillons et lucioles s’en vont.</p>`;
+      const G = NPC_BY.grainetiere, rum = G && G.lines && G.lines.rumeurs ? G.lines.rumeurs.filter((t) => /\b(la terre|une terre|engrais|arros\w*|récoltes?)\b/i.test(t)) : [];
+      if (rum.length) h += `<h3>Ce qu’en dit la grainetière</h3>${quotes(rum, 'grainetiere')}`;
+      h += `<p>${link('cat:cultures', 'Les cultures')} · ${link('sys:journee', 'Le temps qui passe')}</p>`;
+      SP('sys:terre', { t: 'La terre et l’arrosage', s: 'Humide deux jours, la culture perdue deux jours après, la terre qui s’épuise, l’engrais, les arroseurs', c: ['cultures'], i: '🌧', h }, FV.terre);
+    }
+  }
+
+  // ---- crocheter
+  const CT = VIE.crocT || null, CS = T('CROC_SERRURE', []);
+  const PO = VIE.portes || [];
+  const f2 = INTER.filter((it) => it.kind === 'f2' || it.kind === 'f2_trappe');
+  if (FV.croc) {
+    U('CROC_SERRURE'); U('CROC_PINS');
+    const CR = VIE.crochet || {};
+    let h = intro(FV.croc, { skip: /poterne/i });
+    const SRCc = (SRC.crochets || []).filter((q) => q.k === 'shop');
+    h += `<p>${ITEMS.crochets ? IL('crochets') : ''}${SRCc.length ? ` : ${SRCc.map((q) => `${npcLink(q.npc)} <small>${pieces(q.price)}</small>`).join(', ')}` : ''}${RECIPES.some((r) => r.out === 'crochets') ? ` ; à l’établi : ${needList(RECIPES.find((r) => r.out === 'crochets').need)}` : ''}.${RE.crocParJeu ? ` ${RE.crocParJeu[0]} crochets par jeu.` : ''}</p>`;
+    if (CR.sans) h += quote(String(CR.sans).replace(/^\(|\)$/g, ''));
+    const PC = (CT && CT.pins) || T('CROC_PINS', []);
+    if (CS.length) {
+      const rt = RE.crocRetombe;
+      h += `<h3>Les serrures</h3><p class="note">Plus la serrure est bonne, plus il y a de goupilles, plus elles vont vite, et plus la fenêtre pour les caler est courte (temps passé sur la ligne, à chaque passage). Un raté fait du bruit, peut casser un crochet, et sur une bonne serrure faire retomber la goupille d’avant.</p><table class="t"><tr><th></th><th>Serrure</th><th>Goupilles</th><th>Fenêtre</th><th>Crochet cassé</th><th>Goupille qui retombe</th><th>Dans la vallée</th></tr>${CS.map((nm, i) => {
+        const d = i + 1, dr = PO.filter((q) => q.diff === d && !q.deco && !q.poterne), mb = f2.filter((it) => it.data && it.data.lock === d);
+        const win = CT && CT.zone && CT.vit ? `${nfmt(Math.round(CT.zone[i] / CT.vit[i] * 100) / 100)} s` : '—';
+        return `<tr><td>${d}</td><td>${esc(nm)}</td><td>${PC[i] ?? '—'}</td><td>${win}</td><td>${CT && CT.casse ? pct0(CT.casse[i]) : '—'}</td><td>${rt && d >= rt[0] ? pct0(rt[1][i]) : '—'}</td><td><small>${[dr.length ? plur(dr.length, 'porte', 'portes') : '', mb.length ? plur(mb.length, 'meuble', 'meubles') : ''].filter(Boolean).join(', ')}</small></td></tr>`;
+      }).join('')}</table>`;
+      const M = CR.menus && Object.values(CR.menus).find(Boolean);
+      if (M) h += `<p class="note">Devant une porte fermée à clé :</p>${quote(M[1])}<p>${(M[2] || []).map((t) => `<span class="tag">${esc(t)}</span>`).join(' ')}</p>`;
+    }
+    const EN = RE.crocEntend, VO = RE.crocVoit, BR = RE.crocBruit, MA = RE.crocMains;
+    let b = '';
+    if (EN) b += `<li>Le bruit porte à ${EN[0]} m. Pour chaque point de bruit, un habitant qui dort l’entend ${pct0(EN[2])} des fois s’il est chez lui (ou à moins de ${EN[1]} m), ${pct0(EN[3])} sinon ; éveillé, dans une maison : ${pct0(EN[4])} chez lui, ${pct0(EN[5])} ailleurs ; dehors : ${pct0(EN[7])} à moins de ${EN[6]} m, ${pct0(EN[8])} plus loin.</li>`;
+    if (BR) b += `<li>Une goupille calée fait ${nfmt(BR[0])} point de bruit, un raté ${nfmt(BR[1])}, un crochet qui casse ${nfmt(BR[2])} de plus.</li>`;
+    if (VO) b += `<li>Un passant qui vous voit (à moins de ${VO[0]} m, sans mur entre vous, ou à moins de ${VO[1]} m) vous surprend, chaque demi-seconde, ${pct0(VO[7])} des fois le jour, ${pct0(VO[6])} la nuit, ${VO[9]} fois plus à moins de ${VO[8]} m ; de côté ${pct0(VO[4])} de ces chances, de dos ${pct0(VO[5])}.</li>`;
+    if (MA) b += `<li>Fatigué, les mains tremblent : la fenêtre rétrécit jusqu’à ${pct0(MA[0])} ; ivre, de ${pct0(1 - MA[2])}.</li>`;
+    if (b) h += `<h3>Le bruit, les témoins</h3><ul>${b}</ul>`;
+    const EF = CRIMES.effraction;
+    h += `<h3>Pris</h3><p>Vu ou entendu : ${EF ? `une effraction (prime ${pieces(EF.prime)}, oubliée après ${EF.oubli} jours sans récidive)` : 'une effraction'}${RE.crocEsprit ? `, mentalité ${signe(RE.crocEsprit[0])}` : ''}. Réussi : la porte s’ouvre${RE.crocOuverte ? `, et reste déverrouillée ${RE.crocOuverte[0]} s` : ''} ; de l’intérieur d’une maison, une porte fermée à clé s’ouvre au verrou.</p><p>${lk('sys:portes', 'Les portes de la vallée')} · ${lk('sys:poterne', 'La poterne')} · ${lk('sys:crimes', 'Crimes et avis de recherche')}</p>`;
+    SP('sys:crochetage', { t: 'Crocheter une serrure', s: 'Les goupilles, le bruit, les passants', c: ['maisons'], i: '🗝', h, g: 'Portes et serrures' }, FV.croc);
+    // ---- la poterne
+    const PT = VIE.poterne;
+    if (PT || LM.poterne) {
+      let hp = figK('porte:poterne', 90, 'La poterne, côté douves') + intro(FV.croc, { only: /poterne/i });
+      if (PT) hp += `<h3>Des deux côtés</h3><dl class="kv wide"><dt>Du dehors</dt><dd>${quotesP(PT.dehors)}</dd><dt>De la ville, le jour</dt><dd>${quotesP(PT.jour)}</dd><dt>La nuit</dt><dd>${quotesP(PT.nuit)}</dd><dt>Derrière soi</dt><dd>${quotesP(PT.ferme)}</dd></dl>`;
+      const PX = (W.misc && W.misc.poterne) || LM.poterne || null;
+      if (PX) VIE_MAP.poterne = [Math.round(PX.x * 10) / 10, Math.round(PX.z * 10) / 10, 'La poterne', 'sys:poterne'];
+      hp += `<p>On remonte des douves par ${lk('sys:corps', 'les échelles de fer')}. ${LM.poterne ? placeLink('poterne') + ' ' + mapBtn('li:poterne') : PX ? ouTexte(PX.x, PX.z) : ''}</p>`;
+      SP('sys:poterne', { t: 'La poterne', s: 'Une porte basse dans le rempart est : on sort, on ne rentre pas', c: ['maisons'], i: '🚪', h: hp, g: 'Portes et serrures' });
+    }
+  }
+  // ---- les portes
+  if (FV.portes && PO.length) {
+    U('PORTE_COUL'); U('PORTE_PEINTURES'); U('PORTE_STYLE_BLD'); U('PORTE_TEINTE');
+    const STN = { ferme: 'de ferme, à écharpe', rustique: 'rustique', ville: 'de ville, à panneaux peints', boutique: 'de boutique, vitrée', auberge: 'de l’auberge, cloutée', mairie: 'de la mairie', garde: 'du garde, à judas', forge: 'de la forge', roulotte: 'de roulotte', double: 'à deux battants', eglise: 'de l’église', poterne: 'la poterne' };
+    const sts = uniq(PO.filter((d) => d.st).map((d) => d.st).concat(FIG['porte:eglise'] ? ['eglise'] : []));
+    let h = `<div class="figrow">${sts.map((st) => figK('porte:' + st, 90, esc(cap(STN[st] || humanKey(st))))).join('')}</div>` + intro(FV.portes);
+    const hache = (sol) => { const c = coups(sol, 'hache'); return c ? c.map((n, i) => `<span title="hache ${esc(TIERN[TIERS_[i]] || '')}">${n}</span>`).join(' / ') : '—'; };
+    const vraies = PO.filter((d) => !d.deco && d.bld);
+    h += `<h3>Les portes, une à une</h3><p class="note">${plur(vraies.length, 'porte', 'portes')} qui s’ouvrent (sans compter les portes de décor). Coups de hache pour l’enfoncer : de pierre / de cuivre / de fer / d’acier. Une porte enfoncée reste ouverte${RE.portesRepar ? ` ${RE.portesRepar[0]} jours, le temps que l’habitant la fasse réparer` : ''}.</p><table class="t"><tr><th>Porte</th><th>Sorte</th><th>Serrure</th><th>Hache</th><th>À qui</th><th>La forcer</th></tr>${vraies.map((d) => `<tr><td>${bldLink(d.bld)}${vraies.filter((q) => q.bld === d.bld).length > 1 ? ` <small>${vraies.filter((q) => q.bld === d.bld).indexOf(d) + 1}</small>` : ''}</td><td><small>${esc(STN[d.st] || d.st || '')}${d.pierre ? ', encadrement de pierre' : ''}</small></td><td>${d.poterne ? '<small>ne s’ouvre que de l’intérieur</small>' : d.diff ? `${d.diff} <small>(${esc(CS[d.diff - 1] || '')})</small>` : '—'}</td><td>${d.sol ? hache(d.sol) : '<small>ne se force pas</small>'}</td><td>${d.own ? nomNPC(d.own) : `<small>${esc({ commune: 'la commune', abandon: 'personne', ferme: 'vous' }[d.lieu] || d.lieu || '')}</small>`}</td><td><small>${d.sol ? (d.crime ? esc(d.crime) + (CRIMES[d.crime] ? ` (${pieces(CRIMES[d.crime].prime)})` : '') : 'rien') : ''}</small></td></tr>`).join('')}</table>`;
+    h += `<p>${lk('sys:crochetage', 'Crocheter une serrure')} · ${lk('sys:casser', 'Ramasser et casser')}</p>`;
+    SP('sys:portes', { t: 'Les portes de la vallée', s: 'Leur allure, leur serrure, leur solidité', c: ['maisons'], i: '🚪', h, g: 'Portes et serrures' }, FV.portes);
+  }
+
+  // ---- fouiller
+  const F2T = T('F2_TYPES', {});
+  const f2Nom = (t) => { const B = T('BU_TITRES', {}); return B[t] || cap(String((F2T[t] && F2T[t].lab) || humanKey(t)).replace(/^(Fouiller|Ouvrir|Forcer|Chaparder dans|Chaparder à|Chaparder|Plonger la main dans|Remplir|Décrocher|Descendre à) ?/, '')); };
+  const f2Lieux = { maison: 'chez quelqu’un', eglise: 'à l’église', abandon: 'chez les disparus', public: 'à la commune, dans la rue', rebut: 'aux ordures', libre: 'à personne' };
+  if (FV.fouilles) {
+    const OBJ = U('F2_OBJETS', []), CA = U('F2_CACHES', {}), PA = U('F2_PAPIERS', {}), CRI = U('F2_CRIS', {}), PL = U('F2_PLAINTES', {});
+    const TEM = [U('F2_TEMOIN', []), U('F2_TEMOIN_PUBLIC', []), U('F2_TEMOIN_REBUT', []), U('F2_TEMOIN_ABANDON', []), U('F2_TEMOIN_MORT', [])], VI = U('F2_VIDES', []);
+    U('F2_TYPES'); U('F2_POOLS');
+    const spots = INTER.filter((it) => it.kind === 'f2' && it.data);
+    const vus = spots.filter((it) => it.data.t !== 'cache');
+    const RF = VIE.refill || {};
+    for (const it of spots) VIE_MAP.f2.push([Math.round(it.x * 10) / 10, Math.round(it.z * 10) / 10, f2Nom(it.data.t), it.data.t === 'cache' ? 1 : 0, sousTerre(it) ? 1 : 0, f2Lieux[it.data.lieu] || '']);
+    let h = intro(FV.fouilles);
+    h += `<p class="note">${plur(vus.length, 'endroit', 'endroits')} à fouiller dans une partie neuve (et des cachettes que seuls certains papiers révèlent). <kbd>E</kbd> : on fouille quelques secondes, puis ${FV.butin ? lk('sys:butin', 'le menu de butin') : 'le butin'} s’ouvre. ${mapBtn('couche:fouilles', 'Les endroits sur la carte')}</p>`;
+    // les meubles et ce qu'on y trouve
+    const types = Object.keys(F2T).filter((t) => t !== 'cache');
+    const cnt = (t) => spots.filter((it) => it.data.t === t).length;
+    const figT = { tiroir: 'comptoir', tonneaux: 'tonneau', sacs_grain: 'sac', coffre_peche: 'malle', coffre_chasse: 'malle', coffre_roulotte: 'malle', sacristie: 'armoire', bu_etagere: 'etagere', bu_tiroir: 'table', bu_tonneau: 'tonneau', bu_caisse: 'caisse', bu_caisses: 'caisse', bu_sac: 'sac', bu_wagonnet: 'wagonnet', bu_coffre: 'coffre_vieux', cave_tonneaux: 'tonneau', cave_jambons: 'jambons', cave_caisse: 'caisse' };
+    h += `<h3>Les meubles, et ce qu’on y trouve</h3><table class="t"><tr><th></th><th>Endroit</th><th>Butin</th><th>Fouille</th><th>Papier</th><th>Se remplit</th><th>Dans la vallée</th></tr>${types.map((t) => { const Y = F2T[t], pid = FIG['prop:' + t] ? t : figT[t]; return `<tr><td>${pid && FIG['prop:' + pid] ? figInline(figRect('prop:' + pid), 30) : ''}</td><td>${esc(f2Nom(t))}</td><td>${Y.table && pages.has('bt:' + Y.table) ? link('bt:' + Y.table, humanKey(Y.table.replace(/^(f2|bu)_/, ''))) : '<small>selon le lieu</small>'}</td><td>${nfmt(Y.d)} s</td><td>${Y.p ? pct0(Y.p) : '—'}</td><td>${Y.r >= 9999 ? 'jamais' : plur(Y.r, 'jour', 'jours')}</td><td>${cnt(t) || '—'}</td></tr>`; }).join('')}</table>${RE.refillAbandon ? `<p class="note">Chez les disparus et chez les morts, personne ne regarnit les armoires : ${RE.refillAbandon[1]} fois plus lentement, et jamais moins de ${RE.refillAbandon[0]} jours. Les tables de butin sont des secrets (révéler).</p>` : ''}`;
+    // par lieu
+    const by = {};
+    for (const it of vus) { const k = it.data.bld || ('@' + ((placeAt(it.x, it.z) || {}).key || '?')); (by[k] || (by[k] = [])).push(it); }
+    const ligne = (L) => uniq(L.map((it) => it.data.t)).map((t) => { const a = L.filter((it) => it.data.t === t), lk2 = a.find((it) => it.data.lock), n2 = a.length; return `${esc(f2Nom(t))}${n2 > 1 ? ' ×' + n2 : ''}${lk2 ? ` <small title="fermé à clé">🔒${lk2.data.lock}${lk2.data.cle && ITEMS[lk2.data.cle] ? ' ' + IL(lk2.data.cle) : ''}</small>` : ''}`; }).join(', ');
+    h += `<h3>Où fouiller</h3><table class="t"><tr><th>Lieu</th><th>Chez</th><th>Ce qu’on y fouille</th><th>Se remplit</th></tr>${Object.entries(by).sort((a, b) => b[1].length - a[1].length).map(([k, L]) => { const own = uniq(L.map((it) => it.data.own).filter(Boolean)); const rf = uniq(L.map((it) => RF[it.id]).filter((v) => v !== undefined)).sort((a, b) => a - b); return `<tr${secPlace(k.replace(/^@/, '')) || k === '@?' ? ' class="sec"' : ''}><td>${k.startsWith('@') ? (k === '@?' ? 'dans la nature' : placeLink(k.slice(1))) : bldLink(k)}</td><td>${own.length ? own.map(nomNPC).join(', ') : `<small>${esc(uniq(L.map((it) => f2Lieux[it.data.lieu] || it.data.lieu)).join(', '))}</small>`}</td><td>${ligne(L)}</td><td><small>${rf.length ? (rf[0] === rf[rf.length - 1] ? plur(rf[0], 'jour', 'jours') : `${rf[0]} à ${rf[rf.length - 1]} jours`) : ''}</small></td></tr>`; }).join('')}</table>`;
+    // chez qui c'est voler
+    const nb = (l) => vus.filter((it) => it.data.lieu === l).length, V = CRIMES.vol;
+    h += `<h3>Voler, ou pas</h3><ul><li>Chez quelqu’un, dans un commerce, à l’église (${nb('maison') + nb('eglise')}) : c’est un vol. Vu : ${V ? `vol (prime ${pieces(V.prime)})` : 'un vol'}${RE.volAmitie ? `, amitié ${signe(RE.volAmitie[0])} avec le propriétaire` : ''}, le garde accourt ; pas vu : le lendemain, il se plaint, et les objets pris chez lui se reconnaissent.</li><li>Chez les disparus (${nb('abandon')}) : pas un vol, mais les voisins n’aiment pas ça.</li><li>À la commune, dans la rue (${nb('public')}) : vol si l’on vous voit ; aux ordures (${nb('rebut')}) : une remarque ; ailleurs (${nb('libre')}) : à personne.</li></ul>`;
+    const vides = VI.concat(...Object.values(F2T).map((Y) => Y.vides || []));
+    h += `<details><summary>Ce qu’on entend : les témoins, les propriétaires, les plaintes du lendemain</summary><h4>Les témoins</h4>${quotes([].concat(...TEM))}<h4>Le propriétaire qui vous surprend</h4><table class="t">${Object.entries(CRI).map(([k, v]) => `<tr><th>${k === '_' ? 'les autres' : nomNPC(k)}</th><td>${quotes([].concat(v), k)}</td></tr>`).join('')}</table><h4>Le lendemain</h4><table class="t">${Object.entries(PL).map(([k, v]) => `<tr><th>${k === '_' ? 'les autres' : nomNPC(k)}</th><td>${quotes([].concat(v), k)}</td></tr>`).join('')}</table>${vides.length ? `<h4>Vide</h4>${quotesP(uniq(vides))}` : ''}</details>`;
+    const cles = ['cle_bureau', 'cle_cave'].filter((id) => ITEMS[id]);
+    if (cles.length) h += `<h3>Les clés</h3><p>${cles.map((id) => IL(id)).join(', ')} : sans elles, il faut ${lk('sys:crochetage', 'crocheter')}.${W.misc && W.misc.caveAuberge ? ` La cave de l’auberge s’ouvre par une trappe fermée à clé.` : ''}</p>`;
+    if (OBJ.length) h += `<h3>Les objets du quotidien</h3><p>${ILs(OBJ.map((o) => o[0]).filter((id) => ITEMS[id]))}</p>`;
+    // les cachettes et les papiers (secrets)
+    const pools = {};
+    for (const [id, P] of Object.entries(PA)) (pools[P.pool || '_'] || (pools[P.pool || '_'] = [])).push([id, P]);
+    const poolNom = (p) => (p === '_' ? 'Trouvé dans une cachette' : NPC_BY[p] ? `Chez ${npcName(p)}` : p === 'tri' ? 'Les casiers du tri, à la poste' : p === 'boite' ? 'La boîte aux lettres' : p === 'rebut' ? 'Les poubelles' : p === 'cave' ? 'La cave de l’auberge' : p === 'morel' ? 'La maison Morel' : p === 'bastien' ? 'La maison Bastien' : cap(bldNom(p)));
+    let s = `<h3>Les cachettes</h3><table class="t"><tr><th>Cachette</th><th>Ce qu’il y a</th><th>Révélée par</th></tr>${Object.entries(CA).map(([c, C]) => `<tr><td>${esc(cap(C.nom))}${C.own ? ` <small>(${nomNPC(C.own)})</small>` : ''}</td><td>${(C.lots || []).map(([id, n]) => (id === 'argent' ? pieces(n) : IL(id, n > 1 ? n : undefined))).join(', ')}${C.papier && PA[C.papier] ? ` ; ${esc(PA[C.papier].t)}` : ''}</td><td>${Object.entries(PA).filter(([, P]) => P.cache === c).map(([, P]) => `« ${esc(P.t)} »`).join(', ')}</td></tr>`).join('')}</table>`;
+    s += `<h3>Les papiers</h3><p class="note">${plur(Object.keys(PA).length, 'papier', 'papiers')}, qu’on relit dans la sacoche (onglet Lettres).</p>${Object.entries(pools).map(([p, L]) => `<details><summary>${esc(poolNom(p))} <small>(${L.length})</small></summary>${L.map(([id, P]) => `<section class="bookpage"><h4>${esc(P.t)}${P.cache ? ' <small>— révèle une cachette</small>' : ''}</h4>${para(P.x)}${P.s ? `<p class="note">${FILL(P.s)}</p>` : ''}</section>`).join('')}</details>`).join('')}`;
+    h += SEC(s, 'Les cachettes et les papiers (leurs textes complets) sont masqués : révélez les secrets pour les lire.');
+    SP('sys:fouilles', { t: 'Fouiller', s: 'Armoires, commodes, tiroirs-caisses, étals, cachettes : ce qu’on y trouve, et chez qui', c: ['fouilles'], i: '🔎', h, g: 'Fouiller' }, FV.fouilles);
+  }
+  // ---- le menu de butin
+  if (FV.butin) {
+    const BC = U('BU_CATS', {}), BO = U('BU_OUTILS', {}), BE = U('BU_ETAGERE_BLD', {}), SO = U('BU_SOUPCON', []), SP2 = U('BU_SOUPCON_PROPRIO', []);
+    ['BU_MEUBLES', 'BU_CONTENEURS', 'BU_MAIN', 'BU_TITRES', 'BU_TITRES_LAB', 'BU_TITRES_PROPS'].forEach((k) => used.add(k));
+    let h = intro(FV.butin);
+    if (Object.keys(BE).length) h += `<h3>Les étagères, selon la maison</h3><table class="t">${Object.entries(BE).map(([k, t]) => `<tr><td>${bldLink(k)}</td><td>${pages.has('bt:' + t) ? link('bt:' + t, humanKey(t.replace(/^(f2|bu)_/, ''))) : esc(t)}</td></tr>`).join('')}</table>`;
+    if (SO.length || SP2.length) h += `<h3>Ouvrir sans rien prendre, sous les yeux de quelqu’un</h3>${quotes(SO)}${SP2.length ? `<p>Le propriétaire :</p>${quotes(SP2)}` : ''}`;
+    if (Object.keys(BC).length) h += `<details><summary>Ce que dit le menu, selon la sorte d’objet</summary><table class="t">${Object.entries(BC).map(([k, v]) => `<tr><th>${esc(CATN[k] || cap(humanKey(k)))}</th><td>${FILL(v)}</td></tr>`).join('')}</table></details>`;
+    if (Object.keys(BO).length) h += `<details><summary>Et des outils</summary><table class="t">${Object.entries(BO).map(([k, v]) => `<tr><th>${esc(cap(humanKey(k)))}</th><td>${FILL(v)}</td></tr>`).join('')}</table></details>`;
+    h += `<p>${lk('sys:fouilles', 'Fouiller')} · ${lk('sys:casser', 'Ramasser et casser')}</p>`;
+    SP('sys:butin', { t: 'Le menu de butin', s: 'Choisir ce qu’on prend ; la boutique', c: ['fouilles'], i: '🧺', h, g: 'Fouiller' }, FV.butin);
+  }
+  // ---- ramasser et casser
+  if (FV.objets) {
+    const OM = U('OBJ_MAT', {}), OC = U('OBJ_CASSE', {}), OR = U('OBJ_RAMASSE', {}), OJ = U('OBJ_JAMAIS', []), OCR = U('OBJ_CRIS', {}), OPL = U('OBJ_PLAINTES', {}), OPE = U('OBJ_PENSEES', {});
+    ['OBJ_OUTILS', 'OBJ_DMG', 'OBJ_KINDS_PROTEGES', 'OBJ_COMMUNS', 'OBJ_CLES_SURES', 'OBJ_TOMBES', 'OBJ_TEMOIN_ABANDON', 'OBJ_TEMOIN_MORT', 'OBJ_M', 'OBJ_MODELES'].forEach((k) => used.add(k));
+    const VO = VIE.objets || {};
+    const pn = (id) => (PLACEABLES[id] && PLACEABLES[id].name) || (ITEMS[id] && ITEMS[id].name) || T('BU_TITRES_PROPS', {})[id] || PROP_LABELS[id] || cap(humanKey(id));
+    let h = intro(FV.objets);
+    const MATN = { bois: 'Le bois', pierre: 'La pierre', metal: 'Le métal', poterie: 'La poterie', verre: 'Le verre', paille: 'La paille', tissu: 'La toile' };
+    h += `<h3>Les matières</h3><table class="t"><tr><th>Matière</th><th>L’outil</th><th>Sinon</th></tr>${Object.entries(OM).map(([k, M]) => `<tr><td>${esc(MATN[k] || cap(k))}</td><td>${M.tout ? 'n’importe quel outil, ou le marteau' : Object.entries(M.k || {}).map(([o, f]) => `${esc(o)}${f !== 1 ? ` <small>(×${nfmt(f)})</small>` : ''}`).join(', ')}</td><td>${M.besoin ? `<i>${FILL(M.besoin.replace(/^\(|\)$/g, ''))}</i>` : ''}</td></tr>`).join('')}</table>`;
+    const outil = (mat) => (mat === 'bois' ? 'hache' : mat === 'pierre' || mat === 'metal' ? 'pioche' : null);
+    const tot = (id) => VO[id] || null;
+    const grp = {};
+    for (const [id, C] of Object.entries(OC)) (grp[C[0]] || (grp[C[0]] = [])).push([id, C]);
+    h += `<h3>Ce qui se casse</h3><p class="note">Coups avec l’outil de pierre / de cuivre / de fer / d’acier (sous l’effet de la force, deux fois moins). « Dans la vallée » : combien il y en a dans une partie neuve, et combien se cassent vraiment (les autres portent une quête, un mécanisme, une fouille…).${RE.coupsEntaille ? ` Une entaille s’efface après ${RE.coupsEntaille[0]} jours.` : ''}</p>${Object.entries(grp).map(([mat, L]) => `<h4>${esc(MATN[mat] || cap(mat))}${outil(mat) ? ` <small>— ${esc(outil(mat))}</small>` : ''}</h4><table class="t"><tr><th>Objet</th><th>Solidité</th><th>Coups</th><th>On récupère</th><th>Dans la vallée</th></tr>${L.sort((a, b) => a[1][1] - b[1][1]).map(([id, C]) => { const o = C[3] || {}, t = tot(id), cs = outil(mat) ? coups(C[1], outil(mat), (OM[mat] && OM[mat].k && OM[mat].k[outil(mat)]) || 1) : null, mt = OM[mat] && OM[mat].tout && TOOLD && TOOLD.marteau ? Math.ceil(C[1] / TOOLD.marteau) : 0; return `<tr><td>${esc(pn(id))}${o.lourd ? ' <small>lourd</small>' : ''}${o.prof ? ' <span class="tag warn">profanation</span>' : ''}${o.tier ? ` <small>pioche ${esc(TIERN[TIERS_[o.tier]] || '')} au moins</small>` : ''}</td><td>${C[1]}</td><td><small>${cs ? cs.map((n, i) => (o.tier && i < o.tier ? '—' : n)).join(' / ') : mt ? `${plur(mt, 'coup', 'coups')} de marteau` : '—'}</small></td><td><small>${(C[2] || []).map(([it, a, b, p]) => `${IL(it)} ${a === b ? a : a + '–' + b}${p !== undefined ? ` (${pct0(p)})` : ''}`).join(', ')}</small></td><td><small>${t ? `${t.n}${t.casse !== t.n ? ` (${t.casse} cassables)` : ''}` : '—'}</small></td></tr>`; }).join('')}</table>`).join('')}`;
+    h += `<h3>Ce qui se ramasse</h3><table class="t"><tr><th>Objet</th><th>Devient</th><th>Dans la vallée</th></tr>${Object.entries(OR).map(([id, R]) => { const t = tot(id); return `<tr><td>${esc(pn(id))}</td><td>${ITEMS[R.item] ? IL(R.item, R.n) : esc(R.item)} <small>« ${esc(R.lab || '')} »</small></td><td><small>${t ? `${t.n}${t.ramasse !== t.n ? ` (${t.ramasse} à prendre)` : ''}` : '—'}</small></td></tr>`; }).join('')}</table>`;
+    // à qui c'est : les crimes, mesurés objet par objet
+    const cr = {}, li = {}, pr = {};
+    for (const A of Object.values(VO)) { for (const [k, n] of Object.entries(A.crimes || {})) cr[k] = (cr[k] || 0) + n; for (const [k, n] of Object.entries(A.lieux || {})) li[k] = (li[k] || 0) + n; for (const [k, n] of Object.entries(A.prot || {})) pr[k] = (pr[k] || 0) + n; }
+    const LIEUX = { maison: 'chez quelqu’un', commerce: 'dans un commerce', abords: 'devant chez quelqu’un (moins de 4 m de ses murs)', commune: 'une maison de la commune', public: 'en ville, à la commune', cimetiere: 'au cimetière', abandon: 'chez les disparus', mort: 'chez un mort', ferme: 'chez vous', nature: 'dans la nature' };
+    h += `<h3>À qui c’est</h3><p>Casser chez quelqu’un, c’est une effraction${CRIMES.effraction ? ` (${pieces(CRIMES.effraction.prime)})` : ''} ; devant chez lui, dans un commerce, en ville, un vol${CRIMES.vol ? ` (${pieces(CRIMES.vol.prime)})` : ''} ; une tombe, une croix, un calvaire, une profanation${CRIMES.profanation ? ` (${pieces(CRIMES.profanation.prime)})` : ''}, et la malédiction qui va avec. On entend les coups de hache, même en dormant. Pas vu : la plainte du lendemain.${RE.casseAmitie ? ` Pris : amitié ${signe(RE.casseAmitie[1])} (${signe(RE.casseAmitie[0])} pour ce qu’on ramasse).` : ''}</p>`;
+    if (Object.keys(li).length) h += `<table class="t"><tr><th>Où sont les objets (partie neuve)</th><th>Combien</th></tr>${Object.entries(li).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<tr><td>${esc(LIEUX[k] || k)}</td><td>${n}</td></tr>`).join('')}</table>`;
+    const PRN = { erreur: 'indéterminé (le calcul du jeu échoue)', mécanisme: 'une quête ou un mécanisme', marqué: 'un autre module s’en sert (quête, étal, fouille…)', usage: 'une interaction y tient', attaché: 'une interaction y est attachée', zone: 'au cachot ou au temple', travaux: 'les bancs de la place (les petits travaux)', cachette: 'une cachette', 'lit de la ferme': 'le lit de la ferme', dynamique: 'posé en cours de partie', inconnu: 'inconnu', joueur: 'posé par vous' };
+    if (Object.keys(pr).length) h += `<details><summary>Ce qui ne se casse pas (${Object.values(pr).reduce((a, b) => a + b, 0)} objets dans une partie neuve)</summary><table class="t">${Object.entries(pr).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<tr><td>${esc(PRN[k] || k)}</td><td>${n}</td></tr>`).join('')}</table><p class="note">Jamais : ${esc(OJ.map(pn).join(', '))}.</p></details>`;
+    if (Object.keys(OPE).length) h += `<h3>Ce qu’on pense</h3>${quotesP(Object.values(OPE))}`;
+    h += `<details><summary>Les cris, les plaintes du lendemain</summary>${Object.entries(OCR).map(([k, v]) => `<h4>${esc({ casse: 'On casse chez quelqu’un', dehors: 'On casse devant chez lui', porte: 'On enfonce une porte', vol: 'On prend chez lui', volDehors: 'On prend devant chez lui', profane: 'Une profanation' }[k] || humanKey(k))}</h4>${quotes([].concat(...Object.values(v)))}`).join('')}<h4>Le lendemain</h4>${quotes([].concat(...Object.values(OPL)))}</details>`;
+    const its = MF[FV.objets].items.filter((i) => ITEMS[i]);
+    if (its.length) h += `<h3>Ce qu’on en rapporte</h3><p>${ILs(its)}</p>`;
+    h += `<p>${lk('sys:portes', 'Les portes')} · ${lk('sys:fouilles', 'Fouiller')} · ${lk('sys:maledictions', 'Les malédictions')}</p>`;
+    SP('sys:casser', { t: 'Ramasser et casser', s: 'Le bon outil, la solidité, ce qu’on récupère, et à qui c’était', c: ['fouilles'], i: '🪓', h, g: 'Ramasser et casser' }, FV.objets);
+  }
+  // ---- les morts qui restent au sol
+  if (FV.depouilles) {
+    const DP = U('DEP_POCHES', {}), DC = U('DEP_CHASSEUR', {}), DG = U('DEP_GEANT', {}), CRIS = U('DEP_CRIS', []), PEUR = U('DEP_PEUR', []), MERCI = U('DEP_MERCI', []);
+    ['DEP_KEY', 'DEP_OS', 'DEP_L', 'DEP_ROLL', 'DEP_CORE', 'DEP_CORE_CHIEN', 'DEP_FERMIER', 'DEP_FERMIERE', 'DEP_HOSTILE'].forEach((k) => used.add(k));
+    const VP = T('VOL_POCHES', {}), D = VIE.depouilles || {};
+    const STN = ['le jour même', 'couleur de cire', 'des restes', 'des os'];
+    let h = `<div class="figrow">${[0, 1, 2, 3].map((st) => figK('dep:fermier:' + st, 120, esc(cap(STN[st])))).join('')}</div>` + intro(FV.depouilles);
+    const ST = D.stades || {};
+    const ord = (n) => (n === 1 ? '1ᵉʳ' : n + 'ᵉ');
+    const plages = (L) => { const o = [0, 1, 2, 3].map(() => []); (L || []).forEach((st, d) => o[st] && o[st].push(d)); return o.map((a) => (!a.length ? '—' : a[0] === 0 && a.length === 1 ? 'le jour même' : a[a.length - 1] === (L.length - 1) ? `à partir du ${ord(a[0])} jour` : a[0] === a[a.length - 1] ? `le ${ord(a[0])} jour` : `du ${ord(a[0])} au ${ord(a[a.length - 1])} jour`)); };
+    if (ST.npc) { const a = plages(ST.npc), g = plages(ST.geant); h += `<h3>Les jours qui passent</h3><table class="t"><tr><th>Stade</th><th>Un mort, le chien</th><th>Un géant</th><th>Ce qu’en pense le fermier</th></tr>${[0, 1, 2, 3].map((st) => `<tr><th>${esc(cap(STN[st]))}</th><td>${esc(a[st])}</td><td>${esc(g[st])}</td><td>${D.pensees && D.pensees.homme && D.pensees.homme[st] ? `<i>${FILL(String(D.pensees.homme[st]).replace(/^\(|\)$/g, ''))}</i>` : ''}</td></tr>`).join('')}</table><p class="note">Le jour, des mouches et des corbeaux. Mesuré avec la fonction du jeu (jours après la mort).</p>`; }
+    if (D.pensees) h += `<details><summary>Ce qu’en pense le fermier, selon le mort</summary><table class="t">${Object.entries(D.pensees).map(([k, a]) => `<tr><th>${esc({ homme: 'Un homme', femme: 'Une femme', enfant: 'Une enfant', chien: 'Le chien', fermier: 'Le fermier d’avant', chasseur: 'Le chasseur de primes', geant: 'Un géant' }[k] || k)}</th><td>${quotesP(uniq((a || []).filter(Boolean)))}</td></tr>`).join('')}</table></details>`;
+    // fouiller les poches
+    const PM = D.poches || {};
+    const pochesRow = (id, P, M) => `<tr><td>${id.startsWith('_') ? esc({ _chasseur: 'Un chasseur de primes', _geant: 'Un géant (sa besace)' }[id] || id) : nomNPC(id)}</td><td>${P.nu ? '<small>rien : aux Sources, on ne porte rien</small>' : [P.b && P.b[1] ? `${P.b[0]}–${P.b[1]} pièces` : '', (P.m || []).length ? ILs(P.m) : '', (P.p || []).length ? `parfois ${ILs(P.p)}` : '', (P.r || []).length ? `rarement ${ILs(P.r)}` : ''].filter(Boolean).join(' ; ')}</td><td><small>${M ? `${nfmt(M.pieces)} pièces, ${nfmt(M.objets)} objets` : ''}</small></td></tr>`;
+    const lignes = NPCS.map((d) => [d.id, VP[d.id] || DP[d.id] || DP._ || {}]).filter(([, P]) => P);
+    h += `<h3>Fouiller ses poches</h3><p><kbd>E</kbd> sur le corps. Sous les yeux d’un habitant, c’est une profanation${CRIMES.profanation ? ` (prime ${pieces(CRIMES.profanation.prime)})` : ''}. ${PM._chasseur ? `Mesuré sur quatre cents morts : un objet personnel ${pct0((PM.forgeron || PM._chasseur).perso)} des fois, un objet rare ${pct0(Math.max(...Object.values(PM).map((m) => m.rare || 0)))} au plus.` : ''}</p><details><summary>Ce que chacun a sur lui</summary><table class="t"><tr><th>Qui</th><th>Dans ses poches</th><th>En moyenne</th></tr>${lignes.map(([id, P]) => pochesRow(id, P, PM[id])).join('')}${pochesRow('_chasseur', DC, PM._chasseur)}${pochesRow('_geant', DG, PM._geant)}</table></details>`;
+    // enterrer
+    const FO = D.fosses || {}, EH = RE.enterrerHeures, ME = RE.merci;
+    h += `<h3>Enterrer</h3><div class="figrow">${figK('prop:tertre', 64, 'Un tertre')}${figK('prop:tertre_pierres', 64, 'Un tas de pierres')}</div><p>Avec une pelle (le chien, à mains nues)${EH ? `, en ${plur(EH[1], 'heure', 'heures')} de jeu (${plur(EH[0], 'heure', 'heures')} pour le chien)` : ''}. Ceux qui voient remercient${ME ? ` (amitié +${ME[0]}, +${ME[1]} pour ceux qui l’aimaient)` : ''}. On ne relève pas les morts dans la vallée : leur nom est gravé au cimetière, sur une tombe vide.</p>`;
+    if (Object.keys(FO).length) h += `<table class="t">${[['la', 'Là où il est tombé'], ['dehors', 'Mort dans une maison'], ['traine', 'Le sol trop dur'], ['pierres', 'Sur la pierre, sous terre'], ['os', 'Des os'], ['chien', 'Le chien']].filter(([k]) => FO[k]).map(([k, t]) => `<tr><th>${esc(t)}</th><td>${quotesP(uniq(FO[k]))}</td></tr>`).join('')}</table>`;
+    const TB = D.tombes || {};
+    if (TB.fermier || TB.habitant) h += `<p class="note">Sur la croix de bois (<kbd>E</kbd>) :</p>${[TB.habitant, TB.fermier].filter(Boolean).map((r) => quote(r[1])).join('')}`;
+    // ce qu'ils disent
+    if ((D.reactions || []).length) h += `<h3>Ceux qui trouvent un corps</h3><p>Ils s’arrêtent, se signent, reculent ; la nouvelle court${RE.nouvelleJours ? ` (${RE.nouvelleJours[0]} jours)` : ''}.</p><table class="t">${D.reactions.map(([who, t, qui, st, txt]) => `<tr><th>${nomNPC(who)}</th><td><small>${t === 'npc' ? `devant ${qui ? nomNPC(qui) : 'un mort'}` : esc({ chien: 'devant le chien', fermier: 'devant le fermier d’avant', chasseur: 'devant un chasseur de primes' }[t] || t)}${st ? `, ${esc(STN[st])}` : ''}</small><br><i>${FILL(txt)}</i></td></tr>`).join('')}</table>`;
+    h += `<details><summary>La peur, la colère, la reconnaissance</summary><h4>En le voyant</h4>${quotes(PEUR)}<h4>Qui fouille un mort</h4>${quotes(CRIS)}<h4>Qui l’enterre</h4>${quotes(MERCI)}</details>`;
+    const FA = RE.fermierAge;
+    h += `<h3>Le fermier d’avant</h3><p>Celui qui est mort dans une partie précédente attend le suivant, là où il est tombé${FA ? ` (depuis ${FA[0]} jours, et ${FA[1]} de plus par vie écoulée)` : ''}, avec ce qu’il avait en poche ; dans sa veste, la même lettre du notaire que la vôtre. Enterré, son tertre reste pour ceux qui viennent après.</p>`;
+    h += `<h3>Les géants</h3><div class="figrow">${figK('dep:geant:0', 150, 'Un géant abattu')}</div><p>Un géant abattu passe par les mêmes jours, deux fois plus lentement ; sa besace se fouille ; on ne l’enterre pas. ${lk('sys:geants', 'Les géants')}</p>`;
+    h += `<div class="figrow">${figK('dep:chien:0', 70, 'Le chien')}${figK('dep:chien:3', 70, 'Des os')}</div><p>${lk('sys:chien', 'Le chien')} · ${lk('sys:morts', 'La mort des habitants')}</p>`;
+    SP('sys:depouilles', { t: 'Les morts qui restent au sol', s: 'Les jours qui passent, les poches, enterrer', c: ['fouilles'], i: '⚰', h, g: 'Les morts' }, FV.depouilles);
+  }
+
+  // ---- les activités des villes et villages
+  if (FV.activites) {
+    const AC = VIE.act || {}, FEN = AC.fen || {}, LIM = AC.lim || {}, FX = AC.fx || {}, RG = AC.regles || {}, TX = AC.txt || {}, MI = AC.mises || {};
+    const ACT = (k) => U(k, null);
+    const JEU = ACT('ACT_JEU') || {}, TRI = ACT('ACT_TRICHE') || [], BRAS = ACT('ACT_BRAS') || {}, TOUR = ACT('ACT_TOURNEE') || [], CONTES = ACT('ACT_CONTES') || [], APP = ACT('ACT_APPORTER') || [], LIV = ACT('ACT_LIVRER') || [];
+    const VOE = ACT('ACT_VOEU') || {}, MASQ = ACT('ACT_MASQUE') || {}, ARC = ACT('ACT_ARCANES') || [], DIS = ACT('ACT_DISEUSE') || {}, PERDU = ACT('ACT_PERDU') || [], VIO = ACT('ACT_VIOLON') || [], EPI = ACT('ACT_EPITAPHES') || [], TIR = ACT('ACT_TIR') || {}, PEC = ACT('ACT_PECHE') || {}, ETA = ACT('ACT_ETALS') || [], NOMS = ACT('ACT_NOMS') || {};
+    U('ACT_LOOKS'); U('ACT_AIRS');
+    const act = (W.misc && W.misc.act) || {};
+    const at = (kind) => INTER.filter((it) => it.kind === kind);
+    const ou = (kinds, spot) => { const L = [].concat(...kinds.map(at)); if (L.length) return ouTexte(L[0].x, L[0].z) + (L.length > 1 ? ` <small>(${L.length})</small>` : ''); if (spot && act[spot]) { const S = Array.isArray(act[spot]) ? act[spot][0] : act[spot]; if (S && isFinite(S.x)) return ouTexte(S.x, S.z); } return ''; };
+    const par = (k, un, plus) => (LIM[k] === null || LIM[k] === undefined ? '' : LIM[k] === 1 ? un : `${LIM[k]} ${plus}`);
+    const regle = (t) => String(t || '').replace(/^Contre [^.]+\.\s*/, '').replace(/\s*Vous avez \d+ pièces\.?$/, '');
+    const lines = (TBL, keys) => `<table class="t">${Object.entries(TBL).map(([k, v]) => `<tr><th>${k === '_' ? 'les autres' : nomNPC(k)}</th><td>${keys.filter((q) => v[q]).map((q) => `<p class="small"><b>${esc({ oui: 'Oui', gagne: 'Il gagne', perd: 'Il perd', refus: 'Non' }[q])} :</b> <i>${FILL(v[q], k)}</i></p>`).join('')}</td></tr>`).join('')}</table>`;
+    const D = [];
+    const A = (k, t, i, ouH, quand, prix, limite, body, extra) => D.push({ k, t, i, ou: ouH, quand, prix, limite, body, s: extra });
+    // les dés, le vingt-et-un
+    {
+      const g = gain(FX.des_gagne, 'earn');
+      A('des', 'Les dés : le passe-dix', '⚀', ou(['f2a_des']), fenTexte(FEN.des), MI.des && MI.des.opts ? MI.des.opts.filter((o) => /\d/.test(o)).map((o) => (o.match(/\d+/) || [''])[0]).join(', ') + ' pièces' : '', par('des', 'une partie par jour', 'parties par jour'),
+        `${MI.des ? `<p>${esc(regle(MI.des.texte))}</p>` : ''}<p>Contre un habitué de l’auberge. Gagné : ${g ? `${pieces(g)} pour une mise de 10` : 'le double de la mise'} ; égalité : chacun reprend sa mise ; perdu : la mise. En gagnant : ${fxTexte((FX.des_gagne || []).filter((c) => c[0] !== 'earn' && c[0] !== 'pay'))} ; en perdant : ${fxTexte((FX.des_perd || []).filter((c) => c[0] !== 'earn' && c[0] !== 'pay'))}.</p>${MI.des_pipes && MI.des_pipes.opts ? `<h3>Avec vos dés à vous</h3><p>${ITEMS.des_pipes ? IL('des_pipes') : ''} : ${MI.des_pipes.opts.filter((o) => /dés/.test(o)).map(esc).join(', ')}. Un dé pipé tire deux fois et garde le meilleur. On s’en aperçoit ${RG.triche !== undefined ? pct(RG.triche) + ' des fois' : 'parfois'} : ${fxTexte((FX.des_triche || []).filter((c) => (c[0] === 'ami' || c[0] === 'esprit') && c[1] < 0))}, et plus personne ne joue avec vous pendant quelques jours.</p>${quotes(TRI)}` : ''}<details><summary>Ce qu’ils disent en jouant</summary>${lines(JEU, ['oui', 'gagne', 'perd', 'refus'])}</details>`);
+      A('cartes', 'Le vingt-et-un', '♠', ou(['f2a_cartes']), fenTexte(FEN.cartes), MI.cartes && MI.cartes.opts ? MI.cartes.opts.filter((o) => /\d/.test(o)).map((o) => (o.match(/\d+/) || [''])[0]).join(', ') + ' pièces' : '', par('cartes', 'une main par jour', 'mains par jour'),
+        `${MI.cartes ? `<p>${esc(regle(MI.cartes.texte))}</p>` : ''}<p>${RE.croupier ? `L’habitant tire jusqu’à ${RE.croupier[0]}. ` : ''}Pour une mise de 10 : gagné, on reçoit ${pieces(gain(FX.cartes_gagne, 'earn'))} ; vingt et un d’entrée, ${pieces(gain(FX.cartes_21, 'earn'))} ; égalité, ${pieces(gain(FX.cartes_egal, 'earn'))} (la mise) ; perdu, rien.</p>`);
+    }
+    // le bras de fer, la tournée
+    A('bras', 'Le bras de fer', '✊', 'avec ceux qui le proposent (en parlant)', 'quand on les croise', '', par('bras', 'une fois par jour et par adversaire', 'fois par jour'),
+      `<p>Poussez vite, plusieurs fois (clic, <kbd>E</kbd> ou <kbd>Espace</kbd>) : amenez son poing jusqu’à la table. On pousse plus fort le ventre plein, moins la jambe cassée ou ivre.</p><p>Gagné : ${fxTexte(FX.bras_gagne)}. Perdu : ${fxTexte(FX.bras_perd)}.</p><table class="t"><tr><th>Adversaire</th><th>Force</th><th>Ce qu’il dit</th></tr>${Object.entries(BRAS).map(([k, v]) => `<tr><td>${k === '_' ? 'les autres' : nomNPC(k)}</td><td>${nfmt(v.f || 1)}</td><td>${['oui', 'gagne', 'perd'].filter((q) => v[q]).map((q) => `<i>${FILL(v[q], k)}</i>`).join('<br>')}</td></tr>`).join('')}</table>`);
+    A('tournee', 'La tournée', '🍺', NPC_BY.aubergiste ? `à l’auberge, ${npcLink('aubergiste')}` : 'à l’auberge', 'quand l’auberge est ouverte', (RG.tournee || []).length ? `${pieces(RG.tournee[0][1])} et plus` : '', par('tournee', 'une par jour', 'par jour'),
+      `${(RG.tournee || []).length ? `<table class="t"><tr><th>Buveurs dans la salle</th>${RG.tournee.map(([n]) => `<td>${n}</td>`).join('')}</tr><tr><th>Prix</th>${RG.tournee.map(([, p]) => `<td>${p ?? '—'}</td>`).join('')}</tr></table>` : ''}<p>${fxTexte(FX.tournee)}. Un bavard, le verre levé, lâche une rumeur.</p>${quotes(TOUR)}`);
+    // la veillée
+    {
+      const CO = TX.contes || [];
+      A('veillee', 'La veillée du Veilledi', '🔥', ou(['f2a_veillee']), fenTexte(FEN.veillee), 'rien', par('veillee', 'un conte par soir', 'contes'),
+        `<p>Au coin du feu de l’auberge, le plus vieux de la salle conte. ${fxTexte(FX.veillee)}.${RE.conteSemaine ? ` Un conte par semaine de ${RE.conteSemaine[0]} jours, toujours dans le même ordre.` : ''}</p>${CO.length ? `<table class="t"><tr><th>Veillée</th><th>Le conte</th></tr>${CO.map(([j, t]) => `<tr><td>jour ${j}</td><td>${esc(t || '')}</td></tr>`).join('')}</table>` : ''}<h3>Les contes</h3>${CONTES.map((C) => `<section class="bookpage"><h4>${esc(C.t)}</h4>${para(C.x)}</section>`).join('')}`);
+    }
+    // les petits travaux
+    {
+      const TJ = RG.travaux || {}, TN = { apporter: 'Apporter', livrer: 'Livrer un pli', reparer: 'Réparer un banc', balayer: 'Balayer le parvis' };
+      A('travaux', 'Les petits travaux de la mairie', '📜', ou(['f2a_travaux']), 'à toute heure', 'payés par la commune', 'trois papiers par jour',
+        `<p>Le tableau de la mairie : trois papiers punaisés chaque jour. ${fxTexte((FX.travaux || []).filter((c) => c[0] !== 'earn'))} à chaque travail fait.</p>${Object.keys(TJ).length ? `<table class="t"><tr><th>Travail</th><th>Payé</th><th>Sur quatre semaines</th></tr>${Object.entries(TJ).map(([t, L]) => { const ps = L.map((q) => q[0]); return `<tr><td>${esc(TN[t] || cap(humanKey(t)))}</td><td>${Math.min(...ps) === Math.max(...ps) ? pieces(ps[0]) : `${Math.min(...ps)} à ${Math.max(...ps)} pièces`}</td><td>${L.length} fois</td></tr>`; }).join('')}</table>` : ''}${APP.length ? `<details><summary>Ce qu’on demande d’apporter</summary><table class="t">${APP.map(([id, n, txt, pay]) => `<tr><td>${GROUPS[id] ? groupLink(id) : IL(id)} ×${n}</td><td><i>${FILL(txt)}</i></td><td>${pieces(pay)}</td></tr>`).join('')}</table>${LIV.length ? `<h4>Les plis à livrer</h4>${quotes(LIV.map((t) => t.replace('{npc}', '‹un habitant›')))}` : ''}</details>` : ''}${ITEMS.pli_mairie ? `<p>${IL('pli_mairie')}</p>` : ''}`);
+    }
+    // le puits aux souhaits
+    {
+      const VX = FX.voeux || [], rf = RG.voeuRefus, au = RG.voeuAutre;
+      A('voeu', 'Le puits aux souhaits', '◎', ou(['f2a_voeu']), 'à toute heure', gain(VX[0] && VX[0][1], 'pay') ? pieces(gain(VX[0][1], 'pay')) : 'une pièce', par('voeu', 'un vœu par jour', 'vœux'),
+        `${VX.length ? `<table class="t"><tr><th>Le vœu</th><th>Ce qu’il fait</th><th>Ce qu’on entend</th></tr>${VX.map(([l, g, sb]) => `<tr><td>${esc(l)}</td><td>${fxTexte(g.filter((c) => c[0] !== 'pay'))}</td><td><i>${sb ? FILL(String(sb).replace(/^\(|\)$/g, '')) : ''}</i></td></tr>`).join('')}</table>` : ''}${rf !== undefined ? `<p>${pct(rf)} des fois, le puits rend la pièce :</p>${quote(String(VOE.refus || '').replace(/^\(|\)$/g, ''))}${au !== undefined && au > rf && VOE.nom ? `<p>Et ${pct(Math.round((au - rf) * 1000) / 1000)} des fois :</p>${quote(String(VOE.nom).replace(/^\(|\)$/g, ''))}` : ''}` : ''}`);
+    }
+    // la diseuse
+    A('diseuse', 'La diseuse de bonne aventure', '🔮', ou(['f2a_diseuse']), fenTexte(FEN.diseuse), gain(FX.diseuse, 'pay') ? pieces(gain(FX.diseuse, 'pay')) : '', par('diseuse', 'une fois par jour', 'fois'),
+      `<div class="figrow">${figK('act:diseuse', 110, esc(NOMS.diseuse || ''))}${figK('prop:tente_diseuse', 90)}</div><p>Trois cartes : ce que l’almanach des événements prépare (nuit noire, tueur errant, neige, soleil, tornade), ce qui vous concerne, le temps de demain ; sinon, une arcane.</p>${(DIS.accueil || []).length ? quotes(DIS.accueil) : ''}${TX.diseuse ? `<details><summary>Une lecture (partie neuve)</summary>${para(TX.diseuse[1])}</details>` : ''}${ARC.length ? `<h3>Les arcanes</h3><table class="t">${ARC.map(([t, x]) => `<tr><th>${esc(t)}</th><td><i>${FILL(x)}</i></td></tr>`).join('')}</table>` : ''}${Object.keys(MASQ).length ? SEC(`<h3>Le Masque</h3><p>Quand le tueur masqué est à l’œuvre, la diseuse voit ce qu’il porte :</p><table class="t">${Object.entries(MASQ).map(([k, v]) => `<tr><th>${nomNPC(k)}</th><td><i>${esc(v)}</i></td></tr>`).join('')}</table>`, 'Ce que la diseuse voit du tueur est masqué (secrets).') : ''}`);
+    // le crieur, le violoneux
+    A('crieur', 'Le crieur public', '📣', ou([], 'crieur'), fenTexte(FEN.crieur), 'rien', 'deux fois par jour',
+      `<div class="figrow">${figK('act:crieur', 110, esc(NOMS.crieur || ''))}</div><p>Il crie les nouvelles quand on passe : le jour, l’annonce, le temps de demain, ce qui se prépare, les décès, les avis de recherche, un objet perdu, une rumeur.</p>${(TX.crieur || []).length ? `<details><summary>Les nouvelles d’un jour</summary>${quotes(TX.crieur)}</details>` : ''}${PERDU.length ? `<h3>Perdu, trouvé</h3>${quotes(PERDU)}` : ''}`);
+    A('violon', 'Le violoneux', '🎻', ou([], 'violon'), fenTexte(FEN.violon), 'une pièce, si l’on veut', '',
+      `<div class="figrow">${figK('act:violon', 110, esc(NOMS.violon || ''))}</div><p>L’écouter apaise${RE.ecoute ? ` : ${RE.ecoute[0]} s puis ${RE.ecoute[1]} s à moins de neuf mètres, la mentalité remonte` : ''}. Un pourboire : ${fxTexte(FX.violon)}.</p>${quotes(VIO)}`);
+    // le clocher, les cierges, les tombes
+    A('clocher', 'Le clocher', '🔔', ou(['f2a_clocher']), fenTexte(FEN.clocher), 'rien', par('clocher', 'une fois par jour', 'fois'),
+      '<p>Cent douze marches, puis la vue : la ville, la vallée, les Monts, et quelque chose d’inquiétant au loin (une courte scène). De là-haut, on repère quelques lieux qu’on ne connaissait pas.</p>');
+    A('cierges', 'Les cierges', '🕯', ou(['f2a_cierge']), 'à toute heure', gain((FX.cierges || [])[0] && FX.cierges[0][1], 'pay') ? pieces(gain(FX.cierges[0][1], 'pay')) : '', par('cierge', 'un par jour', 'par jour'),
+      `<div class="figrow">${figK('prop:porte_cierges', 70)}</div>${MI.cierge && MI.cierge.opts ? `<p>${MI.cierge.opts.map((o) => `<span class="tag">${esc(o)}</span>`).join(' ')}</p>` : ''}${(FX.cierges || []).length ? `<p>${fxTexte(FX.cierges[0][1].filter((c) => c[0] !== 'pay'))}.</p>` : ''}`);
+    A('tombes', 'Les vieilles tombes', '✝', ou(['f2a_tombe']), 'à toute heure', 'une fleur', 'chaque tombe, une fois par jour',
+      `<p>Au cimetière de la ville : lire l’épitaphe, fleurir la tombe. ${fxTexte(FX.fleurir)} ; le Vorndi, jour des morts : ${fxTexte(FX.fleurir_morts)}.</p>${quotes(EPI)}${OB('activites', 'FLEURS', []).length ? `<p class="note">Ce qui fleurit une tombe : ${ILs(OB('activites', 'FLEURS', []).filter((id) => ITEMS[id]))}.</p>` : ''}`);
+    // les étals du Marchedi
+    A('etals', 'Les étals du Marchedi', '⚖', ou([], 'vendeurs'), fenTexte(FEN.marche), '', '',
+      `<div class="figrow">${ETA.map((E) => figK('etal:' + E.id, 100, esc(cap(E.nom)))).join('')}</div>${ETA.map((E) => { const off = ((RG.etals || []).find(([id]) => id === E.id) || [])[1] || []; return `<h3>${esc(cap(E.nom))}</h3>${quote(E.accueil)}<p>${plur(E.n, 'article', 'articles')} par semaine, parmi : ${(E.vend || []).map(([id, p]) => `${IL(id)} <small>${pieces(p)}</small>`).join(', ')}.${E.achete && RE.brocante ? ` Il rachète les curiosités ${pct0(RE.brocante[1])} de leur prix, ${RE.brocante[0]} par jour.` : ''}</p>${off.length ? `<p class="note">Les quatre premières semaines : ${off.map((L, i) => `<b>${i + 1}</b> ${L.map(([id]) => iname(id)).join(', ')}`).join(' · ')}.</p>` : ''}`; }).join('')}`);
+    // Clairpré : les quilles, le four, la tombola
+    {
+      const Q = RG.quilles || [];
+      A('quilles', 'Les quilles', '🎳', ou(['f2a_quilles']), fenTexte(FEN.quilles), 'rien', par('quilles', 'une partie par jour', 'parties par jour'),
+        `<div class="figrow">${figK('prop:quilles_piste', 110)}</div><p>Deux boules pour neuf quilles. Les neuf d’un coup : ${fxTexte(FX.quilles_9)}.</p>${Q.length ? `<table class="t"><tr><th>Première boule</th><th>Quilles tombées</th><th>Les neuf d’un coup</th></tr>${Q.map(([v, m, p]) => `<tr><td>${v < 0 ? 'à gauche' : v > 0 ? 'à droite' : 'au milieu'}</td><td>${nfmt(m)} en moyenne</td><td>${pct(p)}</td></tr>`).join('')}</table><p class="note">Mesuré en lançant la boule mille cinq cents fois dans le jeu.</p>` : ''}`);
+      const FO = RG.four || {}, fo = (o) => (o && o.out ? `${IL(o.out[0], o.out[1])}${o.prises.length ? ` <small>(${o.prises.map(([id, n]) => IL(id, n)).join(', ')})</small>` : ''}${o.delai ? ` <small>en ${plur(o.delai, 'heure', 'heures')}</small>` : ''}` : '');
+      A('four', 'Le four banal', '🍞', ou(['f2a_four']), 'à toute heure', 'de la farine et une bûche', 'une fournée par jour',
+        `<table class="t">${[['Une fournée', FO.pain], ['Avec du beurre et un œuf', FO.brioche], ['Jour de foire (le four est chaud)', FO.foire]].filter(([, o]) => o && o.out).map(([t, o]) => `<tr><th>${esc(t)}</th><td>${fo(o)}</td></tr>`).join('')}</table>`);
+      const TB = RG.tombola || {};
+      const val = (TB.lots || []).reduce((a, [id, n]) => a + ((ITEMS[id] && ITEMS[id].price) || 0) * n, 0), sur = RE.tirageSur ? RE.tirageSur[0] : null;
+      A('tombola', 'La tombola du Foiredi', '🎟', ou(['f2a_tombola']), fenTexte(FEN.tombola), TB.billet ? `${pieces(TB.billet)} le billet` : '', TB.max ? `${plur(TB.max, 'billet', 'billets')} au plus` : '',
+        `<div class="figrow">${figK('prop:stand_tombola', 90)}</div><p>${TB.tirage !== undefined ? `Tirage à ${hours(TB.tirage)}. ` : ''}${(TB.lots || []).length}${sur ? ` numéros sortent sur ${sur}` : ' lots'} ; chaque numéro sorti gagne son lot.${val && sur && TB.billet ? ` Un billet rend en moyenne ${nfmt(Math.round(val / sur * 10) / 10)} pièces de lots, ${pct0(val / sur / TB.billet)} de son prix.` : ''}</p><table class="t"><tr><th>Lot</th><th>Valeur</th></tr>${(TB.lots || []).map(([id, n, t]) => `<tr><td>${IL(id, n > 1 ? n : undefined)} <small>${esc(t || '')}</small></td><td>${ITEMS[id] && ITEMS[id].price ? pieces(ITEMS[id].price * n) : '—'}</td></tr>`).join('')}</table>`);
+    }
+    // les concours
+    {
+      const TI = RG.tir || {}, PE = RG.peche || {};
+      const rangs = (L) => `<table class="t"><tr><th>Rang</th><th>Prix</th></tr>${(L || []).map(([r, g]) => `<tr><td>${r === 1 ? '1ᵉʳ' : r + 'ᵉ'}</td><td>${g.length ? fxTexte(g) : 'rien'}</td></tr>`).join('')}</table>`;
+      A('tir', 'Le concours de tir du Chassedi', '⌖', ou(['f2a_tir']), fenTexte(FEN.tir), TI.inscription ? `${pieces(TI.inscription)} l’inscription` : '', 'une fois par jour de concours',
+        `<div class="figrow">${figK('prop:cible', 80)}</div><p>Trois coups à quinze pas sur la cible de paille${RE.cibleScore ? ` : ${RE.cibleScore[0]} points au centre, un de moins par dixième du rayon` : ''}. Le guidon danse : ${(TI.amp || []).filter(([, a]) => a).map(([t, a]) => `${t === 'main' ? 'sans arme à soi' : 'avec ' + (t === 'arc' ? 'un arc' : 'un fusil')} ${nfmt(a)}`).join(', ')} (l’amplitude ; plus ivre ou apeuré, plus elle grandit).</p>${rangs(TI.prix)}${(TI.noms || []).length ? `<p>Les habitués : ${TI.noms.map(([id, a, b]) => `${nomNPC(id)} <small>${a}–${b}</small>`).join(', ')}.</p>` : ''}${Object.values(TIR).length ? quotes(Object.values(TIR), 'chasseur') : ''}`);
+      A('peche', 'Le concours de pêche du Pêchedi', '🐟', ou(['f2a_peche']), `inscriptions ${fenTexte(FEN.peche)}${fenTexte(FEN.peche_jury) && fenTexte(FEN.peche_jury) !== 'jamais' ? ` ; présentation ${fenTexte(FEN.peche_jury)}` : RE.pecheJury ? ` ; présentation ${(FEN.peche || []).some((L) => L.length) ? leJ((FEN.peche || []).findIndex((L) => L.length)) + ', ' : ''}de ${hours(RE.pecheJury[0])} à ${hours(RE.pecheJury[1])}` : ''}`, PE.inscription ? `${pieces(PE.inscription)} l’inscription` : '', '',
+        `<p>Ce qu’on tire du lac jusqu’à l’heure de la présentation compte ; on présente sa plus belle prise, et le jury classe par la valeur des poissons. Les habitants pêchent dans le même lac.</p>${rangs(PE.prix)}${(PE.noms || []).length ? `<p>Les concurrents : ${PE.noms.map(([id, n]) => `${nomNPC(id)} <small>${plur(n, 'prise', 'prises')}</small>`).join(', ')}.</p>` : ''}${Object.values(PEC).length ? quotes(Object.values(PEC), 'pecheur') : ''}`);
+    }
+    // sur la carte : l'endroit de chaque activité (le premier, s'il y en a plusieurs)
+    const POS = { des: 'f2a_des', cartes: 'f2a_cartes', veillee: 'f2a_veillee', travaux: 'f2a_travaux', voeu: 'f2a_voeu', diseuse: 'f2a_diseuse', clocher: 'f2a_clocher', cierges: 'f2a_cierge', tombes: 'f2a_tombe', quilles: 'f2a_quilles', four: 'f2a_four', tombola: 'f2a_tombola', tir: 'f2a_tir', peche: 'f2a_peche', crieur: '@crieur', violon: '@violon', etals: '@vendeurs' };
+    for (const d of D) {
+      const q = POS[d.k]; if (!q) continue;
+      let X = null;
+      if (q[0] === '@') { const S = act[q.slice(1)]; X = Array.isArray(S) ? S[0] : S; } else X = at(q)[0];
+      if (X && isFinite(X.x)) VIE_MAP.act.push([d.k, d.t, Math.round(X.x * 10) / 10, Math.round(X.z * 10) / 10, d.i, d.quand ? cap(d.quand) : '']);
+    }
+    // la fiche d'ensemble et celles de chaque activité
+    let h = intro(FV.activites);
+    h += `<p>${mapBtn('couche:activites', 'Les activités sur la carte')}</p><table class="t"><tr><th>Activité</th><th>Où</th><th>Quand</th><th>Combien</th><th>Par jour</th></tr>${D.map((d) => `<tr><td>${lk('act:' + d.k, d.t)}</td><td><small>${d.ou}</small></td><td><small>${esc(d.quand)}</small></td><td><small>${esc(d.prix)}</small></td><td><small>${esc(d.limite)}</small></td></tr>`).join('')}</table><p class="note">Les heures sont mesurées dans le jeu, quart d’heure par quart d’heure, sur les ${SEM.length} jours de la semaine.</p>`;
+    SP('sys:activites', { t: 'Les activités des villes et villages', s: 'Jeux, concours, veillée, petits travaux, puits, diseuse…', c: ['activites'], i: '🎲', h, g: 'Ensemble' }, FV.activites);
+    for (const d of D) SP('act:' + d.k, { t: d.t, s: d.quand ? cap(d.quand) : 'Activité', c: ['activites'], i: d.i, g: 'Les activités', h: `<dl class="kv">${d.ou ? `<dt>Où</dt><dd>${d.ou}</dd>` : ''}${d.quand ? `<dt>Quand</dt><dd>${esc(d.quand)}</dd>` : ''}${d.prix ? `<dt>Combien</dt><dd>${esc(d.prix)}</dd>` : ''}${d.limite ? `<dt>Par jour</dt><dd>${esc(d.limite)}</dd>` : ''}</dl>${d.body}<p>${lk('sys:activites', 'Toutes les activités')}</p>` });
+  }
+
+  // ---- l'équilibrage : la section du README, et les chiffres du jeu aujourd'hui
+  if (DB.derived.equilibrage) {
+    const md = DB.derived.equilibrage;
+    const inl = (s) => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/(^|[\s(])\*([^*\s][^*]*?)\*(?=[\s).,;:]|$)/g, '$1<i>$2</i>');
+    const out = [], L = md.split('\n');
+    let i = 0;
+    while (i < L.length) {
+      const l = L[i];
+      if (/^```/.test(l)) { const a = []; i++; while (i < L.length && !/^```/.test(L[i])) a.push(L[i++]); i++; out.push(`<pre class="code">${esc(a.join('\n'))}</pre>`); continue; }
+      const m = l.match(/^(#{2,4})\s+(.*)$/);
+      if (m) { if (m[1].length > 2) out.push(`<h${m[1].length}>${inl(m[2])}</h${m[1].length}>`); i++; continue; }
+      if (/^\|/.test(l)) { const rows = []; while (i < L.length && /^\|/.test(L[i])) rows.push(L[i++]); const cells = (r) => r.replace(/^\||\|$/g, '').split('|').map((c) => c.trim()); const hd = cells(rows[0]), body = rows.slice(2).map(cells); out.push(`<div class="scrollx"><table class="t"><tr>${hd.map((c) => `<th>${inl(c)}</th>`).join('')}</tr>${body.map((r) => `<tr>${r.map((c) => `<td>${inl(c)}</td>`).join('')}</tr>`).join('')}</table></div>`); continue; }
+      if (/^\s*- /.test(l)) { const it = []; while (i < L.length && (/^\s*- /.test(L[i]) || (/^\s{2,}\S/.test(L[i]) && it.length))) { if (/^\s*- /.test(L[i])) it.push(L[i].replace(/^\s*- /, '')); else it[it.length - 1] += ' ' + L[i].trim(); i++; } out.push(`<ul>${it.map((t) => `<li>${inl(t)}</li>`).join('')}</ul>`); continue; }
+      if (!l.trim()) { i++; continue; }
+      const p = []; while (i < L.length && L[i].trim() && !/^(#|\||```|\s*- )/.test(L[i])) p.push(L[i++]);
+      out.push(`<p>${inl(p.join(' '))}</p>`);
+    }
+    // les chiffres du jeu, aujourd'hui (les tables telles qu'elles sont)
+    const vivant = [];
+    if (Object.keys(LOC).length) vivant.push(['Loyers en ville (semaine de ' + SEM.length + ' jours)', Object.entries(LOC).map(([k, M]) => `${esc(M.court || M.nom)} ${pieces(M.loyer)}`).join(' · '), 'sys:location']);
+    if ((VIE.achat || []).length) vivant.push(['Maisons à acheter', VIE.achat.map(([k, a]) => `${esc((LOC[k] && LOC[k].court) || k)} ${pieces(a)}`).join(' · '), 'sys:meubles']);
+    if (RE.aubergeSoir) vivant.push(['La chambre de l’auberge', pieces(RE.aubergeSoir[0]) + ' la nuit', 'sys:sommeil']);
+    const cr = Object.entries(CRIMES).filter(([, d]) => d.prime);
+    if (cr.length) vivant.push(['Primes', cr.map(([k, d]) => `${esc(humanKey(k))} ${d.prime}`).join(' · '), 'sys:crimes']);
+    const pr = (ids) => ids.filter((id) => ITEMS[id]).map((id) => `${esc(iname(id))} ${nfmt(ITEMS[id].price)}`).join(' · ');
+    vivant.push(['Récoltes', pr(['radis', 'carotte', 'chou', 'citrouille', 'tomate']), 'cat:cultures']);
+    vivant.push(['Poissons', pr(['carpe', 'brochet', 'silure', 'reine_lac', 'poisson_aveugle']), 'cat:poissons']);
+    const bet = Object.keys(ITEMS).filter((id) => ITEMS[id].animal && ['hen', 'cow', 'horse', 'pig', 'sheep'].includes(ITEMS[id].animal));
+    if (bet.length) vivant.push(['Bêtes', pr(bet), '']);
+    const TBL = (VIE.act && VIE.act.regles && VIE.act.regles.tombola) || null, sur = RE.tirageSur ? RE.tirageSur[0] : null;
+    if (TBL && TBL.billet && sur) { const v = (TBL.lots || []).reduce((a, [id, n]) => a + ((ITEMS[id] && ITEMS[id].price) || 0) * n, 0); vivant.push(['Tombola', `billet ${TBL.billet} ; rend ${pct0(v / sur / TBL.billet)}`, 'act:tombola']); }
+    if (CAL && CAL.ev) vivant.push(['Fréquences', Object.entries(CAL.ev).map(([k, e]) => `${esc(humanKey(k))} : ${esc(freq(e.n, CAL.jours))}`).join(' · '), 'sys:journee']);
+    const PLU = VIE.pluie;
+    if (PLU) vivant.push(['Pluie', `${pct0(PLU.pluie / PLU.jours)} des jours, une heure sur ${nfmt(Math.round(1 / (PLU.heures || 1)))}`, 'sys:terre']);
+    let h = `<p class="lead">Comment le jeu a été équilibré : la section « Équilibrage » du README, telle qu’elle est, et en tête les chiffres que le jeu porte aujourd’hui.</p><h3>Les chiffres du jeu, aujourd’hui</h3><table class="t">${vivant.filter(([, v]) => v).map(([k, v, id]) => `<tr><th>${id ? lk(id, k) : esc(k)}</th><td>${v}</td></tr>`).join('')}</table><p class="note">Lus dans les tables du jeu (LOC_MAISONS, CRIME_DEF, ITEMS…) et mesurés (fréquences, pluie) au moment où ce wiki a été construit.</p>`;
+    h += `<div class="md">${out.join('')}</div>`;
+    SP('sys:equilibrage', { t: 'L’équilibrage', s: 'Commerce, risques, survie, hasard : les mesures et les réglages', c: ['equilibrage'], i: '⚖', h });
+  }
+
   // ==== PRISON, VOL À LA TIRE ET SENTIMENTS (modules à venir : leurs fiches se font d'elles-mêmes) ====
   // et, plus généralement, tout module de nouveautés qu'aucune fiche ne couvre encore
   const genericPage = (file, cat, g) => {
@@ -2939,13 +3486,13 @@ function buildWiki(DB) {
   const isSys = (id) => SYSP.includes(id);
   const sysGroup = (cat, t) => { const ids = byCat(cat).filter(isSys); return ids.length ? [{ t, ids }] : []; };
   const cats = [
-    { id: 'nouveautes', t: 'Nouveautés', d: 'Tout ce qui est arrivé dans la vallée : le corps et l’esprit, la chasse, la société, les événements, les Trois, les autres mondes, les merveilles…', page: true, nouveau: true },
+    { id: 'nouveautes', t: 'Nouveautés', d: 'Tout ce qui est arrivé dans la vallée : le corps et l’esprit, les maisons et les serrures, fouiller et casser, les activités des villes, la chasse, la société, les événements, les Trois, les autres mondes, les merveilles…', page: true, nouveau: true },
     { id: 'commandes', t: 'Commandes et mécaniques', d: 'Les touches du jeu, et ce que les nouveautés y ajoutent.', page: true, nouveau: true },
     { id: 'habitants', t: 'Habitants', d: 'Les gens de la vallée : leurs journées, leurs boutiques, leurs quêtes, leurs histoires.', groups: groupBy(byCat('habitants'), (p) => p.g || 'Autres') },
     { id: 'lieux', t: 'Lieux', d: 'Villes, hameaux, lieux-dits, bâtiments, et ce qu’on y trouve.', groups: groupBy(byCat('lieux'), (p) => p.g) },
     { id: 'objets', t: 'Objets', d: 'Tout ce qui se ramasse, s’achète, se fabrique.', groups: groupBy(byCat('objets'), itemGroup) },
     { id: 'recettes', t: 'Recettes', d: 'Ce qui se fabrique, où, et avec quoi.', page: true, groups: sysGroup('recettes', 'Fabriquer') },
-    { id: 'cultures', t: 'Cultures', d: 'Ce qui se sème au potager : temps de pousse, récolte, variétés.', page: true },
+    { id: 'cultures', t: 'Cultures', d: 'Ce qui se sème au potager : temps de pousse, récolte, variétés ; la terre et l’arrosage.', page: true, groups: sysGroup('cultures', 'La terre') },
     { id: 'plantes', t: 'Plantes sauvages', d: 'Fleurs, herbes et champignons de chaque milieu.', groups: groupBy(byCat('plantes'), (p) => { const f = floraInfo[p.id.slice(3)]; return f && f.rar !== null && f.rar !== undefined ? cap(RAR[f.rar] || '') : 'Sans rareté connue'; }) },
     { id: 'arbres', t: 'Arbres', d: 'Les essences de la vallée.', groups: [{ t: 'Arbres', ids: sortT(byCat('arbres')) }] },
     { id: 'betes', t: 'Bêtes', d: 'Gibier, bêtes des bois, des eaux et des montagnes, et bêtes de ferme.', groups: groupBy(byCat('betes'), (p) => p.g) },
@@ -2958,7 +3505,10 @@ function buildWiki(DB) {
     { id: 'legendes', t: 'Légendes et lore', d: 'Légendes, fois, divinités, signes, textes du monde.', groups: groupBy(byCat('legendes'), (p) => (p.id.startsWith('my:') ? 'Légendes' : p.id.startsWith('foi:') ? 'Les fois' : p.id.startsWith('div:') ? 'Les divinités' : 'Textes')) },
     { id: 'cartes', t: 'Cartes des régions', d: 'Les cartes qu’on achète : jamais toute la vallée.', groups: [...sysGroup('cartes', 'Comment on les dessine'), { t: 'Cartes', ids: sortT(byCat('cartes').filter((i) => !isSys(i))) }] },
     { id: 'etrange', t: 'L’étrange', d: 'Apparitions, manifestations, lettres… (secrets).', groups: [{ t: 'L’étrange', ids: byCat('etrange') }] },
-    { id: 'corps', t: 'Corps et esprit', d: 'Chutes, blessures, mentalité, ce qu’on mange, le chien, l’alcool.', nouveau: true, groups: groupBy(byCat('corps'), (p) => p.g || 'Le corps et l’esprit') },
+    { id: 'corps', t: 'Corps et esprit', d: 'Chutes, blessures, mentalité, le sommeil et la fatigue, ce qu’on mange, le chien, l’alcool.', nouveau: true, groups: groupBy(byCat('corps'), (p) => p.g || 'Le corps et l’esprit') },
+    { id: 'maisons', t: 'Maisons, lits et serrures', d: 'Dormir et la fatigue, louer une maison, l’acheter et la meubler, les portes, crocheter une serrure, la poterne.', nouveau: true, groups: groupBy(byCat('maisons'), (p) => p.g || 'Se loger') },
+    { id: 'fouilles', t: 'Fouiller, ramasser, casser', d: 'Les armoires et les tiroirs-caisses, le menu de butin, ce qui se casse et à qui c’était, les morts qui restent au sol.', nouveau: true, groups: groupBy(byCat('fouilles'), (p) => p.g || 'Fouiller') },
+    { id: 'activites', t: 'Activités des villes et villages', d: 'Les dés, le vingt-et-un, la veillée, les petits travaux, le puits, la diseuse, les quilles, la tombola, les concours, les étals du Marchedi…', nouveau: true, groups: groupBy(byCat('activites'), (p) => p.g || 'Les activités') },
     { id: 'chasse', t: 'Chasse et attelage', d: 'Le fusil, les pièges, les bêtes dangereuses, les chasseurs, la charrette.', nouveau: true, groups: groupBy(byCat('chasse'), (p) => p.g || 'La chasse') },
     { id: 'societe', t: 'Société', d: 'La mort des habitants, les crimes et les primes, les Sources, les nains, les géants, les colporteurs.', nouveau: true, groups: groupBy(byCat('societe'), (p) => p.g || 'La vie de la vallée') },
     { id: 'evenements', t: 'Événements et divinités', d: 'Nuits noires, neige, soleil, tornades, prodiges, les Trois, les malédictions, le temple, les cinématiques.', nouveau: true, groups: groupBy(byCat('evenements'), (p) => p.g || 'Ce qui arrive') },
@@ -2966,6 +3516,7 @@ function buildWiki(DB) {
     { id: 'merveilles', t: 'Merveilles et mystères', d: 'Objets légendaires et mythiques, l’Homme long, la Fondation.', nouveau: true, groups: groupBy(byCat('merveilles'), (p) => p.g || 'Merveilles') },
     { id: 'prison', t: 'Prison, vol à la tire et sentiments', d: 'Voler, être pris, le cachot ; ce que les gens ressentent.', nouveau: true, groups: groupBy(byCat('prison'), (p) => p.g || 'Fiches') },
     { id: 'nouveautes-autres', t: 'Autres nouveautés', d: 'Les modules nouveaux qui n’ont pas encore de section à eux.', nouveau: true, groups: groupBy(byCat('nouveautes-autres'), (p) => p.g || 'Fiches') },
+    { id: 'equilibrage', t: 'Équilibrage', d: 'Comment le jeu a été réglé, et les chiffres qu’il porte aujourd’hui.', nouveau: true, groups: [{ t: 'Équilibrage', ids: byCat('equilibrage') }] },
     { id: 'butins', t: 'Butins', d: 'Ce qu’on trouve en fouillant les coffres et les caches (secrets).', groups: [{ t: 'Tables de butin', ids: sortT(byCat('butins')) }] },
     { id: 'autres', t: 'Autres tables', d: 'Les tables du jeu qui n’ont pas de section à elles, affichées telles quelles.', groups: [{ t: 'Tables', ids: sortT(byCat('autres')) }] },
   ].map((c) => (c.groups ? Object.assign(c, { groups: c.groups.filter((g) => g.ids.length) }) : c)).filter((c) => c.page || c.groups.some((g) => g.ids.length));
@@ -2998,7 +3549,7 @@ function buildWiki(DB) {
 
   // les nouveautés : toutes les sections nouvelles, et les fiches des systèmes dans les sections anciennes
   {
-    const SUBF = /^(eff|pr|scp|an:m|geant|mal|dieu):/;
+    const SUBF = /^(eff|pr|scp|an:m|geant|mal|dieu|act):/;
     let h = `<p class="lead">Ce qui est arrivé dans la vallée, section par section. Chaque fiche est tirée du jeu lui-même : l’en-tête de ses modules, leurs tables, ce qu’ils calculent.</p>`;
     let n = 0;
     for (const c of [...cats.filter((q) => q.nouveau), ...cats.filter((q) => !q.nouveau)]) {
@@ -3037,7 +3588,7 @@ function buildWiki(DB) {
     P('cat:commandes', { t: 'Commandes et mécaniques', s: 'Touches et gestes', c: [], i: '⌨', h });
   }
 
-  return { pages: [...pages.values()], cats, other, used: [...used], SAFE_INTER };
+  return { pages: [...pages.values()], cats, other, used: [...used], SAFE_INTER, safeInter, VIE_MAP };
 }
 
 // ---------------------------------------------------------------- les données de la carte (pour la page)
@@ -3054,7 +3605,7 @@ function buildMapData(DB, wiki) {
   const homes = {};
   for (const d of NPCS) for (const b of uniq([d.home, d.work].filter(Boolean))) (homes[b] || (homes[b] = [])).push([d.id, `${(d.names || [])[0] || ''} ${d.surname || ''}`.trim(), d.home === b ? 1 : 0, d.role || '']);
   const SAFE = wiki.SAFE_INTER;
-  const poi = (W.inter || []).map((it) => [it.kind, it.name || it.kind, it.x, it.z, SAFE.has(it.kind) ? 0 : 1, it.data ? String(it.data.table || it.data.ins || it.data.kind || it.data.sigle || it.data.faith || it.data.key || '') : '']);
+  const poi = (W.inter || []).map((it) => [it.kind, it.name || it.kind, it.x, it.z, (wiki.safeInter ? wiki.safeInter(it) : SAFE.has(it.kind)) ? 0 : 1, it.data ? String(it.data.table || it.data.ins || it.data.kind || it.data.sigle || it.data.faith || it.data.key || '') : '']);
   const spawns = {};
   for (const t of OT) if (t.animal && t.animal !== 'villager') (spawns[t.animal] || (spawns[t.animal] = [])).push(t.id);
   const spNames = {};
@@ -3071,6 +3622,7 @@ function buildMapData(DB, wiki) {
     homes, nav: W.nav, poi, props: (W.props || []).filter((p) => PROP_LABELS[p[0]]).map((p) => [p[0], p[1], p[2]]), propLabels: PROP_LABELS,
     fish: W.fishZones || [], fishBy, eaux: EAUX, lakes: W.lakes || [], pools: W.pools || [], moat: W.moat, bridges: W.bridges || [], crevasses: W.crevasses || [],
     noBuild: W.noBuild || [], secrets: W.secrets || [], caves: W.caves || [], boards: W.mapBoards || [], herd: W.herd, regions,
+    vie: wiki.VIE_MAP || null,
     blocks: W.blocks, species: W.species, spawns, spNames, sigils: Object.fromEntries(Object.entries(SIGT).map(([k, v]) => [k, (v && v.titre) || k])),
   };
 }
@@ -3365,12 +3917,13 @@ function CLIENT(D) {
   const M = D.map;
   const MAP = {
     ready: false, raf: 0, cv: null, ctx: null, base: null, dpr: 1, cx: M.size / 2, cz: M.size / 2, k: 0.3,
-    layers: Object.assign({ relief: 1, eaux: 1, roches: 1, forets: 1, chemins: 1, courbes: 0, milieux: 0, batiments: 1, lieux: 1, habitants: 1, peche: 0, panneaux: 0, details: 1, zones: 0, secrets: 1, souterrains: 1, cachettes: 0, tresors: 1, rares: 0 }, store.get('layers', {})),
+    layers: Object.assign({ relief: 1, eaux: 1, roches: 1, forets: 1, chemins: 1, courbes: 0, milieux: 0, batiments: 1, lieux: 1, habitants: 1, peche: 0, panneaux: 0, details: 1, zones: 0, louer: 1, activites: 1, fouilles: 0, secrets: 1, souterrains: 1, cachettes: 0, tresors: 1, rares: 0 }, store.get('layers', {})),
     sel: null, hl: null, hover: null, G: null,
     LAYERS: [
       ['Fond', [['relief', 'Relief ombré'], ['eaux', 'Eaux'], ['roches', 'Neige et roches'], ['forets', 'Forêts'], ['courbes', 'Courbes de niveau (10 m)'], ['milieux', 'Milieux (couleurs)']]],
       ['Tracés', [['chemins', 'Chemins'], ['batiments', 'Bâtiments'], ['details', 'Détails (ponts, croix, pierres…)'], ['zones', 'Zones où l’on ne bâtit pas'], ['peche', 'Zones de pêche'], ['panneaux', 'Panneaux et poteaux']]],
       ['Noms', [['lieux', 'Lieux-dits'], ['habitants', 'Maisons des habitants']]],
+      ['La vie des villes', [['louer', 'Maisons à louer, la poterne'], ['activites', 'Activités (jeux, concours, veillée…)'], ['fouilles', 'Où fouiller (de près)']]],
       ['Secrets', [['secrets', 'Lieux secrets'], ['souterrains', 'Souterrains'], ['tresors', 'Trésors et grottes'], ['cachettes', 'Cachettes, coffres, notes…'], ['rares', 'Plantes rares']], true],
     ],
     // ------------------------------------------------------------ données
@@ -3483,6 +4036,12 @@ function CLIENT(D) {
         for (const [b, a] of Object.entries(M.homes)) for (const [id, nm, home, role] of a) if (home && (reveal || !(PAGES.get('pnj:' + id) || {}).x)) f.push({ t: nm, s: role + ' — sa maison', go: () => this.go('li:' + b) });
         for (const [id, nm] of Object.entries(M.spNames)) { const pg = PAGES.get('pl:' + id); if (pg && visible(pg)) f.push({ t: nm, s: 'où elle pousse', go: () => this.go('pl:' + id) }); }
         for (const [k, a] of Object.entries(M.spawns)) { const pg = PAGES.get('an:' + k); if (pg && visible(pg)) f.push({ t: pg.t, s: 'où la trouver', go: () => this.go('an:' + k) }); }
+        const V = M.vie;
+        if (V) {
+          for (const q of V.louer) f.push({ t: q[1], s: 'maison à louer', go: () => { this.layers.louer = 1; this.go('xy:' + q[2] + ',' + q[3]); } });
+          if (V.poterne) f.push({ t: V.poterne[2], s: 'porte du rempart', go: () => { this.layers.louer = 1; this.go('xy:' + V.poterne[0] + ',' + V.poterne[1]); } });
+          for (const q of V.act) f.push({ t: q[1], s: 'activité', go: () => { this.layers.activites = 1; this.go('xy:' + q[2] + ',' + q[3]); } });
+        }
         return f;
       };
       let list = [];
@@ -3565,6 +4124,14 @@ function CLIENT(D) {
         const R = M.regions.find((q) => q[0] === v); if (R) { this.hl = { reg: R }; this.fit(R[2], R[3], R[4] * 1.1); this.info({ kind: 'reg', R }); }
       } else if (kind === 'couche') {
         if (v === 'peche') this.layers.peche = 1; else if (v === 'sigles') this.layers.cachettes = 1; else if (v in this.layers) this.layers[v] = 1;
+        const V = M.vie, pts = !V ? null : v === 'louer' ? V.louer.map((q) => [q[2], q[3]]).concat(V.poterne ? [V.poterne] : []) : v === 'activites' ? V.act.map((q) => [q[2], q[3]]) : v === 'fouilles' ? V.f2.filter((q) => !q[4] && (!q[3] || reveal)).map((q) => [q[0], q[1]]) : null;
+        if (pts && pts.length) {
+          // le coin le plus fourni (la ville), pas toute la vallée
+          const c0 = pts.reduce((b, p) => { const n = pts.filter((q) => Math.hypot(q[0] - p[0], q[1] - p[1]) < 90).length; return n > b[0] ? [n, p] : b; }, [0, pts[0]])[1];
+          const near = pts.filter((q) => Math.hypot(q[0] - c0[0], q[1] - c0[1]) < 140);
+          const xs = near.map((q) => q[0]), zs = near.map((q) => q[1]);
+          this.fit((Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2, Math.max(60, (Math.max(...xs) - Math.min(...xs)) / 2 + 20, (Math.max(...zs) - Math.min(...zs)) / 2 + 20));
+        }
         this.panel(); this.info(null);
       }
       this.req();
@@ -3635,6 +4202,24 @@ function CLIENT(D) {
       if (L.details && k > 0.9) { c.font = '11px serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; for (const p of M.props) { if (!inV(p[1], p[2])) continue; const [sx, sy] = T(p[1], p[2]); c.fillStyle = 'rgba(60,40,24,.85)'; c.fillText(this.sym(p[0]), sx, sy); marks.push({ x: sx, y: sy, r: 6, f: { kind: 'prop', t: M.propLabels[p[0]] || p[0], x: p[1], z: p[2] } }); } }
       // panneaux
       if (L.panneaux) { for (const q of M.poi) { if (q[0] !== 'sign' && q[0] !== 'mapboard') continue; if (!inV(q[2], q[3])) continue; const [sx, sy] = dot(q[2], q[3], 3, '#6a4a2a', '#f2e6c8'); marks.push({ x: sx, y: sy, r: 6, f: { kind: 'poi', t: q[1], x: q[2], z: q[3], p: q } }); } }
+      // la vie des villes : endroits à fouiller, maisons à louer, poterne, activités
+      const V = M.vie;
+      if (V && L.fouilles && k > 0.6) for (const q of V.f2) {
+        if ((q[3] && !reveal) || (q[4] && !(reveal && L.souterrains)) || !inV(q[0], q[1])) continue;
+        const [sx, sy] = T(q[0], q[1]); c.fillStyle = q[3] ? 'rgba(140,30,30,.9)' : 'rgba(96,64,30,.9)'; c.fillRect(sx - 2.5, sy - 2.5, 5, 5); c.strokeStyle = '#f6e8d0'; c.lineWidth = 1; c.strokeRect(sx - 2.5, sy - 2.5, 5, 5);
+        marks.push({ x: sx, y: sy, r: 6, f: { kind: 'pt', t: q[2], x: q[0], z: q[1], sub: q[5] ? 'À fouiller, ' + q[5] : 'À fouiller', page: 'sys:fouilles' } });
+      }
+      if (V && L.louer) {
+        for (const q of V.louer) { if (!inV(q[2], q[3], 40)) continue; const [sx, sy] = dot(q[2], q[3], 5.5, '#3c6e3a', '#fbf2dc'); c.fillStyle = '#fbf2dc'; c.font = 'bold 9px serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('⌂', sx, sy + 0.5); marks.push({ x: sx, y: sy, r: 9, f: { kind: 'pt', t: q[1], x: q[2], z: q[3], sub: q[4], page: q[5] } }); if (k > 0.8) labels.push({ x: sx + 8, y: sy, t: q[1], pr: 4.5, cls: 'rent', left: true }); }
+        if (V.poterne && inV(V.poterne[0], V.poterne[1], 40)) { const [sx, sy] = dot(V.poterne[0], V.poterne[1], 4.5, '#4a3a2a', '#fbf2dc'); marks.push({ x: sx, y: sy, r: 8, f: { kind: 'pt', t: V.poterne[2], x: V.poterne[0], z: V.poterne[1], sub: 'Une porte basse dans le rempart : on sort, on ne rentre pas.', page: V.poterne[3] } }); if (k > 0.8) labels.push({ x: sx + 7, y: sy, t: V.poterne[2], pr: 4, cls: 'rent', left: true }); }
+      }
+      if (V && L.activites && k > 0.25) for (const q of V.act) {
+        if (!inV(q[2], q[3], 40)) continue;
+        const [sx, sy] = dot(q[2], q[3], 7.5, 'rgba(251,242,220,.95)', '#7a3a14');
+        c.font = '10px serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#5a2a10'; c.fillText(q[4] || '•', sx, sy + 0.5);
+        marks.push({ x: sx, y: sy, r: 10, f: { kind: 'pt', t: q[1], x: q[2], z: q[3], sub: q[5], page: 'act:' + q[0] } });
+        if (k > 1.4) labels.push({ x: sx + 10, y: sy, t: q[1], pr: 3.5, cls: 'act', left: true });
+      }
       // cachettes (secret)
       if (reveal && L.cachettes) { for (const q of M.poi) { if (!q[4]) continue; if (!inV(q[2], q[3])) continue; const [sx, sy] = dot(q[2], q[3], 3.2, 'rgba(140,30,30,.9)', '#f6e8d0'); marks.push({ x: sx, y: sy, r: 6, f: { kind: 'poi', t: q[1], x: q[2], z: q[3], p: q } }); } }
       // trésors, grottes (secret)
@@ -3689,7 +4274,7 @@ function CLIENT(D) {
         placed.push([x0 - 2, y0 - 1, w + 4, h + 2]);
         c.textAlign = 'left'; c.textBaseline = 'middle';
         c.lineWidth = 3; c.strokeStyle = 'rgba(246,238,216,.85)'; c.strokeText(l.t, x0, l.y);
-        c.fillStyle = l.cls === 'secret' ? '#8a1e14' : l.cls === 'under' ? '#4a2a6a' : l.cls === 'water' ? '#1e4a6a' : l.cls === 'region' ? 'rgba(60,44,28,.78)' : l.cls === 'npc' ? '#7a2414' : l.cls === 'bld' ? '#4a3826' : '#2a1d12';
+        c.fillStyle = l.cls === 'secret' ? '#8a1e14' : l.cls === 'rent' ? '#2c5a2a' : l.cls === 'act' ? '#6a2e10' : l.cls === 'under' ? '#4a2a6a' : l.cls === 'water' ? '#1e4a6a' : l.cls === 'region' ? 'rgba(60,44,28,.78)' : l.cls === 'npc' ? '#7a2414' : l.cls === 'bld' ? '#4a3826' : '#2a1d12';
         c.fillText(l.t, x0, l.y);
       }
       // échelle
@@ -3758,6 +4343,8 @@ function CLIENT(D) {
         h += `<h3>${esc(f.t || (mil ? mil[1][0].toUpperCase() + mil[1].slice(1) : 'Un point de la vallée'))}</h3>`;
         h += `<p>x ${Math.round(x)} · z ${Math.round(z)} · altitude ${Math.round(a)} m</p>`;
         if (np) h += `<p>${np[1] < 5 ? 'À' : 'Près de'} <a href="#/p/${encodeURIComponent('li:' + np[0][0])}">${esc(np[0][1])}</a>${np[1] >= 5 ? ` <small>(${Math.round(np[1])} m)</small>` : ''}</p>`;
+        if (f.sub) h += `<p>${esc(f.sub)}</p>`;
+        if (f.page) h += pgLink(f.page);
         if (f.p && f.p[5]) { const k2 = f.p[5]; const tgt = PAGES.get('bt:' + k2) || PAGES.get('ins:' + k2); if (tgt && visible(tgt)) h += `<p><a href="#/p/${encodeURIComponent(tgt.id)}">${esc(tgt.t)}</a></p>`; }
         if (mil) {
           const pg = PAGES.get('mil:' + mil[0]);
@@ -3873,6 +4460,9 @@ figure.sysfig { display: inline-flex; flex-direction: column; align-items: cente
 .figrow figure.sysfig { margin: 0; }
 figure.sysfig figcaption { font-size: .85em; color: var(--ink2); text-align: center; margin-top: 3px; line-height: 1.2; }
 .scrollx { overflow-x: auto; max-width: 100%; }
+pre.code { font-family: Consolas, "Courier New", monospace; font-size: .82em; background: rgba(120,90,50,.08); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; overflow-x: auto; max-width: 100%; white-space: pre; }
+.md h3 { margin-top: 1.4em; } .md h4 { margin: 1em 0 .3em; font-variant: small-caps; letter-spacing: .03em; }
+.md table.t td, .md table.t th { font-size: .95em; }
 table.week-grid { font-size: .8em; }
 table.week-grid th, table.week-grid td { padding: 3px 5px; min-width: 64px; }
 table.keys th { white-space: nowrap; }
