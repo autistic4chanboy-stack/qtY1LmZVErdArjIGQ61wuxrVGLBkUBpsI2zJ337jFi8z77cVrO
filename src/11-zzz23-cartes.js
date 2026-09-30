@@ -392,7 +392,7 @@ HOOKS.primary.push((eye, basis, held, it, id) => {
       const s = farm.s, c = play.cellAt(eye, f);
       if (c && (s.maps || []).some((m) => !m.found && Math.hypot(m.x - c.x, m.z - c.z) > 2.6 && Math.hypot(m.x - c.x, m.z - c.z) < 11) && !((cartes.creuxT || 0) > game.time)) {
         cartes.creuxT = game.time + 15;
-        ui.subtitle('', '(La terre sonne un peu creux par ici. Pas tout à fait là.)', 3);
+        ui.subtitle('', '(La terre sonne creux. Pas tout à fait là.)', 3);
       }
     } catch (e) { console.error(e); }
     return r;

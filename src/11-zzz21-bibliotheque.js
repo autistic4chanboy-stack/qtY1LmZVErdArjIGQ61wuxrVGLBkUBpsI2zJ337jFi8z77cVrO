@@ -55,7 +55,7 @@ const biblio = {
     for (const id in LIVRES) {
       const L = LIVRES[id];
       if (!L.biblio || !ITEMS['livre_' + id]) continue;
-      out.push({ item: 'livre_' + id, livre: id, titre: L.titre, auteur: L.auteur || '', genre: L.langue ? 'Langues d’avant' : L.carte ? 'Cartes' : L.secret ? 'Réserve' : 'Rayonnages', base: L.langue ? ((L.mots || 0) >= 999 ? 60 : 25) : L.secret || L.carte ? 20 : 12 });
+      out.push({ item: 'livre_' + id, livre: id, titre: L.titre, auteur: L.auteur || '', genre: L.langue ? 'Langues d’avant' : L.carte ? 'Cartes' : L.secret ? 'Réserve' : 'Rayonnages', base: L.langue ? (L.grand || (L.mots || 0) >= 999 ? 60 : 25) : L.secret || L.carte ? 20 : 12 });
     }
     for (const k of BIBLIO.cartes) {
       const C = CARTES_REGIONS[k];
@@ -117,10 +117,10 @@ const biblio = {
     const tab = this.banni() || pres !== 'la' ? 'rendre' : onglet || this.tab || 'emprunter';
     this.tab = tab;
     let tete;
-    if (this.banni()) tete = pres === 'la' ? `« Vous n’êtes plus lecteur ici. » (${this.nom()} ne lève pas les yeux de son registre. Il y a une boîte pour les retours.)` : '(Le comptoir est désert. Une boîte de bois fendue sur le dessus : « Retours ».)';
+    if (this.banni()) tete = pres === 'la' ? `« Vous n’êtes plus lecteur ici. » (Une boîte pour les retours, sur le comptoir.)` : '(Le comptoir est désert. Une boîte : « Retours ».)';
     else if (pres === 'la') tete = pick(['« Les emprunts se paient d’avance, et se rendent le jour dit, avant sept heures du soir. Le jour dit. »', '« Un livre prêté est une promesse. Choisissez bien. »', '« Parlez bas. Les livres écoutent. »']);
-    else if (pres === 'dort') tete = '(Derrière le rideau, le bibliothécaire dort. Sur le comptoir, une boîte de bois fendue sur le dessus : « Retours ».)';
-    else tete = '(Le comptoir est désert. Une boîte de bois fendue sur le dessus : « Retours ». Pour emprunter, il faut attendre le bibliothécaire.)';
+    else if (pres === 'dort') tete = '(Le bibliothécaire dort. Une boîte, sur le comptoir : « Retours ».)';
+    else tete = '(Le comptoir est désert. Une boîte : « Retours ». Pour emprunter, il faut attendre le bibliothécaire.)';
     let body = `<p class="bb-tete">${esc(tete)}</p>`;
     if (tab === 'emprunter') {
       const groupes = {};
@@ -164,19 +164,19 @@ const biblio = {
     const titres = dus.map((p) => '« ' + p.titre + ' »').join(', ');
     if (!dus.length) { this.finTraque(); return; }
     const manquent = manque.map((p) => '« ' + p.titre + ' »').join(', ');
-    ui.choice('Le comptoir désert', `(Personne. Les chandelles sont éteintes. Le registre est ouvert à votre nom, et une ligne attend, à l’encre fraîche : ${titres}.)`,
+    ui.choice('Le comptoir désert', `(Personne. Le registre est ouvert à votre nom : ${titres}.)`,
       manque.length
         ? [{ label: `Il vous manque ${manquent}. Partir le chercher.`, fn: () => ui.close() }]
         : [{ label: `Poser ${titres} sur le comptoir`, fn: () => { ui.close(true); this.calmer(); } }, { label: 'Partir', fn: () => ui.close() }]);
   },
   rayons() {
     const pres = this.present();
-    if (this.banni() && pres === 'la') { ui.subtitle('', '(Le bibliothécaire vous fixe par-dessus son registre. Vous n’osez pas toucher aux livres.)', 3.5); return; }
+    if (this.banni() && pres === 'la') { ui.subtitle('', '(Le bibliothécaire vous fixe. Vous n’osez pas toucher aux livres.)', 3); return; }
     const B = this.S();
     const L = this.catalogue().filter((e) => e.livre);
     const groupes = {};
     for (const e of L) (groupes[e.genre] || (groupes[e.genre] = [])).push(e);
-    let body = `<p class="bb-tete">${esc(B.traque ? '(Les rayonnages sont silencieux. Trop silencieux. Quelque part, une page tourne toute seule.)' : '(Des rayonnages jusqu’au plafond, des dos de cuir, des titres à demi effacés. On peut feuilleter sur place ; pour lire en entier, il faut emprunter au comptoir.)')}</p>`;
+    let body = B.traque ? `<p class="bb-tete">${esc('(Quelque part, une page tourne toute seule.)')}</p>` : '';
     for (const g of Object.keys(groupes)) body += `<h4>${esc(g)}</h4>` + groupes[g].map((e) => `<div class="bb-row"><img src="${iconURL(e.item)}" alt=""><div class="bb-t"><b>${esc(e.titre)}</b><span>${esc(e.auteur)}</span></div><div class="bb-b"><button data-lire="${esc(e.livre)}">Feuilleter</button></div></div>`).join('');
     this.panneau(`<div class="tabs"><b>Les rayonnages</b><button class="x" data-close>✕</button></div><div class="body">${body}</div><div class="foot">Lecture sur place : quelques pages seulement.</div>`);
     $$('#biblio [data-lire]').forEach((b) => (b.onclick = () => livres.ouvrir(b.dataset.lire, { surPlace: true })));
@@ -224,10 +224,10 @@ const biblio = {
       if (B.fouilles >= 3) {
         B.passage = s.day;
         sound.chain && sound.chain();
-        ui.subtitle('', '(À force de revenir, vous remarquez l’usure du parquet devant ce rayonnage, en arc de cercle. Il pivote. Le registre noir, là : il suffit de le tirer.)', 6);
+        ui.subtitle('', '(À force de revenir, vous remarquez l’usure du parquet, en arc de cercle, devant ce rayonnage.)', 5);
         return;
       }
-      ui.subtitle('', pick(['(Des registres reliés de noir, sans titre. L’un d’eux sonne creux quand vous le touchez. Rien ne bouge.)', '(Un rayonnage comme les autres. Un courant d’air froid, pourtant, passe entre les livres.)', '(La poussière est plus épaisse ici. Sauf sur un registre noir, qu’on dirait souvent touché.)']), 4);
+      ui.subtitle('', pick(['(Un registre noir sonne creux.)', '(Un courant d’air froid passe entre les livres.)', '(La poussière est plus épaisse ici. Sauf sur un registre noir.)']), 3.5);
       return;
     }
     if (this.surveille() && (this.banni() || (!this.confiance() && !B.fleur))) { ui.subtitle(this.nom(), pick(['Ce rayonnage-là n’est pas pour les lecteurs.', 'Les registres du fond ne se consultent pas. Merci.']), 3); return; }
@@ -241,7 +241,7 @@ const biblio = {
     if (!B.prets.length && !B.traque) return;
     const n = this.libraire();
     if (!n || !n.st.alive) {
-      if (B.prets.length) { B.prets = []; if (playing) ui.subtitle('', '(Le bibliothécaire est mort. Personne ne réclamera plus les livres empruntés.)', 4); }
+      if (B.prets.length) { B.prets = []; if (playing) ui.subtitle('', '(Le bibliothécaire est mort. Personne ne réclamera plus vos livres.)', 4); }
       if (B.traque) this.finTraque();
       return;
     }
@@ -251,7 +251,7 @@ const biblio = {
         P.rappel = 1;
         farm.mail('La grande bibliothèque', `Rappel : « ${P.titre} »`, `Madame, Monsieur,\n\nLe registre de la grande bibliothèque porte à votre nom l’emprunt de « ${P.titre} », le jour ${P.du}. L’ouvrage est à rendre au comptoir ${this.dateTexte(P.due)}.\n\nNous comptons sur votre exactitude. Nous y comptons beaucoup.\n\n${this.nom()}, bibliothécaire.`);
       }
-      if (playing && !P.alerte && r <= 2 && r > 0) { P.alerte = 1; ui.subtitle('', '(Vous pensez soudain au livre de la bibliothèque. L’heure approche.)', 4); }
+      if (playing && !P.alerte && r <= 2 && r > 0) { P.alerte = 1; ui.subtitle('', '(Le livre de la bibliothèque. L’heure approche.)', 3.5); }
       if (playing && !P.alerte2 && r <= 0.6 && r > 0 && farm.count(P.id)) { P.alerte2 = 1; sound.page && sound.page(); ui.subtitle('', '(Dans votre sacoche, des pages tournent toutes seules.)', 4); }
     }
     if (!B.traque && this.enRetard().length && playing && !cine.on && !game.sleeping && !game.dying && !strange.inEnvers() && !corps.hisse) this.transformer();
@@ -280,7 +280,7 @@ const biblio = {
         debut: () => { n.hunting = true; this.cineE = { x: sp.x, y: sp.y, z: sp.z, heading: sp.r, rise: 0 }; sound.glitchSnd && sound.glitchSnd(0.8); sound.rumble && sound.rumble(); this.noirCine = 1; },
         chaque: (t) => { if (this.cineE) this.cineE.rise = Math.min(0.9, t * 0.28); } },
       { dur: 3.4, de: { pos: L(0, 0.7, -5.4), look: [sp.x, sp.y + 2.7, sp.z] }, texte: '« Rhua tin. »' + (tr ? ' (' + tr + '.)' : ''), qui: '???', debut: () => { sound.whisper && sound.whisper(0, 1.5); if (this.cineE) this.cineE.rise = 0.9; } },
-      { dur: 3.2, fondu: 'noir', de: { pos: pe, yaw: p.yaw, pitch: p.pitch }, texte: '(Quelque part, un livre s’est refermé. On vous cherche.)', fin: () => { this.cineE = null; this.noirCine = 0; } },
+      { dur: 3.2, fondu: 'noir', de: { pos: pe, yaw: p.yaw, pitch: p.pitch }, texte: '(On vous cherche.)', fin: () => { this.cineE = null; this.noirCine = 0; } },
     ], { apres: () => { this.cineE = null; this.noirCine = 0; n.hunting = true; this.debutTraque(); } });
   },
   debutTraque() {
@@ -291,7 +291,7 @@ const biblio = {
       B.traque.maudit = 1;
       if (typeof malediction !== 'undefined' && malediction.frapper) try { malediction.frapper('livre', 'Un livre de la grande bibliothèque, gardé au-delà du jour dit'); } catch (e) { console.error(e); }
     }
-    ui.subtitle('', '(Une odeur de vieux papier et de cire froide. Il faut rapporter ce livre. Vite.)', 5);
+    ui.subtitle('', '(Il faut rapporter ce livre. Vite.)', 4);
   },
   finTraque() {
     const B = this.S(), n = this.libraire();
@@ -309,12 +309,12 @@ const biblio = {
     const { L, sp, tete } = K, nom = this.nom(), p = game.player, pe = p.eyePos();
     const fini = () => { this.cineE = null; B.traque = null; B.banni = B.banni || s.day; if (n) { n.hunting = false; this.tenir(n, sp); n.goal = null; } if (typeof malediction !== 'undefined' && malediction.lever) try { malediction.lever('livre'); } catch (e) { console.error(e); } };
     cine.jouer([
-      { dur: 3.2, de: { pos: [pe[0] - Math.sin(p.yaw) * -1.8, pe[1] + 0.5, pe[2] - Math.cos(p.yaw) * -1.8], look: tete }, joueur: true, texte: '(Vous posez le livre sur le comptoir. Le silence tombe d’un coup, comme un drap.)', debut: () => { sound.page && sound.page(); sound.silence && sound.silence(5); } },
+      { dur: 3.2, de: { pos: [pe[0] - Math.sin(p.yaw) * -1.8, pe[1] + 0.5, pe[2] - Math.cos(p.yaw) * -1.8], look: tete }, joueur: true, debut: () => { sound.page && sound.page(); sound.silence && sound.silence(5); } },
       { dur: 3.4, de: { pos: L(0.6, 1.9, -5.4), look: [sp.x, sp.y + 2.4, sp.z] }, texte: '« Rendu. »', qui: '???', debut: () => { if (n) n.hunting = true; this.cineE = { x: sp.x, y: sp.y, z: sp.z, heading: sp.r, rise: 0.9 }; sound.glitchSnd && sound.glitchSnd(0.6); } },
       { dur: 3.8, de: { pos: L(0.9, 1.8, -5.0), look: tete }, a: { pos: L(0.6, 1.8, -4.6), look: tete }, texte: '« Le livre est rendu. Vous, vous ne l’êtes pas. »', qui: nom,
         chaque: (t) => { if (this.cineE) { this.cineE.rise = Math.max(0, 0.9 - t * 0.6); if (t > 1.6) { this.cineE = null; if (n) { n.hunting = false; this.tenir(n, sp); } } } else if (n) this.tenir(n, sp); } },
       { dur: 3.6, de: { pos: L(0.3, 1.75, -4.4), look: tete }, texte: '« Ne revenez jamais. La bibliothèque vous est fermée. »', qui: nom, chaque: () => { if (n) this.tenir(n, sp); }, fin: fini },
-    ], { passer: false, apres: () => { fini(); ui.subtitle('', '(Vous êtes vivant. Pour cette fois.)', 4); } });
+    ], { passer: false, apres: () => fini() });
   },
   // ------------------------------------------------------------ le sorcier
   rig() {
@@ -352,7 +352,7 @@ const biblio = {
       sound.glitchSnd && sound.glitchSnd(0.6); sound.page && sound.page();
       const pan = clamp((x - p.pos[0]) * Math.cos(p.yaw) - (z - p.pos[2]) * Math.sin(p.yaw), -1, 1);
       sound.whisper && sound.whisper(pan, 1.2);
-      ui.subtitle('', pick(['(Une odeur de vieux papier. Il est là.)', '(Des pages qui tournent, derrière vous, dans le vide.)', '(Le froid d’une salle de lecture, en plein air. Il vous a trouvé.)', '(Quelqu’un murmure votre nom, et le titre du livre.)']), 3.5);
+      ui.subtitle('', pick(['(Une odeur de vieux papier.)', '(Des pages qui tournent, derrière vous.)']), 3);
       return true;
     }
     E.next = 3;
@@ -387,10 +387,9 @@ const biblio = {
       const nx = E.x + dx / d * st, nz = E.z + dz / d * st;
       if (this.saint([nx, 0, nz])) {
         E.bordT += dt;
-        if (E.bordT > 6) { this.disparaitre(nuit, '(Il recule devant la terre bénite. Il reviendra.)'); return; }
+        if (E.bordT > 6) { this.disparaitre(nuit); return; }
       } else { E.x = nx; E.z = nz; }
     } else if (lum && d < minD - 0.3) { E.x -= dx / d * dt * 1.5; E.z -= dz / d * dt * 1.5; }
-    if (lum && d < 8 && !E.lumDit) { E.lumDit = true; ui.subtitle('', '(La flamme de la lanterne le tient à distance. Elle vacille, elle se couche vers lui.)', 4); }
     const yT = this.sol(E.x, E.z) + 0.45 + Math.sin(E.t * 1.7) * 0.12;
     E.y += (yT - E.y) * Math.min(1, dt * 3);
     // il saute d'un point à l'autre quand on le distance
@@ -428,12 +427,12 @@ const biblio = {
     }
     // la séance se termine ; en terre bénite, il se lasse plus vite
     E.seance -= dt * (this.saint(p.pos) ? 3 : 1);
-    if (E.seance <= 0) { this.disparaitre(nuit, pick(['(Il n’est plus là. Pour l’instant.)', '(L’odeur de papier s’en va. Il reviendra.)', '(Plus rien. Juste votre cœur, trop fort.)'])); return; }
+    if (E.seance <= 0) { this.disparaitre(nuit); return; }
     // le contact : la mort
     if (d < 1.15 && Math.abs(p.pos[1] - (E.y - 0.45)) < 2.6 && !lum) {
       sound.scream && sound.scream(0.6); game.shakeT = 1;
       play.hurt(999, { x: E.x, z: E.z }, 'Emporté par le bibliothécaire de la grande bibliothèque, pour un livre rendu trop tard');
-      if (!game.dying) this.disparaitre(nuit, '(Ses mains se sont refermées sur le vide. Il reviendra.)');
+      if (!game.dying) this.disparaitre(nuit);
     }
   },
   lancer(sort, nuit) {
@@ -446,8 +445,7 @@ const biblio = {
       sound.glitchSnd && sound.glitchSnd(0.4);
     } else if (sort === 'tenebres') {
       this.noirT = 7;
-      ui.subtitle('', '(Les ténèbres tombent d’un coup, comme une couverture sur une cage.)', 3.5);
-      if (game.lantern && Math.random() < 0.5) { game.lantern = false; sound.click && sound.click(); setTimeout(() => ui.subtitle('', '(La flamme de votre lanterne se couche, bleuit, et meurt.)', 3.5), 700); }
+      if (game.lantern && Math.random() < 0.5) { game.lantern = false; sound.click && sound.click(); }
       sound.silence && sound.silence(6);
     } else {
       const ph = pick(BIBLIO.phrases), tr = typeof langues !== 'undefined' ? langues.traduire('aelin', ph) : ph;
@@ -556,7 +554,7 @@ livres.speciaux.registre_archives = {
   pages() {
     return [
       { titre: 'Registre des prêts, 1702–1790', texte: '1703 — Frère Évrard, de Montrevel. « Des langues d’avant ». Rendu.\n1711 — Le curé de la ville. « Traité des malédictions ». Rendu, avec des pages cornées.\n1742 — Un marchand de passage. « Atlas ancien ». Non rendu.\n1742 — (même main, plus tard) Rendu. Par nous. Le marchand n’avait plus besoin de cartes.\n1771 — J. Morel. « Vocabulaire des géants ». Rendu, et des feuillets en plus, recopiés d’une pierre du plateau.' },
-      { titre: 'Ce que gardent les archives', texte: 'Pour ceux d’en bas : la falaise fendue, au bord de la Combe. Frapper trois coups, puis un, puis trois. Leur apporter du pain.\n\nPour le temple : derrière l’eau qui tombe, là où la rivière sort de la montagne. Les trois pierres de la porte s’appellent dans l’ordre du jour : l’aube, le sommeil, la nuit.\n\nPour les géants : ne pas les regarder dans les yeux. Ils n’aiment pas qu’on les dérange pour rien, et pour eux, presque tout est rien.' },
+      { titre: 'Ce que gardent les archives', texte: 'Pour ceux d’en bas : la falaise fendue, au bord de la Combe. Ils n’ouvrent qu’à leur propre façon de frapper. Leur apporter du pain.\n\nPour le temple : derrière l’eau qui tombe, là où la rivière sort de la montagne. Les trois pierres de la porte ne s’éveillent pas dans n’importe quel ordre ; qui se trompe, la voûte le lui rappelle.\n\nPour les géants : ne pas les regarder dans les yeux. Ils n’aiment pas qu’on les dérange pour rien, et pour eux, presque tout est rien.' },
       { titre: 'Une note, d’une main plus récente', texte: 'Je garde. Avant moi, un autre gardait ; avant lui, un autre. Les Aëlim avaient un mot pour cela : « rimen na-tinim », le gardien des livres. Ils disaient aussi que les livres des Aëlim, sous la pierre, gardent les secrets, et que le gardien garde les livres.\n\nUn livre qui ne revient pas est une porte laissée ouverte. Il faut aller la refermer, où qu’elle soit, et quoi qu’il en coûte à celui qui la tient.' },
     ];
   },
@@ -661,7 +659,7 @@ HOOKS.load.push((saved) => {
     game._biblioSom = true;
     const _ts = game.trySleep.bind(game);
     game.trySleep = function (where) {
-      if (farm.s && biblio.S().traque) { ui.subtitle('', '(Impossible de dormir. Quelque part, tout près, quelqu’un tourne des pages.)', 3.5); sound.page && sound.page(); return; }
+      if (farm.s && biblio.S().traque) { ui.subtitle('', '(Impossible de dormir. Quelqu’un tourne des pages, tout près.)', 3.5); sound.page && sound.page(); return; }
       return _ts(where);
     };
   }

@@ -3,17 +3,33 @@
 //  - une stèle (inter 'inscription', data.ins) montre l'écriture, et dessous la
 //    traduction mot à mot des mots connus (les autres restent illisibles) ; le
 //    sens entier quand tous les mots sont connus, ou quand quelqu'un l'a traduit ;
-//  - on apprend des mots : dans les lexiques (livres), auprès du bibliothécaire
-//    (l'aëlin, contre de l'argent), de l'ancien des nains (le gorrain, par
-//    amitié ; « un pain, un mot » pour l'aëlin) ; et par déduction : un mot
-//    présent dans deux inscriptions dont on connaît le sens se devine, comme le
-//    dernier mot inconnu d'une inscription traduite ;
+//  - on apprend des mots, peu à la fois et dans un ordre mêlé propre à chaque
+//    partie (jamais « les plus utiles d'abord ») : dans les lexiques (livres),
+//    auprès du bibliothécaire (deux mots par jour contre de l'argent, ou un seul
+//    mot d'une pierre relevée), de l'ancien des nains (le gorrain, par amitié) ;
+//    personne ne traduit une pierre entière : on la déchiffre par recoupement,
+//    en comparant dans le carnet les pierres, leurs traits et les mots connus ;
+//  - seule déduction faite par le jeu, sans rien dire : le dernier mot inconnu
+//    d'une pierre dont on connaît déjà le sens (traductions des anciennes parties) ;
 //  - des stèles sont posées pour les inscriptions qui n'en avaient pas encore ;
 //  - API : langues.traduire(lang, texte), langues.lireInscription(id),
-//    langues.enseigner(lang, n, source), langues.motConnu(lang, mot).
-//  État : farm.s.livres.ins = { id: { j: jour, ou: lieu, trad: 'libraire'|… } },
-//         farm.s.livres.lecons = { j: jour, n: mots appris du nain ce jour }
+//    langues.enseigner(lang, n, source), langues.motConnu(lang, mot),
+//    langues.ordre(lang, source) (ordre mêlé du lexique, propre à la partie).
+//  État : farm.s.livres.ins = { id: { j: jour, ou: lieu, trad: 'libraire'|… (anciennes parties), dit: 1 } },
+//         farm.s.livres.lecons = { j: jour, n: mots appris du nain ce jour },
+//         farm.s.livres.libraire = { j: jour de la dernière leçon du bibliothécaire }
 // ============================================================================
+// l'ancien des nains ne traduit pas les cupules : il en dit un peu, de travers
+const CUPULES_ANCIEN = {
+  g_table: 'Celle-là parle de manger. Pas de toi.',
+  g_cercle: 'Les Gorr regardaient en haut plus souvent qu’en bas. Celle-là aussi.',
+  g_menhirs: 'Elle compte. Pas loin. Et elle regarde ses pieds.',
+  g_trom: 'On ne lit pas celle-là à voix haute. Elle parle à quelqu’un qui ne répond plus.',
+  g_mor: 'Elle demande quelque chose à quelqu’un de grand. Poliment, pour une fois.',
+  g_dwerr: 'Elle parle de nous. Petitement.',
+  g_ulv: 'Un conseil de berger. Les Gorr avaient peur de la même chose que toi, la nuit.',
+  g_rag: 'Elle dit où va l’eau. Moi, je ne le dis pas.',
+};
 const langues = {
   glyphes: {},
   // --------------------------------------------------------------- les mots
@@ -38,25 +54,31 @@ const langues = {
     if (lang === 'aelin' && String(mot).toLowerCase().startsWith('na-')) t = (/^[aeiouéèêâîôûœh]/i.test(t) ? 'd’' : 'de ') + t;
     return t;
   },
-  // apprendre des mots (livres, habitants) : renvoie le nombre de mots nouveaux ; déduit la suite
+  // apprendre des mots (livres, habitants) : renvoie le nombre de mots nouveaux (la seule déduction est muette)
   apprendre(lang, liste, source) {
     const n = savoir.apprendreMots(lang, liste.map((m) => this.base(lang, m) || m));
-    if (n) setTimeout(() => this.deduire(true), 50);
+    if (n) setTimeout(() => this.deduire(), 50);
     return n;
   },
-  // mots inconnus, les plus utiles d'abord (ceux des pierres qu'on a vues, puis ceux des autres pierres)
-  inconnus(lang) {
-    const lex = LANGUES[lang].lex, V = this.S(), out = [], seen = new Set();
-    const push = (b) => { if (b && !seen.has(b) && !savoir.motConnu(lang, b)) { seen.add(b); out.push(b); } };
-    for (const I of INSCRIPTIONS) if (I[1] === lang && V[I[0]]) for (const m of langWords(I[2])) push(this.base(lang, m));
-    for (const I of INSCRIPTIONS) if (I[1] === lang) for (const m of langWords(I[2])) push(this.base(lang, m));
-    for (const b of Object.keys(lex)) push(b);
-    return out;
+  // l'ordre mêlé du lexique : propre à la partie (sa graine) et à la source (un livre, un maître…), ni alphabétique,
+  // ni « les mots des pierres d'abord » ; stable d'un chargement à l'autre
+  ordre(lang, source) {
+    const lex = LANGUES[lang] && LANGUES[lang].lex;
+    if (!lex) return [];
+    const k = lang + '|' + (source || '') + '|' + ((farm.s && farm.s.seed) | 0);
+    const C = this._ordres || (this._ordres = {});
+    if (C[k]) return C[k];
+    const rnd = mulberry32(hashString(k) ^ 0x2f6b1d);
+    return (C[k] = Object.keys(lex).map((m) => [m, rnd()]).sort((a, b) => a[1] - b[1]).map((a) => a[0]));
   },
+  // une liste de mots rangée dans l'ordre mêlé de la partie
+  meler(lang, liste, source) { const O = this.ordre(lang, source), r = (m) => { const i = O.indexOf(m); return i < 0 ? 1e9 : i; }; return liste.slice().sort((a, b) => r(a) - r(b)); },
+  // mots inconnus, dans l'ordre mêlé de la source
+  inconnus(lang, source) { return this.ordre(lang, source).filter((b) => !savoir.motConnu(lang, b)); },
   // enseigner n mots (habitants, potions, autres modules) : renvoie la liste des mots appris
   enseigner(lang, n, source) {
     if (!LANGUES[lang] || !farm.s) return [];
-    const L = this.inconnus(lang).slice(0, Math.max(0, n | 0));
+    const L = this.inconnus(lang, source || 'enseigne').slice(0, Math.max(0, n | 0));
     if (L.length) this.apprendre(lang, L, source || 'enseigne');
     return L;
   },
@@ -100,39 +122,40 @@ const langues = {
   mots(id) { const I = INSCR_BY_ID[id]; return I ? [...new Set(langWords(I.texte).map((m) => this.base(I.lang, m)).filter(Boolean))] : []; },
   tousConnus(id) { const I = INSCR_BY_ID[id]; return !!I && this.mots(id).every((b) => savoir.motConnu(I.lang, b)); },
   sensConnu(id) { const v = this.S()[id]; return this.tousConnus(id) || !!(v && v.trad); },
-  // quelqu'un traduit l'inscription (on connaît son sens, pas encore chacun de ses mots)
+  // quelqu'un traduit l'inscription (on connaît son sens, pas encore chacun de ses mots). Plus aucun habitant ne le
+  // fait (on ne traduit pas une pierre entière à la place du joueur) ; gardé pour les anciennes parties et l'API.
   traduireInscription(id, par) {
     const V = this.S();
     if (!INSCR_BY_ID[id]) return false;
     if (!V[id]) V[id] = { j: farm.s.day, ou: '' };
     if (V[id].trad) return false;
     V[id].trad = par || 'quelqu’un';
-    setTimeout(() => this.deduire(true), 50);
+    setTimeout(() => this.deduire(), 50);
     return true;
   },
-  // déduction : un mot présent dans deux inscriptions dont on connaît le sens ; le dernier mot inconnu d'une inscription traduite
-  deduire(annonce) {
+  // la seule déduction faite à la place du joueur, sans rien dire : le dernier mot inconnu d'une pierre dont le sens
+  // est déjà connu (traduite dans une ancienne partie). Le reste, le joueur le compare lui-même dans son carnet.
+  deduire() {
     const appris = [];
     for (let tour = 0; tour < 6; tour++) {
-      const V = this.S(), compte = {}, seul = [];
+      const V = this.S(), seul = [];
       for (const id in V) {
         const I = INSCR_BY_ID[id];
-        if (!I || !this.sensConnu(id)) continue;
+        if (!I || !V[id].trad) continue;
         const inc = this.mots(id).filter((b) => !savoir.motConnu(I.lang, b));
-        for (const b of inc) { const k = I.lang + ':' + b; compte[k] = (compte[k] || 0) + 1; }
-        if (inc.length === 1) seul.push(I.lang + ':' + inc[0]);
+        if (inc.length === 1) seul.push([I.lang, inc[0]]);
       }
-      const nouveaux = [...new Set(Object.keys(compte).filter((k) => compte[k] >= 2).concat(seul))];
-      if (!nouveaux.length) break;
-      for (const k of nouveaux) { const [lang, b] = k.split(':'); if (savoir.apprendreMots(lang, [b])) appris.push([lang, b]); }
+      if (!seul.length) break;
+      for (const [lang, b] of seul) if (savoir.apprendreMots(lang, [b])) appris.push([lang, b]);
     }
-    if (appris.length && annonce) {
-      const [lang, b] = appris[0];
-      const t = appris.length === 1 ? `(En comparant les pierres, vous devinez le sens du mot « ${b} » : ${this.sens(lang, b)}.)` : `(En comparant les pierres, vous devinez le sens de ${appris.length} mots : « ${appris.map((a) => a[1]).join(' », « ')} ».)`;
-      ui.subtitle('', t, 5);
-      if (ui.panel === '#reader' && this.ouvert && $('#reader .ins-gloss')) this.lireInscription(this.ouvert, this.ouvertCarnet);
-    }
+    if (appris.length && ui.panel === '#reader' && this.ouvert && $('#reader .ins-gloss')) this.lireInscription(this.ouvert, this.ouvertCarnet);
     return appris;
+  },
+  // ce qu'on lit d'une pierre : les mots connus, des points pour les autres
+  glose(id) {
+    const I = INSCR_BY_ID[id];
+    if (!I) return '';
+    return I.texte.split(/\s+/).filter(Boolean).map((t) => (t === ',' ? ',' : this.motConnu(I.lang, t) ? this.sens(I.lang, t, true) : '…')).join(' ').replace(/\s+,/g, ',');
   },
   // dessin d'un mot, mis en cache (style : 'page' (livres), 'pierre' (stèles), 'carnet')
   glypheURL(lang, mot, style) {
@@ -162,17 +185,14 @@ const langues = {
     let sens;
     if (tous) sens = `<div class="ins-sens">« ${esc(I.sens)} »</div>`;
     else if (V.trad) sens = `<div class="ins-sens">« ${esc(I.sens)} »</div><div class="ins-note">${esc(connus > 1 ? `D’après ${V.trad}. Vous ne lisez vous-même que ${connus} mots sur ${total}.` : connus ? `D’après ${V.trad}. Vous ne lisez vous-même qu’un mot sur ${total}.` : `D’après ${V.trad}. Vous ne lisez vous-même aucun de ses mots.`)}</div>`;
-    else if (connus) sens = `<div class="ins-note">${esc(connus > 1 ? `Vous reconnaissez ${connus} mots sur ${total}. Le reste vous échappe.` : `Vous reconnaissez un mot sur ${total}. Le reste vous échappe.`)}</div>`;
-    else sens = `<div class="ins-note">${esc(I.lang === 'aelin' ? 'Des traits anguleux, gravés de haut en bas. Vous n’en comprenez pas un seul.' : 'Des cupules et des anneaux creusés dans la pierre. Vous n’y comprenez rien.')}</div>`;
+    else if (connus) sens = `<div class="ins-note">${esc(connus > 1 ? `Vous reconnaissez ${connus} mots sur ${total}.` : `Vous reconnaissez un mot sur ${total}.`)}</div>`;
+    else sens = `<div class="ins-note">${esc(I.lang === 'aelin' ? 'Vous n’en comprenez pas un trait.' : 'Vous n’y comprenez rien.')}</div>`;
     const titre = I.lang === 'aelin' ? 'Une inscription en Hautes Lettres' : 'Des cupules gravées dans la pierre';
-    const sous = deCarnet ? (V.ou ? `Recopiée dans votre carnet, ${V.ou}.` : 'Recopiée dans votre carnet.') : (lg ? `Écrit en ${lg.ecriture}.` : '');
+    const sous = deCarnet ? (V.ou ? `Recopiée dans votre carnet, ${V.ou}.` : 'Recopiée dans votre carnet.') : (lg ? `Écrit en ${lg.ecriture.replace(/^les /, '')}.` : '');
     ui.open('#reader', `<h3>${esc(titre)}</h3><div class="ins-ecrit"><img src="${img}" alt=""></div><div class="ins-gloss">${gloss}</div>${sens}<div class="sign">${esc(sous)}</div><button class="close">Refermer</button>`);
     $('#reader .close').onclick = () => { this.ouvert = null; ui.close(); };
     this.ouvert = id; this.ouvertCarnet = !!deCarnet;
-    if (neuf) {
-      if (this.tousConnus(id)) ui.subtitle('', '(Vous lisez la pierre d’un bout à l’autre. Elle parle.)', 3.5);
-      setTimeout(() => this.deduire(true), 400);
-    }
+    if (neuf) setTimeout(() => this.deduire(), 400);
     return true;
   },
 
@@ -182,14 +202,16 @@ const langues = {
     for (const lang of ['aelin', 'gorrain']) {
       const lg = LANGUES[lang], tot = Object.keys(lg.lex).length, M = savoir.motsConnus(lang).filter((b) => lg.lex[b]);
       h += `<h4>${esc(this.cap(lg.nom))} <span class="lg-n">— ${esc(M.length > 1 ? `${M.length} mots sur ${tot}` : M.length ? `un mot sur ${tot}` : `aucun mot sur ${tot}`)} · ${esc(lg.ecriture)}</span></h4>`;
-      if (!M.length) { h += `<p class="hint">${esc(lang === 'aelin' ? 'Vous n’en savez pas un mot. Les lexiques de la grande bibliothèque, le bibliothécaire, ou ceux d’en bas pourraient vous l’apprendre.' : 'Vous n’en savez pas un mot. On dit que les géants le parlent encore, et que les nains s’en souviennent.')}</p>`; continue; }
-      h += `<p class="hint">${esc(lg.desc)}</p><div class="lg-mots">` + M.map((b) => `<span class="lg-mot"><img src="${this.glypheURL(lang, b, 'carnet')}" alt=""><span><i>${esc(b)}</i> — ${esc(lg.lex[b])}</span></span>`).join('') + '</div>';
+      if (!M.length) { h += `<p class="hint">${esc('Vous n’en savez pas un mot.')}</p>`; continue; }
+      // la grammaire, seulement si on a lu la préface d'un lexique de cette langue
+      const G = livres.S().grammaire || {};
+      h += (G[lang] ? `<p class="hint">${esc(lg.desc)}</p>` : '') + '<div class="lg-mots">' + M.slice().sort((a, b) => a.localeCompare(b)).map((b) => `<span class="lg-mot"><img src="${this.glypheURL(lang, b, 'carnet')}" alt=""><span><i>${esc(b)}</i> — ${esc(lg.lex[b])}</span></span>`).join('') + '</div>';
     }
     const V = this.S(), ids = Object.keys(V).filter((id) => INSCR_BY_ID[id]).sort((a, b) => V[a].j - V[b].j);
     h += `<h4>Inscriptions relevées <span class="lg-n">— ${ids.length}</span></h4>`;
     h += ids.map((id) => {
-      const I = INSCR_BY_ID[id], ok = this.sensConnu(id);
-      return `<button class="note" data-ins="${esc(id)}">${esc(I.lang === 'aelin' ? 'Hautes Lettres' : 'Cupules')}${V[id].ou ? ' — ' + esc(V[id].ou) : ''} <span>— ${ok ? esc(`« ${I.sens} »`) : esc(`illisible, relevée le jour ${V[id].j}`)}</span></button>`;
+      const I = INSCR_BY_ID[id], ok = this.sensConnu(id), g = this.glose(id);
+      return `<button class="note" data-ins="${esc(id)}">${esc(I.lang === 'aelin' ? 'Hautes Lettres' : 'Cupules')}${V[id].ou ? ' — ' + esc(V[id].ou) : ''} <span>— ${ok ? esc(`« ${I.sens} »`) : /[^…\s,]/.test(g) ? esc(`« ${g} »`) : esc(`illisible, relevée le jour ${V[id].j}`)}</span></button>`;
     }).join('') || '<p class="hint">Aucune. Les pierres gravées se lisent avec E.</p>';
     return h;
   },
@@ -262,66 +284,70 @@ const langues = {
   },
 
   // --------------------------------------------------------------- leçons : le bibliothécaire, l'ancien des nains
+  // Peu de mots à la fois, une leçon par jour, jamais une pierre entière : la langue se déchiffre lentement.
   options(n) {
-    const s = farm.s, O = [];
+    const O = [];
     if (!n || !n.st.alive) return O;
     const vuesSans = (lang) => Object.keys(this.S()).filter((id) => INSCR_BY_ID[id] && INSCR_BY_ID[id].lang === lang && !this.sensConnu(id));
     if (n.id === 'libraire' && !(typeof biblio !== 'undefined' && biblio.banni())) {
-      if (this.inconnus('aelin').length) O.push({ label: 'Apprenez-moi quelques mots d’aëlin (30 pièces)', act: 'lg:mots' });
-      if (vuesSans('aelin').length) O.push({ label: 'Pourriez-vous me traduire une inscription ?', act: 'lg:trad' });
+      if (this.inconnus('aelin', 'libraire').length) O.push({ label: 'Apprenez-moi quelques mots d’aëlin (30 pièces)', act: 'lg:mots' });
+      if (vuesSans('aelin').length) O.push({ label: 'Pourriez-vous m’aider à lire une inscription ?', act: 'lg:trad' });
     }
     if (n.id === 'nain_ancien') {
-      if (this.inconnus('gorrain').length && npcs.level(n) >= 1) O.push({ label: 'Apprenez-moi la langue des pierres', act: 'lg:gorrain' });
-      if (farm.count('pain') && this.inconnus('aelin').length) O.push({ label: 'Un pain contre un mot', act: 'lg:pain' });
+      if (this.inconnus('gorrain', 'nain').length && npcs.level(n) >= 1) O.push({ label: 'Apprenez-moi la langue des pierres', act: 'lg:gorrain' });
       if (vuesSans('gorrain').length && npcs.level(n) >= 3) O.push({ label: 'Que disent les cupules que j’ai vues ?', act: 'lg:cupules' });
     }
     return O;
   },
   lecon(lang, mots) { return mots.map((b) => `« ${b} » : ${LANGUES[lang].lex[b]}.`).join(' '); },
+  // le bibliothécaire : une leçon par jour (deux mots, ou un mot d'une pierre)
+  leconDuJour() { const LS = livres.S(), B = LS.libraire || (LS.libraire = { j: 0 }); return B.j === farm.s.day; },
   choisir(tk, n, act) {
     const s = farm.s;
     const V = (t) => tk.view(t, tk.options());
+    if ((act === 'lg:mots' || act === 'lg:trad' || act.startsWith('lg:t:')) && this.leconDuJour()) return V('Une leçon par jour. La mémoire ne se remplit pas comme une bourse. Revenez demain.');
     if (act === 'lg:mots') {
       if (!farm.pay(30)) return V('Trente pièces. Le savoir se paie ; l’ignorance aussi, mais plus tard.');
       sound.coin && sound.coin();
-      const L = this.enseigner('aelin', 3, 'libraire');
+      const L = this.enseigner('aelin', 2, 'libraire');
+      if (L.length) livres.S().libraire.j = s.day;
       npcs.addAmitie(n, 6);
-      return V(L.length ? `Écoutez bien, je ne répète pas. ${this.lecon('aelin', L)} Revenez quand vous les aurez vus gravés quelque part.` : 'Vous en savez déjà autant que moi. C’est inquiétant.');
+      return V(L.length ? `Écoutez bien, je ne répète pas. ${this.lecon('aelin', L)} Le reste, les pierres vous le diront, si vous savez les comparer.` : 'Vous en savez déjà autant que moi. C’est inquiétant.');
     }
     if (act === 'lg:trad') {
       const ids = Object.keys(this.S()).filter((id) => INSCR_BY_ID[id] && INSCR_BY_ID[id].lang === 'aelin' && !this.sensConnu(id));
-      if (!ids.length) return V('Je n’ai rien à traduire pour vous.');
-      return tk.view('Laquelle ? Récitez-moi les traits, je vous dirai ce qu’ils disent. Vingt pièces la pierre.', ids.slice(0, 7).map((id) => { const v = this.S()[id]; return { label: `La pierre relevée le jour ${v.j}${v.ou ? ' (' + v.ou + ')' : ''}`, act: 'lg:t:' + id }; }).concat([{ label: 'Aucune, merci', act: 'chat' }]));
+      if (!ids.length) return V('Je n’ai rien à vous apprendre sur vos pierres.');
+      return tk.view('Je ne lis pas à votre place. Récitez-moi les traits d’une pierre : je vous en donnerai un mot, un seul. Vingt pièces.', ids.slice(0, 7).map((id) => { const v = this.S()[id]; return { label: `La pierre relevée le jour ${v.j}${v.ou ? ' (' + v.ou + ')' : ''}`, act: 'lg:t:' + id }; }).concat([{ label: 'Aucune, merci', act: 'chat' }]));
     }
     if (act.startsWith('lg:t:')) {
       const id = act.slice(5), I = INSCR_BY_ID[id];
       if (!I) return V('…');
+      // un mot inconnu de la pierre, pris dans l'ordre mêlé du bibliothécaire (pas forcément le plus parlant)
+      const mot = this.meler(I.lang, this.mots(id).filter((b) => !savoir.motConnu(I.lang, b)), 'libraire:pierre')[0];
+      if (!mot) return V('Vous la lisez déjà mieux que moi.');
       if (!farm.pay(20)) return V('Vingt pièces. Les pierres ne parlent pas gratuitement, et moi non plus.');
       sound.coin && sound.coin();
-      this.traduireInscription(id, 'le bibliothécaire');
+      this.apprendre(I.lang, [mot], 'libraire');
+      livres.S().libraire.j = s.day;
       npcs.addAmitie(n, 5);
-      return V(`Hm. « ${I.sens} » C’est ce qu’elle dit. Ce qu’elle veut dire, c’est une autre affaire.`);
+      return V(`Hm. Ce signe-là, « ${mot} », veut dire ${LANGUES[I.lang].lex[mot]}. Le reste, cherchez-le. Je n’enseigne pas à lire à votre place.`);
     }
     if (act === 'lg:gorrain') {
       const LS = livres.S(), L0 = LS.lecons || (LS.lecons = { j: 0, n: 0 });
       if (L0.j !== s.day) { L0.j = s.day; L0.n = 0; }
-      const quota = 1 + Math.floor(npcs.level(n) / 3);
+      const quota = 1 + Math.floor(npcs.level(n) / 6);
       if (L0.n >= quota) return V('Assez pour aujourd’hui. Une pierre à la fois, grand. Les géants mettent cent ans à dire une phrase.');
-      const L = this.enseigner('gorrain', Math.min(2, quota - L0.n), 'nain');
+      const L = this.enseigner('gorrain', 1, 'nain');
       L0.n += L.length;
-      return V(L.length ? `La langue des pierres. Les géants la parlent encore, lentement. ${this.lecon('gorrain', L)} Répète. … Mal. Mais tu répètes.` : 'Tu sais tout ce que je sais des pierres.');
-    }
-    if (act === 'lg:pain') {
-      if (!farm.take('pain', 1)) return V('Pas de pain, pas de mot.');
-      npcs.addAmitie(n, 20);
-      const L = this.enseigner('aelin', 1, 'nain');
-      return V(L.length ? `Un pain, un mot. ${this.lecon('aelin', L)} Garde-le. Il est vieux.` : 'Tu sais déjà tous nos mots. Le pain, je le garde quand même.');
+      return V(L.length ? `La langue des pierres. ${this.lecon('gorrain', L)} Répète. … Mal. Mais tu répètes.` : 'Tu sais tout ce que je sais des pierres.');
     }
     if (act === 'lg:cupules') {
-      const id = Object.keys(this.S()).find((k) => INSCR_BY_ID[k] && INSCR_BY_ID[k].lang === 'gorrain' && !this.sensConnu(k));
-      if (!id) return V('Tu as tout lu.');
-      this.traduireInscription(id, 'l’ancien des nains');
-      return V(`Celle-là ? « ${INSCR_BY_ID[id].sens} » Les Gorr gravaient peu. Ce qu’ils gravaient comptait.`);
+      // pas de traduction : quelques mots de travers sur une pierre qu'on a relevée, une fois par pierre
+      const V0 = this.S(), ids = Object.keys(V0).filter((k) => INSCR_BY_ID[k] && INSCR_BY_ID[k].lang === 'gorrain' && !this.sensConnu(k));
+      const id = ids.find((k) => !V0[k].dit && CUPULES_ANCIEN[k]);
+      if (!id) return V(ids.length ? 'Je t’ai dit ce que j’en savais. Lis-les toi-même. Les pierres ne mentent pas ; moi, parfois.' : 'Tu as tout lu.');
+      V0[id].dit = 1;
+      return V(`Celle que tu as relevée le jour ${V0[id].j} ? ${CUPULES_ANCIEN[id]} Les Gorr gravaient peu. Ce qu’ils gravaient comptait.`);
     }
     return V('…');
   },

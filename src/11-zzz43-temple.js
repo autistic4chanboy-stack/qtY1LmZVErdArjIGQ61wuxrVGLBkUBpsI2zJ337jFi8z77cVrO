@@ -181,7 +181,7 @@ const temple = {
   // ------------------------------------------------------------ le tombeau des Aëlim
   tombeau(it) {
     const S = this.S();
-    const opts = [{ label: 'Lire l’inscription', fn: () => { const L = divins.comprendre(TPL_TOMBEAU[0], TPL_TOMBEAU[1]); ui.read('Le tombeau', `Gravé en Hautes Lettres, de haut en bas :\n\n« ${TPL_TOMBEAU[0]} »\n\n${L.join('\n')}`, 'Sur la dalle, une main ouverte, sculptée.'); savoir.apprendreMots('aelin', ['othen']); } }];
+    const opts = [{ label: 'Lire l’inscription', fn: () => { const L = divins.comprendre(TPL_TOMBEAU[0], TPL_TOMBEAU[1]); ui.read('Le tombeau', `Gravé en Hautes Lettres, de haut en bas :\n\n« ${TPL_TOMBEAU[0]} »${L ? `\n\n(« ${L} »)` : ''}`, 'Sur la dalle, une main ouverte, sculptée.'); } }];
     if (!S.pille) opts.push({ label: 'Faire glisser la dalle', fn: () => this.piller(it) });
     if (S.pille && malediction.cause('ombre') === 'tombeau' && farm.count('couronne_aelim')) opts.push({ label: 'Remettre le diadème à sa place', fn: () => this.rendreTombeau() });
     opts.push({ label: 'Partir', fn: () => ui.close() });

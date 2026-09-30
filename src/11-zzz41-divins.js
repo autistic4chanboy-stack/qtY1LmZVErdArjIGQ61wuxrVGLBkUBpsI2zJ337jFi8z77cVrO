@@ -7,8 +7,8 @@
 //  à qui a veillé une nuit entière sans lumière et sans peur (une fois dans une
 //  vie) ; Vesh appelle pendant les nuits noires (divins.voix : répondre mène à
 //  un pacte — un don qui se paie — ou à une malédiction).
-//  Ils parlent aëlin : on montre la phrase, puis ce que le personnage en
-//  comprend (langues.traduire si le module des langues est là).
+//  Ils parlent aëlin : on entend la phrase, avec ce qu'on en comprend (les
+//  seuls mots connus, langues.traduire ; le sens entier si on les connaît tous).
 //  Bénédictions (BUFF) : « aube » (Aëla), « pierre » (Durn). État : farm.s.divins.
 // ============================================================================
 const DIV_NOMS = { aela: 'Aëla', durn: 'Durn', vesh: 'Vesh' };
@@ -61,16 +61,14 @@ const divins = {
   chanceAela(d) { return d >= 10 && !this.S().aela.vu ? 0.012 * EV_BIZ() : 0; },
   chanceVesh(d) { return d >= 8 && !this.S().vesh.vu ? 0.06 * EV_BIZ() : 0; },
   chanceDurn() { return this.S().durn.vu ? 0 : 0.03 * EV_BIZ(); },
-  // ------------------------------------------------------------ parler aëlin : la phrase, puis ce qu'on en comprend
+  // ------------------------------------------------------------ parler aëlin : ce qu'on en comprend
+  // (les mots connus seulement ; le sens entier quand on les connaît tous ; rien, sinon : pas de traduction offerte)
   comprendre(txt, sens) {
+    const mots = langWords(txt);
+    if (mots.length && mots.every((m) => (typeof langues !== 'undefined' ? langues.motConnu('aelin', m) : savoir.motConnu('aelin', m)))) return sens;
     let t = null;
     try { if (typeof langues !== 'undefined' && langues.traduire) t = langues.traduire('aelin', txt); } catch (e) { t = null; }
-    if (typeof t === 'string' && t.trim() && t.trim() !== txt.trim()) return [`(Vous traduisez : « ${t.trim()} »)`, `(Et le reste vous arrive sans les mots : « ${sens} »)`];
-    const mots = langWords(txt), lex = LANGUES.aelin.lex;
-    const connus = mots.filter((m) => savoir.motConnu('aelin', m) && lex[m]);
-    if (connus.length && connus.length < mots.length) return [`(Vous reconnaissez des mots : ${connus.map((m) => lex[m]).join(', ')}.)`, `(Le reste, vous le comprenez sans l’entendre : « ${sens} »)`];
-    if (connus.length) return [`(Vous comprenez chaque mot : « ${sens} »)`];
-    return [`(Vous ne connaissez pas cette langue. Pourtant le sens vous arrive, comme un souvenir : « ${sens} »)`];
+    return typeof t === 'string' && t.trim() && t.trim() !== txt.trim() ? t.trim() : null;
   },
   parler(qui, cle, delai) {
     const P = DIV_PAROLES[cle];
@@ -78,12 +76,11 @@ const divins = {
     const [txt, sens] = P;
     setTimeout(() => {
       if (game.dying) return;
-      ui.subtitle(DIV_NOMS[qui] || '???', txt, 5);
-      const L = this.comprendre(txt, sens);
-      L.forEach((l, i) => setTimeout(() => ui.subtitle('', l, 5.5), 1800 + i * 2600));
-      // entendre un dieu, c'est retenir un ou deux de ses mots
+      // entendre un dieu, c'est retenir un de ses mots
       const mots = langWords(txt).filter((m) => LANGUES.aelin.lex[m] && !savoir.motConnu('aelin', m));
-      if (mots.length) savoir.apprendreMots('aelin', mots.sort(() => Math.random() - 0.5).slice(0, 2));
+      if (mots.length) savoir.apprendreMots('aelin', [pick(mots)]);
+      const tr = this.comprendre(txt, sens);
+      ui.subtitle(DIV_NOMS[qui] || '???', tr ? `« ${txt} » (${tr})` : `« ${txt} »`, 6);
     }, delai || 0);
   },
 
@@ -171,9 +168,11 @@ const divins = {
     p.hp = 100; p.stamina = 1; p.food = Math.max(p.food, 70);
     if (corps.jambeCassee()) corps.soignerJambe(true);
     corps.panser();
-    savoir.apprendreMots('aelin', ['aela', 'ael', 'ven', 'vor', 'ves', 'oth', 'ta', 'teh']);
+    // quelques-uns de ses mots (plus, pour qui a veillé toute la nuit)
+    const dons = ['aela', 'ael', 'ven', 'vor', 'ves', 'oth', 'ta', 'teh'].filter((m) => !savoir.motConnu('aelin', m));
+    savoir.apprendreMots('aelin', (typeof langues !== 'undefined' ? langues.meler('aelin', dons, 'aela') : dons).slice(0, veille ? 4 : 2));
     if (typeof faith !== 'undefined') faith.add('anciens', 6);
-    setTimeout(() => ui.subtitle('', '(Vous êtes à genoux dans l’herbe mouillée. Tout ce qui pesait sur vous est parti. Le soleil se lève, et il est chaud.)', 6), 800);
+    setTimeout(() => ui.subtitle('', '(Tout ce qui pesait sur vous est parti.)', 4), 800);
   },
 
   // ------------------------------------------------------------ la voix des nuits noires (Vesh)
@@ -208,10 +207,10 @@ const divins = {
     if (quoi === 'or') { const n = 250 + Math.floor(Math.random() * 300); farm.earn(n); sound.coin && sound.coin(); ui.subtitle('', `(Vos poches sont lourdes : ${n} pièces. Elles sont froides comme la nuit.)`, 4.5); }
     else if (quoi === 'nuit') { BUFF.add('pacte_nuit', 72); BUFF.add('nyctalopie', 72); ui.subtitle('Vesh', '… la nuit ne te voit plus. Toi, tu la vois …', 4.5); }
     else if (quoi === 'savoir') {
-      const lex = Object.keys(LANGUES.aelin.lex).filter((m) => !savoir.motConnu('aelin', m)).sort(() => Math.random() - 0.5).slice(0, 16);
+      const lex = Object.keys(LANGUES.aelin.lex).filter((m) => !savoir.motConnu('aelin', m)).sort(() => Math.random() - 0.5).slice(0, 8);
       savoir.apprendreMots('aelin', lex);
-      ui.subtitle('Vesh', '… sous les Monts, là où naît la rivière, derrière ce qui tombe … l’aube, le sommeil, la nuit …', 6);
-      setTimeout(() => ui.subtitle('', `(Des mots d’une langue que vous n’avez jamais apprise vous reviennent. ${lex.length} mots.)`, 4.5), 6500);
+      ui.subtitle('Vesh', '… sous les Monts, là où naît la rivière, derrière ce qui tombe … et la nuit vient toujours en dernier …', 6);
+      if (lex.length) setTimeout(() => ui.subtitle('', `(${lex.length > 1 ? `${lex.length} mots` : 'Un mot'} d’une langue que vous n’avez jamais apprise.)`, 4), 6500);
     } else if (quoi === 'lever') { const ids = malediction.liste(); malediction.lever(ids.includes('ombre') ? 'ombre' : ids[0]); }
     // le prix : dans deux à quatre jours
     S.vesh.prix.push({ jour: s.day + 2 + ((Math.random() * 3) | 0), type: pick(['bete', 'argent', 'malediction', 'souvenir']), quoi });

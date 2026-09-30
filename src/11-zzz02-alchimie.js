@@ -347,11 +347,10 @@ const alchimie = {
   // eau de mémoire : des mots des langues perdues, et les lieux des cartes qu'on porte
   memoire() {
     const w = game.world, dits = [];
-    for (const [lang, k] of [['aelin', 6], ['gorrain', 4]]) {
+    for (const [lang, k] of [['aelin', 3], ['gorrain', 2]]) {
       const L = typeof LANGUES !== 'undefined' && LANGUES[lang];
       if (!L || !L.lex) continue;
-      const inc = Object.keys(L.lex).filter((m) => !savoir.motConnu(lang, m));
-      for (let i = inc.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [inc[i], inc[j]] = [inc[j], inc[i]]; }
+      const inc = typeof langues !== 'undefined' ? langues.inconnus(lang, 'memoire') : Object.keys(L.lex).filter((m) => !savoir.motConnu(lang, m));
       const pris = inc.slice(0, k);
       if (!pris.length) continue;
       savoir.apprendreMots(lang, pris);
