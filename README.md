@@ -9,9 +9,10 @@ Ouvrir **`Prairie.html`** dans un navigateur récent (Chrome, Edge ou Firefox, W
 Aucune installation ni connexion : tout est dans ce seul fichier. La partie est sauvegardée automatiquement.
 Le jeu existe en **français** et en **anglais** (Options, ou le bouton de langue du menu ; bascule à chaud).
 
-**Le wiki de la vallée** : **`Prairie-Wiki.html`** (à ouvrir de même, hors du jeu) est un compagnon autonome : la carte interactive de toute
-la vallée (relief, eaux, forêts, chemins, milieux, lieux-dits, maisons des habitants, zones de pêche ; zoom, recherche) et les fiches de
-tout le jeu (habitants et leur semaine, objets, recettes, cultures, plantes, arbres, bêtes, poissons, alchimie, livres, langues perdues,
+**Le wiki de la vallée** : **`Prairie-Wiki.html`** (à ouvrir de même, hors du jeu) est un compagnon autonome : les cartes interactives,
+en onglets — toute la vallée (relief, eaux, forêts, chemins, milieux, lieux-dits, lieux perdus, villages, maisons des habitants, zones de
+pêche), le Dessous, les Enfers, le cauchemar, le pays des bonbons et les Ténèbres, dessinés depuis le jeu (zoom, recherche, repères qui
+mènent aux fiches) — et les fiches de tout le jeu (habitants et leur semaine, objets, recettes, cultures, plantes, arbres, bêtes, poissons, alchimie, livres, langues perdues,
 légendes…), avec une recherche plein texte. Les secrets restent masqués tant qu'on ne clique pas sur « révéler les secrets ». Il se
 régénère depuis les sources du jeu (la vallée est générée, ≈ 1 minute) : `node tools/wiki-build.js`.
 
