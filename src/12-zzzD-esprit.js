@@ -105,15 +105,20 @@ const lavandiere = {
     const h = npcs.hour(), nuit = h >= 22 || h < 4, p = game.player, L = this.lavoir();
     if (!nuit) return;
     const dL = L ? Math.hypot(L.x - p.pos[0], L.z - p.pos[2]) : 1e9;
-    // au lavoir, on l'entend battre le linge
-    if (dL < 60 && this.lave()) {
+    // au lavoir, on l'entend battre le linge : un linge mouillé qu'on claque sur la pierre, de loin, sans coup sourd
+    // (trois coups graves toutes les quelques secondes sonnaient, de la ville, comme des coups de feu)
+    if (dL < 45 && this.lave()) {
       this.battoirT -= dt;
       if (this.battoirT <= 0 && sound.ok) {
-        this.battoirT = 4 + Math.random() * 5;
-        const t = sound.at(), k = clamp(1.2 - dL / 60, 0.1, 1), f = Math.atan2(L.x - eye[0], L.z - eye[2]) - Math.atan2(-Math.sin(p.yaw), -Math.cos(p.yaw));
-        const out = sound.pan(clamp(-Math.sin(f), -0.9, 0.9), sound.amb);
-        for (let i = 0; i < 3; i++) { sound.noiseHit(t + i * 0.42, 0.09, 'lowpass', 420, 0.9, 0.25 * k, out); sound.tone(t + i * 0.42, 'sine', 95, 60, 0.1, 0.12 * k, out); }
-        if (Math.random() < 0.5) setTimeout(() => sound.splash && sound.splash(), 1500);
+        this.battoirT = 7 + Math.random() * 7;
+        const t = sound.at(), k = clamp(1.1 - dL / 45, 0.1, 0.8), f = Math.atan2(L.x - eye[0], L.z - eye[2]) - Math.atan2(-Math.sin(p.yaw), -Math.cos(p.yaw));
+        const out = sound.pan(clamp(-Math.sin(f), -0.9, 0.9), sound.amb), R = Math.random;
+        for (let i = 0, n = 2 + ((R() * 2) | 0); i < n; i++) {
+          const tt = t + i * (0.5 + R() * 0.12);
+          sound.noiseHit(tt, 0.07, 'bandpass', 650 + R() * 250, 0.9, 0.045 * k, out);
+          sound.tone(tt, 'sine', 150, 115, 0.08, 0.018 * k, out, 0.006);
+        }
+        if (R() < 0.5) sound.noiseHit(t + 1.6, 0.3, 'lowpass', 900, 0.7, 0.012 * k, out); // l'eau qu'on remue
       }
     }
     // très rarement, elle surgit (plus souvent près du lavoir, ou seul dans le noir) : un tirage toutes les cinq

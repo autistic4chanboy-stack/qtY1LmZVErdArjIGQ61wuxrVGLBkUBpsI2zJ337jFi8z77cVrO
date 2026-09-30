@@ -23736,10 +23736,11 @@ SoundEngine.TAMPONS = {
     const R = Math.random, S = SoundEngine.SYN, f = 4100 + R() * 500, per = 0.42 + R() * 0.3;
     for (let t = 0.03 + R() * 0.2; t < 1.9; t += per * (0.93 + R() * 0.14)) for (let p = 0, n = 3 + ((R() * 2) | 0); p < n; p++) S.note(d, sr, t + p * 0.027, 0.016, f, f * 0.99, 0.5, { att: 0.25, dec: 1.2 });
   }],
-  grenouille: [0.5, (d, sr) => { // « krrôa » : impulsions graves, en rafale
-    const R = Math.random, S = SoundEngine.SYN, f = 420 + R() * 260, rate = 26 + R() * 14, du = 0.2 + R() * 0.15, b = S.bq('bp', f, 3, sr);
-    for (let t = 0.01, k = 0; t < du; t += 1 / rate, k++) S.bruit(d, sr, t, 0.001, 0.009, 0.6 * Math.sin(Math.PI * t / du), b);
-    S.lp1(d, sr, 2500);
+  grenouille: [0.5, (d, sr) => { // « rrrôa » : un roulement grave et mou (de loin, une rafale sèche sonnait comme un coup de feu)
+    const R = Math.random, S = SoundEngine.SYN, f = 380 + R() * 200, rate = 18 + R() * 9, du = 0.22 + R() * 0.15, b = S.bq('bp', f, 1.8, sr);
+    for (let t = 0.02, k = 0; t < du; t += 1 / rate, k++) S.bruit(d, sr, t, 0.004, 0.016, 0.45 * Math.sin(Math.PI * t / du), b);
+    S.note(d, sr, 0.02, du, f * 0.9, f * 0.8, 0.12, { att: 0.3, dec: 1.5 });
+    S.lp1(d, sr, 1500);
   }],
   pic: [1.2, (d, sr) => { // pic qui tambourine
     const R = Math.random, S = SoundEngine.SYN, f = 850 + R() * 400;
@@ -23753,7 +23754,7 @@ SoundEngine.TAMPONS = {
   }],
 };
 // volumes de base des pas (crête)
-SoundEngine.PAS = { herbe: 0.028, terre: 0.034, pierre: 0.066, bois: 0.025, eau: 0.038, neige: 0.03 };
+SoundEngine.PAS = { herbe: 0.019, terre: 0.023, pierre: 0.044, bois: 0.017, eau: 0.028, neige: 0.02 };
 
 Object.assign(SoundEngine.prototype, {
   // un tampon de la bibliothèque (variantes gardées : n par sorte)
@@ -23866,8 +23867,8 @@ Object.assign(SoundEngine.prototype, {
       case 'duck': {
         for (let i = 0, n = 2 + ((R() * 3) | 0), tt = t; i < n; i++) {
           const f = 240 + R() * 50, du = 0.11 + R() * 0.05;
-          this.cri(tt, { type: 'square', dur: du, f: [[0, f * 1.1], [1, f * 0.9]], rug: [55, 0.45], form: [[1000, 6, 1], [2300, 8, 0.5]], vol: 0.22 * v, lp: 3600, a: 0.012 }, p);
-          tt += du + 0.05 + R() * 0.08;
+          this.cri(tt, { type: 'square', dur: du, f: [[0, f * 1.1], [1, f * 0.9]], rug: [55, 0.35], form: [[1000, 6, 1], [2300, 8, 0.4]], vol: 0.11 * v, lp: 2600, a: 0.025 }, p);
+          tt += du + 0.08 + R() * 0.1;
         }
         break;
       }
@@ -23936,7 +23937,7 @@ Object.assign(SoundEngine.prototype, {
     if (k === 'pierre' && !this._scope && this.surNeige()) k = 'neige';
     this.pied = -this.pied;
     // (courir s'entend un peu plus, pas beaucoup ; les pas des autres, placés autour de vous, un peu moins)
-    const v = SoundEngine.PAS[k] * (0.62 + sp / 9 * 0.3) * (0.9 + R() * 0.2) * (this._scope ? 0.65 : 1);
+    const v = SoundEngine.PAS[k] * (0.52 + sp / 9 * 0.3) * (0.9 + R() * 0.2) * (this._scope ? 0.65 : 1);
     this.jouer(this.tb(k), this.at(), v, this.sfx, 0.88 + R() * 0.12, this._scope ? 0 : this.pied * 0.08);
     if (k === 'bois' && R() < 0.04) this.voice(this.at(0.05), 'sawtooth', 230 + R() * 80, 180 + R() * 40, 0.3 + R() * 0.2, 0.006, this.sfx, { bp: 700, q: 3, vib: 9, vibDepth: 12 });
   },
@@ -24204,7 +24205,7 @@ Object.assign(SoundEngine.prototype, {
   frog(k = 1) {
     if (!this.ok) return;
     const t = this.at(), R = Math.random, p = this._scope ? this.amb : this.pan(R() * 2 - 1, this.amb);
-    for (let i = 0, n = 1 + ((R() * 2) | 0); i < n; i++) this.jouer(this.tb('grenouille', 6), t + i * (0.26 + R() * 0.1), 0.05 * k, p, 0.9 + R() * 0.2);
+    for (let i = 0, n = 1 + ((R() * 2) | 0); i < n; i++) this.jouer(this.tb('grenouille', 6), t + i * (0.3 + R() * 0.12), 0.03 * k, p, 0.9 + R() * 0.2);
   },
   woodpecker() { if (!this.ok) return; const p = this._scope ? this.amb : this.pan(Math.random() * 2 - 1, this.amb); this.jouer(this.tb('pic', 4), this.at(), 0.045, p, 0.95 + Math.random() * 0.1); },
   lap(k = 1) {
@@ -24385,16 +24386,18 @@ SoundEngine.BOUCLES = {
     }
     for (let k = 0, N = Math.floor(D * 45); k < N; k++) { const f = 300 + Math.pow(R(), 1.6) * 1400, t = R() * (D - 0.06); S.note(d, sr, t, 0.012 + R() * 0.03, f, f * (1.3 + R() * 0.8), 0.06 + R() * 0.12, { att: 0.15, dec: 2, c: 0.5 }); }
   }],
-  // clapotis : de petites vagues qui viennent mourir à la rive
+  // clapotis : de petites vagues qui s'enflent et viennent mourir à la rive, sans claquement (de loin, un choc sec
+  // sonnait comme un coup de feu)
   clapotis: [8, (d, sr, D) => {
-    const R = Math.random, S = SoundEngine.SYN, lo = S.bq('lp', 380, 0.7, sr), n = d.length;
+    const R = Math.random, S = SoundEngine.SYN, lo = S.bq('lp', 360, 0.7, sr), n = d.length;
     let m = 0.3, v = 0;
     for (let i = 0; i < n; i++) { if (i % 128 === 0) { v += (R() - 0.5) * 0.05 - v * 0.03; m = clamp(m + v * 0.1, 0.1, 0.5); } d[i] += lo(R() * 2 - 1) * 0.25 * m; }
-    for (let t = 0.2 + R() * 0.5; t < D - 0.6; t += 1.1 + R() * 1.6) {
-      S.bruit(d, sr, t, 0.08 + R() * 0.06, 0.25 + R() * 0.15, 0.5 + R() * 0.3, S.bq('lp', 500 + R() * 200, 0.7, sr));
-      S.bruit(d, sr, t + 0.06, 0.03, 0.12, 0.12 + R() * 0.08, S.bq('bp', 1100 + R() * 400, 0.8, sr));
-      for (let k = 0; k < 3; k++) { const f = 500 + R() * 800; S.note(d, sr, t + 0.1 + R() * 0.3, 0.02 + R() * 0.02, f, f * 1.5, 0.04 + R() * 0.04, { att: 0.12, dec: 2 }); }
+    for (let t = 0.2 + R() * 0.5; t < D - 1; t += 1.4 + R() * 1.8) {
+      S.bruit(d, sr, t, 0.22 + R() * 0.12, 0.55 + R() * 0.25, 0.3 + R() * 0.15, S.bq('lp', 380 + R() * 140, 0.7, sr));
+      S.bruit(d, sr, t + 0.2, 0.15, 0.3, 0.035 + R() * 0.03, S.bq('bp', 900 + R() * 300, 0.7, sr));
+      for (let k = 0; k < 2; k++) { const f = 450 + R() * 600; S.note(d, sr, t + 0.3 + R() * 0.4, 0.02 + R() * 0.02, f, f * 1.4, 0.02 + R() * 0.02, { att: 0.2, dec: 2 }); }
     }
+    S.lp1(d, sr, 2400);
   }],
   // feu : un souffle grave qui ondule, des crépitements, parfois une bûche qui craque
   feu: [5, (d, sr, D) => {
@@ -24402,7 +24405,7 @@ SoundEngine.BOUCLES = {
     let m = 0.5, v = 0;
     for (let i = 0; i < n; i++) { if (i % 64 === 0) { v += (R() - 0.5) * 0.12 - v * 0.05; m = clamp(m + v * 0.1, 0.2, 1); } const x = R() * 2 - 1; d[i] += lo(x) * 0.9 * m + hs(x) * 0.02; }
     for (let k = 0, N = Math.floor(D * 14); k < N; k++) { const a = Math.pow(R(), 3) * 0.9 + 0.05; S.bruit(d, sr, R() * (D - 0.02), 0.0003, 0.0015 + R() * 0.004, a, S.bq('bp', 900 + R() * 2600, 1.1, sr)); }
-    for (let k = 0, N = 1 + ((R() * 2) | 0); k < N; k++) { const t = 0.3 + R() * (D - 0.8); S.mode(d, sr, t, 380 + R() * 500, 0.02, 0.35); S.bruit(d, sr, t, 0.0005, 0.01, 0.4, S.bq('bp', 1500, 0.8, sr)); }
+    for (let k = 0, N = 1 + ((R() * 2) | 0); k < N; k++) { const t = 0.3 + R() * (D - 0.8); S.mode(d, sr, t, 380 + R() * 500, 0.02, 0.2); S.bruit(d, sr, t, 0.002, 0.012, 0.18, S.bq('bp', 1200, 0.8, sr)); }
   }],
   // gouttes de pluie tout près (sur l'herbe, sur les feuilles, dans les flaques)
   gouttes: [3, (d, sr, D) => {
@@ -24441,7 +24444,7 @@ SoundEngine.BOUCLES = {
   }, 8000],
 };
 // volume de chaque boucle (k = 1)
-SoundEngine.VOL_BOUCLES = { riviere: 0.2, clapotis: 0.22, feu: 0.22, gouttes: 0.07, feuilles: 0.06, grillon: 0.12, bourdon: 0.05, vent: 0.14 };
+SoundEngine.VOL_BOUCLES = { riviere: 0.2, clapotis: 0.12, feu: 0.22, gouttes: 0.07, feuilles: 0.06, grillon: 0.12, bourdon: 0.05, vent: 0.14 };
 // les oiseaux selon le milieu : [sorte, poids]
 SoundEngine.OISEAUX = {
   foret: [['merle', 3], ['mesange', 3], ['pinson', 3], ['pic', 0.6], ['tourterelle', 1], ['coucou', 0.15]],
@@ -24719,23 +24722,39 @@ Object.assign(SoundEngine.prototype, {
       }
       if (near) break;
     }
-    if (near && !(S.riv && best.d < near.d + 8)) S.rive = { p: [near.x, WL + 0.2, near.z], k: clamp(1.2 - near.d / 40, 0.15, 1) };
+    if (near && !(S.riv && best.d < near.d + 8)) {
+      // (les douves de la ville : une eau dormante entre deux murs, qui ne clapote presque pas)
+      const T = w.townInfo, douves = T && Math.hypot(near.x - T.x, near.z - T.z) < 110;
+      S.rive = { p: [near.x, WL + 0.2, near.z], k: clamp(1.2 - near.d / 40, 0.15, 1) * (douves ? 0.25 : 1) };
+    }
   },
   // le foyer le plus proche : feux de camp, cheminées, fours, grands feux ; arbres qui brûlent (pas les bougies)
   _feu(w, p) {
-    const px = p.pos[0], pz = p.pos[2];
-    let best = null;
+    const px = p.pos[0], pz = p.pos[2], C = [];
     for (const l of w.lights || []) {
       if (!l.flicker) continue;
       const id = l.prop ? l.prop.id : 'campfire';
       if (!SoundEngine.FEUX[id]) continue;
       const d = Math.hypot(l.x - px, l.z - pz);
-      if (d < 26 && (!best || d < best.d)) best = { d, p: [l.x, l.y - 0.3, l.z], k: SoundEngine.FEUX[id], gros: id === 'feu_geant' };
+      if (d < 26) C.push({ d, p: [l.x, l.y - 0.3, l.z], k: SoundEngine.FEUX[id], gros: id === 'feu_geant' });
     }
+    // (un feu derrière un mur ne s'entend pas : la cheminée d'une maison quand on est dehors, un feu de camp quand on
+    // est dedans ; on prend le plus proche qu'on pourrait voir)
+    C.sort((a, b) => a.d - b.d);
+    let best = null;
+    for (const c of C.slice(0, 4)) if (!this._mur(w, c.p)) { best = c; break; }
     if (typeof vallee !== 'undefined' && vallee.burning && vallee.burning.size) {
       for (const b of vallee.burning.values()) { const d = Math.hypot(b.x - px, b.z - pz); if (d < 90 && (!best || d < best.d)) best = { d, p: [b.x, b.y + b.h * 0.5, b.z], k: b.tree ? 2.5 : 1.2, gros: true }; }
     }
     return best;
+  },
+  // un mur entre l'écouteur et ce point ? (les blocs des bâtiments ; ce qui touche le point lui-même ne compte pas)
+  _mur(w, q) {
+    const L = this.L;
+    if (!L || !w.raycastBlocks) return false;
+    const o = [L.x, L.y, L.z], dx = q[0] - o[0], dy = q[1] + 0.5 - o[1], dz = q[2] - o[2], d = Math.hypot(dx, dy, dz);
+    if (d < 1.8) return false;
+    return !!w.raycastBlocks(o, [dx / d, dy / d, dz / d], d - 1.2);
   },
   // les arbres autour (pour y percher les oiseaux et la chouette)
   _arbres(w, p, S) {
@@ -24813,16 +24832,18 @@ Object.assign(SoundEngine.prototype, {
       if (r < (E.night > 0.5 ? 0.05 : 0.015)) this.ici(loin(2, 5, 1.5), () => this.voice(this.at(), 'sawtooth', 200 + R() * 120, 150 + R() * 60, 0.25 + R() * 0.3, 0.004, this.amb, { bp: 650 + R() * 300, q: 3, vib: 10, vibDepth: 14 }));
       return;
     }
+    // (autour de la ville, les douves sont de pierre : presque pas de grenouilles)
+    const T = game.world && game.world.townInfo, grenouilles = T && Math.hypot(L.x - T.x, L.z - T.z) < 170 ? 0.25 : 1;
     switch (E.biome) {
       case 'foret': case 'bouleaux':
         if (E.day > 0.5 && calm && r < 0.1) this.ici(this._unArbre() || loin(15, 35, 4), () => this.woodpecker(), SoundEngine.LOIN);
         break;
       case 'marais':
-        if (r < 0.45) this.ici(this._presDeLEau() || loin(6, 20, -1), () => this.frog(E.night > 0.5 ? 1 : 0.6), SoundEngine.LOIN);
+        if (r < 0.2 * grenouilles) this.ici(this._presDeLEau() || loin(6, 20, -1), () => this.frog(E.night > 0.5 ? 1 : 0.6), SoundEngine.LOIN);
         if (r > 0.8) this.ici(this._presDeLEau() || loin(4, 12, -1), () => this.bubble(), SoundEngine.LOIN);
         break;
       case 'lac':
-        if (E.night > 0.5 && r < 0.2) this.ici(this._presDeLEau() || loin(8, 25, -1), () => this.frog(0.7), SoundEngine.LOIN);
+        if (E.night > 0.5 && r < 0.1 * grenouilles) this.ici(this._presDeLEau() || loin(8, 25, -1), () => this.frog(0.7), SoundEngine.LOIN);
         if (E.day > 0.5 && r > 0.93) this.animal('duck', loin(20, 45, -1), 0.5);
         break;
       case 'hauteurs':
@@ -45823,7 +45844,8 @@ HOOKS.death.push((cause) => { if (mondes.cur === 'cauchemar') { MONDES.cauchemar
 defItem('page_registre', 'Page du registre', 'ailleurs', 0, ['md_page', '#d8ccb0', '#5a4a3a'], { desc: 'Une page arrachée au registre du Recenseur. Votre nom y est, tout en bas, d’une encre qui n’a pas encore séché.' });
 
 const ENF = { // décors (boîtes)
-  cendre: [0.3, 0.28, 0.27], osC: [0.84, 0.8, 0.7], // (osC : la couleur de l'os ; os(), plus bas, est le modèle d'un tas d'os) noir: [0.08, 0.07, 0.08], fer: [0.25, 0.22, 0.2],
+  // (osC : la couleur de l'os ; os(), plus bas, est le modèle d'un tas d'os)
+  cendre: [0.3, 0.28, 0.27], osC: [0.84, 0.8, 0.7], noir: [0.08, 0.07, 0.08], fer: [0.25, 0.22, 0.2],
   lave(E, c, t) { E.fl = FX_EMIT; for (let k = 0; k < 6; k++) { const b = 0.85 + Math.sin(t * 1.3 + k * 1.7 + c.id) * 0.15; E.bx((k - 2.5) * 3.4, 0, 0, 3.5, 0.2, c.l || 8, [1.4 * b, 0.42 * b, 0.08 * b], mt(M_BRAISE)); } E.fl = 0; },
   pont(E) { E.bx(0, -0.1, 0, 3.2, 0.25, 11, ENF.osC, TL.bone); for (let z = -4.5; z <= 4.5; z += 1.5) { E.box(-1.7, 0.6, z, 0.18, 1.6, 0.18, ENF.osC, TL.bone, 0, 0, -0.3); E.box(1.7, 0.6, z, 0.18, 1.6, 0.18, ENF.osC, TL.bone, 0, 0, 0.3); } E.bx(-1.5, 1.2, 0, 0.12, 0.12, 11, ENF.osC, TL.bone); E.bx(1.5, 1.2, 0, 0.12, 0.12, 11, ENF.osC, TL.bone); },
   pupitre(E) { E.bx(0, 0, 0, 0.8, 1.1, 0.6, ENF.noir, mt(M_OBSIDIENNE)); E.box(0, 1.2, 0, 1.2, 0.08, 0.8, [0.2, 0.16, 0.12], TL.darkwood, 0, -0.35); E.box(-0.28, 1.28, 0.02, 0.55, 0.05, 0.66, [0.86, 0.8, 0.66], TL.paper, 0, -0.35); E.box(0.28, 1.28, 0.02, 0.55, 0.05, 0.66, [0.86, 0.8, 0.66], TL.paper, 0, -0.35); },
@@ -62919,7 +62941,7 @@ Object.assign(SoundEngine.prototype, {
       case 'feule': this.noiseHit(t, 0.6, 'highpass', 2600, 0.8, 0.04 * v, p, 4200); this.voice(t + 0.1, 'sawtooth', 160, 120, 0.5, 0.03 * v, p, { lp: 500 }); return;
       case 'froissement': this.noiseHit(t, 0.14, 'bandpass', 2200, 1.2, 0.02 * v, p); return;
       case 'terre': this.noiseHit(t, 0.22, 'lowpass', 600, 0.7, 0.04 * v, p); return;
-      case 'plouf': this.noiseHit(t, 0.18, 'lowpass', 1400, 0.7, 0.03 * v, p, 400); return;
+      case 'plouf': this.tone(t, 'sine', 620, 320, 0.09, 0.01 * v, p, 0.006); this.noiseHit(t + 0.01, 0.14, 'bandpass', 900, 0.8, 0.008 * v, p); return; // (un « bloup », pas un coup sourd)
       case 'filet': this.noiseHit(t, 0.18, 'bandpass', 1300, 0.9, 0.05 * v, this.sfx, 500); return;
     }
   },
@@ -69290,15 +69312,20 @@ const lavandiere = {
     const h = npcs.hour(), nuit = h >= 22 || h < 4, p = game.player, L = this.lavoir();
     if (!nuit) return;
     const dL = L ? Math.hypot(L.x - p.pos[0], L.z - p.pos[2]) : 1e9;
-    // au lavoir, on l'entend battre le linge
-    if (dL < 60 && this.lave()) {
+    // au lavoir, on l'entend battre le linge : un linge mouillé qu'on claque sur la pierre, de loin, sans coup sourd
+    // (trois coups graves toutes les quelques secondes sonnaient, de la ville, comme des coups de feu)
+    if (dL < 45 && this.lave()) {
       this.battoirT -= dt;
       if (this.battoirT <= 0 && sound.ok) {
-        this.battoirT = 4 + Math.random() * 5;
-        const t = sound.at(), k = clamp(1.2 - dL / 60, 0.1, 1), f = Math.atan2(L.x - eye[0], L.z - eye[2]) - Math.atan2(-Math.sin(p.yaw), -Math.cos(p.yaw));
-        const out = sound.pan(clamp(-Math.sin(f), -0.9, 0.9), sound.amb);
-        for (let i = 0; i < 3; i++) { sound.noiseHit(t + i * 0.42, 0.09, 'lowpass', 420, 0.9, 0.25 * k, out); sound.tone(t + i * 0.42, 'sine', 95, 60, 0.1, 0.12 * k, out); }
-        if (Math.random() < 0.5) setTimeout(() => sound.splash && sound.splash(), 1500);
+        this.battoirT = 7 + Math.random() * 7;
+        const t = sound.at(), k = clamp(1.1 - dL / 45, 0.1, 0.8), f = Math.atan2(L.x - eye[0], L.z - eye[2]) - Math.atan2(-Math.sin(p.yaw), -Math.cos(p.yaw));
+        const out = sound.pan(clamp(-Math.sin(f), -0.9, 0.9), sound.amb), R = Math.random;
+        for (let i = 0, n = 2 + ((R() * 2) | 0); i < n; i++) {
+          const tt = t + i * (0.5 + R() * 0.12);
+          sound.noiseHit(tt, 0.07, 'bandpass', 650 + R() * 250, 0.9, 0.045 * k, out);
+          sound.tone(tt, 'sine', 150, 115, 0.08, 0.018 * k, out, 0.006);
+        }
+        if (R() < 0.5) sound.noiseHit(t + 1.6, 0.3, 'lowpass', 900, 0.7, 0.012 * k, out); // l'eau qu'on remue
       }
     }
     // très rarement, elle surgit (plus souvent près du lavoir, ou seul dans le noir) : un tirage toutes les cinq

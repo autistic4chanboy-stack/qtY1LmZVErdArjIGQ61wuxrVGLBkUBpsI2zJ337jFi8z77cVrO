@@ -781,7 +781,7 @@ Object.assign(SoundEngine.prototype, {
       case 'feule': this.noiseHit(t, 0.6, 'highpass', 2600, 0.8, 0.04 * v, p, 4200); this.voice(t + 0.1, 'sawtooth', 160, 120, 0.5, 0.03 * v, p, { lp: 500 }); return;
       case 'froissement': this.noiseHit(t, 0.14, 'bandpass', 2200, 1.2, 0.02 * v, p); return;
       case 'terre': this.noiseHit(t, 0.22, 'lowpass', 600, 0.7, 0.04 * v, p); return;
-      case 'plouf': this.noiseHit(t, 0.18, 'lowpass', 1400, 0.7, 0.03 * v, p, 400); return;
+      case 'plouf': this.tone(t, 'sine', 620, 320, 0.09, 0.01 * v, p, 0.006); this.noiseHit(t + 0.01, 0.14, 'bandpass', 900, 0.8, 0.008 * v, p); return; // (un « bloup », pas un coup sourd)
       case 'filet': this.noiseHit(t, 0.18, 'bandpass', 1300, 0.9, 0.05 * v, this.sfx, 500); return;
     }
   },

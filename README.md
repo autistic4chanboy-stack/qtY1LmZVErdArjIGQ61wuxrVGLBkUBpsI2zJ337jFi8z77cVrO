@@ -505,7 +505,8 @@ Les commandes sont dans le menu **Commandes** (Échap).
   douces, formes d'onde sans harmoniques perçantes, aigus un peu en retrait ; et jamais deux fois le même son (hauteur,
   timbre, durée, niveau varient un peu). Les **pas** changent avec le sol (herbe, terre, pierre, plancher, eau, neige qui
   crisse), un pied puis l'autre : sourds et feutrés, on les sent plus qu'on ne les entend (sur le pavé, un « toc » mat
-  de semelle, sans claquement ; ceux des habitants un peu plus bas encore). Les **bêtes** ont de vraies voix (formants, vibrato, rugosité) : bêlement qui tremble,
+  de semelle, sans claquement ; ceux des habitants un peu plus bas encore). Rien qui claque de loin comme un coup de
+  feu : les petites vagues s'enflent, les grenouilles roulent, la lavandière de nuit claque son linge sur la pierre. Les **bêtes** ont de vraies voix (formants, vibrato, rugosité) : bêlement qui tremble,
   meuglement qui s'ouvre, grognements, caquètements, hennissement et ébrouement, coin-coin, braiment, aboiement,
   hurlement du loup, croassement… Les **habitants** murmurent des syllabes qui ressemblent à des mots, avec l'intonation
   d'une phrase (parfois une question). La **cloche** de l'église a les partiels d'une vraie cloche, qui battent lentement.
@@ -526,7 +527,7 @@ Les commandes sont dans le menu **Commandes** (Échap).
 - **Des ambiances tout autour, plus un fond plat** : le vent vient du côté de l'orage, et par rafales qui passent d'un
   côté à l'autre (avec le feuillage, en forêt ; toujours sur les sommets) ; la pluie tombe tout autour de vous, et
   sourdement sur le toit quand on est à l'abri ; la rivière coule là où elle coule, le lac clapote à la rive ; le feu
-  crépite à sa place (feux de camp, cheminées, fours, incendies) ; les oiseaux chantent dans les arbres — merle, mésange,
+  crépite à sa place (feux de camp, cheminées, fours, incendies ; un mur l'étouffe : la cheminée d'une maison ne s'entend pas de la rue) ; les oiseaux chantent dans les arbres — merle, mésange,
   pinson, tourterelle, coucou, pic, moineaux au village, alouette haut dans le ciel au-dessus des prés —, **chacun son
   tour** : un chanteur reprend sa phrase deux ou trois fois de la même branche, puis un silence, plus court à l'aube et
   en forêt ; les oiseaux des bois et des cours attendent qu'aucun autre ne chante (en forêt, 44 chants par minute
