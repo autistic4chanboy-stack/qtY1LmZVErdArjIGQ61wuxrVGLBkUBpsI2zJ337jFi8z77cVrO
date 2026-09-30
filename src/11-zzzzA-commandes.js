@@ -773,7 +773,7 @@ const commandes = {
     const L = this.etals(), E = L.find((x) => x.cle === this.sel && !x.refus) || null;
     const nb = (cle) => { let k = 0; for (const [key, n] of this.panier) if (key.startsWith(cle + '|')) k += n; return k; };
     const liste = L.map((x) => {
-      const sous = `${x.n.name}, ${x.n.d.role.toLowerCase()}`;
+      const sous = x.n.d.role ? `${x.n.name}, ${x.n.d.role.toLowerCase()}` : x.n.name;
       if (x.refus) return `<div class="cm-etal non${x.refus === 'mort' ? ' mort' : ''}"><b>${esc(x.nom)}</b><small>${esc(x.refus === 'mort' ? `${sous} — †` : `${sous} — ne prend pas vos commandes`)}</small></div>`;
       const k = nb(x.cle);
       return `<button class="cm-etal${E === x ? ' on' : ''}" data-cm-etal="${esc(x.cle)}"><b>${esc(x.nom)}</b><small>${esc(sous)}</small>${k ? `<i>${k}</i>` : ''}</button>`;
