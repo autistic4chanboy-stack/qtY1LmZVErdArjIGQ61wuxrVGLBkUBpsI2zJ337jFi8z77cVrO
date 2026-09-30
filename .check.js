@@ -2716,6 +2716,243 @@ function spriteWild(kind, seed) {
   };
 }
 
+// ---- 03-zzzz-sprites-nature.js
+// ============================================================================
+//  LA NATURE (agent C2) : icônes nouvelles (formes « n2_… » : bûches d'un bois,
+//  manche, bâton, clochettes, ombrelle, bolet, boule, massette, papillon,
+//  filet, insectes) et sprites des plantes nouvelles (« w4_… »).
+// ============================================================================
+{
+  const _ip = iconPaint;
+  iconPaint = function (shape, c1, c2) {
+    if (typeof shape !== 'string' || !shape.startsWith('n2_')) return _ip(shape, c1, c2);
+    const kind = shape.slice(3);
+    const pb = new PixelBuf(16, 16), P = rampOf(c1 || '#aaaaaa'), Q = rampOf(c2 || '#4a9a3a');
+    const S = (cx, cy, r, pal, o) => drawSphere(pb, cx, cy, r, pal || P, (cx * 7 + cy * 3) | 0, o || {});
+    const L = (x0, y0, x1, y1, c, w) => drawLine(pb, x0, y0, x1, y1, typeof c === 'string' ? hexc(c) : c, w || 1);
+    const px = (x, y, c) => pb.set(x, y, typeof c === 'string' ? hexc(c) : c);
+    switch (kind) {
+      case 'buche': { // deux bûches : l'écorce (c1), le bois de bout (c2)
+        for (const [y0, x0, x1] of [[8, 1, 12], [3, 3, 13]]) {
+          for (let y = y0; y < y0 + 5; y++) for (let x = x0; x < x1; x++) pb.set(x, y, rampPick(P, 0.75 - (y - y0) * 0.09 + (hash2i(x >> 1, y, 5) - 0.5) * 0.35, x, y));
+          S(x1, y0 + 2.2, 2.6, Q);
+          px(x1, y0 + 2, C(Q[0], 0.9));
+        }
+        break;
+      }
+      case 'manche': L(3, 14, 13, 2, P[2], 2); L(4, 14, 13, 3, P[1]); px(13, 2, P[3]); px(3, 14, C(P[0], 0.8)); break;
+      case 'baton': L(5, 15, 11, 0, P[2], 2); L(6, 15, 11, 1, P[1]); px(11, 0, P[3]); px(8, 7, C(P[0], 0.9)); break;
+      case 'clochettes': // tige arquée, clochettes pendantes (c1 : les fleurs)
+        L(3, 15, 5, 5, '#3e7a2e'); L(5, 5, 11, 3, '#3e7a2e');
+        for (const [x, y] of [[6, 7], [9, 6], [12, 6]]) { L(x, y - 2, x, y, '#3e7a2e'); S(x, y + 1.6, 1.9, P, { sq: 1.2 }); px(x, y + 3, C(P[0], 0.8)); }
+        break;
+      case 'parasol': // grand champignon en ombrelle
+        L(8, 6, 8, 15, [226, 216, 196], 2); L(7, 10, 10, 10, [200, 190, 170]);
+        for (let x = 1; x < 15; x++) { const h = Math.round(3 - Math.abs(x - 7.5) * 0.35); for (let y = 5 - h; y <= 5; y++) pb.set(x, y, rampPick(P, 0.85 - (y - 2) * 0.1, x, y)); }
+        for (const [x, y] of [[4, 4], [7, 3], [10, 4], [12, 5], [6, 5]]) px(x, y, Q[1]);
+        break;
+      case 'bolet': // chapeau pâle, pied renflé rouge
+        S(8, 12, 3.2, Q, { sq: 1.1 }); S(8, 6, 6, P, { sq: 0.6, flatBottom: 0.3 }); for (let x = 4; x < 13; x++) px(x, 8, C(Q[1], 1.1)); break;
+      case 'boule': S(8, 10, 5.5, P, { sq: 0.9, noise: 0.25 }); for (const [x, y] of [[6, 7], [9, 8], [7, 10], [10, 11], [5, 11]]) px(x, y, C(P[3], 1.05)); L(7, 15, 9, 15, [120, 110, 90]); break;
+      case 'massette': L(8, 15, 8, 1, '#5a7a3a'); for (let y = 4; y < 11; y++) for (let x = 6; x < 11; x++) pb.set(x, y, rampPick(P, 0.8 - (x - 6) * 0.12, x, y)); L(5, 15, 3, 6, '#6a8a4a'); L(11, 15, 13, 7, '#6a8a4a'); break;
+      case 'papillon': { // ailes (c1), bordure (c2)
+        for (const s of [-1, 1]) {
+          for (let dy = -5; dy <= 4; dy++) for (let dx = 1; dx <= 6; dx++) {
+            const hi = dy < 0 ? (dx * dx) / 36 + (dy * dy) / 25 : (dx * dx) / 20 + (dy * dy) / 16;
+            if (hi > 1) continue;
+            pb.set(8 + s * dx - (s < 0 ? 1 : 0), 8 + dy, hi > 0.72 ? Q[1] : rampPick(P, 0.95 - hi * 0.4, dx, dy));
+          }
+        }
+        L(7, 4, 7, 12, [40, 30, 20]); L(8, 4, 8, 12, [60, 45, 25]); px(6, 2, [40, 30, 20]); px(9, 2, [40, 30, 20]);
+        break;
+      }
+      case 'filet': // cercle de bois au bout d'un manche, et la poche
+        L(2, 15, 8, 8, [150, 110, 60], 2);
+        for (let a = 0; a < 24; a++) px(10 + Math.cos(a / 24 * TAU) * 4.5, 5 + Math.sin(a / 24 * TAU) * 4.5, [130, 95, 55]);
+        for (let y = 2; y < 10; y++) for (let x = 7; x < 14; x++) if (((x + y) & 1) && Math.hypot(x - 10, y - 5) < 4) px(x, y, [236, 232, 220]);
+        break;
+      case 'insecte': // coléoptère (c1 : élytres, c2 : pattes et mandibules)
+        S(8, 9, 4, P, { sq: 1.4 }); L(8, 4, 8, 14, C(P[0], 0.7)); S(8, 4, 2, Q);
+        for (const s of [-1, 1]) { L(8 + s * 2, 3, 8 + s * 4, 0, Q[2]); for (const y of [7, 9, 11]) L(8 + s * 3, y, 8 + s * 6, y + 1, Q[1]); }
+        break;
+      case 'mante': L(8, 2, 8, 13, P[2], 2); L(8, 5, 5, 3, P[1]); L(8, 5, 11, 3, P[1]); L(9, 9, 13, 14, P[1]); L(8, 9, 4, 14, P[1]); S(8.5, 2, 1.6, P); break;
+      default: S(8, 8, 5, P);
+    }
+    return pb;
+  };
+}
+
+// ---------------------------------------------------------------- les plantes nouvelles (billboards pixelisés)
+function spriteNature(kind, seed) {
+  const rnd = mulberry32(seed);
+  const TAILLE = {
+    paquerette: [22, 10], oseille: [22, 26], plantain: [24, 16], barbe_bouc: [22, 34], cardamine: [22, 24], verveine: [22, 32], mouron: [22, 8],
+    bouillon_blanc: [18, 44], armoise: [26, 38], coprin: [16, 20], jusquiame: [24, 30], datura: [26, 32], chelidoine: [24, 26], rue: [22, 24],
+    anemone: [24, 14], pervenche: [24, 10], sceau_salomon: [28, 26], parisette: [18, 20], oxalis: [22, 8], asperule: [22, 14], fraisier_bois: [22, 10],
+    ronce: [32, 26], mousse: [22, 8], usnee: [18, 18], herbe_egaree: [20, 20], pied_mouton: [18, 14], coulemelle: [24, 36], bolet_satan: [18, 16],
+    vesse_loup: [16, 10], phalloide: [16, 18], populage: [24, 14], salicaire: [22, 36], massette: [20, 48], menyanthe: [22, 16], sphaigne: [24, 8],
+    consoude: [26, 28], genet: [30, 40], pulsatille: [18, 14], euphraise: [22, 10], absinthe: [24, 24], soldanelle: [18, 10], saxifrage: [22, 8],
+    nigritelle: [14, 16], ancolie: [22, 28], airelle: [22, 12], chardon_bleu: [22, 30], taupiniere: [16, 8],
+  }[kind] || [22, 22];
+  const [W, H] = TAILLE, pb = new PixelBuf(W, H);
+  const px = (x, y, c, a) => pb.set(Math.round(x), Math.round(y), c, a);
+  const V = [[40, 100, 40], [52, 118, 46], [66, 136, 54], [84, 150, 64]]; // verts
+  const vert = (k) => V[Math.max(0, Math.min(3, k | 0))];
+  const tige = (x, top, lean = 0, col) => drawLine(pb, x + lean, top, x, H - 1, col || PAL.stem[1 + ((rnd() * 2) | 0)]);
+  const feuilles = (n, col, y0, h = 3) => { for (let i = 0; i < n; i++) { const x = 1 + rnd() * (W - 2), y = (y0 ?? H - 4) + rnd() * h; px(x, y, col); px(x + 1, y, col.map((v) => v * 0.82)); px(x, y - 1, col.map((v) => Math.min(255, v * 1.12))); } };
+  const tapis = (y0, fn) => { for (let x = 1; x < W - 1; x++) for (let y = y0; y < H; y++) { const c = fn(x, y); if (c) px(x, y, c); } };
+  const fleur = (x, y, r, col, coeur, n = 6) => { for (let a = 0; a < n; a++) { const t = a / n * TAU + rnd() * 0.3; px(x + Math.cos(t) * r, y + Math.sin(t) * r * 0.8, col); } if (coeur) px(x, y, coeur); };
+  const cloche = (x, y, col, h = 2) => { for (let k = 0; k < h; k++) { px(x, y + k, col); px(x + 1, y + k, col.map((v) => v * 0.8)); } px(x - 1, y + h, col.map((v) => v * 0.9)); px(x + 2, y + h, col.map((v) => v * 0.75)); };
+  const epi = (x, top, len, c1, c2) => { for (let k = 0; k < len; k++) { px(x + (k % 2 ? 1 : 0), top + k, k % 3 ? c1 : c2); if (k % 2 === 0) px(x - 1, top + k, c2); } };
+  const chapeau = (x, y, r, c1, c2, pied, hPied) => { // champignon
+    for (let yy = y; yy < Math.min(H, y + (hPied || H)); yy++) { px(x, yy, pied); px(x + 1, yy, pied.map((v) => v * 0.85)); }
+    for (let dy = 0; dy <= r * 0.8; dy++) for (let dx = -r; dx <= r; dx++) if (dx * dx / (r * r) + dy * dy / (r * r * 0.64) <= 1) px(x + dx + 0.5, y - dy + r * 0.3, dy < 1 ? c2 : c1);
+  };
+  switch (kind) {
+    // ---- prés, chemins
+    case 'paquerette': feuilles(8, vert(1), H - 3, 2); for (let i = 0; i < 6; i++) { const x = 2 + i * 3.3 + rnd(), y = H - 4 - rnd() * 3; tige(x, y); fleur(x, y, 1.2, [250, 250, 244], [240, 190, 40], 7); } break;
+    case 'oseille': for (let i = 0; i < 7; i++) { const x = 2 + rnd() * (W - 4), top = H - 6 - rnd() * 6; drawLine(pb, x, top, x + (rnd() - 0.5) * 3, H - 1, vert(2)); px(x, top, vert(3)); px(x + 1, top + 1, vert(2)); }
+      for (let i = 0; i < 3; i++) { const x = 4 + i * 6 + rnd() * 2, top = 2 + rnd() * 5; tige(x, top); for (let k = 0; k < 8; k += 2) px(x + (k % 4 ? 1 : -1), top + k, [150, 60, 40]); } break;
+    case 'plantain': for (let i = 0; i < 6; i++) { const a = -0.9 + i * 0.36; for (let r = 0; r < 8; r++) { const x = W / 2 + Math.sin(a) * r * 1.3, y = H - 1 - r * 0.5; px(x, y, vert(r > 5 ? 3 : 2)); if (r % 3 === 1) px(x, y - 1, vert(1)); } }
+      for (let i = 0; i < 3; i++) { const x = 6 + i * 6, top = 1 + rnd() * 3; drawLine(pb, x, top + 3, x, H - 3, [110, 120, 70]); for (let k = 0; k < 4; k++) px(x, top + k, [90, 70, 50]); } break;
+    case 'barbe_bouc': { feuilles(6, vert(1), H - 6, 4); tige(7, 10, 1); fleur(8, 10, 2, [250, 210, 50], [220, 170, 30], 10); tige(15, 6, -1);
+      for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) if (dx * dx + dy * dy <= 16 && rnd() < 0.8) px(15 + dx, 6 + dy, dx * dx + dy * dy > 9 ? [200, 200, 196] : [230, 230, 226]); break; }
+    case 'cardamine': for (let i = 0; i < 4; i++) { const x = 3 + i * 5 + rnd(), top = 3 + rnd() * 7; tige(x, top); for (let k = 0; k < 4; k++) { const fx = x + (rnd() - 0.5) * 4, fy = top + rnd() * 3; px(fx, fy, [236, 222, 246]); px(fx + 1, fy, [214, 196, 232]); } } feuilles(5, vert(2), H - 4, 2); break;
+    case 'verveine': for (let i = 0; i < 5; i++) { let x = 3 + i * 4 + rnd(), y = H - 1; const top = 2 + rnd() * 8; drawLine(pb, x, top, x, y, [80, 110, 60]); drawLine(pb, x, top + 6, x + 3, top + 3, [80, 110, 60]); for (const [bx, by] of [[x, top], [x + 3, top + 3]]) for (let k = 0; k < 3; k++) px(bx + (k % 2), by - k, [190, 160, 220]); } break;
+    case 'mouron': tapis(H - 4, (x, y) => (rnd() < 0.5 ? vert(1 + (rnd() * 2) | 0) : null)); for (let i = 0; i < 9; i++) px(1 + rnd() * (W - 2), H - 3 - rnd() * 2, rnd() < 0.7 ? [230, 90, 40] : [120, 40, 70]); break;
+    case 'bouillon_blanc': { // grandes feuilles laineuses au pied, et la chandelle
+      const lai = ramp(['#7a8470', '#98a28c', '#b4bca8', '#ccd2c0']);
+      for (const [cx, cy, r] of [[5, H - 3, 3.4], [W - 6, H - 3, 3.2], [W / 2, H - 5, 3]]) drawSphere(pb, cx, cy, r, lai, seed + cx, { sq: 0.55, noise: 0.35 });
+      for (let y = 3; y < H - 6; y++) { const w = y < H - 18 ? 1.4 : 0.8; for (let dx = -w; dx <= w; dx++) px(W / 2 + dx, y, rampPick(lai, 0.8 - dx * 0.1, dx, y)); if (y < H - 16 && rnd() < 0.7) px(W / 2 + (rnd() < 0.5 ? -2 : 2), y, rnd() < 0.8 ? [248, 214, 60] : [230, 190, 40]); }
+      break;
+    }
+    case 'armoise': { // touffes irrégulières, vert sombre et argent
+      for (let i = 0; i < 6; i++) { const x = 2 + rnd() * (W - 4), top = 2 + rnd() * 10; drawLine(pb, x, top, x + (rnd() - 0.5) * 3, H - 1, [110, 86, 74]); }
+      const bsh = []; for (let k = 0; k < 7; k++) bsh.push({ x: 3 + rnd() * (W - 6), y: 8 + rnd() * (H - 14), r: 2.5 + rnd() * 2.5 });
+      drawCanopy(pb, bsh, ramp(['#23361f', '#34482c', '#4a5e40', '#8a9486']), seed, { noise: 0.6, bottomDark: 0.2, holes: 1.4 });
+      specks(pb, rnd, 26, [[190, 196, 186], [170, 176, 168]], 1, 6, W - 1, H - 2); specks(pb, rnd, 10, [[150, 120, 90]], 1, 2, W - 1, 12);
+      break;
+    }
+    case 'coprin': for (let i = 0; i < 3; i++) { const x = 3 + i * 5, top = 2 + rnd() * 5, hc = 8 + rnd() * 3;
+      for (let y = top; y < H; y++) { const cap = y < top + hc; const w = cap ? 2 - Math.abs(y - top - hc * 0.45) / hc * 1.2 : 0.5; for (let dx = -w; dx <= w; dx++) px(x + dx, y, cap ? (y > top + hc - 2 ? [60, 55, 55] : ((y + dx) & 1) ? [236, 232, 222] : [214, 208, 196]) : [240, 236, 228]); } } break;
+    // ---- décombres
+    case 'jusquiame': { // larges feuilles poisseuses, fleurs couleur de vieux papier au cœur violet
+      const gl = ramp(['#3a4a2e', '#4e6040', '#667a54', '#8a9a74']);
+      for (let k = 0; k < 7; k++) drawSphere(pb, 3 + rnd() * (W - 6), 10 + rnd() * (H - 13), 2.4 + rnd() * 1.6, gl, seed + k, { sq: 0.6, noise: 0.4 });
+      for (let k = 0; k < 4; k++) { const x = 4 + k * 5 + rnd() * 2, top = 2 + rnd() * 6; tige(x, top, 0, [90, 110, 70]); fleur(x, top, 1.5, [226, 214, 160], [70, 30, 60], 7); px(x + 1, top + 1, [110, 50, 90]); px(x, top + 1, [140, 90, 120]); }
+      break;
+    }
+    case 'datura': feuilles(10, vert(1), H - 10, 8); for (let k = 0; k < 3; k++) { const x = 5 + k * 7 + rnd(), top = 3 + rnd() * 6; tige(x, top + 4);
+      if (k === 1) { for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (dx * dx + dy * dy <= 5) px(x + dx, top + 2 + dy, (dx + dy) & 1 ? [90, 130, 60] : [60, 100, 40]); for (const [dx, dy] of [[-3, 0], [3, 1], [0, -3], [1, 4]]) px(x + dx, top + 2 + dy, [210, 220, 190]); }
+      else for (let t = 0; t < 6; t++) { const w = t < 3 ? 0 : t - 2; for (let dx = -w; dx <= w; dx++) px(x + dx, top + t, [246, 246, 240]); } } break;
+    case 'chelidoine': for (let k = 0; k < 4; k++) { const x = 3 + k * 5 + rnd() * 2, top = 3 + rnd() * 7; tige(x, top, (rnd() - 0.5) * 2, [110, 140, 90]); for (const [dx, dy] of [[0, 0], [3, 2]]) { px(x + dx, top + dy, [248, 206, 30]); px(x + dx + 1, top + dy, [236, 190, 20]); px(x + dx, top + dy - 1, [250, 220, 60]); } }
+      feuilles(10, [110, 150, 110], H - 9, 7); break;
+    case 'rue': for (let i = 0; i < 16; i++) { const x = 2 + rnd() * (W - 4), y = 6 + rnd() * (H - 7); px(x, y, [130, 160, 160]); px(x + 1, y, [110, 140, 142]); px(x, y + 1, [100, 128, 130]); } for (let i = 0; i < 6; i++) px(3 + rnd() * (W - 6), 3 + rnd() * 5, [236, 210, 70]); drawLine(pb, W / 2, 5, W / 2, H - 1, [100, 120, 110]); break;
+    // ---- sous-bois
+    case 'anemone': feuilles(8, vert(1), H - 4, 3); for (let i = 0; i < 6; i++) { const x = 2 + i * 3.6 + rnd(), top = 3 + rnd() * 5; tige(x, top); fleur(x, top, 1.4, rnd() < 0.3 ? [246, 226, 236] : [250, 250, 246], [240, 200, 60], 6); } break;
+    case 'pervenche': tapis(H - 4, (x, y) => (rnd() < 0.45 ? (rnd() < 0.5 ? [40, 90, 40] : [60, 110, 50]) : null)); for (let i = 0; i < 5; i++) { const x = 2 + rnd() * (W - 4), y = H - 5 - rnd() * 2; fleur(x, y, 1.1, [100, 110, 220], [240, 240, 250], 5); } break;
+    case 'sceau_salomon': for (let k = 0; k < 3; k++) { // une tige qui monte puis s'arque ; dessous, les clochettes par deux
+      const x0 = 2 + k * 8 + rnd() * 2, hmax = 16 + rnd() * 6; let x = x0, y = H - 1;
+      for (let t = 1; t <= 20; t++) {
+        const u = t / 20, nx = x0 + u * 11, ny = H - 1 - hmax * Math.sin(u * Math.PI * 0.85);
+        drawLine(pb, x, y, nx, ny, [70, 120, 60]);
+        if (u > 0.3 && t % 3 === 0) { px(nx - 1, ny - 1, vert(3)); px(nx, ny - 1, vert(2)); px(nx + 1, ny - 1, vert(3)); cloche(nx, ny + 1, [240, 242, 228], 2); px(nx, ny + 3, [120, 170, 110]); }
+        x = nx; y = ny;
+      }
+    } break;
+    case 'parisette': { drawLine(pb, W / 2, 7, W / 2, H - 1, [90, 130, 70]); for (const [dx, dy] of [[-6, 1], [6, 1], [-3, -1], [3, 3]]) drawLine(pb, W / 2, 9, W / 2 + dx, 9 + dy, vert(3), 2);
+      drawSphere(pb, W / 2, 4, 2.4, ramp(['#0a0a1a', '#1a1a3a', '#303060', '#6a6aa0']), seed); px(W / 2 - 1, 3, [180, 180, 220]); break; }
+    case 'oxalis': for (let i = 0; i < 8; i++) { const x = 2 + rnd() * (W - 4), y = H - 3 - rnd() * 3; for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1]]) px(x + dx, y + dy, [110, 180, 90]); drawLine(pb, x, y + 1, x, H - 1, [90, 140, 70]); } for (let i = 0; i < 3; i++) fleur(3 + rnd() * (W - 6), H - 6 - rnd() * 1, 0.8, [250, 246, 246], [220, 170, 190], 5); break;
+    case 'asperule': for (let i = 0; i < 6; i++) { // des étoiles de feuilles étagées, un nuage de fleurs blanches
+      const x = 2 + rnd() * (W - 4), top = 2 + rnd() * 5; tige(x, top);
+      for (let y = top + 3 + rnd() * 2; y < H - 1; y += 3 + rnd() * 2) for (let a = 0; a < 6; a++) px(x + Math.cos(a * 1.05 + y) * 2, y + Math.sin(a * 1.05 + y) * 0.6, vert(a % 2 ? 3 : 2));
+      for (let k = 0; k < 4; k++) px(x + (rnd() - 0.5) * 3, top + rnd() * 2, [250, 250, 246]);
+    } break;
+    case 'fraisier_bois': for (let i = 0; i < 6; i++) { const x = 2 + rnd() * (W - 4), y = H - 3 - rnd() * 3; for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [-1, -1], [1, -1]]) px(x + dx, y + dy, vert(2)); drawLine(pb, x, y + 1, x, H - 1, vert(1)); }
+      for (let i = 0; i < 4; i++) { const x = 3 + rnd() * (W - 6), y = H - 3 - rnd() * 3; px(x, y, [220, 30, 40]); px(x, y + 1, [180, 20, 30]); } fleur(5 + rnd() * 10, H - 6, 0.9, [250, 250, 244], [240, 200, 60], 5); break;
+    case 'ronce': { const bsh = []; for (let k = 0; k < 6; k++) bsh.push({ x: 5 + rnd() * (W - 10), y: 8 + rnd() * (H - 14), r: 4.5 + rnd() * 3 }); drawCanopy(pb, bsh, ramp(['#18300e', '#244416', '#30581e', '#3c6a26']), seed, { noise: 0.45, bottomDark: 0.35 });
+      for (let k = 0; k < 4; k++) { const x0 = 3 + rnd() * (W - 6); drawLine(pb, x0, H - 1, x0 + (rnd() - 0.5) * 12, 3 + rnd() * 8, [110, 60, 60]); }
+      specks(pb, rnd, 12, [[30, 16, 36], [40, 20, 50]], 3, 4, W - 3, H - 6); specks(pb, rnd, 6, [[190, 30, 40]], 3, 4, W - 3, H - 6); break; }
+    case 'mousse': tapis(H - 5, (x, y) => { const k = Math.sin(x * 0.9) * 1.2 + (H - 1 - y); return k < 3.4 && rnd() < 0.85 ? vert(1 + ((x * 7 + y * 3) % 3)) : null; }); break;
+    case 'usnee': for (let i = 0; i < 9; i++) { let x = 4 + rnd() * (W - 8), y = H - 1 - rnd() * 4; for (let k = 0; k < 10; k++) { px(x, y, rnd() < 0.5 ? [170, 186, 150] : [140, 156, 124]); x += (rnd() - 0.5) * 2; y -= rnd() < 0.7 ? 1 : 0; } } break;
+    case 'herbe_egaree': for (let i = 0; i < 16; i++) { const x0 = 4 + rnd() * (W - 8), top = 1 + rnd() * 8; drawLine(pb, x0 + (rnd() - 0.5) * 5, top, x0, H - 1, rnd() < 0.5 ? [70, 170, 70] : [90, 186, 80]); } break;
+    // ---- champignons
+    case 'pied_mouton': for (let i = 0; i < 3; i++) { const x = 3 + i * 5.5, y = H - 7 - rnd() * 3; chapeau(x, y, 2.6 + rnd(), [226, 196, 150], [240, 214, 170], [236, 224, 200]); px(x - 1, y + 1, [200, 170, 120]); } break;
+    case 'coulemelle': { const x = W / 2; for (let y = 8; y < H; y++) { px(x, y, (y & 3) ? [210, 196, 170] : [150, 120, 90]); px(x + 1, y, [190, 176, 150]); } px(x - 1, 16, [240, 236, 226]); px(x + 2, 16, [220, 214, 200]);
+      for (let dx = -10; dx <= 10; dx++) { const h = Math.round(4 - Math.abs(dx) * 0.35); for (let y = 7 - h; y <= 7; y++) px(x + dx, y, (dx * 3 + y * 5) % 7 === 0 ? [110, 80, 60] : [214, 196, 168]); } px(x, 2, [110, 80, 60]); px(x + 1, 2, [110, 80, 60]); break; }
+    case 'bolet_satan': chapeau(8, 7, 6, [214, 210, 196], [230, 226, 214], [200, 40, 40], 9); for (let y = 9; y < H; y++) { px(7, y, [210, 50, 40]); px(10, y, [180, 40, 36]); } for (let x = 4; x < 13; x++) px(x, 8, [220, 60, 40]); break;
+    case 'vesse_loup': for (const [x, r] of [[5, 3], [11, 2.4]]) { drawSphere(pb, x, H - r - 0.5, r, ramp(['#b8b0a0', '#dcd6c8', '#f0ece2', '#fcfaf4']), seed + x, { noise: 0.2 }); px(x - 1, H - r - 1, [200, 192, 176]); } break;
+    case 'phalloide': chapeau(8, 7, 5, [206, 214, 182], [222, 228, 200], [244, 244, 236], 11); px(7, 11, [236, 236, 226]); px(10, 11, [236, 236, 226]); for (let x = 6; x < 12; x++) px(x, H - 1, [236, 232, 220]); px(5, H - 2, [220, 216, 204]); px(11, H - 2, [220, 216, 204]); break;
+    // ---- eaux
+    case 'populage': for (let i = 0; i < 6; i++) { const x = 2 + rnd() * (W - 4), y = H - 3 - rnd() * 2; drawSphere(pb, x, y, 1.8, ramp(['#1e4a18', '#2e6a24', '#4a8a34', '#6aa84a']), seed + i, { sq: 0.7 }); }
+      for (let i = 0; i < 4; i++) { const x = 3 + i * 5.5 + rnd(), top = 2 + rnd() * 4; tige(x, top); fleur(x, top, 1.6, [250, 214, 30], [210, 150, 20], 6); px(x, top, [250, 230, 90]); } break;
+    case 'salicaire': for (let i = 0; i < 4; i++) { const x = 3 + i * 5 + rnd(), top = 2 + rnd() * 8; tige(x, top + 8); epi(x, top, 12, [200, 60, 150], [160, 40, 120]); } feuilles(6, vert(1), H - 10, 8); break;
+    case 'massette': for (let i = 0; i < 10; i++) { const x0 = 2 + rnd() * (W - 4); drawLine(pb, x0 + (rnd() - 0.5) * 4, 6 + rnd() * 10, x0, H - 1, vert(1 + (i % 3))); }
+      for (let i = 0; i < 3; i++) { const x = 5 + i * 5, top = 2 + rnd() * 6; drawLine(pb, x, top, x, H - 1, [110, 130, 80]); for (let k = 3; k < 11; k++) { px(x, top + k, [110, 70, 40]); px(x + 1, top + k, [90, 56, 32]); } } break;
+    case 'menyanthe': for (let i = 0; i < 5; i++) { const x = 2 + rnd() * (W - 4), y = H - 3 - rnd() * 2; for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1]]) { px(x + dx * 1.5, y + dy, vert(2)); px(x + dx * 1.5 + 1, y + dy, vert(1)); } }
+      for (let i = 0; i < 3; i++) { const x = 4 + i * 6 + rnd(), top = 2 + rnd() * 3; tige(x, top); for (let k = 0; k < 5; k++) { const fx = x + (rnd() - 0.5) * 4, fy = top + rnd() * 4; px(fx, fy, [250, 238, 240]); if (rnd() < 0.4) px(fx + 1, fy, [230, 170, 190]); } } break;
+    case 'sphaigne': tapis(H - 5, (x, y) => (rnd() < 0.8 ? (rnd() < 0.25 ? [170, 110, 90] : rnd() < 0.6 ? [150, 186, 110] : [120, 160, 90]) : null)); break;
+    case 'consoude': for (let i = 0; i < 6; i++) { const x = 3 + rnd() * (W - 6), y = H - 4 - rnd() * 8; for (let k = 0; k < 4; k++) { px(x + k - 2, y + (k % 2), [70, 110, 60]); px(x + k - 2, y + 1, [56, 94, 48]); } drawLine(pb, x, y + 1, x, H - 1, [70, 100, 60]); }
+      for (let i = 0; i < 3; i++) { const x = 5 + i * 7 + rnd(), top = 2 + rnd() * 5; tige(x, top); for (let k = 0; k < 3; k++) cloche(x + 1 + k, top + k * 2, [150, 90, 170], 2); } break;
+    // ---- lande
+    case 'genet': for (let i = 0; i < 14; i++) { const x0 = W / 2 + (rnd() - 0.5) * 8, top = 2 + rnd() * 16; drawLine(pb, x0 + (rnd() - 0.5) * 20, top, x0, H - 1, rnd() < 0.5 ? [60, 110, 40] : [80, 130, 50]); }
+      specks(pb, rnd, 60, [[250, 214, 30], [240, 196, 20], [250, 230, 80]], 1, 1, W - 1, H - 8); break;
+    case 'pulsatille': for (let i = 0; i < 3; i++) { const x = 4 + i * 5 + rnd(), top = 3 + rnd() * 4; drawLine(pb, x, top + 2, x, H - 1, [180, 186, 176]); for (let k = 0; k < 3; k++) { px(x - 1 + k, top + k, [120, 70, 170]); px(x - 1 + k, top + k + 1, [100, 56, 150]); } px(x + 1, top + 3, [240, 200, 40]); } feuilles(5, [150, 170, 140], H - 3, 2); break;
+    case 'euphraise': feuilles(8, vert(1), H - 4, 3); for (let i = 0; i < 8; i++) { const x = 2 + rnd() * (W - 4), y = H - 4 - rnd() * 3; px(x, y, [250, 250, 246]); px(x + 1, y, [200, 160, 230]); px(x, y + 1, [240, 200, 50]); } break;
+    case 'absinthe': { // un buisson d'argent, plumeux
+      const bsh = []; for (let k = 0; k < 8; k++) bsh.push({ x: 3 + rnd() * (W - 6), y: 6 + rnd() * (H - 10), r: 2.5 + rnd() * 2.8 });
+      drawCanopy(pb, bsh, ramp(['#6a7466', '#8a9486', '#aab2a4', '#ccd2c6']), seed, { noise: 0.7, bottomDark: 0.25, holes: 1.5 });
+      specks(pb, rnd, 14, [[220, 200, 90], [200, 180, 80]], 2, 2, W - 2, 10); for (let i = 0; i < 4; i++) drawLine(pb, 5 + rnd() * (W - 10), H - 6, 5 + rnd() * (W - 10), H - 1, [120, 130, 110]);
+      break;
+    }
+    // ---- hauteurs
+    case 'soldanelle': for (let x = 1; x < W - 1; x++) if (rnd() < 0.7) px(x, H - 1, [240, 244, 250]); for (let i = 0; i < 4; i++) { const x = 3 + i * 4 + rnd(), top = 1 + rnd() * 3; tige(x, top + 2); cloche(x, top, [170, 130, 230], 3); px(x - 1, top + 3, [210, 180, 250]); px(x + 2, top + 3, [210, 180, 250]); } break;
+    case 'saxifrage': for (let i = 0; i < 5; i++) { const cx = 3 + i * 4, cy = H - 2; for (let a = 0; a < 8; a++) px(cx + Math.cos(a * 0.8) * 1.6, cy + Math.sin(a * 0.8) * 0.8, vert(2)); px(cx, cy, vert(1)); } for (let i = 0; i < 5; i++) { const x = 2 + rnd() * (W - 4), y = H - 5 - rnd() * 2; fleur(x, y, 0.9, [250, 250, 244], [220, 60, 50], 5); } break;
+    case 'nigritelle': for (let i = 0; i < 5; i++) drawLine(pb, 3 + rnd() * 8, H - 1, 3 + rnd() * 8, H - 6, vert(1)); drawLine(pb, W / 2, 5, W / 2, H - 1, [70, 100, 50]);
+      for (let y = 1; y < 7; y++) for (let dx = -1; dx <= 1; dx++) px(W / 2 + dx, y, (dx + y) & 1 ? [90, 16, 30] : [60, 10, 20]); break;
+    case 'ancolie': feuilles(8, [80, 120, 110], H - 8, 6); for (let i = 0; i < 3; i++) { const x = 4 + i * 7 + rnd(), top = 3 + rnd() * 6; tige(x, top - 1, 1); for (let k = 0; k < 3; k++) { px(x - 1 + k, top + 2, [70, 100, 220]); px(x - 1 + k, top + 3, [50, 80, 200]); } px(x, top + 1, [240, 240, 250]); px(x - 2, top, [60, 90, 210]); px(x + 2, top, [60, 90, 210]); } break;
+    case 'airelle': { const bsh = []; for (let k = 0; k < 4; k++) bsh.push({ x: 4 + rnd() * (W - 8), y: 5 + rnd() * 4, r: 3.5 + rnd() * 1.5 }); drawCanopy(pb, bsh, ramp(['#16361a', '#1e4a22', '#2a5e2c']), seed, { noise: 0.4 }); specks(pb, rnd, 9, [[210, 30, 40], [180, 20, 30]], 2, 2, W - 2, H - 2); break; }
+    case 'chardon_bleu': { const x = W / 2; drawLine(pb, x, 8, x, H - 1, [110, 140, 190], 2); for (let y = 12; y < H - 2; y += 4) { drawLine(pb, x, y, x - 5, y - 2, [130, 160, 210]); drawLine(pb, x + 1, y + 1, x + 6, y - 1, [110, 140, 190]); }
+      for (let a = 0; a < 12; a++) { const t = a / 12 * TAU; drawLine(pb, x, 6, x + Math.cos(t) * 6, 6 + Math.sin(t) * 3.2, [150, 180, 230]); } drawSphere(pb, x + 0.5, 4, 2.6, ramp(['#2a3a80', '#4060b0', '#6a90d8', '#a0c0f0']), seed, { sq: 1.3 }); break; }
+    case 'taupiniere': drawSphere(pb, W / 2, H - 1, W / 2 - 1, ramp(['#3a2618', '#4e3422', '#64442c', '#7a5638']), seed, { sq: 0.75, noise: 0.5 }); break;
+    default: tige(W / 2, 4); px(W / 2, 4, [240, 240, 240]);
+  }
+  if (kind !== 'mousse' && kind !== 'sphaigne' && kind !== 'mouron') edgeDarken(pb, 0.8);
+  return pb;
+}
+// ---------------------------------------------------------------- en main : le filet à papillons, le bâton de houx
+function vmFilet(coup) {
+  const pb = new PixelBuf(VM_W, VM_H), gx = 86, gy = 86;
+  vmArm(pb, gx, gy);
+  const h = vmHandle(pb, gx, gy, coup ? -1.2 : -0.45, 70, ramp(['#5a3e22', '#7a5630', '#9a7040', '#b88c56']), 4);
+  const cx = h.hx + h.dx * 13, cy = h.hy + h.dy * 13, bois = [[110, 80, 45], [140, 104, 60]];
+  for (let a = 0; a < 64; a++) { const t = a / 64 * TAU, x = cx + Math.cos(t) * 13, y = cy + Math.sin(t) * 9; pb.set(Math.round(x), Math.round(y), bois[a % 2]); pb.set(Math.round(x), Math.round(y) + 1, bois[0]); }
+  // (le tulle, opaque : dans la main, un alpha entre 0,75 et 0,9 ferait luire le filet la nuit)
+  for (let y = -8; y <= 8; y++) for (let x = -12; x <= 12; x++) if (x * x / 144 + y * y / 64 < 0.9 && ((x + y) & 1) === 0) pb.set(Math.round(cx + x), Math.round(cy + y), [222, 218, 206]);
+  for (let k = 0; k < 10; k++) { const t = k / 9; pb.set(Math.round(cx - 6 + t * 12), Math.round(cy + 9 + Math.sin(t * Math.PI) * 5), [226, 222, 210]); }
+  vmFist(pb, gx, gy);
+  edgeDarken(pb, 0.8);
+  return pb;
+}
+function vmBaton(coup) {
+  const pb = new PixelBuf(VM_W, VM_H), gx = 84, gy = 84;
+  vmArm(pb, gx, gy);
+  vmHandle(pb, gx, gy, coup ? -0.9 : -0.12, 86, ramp(['#b8b4a0', '#d8d4c0', '#ece8d8', '#faf8ee']), 5);
+  vmFist(pb, gx, gy);
+  edgeDarken(pb, 0.8);
+  return pb;
+}
+{
+  const _afs = addFarmSprites;
+  addFarmSprites = function (add) {
+    _afs(add);
+    if (typeof NAT_PLANTES !== 'undefined') NAT_PLANTES.forEach((P, i) => add('w4_' + P.o, spriteNature(P.o, 7311 + i * 29)));
+    add('w4_taupiniere', spriteNature('taupiniere', 9173));
+    VM.filet = [vmFilet(false), vmFilet(true)];
+    VM.baton = [vmBaton(false), vmBaton(true)];
+  };
+}
+
 // ---- 04-defs.js
 // ============================================================================
 //  DÉFINITIONS : objets, herbes, blocs, outils
@@ -11190,6 +11427,405 @@ for (const d of NPC_DATA) {
   if (d.look.bust === undefined) d.look.bust = (d.age || 30) < 16 ? 0 : 0.45 + ((h % 1000) / 1000) * 0.75;
   if (d.look.hips === undefined) d.look.hips = (d.age || 30) < 16 ? 0.2 : 0.55 + (((h >> 10) % 1000) / 1000) * 0.7;
 }
+
+// ---- 05-zzzz-nature.js
+// ============================================================================
+//  LA NATURE (données ; agent C2, huitième vague) — suite dans 11-zzzz8-nature.js
+//  - CHAQUE PLANTE SON OBJET : les fleurs qui donnaient toutes des « Fleurs des
+//    champs », les buissons, les fougères, les roseaux, les nénuphars, les
+//    souches ont désormais leur propre objet (nom, icône, prix modeste,
+//    description sobre), leur effet quand on les mange (11-zzzz8 : règles de
+//    ALIMENTS_EFFETS) et leurs essences d'alchimie (ESSENCES). L'ancien objet
+//    reste utilisable : « fleur », « baies » et « bois » deviennent des groupes
+//    « au choix » qui les contiennent (ITEM_GROUPS), et toutes les recettes, les
+//    quêtes et les machines qui les demandaient prennent n'importe laquelle.
+//  - Les champignons rouges d'autrefois s'appellent maintenant des russules.
+//  (les types d'objets du décor nouveaux ne sont PAS déclarés ici : 11-zzzz8 les
+//  ajoute après tous les autres, pour que les numéros des types anciens restent
+//  les mêmes — voir l'empreinte de tools/equilibrage/vm.js)
+// ============================================================================
+const NAT_PRIX = [1, 2, 5, 12, 25]; // prix selon la rareté (comme les plantes d'avant)
+function natItem(id, name, price, ic, extra) {
+  if (!ITEMS[id]) defItem(id, name, 'cueillette', price, ic, extra || {});
+  return ITEMS[id];
+}
+
+// ---------------------------------------------------------------- les fleurs d'avant : chacune son objet
+// [type du décor, objet, nom, prix, icône, faim/soin/poison, description, [min, max]]
+const NAT_FLEURS = [
+  ['poppies', 'coquelicot', 'Coquelicots', 1, ['c2_fleur', '#e03020', '#2a1414'], { food: 1 }, 'Des pétales froissés comme du papier de soie. En sirop, ils font dormir les enfants.', [1, 2]],
+  ['daisies', 'marguerite', 'Marguerites', 1, ['c2_fleur', '#f4f4ec', '#f0c030'], { heal: 2 }, 'Un peu, beaucoup, passionnément. Les vieilles en font une tisane contre la toux.', [1, 2]],
+  ['cornflower', 'bleuet', 'Bleuets', 1, ['c2_fleur', '#4a70e0', '#23306a'], { heal: 1 }, 'L’herbe à casse-lunettes : on en baigne les yeux fatigués.', [1, 2]],
+  ['heather', 'bruyere', 'Bruyère', 1, ['c2_lavande', '#c070b0', '#6a7a4a'], { heal: 1 }, 'Des brins durs aux clochettes roses. Les abeilles l’aiment, les chèvres aussi.', [1, 1]],
+  ['jacinthe', 'jacinthe', 'Jacinthes des bois', 1, ['c2_lavande', '#5a60d0', '#4a8a3a'], { heal: -4, poison: true }, 'Des clochettes bleues toutes penchées du même côté. Le bulbe est un poison.', [1, 2]],
+  ['lupin', 'lupin', 'Lupins', 1, ['c2_lavande', '#7060d0', '#4a7a3a'], { food: 1 }, 'Les graines sont amères, et malsaines crues. Trempées trois jours, elles nourrissent.', [1, 2]],
+  ['lupin2', 'lupin_blanc', 'Lupins blancs', 1, ['c2_lavande', '#f0f0f0', '#4a7a3a'], { food: 1 }, 'Le lupin des champs, qu’on semait autrefois pour engraisser la terre.', [1, 2]],
+  ['iris', 'iris', 'Iris des marais', 1, ['c2_tulipe', '#f0d020', '#806010'], { heal: -5, poison: true }, 'Un iris jaune, les pieds dans l’eau. La racine purge violemment.', [1, 2]],
+  ['bouton_or', 'bouton_or', 'Boutons d’or', 1, ['c2_fleur', '#f8e020', '#b09010'], { heal: -3, poison: true }, 'Des coupes jaunes vernies. Mâchés, ils brûlent la bouche : les vaches les laissent.', [1, 1]],
+  ['primevere', 'primevere', 'Primevères', 1, ['c2_fleur', '#f8f0a0', '#e0a020'], { heal: 2 }, 'Les coucous, les clés du ciel. La tisane apaise et fait dormir.', [1, 1]],
+  ['violette', 'violette', 'Violettes', 1, ['c2_fleur', '#7040a0', '#f0e070'], { food: 1, heal: 2 }, 'Petites, cachées, parfumées. En sirop, contre la toux.', [1, 1]],
+  ['trefle_f', 'trefle_fleur', 'Fleurs de trèfle', 1, ['c2_fleur', '#d06080', '#f0b0c0'], { food: 2 }, 'On en suce le bout, comme les enfants : c’est sucré.', [1, 1]],
+  ['campanule', 'campanule', 'Campanules', 1, ['c2_tulipe', '#8090e0', '#4a7a3a'], { food: 1 }, 'Des cloches bleues sur la lande. La racine de la raiponce, sa cousine, se mange.', [1, 2]],
+  ['chardon', 'chardon', 'Têtes de chardon', 1, ['c2_dahlia', '#a050a0', '#607040'], { food: 1 }, 'Épineuses. Le cœur se mange, comme un petit artichaut.', [1, 1]],
+  ['mauve', 'mauve', 'Mauves', 1, ['c2_fleur', '#c070c0', '#803080'], { heal: 3 }, 'Émolliente : elle adoucit la gorge et le ventre.', [1, 2]],
+  ['rhododendron', 'rhododendron', 'Fleurs de rhododendron', 2, ['c2_rose', '#e04070', '#304a20'], { heal: -10, poison: true }, 'La rose des Alpes. Le miel qu’on en tire rend fou ; la fleur, pire.', [1, 2]],
+  ['myosotis', 'myosotis', 'Myosotis', 1, ['c2_fleur', '#70a0f0', '#f0e070'], { heal: 1 }, 'Ne m’oubliez pas.', [1, 1]],
+  ['jonquille', 'jonquille', 'Jonquilles', 1, ['c2_tulipe', '#f8d020', '#f09020'], { heal: -5, poison: true }, 'Le bulbe ressemble à un oignon. Il n’en est pas un.', [1, 2]],
+];
+// les autres plantes d'avant qui n'avaient pas d'objet à elles
+// [type du décor, objet, nom, prix, icône, faim/soin/poison, description, [min, max, proba]]
+const NAT_AUTRES = [
+  ['bush', 'prunelle', 'Prunelles', 1, ['baies', '#3a3a6a'], { food: 2, heal: 1 }, 'Âpres à faire grimacer ; après les gelées, un peu moins.', [0, 2, 0.35]],
+  ['fern', 'fougere', 'Fougère', 1, ['herbes', '#3a7a30'], { heal: -1 }, 'On en garnit les paillasses : les puces n’aiment pas.', [1, 1]],
+  ['reeds', 'roseau', 'Roseaux', 1, ['fibre', '#a8a060'], { food: 1 }, 'Des tiges creuses. La racine se mange, en temps de disette.', [1, 1]],
+  ['lilypad', 'nenuphar', 'Fleurs de nénuphar', 1, ['c2_fleur', '#f8f8f0', '#f0d040'], { heal: 1 }, 'Le lis des étangs. Les moines, dit-on, en buvaient pour rester sages.', [1, 1]],
+];
+for (const [obj, id, name, pr, ic, fx, desc, n] of NAT_FLEURS.concat(NAT_AUTRES)) {
+  natItem(id, name, pr, ic, Object.assign({ desc }, fx));
+  if (obj === 'lilypad') { HARVEST.lilypad = { tool: 'main', hp: 0, drop: [[id, n[0], n[1]]], regrow: 30 }; continue; }
+  const H = HARVEST[obj];
+  if (!H) continue;
+  // premier butin : l'objet de la plante (les graines, le trèfle à quatre feuilles et les fibres suivent)
+  let reste = H.drop.filter(([k]) => k !== 'fleur' && k !== 'herbes' && !(obj === 'bush' && k === 'baies'));
+  if (obj === 'reeds') reste = [['fibre', 1, 2]];
+  H.drop = [n.length > 2 ? [id, n[0], n[1], n[2]] : [id, n[0], n[1]]].concat(reste);
+}
+// la lavande et le tournesol sauvages donnent la lavande et le tournesol ; le buisson à baies, des myrtilles
+HARVEST.lavender.drop = [['lavande', 1, 2]].concat(HARVEST.lavender.drop.filter(([k]) => k !== 'fleur' && k !== 'herbes'));
+HARVEST.sunflower.drop = [['tournesol', 1, 1, 0.45]].concat(HARVEST.sunflower.drop.filter(([k]) => k !== 'fleur'));
+HARVEST.berry.drop = [['myrtille', 1, 3]].concat(HARVEST.berry.drop.filter(([k]) => k !== 'baies'));
+if (ITEMS.lavande && !ITEMS.lavande.heal) Object.assign(ITEMS.lavande, { heal: 1, desc: ITEMS.lavande.desc || 'Elle parfume le linge et chasse les mites. En tisane, elle calme.' });
+// les fleurs en plus sur la digitale, l'églantier et le sureau : ce sont leurs propres fruits et fleurs, maintenant
+for (const obj of ['digitale', 'eglantier', 'sureau']) if (HARVEST[obj]) HARVEST[obj].drop = HARVEST[obj].drop.filter(([k]) => k !== 'fleur');
+// les champignons rouges des bois : des russules (le même objet, rebaptisé ; une souche donne des armillaires)
+if (ITEMS.champignon) Object.assign(ITEMS.champignon, { name: 'Russules', desc: 'Des chapeaux rouges, un pied blanc et cassant. Certaines se mangent, d’autres font vomir ; on ne les distingue qu’au goût.' });
+if (OBJ_INDEX.mushroom !== undefined) OBJ_TYPES[OBJ_INDEX.mushroom].name = 'Russules';
+natItem('armillaire', 'Armillaires', 1, ['champi', '#c8a040'], { food: 3, desc: 'Des touffes de chapeaux miel, serrés au pied des souches. Crus, ils rendent malade ; cuits, ils se mangent.' });
+if (HARVEST.stump) HARVEST.stump.drop = HARVEST.stump.drop.map((d) => (d[0] === 'champignon' ? ['armillaire', d[1], d[2], d[3]] : d));
+// les baies sauvages d'avant (le groupe « baies ») et les fruits (confitures)
+natItem('mure', 'Mûres', 1, ['c2_baie', '#2a1a3a', '#5a8a3a'], { food: 3, heal: 1, desc: 'Noires et tièdes de soleil. Les doigts en restent violets ; les bras, griffés.' });
+natItem('fraise_bois', 'Fraises des bois', 1, ['c2_baie', '#e03040', '#4a8a3a'], { food: 3, heal: 2, desc: 'Minuscules, parfumées, cachées sous les feuilles. On en trouve une, puis dix.' });
+natItem('airelle', 'Airelles', 1, ['c2_baie', '#d02030', '#3a6a2a'], { food: 3, heal: 2, desc: 'Petites, rouges et acides, sur un buisson ras aux feuilles de buis. En confiture, avec le gibier.' });
+
+// ---------------------------------------------------------------- les groupes « au choix »
+// (un groupe qui porte le nom d'un objet le contient : l'objet d'avant compte toujours ; farm.take est adapté dans
+// 11-zzzz8-nature.js pour ne pas tourner en rond)
+{
+  const FLEURS = ['fleur'].concat(NAT_FLEURS.map((f) => f[1]), ['lavande', 'nenuphar', 'pissenlit', 'reine_pres', 'achillee', 'tussilage', 'millepertuis', 'muguet', 'perce_neige',
+    'colchique', 'digitale', 'arnica', 'aconit', 'gentiane', 'asphodele', 'orchidee', 'edelweiss', 'lys_cimes']).filter((id, i, a) => ITEMS[id] && a.indexOf(id) === i);
+  // les moins chères d'abord : une recette prend la fleur la plus commune avant l'edelweiss
+  const ordre = (L) => L.slice(0, 1).concat(L.slice(1).sort((a, b) => (ITEMS[a].price || 0) - (ITEMS[b].price || 0)));
+  ITEM_GROUPS.fleur = ordre(FLEURS);
+  GROUP_NAMES.fleur = 'fleurs (au choix)';
+  for (const id of ITEM_GROUPS.fleur) if (!ITEM_GROUPS.fleur_c.includes(id)) ITEM_GROUPS.fleur_c.push(id);
+  ITEM_GROUPS.baies = ['baies', 'myrtille', 'mure', 'fraise_bois', 'airelle', 'prunelle', 'framboise', 'groseille', 'cassis', 'cynorhodon', 'baies_sureau'].filter((id) => ITEMS[id]);
+  GROUP_NAMES.baies = 'baies (au choix)';
+  for (const id of ['mure', 'fraise_bois', 'airelle', 'prunelle']) if (!ITEM_GROUPS.fruit.includes(id)) ITEM_GROUPS.fruit.push(id);
+  for (const id of ['mauve', 'primevere', 'violette', 'marguerite', 'sauge', 'serpolet', 'menthe_eau']) if (ITEMS[id] && !ITEM_GROUPS.aromate.includes(id)) ITEM_GROUPS.aromate.push(id);
+  // les champignons qui se mangent (une omelette, une poêlée)
+  ITEM_GROUPS.champi_bon = ['champignon', 'girolle', 'cepe', 'trompette', 'morille', 'armillaire'].filter((id) => ITEMS[id]);
+  GROUP_NAMES.champi_bon = 'champignons comestibles (au choix)';
+}
+
+// ---------------------------------------------------------------- les bois : un par essence d'arbre
+// [objet, nom, écorce, cœur, description, arbres qui le donnent]
+const NAT_BOIS = [
+  ['bois_sapin', 'Bois de sapin', '#5a4a3a', '#ecd8b0', 'Léger et droit : des planches, des poutres, des cercueils.', ['sapin', 'sapin_neige']],
+  ['bois_pin', 'Bois de pin', '#7a5238', '#e0b878', 'Résineux, il colle aux doigts et flambe d’un coup.', ['pine']],
+  ['bois_peuplier', 'Bois de peuplier', '#9a9a8a', '#f0e8d0', 'Blanc, léger, sans force. De bonnes caisses, de mauvaises poutres.', ['peuplier']],
+  ['bois_bouleau', 'Bois de bouleau', '#e8e4dc', '#e0cca0', 'L’écorce blanche brûle même mouillée.', ['birch']],
+  ['bois_aulne', 'Bois d’aulne', '#5a5048', '#e0a070', 'Coupé, il rougit en quelques minutes, comme s’il saignait. Sous l’eau, il dure toujours.', ['aulne']],
+  ['bois_hetre', 'Bois de hêtre', '#8a8a82', '#d8b890', 'Pâle, serré, sans nœuds. Les sabotiers et les tourneurs ne jurent que par lui.', ['hetre']],
+  ['bois_chataignier', 'Bois de châtaignier', '#5a4030', '#c8a068', 'Il fend droit ; un piquet de châtaignier tient trente ans en terre.', ['chataignier']],
+  ['bois_chene', 'Bois de chêne', '#5a4632', '#b08a5a', 'Dur, lourd, et qui sent le tanin. Une charpente de chêne passe les siècles.', ['oak', 'giantoak']],
+  ['bois_erable', 'Bois d’érable', '#7a6a58', '#f0dcb8', 'Clair et dur. Les tables de cuisine, les manches, les violons.', ['erable']],
+  ['bois_saule', 'Bois de saule', '#6a6048', '#e8d8b8', 'Tendre et souple. L’écorce, en tisane, fait tomber la fièvre.', ['saule']],
+  ['bois_meleze', 'Bois de mélèze', '#7a4a30', '#d89a68', 'Rouge et gras de résine : il ne pourrit pas sous la pluie.', ['meleze']],
+  ['bois_tilleul', 'Bois de tilleul', '#8a7a62', '#f0e0b8', 'Doux sous le couteau : les sculpteurs de saints n’en veulent pas d’autre.', ['tilleul']],
+  ['bois_mort', 'Bois mort', '#5a5048', '#a09078', 'Sec et gris, rongé de galeries. Il brûle bien, et vite.', ['deadtree']],
+  ['bois_pommier', 'Bois de pommier', '#6a5040', '#d8a878', 'Dur et rosé. Il fait de bons manches, et sa fumée parfume les jambons.', ['apple']],
+  ['bois_poirier', 'Bois de poirier', '#6a5448', '#d0a080', 'Si fin qu’on y grave les planches des imprimeurs.', ['poirier']],
+  ['bois_prunier', 'Bois de prunier', '#5a4040', '#b87058', 'Veiné de violet, capricieux. Pour les petits objets.', ['prunier']],
+  ['bois_merisier', 'Bois de merisier', '#6a3a30', '#c07a58', 'Le bois du cerisier : rose au sciage, il rougit avec les années.', ['cerisier']],
+  ['bois_noyer', 'Bois de noyer', '#4a3a2e', '#7a5438', 'Brun, veiné de noir. Les beaux meubles, les crosses de fusil.', ['noyer']],
+  ['bois_if', 'Bois d’if', '#6a3a28', '#c86a40', 'Rouge au cœur, blanc sous l’écorce. L’arbre des cimetières ; ses arcs ne rompent pas.', ['if']],
+  ['bois_houx', 'Bois de houx', '#6a7a5a', '#f4f0e0', 'Blanc comme l’os, dur comme la corne.', ['houx']],
+  ['bois_foudre', 'Bois foudroyé', '#2a2420', '#6a5040', 'Noirci d’un côté, fendu jusqu’au cœur. On en garde un éclat sur soi, dit-on, et la foudre passe.', ['foudroye']],
+];
+const NAT_BOIS_DE = {}; // arbre -> son bois
+for (const [id, name, ecorce, coeur, desc, arbres] of NAT_BOIS) {
+  defItem(id, name, 'materiau', 0, ['n2_buche', ecorce, coeur], { desc, bois: true });
+  for (const a of arbres) {
+    NAT_BOIS_DE[a] = id;
+    const H = HARVEST[a];
+    if (H && H.drop) H.drop = H.drop.map((d) => (d[0] === 'bois' ? [id].concat(d.slice(1)) : d));
+  }
+}
+defItem('coeur_chene', 'Cœur de chêne', 'materiau', 20, ['n2_buche', '#3a2a1a', '#e0c080'], { desc: 'Le cœur du vieux chêne, dur comme la pierre, veiné d’or. Il sent encore la sève, après mille ans.', bois: true });
+if (HARVEST.giantoak) HARVEST.giantoak.drop.push(['coeur_chene', 1, 1]);
+// « bois (au choix) » : l'ancienne bûche d'abord, les bois communs, puis les bois fins (une recette les prend en dernier)
+ITEM_GROUPS.bois = ['bois'].concat(NAT_BOIS.map((b) => b[0]));
+GROUP_NAMES.bois = 'bois (au choix)';
+ITEM_GROUPS.bois_dur = ['bois_hetre', 'bois_erable', 'bois_chene', 'bois_pommier', 'bois_poirier', 'bois_chataignier', 'bois_prunier', 'bois_houx', 'bois_merisier', 'bois_noyer'];
+GROUP_NAMES.bois_dur = 'bois dur (au choix : hêtre, érable, chêne, bois fruitier…)';
+// les outils et les ouvrages des bois
+defItem('manche', 'Manche d’outil', 'materiau', 1, ['n2_manche', '#c8a070'], { desc: 'Un manche droit, poli à la main, dans un bois dur.' });
+defItem('arc_if', 'Arc d’if', 'outil', 320, ['arc', '#8a3a24'], { tool: 'arc', power: 1.7, desc: 'Taillé dans un seul bâton d’if, le cœur rouge dedans, l’aubier blanc dehors. Il tire loin, et fort.' });
+defItem('baton_houx', 'Bâton de houx', 'outil', 40, ['n2_baton', '#e8e4d0'], { tool: 'baton', desc: 'Un bâton blanc et dur, à hauteur d’épaule. En main, on grimpe les pentes un peu plus raides.' });
+// meubles fins (ils se posent comme les autres, d'un bois qui se voit)
+defItem('commode_noyer', 'Commode de noyer', 'objet', 14, ['objet', 'commode'], { place: 'commode', fin: 'noyer', desc: 'Trois tiroirs à poignées de laiton, dans un noyer sombre et veiné.' });
+defItem('armoire_chene', 'Armoire de chêne', 'objet', 10, ['objet', 'armoire'], { place: 'armoire', fin: 'chene', desc: 'Une armoire de chêne massif, lourde comme une maison. Elle survivra à tout le monde.' });
+defItem('table_merisier', 'Table de merisier', 'objet', 6, ['objet', 'table'], { place: 'table', fin: 'merisier', desc: 'Une table de merisier, rose le jour, rouge à la chandelle.' });
+defItem('lit_noyer', 'Lit de noyer', 'objet', 16, ['objet', 'lit'], { place: 'lit', fin: 'noyer', desc: 'Un lit de noyer à haut chevet. Posé chez vous, on y dort.' });
+
+// ---------------------------------------------------------------- les essences (alchimie) des objets nouveaux ou oubliés
+Object.assign(ESSENCES, {
+  coquelicot: { sang: 1, ombre: 1 }, marguerite: { lumiere: 1, vie: 1 }, bleuet: { eau: 1, lumiere: 1 }, bruyere: { terre: 1, air: 1 }, jacinthe: { ombre: 1, eau: 1 },
+  lupin: { terre: 1, sang: 1 }, lupin_blanc: { terre: 1, lumiere: 1 }, iris: { eau: 2, sang: 1 }, bouton_or: { feu: 1, lumiere: 1 }, primevere: { vie: 1, esprit: 1 },
+  violette: { ombre: 1, vie: 1 }, trefle_fleur: { vie: 1, terre: 1 }, campanule: { air: 2 }, chardon: { terre: 1, feu: 1 }, mauve: { eau: 1, vie: 1 },
+  rhododendron: { mort: 1, feu: 1, esprit: 1 }, myosotis: { eau: 1, esprit: 1 }, jonquille: { lumiere: 1, mort: 1 },
+  prunelle: { froid: 1, sang: 1 }, fougere: { ombre: 2, sort: 1 }, roseau: { eau: 1, air: 1 }, nenuphar: { eau: 2, ombre: 1 }, armillaire: { terre: 1, mort: 1 },
+  mure: { sang: 1, vie: 1 }, fraise_bois: { vie: 1, sang: 1 }, airelle: { froid: 1, sang: 1 }, myrtille: { vie: 1, ombre: 1 }, tournesol: { lumiere: 2, feu: 1 },
+  noix: { terre: 1, esprit: 1 }, pomme: { vie: 1, terre: 1 }, poire: { vie: 1, eau: 1 }, cerise: { sang: 1, vie: 1 }, prune: { ombre: 1, vie: 1 }, chataigne: { terre: 2 },
+  // quelques bois ont leur place sur la table d'alchimiste
+  bois_if: { mort: 2, esprit: 1 }, bois_houx: { vie: 1, froid: 1 }, bois_foudre: { feu: 2, air: 1, lumiere: 2 }, bois_noyer: { ombre: 1, esprit: 1 },
+  bois_aulne: { eau: 1, sang: 1 }, bois_saule: { eau: 1, ombre: 1 }, bois_bouleau: { lumiere: 1, vie: 1 }, bois_mort: { mort: 1, air: 1 }, bois_tilleul: { esprit: 1, vie: 1 },
+  coeur_chene: { terre: 3, vie: 2, esprit: 2 },
+});
+// (les bois vont sur la table d'alchimiste, qui lit ESSENCES, mais pas dans l'alambic)
+for (const id of Object.keys(ESSENCES)) if (ITEMS[id] && ITEMS[id].cat === 'cueillette') ITEMS[id].alch = true;
+
+// ============================================================================
+//  LES PLANTES NOUVELLES (46) : fleurs des prés, herbes des chemins, poisons des
+//  décombres, plantes du sous-bois, champignons, plantes d'eau, de la lande et
+//  des hauteurs. Chacune : son objet, son allure tant que l'alchimiste ne l'a
+//  pas nommée (les plus connues n'en ont pas besoin), sa notice pour l'herbier,
+//  ses essences. Effets, remarques de l'alchimiste et peuplement : 11-zzzz8.
+// ============================================================================
+// o : type du décor, nom : son nom, it : l'objet, un : le nom de l'objet, h : hauteur, n : [min, max] cueillis,
+// hab : milieux, r : rareté (0 commune … 4 légendaire), fx : faim/soin/poison, ic : icône, cat : catégorie du décor,
+// desc : description (vraie), look : [allure, ce qu'on en voit] (à faire nommer) ou rien, note : notice de l'herbier,
+// ess : essences
+const NAT_PLANTES = [
+  // ---- les prés, les chemins, les fermes
+  { o: 'paquerette', nom: 'Pâquerettes', it: 'paquerette', un: 'Pâquerettes', h: [0.16, 0.2], n: [1, 3], hab: ['pres', 'ferme', 'ville'], r: 0, fx: { food: 1, heal: 2 }, ic: ['c2_fleur', '#f8f4ec', '#f0c030'], cat: 'Fleurs',
+    desc: 'De petites marguerites qui s’ouvrent au soleil et se ferment le soir. On en frotte les bosses des enfants.', note: 'Partout où l’herbe est rase : les prés, les cours de ferme, les cimetières.', ess: { vie: 1, lumiere: 1 } },
+  { o: 'oseille', nom: 'Oseille sauvage', it: 'oseille', un: 'Feuilles d’oseille', h: [0.35, 0.5], n: [1, 3], hab: ['pres', 'ferme'], r: 0, fx: { food: 3 }, ic: ['c2_salade', '#6aa040', '#a04030'], cat: 'Végétation',
+    desc: 'Acide à faire pleurer. En soupe, avec une pomme de terre, c’est le printemps.', note: 'Des feuilles en fer de lance, et des épis rouillés. Trop en manger fatigue les reins.', ess: { eau: 1, sang: 1 } },
+  { o: 'plantain', nom: 'Plantain', it: 'plantain', un: 'Feuilles de plantain', h: [0.2, 0.3], n: [1, 2], hab: ['pres', 'ferme', 'ville'], r: 0, fx: { heal: 3 }, ic: ['c2_herbe', '#5a8a40'], cat: 'Végétation',
+    desc: 'Des feuilles nervurées comme une paume, le long des chemins. Mâché et posé sur une coupure, il arrête le sang.', note: 'Il suit les hommes : on le trouve là où l’on marche. L’herbe aux coupures.', ess: { vie: 1, terre: 1, sang: 1 } },
+  { o: 'barbe_bouc', nom: 'Salsifis des prés', it: 'barbe_bouc', un: 'Barbe-de-bouc', h: [0.55, 0.8], n: [1, 1], hab: ['pres'], r: 1, fx: { food: 4, heal: 1 }, ic: ['c2_fleur', '#f0d040', '#c0a020'], cat: 'Fleurs',
+    look: ['Grosse houppe de soie grise', 'Une fleur jaune qui se ferme à midi, et plus tard une grosse boule de soie grise, bien plus grande que celle d’un pissenlit.'],
+    desc: 'Le salsifis des prés. La fleur se ferme à midi ; la racine se mange, douce comme un navet.', note: 'On l’appelle aussi « ferme-à-midi ». La racine se mange, cuite.', ess: { air: 2, terre: 1 } },
+  { o: 'cardamine', nom: 'Cardamines des prés', it: 'cardamine', un: 'Cardamine', h: [0.3, 0.42], n: [1, 2], hab: ['pres', 'berges'], r: 0, fx: { food: 2, heal: 1 }, ic: ['c2_fleur', '#e8d8f0', '#b090c0'], cat: 'Fleurs',
+    look: ['Fleurs lilas des prés humides', 'Des fleurs à quatre pétales, d’un lilas si pâle qu’on les dirait blanches. Les feuilles piquent la langue comme du cresson.'],
+    desc: 'La cardamine, le cresson des prés. Elle pique un peu ; les vaches n’en veulent pas.', note: 'Dans les prés humides, au printemps. Elle se mange comme le cresson.', ess: { eau: 1, air: 1 } },
+  { o: 'verveine', nom: 'Verveine officinale', it: 'verveine', un: 'Verveine', h: [0.55, 0.8], n: [1, 2], hab: ['pres', 'ferme', 'ville'], r: 1, fx: { heal: 3 }, ic: ['c2_lavande', '#b8a0d8', '#5a7a3a'], cat: 'Fleurs',
+    look: ['Tige raide aux fleurs minuscules', 'Une tige carrée et raide, presque nue, au bout de laquelle s’ouvrent quelques fleurs mauves, minuscules. Rien de remarquable.'],
+    desc: 'L’herbe sacrée, l’herbe aux sorciers. On la cueillait sans fer, de la main gauche, avant le lever du soleil.', note: 'Le long des chemins et des murs. Les anciens la tenaient pour sacrée ; les sorciers aussi.', ess: { esprit: 2, lumiere: 1 } },
+  { o: 'mouron', nom: 'Mouron rouge', it: 'mouron', un: 'Mouron rouge', h: [0.14, 0.18], n: [1, 2], hab: ['ferme', 'pres'], r: 0, fx: { heal: -4, poison: true }, ic: ['c2_fleur', '#e05020', '#6a2040'], cat: 'Fleurs',
+    look: ['Minuscules fleurs écarlates', 'Des fleurs rouge orangé, pas plus grosses qu’un ongle, sur une plante couchée. Elles étaient fermées ce matin.'],
+    desc: 'Le mouron des champs, baromètre du pauvre : ses fleurs se ferment quand la pluie approche. Il empoisonne les oiseaux, et les enfants.', note: 'Dans les champs et les jardins. Ses fleurs se ferment avant la pluie.', ess: { air: 1, eau: 1, mort: 1 } },
+  { o: 'bouillon_blanc', nom: 'Bouillon-blanc', it: 'bouillon_blanc', un: 'Fleurs de bouillon-blanc', h: [1.3, 1.9], n: [1, 2], hab: ['lande', 'ferme', 'pres'], r: 1, fx: { heal: 4 }, ic: ['c2_lavande', '#f0d040', '#a0a898'], cat: 'Fleurs',
+    desc: 'Une grande chandelle de laine grise, piquée de fleurs jaunes. La tisane adoucit la toux ; la hampe séchée, trempée de suif, fait une torche.', note: 'Sur les talus et les terres pauvres. Les feuilles sont douces comme une couverture.', ess: { feu: 1, air: 1 } },
+  { o: 'armoise', nom: 'Armoise', it: 'armoise', un: 'Armoise', h: [0.9, 1.3], n: [1, 2], hab: ['ferme', 'ville', 'lande'], r: 1, fx: { heal: 1 }, ic: ['herbes', '#a0a8a0'], cat: 'Végétation',
+    look: ['Haute herbe aux feuilles argentées dessous', 'Des feuilles découpées, vert sombre dessus, blanches et duveteuses dessous. Froissées, elles sentent l’encens.'],
+    desc: 'L’herbe de la Saint-Jean. Glissée sous l’oreiller, dit-on, elle fait rêver juste.', note: 'Au bord des chemins, près des maisons. Les voyageurs en mettaient dans leurs souliers.', ess: { esprit: 2, ombre: 1 } },
+  { o: 'coprin', nom: 'Coprins chevelus', it: 'coprin', un: 'Coprins', h: [0.2, 0.28], n: [1, 3], hab: ['pres', 'ferme', 'ville'], r: 1, fx: { food: 4, heal: 1 }, ic: ['champi', '#f0ece0'], cat: 'Champignons',
+    look: ['Champignon blanc en forme d’œuf', 'Un champignon blanc, haut et serré comme un œuf posé sur un doigt, hérissé d’écailles. Le bord noircit déjà.'],
+    desc: 'Le coprin, l’encrier : jeune, il se mange ; vieux, il fond en une encre noire dont on écrivait autrefois.', note: 'Au bord des chemins, sur les terres remuées. Il faut le cueillir le matin même.', ess: { eau: 1, ombre: 1 } },
+  // ---- les décombres et les vieux murs (les poisons des sorcières)
+  { o: 'jusquiame', nom: 'Jusquiame noire', it: 'jusquiame', un: 'Jusquiame', h: [0.5, 0.8], n: [1, 1], hab: ['ville', 'ferme'], r: 2, fx: { heal: -12, poison: true }, ic: ['c2_fleur', '#d8c890', '#5a2a4a'], cat: 'Fleurs',
+    look: ['Plante gluante aux fleurs veinées de violet', 'Des feuilles poisseuses qui sentent mauvais, et des fleurs couleur de vieux papier, veinées de violet comme des paupières.'],
+    desc: 'L’herbe aux sorcières, la mort-aux-poules. Ses graines, jetées sur la braise, font voir et entendre ce qui n’est pas là.', note: 'Sur les décombres et au pied des vieux murs. Toute la plante est un poison.', ess: { ombre: 2, esprit: 2, mort: 1 } },
+  { o: 'datura', nom: 'Datura', it: 'datura', un: 'Pommes épineuses', h: [0.7, 1.1], n: [1, 1], hab: ['ferme', 'ville'], r: 2, fx: { heal: -14, poison: true }, ic: ['c2_tulipe', '#f4f4f0', '#6a8a40'], cat: 'Fleurs',
+    look: ['Grande trompette blanche et fruit épineux', 'Une longue fleur blanche en trompette, qui s’ouvre le soir, et un fruit vert hérissé d’épines comme une châtaigne.'],
+    desc: 'La pomme épineuse, l’herbe du diable. Arrivée on ne sait d’où, elle pousse sur les fumiers et les décombres. Qui en mange ne sait plus où il est.', note: 'Sur les fumiers et les terrains vagues. Elle ne fleurit que le soir.', ess: { esprit: 3, ombre: 1, mort: 1 } },
+  { o: 'chelidoine', nom: 'Grande chélidoine', it: 'chelidoine', un: 'Chélidoine', h: [0.4, 0.7], n: [1, 2], hab: ['ville', 'ferme'], r: 1, fx: { heal: -6, poison: true }, ic: ['c2_fleur', '#f0c020', '#6a8a50'], cat: 'Fleurs',
+    look: ['Fleurs jaunes au suc orange', 'De petites fleurs jaunes à quatre pétales. La tige cassée pleure un lait orange qui tache les doigts.'],
+    desc: 'L’herbe aux verrues : son lait orange les brûle. Les hirondelles, dit-on, en frottaient les yeux de leurs petits pour les ouvrir.', note: 'Au pied des murs, dans les fentes des pierres, près des maisons.', ess: { lumiere: 2, feu: 1 } },
+  { o: 'rue', nom: 'Rue des jardins', it: 'rue', un: 'Rue', h: [0.5, 0.7], n: [1, 1], hab: ['ville', 'ferme'], r: 3, fx: { heal: -3 }, ic: ['herbes', '#8aa0a0'], cat: 'Végétation',
+    look: ['Touffe bleutée à l’odeur forte', 'Des feuilles gris-bleu, rondes et découpées, et des fleurs jaunes. L’odeur est si forte qu’elle reste sur les mains.'],
+    desc: 'L’herbe de grâce. On en pendait au-dessus des portes contre le mauvais œil ; les femmes grosses la fuyaient.', note: 'Échappée des vieux jardins de curé. Rare.', ess: { lumiere: 2, mort: 1 } },
+  // ---- le sous-bois
+  { o: 'anemone', nom: 'Anémones des bois', it: 'anemone', un: 'Anémones', h: [0.22, 0.3], n: [1, 2], hab: ['foret', 'bouleaux'], r: 0, fx: { heal: -3, poison: true }, ic: ['c2_fleur', '#f8f8f4', '#e0c040'], cat: 'Fleurs',
+    look: ['Étoiles blanches du sous-bois', 'Une fleur blanche à six pétales, lavée de rose au revers, qui tremble au moindre souffle.'],
+    desc: 'La sylvie, la fleur du vent. Elle couvre les bois avant que les arbres ne feuillent ; elle brûle la bouche et l’estomac.', note: 'En tapis dans les bois clairs, au printemps.', ess: { air: 2, mort: 1 } },
+  { o: 'pervenche', nom: 'Pervenches', it: 'pervenche', un: 'Pervenche', h: [0.16, 0.22], n: [1, 2], hab: ['foret', 'ville'], r: 1, fx: { heal: 1 }, ic: ['c2_fleur', '#6070d0', '#f0f0f0'], cat: 'Fleurs',
+    look: ['Fleur bleue aux pétales tordus', 'Une fleur bleu-violet à cinq pétales comme tordus par le vent, sur une tige qui court au sol.'],
+    desc: 'La violette des sorciers. On en tressait des couronnes pour les condamnés qu’on menait au gibet.', note: 'Sous les haies et dans les cimetières. Toujours verte, même l’hiver.', ess: { esprit: 2, mort: 1 } },
+  { o: 'sceau_salomon', nom: 'Sceau-de-Salomon', it: 'sceau_salomon', un: 'Sceau-de-Salomon', h: [0.5, 0.8], n: [1, 1], hab: ['foret', 'combe'], r: 1, fx: { heal: -5, poison: true }, ic: ['n2_clochettes', '#f0f0e0'], cat: 'Végétation',
+    look: ['Tige arquée aux clochettes pendantes', 'Une tige courbée comme un arc, et dessous, pendues deux par deux, des clochettes blanches bordées de vert.'],
+    desc: 'La racine porte des cicatrices rondes, comme des sceaux. Les baies noires font vomir ; la racine râpée efface les bleus.', note: 'Dans les bois ombreux. On dit que Salomon y apposa son sceau.', ess: { sort: 1, terre: 1, esprit: 1 } },
+  { o: 'parisette', nom: 'Parisette', it: 'parisette', un: 'Baie de parisette', h: [0.3, 0.4], n: [1, 1], hab: ['combe', 'foret'], r: 2, fx: { heal: -15, poison: true }, ic: ['c2_belladone', '#1a1a3a', '#4a7a3a'], cat: 'Végétation',
+    look: ['Une seule baie noire sur quatre feuilles', 'Quatre larges feuilles en croix, et au centre, sur un fil, une baie d’un bleu-noir, luisante comme un œil qui regarde.'],
+    desc: 'Le raisin de renard, l’herbe à Pâris. Une baie, une seule : ceux qui la goûtent voient tourner le monde, puis ne voient plus rien.', note: 'Dans les combes humides, à l’ombre. Une seule baie par pied.', ess: { mort: 2, ombre: 1, esprit: 1 } },
+  { o: 'oxalis', nom: 'Pain-de-coucou', it: 'oxalis', un: 'Oxalis', h: [0.14, 0.2], n: [1, 2], hab: ['foret', 'sapiniere'], r: 0, fx: { food: 1, heal: 1 }, ic: ['c2_salade', '#8ac070', '#f0f0f0'], cat: 'Végétation',
+    look: ['Petit trèfle aigrelet du sous-bois', 'Trois feuilles en cœur qui se replient la nuit, et de petites fleurs blanches veinées de rose. Au goût : acide.'],
+    desc: 'L’oxalis, pain-de-coucou, alléluia. Un trèfle des bois qui plie ses feuilles à la tombée du jour, et quand l’orage arrive.', note: 'Sous les sapins et les hêtres. Ses feuilles se ferment avant l’orage.', ess: { ombre: 1, vie: 1 } },
+  { o: 'asperule', nom: 'Aspérule odorante', it: 'asperule', un: 'Aspérule', h: [0.25, 0.35], n: [1, 2], hab: ['foret', 'bouleaux'], r: 1, fx: { heal: 2 }, ic: ['c2_herbe', '#4a8a3a'], cat: 'Végétation',
+    look: ['Étoiles de feuilles et petites fleurs blanches', 'Des feuilles en étoiles le long de la tige, et de minuscules fleurs blanches. Fraîche, elle ne sent rien ; séchée, elle sent le foin coupé.'],
+    desc: 'Le petit muguet, la reine-des-bois. On la laisse faner, et elle parfume le linge et le vin de mai.', note: 'Dans les hêtraies. Elle ne sent qu’une fois fanée.', ess: { air: 1, vie: 1 } },
+  { o: 'fraisier_bois', nom: 'Fraisiers des bois', it: 'fraise_bois', un: 'Fraises des bois', h: [0.18, 0.25], n: [1, 3], hab: ['foret', 'bouleaux', 'lande'], r: 0, fx: null, ic: null, cat: 'Végétation',
+    note: 'Dans les clairières et au bord des bois. Les fraises sont petites, et bien meilleures que celles des jardins.', ess: null },
+  { o: 'ronce', nom: 'Ronces', it: 'mure', un: 'Mûres', h: [0.9, 1.3], n: [2, 3], hab: ['foret', 'pres', 'lande'], r: 0, fx: null, ic: null, cat: 'Végétation',
+    note: 'Aux lisières, dans les friches. On y laisse de la laine, et un peu de peau.', ess: null },
+  { o: 'mousse', nom: 'Mousse', it: 'mousse', un: 'Mousse', h: [0.14, 0.2], n: [1, 3], hab: ['foret', 'combe', 'sapiniere'], r: 0, fx: { heal: 1 }, ic: ['lichen', '#4a8a3a'], cat: 'Végétation',
+    desc: 'Un coussin vert et spongieux. Elle pousse du côté du nord, dit-on ; ce n’est pas toujours vrai.', note: 'Au pied des arbres, sur les souches et les pierres.', ess: { terre: 1, eau: 1 } },
+  { o: 'usnee', nom: 'Barbe-de-vieillard', it: 'usnee', un: 'Usnée', h: [0.3, 0.45], n: [1, 1], hab: ['sapiniere'], r: 1, fx: { heal: 2 }, ic: ['lichen', '#c0c8a0'], cat: 'Végétation',
+    look: ['Lichen en longs fils gris-vert', 'Des fils gris-vert, emmêlés comme une barbe, tombés des branches des sapins. Au centre de chaque fil, un fil plus dur, élastique.'],
+    desc: 'L’usnée, la barbe des sapins. Posée sur une plaie, elle empêche le mal d’y entrer.', note: 'Elle pend aux branches des vieux sapins, là où l’air est pur ; le vent en fait tomber.', ess: { air: 1, froid: 1, vie: 1 } },
+  { o: 'herbe_egaree', nom: 'Herbe d’égarement', it: 'herbe_egaree', un: 'Herbe d’égarement', h: [0.25, 0.35], n: [1, 1], hab: ['foret', 'combe', 'bouleaux'], r: 4, fx: { heal: -2 }, ic: ['herbes', '#6a9a5a'], cat: 'Végétation',
+    look: ['Herbe ordinaire, un peu trop verte', 'Une touffe d’herbe comme une autre. Plus verte que les autres, peut-être. Vous ne vous rappelez pas l’avoir cueillie.'],
+    desc: 'L’herbe qui égare. Qui marche dessus sans la voir tourne en rond jusqu’au soir, dit-on, et ne reconnaît plus les chemins qu’il a toujours pris.', note: 'On ne la voit pas. On la reconnaît après, quand on s’est perdu.', ess: { esprit: 2, air: 2 } },
+  // ---- les champignons
+  { o: 'pied_mouton', nom: 'Pieds-de-mouton', it: 'pied_mouton', un: 'Pieds-de-mouton', h: [0.16, 0.22], n: [1, 3], hab: ['foret', 'sapiniere'], r: 1, fx: { food: 6, heal: 2 }, ic: ['champi', '#e8c890'], cat: 'Champignons',
+    look: ['Champignon crème à aiguillons', 'Un chapeau crème, bosselé, et dessous, au lieu de lamelles, des centaines de petits aiguillons.'],
+    desc: 'L’hydne sinué : sous le chapeau, des aiguillons au lieu de lamelles. On ne peut pas le confondre ; c’est le champignon de ceux qui ont peur.', note: 'En ronds dans les bois de sapins et de hêtres, à l’automne.', ess: { terre: 2, vie: 1 } },
+  { o: 'coulemelle', nom: 'Coulemelles', it: 'coulemelle', un: 'Coulemelle', h: [0.45, 0.7], n: [1, 1], hab: ['pres', 'bouleaux'], r: 1, fx: { food: 8, heal: 3 }, ic: ['n2_parasol', '#c8a880', '#6a5040'], cat: 'Champignons',
+    look: ['Grand champignon en ombrelle', 'Un champignon haut comme une botte, au chapeau large comme une assiette, écailleux, sur un pied chiné. Un anneau coulisse le long du pied.'],
+    desc: 'La lépiote élevée, la grisette, la coulemelle : grande, bonne, et facile. Ses petites cousines, elles, sont mortelles.', note: 'Dans les prés et au bord des bois clairs. Seules les grandes se mangent.', ess: { terre: 1, air: 1, vie: 1 } },
+  { o: 'bolet_satan', nom: 'Bolets Satan', it: 'bolet_satan', un: 'Bolet Satan', h: [0.2, 0.26], n: [1, 1], hab: ['foret'], r: 2, fx: { heal: -10, poison: true }, ic: ['n2_bolet', '#e0d8c8', '#c02020'], cat: 'Champignons',
+    look: ['Gros champignon pâle au pied rouge', 'Un champignon trapu, au chapeau blanchâtre comme un vieux cèpe, mais au pied renflé veiné de rouge vif. Coupé, il bleuit.'],
+    desc: 'Le bolet de Satan. Il ressemble à un cèpe qui aurait mal tourné, et il pue la charogne en vieillissant. Il ne tue pas : il fait regretter de vivre.', note: 'Sous les chênes, sur les sols calcaires. Rare.', ess: { feu: 2, mort: 2 } },
+  { o: 'vesse_loup', nom: 'Vesses-de-loup', it: 'vesse_loup', un: 'Vesse-de-loup', h: [0.14, 0.2], n: [1, 2], hab: ['pres', 'foret'], r: 0, fx: { food: 3 }, ic: ['n2_boule', '#f0ece0'], cat: 'Champignons',
+    look: ['Boule blanche sans chapeau', 'Une boule blanche, sans chapeau ni lamelles, couverte de petites verrues. Vieille, elle crève et crache une fumée brune.'],
+    desc: 'Jeune et blanche, elle se mange en tranches. Vieille, elle lâche un nuage de poussière brune qui fait tousser, et qu’on disait capable d’aveugler.', note: 'Dans les prés et les bois. Vieille, elle fume quand on la touche.', ess: { air: 2, terre: 1 } },
+  { o: 'phalloide', nom: 'Amanites phalloïdes', it: 'phalloide', un: 'Amanite phalloïde', h: [0.18, 0.24], n: [1, 1], hab: ['foret', 'bouleaux'], r: 2, fx: { food: 5, heal: 2, poison: true }, ic: ['champi', '#d8dcc0'], cat: 'Champignons',
+    look: ['Champignon pâle à collerette', 'Un chapeau lisse d’un vert très pâle, presque blanc, des lamelles blanches, une collerette, et le pied planté dans une sorte de sac. Il sent à peine.'],
+    desc: 'L’amanite phalloïde, la calice de la mort. Elle a bon goût, dit-on ; ceux qui le disent l’ont appris trop tard. Le mal vient longtemps après, quand on croit que tout va bien.', note: 'Sous les chênes et les bouleaux. Un seul chapeau suffit à tuer.', ess: { mort: 3, terre: 1 } },
+  // ---- les eaux, les marais, les berges
+  { o: 'populage', nom: 'Populages des marais', it: 'populage', un: 'Populage', h: [0.28, 0.38], n: [1, 2], hab: ['marais', 'berges', 'riviere'], r: 0, fx: { heal: -4, poison: true }, ic: ['c2_fleur', '#f8d020', '#4a8a3a'], cat: 'Fleurs',
+    look: ['Grands boutons d’or luisants au bord de l’eau', 'Des fleurs jaunes, larges et vernissées, sur des feuilles rondes et luisantes, les pieds dans la vase.'],
+    desc: 'Le souci d’eau. Il brûle la bouche comme ses cousins les boutons d’or ; les vaches le laissent, et elles ont raison.', note: 'Les pieds dans l’eau, au bord des ruisseaux et des mares.', ess: { eau: 2, feu: 1 } },
+  { o: 'salicaire', nom: 'Salicaires', it: 'salicaire', un: 'Salicaire', h: [0.9, 1.3], n: [1, 2], hab: ['berges', 'marais', 'riviere'], r: 0, fx: { heal: 3 }, ic: ['c2_lavande', '#c04090', '#4a8a3a'], cat: 'Fleurs',
+    look: ['Hauts épis pourpres des berges', 'De longs épis de fleurs pourpres, serrés, au bord de l’eau. Les tiges sont carrées.'],
+    desc: 'La salicaire, l’herbe aux coliques : en décoction, elle arrête les flux de ventre mieux que tout.', note: 'Au bord des eaux dormantes et des fossés.', ess: { terre: 1, sang: 1 } },
+  { o: 'massette', nom: 'Massettes', it: 'massette', un: 'Épis de massette', h: [1.4, 2.0], n: [1, 2], hab: ['marais', 'berges'], r: 0, fx: { food: 3 }, ic: ['n2_massette', '#6a4a2a'], cat: 'Végétation',
+    desc: 'Un cigare brun au bout d’une longue tige. La racine se mange ; la bourre sert d’amadou et de rembourrage.', note: 'En roselières serrées, dans l’eau peu profonde.', ess: { eau: 1, feu: 1 } },
+  { o: 'menyanthe', nom: 'Trèfles d’eau', it: 'menyanthe', un: 'Trèfle d’eau', h: [0.24, 0.32], n: [1, 2], hab: ['marais'], r: 1, fx: { heal: 4 }, ic: ['c2_fleur', '#f8f0f0', '#e0a0b0'], cat: 'Fleurs',
+    look: ['Fleurs frangées de blanc dans la tourbe', 'Trois feuilles comme un trèfle, et des fleurs blanches rosées, hérissées de poils comme une frange de laine.'],
+    desc: 'Le ményanthe, trèfle des marais : amer comme la gentiane, et, comme elle, contre les fièvres et la fatigue.', note: 'Dans les tourbières et les eaux froides.', ess: { eau: 1, froid: 1, vie: 1 } },
+  { o: 'sphaigne', nom: 'Sphaignes', it: 'sphaigne', un: 'Sphaigne', h: [0.14, 0.18], n: [1, 3], hab: ['marais'], r: 1, fx: { heal: 2 }, ic: ['lichen', '#a0b870'], cat: 'Végétation',
+    look: ['Mousse pâle gorgée d’eau', 'Une mousse pâle, rousse par endroits, qui boit l’eau comme une éponge. Pressée, elle en rend un plein verre.'],
+    desc: 'La sphaigne des tourbières. Elle boit vingt fois son poids d’eau et garde les plaies propres : on en bourrait les pansements. Dans la tourbe, elle garde aussi les morts.', note: 'Elle fait la tourbe. On retire parfois de la tourbe des gens qui n’ont pas changé depuis mille ans.', ess: { eau: 2, mort: 1 } },
+  { o: 'consoude', nom: 'Grande consoude', it: 'consoude', un: 'Racine de consoude', h: [0.7, 1.0], n: [1, 1], hab: ['berges', 'riviere', 'pres'], r: 1, fx: { heal: 6 }, ic: ['c2_racine_long', '#3a3028', '#4a7a3a'], cat: 'Végétation',
+    look: ['Grandes feuilles rêches et clochettes violettes', 'De grandes feuilles rugueuses qui piquent un peu, des clochettes violettes en crosse, et une racine noire dehors, blanche et gluante dedans.'],
+    desc: 'La consoude, l’oreille d’âne, l’herbe à souder les os : on en fait des cataplasmes pour les fractures.', note: 'Dans les prés humides et au bord des rivières.', ess: { terre: 2, vie: 1 } },
+  // ---- la lande
+  { o: 'genet', nom: 'Genêts', it: 'genet', un: 'Fleurs de genêt', h: [1.2, 1.7], n: [1, 2], hab: ['lande'], r: 0, fx: { heal: -2 }, ic: ['c2_fleur', '#f8d020', '#3a6a2a'], cat: 'Végétation',
+    desc: 'Des balais d’or sur la lande. Les fleurs font battre le cœur trop vite ; les tiges font de bons balais.', note: 'Sur la lande et les terres pauvres, en grandes touffes.', ess: { lumiere: 1, air: 1, feu: 1 } },
+  { o: 'pulsatille', nom: 'Pulsatilles', it: 'pulsatille', un: 'Pulsatille', h: [0.22, 0.3], n: [1, 1], hab: ['lande', 'alpage'], r: 1, fx: { heal: -6, poison: true }, ic: ['n2_clochettes', '#7040a0'], cat: 'Fleurs',
+    look: ['Clochette violette velue', 'Une grande clochette violette, velue comme un petit animal, penchée sur une tige couverte de poils argentés.'],
+    desc: 'L’anémone pulsatille, la coquelourde, l’herbe au vent. Belle, et vénéneuse ; les bergers l’appelaient fleur de Pâques.', note: 'Sur les pelouses sèches et les coteaux. Vénéneuse.', ess: { air: 2, ombre: 1 } },
+  { o: 'euphraise', nom: 'Euphraises', it: 'euphraise', un: 'Euphraise', h: [0.16, 0.22], n: [1, 2], hab: ['lande', 'alpage'], r: 1, fx: { heal: 2 }, ic: ['c2_fleur', '#f8f8f4', '#a060c0'], cat: 'Fleurs',
+    look: ['Minuscules fleurs blanches à œil jaune', 'De toutes petites fleurs blanches, rayées de violet, avec une tache jaune au milieu, comme un œil.'],
+    desc: 'Le casse-lunettes : on en baigne les yeux fatigués, ceux qui ont trop lu ou trop regardé le soleil.', note: 'Dans les pâturages maigres. Elle vit aux dépens des herbes voisines.', ess: { lumiere: 2, eau: 1 } },
+  { o: 'absinthe', nom: 'Grande absinthe', it: 'absinthe', un: 'Absinthe', h: [0.6, 0.9], n: [1, 1], hab: ['rochers', 'lande'], r: 2, fx: { heal: 2 }, ic: ['herbes', '#b8c8b0'], cat: 'Végétation',
+    look: ['Touffe argentée très amère', 'Des feuilles découpées, d’un gris d’argent, douces au toucher. Une feuille mâchée emplit la bouche d’une amertume qui dure une heure.'],
+    desc: 'L’absinthe, l’aluine. Amère à faire pleurer ; elle chasse les vers, le froid, et, en liqueur, la raison.', note: 'Sur les rocailles ensoleillées. La plus amère de toutes.', ess: { esprit: 2, feu: 1 } },
+  // ---- les hauteurs
+  { o: 'soldanelle', nom: 'Soldanelles', it: 'soldanelle', un: 'Soldanelle', h: [0.15, 0.2], n: [1, 2], hab: ['neiges', 'alpage'], r: 1, fx: { heal: 1 }, ic: ['n2_clochettes', '#a080e0'], cat: 'Fleurs',
+    look: ['Clochette mauve frangée, dans la neige', 'Une petite clochette mauve, frangée au bord comme une dentelle, qui perce la neige en la faisant fondre autour d’elle.'],
+    desc: 'La soldanelle des Alpes : elle fond la neige de sa propre chaleur pour fleurir. Les bergers disent qu’elle annonce la fin de l’hiver.', note: 'Au bord des névés qui fondent.', ess: { feu: 1, vie: 1, lumiere: 1 } },
+  { o: 'saxifrage', nom: 'Saxifrages', it: 'saxifrage', un: 'Saxifrage', h: [0.14, 0.18], n: [1, 2], hab: ['rochers'], r: 0, fx: { heal: 2 }, ic: ['c2_fleur', '#f8f8f0', '#e0a040'], cat: 'Fleurs',
+    look: ['Coussinet de rosettes aux fleurs blanches', 'Des petites rosettes serrées en coussin dans une fente de rocher, piquées de fleurs blanches ponctuées de rouge.'],
+    desc: 'Le perce-pierre : elle pousse dans les fentes et, dit-on, fend le roc. On la donnait contre la pierre, celle des reins.', note: 'Dans les fentes des rochers, jusque très haut.', ess: { terre: 2, froid: 1 } },
+  { o: 'nigritelle', nom: 'Nigritelles', it: 'nigritelle', un: 'Nigritelle', h: [0.2, 0.26], n: [1, 1], hab: ['alpage'], r: 2, fx: { heal: 1 }, ic: ['c2_lavande', '#5a1020', '#3a5a2a'], cat: 'Fleurs',
+    look: ['Petit épi pourpre noir qui sent la vanille', 'Un épi serré de fleurs pourpres si sombres qu’elles paraissent noires. Il sent la vanille, et un peu le chocolat.'],
+    desc: 'L’orchis vanillé des alpages. Les filles des bergers en cachaient dans leur corsage, pour plaire.', note: 'Dans les pâturages d’altitude. Elle sent la vanille.', ess: { sort: 2, sang: 1 } },
+  { o: 'ancolie', nom: 'Ancolies des Alpes', it: 'ancolie', un: 'Ancolie', h: [0.5, 0.7], n: [1, 1], hab: ['alpage', 'combe'], r: 2, fx: { heal: -5, poison: true }, ic: ['n2_clochettes', '#4060d0'], cat: 'Fleurs',
+    look: ['Grande fleur bleue à éperons recourbés', 'Une grande fleur bleu vif, penchée, dont les pétales se prolongent en cinq éperons crochus, comme des serres d’oiseau.'],
+    desc: 'L’ancolie, le gant de Notre-Dame, la colombine : cinq colombes autour d’un plat, disent les enfants. Vénéneuse, comme tout ce qui est bleu là-haut.', note: 'Dans les prairies d’altitude et les combes. Vénéneuse.', ess: { air: 2, esprit: 1 } },
+  { o: 'airelle', nom: 'Airelles', it: 'airelle', un: 'Airelles', h: [0.24, 0.32], n: [1, 3], hab: ['sapiniere', 'alpage', 'lande'], r: 0, fx: null, ic: null, cat: 'Végétation',
+    note: 'Sous les sapins et sur les landes d’altitude. Les baies restent sur la branche tout l’hiver.', ess: null },
+  { o: 'chardon_bleu', nom: 'Chardons bleus', it: 'chardon_bleu', un: 'Chardon bleu', h: [0.6, 0.8], n: [1, 1], hab: ['alpage', 'rochers'], r: 3, fx: { heal: 1 }, ic: ['c2_dahlia', '#5080d0', '#a0c0e0'], cat: 'Fleurs',
+    look: ['Chardon d’un bleu d’acier', 'Un chardon tout entier bleu, tige, feuilles et fleur, avec une collerette de dentelle épineuse. On dirait du métal.'],
+    desc: 'La reine des Alpes. Si rare qu’on en a compté les pieds ; les messieurs de la ville en paient la cueillette.', note: 'Dans quelques prairies des hauteurs, nulle part ailleurs. On en a compté les pieds.', ess: { froid: 2, lumiere: 1, sort: 1 } },
+];
+{
+  const NAT_CAT_ICON = { Fleurs: ['c2_fleur', '#e0e0e0', '#e0c040'], Champignons: ['champi', '#c8a070'], Végétation: ['herbes', '#6a9a50'] };
+  for (const P of NAT_PLANTES) {
+    if (P.fx) natItem(P.it, P.un, NAT_PRIX[P.r] || 1, P.ic || NAT_CAT_ICON[P.cat], Object.assign({ desc: P.desc }, P.fx));
+    if (ITEMS[P.it] && P.look) { ITEMS[P.it].wild = true; PLANT_LOOK[P.it] = P.look; }
+    HARVEST[P.o] = { tool: 'main', hp: 0, drop: [[P.it, P.n[0], P.n[1]]], regrow: [30, 30, 40, 48, 72][P.r] };
+    ESPECES_PLANTES.push([P.o, P.hab, P.r]);
+    NOTICE_PLANTES[P.o] = P.note;
+    if (P.ess) ESSENCES[P.it] = P.ess;
+    if (ITEMS[P.it] && ITEMS[P.it].cat === 'cueillette' && ESSENCES[P.it]) ITEMS[P.it].alch = true;
+  }
+  // les ronces : des mûres, et parfois une fibre ; le chardon bleu vaut son prix (les messieurs de la ville)
+  HARVEST.ronce.drop.push(['fibre', 0, 1, 0.3]);
+  ITEMS.chardon_bleu.price = 12;
+  // les herbes des plaies (11-zzzz8 : on les applique même le ventre plein)
+  ITEMS.plantain.panse = 1; ITEMS.sphaigne.panse = 2; ITEMS.usnee.panse = 2;
+  // les aromates (tisanes), les fleurs et les champignons au choix
+  for (const id of ['verveine', 'asperule', 'armoise', 'menyanthe']) if (!ITEM_GROUPS.aromate.includes(id)) ITEM_GROUPS.aromate.push(id);
+  for (const P of NAT_PLANTES) if (P.cat === 'Fleurs' && ITEMS[P.it] && !ITEM_GROUPS.fleur.includes(P.it)) { ITEM_GROUPS.fleur.push(P.it); ITEM_GROUPS.fleur_c.push(P.it); }
+  ITEM_GROUPS.fleur = ITEM_GROUPS.fleur.slice(0, 1).concat(ITEM_GROUPS.fleur.slice(1).sort((a, b) => (ITEMS[a].price || 0) - (ITEMS[b].price || 0)));
+  for (const id of ['pied_mouton', 'coulemelle', 'coprin', 'vesse_loup']) if (!ITEM_GROUPS.champi_bon.includes(id)) ITEM_GROUPS.champi_bon.push(id);
+}
+
+// ============================================================================
+//  LES BÊTES NOUVELLES (comportements, modèles, sons : 11-zzzz8-nature.js ; CREATURES n'existe pas encore ici)
+// ============================================================================
+// [créature, nom, milieux, rareté, dangereux (0-3)]
+const NAT_BETES = [
+  ['hermine', 'Hermine', ['alpage', 'rochers', 'neiges'], 1, 0], ['taupe', 'Taupe', ['pres'], 0, 0], ['mulot', 'Mulot sylvestre', ['pres', 'foret', 'bouleaux'], 0, 0],
+  ['loir', 'Loir gris', ['foret', 'bouleaux'], 1, 0], ['lievre', 'Lièvre d’Europe', ['pres', 'lande'], 0, 0], ['chat_sauvage', 'Chat sauvage', ['foret', 'sapiniere'], 2, 1],
+  ['lezard', 'Lézard des murailles', ['lande', 'rochers'], 0, 0], ['orvet', 'Orvet', ['foret', 'combe', 'pres'], 1, 0], ['crapaud', 'Crapaud commun', ['marais', 'combe', 'berges'], 0, 0],
+  ['triton', 'Triton crêté', ['marais', 'berges'], 1, 0], ['pic_vert', 'Pic vert', ['foret', 'bouleaux'], 0, 0], ['coucou', 'Coucou gris', ['bouleaux', 'foret'], 1, 0],
+  ['geai', 'Geai des chênes', ['foret', 'bouleaux'], 0, 0], ['alouette', 'Alouette des champs', ['pres', 'alpage'], 0, 0], ['effraie', 'Chouette effraie', ['pres'], 1, 0],
+  ['grand_corbeau', 'Grand corbeau', ['rochers', 'alpage'], 1, 0], ['cincle', 'Cincle plongeur', ['riviere'], 1, 0], ['grebe', 'Grèbe huppé', ['berges'], 1, 0],
+  ['butor', 'Butor étoilé', ['marais'], 3, 0], ['grue', 'Grue cendrée', ['marais', 'pres'], 2, 0], ['lucane', 'Lucane cerf-volant', ['foret', 'bouleaux'], 1, 0],
+  ['mante', 'Mante religieuse', ['pres', 'lande'], 2, 0], ['papillon_or', 'Papillon d’or', ['pres', 'lande', 'alpage'], 4, 0],
+];
+ESPECES_ANIMAUX.push(...NAT_BETES);
+Object.assign(NOTICE_ANIMAUX, {
+  hermine: 'Un petit corps long comme une main, et qui ne tient pas en place. Elle se dresse sur ses pattes pour regarder, puis disparaît dans les pierres. Brune l’été, blanche dans la neige, le bout de la queue toujours noir.',
+  taupe: 'On ne la voit presque jamais : on voit ses taupinières. Elle sort parfois le museau, rose, et le rentre aussitôt. Aveugle, dit-on ; elle vous entend très bien.',
+  mulot: 'Il court la nuit dans les herbes et sous les feuilles, en bonds brusques, et se fige. De grands yeux noirs, de grandes oreilles, une longue queue.',
+  loir: 'Il dort sept mois de l’année et vit la nuit le reste du temps, dans les arbres creux. On l’entend grogner dans les greniers. Les Romains l’engraissaient pour le manger.',
+  lievre: 'Plus grand que le lapin, les oreilles plus longues, noires au bout. Il reste tapi dans son gîte jusqu’au dernier moment, puis part en zigzag, plus vite qu’un chien.',
+  chat_sauvage: 'Plus gros qu’un chat de ferme, la queue épaisse et annelée de noir. Il ne se laisse pas approcher, et il crache quand on insiste. On ne le voit que la nuit, et encore.',
+  lezard: 'Il prend le soleil sur les pierres chaudes, immobile, et disparaît dans une fente avant qu’on ait fini de le voir. Pas de soleil, pas de lézard.',
+  orvet: 'On le prend pour un serpent : c’est un lézard sans pattes, lent, doux, couleur de cuivre. Il ne mord pas. Il perd sa queue si on la lui tient.',
+  crapaud: 'Il marche plus qu’il ne saute. Il sort les soirs de pluie et chante doucement près des mares. Sa peau suinte un venin qui brûle les yeux des chiens.',
+  triton: 'Un petit dragon des mares, noir dessus, orange dessous, avec une crête au printemps. Il plonge dès qu’on s’approche.',
+  pic_vert: 'On l’entend avant de le voir : il rit dans les bois, et il frappe les troncs. Vert, avec une calotte rouge. On dit qu’il annonce la pluie.',
+  coucou: 'On l’entend partout, on ne le voit jamais. Il pond dans le nid des autres. Qui l’entend pour la première fois de l’année, dit-on, doit compter ses sous.',
+  geai: 'La sentinelle des bois : quand il crie, toutes les bêtes savent qu’on arrive. Il cache des glands partout, et en oublie la moitié : ce sont des chênes.',
+  alouette: 'Dérangée, elle monte droit dans le ciel en chantant, si haut qu’on la perd de vue, et chante encore. Puis elle se laisse tomber comme une pierre.',
+  effraie: 'La dame blanche. Elle vit dans les granges et les clochers, et crie la nuit comme quelqu’un qu’on étrangle. On la clouait autrefois sur les portes des granges.',
+  grand_corbeau: 'Deux fois plus grand que la corneille. Ils vont par deux, très haut, et se parlent d’une voix grave. Il suit les loups, et les armées.',
+  cincle: 'Un petit oiseau brun au plastron blanc, qui fait des révérences sur les pierres du torrent, puis entre dans l’eau et marche au fond.',
+  grebe: 'Un oiseau des lacs qui plonge au lieu de s’envoler. Il disparaît sous l’eau et ressort beaucoup plus loin, là où on ne l’attendait pas.',
+  butor: 'On ne le voit presque jamais : il se cache dans les roseaux, le bec pointé vers le ciel, et se confond avec eux. Au crépuscule, il mugit comme un bœuf, très loin sur le marais.',
+  grue: 'Elles passent haut dans le ciel, en grands V, et crient comme des trompettes. On lève la tête sans les trouver. Elles se posent rarement dans la vallée.',
+  lucane: 'Le cerf-volant : un scarabée brun, gros comme un pouce, qui porte des bois comme un cerf. Il vole lourdement au crépuscule, en bourdonnant.',
+  mante: 'Elle se tient immobile dans l’herbe, les pattes jointes comme pour prier. Elle tourne la tête pour vous suivre des yeux. Aucune autre bête ne fait ça.',
+  papillon_or: 'Il n’en est pas de plus rare. Un papillon dont les ailes semblent d’or battu, et qui garde un peu de lumière même à l’ombre. On le voit, parfois, les beaux jours, au-dessus des fleurs. Un collectionneur de la ville en donnerait une fortune. Encore faut-il un filet, et de la patience.',
+});
+// ce qu'elles laissent (chasse)
+Object.assign(PREY, {
+  hermine: { hp: 4, drop: [['fourrure', 0, 1]] }, taupe: { hp: 3, drop: [['fourrure', 0, 1, 0.3]] }, mulot: { hp: 1, drop: [] }, loir: { hp: 3, drop: [['viande', 0, 1, 0.4]] },
+  lievre: { hp: 12, drop: [['viande', 1, 2], ['fourrure', 0, 1]] }, chat_sauvage: { hp: 15, drop: [['fourrure', 1, 1]] }, lezard: { hp: 1, drop: [] }, orvet: { hp: 2, drop: [['mue_serpent', 0, 1, 0.3]] },
+  crapaud: { hp: 3, drop: [['venin_crapaud', 1, 1, 0.6]] }, triton: { hp: 1, drop: [] }, pic_vert: { hp: 3, drop: [['plume', 1, 1]] }, coucou: { hp: 3, drop: [['plume', 1, 1]] },
+  geai: { hp: 3, drop: [['plume_geai', 1, 1]] }, alouette: { hp: 2, drop: [['viande', 0, 1, 0.3]] }, effraie: { hp: 6, drop: [['plume_hibou', 1, 1]] }, grand_corbeau: { hp: 8, drop: [['plume_noire', 1, 2]] },
+  cincle: { hp: 2, drop: [['plume', 1, 1]] }, grebe: { hp: 6, drop: [['plume', 1, 2]] }, butor: { hp: 8, drop: [['plume', 1, 2]] }, grue: { hp: 12, drop: [['plume', 2, 3]] },
+  lucane: { hp: 1, drop: [] }, mante: { hp: 1, drop: [] }, papillon_or: { hp: 1, drop: [] },
+});
+// les objets des bêtes
+defItem('venin_crapaud', 'Venin de crapaud', 'materiau', 3, ['fiole', '#8a8a40'], { alch: true, desc: 'Une goutte laiteuse, raclée sur la peau d’un crapaud. Les sorcières, dit-on, en faisaient voler leurs balais.' });
+defItem('plume_geai', 'Plume de geai', 'materiau', 2, ['plume', '#3a6ad0'], { alch: true, desc: 'Une petite plume barrée de bleu vif et de noir. Les chasseurs en ornent leur chapeau.' });
+defItem('lucane', 'Lucane cerf-volant', 'tresor', 3, ['n2_insecte', '#5a3020', '#8a4a2a'], { desc: 'Un gros scarabée brun aux mandibules comme des bois de cerf. Il remue encore un peu les pattes.' });
+defItem('mante', 'Mante religieuse', 'tresor', 4, ['n2_mante', '#7ab040'], { desc: 'Verte, les mains jointes. Elle vous regarde encore.' });
+defItem('papillon_or', 'Papillon d’or', 'tresor', 2000, ['n2_papillon', '#f0c030', '#8a5a10'], { desc: 'Des ailes d’or battu, fines comme du papier, qui gardent la lumière longtemps après qu’on l’a enfermé. Un collectionneur de la ville en donnerait une fortune.' });
+defItem('filet_papillons', 'Filet à papillons', 'outil', 45, ['n2_filet', '#8a6a40'], { tool: 'filet', desc: 'Un cercle de bois au bout d’un manche, et une poche de gaze. Pour les papillons, et ce qui vole bas. Il faut s’approcher doucement.' });
+Object.assign(ESSENCES, {
+  venin_crapaud: { mort: 1, ombre: 1, esprit: 1 }, plume_geai: { air: 1, esprit: 1, sort: 1 }, lucane: { terre: 2, feu: 1 }, mante: { esprit: 2, mort: 1 },
+  papillon_or: { lumiere: 3, sort: 3, air: 2 },
+});
 
 // ---- 06-structures.js
 // ============================================================================
@@ -57085,6 +57721,1239 @@ HOOKS.day.push(() => { if (farm.s && game.world) ruches.matin(); });
     return true;
   };
 }
+
+// ---- 11-zzzz8-nature.js
+// ============================================================================
+//  LA NATURE (agent C2, huitième vague) — données : 05-zzzz-nature.js ;
+//  sprites et icônes : 03-zzzz-sprites-nature.js
+//  - CHAQUE PLANTE SON OBJET ET SON EFFET : ce qu'on mange cru ou cuit a sa
+//    règle (ALIMENTS_EFFETS, 11-zzz61-nourriture.js) ; quelques effets
+//    nouveaux passent par les « états » de l'alchimie (BUFF) sans rien dire.
+//    Les herbes des plaies (plantain, achillée…) arrêtent le sang, même le
+//    ventre plein.
+//  - LES GROUPES « AU CHOIX » (fleur, baies, bois) contiennent l'objet d'avant :
+//    farm.take ne tourne pas en rond ; l'alambic reconnaît ses recettes.
+//  État : farm.s.nature2 (voir nature2.S)
+//  API : nature2
+// ============================================================================
+
+// ---------------------------------------------------------------- prendre dans un groupe qui se contient lui-même
+// (farm.take d'origine rappelle take(membre) : pour le membre qui porte le nom du groupe, on puise directement)
+{
+  const _take = farm.take;
+  farm.take = function (id, n = 1) {
+    const G = ITEM_GROUPS[id];
+    if (!G || !G.includes(id)) return _take.call(this, id, n);
+    let left = n;
+    for (const k of G) {
+      const c = Math.min(left, this.s.inv[k] || 0);
+      if (!c) continue;
+      if (k === id) { this.s.inv[k] -= c; if (this.s.inv[k] <= 0) { delete this.s.inv[k]; if (this.s.hand === k) this.s.hand = 'main'; } }
+      else this.take(k, c);
+      left -= c;
+      if (!left) break;
+    }
+    return left === 0;
+  };
+}
+
+// ---------------------------------------------------------------- l'alambic : une fleur, une baie, des bûches « au choix »
+// (les recettes de l'alambic nomment « fleur » ou « champignon » : n'importe quelle fleur du groupe fait l'affaire)
+if (typeof alchemy !== 'undefined') {
+  const _match = alchemy.match.bind(alchemy);
+  alchemy.match = function (ids) {
+    const r = _match(ids);
+    if (r) return r;
+    const L = ids.filter(Boolean);
+    const groupe = (id) => Object.keys(ITEM_GROUPS).filter((g) => ITEMS[g] && ITEM_GROUPS[g].includes(id) && g !== id);
+    for (const pid in POTIONS) {
+      const need = POTIONS[pid].need;
+      if (!need || need.length !== L.length) continue;
+      const reste = need.slice();
+      let ok = true;
+      for (const id of L) {
+        let i = reste.indexOf(id);
+        if (i < 0) for (const g of groupe(id)) { i = reste.indexOf(g); if (i >= 0) break; }
+        if (i < 0) { ok = false; break; }
+        reste.splice(i, 1);
+      }
+      if (ok) return pid;
+    }
+    return null;
+  };
+}
+
+// ---------------------------------------------------------------- effets nouveaux (sans phrase : on sent, on devine)
+Object.assign(EFFETS, {
+  yeux: { dur: [60, 150], buff: 'soleil' },
+  chaleur: { dur: [90, 200], buff: 'chaleur', debut: ['(Une chaleur au creux du ventre.)'] },
+  voyance: { dur: [60, 150], buff: 'clairvoyance' },
+  reve: { dur: [150, 300], buff: 'songe' },
+  charme: { dur: [90, 200], buff: 'charme' },
+  sangfroid: { dur: [60, 150], buff: 'sang_froid' },
+  leger: { dur: [45, 110], buff: 'legerete' },
+  chanceux: { dur: [120, 260], buff: 'chance' },
+  discret: { dur: [40, 100], buff: 'silence' },
+  // les herbes des plaies : le sang s'arrête (ou ralentit)
+  sang_arrete: { instant: true, start(A) { const C = corps.C(); if (C.saigne > 0) C.saigne = A.k >= 2 ? 0 : C.saigne * 0.35; } },
+  // les os : une jambe cassée se remet plus vite (comme une attelle)
+  os: { instant: true, start() { if (corps.jambeCassee()) corps.soignerJambe(false); } },
+});
+
+// ---------------------------------------------------------------- ce que fait chaque plante, crue ou cuite
+// [effet, probabilité, délai min (s), délai max (s), intensité, durée min (s), durée max (s)] ; c : cause de la mort
+Object.assign(ALIMENTS_EFFETS, {
+  // ---- les plantes d'avant qui n'avaient pas encore d'effet
+  valeriane: { r: [['somnolence', 0.7, 30, 90, 1, 90, 180], ['calme', 0.6, 10, 40], ['endormir', 0.1, 120, 240]] },
+  serpolet: { r: [['soin', 0.2, 5, 20], ['chaleur', 0.25, 10, 30]] },
+  genepi: { r: [['chaleur', 0.7, 5, 20, 1, 120, 240], ['vigueur', 0.25, 10, 30]] },
+  lichen: { r: [['nausee', 0.12, 30, 90]] },
+  rossolis: { r: [['remede', 0.5, 5, 20], ['calme', 0.2, 10, 30]] },
+  prele: { r: [['os', 0.35, 5, 20]] },
+  girolle: { r: [['vigueur', 0.1, 20, 60]] },
+  trompette: { r: [['calme', 0.15, 20, 60]] },
+  lycopode: { c: 'le lycopode', r: [['nausee', 0.35, 20, 80], ['vomir', 0.15, 40, 120]] },
+  perce_neige: { c: 'le bulbe de perce-neige', r: [['nausee', 0.45, 20, 90], ['vomir', 0.25, 40, 120]] },
+  linaigrette: { r: [['leger', 0.35, 10, 30, 1, 60, 120]] },
+  edelweiss: { r: [['sangfroid', 0.45, 5, 20, 1, 90, 180]] },
+  orchidee: { r: [['charme', 0.5, 10, 30, 1, 120, 240]] },
+  pissenlit: { r: [['soin', 0.15, 10, 30]] },
+  mousse_nains: { r: [['vision_nuit', 0.7, 10, 40, 1, 150, 260]] },
+  asphodele: { r: [['voyance', 0.35, 10, 40, 1, 90, 180], ['calme', 0.3, 10, 40]] },
+  fleur_temple: { r: [['voyance', 0.6, 5, 20, 1, 150, 260], ['calme', 0.6, 5, 30, 2]] },
+  trefle: { r: [['chanceux', 0.85, 0, 10, 1, 180, 300]] },
+  noix: { r: [['force', 0.06, 20, 60]] },
+  pomme: { r: [['soin', 0.05, 10, 30]] },
+  poire: { r: [['calme', 0.05, 10, 30]] },
+  lavande: { r: [['calme', 0.5, 10, 40], ['somnolence', 0.15, 30, 90]] },
+  tournesol: { r: [['vigueur', 0.15, 10, 40]] },
+  // ---- les fleurs d'avant, chacune la sienne
+  coquelicot: { r: [['somnolence', 0.4, 20, 90, 1, 60, 150], ['calme', 0.35, 10, 40]] },
+  marguerite: { r: [['soin', 0.25, 5, 20]] },
+  bleuet: { r: [['yeux', 0.6, 5, 20, 1, 90, 200]] },
+  bruyere: { r: [['calme', 0.2, 10, 40]] },
+  jacinthe: { c: 'la jacinthe', r: [['nausee', 0.7, 20, 90], ['vomir', 0.4, 40, 120], ['coliques', 0.3, 60, 180]] },
+  lupin: { c: 'des graines de lupin', r: [['nausee', 0.4, 20, 90], ['coliques', 0.2, 60, 180]] },
+  lupin_blanc: { c: 'des graines de lupin', r: [['nausee', 0.3, 20, 90]] },
+  iris: { c: 'l’iris', r: [['coliques', 0.8, 30, 120, 2], ['vomir', 0.5, 40, 150]] },
+  bouton_or: { c: 'des boutons d’or', r: [['pique', 0.95, 0, 0], ['nausee', 0.4, 20, 90]] },
+  primevere: { r: [['calme', 0.35, 10, 40], ['somnolence', 0.12, 30, 90]] },
+  violette: { r: [['soin', 0.25, 5, 20], ['remede', 0.2, 10, 30]] },
+  trefle_fleur: { r: [['vigueur', 0.1, 10, 40]] },
+  campanule: { r: [['calme', 0.1, 10, 40]] },
+  chardon: { r: [['pique', 0.4, 0, 0]] },
+  mauve: { r: [['remede', 0.5, 5, 20], ['soin', 0.2, 10, 30]] },
+  rhododendron: { c: 'le rhododendron', r: [['nausee', 0.8, 10, 60, 2], ['vomir', 0.5, 30, 90], ['paralysie', 0.35, 20, 90, 1, 5, 10], ['poison', 0.35, 30, 120, 1], ['vue_trouble', 0.3, 20, 60]] },
+  myosotis: { r: [['calme', 0.2, 10, 40], ['voyance', 0.08, 20, 60]] },
+  jonquille: { c: 'le bulbe de jonquille', r: [['vomir', 0.6, 20, 90], ['nausee', 0.6, 10, 60], ['coliques', 0.3, 60, 180]] },
+  // ---- buissons, fougères, roseaux, nénuphars, souches, baies
+  prunelle: { r: [['coliques', 0.15, 60, 180]] },
+  fougere: { c: 'la fougère', r: [['coliques', 0.3, 60, 180], ['nausee', 0.2, 30, 90], ['discret', 0.05, 10, 30, 1, 60, 120]] },
+  roseau: { r: [['vigueur', 0.05, 10, 40]] },
+  nenuphar: { r: [['somnolence', 0.35, 20, 90], ['calme', 0.45, 10, 40]] },
+  armillaire: { c: 'des armillaires crus', r: [['coliques', 0.5, 60, 180], ['nausee', 0.4, 30, 120]] },
+  mure: { r: [['vigueur', 0.08, 10, 40]] },
+  fraise_bois: { r: [['soin', 0.1, 10, 30], ['vigueur', 0.08, 10, 40]] },
+  airelle: { r: [['vigueur', 0.1, 10, 40]] },
+  // ---- les plats
+  soupe_orties: { r: [['vigueur', 0.35, 10, 40, 1, 120, 220]] },
+  omelette_champignons: { r: [['force', 0.15, 20, 60], ['calme', 0.2, 10, 40]] },
+  tarte_baies: { r: [['sprint', 0.15, 10, 40]] },
+});
+// le trèfle à quatre feuilles se mange (pour la chance) ; les herbes des plaies arrêtent le sang
+if (ITEMS.trefle && !ITEMS.trefle.heal && !ITEMS.trefle.food) ITEMS.trefle.heal = 1;
+// toute plante cueillie se porte à la bouche (sinon, pas d'effet possible) : une bouchée, au moins
+function natComestibles() {
+  for (const t of OBJ_TYPES) {
+    if (!['Fleurs', 'Végétation', 'Champignons'].includes(t.cat)) continue;
+    const H = HARVEST[t.id], d = H && H.drop && H.drop[0] && H.drop[0][0], it = d && ITEMS[d];
+    if (!it || d === 'fibre' || d === 'foin' || it.cat === 'materiau' || it.food || it.heal) continue;
+    it.food = 1;
+  }
+}
+natComestibles();
+for (const id of ['plantain', 'achillee', 'sphaigne', 'usnee']) if (ITEMS[id]) ITEMS[id].panse = id === 'plantain' ? 1 : 2;
+(ALIMENTS_EFFETS.achillee = ALIMENTS_EFFETS.achillee || { r: [] }).r.push(['sang_arrete', 0.95, 0, 0, 2]);
+
+// ---------------------------------------------------------------- les plats (cuits)
+defItem('soupe_orties', 'Soupe d’orties', 'nourriture', 7, ['bol', '#4a7a30'], { food: 28, heal: 10, desc: 'Verte, épaisse, avec une pomme de terre. Les orties ne piquent plus.' });
+defItem('omelette_champignons', 'Omelette aux champignons', 'nourriture', 18, ['pain', '#e8c860'], { food: 32, heal: 12, desc: 'Deux œufs, une poignée de champignons des bois, et la poêle bien chaude.' });
+defItem('tarte_baies', 'Tarte aux baies', 'nourriture', 14, ['tarte', '#4a2a5a'], { food: 36, heal: 12, desc: 'Une pâte, des baies des bois, et le four. Les dents en restent bleues.' });
+RECIPES.push(
+  { out: 'soupe_orties', n: 1, need: { ortie: 3, patate: 1 }, st: 'feu' },
+  { out: 'omelette_champignons', n: 1, need: { oeuf: 2, champi_bon: 2 }, st: 'feu' },
+  { out: 'tarte_baies', n: 1, need: { farine: 1, baies: 3, oeuf: 1 }, st: 'four' },
+);
+if (typeof LIVRES !== 'undefined' && LIVRES.manuel_cuisine) for (const id of ['soupe_orties', 'omelette_champignons', 'tarte_baies']) if (!LIVRES.manuel_cuisine.recettes.includes(id)) LIVRES.manuel_cuisine.recettes.push(id);
+
+// ---------------------------------------------------------------- qui achète quoi
+{
+  const S = (id) => { const d = NPC_DATA.find((x) => x.id === id); return d && d.shop ? d.shop : null; };
+  const ajoute = (id, L) => { const s = S(id); if (s) { s.buys = s.buys || []; for (const k of L) if (ITEMS[k] && !s.buys.includes(k)) s.buys.push(k); } };
+  ajoute('guerisseuse', ['marguerite', 'mauve', 'violette', 'primevere', 'bleuet', 'coquelicot', 'nenuphar', 'myrtille', 'prunelle']);
+  ajoute('aubergiste', ['mure', 'fraise_bois', 'airelle', 'myrtille', 'soupe_orties', 'omelette_champignons', 'tarte_baies']);
+  ajoute('alchimiste', ['rhododendron', 'jacinthe', 'fougere', 'nenuphar', 'iris', 'armillaire']);
+}
+
+// ============================================================================
+//  LES BOIS : chaque arbre donne le sien (05-zzzz-nature.js : NAT_BOIS) ; la souche
+//  d'un arbre abattu aussi. Recettes à eux : manches, arc d'if, bâton de houx,
+//  meubles fins.
+// ============================================================================
+// (la souche d'un arbre abattu donne le bois de cet arbre : voir play.collect, plus bas ; les souches d'origine : des bûches)
+RECIPES.push(
+  { out: 'manche', n: 2, need: { bois_dur: 2 }, st: 'etabli' },
+  { out: 'arc_if', n: 1, need: { bois_if: 4, corde: 2, cuir: 1 }, st: 'etabli' },
+  { out: 'baton_houx', n: 1, need: { bois_houx: 3 }, st: null },
+  { out: 'commode_noyer', n: 1, need: { bois_noyer: 10, clous: 2, lingot_cuivre: 1 }, st: 'etabli' },
+  { out: 'armoire_chene', n: 1, need: { bois_chene: 16, clous: 3 }, st: 'etabli' },
+  { out: 'table_merisier', n: 1, need: { bois_merisier: 8, clous: 2 }, st: 'etabli' },
+  { out: 'lit_noyer', n: 1, need: { bois_noyer: 10, toile: 3, laine: 2 }, st: 'etabli' },
+);
+HAND_GROUPS[4].splice(HAND_GROUPS[4].indexOf('arc_long'), 0, 'arc_if');
+HAND_GROUPS[8].push('baton_houx');
+if (typeof LIVRES !== 'undefined') {
+  const apprend = (livre, L) => { if (LIVRES[livre] && LIVRES[livre].recettes) for (const id of L) if (!LIVRES[livre].recettes.includes(id)) LIVRES[livre].recettes.push(id); };
+  apprend('manuel_menuisier', ['manche', 'commode_noyer', 'armoire_chene', 'table_merisier', 'lit_noyer']);
+  apprend('manuel_chasse', ['arc_if']);
+}
+if (typeof fabrication !== 'undefined' && fabrication.LECONS && fabrication.LECONS.chasseur) fabrication.LECONS.chasseur.push(['arc_if', 6, 90]);
+// les meubles fins : le même meuble (tout ce qui le concerne marche pareil), d'un bois qui se voit
+const NAT_TEINTES = { noyer: [0.56, 0.44, 0.38], chene: [0.8, 0.7, 0.56], merisier: [1.0, 0.7, 0.6], hetre: [1.08, 1.0, 0.86] };
+const NAT_FINS = {}; // « commode:noyer » -> objet
+for (const id in ITEMS) { const it = ITEMS[id]; if (it.fin && it.place) NAT_FINS[it.place + ':' + it.fin] = id; }
+{
+  const teinter = (E, c) => {
+    const T = Object.create(E);
+    const w = (col, code) => (col === WHITE && (code === TL.wood || code === TL.darkwood) ? c : col);
+    T.bx = (cx, y0, cz, sx, sy, sz, col, code, ry, rx, rz) => E.bx(cx, y0, cz, sx, sy, sz, w(col, code), code, ry, rx, rz);
+    T.box = (cx, cy, cz, sx, sy, sz, col, code, ry, rx, rz) => E.box(cx, cy, cz, sx, sy, sz, w(col, code), code, ry, rx, rz);
+    return T;
+  };
+  for (const base of new Set(Object.keys(NAT_FINS).map((k) => k.split(':')[0]))) {
+    const _m = PROP_MODELS[base];
+    if (!_m) continue;
+    PROP_MODELS[base] = function (E, o, t) {
+      const fin = (o && o.data && o.data.fin) || nature2.finIcone, c = fin && NAT_TEINTES[fin];
+      return _m.call(this, c ? teinter(E, c) : E, o, t);
+    };
+  }
+  if (typeof meubles !== 'undefined') {
+    // posé : le bois du meuble reste dans ses données ; repris : on retrouve le meuble fin
+    const _dp = meubles.dataPose.bind(meubles);
+    meubles.dataPose = function (id) {
+      const d = _dp(id), it = ITEMS[farm.s && farm.s.hand];
+      if (!it || !it.fin || it.place !== id) return d;
+      return Object.assign(d || {}, { fin: it.fin });
+    };
+    const _rep = meubles.reprendre.bind(meubles);
+    meubles.reprendre = function (q) {
+      const fin = q && q.data && q.data.fin, id = q && q.id, fid = fin && NAT_FINS[id + ':' + fin];
+      const r = _rep(q);
+      if (r && fid && farm.take(id, 1)) { farm.give(fid, 1); play.select(fid); }
+      return r;
+    };
+  }
+}
+// le bâton de houx, en main : on grimpe un peu plus raide (les réglages d'avant reviennent quand on le range)
+HOOKS.update.push(() => {
+  if (!farm.s || typeof corps === 'undefined') return;
+  const on = farm.s.hand === 'baton_houx';
+  if (on === !!nature2.pente0) return;
+  if (on) { nature2.pente0 = [corps.PENTE_MAX, corps.PENTE_GLISSE]; corps.PENTE_MAX *= 1.1; corps.PENTE_GLISSE *= 1.07; }
+  else { [corps.PENTE_MAX, corps.PENTE_GLISSE] = nature2.pente0; nature2.pente0 = null; }
+});
+
+// ============================================================================
+//  LES PLANTES NOUVELLES (05-zzzz-nature.js : NAT_PLANTES) — types du décor
+//  (après tous les autres : les numéros des types d'avant ne bougent pas),
+//  effets, remarques de l'alchimiste, l'herbe d'égarement, le peuplement.
+// ============================================================================
+for (const P of NAT_PLANTES) {
+  const grand = P.h[1] > 1.1;
+  OBJ_TYPES.push({ id: P.o, name: P.nom, cat: P.cat, spr: ['w4_' + P.o], h: P.h, col: 0, sway: P.cat === 'Champignons' ? 0 : grand ? 0.1 : 0.15, spacing: grand ? 1.6 : 0.9, sink: 0.04 });
+}
+OBJ_TYPES.forEach((t, i) => { OBJ_INDEX[t.id] = i; });
+natComestibles();
+
+// l'égarement : le monde tourne doucement ; on marche en rond sans s'en apercevoir (herbe d'égarement, datura)
+EFFETS.egarement = {
+  dur: [60, 150],
+  debut: ['(Par où étiez-vous venu ?)'],
+  start(A) { A.T.dir = Math.random() < 0.5 ? -1 : 1; },
+  tick(A, dt) {
+    const p = game.player;
+    A.T.t = (A.T.t || 0) + dt;
+    p.yaw += dt * A.T.dir * (0.09 + 0.05 * Math.sin(A.T.t * 0.37)) * A.k;
+    A.T.m = (A.T.m ?? 9 + Math.random() * 9) - dt;
+    if (A.T.m <= 0) { A.T.m = 11 + Math.random() * 14; sound.whisper && sound.whisper(Math.random() * 2 - 1, 0.16); }
+  },
+  fx(A, fx, tint) { teinte(tint, [0.55, 0.62, 0.5], 0.06); fx[0] = Math.max(fx[0], 0.12); },
+};
+Object.assign(ALIMENTS_EFFETS, {
+  paquerette: { r: [['soin', 0.25, 5, 20]] },
+  oseille: { r: [['vigueur', 0.1, 10, 40], ['coliques', 0.08, 60, 180]] },
+  plantain: { r: [['sang_arrete', 0.9, 0, 0, 1], ['soin', 0.2, 5, 20]] },
+  barbe_bouc: { r: [['vigueur', 0.12, 10, 40]] },
+  cardamine: { r: [['vigueur', 0.15, 10, 40]] },
+  verveine: { r: [['voyance', 0.25, 10, 40, 1, 90, 180], ['calme', 0.35, 10, 40]] },
+  mouron: { c: 'le mouron rouge', r: [['poison', 0.4, 60, 180, 1], ['nausee', 0.6, 20, 90]] },
+  bouillon_blanc: { r: [['remede', 0.5, 5, 20], ['calme', 0.2, 10, 40]] },
+  armoise: { r: [['reve', 0.4, 0, 20, 1, 200, 300], ['somnolence', 0.2, 30, 90]] },
+  coprin: { r: [['vigueur', 0.06, 10, 40]] },
+  jusquiame: { c: 'la jusquiame', r: [['hallucinations', 0.9, 20, 90, 2, 150, 280], ['poison', 0.6, 60, 180, 2], ['panique', 0.4, 30, 90], ['vision_nuit', 0.3, 20, 60]] },
+  datura: { c: 'le datura', r: [['hallucinations', 0.95, 20, 80, 3, 180, 300], ['egarement', 0.7, 30, 90, 1, 120, 200], ['panique', 0.6, 30, 90, 2], ['poison', 0.5, 60, 200, 2]] },
+  chelidoine: { c: 'la chélidoine', r: [['pique', 0.9, 0, 0], ['coliques', 0.5, 40, 150], ['nausee', 0.4, 20, 90]] },
+  rue: { c: 'la rue', r: [['sangfroid', 0.5, 5, 20, 1, 120, 240], ['calme', 0.4, 10, 40], ['nausee', 0.5, 20, 90]] },
+  anemone: { c: 'l’anémone', r: [['pique', 0.8, 0, 0], ['vomir', 0.3, 30, 120]] },
+  pervenche: { r: [['calme', 0.3, 10, 40], ['voyance', 0.1, 20, 60]] },
+  sceau_salomon: { c: 'les baies du sceau-de-Salomon', r: [['vomir', 0.5, 30, 120], ['nausee', 0.4, 20, 90], ['soin', 0.2, 10, 30]] },
+  parisette: { c: 'la parisette', r: [['poison', 0.9, 30, 150, 2], ['vomir', 0.7, 30, 120], ['vue_trouble', 0.5, 20, 60], ['paralysie', 0.2, 60, 150, 1, 5, 9]] },
+  oxalis: { r: [['vigueur', 0.1, 10, 40], ['coliques', 0.05, 60, 180]] },
+  asperule: { r: [['calme', 0.4, 10, 40], ['somnolence', 0.3, 30, 90]] },
+  mousse: { r: [['nausee', 0.1, 30, 120]] },
+  usnee: { r: [['sang_arrete', 0.9, 0, 0, 2], ['soin', 0.2, 10, 30]] },
+  herbe_egaree: { r: [['egarement', 0.95, 5, 20, 1, 120, 200], ['hallucinations', 0.3, 30, 120]] },
+  pied_mouton: { r: [['vigueur', 0.1, 20, 60]] },
+  coulemelle: { r: [['vigueur', 0.1, 20, 60]] },
+  bolet_satan: { c: 'un bolet Satan', r: [['vomir', 0.95, 20, 90, 2], ['coliques', 0.9, 40, 150, 2], ['nausee', 0.9, 10, 60, 2], ['poison', 0.2, 60, 180, 1]] },
+  vesse_loup: { r: [['coliques', 0.05, 60, 180]] },
+  // le mal vient longtemps après, quand on croit que tout va bien
+  phalloide: { c: 'une amanite phalloïde', r: [['coliques', 0.9, 200, 260, 2], ['vomir', 0.85, 210, 280, 2], ['poison', 0.97, 240, 300, 3]] },
+  populage: { c: 'le populage', r: [['pique', 0.9, 0, 0], ['nausee', 0.5, 20, 90], ['coliques', 0.3, 60, 180]] },
+  salicaire: { r: [['remede', 0.9, 5, 20], ['soin', 0.2, 10, 30]] },
+  massette: { r: [['vigueur', 0.05, 10, 40]] },
+  menyanthe: { r: [['remede', 0.6, 5, 20], ['vigueur', 0.4, 10, 40]] },
+  sphaigne: { r: [['sang_arrete', 0.9, 0, 0, 2]] },
+  consoude: { r: [['os', 0.95, 5, 30], ['soin', 0.4, 10, 30]] },
+  genet: { c: 'le genêt', r: [['sprint', 0.25, 10, 40], ['panique', 0.15, 20, 60]] },
+  pulsatille: { c: 'la pulsatille', r: [['nausee', 0.6, 20, 90], ['vomir', 0.3, 40, 120], ['somnolence', 0.3, 60, 150]] },
+  euphraise: { r: [['yeux', 0.7, 5, 20, 1, 120, 240], ['vision_nuit', 0.2, 20, 60, 1, 90, 160]] },
+  absinthe: { r: [['chaleur', 0.6, 5, 20, 1, 120, 240], ['hallucinations', 0.15, 60, 180], ['faim', 0.3, 20, 60]] },
+  soldanelle: { r: [['chaleur', 0.4, 5, 20]] },
+  saxifrage: { r: [['force', 0.15, 20, 60]] },
+  nigritelle: { r: [['charme', 0.6, 5, 20, 1, 150, 260]] },
+  ancolie: { c: 'l’ancolie', r: [['nausee', 0.6, 20, 90], ['panique', 0.3, 20, 60], ['poison', 0.3, 60, 180, 1]] },
+  chardon_bleu: { r: [['sangfroid', 0.4, 5, 20], ['pique', 0.3, 0, 0]] },
+});
+// ce que dit l'alchimiste quand on les lui montre
+Object.assign(alchimie.REM, {
+  barbe_bouc: 'Du salsifis des prés, la barbe-de-bouc. Il se ferme à midi, comme un fonctionnaire. La racine est bonne, cuite.',
+  cardamine: 'De la cardamine. Le cresson des prés. Mangez-la, elle ne vous veut aucun mal. C’est rare, par ici.',
+  verveine: 'De la verveine. Pas celle des tisanes : la vraie, l’herbe sacrée. Les druides la cueillaient sans la regarder. Je ne sais pas pourquoi. J’ai essayé ; ça ne change rien.',
+  mouron: 'Du mouron rouge. Regardez-le avant de sortir : s’il est fermé, prenez un parapluie. Et ne le donnez pas aux poules.',
+  armoise: 'De l’armoise. Mettez-en sous votre oreiller, et racontez-moi. Non : ne me racontez pas. Si. Racontez-moi.',
+  coprin: 'Un coprin. Mangez-le aujourd’hui, pas demain : demain, ce sera de l’encre. Et pas de vin avec. Croyez-moi sur parole.',
+  jusquiame: 'De la jusquiame. La plante des sorcières, la vraie. Lavez-vous les mains avant de toucher votre visage, et surtout vos yeux.',
+  datura: 'Du datura. L’herbe du diable. Ceux qui en prennent parlent à des gens qui ne sont pas là, puis ils ne savent plus rentrer chez eux. On les retrouve dans les bois, assis.',
+  chelidoine: 'De la chélidoine. Le lait orange brûle les verrues. Il brûle aussi le reste. Ne le mettez que sur les verrues.',
+  rue: 'De la rue ! Où l’avez-vous trouvée ? Dans un vieux jardin de curé, je parie. On la disait contre le mauvais œil. Elle est surtout contre les enfants à naître.',
+  anemone: 'Des anémones des bois. Jolies, et elles brûlent. Tout ce qui fleurit trop tôt se protège.',
+  pervenche: 'De la pervenche. Toujours verte, même sous la neige. On en couronnait les pendus. Je ne sais pas si c’était pour les consoler.',
+  sceau_salomon: 'Du sceau-de-Salomon. Voyez les cicatrices sur la racine ? Une par année. Celle-ci a vu passer plus d’hivers que vous.',
+  parisette: 'La parisette ! Une seule baie, au milieu de quatre feuilles. Elle vous regarde, n’est-ce pas ? Ne la regardez pas trop longtemps, et surtout ne la mangez pas.',
+  oxalis: 'De l’oxalis, le pain-de-coucou. Il plie ses feuilles avant l’orage. Plus fiable que l’almanach.',
+  asperule: 'De l’aspérule. Laissez-la faner : elle sentira le foin et la vanille. Les bonnes choses prennent leur temps.',
+  usnee: 'De l’usnée, la barbe des vieux sapins. Sur une plaie, elle vaut tous les onguents. Elle ne pousse que là où l’air est propre. Pas en ville, donc.',
+  herbe_egaree: 'De l’herbe. Non… attendez. Où l’avez-vous prise ? Vous en êtes revenu sans mal ? L’herbe d’égarement. Je croyais que c’était une fable. Mettez-la dans une boîte, et ne marchez plus jamais à cet endroit.',
+  pied_mouton: 'Un pied-de-mouton. Regardez dessous : des aiguillons, pas des lamelles. Le seul champignon qu’on ne confond avec rien. Le champignon des prudents.',
+  coulemelle: 'Une coulemelle. Grande et bonne. Méfiez-vous seulement de ses petites sœurs : si c’est plus petit que votre main, ce n’est pas elle.',
+  bolet_satan: 'Un bolet Satan. Il ne tue pas, rassurez-vous. Vous souhaiterez seulement qu’il l’ait fait.',
+  vesse_loup: 'Une vesse-de-loup. Tant qu’elle est blanche dedans, elle se mange. Après, c’est de la fumée. On en mettait sur les plaies, autrefois ; je ne le recommande pas.',
+  phalloide: 'Posez ça. Doucement. Lavez-vous les mains. L’amanite phalloïde. Elle a bon goût, paraît-il, et pendant une journée on se croit sauvé. Puis le foie s’en va. Il n’y a rien à faire, après.',
+  populage: 'Du populage, le souci d’eau. Un bouton d’or qui aurait les pieds dans la vase. Il brûle la bouche, comme toute la famille.',
+  salicaire: 'De la salicaire. Contre les flux de ventre, rien de mieux. Gardez-en dans votre sac. On ne sait jamais ce qu’on mangera.',
+  menyanthe: 'Du trèfle d’eau. Amer à pleurer. La fièvre déteste ça, et c’est ce qu’on lui demande.',
+  sphaigne: 'De la sphaigne. Elle boit l’eau, elle garde les plaies propres. Et dans les tourbières, elle garde les morts. Intacts. On en a sorti un, il y a trente ans, qui avait encore sa corde au cou.',
+  consoude: 'De la consoude. L’herbe à souder les os. En cataplasme sur une fracture, elle fait des merveilles. Mangée, moins. Mais un peu quand même.',
+  pulsatille: 'Une pulsatille. Velue comme un chaton. Et vénéneuse comme un chat en colère.',
+  euphraise: 'De l’euphraise, le casse-lunettes. Pour les yeux. Donnez-m’en, je lis trop.',
+  absinthe: 'De la grande absinthe. La plus amère de toutes. Contre les vers, contre le froid. En liqueur, contre la raison.',
+  soldanelle: 'Une soldanelle ! Elle fait fondre la neige autour d’elle pour fleurir. Une fleur qui a chaud. On aimerait en dire autant de certains.',
+  saxifrage: 'De la saxifrage. Elle fend la pierre, dit-on. Surtout celle des reins. Je vous l’accorde, c’est moins poétique.',
+  nigritelle: 'Une nigritelle. Sentez. La vanille, n’est-ce pas ? Les bergères en cachaient dans leur corsage. Je ne vous dirai pas pourquoi.',
+  ancolie: 'Une ancolie des Alpes. Cinq colombes autour d’un plat. Toutes empoisonnées.',
+  chardon_bleu: 'Un chardon bleu. La reine des Alpes. Il en reste si peu… Vous l’avez cueilli. Bien sûr. Tout le monde les cueille. C’est pour ça qu’il en reste si peu.',
+});
+// qui les achète
+{
+  const S = (id) => { const d = NPC_DATA.find((x) => x.id === id); return d && d.shop ? d.shop : null; };
+  const ajoute = (id, L) => { const s = S(id); if (s) { s.buys = s.buys || []; for (const k of L) if (ITEMS[k] && !s.buys.includes(k)) s.buys.push(k); } };
+  ajoute('guerisseuse', ['plantain', 'consoude', 'salicaire', 'menyanthe', 'euphraise', 'verveine', 'bouillon_blanc', 'sphaigne', 'usnee', 'paquerette', 'asperule']);
+  ajoute('alchimiste', ['jusquiame', 'datura', 'parisette', 'herbe_egaree', 'rue', 'armoise', 'absinthe', 'bolet_satan', 'phalloide', 'chelidoine', 'mouron', 'pervenche', 'sceau_salomon', 'nigritelle', 'ancolie']);
+  ajoute('aubergiste', ['oseille', 'pied_mouton', 'coulemelle', 'coprin', 'cardamine', 'barbe_bouc']);
+  ajoute('maire', ['chardon_bleu', 'nigritelle', 'soldanelle']);
+}
+// cueillir : la souche d'un arbre abattu donne son bois ; une vieille vesse-de-loup fume ; les ronces griffent
+{
+  const _collect = play.collect.bind(play);
+  play.collect = function (o, idx, H, p) {
+    const T = o && OBJ_TYPES[o.t];
+    if (o && o.fromStump !== undefined && H && H.drop) {
+      const w = game.world, src = w && w.objects[o.fromStump], TS = src && OBJ_TYPES[src.t], bois = TS && NAT_BOIS_DE[TS.id];
+      if (bois) H = Object.assign({}, H, { drop: H.drop.map((d) => (d[0] === 'bois' ? [bois].concat(d.slice(1)) : d)) });
+    }
+    const r = _collect(o, idx, H, p);
+    if (r && T && T.id === 'vesse_loup' && Math.random() < 0.4) {
+      const y = game.world.objectY ? game.world.objectY(o) : (p ? p[1] : 0);
+      for (let k = 0; k < 22; k++) particles.spawn(o.x, y + 0.1, o.z, (Math.random() - 0.5) * 0.9, 0.3 + Math.random() * 0.7, (Math.random() - 0.5) * 0.9, [0.45, 0.36, 0.22, 0.75], 0.07 + Math.random() * 0.05, 1.2 + Math.random() * 1.2, -0.05, false);
+    }
+    if (r && T && T.id === 'ronce' && Math.random() < 0.15 && typeof corps !== 'undefined') corps.saigner(0.02);
+    return r;
+  };
+}
+// l'herbe d'égarement : qui marche dessus sans la voir (une fois par jour et par touffe)
+HOOKS.update.push((dt, eye, basis, sky, playing) => {
+  if (!playing || !farm.s || game.dying) return;
+  nature2.pasT = (nature2.pasT || 0) - dt;
+  if (nature2.pasT > 0) return;
+  nature2.pasT = 0.4;
+  const w = game.world, p = game.player, ti = OBJ_INDEX.herbe_egaree;
+  if (!w || ti === undefined || p.riding || p.underground || !w.objectsGrid) return;
+  const N = nature2.S(), E = N.egare || (N.egare = {});
+  // (la grille de tous les objets : w.query ne connaît que les objets solides)
+  const G = w.objectsGrid(), gx = clamp(Math.floor(p.pos[0] / G.C), 0, G.gw - 1), gz = clamp(Math.floor(p.pos[2] / G.C), 0, G.gw - 1);
+  for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+    const c = G.cells[clamp(gz + dz, 0, G.gw - 1) * G.gw + clamp(gx + dx, 0, G.gw - 1)];
+    if (c) for (const i of c) {
+      const o = w.objects[i];
+      if (!o || o.t !== ti || o.gone || Math.hypot(o.x - p.pos[0], o.z - p.pos[2]) > 0.75 || E[i] === farm.s.day) continue;
+      E[i] = farm.s.day;
+      effets.declencher('egarement', { delai: 3 + Math.random() * 5, k: 1 });
+    }
+  }
+});
+
+// ---------------------------------------------------------------- le peuplement (après tout le reste, son propre tirage)
+// Les plantes nouvelles poussent dans leurs milieux (touffes de deux à cinq pieds, selon la rareté), jamais dans
+// l'eau, sur un chemin, dans une ville, un lieu-dit, sur un objet posé ou devant une interaction. La mousse pousse au
+// nord des arbres ; l'usnée tombe au pied des sapins ; les plantes des décombres, près des murs.
+function natPeupler(w, seed) {
+  if (!w || !w.designed || typeof milieuAt !== 'function') return 0;
+  const rnd = mulberry32(((seed | 0) ^ 0x6e617432) >>> 0), WL = w.waterLevel, S = w.size;
+  const B = new Builder(w, rnd, new Uint8Array(1));
+  const n0 = w.objects.length;
+  let n = 0;
+  // ce qu'il faut éviter : villes et zones protégées, lieux-dits, objets posés, interactions
+  const zones = (w.noBuild || []).map((P) => [P.x, P.z, P.r + 4]);
+  for (const k in w.lm || {}) { const L = w.lm[k]; if (L && !L.under) zones.push([L.x, L.z, Math.min(L.r || 10, 40) * 0.8 + 3]); }
+  const C = 16, grille = new Map(), cle = (x, z) => ((x / C) | 0) * 4096 + ((z / C) | 0);
+  const marque = (x, z) => { const k = cle(x, z); if (!grille.has(k)) grille.set(k, []); grille.get(k).push(x, z); };
+  for (const q of w.props) if (q && !q.gone) marque(q.x, q.z);
+  for (const it of w.inter || []) marque(it.x, it.z);
+  const pres = (x, z, r) => {
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+      const L = grille.get((((x / C) | 0) + dx) * 4096 + ((z / C) | 0) + dz);
+      if (L) for (let i = 0; i < L.length; i += 2) if (Math.abs(L[i] - x) < r && Math.abs(L[i + 1] - z) < r) return true;
+    }
+    return false;
+  };
+  // tous les objets du décor (w.query ne connaît que les objets solides) : une grille de 4 m, et ce qu'on y ajoute
+  const CO = 4, tous = new Map(), cleO = (x, z) => ((x / CO) | 0) * 4096 + ((z / CO) | 0);
+  const ajoute = (x, z) => { const k = cleO(x, z); if (!tous.has(k)) tous.set(k, []); tous.get(k).push(x, z); };
+  for (let i = 0; i < n0; i++) { const o = w.objects[i]; if (o && !o.gone && !o.cleared) ajoute(o.x, o.z); }
+  const voisin = (x, z, r) => {
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+      const L = tous.get((((x / CO) | 0) + dx) * 4096 + ((z / CO) | 0) + dz);
+      if (L) for (let i = 0; i < L.length; i += 2) if (Math.hypot(L[i] - x, L[i + 1] - z) < r) return true;
+    }
+    return false;
+  };
+  const libre = (x, z, o) => {
+    o = o || {};
+    if (!w.inside(x, z, 20)) return false;
+    const h = w.heightAt(x, z);
+    if (h < WL + 0.05) return false;
+    for (const [zx, zz, zr] of zones) if (Math.abs(x - zx) < zr && Math.abs(z - zz) < zr && Math.hypot(x - zx, z - zz) < zr) return false;
+    if (pres(x, z, 2)) return false;
+    const i = Math.round(x / w.cell), j = Math.round(z / w.cell), m = w.mats[j * w.W + i];
+    if (m === M_DIRT || m === M_COBBLE || m === M_ICE) return false;
+    if (!o.pente && w.normalAt(x, z)[1] < 0.8) return false;
+    if (voisin(x, z, o.pres || 0.8)) return false;
+    let ok = true;
+    w.query(x, z, 1.5, (q) => { if (ok && q && !q.gone && Math.hypot(q.x - x, q.z - z) < 1.1) ok = false; }, (b) => {
+      if (!ok || b.under) return;
+      const [lx, lz] = World.blockLocal(b, x, z);
+      if (Math.abs(lx) < b.sx / 2 + 0.6 && Math.abs(lz) < b.sz / 2 + 0.6) ok = false;
+    });
+    return ok;
+  };
+  const pose = (id, x, z) => { B.obj(id, x, z); ajoute(x, z); n++; };
+  // les milieux (échantillonnage grossier : 24 m) ; les abords des maisons et des ruines (plantes des décombres)
+  const pts = {};
+  for (let z = 40; z < S - 40; z += 24) for (let x = 40; x < S - 40; x += 24) {
+    const jx = x + (rnd() - 0.5) * 20, jz = z + (rnd() - 0.5) * 20;
+    if (w.heightAt(jx, jz) < WL - 0.2) continue;
+    const k = milieuAt(w, jx, jz);
+    (pts[k] || (pts[k] = [])).push([jx, jz]);
+  }
+  const murs = [];
+  for (const k in w.bld || {}) {
+    const b = w.bld[k];
+    if (!b || !(b.x > 0)) continue;
+    const R = Math.max(b.W || 8, b.D || 8) * 0.6 + 2;
+    for (let a = 0; a < 6; a++) { const t = rnd() * TAU, d = R + rnd() * 6; murs.push([b.x + Math.cos(t) * d, b.z + Math.sin(t) * d]); }
+  }
+  pts.ville = (pts.ville || []).concat(murs); pts.ferme = murs.concat(pts.pres || []);
+  // les arbres (pour la mousse et l'usnée)
+  const FEUILLUS = new Set(['oak', 'hetre', 'chataignier', 'erable', 'birch', 'noyer', 'tilleul', 'aulne']), RESINEUX = new Set(['sapin', 'sapin_neige', 'meleze', 'pine']);
+  const feuillus = [], resineux = [];
+  for (let i = 0; i < n0; i++) {
+    const o = w.objects[i];
+    if (!o || o.gone) continue;
+    const id = OBJ_TYPES[o.t] && OBJ_TYPES[o.t].id;
+    if (FEUILLUS.has(id)) feuillus.push(o); else if (RESINEUX.has(id)) resineux.push(o);
+  }
+  const PER = [60, 32, 14, 5, 3], tir = (L) => L[(rnd() * L.length) | 0];
+
+  for (const P of NAT_PLANTES) {
+    if (OBJ_INDEX[P.o] === undefined) continue;
+    const grand = P.h[1] > 1.1, touffes = PER[P.r] || 2;
+    // la mousse : au nord des arbres (le nord : −z) ; l'usnée : au pied des sapins
+    if (P.o === 'mousse' || P.o === 'usnee') {
+      const L = P.o === 'mousse' ? feuillus.concat(resineux) : resineux;
+      for (let k = 0; k < touffes * 3 && L.length; k++) {
+        const a = tir(L), x = P.o === 'mousse' ? a.x + (rnd() - 0.5) * 0.9 : a.x + (rnd() - 0.5) * 3.5, z = P.o === 'mousse' ? a.z - 1.15 - rnd() * 0.5 : a.z + (rnd() - 0.5) * 3.5;
+        if (P.o === 'usnee' && Math.hypot(x - a.x, z - a.z) < 1.2) continue;
+        if (libre(x, z, { pente: true })) pose(P.o, x, z);
+      }
+      continue;
+    }
+    const cand = P.hab.flatMap((h) => pts[h] || []);
+    if (!cand.length) continue;
+    for (let k = 0; k < touffes; k++) {
+      // (une plante rare cherche plus longtemps sa place : jusqu'à huit endroits pour une touffe)
+      for (let essai = 0, pose1 = 0; essai < (P.r >= 2 ? 8 : 1) && !pose1; essai++) {
+        const [cx, cz] = tir(cand), m = P.r >= 4 ? 1 : grand ? 1 + ((rnd() * 2) | 0) : 2 + ((rnd() * 4) | 0), sp = grand ? 8 : 6;
+        for (let j = 0; j < m; j++) {
+          const x = cx + (rnd() - 0.5) * sp, z = cz + (rnd() - 0.5) * sp;
+          if (!libre(x, z, { pente: P.hab.includes('rochers'), pres: grand ? 1.4 : 1.0 })) continue;
+          pose(P.o, x, z); pose1++;
+        }
+      }
+    }
+  }
+  // les bêtes nouvelles (points d'apparition), selon leur rareté, dans leurs milieux ; les taupinières
+  const NB = [18, 10, 5, 3, 1];
+  for (const [kind, , hab, rar] of NAT_BETES) {
+    const oid = 'nat_' + kind;
+    if (kind === 'papillon_or' || OBJ_INDEX[oid] === undefined) continue;
+    let cand = hab.flatMap((h) => pts[h] || []);
+    if (kind === 'effraie' && murs.length) cand = murs.concat(cand); // près des granges et des clochers, ou des prés
+    if (!cand.length) continue;
+    const nb = kind === 'grue' ? 2 : NB[rar] || 1;
+    for (let k = 0; k < nb; k++) {
+      for (let essai = 0; essai < 6; essai++) {
+        let [x, z] = tir(cand);
+        x += (rnd() - 0.5) * 8; z += (rnd() - 0.5) * 8;
+        if (kind === 'grebe') { // sur l'eau libre, pas loin de la berge
+          let ok = false;
+          for (let j = 0; j < 12 && !ok; j++) { const a = rnd() * TAU, d = 6 + rnd() * 30, tx = x + Math.cos(a) * d, tz = z + Math.sin(a) * d; if (w.inside(tx, tz, 20) && w.heightAt(tx, tz) < WL - 0.6) { x = tx; z = tz; ok = true; } }
+          if (!ok) continue;
+          pose(oid, x, z); break;
+        }
+        if (kind === 'cincle' && Math.abs(w.heightAt(x, z) - WL) > 1.2) continue;
+        if (!libre(x, z, { pente: hab.includes('rochers') })) continue;
+        pose(oid, x, z);
+        if (kind === 'taupe') { pose('taupiniere', x, z); for (let j = 0; j < 4; j++) { const tx = x + (rnd() - 0.5) * 8, tz = z + (rnd() - 0.5) * 8; if (libre(tx, tz)) pose('taupiniere', tx, tz); } }
+        break;
+      }
+    }
+  }
+  if (n) { w.objectsDirty = true; w.grid = null; w.shadeDirty = true; }
+  return n;
+}
+{
+  const _gv = generateValley;
+  generateValley = async function (seed, progress, gen) {
+    const w = await _gv(seed, progress, gen);
+    try { if (w && w.designed) natPeupler(w, w.seed || seed); } catch (e) { console.error(e); }
+    return w;
+  };
+}
+
+// ============================================================================
+//  LES BÊTES NOUVELLES (05-zzzz-nature.js : NAT_BETES, notices, butins) : leurs
+//  comportements, leurs modèles en boîtes, leurs cris ; le PAPILLON D'OR et le
+//  filet à papillons.
+// ============================================================================
+Object.assign(CREATURES, {
+  hermine: { walk: 0.9, run: 6.0, range: 14, flee: 7, radius: 0.06, idle: [1, 4], rig: 'hermine', h: 0.14, wild: true, nat: 'hermine' },
+  taupe: { walk: 0.2, run: 0.6, range: 1.5, flee: 0, radius: 0.05, idle: [2, 6], rig: 'taupe', h: 0.07, wild: true, nat: 'taupe' },
+  mulot: { walk: 0.8, run: 4.5, range: 8, flee: 5, radius: 0.03, idle: [0.5, 2.5], rig: 'mulot', h: 0.05, wild: true, nuit: true, nat: 'mulot' },
+  loir: { walk: 0.7, run: 4.0, range: 10, flee: 6, radius: 0.05, idle: [2, 6], rig: 'loir', h: 0.1, wild: true, nuit: true, arbre: true, nat: 'loir' },
+  lievre: { walk: 1.1, run: 9.0, range: 22, flee: 5, radius: 0.16, idle: [4, 12], hop: true, rig: 'lievre', h: 0.5, wild: true, nat: 'lievre' },
+  chat_sauvage: { walk: 0.9, run: 7.0, range: 24, flee: 10, radius: 0.14, idle: [3, 8], rig: 'chat_sauvage', h: 0.42, wild: true, nuit: true, nat: 'chat_sauvage' },
+  lezard: { walk: 0.4, run: 5.0, range: 5, flee: 3.5, radius: 0.03, idle: [5, 15], rig: 'lezard', h: 0.03, wild: true, nat: 'lezard' },
+  orvet: { walk: 0.15, run: 0.4, range: 4, flee: 0, radius: 0.04, idle: [5, 15], rig: 'orvet', h: 0.04, wild: true },
+  crapaud: { walk: 0.15, run: 0.5, range: 5, flee: 0, radius: 0.06, idle: [3, 10], rig: 'crapaud', h: 0.1, wild: true, nuit: true, call: 'crapaud' },
+  triton: { walk: 0.2, run: 0.8, range: 4, flee: 2, radius: 0.03, idle: [3, 10], rig: 'triton', h: 0.03, wild: true, nat: 'triton' },
+  pic_vert: { walk: 0, run: 0, range: 30, flee: 9, radius: 0.1, idle: [4, 10], rig: 'pic_vert', h: 0.3, wild: true, nat: 'pic_vert' },
+  coucou: { walk: 0, run: 0, range: 40, flee: 10, radius: 0.1, idle: [4, 10], rig: 'coucou', h: 0.3, wild: true, nat: 'coucou' },
+  geai: { walk: 0.7, run: 2.5, range: 12, flee: 14, radius: 0.08, idle: [1, 4], rig: 'geai', h: 0.3, wild: true, oiseau: true, nat: 'geai' },
+  alouette: { walk: 0.6, run: 2.5, range: 10, flee: 7, radius: 0.05, idle: [1, 4], rig: 'alouette', h: 0.18, wild: true, oiseau: true, nat: 'alouette' },
+  effraie: { walk: 0, run: 0, range: 30, flee: 7, radius: 0.12, idle: [4, 10], rig: 'effraie', h: 0.4, wild: true, perch: true, nat: 'effraie' },
+  grand_corbeau: { fly: true, rig: 'grand_corbeau', flock: 2, nat: 'grand_corbeau' },
+  cincle: { walk: 0.3, run: 1.5, range: 5, flee: 6, radius: 0.05, idle: [2, 6], rig: 'cincle', h: 0.16, wild: true, nat: 'cincle' },
+  grebe: { walk: 0.4, run: 1.2, range: 14, flee: 0, radius: 0.12, idle: [2, 6], water: true, rig: 'grebe', h: 0.35, nat: 'grebe' },
+  butor: { walk: 0.2, run: 1.0, range: 6, flee: 5, radius: 0.1, idle: [5, 15], rig: 'butor', h: 0.7, wild: true, oiseau: true, nat: 'butor' },
+  grue: { fly: true, rig: 'grue', flock: 7, nat: 'grue' },
+  lucane: { walk: 0.08, run: 0.2, range: 3, flee: 0, radius: 0.03, idle: [4, 12], rig: 'lucane', h: 0.03, wild: true, nat: 'lucane' },
+  mante: { walk: 0.05, run: 0.3, range: 2, flee: 0, radius: 0.03, idle: [8, 20], rig: 'mante', h: 0.09, wild: true, nat: 'mante' },
+  papillon_or: { fly: true, rig: 'papillon_or', flock: 1, nat: 'papillon' },
+});
+// ---------------------------------------------------------------- les modèles (boîtes ; l'avant regarde +z)
+Object.assign(ANIMAL_RIGS, {
+  hermine: (v) => {
+    const blanc = v === 7, c = blanc ? [0.95, 0.95, 0.93] : rgbf('#8a5a34');
+    const r = quadRig({ col: c, body: [0.07, 0.07, 0.24], bodyY: 0.075, leg: [0.03, 0.05], neck: [0, 0.03], head: [0.06, 0.055, 0.07], face: TL.foxF, ears: [0.02, 0.02, 0.01], tail: [0.025, 0.025, 0.1] });
+    return rigPlus(r, [
+      { name: 'ventre', parent: 'body', p: [0, -0.02, 0.02], s: [0.066, 0.03, 0.18], col: [0.95, 0.9, 0.78], tex: TL.fur },
+      { name: 'bout', parent: 'tail', p: [0, -0.02, -0.1], s: [0.028, 0.028, 0.045], col: [0.06, 0.05, 0.05], tex: TL.fur },
+    ]);
+  },
+  taupe: () => {
+    const { P, add } = rigParts();
+    const c = [0.16, 0.15, 0.17], rose = rgbf('#e8a8a0');
+    add('body', null, [0, 0.035, 0], [0.06, 0.05, 0.12], [0, 0, 0], c, TL.fur);
+    add('neck', 'body', [0, 0.005, 0.06], null);
+    add('head', 'neck', [0, 0, 0], [0.04, 0.035, 0.04], [0, 0, 0.02], c, TL.fur);
+    add('museau', 'head', [0, -0.005, 0.045], [0.015, 0.012, 0.02], [0, 0, 0], rose, TL.skin);
+    for (const [n, s] of [['legFL', -1], ['legFR', 1]]) add(n, 'body', [s * 0.035, -0.01, 0.04], [0.03, 0.012, 0.025], [s * 0.012, -0.005, 0], rose, TL.skin);
+    add('tail', 'body', [0, 0, -0.06], [0.008, 0.008, 0.02], [0, 0, -0.01], rose, TL.skin);
+    const r = new Rig(P); r.kind = 'quad'; r.cfg = {}; return r;
+  },
+  mulot: () => quadRig({ col: rgbf('#8a6a4a'), body: [0.035, 0.035, 0.07], bodyY: 0.035, leg: [0.012, 0.02], neck: [0, 0.012], head: [0.03, 0.03, 0.035], face: TL.rabbitF,
+    ears: [0.016, 0.018, 0.006], tail: [0.006, 0.006, 0.08] }),
+  loir: () => {
+    const r = quadRig({ col: rgbf('#8a8a86'), body: [0.06, 0.06, 0.13], bodyY: 0.06, leg: [0.02, 0.035], neck: [0, 0.02], head: [0.055, 0.05, 0.06], face: TL.rabbitF,
+      ears: [0.02, 0.02, 0.01], tail: [0.045, 0.045, 0.12], tailCol: rgbf('#9a9a96') });
+    return rigPlus(r, [{ name: 'lunettes', parent: 'head', p: [0, 0.012, 0.045], s: [0.058, 0.014, 0.02], col: [0.12, 0.11, 0.1], tex: TL.fur }]);
+  },
+  lievre: () => {
+    const r = scaleRig(ANIMAL_RIGS.rabbit(), 1.35);
+    for (const q of r.parts) if (q.s && q.name !== 'tail') q.col = rgbf('#9a7a52');
+    const u = [];
+    for (const [e, s] of [['earL', -1], ['earR', 1]]) { const ear = r.part(e); if (ear) { ear.s = [ear.s[0], ear.s[1] * 1.35, ear.s[2]]; u.push({ name: 'bout' + s, parent: e, p: [0, ear.s[1] * 1.0, 0], s: [ear.s[0] + 0.004, 0.04, ear.s[2] + 0.004], col: [0.08, 0.07, 0.06], tex: TL.fur }); } }
+    return rigPlus(r, u);
+  },
+  chat_sauvage: () => {
+    const r = scaleRig(ANIMAL_RIGS.cat(2), 1.25);
+    for (const q of r.parts) if (q.s) { q.col = rgbf(q.name === 'tail' ? '#6a5a44' : '#8a7a60'); if (q.name === 'body') q.tex = TL.stripes; }
+    const tl = r.part('tail'); if (tl) tl.s = [0.075, tl.s[1] * 0.85, 0.075];
+    return rigPlus(r, [
+      { name: 'bout', parent: 'tail', p: [0, -0.4, 0], s: [0.08, 0.07, 0.08], col: [0.08, 0.07, 0.06], tex: TL.fur },
+      { name: 'oeilL', parent: 'head', p: [-0.04, 0.03, 0.2], s: [0.022, 0.014, 0.01], col: [0.85, 0.8, 0.3], tex: TL.plain, fl: FX_EMIT },
+      { name: 'oeilR', parent: 'head', p: [0.04, 0.03, 0.2], s: [0.022, 0.014, 0.01], col: [0.85, 0.8, 0.3], tex: TL.plain, fl: FX_EMIT },
+    ]);
+  },
+  lezard: () => {
+    const { P, add } = rigParts();
+    const c = rgbf('#6a7040'), c2 = rgbf('#4a4a30');
+    add('body', null, [0, 0.012, 0], [0.022, 0.012, 0.06], [0, 0, 0], c, TL.scales);
+    add('neck', 'body', [0, 0.002, 0.03], null);
+    add('head', 'neck', [0, 0, 0], [0.018, 0.011, 0.026], [0, 0, 0.012], c2, TL.scales);
+    for (const [n, sx, sz] of [['legFL', -1, 1], ['legFR', 1, 1], ['legBL', -1, -1], ['legBR', 1, -1]]) add(n, 'body', [sx * 0.012, -0.002, sz * 0.02], [0.018, 0.006, 0.006], [sx * 0.009, -0.003, 0], c2, TL.scales);
+    add('tail', 'body', [0, 0, -0.03], [0.012, 0.008, 0.08], [0, 0, -0.04], c2, TL.scales);
+    const r = new Rig(P); r.kind = 'quad'; r.cfg = {}; return r;
+  },
+  orvet: () => { const r = scaleRig(ANIMAL_RIGS.snake(), 0.75); for (const q of r.parts) if (q.s) q.col = q.name === 'head' ? rgbf('#8a6038') : rgbf(/[02468]$/.test(q.name) ? '#a87a48' : '#98703e'); return r; },
+  crapaud: () => { const r = scaleRig(ANIMAL_RIGS.frog(), 1.3); for (const q of r.parts) if (q.s) { if (q.name.startsWith('oeil')) q.col = [0.7, 0.46, 0.2]; else { q.col = rgbf('#7a6a48'); q.tex = TL.scales; } } return r; },
+  triton: () => {
+    const { P, add } = rigParts();
+    const c = [0.14, 0.13, 0.12], o = rgbf('#e87a20');
+    add('body', null, [0, 0.01, 0], [0.016, 0.012, 0.045], [0, 0, 0], c, TL.scales);
+    add('ventre', 'body', [0, -0.006, 0], [0.014, 0.004, 0.04], [0, 0, 0], o, TL.plain);
+    add('crete', 'body', [0, 0.009, -0.005], [0.003, 0.006, 0.04], [0, 0, 0], c, TL.scales);
+    add('neck', 'body', [0, 0, 0.022], null);
+    add('head', 'neck', [0, 0, 0], [0.014, 0.01, 0.016], [0, 0, 0.008], c, TL.scales);
+    for (const [n, sx, sz] of [['legFL', -1, 1], ['legFR', 1, 1], ['legBL', -1, -1], ['legBR', 1, -1]]) add(n, 'body', [sx * 0.009, -0.002, sz * 0.015], [0.012, 0.004, 0.004], [sx * 0.006, -0.002, 0], c, TL.scales);
+    add('tail', 'body', [0, 0, -0.022], [0.004, 0.012, 0.045], [0, 0, -0.022], c, TL.scales);
+    const r = new Rig(P); r.kind = 'quad'; r.cfg = {}; return r;
+  },
+  pic_vert: () => rigPlus(birdParts({ col: rgbf('#6a9a40'), body: [0.08, 0.11, 0.16], bodyY: 0.1, head: [0.06, 0.06, 0.07], headCol: rgbf('#7aaa48'), beak: [0.012, 0.012, 0.05], beakCol: rgbf('#5a5a50'),
+    tail: [0.05, 0.012, 0.07], tailCol: rgbf('#4a6a2a'), leg: [0.012, 0.04], legCol: rgbf('#6a6a60') }), [
+    { name: 'calotte', parent: 'head', p: [0, 0.06, 0.01], s: [0.04, 0.015, 0.06], col: rgbf('#d02a20'), tex: TL.fur },
+    { name: 'croupion', parent: 'body', p: [0, 0.01, -0.07], s: [0.06, 0.04, 0.03], col: rgbf('#d8d040'), tex: TL.fur },
+  ]),
+  coucou: () => rigPlus(birdParts({ col: rgbf('#8a8e94'), body: [0.07, 0.08, 0.16], bodyY: 0.1, head: [0.05, 0.05, 0.06], beak: [0.012, 0.01, 0.025], beakCol: rgbf('#3a3a30'),
+    tail: [0.04, 0.012, 0.14], tailCol: rgbf('#6a6e74'), leg: [0.01, 0.03], legCol: rgbf('#d8b040') }), [
+    { name: 'ventre', parent: 'body', p: [0, -0.02, 0.02], s: [0.066, 0.04, 0.12], col: rgbf('#d8d8d0'), tex: TL.stripes },
+  ]),
+  geai: () => rigPlus(birdParts({ col: rgbf('#b09080'), body: [0.09, 0.1, 0.18], bodyY: 0.11, head: [0.065, 0.065, 0.07], beak: [0.014, 0.014, 0.03], beakCol: rgbf('#2a2a2a'),
+    tail: [0.05, 0.012, 0.1], tailCol: [0.08, 0.08, 0.09], wingCol: rgbf('#6a5a50'), leg: [0.012, 0.05], legCol: rgbf('#a08070') }), [
+    { name: 'miroirL', parent: 'wingL', p: [0, 0.02, 0.05], s: [0.024, 0.03, 0.04], col: rgbf('#3a6ad0'), tex: TL.stripes },
+    { name: 'miroirR', parent: 'wingR', p: [0, 0.02, 0.05], s: [0.024, 0.03, 0.04], col: rgbf('#3a6ad0'), tex: TL.stripes },
+    { name: 'moustache', parent: 'head', p: [0, 0.01, 0.03], s: [0.068, 0.012, 0.02], col: [0.08, 0.08, 0.09], tex: TL.fur },
+  ]),
+  alouette: () => rigPlus(birdParts({ col: rgbf('#9a8060'), body: [0.07, 0.07, 0.14], bodyY: 0.08, head: [0.05, 0.05, 0.055], beak: [0.01, 0.01, 0.02], beakCol: rgbf('#8a8070'),
+    tail: [0.04, 0.01, 0.07], leg: [0.01, 0.035], legCol: rgbf('#c0a080') }), [
+    { name: 'huppe', parent: 'head', p: [0, 0.055, -0.01], s: [0.015, 0.025, 0.03], col: rgbf('#7a6048'), tex: TL.fur, r0: [-0.5, 0, 0] },
+  ]),
+  effraie: () => birdParts({ col: rgbf('#e0c898'), body: [0.2, 0.3, 0.2], bodyY: 0.22, head: [0.18, 0.16, 0.14], face: TL.catF, headCol: rgbf('#f4f0e8'), beak: [0.025, 0.03, 0.02], beakCol: rgbf('#e8d8c0'),
+    tail: [0.1, 0.08, 0.05], wingCol: rgbf('#d0b080'), leg: [0.03, 0.08], legCol: rgbf('#f0ece0') }),
+  grand_corbeau: () => { const r = scaleRig(ANIMAL_RIGS.crow(), 1.55); r.lent = [14, 0.7]; return r; },
+  cincle: () => rigPlus(birdParts({ col: rgbf('#3a2a24'), body: [0.07, 0.07, 0.11], bodyY: 0.08, head: [0.05, 0.05, 0.05], headCol: rgbf('#5a3a2a'), beak: [0.01, 0.01, 0.02], beakCol: [0.1, 0.1, 0.1],
+    tail: [0.035, 0.01, 0.04], tailUp: 0.6, leg: [0.012, 0.04], legCol: rgbf('#8a7a60') }), [
+    { name: 'bavette', parent: 'body', p: [0, 0.01, 0.05], s: [0.06, 0.05, 0.02], col: [0.95, 0.95, 0.92], tex: TL.fur },
+  ]),
+  grebe: () => rigPlus(birdParts({ col: rgbf('#6a5a4a'), body: [0.14, 0.1, 0.3], bodyY: 0.1, neck: [0.04, 0.16, 0.04], neckR: [-0.15, 0, 0], neckCol: [0.95, 0.95, 0.93], head: [0.05, 0.05, 0.07],
+    headCol: [0.95, 0.95, 0.93], beak: [0.012, 0.012, 0.06], beakCol: rgbf('#c07070'), tail: [0.04, 0.02, 0.02], leg: [0.01, 0.01] }), [
+    { name: 'crete', parent: 'head', p: [0, 0.05, -0.01], s: [0.04, 0.035, 0.04], col: [0.1, 0.08, 0.07], tex: TL.fur },
+    { name: 'collerette', parent: 'head', p: [0, 0.015, -0.005], s: [0.075, 0.035, 0.04], col: rgbf('#c86030'), tex: TL.fur },
+  ]),
+  butor: () => birdParts({ col: rgbf('#9a7a4a'), body: [0.18, 0.22, 0.3], bodyY: 0.4, neck: [0.07, 0.22, 0.07], neckR: [0.1, 0, 0], neckCol: rgbf('#b8945a'), head: [0.07, 0.07, 0.09], headCol: rgbf('#7a5a34'),
+    beak: [0.025, 0.025, 0.12], beakCol: rgbf('#c8b050'), tail: [0.08, 0.04, 0.06], leg: [0.025, 0.3], legCol: rgbf('#8a9a40') }),
+  grue: () => {
+    const r = rigPlus(birdParts({ col: rgbf('#9aa0a8'), body: [0.22, 0.2, 0.46], bodyY: 0.9, neck: [0.05, 0.4, 0.05], neckR: [0.2, 0, 0], neckCol: [0.1, 0.1, 0.1], head: [0.07, 0.07, 0.1],
+      headCol: [0.9, 0.9, 0.9], beak: [0.02, 0.02, 0.12], beakCol: rgbf('#8a8060'), tail: [0.14, 0.06, 0.12], wing: [0.8, 0.02, 0.3], wingCol: rgbf('#8a9098'), leg: [0.025, 0.7], legCol: [0.15, 0.15, 0.15] }), [
+      { name: 'calotte', parent: 'head', p: [0, 0.065, 0.01], s: [0.04, 0.012, 0.04], col: rgbf('#c02020'), tex: TL.plain },
+    ]);
+    r.lent = [11, 0.55]; r.vol = [1.3, -1.3, 1.35, 0.2]; // en vol : le cou tendu devant, les pattes derrière
+    return r;
+  },
+  lucane: () => {
+    const { P, add } = rigParts();
+    const c = rgbf('#4a2a1a'), m = rgbf('#8a4a2a');
+    add('body', null, [0, 0.012, 0], [0.026, 0.014, 0.045], [0, 0, 0], c, TL.scales);
+    add('neck', 'body', [0, 0.002, 0.024], null);
+    add('head', 'neck', [0, 0, 0], [0.022, 0.01, 0.014], [0, 0, 0.007], c, TL.scales);
+    for (const s of [-1, 1]) add('mandibule' + s, 'head', [s * 0.007, 0.003, 0.014], [0.004, 0.004, 0.026], [0, 0, 0.013], m, TL.plain, { r0: [0, s * -0.35, 0] });
+    for (const [n, sx, sz] of [['legFL', -1, 1], ['legFR', 1, 1], ['legBL', -1, -1], ['legBR', 1, -1]]) add(n, 'body', [sx * 0.013, -0.004, sz * 0.012], [0.02, 0.004, 0.004], [sx * 0.01, -0.004, 0], c, TL.plain);
+    add('wingL', 'body', [-0.01, 0.008, 0], [0.04, 0.002, 0.03], [-0.02, 0, 0], rgbf('#c8b8a0'), TL.plain, { hide: true });
+    add('wingR', 'body', [0.01, 0.008, 0], [0.04, 0.002, 0.03], [0.02, 0, 0], rgbf('#c8b8a0'), TL.plain, { hide: true });
+    const r = new Rig(P); r.kind = 'bird'; return r;
+  },
+  mante: () => {
+    const { P, add } = rigParts();
+    const v = rgbf('#7ab040'), v2 = rgbf('#5a9030');
+    add('body', null, [0, 0.03, 0], [0.012, 0.014, 0.05], [0, 0, 0], v, TL.fur);
+    add('thorax', 'body', [0, 0.005, 0.022], [0.008, 0.008, 0.035], [0, 0.015, 0.012], v2, TL.fur, { r0: [-0.9, 0, 0] });
+    add('neck', 'thorax', [0, 0.035, 0.022], null);
+    add('head', 'neck', [0, 0, 0], [0.016, 0.012, 0.01], [0, 0, 0.004], v, TL.fur);
+    for (const s of [-1, 1]) add('bras' + s, 'thorax', [s * 0.006, 0.025, 0.02], [0.004, 0.025, 0.004], [0, -0.012, 0.004], v2, TL.fur, { r0: [0.9, 0, 0] });
+    for (const [n, sx, sz] of [['legBL', -1, -1], ['legBR', 1, -1], ['legFL', -1, 0.3], ['legFR', 1, 0.3]]) add(n, 'body', [sx * 0.006, -0.005, sz * 0.012], [0.024, 0.003, 0.003], [sx * 0.012, -0.006, 0], v2, TL.fur);
+    const r = new Rig(P); r.kind = 'quad'; r.cfg = {}; return r;
+  },
+  papillon_or: () => {
+    const { P, add } = rigParts();
+    const or = [1.0, 0.78, 0.26], bord = [0.55, 0.36, 0.08];
+    add('body', null, [0, 0, 0], [0.012, 0.012, 0.05], [0, 0, 0], [0.18, 0.12, 0.06], TL.fur);
+    add('neck', 'body', [0, 0, 0.025], null);
+    add('head', 'neck', [0, 0, 0], [0.012, 0.012, 0.012], [0, 0, 0.005], [0.15, 0.1, 0.05], TL.fur);
+    for (const s of [-1, 1]) add('antenne' + s, 'head', [s * 0.004, 0.005, 0.006], [0.002, 0.002, 0.03], [0, 0, 0.015], [0.1, 0.08, 0.05], TL.plain, { r0: [-0.6, s * 0.3, 0] });
+    add('wingL', 'body', [-0.006, 0.002, 0.004], [0.075, 0.003, 0.06], [-0.0375, 0, 0.005], or, TL.plain, { fl: FX_EMIT });
+    add('wingR', 'body', [0.006, 0.002, 0.004], [0.075, 0.003, 0.06], [0.0375, 0, 0.005], or, TL.plain, { fl: FX_EMIT });
+    add('bordL', 'wingL', [-0.07, 0.001, 0], [0.012, 0.003, 0.056], [0, 0, 0.005], bord, TL.plain);
+    add('bordR', 'wingR', [0.07, 0.001, 0], [0.012, 0.003, 0.056], [0, 0, 0.005], bord, TL.plain);
+    add('basL', 'body', [-0.006, 0, -0.012], [0.045, 0.003, 0.04], [-0.022, 0, -0.01], [0.95, 0.66, 0.2], TL.plain, { fl: FX_EMIT, r0: [0, 0, 0] });
+    add('basR', 'body', [0.006, 0, -0.012], [0.045, 0.003, 0.04], [0.022, 0, -0.01], [0.95, 0.66, 0.2], TL.plain, { fl: FX_EMIT, r0: [0, 0, 0] });
+    const r = new Rig(P); r.kind = 'bird'; r.papillon = true; return r;
+  },
+});
+// les points d'apparition (objets du monde « animaux », ajoutés après tous les autres types) ; les taupinières
+for (const [kind, nom] of NAT_BETES) if (kind !== 'papillon_or') OBJ_TYPES.push({ id: 'nat_' + kind, name: nom, cat: 'Animaux', spr: ['a_rabbit'], h: [0.2, 0.2], animal: kind, col: 0, sway: 0, spacing: 3, sink: 0 });
+OBJ_TYPES.push({ id: 'taupiniere', name: 'Taupinière', cat: 'Végétation', spr: ['w4_taupiniere'], h: [0.14, 0.2], col: 0, sway: 0, spacing: 1, sink: 0.05 });
+OBJ_TYPES.forEach((t, i) => { OBJ_INDEX[t.id] = i; });
+// quelques réglages à l'apparition : les grands oiseaux planent haut ; l'hermine des neiges est blanche
+{
+  const _spawnFrom = entities.spawnFrom.bind(entities);
+  entities.spawnFrom = function (w, o, kind) {
+    const arr = _spawnFrom(w, o, kind);
+    if (kind === 'grand_corbeau') for (const e of arr) { e.flyR = 30 + Math.random() * 25; e.flyH = 28 + Math.random() * 18; e.flyS = 0.1 * (Math.random() < 0.5 ? 1 : -1); }
+    if (kind === 'grue') { const s = Math.random() < 0.5 ? 1 : -1, R = 90 + Math.random() * 40, H = 55 + Math.random() * 15; arr.forEach((e, k) => { e.flyR = R + k * 2.5; e.flyH = H + (k % 2) * 1.5; e.flyS = 0.045 * s; e.flyA = k * 0.035 * -s; e.pack0 = arr[0]; }); }
+    if (kind === 'hermine' && w.snowLine && w.heightAt(o.x, o.z) > w.snowLine - 12) for (const e of arr) { e.v = 7; e.rig = ANIMAL_RIGS.hermine(7); }
+    return arr;
+  };
+}
+// (les dépouilles de la chasse : leur nom)
+if (typeof CHASSE_NOMS !== 'undefined') Object.assign(CHASSE_NOMS, {
+  hermine: 'l’hermine', taupe: 'la taupe', mulot: 'le mulot', loir: 'le loir', lievre: 'le lièvre', chat_sauvage: 'le chat sauvage', lezard: 'le lézard', orvet: 'l’orvet',
+  crapaud: 'le crapaud', triton: 'le triton', pic_vert: 'le pic', coucou: 'le coucou', geai: 'le geai', alouette: 'l’alouette', effraie: 'la chouette', grand_corbeau: 'le corbeau',
+  cincle: 'le cincle', grebe: 'le grèbe', butor: 'le butor', grue: 'la grue', lucane: 'la lucane', mante: 'la mante',
+});
+// ---------------------------------------------------------------- les cris (courts, discrets ; aucun ne se répète en boucle)
+Object.assign(SoundEngine.prototype, {
+  natCri(kind, pan, k) {
+    if (!this.ok) return;
+    const t = this.at ? this.at() : this.ctx.currentTime + 0.02, v = clamp(k === undefined ? 1 : k, 0, 1), p = this.pan(clamp(pan || 0, -1, 1), this.amb), R = Math.random;
+    switch (kind) {
+      case 'crapaud': for (let i = 0; i < 4; i++) this.voice(t + i * 0.13, 'sine', 520, 490, 0.09, 0.03 * v, p, { lp: 900 }); return;
+      case 'geai': for (let i = 0; i < 2; i++) { this.voice(t + i * 0.3, 'sawtooth', 1150, 780, 0.26, 0.04 * v, p, { bp: 1600, q: 1.1 }); this.noiseHit(t + i * 0.3, 0.24, 'bandpass', 2400, 1.2, 0.03 * v, p); } return;
+      case 'alouette': for (let i = 0; i < 18; i++) { const f = 2600 + R() * 1900; this.tone(t + i * 0.085 + R() * 0.02, 'sine', f, f * (R() < 0.5 ? 1.15 : 0.85), 0.06, 0.012 * v, p, 0.006); } return;
+      case 'coucou': this.voice(t, 'sine', 690, 680, 0.24, 0.05 * v, p, { lp: 1400 }); this.voice(t + 0.36, 'sine', 570, 560, 0.34, 0.05 * v, p, { lp: 1400 }); return;
+      case 'pic': for (let i = 0; i < 10; i++) this.voice(t + i * 0.11, 'triangle', 1650 - i * 30, 1450 - i * 30, 0.07, 0.022 * v, p, { bp: 1800, q: 1.5 }); return;
+      case 'tambour': for (let i = 0; i < 14; i++) this.noiseHit(t + i * 0.05, 0.02, 'bandpass', 900, 3, 0.05 * v * (1 - i / 18), p); return;
+      case 'effraie': this.noiseHit(t, 1.1, 'bandpass', 3400, 1.5, 0.05 * v, p, 2600); this.voice(t, 'sawtooth', 1500, 1100, 1.0, 0.02 * v, p, { vib: 23, vibDepth: 90, bp: 2200, q: 1 }); return;
+      case 'corbeau': for (let i = 0; i < 2; i++) this.voice(t + i * 0.32, 'sawtooth', 330, 250, 0.2, 0.045 * v, p, { bp: 700, q: 1.3 }); return;
+      case 'cincle': for (let i = 0; i < 2; i++) this.tone(t + i * 0.09, 'sine', 4200, 3600, 0.04, 0.014 * v, p, 0.004); return;
+      case 'grebe': this.voice(t, 'sawtooth', 420, 300, 0.32, 0.03 * v, p, { bp: 800, q: 1.4 }); return;
+      case 'butor': for (let i = 0; i < 3; i++) { this.voice(t + i * 0.9, 'sine', 150, 125, 0.55, 0.09 * v, p, { lp: 300 }); this.noiseHit(t + i * 0.9 - 0.08, 0.1, 'lowpass', 300, 0.8, 0.02 * v, p); } return;
+      case 'grue': for (let i = 0; i < 3; i++) { const f = 640 + R() * 140; this.voice(t + i * 0.34, 'sawtooth', f, f * 0.93, 0.26, 0.03 * v, p, { vib: 18, vibDepth: 25, bp: 1100, q: 1.3 }); } return;
+      case 'hermine': for (let i = 0; i < 6; i++) this.tone(t + i * 0.045, 'square', 1900 + R() * 300, 1700, 0.025, 0.008 * v, p, 0.003); return;
+      case 'loir': this.voice(t, 'sawtooth', 300, 280, 0.6, 0.02 * v, p, { vib: 28, vibDepth: 60, lp: 800 }); return;
+      case 'lucane': this.voice(t, 'sawtooth', 115, 105, 1.4, 0.018 * v, p, { vib: 9, vibDepth: 8, bp: 420, q: 2 }); return;
+      case 'feule': this.noiseHit(t, 0.6, 'highpass', 2600, 0.8, 0.04 * v, p, 4200); this.voice(t + 0.1, 'sawtooth', 160, 120, 0.5, 0.03 * v, p, { lp: 500 }); return;
+      case 'froissement': this.noiseHit(t, 0.14, 'bandpass', 2200, 1.2, 0.02 * v, p); return;
+      case 'terre': this.noiseHit(t, 0.22, 'lowpass', 600, 0.7, 0.04 * v, p); return;
+      case 'plouf': this.noiseHit(t, 0.18, 'lowpass', 1400, 0.7, 0.03 * v, p, 400); return;
+      case 'filet': this.noiseHit(t, 0.18, 'bandpass', 1300, 0.9, 0.05 * v, this.sfx, 500); return;
+    }
+  },
+});
+{
+  const _an = SoundEngine.prototype.animal;
+  SoundEngine.prototype.animal = function (kind, pan, k) { if (kind === 'crapaud') return this.natCri('crapaud', pan, k); return _an.call(this, kind, pan, k); };
+}
+// ---------------------------------------------------------------- les comportements
+const natCri = (e, kind, c, portee) => {
+  const d = Math.hypot(e.x - c.px, e.z - c.pz);
+  if (d > portee || !sound.natCri) return;
+  sound.natCri(kind, ((e.x - c.px) * c.right[0] + (e.z - c.pz) * c.right[2]) / (d || 1), 1 - d / portee);
+};
+const NAT_ARBRES = new Set(['oak', 'pine', 'birch', 'apple', 'deadtree', 'hetre', 'chataignier', 'noyer', 'erable', 'tilleul', 'aulne', 'saule', 'peuplier']);
+const natArbre = (w, x, z, R, loin) => {
+  const L = [];
+  w.query(x, z, R, (o) => { if (o && !o.gone && NAT_ARBRES.has(OBJ_TYPES[o.t].id) && (!loin || Math.hypot(o.x - loin.x, o.z - loin.z) > 6)) L.push(o); }, null);
+  return L.length ? L[(Math.random() * L.length) | 0] : null;
+};
+const NAT_COMPORTE = {
+  // se dresse pour regarder, puis file dans les pierres
+  hermine(e, dt, w, c) {
+    if (e.cache > 0) { e.cache -= dt; e.hidden = true; if (e.cache <= 0) { e.hidden = false; e.state = 'idle'; } return true; }
+    const alerte = e.cfg.flee * (c.crouch ? 0.5 : 1) * (c.sprint ? 1.5 : 1);
+    if (e.dist < alerte) { if (!e.fuitT) { e.fuitT = 1.2; natCri(e, 'hermine', c, 25); } }
+    if (e.fuitT > 0) { e.fuitT -= dt; if (e.fuitT <= 0) { e.fuitT = 0; e.cache = 10 + Math.random() * 12; } e.rig.set('body', 0, 0, 0); return false; }
+    const dresse = e.dist < 18 && e.state === 'idle';
+    e.rig.set('body', dresse ? -0.95 : 0, 0, 0);
+    if (dresse) { e.heading = turnToward(e.heading, Math.atan2(c.px - e.x, c.pz - e.z), dt * 3); e.move = 0; return true; }
+    return false;
+  },
+  // sous la terre ; elle sort le museau de temps en temps, et rentre si l'on approche
+  taupe(e, dt, w, c) {
+    e.move = 0;
+    e.sortT = (e.sortT ?? 8 + Math.random() * 30) - dt;
+    if (e.dehors > 0) {
+      e.dehors -= dt;
+      if (e.dist < 3 && !c.crouch) e.dehors = Math.min(e.dehors, 0.2);
+      e.hidden = false; e.y = w.heightAt(e.x, e.z) - 0.03;
+      if (e.dehors <= 0) { e.hidden = true; e.sortT = 15 + Math.random() * 45; natCri(e, 'terre', c, 12); }
+      return true;
+    }
+    e.hidden = true;
+    if (e.sortT <= 0 && e.dist < 60) {
+      e.dehors = 3 + Math.random() * 4; e.heading = Math.random() * TAU;
+      const y = w.heightAt(e.x, e.z);
+      for (let k = 0; k < 8; k++) particles.spawn(e.x, y + 0.05, e.z, (Math.random() - 0.5) * 0.8, 0.5 + Math.random() * 0.6, (Math.random() - 0.5) * 0.8, [0.36, 0.26, 0.18, 1], 0.04, 0.6, 6, false);
+      natCri(e, 'terre', c, 12);
+    }
+    return true;
+  },
+  // bonds brusques, arrêts, couinements
+  mulot(e, dt, w, c) {
+    if (e.state === 'flee') { e.zigT = (e.zigT || 0) - dt; if (e.zigT <= 0) { e.zigT = 0.25 + Math.random() * 0.3; e.fleeDir += (Math.random() - 0.5) * 1.8; if (Math.random() < 0.3 && sound.squeak) sound.squeak(); } }
+    return false;
+  },
+  // la nuit, dans les arbres ; il grogne
+  loir(e, dt, w, c) {
+    e.grT = (e.grT ?? 20 + Math.random() * 40) - dt;
+    if (e.grT <= 0) { e.grT = 30 + Math.random() * 60; if (c.night > 0.5 && !e.hidden) natCri(e, 'loir', c, 30); }
+    return false;
+  },
+  // reste au gîte jusqu'au dernier moment, puis zigzague
+  lievre(e, dt, w, c) {
+    if (e.state === 'flee') { e.zigT = (e.zigT || 0) - dt; if (e.zigT <= 0) { e.zigT = 0.35 + Math.random() * 0.4; e.fleeDir += (Math.random() < 0.5 ? -1 : 1) * (0.5 + Math.random() * 0.6); } }
+    return false;
+  },
+  // crache quand on insiste ; les yeux luisent
+  chat_sauvage(e, dt, w, c) {
+    e.feuleT = Math.max(0, (e.feuleT || 0) - dt);
+    if (e.dist < 4.5 && e.feuleT <= 0 && !e.hidden) { e.feuleT = 6; natCri(e, 'feule', c, 20); }
+    return false;
+  },
+  // au soleil seulement ; il file dans une fente
+  lezard(e, dt, w, c) {
+    const soleil = c.night < 0.3 && (weather.state === 'clear' || weather.state === 'heat') && weather.cur.rain < 0.1;
+    if (!soleil) { e.hidden = true; return true; }
+    if (e.cache > 0) { e.cache -= dt; e.hidden = true; if (e.cache <= 0) e.hidden = false; return true; }
+    if (e.state === 'flee' && !e.fuite) { e.fuite = true; natCri(e, 'froissement', c, 10); }
+    if (e.fuite && e.state !== 'flee') { e.fuite = false; e.cache = 8 + Math.random() * 10; }
+    return false;
+  },
+  // plonge dès qu'on approche
+  triton(e, dt, w, c) {
+    if (e.cache > 0) { e.cache -= dt; e.hidden = true; if (e.cache <= 0) e.hidden = false; return true; }
+    if (e.dist < 2.2 && !c.crouch) { e.cache = 8 + Math.random() * 8; natCri(e, 'plouf', c, 10); return true; }
+    return false;
+  },
+  // accroché au tronc, le jour ; il tambourine et il rit ; dérangé, il file vers un autre arbre
+  pic_vert(e, dt, w, c) {
+    if (c.night > 0.5) { e.hidden = true; return true; }
+    e.hidden = false;
+    if (!e.perch || e.bouge) {
+      const o = natArbre(w, e.hx, e.hz, 30, e.perch);
+      const a = Math.random() * TAU, rr = o ? 0.35 + Math.min(0.5, (o.h || 8) * 0.03) : 0;
+      const P = o ? { x: o.x + Math.sin(a) * rr, z: o.z + Math.cos(a) * rr, y: w.objectY(o) + 1.4 + Math.random() * 1.8, cap: a + Math.PI } : { x: e.hx, z: e.hz, y: w.heightAt(e.hx, e.hz) + 2, cap: 0 };
+      if (!e.perch) { e.x = P.x; e.z = P.z; e.y = P.y; }
+      e.perch = P; e.vole = !!e.bouge; e.bouge = false;
+    }
+    const P = e.perch;
+    if (e.vole) {
+      const dx = P.x - e.x, dz = P.z - e.z, d = Math.hypot(dx, dz);
+      e.heading = Math.atan2(dx, dz); e.fly = 1; e.phase += dt * 5;
+      const sp = Math.min(d, dt * 8);
+      e.x += dx / (d || 1) * sp; e.z += dz / (d || 1) * sp;
+      e.y = lerp(e.y, P.y + Math.abs(Math.sin(d * 0.5)) * 1.5, Math.min(1, dt * 3)); // vol ondulé
+      if (d < 0.25) { e.vole = false; e.y = P.y; }
+      return true;
+    }
+    e.fly = 0; e.heading = P.cap; e.move = 0;
+    if (e.dist < e.cfg.flee * (c.crouch ? 0.5 : 1)) { e.bouge = true; sound.flutter && sound.flutter(0.5, 0); natCri(e, 'pic', c, 60); return true; }
+    e.tamT = (e.tamT ?? 5 + Math.random() * 15) - dt;
+    if (e.tamT <= 0) { e.tamT = 12 + Math.random() * 25; natCri(e, Math.random() < 0.6 ? 'tambour' : 'pic', c, 70); e.tape = 0.7; }
+    if (e.tape > 0) { e.tape -= dt; e.rig.set('head', Math.max(0, Math.sin(e.tape * 60)) * 0.5, 0, 0); }
+    return true;
+  },
+  // haut dans les arbres ; on l'entend, on ne le voit pas
+  coucou(e, dt, w, c) {
+    if (c.night > 0.5) { e.hidden = true; return true; }
+    e.hidden = false;
+    if (!e.perch || e.bouge) {
+      const o = natArbre(w, e.hx, e.hz, 40, e.perch);
+      const P = o ? { x: o.x + (Math.random() - 0.5), z: o.z + (Math.random() - 0.5), y: w.objectY(o) + (o.h || 8) * 0.72 } : { x: e.hx, z: e.hz, y: w.heightAt(e.hx, e.hz) + 6 };
+      if (!e.perch) { e.x = P.x; e.z = P.z; e.y = P.y; }
+      e.perch = P; e.vole = !!e.bouge; e.bouge = false;
+    }
+    const P = e.perch;
+    if (e.vole) {
+      const dx = P.x - e.x, dz = P.z - e.z, d = Math.hypot(dx, dz);
+      e.heading = Math.atan2(dx, dz); e.fly = 1; e.phase += dt * 6;
+      const sp = Math.min(d, dt * 9);
+      e.x += dx / (d || 1) * sp; e.z += dz / (d || 1) * sp; e.y = lerp(e.y, P.y, Math.min(1, dt * 2));
+      if (d < 0.3) e.vole = false;
+      return true;
+    }
+    e.fly = 0; e.move = 0;
+    if (e.dist < e.cfg.flee * (c.crouch ? 0.5 : 1)) { e.bouge = true; sound.flutter && sound.flutter(0.5, 0); return true; }
+    e.criT = (e.criT ?? 10 + Math.random() * 30) - dt;
+    if (e.criT <= 0) { e.criT = 35 + Math.random() * 60; if (c.night < 0.4) natCri(e, 'coucou', c, 110); }
+    return true;
+  },
+  // la sentinelle : quand il part, il crie, et toutes les bêtes alentour savent
+  geai(e, dt, w, c) {
+    e.cT = Math.max(0, (e.cT || 0) - dt);
+    const alerte = e.cfg.flee * (c.crouch ? 0.5 : 1) * (c.sprint ? 1.4 : 1);
+    if (!(e.flyT > 0) && e.dist < alerte && e.cT <= 0) { e.cT = 8; natCri(e, 'geai', c, 90); entities.scare(e.x, e.z, 35); }
+    else if (!(e.flyT > 0) && e.dist < alerte * 1.8 && e.cT <= 0 && Math.random() < dt * 0.3) { e.cT = 10; natCri(e, 'geai', c, 90); }
+    return false;
+  },
+  // dérangée, elle monte droit dans le ciel en chantant, puis se laisse tomber plus loin
+  alouette(e, dt, w, c) {
+    if (e.chante > 0) {
+      e.chante -= dt; e.fly = 1; e.phase += dt * 8;
+      const sol = w.heightAt(e.x, e.z), haut = e.chante > 5 ? 26 : 0;
+      e.y = e.chante > 5 ? Math.min(sol + haut, e.y + dt * 3) : Math.max(sol, e.y - dt * 7);
+      if (e.chante <= 5) { e.x += Math.sin(e.heading) * dt * 2; e.z += Math.cos(e.heading) * dt * 2; }
+      e.chantT = (e.chantT || 0) - dt;
+      if (e.chantT <= 0 && e.chante > 5) { e.chantT = 1.6; natCri(e, 'alouette', c, 80); }
+      if (e.chante <= 0) { e.fly = 0; e.y = w.heightAt(e.x, e.z); e.state = 'idle'; e.timer = 2; e.hx = e.x; e.hz = e.z; }
+      return true;
+    }
+    if (e.dist < e.cfg.flee * (c.crouch ? 0.5 : 1)) { e.chante = 14 + Math.random() * 6; e.heading = Math.atan2(e.x - c.px, e.z - c.pz); sound.flutter && sound.flutter(0.6, 0); return true; }
+    return false;
+  },
+  // la dame blanche : perchée la nuit ; elle crie comme quelqu'un qu'on étrangle
+  effraie(e, dt, w, c) {
+    e.hootT = 999; // (pas le hululement de la hulotte)
+    e.criT = (e.criT ?? 20 + Math.random() * 60) - dt;
+    if (e.criT <= 0) { e.criT = 50 + Math.random() * 90; if (c.night > 0.5 && !e.hidden) natCri(e, 'effraie', c, 80); }
+    return false;
+  },
+  // fait des révérences sur les pierres ; plonge, et reparaît plus loin
+  cincle(e, dt, w, c) {
+    if (e.plonge > 0) {
+      e.plonge -= dt; e.hidden = true;
+      if (e.plonge <= 0) { e.hidden = false; for (let k = 0; k < 6; k++) { const a = Math.random() * TAU, x = e.hx + Math.cos(a) * (2 + Math.random() * 5), z = e.hz + Math.sin(a) * (2 + Math.random() * 5); const h = w.heightAt(x, z); if (h > w.waterLevel + 0.02 && h < w.waterLevel + 1.5) { e.x = x; e.z = z; e.y = h; break; } } }
+      return true;
+    }
+    e.rig.set('body', Math.sin(c.t * 5 + e.seed) * 0.25, 0, 0);
+    e.criT = (e.criT ?? 5 + Math.random() * 10) - dt;
+    if (e.criT <= 0) { e.criT = 10 + Math.random() * 20; natCri(e, 'cincle', c, 30); }
+    if (e.dist < e.cfg.flee * (c.crouch ? 0.5 : 1) || Math.random() < dt * 0.04) { e.plonge = 4 + Math.random() * 5; natCri(e, 'plouf', c, 15); return true; }
+    return false;
+  },
+  // sur l'eau : il plonge au lieu de s'envoler, et ressort bien plus loin
+  grebe(e, dt, w, c) {
+    if (e.plonge > 0) {
+      e.plonge -= dt; e.hidden = true;
+      if (e.plonge <= 0) {
+        e.hidden = false;
+        for (let k = 0; k < 10; k++) { const a = Math.atan2(e.x - c.px, e.z - c.pz) + (Math.random() - 0.5) * 1.6, d = 8 + Math.random() * 8, x = e.x + Math.sin(a) * d, z = e.z + Math.cos(a) * d; if (w.inside(x, z, 5) && w.heightAt(x, z) < w.waterLevel - 0.4) { e.x = x; e.z = z; break; } }
+        e.y = entities.groundY(w, e, e.x, e.z);
+      }
+      return true;
+    }
+    e.criT = (e.criT ?? 10 + Math.random() * 30) - dt;
+    if (e.criT <= 0) { e.criT = 30 + Math.random() * 50; natCri(e, 'grebe', c, 60); }
+    if (e.dist < 10 * (c.crouch ? 0.6 : 1)) { e.plonge = 8 + Math.random() * 8; natCri(e, 'plouf', c, 20); return true; }
+    return false;
+  },
+  // le bœuf des marais : il mugit au crépuscule ; approché, il se fige le bec au ciel
+  butor(e, dt, w, c) {
+    const h = typeof npcs !== 'undefined' && npcs.hour ? npcs.hour() : 12;
+    e.boumT = (e.boumT ?? 10 + Math.random() * 30) - dt;
+    if (e.boumT <= 0) { e.boumT = 30 + Math.random() * 40; if (h >= 19 || h < 6) natCri(e, 'butor', c, 180); }
+    const fige = !(e.flyT > 0) && e.dist < 13 && e.dist >= e.cfg.flee * (c.crouch ? 0.5 : 1);
+    e.rig.set('neckB', fige ? -0.35 : 0.1, 0, 0); e.rig.set('head', fige ? -1.2 : 0, 0, 0);
+    if (fige) { e.move = 0; e.state = 'idle'; e.timer = 2; return true; }
+    return false;
+  },
+  // au crépuscule, il marche, et parfois vole lourdement en bourdonnant
+  lucane(e, dt, w, c) {
+    const h = typeof npcs !== 'undefined' && npcs.hour ? npcs.hour() : 12;
+    if (!(h >= 18.5 || h < 1)) { e.hidden = true; return true; }
+    e.hidden = false;
+    if (e.vol > 0) {
+      e.vol -= dt; e.fly = 1; e.phase += dt * 20;
+      e.x += Math.sin(e.heading) * dt * 1.4; e.z += Math.cos(e.heading) * dt * 1.4; e.heading += (Math.random() - 0.5) * dt * 3;
+      e.y = w.heightAt(e.x, e.z) + Math.min(2.2, (e.vol > 1.5 ? 2.2 : e.vol * 1.4));
+      for (const q of ['wingL', 'wingR']) { const pa = e.rig.part(q); if (pa) pa.hide = false; }
+      if (e.vol <= 0) { e.fly = 0; e.y = w.heightAt(e.x, e.z); for (const q of ['wingL', 'wingR']) { const pa = e.rig.part(q); if (pa) pa.hide = true; } }
+      return true;
+    }
+    if (Math.random() < dt * 0.03) { e.vol = 3 + Math.random() * 4; natCri(e, 'lucane', c, 18); }
+    return false;
+  },
+  // immobile ; elle tourne la tête pour vous suivre ; de tout près, elle lève les bras
+  mante(e, dt, w, c) {
+    e.move = 0; e.state = 'idle'; e.timer = 5;
+    const a = angDiff(e.heading, Math.atan2(c.px - e.x, c.pz - e.z));
+    e.lookY = clamp(a, -0.9, 0.9); // (poseQuad tourne le cou)
+    const haut = e.dist < 1.2;
+    e.rig.set('bras-1', haut ? -0.4 : 0.9, 0, 0); e.rig.set('bras1', haut ? -0.4 : 0.9, 0, 0);
+    return true;
+  },
+};
+{
+  const _uw = entities.updateWalker.bind(entities);
+  entities.updateWalker = function (e, dt, w, c) {
+    const B = e.cfg.nat && NAT_COMPORTE[e.cfg.nat];
+    if (B && !e.owner) { try { if (B(e, dt, w, c)) return; } catch (err) { console.error(err); } }
+    _uw(e, dt, w, c);
+  };
+  const _ub = entities.updateBird.bind(entities);
+  entities.updateBird = function (e, dt, w, c) {
+    const k = e.cfg.nat;
+    if (k === 'papillon') return nature2.volPapillon(e, dt, w, c);
+    _ub(e, dt, w, c);
+    if (k === 'grand_corbeau' && !e.hidden) { e.criT = (e.criT ?? 10 + Math.random() * 30) - dt; if (e.criT <= 0) { e.criT = 25 + Math.random() * 40; natCri(e, 'corbeau', c, 140); } }
+    if (k === 'grue' && !e.hidden && e === (e.pack0 || e)) { e.criT = (e.criT ?? 5 + Math.random() * 20) - dt; if (e.criT <= 0) { e.criT = 15 + Math.random() * 25; natCri(e, 'grue', c, 260); } }
+  };
+}
+// Au dessin : l'ombre des bêtes nouvelles est à leur taille (l'ombre commune fait au moins 40 cm de large : elle
+// trahirait un lézard de loin), et seulement quand elles touchent le sol (pas sous un pic accroché au tronc, ni sous
+// l'alouette qui monte) ; les grands oiseaux battent des ailes lentement, et planent (rig.lent = [vitesse, ampleur]).
+{
+  const MIENNES = [];
+  for (const [kind] of NAT_BETES) { const C = CREATURES[kind]; if (C && !C.fly) { C.ombreNat = C.radius <= 0.12 ? C.radius * 1.3 : Math.max(0.2, C.radius * 1.1); MIENNES.push(C); } }
+  const _draw = entities.draw.bind(entities);
+  entities.draw = function (buf, sbuf, cam, maxD, t, flags) {
+    for (const C of MIENNES) C.fly = true; // (dans le dessin, « fly » ne sert qu'à taire l'ombre commune)
+    try { _draw(buf, sbuf, cam, maxD, t, flags); } finally { for (const C of MIENNES) delete C.fly; }
+    const w = game.world;
+    if (!sbuf || !w) return;
+    const m2 = maxD * maxD;
+    for (const e of this.list) {
+      if (!e.cfg.ombreNat || e.hidden || e.far || e.dead || e.corpse || e.removed || !e.rig) continue;
+      const dx = e.x - cam[0], dz = e.z - cam[2];
+      if (dx * dx + dz * dz < m2 && e.y < w.heightAt(e.x, e.z) + 0.3) drawShadow(sbuf, e.x, e.y, e.z, e.cfg.ombreNat * (e.scale || 1));
+    }
+  };
+  const _pb = poseBird;
+  poseBird = function (rig, st) {
+    _pb(rig, st);
+    if (rig.papillon) { // posé, les ailes levées s'ouvrent et se ferment lentement ; les ailes de derrière suivent
+      if (!(st.fly > 0)) { const bat = -0.5 - Math.sin(st.t * 2.5 + (st.seed || 0)) * 0.35; rig.set('wingL', 0, 0, bat); rig.set('wingR', 0, 0, -bat); }
+      const a = rig.parts[rig.idx.wingL].r[2]; rig.set('basL', 0, 0, a * 0.85); rig.set('basR', 0, 0, -a * 0.85);
+      return;
+    }
+    if (!rig.lent) return;
+    const vol = st.fly > 0, V = rig.vol;
+    if (V) { rig.set('neckB', vol ? V[0] : V[3], 0, 0); if (vol) { rig.set('neck', V[1], 0, 0); rig.set('legFL', V[2], 0, 0); rig.set('legFR', V[2], 0, 0); } }
+    if (!vol) return;
+    const ph = st.t * rig.lent[0] + (st.seed || 0), k = clamp((Math.sin(ph * 0.13) - 0.1) * 3, 0, 1), a = Math.sin(ph) * rig.lent[1] * (1 - k) + 0.06 * k;
+    rig.set('wingL', 0, 0, a); rig.set('wingR', 0, 0, -a);
+  };
+}
+
+// ============================================================================
+//  LE MODULE
+// ============================================================================
+// LE PAPILLON D'OR : très rare (voir tools/equilibrage/nature.js, qui mesure sa fréquence avec ces fonctions) :
+// seulement le jour (9 h - 17 h), par beau temps, dehors, dans les prés, la lande et les alpages, jamais avant le
+// cinquième jour ni à moins de six jours du précédent ; alors, une chance sur cent par heure de jeu qu'il paraisse,
+// à quelques dizaines de pas. Le joueur typique le voit ainsi une fois tous les quarante jours environ, celui qui le
+// cherche toutes les trois semaines (la mesure). Il vit quelques minutes, fuit qui s'approche trop vite, et s'en va
+// pour de bon s'il a eu trop peur. On le prend au filet, accroupi, ou posé sur une fleur.
+const PAPILLON = { heure: 0.01, h0: 9, h1: 17, jour0: 5, ecart: 6, vie: [200, 320], milieux: ['pres', 'lande', 'alpage'] };
+const nature2 = {
+  S() {
+    const s = farm.s;
+    if (!s) return null;
+    const N = s.nature2 && typeof s.nature2 === 'object' ? s.nature2 : (s.nature2 = {});
+    if (!N.v) N.v = 1;
+    if (!N.pap || typeof N.pap !== 'object') N.pap = { vus: 0, pris: 0, dernier: -99 };
+    return N;
+  },
+  // ------------------------------------------------------------ le papillon d'or : quand peut-il paraître ?
+  // (jour, heure, état du ciel, milieu, dernier vu) -> vrai ou faux ; les mêmes règles servent à la mesure
+  papillonPossible(jour, heure, ciel, milieu, dernier) {
+    if (jour < PAPILLON.jour0 || jour - dernier < PAPILLON.ecart) return false;
+    if (heure < PAPILLON.h0 || heure >= PAPILLON.h1) return false;
+    if (!['clear', 'cloudy', 'heat'].includes(ciel)) return false;
+    return PAPILLON.milieux.includes(milieu);
+  },
+  chanceHeure() { return PAPILLON.heure; },
+  papT: 5, pap: null,
+  majPapillon(dt) {
+    const s = farm.s, w = game.world, p = game.player;
+    if (!s || !w || game.mode !== 'play' || game.dying || game.sleeping) return;
+    this.papT -= dt;
+    if (this.papT > 0) return;
+    this.papT = 10;
+    if (this.pap && !this.pap.removed) return;
+    this.pap = null;
+    if (p.underground || p.riding || strange.inEnvers() || (typeof mondes !== 'undefined' && mondes.cur)) return;
+    if (weather.cur.rain > 0.05 || weather.cur.fog > 0.4 || (typeof vallee !== 'undefined' && vallee.snowK > 0.05)) return;
+    if (w.covered(p.pos[0], p.pos[1] + 1.5, p.pos[2])) return;
+    const N = this.S(), h = w.time * 24;
+    if (!this.papillonPossible(s.day, h, weather.state, typeof milieuAt === 'function' ? milieuAt(w, p.pos[0], p.pos[2]) : 'pres', N.pap.dernier)) return;
+    // dix secondes réelles : une fraction d'heure de jeu
+    const k = 10 / (JOUR_SECONDES / 24);
+    if (Math.random() >= 1 - Math.pow(1 - this.chanceHeure(), k)) return;
+    this.apparaitre();
+  },
+  apparaitre(x, z) {
+    const w = game.world, p = game.player, N = this.S();
+    if (x === undefined) {
+      for (let k = 0; k < 12; k++) {
+        const a = Math.random() * TAU, d = 14 + Math.random() * 16, tx = p.pos[0] + Math.sin(a) * d, tz = p.pos[2] + Math.cos(a) * d;
+        if (!w.inside(tx, tz, 10) || w.heightAt(tx, tz) < w.waterLevel + 0.3 || w.covered(tx, w.heightAt(tx, tz) + 1, tz)) continue;
+        x = tx; z = tz; break;
+      }
+      if (x === undefined) return null;
+    }
+    const sol = w.heightAt(x, z);
+    const e = entities.add(w, 'papillon_or', x, z, { hx: x, hz: z });
+    Object.assign(e, { y: sol + 0.8, sol, fly: 1, vie: lerp(PAPILLON.vie[0], PAPILLON.vie[1], Math.random()), peur: 0, cible: null, cibleT: 0, pose: 0, part: 0, flyA: 0, flyR: 0 });
+    this.pap = e;
+    N.pap.vus++; N.pap.dernier = farm.s.day;
+    if (typeof savoir !== 'undefined') savoir.voir('papillon_or');
+    return e;
+  },
+  // son vol : une danse erratique autour des fleurs ; il se pose parfois ; il fuit qui s'approche trop vite
+  volPapillon(e, dt, w, c) {
+    e.hidden = false;
+    const sol = w.heightAt(e.x, e.z);
+    if (e.part > 0) { // il s'en va, pour de bon
+      e.part -= dt; e.fly = 1; e.y += dt * 2.2; e.x += Math.sin(e.heading) * dt * 3; e.z += Math.cos(e.heading) * dt * 3;
+      if (e.part <= 0) { entities.remove(e); if (this.pap === e) this.pap = null; }
+      return;
+    }
+    e.vie -= dt;
+    if (e.vie <= 0 || c.night > 0.45 || c.rain > 0.2) { e.part = 8; e.heading = Math.random() * TAU; return; }
+    const alerte = c.crouch ? 1.9 : c.sprint ? 7 : 3.8;
+    if (e.dist < alerte && !(e.fuite > 0)) this.fuir(e, c.px, c.pz);
+    if (e.part > 0) return;
+    e.fuite = Math.max(0, (e.fuite || 0) - dt);
+    if (e.pose > 0) { // posé sur une fleur (les ailes : au dessin, poseBird)
+      e.pose -= dt; e.fly = 0; e.y = sol + 0.28;
+      return;
+    }
+    e.fly = 1;
+    e.cibleT -= dt;
+    if (!e.cible || e.cibleT <= 0) {
+      const r = e.fuite > 0 ? 2.5 : 1.6;
+      e.cible = [e.hx + (Math.random() - 0.5) * r * 2, sol + (e.fuite > 0 ? 1.5 + Math.random() * 1.5 : 0.35 + Math.random() * 1.1), e.hz + (Math.random() - 0.5) * r * 2];
+      e.cibleT = 0.5 + Math.random() * 1.1;
+      if (!(e.fuite > 0) && Math.random() < 0.12) e.pose = 2 + Math.random() * 4;
+      // le centre de sa danse dérive doucement
+      if (!(e.fuite > 0)) { e.hx += (Math.random() - 0.5) * 2; e.hz += (Math.random() - 0.5) * 2; }
+    }
+    const [tx, ty, tz] = e.cible, dx = tx - e.x, dy = ty - e.y, dz = tz - e.z, d = Math.hypot(dx, dy, dz) || 1;
+    const v = (e.fuite > 0 ? 3.2 : 1.3) * dt;
+    e.x += dx / d * Math.min(v, d) + (Math.random() - 0.5) * dt * 0.8;
+    e.z += dz / d * Math.min(v, d) + (Math.random() - 0.5) * dt * 0.8;
+    e.y = Math.max(sol + 0.2, e.y + dy / d * Math.min(v, d) + Math.sin(c.t * 9 + e.seed) * dt * 0.5);
+    e.heading = turnToward(e.heading, Math.atan2(dx, dz), dt * 8);
+  },
+  fuir(e, px, pz) {
+    e.fuite = 3; e.peur = (e.peur || 0) + 1; e.pose = 0;
+    const a = Math.atan2(e.x - px, e.z - pz) + (Math.random() - 0.5) * 1.2, d = 7 + Math.random() * 7;
+    e.hx = e.x + Math.sin(a) * d; e.hz = e.z + Math.cos(a) * d; e.cible = null;
+    if (e.peur > 4) { e.part = 10; e.heading = a; }
+  },
+  // ------------------------------------------------------------ le filet à papillons
+  PRISES: { papillon_or: 'papillon_or', lucane: 'lucane', mante: 'mante' },
+  cibleFilet(eye, f) {
+    let best = null, bd = 2.7;
+    for (const e of entities.list) {
+      if (e.dead || e.hidden || e.removed || !this.PRISES[e.kind]) continue;
+      const dx = e.x - eye[0], dy = e.y + 0.05 - eye[1], dz = e.z - eye[2], d = Math.hypot(dx, dy, dz);
+      if (d > bd) continue;
+      if ((dx * f[0] + dy * f[1] + dz * f[2]) / (d || 1) < 0.82) continue;
+      best = e; bd = d;
+    }
+    return best;
+  },
+  coupFilet(eye, basis) {
+    const p = game.player, e = this.cibleFilet(eye, basis.f);
+    play.swingT = 0.42; play.cool = 0.7;
+    sound.natCri && sound.natCri('filet', 0, 1);
+    if (!e) return;
+    const accroupi = p.crouch > 0.5;
+    const chance = e.kind === 'papillon_or' ? (e.pose > 0 ? 0.92 : accroupi ? 0.72 : 0.45) : 0.9;
+    if (Math.random() >= chance) { if (e.kind === 'papillon_or') this.fuir(e, p.pos[0], p.pos[2]); return; }
+    const id = this.PRISES[e.kind];
+    farm.give(id, 1); play.flyer(id, [e.x, e.y, e.z], 1);
+    entities.remove(e);
+    if (e === this.pap) { this.pap = null; this.S().pap.pris++; }
+    sound.pop && sound.pop();
+  },
+};
+// le filet : on le fabrique (un manche et des fibres, ou du bois), ou on l'achète à la colporteuse
+RECIPES.push({ out: 'filet_papillons', n: 1, need: { manche: 1, fibre: 6 }, st: null }, { out: 'filet_papillons', n: 1, need: { bois: 2, fibre: 8 }, st: null });
+HAND_GROUPS[4].push('filet_papillons');
+if (typeof HOTTES !== 'undefined' && HOTTES.colporteuse && !HOTTES.colporteuse.fonds.includes('filet_papillons')) HOTTES.colporteuse.fonds.push('filet_papillons');
+HOOKS.primary.push((eye, basis, held, it, id) => {
+  if (!it || it.tool !== 'filet') return false;
+  if (!held) nature2.coupFilet(eye, basis);
+  return true;
+});
+HOOKS.update.push((dt) => { try { nature2.majPapillon(dt); } catch (e) { console.error(e); } });
+// (rechargement d'une partie : le papillon d'une autre vie ne revient pas)
+HOOKS.load.push(() => { nature2.pap = null; nature2.papT = 5; });
+
+// les herbes des plaies : on les applique même le ventre plein, si l'on saigne
+HOOKS.primary.push((eye, basis, held, it, id) => {
+  if (held || !it || !it.panse || !corps.saignement()) return false;
+  if (!farm.take(id, 1)) return false;
+  const C = corps.C();
+  C.saigne = it.panse >= 2 ? 0 : C.saigne * 0.35;
+  sound.equip && sound.equip();
+  play.cool = 0.8;
+  return true;
+});
+HOOKS.load.push(() => {
+  nature2.S();
+  if (nature2.branche) return;
+  nature2.branche = true;
+  // l'icône d'un meuble fin : son modèle, dans son bois
+  if (typeof ICON3D !== 'undefined' && ICON3D.boxesFor) {
+    const _bf = ICON3D.boxesFor.bind(ICON3D);
+    ICON3D.boxesFor = function (id) { const it = ITEMS[id]; nature2.finIcone = (it && it.fin) || null; try { return _bf(id); } finally { nature2.finIcone = null; } };
+  }
+});
 
 // ---- 11-zzzzA-commandes.js
 // ============================================================================
