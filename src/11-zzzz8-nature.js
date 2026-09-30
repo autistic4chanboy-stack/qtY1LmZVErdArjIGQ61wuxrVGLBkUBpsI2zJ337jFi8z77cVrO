@@ -171,6 +171,85 @@ if (typeof LIVRES !== 'undefined' && LIVRES.manuel_cuisine) for (const id of ['s
 }
 
 // ============================================================================
+//  LES BOIS : chaque arbre donne le sien (05-zzzz-nature.js : NAT_BOIS) ; la souche
+//  d'un arbre abattu aussi. Recettes à eux : manches, arc d'if, bâton de houx,
+//  meubles fins.
+// ============================================================================
+// la souche d'un arbre abattu donne le bois de cet arbre (les souches d'origine : des bûches)
+{
+  const _collect = play.collect.bind(play);
+  play.collect = function (o, idx, H, p) {
+    if (o && o.fromStump !== undefined && H && H.drop) {
+      const w = game.world, src = w && w.objects[o.fromStump], T = src && OBJ_TYPES[src.t], bois = T && NAT_BOIS_DE[T.id];
+      if (bois) H = Object.assign({}, H, { drop: H.drop.map((d) => (d[0] === 'bois' ? [bois].concat(d.slice(1)) : d)) });
+    }
+    return _collect(o, idx, H, p);
+  };
+}
+RECIPES.push(
+  { out: 'manche', n: 2, need: { bois_dur: 2 }, st: 'etabli' },
+  { out: 'arc_if', n: 1, need: { bois_if: 4, corde: 2, cuir: 1 }, st: 'etabli' },
+  { out: 'baton_houx', n: 1, need: { bois_houx: 3 }, st: null },
+  { out: 'commode_noyer', n: 1, need: { bois_noyer: 10, clous: 2, lingot_cuivre: 1 }, st: 'etabli' },
+  { out: 'armoire_chene', n: 1, need: { bois_chene: 16, clous: 3 }, st: 'etabli' },
+  { out: 'table_merisier', n: 1, need: { bois_merisier: 8, clous: 2 }, st: 'etabli' },
+  { out: 'lit_noyer', n: 1, need: { bois_noyer: 10, toile: 3, laine: 2 }, st: 'etabli' },
+);
+HAND_GROUPS[4].splice(HAND_GROUPS[4].indexOf('arc_long'), 0, 'arc_if');
+HAND_GROUPS[8].push('baton_houx');
+if (typeof LIVRES !== 'undefined') {
+  const apprend = (livre, L) => { if (LIVRES[livre] && LIVRES[livre].recettes) for (const id of L) if (!LIVRES[livre].recettes.includes(id)) LIVRES[livre].recettes.push(id); };
+  apprend('manuel_menuisier', ['manche', 'commode_noyer', 'armoire_chene', 'table_merisier', 'lit_noyer']);
+  apprend('manuel_chasse', ['arc_if']);
+}
+if (typeof fabrication !== 'undefined' && fabrication.LECONS && fabrication.LECONS.chasseur) fabrication.LECONS.chasseur.push(['arc_if', 6, 90]);
+// les meubles fins : le même meuble (tout ce qui le concerne marche pareil), d'un bois qui se voit
+const NAT_TEINTES = { noyer: [0.56, 0.44, 0.38], chene: [0.8, 0.7, 0.56], merisier: [1.0, 0.7, 0.6], hetre: [1.08, 1.0, 0.86] };
+const NAT_FINS = {}; // « commode:noyer » -> objet
+for (const id in ITEMS) { const it = ITEMS[id]; if (it.fin && it.place) NAT_FINS[it.place + ':' + it.fin] = id; }
+{
+  const teinter = (E, c) => {
+    const T = Object.create(E);
+    const w = (col, code) => (col === WHITE && (code === TL.wood || code === TL.darkwood) ? c : col);
+    T.bx = (cx, y0, cz, sx, sy, sz, col, code, ry, rx, rz) => E.bx(cx, y0, cz, sx, sy, sz, w(col, code), code, ry, rx, rz);
+    T.box = (cx, cy, cz, sx, sy, sz, col, code, ry, rx, rz) => E.box(cx, cy, cz, sx, sy, sz, w(col, code), code, ry, rx, rz);
+    return T;
+  };
+  for (const base of new Set(Object.keys(NAT_FINS).map((k) => k.split(':')[0]))) {
+    const _m = PROP_MODELS[base];
+    if (!_m) continue;
+    PROP_MODELS[base] = function (E, o, t) {
+      const fin = (o && o.data && o.data.fin) || nature2.finIcone, c = fin && NAT_TEINTES[fin];
+      return _m.call(this, c ? teinter(E, c) : E, o, t);
+    };
+  }
+  if (typeof meubles !== 'undefined') {
+    // posé : le bois du meuble reste dans ses données ; repris : on retrouve le meuble fin
+    const _dp = meubles.dataPose.bind(meubles);
+    meubles.dataPose = function (id) {
+      const d = _dp(id), it = ITEMS[farm.s && farm.s.hand];
+      if (!it || !it.fin || it.place !== id) return d;
+      return Object.assign(d || {}, { fin: it.fin });
+    };
+    const _rep = meubles.reprendre.bind(meubles);
+    meubles.reprendre = function (q) {
+      const fin = q && q.data && q.data.fin, id = q && q.id, fid = fin && NAT_FINS[id + ':' + fin];
+      const r = _rep(q);
+      if (r && fid && farm.take(id, 1)) { farm.give(fid, 1); play.select(fid); }
+      return r;
+    };
+  }
+}
+// le bâton de houx, en main : on grimpe un peu plus raide (les réglages d'avant reviennent quand on le range)
+HOOKS.update.push(() => {
+  if (!farm.s || typeof corps === 'undefined') return;
+  const on = farm.s.hand === 'baton_houx';
+  if (on === !!nature2.pente0) return;
+  if (on) { nature2.pente0 = [corps.PENTE_MAX, corps.PENTE_GLISSE]; corps.PENTE_MAX *= 1.1; corps.PENTE_GLISSE *= 1.07; }
+  else { [corps.PENTE_MAX, corps.PENTE_GLISSE] = nature2.pente0; nature2.pente0 = null; }
+});
+
+// ============================================================================
 //  LE MODULE
 // ============================================================================
 const nature2 = {
@@ -193,4 +272,13 @@ HOOKS.primary.push((eye, basis, held, it, id) => {
   play.cool = 0.8;
   return true;
 });
-HOOKS.load.push(() => { nature2.S(); });
+HOOKS.load.push(() => {
+  nature2.S();
+  if (nature2.branche) return;
+  nature2.branche = true;
+  // l'icône d'un meuble fin : son modèle, dans son bois
+  if (typeof ICON3D !== 'undefined' && ICON3D.boxesFor) {
+    const _bf = ICON3D.boxesFor.bind(ICON3D);
+    ICON3D.boxesFor = function (id) { const it = ITEMS[id]; nature2.finIcone = (it && it.fin) || null; try { return _bf(id); } finally { nature2.finIcone = null; } };
+  }
+});

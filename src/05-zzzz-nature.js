@@ -61,7 +61,7 @@ for (const [obj, id, name, pr, ic, fx, desc, n] of NAT_FLEURS.concat(NAT_AUTRES)
 }
 // la lavande et le tournesol sauvages donnent la lavande et le tournesol ; le buisson à baies, des myrtilles
 HARVEST.lavender.drop = [['lavande', 1, 2]].concat(HARVEST.lavender.drop.filter(([k]) => k !== 'fleur' && k !== 'herbes'));
-HARVEST.sunflower.drop = [['tournesol', 1, 1]].concat(HARVEST.sunflower.drop.filter(([k]) => k !== 'fleur'));
+HARVEST.sunflower.drop = [['tournesol', 1, 1, 0.45]].concat(HARVEST.sunflower.drop.filter(([k]) => k !== 'fleur'));
 HARVEST.berry.drop = [['myrtille', 1, 3]].concat(HARVEST.berry.drop.filter(([k]) => k !== 'baies'));
 if (ITEMS.lavande && !ITEMS.lavande.heal) Object.assign(ITEMS.lavande, { heal: 1, desc: ITEMS.lavande.desc || 'Elle parfume le linge et chasse les mites. En tisane, elle calme.' });
 // les fleurs en plus sur la digitale, l'églantier et le sureau : ce sont leurs propres fruits et fleurs, maintenant
@@ -96,6 +96,57 @@ natItem('airelle', 'Airelles', 1, ['c2_baie', '#d02030', '#3a6a2a'], { food: 3, 
   GROUP_NAMES.champi_bon = 'champignons comestibles (au choix)';
 }
 
+// ---------------------------------------------------------------- les bois : un par essence d'arbre
+// [objet, nom, écorce, cœur, description, arbres qui le donnent]
+const NAT_BOIS = [
+  ['bois_sapin', 'Bois de sapin', '#5a4a3a', '#ecd8b0', 'Léger et droit : des planches, des poutres, des cercueils.', ['sapin', 'sapin_neige']],
+  ['bois_pin', 'Bois de pin', '#7a5238', '#e0b878', 'Résineux, il colle aux doigts et flambe d’un coup.', ['pine']],
+  ['bois_peuplier', 'Bois de peuplier', '#9a9a8a', '#f0e8d0', 'Blanc, léger, sans force. De bonnes caisses, de mauvaises poutres.', ['peuplier']],
+  ['bois_bouleau', 'Bois de bouleau', '#e8e4dc', '#e0cca0', 'L’écorce blanche brûle même mouillée.', ['birch']],
+  ['bois_aulne', 'Bois d’aulne', '#5a5048', '#e0a070', 'Coupé, il rougit en quelques minutes, comme s’il saignait. Sous l’eau, il dure toujours.', ['aulne']],
+  ['bois_hetre', 'Bois de hêtre', '#8a8a82', '#d8b890', 'Pâle, serré, sans nœuds. Les sabotiers et les tourneurs ne jurent que par lui.', ['hetre']],
+  ['bois_chataignier', 'Bois de châtaignier', '#5a4030', '#c8a068', 'Il fend droit ; un piquet de châtaignier tient trente ans en terre.', ['chataignier']],
+  ['bois_chene', 'Bois de chêne', '#5a4632', '#b08a5a', 'Dur, lourd, et qui sent le tanin. Une charpente de chêne passe les siècles.', ['oak', 'giantoak']],
+  ['bois_erable', 'Bois d’érable', '#7a6a58', '#f0dcb8', 'Clair et dur. Les tables de cuisine, les manches, les violons.', ['erable']],
+  ['bois_saule', 'Bois de saule', '#6a6048', '#e8d8b8', 'Tendre et souple. L’écorce, en tisane, fait tomber la fièvre.', ['saule']],
+  ['bois_meleze', 'Bois de mélèze', '#7a4a30', '#d89a68', 'Rouge et gras de résine : il ne pourrit pas sous la pluie.', ['meleze']],
+  ['bois_tilleul', 'Bois de tilleul', '#8a7a62', '#f0e0b8', 'Doux sous le couteau : les sculpteurs de saints n’en veulent pas d’autre.', ['tilleul']],
+  ['bois_mort', 'Bois mort', '#5a5048', '#a09078', 'Sec et gris, rongé de galeries. Il brûle bien, et vite.', ['deadtree']],
+  ['bois_pommier', 'Bois de pommier', '#6a5040', '#d8a878', 'Dur et rosé. Il fait de bons manches, et sa fumée parfume les jambons.', ['apple']],
+  ['bois_poirier', 'Bois de poirier', '#6a5448', '#d0a080', 'Si fin qu’on y grave les planches des imprimeurs.', ['poirier']],
+  ['bois_prunier', 'Bois de prunier', '#5a4040', '#b87058', 'Veiné de violet, capricieux. Pour les petits objets.', ['prunier']],
+  ['bois_merisier', 'Bois de merisier', '#6a3a30', '#c07a58', 'Le bois du cerisier : rose au sciage, il rougit avec les années.', ['cerisier']],
+  ['bois_noyer', 'Bois de noyer', '#4a3a2e', '#7a5438', 'Brun, veiné de noir. Les beaux meubles, les crosses de fusil.', ['noyer']],
+  ['bois_if', 'Bois d’if', '#6a3a28', '#c86a40', 'Rouge au cœur, blanc sous l’écorce. L’arbre des cimetières ; ses arcs ne rompent pas.', ['if']],
+  ['bois_houx', 'Bois de houx', '#6a7a5a', '#f4f0e0', 'Blanc comme l’os, dur comme la corne.', ['houx']],
+  ['bois_foudre', 'Bois foudroyé', '#2a2420', '#6a5040', 'Noirci d’un côté, fendu jusqu’au cœur. On en garde un éclat sur soi, dit-on, et la foudre passe.', ['foudroye']],
+];
+const NAT_BOIS_DE = {}; // arbre -> son bois
+for (const [id, name, ecorce, coeur, desc, arbres] of NAT_BOIS) {
+  defItem(id, name, 'materiau', 0, ['n2_buche', ecorce, coeur], { desc, bois: true });
+  for (const a of arbres) {
+    NAT_BOIS_DE[a] = id;
+    const H = HARVEST[a];
+    if (H && H.drop) H.drop = H.drop.map((d) => (d[0] === 'bois' ? [id].concat(d.slice(1)) : d));
+  }
+}
+defItem('coeur_chene', 'Cœur de chêne', 'materiau', 20, ['n2_buche', '#3a2a1a', '#e0c080'], { desc: 'Le cœur du vieux chêne, dur comme la pierre, veiné d’or. Il sent encore la sève, après mille ans.', bois: true });
+if (HARVEST.giantoak) HARVEST.giantoak.drop.push(['coeur_chene', 1, 1]);
+// « bois (au choix) » : l'ancienne bûche d'abord, les bois communs, puis les bois fins (une recette les prend en dernier)
+ITEM_GROUPS.bois = ['bois'].concat(NAT_BOIS.map((b) => b[0]));
+GROUP_NAMES.bois = 'bois (au choix)';
+ITEM_GROUPS.bois_dur = ['bois_hetre', 'bois_erable', 'bois_chene', 'bois_pommier', 'bois_poirier', 'bois_chataignier', 'bois_prunier', 'bois_houx', 'bois_merisier', 'bois_noyer'];
+GROUP_NAMES.bois_dur = 'bois dur (au choix : hêtre, érable, chêne, bois fruitier…)';
+// les outils et les ouvrages des bois
+defItem('manche', 'Manche d’outil', 'materiau', 1, ['n2_manche', '#c8a070'], { desc: 'Un manche droit, poli à la main, dans un bois dur.' });
+defItem('arc_if', 'Arc d’if', 'outil', 320, ['arc', '#8a3a24'], { tool: 'arc', power: 1.7, desc: 'Taillé dans un seul bâton d’if, le cœur rouge dedans, l’aubier blanc dehors. Il tire loin, et fort.' });
+defItem('baton_houx', 'Bâton de houx', 'outil', 40, ['n2_baton', '#e8e4d0'], { tool: 'baton', desc: 'Un bâton blanc et dur, à hauteur d’épaule. En main, on grimpe les pentes un peu plus raides.' });
+// meubles fins (ils se posent comme les autres, d'un bois qui se voit)
+defItem('commode_noyer', 'Commode de noyer', 'objet', 14, ['objet', 'commode'], { place: 'commode', fin: 'noyer', desc: 'Trois tiroirs à poignées de laiton, dans un noyer sombre et veiné.' });
+defItem('armoire_chene', 'Armoire de chêne', 'objet', 10, ['objet', 'armoire'], { place: 'armoire', fin: 'chene', desc: 'Une armoire de chêne massif, lourde comme une maison. Elle survivra à tout le monde.' });
+defItem('table_merisier', 'Table de merisier', 'objet', 6, ['objet', 'table'], { place: 'table', fin: 'merisier', desc: 'Une table de merisier, rose le jour, rouge à la chandelle.' });
+defItem('lit_noyer', 'Lit de noyer', 'objet', 16, ['objet', 'lit'], { place: 'lit', fin: 'noyer', desc: 'Un lit de noyer à haut chevet. Posé chez vous, on y dort.' });
+
 // ---------------------------------------------------------------- les essences (alchimie) des objets nouveaux ou oubliés
 Object.assign(ESSENCES, {
   coquelicot: { sang: 1, ombre: 1 }, marguerite: { lumiere: 1, vie: 1 }, bleuet: { eau: 1, lumiere: 1 }, bruyere: { terre: 1, air: 1 }, jacinthe: { ombre: 1, eau: 1 },
@@ -105,5 +156,10 @@ Object.assign(ESSENCES, {
   prunelle: { froid: 1, sang: 1 }, fougere: { ombre: 2, sort: 1 }, roseau: { eau: 1, air: 1 }, nenuphar: { eau: 2, ombre: 1 }, armillaire: { terre: 1, mort: 1 },
   mure: { sang: 1, vie: 1 }, fraise_bois: { vie: 1, sang: 1 }, airelle: { froid: 1, sang: 1 }, myrtille: { vie: 1, ombre: 1 }, tournesol: { lumiere: 2, feu: 1 },
   noix: { terre: 1, esprit: 1 }, pomme: { vie: 1, terre: 1 }, poire: { vie: 1, eau: 1 }, cerise: { sang: 1, vie: 1 }, prune: { ombre: 1, vie: 1 }, chataigne: { terre: 2 },
+  // quelques bois ont leur place sur la table d'alchimiste
+  bois_if: { mort: 2, esprit: 1 }, bois_houx: { vie: 1, froid: 1 }, bois_foudre: { feu: 2, air: 1, lumiere: 2 }, bois_noyer: { ombre: 1, esprit: 1 },
+  bois_aulne: { eau: 1, sang: 1 }, bois_saule: { eau: 1, ombre: 1 }, bois_bouleau: { lumiere: 1, vie: 1 }, bois_mort: { mort: 1, air: 1 }, bois_tilleul: { esprit: 1, vie: 1 },
+  coeur_chene: { terre: 3, vie: 2, esprit: 2 },
 });
+// (les bois vont sur la table d'alchimiste, qui lit ESSENCES, mais pas dans l'alambic)
 for (const id of Object.keys(ESSENCES)) if (ITEMS[id] && ITEMS[id].cat === 'cueillette') ITEMS[id].alch = true;
