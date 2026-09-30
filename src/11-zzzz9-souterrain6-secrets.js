@@ -225,9 +225,16 @@ const soutSecrets = {
     this.gT = (this.gT || 0) - dt;
     if (this.gT > 0) return;
     this.gT = 0.5 + Math.random() * 1.6;
-    const p = game.player, k = souterrain._salle;
+    const p = game.player, k = souterrain._salle, S = souterrain;
     if (k === 'dormeurs' || k === 'orgues') sound.drip && sound.drip();
-    void p;
+    else if (Math.random() < 0.18) sound.drip && sound.drip(); // ailleurs, une goutte de temps en temps
+    // l'eau d'en bas, tout près : un clapotis
+    if (sound.ok && Math.random() < 0.5) {
+      for (let a = 0; a < 6; a++) {
+        const b = a / 6 * TAU + Math.random(), x = p.pos[0] + Math.cos(b) * 9, z = p.pos[2] + Math.sin(b) * 9;
+        if (S.floorAt(x, z) < SOUT_WL - 0.4 && S.ouvert(x, z, 1)) { const t = sound.at(), pan = sound.pan(clamp(angDiff(p.yaw + Math.PI, b) / -1.6, -1, 1), sound.amb); sound.noiseHit(t, 0.7, 'lowpass', 420, 0.6, 0.025, pan, 260); break; }
+      }
+    }
   },
 };
 HOOKS.inter.sout_dormeur = (it) => soutSecrets.dormeur(it);

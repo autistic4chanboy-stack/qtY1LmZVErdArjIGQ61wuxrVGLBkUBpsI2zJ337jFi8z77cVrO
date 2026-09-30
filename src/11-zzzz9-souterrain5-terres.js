@@ -497,6 +497,7 @@ const soutTerres = {
     // le bruit : courir, tirer (voir souterrain.bruits)
     const br = souterrain.bruitRecent ? souterrain.bruitRecent(3) : 0;
     if (br >= 2.5 && dv < 45) this.colere = Math.max(this.colere || 0, 40);
+    else if (br >= 1.2 && dv < 28 && !(this.colere > 0)) { this.colere = 12; const q = this.list.find((e) => !e.mort && e.k !== 'di' && e.dist < 20); if (q && this.cris <= 0) { this.cris = 6; this.dire(q, 'Tsi !', 'tsi', 1.8); } }
     this.colere = Math.max(0, (this.colere || 0) - dt);
     this.cris = Math.max(0, this.cris - dt);
     for (const e of this.list) {

@@ -198,6 +198,46 @@ const soutMarques = {
     }
   },
 };
+// ---------------------------------------------------------------- le nom du lieu, quand on y entre (pas de carte : c'est tout ce qu'on a)
+const soutLieu = {
+  el: null, der: null, t: 0,
+  montrer(nom) {
+    if (!this.el) {
+      const st = document.createElement('style');
+      st.textContent = '#sout-lieu{position:fixed;left:0;right:0;top:17%;text-align:center;pointer-events:none;font:italic 22px Georgia,serif;letter-spacing:.06em;color:rgba(222,212,190,.9);text-shadow:0 0 8px #000,0 0 3px #000;opacity:0;transition:opacity 1.2s;z-index:5}#sout-lieu.on{opacity:1}';
+      document.head.appendChild(st);
+      this.el = document.createElement('div'); this.el.id = 'sout-lieu'; document.body.appendChild(this.el);
+    }
+    this.el.textContent = nom.charAt(0).toUpperCase() + nom.slice(1);
+    this.el.classList.add('on');
+    clearTimeout(this.to); this.to = setTimeout(() => this.el && this.el.classList.remove('on'), 3200);
+  },
+  update(dt) {
+    const S = souterrain;
+    if (!S.actif || !farm.s) { this.der = null; return; }
+    this.t -= dt;
+    if (this.t > 0) return;
+    this.t = 0.6;
+    const p = game.player;
+    let k = S.salleIci(p.pos[0], p.pos[2]);
+    if (!k) { const z = S.zone(p.pos[0], p.pos[2]); if (z === 'mines' || z === 'riviere') k = z; }
+    if (!k || k === this.der) return;
+    const nom = k === 'hameau' ? LIEU_NAMES.sout_hameau_c : SOUT_ZONES[k];
+    this.der = k;
+    if (nom && game.mode === 'play') this.montrer(nom);
+  },
+};
+HOOKS.update.push((dt) => soutLieu.update(dt));
+HOOKS.load.push(() => { soutLieu.der = null; });
+// ---------------------------------------------------------------- le jour, par la cheminée des Racines (la fougère pâle y pousse)
+HOOKS.lights.push((eye) => {
+  if (!souterrain.actif || !farm.s) return [];
+  const c = SOUT_PLAN.cheminees.find((q) => Math.hypot(q[0] - 1760, q[1] - 2374) < 3);
+  if (!c || Math.hypot(eye[0] - c[0], eye[2] - c[1]) > 60) return [];
+  const t = (game.world && typeof game.world.time === "number" ? game.world.time : farm.s.time) || 0, j = clamp(Math.min((t - 0.26) / 0.06, (0.76 - t) / 0.06), 0, 1);
+  if (j <= 0) return [];
+  return [{ x: c[0], y: souterrain.floorAt(c[0], c[1]) + 7, z: c[1], r: 20, c: [0.32 * j, 0.34 * j, 0.37 * j], d: 0.01 }];
+});
 HOOKS.primary.push((eye, basis, held, it, id) => { if (held || id !== 'charbon' || !souterrain.actif) return false; soutMarques.tracer(eye, basis.f); play.cool = 0.35; return true; });
 HOOKS.secondary.push((eye, basis, it, id) => { if (id !== 'charbon' || !souterrain.actif) return false; soutMarques.effacer(eye, basis.f); return true; });
 HOOKS.draw.push((buf, sbuf, cam) => soutMarques.dessiner(buf, sbuf, cam));
