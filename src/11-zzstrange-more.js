@@ -55,7 +55,6 @@ const STRANGE_MORE = {
     const L = game.world.lm.lac, p = game.player;
     if (!L || Math.hypot(p.pos[0] - L.x, p.pos[2] - L.z) > 260) return;
     sound.bell && sound.bell(0.22);
-    setTimeout(() => ui.subtitle('', '(Sous le lac, une cloche. Une seule fois.)', 4), 1500);
   },
   oiseaux_morts() {
     const w = game.world, B = w.bld.ferme;

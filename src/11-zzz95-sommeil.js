@@ -214,7 +214,7 @@ const sommeil = {
       case 'cachot': {
         const P = typeof prison !== 'undefined' && prison.S();
         if (P && P.actif) { game.sleep('cachot'); return; }
-        ui.subtitle('', '(De la paille qui pique, et qui sent la peur des autres.)', 3); return;
+        ui.subtitle('', '(De la paille qui sent la peur des autres.)', 3); return;
       }
       case 'ferme': return this.coucher('ferme', q, I);
       case 'location': return this.coucher('location', q, I);

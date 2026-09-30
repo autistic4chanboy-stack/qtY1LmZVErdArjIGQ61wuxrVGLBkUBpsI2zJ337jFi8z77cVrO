@@ -141,7 +141,6 @@ const slender = {
     const n = this.nbPages();
     setTimeout(() => this.lirePage(i), 350);
     if (n === 1) setTimeout(() => ui.subtitle('', '(Derrière vous, les bois ont retenu leur souffle.)', 4), 2500);
-    else if (n === 8) setTimeout(() => ui.subtitle('', '(Huit pages. Il le sait.)', 5), 2500);
   },
 
   // ------------------------------------------------------------ apparitions
@@ -354,7 +353,6 @@ const slender = {
     this.statik = 0.6;
     await new Promise((r) => setTimeout(r, 4200));
     this.adieu = null; this.statik = 0;
-    ui.subtitle('', '(Quand vous relevez les yeux, il est là, à l’orée de la lumière. Puis il n’y a plus que les arbres.)', 5);
   },
 };
 // les pages : on les ramasse, on les relit, on les brûle
