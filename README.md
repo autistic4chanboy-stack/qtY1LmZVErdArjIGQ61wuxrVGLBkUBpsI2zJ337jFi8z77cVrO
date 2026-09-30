@@ -440,6 +440,25 @@ achats-reventes et les transformations gagnantes (recettes, machines, alambic, 6
 d'alchimiste), modélise les revenus de chaque activité avec les gestes et délais du jeu, et échoue si un rendement sort
 de ses bornes (`CIBLES`), si une table d'étal repasse sous la revente ou si un loyer devient dérisoire.
 
+### La ferme et le temps
+
+Les règles de la terre (`TERRE`, 11-farm-state.js) et du temps, mesurées sur le vrai code (`farm.tick`, `farm.water`,
+`farm.fertilize`, la récolte, `weather.dayPlan`, les crues) :
+
+| Réglage | Avant | Après |
+|---|---|---|
+| Terre arrosée ou mouillée par la pluie | humide 10 h | humide 48 h (deux jours), la canicule 32 h |
+| Culture sur terre sèche | perdue après 30 h | tient encore 48 h (deux jours), la canicule 32 h |
+| Case labourée laissée vide | redevenait herbe au hasard après 48 h | reverdit après deux jours humides et deux jours secs |
+| Fatigue du sol | — | au-delà de 5 récoltes sans engrais : pousse à 50 % ; au-delà de 10 : 25 % ; l'engrais remet à zéro, deux jours d'herbe effacent une récolte |
+| Arroseur / arroseur de fer | 3 × 3 / 5 × 5 cases | 7 × 7 / 9 × 9 cases |
+| Heures de pluie | 28,5 % | 13,8 % (jours de pluie 48 % → 38 %, longues pluies 44 % → 12 %) |
+| Crues | 5,1 par semaine, l'eau haute 33 % des heures | 3,0 par semaine, 7,6 % des heures |
+| Engrais à la graineterie ; chou, melon ; repousse du raisin | 10 ; 19, 32 ; 24 h | 2 ; 18, 30 ; 28 h (pour garder les marges du commerce avec la terre humide plus longtemps) |
+
+Orages, brouillard, gel du matin et neige partout gardent leur fréquence. Sous la pluie ou la neige, papillons et
+lucioles s'en vont. `node tools/equilibrage.js ferme` (≈ 2 s) vérifie tout cela.
+
 ### Les risques : l'argent du crime et du hasard, et ses peines
 
 Mesuré par l'outil (`tools/equilibrage/risques.js`, ≈ 1 min : la vallée de la graine 1234 est générée pour compter
