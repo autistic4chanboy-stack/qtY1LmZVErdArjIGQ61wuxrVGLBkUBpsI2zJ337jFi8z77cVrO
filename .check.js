@@ -45300,7 +45300,8 @@ HOOKS.death.push((cause) => { if (mondes.cur === 'cauchemar') { MONDES.cauchemar
 defItem('page_registre', 'Page du registre', 'ailleurs', 0, ['md_page', '#d8ccb0', '#5a4a3a'], { desc: 'Une page arrachée au registre du Recenseur. Votre nom y est, tout en bas, d’une encre qui n’a pas encore séché.' });
 
 const ENF = { // décors (boîtes)
-  cendre: [0.3, 0.28, 0.27], osC: [0.84, 0.8, 0.7], // (osC : la couleur de l'os ; os(), plus bas, est le modèle d'un tas d'os) noir: [0.08, 0.07, 0.08], fer: [0.25, 0.22, 0.2],
+  // (osC : la couleur de l'os ; os(), plus bas, est le modèle d'un tas d'os)
+  cendre: [0.3, 0.28, 0.27], osC: [0.84, 0.8, 0.7], noir: [0.08, 0.07, 0.08], fer: [0.25, 0.22, 0.2],
   lave(E, c, t) { E.fl = FX_EMIT; for (let k = 0; k < 6; k++) { const b = 0.85 + Math.sin(t * 1.3 + k * 1.7 + c.id) * 0.15; E.bx((k - 2.5) * 3.4, 0, 0, 3.5, 0.2, c.l || 8, [1.4 * b, 0.42 * b, 0.08 * b], mt(M_BRAISE)); } E.fl = 0; },
   pont(E) { E.bx(0, -0.1, 0, 3.2, 0.25, 11, ENF.osC, TL.bone); for (let z = -4.5; z <= 4.5; z += 1.5) { E.box(-1.7, 0.6, z, 0.18, 1.6, 0.18, ENF.osC, TL.bone, 0, 0, -0.3); E.box(1.7, 0.6, z, 0.18, 1.6, 0.18, ENF.osC, TL.bone, 0, 0, 0.3); } E.bx(-1.5, 1.2, 0, 0.12, 0.12, 11, ENF.osC, TL.bone); E.bx(1.5, 1.2, 0, 0.12, 0.12, 11, ENF.osC, TL.bone); },
   pupitre(E) { E.bx(0, 0, 0, 0.8, 1.1, 0.6, ENF.noir, mt(M_OBSIDIENNE)); E.box(0, 1.2, 0, 1.2, 0.08, 0.8, [0.2, 0.16, 0.12], TL.darkwood, 0, -0.35); E.box(-0.28, 1.28, 0.02, 0.55, 0.05, 0.66, [0.86, 0.8, 0.66], TL.paper, 0, -0.35); E.box(0.28, 1.28, 0.02, 0.55, 0.05, 0.66, [0.86, 0.8, 0.66], TL.paper, 0, -0.35); },
