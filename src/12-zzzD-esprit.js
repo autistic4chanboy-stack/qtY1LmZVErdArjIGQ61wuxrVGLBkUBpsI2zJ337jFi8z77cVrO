@@ -88,7 +88,6 @@ const lavandiere = {
     sound.scream2 && sound.scream2();
     if (sound.ok) { const t = sound.at(); sound.noiseHit(t, 0.5, 'bandpass', 1800, 0.6, 0.5, sound.sfx, 600); sound.noiseHit(t, 0.35, 'lowpass', 400, 0.8, 0.4, sound.sfx); }
     game.shakeT = 1; strange.fear = 1; play.hurtFlash = Math.max(play.hurtFlash || 0, 0.4);
-    if (S.n === 1) setTimeout(() => { if (!game.dying) ui.subtitle('', '(Un visage de femme, trempé, la bouche ouverte sur un cri. Il sentait l’eau froide, et le savon.)', 5); }, 1400);
     return true;
   },
   peindre(i) { const c = this.cv.getContext('2d'); c.drawImage(this.frames[i % 3], 0, 0); },
@@ -115,7 +114,6 @@ const lavandiere = {
         const out = sound.pan(clamp(-Math.sin(f), -0.9, 0.9), sound.amb);
         for (let i = 0; i < 3; i++) { sound.noiseHit(t + i * 0.42, 0.09, 'lowpass', 420, 0.9, 0.25 * k, out); sound.tone(t + i * 0.42, 'sine', 95, 60, 0.1, 0.12 * k, out); }
         if (Math.random() < 0.5) setTimeout(() => sound.splash && sound.splash(), 1500);
-        if (!this.ditBattoir) { this.ditBattoir = true; ui.subtitle('', '(Du côté du lavoir, quelqu’un bat le linge. À cette heure-ci.)', 4); }
       }
     }
     // très rarement, elle surgit (plus souvent près du lavoir, ou seul dans le noir) : un tirage toutes les cinq
@@ -135,9 +133,9 @@ const lavandiere = {
     const opts = [
       { label: 'Tordre à main droite', fn: () => this.tordre('droite') },
       { label: 'Tordre à main gauche', fn: () => this.tordre('gauche') },
-      { label: 'Lâcher le drap et s’en aller', fn: () => { ui.close(); ui.subtitle('', '(Vous lâchez le drap. Dans le noir, quelqu’un soupire.)', 3); } },
+      { label: 'Lâcher le drap et s’en aller', fn: () => { ui.close(); ui.subtitle('', '(Dans le noir, quelqu’un soupire.)', 3); } },
     ];
-    ui.choice('Le drap', '(Un drap blanc, trempé, à moitié tordu. Quelqu’un le tenait il y a un instant. De l’autre côté du bassin, dans le noir, deux mains attendent que vous preniez l’autre bout.)', opts);
+    ui.choice('Le drap', '(Un drap blanc, trempé, à moitié tordu. De l’autre côté du bassin, dans le noir, deux mains attendent.)', opts);
     void S; void s;
   },
   tordre(sens) {
@@ -147,7 +145,7 @@ const lavandiere = {
       S.apaise = farm.s.day;
       sound.whisper && sound.whisper(0, 0.5);
       ui.subtitle('???', 'Merci. Il est propre, maintenant. Je peux le lui porter.', 5);
-      setTimeout(() => ui.subtitle('', '(Le drap vous glisse des mains et s’enfonce dans l’eau noire, tout doucement. Le battoir ne sonnera plus.)', 5.5), 5200);
+      setTimeout(() => ui.subtitle('', '(Le battoir ne sonnera plus.)', 4), 5200);
       farm.give('toile', 2); if (typeof faith !== 'undefined') faith.add('anciens', 3);
       BUFF.add('grace', 24);
       evenements.retenir('esprit');
@@ -155,7 +153,7 @@ const lavandiere = {
     }
     // dans l'autre sens : elle vous tord les bras
     this.surgir(true);
-    setTimeout(() => { play.hurt(22, null, 'Les bras tordus par la lavandière de nuit'); ui.subtitle('', '(Le drap se tord tout seul, et vos bras avec. Quelque chose craque dans votre épaule.)', 4.5); }, 700);
+    setTimeout(() => { play.hurt(22, null, 'Les bras tordus par la lavandière de nuit'); ui.subtitle('', '(Le drap se tord tout seul, et vos bras avec.)', 4.5); }, 700);
     S.dernier = farm.s.day;
   },
 };

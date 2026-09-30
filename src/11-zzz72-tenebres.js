@@ -158,7 +158,6 @@ MONDES.tenebres = {
     MSON.drone('tenebres', [49, 51.3, 73.5], 0.07, 'sawtooth', 240);
     if (!opts.restaurer) {
       sound.enversShift && sound.enversShift(true); strange.glitchT = Math.max(strange.glitchT, 1.2); game.shakeT = 0.6;
-      ui.subtitle('', pick(['(Le sucre tourne. Tout noircit d’un coup, comme un fruit qui pourrit en une seconde.)', '(Les couleurs s’en vont. Il ne reste que le rouge et le noir. Et quelque chose qui respire.)']), 5);
       if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-4 - this.durete * 4, 'les Ténèbres');
     }
   },
@@ -185,7 +184,7 @@ MONDES.tenebres = {
     { const [x, z] = at(0, Ln / 2 - 3); mondes.chose({ x, z, y: f.y, r: f.r, modele: TNM.autel }); mondes.chose({ x, z, y: f.y + 1.24, item: 'coeur_noir', cle: 't_coeur', r: f.r, modele: TNM.coeur, rayon: 0.5, h: 0.5, lumiere: { c: [1.0, 0.1, 0.05], r: 9, y: 0.4 },
       prendre(c) {
         farm.give('coeur_noir', 1); play.flyer('coeur_noir', [c.x, c.y + 0.4, c.z], 1); sound.heartbeat(1.2);
-        ui.subtitle('', '(Vous prenez le cœur. Il bat dans votre main, une fois, deux fois. Tout ce qui rampe, dehors, s’est retourné vers vous.)', 5);
+        ui.subtitle('', '(Tout ce qui rampe, dehors, s’est retourné vers vous.)', 4);
         for (const e of mondes.betes) if (e.kind === 'chien_ecorche') e.state = 'chasse';
         MONDES.tenebres.renforts(3);
       } }); }
@@ -210,15 +209,15 @@ MONDES.tenebres = {
     const [hx, hz] = mondes.toWorld({ x: gx, z: gz, r: f.r }, 2.2, 0), gy = mondes.solY(gx, gz);
     mondes.bete('pendu', hx, hz, { y: gy + 1.25, yRef: gy + 1.25, heading: f.r });
     const [kx, kz] = mondes.toWorld({ x: gx, z: gz, r: f.r }, 1.0, 0.15);
-    mondes.chose({ x: kx, z: kz, y: gy + 4.6, item: 'cle_cage', cle: 't_cle', modele: TNM.cle, rayon: 0.4, h: 0.4, dit: '(Une grosse clé rouillée pendait au gibet, à portée de main. Comme si on l’avait laissée pour vous.)' });
+    mondes.chose({ x: kx, z: kz, y: gy + 4.6, item: 'cle_cage', cle: 't_cle', modele: TNM.cle, rayon: 0.4, h: 0.4 });
     for (let k = 0; k < 8; k++) { const [x, z] = at((rnd() - 0.5) * 18, (rnd() - 0.5) * 18); if (Math.hypot(x - gx, z - gz) > 3) mondes.chose({ x, z, v: k, r: rnd() * TAU, modele: TNM.croix }); }
   },
   cageEnfant(e) {
     const T = mondes.S().tenebres || {};
-    if (!farm.count('cle_cage')) { MSON.sanglot(0.8); ui.subtitle('', '(Un enfant, dans la cage. Il pleure sans bruit. Le cadenas est rouillé, et fermé.)', 4.5); return; }
+    if (!farm.count('cle_cage')) { MSON.sanglot(0.8); ui.subtitle('', '(Le cadenas est rouillé, et fermé.)', 3); return; }
     farm.take('cle_cage', 1); T.enfant = 1; sound.lock && sound.lock(false); MSON.grince(1.2);
     ui.subtitle('L’enfant', 'Merci. N’en reprends pas, des pilules. Là où elles mènent, il y a pire que moi.', 5);
-    setTimeout(() => { if (!e.mort) { e.mort = true; e.mortT = 0; puffAt(e.x, e.y + 0.6, e.z, [220, 220, 230], 16, 1.2, true); farm.give('oeil_verre', 1); play.flyer('oeil_verre', [e.x, e.y + 0.8, e.z], 1); ui.subtitle('', '(Il n’y a plus personne. Dans la cage ouverte, un œil de verre vous regarde.)', 4.5); } }, 4200);
+    setTimeout(() => { if (!e.mort) { e.mort = true; e.mortT = 0; puffAt(e.x, e.y + 0.6, e.z, [220, 220, 230], 16, 1.2, true); farm.give('oeil_verre', 1); play.flyer('oeil_verre', [e.x, e.y + 0.8, e.z], 1); } }, 4200);
   },
   // ------------------------------------------------------------- plantes, bêtes
   semer(T, rnd) {
@@ -229,7 +228,7 @@ MONDES.tenebres = {
       if (!w.inside(x, z, 6) || w.heightAt(x, z) < w.waterLevel + 0.2) continue;
       const Ty = TYPES[k % 3];
       mondes.chose({ x, z, item: Ty[0], v: k, r: rnd() * TAU, cle: 't_pl' + k, modele: Ty[1], rayon: 0.5, h: Ty[2],
-        prendre: Ty[0] === 'ronce_noire' ? function (c) { farm.give('ronce_noire', 1); play.flyer('ronce_noire', [c.x, c.y + 0.5, c.z], 1); corps.saigner(0.04, 'Les ronces noires'); ui.subtitle('', '(Les épines vous entaillent la paume. Le sang est très rouge, ici.)', 3); } : undefined });
+        prendre: Ty[0] === 'ronce_noire' ? function (c) { farm.give('ronce_noire', 1); play.flyer('ronce_noire', [c.x, c.y + 0.5, c.z], 1); corps.saigner(0.04, 'Les ronces noires'); ui.subtitle('', '(Les épines vous entaillent la paume.)', 3); } : undefined });
     }
     const n = 3 + Math.round(this.durete * 3);
     for (let k = 0; k < n; k++) this.renfortPos(rnd, 'rampant', 35, 60);
@@ -281,7 +280,6 @@ MONDES.tenebres = {
     }
     if (!opts.vers) {
       sound.enversShift && sound.enversShift(false); strange.glitchT = Math.max(strange.glitchT, 0.8);
-      ui.subtitle('', pick(['(Le monde revient. Les couleurs reviennent. Vous tremblez de tout votre corps.)', '(C’est fini. Il fait gris, il fait froid, c’est la vallée. Vous pleurez sans savoir pourquoi.)']), 5);
       if (chg.includes('plume_ombre')) setTimeout(() => ui.subtitle('', '(La plume d’ombre n’est qu’une plume de corbeau. Les lys, de la cendre.)', 4), 5500);
       if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-3 - this.durete * 5, 'retombée');
     }

@@ -200,7 +200,7 @@ const strange = {
       if (fn && fn.call(this, e, dt, c) === false) { this.ents.splice(i, 1); if (e === this.killerE) this.killerE = null; }
     }
     // l'aube chasse de l'Envers
-    if (S.envers && h >= 6 && h < 7) { this.setEnvers(false); ui.fadeMsg('Vous vous réveillez près du vieux puits, trempé, sans savoir comment.', 3); const L = w.lm.vieux_puits; if (L) { p.pos = [L.x + 2, w.heightAt(L.x + 2, L.z) + 0.1, L.z]; p.vel = [0, 0, 0]; } }
+    if (S.envers && h >= 6 && h < 7) { this.setEnvers(false); ui.fadeMsg('Vous vous réveillez près du vieux puits, trempé.', 3); const L = w.lm.vieux_puits; if (L) { p.pos = [L.x + 2, w.heightAt(L.x + 2, L.z) + 0.1, L.z]; p.vel = [0, 0, 0]; } }
   },
   run(id, c) {
     const w = game.world, p = game.player, s = farm.s, S = this.s, rnd = Math.random;
