@@ -933,6 +933,8 @@ function carte2Gen(w) {
   for (const [gi, gj] of reste) poser(gi, gj, true);
   // ---- les histoires à recouper et les secrets (11-zzzz7-carte2-textes.js)
   if (typeof c2PoserHistoires === 'function') { try { c2PoserHistoires(G); } catch (e) { console.error('carte2 histoires', e); } }
+  // ---- le réseau des chemins refait : les maisons nouvelles, les villages (11-zzzz7-carte3-peuples.js)
+  if (typeof c2PeuplesNav === 'function') { try { c2PeuplesNav(w); } catch (e) { console.error('carte2 chemins', e); } }
   w.carte2 = { lieux: G.lieux, n: { blocs: G.nb, props: G.np, inter: G.ni, objets: G.no }, reste: reste.length };
   delete w._c2acces;
   w.objectsDirty = true; w.grid = null; w.blocksDirty = true; w.coverDirty = true; w.shadeDirty = true;

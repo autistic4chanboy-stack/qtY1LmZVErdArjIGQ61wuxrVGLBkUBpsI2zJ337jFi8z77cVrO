@@ -5,6 +5,8 @@
 //  meule, ex-voto, arbre aux offrandes, ruches de paille, cadran solaire, nid,
 //  pierres à sel, rocher aux marques, le dormeur de glace, la Dame de bois,
 //  pieux, branchages ; bougies et lueurs qui ne paraissent qu'à leur heure.
+//  Les deux peuples : chandelles sur l'eau, roseaux, chaudron sur trépied,
+//  sonnailles, étagère à tommes, écriteaux.
 //  (même manière que 07-models.js : des boîtes et les tuiles du jeu)
 // ============================================================================
 const PC7 = {
@@ -130,7 +132,7 @@ Object.assign(PROP_MODELS, {
     E.box(0.05, 0.75, 0.05, 0.05, 0.5, 0.05, PC7.dwood, TL.darkwood, 0, 0.3, 0.1); E.box(0.05, 0.58, 0.0, 0.2, 0.1, 0.03, PC7.iron, TL.iron, 0, 0.3, 0.1);
   },
   c2_chevalet(E) {
-    for (const z of [-0.45, 0.45]) { E.box(-0.2, 0.4, z, 0.07, 0.95, 0.07, PC7.wood, TL.wood, 0, 0, 0.45); E.box(0.2, 0.4, z, 0.07, 0.95, 0.07, PC7.wood, TL.wood, 0, 0, -0.45); }
+    for (const z of [-0.45, 0.45]) { E.box(-0.2, 0.4, z, 0.07, 0.95, 0.07, PC7.wood, TL.wood, 0, 0, -0.45); E.box(0.2, 0.4, z, 0.07, 0.95, 0.07, PC7.wood, TL.wood, 0, 0, 0.45); }
     E.box(0, 0.86, 0, 0.26, 0.26, 1.7, rgbf('#9a7a52'), TL.bark, 0, 0, 0);
   },
   // boîte : v 0 coffret de bois, 1 boîte en fer-blanc peinte, 2 boîte de fer du cairn
@@ -214,20 +216,102 @@ Object.assign(PROP_MODELS, {
   },
   // signal géodésique : un trépied de poutres, une mire en haut, une plaque de fonte
   c2_signal(E) {
-    for (let k = 0; k < 3; k++) { const a = k / 3 * TAU; E.box(Math.sin(a) * 0.75, 1.6, Math.cos(a) * 0.75, 0.14, 3.4, 0.14, PC7.dwood, TL.darkwood, 0, Math.cos(a) * 0.22, -Math.sin(a) * 0.22); }
+    for (let k = 0; k < 3; k++) { const a = k / 3 * TAU; E.box(Math.sin(a) * 0.75, 1.6, Math.cos(a) * 0.75, 0.14, 3.4, 0.14, PC7.dwood, TL.darkwood, 0, -Math.cos(a) * 0.22, Math.sin(a) * 0.22); }
     E.bx(0, 3.1, 0, 0.12, 1.4, 0.12, PC7.dwood, TL.darkwood);
     E.bx(0, 3.9, 0, 0.7, 0.5, 0.06, [0.9, 0.9, 0.86], TL.plain); E.bx(0, 3.9, 0.04, 0.35, 0.5, 0.02, PC7.dark, TL.plain);
     E.bx(0, 0, 0, 0.5, 0.35, 0.5, PC7.stone, mt(M_STONE)); E.bx(0, 0.2, 0.26, 0.3, 0.14, 0.02, PC7.iron, TL.iron);
   },
   c2_pieu(E) { E.bx(0, 0, 0, 0.1, 0.8, 0.1, PC7.dwood, TL.darkwood); E.box(0, 0.86, 0, 0.07, 0.14, 0.07, PC7.wood, TL.wood, 0.78); },
+  // ------------------------------------------------ les deux peuples
+  // chandelles sur l'eau, les nuits du Vorndi (data.lit) : des ronds de liège, une flamme chacun ; elles dérivent
+  c2_cierges_eau(E, o, t) {
+    const D = o.data || {};
+    if (!D.lit) return;
+    const R = D.R ?? 6, n = D.n || 12, tt = t ? t.t : 0;
+    for (let k = 0; k < n; k++) {
+      const a = k * 2.399 + tt * 0.011 * (k % 2 ? 1 : -1), r = n > 1 ? R * Math.sqrt((k + 0.5) / n) : 0;
+      const x = Math.cos(a) * r, z = Math.sin(a) * r, b = t ? Math.sin(tt * 1.3 + k) * 0.012 : 0;
+      E.bx(x, b, z, 0.2, 0.04, 0.2, rgbf('#b89a6a'), TL.wood, k);
+      E.bx(x, b + 0.04, z, 0.06, 0.1, 0.06, [0.95, 0.92, 0.84], TL.plain);
+      E.fl = FX_EMIT;
+      E.bx(x, b + 0.13, z, 0.07, 0.12 + (t ? Math.sin(tt * 11 + k * 1.7) * 0.02 : 0), 0.07, [1.6, 1.15, 0.5], TL.flame, tt * 2 + k);
+      E.bx(x, -0.01, z, 0.5, 0.01, 0.5, [0.55, 0.36, 0.14], TL.plain, k * 0.7);
+      E.fl = 0;
+    }
+  },
+  // roseaux : v 0 une touffe (dans l'eau peu profonde), 1 une botte coupée, liée, debout
+  c2_roseaux(E, o) {
+    const v = (o.data && o.data.v) || 0, h = hash2i(Math.floor(o.x * 2), Math.floor(o.z * 2), 3);
+    if (v === 1) {
+      for (let k = 0; k < 9; k++) E.box(-0.24 + k * 0.06, 0.95, (k % 3) * 0.04 - 0.04, 0.035, 1.9, 0.035, rgbf(k % 2 ? '#c8b070' : '#b09a5a'), TL.straw, 0, 0.14, (k - 4) * 0.025);
+      E.box(0, 0.75, 0.06, 0.56, 0.06, 0.16, rgbf('#6a5a3a'), TL.rope, 0, 0.14);
+      return;
+    }
+    for (let k = 0; k < 16; k++) {
+      const a = k * 2.2 + h * 6, r = 0.1 + (k % 4) * 0.2, H = 1.7 + ((k * 7) % 5) * 0.2, th = 0.09, ca = Math.cos(a), sa = Math.sin(a);
+      const lx = ca * r, lz = sa * r, rx = th * sa, rz = -th * ca;
+      E.box(lx, H / 2, lz, 0.035, H, 0.035, rgbf(k % 3 ? '#5a6e32' : '#7a8440'), TL.leaves, 0, rx, rz);
+      if (k % 3 === 0) E.box(lx + ca * th * H * 0.5, H + 0.08, lz + sa * th * H * 0.5, 0.07, 0.26, 0.07, rgbf('#5a3a22'), TL.fur, 0, rx, rz);
+    }
+  },
+  // chaudron de cuivre sur son trépied, le lait dedans ; un petit feu dessous quand on fait la tomme (data.lit)
+  c2_chaudron(E, o, t) {
+    for (let k = 0; k < 3; k++) { const a = k / 3 * TAU + 0.3, th = 0.42; E.box(Math.sin(a) * 0.58, 0.8, Math.cos(a) * 0.58, 0.06, 1.72, 0.06, PC7.dwood, TL.darkwood, 0, -Math.cos(a) * th, Math.sin(a) * th); }
+    E.box(0, 1.3, 0, 0.02, 0.56, 0.02, PC7.iron, TL.iron);
+    E.bx(0, 0.52, 0, 0.64, 0.46, 0.64, rgbf('#a8643a'), TL.metal); E.bx(0, 0.58, 0, 0.72, 0.32, 0.72, rgbf('#b87444'), TL.metal, Math.PI / 4);
+    E.bx(0, 0.97, 0, 0.52, 0.02, 0.52, [0.92, 0.9, 0.82], TL.plain);
+    for (let k = 0; k < 7; k++) { const a = k / 7 * TAU; E.bx(Math.cos(a) * 0.46, 0, Math.sin(a) * 0.46, 0.2, 0.15, 0.2, PC7.stone, TL.stone, a); }
+    E.box(0, 0.08, 0, 0.6, 0.1, 0.1, rgbf('#5a4a3a'), TL.bark, 0.5); E.box(0, 0.08, 0, 0.6, 0.1, 0.1, rgbf('#5a4a3a'), TL.bark, -0.7);
+    if (o.data && o.data.lit) { const f = t ? 1 + Math.sin(t.t * 12 + o.x) * 0.12 : 1; E.fl = FX_EMIT; E.bx(0, 0.1, 0, 0.26, 0.34 * f, 0.26, [1.3, 0.75, 0.3], TL.flame, t ? t.t * 2 : 0); E.fl = 0; }
+  },
+  // sonnailles : v 0 un râtelier de cloches de bêtes, 1 une seule pendue à un bâton (sur le cairn), 2 deux posées, 3 une cabossée dans l'herbe
+  c2_sonnailles(E, o) {
+    const v = (o.data && o.data.v) || 0;
+    const cl = (x, y, z, s, ry, rx, rz, c) => { E.box(x, y, z, 0.16 * s, 0.2 * s, 0.11 * s, c || rgbf('#8a7a5a'), TL.metal, ry || 0, rx || 0, rz || 0); E.box(x, y + 0.12 * s, z, 0.1 * s, 0.03 * s, 0.035 * s, rgbf('#5a4a30'), TL.leather, ry || 0, rx || 0, rz || 0); };
+    if (v === 0) {
+      for (const s of [-0.8, 0.8]) E.bx(s, 0, 0, 0.08, 1.5, 0.08, PC7.dwood, TL.darkwood);
+      E.bx(0, 1.42, 0, 1.8, 0.07, 0.07, PC7.wood, TL.wood);
+      for (let k = 0; k < 6; k++) { const x = -0.62 + k * 0.25; E.box(x, 1.31, 0, 0.02, 0.2, 0.02, rgbf('#5a4a30'), TL.leather); cl(x, 1.1, 0, 1 + (k % 3) * 0.2, 0, (k % 2 ? 0.06 : -0.05), 0); }
+      return;
+    }
+    if (v === 1) { E.box(0, 0.42, 0, 0.045, 0.84, 0.045, PC7.dwood, TL.darkwood, 0, 0.1); E.box(0.1, 0.8, 0.04, 0.34, 0.035, 0.035, PC7.dwood, TL.darkwood, 0.35); cl(0.2, 0.56, 0.08, 1.3, 0.35, 0, 0, rgbf('#6a5a3a')); return; }
+    if (v === 2) { cl(0, 0.1, 0, 1.2, 0.3); cl(0.25, 0.1, 0.12, 1.0, 1.4); return; }
+    cl(0, 0.07, 0, 1.3, 0.7, 1.4, 0.3, rgbf('#5a4a30'));
+  },
+  // étagère à tommes : trois planches, trois tommes sur chacune
+  c2_fromages(E) {
+    for (const s of [-0.52, 0.52]) for (const z of [-0.17, 0.17]) E.bx(s, 0, z, 0.05, 1.5, 0.05, PC7.dwood, TL.darkwood);
+    for (const y of [0.3, 0.75, 1.2]) {
+      E.bx(0, y, 0, 1.1, 0.04, 0.42, PC7.wood, TL.wood);
+      for (let k = 0; k < 3; k++) { const c = rgbf(k % 2 ? '#c8b070' : '#b89a5a'); E.bx(-0.34 + k * 0.34, y + 0.04, 0, 0.26, 0.12, 0.26, c, TL.bread, k * 0.3); E.bx(-0.34 + k * 0.34, y + 0.04, 0, 0.26, 0.12, 0.26, c, TL.bread, k * 0.3 + Math.PI / 4); }
+    }
+  },
+  // écriteau : v 0 une planche aux lettres gravées, 1 une planche taillée en flèche, une marque dessous
+  c2_ecriteau(E, o) {
+    const v = (o.data && o.data.v) || 0, ink = [0.2, 0.16, 0.12];
+    E.bx(0, 0, 0, 0.12, 1.75, 0.12, PC7.dwood, TL.darkwood);
+    if (v === 0) {
+      E.bx(0, 1.1, 0.07, 1.1, 0.34, 0.04, rgbf('#a88a5a'), TL.wood);
+      for (let k = 0; k < 10; k++) E.bx(-0.44 + k * 0.098, 1.2, 0.092, 0.05, 0.14, 0.005, ink, TL.plain);
+      E.bx(0.28, 1.14, 0.092, 0.3, 0.02, 0.005, ink, TL.plain);
+      return;
+    }
+    E.bx(0.2, 1.3, 0.07, 0.9, 0.22, 0.04, rgbf('#9a7a4a'), TL.wood);
+    E.box(0.66, 1.41, 0.07, 0.2, 0.2, 0.04, rgbf('#9a7a4a'), TL.wood, 0, 0, Math.PI / 4);
+    for (let k = 0; k < 6; k++) E.bx(-0.05 + k * 0.1, 1.36, 0.092, 0.05, 0.1, 0.005, ink, TL.plain);
+    E.bx(-0.25, 0.72, 0.062, 0.04, 0.2, 0.005, ink, TL.plain); E.bx(-0.2, 0.8, 0.062, 0.14, 0.035, 0.005, ink, TL.plain);
+  },
   c2_branches(E, o) { const a = hash2i(Math.floor(o.x * 3), Math.floor(o.z * 3), 5); E.box(0, 0.05, 0, 0.06, 0.06, 1.6, rgbf('#6a5438'), TL.bark, 0, 0, a * 0.2); E.box(0.1, 0.07, 0.3, 0.04, 0.04, 0.7, rgbf('#6a5438'), TL.bark, 0.7); E.box(-0.1, 0.06, -0.3, 0.04, 0.04, 0.6, rgbf('#5a6a3a'), TL.leaves, -0.6); },
 });
 Object.assign(PROP_COLL, {
   c2_croix_pierre: [0.18, 0.15, 2.4], c2_cloche_fendue: [0.5, 0.5, 0.9], c2_oratoire: [0.4, 0.4, 2.5], c2_tombe: [0.45, 0.95, 0.4], c2_lanterne_morts: [0.55, 0.55, 5.5],
   c2_gibet: null, c2_menhir: [0.45, 0.3, 3.2], c2_branlante: [0.95, 0.8, 2.0], c2_borne: [0.22, 0.16, 1.0], c2_billot: [0.28, 0.28, 0.6], c2_meule_pierre: [0.65, 0.2, 1.3],
   c2_cadran: [0.3, 0.3, 1.1], c2_pierre_sel: [0.6, 0.45, 0.35], c2_marques: [0.9, 0.65, 1.7], c2_dame_bois: [0.2, 0.18, 2.3],
+  c2_cierges_eau: null, c2_roseaux: null, c2_chaudron: [0.45, 0.45, 1.1], c2_sonnailles: null, c2_fromages: [0.55, 0.22, 1.5], c2_ecriteau: [0.1, 0.1, 1.8],
 });
 Object.assign(PROP_LIGHTS, {
   c2_bougies: { c: [1.0, 0.72, 0.36], r: 5, y: 0.2, flicker: true, lit: true },
   c2_lanterne_morts: { c: [1.0, 0.7, 0.34], r: 11, y: 3.8, flicker: true, lit: true },
+  c2_cierges_eau: { c: [1.0, 0.74, 0.38], r: 9, y: 0.25, flicker: true, lit: true },
+  c2_chaudron: { c: [1.0, 0.55, 0.22], r: 6, y: 0.3, flicker: true, lit: true },
 });

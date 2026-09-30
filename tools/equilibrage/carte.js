@@ -8,7 +8,8 @@
 // comblent les carrés vides.
 // Vérifie : aucun carré accessible vide ; les objets d'avant intacts (empreinte de la graine 1234) ; la variété du
 // catalogue ; ce que rapportent les butins des lieux nouveaux (trésors d'une fois, et ce qui se regarnit), avec ceux
-// d'avant (la « tournée » des coffres, comme tools/equilibrage/risques.js) ; ce que la génération ajoute (fluidité).
+// d'avant (la « tournée » des coffres, comme tools/equilibrage/risques.js) ; ce que la génération ajoute (fluidité) ;
+// les deux peuples (11-zzzz7-carte3-peuples.js) : leurs villages, les maisons reliées, leurs parlers qui ne se donnent pas.
 'use strict';
 const { vallee, empreinte, EMPREINTE_1234 } = require('./vm.js');
 
@@ -88,9 +89,18 @@ module.exports = {
     const riches = [];
     for (const it of butins) if (it.data.rf) { const v = esp(it.data.table) / it.data.rf; const L = riches.find((q) => Math.hypot(q.x - it.x, q.z - it.z) < 40); if (L) L.v += v; else riches.push({ x: it.x, z: it.z, v }); }
     riches.sort((a, b) => b.v - a.v);
+    // ---------------------------------------------------------------- les deux peuples (11-zzzz7-carte3-peuples.js)
+    const PE = w.peuples || {}, NV = w.nav, habitants = J.ev('C2_HABITANTS.map((d) => [d.id, d.home, d.area])');
+    const joint = (a, tag) => { const b = NV.nodes.findIndex((q) => q.tag === tag); if (a < 0 || b < 0) return false; const vu = new Set([a]), Q = [a]; while (Q.length) { const c = Q.shift(); if (c === b) return true; for (const e of NV.adj[c] || []) if (!vu.has(e.to)) { vu.add(e.to); Q.push(e.to); } } return false; };
+    const logis = habitants.filter(([, home, area]) => w.bld[home] && joint(w.bld[home].nMid, 'village:' + area));
+    const pn = PE.n || {};
+    log(`\nLes deux peuples : les Planches ${PE.planches ? 'bâties' : 'ABSENTES'}, l'estive ${PE.estive ? 'bâtie' : 'ABSENTE'} ; ${logis.length} habitants sur ${habitants.length} ont leur maison reliée à leur village ; ${pn.blocs || 0} blocs, ${pn.props || 0} objets posés, ${pn.inter || 0} interactions, ${pn.objets || 0} objets.`);
+    const PARL = J.ev('Object.fromEntries(Object.entries(C2_PARLERS).map(([k, v]) => [k, [Object.keys(v.mots).length, v.max]]))');
+    const EXPL = J.ev('Object.entries(C2_EXPLIQUE).map(([id, c]) => [NPC_BY_ID[id].area, c[1]])');
+    for (const k in PARL) log(`  ${k} : ${PARL[k][0]} mots ; au plus ${PARL[k][1]} expliqués (par ${EXPL.filter(([a]) => a === k).map(([, m]) => m).join(' + ')})`);
     // ---------------------------------------------------------------- ce que la génération ajoute
-    const n = C2.n || {};
-    log(`\nCe que la génération ajoute : ${n.blocs || 0} blocs, ${n.props || 0} objets posés, ${n.inter || 0} interactions, ${n.objets || 0} objets (sprites), ${C2.lieux.length} lieux-dits.`);
+    const n0 = C2.n || {}, n = { blocs: (n0.blocs || 0) + (pn.blocs || 0), props: (n0.props || 0) + (pn.props || 0), inter: (n0.inter || 0) + (pn.inter || 0), objets: (n0.objets || 0) + (pn.objets || 0) };
+    log(`\nCe que la génération ajoute (lieux et villages) : ${n.blocs} blocs, ${n.props} objets posés, ${n.inter} interactions, ${n.objets} objets (sprites), ${C2.lieux.length} lieux-dits.`);
     log(`  (une image : les blocs sont tous dessinés — ${w.blocks.length} ; les objets posés sont triés par distance quand on a fait trente pas — ${w.props.length} en tout ; les interactions sont parcourues pour la cible de la touche E — ${w.inter.length})`);
     // ---------------------------------------------------------------- les vérifications
     log('\n--- Vérifications');
@@ -105,7 +115,9 @@ module.exports = {
     verif(jour <= 0.25 * ECHELLE.milieu, `ce qui se regarnit dans les lieux nouveaux rapporte moins du quart d'une journée du milieu (${r0(jour)} / jour)`);
     verif(avant + jour <= ECHELLE.milieu, `la tournée de tous les coffres reste sous une journée de travail du milieu (${r0(avant + jour)} / jour)`);
     verif(!riches.length || riches[0].v <= 0.15 * ECHELLE.milieu, `aucun lieu nouveau ne rapporte plus de 15 % d'une journée du milieu par jour (max ${riches.length ? r0(riches[0].v) : 0})`);
-    verif((n.blocs || 0) <= 4500 && (n.props || 0) <= 2500 && (n.inter || 0) <= 1600, `la génération reste légère (${n.blocs} blocs ≤ 4 500, ${n.props} objets posés ≤ 2 500, ${n.inter} interactions ≤ 1 600)`);
+    verif(n.blocs <= 4500 && n.props <= 2500 && n.inter <= 1600, `la génération reste légère (${n.blocs} blocs ≤ 4 500, ${n.props} objets posés ≤ 2 500, ${n.inter} interactions ≤ 1 600)`);
+    verif(!!(PE.planches && PE.estive) && logis.length === habitants.length, `les deux peuples ont leur village, et chaque habitant sa maison reliée aux chemins du village (${logis.length} / ${habitants.length})`);
+    verif(Object.keys(PARL).every((k) => PARL[k][0] >= 8 && PARL[k][1] <= PARL[k][0] / 2 && EXPL.filter(([a]) => a === k).reduce((t, [, m]) => t + m, 0) >= PARL[k][1]), 'leurs parlers ne se donnent pas : la moitié des mots au plus se fait expliquer');
     return { echecs };
   },
 };
