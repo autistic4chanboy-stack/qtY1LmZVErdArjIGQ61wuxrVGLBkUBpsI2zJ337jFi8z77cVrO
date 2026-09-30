@@ -36,7 +36,7 @@ const CMD = {
   heure: [6.4, 8.0],            // passage du voiturier (heure du jour)
   perdu: 0.02,                  // un colis sur cinquante se perd en route
   vole: 0.035, voleFerme: 0.012, // laissé seul, on l'ouvre (moins souvent à la ferme, où le chien garde)
-  vitesse: 3.2, pas: 1.45,      // charrette, homme à pied (m/s)
+  vitesse: 3.4, pas: 1.45,      // charrette, homme à pied (m/s)
   vu: 170, loin: 290,           // on voit passer le voiturier ; au-delà, il s'en va sans qu'on le voie
   marche: 60,                   // l'homme porte le colis à pied depuis la route, au plus
   max: 99,                      // par article et par commande
@@ -439,8 +439,9 @@ const commandes = {
     if (n0 < 0) return null;
     const q0 = N.nodes[n0];
     if (Math.hypot(q0.x - L.x, q0.z - L.z) > CMD.marche) return null;
-    // Dijkstra depuis le point : routes plus douces, pas de portes, pas de pont levé
-    const dist = new Map([[n0, 0]]), prev = new Map(), done = new Set(), open = [n0];
+    // Dijkstra depuis le point : routes plus douces, pas de portes, pas de pont levé (cout : pour choisir ; long : la
+    // longueur vraie du chemin)
+    const dist = new Map([[n0, 0]]), long = new Map([[n0, 0]]), prev = new Map(), done = new Set(), open = [n0];
     let it = 0;
     while (open.length && it++ < 3000) {
       let bi = 0;
@@ -449,7 +450,7 @@ const commandes = {
       if (done.has(cur)) continue;
       done.add(cur);
       const dc = dist.get(cur);
-      if (dc > 260) continue;
+      if (long.get(cur) > 240) continue;
       for (const e of N.adj[cur] || []) {
         const fl = e.flag || '';
         if (fl.startsWith('door:')) continue;
@@ -457,16 +458,16 @@ const commandes = {
         const q = N.nodes[e.to];
         if (!q || !dehors(q) || done.has(e.to)) continue;
         const nd = dc + e.d * (fl === 'road' ? 0.6 : /^sentier/.test(q.tag || '') ? 1.3 : 1);
-        if (nd < (dist.get(e.to) ?? 1e18)) { dist.set(e.to, nd); prev.set(e.to, cur); open.push(e.to); }
+        if (nd < (dist.get(e.to) ?? 1e18)) { dist.set(e.to, nd); long.set(e.to, long.get(cur) + e.d); prev.set(e.to, cur); open.push(e.to); }
       }
     }
     // le départ : assez loin, du côté de la ville (d'où viennent les marchandises), pas sous le nez du joueur
     const T = w.townInfo || { x: L.x, z: L.z };
     let best = -1, bs = 1e18, loin = -1, ld = -1;
-    for (const [i, d] of dist) {
-      const q = N.nodes[i], dp = Math.hypot(q.x - p.pos[0], q.z - p.pos[2]);
-      if (d > ld && dp > 60) { ld = d; loin = i; }
-      if (d < 100 || d > 175 || dp < 80) continue;
+    for (const [i, d0] of dist) {
+      const d = long.get(i), q = N.nodes[i], dp = Math.hypot(q.x - p.pos[0], q.z - p.pos[2]);
+      if (d > ld && d <= 240 && dp > 60) { ld = d; loin = i; }
+      if (d < 100 || d > 170 || dp < 80) continue;
       const sc = Math.hypot(q.x - T.x, q.z - T.z) - d * 0.3;
       if (sc < bs) { bs = sc; best = i; }
     }
@@ -504,7 +505,7 @@ const commandes = {
     // (T.s : l'abscisse du cheval sur le chemin ; la charrette suit à CMD.attache derrière)
     const T = {
       D, o, de, L, R, spot: this.place(L), etat: 'approche', s: CMD.attache, t: 0, v: 0, phase: 0, roue: 0, sonT: 0, dit: false,
-      rig: humanRig(CMD_LOOK), cheval: ANIMAL_RIGS.horse(1),
+      rig: humanRig(CMD_LOOK), cheval: ANIMAL_RIGS.horse(0),
       car: { x: 0, y: 0, z: 0, r: 0, tilt: [0, 0], roue: 0, data: { hitched: 1, k: 'caisses' } },
       h: { x: 0, y: 0, z: 0, r: 0 }, m: { x: 0, y: 0, z: 0, r: 0, assis: true, porte: true, mv: 0, ph: 0 },
     };
@@ -687,7 +688,7 @@ const commandes = {
       poseHuman(rig, { move: m.mv, phase: m.ph, t, reach: m.porte ? 0.01 : 0, lean: T.etat === 'pose' ? 0.5 : 0 });
       drawRig(buf, rig, m.x, m.y, m.z, m.r, 1, 0);
       if (sbuf) drawShadow(sbuf, m.x, m.y, m.z, 0.33);
-      if (m.porte) { PE.frame(m.x, m.y, m.z, m.r, 1); PE.box(0, T.etat === 'pose' ? 0.6 : 1.02, 0.46, 0.5, 0.3, 0.36, rgbf('#b08a58'), TL.paper); }
+      if (m.porte) { PE.frame(m.x, m.y, m.z, m.r, 1); PE.box(0, T.etat === 'pose' ? 0.72 : 1.18, 0.5, 0.52, 0.34, 0.4, rgbf('#b08a58'), TL.plain); }
     }
   },
   ligne(a, b, ep, col) {
@@ -698,7 +699,7 @@ const commandes = {
   },
   // le colis : papier kraft et ficelle (une caisse, s'il est gros) ; ouvert, la ficelle pend et le papier bâille
   modeleColis(gros, ouvert) {
-    const papier = rgbf('#b08a58'), ficelle = rgbf('#d8c49a'), eti = rgbf('#efe6d0');
+    const papier = rgbf('#a88050'), ficelle = rgbf('#ece2c8'), eti = rgbf('#efe6d0');
     if (gros) {
       PE.bx(0, 0, 0, 0.86, 0.56, 0.62, WHITE, mt(M_CRATE));
       PE.bx(0, 0.56, 0, 0.9, 0.04, 0.66, WHITE, TL.wood);
@@ -706,18 +707,20 @@ const commandes = {
       if (ouvert) PE.box(0.05, 0.64, -0.2, 0.88, 0.04, 0.3, WHITE, TL.wood, 0.3, 0.5);
       return;
     }
+    const X = 0.66, Y = 0.4, Z = 0.48;
     if (ouvert) {
-      PE.bx(0, 0, 0, 0.58, 0.3, 0.42, papier, TL.paper);
-      PE.box(-0.2, 0.34, 0, 0.26, 0.02, 0.44, papier, TL.paper, 0, 0, 0.9);
-      PE.box(0.2, 0.34, 0, 0.26, 0.02, 0.44, papier, TL.paper, 0, 0, -0.9);
-      PE.bx(0.36, 0, 0.12, 0.3, 0.012, 0.02, ficelle, TL.rope, 0.6);
+      PE.bx(0, 0, 0, X, Y - 0.04, Z, papier, TL.plain);
+      PE.box(-X / 4 - 0.02, Y, 0, X / 2, 0.02, Z + 0.02, papier, TL.plain, 0, 0, 0.9);
+      PE.box(X / 4 + 0.02, Y, 0, X / 2, 0.02, Z + 0.02, papier, TL.plain, 0, 0, -0.9);
+      PE.bx(X / 2 + 0.16, 0, 0.14, 0.34, 0.014, 0.035, ficelle, TL.plain, 0.6);
+      PE.bx(-X / 2 - 0.1, 0, -0.2, 0.22, 0.014, 0.035, ficelle, TL.plain, -0.4);
       return;
     }
-    PE.bx(0, 0, 0, 0.58, 0.34, 0.42, papier, TL.paper);
-    PE.bx(0, -0.004, 0, 0.6, 0.35, 0.028, ficelle, TL.rope);
-    PE.bx(0, -0.004, 0, 0.028, 0.35, 0.44, ficelle, TL.rope);
-    PE.bx(0, 0.34, 0, 0.07, 0.025, 0.07, ficelle, TL.rope);
-    PE.bx(0.15, 0.34, 0.1, 0.16, 0.006, 0.11, eti, TL.paper);
+    PE.bx(0, 0, 0, X, Y, Z, papier, TL.plain);
+    PE.bx(0, -0.01, 0, X + 0.024, Y + 0.022, 0.04, ficelle, TL.plain);
+    PE.bx(0, -0.01, 0, 0.04, Y + 0.022, Z + 0.024, ficelle, TL.plain);
+    PE.bx(0, Y, 0, 0.09, 0.035, 0.09, ficelle, TL.plain);
+    PE.bx(0.17, Y + 0.004, 0.12, 0.18, 0.008, 0.12, eti, TL.paper);
   },
 
   // ================================================================== le carnet (panneau)
@@ -874,7 +877,7 @@ const commandes = {
 #commandes .cm-pm { width: 24px; height: 24px; padding: 0; border: 1px solid rgba(90,70,40,.4); background: rgba(255,255,255,.45); border-radius: 3px; color: #3d2e1c; cursor: pointer; font: 15px Georgia, serif; line-height: 1; }
 #commandes .cm-pm:disabled { opacity: .3; cursor: default; }
 #commandes .cm-vide { font-style: italic; color: #7a6a52; margin: 10px 2px; }
-#commandes .cm-pied { position: relative; display: flex; flex-direction: column; gap: 6px; }
+#commandes .cm-pied { position: relative; right: auto; bottom: auto; display: flex; flex-direction: column; gap: 6px; }
 #commandes .cm-l { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 #commandes .cm-bon { color: #4a3a22; }
 #commandes .cm-bon b { font-weight: normal; color: #7a4a1a; }
