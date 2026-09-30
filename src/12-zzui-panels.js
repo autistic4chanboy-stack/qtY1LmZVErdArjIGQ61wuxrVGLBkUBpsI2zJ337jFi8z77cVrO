@@ -26,9 +26,9 @@ Object.assign(ui, {
     const S = myths.st();
     const heard = MYTH_ORDER.filter((id) => S.heard[id]);
     const held = RELICS.map((r) => `<span class="${farm.count(r) || farm.s.flags.apaisee ? '' : 'no'}" title="${esc(itemName(r))}"><img src="${iconURL(r)}" alt=""></span>`).join('');
-    let body = `<h4>Les reliques des Anciens</h4><div class="relics">${held}</div><p class="hint">${farm.s.flags.apaisee ? 'La vallée dort. Vous veillez.' : 'On dit qu’il faut les réunir toutes, et les porter à l’autel du cercle de pierres, à minuit.'}</p>`;
+    let body = `<h4>Les reliques des Anciens</h4><div class="relics">${held}</div><p class="hint">${farm.s.flags.apaisee ? 'La vallée dort. Vous veillez.' : 'On dit qu’il faut les réunir toutes, et les rendre aux pierres.'}</p>`;
     body += `<h4>Légendes entendues (${heard.length} / ${MYTH_ORDER.length})</h4>`;
-    body += heard.map((id) => { const M = myths.M(id), who = S.heard[id].who; return `<div class="myth ${S.found[id] ? 'found' : ''}"><b>${esc(M.titre)}</b>${who && npcs.byId[who] ? ` <span class="hint">— racontée par ${esc(npcs.byId[who].name)}</span>` : ''}<div>${esc(fmtLine(M.resume || '', null))}</div>${M.indice && !S.found[id] ? `<div><i>${esc(fmtLine(M.indice, null))}</i></div>` : ''}<button data-myth="${id}">Relire</button></div>`; }).join('') || '<p class="hint">Aucune encore. Les gens d’ici en connaissent : demandez-leur.</p>';
+    body += heard.map((id) => { const M = myths.M(id), who = S.heard[id].who; return `<div class="myth ${S.found[id] ? 'found' : ''}"><b>${esc(M.titre)}</b>${who && npcs.byId[who] ? ` <span class="hint">— racontée par ${esc(npcs.byId[who].name)}</span>` : ''}<div>${esc(fmtLine(M.resume || '', null))}</div><button data-myth="${id}">Relire</button></div>`; }).join('') || '<p class="hint">Aucune encore. Les gens d’ici en connaissent : demandez-leur.</p>';
     setTimeout(() => $$('#satchel [data-myth]').forEach((b) => (b.onclick = () => { const M = myths.M(b.dataset.myth); this.read(M.titre, fmtLine(M.texte, null)); })), 0);
     return body;
   },

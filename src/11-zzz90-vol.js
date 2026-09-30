@@ -135,7 +135,7 @@ const vol = {
   resoudre() {
     const A = this.attente, n = A.n, p = game.player;
     this.attente = null;
-    if (!n.st.alive || Math.hypot(n.x - p.pos[0], n.z - p.pos[2]) > 2.3) { ui.subtitle('', '(Il s’éloigne. Votre main se referme sur le vide.)', 3); return; }
+    if (!n.st.alive || Math.hypot(n.x - p.pos[0], n.z - p.pos[2]) > 2.3) { ui.subtitle('', '(Votre main se referme sur le vide.)', 3); return; }
     if (Math.random() < A.k) this.reussite(n); else this.echec(n);
   },
   reussite(n) {
@@ -169,7 +169,7 @@ const vol = {
     S.poches[n.id] = s.day; S.victimes[n.id] = s.day; S.reussis++;
     S.plaintes[n.id] = s.day;
     if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-0.8, 'vol à la tire', 2.4);
-    ui.subtitle('', bits.length ? `(Vos doigts ressortent de la poche : ${bits.join(', ')}.)` : '(Rien. Des miettes, un bout de ficelle. Des poches vides.)', 3.5);
+    ui.subtitle('', bits.length ? `(Vos doigts ressortent de la poche : ${bits.join(', ')}.)` : '(Des poches vides.)', 3.5);
     // quelqu'un a-t-il vu ?
     this.temoins(n);
   },

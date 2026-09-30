@@ -9,7 +9,8 @@
 //    frapper trois coups, puis un, puis trois (des silences entre les groupes).
 //    Le sifflet d'argent, soufflé devant la fente, frappe à votre place. Mauvais
 //    rythme : « Passe ton chemin. » Les nains ne sortent pas ; ils commercent,
-//    parlent parfois leurs vieilles langues, et échangent des mots contre du pain.
+//    parlent parfois leurs vieilles langues, et échangent un mot par jour contre
+//    un pain (dans un ordre mêlé, propre à la partie).
 //  - Les géants : trois, à leur camp des hauteurs de l'est. Ils vont du feu à la
 //    table et aux lits, à pas lents qui font trembler le sol ; l'un d'eux monte
 //    parfois voir l'aube sur la crête. Paisibles, sauf si on les frappe (un
@@ -56,7 +57,7 @@ const GEANTS_PHRASES = [
 const GEANTS_DON = [['ya , ya , mek hak', 'Oui, oui, petit homme.'], ['drum dunn', 'Grand cœur.'], ['ma-ma hum , ta zogga', 'Nous dormons ; toi, va.']];
 const GEANTS_COLERE = [['hak brek ! nuk !', 'L’homme casse ! Non !'], ['grum ! grum !', 'Tonnerre ! Tonnerre !']];
 const GEANTS_AUBE = [['vogga … vogga', 'Le soleil… le soleil.'], ['skaa rum , vogga dun', 'Le ciel est rond, le soleil haut.']];
-// ce qu'on apprend d'eux, deux mots par cadeau (mots du lexique gorrain)
+// ce qu'on apprend d'eux, un mot par cadeau (mots du lexique gorrain, dans l'ordre mêlé de la partie)
 const GEANTS_MOTS = ['vok', 'hak', 'mek', 'dunn', 'ulm', 'mor', 'olm', 'vogga', 'hum', 'zogga', 'lokka', 'gor', 'bruk', 'drum', 'kran', 'ya', 'nuk', 'rag', 'hol', 'aal', 'skaa', 'grum', 'tunn', 'ruk', 'dor', 'ek', 'dek', 'trek'];
 // les nains : un pain, un mot (aëlin avec l'ancien, gorrain avec la forgeronne)
 const NAINS_MOTS = {
@@ -100,10 +101,10 @@ const lieux = {
     if (this.baignade) { this.sortirBain(); return; }
     const P = this.bassinDe(it.x, it.z), p = game.player;
     if (!P || game.sleeping || game.dying) return;
-    if (weather.cur.storm > 0.5) { ui.subtitle('', '(Il tonne. On ne se baigne pas sous l’orage.)', 3); return; }
-    if (typeof societe !== 'undefined' && npcs.byId.naturiste_b && societe.crimesSus(npcs.byId.naturiste_b).some((C) => C.type === 'meurtre')) { ui.subtitle('', '(On vous regarde. Personne ne dit rien. L’eau ne veut pas de vous.)', 3.5); return; }
+    if (weather.cur.storm > 0.5) { ui.subtitle('', '(Pas sous l’orage.)', 2.5); return; }
+    if (typeof societe !== 'undefined' && npcs.byId.naturiste_b && societe.crimesSus(npcs.byId.naturiste_b).some((C) => C.type === 'meurtre')) { ui.subtitle('', '(On vous regarde. L’eau ne veut pas de vous.)', 3); return; }
     game.sleeping = true;
-    await ui.fade(true, '(Vous posez vos vêtements sur la pierre tiède, et vous entrez dans l’eau.)', 800);
+    await ui.fade(true, '', 800);
     const c = Math.cos(P.r || 0), sn = Math.sin(P.r || 0), lx = (Math.random() - 0.5) * (P.w - 1.6), lz = (Math.random() - 0.5) * (P.d - 1.6);
     p.pos = [P.x + lx * c + lz * sn, P.y + 0.02, P.z - lx * sn + lz * c]; p.vel = [0, 0, 0];
     this.baignade = { P, t: 0, dit: false };
@@ -112,7 +113,7 @@ const lieux = {
     await ui.fade(false, '', 900);
     game.sleeping = false;
     sound.splash && sound.splash();
-    ui.subtitle('', '(L’eau est chaude, presque trop. Elle sent la pierre et le fer.)', 4);
+    penser.une('bain', '(L’eau sent la pierre et le fer.)', 3.5);
     // les gens des Sources vous saluent, une fois par jour
     if (L.bains.jour !== farm.s.day) {
       L.bains.jour = farm.s.day;
@@ -125,7 +126,7 @@ const lieux = {
     if (!B || game.sleeping) return;
     const p = game.player, P = B.P;
     game.sleeping = true;
-    await ui.fade(true, '(Vous sortez de l’eau. L’air vous paraît froid, puis plus du tout.)', 700);
+    await ui.fade(true, '', 700);
     const c = Math.cos(P.r || 0), sn = Math.sin(P.r || 0), lz = -(P.d / 2 + 1.3);
     const x = P.x + lz * sn, z = P.z + lz * c, w = game.world;
     p.pos = [x, w.groundAt(x, z, w.heightAt(x, z) + 1, 1.2) + 0.02, z]; p.vel = [0, 0, 0];
@@ -147,8 +148,8 @@ const lieux = {
     // la jambe cassée se remet trois fois plus vite dans l'eau chaude
     const C = corps.C();
     if (corps.jambeCassee()) C.jambe -= dt * 24 / game.world.dayLength * 2;
-    if (!B.dit && B.t > 9) { B.dit = true; ui.subtitle('', corps.saignement() > 0 ? '(L’eau rosit autour de vous. Il faudrait serrer un bandage.)' : '(Vos épaules se dénouent. Pour la première fois depuis des jours, vous ne pensez à rien.)', 4.5); }
-    if (weather.cur.storm > 0.5 && B.t > 2) { ui.subtitle('', '(Le tonnerre roule. Il faut sortir de l’eau.)', 2.5); this.sortirBain(); return; }
+    if (!B.dit && B.t > 9) { B.dit = true; if (corps.saignement() > 0) ui.subtitle('', '(L’eau rosit autour de vous.)', 3.5); }
+    if (weather.cur.storm > 0.5 && B.t > 2) { ui.subtitle('', '(Pas sous l’orage.)', 2.5); this.sortirBain(); return; }
     if (B.t > 1.2 && ['KeyW', 'KeyS', 'KeyA', 'KeyD', 'Space'].some((k) => input.down(k))) this.sortirBain();
   },
   vapeur(dt, eye) {
@@ -184,7 +185,7 @@ const lieux = {
     if (this.ouverture) return;
     if (sound.knock) sound.knock(1); else if (sound.coup) sound.coup();
     const now = game.time;
-    if (!this.frappes.length && !L.nains.vu) { L.nains.vu = 1; ui.subtitle('', '(Une fente étroite dans la paroi, en forme de serrure. La roche sonne creux.)', 4); }
+    if (!this.frappes.length && !L.nains.vu) { L.nains.vu = 1; ui.subtitle('', '(La roche sonne creux.)', 3); }
     this.frappes.push(now);
     this.fente = it;
     void p;
@@ -213,7 +214,7 @@ const lieux = {
     const w = game.world, N = w.nains, L = this.S();
     if (!N || !N.door || this.ouverture) return;
     if (this.sang()) { setTimeout(() => ui.subtitle('???', 'Tu portes du sang. La porte ne s’ouvrira plus.', 4), 1300); return; }
-    if (!npcs.alive('nain_ancien') && !npcs.alive('nain_forgeronne')) { setTimeout(() => ui.subtitle('', '(Rien. La roche ne répond plus. Il n’y a plus personne pour ouvrir.)', 4), 1300); return; }
+    if (!npcs.alive('nain_ancien') && !npcs.alive('nain_forgeronne')) { setTimeout(() => ui.subtitle('', '(Rien. Plus personne ne répond.)', 3.5), 1300); return; }
     this.ouverture = true;
     const [fx, fy, fz, face] = N.door, nx = Math.sin(face), nz = Math.cos(face);
     const devant = [fx + nx * 3.2, fy + 1.6, fz + nz * 3.2], fente = [fx, fy + 1.25, fz], pres = [fx + nx * 0.75, fy + 1.3, fz + nz * 0.75];
@@ -223,7 +224,7 @@ const lieux = {
     cine.jouer([
       { dur: 2.6, de: { pos: devant, look: fente }, a: { pos: [fx + nx * 2.4, fy + 1.45, fz + nz * 2.4], look: fente }, joueur: true, debut() { sound.pierre && sound.pierre(); game.shakeT = 0.6; }, chaque(t) { if (t < 2) game.shakeT = Math.max(game.shakeT, 0.15); } },
       { dur: 3.0, de: { pos: pres, look: fente }, texte: premier ? 'Qui frappe comme nous ?' : 'Ah. C’est toi, grand.', qui: '???', debut: () => { this.oeil = { x: fx, y: fy + 1.25, z: fz, face, t: 0 }; } },
-      { dur: 2.2, fondu: 'noir', texte: premier ? '(La paroi pivote vers l’intérieur. Un escalier taillé descend dans le noir, vers une lueur dorée.)' : '(La paroi pivote. Vous descendez.)', fin: () => { const to = N.inside; game.player.pos = [to[0], to[1] + 0.05, to[2]]; game.player.vel = [0, 0, 0]; game.renderer.uploadCover && game.renderer.uploadCover(to[0], to[2]); savoir.connaitreLieu('nains'); } },
+      { dur: 2.2, fondu: 'noir', fin: () => { const to = N.inside; game.player.pos = [to[0], to[1] + 0.05, to[2]]; game.player.vel = [0, 0, 0]; game.renderer.uploadCover && game.renderer.uploadCover(to[0], to[2]); savoir.connaitreLieu('nains'); } },
     ], { apres: fin });
     if (par === 'sifflet') L.nains.sifflet = 1;
   },
@@ -392,17 +393,18 @@ const lieux = {
     const L = this.S(), hand = farm.s.hand;
     if (g.act === 'colere') return;
     const id = ['pain', 'miel', 'brioche', 'tarte'].includes(hand) && farm.count(hand) ? hand : ['pain', 'miel'].find((k) => farm.count(k));
-    if (!id) { this.dire(g.nom, 'gorrain', 'mek hak , lokka', 'Petit homme, regarde.', 5, true); ui.subtitle('', '(Il vous regarde longtemps, la tête penchée. On dit qu’ils aiment le pain, et le miel.)', 4); return; }
+    if (!id) { this.dire(g.nom, 'gorrain', 'mek hak , lokka', 'Petit homme, regarde.', 5, true); ui.subtitle('', '(Il regarde longtemps vos mains vides.)', 3); return; }
     farm.take(id, 1); sound.pop && sound.pop();
     L.geants.dons++;
     const [t, sens] = pick(GEANTS_DON);
     g.pose = 'travail'; g.attackAnim = 0.4;
     setTimeout(() => this.dire(g.nom, 'gorrain', t, sens, 6, true), 900);
-    // en échange : des mots, et parfois une chose trouvée là-haut
-    const neufs = GEANTS_MOTS.filter((m) => LANGUES.gorrain.lex[m] && !savoir.motConnu('gorrain', m)).slice(0, 2);
-    if (neufs.length) { savoir.apprendreMots('gorrain', neufs); setTimeout(() => ui.subtitle('', `(Il pose un doigt énorme sur le feu, puis sur le ciel, et répète lentement : « ${neufs.join(' », « ')} ». Vous retenez ${neufs.length > 1 ? 'ces mots' : 'ce mot'} : ${neufs.map((m) => LANGUES.gorrain.lex[m]).join(', ')}.)`, 7), 3500); }
+    // en échange : un mot (il le dit lentement ; on le retient), et parfois une chose trouvée là-haut
+    const reste = GEANTS_MOTS.filter((m) => LANGUES.gorrain.lex[m] && !savoir.motConnu('gorrain', m));
+    const mot = (typeof langues !== 'undefined' ? langues.meler('gorrain', reste, 'geants') : reste)[0];
+    if (mot) { savoir.apprendreMots('gorrain', [mot]); setTimeout(() => this.dire(g.nom, 'gorrain', mot, LANGUES.gorrain.lex[mot], 6, true), 3500); }
     const cadeau = L.geants.dons === 1 ? 'gemme' : L.geants.dons % 3 === 0 ? pick(['fossile', 'plume_aigle', 'vieille_piece', 'os']) : null;
-    if (cadeau && ITEMS[cadeau]) { setTimeout(() => { farm.give(cadeau, 1); play.flyer(cadeau, [g.x, g.y + 1.2, g.z], 1); ui.subtitle('', L.geants.dons === 1 ? '(Entre deux doigts grands comme des bûches, il vous tend une pierre brillante, grosse comme un poing.)' : '(Il ouvre la main : quelque chose de petit, trouvé là-haut, pour vous.)', 5); }, 5200); }
+    if (cadeau && ITEMS[cadeau]) { setTimeout(() => { farm.give(cadeau, 1); play.flyer(cadeau, [g.x, g.y + 1.2, g.z], 1); }, 5200); }
   },
   frapperGeant(g, dmg) {
     const L = this.S();
@@ -414,7 +416,6 @@ const lieux = {
     if (g.hp <= 0) {
       g.mort = true; g.move = 0; game.shakeT = 1.5; sound.rumble && sound.rumble();
       L.geants.morts.push({ i: g.i, x: Math.round(g.x), z: Math.round(g.z), h: g.heading, day: farm.s.day }); L.geants.haine = true;
-      ui.subtitle('', '(Le géant s’effondre. La terre tremble longtemps. Quelque part, très loin sous la montagne, quelque chose se retourne.)', 6);
     }
   },
   drawGeants(buf, sbuf, cam, t, fogEnd) {
@@ -510,8 +511,7 @@ HOOKS.primary.push((eye, basis, held, it, id) => {
   if (held || id !== 'sifflet_argent') return false;
   const N = game.world.nains, p = game.player;
   sound.siffletNains && sound.siffletNains(); play.cool = 1;
-  if (N && N.door && Math.hypot(p.pos[0] - N.door[0], p.pos[2] - N.door[2]) < 6) { lieux.frappes = []; ui.subtitle('', '(Le sifflet chante trois fois, une fois, trois fois. Dans la roche, quelque chose répond.)', 3.5); setTimeout(() => lieux.ouvrir('sifflet'), 2600); }
-  else ui.subtitle('', '(Un son aigu, en trois fois. Rien ne répond, ici.)', 2.5);
+  if (N && N.door && Math.hypot(p.pos[0] - N.door[0], p.pos[2] - N.door[2]) < 6) { lieux.frappes = []; setTimeout(() => lieux.ouvrir('sifflet'), 2600); }
   return true;
 });
 // les géants se touchent (coups, flèches) comme les autres ombres ; on les approche (E) pour leur donner
@@ -577,7 +577,7 @@ HOOKS.load.push(() => {
   lieux.hooked = true;
   const _interact = game.interact.bind(game);
   game.interact = function () { if (lieux.baignade) { lieux.sortirBain(); return; } return _interact(); };
-  // les nains : un pain, un mot
+  // les nains : un pain, un mot (un par jour, et par nain)
   const _options = talk.options.bind(talk);
   talk.options = function () {
     const n = this.n, opts = _options();
@@ -590,11 +590,15 @@ HOOKS.load.push(() => {
   talk.choose = function (act) {
     const n = this.n;
     if (n && act === 'lieux:mot') {
-      const lang = n.d.id === 'nain_ancien' ? 'aelin' : 'gorrain';
-      const mot = NAINS_MOTS[lang].find((m) => LANGUES[lang].lex[m] && !savoir.motConnu(lang, m));
+      const lang = n.d.id === 'nain_ancien' ? 'aelin' : 'gorrain', L = lieux.S().nains;
+      const reste = NAINS_MOTS[lang].filter((m) => LANGUES[lang].lex[m] && !savoir.motConnu(lang, m));
+      const mot = (typeof langues !== 'undefined' ? langues.meler(lang, reste, 'nains') : reste)[0];
       if (!mot) return this.view(n.d.id === 'nain_ancien' ? 'Tu sais tout ce qu’un pain peut acheter. Le reste, les pierres te le diront.' : 'Plus de mots pour du pain. Apporte-moi du charbon, plutôt.', this.options());
+      const k = 'pain_' + n.d.id;
+      if (L[k] === farm.s.day) return this.view(n.d.id === 'nain_ancien' ? 'Un pain, un mot, et un par jour, grand. Les mots, ça se digère.' : 'Un mot par jour. Le reste, c’est du bavardage.', this.options());
+      L[k] = farm.s.day;
       farm.take('pain', 1); savoir.apprendreMots(lang, [mot]); npcs.addAmitie(n, 6); sound.page && sound.page();
-      return this.view(`(Il rompt le pain, le sent, et en mange un morceau.) « ${mot} ». ${LANGUES[lang].lex[mot].replace(/^./, (c) => c.toUpperCase())}. Répète. … Non. Encore. … Voilà.`, this.options());
+      return this.view(`« ${mot} ». ${LANGUES[lang].lex[mot].replace(/^./, (c) => c.toUpperCase())}. Répète. … Non. Encore. … Voilà.`, this.options());
     }
     return _choose(act);
   };

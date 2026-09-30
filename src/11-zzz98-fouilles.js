@@ -126,8 +126,8 @@ const F2_TYPES = {
   malle: { lab: 'Ouvrir la malle', table: 'f2_malle', d: 1.6, son: 'bois', p: 0.4, r: 4, h: 0.55 },
   secretaire: { lab: 'Fouiller le secrétaire', table: 'f2_secretaire', d: 1.8, son: 'papier', p: 0.75, r: 3, h: 0.9 },
   coffre_fort: { lab: 'Ouvrir le coffre-fort', table: 'f2_coffre_commune', d: 1.5, son: 'metal', p: 0, r: 7, h: 0.75 },
-  tiroir: { lab: 'Fouiller le tiroir-caisse', table: 'f2_caisse_auberge', d: 0.9, son: 'monnaie', p: 0.1, r: 1, h: 1.1, vides: ['(La caisse est vide. La recette du jour est déjà rangée ailleurs.)'] },
-  tonneaux: { lab: 'Remplir un pichet en douce', table: 'f2_tonneaux', d: 1.2, son: 'eau', p: 0, r: 2, h: 0.95, vides: ['(Le robinet ne donne plus qu’un filet. Il faudra attendre qu’on mette un fût en perce.)'] },
+  tiroir: { lab: 'Fouiller le tiroir-caisse', table: 'f2_caisse_auberge', d: 0.9, son: 'monnaie', p: 0.1, r: 1, h: 1.1, vides: ['(La caisse est vide.)'] },
+  tonneaux: { lab: 'Remplir un pichet en douce', table: 'f2_tonneaux', d: 1.2, son: 'eau', p: 0, r: 2, h: 0.95, vides: ['(Le robinet ne donne plus qu’un filet.)'] },
   petrin: { lab: 'Fouiller le pétrin', table: 'f2_petrin', d: 1.3, son: 'farine', p: 0.1, r: 2, h: 0.95 },
   boite_tresors: { lab: 'Ouvrir la boîte à trésors', table: 'f2_tresors', d: 1.0, son: 'bois', p: 0.6, r: 4, h: 0.35, enfant: true },
   casier_tri: { lab: 'Fouiller les casiers du tri', table: 'f2_tri', d: 1.4, son: 'papier', p: 0.85, r: 2, h: 1.2 },
@@ -145,7 +145,7 @@ const F2_TYPES = {
   linge: { lab: 'Décrocher du linge', table: 'f2_linge', d: 0.8, son: 'tissu', p: 0, r: 2, h: 1.5, vides: ['(Il ne sèche plus que des torchons troués.)'] },
   poulailler: { lab: 'Chaparder des œufs', table: 'f2_oeufs', d: 1.0, son: 'poule', p: 0, r: 1, h: 0.6, vides: ['(Pas un œuf. Les poules vous regardent de travers.)'] },
   boite_lettres: { lab: 'Fouiller la boîte aux lettres', table: 'f2_boite', d: 1.2, son: 'papier', p: 0.9, r: 1, h: 1.1 },
-  poubelle: { lab: 'Fouiller la poubelle', table: 'f2_poubelle', d: 1.2, son: 'metal', p: 0.35, r: 2, h: 0.8, vides: ['(Rien que des épluchures et de la cendre.)', '(Il n’y a plus que des épluchures.)'] },
+  poubelle: { lab: 'Fouiller la poubelle', table: 'f2_poubelle', d: 1.2, son: 'metal', p: 0.35, r: 2, h: 0.8, vides: ['(Rien que des épluchures et de la cendre.)'] },
   foin: { lab: 'Fouiller le foin', table: 'f2_foin', d: 1.8, son: 'foin', p: 0, r: 3, h: 0.8 },
   sacs_avoine: { lab: 'Fouiller les sacs d’avoine', table: 'f2_grange_sacs', d: 1.2, son: 'grain', p: 0, r: 3, h: 0.6 },
   sellerie: { lab: 'Fouiller la sellerie', table: 'f2_sellerie', d: 1.4, son: 'cuir', p: 0.25, r: 3, h: 0.9 },
@@ -161,7 +161,7 @@ const F2_TYPES = {
   cave_caisse: { lab: 'Fouiller les caisses de la cave', table: 'f2_cave_caisse', d: 1.4, son: 'bois', p: 0.35, r: 3, h: 0.8 },
   cache: { lab: 'Fouiller la cachette', table: null, d: 1.4, son: 'pierre', p: 0, r: 99999, h: 0.5 },
 };
-const F2_VIDES = ['(Vide. Quelqu’un est passé avant vous… ou c’était vous.)', '(Il n’y a plus rien.)', '(Rien. Revenez dans quelques jours.)'];
+const F2_VIDES = ['(Vide. Quelqu’un est passé avant vous… ou c’était vous.)', '(Il n’y a plus rien.)'];
 
 // ---------------------------------------------------------------- les cachettes (révélées par certains papiers ; vidées une fois pour toutes)
 const F2_CACHES = {
@@ -814,7 +814,7 @@ const fouilles = {
     if (!farm.s || !it || this.enCours || game.sleeping || game.dying || (typeof cine !== 'undefined' && cine.on)) return;
     const d = it.data, T = this.type(it);
     if (d.cache && !this.cacheConnue(d.cache)) return;
-    if (this.vide(it)) { sound.click && sound.click(); ui.subtitle('', d.cache ? '(La cachette est vide. C’est vous qui l’avez vidée.)' : pick(T.vides || F2_VIDES), 3); return; }
+    if (this.vide(it)) { sound.click && sound.click(); ui.subtitle('', d.cache ? '(La cachette est vide.)' : pick(T.vides || F2_VIDES), 3); return; }
     if (!this.ouvert(it)) { const ok = await this.deverrouiller(it); if (!ok) return; }
     sound.fouille && sound.fouille(T.son);
     const p = game.player;
@@ -822,7 +822,7 @@ const fouilles = {
   },
   async deverrouiller(it) {
     const d = it.data, S = this.S(), s = farm.s;
-    if (d.cle && farm.count(d.cle)) { S.ouverts[it.id] = s.day; sound.lock && sound.lock(false); ui.subtitle('', '(La clé tourne sans un bruit. Clic.)', 2.5); return true; }
+    if (d.cle && farm.count(d.cle)) { S.ouverts[it.id] = s.day; sound.lock && sound.lock(false); ui.subtitle('', '(La clé tourne.)', 2); return true; }
     if (typeof crochetage !== 'undefined' && crochetage && typeof crochetage.tenter === 'function') {
       let ok = false;
       const titre = String(it.name || '').replace(/^(Fouiller|Ouvrir|Forcer|Descendre à) (le |la |les |l’)?/, (m0, v, art) => (art || '')).replace(/^./, (c) => c.toUpperCase());
@@ -831,7 +831,7 @@ const fouilles = {
       return false;
     }
     sound.lock && sound.lock(true);
-    ui.subtitle('', pick(['(Fermé à clé.)', '(C’est fermé à clé. Il faudrait la clé… ou de quoi crocheter.)']), 3);
+    ui.subtitle('', '(Fermé à clé.)', 2.5);
     return false;
   },
   resoudre(it) {
@@ -859,7 +859,7 @@ const fouilles = {
     if (pieces > 0) bits.push(pieces > 1 ? `${pieces} pièces` : 'une pièce');
     for (const [k, n] of got) bits.push(n > 1 ? `${itemName(k).toLowerCase()} (${n})` : itemName(k).toLowerCase());
     if (papier) bits.push(F2_PAPIERS[papier].t.toLowerCase());
-    ui.subtitle('', bits.length ? `(${pick(['Vous trouvez', 'Vous prenez', 'Dans vos mains'])} : ${bits.join(', ')}.)` : '(Rien qui vaille la peine. Des miettes, de la poussière.)', 3.8);
+    ui.subtitle('', bits.length ? `(Vous trouvez : ${bits.join(', ')}.)` : '(Rien qui vaille la peine.)', 3.5);
     // qui a vu ?
     const own = this.proprio(it), vivant = !!(own && own.st.alive);
     const lieu = d.lieu || (vivant ? 'maison' : 'public');
@@ -881,7 +881,7 @@ const fouilles = {
       }
     }
     if (papier && !pris) setTimeout(() => { if (!ui.panel && !game.dying) this.lirePapier(papier); }, 900);
-    else if (papier) setTimeout(() => ui.subtitle('', '(Le papier, vous le relirez plus tard : sacoche, onglet Lettres.)', 3.5), 3800);
+    else if (papier) setTimeout(() => penser.une('lettres', '(Le papier ira dans la sacoche, onglet Lettres.)', 3.5), 3800);
     return { pieces, got, papier, pris, vus: vus.map((m) => m.id) };
   },
   // les objets pris chez quelqu'un se reconnaissent (le vol à la tire les compte)
@@ -961,7 +961,7 @@ const fouilles = {
     sound.page && sound.page();
     const neuf = !S.lus[id];
     S.lus[id] = 1;
-    if (P.cache && !S.caches[P.cache]) { S.caches[P.cache] = 1; if (neuf) setTimeout(() => ui.subtitle('', '(Une cachette… Voilà qui mérite qu’on aille voir.)', 3.5), 600); }
+    if (P.cache && !S.caches[P.cache]) { S.caches[P.cache] = 1; if (neuf) setTimeout(() => ui.subtitle('', '(Une cachette…)', 3), 600); }
   },
 
   // ------------------------------------------------------------------ l'aspect des meubles (ouverts quand ils sont vides)
@@ -1099,8 +1099,8 @@ HOOKS.inter.f2_trappe = async (it) => {
   if (!permis && !fouilles.ouvert(it)) { const ok = await fouilles.deverrouiller(it); if (!ok) return; }
   const S = fouilles.S(), premier = S.caveJour !== farm.s.day;
   S.caveJour = farm.s.day;
-  await game.teleport(d.to, 'Vous soulevez la trappe, et vous descendez dans le noir…');
-  if (premier) setTimeout(() => { if (!game.dying) { ui.subtitle('', '(Ça sent le tabac à pipe. Personne ne fume, ici.)', 4); sound.whisper && sound.whisper(0, 0.25); } }, 1200);
+  await game.teleport(d.to, '');
+  if (premier) setTimeout(() => { if (!game.dying) { penser.une('cave_tabac', '(Ça sent le tabac à pipe. Personne ne fume, ici.)', 4); sound.whisper && sound.whisper(0, 0.25); } }, 1200);
 };
 HOOKS.update.push((dt, eye, basis, sky, playing) => { if (farm.s && game.world) fouilles.update(dt, playing); });
 HOOKS.day.push(() => { if (farm.s) fouilles.jour(); });

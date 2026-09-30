@@ -86,12 +86,12 @@ const builds = {
     for (let lz = z0; lz <= z1 + 0.01; lz += 1) for (let lx = x0; lx <= x1 + 0.01; lx += 1) { const [px, pz] = L(lx, lz), h = w.heightAt(px, pz); mn = Math.min(mn, h); mx = Math.max(mx, h); sum += h; n++; }
     const y = Math.round(sum / n * 100) / 100;
     if (mn < w.waterLevel + 0.3) return bad('(Le sol est trop humide ici.)', y);
-    if (mx - mn > 2.4) return bad('(Le terrain est trop en pente. Aplanissez-le à la pelle.)', y);
+    if (mx - mn > 2.4) return bad('(Le terrain est trop en pente.)', y);
     // obstacles : bâtiments, murets, arbres, rochers
     let hit = null;
     for (let lz = z0; lz <= z1 + 0.01 && !hit; lz += 1) for (let lx = x0; lx <= x1 + 0.01 && !hit; lx += 1) {
       const [px, pz] = L(lx, lz);
-      w.query(px, pz, 0.7, (o) => { if (!hit && o && w.live(o) && Math.hypot(o.x - px, o.z - pz) < 0.9) hit = '(Un arbre ou une pierre gêne : abattez-le d’abord.)'; }, (b) => {
+      w.query(px, pz, 0.7, (o) => { if (!hit && o && w.live(o) && Math.hypot(o.x - px, o.z - pz) < 0.9) hit = '(Un arbre ou une pierre gêne.)'; }, (b) => {
         if (hit || b.under || b.y > y + 3 || b.y + b.sy < y - 1.5) return;
         const [bx, bz] = World.blockLocal(b, px, pz);
         if (Math.abs(bx) < b.sx / 2 + 0.3 && Math.abs(bz) < b.sz / 2 + 0.3) hit = '(Une construction ou un objet gêne.)';
@@ -132,7 +132,6 @@ const builds = {
     await ui.fade(false, '', 900);
     game.sleeping = false;
     sound.place();
-    ui.subtitle('', { grange: '(La grange est debout. Il y a de la place pour les bêtes.)', poulailler: '(Le poulailler est prêt. Les poules n’attendent plus que vous.)', atelier: '(L’atelier est monté : un établi, un four.)', puits: '(Le puits est creusé. L’eau est claire.)' }[g.kind], 4);
   },
   // le terrain est aplani sous la construction (enregistré comme la pelle)
   flatten(w, K, g) {

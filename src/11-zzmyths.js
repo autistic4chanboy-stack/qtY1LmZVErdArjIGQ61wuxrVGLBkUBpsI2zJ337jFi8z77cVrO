@@ -66,36 +66,34 @@ HOOKS.inter.abbey_stone = (it) => {
   const s = farm.s;
   if (!s.flags.abbayeOuverte) {
     const T = typeof LORE_TEXT !== 'undefined' && LORE_TEXT.abbaye;
-    if (!s.flags.abbayeVue) { s.flags.abbayeVue = 1; ui.read('Derrière l’autel', fmtLine((T && T.autel) || 'Une pierre du mur sonne creux sous les doigts.', null) + '\n\n(Appuyez encore pour la pousser.)'); return; }
+    if (!s.flags.abbayeVue) { s.flags.abbayeVue = 1; ui.read('Derrière l’autel', fmtLine((T && T.autel) || 'Une pierre du mur sonne creux sous les doigts.', null) + '\n\n(Elle bouge un peu, sous la main.)'); return; }
     s.flags.abbayeOuverte = s.day;
     sound.rumble && sound.rumble(); game.shakeT = 0.5;
   }
-  game.teleport(it.data.to, 'La pierre pivote sur un gond de fer. Un escalier descend dans le noir.');
-  if (!s.flags.scriptoVu) { s.flags.scriptoVu = 1; const T = typeof LORE_TEXT !== 'undefined' && LORE_TEXT.abbaye; setTimeout(() => ui.subtitle('', fmtLine((T && T.scriptorium) || 'Des pupitres, des livres pourris, et une odeur de cire.', null), 6), 1500); }
+  game.teleport(it.data.to, 'Un escalier descend dans le noir.');
 };
 // les Frappeurs : pain et lait dans la niche ; le lendemain, la paroi s'ouvre
 HOOKS.inter.frappeurs = (it) => {
   const s = farm.s, q = game.world.props[it.data.prop];
   const T = typeof LORE_TEXT !== 'undefined' && LORE_TEXT.frappeurs;
-  if (s.flags.frappeursOffert) { ui.subtitle('', s.flags.frappeursOuvert ? '(La niche est vide. Des miettes, et de petites empreintes dans la poussière.)' : '(Le pain et le lait sont toujours là. Pour l’instant.)', 3); return; }
+  if (s.flags.frappeursOffert) { ui.subtitle('', s.flags.frappeursOuvert ? '(La niche est vide. De petites empreintes dans la poussière.)' : '(Le pain et le lait sont toujours là.)', 3); return; }
   const lait = farm.count('lait') ? 'lait' : farm.count('lait_chevre') ? 'lait_chevre' : null;
   if (farm.count('pain') && lait) {
     farm.take('pain', 1); farm.take(lait, 1);
     s.flags.frappeursOffert = s.day;
     if (q) farm.setPropData(q, { offer: true });
     sound.place && sound.place();
-    ui.subtitle('', '(Vous posez le pain et le lait. Quelque part dans la roche, trois petits coups répondent.)', 4);
     setTimeout(() => sound.knock && sound.knock(3), 1500);
     return;
   }
-  ui.read('La niche des Frappeurs', fmtLine((T && T.niche) || 'Une niche taillée dans la roche, avec une planchette. Des miettes, très anciennes.', null) + '\n\n(Il faudrait y laisser du pain et du lait.)');
+  ui.read('La niche des Frappeurs', fmtLine((T && T.niche) || 'Une niche taillée dans la roche, avec une planchette. Des miettes, très anciennes.', null));
 };
 HOOKS.interVis.paroi = () => true;
 HOOKS.inter.paroi = (it) => {
   const s = farm.s, w = game.world, q = w.props[it.data.prop];
-  if (s.flags.frappeursOuvert) { game.teleport(it.data.to, 'Vous vous faufilez dans la fente.'); return; }
-  if (!s.flags.frappeursOffert || s.day <= s.flags.frappeursOffert) { ui.subtitle('', '(Une paroi fendue. De l’autre côté, on dirait qu’on frappe. Doucement.)', 3); sound.knock && sound.knock(2); return; }
-  if (!farm.bestTool('pioche')) { ui.subtitle('', '(La fente s’est élargie cette nuit. Avec une pioche, on passerait.)', 3); return; }
+  if (s.flags.frappeursOuvert) { game.teleport(it.data.to, ''); return; }
+  if (!s.flags.frappeursOffert || s.day <= s.flags.frappeursOffert) { sound.knock && sound.knock(2); return; }
+  if (!farm.bestTool('pioche')) { ui.subtitle('', '(La fente s’est élargie. Il faudrait une pioche.)', 3); return; }
   s.flags.frappeursOuvert = s.day;
   if (q) { farm.setPropData(q, { ouvert: true }); removePropCollider(w, q); }
   sound.rumble && sound.rumble(); game.shakeT = 0.6;
@@ -111,13 +109,13 @@ HOOKS.interPre.altar = (it) => {
   if (midnight && thirteen && w.circleRoom && !s.flags.cercleOuvert) {
     s.flags.cercleOuvert = s.day;
     sound.rumble && sound.rumble(); game.shakeT = 0.8; strange.glitchT = 0.6;
-    game.teleport(w.circleRoom.to, 'Treize pierres. La pierre du centre glisse, lentement, sur un lit de terre noire.');
+    game.teleport(w.circleRoom.to, 'La pierre du centre glisse, lentement, sur un lit de terre noire.');
     return true;
   }
-  if (s.flags.cercleOuvert && midnight && w.circleRoom) { game.teleport(w.circleRoom.to, 'Vous redescendez sous les pierres.'); return true; }
+  if (s.flags.cercleOuvert && midnight && w.circleRoom) { game.teleport(w.circleRoom.to, ''); return true; }
   const lines = [];
   lines.push(strange.inEnvers() ? '(Treize pierres. Toutes tournées vers vous.)' : '(La pierre est tiède, comme si quelqu’un venait de s’y asseoir.)');
-  if (held.length) lines.push(`(Vous portez ${held.length} relique${held.length > 1 ? 's' : ''} sur ${RELICS.length}. ${held.length === RELICS.length ? 'Il faudrait revenir à minuit.' : 'Les autres sont quelque part dans la vallée.'})`);
+  if (held.length) lines.push(held.length === RELICS.length ? '(Toutes les reliques. Pas à cette heure-ci.)' : `(Vous portez ${held.length} relique${held.length > 1 ? 's' : ''} sur ${RELICS.length}.)`);
   ui.subtitle('', lines.join(' '), 4.5);
   return true;
 };
@@ -128,7 +126,7 @@ async function finalRitual(it) {
   game.sleeping = true;
   sound.rumble && sound.rumble();
   const F = typeof LORE_TEXT !== 'undefined' && LORE_TEXT.fin;
-  await ui.fade(true, 'Vous déposez les onze reliques sur la pierre. Les treize pierres, une à une, se tournent vers vous.', 1800);
+  await ui.fade(true, 'Les treize pierres, une à une, se tournent vers vous.', 1800);
   await new Promise((r) => setTimeout(r, 2600));
   if (F && F.veilleur) for (const v of F.veilleur) { $('#fade-text').textContent = fmtLine(v, null); await new Promise((r) => setTimeout(r, 3400)); }
   await ui.fade(false, '', 1500);
@@ -157,7 +155,7 @@ HOOKS.inter.dream = async (it) => {
 // le recueil de légendes, à la mairie
 HOOKS.inter.book_legends = () => {
   const ids = ['treize_pierres', 'cloche_noyee', 'chasse_volante', 'bete_des_combes', 'lise'].filter((id) => !myths.heard(id));
-  if (!ids.length) { ui.subtitle('', '(Vous connaissez déjà tout ce que ce vieux recueil raconte.)', 3); return; }
+  if (!ids.length) { ui.subtitle('', '(Vous connaissez déjà tout ce que ce recueil raconte.)', 3); return; }
   const id = ids[0], M = myths.M(id);
   myths.hear(id, '');
   ui.read(M.titre, fmtLine(M.texte, null), 'Recueil des légendes de la vallée, annoté par plusieurs mains');

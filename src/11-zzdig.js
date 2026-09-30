@@ -38,7 +38,7 @@ const dig = {
     let got = null;
     const h = npcs.hour(), b = game.biomeAt([c.x, c.y, c.z]), night = h >= 21 || h < 4;
     if (mat === M_SAND) got = rollLoot('sable');
-    else if (night && (b === 'foret' || b === 'bouleaux') && Math.random() < 0.05) { got = [['mandragore', 1]]; sound.scream2 && sound.scream2(); ui.subtitle('', '(La racine hurle en sortant de terre. Puis plus rien.)', 3.5); strange.glitchT = 0.3; }
+    else if (night && (b === 'foret' || b === 'bouleaux') && Math.random() < 0.05) { got = [['mandragore', 1]]; sound.scream2 && sound.scream2(); strange.glitchT = 0.3; }
     else if (Math.random() < 0.55) got = rollLoot('pelle');
     for (const [k, n] of got || []) { if (k === 'argent') { farm.earn(n); continue; } farm.give(k, n); play.flyer(k, [c.x, c.y + 0.4, c.z], n); }
     s.stats.holes = (s.stats.holes || 0) + 1;
@@ -112,7 +112,7 @@ const dig = {
     if (q && q.id === 'eboulis') { q.data = Object.assign({}, q.data, { p: 6 }); removePropCollider(w, q); }
     if (!w.props.some((p) => p.caveMouth === id)) w.props.push({ id: 'entree_grotte', x: C.x, y: C.y - 0.1, z: C.z, r: C.r, caveMouth: id });
     farm.dirtyProps = true; w.grid = null;
-    if (fresh) { sound.rumble && sound.rumble(); game.shakeT = 0.8; ui.subtitle('', '(Les pierres cèdent. Un souffle froid sort de la terre.)', 3); s.stats.caves = (s.stats.caves || 0) + 1; }
+    if (fresh) { sound.rumble && sound.rumble(); game.shakeT = 0.8; s.stats.caves = (s.stats.caves || 0) + 1; }
   },
   // --------------------------------------------------------------- restauration au chargement
   restore() {
@@ -156,13 +156,13 @@ HOOKS.primary.push((eye, basis, held, it, id) => {
 HOOKS.interPre.dig = (it) => { if (farm.bestTool('pelle')) { play.digUp(it); return true; } return false; };
 HOOKS.inter.eboulis = (it) => {
   if (dig.caveOpen(it.data.cave)) return;
-  ui.subtitle('', farm.bestTool('pelle') ? '(Des pierres éboulées bouchent un passage. Un courant d’air froid en sort. La pelle en viendrait à bout.)' : '(Des pierres éboulées, et un courant d’air froid. Il faudrait une pelle.)', 3.5);
+  ui.subtitle('', farm.bestTool('pelle') ? '(Un courant d’air froid sort des pierres.)' : '(Un courant d’air froid sort des pierres. Il faudrait une pelle.)', 3);
 };
 HOOKS.interVis.eboulis = (it) => !dig.caveOpen(it.data.cave);
 HOOKS.interVis.cave = (it) => dig.caveOpen(it.data.cave);
 HOOKS.inter.cave = (it) => {
   const id = it.data.cave;
-  const txt = { grotte_cristaux: 'Vous vous glissez sous la roche. Tout au fond, quelque chose luit.', antre: 'L’odeur vous prend à la gorge : une bête, vieille, énorme.', grotte_contrebandiers: 'Des marches taillées, une corde usée, des caisses empilées.', grotte_peinte: 'La lanterne tremble sur des murs couverts de figures rouges.' }[id] || 'Vous descendez sous la terre.';
+  const txt = { grotte_cristaux: 'Tout au fond, quelque chose luit.', antre: 'L’odeur vous prend à la gorge : une bête, vieille, énorme.', grotte_contrebandiers: 'Des marches taillées, une corde usée, des caisses empilées.', grotte_peinte: 'La lanterne tremble sur des murs couverts de figures rouges.' }[id] || 'Vous descendez sous la terre.';
   farm.s.flags['vu_' + id] = 1;
   game.teleport(it.data.to, txt);
   if (id === 'grotte_cristaux' && typeof LORE_TEXT !== 'undefined') setTimeout(() => ui.subtitle('', LORE_TEXT.grotte_cristaux || '', 5), 1400);

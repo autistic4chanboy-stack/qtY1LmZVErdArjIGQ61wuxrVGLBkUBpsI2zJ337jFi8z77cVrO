@@ -82,15 +82,19 @@ const horses = {
     const s = farm.s, H = s.wildH[e.wildH];
     if (!H) return;
     if (HORSE_FOOD[s.hand] !== undefined) return this.feed(e, H);
-    if (H.foal) { ui.subtitle('', '(Un poulain. Il se serre contre sa mère et vous regarde de travers.)', 3); return; }
-    if ((H.trust || 0) < 60) { ui.subtitle('', (H.trust || 0) < 25 ? '(Il recule, les oreilles couchées. Il faudrait l’amadouer : une pomme, une carotte, de l’avoine…)' : '(Il se laisse toucher l’encolure, puis s’écarte. Pas encore.)', 3.5); e.state = 'idle'; e.timer = 1; return; }
-    if (H.cool && s.hours < H.cool) { ui.subtitle('', '(Il est encore nerveux. Laissez-le se calmer un peu.)', 2.5); return; }
+    if (H.foal) { ui.subtitle('', '(Un poulain. Il se serre contre sa mère.)', 3); return; }
+    if ((H.trust || 0) < 60) {
+      // (la règle, une fois par vie : ce qui l'amadoue)
+      if ((H.trust || 0) >= 25 || !penser.une('amadouer', '(Il recule, les oreilles couchées. Une pomme, une carotte, de l’avoine, peut-être…)', 3.5)) ui.subtitle('', (H.trust || 0) < 25 ? '(Il recule, les oreilles couchées.)' : '(Il se laisse toucher l’encolure, puis s’écarte. Pas encore.)', 3);
+      e.state = 'idle'; e.timer = 1; return;
+    }
+    if (H.cool && s.hours < H.cool) { ui.subtitle('', '(Il est encore nerveux.)', 2.5); return; }
     this.startRodeo(e, H);
   },
   feed(e, H) {
     const s = farm.s, id = s.hand;
     if (H.fedDay !== s.day) { H.fedDay = s.day; H.fedN = 0; }
-    if (H.fedN >= 3) { ui.subtitle('', '(Il détourne la tête : il a assez mangé pour aujourd’hui.)', 2.5); return; }
+    if (H.fedN >= 3) { ui.subtitle('', '(Il détourne la tête. Assez pour aujourd’hui.)', 2.5); return; }
     if (!farm.take(id, 1)) return;
     H.fedN++;
     const before = H.trust || 0;
@@ -103,8 +107,8 @@ const horses = {
     const msg = before < 25 && t >= 25 ? '(Il mange dans votre main, prudemment. Il vous observe.)'
       : before < 45 && t >= 45 ? '(Il ne recule plus quand vous approchez. Il vous cherche du regard.)'
         : before < 60 && t >= 60 ? '(Il pose la tête contre votre épaule. Il se laisserait peut-être monter.)'
-          : '(Il mâche lentement, les yeux mi-clos.)';
-    ui.subtitle('', msg, 3);
+          : null;
+    if (msg) ui.subtitle('', msg, 3);
   },
   // ---------------------------------------------------------------- le dressage
   startRodeo(e, H) {
@@ -114,7 +118,7 @@ const horses = {
     p.pos = [e.x, e.y, e.z]; e.heading = p.yaw + Math.PI;
     game.horseE = e;
     sound.animal('horse', 0, 1); game.shakeT = 0.6;
-    ui.subtitle('', '(Il se cabre ! Tenez bon — gardez les yeux droit devant vous.)', 3.5);
+    penser.une('cabre', '(Il se cabre ! Gardez les yeux droit devant vous.)', 3.5);
   },
   updateRodeo(dt) {
     const R = this.rodeo, p = game.player;
@@ -147,7 +151,6 @@ const horses = {
     H.trust = Math.max(0, (H.trust || 0) - (letGo ? 4 : 10)); H.cool = farm.s.hours + 0.75;
     entities.startFlee(e, p.pos[0], p.pos[2]); e.timer = 5;
     sound.animal('horse', 0, 1);
-    ui.subtitle('', letGo ? '(Vous lâchez prise et sautez à terre.)' : pick(['(Il vous jette à terre et part au galop.)', '(Le ciel, l’herbe, le ciel : vous voilà par terre.)', '(Une ruade, et vous mordez la poussière.)']), 3);
   },
   tame() {
     const R = this.rodeo;
@@ -163,7 +166,7 @@ const horses = {
     s.stats.tamed = (s.stats.tamed || 0) + 1;
     if (farm.count('selle')) { const sd = e.rig.part('saddle'); if (sd) sd.hide = false; }
     sound.animal('horse', 0, 0.6);
-    ui.subtitle('', `(Il cesse de se débattre. Son souffle ralentit sous vous. Vous l’appelez « ${a.name} ».)`, 5);
+    ui.subtitle('', `(Il cesse de se débattre. Vous l’appelez « ${a.name} ».)`, 5);
     game.shakeT = 0;
   },
   // ---------------------------------------------------------------- jours
@@ -223,6 +226,6 @@ HOOKS.update.push((dt, eye, basis, sky, playing) => {
 // abreuvoirs de la ville : le cheval boit, il repart plein d'allant
 HOOKS.inter.abreuvoir = () => {
   const p = game.player;
-  if (p.riding) { p.stamina = 1; sound.splash && sound.splash(); ui.subtitle('', '(Votre monture boit longuement. Elle souffle, puis relève la tête.)', 3); }
+  if (p.riding) { p.stamina = 1; sound.splash && sound.splash(); }
   else ui.subtitle('', '(L’eau est fraîche. Pour les chevaux, surtout.)', 2.5);
 };

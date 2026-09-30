@@ -27,12 +27,12 @@ const LIT_INTERS = new Set(['bed', 'rentbed', 'refuge', 'k_paillasse']);
 
 const FATIGUE_PENSEES = [
   null,
-  ['(Vous bâillez sans pouvoir vous retenir.)', '(Un bon lit ne serait pas de refus.)', '(La journée a été longue. Les jambes le disent avant la tête.)'],
-  ['(Vos paupières pèsent de plus en plus lourd.)', '(Vous vous surprenez à fixer le vide, la bouche ouverte.)', '(Il faudrait dormir. Un lit, une paillasse, n’importe quoi.)', '(Vos pensées s’emmêlent comme de la laine mouillée.)'],
-  ['(Vous relisez trois fois la même pensée sans la comprendre.)', '(Le sol tangue doucement. Ce n’est pas le sol.)', '(Vos mains tremblent un peu. Le froid, sans doute. Ce n’est pas le froid.)', '(Vous avez oublié ce que vous étiez venu faire ici.)', '(Chaque bruit vous fait sursauter, et vous ne savez plus d’où il vient.)'],
-  ['(Quelqu’un a parlé, tout près. Ou vous avez rêvé debout.)', '(Les contours des choses bougent quand on ne les regarde pas.)', '(Dormir. Il faut dormir. Tout de suite, n’importe où.)', '(Vos yeux se sont fermés. Combien de temps ?)', '(Vous ne savez plus depuis quand vous êtes debout. La vallée, elle, le sait.)'],
+  ['(Vous bâillez sans pouvoir vous retenir.)'],
+  ['(Vous vous surprenez à fixer le vide, la bouche ouverte.)', '(Vos pensées s’emmêlent comme de la laine mouillée.)'],
+  ['(Le sol tangue doucement. Ce n’est pas le sol.)', '(Vous avez oublié ce que vous étiez venu faire ici.)'],
+  ['(Quelqu’un a parlé, tout près. Ou vous avez rêvé debout.)', '(Vos yeux se sont fermés. Combien de temps ?)'],
 ];
-const FATIGUE_ENTREE = [null, '(La fatigue vient. Une bonne fatigue, pour l’instant.)', '(Vous devriez aller dormir. Le corps le réclame.)', '(Vous n’avez pas dormi. Tout devient lointain, et un peu faux.)', '(Cela fait trop longtemps. Quelque chose, en vous, commence à céder.)'];
+const FATIGUE_ENTREE = [null, '(La fatigue vient. Une bonne fatigue, pour l’instant.)', '(Le corps réclame le sommeil.)', '(Vous n’avez pas dormi. Tout devient lointain, et un peu faux.)', '(Cela fait trop longtemps. Quelque chose, en vous, commence à céder.)'];
 // l'habitant qui vous trouve dans son lit
 const LIT_DECOUVERT = {
   ami: ['Vous ? Dans mon lit ? … Vous auriez pu demander, au moins. Allez, debout. Et on n’en parle plus.', 'Ça alors. Je rentre, et je vous trouve là, comme chez vous. Debout, voyons. Vous me devez une explication, un jour.'],
@@ -100,7 +100,7 @@ const sommeil = {
     if (actif) this.stadePrev = st;
     this.pensT -= dt;
     if (actif && st >= 1 && this.pensT <= 0) {
-      this.pensT = [0, 260, 170, 115, 80][st] * (0.7 + Math.random() * 0.6);
+      this.pensT = [0, 360, 200, 130, 90][st] * (0.7 + Math.random() * 0.6);
       this.dire(pick(FATIGUE_PENSEES[st]), 4);
       if (st >= 1 && Math.random() < 0.5) sound.breath && sound.breath(1.3);
     }
@@ -214,7 +214,7 @@ const sommeil = {
       case 'cachot': {
         const P = typeof prison !== 'undefined' && prison.S();
         if (P && P.actif) { game.sleep('cachot'); return; }
-        ui.subtitle('', '(De la paille qui pique, et qui sent la peur des autres.)', 3); return;
+        ui.subtitle('', '(De la paille qui sent la peur des autres.)', 3); return;
       }
       case 'ferme': return this.coucher('ferme', q, I);
       case 'location': return this.coucher('location', q, I);
@@ -228,7 +228,7 @@ const sommeil = {
     const ici = (m) => m.st.alive && m.inside === I.bld && Math.hypot(m.x - p.pos[0], m.z - p.pos[2]) < 16;
     if (ici(n) && n.state === 'sleep') {
       const dans = Math.hypot(n.x - q.x, n.z - q.z) < 1.3;
-      if (dans) { ui.subtitle('', `(${n.st.met ? n.name : 'Quelqu’un'} dort déjà dans ce lit, et ronfle doucement.)`, 3); return; }
+      if (dans) { ui.subtitle('', `(${n.st.met ? n.name : 'Quelqu’un'} dort déjà dans ce lit.)`, 3); return; }
     }
     const debout = [n, ...(I.co || [])].find((m) => ici(m) && m.state !== 'sleep' && !m.sleep);
     if (debout) {
@@ -276,13 +276,12 @@ const sommeil = {
     if (c && c.I) {
       const I = c.I;
       if (I.matin) setTimeout(() => this.decouvert(I.matin, I, 'matin'), 2400);
-      else if (I.cat === 'mort') { if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-2, 'le lit d’un mort', 4); setTimeout(() => ui.subtitle('', `(Le lit de ${I.n.name}. Les draps ont gardé son odeur. Personne n’y dormira plus.)`, 5), 2600); }
-      else if (I.cat === 'geant') setTimeout(() => ui.subtitle('', '(Vous avez dormi dans un pli de la fourrure, comme un enfant dans le manteau de son père. Ça sentait la fumée et la bête.)', 5), 2600);
-      else if (I.cat === 'conjoint') setTimeout(() => ui.subtitle('', `(Chez ${I.n.name}, dans ses draps. Vous avez bien dormi.)`, 4), 2600);
+      else if (I.cat === 'mort') { if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-2, 'le lit d’un mort', 4); setTimeout(() => ui.subtitle('', `(Le lit de ${I.n.name}. Les draps ont gardé son odeur.)`, 5), 2600); }
+      else if (I.cat === 'geant') setTimeout(() => ui.subtitle('', '(Ça sentait la fumée et la bête.)', 5), 2600);
     }
     if (where === 'ferme' && typeof sentiments !== 'undefined' && sentiments.conjoint) {
       const cj = sentiments.conjoint();
-      if (cj && Math.random() < 0.5) setTimeout(() => { if (!game.dying && !ui.panel) ui.subtitle('', `(${cj.name} s’est levé${cj.d.gender === 'f' ? 'e' : ''} sans vous réveiller. Sa place est encore tiède.)`, 4.5); }, 5200);
+      if (cj && Math.random() < 0.25) setTimeout(() => { if (!game.dying && !ui.panel) ui.subtitle('', `(${cj.name} s’est levé${cj.d.gender === 'f' ? 'e' : ''} sans vous réveiller.)`, 3.5); }, 5200);
     }
   },
   // l'habitant rentre et vous trouve : on se réveille en pleine nuit
@@ -337,7 +336,7 @@ const sommeil = {
         p.pos = [o.x, w.groundAt(o.x, o.z, B.y + 1, 0.8), o.z]; p.vel = [0, 0, 0];
         const dr = w.doors[B.door];
         if (dr) { dr.open = 0; dr.a = 0; const h = npcs.hour(); if (h >= 20.5 || h < 6) dr.locked = true; }
-        ui.subtitle('', ami ? '(Vous voilà sur le pas de la porte, les cheveux en bataille.)' : '(La porte claque dans votre dos. Un verrou. Puis plus rien.)', 4);
+        ui.subtitle('', ami ? '(Vous voilà sur le pas de la porte.)' : '(La porte claque dans votre dos. Un verrou.)', 4);
         ui.fade(false, '', 700);
       });
     }, 4300);

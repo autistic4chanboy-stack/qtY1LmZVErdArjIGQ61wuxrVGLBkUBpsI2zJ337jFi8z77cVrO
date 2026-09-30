@@ -52,12 +52,11 @@ const pilules = {
     P.recent = P.recent.filter((t) => h - t < 72); P.recent.push(h);
     const abus = this.abus();
     P.tol = Math.min(7, P.tol + 0.55 + (abus > 2 ? 0.35 : 0));
-    if (P.manque > h) { P.manque = 0; ui.subtitle('', '(Le manque se tait d’un coup. Vos mains cessent de trembler.)', 3.5); }
+    if (P.manque > h) { P.manque = 0; ui.subtitle('', '(Le manque se tait d’un coup.)', 3.5); }
     if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(3, 'pilule de joie');
     // déjà dedans : ça redouble (ou ça replonge, depuis les Ténèbres)
     if (P.phase === 'bonbons' || P.phase === 'monte') {
       P.dose++; P.finBonbons += 2.2 / (1 + P.tol * 0.25); this.calerTenebres();
-      ui.subtitle('', pick(['(Les couleurs redoublent. Vous riez tout seul.)', '(Encore plus de sucre dans l’air. C’est merveilleux. C’est trop.)']), 3.5);
       return;
     }
     if (P.phase === 'tenebres') {
@@ -71,7 +70,7 @@ const pilules = {
     A.n++;
     const force = A.n / (1 + Math.max(0, P.tol - 1.2) * 0.45);
     if (force < 0.5) {
-      ui.subtitle('', pick(['(Rien. Un goût de craie, c’est tout. Il en faudrait une autre.)', '(Rien ne vient. Avant, une suffisait.)', '(Vous attendez. Rien. Votre cœur bat quand même plus vite.)']), 4);
+      ui.subtitle('', pick(['(Rien. Un goût de craie, c’est tout.)', '(Rien ne vient. Avant, une suffisait.)']), 4);
       return;
     }
     P.attente = null;
@@ -85,7 +84,7 @@ const pilules = {
     P.t0 = h; P.finMonte = h + (direct ? 0 : 0.55); P.finBonbons = P.finMonte + dureeB;
     this.calerTenebres();
     if (direct) mondes.entrer('bonbons', { duree: dureeB, pilule: true });
-    else ui.subtitle('', pick(['(Un goût sucré vous monte au nez. Les couleurs frémissent.)', '(Quelque chose, au bord des yeux, devient rose.)']), 4);
+    else ui.subtitle('', '(Un goût sucré vous monte au nez.)', 4);
   },
   // la retombée : d'autant plus longue qu'on en a pris, et qu'on en abuse
   calerTenebres() {
@@ -123,7 +122,7 @@ const pilules = {
       if (P.manqueT <= 0) {
         P.manqueT = 35 + Math.random() * 60;
         const r = Math.random();
-        if (r < 0.4) ui.subtitle('', pick(['(Une pilule. Juste une. Pour que ça s’arrête.)', '(Vous avez froid, puis chaud. Vos mains tremblent.)', '(Tout est gris. Tout était si beau, avant.)', '(Vous fouillez vos poches sans y penser.)']), 4);
+        if (r < 0.4) ui.subtitle('', pick(['(Une pilule. Juste une. Pour que ça s’arrête.)', '(Vous avez froid, puis chaud. Vos mains tremblent.)']), 4);
         else if (r < 0.7) { strange.glitchT = Math.max(strange.glitchT, 0.35); sound.heartbeat(0.6); }
         else { mondes.flashTenebres = 1.2; MSON.cri(0.25, 0.8, 0.8, Math.random() * 2 - 1); }
         game.shakeT = Math.max(game.shakeT, 0.25);
@@ -188,7 +187,7 @@ const pilules = {
     if (i < 0) return;
     P.sol.splice(i, 1); this.solProches = (this.solProches || []).filter((x) => x !== q);
     farm.give('pilule_joie', q.n || 1); play.flyer('pilule_joie', [q.x, q.y + 0.3, q.z], q.n || 1); sound.pop();
-    if (!P.vuSol) { P.vuSol = 1; ui.subtitle('', '(Un papier plié, dans l’herbe. Dedans, une petite gélule rose. « Pour la joie ».)', 4.5); }
+    if (!P.vuSol) { P.vuSol = 1; ui.subtitle('', '(Un papier plié, dans l’herbe : « Pour la joie ».)', 3.5); }
   },
   // ------------------------------------------------------------- le marchand de joie
   updateMarchand(dt, playing) {
@@ -272,13 +271,13 @@ Object.assign(BETES_MONDE, {
   licorne: { rig: () => MONDES_RIGS.licorne(), h: 2.3, r: 0.6, hp: 60, vitesse: [1.2, 7.5], fuite: 6, rayon: 18, butin: [['crin_licorne', 1, 1]],
     parler(e) {
       const p = game.player;
-      if (e.donne) { ui.subtitle('', '(La licorne vous regarde. Elle n’a plus rien à vous donner.)', 3); return; }
+      if (e.donne) { ui.subtitle('', '(Elle n’a plus rien à vous donner.)', 3); return; }
       if (p.crouch < 0.5 && e.state === 'fuite') return;
       e.donne = true; e.state = 'idle'; e.timer = 4;
       farm.give('crin_licorne', 1); play.flyer('crin_licorne', [e.x, e.y + 1.6, e.z], 1); MSON.scintille(1.2);
-      ui.subtitle('', '(Elle se laisse toucher. Sa crinière est tiède, et sent le sucre brûlé. Un crin reste entre vos doigts.)', 5);
+      ui.subtitle('', '(Sa crinière sent le sucre brûlé.)', 3);
     },
-    meurt(e) { MSON.cri(0.4, 1.4, 1.2); ui.subtitle('', '(La licorne tombe. Il n’y a pas de sang. Il y a du sucre, beaucoup de sucre, et puis quelque chose de plus sombre dessous.)', 5); } },
+    meurt(e) { MSON.cri(0.4, 1.4, 1.2); ui.subtitle('', '(Il n’y a pas de sang. Du sucre, et quelque chose de plus sombre dessous.)', 4); } },
   roi_sucre: { rig: () => MONDES_RIGS.roi(), h: 2.4, r: 0.45, hp: 999, vitesse: [0, 0], ia: 'immobile', regard: 30, echelle: 1.25, intouchable: true,
     touche(e) { MSON.rire(0.6, 0.7); ui.subtitle('Le roi Sucre', 'Ha ! Tu ne peux rien casser, ici. C’est pour ça qu’on y est si bien.', 3.5); },
     proche(e) { ui.subtitle('Le roi Sucre', pick(['Bienvenue, bienvenue. Ici, rien ne meurt, rien ne pourrit, rien ne fait mal.', 'Encore un visiteur ! Reste. Reste encore un peu.']), 4); },
@@ -388,7 +387,6 @@ MONDES.bonbons = {
     mondes.finConstruction([B.x - 150, B.z - 150, B.x + 150, B.z + 150]);
     if (!opts.restaurer) {
       MSON.scintille(1.5); strange.glitchT = Math.max(strange.glitchT, 0.25);
-      ui.subtitle('', pick(['(Tout devient doux. Le ciel est rose. Les arbres… les arbres sont des sucettes.)', '(Le monde fond comme un sucre dans du lait chaud. C’est beau. C’est si beau.)']), 5);
       if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(4, 'pays des bonbons');
     }
   },

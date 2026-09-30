@@ -397,7 +397,7 @@ const game = {
         const q = farm.propByKind('mangeoire', [it.x, it.z], 3);
         const n = Math.max(1, s.animals.filter((a) => a.kind !== 'hen').length);
         const k = Math.min(farm.count('foin'), n * 2);
-        if (!k) { ui.subtitle('', '(Il faudrait du foin : la faux en donne dans les hautes herbes.)', 3); return; }
+        if (!k) { ui.subtitle('', '(Il faudrait du foin.)', 3); return; }
         farm.take('foin', k); if (q) farm.setPropData(q, { fill: 1 });
         for (const a of s.animals) a.fedUntil = s.hours + 14;
         sound.place(); return;
@@ -416,7 +416,7 @@ const game = {
       }
       case 'ladder': case 'cellar': case 'deep': return this.teleport(d.to, it.kind === 'ladder' ? 'Vous grimpez à l’échelle…' : 'Vous descendez…');
       case 'crypt':
-        if (!s.flags.crypte) { if (!farm.count('cle_crypte')) { ui.subtitle('', '(La trappe est fermée par une serrure d’os. Aucune clé d’ici n’y entre.)', 3.5); return; } s.flags.crypte = 1; sound.lock(false); }
+        if (!s.flags.crypte) { if (!farm.count('cle_crypte')) { ui.subtitle('', '(Une serrure d’os. Aucune clé d’ici n’y entre.)', 3); return; } s.flags.crypte = 1; sound.lock(false); }
         return this.teleport(d.to, 'La clé d’os tourne toute seule…');
       case 'oldwell':
         if (strange.redNight() && !strange.inEnvers()) { this.goEnvers(); return; }
@@ -462,7 +462,7 @@ const game = {
       case 'caisse_expedition': return ui.openStore("Caisse d'expédition", s.ship, 'ship');
       case 'portillon': farm.setPropData(q, { open: !(q.data && q.data.open) }); sound.door(!!q.data.open); q.blkOff = !!q.data.open; return;
       case 'piege': if (q.data && q.data.prise) { farm.setPropData(q, { prise: 0 }); farm.give('viande', 1); if (Math.random() < 0.6) farm.give('cuir', 1); play.flyer('viande', [q.x, q.y + 0.3, q.z], 1); sound.pop(); } return;
-      case 'ruche': if (q.data && q.data.miel) { farm.setPropData(q, { miel: 0 }); farm.give('miel', q.data.miel || 1); play.flyer('miel', [q.x, q.y + 0.8, q.z], 1); sound.pop(); } else ui.subtitle('', '(Les abeilles bourdonnent. Le miel n’est pas encore prêt.)', 2.5); return;
+      case 'ruche': if (q.data && q.data.miel) { farm.setPropData(q, { miel: 0 }); farm.give('miel', q.data.miel || 1); play.flyer('miel', [q.x, q.y + 0.8, q.z], 1); sound.pop(); } else ui.subtitle('', '(Le miel n’est pas encore prêt.)', 2.5); return;
       case 'feu_camp': case 'four': case 'etabli': if (q.id === 'four' && !(q.data && q.data.lit)) { if (farm.take('charbon', 1) || farm.take('bois', 2)) { farm.setPropData(q, { lit: true }); w.collectLights(); } } return ui.openSatchel('fab');
       case 'puits_deco': case 'bassin': case 'fontaine_jardin': if (farm.bestTool('arrosoir')) { s.water = play.canCap(); sound.splash(); } return;
       case 'mangeoire': return this.useInter({ kind: 'feeder', x: q.x, z: q.z, data: {} });
@@ -474,7 +474,7 @@ const game = {
   lootBox(it) {
     const s = farm.s, d = it.data, w = this.world;
     const last = s.looted[it.id];
-    if (last !== undefined && s.day - last < 3) { sound.click(); ui.subtitle('', pick(['(Vide. Quelqu’un est passé avant vous… ou c’était vous.)', '(Il n’y a plus rien.)', '(Rien. Revenez dans quelques jours.)']), 2.5); return; }
+    if (last !== undefined && s.day - last < 3) { sound.click(); ui.subtitle('', pick(['(Vide. Quelqu’un est passé avant vous… ou c’était vous.)', '(Il n’y a plus rien.)']), 2.5); return; }
     s.looted[it.id] = s.day;
     const pos = [it.x, it.y + 0.3, it.z];
     for (const [k, n] of rollLoot(d.table)) {
@@ -504,7 +504,7 @@ const game = {
         farm.setPropData(q, { m: null }); sound.coin && sound.coin(); sound.pop();
         return;
       }
-      ui.subtitle('', pick(['(Ça travaille encore.)', '(Encore un peu de patience.)', '(Pas tout à fait prêt.)']), 2); return;
+      ui.subtitle('', '(Pas tout à fait prêt.)', 2); return;
     }
     const hand = s.hand;
     const ok = (r) => farm.has(r.in);
@@ -569,7 +569,7 @@ const game = {
   },
   async goEnvers() {
     this.sleeping = true;
-    await ui.fade(true, 'Vous descendez dans le vieux puits. L’eau se referme au-dessus de vous, et vous respirez.', 1400);
+    await ui.fade(true, 'L’eau se referme au-dessus de vous, et vous respirez.', 1400);
     await new Promise((r) => setTimeout(r, 1800));
     strange.setEnvers(true);
     farm.s.flags.envers = (farm.s.flags.envers || 0) + 1;
@@ -580,7 +580,7 @@ const game = {
   },
   async leaveEnvers() {
     this.sleeping = true;
-    await ui.fade(true, 'Le miroir vous laisse passer. Il fait froid, puis plus rien.', 1200);
+    await ui.fade(true, 'Il fait froid, puis plus rien.', 1200);
     strange.setEnvers(false);
     await ui.fade(false, '', 1200);
     this.sleeping = false;

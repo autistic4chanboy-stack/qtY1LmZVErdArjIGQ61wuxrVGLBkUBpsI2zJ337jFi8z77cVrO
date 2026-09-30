@@ -16,9 +16,9 @@
 const ALCOOL_ELIM = 0.015; // unités éliminées par seconde réelle
 const ALCOOL_COMA = 7.2;   // au-delà : on tombe
 const ALCOOL_PALIERS = [null,
-  ['(Une chaleur agréable vous monte aux joues.)', '(Ça réchauffe. Le monde est un peu plus aimable.)'],
-  ['(Le sol a une légère pente, qu’il n’avait pas tout à l’heure.)', '(Vous riez d’une chose qui n’est pas drôle.)'],
-  ['(Tout tourne. Vous riez tout seul, puis plus du tout.)', '(Vos jambes ne vont plus tout à fait où vous leur dites.)'],
+  ['(Une chaleur agréable vous monte aux joues.)'],
+  ['(Vous riez d’une chose qui n’est pas drôle.)'],
+  ['(Vos jambes ne vont plus tout à fait où vous leur dites.)'],
 ];
 
 // ---------------------------------------------------------------- les boissons
@@ -163,10 +163,10 @@ const alcool = {
     if (A.jourDay !== s.day) { A.jourDay = s.day; A.jourN = 0; }
     A.jourN += u;
     esprit.changer(0.5, 'boire', 1); // (un verre remonte un peu le moral : moins qu'un bon repas, voir survie.js)
-    if (this.gueule()) { A.gueule = Math.max(s.hours, A.gueule - 2); effets.dire('(Le mal de tête recule un peu. Le remède du cheval.)'); }
+    if (this.gueule()) { A.gueule = Math.max(s.hours, A.gueule - 2); effets.dire('(Le mal de tête recule un peu.)'); }
     sound.gorgee && sound.gorgee(u);
   },
-  soulager() { const A = this.S(); if (A && this.gueule()) { A.gueule = Math.max(farm.s.hours, A.gueule - 3); effets.dire('(Ça va un peu mieux. La tête cogne moins fort.)'); } },
+  soulager() { const A = this.S(); if (A && this.gueule()) { A.gueule = Math.max(farm.s.hours, A.gueule - 3); effets.dire('(La tête cogne moins fort.)'); } },
   fixer(g) { const A = this.S(); if (A) { A.g = Math.max(0, +g || 0); A.estomac = 0; } return A && A.g; },
 
   update(dt) {
@@ -180,7 +180,7 @@ const alcool = {
     const g = A.g, niv = g >= 4.5 ? 3 : g >= 2.5 ? 2 : g >= 1 ? 1 : 0;
     if (niv > this.niv && ALCOOL_PALIERS[niv]) effets.dire(pick(ALCOOL_PALIERS[niv]));
     if (niv === 0 && this.niv > 0 && A.pic >= 2.5) {
-      effets.dire(A.pic >= 5 ? '(L’ivresse retombe d’un coup. Il ne reste qu’une grande fatigue, et de la honte.)' : '(L’ivresse retombe. Un peu de tristesse, sans raison.)');
+      effets.dire(A.pic >= 5 ? '(L’ivresse retombe d’un coup. Il ne reste que la fatigue, et la honte.)' : '(L’ivresse retombe.)');
       esprit.changer(A.pic >= 5 ? -3 : -1.5, 'le vin triste', 5);
       A.pic = 0;
     }
@@ -190,7 +190,7 @@ const alcool = {
       const k = A.gueuleK || 0.5;
       p.mods.speed *= 1 - 0.12 * k;
       if (p.stamina > 0.75) p.stamina = 0.75;
-      if (!A.gueuleDit) { A.gueuleDit = true; effets.dire(k > 0.7 ? '(Une gueule de bois carabinée. La tête dans un étau, la bouche comme du vieux cuir.)' : '(Mal au crâne. Vous avez trop bu, hier.)', 4.5); }
+      if (!A.gueuleDit) { A.gueuleDit = true; effets.dire(k > 0.7 ? '(Une gueule de bois carabinée.)' : '(Mal au crâne. Vous avez trop bu, hier.)', 4.5); }
       if (A.gueule - s.hours > (A.gueuleDur || 4) - 1) play.nausea = Math.max(play.nausea || 0, 0.6 * k);
     }
     if (!niv || cine.on) return;
@@ -216,7 +216,6 @@ const alcool = {
           p.vel[0] += Math.cos(p.yaw) * 2.6 * side; p.vel[2] += -Math.sin(p.yaw) * 2.6 * side;
           game.shakeT = Math.max(game.shakeT || 0, 0.35);
           sound.step && sound.step('hard', 1.4);
-          if (Math.random() < 0.3) effets.dire('(Vous manquez de tomber.)', 2.5);
         }
       }
       this.vomT -= dt;
@@ -266,7 +265,7 @@ const alcool = {
     farm.save();
     await ui.fade(false, '', 1400);
     game.sleeping = false; this.comaEnCours = false;
-    ui.subtitle('', dehors ? '(Vous vous réveillez dans l’herbe mouillée, la bouche pâteuse. Vous ne savez plus comment vous êtes arrivé là.)' + (vole ? ' (Votre bourse est plus légère.)' : '') : '(Vous vous réveillez par terre, la joue collée au plancher. Quelle heure est-il ?)', 5);
+    ui.subtitle('', dehors ? '(Vous vous réveillez dans l’herbe mouillée. Vous ne savez plus comment vous êtes arrivé là.)' + (vole ? ' (Votre bourse est plus légère.)' : '') : '(Vous vous réveillez par terre. Quelle heure est-il ?)', 5);
   },
   // le temps sauté (sommeil) : l'alcool s'en va
   sauter(sec) { const A = this.S(); if (!A) return; A.g = Math.max(0, A.g + A.estomac - sec * ALCOOL_ELIM); A.estomac = 0; if (!A.g) { A.pic = 0; this.niv = 0; } },

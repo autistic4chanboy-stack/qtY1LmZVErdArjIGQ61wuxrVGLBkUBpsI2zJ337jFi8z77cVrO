@@ -639,7 +639,7 @@ const mondes = {
     // sommeil : pas dans un monde à part ; une vision se dissipe au réveil
     const _sleep = game.sleep.bind(game);
     game.sleep = async function (where) {
-      if (mondes.aPart()) { ui.subtitle('', '(On ne dort pas ici. On ne fait que se souvenir de dormir.)', 3); return; }
+      if (mondes.aPart()) { ui.subtitle('', '(On ne dort pas ici.)', 3); return; }
       return _sleep(where);
     };
     // l'épuisement de trois heures du matin ne rattrape pas un monde à part (le temps de la vallée y est suspendu)
