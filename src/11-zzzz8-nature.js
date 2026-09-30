@@ -1066,10 +1066,11 @@ const NAT_COMPORTE = {
 // ============================================================================
 // LE PAPILLON D'OR : très rare (voir tools/equilibrage/nature.js, qui mesure sa fréquence avec ces fonctions) :
 // seulement le jour (9 h - 17 h), par beau temps, dehors, dans les prés, la lande et les alpages, jamais avant le
-// cinquième jour ni à moins de six jours du précédent ; alors, une chance sur soixante-dix environ par heure de jeu
-// qu'il paraisse, à quelques dizaines de pas. Il vit quelques minutes, fuit qui s'approche trop vite, et s'en va
+// cinquième jour ni à moins de six jours du précédent ; alors, une chance sur cent par heure de jeu qu'il paraisse,
+// à quelques dizaines de pas. Le joueur typique le voit ainsi une fois tous les quarante jours environ, celui qui le
+// cherche toutes les trois semaines (la mesure). Il vit quelques minutes, fuit qui s'approche trop vite, et s'en va
 // pour de bon s'il a eu trop peur. On le prend au filet, accroupi, ou posé sur une fleur.
-const PAPILLON = { heure: 0.014, h0: 9, h1: 17, jour0: 5, ecart: 6, vie: [200, 320], milieux: ['pres', 'lande', 'alpage'] };
+const PAPILLON = { heure: 0.01, h0: 9, h1: 17, jour0: 5, ecart: 6, vie: [200, 320], milieux: ['pres', 'lande', 'alpage'] };
 const nature2 = {
   S() {
     const s = farm.s;
