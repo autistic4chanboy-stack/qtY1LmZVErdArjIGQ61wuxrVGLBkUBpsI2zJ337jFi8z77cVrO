@@ -40,6 +40,8 @@ function drawShadow(buf, x, y, z, r) {
   buf.box(_root, 0, 0, 0, r * 2, 0.02, r * 2, [0, 0, 0], 0);
 }
 
+// les cris qui sont des oiseaux (ils chantent chacun leur tour, avec ceux du décor)
+const CRIS_OISEAUX = new Set(['duck', 'goose', 'magpie', 'pheasant', 'heron', 'hen']);
 const entities = {
   list: [], byObj: new Map(), n: 0, callT: 3, version: -1, extra: [],
 
@@ -378,7 +380,11 @@ const entities = {
     if (!near.length) return;
     const e = near[(Math.random() * near.length) | 0];
     const dx = e.x - c.px, dz = e.z - c.pz, d = Math.hypot(dx, dz) || 1;
+    // (les oiseaux du coin attendent qu'aucun autre oiseau ne chante)
+    const oiseau = CRIS_OISEAUX.has(e.cfg.call), now = sound.ctx ? sound.ctx.currentTime : 0;
+    if (oiseau && (sound.oiseauxFin || 0) > now + 0.3) return;
     sound.animal(e.cfg.call, (dx * c.right[0] + dz * c.right[2]) / d, 1 - d / 28);
+    if (oiseau) sound.oiseauxFin = Math.max(sound.oiseauxFin || 0, now + 0.9);
   },
 
   // Rendu : squelettes des créatures visibles
