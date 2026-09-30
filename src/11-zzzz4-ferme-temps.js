@@ -18,7 +18,19 @@ const fermeTemps = {
     if (now > this.sprT) { this.sprT = now + 1500; this.sprList = w.props.filter((q) => w.live(q) && PLACEABLES[q.id] && PLACEABLES[q.id].sprinkler); }
     return this.sprList;
   },
-  // le carré arrosé : pendant qu'on tient un arroseur (celui qu'on pose, et ceux d'à côté), ou qu'on en vise un
+  // l'arroseur que l'on regarde, de près (il n'a pas d'usage à la touche E : on suit le regard)
+  vise() {
+    const p = game.player, e = p.eyePos(), f = cameraBasis(p.yaw, p.pitch).f;
+    let best = null, bd = 0.45;
+    for (const q of this.arroseurs()) {
+      const dx = q.x - e[0], dy = q.y + 0.4 - e[1], dz = q.z - e[2], t = dx * f[0] + dy * f[1] + dz * f[2];
+      if (t < 0.3 || t > 6) continue;
+      const d = Math.hypot(dx - f[0] * t, dy - f[1] * t, dz - f[2] * t);
+      if (d < bd) { bd = d; best = q; }
+    }
+    return best;
+  },
+  // le carré arrosé : pendant qu'on tient un arroseur (celui qu'on pose, et ceux d'à côté), ou qu'on en regarde un
   dessiner(buf) {
     const s = farm.s, it = ITEMS[s.hand], w = game.world, p = game.player;
     const P = it && it.place && PLACEABLES[it.place];
@@ -27,7 +39,7 @@ const fermeTemps = {
       const g = play.ghost;
       if (g) carres.push([g.x, g.z, P.sprinkler, true]);
       for (const q of this.arroseurs()) if (Math.hypot(q.x - p.pos[0], q.z - p.pos[2]) < 45) carres.push([q.x, q.z, PLACEABLES[q.id].sprinkler, false]);
-    } else if (game.hiProp && PLACEABLES[game.hiProp.id] && PLACEABLES[game.hiProp.id].sprinkler) carres.push([game.hiProp.x, game.hiProp.z, PLACEABLES[game.hiProp.id].sprinkler, false]);
+    } else if (game.mode === 'play' && !ui.panel) { const q = this.vise(); if (q) carres.push([q.x, q.z, PLACEABLES[q.id].sprinkler, false]); }
     if (!carres.length) return;
     PE.buf = buf; PE.fl = FX_EMIT;
     for (const [cx, cz, R, fantome] of carres) {
