@@ -47,6 +47,11 @@ Object.assign(PLANT_LOOK, {
   algue_blanche: ['Rubans blancs, gluants', 'Des rubans pâles, un peu salés, qui glissent entre les doigts.'],
   chapeau_suie: ['Petit champignon noir poudré', 'Un chapeau noir comme la suie, poudré de jaune, qui laisse les doigts noirs.'],
 });
+// (comme toutes les plantes, celles d'en bas n'ont d'abord que leur allure : l'alchimiste de la ville sait les nommer)
+if (typeof alchimie !== 'undefined' && alchimie.VRAI) {
+  for (const id of ['pied_pierre', 'mousse_luisante', 'lichen_argent', 'fougere_pale', 'racine_chene', 'algue_blanche', 'chapeau_suie']) if (ITEMS[id] && !alchimie.VRAI[id]) alchimie.VRAI[id] = { name: ITEMS[id].name, desc: ITEMS[id].desc || '' };
+  alchimie.appliquerNoms();
+}
 Object.assign(ALIMENTS_EFFETS, {
   pied_pierre: { c: 'du pied-de-pierre cru', r: [['coliques', 0.45, 40, 160], ['nausee', 0.3, 30, 120]] },
   pied_pierre_grille: { r: [['vigueur', 0.25, 20, 60]] },
