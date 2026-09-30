@@ -283,3 +283,93 @@ Object.assign(PROP_LIGHTS, {
 Object.assign(PROP_COLL, {
   sout_stalag: [0.28, 0.28, 1.6], sout_champi_grand: [0.2, 0.2, 2.4], sout_cairn: [0.26, 0.24, 0.7], sout_filon: [0.5, 0.36, 0.6], sout_lichen: [0.32, 0.22, 0.36],
 });
+
+// ---------------------------------------------------------------- ceux d'en bas : le Hameau (ni bois, ni fer : de la pierre, des os, des racines, du feutre)
+Object.assign(PROP_MODELS, {
+  // la pierre d'appel, à l'entrée du hameau : un bloc arrondi, trois creux usés à force d'être frappés, la pierre à frapper au pied
+  sout_appel(E) {
+    E.bx(0, 0, 0, 1.15, 0.8, 0.95, SPC.roche, mt(M_SROCHE), 0.1);
+    E.bx(0, 0.78, 0, 0.9, 0.32, 0.75, SPC.roche, mt(M_SROCHE), -0.18);
+    E.bx(0.04, 1.08, 0, 0.55, 0.16, 0.48, SPC.rocheS, mt(M_SROCHE), 0.35);
+    for (let k = 0; k < 3; k++) E.bx(-0.24 + k * 0.24, 0.66, 0.46, 0.14, 0.14, 0.05, [0.13, 0.12, 0.11], 0);
+    E.box(0.52, 0.07, 0.62, 0.24, 0.14, 0.17, SPC.calc, mt(M_SCALCITE), 0.6);
+  },
+  // la pierre au pain : une table de pierre ; onze creux sur le bord ; data.pain : un pain posé
+  sout_pierre_pain(E, o) {
+    for (const s of [-0.52, 0.52]) E.bx(s, 0, 0, 0.32, 0.56, 0.52, SPC.roche, mt(M_SROCHE), s * 0.3);
+    E.bx(0, 0.56, 0, 1.6, 0.14, 0.86, SPC.calcS, mt(M_SCALCITE), 0.02);
+    for (let k = 0; k < 11; k++) E.bx(-0.65 + k * 0.13, 0.7, 0.33, 0.075, 0.012, 0.075, [0.22, 0.2, 0.17], 0);
+    if (o.data && o.data.pain) E.bx(0, 0.7, -0.06, 0.38, 0.16, 0.22, rgbf('#b07a3a'), TL.bread, 0.2);
+  },
+  // une lampe : une pierre luisante au bout d'une racine plantée dans un tas de pierres (data.h : hauteur)
+  sout_lampe(E, o) {
+    const v = soutH(o, 23) * 10, h = (o.data && o.data.h) || 1.15;
+    E.bx(0, 0, 0, 0.5, 0.28, 0.44, SPC.roche, mt(M_SROCHE), v);
+    E.bx(0, 0.28, 0, 0.34, 0.26, 0.32, SPC.rocheS, mt(M_SROCHE), v + 0.7);
+    E.bx(0, 0.54, 0, 0.09, h - 0.54, 0.09, SPC.racine, TL.bark, v);
+    E.box(0.05, h - 0.05, 0, 0.05, 0.22, 0.05, SPC.racine, TL.bark, v, 0, 0.5);
+    E.fl = FX_EMIT; E.bx(0, h, 0, 0.17, 0.14, 0.16, [0.32, 0.95, 0.74], TL.plain, v * 2); E.fl = 0;
+  },
+  // une couche de feutre (d'amadou battu), roulée à la tête
+  sout_couche(E) {
+    E.bx(0, 0, 0, 0.9, 0.07, 1.85, rgbf('#5e584e'), TL.wool);
+    E.box(0, 0.13, -0.72, 0.74, 0.15, 0.32, rgbf('#6c665a'), TL.wool, 0, 0.1);
+  },
+  // une claie de racines où sèchent des algues blanches et des protées
+  sout_claie(E, o) {
+    const v = soutH(o, 24) * 10;
+    for (const s of [-0.95, 0.95]) E.bx(s, 0, 0, 0.09, 1.65, 0.09, SPC.racine, TL.bark, v);
+    E.bx(0, 1.56, 0, 2.05, 0.06, 0.06, SPC.racine, TL.bark);
+    for (let k = 0; k < 7; k++) {
+      const x = -0.8 + k * 0.27, L = 0.3 + ((k * 3 + v) % 4) * 0.08;
+      E.bx(x, 1.56 - L, 0, k % 3 === 1 ? 0.07 : 0.1, L, 0.025, k % 3 === 1 ? [0.95, 0.8, 0.78] : [0.9, 0.9, 0.84], TL.plain, (k % 2) * 0.3);
+    }
+  },
+  // une planche à champignons : un cadre de pierres, du terreau noir, des rangs de pieds-de-pierre ; quelques bleus qui luisent
+  sout_planche(E, o) {
+    const v = soutH(o, 25) * 10;
+    for (const [x, z, sx, sz] of [[0, -0.85, 3.8, 0.22], [0, 0.85, 3.8, 0.22], [-1.85, 0, 0.22, 1.5], [1.85, 0, 0.22, 1.5]]) E.bx(x, 0, z, sx, 0.24, sz, SPC.roche, mt(M_SROCHE));
+    E.bx(0, 0, 0, 3.5, 0.2, 1.5, rgbf('#2e241c'), TL.soil);
+    for (let k = 0; k < 16; k++) {
+      const x = -1.45 + (k % 8) * 0.41 + ((k * 7 + v) % 3) * 0.03, z = k < 8 ? -0.36 : 0.36, h = 0.08 + ((k + v) % 3) * 0.03, bleu = ((k * 5 + v) | 0) % 7 === 0;
+      E.bx(x, 0.2, z, 0.05, h, 0.05, [0.86, 0.84, 0.78], TL.plain);
+      if (bleu) E.fl = FX_EMIT;
+      E.bx(x, 0.2 + h, z, 0.15, 0.05, 0.15, bleu ? [0.4, 0.62, 1.0] : [0.9, 0.88, 0.82], TL.plain, k);
+      E.fl = 0;
+    }
+  },
+  // un filet de fibres tendu entre deux piquets d'os, au bord de l'eau
+  sout_filet(E) {
+    for (const s of [-1.1, 1.1]) E.bx(s, 0, 0, 0.07, 1.3, 0.07, SPC.os, TL.bone);
+    for (let k = 0; k < 5; k++) E.bx(0, 0.25 + k * 0.24, 0, 2.2, 0.02, 0.02, [0.62, 0.58, 0.5], TL.rope);
+    for (let k = 0; k < 9; k++) E.bx(-1.0 + k * 0.25, 0.25, 0, 0.02, 0.98, 0.02, [0.62, 0.58, 0.5], TL.rope);
+  },
+  // une dalle d'encoches, debout (data.ins : ce qu'elle dit ; le dessin est tiré du texte)
+  sout_encoches(E, o) {
+    E.bx(0, 0, 0, 1.05, 1.75, 0.26, SPC.calcS, mt(M_SCALCITE), 0);
+    E.bx(0, 1.75, 0, 0.8, 0.18, 0.22, SPC.calcS, mt(M_SCALCITE), 0.05);
+    const t = String((o.data && o.data.ins) || 'x');
+    let x = -0.4, y = 1.5;
+    for (let i = 0; i < t.length && y > 0.2; i++) {
+      const c = t.charCodeAt(i);
+      if (c === 32) { x += 0.07; if (x > 0.38) { x = -0.4; y -= 0.24; } continue; }
+      const n = 1 + (c % 4), bar = c % 3 === 0;
+      for (let k = 0; k < n; k++) E.bx(x + k * 0.03, y - 0.16, 0.13, 0.014, 0.16, 0.012, [0.12, 0.11, 0.1], 0);
+      if (bar) E.box(x + n * 0.015 - 0.015, y - 0.08, 0.135, n * 0.03 + 0.03, 0.012, 0.012, [0.12, 0.11, 0.1], 0, 0, 0, 0.5);
+      x += n * 0.03 + 0.04;
+      if (x > 0.38) { x = -0.4; y -= 0.24; }
+    }
+  },
+  // une jarre de terre crue
+  sout_jarre(E, o) {
+    const c = rgbf('#76685a'), v = soutH(o, 26) * 6;
+    E.bx(0, 0, 0, 0.34, 0.08, 0.34, c, TL.terracotta, v); E.bx(0, 0.08, 0, 0.46, 0.34, 0.46, c, TL.terracotta, v + 0.4);
+    E.bx(0, 0.42, 0, 0.34, 0.1, 0.34, c, TL.terracotta, v); E.bx(0, 0.52, 0, 0.24, 0.07, 0.24, v3.scale(c, 0.8), TL.terracotta, v + 0.4);
+  },
+  // une pierre plate pour s'asseoir
+  sout_siege(E, o) { const v = soutH(o, 27) * 4; E.bx(0, 0, 0, 0.56, 0.3, 0.5, SPC.roche, mt(M_SROCHE), v * 0.1); E.bx(0, 0.3, 0, 0.5, 0.13, 0.46, SPC.rocheS, mt(M_SROCHE), v * 0.1 + 0.05); },
+  // un rideau de feutre pendu à une porte basse
+  sout_rideau(E) { E.bx(0, 0.05, 0, 0.95, 1.6, 0.04, rgbf('#4e4a42'), TL.wool); E.bx(0, 1.62, 0, 1.1, 0.06, 0.08, SPC.racine, TL.bark); },
+});
+Object.assign(PROP_LIGHTS, { sout_lampe: { c: [0.3, 0.92, 0.66], r: 14, y: 1.2 } });
+Object.assign(PROP_COLL, { sout_appel: [0.55, 0.45, 1.1], sout_pierre_pain: [0.78, 0.42, 0.7], sout_lampe: [0.22, 0.2, 1.1], sout_claie: [1.0, 0.1, 1.6], sout_encoches: [0.52, 0.14, 1.8], sout_jarre: [0.22, 0.22, 0.6] });
