@@ -135,6 +135,7 @@ Object.assign(SoundEngine.prototype, {
       M.set(cle, x);
     }
     x.vu = now; x.niv = k;
+    if (o.lp !== undefined && x.lp !== o.lp) { if (x.lp !== undefined) x.f.frequency.setTargetAtTime(o.lp, now, 0.25); x.lp = o.lp; } // on entre, on sort : la boucle s'assourdit ou s'ouvre
     const cible = Math.max(0, k) * (o.vol || SoundEngine.VOL_BOUCLES[type] || 0.1);
     if (x.cible === undefined || Math.abs(cible - x.cible) > Math.max(0.0004, x.cible * 0.03)) { x.cible = cible; x.g.gain.setTargetAtTime(cible, now, o.tau || 0.8); }
     if (pos && x.em) {
@@ -201,8 +202,6 @@ Object.assign(SoundEngine.prototype, {
     // ---- le lieu : la réverbération
     S.lieuT -= dt;
     if (S.lieuT <= 0) { S.lieuT = 0.3; this.setLieu(this._lieuAuto(w, p, under, inside, biome, mondeAPart)); }
-    // ---- neige au sol : les pas crissent
-    this.neige = 0;
     // ---- le vent : seulement dans l'orage, sur les hauteurs, et par rafales ; il vient d'un côté
     const haut = biome === 'hauteurs' || (E.height || 0) > 55;
     S.rafaleT -= dt;
@@ -333,7 +332,7 @@ Object.assign(SoundEngine.prototype, {
       if (!best || d < best.d) best = { d, x, z, w: V.w };
     }
     if (best && best.d < 90) {
-      // un point de l'eau un peu vers soi (la berge), à la surface
+      // au milieu du lit, à la surface
       const k = clamp(1.25 - best.d / 90, 0, 1) * (best.w > 5 ? 1 : 0.7);
       S.riv = { p: [best.x, WL + 0.3, best.z], k };
     }
@@ -438,18 +437,18 @@ Object.assign(SoundEngine.prototype, {
     }
     switch (E.biome) {
       case 'foret': case 'bouleaux':
-        if (E.day > 0.5 && calm && r < 0.1) this.ici(this._unArbre() || loin(15, 35, 4), () => this.woodpecker());
+        if (E.day > 0.5 && calm && r < 0.1) this.ici(this._unArbre() || loin(15, 35, 4), () => this.woodpecker(), SoundEngine.LOIN);
         break;
       case 'marais':
-        if (r < 0.45) this.ici(this._presDeLEau() || loin(6, 20, -1), () => this.frog(E.night > 0.5 ? 1 : 0.6));
-        if (r > 0.8) this.ici(this._presDeLEau() || loin(4, 12, -1), () => this.bubble());
+        if (r < 0.45) this.ici(this._presDeLEau() || loin(6, 20, -1), () => this.frog(E.night > 0.5 ? 1 : 0.6), SoundEngine.LOIN);
+        if (r > 0.8) this.ici(this._presDeLEau() || loin(4, 12, -1), () => this.bubble(), SoundEngine.LOIN);
         break;
       case 'lac':
-        if (E.night > 0.5 && r < 0.2) this.ici(this._presDeLEau() || loin(8, 25, -1), () => this.frog(0.7));
+        if (E.night > 0.5 && r < 0.2) this.ici(this._presDeLEau() || loin(8, 25, -1), () => this.frog(0.7), SoundEngine.LOIN);
         if (E.day > 0.5 && r > 0.93) this.animal('duck', loin(20, 45, -1), 0.5);
         break;
       case 'hauteurs':
-        if (E.day > 0.5 && calm && r < 0.06) this.ici(loin(60, 140, 45), () => this.eagle());
+        if (E.day > 0.5 && calm && r < 0.06) this.ici(loin(60, 140, 45), () => this.eagle(), { att: 'aucune' }); // un cri qui porte : seule l'air l'assourdit
         break;
       case 'ville':
         if (E.day > 0.5 && r < 0.3) { const n = this._habitantPres(); if (n) this.ici(n, () => this.mumble(n.voice || (0.8 + Math.random() * 0.8), 20, 0, 0.45), { att: 'phys', ref: 3 }); }
@@ -469,4 +468,6 @@ Object.assign(SoundEngine.prototype, {
   },
 });
 // les foyers qui s'entendent (et leur force)
+// les bruits d'ambiance placés au loin : une atténuation plus douce (on les entend de plus loin)
+SoundEngine.LOIN = { att: 'phys', ref: 7, roll: 0.8 };
 SoundEngine.FEUX = { campfire: 1, feu_camp: 1, cheminee: 0.8, four: 0.55, feu_geant: 2.2, brasero: 0.9, forge: 0.9 };

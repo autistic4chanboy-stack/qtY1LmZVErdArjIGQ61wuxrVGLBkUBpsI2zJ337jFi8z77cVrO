@@ -95,7 +95,9 @@ class SoundEngine {
     const a = Math.exp(-2 * Math.PI * P.split / sr), b = Math.exp(-2 * Math.PI * P.lp / sr);
     for (let ch = 0; ch < 2; ch++) {
       const d = buf.getChannelData(ch);
-      let lo = 0, el = 1, eh = 1, y = 0;
+      // premières réflexions : des impulsions, adoucies par le même filtre que la queue
+      const er = (P.er || []).map(([tt, g]) => [pre + Math.floor(tt * (ch ? 1.06 : 0.95) * sr), (Math.random() < 0.5 ? -1 : 1) * g * 4]).sort((u, v) => u[0] - v[0]);
+      let lo = 0, el = 1, eh = 1, y = 0, q = 0;
       for (let i = pre; i < n; i++) {
         const w = Math.random() * 2 - 1;
         lo = w + (lo - w) * a;
@@ -103,12 +105,9 @@ class SoundEngine {
         el *= dl; eh *= dh;
         const k = i - pre;
         if (k < att) v *= k / att;
+        while (q < er.length && er[q][0] <= i) { if (er[q][0] === i) v += er[q][1]; q++; }
         y = v + (y - v) * b;
         d[i] = y;
-      }
-      for (const [tt, g] of P.er || []) {
-        const j = pre + Math.floor(tt * (ch ? 1.06 : 0.95) * sr), s = Math.random() < 0.5 ? -1 : 1;
-        for (let q = 0; q < 24 && j + q < n; q++) d[j + q] += s * g * 0.6 * Math.exp(-q / 5) * (q % 2 ? -0.4 : 1);
       }
       const fo = Math.floor(n * 0.1);
       for (let q = 0; q < fo; q++) d[n - 1 - q] *= q / fo;
@@ -319,7 +318,7 @@ class SoundEngine {
     const c = this.ctx, d0 = dest || this.sfx;
     if (d0 && d0._em) return d0;
     const pos = typeof p === 'number' ? null : this.pos3(p);
-    if (pos) return this.emit(pos, d0, { att: 'phys', dur: 1.5 });
+    if (pos) return this.emit(pos, d0, { att: 'phys', ref: 5, dur: 1.5 });
     if (this._scope) { const S = this._scope; if (!S.pos) S.pos = this.pos3(S.src) || [this.L.x, this.L.y, this.L.z]; return this.emit(S.pos, d0, S.o); }
     const v = clamp(+p || 0, -1, 1);
     if (!v) return d0;
@@ -523,7 +522,7 @@ class SoundEngine {
     const v = Math.max(o.vol, 0.00012), a = o.a || clamp(dur * 0.12, 0.01, 0.08), r = o.r || dur * 0.35;
     g.gain.setValueAtTime(0.0001, t);
     g.gain.linearRampToValueAtTime(v, t + a);
-    g.gain.setValueAtTime(v * (o.sus || 0.85), t + Math.max(a + 0.001, dur - r));
+    g.gain.linearRampToValueAtTime(v * (o.sus || 0.85), t + Math.max(a + 0.002, dur - r)); // tenue qui s'affaisse (sans marche)
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     lpf.connect(g).connect(d);
     for (const s of oscs) { s.start(t); s.stop(t + dur + 0.05); }
@@ -559,6 +558,31 @@ class SoundEngine {
   }
 }
 SoundEngine.NUL = {};
+// anciens assistants (le jeu ne s'en sert plus ; gardés pour qui les appellerait encore)
+SoundEngine.buildWind = function (c, dest) {
+  const src = c.createBufferSource();
+  src.buffer = SoundEngine.brownBuffer(c, 6); src.loop = true;
+  const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 70; hp.Q.value = 0.5;
+  const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 320; lp.Q.value = 0.6;
+  const g = c.createGain(); g.gain.value = 0;
+  src.connect(hp).connect(lp).connect(g).connect(dest);
+  src.start();
+  return { src, lp, g };
+};
+SoundEngine.windLevel = function (t, high) {
+  const gust = clamp(0.5 + 0.32 * Math.sin(t * 0.21) * Math.sin(t * 0.067 + 1.3) + 0.18 * Math.sin(t * 0.53 + 2.1), 0, 1);
+  return { gain: (0.03 + 0.08 * gust) * (high ? 1.3 : 1), cutoff: 220 + 420 * gust };
+};
+SoundEngine.buildRain = function (c, dest) {
+  const src = c.createBufferSource();
+  src.buffer = SoundEngine.brownBuffer(c, 5); src.loop = true;
+  const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 350; hp.Q.value = 0.5;
+  const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400; lp.Q.value = 0.4;
+  const g = c.createGain(); g.gain.value = 0;
+  src.connect(hp).connect(lp).connect(g).connect(dest);
+  src.start();
+  return { g };
+};
 // fréquence d'échantillonnage des tampons synthétisés
 SoundEngine.SR_SYNTH = 22050;
 // équilibre des familles de sons (voix et interface : un peu en retrait)
