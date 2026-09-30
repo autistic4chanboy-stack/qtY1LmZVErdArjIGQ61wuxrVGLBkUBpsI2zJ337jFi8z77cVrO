@@ -471,16 +471,18 @@ Object.assign(SoundEngine.prototype, {
       if (r < (E.night > 0.5 ? 0.05 : 0.015)) this.ici(loin(2, 5, 1.5), () => this.voice(this.at(), 'sawtooth', 200 + R() * 120, 150 + R() * 60, 0.25 + R() * 0.3, 0.004, this.amb, { bp: 650 + R() * 300, q: 3, vib: 10, vibDepth: 14 }));
       return;
     }
+    // (autour de la ville, les douves sont de pierre : presque pas de grenouilles)
+    const T = game.world && game.world.townInfo, grenouilles = T && Math.hypot(L.x - T.x, L.z - T.z) < 170 ? 0.25 : 1;
     switch (E.biome) {
       case 'foret': case 'bouleaux':
         if (E.day > 0.5 && calm && r < 0.1) this.ici(this._unArbre() || loin(15, 35, 4), () => this.woodpecker(), SoundEngine.LOIN);
         break;
       case 'marais':
-        if (r < 0.45) this.ici(this._presDeLEau() || loin(6, 20, -1), () => this.frog(E.night > 0.5 ? 1 : 0.6), SoundEngine.LOIN);
+        if (r < 0.2 * grenouilles) this.ici(this._presDeLEau() || loin(6, 20, -1), () => this.frog(E.night > 0.5 ? 1 : 0.6), SoundEngine.LOIN);
         if (r > 0.8) this.ici(this._presDeLEau() || loin(4, 12, -1), () => this.bubble(), SoundEngine.LOIN);
         break;
       case 'lac':
-        if (E.night > 0.5 && r < 0.2) this.ici(this._presDeLEau() || loin(8, 25, -1), () => this.frog(0.7), SoundEngine.LOIN);
+        if (E.night > 0.5 && r < 0.1 * grenouilles) this.ici(this._presDeLEau() || loin(8, 25, -1), () => this.frog(0.7), SoundEngine.LOIN);
         if (E.day > 0.5 && r > 0.93) this.animal('duck', loin(20, 45, -1), 0.5);
         break;
       case 'hauteurs':

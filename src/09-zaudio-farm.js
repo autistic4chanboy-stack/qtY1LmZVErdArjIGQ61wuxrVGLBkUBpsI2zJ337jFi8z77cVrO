@@ -225,7 +225,7 @@ Object.assign(SoundEngine.prototype, {
   frog(k = 1) {
     if (!this.ok) return;
     const t = this.at(), R = Math.random, p = this._scope ? this.amb : this.pan(R() * 2 - 1, this.amb);
-    for (let i = 0, n = 1 + ((R() * 2) | 0); i < n; i++) this.jouer(this.tb('grenouille', 6), t + i * (0.26 + R() * 0.1), 0.05 * k, p, 0.9 + R() * 0.2);
+    for (let i = 0, n = 1 + ((R() * 2) | 0); i < n; i++) this.jouer(this.tb('grenouille', 6), t + i * (0.3 + R() * 0.12), 0.03 * k, p, 0.9 + R() * 0.2);
   },
   woodpecker() { if (!this.ok) return; const p = this._scope ? this.amb : this.pan(Math.random() * 2 - 1, this.amb); this.jouer(this.tb('pic', 4), this.at(), 0.045, p, 0.95 + Math.random() * 0.1); },
   lap(k = 1) {

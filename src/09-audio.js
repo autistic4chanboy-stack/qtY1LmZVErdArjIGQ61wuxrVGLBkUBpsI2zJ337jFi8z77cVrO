@@ -806,10 +806,11 @@ SoundEngine.TAMPONS = {
     const R = Math.random, S = SoundEngine.SYN, f = 4100 + R() * 500, per = 0.42 + R() * 0.3;
     for (let t = 0.03 + R() * 0.2; t < 1.9; t += per * (0.93 + R() * 0.14)) for (let p = 0, n = 3 + ((R() * 2) | 0); p < n; p++) S.note(d, sr, t + p * 0.027, 0.016, f, f * 0.99, 0.5, { att: 0.25, dec: 1.2 });
   }],
-  grenouille: [0.5, (d, sr) => { // « krrôa » : impulsions graves, en rafale
-    const R = Math.random, S = SoundEngine.SYN, f = 420 + R() * 260, rate = 26 + R() * 14, du = 0.2 + R() * 0.15, b = S.bq('bp', f, 3, sr);
-    for (let t = 0.01, k = 0; t < du; t += 1 / rate, k++) S.bruit(d, sr, t, 0.001, 0.009, 0.6 * Math.sin(Math.PI * t / du), b);
-    S.lp1(d, sr, 2500);
+  grenouille: [0.5, (d, sr) => { // « rrrôa » : un roulement grave et mou (de loin, une rafale sèche sonnait comme un coup de feu)
+    const R = Math.random, S = SoundEngine.SYN, f = 380 + R() * 200, rate = 18 + R() * 9, du = 0.22 + R() * 0.15, b = S.bq('bp', f, 1.8, sr);
+    for (let t = 0.02, k = 0; t < du; t += 1 / rate, k++) S.bruit(d, sr, t, 0.004, 0.016, 0.45 * Math.sin(Math.PI * t / du), b);
+    S.note(d, sr, 0.02, du, f * 0.9, f * 0.8, 0.12, { att: 0.3, dec: 1.5 });
+    S.lp1(d, sr, 1500);
   }],
   pic: [1.2, (d, sr) => { // pic qui tambourine
     const R = Math.random, S = SoundEngine.SYN, f = 850 + R() * 400;
@@ -936,8 +937,8 @@ Object.assign(SoundEngine.prototype, {
       case 'duck': {
         for (let i = 0, n = 2 + ((R() * 3) | 0), tt = t; i < n; i++) {
           const f = 240 + R() * 50, du = 0.11 + R() * 0.05;
-          this.cri(tt, { type: 'square', dur: du, f: [[0, f * 1.1], [1, f * 0.9]], rug: [55, 0.45], form: [[1000, 6, 1], [2300, 8, 0.5]], vol: 0.22 * v, lp: 3600, a: 0.012 }, p);
-          tt += du + 0.05 + R() * 0.08;
+          this.cri(tt, { type: 'square', dur: du, f: [[0, f * 1.1], [1, f * 0.9]], rug: [55, 0.35], form: [[1000, 6, 1], [2300, 8, 0.4]], vol: 0.11 * v, lp: 2600, a: 0.025 }, p);
+          tt += du + 0.08 + R() * 0.1;
         }
         break;
       }

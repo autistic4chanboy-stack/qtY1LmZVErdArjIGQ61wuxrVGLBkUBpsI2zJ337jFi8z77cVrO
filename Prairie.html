@@ -23736,10 +23736,11 @@ SoundEngine.TAMPONS = {
     const R = Math.random, S = SoundEngine.SYN, f = 4100 + R() * 500, per = 0.42 + R() * 0.3;
     for (let t = 0.03 + R() * 0.2; t < 1.9; t += per * (0.93 + R() * 0.14)) for (let p = 0, n = 3 + ((R() * 2) | 0); p < n; p++) S.note(d, sr, t + p * 0.027, 0.016, f, f * 0.99, 0.5, { att: 0.25, dec: 1.2 });
   }],
-  grenouille: [0.5, (d, sr) => { // « krrôa » : impulsions graves, en rafale
-    const R = Math.random, S = SoundEngine.SYN, f = 420 + R() * 260, rate = 26 + R() * 14, du = 0.2 + R() * 0.15, b = S.bq('bp', f, 3, sr);
-    for (let t = 0.01, k = 0; t < du; t += 1 / rate, k++) S.bruit(d, sr, t, 0.001, 0.009, 0.6 * Math.sin(Math.PI * t / du), b);
-    S.lp1(d, sr, 2500);
+  grenouille: [0.5, (d, sr) => { // « rrrôa » : un roulement grave et mou (de loin, une rafale sèche sonnait comme un coup de feu)
+    const R = Math.random, S = SoundEngine.SYN, f = 380 + R() * 200, rate = 18 + R() * 9, du = 0.22 + R() * 0.15, b = S.bq('bp', f, 1.8, sr);
+    for (let t = 0.02, k = 0; t < du; t += 1 / rate, k++) S.bruit(d, sr, t, 0.004, 0.016, 0.45 * Math.sin(Math.PI * t / du), b);
+    S.note(d, sr, 0.02, du, f * 0.9, f * 0.8, 0.12, { att: 0.3, dec: 1.5 });
+    S.lp1(d, sr, 1500);
   }],
   pic: [1.2, (d, sr) => { // pic qui tambourine
     const R = Math.random, S = SoundEngine.SYN, f = 850 + R() * 400;
@@ -23866,8 +23867,8 @@ Object.assign(SoundEngine.prototype, {
       case 'duck': {
         for (let i = 0, n = 2 + ((R() * 3) | 0), tt = t; i < n; i++) {
           const f = 240 + R() * 50, du = 0.11 + R() * 0.05;
-          this.cri(tt, { type: 'square', dur: du, f: [[0, f * 1.1], [1, f * 0.9]], rug: [55, 0.45], form: [[1000, 6, 1], [2300, 8, 0.5]], vol: 0.22 * v, lp: 3600, a: 0.012 }, p);
-          tt += du + 0.05 + R() * 0.08;
+          this.cri(tt, { type: 'square', dur: du, f: [[0, f * 1.1], [1, f * 0.9]], rug: [55, 0.35], form: [[1000, 6, 1], [2300, 8, 0.4]], vol: 0.11 * v, lp: 2600, a: 0.025 }, p);
+          tt += du + 0.08 + R() * 0.1;
         }
         break;
       }
@@ -24204,7 +24205,7 @@ Object.assign(SoundEngine.prototype, {
   frog(k = 1) {
     if (!this.ok) return;
     const t = this.at(), R = Math.random, p = this._scope ? this.amb : this.pan(R() * 2 - 1, this.amb);
-    for (let i = 0, n = 1 + ((R() * 2) | 0); i < n; i++) this.jouer(this.tb('grenouille', 6), t + i * (0.26 + R() * 0.1), 0.05 * k, p, 0.9 + R() * 0.2);
+    for (let i = 0, n = 1 + ((R() * 2) | 0); i < n; i++) this.jouer(this.tb('grenouille', 6), t + i * (0.3 + R() * 0.12), 0.03 * k, p, 0.9 + R() * 0.2);
   },
   woodpecker() { if (!this.ok) return; const p = this._scope ? this.amb : this.pan(Math.random() * 2 - 1, this.amb); this.jouer(this.tb('pic', 4), this.at(), 0.045, p, 0.95 + Math.random() * 0.1); },
   lap(k = 1) {
@@ -24831,16 +24832,18 @@ Object.assign(SoundEngine.prototype, {
       if (r < (E.night > 0.5 ? 0.05 : 0.015)) this.ici(loin(2, 5, 1.5), () => this.voice(this.at(), 'sawtooth', 200 + R() * 120, 150 + R() * 60, 0.25 + R() * 0.3, 0.004, this.amb, { bp: 650 + R() * 300, q: 3, vib: 10, vibDepth: 14 }));
       return;
     }
+    // (autour de la ville, les douves sont de pierre : presque pas de grenouilles)
+    const T = game.world && game.world.townInfo, grenouilles = T && Math.hypot(L.x - T.x, L.z - T.z) < 170 ? 0.25 : 1;
     switch (E.biome) {
       case 'foret': case 'bouleaux':
         if (E.day > 0.5 && calm && r < 0.1) this.ici(this._unArbre() || loin(15, 35, 4), () => this.woodpecker(), SoundEngine.LOIN);
         break;
       case 'marais':
-        if (r < 0.45) this.ici(this._presDeLEau() || loin(6, 20, -1), () => this.frog(E.night > 0.5 ? 1 : 0.6), SoundEngine.LOIN);
+        if (r < 0.2 * grenouilles) this.ici(this._presDeLEau() || loin(6, 20, -1), () => this.frog(E.night > 0.5 ? 1 : 0.6), SoundEngine.LOIN);
         if (r > 0.8) this.ici(this._presDeLEau() || loin(4, 12, -1), () => this.bubble(), SoundEngine.LOIN);
         break;
       case 'lac':
-        if (E.night > 0.5 && r < 0.2) this.ici(this._presDeLEau() || loin(8, 25, -1), () => this.frog(0.7), SoundEngine.LOIN);
+        if (E.night > 0.5 && r < 0.1 * grenouilles) this.ici(this._presDeLEau() || loin(8, 25, -1), () => this.frog(0.7), SoundEngine.LOIN);
         if (E.day > 0.5 && r > 0.93) this.animal('duck', loin(20, 45, -1), 0.5);
         break;
       case 'hauteurs':
@@ -62938,7 +62941,7 @@ Object.assign(SoundEngine.prototype, {
       case 'feule': this.noiseHit(t, 0.6, 'highpass', 2600, 0.8, 0.04 * v, p, 4200); this.voice(t + 0.1, 'sawtooth', 160, 120, 0.5, 0.03 * v, p, { lp: 500 }); return;
       case 'froissement': this.noiseHit(t, 0.14, 'bandpass', 2200, 1.2, 0.02 * v, p); return;
       case 'terre': this.noiseHit(t, 0.22, 'lowpass', 600, 0.7, 0.04 * v, p); return;
-      case 'plouf': this.noiseHit(t, 0.18, 'lowpass', 1400, 0.7, 0.03 * v, p, 400); return;
+      case 'plouf': this.tone(t, 'sine', 620, 320, 0.09, 0.01 * v, p, 0.006); this.noiseHit(t + 0.01, 0.14, 'bandpass', 900, 0.8, 0.008 * v, p); return; // (un « bloup », pas un coup sourd)
       case 'filet': this.noiseHit(t, 0.18, 'bandpass', 1300, 0.9, 0.05 * v, this.sfx, 500); return;
     }
   },
