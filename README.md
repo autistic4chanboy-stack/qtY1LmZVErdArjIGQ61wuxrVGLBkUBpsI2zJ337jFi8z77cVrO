@@ -89,6 +89,25 @@ peut pas acheter de bêtes. (Les parties commencées avant cette version gardent
   parterres, tournesols, lavande…) et un pain de cire tous les trois jours, jusqu'à quatre pots ; E pour récolter. Sans
   enfumoir, les abeilles piquent ; avec, un peu de fumée et elles se calment. La cire fait des bougies (trois par pain).
   Les ruches du hameau sont à quelqu'un.
+- **Le carnet de commandes** : dans le coffre de la ferme, un carnet de bons à souches, à l'en-tête du roulage Bardin
+  (les parties d'avant le trouvent au premier chargement). Au coffre, « Ouvrir » ; pris dans la sacoche, en main, un
+  clic l'ouvre n'importe où. On y commande ce que vendent les habitants **déjà rencontrés** : leur étal du jour
+  (graines du jour, hotte des colporteurs selon l'endroit, reprises d'un commerce, garde-meuble de la commune), **au
+  prix de leur boutique** (remise d'amitié comprise), plus un **port modeste** : trois pièces par étal et trois par
+  kilomètre jusqu'au point de livraison (huit pour un colporteur, deux de plus par meuble). On paie d'avance ; tant
+  que l'aube n'est pas passée, une commande se **raye** (remboursée). Pas de bêtes par la poste (l'éleveuse les
+  livre elle-même), ni de chiot ; la forge des nains n'a pas d'adresse. Un habitant mort n'a plus d'étal (barré au
+  carnet) ; qui vous en veut, ou connaît vos crimes, ne prend pas vos commandes.
+- **Le voiturier** : le lendemain matin, entre six heures et demie et huit heures, il dépose un **colis** au **point de
+  livraison** — devant la ferme au départ ; le carnet le change : devant une maison louée ou achetée en ville, ou
+  « ici » (carnet en main, dehors, à portée d'un chemin). Qui est dans les parages le voit venir par la route, sa
+  charrette chargée de caisses, son cheval, sa blouse bleue ; il descend, pose le colis, dit un mot parfois, fait
+  demi-tour. Sinon, le colis est simplement là. On peut lui parler (E), il ne s'attarde pas.
+- **Le colis** : papier kraft et ficelle, une caisse s'il est gros ; E l'ouvre dans le **menu de butin**, et ce qu'on y
+  laisse **y reste** (même après avoir rechargé) ; vide, il n'y est plus. L'onglet « En cours » du carnet dit ce qui
+  est en route et où attendent les colis. Un habitant mort entre la commande et la livraison : le prix de l'article
+  revient dans le colis, en pièces. Rarement, un colis s'égare (une lettre du roulage, la marchandise remboursée,
+  pas le port), ou, laissé seul, on le retrouve ouvert.
 - **Chevaux sauvages** : une harde vit dans un grand pré, loin de tout (le panneau du ranch et les affiches de la ville
   disent où). Accroupi et immobile, une pomme, une carotte ou de l'avoine à la main, les bêtes curieuses viennent à vous ;
   E pour les nourrir (trois fois par jour) : leur confiance grandit. Quand l'une pose la tête contre votre épaule, E pour
@@ -353,6 +372,54 @@ Les commandes sont dans le menu **Commandes** (Échap).
   cistudes, martres, aigles…) ; des dizaines de poissons nouveaux selon les eaux (douves, sources chaudes, lacs
   souterrains, bassin du temple).
 
+**Une vallée plus pleine**
+- **Un lieu tous les deux cents mètres** : la vallée est découpée en carrés de 200 m ; chaque carré où l'on peut
+  marcher porte au moins un lieu qui mérite le détour. Ce qui existait compte (villes, hameaux, temple, ruines,
+  cairns…) ; les carrés vides reçoivent un lieu d'un **catalogue de cinquante sortes** : croix de peste, chapelles en
+  ruine et leur cloche fêlée, oratoires, tombes isolées, lanternes des morts, calvaire aux trois croix ; menhirs,
+  cercles de pierres, pierres à cupules, dolmens, pierres branlantes, bornes, rochers aux marques, cairns de sommet et
+  leur registre, abris sous roche, trous souffleurs ; loges de charbonnier, fours à chaux, bories, glacières, puits
+  perdus, moulins et tours en ruine, cabanes perchées, ruchers, pigeonniers, jardins clos au cadran solaire, refuges,
+  caches de contrebandiers ; sources sacrées, arbres aux offrandes, barques échouées ; fosses aux loups, fermes
+  brûlées, et d'autres choses. Avec la graine habituelle : 196 lieux nouveaux, aucun carré vide.
+- **Ce qu'ils portent** : un butin (qui se regarnit, ou un trésor d'une seule fois), un texte, une **lettre**
+  (quarante-sept, rangées au carnet), une **inscription** en aëlin ou en gorrain (quatorze, sans traduction), un
+  mécanisme ou un **petit secret** — une chose qui n'arrive qu'à une heure, un jour de la semaine, une nuit ; une
+  cachette qu'un texte lu ailleurs révèle ; trois **histoires à recouper** d'un bout à l'autre de la vallée.
+- **Deux peuples** en surface, avec leurs maisons, leurs métiers, leurs boutiques, leurs coutumes, leurs journées et
+  leurs quêtes (six en tout) ; ils entrent dans la société (le bruit d'un crime finit par leur parvenir) :
+  - **Les Planches**, sur le grand lac, au sud : ceux de Saint-Aubin-des-Eaux, restés au-dessus de leur village noyé
+    en 1791 — maisons sur pieux, trottoir, quai, et la **Dame** de bois dans l'eau. La doyenne, le passeur (qui fait
+    traverser le lac, de jour), la vannière.
+  - **L'estive du Plan**, dans la haute cuvette de l'ouest : des bergers — cabanes de pierre et de lauzes, jasse et
+    brebis, feu, rocher des marques des familles. Le baïle, la fromagère, le pâtre.
+- **Leurs parlers** (« le parler d'eau », « le parler des hauts ») : des mots à eux dans leur français. Les mots
+  entendus ou vus taillés s'inscrivent au carnet (onglet **Langues**), où l'on écrit ce qu'on croit qu'ils veulent
+  dire. Personne ne les traduit d'office.
+- **Chaque plante son objet** : les fleurs donnent des coquelicots, des marguerites, des bleuets, de la bruyère, des
+  iris, des jonquilles… (dix-huit fleurs), les buissons des prunelles, les fougères des frondes, les souches des
+  armillaires ; le champignon d'avant s'appelle « russules ». Chaque objet a son prix, sa notice, son **effet** quand
+  on le mange, cru ou cuit (nourrir, soigner, calmer, faire rêver, rendre malade), et ses **essences en alchimie**.
+  Les recettes qui demandaient « une fleur » ou « des baies » prennent n'importe laquelle. Trois plats nouveaux :
+  soupe d'orties, omelette aux champignons, tarte aux baies.
+- **Quarante-six plantes nouvelles**, chacune dans ses milieux, avec sa rareté : des prés, des vieux murs, de la forêt,
+  des sous-bois de sapins, des champignons (dont de mortels), du bord de l'eau, de la lande et des hauteurs — et une
+  herbe dont on ne parle pas. Les moins connues sont à faire nommer par l'alchimiste ; certains habitants en achètent.
+  Les **herbes des plaies** (plantain, achillée, barbe-de-vieillard, sphaigne) s'appliquent sur une plaie qui saigne ;
+  la consoude aide une jambe cassée.
+- **Un bois par arbre** (vingt et un : sapin, pin, bouleau, hêtre, châtaignier, chêne, érable, saule, noyer, merisier,
+  if, houx, bois foudroyé…) ; la souche donne le sien. Partout où une recette demande du bois, n'importe lequel
+  convient. À l'établi : des manches, un **arc d'if** (plus puissant que l'arc long), des **meubles fins** qui ont la
+  couleur de leur bois (commode et lit de noyer, armoire de chêne, table de merisier) ; un **bâton de houx** aide à
+  grimper les pentes raides.
+- **Vingt-deux bêtes nouvelles**, chacune avec sa manière d'être et son cri : hermine, taupe, mulot, loir, lièvre, chat
+  sauvage, lézard, orvet, crapaud, triton, pic vert, coucou, geai (qui donne l'alerte à tout le bois), alouette,
+  chouette effraie, grand corbeau, cincle, grèbe, butor, grues en vol, lucane, mante. Elles se chassent, se dépècent, et
+  le bestiaire les connaît.
+- **Le papillon d'or** : très rare (beau temps, heures du jour, prés, lande ou alpages, et de la chance : une fois tous
+  les quarante jours environ). Il fuit qui s'approche trop vite ; on le prend au **filet à papillons** (fabriqué, ou
+  acheté à la colporteuse), et il se vend **2 000 pièces**.
+
 **L'étrange, encore**
 - **Nuits noires** (l'almanach les prédit) : plus aucune lumière au ciel, et des murmures ; une voix vous appelle — il ne
   faut pas répondre. **Neige** possible sur toute la vallée. **Soleil écrasant** : le regarder laisse une tache noire.
@@ -372,6 +439,38 @@ Les commandes sont dans le menu **Commandes** (Échap).
   https://scp-wiki.wikidot.com ; les textes du jeu sont originaux).
 - **Cinématiques** : l'arrivée dans la vallée, le temple, les Trois, la tornade, le tueur… (Espace pour passer).
 
+**Le son**
+- **Tous les sons refaits, toujours synthétisés** : plus de bruit blanc cru ni de clics — bruits filtrés et adoucis, attaques
+  douces, formes d'onde sans harmoniques perçantes, aigus un peu en retrait ; et jamais deux fois le même son (hauteur,
+  timbre, durée, niveau varient un peu). Les **pas** changent avec le sol (herbe, terre, pierre, plancher, eau, neige qui
+  crisse), un pied puis l'autre. Les **bêtes** ont de vraies voix (formants, vibrato, rugosité) : bêlement qui tremble,
+  meuglement qui s'ouvre, grognements, caquètements, hennissement et ébrouement, coin-coin, braiment, aboiement,
+  hurlement du loup, croassement… Les **habitants** murmurent des syllabes qui ressemblent à des mots, avec l'intonation
+  d'une phrase (parfois une question). La **cloche** de l'église a les partiels d'une vraie cloche, qui battent lentement.
+  Le **tonnerre** roule le long de l'horizon. Outils, portes, serrures, pièces, pages, interface : plus doux.
+- **Un vrai mélange** : bruitages, ambiance, voix et interface ont chacun leur bus ; une compression douce tient le tout,
+  un limiteur empêche toute saturation ; les niveaux sont équilibrés (les pas s'entendent enfin sur l'herbe ; un toc à la
+  porte ne fait plus sursauter qu'autant qu'il le doit).
+- **La réverbération du lieu**, calculée : légère dehors, plus dense en forêt, un écho sur les sommets, proche dans une
+  maison, ample dans l'église, la bibliothèque ou une grande salle, immense sous terre et dans les autres mondes ; on
+  passe de l'une à l'autre en fondu en franchissant une porte.
+- **Le son en 3D (au casque)** : ce qui a une place dans le monde s'entend de là où il est — devant, derrière, à côté,
+  au-dessus : les bêtes (et les sabots de celles qui marchent près de vous), les habitants (leur voix, leurs cris, leurs
+  pas, les portes qu'ils ouvrent), les coups de feu et les pièges des chasseurs, le tonnerre (de l'arbre que la foudre a
+  frappé), la cloche (du clocher), l'enclume (de la forge), le violoneux, la tornade, le grand vol d'oies qui passe
+  au-dessus de vous, la lavandière au lavoir, et les choses qui ne devraient pas être là. L'écouteur suit la caméra à
+  chaque image, cinématiques comprises ; au loin, les sons baissent, l'air en mange les aigus et la réverbération
+  domine ; tout près, un peu plus de grave.
+- **Des ambiances tout autour, plus un fond plat** : le vent vient du côté de l'orage, et par rafales qui passent d'un
+  côté à l'autre (avec le feuillage, en forêt ; toujours sur les sommets) ; la pluie tombe tout autour de vous, et
+  sourdement sur le toit quand on est à l'abri ; la rivière coule là où elle coule, le lac clapote à la rive ; le feu
+  crépite à sa place (feux de camp, cheminées, fours, incendies) ; les oiseaux chantent dans les arbres — merle, mésange,
+  pinson, tourterelle, coucou, pic, moineaux au village, alouette haut dans le ciel au-dessus des prés —, plus nombreux à
+  l'aube ; la nuit, des grillons dans l'herbe (ils se taisent quand on s'approche), la chouette au loin, les grenouilles
+  au marais ; sous terre, des gouttes et un grondement sourd.
+- **Options** : « Son 3D pour casque » (coché par défaut ; décoché : simple panoramique, pour des haut-parleurs), à côté
+  du volume général et du volume de l'ambiance.
+
 ### Mode Création
 
 Éditeur de monde séparé : relief, peinture du sol, objets, animaux, blocs. **Exporter** télécharge un fichier
@@ -380,14 +479,14 @@ Les commandes sont dans le menu **Commandes** (Échap).
 ## Équilibrage
 
 Le jeu a été équilibré d'un bloc, en mesurant d'abord : chaque système avait été écrit avec ses propres nombres, et
-la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Quatre domaines, chacun avec sa mesure
+la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Huit domaines, chacun avec sa mesure
 et ses vérifications dans `tools/equilibrage/` : le jeu entier est chargé dans une machine virtuelle node (sans
 navigateur, `tools/equilibrage/vm.js`), ses propres fonctions calculent les rendements, les espérances et les
 fréquences, et la commande échoue si l'on recasse un équilibre :
 
 ```bash
-node tools/equilibrage.js                 # les quatre domaines (≈ 3 min)
-node tools/equilibrage.js commerce        # ou un seul : commerce, ferme, risques, survie, hasard
+node tools/equilibrage.js                 # les huit domaines (≈ 5 min)
+node tools/equilibrage.js commerce        # ou un seul : commerce, ferme, risques, survie, hasard, commandes, carte, nature
 ```
 
 Aucun réglage ne touche à la génération de la vallée : les anciennes parties retrouvent leurs objets (l'empreinte des
@@ -631,6 +730,24 @@ profil). Quatre esprits (mentalité 95, 70, 35, 5) ; le joueur « typique » se 
 L'outil échoue si l'on recasse l'équilibre (tueur la première semaine, anciennes nuits rouges, ancienne
 `bizarrerie()`, lavandière plus fréquente, rêves trop serrés…).
 
+### Les commandes par la poste
+
+`node tools/equilibrage.js commandes` vérifie que chaque article coûte au carnet le prix de sa boutique (1 600 prix,
+amitié 0 à 10), que rien de commandé ne se revend à son prix même sans le port, et joue les remboursements (rayer,
+vendeur mort, colis égaré) : on ne récupère jamais plus que ce qu'on a payé.
+
+### La carte et la nature
+
+`node tools/equilibrage.js carte` compte les carrés de 200 m sans lieu (aucun attendu), vérifie l'empreinte des objets
+d'avant, la variété du catalogue, ce que rapportent les butins des lieux (les trésors d'une fois font environ 4 000
+pièces pour toute la vallée ; ce qui se regarnit, environ 50 pièces par jour en passant partout : la tournée de tous
+les coffres reste sous une journée de travail), les deux villages (chaque habitant relié à sa maison) et le poids de la
+génération. `node tools/equilibrage.js nature` vérifie que chaque plante donne son objet (avec un effet et des
+essences), que chaque arbre donne son bois et que tous les bois servent de « bois », que les bêtes nouvelles sont
+complètes, et mesure la fréquence du papillon d'or sur le vrai programme météo (300 parties de 240 jours, trois façons
+de jouer) : une fois tous les 39 jours pour le joueur typique, 22 pour qui le cherche, jamais avant le cinquième jour ;
+il rapporte au plus 2 % d'une journée de revenu du milieu de partie (5 % pour qui le chasse).
+
 ## Modifier le code
 
 Les sources sont dans `src/` (triées par nom = ordre de chargement) :
@@ -648,7 +765,8 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `06-structures.js`, `06-zfarm-structures.js` | maisons, église, mine ; ferme, ville à douves, hameau, lieux-dits |
 | `06-worldgen.js`, `06-zgen-valley.js` | générateurs : mode Création ; la Vallée |
 | `07-models.js`, `07-shaders.js`, `08-renderer.js` | modèles 3D en boîtes (habitants, bêtes, objets), shaders, rendu |
-| `09-audio.js`, `09-zaudio-farm.js` | sons procéduraux, ambiances par biome |
+| `09-audio.js`, `09-zaudio-farm.js`, `09-zzaudio-more.js`, `09-zzzaudio-scene.js` | le son : moteur (bus, compression douce, limiteur, réverbération du lieu, son 3D HRTF, écouteur qui suit la caméra), sons synthétisés, ambiances placées autour du joueur |
+| `12-zzzzz-sons.js`, `13-zz-son3d.js` | sons des autres modules adoucis ; le son 3D branché sur le monde (bêtes, habitants, étrange, chasse, foudre, violoneux, tornade…), option « Son 3D pour casque » |
 | `10-*.js` | créatures (comportements), joueur, météo |
 | `11-farm-*.js` | état et sauvegarde de la partie ; actions du joueur |
 | `11-npc.js` | routines, chemins, portes, mémoire, dialogues, quêtes, livraisons |
@@ -678,11 +796,24 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzz9*.js` | vol à la tire, prison (cachot, rançon, carrière, évasion), sentiments ; sommeil et fatigue, lits, maisons à louer, crochetage et poterne, fouilles et cachettes, activités des villes et villages |
 | `07-zzzzzzz-portes.js` | les portes (modèles selon le bâtiment, trois niveaux de détail) |
 | `11-zzzz6-*.js` | la lanterne et son huile, les ruches, la mémoire des recettes d'une vie à l'autre |
+| `11-zzzzA-commandes.js` | le carnet de commandes, le voiturier et ses colis (`farm.s.commandes`) |
+| `11-zzzz7-carte*.js`, `07-zzzzzzzzzz-carte.js` | un lieu tous les 200 m (catalogue, textes, lettres, inscriptions, petits secrets), les deux peuples de surface et leurs parlers (`farm.s.carte2`, API `carte2`) |
+| `05-zzzz-nature.js`, `03-zzzz-sprites-nature.js`, `11-zzzz8-nature.js` | la nature : plantes et leurs objets, effets et essences, bois par essence, bêtes nouvelles, papillon d'or (`farm.s.nature2`, API `nature2`) |
 | `11-zzzz4-ferme-temps.js`, `11-zzzz4-meubles.js`, `07-zzzzzzzz-meubles.js` | portée des arroseurs, petites bêtes sous la pluie ; acheter et meubler sa maison (meubles, garde-meuble) |
 | `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
 | `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus bas) |
 | `shell.html` | HTML + CSS |
+
+Le son, pour placer un bruit dans le monde : `sound.pan(p, dest)` accepte un panoramique −1..1 (comme avant) **ou une
+position** (`[x, y, z]`, `{x, y, z}`, une bête, un habitant) ; `sound.ici(pos, () => …, o)` place tous les sons joués
+dans la fonction (`o.att : 'aucune'` si le volume tient déjà compte de la distance, `o.suivre : true` pour une source
+qui bouge ; `sound.entrer(pos, o)` / `sortir(k)` : la même chose sans fermeture) ; `sound.en3d(pos, dest)` donne un
+nœud d'entrée placé ; `sound.source(clé, type, pos, k)` entretient une boucle d'ambiance placée (`riviere`, `clapotis`,
+`feu`, `vent`, `feuilles`, `grillon`, `bourdon` — à rafraîchir au moins chaque seconde, elle s'éteint seule sinon) ;
+`sound.cri(t, {…})` fabrique un cri « voisé » (hauteur, formants, vibrato, rugosité, souffle) ; `sound.lieuForce =
+'grotte'` impose une réverbération (sinon `dehors`, `foret`, `montagne`, `piece`, `salle` ou `grotte`, choisie d'après
+le lieu). Une fonction enveloppée garde son original dans `f.__orig` (l'outil d'équilibrage y lit les tirages).
 
 Après une modification, régénérer le fichier unique :
 

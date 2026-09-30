@@ -416,7 +416,8 @@ module.exports = {
       const h = J.ev(`(() => { const w0 = game.world, m0 = game.mode; game.world = { dayLength: JOUR_SECONDES }; game.mode = 'play'; try { return JSON.stringify({ une: hasardHeure(1, JOUR_SECONDES / 24), pause: (game.mode = 'menu', hasardHeure(1, 50)) }); } finally { game.mode = m0; game.world = w0; } })()`);
       const H = JSON.parse(h);
       verif(Math.abs(H.une - (1 - Math.exp(-1))) < 1e-9 && H.pause === 0, `hasardHeure(1 par heure, ${JS / 24} s) = ${f2(H.une)} (1 − e⁻¹ : une heure de jeu) ; en pause : ${H.pause}`);
-      const usages = J.ev(`JSON.stringify({ lav: lavandiere.update.toString().includes('hasardHeure'), sl: slender.update.toString().includes('hasardHeure'), fo: fondation.update.toString().includes('hasardHeure'), pales: /dt/.test(strange.ensurePales.toString()) })`);
+      // (source d'une fonction, et des originales qu'elle enveloppe : f.__orig — le son 3D enveloppe certaines mises à jour)
+      const usages = J.ev(`(() => { const src = (f) => { let s = ''; for (let g = f; g; g = g.__orig) s += g.toString(); return s; }; return JSON.stringify({ lav: src(lavandiere.update).includes('hasardHeure'), sl: src(slender.update).includes('hasardHeure'), fo: src(fondation.update).includes('hasardHeure'), pales: /dt/.test(src(strange.ensurePales)) }); })()`);
       const U = JSON.parse(usages);
       verif(U.lav && U.sl && U.fo && U.pales, 'lavandière, Slender, chercheurs de la Fondation : tirages par heure de jeu ; Pâles des nuits rouges : par seconde (dt)');
     }

@@ -720,7 +720,7 @@ function legFrapper(eye) {
     const ang = Math.atan2(best.x - p.pos[0], best.z - p.pos[2]), rel = angDiff(p.yaw + Math.PI, ang);
     const side = Math.abs(rel) < 0.5 ? 'droit devant vous' : Math.abs(rel) > 2.6 ? 'derrière vous' : rel > 0 ? 'sur votre gauche' : 'sur votre droite';
     const loin = bd < 12 ? 'tout près' : bd < 35 ? 'pas loin' : 'plus loin';
-    if (sound.ok) { const pan = sound.pan(clamp(-Math.sin(rel), -0.9, 0.9)); for (let k = 0; k < 3; k++) sound.noiseHit(sound.at(k * 0.32 + 0.2), 0.07, 'lowpass', 420, 1, 0.22 * clamp(1 - bd / 100, 0.2, 1), pan); sound.noiseHit(sound.at(1.4), 0.07, 'lowpass', 420, 1, 0.22, pan); }
+    if (sound.ok) { const pan = sound.en3d ? sound.en3d([best.x, p.pos[1], best.z], null, { att: 'aucune', dur: 2 }) : sound.pan(clamp(-Math.sin(rel), -0.9, 0.9)); /* C5 : la réponse vient vraiment de là (devant, derrière…) */ for (let k = 0; k < 3; k++) sound.noiseHit(sound.at(k * 0.32 + 0.2), 0.07, 'lowpass', 420, 1, 0.22 * clamp(1 - bd / 100, 0.2, 1), pan); sound.noiseHit(sound.at(1.4), 0.07, 'lowpass', 420, 1, 0.22, pan); }
     ui.subtitle('', `(Trois coups, puis un : on vous répond ${side}, ${loin}.)`, 4);
   }, 2400);
 }
