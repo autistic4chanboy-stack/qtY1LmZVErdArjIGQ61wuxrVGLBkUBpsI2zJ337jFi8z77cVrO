@@ -34,6 +34,12 @@
 //  bibliothèque. Un module nouveau sans fiche dédiée (la prison, le vol à la
 //  tire, les sentiments…) en reçoit une d'office, avec ses tables ; les objets
 //  et les bêtes des nouveautés ont leur fiche ordinaire, reliée à ces sections.
+//  La vie de la vallée (dormir, louer, acheter et meubler, la terre, crocheter,
+//  les portes, fouiller, casser, les morts, les activités) est mesurée dans le
+//  jeu lui-même (vieProbe : heures d'ouverture quart d'heure par quart
+//  d'heure, limites du jour, gains et effets d'un geste, lettres du bail, lits,
+//  portes et objets d'une partie neuve) ; la fiche « L'équilibrage » reprend la
+//  section du README et les chiffres que portent les tables.
 //  Les figurines utilisent les personnages « façon 1996 » (boîtes effilées).
 // ============================================================================
 'use strict';
@@ -610,12 +616,13 @@ function vieProbe() {
     const agg = {}, add = (o, k) => { o[k] = (o[k] || 0) + 1; };
     for (const q of w.props) {
       if (q.gone || !(OBJ_CASSE[q.id] || OBJ_RAMASSE[q.id])) continue;
+      if (w.live && !w.live(q)) continue; // (les objets d'une autre version de la vallée : l'envers…)
       const A = agg[q.id] || (agg[q.id] = { n: 0, casse: 0, ramasse: 0, prot: {}, lieux: {}, crimes: {} });
       A.n++;
       let P = null;
       try { P = objets.profil(q); } catch (e) { P = null; }
       if (!P) { add(A.prot, 'erreur'); continue; }
-      if (P.protege === 'erreur') { try { objets.calculer(q); } catch (e) { A.err = A.err || String((e && e.message) || e).slice(0, 160); } }
+      if (P.protege === 'erreur') { try { P = objets.calculer(q); } catch (e) { A.err = A.err || String((e && e.message) || e).slice(0, 160); } }
       if (P.protege) { add(A.prot, String(P.protege).split(' :')[0]); continue; }
       if (P.casse) A.casse++;
       try { if (objets.ramassable(q, P)) A.ramasse++; } catch (e) { /* rien */ }
@@ -4130,7 +4137,7 @@ function CLIENT(D) {
           const c0 = pts.reduce((b, p) => { const n = pts.filter((q) => Math.hypot(q[0] - p[0], q[1] - p[1]) < 90).length; return n > b[0] ? [n, p] : b; }, [0, pts[0]])[1];
           const near = pts.filter((q) => Math.hypot(q[0] - c0[0], q[1] - c0[1]) < 140);
           const xs = near.map((q) => q[0]), zs = near.map((q) => q[1]);
-          this.fit((Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2, Math.max(60, (Math.max(...xs) - Math.min(...xs)) / 2 + 20, (Math.max(...zs) - Math.min(...zs)) / 2 + 20));
+          this.fit((Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2, Math.max(v === 'fouilles' ? 60 : 110, (Math.max(...xs) - Math.min(...xs)) / 2 + 20, (Math.max(...zs) - Math.min(...zs)) / 2 + 20));
         }
         this.panel(); this.info(null);
       }
@@ -4202,6 +4209,13 @@ function CLIENT(D) {
       if (L.details && k > 0.9) { c.font = '11px serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; for (const p of M.props) { if (!inV(p[1], p[2])) continue; const [sx, sy] = T(p[1], p[2]); c.fillStyle = 'rgba(60,40,24,.85)'; c.fillText(this.sym(p[0]), sx, sy); marks.push({ x: sx, y: sy, r: 6, f: { kind: 'prop', t: M.propLabels[p[0]] || p[0], x: p[1], z: p[2] } }); } }
       // panneaux
       if (L.panneaux) { for (const q of M.poi) { if (q[0] !== 'sign' && q[0] !== 'mapboard') continue; if (!inV(q[2], q[3])) continue; const [sx, sy] = dot(q[2], q[3], 3, '#6a4a2a', '#f2e6c8'); marks.push({ x: sx, y: sy, r: 6, f: { kind: 'poi', t: q[1], x: q[2], z: q[3], p: q } }); } }
+      // cachettes (secret)
+      if (reveal && L.cachettes) { for (const q of M.poi) { if (!q[4]) continue; if (!inV(q[2], q[3])) continue; const [sx, sy] = dot(q[2], q[3], 3.2, 'rgba(140,30,30,.9)', '#f6e8d0'); marks.push({ x: sx, y: sy, r: 6, f: { kind: 'poi', t: q[1], x: q[2], z: q[3], p: q } }); } }
+      // trésors, grottes (secret)
+      if (reveal && L.tresors) { for (const s of M.secrets) { const [sx, sy] = dot(s.x, s.z, 5, 'rgba(200,150,20,.95)', '#3a2a10'); marks.push({ x: sx, y: sy, r: 8, f: { kind: 'tresor', t: 'Trésor : ' + s.id, x: s.x, z: s.z, s } }); } for (const s of M.caves) { const [sx, sy] = dot(s.x, s.z, 4.5, 'rgba(60,40,30,.95)', '#f0e0c0'); marks.push({ x: sx, y: sy, r: 8, f: { kind: 'li', key: s.key, x: s.x, z: s.z } }); } }
+      // la harde
+      if (M.herd && L.lieux && k > 0.18) { const [sx, sy] = T(M.herd[0], M.herd[1]); c.font = 'italic 12px serif'; c.fillStyle = 'rgba(70,50,30,.8)'; c.textAlign = 'center'; c.fillText('~ chevaux sauvages ~', sx, sy); }
+      const labels = [];
       // la vie des villes : endroits à fouiller, maisons à louer, poterne, activités
       const V = M.vie;
       if (V && L.fouilles && k > 0.6) for (const q of V.f2) {
@@ -4220,14 +4234,7 @@ function CLIENT(D) {
         marks.push({ x: sx, y: sy, r: 10, f: { kind: 'pt', t: q[1], x: q[2], z: q[3], sub: q[5], page: 'act:' + q[0] } });
         if (k > 1.4) labels.push({ x: sx + 10, y: sy, t: q[1], pr: 3.5, cls: 'act', left: true });
       }
-      // cachettes (secret)
-      if (reveal && L.cachettes) { for (const q of M.poi) { if (!q[4]) continue; if (!inV(q[2], q[3])) continue; const [sx, sy] = dot(q[2], q[3], 3.2, 'rgba(140,30,30,.9)', '#f6e8d0'); marks.push({ x: sx, y: sy, r: 6, f: { kind: 'poi', t: q[1], x: q[2], z: q[3], p: q } }); } }
-      // trésors, grottes (secret)
-      if (reveal && L.tresors) { for (const s of M.secrets) { const [sx, sy] = dot(s.x, s.z, 5, 'rgba(200,150,20,.95)', '#3a2a10'); marks.push({ x: sx, y: sy, r: 8, f: { kind: 'tresor', t: 'Trésor : ' + s.id, x: s.x, z: s.z, s } }); } for (const s of M.caves) { const [sx, sy] = dot(s.x, s.z, 4.5, 'rgba(60,40,30,.95)', '#f0e0c0'); marks.push({ x: sx, y: sy, r: 8, f: { kind: 'li', key: s.key, x: s.x, z: s.z } }); } }
-      // la harde
-      if (M.herd && L.lieux && k > 0.18) { const [sx, sy] = T(M.herd[0], M.herd[1]); c.font = 'italic 12px serif'; c.fillStyle = 'rgba(70,50,30,.8)'; c.textAlign = 'center'; c.fillText('~ chevaux sauvages ~', sx, sy); }
       // maisons des habitants
-      const labels = [];
       if (L.habitants) for (const [b, a] of Object.entries(M.homes)) {
         const Bd = M.bld.find((q) => q[0] === b); if (!Bd || (Bd[4] && !reveal)) continue;
         if (!inV(Bd[2], Bd[3], 50)) continue;
