@@ -76,11 +76,19 @@ peut pas acheter de bêtes. (Les parties commencées avant cette version gardent
   L'engrais remet le compte à zéro (et donne toujours son coup de pouce) ; une longue jachère aussi, peu à peu.
 - **Les arroseurs** gardent humide un carré de **7 × 7 cases** (celui de fer : **9 × 9**) ; le carré se montre quand on
   en tient un en main ou qu'on en regarde un de près.
+- **La lanterne** brûle **dix minutes** au plus, puis s'éteint (dans la dernière minute, la flamme baisse et
+  crachote). On la recharge d'un clic droit, ou en la rallumant : une fiole d'huile à lampe (la forge, les colporteurs)
+  ou d'huile de tournesol la remplit, une bougie la fait tenir cinq minutes.
 - **Le temps** : il pleut **deux fois moins** qu'avant (les crues et les orages suivent) ; sous la pluie ou la neige,
   **ni papillons, ni lucioles** : ceux qui volaient s'en vont, ils reviennent avec le beau temps.
   Les corbeaux mangent les semis : un épouvantail ne protège qu'à **six mètres** autour de lui (dix pour celui de fer) ;
   en le tenant en main, un anneau de paille lumineux montre sa portée (et celle des autres). Les oiseaux s'en écartent.
 - **Élevage** : poules, vaches, moutons, cochons et cheval s'achètent au ranch et arrivent le lendemain.
+- **Les ruches** : le ranch vend la ruche (avec son essaim) et l'enfumoir ; on peut aussi la fabriquer. Posée hors des
+  villes, elle donne un pot de miel chaque matin (deux certains jours si des fleurs poussent autour : sauvages, en pot,
+  parterres, tournesols, lavande…) et un pain de cire tous les trois jours, jusqu'à quatre pots ; E pour récolter. Sans
+  enfumoir, les abeilles piquent ; avec, un peu de fumée et elles se calment. La cire fait des bougies (trois par pain).
+  Les ruches du hameau sont à quelqu'un.
 - **Chevaux sauvages** : une harde vit dans un grand pré, loin de tout (le panneau du ranch et les affiches de la ville
   disent où). Accroupi et immobile, une pomme, une carotte ou de l'avoine à la main, les bêtes curieuses viennent à vous ;
   E pour les nourrir (trois fois par jour) : leur confiance grandit. Quand l'une pose la tête contre votre épaule, E pour
@@ -93,7 +101,9 @@ peut pas acheter de bêtes. (Les parties commencées avant cette version gardent
   d'assemblage, avec leurs quantités, et l'on assemble : si cela fait quelque chose (et que l'établi, le four ou le feu est
   à portée), on le fabrique et la recette entre dans « Ce que vous savez faire » ; sinon, un indice sobre. On ne connaît
   au départ que les recettes de base ; les autres se trouvent en essayant, dans les manuels (livres) ou auprès des
-  habitants de métier (« Vous pourriez m'apprendre à fabriquer quelque chose ? »).
+  habitants de métier (« Vous pourriez m'apprendre à fabriquer quelque chose ? »). **Ce que les mains savent ne meurt
+  pas** : les recettes trouvées, lues ou apprises (et les mélanges d'alchimie réussis) sont gardées d'une vie à l'autre ;
+  le fermier suivant les sait dès son arrivée (« sue d'une autre vie »).
 - **Machines** : tonneau, baratte, fumoir, presse, meule à bras, composteur. On y dépose des produits (E), on revient
   quelques heures plus tard chercher cidre, vin, beurre, fromage, huile, jus, farine, fumaisons ou engrais.
 - **Fouille** : coffres, tonneaux et caisses des campements, ruines, hameau, chapelle, phare, mines, barques et
@@ -667,6 +677,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzz8*.js` | objets légendaires et mythiques, l'Homme long, la Fondation |
 | `11-zzz9*.js` | vol à la tire, prison (cachot, rançon, carrière, évasion), sentiments ; sommeil et fatigue, lits, maisons à louer, crochetage et poterne, fouilles et cachettes, activités des villes et villages |
 | `07-zzzzzzz-portes.js` | les portes (modèles selon le bâtiment, trois niveaux de détail) |
+| `11-zzzz6-*.js` | la lanterne et son huile, les ruches, la mémoire des recettes d'une vie à l'autre |
 | `11-zzzz4-ferme-temps.js`, `11-zzzz4-meubles.js`, `07-zzzzzzzz-meubles.js` | portée des arroseurs, petites bêtes sous la pluie ; acheter et meubler sa maison (meubles, garde-meuble) |
 | `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
