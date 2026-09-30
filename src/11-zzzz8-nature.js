@@ -175,17 +175,7 @@ if (typeof LIVRES !== 'undefined' && LIVRES.manuel_cuisine) for (const id of ['s
 //  d'un arbre abattu aussi. Recettes à eux : manches, arc d'if, bâton de houx,
 //  meubles fins.
 // ============================================================================
-// la souche d'un arbre abattu donne le bois de cet arbre (les souches d'origine : des bûches)
-{
-  const _collect = play.collect.bind(play);
-  play.collect = function (o, idx, H, p) {
-    if (o && o.fromStump !== undefined && H && H.drop) {
-      const w = game.world, src = w && w.objects[o.fromStump], T = src && OBJ_TYPES[src.t], bois = T && NAT_BOIS_DE[T.id];
-      if (bois) H = Object.assign({}, H, { drop: H.drop.map((d) => (d[0] === 'bois' ? [bois].concat(d.slice(1)) : d)) });
-    }
-    return _collect(o, idx, H, p);
-  };
-}
+// (la souche d'un arbre abattu donne le bois de cet arbre : voir play.collect, plus bas ; les souches d'origine : des bûches)
 RECIPES.push(
   { out: 'manche', n: 2, need: { bois_dur: 2 }, st: 'etabli' },
   { out: 'arc_if', n: 1, need: { bois_if: 4, corde: 2, cuir: 1 }, st: 'etabli' },
@@ -248,6 +238,287 @@ HOOKS.update.push(() => {
   if (on) { nature2.pente0 = [corps.PENTE_MAX, corps.PENTE_GLISSE]; corps.PENTE_MAX *= 1.1; corps.PENTE_GLISSE *= 1.07; }
   else { [corps.PENTE_MAX, corps.PENTE_GLISSE] = nature2.pente0; nature2.pente0 = null; }
 });
+
+// ============================================================================
+//  LES PLANTES NOUVELLES (05-zzzz-nature.js : NAT_PLANTES) — types du décor
+//  (après tous les autres : les numéros des types d'avant ne bougent pas),
+//  effets, remarques de l'alchimiste, l'herbe d'égarement, le peuplement.
+// ============================================================================
+for (const P of NAT_PLANTES) {
+  const grand = P.h[1] > 1.1;
+  OBJ_TYPES.push({ id: P.o, name: P.nom, cat: P.cat, spr: ['w4_' + P.o], h: P.h, col: 0, sway: P.cat === 'Champignons' ? 0 : grand ? 0.1 : 0.15, spacing: grand ? 1.6 : 0.9, sink: 0.04 });
+}
+OBJ_TYPES.forEach((t, i) => { OBJ_INDEX[t.id] = i; });
+natComestibles();
+
+// l'égarement : le monde tourne doucement ; on marche en rond sans s'en apercevoir (herbe d'égarement, datura)
+EFFETS.egarement = {
+  dur: [60, 150],
+  debut: ['(Par où étiez-vous venu ?)'],
+  start(A) { A.T.dir = Math.random() < 0.5 ? -1 : 1; },
+  tick(A, dt) {
+    const p = game.player;
+    A.T.t = (A.T.t || 0) + dt;
+    p.yaw += dt * A.T.dir * (0.09 + 0.05 * Math.sin(A.T.t * 0.37)) * A.k;
+    A.T.m = (A.T.m ?? 9 + Math.random() * 9) - dt;
+    if (A.T.m <= 0) { A.T.m = 11 + Math.random() * 14; sound.whisper && sound.whisper(Math.random() * 2 - 1, 0.16); }
+  },
+  fx(A, fx, tint) { teinte(tint, [0.55, 0.62, 0.5], 0.06); fx[0] = Math.max(fx[0], 0.12); },
+};
+Object.assign(ALIMENTS_EFFETS, {
+  paquerette: { r: [['soin', 0.25, 5, 20]] },
+  oseille: { r: [['vigueur', 0.1, 10, 40], ['coliques', 0.08, 60, 180]] },
+  plantain: { r: [['sang_arrete', 0.9, 0, 0, 1], ['soin', 0.2, 5, 20]] },
+  barbe_bouc: { r: [['vigueur', 0.12, 10, 40]] },
+  cardamine: { r: [['vigueur', 0.15, 10, 40]] },
+  verveine: { r: [['voyance', 0.25, 10, 40, 1, 90, 180], ['calme', 0.35, 10, 40]] },
+  mouron: { c: 'le mouron rouge', r: [['poison', 0.4, 60, 180, 1], ['nausee', 0.6, 20, 90]] },
+  bouillon_blanc: { r: [['remede', 0.5, 5, 20], ['calme', 0.2, 10, 40]] },
+  armoise: { r: [['reve', 0.4, 0, 20, 1, 200, 300], ['somnolence', 0.2, 30, 90]] },
+  coprin: { r: [['vigueur', 0.06, 10, 40]] },
+  jusquiame: { c: 'la jusquiame', r: [['hallucinations', 0.9, 20, 90, 2, 150, 280], ['poison', 0.6, 60, 180, 2], ['panique', 0.4, 30, 90], ['vision_nuit', 0.3, 20, 60]] },
+  datura: { c: 'le datura', r: [['hallucinations', 0.95, 20, 80, 3, 180, 300], ['egarement', 0.7, 30, 90, 1, 120, 200], ['panique', 0.6, 30, 90, 2], ['poison', 0.5, 60, 200, 2]] },
+  chelidoine: { c: 'la chélidoine', r: [['pique', 0.9, 0, 0], ['coliques', 0.5, 40, 150], ['nausee', 0.4, 20, 90]] },
+  rue: { c: 'la rue', r: [['sangfroid', 0.5, 5, 20, 1, 120, 240], ['calme', 0.4, 10, 40], ['nausee', 0.5, 20, 90]] },
+  anemone: { c: 'l’anémone', r: [['pique', 0.8, 0, 0], ['vomir', 0.3, 30, 120]] },
+  pervenche: { r: [['calme', 0.3, 10, 40], ['voyance', 0.1, 20, 60]] },
+  sceau_salomon: { c: 'les baies du sceau-de-Salomon', r: [['vomir', 0.5, 30, 120], ['nausee', 0.4, 20, 90], ['soin', 0.2, 10, 30]] },
+  parisette: { c: 'la parisette', r: [['poison', 0.9, 30, 150, 2], ['vomir', 0.7, 30, 120], ['vue_trouble', 0.5, 20, 60], ['paralysie', 0.2, 60, 150, 1, 5, 9]] },
+  oxalis: { r: [['vigueur', 0.1, 10, 40], ['coliques', 0.05, 60, 180]] },
+  asperule: { r: [['calme', 0.4, 10, 40], ['somnolence', 0.3, 30, 90]] },
+  mousse: { r: [['nausee', 0.1, 30, 120]] },
+  usnee: { r: [['sang_arrete', 0.9, 0, 0, 2], ['soin', 0.2, 10, 30]] },
+  herbe_egaree: { r: [['egarement', 0.95, 5, 20, 1, 120, 200], ['hallucinations', 0.3, 30, 120]] },
+  pied_mouton: { r: [['vigueur', 0.1, 20, 60]] },
+  coulemelle: { r: [['vigueur', 0.1, 20, 60]] },
+  bolet_satan: { c: 'un bolet Satan', r: [['vomir', 0.95, 20, 90, 2], ['coliques', 0.9, 40, 150, 2], ['nausee', 0.9, 10, 60, 2], ['poison', 0.2, 60, 180, 1]] },
+  vesse_loup: { r: [['coliques', 0.05, 60, 180]] },
+  // le mal vient longtemps après, quand on croit que tout va bien
+  phalloide: { c: 'une amanite phalloïde', r: [['coliques', 0.9, 200, 260, 2], ['vomir', 0.85, 210, 280, 2], ['poison', 0.97, 240, 300, 3]] },
+  populage: { c: 'le populage', r: [['pique', 0.9, 0, 0], ['nausee', 0.5, 20, 90], ['coliques', 0.3, 60, 180]] },
+  salicaire: { r: [['remede', 0.9, 5, 20], ['soin', 0.2, 10, 30]] },
+  massette: { r: [['vigueur', 0.05, 10, 40]] },
+  menyanthe: { r: [['remede', 0.6, 5, 20], ['vigueur', 0.4, 10, 40]] },
+  sphaigne: { r: [['sang_arrete', 0.9, 0, 0, 2]] },
+  consoude: { r: [['os', 0.95, 5, 30], ['soin', 0.4, 10, 30]] },
+  genet: { c: 'le genêt', r: [['sprint', 0.25, 10, 40], ['panique', 0.15, 20, 60]] },
+  pulsatille: { c: 'la pulsatille', r: [['nausee', 0.6, 20, 90], ['vomir', 0.3, 40, 120], ['somnolence', 0.3, 60, 150]] },
+  euphraise: { r: [['yeux', 0.7, 5, 20, 1, 120, 240], ['vision_nuit', 0.2, 20, 60, 1, 90, 160]] },
+  absinthe: { r: [['chaleur', 0.6, 5, 20, 1, 120, 240], ['hallucinations', 0.15, 60, 180], ['faim', 0.3, 20, 60]] },
+  soldanelle: { r: [['chaleur', 0.4, 5, 20]] },
+  saxifrage: { r: [['force', 0.15, 20, 60]] },
+  nigritelle: { r: [['charme', 0.6, 5, 20, 1, 150, 260]] },
+  ancolie: { c: 'l’ancolie', r: [['nausee', 0.6, 20, 90], ['panique', 0.3, 20, 60], ['poison', 0.3, 60, 180, 1]] },
+  chardon_bleu: { r: [['sangfroid', 0.4, 5, 20], ['pique', 0.3, 0, 0]] },
+});
+// ce que dit l'alchimiste quand on les lui montre
+Object.assign(alchimie.REM, {
+  barbe_bouc: 'Du salsifis des prés, la barbe-de-bouc. Il se ferme à midi, comme un fonctionnaire. La racine est bonne, cuite.',
+  cardamine: 'De la cardamine. Le cresson des prés. Mangez-la, elle ne vous veut aucun mal. C’est rare, par ici.',
+  verveine: 'De la verveine. Pas celle des tisanes : la vraie, l’herbe sacrée. Les druides la cueillaient sans la regarder. Je ne sais pas pourquoi. J’ai essayé ; ça ne change rien.',
+  mouron: 'Du mouron rouge. Regardez-le avant de sortir : s’il est fermé, prenez un parapluie. Et ne le donnez pas aux poules.',
+  armoise: 'De l’armoise. Mettez-en sous votre oreiller, et racontez-moi. Non : ne me racontez pas. Si. Racontez-moi.',
+  coprin: 'Un coprin. Mangez-le aujourd’hui, pas demain : demain, ce sera de l’encre. Et pas de vin avec. Croyez-moi sur parole.',
+  jusquiame: 'De la jusquiame. La plante des sorcières, la vraie. Lavez-vous les mains avant de toucher votre visage, et surtout vos yeux.',
+  datura: 'Du datura. L’herbe du diable. Ceux qui en prennent parlent à des gens qui ne sont pas là, puis ils ne savent plus rentrer chez eux. On les retrouve dans les bois, assis.',
+  chelidoine: 'De la chélidoine. Le lait orange brûle les verrues. Il brûle aussi le reste. Ne le mettez que sur les verrues.',
+  rue: 'De la rue ! Où l’avez-vous trouvée ? Dans un vieux jardin de curé, je parie. On la disait contre le mauvais œil. Elle est surtout contre les enfants à naître.',
+  anemone: 'Des anémones des bois. Jolies, et elles brûlent. Tout ce qui fleurit trop tôt se protège.',
+  pervenche: 'De la pervenche. Toujours verte, même sous la neige. On en couronnait les pendus. Je ne sais pas si c’était pour les consoler.',
+  sceau_salomon: 'Du sceau-de-Salomon. Voyez les cicatrices sur la racine ? Une par année. Celle-ci a vu passer plus d’hivers que vous.',
+  parisette: 'La parisette ! Une seule baie, au milieu de quatre feuilles. Elle vous regarde, n’est-ce pas ? Ne la regardez pas trop longtemps, et surtout ne la mangez pas.',
+  oxalis: 'De l’oxalis, le pain-de-coucou. Il plie ses feuilles avant l’orage. Plus fiable que l’almanach.',
+  asperule: 'De l’aspérule. Laissez-la faner : elle sentira le foin et la vanille. Les bonnes choses prennent leur temps.',
+  usnee: 'De l’usnée, la barbe des vieux sapins. Sur une plaie, elle vaut tous les onguents. Elle ne pousse que là où l’air est propre. Pas en ville, donc.',
+  herbe_egaree: 'De l’herbe. Non… attendez. Où l’avez-vous prise ? Vous en êtes revenu sans mal ? L’herbe d’égarement. Je croyais que c’était une fable. Mettez-la dans une boîte, et ne marchez plus jamais à cet endroit.',
+  pied_mouton: 'Un pied-de-mouton. Regardez dessous : des aiguillons, pas des lamelles. Le seul champignon qu’on ne confond avec rien. Le champignon des prudents.',
+  coulemelle: 'Une coulemelle. Grande et bonne. Méfiez-vous seulement de ses petites sœurs : si c’est plus petit que votre main, ce n’est pas elle.',
+  bolet_satan: 'Un bolet Satan. Il ne tue pas, rassurez-vous. Vous souhaiterez seulement qu’il l’ait fait.',
+  vesse_loup: 'Une vesse-de-loup. Tant qu’elle est blanche dedans, elle se mange. Après, c’est de la fumée. On en mettait sur les plaies, autrefois ; je ne le recommande pas.',
+  phalloide: 'Posez ça. Doucement. Lavez-vous les mains. L’amanite phalloïde. Elle a bon goût, paraît-il, et pendant une journée on se croit sauvé. Puis le foie s’en va. Il n’y a rien à faire, après.',
+  populage: 'Du populage, le souci d’eau. Un bouton d’or qui aurait les pieds dans la vase. Il brûle la bouche, comme toute la famille.',
+  salicaire: 'De la salicaire. Contre les flux de ventre, rien de mieux. Gardez-en dans votre sac. On ne sait jamais ce qu’on mangera.',
+  menyanthe: 'Du trèfle d’eau. Amer à pleurer. La fièvre déteste ça, et c’est ce qu’on lui demande.',
+  sphaigne: 'De la sphaigne. Elle boit l’eau, elle garde les plaies propres. Et dans les tourbières, elle garde les morts. Intacts. On en a sorti un, il y a trente ans, qui avait encore sa corde au cou.',
+  consoude: 'De la consoude. L’herbe à souder les os. En cataplasme sur une fracture, elle fait des merveilles. Mangée, moins. Mais un peu quand même.',
+  pulsatille: 'Une pulsatille. Velue comme un chaton. Et vénéneuse comme un chat en colère.',
+  euphraise: 'De l’euphraise, le casse-lunettes. Pour les yeux. Donnez-m’en, je lis trop.',
+  absinthe: 'De la grande absinthe. La plus amère de toutes. Contre les vers, contre le froid. En liqueur, contre la raison.',
+  soldanelle: 'Une soldanelle ! Elle fait fondre la neige autour d’elle pour fleurir. Une fleur qui a chaud. On aimerait en dire autant de certains.',
+  saxifrage: 'De la saxifrage. Elle fend la pierre, dit-on. Surtout celle des reins. Je vous l’accorde, c’est moins poétique.',
+  nigritelle: 'Une nigritelle. Sentez. La vanille, n’est-ce pas ? Les bergères en cachaient dans leur corsage. Je ne vous dirai pas pourquoi.',
+  ancolie: 'Une ancolie des Alpes. Cinq colombes autour d’un plat. Toutes empoisonnées.',
+  chardon_bleu: 'Un chardon bleu. La reine des Alpes. Il en reste si peu… Vous l’avez cueilli. Bien sûr. Tout le monde les cueille. C’est pour ça qu’il en reste si peu.',
+});
+// qui les achète
+{
+  const S = (id) => { const d = NPC_DATA.find((x) => x.id === id); return d && d.shop ? d.shop : null; };
+  const ajoute = (id, L) => { const s = S(id); if (s) { s.buys = s.buys || []; for (const k of L) if (ITEMS[k] && !s.buys.includes(k)) s.buys.push(k); } };
+  ajoute('guerisseuse', ['plantain', 'consoude', 'salicaire', 'menyanthe', 'euphraise', 'verveine', 'bouillon_blanc', 'sphaigne', 'usnee', 'paquerette', 'asperule']);
+  ajoute('alchimiste', ['jusquiame', 'datura', 'parisette', 'herbe_egaree', 'rue', 'armoise', 'absinthe', 'bolet_satan', 'phalloide', 'chelidoine', 'mouron', 'pervenche', 'sceau_salomon', 'nigritelle', 'ancolie']);
+  ajoute('aubergiste', ['oseille', 'pied_mouton', 'coulemelle', 'coprin', 'cardamine', 'barbe_bouc']);
+  ajoute('maire', ['chardon_bleu', 'nigritelle', 'soldanelle']);
+}
+// cueillir : la souche d'un arbre abattu donne son bois ; une vieille vesse-de-loup fume ; les ronces griffent
+{
+  const _collect = play.collect.bind(play);
+  play.collect = function (o, idx, H, p) {
+    const T = o && OBJ_TYPES[o.t];
+    if (o && o.fromStump !== undefined && H && H.drop) {
+      const w = game.world, src = w && w.objects[o.fromStump], TS = src && OBJ_TYPES[src.t], bois = TS && NAT_BOIS_DE[TS.id];
+      if (bois) H = Object.assign({}, H, { drop: H.drop.map((d) => (d[0] === 'bois' ? [bois].concat(d.slice(1)) : d)) });
+    }
+    const r = _collect(o, idx, H, p);
+    if (r && T && T.id === 'vesse_loup' && Math.random() < 0.4) {
+      const y = game.world.objectY ? game.world.objectY(o) : (p ? p[1] : 0);
+      for (let k = 0; k < 22; k++) particles.spawn(o.x, y + 0.1, o.z, (Math.random() - 0.5) * 0.9, 0.3 + Math.random() * 0.7, (Math.random() - 0.5) * 0.9, [0.45, 0.36, 0.22, 0.75], 0.07 + Math.random() * 0.05, 1.2 + Math.random() * 1.2, -0.05, false);
+    }
+    if (r && T && T.id === 'ronce' && Math.random() < 0.15 && typeof corps !== 'undefined') corps.saigner(0.02);
+    return r;
+  };
+}
+// l'herbe d'égarement : qui marche dessus sans la voir (une fois par jour et par touffe)
+HOOKS.update.push((dt, eye, basis, sky, playing) => {
+  if (!playing || !farm.s || game.dying) return;
+  nature2.pasT = (nature2.pasT || 0) - dt;
+  if (nature2.pasT > 0) return;
+  nature2.pasT = 0.4;
+  const w = game.world, p = game.player, ti = OBJ_INDEX.herbe_egaree;
+  if (!w || ti === undefined || p.riding || p.underground || !w.objectsGrid) return;
+  const N = nature2.S(), E = N.egare || (N.egare = {});
+  // (la grille de tous les objets : w.query ne connaît que les objets solides)
+  const G = w.objectsGrid(), gx = clamp(Math.floor(p.pos[0] / G.C), 0, G.gw - 1), gz = clamp(Math.floor(p.pos[2] / G.C), 0, G.gw - 1);
+  for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+    const c = G.cells[clamp(gz + dz, 0, G.gw - 1) * G.gw + clamp(gx + dx, 0, G.gw - 1)];
+    if (c) for (const i of c) {
+      const o = w.objects[i];
+      if (!o || o.t !== ti || o.gone || Math.hypot(o.x - p.pos[0], o.z - p.pos[2]) > 0.75 || E[i] === farm.s.day) continue;
+      E[i] = farm.s.day;
+      effets.declencher('egarement', { delai: 3 + Math.random() * 5, k: 1 });
+    }
+  }
+});
+
+// ---------------------------------------------------------------- le peuplement (après tout le reste, son propre tirage)
+// Les plantes nouvelles poussent dans leurs milieux (touffes de deux à cinq pieds, selon la rareté), jamais dans
+// l'eau, sur un chemin, dans une ville, un lieu-dit, sur un objet posé ou devant une interaction. La mousse pousse au
+// nord des arbres ; l'usnée tombe au pied des sapins ; les plantes des décombres, près des murs.
+function natPeupler(w, seed) {
+  if (!w || !w.designed || typeof milieuAt !== 'function') return 0;
+  const rnd = mulberry32(((seed | 0) ^ 0x6e617432) >>> 0), WL = w.waterLevel, S = w.size;
+  const B = new Builder(w, rnd, new Uint8Array(1));
+  const n0 = w.objects.length;
+  let n = 0;
+  // ce qu'il faut éviter : villes et zones protégées, lieux-dits, objets posés, interactions
+  const zones = (w.noBuild || []).map((P) => [P.x, P.z, P.r + 4]);
+  for (const k in w.lm || {}) { const L = w.lm[k]; if (L && !L.under) zones.push([L.x, L.z, Math.min(L.r || 10, 40) * 0.8 + 3]); }
+  const C = 16, grille = new Map(), cle = (x, z) => ((x / C) | 0) * 4096 + ((z / C) | 0);
+  const marque = (x, z) => { const k = cle(x, z); if (!grille.has(k)) grille.set(k, []); grille.get(k).push(x, z); };
+  for (const q of w.props) if (q && !q.gone) marque(q.x, q.z);
+  for (const it of w.inter || []) marque(it.x, it.z);
+  const pres = (x, z, r) => {
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+      const L = grille.get((((x / C) | 0) + dx) * 4096 + ((z / C) | 0) + dz);
+      if (L) for (let i = 0; i < L.length; i += 2) if (Math.abs(L[i] - x) < r && Math.abs(L[i + 1] - z) < r) return true;
+    }
+    return false;
+  };
+  // tous les objets du décor (w.query ne connaît que les objets solides) : une grille de 4 m, et ce qu'on y ajoute
+  const CO = 4, tous = new Map(), cleO = (x, z) => ((x / CO) | 0) * 4096 + ((z / CO) | 0);
+  const ajoute = (x, z) => { const k = cleO(x, z); if (!tous.has(k)) tous.set(k, []); tous.get(k).push(x, z); };
+  for (let i = 0; i < n0; i++) { const o = w.objects[i]; if (o && !o.gone && !o.cleared) ajoute(o.x, o.z); }
+  const voisin = (x, z, r) => {
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+      const L = tous.get((((x / CO) | 0) + dx) * 4096 + ((z / CO) | 0) + dz);
+      if (L) for (let i = 0; i < L.length; i += 2) if (Math.hypot(L[i] - x, L[i + 1] - z) < r) return true;
+    }
+    return false;
+  };
+  const libre = (x, z, o) => {
+    o = o || {};
+    if (!w.inside(x, z, 20)) return false;
+    const h = w.heightAt(x, z);
+    if (h < WL + 0.05) return false;
+    for (const [zx, zz, zr] of zones) if (Math.abs(x - zx) < zr && Math.abs(z - zz) < zr && Math.hypot(x - zx, z - zz) < zr) return false;
+    if (pres(x, z, 2)) return false;
+    const i = Math.round(x / w.cell), j = Math.round(z / w.cell), m = w.mats[j * w.W + i];
+    if (m === M_DIRT || m === M_COBBLE || m === M_ICE) return false;
+    if (!o.pente && w.normalAt(x, z)[1] < 0.8) return false;
+    if (voisin(x, z, o.pres || 0.8)) return false;
+    let ok = true;
+    w.query(x, z, 1.5, (q) => { if (ok && q && !q.gone && Math.hypot(q.x - x, q.z - z) < 1.1) ok = false; }, (b) => {
+      if (!ok || b.under) return;
+      const [lx, lz] = World.blockLocal(b, x, z);
+      if (Math.abs(lx) < b.sx / 2 + 0.6 && Math.abs(lz) < b.sz / 2 + 0.6) ok = false;
+    });
+    return ok;
+  };
+  const pose = (id, x, z) => { B.obj(id, x, z); ajoute(x, z); n++; };
+  // les milieux (échantillonnage grossier : 24 m) ; les abords des maisons et des ruines (plantes des décombres)
+  const pts = {};
+  for (let z = 40; z < S - 40; z += 24) for (let x = 40; x < S - 40; x += 24) {
+    const jx = x + (rnd() - 0.5) * 20, jz = z + (rnd() - 0.5) * 20;
+    if (w.heightAt(jx, jz) < WL - 0.2) continue;
+    const k = milieuAt(w, jx, jz);
+    (pts[k] || (pts[k] = [])).push([jx, jz]);
+  }
+  const murs = [];
+  for (const k in w.bld || {}) {
+    const b = w.bld[k];
+    if (!b || !(b.x > 0)) continue;
+    const R = Math.max(b.W || 8, b.D || 8) * 0.6 + 2;
+    for (let a = 0; a < 6; a++) { const t = rnd() * TAU, d = R + rnd() * 6; murs.push([b.x + Math.cos(t) * d, b.z + Math.sin(t) * d]); }
+  }
+  pts.ville = (pts.ville || []).concat(murs); pts.ferme = murs.concat(pts.pres || []);
+  // les arbres (pour la mousse et l'usnée)
+  const FEUILLUS = new Set(['oak', 'hetre', 'chataignier', 'erable', 'birch', 'noyer', 'tilleul', 'aulne']), RESINEUX = new Set(['sapin', 'sapin_neige', 'meleze', 'pine']);
+  const feuillus = [], resineux = [];
+  for (let i = 0; i < n0; i++) {
+    const o = w.objects[i];
+    if (!o || o.gone) continue;
+    const id = OBJ_TYPES[o.t] && OBJ_TYPES[o.t].id;
+    if (FEUILLUS.has(id)) feuillus.push(o); else if (RESINEUX.has(id)) resineux.push(o);
+  }
+  const PER = [60, 32, 14, 5, 3], tir = (L) => L[(rnd() * L.length) | 0];
+
+  for (const P of NAT_PLANTES) {
+    if (OBJ_INDEX[P.o] === undefined) continue;
+    const grand = P.h[1] > 1.1, touffes = PER[P.r] || 2;
+    // la mousse : au nord des arbres (le nord : −z) ; l'usnée : au pied des sapins
+    if (P.o === 'mousse' || P.o === 'usnee') {
+      const L = P.o === 'mousse' ? feuillus.concat(resineux) : resineux;
+      for (let k = 0; k < touffes * 3 && L.length; k++) {
+        const a = tir(L), x = P.o === 'mousse' ? a.x + (rnd() - 0.5) * 0.9 : a.x + (rnd() - 0.5) * 3.5, z = P.o === 'mousse' ? a.z - 1.15 - rnd() * 0.5 : a.z + (rnd() - 0.5) * 3.5;
+        if (P.o === 'usnee' && Math.hypot(x - a.x, z - a.z) < 1.2) continue;
+        if (libre(x, z, { pente: true })) pose(P.o, x, z);
+      }
+      continue;
+    }
+    const cand = P.hab.flatMap((h) => pts[h] || []);
+    if (!cand.length) continue;
+    for (let k = 0; k < touffes; k++) {
+      // (une plante rare cherche plus longtemps sa place : jusqu'à huit endroits pour une touffe)
+      for (let essai = 0, pose1 = 0; essai < (P.r >= 2 ? 8 : 1) && !pose1; essai++) {
+        const [cx, cz] = tir(cand), m = P.r >= 4 ? 1 : grand ? 1 + ((rnd() * 2) | 0) : 2 + ((rnd() * 4) | 0), sp = grand ? 8 : 6;
+        for (let j = 0; j < m; j++) {
+          const x = cx + (rnd() - 0.5) * sp, z = cz + (rnd() - 0.5) * sp;
+          if (!libre(x, z, { pente: P.hab.includes('rochers'), pres: grand ? 1.4 : 1.0 })) continue;
+          pose(P.o, x, z); pose1++;
+        }
+      }
+    }
+  }
+  if (n) { w.objectsDirty = true; w.grid = null; w.shadeDirty = true; }
+  return n;
+}
+{
+  const _gv = generateValley;
+  generateValley = async function (seed, progress, gen) {
+    const w = await _gv(seed, progress, gen);
+    try { if (w && w.designed) natPeupler(w, w.seed || seed); } catch (e) { console.error(e); }
+    return w;
+  };
+}
 
 // ============================================================================
 //  LE MODULE
