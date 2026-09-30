@@ -1435,7 +1435,10 @@ function buildWiki(DB) {
   const iconOf = (id) => (ICON[id] !== undefined ? `<i class="ic ic-${ICON[id]}"></i>` : '');
   const iname = (id) => (ITEMS[id] ? ITEMS[id].name : id === 'argent' ? 'pièces' : (QITEMS[id] && QITEMS[id].name) || id);
   const IL = (id, n) => { const nm = iname(id); const p = pages.get('it:' + id); const q = n !== undefined && n !== null && n !== '' ? `<small>×${esc(n)}</small>` : ''; if (!p) return `<span class="il">${esc(nm)}${q ? ' ' + q : ''}</span>`; return `<a class="il${p.x ? ' lsec' : ''}" href="#/p/it:${encodeURIComponent(id)}">${iconOf(id)}${esc(nm)}</a>${q ? ' ' + q : ''}`; };
-  const groupLink = (k) => (GROUPS[k] ? `<span class="il grp" title="${esc(GROUPS[k].map(iname).join(', '))}">${esc(GROUP_NAMES[k] || k)}</span>` : IL(k));
+  // (un grand groupe — les vingt bois — ne répète pas tous ses membres à chaque recette : les premiers, et le compte)
+  const GRAND = 8;
+  const groupTitle = (k) => { const L = GROUPS[k].map(iname); return L.length > GRAND ? `${L.slice(0, 6).join(', ')}… (${L.length} en tout)` : L.join(', '); };
+  const groupLink = (k) => (GROUPS[k] ? `<span class="il grp" title="${esc(groupTitle(k))}">${esc(GROUP_NAMES[k] || k)}</span>` : IL(k));
   const needList = (need) => Object.entries(need || {}).map(([k, n]) => (GROUPS[k] ? groupLink(k) + ` <small>×${n}</small>` : IL(k, n))).join(', ');
   const SEC = (html, note) => (html ? `<div class="sec">${html}</div>${note === false ? '' : `<p class="sec-note">${esc(note || 'Masqué : cliquez sur « révéler les secrets » pour le lire.')}</p>`}` : '');
   const secS = (html) => `<span class="sec">${html}</span>`;
@@ -1665,8 +1668,11 @@ function buildWiki(DB) {
     if (rows.length) h += `<h3>Où le trouver</h3><dl class="kv wide">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
     // à quoi il sert
     const us = USE[id] || [], urows = [];
-    const ur = us.filter((u) => u.k === 'recipe');
+    // (un membre d'un grand groupe renvoie à la fiche du groupe au lieu de recopier toutes ses recettes)
+    const parGrand = (u) => u.group && u.group !== id && GROUPS[u.group] && GROUPS[u.group].length > GRAND;
+    const ur = us.filter((u) => u.k === 'recipe' && !parGrand(u)), urg = us.filter((u) => u.k === 'recipe' && parGrand(u));
     if (ur.length) urows.push(['Recettes', `<table class="t"><tr><th>Donne</th><th>Il faut</th><th>Où</th></tr>${uniq(ur.map((u) => u.ri)).map((ri) => recipeRow(RECIPES[ri])).join('')}</table>`]);
+    for (const g of uniq(urg.map((u) => u.group))) { const n = uniq(urg.filter((u) => u.group === g).map((u) => u.ri)).length; urows.push([ur.length ? 'Et aussi' : 'Recettes', `partout où l’on demande ${groupLink(g)} : ${n > 1 ? `${n} recettes` : 'une recette'}${ITEMS[g] ? ` (voir ${IL(g)})` : ''}`]); }
     const um = us.filter((u) => u.k === 'machine');
     if (um.length) urows.push(['Machines', um.map((u) => `${esc(machName(u.m))} → ${IL(u.e.out[0], u.e.out[1])}`).join('<br>')]);
     const ub = us.filter((u) => u.k === 'buy');
