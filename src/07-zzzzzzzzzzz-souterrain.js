@@ -373,3 +373,66 @@ Object.assign(PROP_MODELS, {
 });
 Object.assign(PROP_LIGHTS, { sout_lampe: { c: [0.3, 0.92, 0.66], r: 14, y: 1.2 } });
 Object.assign(PROP_COLL, { sout_appel: [0.55, 0.45, 1.1], sout_pierre_pain: [0.78, 0.42, 0.7], sout_lampe: [0.22, 0.2, 1.1], sout_claie: [1.0, 0.1, 1.6], sout_encoches: [0.52, 0.14, 1.8], sout_jarre: [0.22, 0.22, 0.6] });
+
+// ---------------------------------------------------------------- ceux qui dorment ; les ruines d'avant
+Object.assign(PROP_MODELS, {
+  // un dormeur : couché sous la goutte, les mains croisées ; la calcite le recouvre (data.c : de 0 à 1) ; data.b : des bottes ; data.p : un petit
+  sout_dormeur(E, o) {
+    const d = o.data || {}, c = clamp(d.c || 0, 0, 1), k = d.p ? 0.62 : 1;
+    const peau = [0.84, 0.8, 0.76], habit = d.b ? rgbf('#4e3e2e') : rgbf('#55514a'), cal = SPC.calc;
+    const m = (a) => [lerp(a[0], cal[0], c * 0.85), lerp(a[1], cal[1], c * 0.85), lerp(a[2], cal[2], c * 0.85)];
+    const tx0 = c > 0.55 ? mt(M_SCALCITE) : 0, L = 1.72 * k;
+    E.bx(0, 0, L * 0.42, 0.32 * k, 0.08, 0.28 * k, SPC.roche, mt(M_SROCHE)); // la pierre sous la tête
+    for (const s of [-1, 1]) E.bx(s * 0.1 * k, 0, -L * 0.24, 0.15 * k, 0.15 * k, L * 0.48, m(habit), tx0 || TL.cloth);
+    E.bx(0, 0, L * 0.13, 0.42 * k, 0.21 * k, L * 0.34, m(habit), tx0 || TL.cloth);
+    E.bx(0, 0.08, L * 0.41, 0.21 * k, 0.21 * k, 0.24 * k, m(peau), tx0 || TL.skin);
+    E.bx(0, 0.21 * k, L * 0.16, 0.3 * k, 0.06, 0.11, m(peau), tx0 || TL.skin, 0.2);
+    if (d.b) for (const s of [-1, 1]) E.bx(s * 0.1, 0, -L * 0.5, 0.17, 0.24, 0.3, rgbf('#2a2018'), TL.leather);
+    if (c > 0.12) { const sz = L * (0.35 + 0.7 * c); E.bx(0, 0, -L / 2 - 0.05 + sz / 2, 0.52 * k + 0.12 * c, 0.1 + 0.26 * c, sz, cal, mt(M_SCALCITE)); }
+  },
+  // une colonne des gens d'avant : des tambours empilés (data.n) ; data.f : tombée
+  sout_colonne(E, o) {
+    const d = o.data || {}, n = d.n || 3, v = soutH(o, 29) * 3, c = rgbf('#8a8478');
+    if (d.f) { for (let k = 0; k < n; k++) E.box(0, 0.36, k * 0.72 - n * 0.36, 0.7, 0.7, 0.68, v3.scale(c, 0.9 + (k % 2) * 0.1), TL.stone, k * 0.3 + v, Math.PI / 2); return; }
+    E.bx(0, 0, 0, 1.0, 0.3, 1.0, v3.scale(c, 0.85), TL.stone);
+    for (let k = 0; k < n; k++) E.bx(0, 0.3 + k * 0.8, 0, 0.7, 0.8, 0.7, v3.scale(c, 0.92 + (k % 2) * 0.08), TL.stone, k * 0.2 + v);
+    if (d.cap) E.bx(0, 0.3 + n * 0.8, 0, 0.95, 0.28, 0.95, c, TL.stone);
+  },
+  // un pilier gravé devant le tombeau, un cristal au sommet (data.n : aela, durn, vesh ; data.t : l'instant où on l'a frappé)
+  sout_pilier_aelim(E, o, t) {
+    const d = o.data || {}, n = d.n || 'aela', c = rgbf('#9a9486'), T = t ? t.t || 0 : 0;
+    E.bx(0, 0, 0, 0.9, 0.35, 0.9, v3.scale(c, 0.8), TL.stone);
+    E.bx(0, 0.35, 0, 0.56, 2.1, 0.56, c, TL.stone);
+    E.bx(0, 2.45, 0, 0.8, 0.22, 0.8, v3.scale(c, 0.9), TL.stone);
+    const ink = [0.16, 0.14, 0.12], z = 0.285;
+    if (n === 'aela') { E.bx(0, 1.5, z, 0.14, 0.14, 0.02, ink, 0); for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; E.box(Math.cos(a) * 0.17, 1.57 + Math.sin(a) * 0.17, z, 0.12, 0.03, 0.02, ink, 0, 0, 0, a); } }
+    else if (n === 'durn') { for (let k = 0; k < 3; k++) E.bx(0, 1.38 + k * 0.1, z, 0.34 - k * 0.06, 0.035, 0.02, ink, 0); }
+    else { E.bx(0, 1.42, z, 0.3, 0.3, 0.02, [0.05, 0.05, 0.05], 0); E.bx(0.08, 1.62, z + 0.005, 0.07, 0.07, 0.02, c, TL.stone); }
+    const vib = d.t && T - d.t < 3 ? 1 - (T - d.t) / 3 : 0;
+    E.fl = FX_EMIT;
+    const g = 0.35 + vib * 0.65, tint = n === 'aela' ? [1, 0.92, 0.7] : n === 'durn' ? [0.7, 0.85, 1] : [0.7, 0.62, 0.9];
+    E.box(0, 2.75, 0, 0.2, 0.44, 0.2, [tint[0] * g, tint[1] * g, tint[2] * g], TL.glass, 0.4 + vib * Math.sin(T * 40) * 0.05);
+    E.fl = 0;
+  },
+  // la porte du tombeau : une dalle où l'on a taillé un œil ; data.ouverte : descendue dans le sol
+  sout_porte_aelim(E, o) {
+    const ouv = o.data && o.data.ouverte, y = ouv ? -2.25 : 0, c = rgbf('#7e786c');
+    E.bx(0, y, 0, 1.5, 2.35, 0.3, c, TL.stone);
+    if (!ouv) {
+      const ink = [0.18, 0.16, 0.14];
+      for (const s of [-1, 1]) { E.box(s * 0.2, 1.66, 0.16, 0.44, 0.045, 0.02, ink, 0, 0, 0, s * 0.32); E.box(s * 0.2, 1.54, 0.16, 0.44, 0.045, 0.02, ink, 0, 0, 0, -s * 0.32); }
+      E.bx(0, 1.53, 0.155, 0.13, 0.13, 0.03, [0.03, 0.03, 0.03], 0);
+      for (let k = 0; k < 5; k++) E.bx(-0.3 + k * 0.15, 0.5, 0.16, 0.03, 0.5, 0.02, ink, 0);
+    }
+  },
+  // une tablette de pierre fine, gravée (data.pris : emportée)
+  sout_tablette(E, o) { if (o.data && o.data.pris) return; E.bx(0, 0, 0, 0.42, 0.05, 0.3, rgbf('#a09a8c'), TL.stone, 0.2); for (let k = 0; k < 4; k++) E.bx(-0.12 + k * 0.08, 0.05, 0, 0.02, 0.005, 0.22, [0.2, 0.18, 0.16], 0, 0.2); },
+  // un coffre de pierre (data.ouvert : le couvercle poussé)
+  sout_coffre_aelim(E, o) {
+    const ouv = o.data && o.data.ouvert, c = rgbf('#8c8678');
+    E.bx(0, 0, 0, 1.1, 0.6, 0.66, c, TL.stone);
+    E.bx(0, 0.02, 0, 0.94, 0.6, 0.5, [0.08, 0.07, 0.06], 0);
+    if (ouv) E.box(0.35, 0.66, 0.1, 1.16, 0.12, 0.72, v3.scale(c, 0.95), TL.stone, 0.3); else E.bx(0, 0.6, 0, 1.16, 0.12, 0.72, v3.scale(c, 0.95), TL.stone);
+  },
+});
+Object.assign(PROP_COLL, { sout_colonne: [0.45, 0.45, 2.4], sout_pilier_aelim: [0.4, 0.4, 2.6], sout_porte_aelim: [0.75, 0.2, 2.35], sout_coffre_aelim: [0.56, 0.34, 0.66] });

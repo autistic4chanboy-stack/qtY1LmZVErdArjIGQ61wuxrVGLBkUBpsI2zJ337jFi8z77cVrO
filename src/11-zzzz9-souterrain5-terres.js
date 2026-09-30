@@ -1065,7 +1065,8 @@ Object.assign(soutTerres, {
 // ---------------------------------------------------------------- les bruits d'en bas (courir, tirer, casser) : pour ceux qui écoutent
 Object.assign(souterrain, {
   bruits: [],
-  bruit(x, z, k) { if (!this.actif) return; this.bruits.push([game.time, x, z, k]); if (this.bruits.length > 40) this.bruits.shift(); },
+  bruitN: 0,
+  bruit(x, z, k) { if (!this.actif) return; this.bruits.push([game.time, x, z, k, ++this.bruitN]); if (this.bruits.length > 40) this.bruits.shift(); },
   // le plus fort bruit de ces dernières secondes
   bruitRecent(sec) { let m = 0; for (const [t, , , k] of this.bruits) if (game.time - t < sec && k > m) m = k; return m; },
 });
