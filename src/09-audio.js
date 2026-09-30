@@ -330,14 +330,20 @@ class SoundEngine {
   }
   // tous les sons joués pendant fn() viennent de pos (portées imbriquées permises)
   ici(pos, fn, o) {
-    if (!this.ctx || !pos) return fn();
+    const k = this.entrer(pos, o);
+    try { return fn(); } finally { this.sortir(k); }
+  }
+  // la même chose sans fermeture (pour les appels à chaque image) : k = entrer(pos, o) ; … ; sortir(k)
+  entrer(pos, o) {
+    if (!this.ctx || !pos) return 0;
     const k = ++this._depth;
     const S = this._st[k] || (this._st[k] = { src: null, pos: null, o: null, ins: new Map(), prev: null });
     S.src = pos; S.pos = null; S.o = o || SoundEngine.NUL; S.prev = this._scope;
     if (S.ins.size) S.ins.clear();
     this._scope = S;
-    try { return fn(); } finally { this._scope = S.prev; this._depth = k - 1; }
+    return k;
   }
+  sortir(k) { if (!k) return; const S = this._st[k]; this._scope = S.prev; this._depth = k - 1; }
   _sIn(dest) {
     const S = this._scope;
     let n = S.ins.get(dest);
