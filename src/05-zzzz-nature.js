@@ -334,3 +334,64 @@ const NAT_PLANTES = [
   ITEM_GROUPS.fleur = ITEM_GROUPS.fleur.slice(0, 1).concat(ITEM_GROUPS.fleur.slice(1).sort((a, b) => (ITEMS[a].price || 0) - (ITEMS[b].price || 0)));
   for (const id of ['pied_mouton', 'coulemelle', 'coprin', 'vesse_loup']) if (!ITEM_GROUPS.champi_bon.includes(id)) ITEM_GROUPS.champi_bon.push(id);
 }
+
+// ============================================================================
+//  LES BÊTES NOUVELLES (comportements, modèles, sons : 11-zzzz8-nature.js ; CREATURES n'existe pas encore ici)
+// ============================================================================
+// [créature, nom, milieux, rareté, dangereux (0-3)]
+const NAT_BETES = [
+  ['hermine', 'Hermine', ['alpage', 'rochers', 'neiges'], 1, 0], ['taupe', 'Taupe', ['pres'], 0, 0], ['mulot', 'Mulot sylvestre', ['pres', 'foret', 'bouleaux'], 0, 0],
+  ['loir', 'Loir gris', ['foret', 'bouleaux'], 1, 0], ['lievre', 'Lièvre d’Europe', ['pres', 'lande'], 0, 0], ['chat_sauvage', 'Chat sauvage', ['foret', 'sapiniere'], 2, 1],
+  ['lezard', 'Lézard des murailles', ['lande', 'rochers'], 0, 0], ['orvet', 'Orvet', ['foret', 'combe', 'pres'], 1, 0], ['crapaud', 'Crapaud commun', ['marais', 'combe', 'berges'], 0, 0],
+  ['triton', 'Triton crêté', ['marais', 'berges'], 1, 0], ['pic_vert', 'Pic vert', ['foret', 'bouleaux'], 0, 0], ['coucou', 'Coucou gris', ['bouleaux', 'foret'], 1, 0],
+  ['geai', 'Geai des chênes', ['foret', 'bouleaux'], 0, 0], ['alouette', 'Alouette des champs', ['pres', 'alpage'], 0, 0], ['effraie', 'Chouette effraie', ['pres'], 1, 0],
+  ['grand_corbeau', 'Grand corbeau', ['rochers', 'alpage'], 1, 0], ['cincle', 'Cincle plongeur', ['riviere'], 1, 0], ['grebe', 'Grèbe huppé', ['berges'], 1, 0],
+  ['butor', 'Butor étoilé', ['marais'], 3, 0], ['grue', 'Grue cendrée', ['marais', 'pres'], 2, 0], ['lucane', 'Lucane cerf-volant', ['foret', 'bouleaux'], 1, 0],
+  ['mante', 'Mante religieuse', ['pres', 'lande'], 2, 0], ['papillon_or', 'Papillon d’or', ['pres', 'lande', 'alpage'], 4, 0],
+];
+ESPECES_ANIMAUX.push(...NAT_BETES);
+Object.assign(NOTICE_ANIMAUX, {
+  hermine: 'Un petit corps long comme une main, et qui ne tient pas en place. Elle se dresse sur ses pattes pour regarder, puis disparaît dans les pierres. Brune l’été, blanche dans la neige, le bout de la queue toujours noir.',
+  taupe: 'On ne la voit presque jamais : on voit ses taupinières. Elle sort parfois le museau, rose, et le rentre aussitôt. Aveugle, dit-on ; elle vous entend très bien.',
+  mulot: 'Il court la nuit dans les herbes et sous les feuilles, en bonds brusques, et se fige. De grands yeux noirs, de grandes oreilles, une longue queue.',
+  loir: 'Il dort sept mois de l’année et vit la nuit le reste du temps, dans les arbres creux. On l’entend grogner dans les greniers. Les Romains l’engraissaient pour le manger.',
+  lievre: 'Plus grand que le lapin, les oreilles plus longues, noires au bout. Il reste tapi dans son gîte jusqu’au dernier moment, puis part en zigzag, plus vite qu’un chien.',
+  chat_sauvage: 'Plus gros qu’un chat de ferme, la queue épaisse et annelée de noir. Il ne se laisse pas approcher, et il crache quand on insiste. On ne le voit que la nuit, et encore.',
+  lezard: 'Il prend le soleil sur les pierres chaudes, immobile, et disparaît dans une fente avant qu’on ait fini de le voir. Pas de soleil, pas de lézard.',
+  orvet: 'On le prend pour un serpent : c’est un lézard sans pattes, lent, doux, couleur de cuivre. Il ne mord pas. Il perd sa queue si on la lui tient.',
+  crapaud: 'Il marche plus qu’il ne saute. Il sort les soirs de pluie et chante doucement près des mares. Sa peau suinte un venin qui brûle les yeux des chiens.',
+  triton: 'Un petit dragon des mares, noir dessus, orange dessous, avec une crête au printemps. Il plonge dès qu’on s’approche.',
+  pic_vert: 'On l’entend avant de le voir : il rit dans les bois, et il frappe les troncs. Vert, avec une calotte rouge. On dit qu’il annonce la pluie.',
+  coucou: 'On l’entend partout, on ne le voit jamais. Il pond dans le nid des autres. Qui l’entend pour la première fois de l’année, dit-on, doit compter ses sous.',
+  geai: 'La sentinelle des bois : quand il crie, toutes les bêtes savent qu’on arrive. Il cache des glands partout, et en oublie la moitié : ce sont des chênes.',
+  alouette: 'Dérangée, elle monte droit dans le ciel en chantant, si haut qu’on la perd de vue, et chante encore. Puis elle se laisse tomber comme une pierre.',
+  effraie: 'La dame blanche. Elle vit dans les granges et les clochers, et crie la nuit comme quelqu’un qu’on étrangle. On la clouait autrefois sur les portes des granges.',
+  grand_corbeau: 'Deux fois plus grand que la corneille. Ils vont par deux, très haut, et se parlent d’une voix grave. Il suit les loups, et les armées.',
+  cincle: 'Un petit oiseau brun au plastron blanc, qui fait des révérences sur les pierres du torrent, puis entre dans l’eau et marche au fond.',
+  grebe: 'Un oiseau des lacs qui plonge au lieu de s’envoler. Il disparaît sous l’eau et ressort beaucoup plus loin, là où on ne l’attendait pas.',
+  butor: 'On ne le voit presque jamais : il se cache dans les roseaux, le bec pointé vers le ciel, et se confond avec eux. Au crépuscule, il mugit comme un bœuf, très loin sur le marais.',
+  grue: 'Elles passent haut dans le ciel, en grands V, et crient comme des trompettes. On lève la tête sans les trouver. Elles se posent rarement dans la vallée.',
+  lucane: 'Le cerf-volant : un scarabée brun, gros comme un pouce, qui porte des bois comme un cerf. Il vole lourdement au crépuscule, en bourdonnant.',
+  mante: 'Elle se tient immobile dans l’herbe, les pattes jointes comme pour prier. Elle tourne la tête pour vous suivre des yeux. Aucune autre bête ne fait ça.',
+  papillon_or: 'Il n’en est pas de plus rare. Un papillon dont les ailes semblent d’or battu, et qui garde un peu de lumière même à l’ombre. On le voit, parfois, les beaux jours, au-dessus des fleurs. Un collectionneur de la ville en donnerait une fortune. Encore faut-il un filet, et de la patience.',
+});
+// ce qu'elles laissent (chasse)
+Object.assign(PREY, {
+  hermine: { hp: 4, drop: [['fourrure', 0, 1]] }, taupe: { hp: 3, drop: [['fourrure', 0, 1, 0.3]] }, mulot: { hp: 1, drop: [] }, loir: { hp: 3, drop: [['viande', 0, 1, 0.4]] },
+  lievre: { hp: 12, drop: [['viande', 1, 2], ['fourrure', 0, 1]] }, chat_sauvage: { hp: 15, drop: [['fourrure', 1, 1]] }, lezard: { hp: 1, drop: [] }, orvet: { hp: 2, drop: [['mue_serpent', 0, 1, 0.3]] },
+  crapaud: { hp: 3, drop: [['venin_crapaud', 1, 1, 0.6]] }, triton: { hp: 1, drop: [] }, pic_vert: { hp: 3, drop: [['plume', 1, 1]] }, coucou: { hp: 3, drop: [['plume', 1, 1]] },
+  geai: { hp: 3, drop: [['plume_geai', 1, 1]] }, alouette: { hp: 2, drop: [['viande', 0, 1, 0.3]] }, effraie: { hp: 6, drop: [['plume_hibou', 1, 1]] }, grand_corbeau: { hp: 8, drop: [['plume_noire', 1, 2]] },
+  cincle: { hp: 2, drop: [['plume', 1, 1]] }, grebe: { hp: 6, drop: [['plume', 1, 2]] }, butor: { hp: 8, drop: [['plume', 1, 2]] }, grue: { hp: 12, drop: [['plume', 2, 3]] },
+  lucane: { hp: 1, drop: [] }, mante: { hp: 1, drop: [] }, papillon_or: { hp: 1, drop: [] },
+});
+// les objets des bêtes
+defItem('venin_crapaud', 'Venin de crapaud', 'materiau', 3, ['fiole', '#8a8a40'], { alch: true, desc: 'Une goutte laiteuse, raclée sur la peau d’un crapaud. Les sorcières, dit-on, en faisaient voler leurs balais.' });
+defItem('plume_geai', 'Plume de geai', 'materiau', 2, ['plume', '#3a6ad0'], { alch: true, desc: 'Une petite plume barrée de bleu vif et de noir. Les chasseurs en ornent leur chapeau.' });
+defItem('lucane', 'Lucane cerf-volant', 'tresor', 3, ['n2_insecte', '#5a3020', '#8a4a2a'], { desc: 'Un gros scarabée brun aux mandibules comme des bois de cerf. Il remue encore un peu les pattes.' });
+defItem('mante', 'Mante religieuse', 'tresor', 4, ['n2_mante', '#7ab040'], { desc: 'Verte, les mains jointes. Elle vous regarde encore.' });
+defItem('papillon_or', 'Papillon d’or', 'tresor', 2000, ['n2_papillon', '#f0c030', '#8a5a10'], { desc: 'Des ailes d’or battu, fines comme du papier, qui gardent la lumière longtemps après qu’on l’a enfermé. Un collectionneur de la ville en donnerait une fortune.' });
+defItem('filet_papillons', 'Filet à papillons', 'outil', 45, ['n2_filet', '#8a6a40'], { tool: 'filet', desc: 'Un cercle de bois au bout d’un manche, et une poche de gaze. Pour les papillons, et ce qui vole bas. Il faut s’approcher doucement.' });
+Object.assign(ESSENCES, {
+  venin_crapaud: { mort: 1, ombre: 1, esprit: 1 }, plume_geai: { air: 1, esprit: 1, sort: 1 }, lucane: { terre: 2, feu: 1 }, mante: { esprit: 2, mort: 1 },
+  papillon_or: { lumiere: 3, sort: 3, air: 2 },
+});

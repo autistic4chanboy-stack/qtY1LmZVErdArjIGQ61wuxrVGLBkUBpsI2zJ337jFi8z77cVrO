@@ -508,6 +508,33 @@ function natPeupler(w, seed) {
       }
     }
   }
+  // les bêtes nouvelles (points d'apparition), selon leur rareté, dans leurs milieux ; les taupinières
+  const NB = [18, 10, 5, 3, 1];
+  for (const [kind, , hab, rar] of NAT_BETES) {
+    const oid = 'nat_' + kind;
+    if (kind === 'papillon_or' || OBJ_INDEX[oid] === undefined) continue;
+    let cand = hab.flatMap((h) => pts[h] || []);
+    if (kind === 'effraie' && murs.length) cand = murs.concat(cand); // près des granges et des clochers, ou des prés
+    if (!cand.length) continue;
+    const nb = kind === 'grue' ? 2 : NB[rar] || 1;
+    for (let k = 0; k < nb; k++) {
+      for (let essai = 0; essai < 6; essai++) {
+        let [x, z] = tir(cand);
+        x += (rnd() - 0.5) * 8; z += (rnd() - 0.5) * 8;
+        if (kind === 'grebe') { // sur l'eau libre, pas loin de la berge
+          let ok = false;
+          for (let j = 0; j < 12 && !ok; j++) { const a = rnd() * TAU, d = 6 + rnd() * 30, tx = x + Math.cos(a) * d, tz = z + Math.sin(a) * d; if (w.inside(tx, tz, 20) && w.heightAt(tx, tz) < WL - 0.6) { x = tx; z = tz; ok = true; } }
+          if (!ok) continue;
+          pose(oid, x, z); break;
+        }
+        if (kind === 'cincle' && Math.abs(w.heightAt(x, z) - WL) > 1.2) continue;
+        if (!libre(x, z, { pente: hab.includes('rochers') })) continue;
+        pose(oid, x, z);
+        if (kind === 'taupe') { pose('taupiniere', x, z); for (let j = 0; j < 4; j++) { const tx = x + (rnd() - 0.5) * 8, tz = z + (rnd() - 0.5) * 8; if (libre(tx, tz)) pose('taupiniere', tx, tz); } }
+        break;
+      }
+    }
+  }
   if (n) { w.objectsDirty = true; w.grid = null; w.shadeDirty = true; }
   return n;
 }
@@ -521,17 +548,665 @@ function natPeupler(w, seed) {
 }
 
 // ============================================================================
+//  LES BÊTES NOUVELLES (05-zzzz-nature.js : NAT_BETES, notices, butins) : leurs
+//  comportements, leurs modèles en boîtes, leurs cris ; le PAPILLON D'OR et le
+//  filet à papillons.
+// ============================================================================
+Object.assign(CREATURES, {
+  hermine: { walk: 0.9, run: 6.0, range: 14, flee: 7, radius: 0.06, idle: [1, 4], rig: 'hermine', h: 0.14, wild: true, nat: 'hermine' },
+  taupe: { walk: 0.2, run: 0.6, range: 1.5, flee: 0, radius: 0.05, idle: [2, 6], rig: 'taupe', h: 0.07, wild: true, nat: 'taupe' },
+  mulot: { walk: 0.8, run: 4.5, range: 8, flee: 5, radius: 0.03, idle: [0.5, 2.5], rig: 'mulot', h: 0.05, wild: true, nuit: true, nat: 'mulot' },
+  loir: { walk: 0.7, run: 4.0, range: 10, flee: 6, radius: 0.05, idle: [2, 6], rig: 'loir', h: 0.1, wild: true, nuit: true, arbre: true, nat: 'loir' },
+  lievre: { walk: 1.1, run: 9.0, range: 22, flee: 5, radius: 0.16, idle: [4, 12], hop: true, rig: 'lievre', h: 0.5, wild: true, nat: 'lievre' },
+  chat_sauvage: { walk: 0.9, run: 7.0, range: 24, flee: 10, radius: 0.14, idle: [3, 8], rig: 'chat_sauvage', h: 0.42, wild: true, nuit: true, nat: 'chat_sauvage' },
+  lezard: { walk: 0.4, run: 5.0, range: 5, flee: 3.5, radius: 0.03, idle: [5, 15], rig: 'lezard', h: 0.03, wild: true, nat: 'lezard' },
+  orvet: { walk: 0.15, run: 0.4, range: 4, flee: 0, radius: 0.04, idle: [5, 15], rig: 'orvet', h: 0.04, wild: true },
+  crapaud: { walk: 0.15, run: 0.5, range: 5, flee: 0, radius: 0.06, idle: [3, 10], rig: 'crapaud', h: 0.1, wild: true, nuit: true, call: 'crapaud' },
+  triton: { walk: 0.2, run: 0.8, range: 4, flee: 2, radius: 0.03, idle: [3, 10], rig: 'triton', h: 0.03, wild: true, nat: 'triton' },
+  pic_vert: { walk: 0, run: 0, range: 30, flee: 9, radius: 0.1, idle: [4, 10], rig: 'pic_vert', h: 0.3, wild: true, nat: 'pic_vert' },
+  coucou: { walk: 0, run: 0, range: 40, flee: 10, radius: 0.1, idle: [4, 10], rig: 'coucou', h: 0.3, wild: true, nat: 'coucou' },
+  geai: { walk: 0.7, run: 2.5, range: 12, flee: 14, radius: 0.08, idle: [1, 4], rig: 'geai', h: 0.3, wild: true, oiseau: true, nat: 'geai' },
+  alouette: { walk: 0.6, run: 2.5, range: 10, flee: 7, radius: 0.05, idle: [1, 4], rig: 'alouette', h: 0.18, wild: true, oiseau: true, nat: 'alouette' },
+  effraie: { walk: 0, run: 0, range: 30, flee: 7, radius: 0.12, idle: [4, 10], rig: 'effraie', h: 0.4, wild: true, perch: true, nat: 'effraie' },
+  grand_corbeau: { fly: true, rig: 'grand_corbeau', flock: 2, nat: 'grand_corbeau' },
+  cincle: { walk: 0.3, run: 1.5, range: 5, flee: 6, radius: 0.05, idle: [2, 6], rig: 'cincle', h: 0.16, wild: true, nat: 'cincle' },
+  grebe: { walk: 0.4, run: 1.2, range: 14, flee: 0, radius: 0.12, idle: [2, 6], water: true, rig: 'grebe', h: 0.35, nat: 'grebe' },
+  butor: { walk: 0.2, run: 1.0, range: 6, flee: 5, radius: 0.1, idle: [5, 15], rig: 'butor', h: 0.7, wild: true, oiseau: true, nat: 'butor' },
+  grue: { fly: true, rig: 'grue', flock: 7, nat: 'grue' },
+  lucane: { walk: 0.08, run: 0.2, range: 3, flee: 0, radius: 0.03, idle: [4, 12], rig: 'lucane', h: 0.03, wild: true, nat: 'lucane' },
+  mante: { walk: 0.05, run: 0.3, range: 2, flee: 0, radius: 0.03, idle: [8, 20], rig: 'mante', h: 0.09, wild: true, nat: 'mante' },
+  papillon_or: { fly: true, rig: 'papillon_or', flock: 1, nat: 'papillon' },
+});
+// ---------------------------------------------------------------- les modèles (boîtes ; l'avant regarde +z)
+Object.assign(ANIMAL_RIGS, {
+  hermine: (v) => {
+    const blanc = v === 7, c = blanc ? [0.95, 0.95, 0.93] : rgbf('#8a5a34');
+    const r = quadRig({ col: c, body: [0.07, 0.07, 0.24], bodyY: 0.075, leg: [0.03, 0.05], neck: [0, 0.03], head: [0.06, 0.055, 0.07], face: TL.foxF, ears: [0.02, 0.02, 0.01], tail: [0.025, 0.025, 0.1] });
+    return rigPlus(r, [
+      { name: 'ventre', parent: 'body', p: [0, -0.02, 0.02], s: [0.066, 0.03, 0.18], col: [0.95, 0.9, 0.78], tex: TL.fur },
+      { name: 'bout', parent: 'tail', p: [0, -0.02, -0.1], s: [0.028, 0.028, 0.045], col: [0.06, 0.05, 0.05], tex: TL.fur },
+    ]);
+  },
+  taupe: () => {
+    const { P, add } = rigParts();
+    const c = [0.16, 0.15, 0.17], rose = rgbf('#e8a8a0');
+    add('body', null, [0, 0.035, 0], [0.06, 0.05, 0.12], [0, 0, 0], c, TL.fur);
+    add('neck', 'body', [0, 0.005, 0.06], null);
+    add('head', 'neck', [0, 0, 0], [0.04, 0.035, 0.04], [0, 0, 0.02], c, TL.fur);
+    add('museau', 'head', [0, -0.005, 0.045], [0.015, 0.012, 0.02], [0, 0, 0], rose, TL.skin);
+    for (const [n, s] of [['legFL', -1], ['legFR', 1]]) add(n, 'body', [s * 0.035, -0.01, 0.04], [0.03, 0.012, 0.025], [s * 0.012, -0.005, 0], rose, TL.skin);
+    add('tail', 'body', [0, 0, -0.06], [0.008, 0.008, 0.02], [0, 0, -0.01], rose, TL.skin);
+    const r = new Rig(P); r.kind = 'quad'; r.cfg = {}; return r;
+  },
+  mulot: () => quadRig({ col: rgbf('#8a6a4a'), body: [0.035, 0.035, 0.07], bodyY: 0.035, leg: [0.012, 0.02], neck: [0, 0.012], head: [0.03, 0.03, 0.035], face: TL.rabbitF,
+    ears: [0.016, 0.018, 0.006], tail: [0.006, 0.006, 0.08] }),
+  loir: () => {
+    const r = quadRig({ col: rgbf('#8a8a86'), body: [0.06, 0.06, 0.13], bodyY: 0.06, leg: [0.02, 0.035], neck: [0, 0.02], head: [0.055, 0.05, 0.06], face: TL.rabbitF,
+      ears: [0.02, 0.02, 0.01], tail: [0.045, 0.045, 0.12], tailCol: rgbf('#9a9a96') });
+    return rigPlus(r, [{ name: 'lunettes', parent: 'head', p: [0, 0.012, 0.045], s: [0.058, 0.014, 0.02], col: [0.12, 0.11, 0.1], tex: TL.fur }]);
+  },
+  lievre: () => {
+    const r = scaleRig(ANIMAL_RIGS.rabbit(), 1.35);
+    for (const q of r.parts) if (q.s && q.name !== 'tail') q.col = rgbf('#9a7a52');
+    const u = [];
+    for (const [e, s] of [['earL', -1], ['earR', 1]]) { const ear = r.part(e); if (ear) { ear.s = [ear.s[0], ear.s[1] * 1.35, ear.s[2]]; u.push({ name: 'bout' + s, parent: e, p: [0, ear.s[1] * 1.0, 0], s: [ear.s[0] + 0.004, 0.04, ear.s[2] + 0.004], col: [0.08, 0.07, 0.06], tex: TL.fur }); } }
+    return rigPlus(r, u);
+  },
+  chat_sauvage: () => {
+    const r = scaleRig(ANIMAL_RIGS.cat(2), 1.25);
+    for (const q of r.parts) if (q.s) { q.col = rgbf(q.name === 'tail' ? '#6a5a44' : '#8a7a60'); if (q.name === 'body') q.tex = TL.stripes; }
+    const tl = r.part('tail'); if (tl) tl.s = [0.075, tl.s[1] * 0.85, 0.075];
+    return rigPlus(r, [
+      { name: 'bout', parent: 'tail', p: [0, -0.4, 0], s: [0.08, 0.07, 0.08], col: [0.08, 0.07, 0.06], tex: TL.fur },
+      { name: 'oeilL', parent: 'head', p: [-0.04, 0.03, 0.2], s: [0.022, 0.014, 0.01], col: [0.85, 0.8, 0.3], tex: TL.plain, fl: FX_EMIT },
+      { name: 'oeilR', parent: 'head', p: [0.04, 0.03, 0.2], s: [0.022, 0.014, 0.01], col: [0.85, 0.8, 0.3], tex: TL.plain, fl: FX_EMIT },
+    ]);
+  },
+  lezard: () => {
+    const { P, add } = rigParts();
+    const c = rgbf('#6a7040'), c2 = rgbf('#4a4a30');
+    add('body', null, [0, 0.012, 0], [0.022, 0.012, 0.06], [0, 0, 0], c, TL.scales);
+    add('neck', 'body', [0, 0.002, 0.03], null);
+    add('head', 'neck', [0, 0, 0], [0.018, 0.011, 0.026], [0, 0, 0.012], c2, TL.scales);
+    for (const [n, sx, sz] of [['legFL', -1, 1], ['legFR', 1, 1], ['legBL', -1, -1], ['legBR', 1, -1]]) add(n, 'body', [sx * 0.012, -0.002, sz * 0.02], [0.018, 0.006, 0.006], [sx * 0.009, -0.003, 0], c2, TL.scales);
+    add('tail', 'body', [0, 0, -0.03], [0.012, 0.008, 0.08], [0, 0, -0.04], c2, TL.scales);
+    const r = new Rig(P); r.kind = 'quad'; r.cfg = {}; return r;
+  },
+  orvet: () => { const r = scaleRig(ANIMAL_RIGS.snake(), 0.75); for (const q of r.parts) if (q.s) q.col = q.name === 'head' ? rgbf('#8a6038') : rgbf(/[02468]$/.test(q.name) ? '#a87a48' : '#98703e'); return r; },
+  crapaud: () => { const r = scaleRig(ANIMAL_RIGS.frog(), 1.3); for (const q of r.parts) if (q.s) { if (q.name.startsWith('oeil')) q.col = [0.7, 0.46, 0.2]; else { q.col = rgbf('#7a6a48'); q.tex = TL.scales; } } return r; },
+  triton: () => {
+    const { P, add } = rigParts();
+    const c = [0.14, 0.13, 0.12], o = rgbf('#e87a20');
+    add('body', null, [0, 0.01, 0], [0.016, 0.012, 0.045], [0, 0, 0], c, TL.scales);
+    add('ventre', 'body', [0, -0.006, 0], [0.014, 0.004, 0.04], [0, 0, 0], o, TL.plain);
+    add('crete', 'body', [0, 0.009, -0.005], [0.003, 0.006, 0.04], [0, 0, 0], c, TL.scales);
+    add('neck', 'body', [0, 0, 0.022], null);
+    add('head', 'neck', [0, 0, 0], [0.014, 0.01, 0.016], [0, 0, 0.008], c, TL.scales);
+    for (const [n, sx, sz] of [['legFL', -1, 1], ['legFR', 1, 1], ['legBL', -1, -1], ['legBR', 1, -1]]) add(n, 'body', [sx * 0.009, -0.002, sz * 0.015], [0.012, 0.004, 0.004], [sx * 0.006, -0.002, 0], c, TL.scales);
+    add('tail', 'body', [0, 0, -0.022], [0.004, 0.012, 0.045], [0, 0, -0.022], c, TL.scales);
+    const r = new Rig(P); r.kind = 'quad'; r.cfg = {}; return r;
+  },
+  pic_vert: () => rigPlus(birdParts({ col: rgbf('#6a9a40'), body: [0.08, 0.11, 0.16], bodyY: 0.1, head: [0.06, 0.06, 0.07], headCol: rgbf('#7aaa48'), beak: [0.012, 0.012, 0.05], beakCol: rgbf('#5a5a50'),
+    tail: [0.05, 0.012, 0.07], tailCol: rgbf('#4a6a2a'), leg: [0.012, 0.04], legCol: rgbf('#6a6a60') }), [
+    { name: 'calotte', parent: 'head', p: [0, 0.06, 0.01], s: [0.04, 0.015, 0.06], col: rgbf('#d02a20'), tex: TL.fur },
+    { name: 'croupion', parent: 'body', p: [0, 0.01, -0.07], s: [0.06, 0.04, 0.03], col: rgbf('#d8d040'), tex: TL.fur },
+  ]),
+  coucou: () => rigPlus(birdParts({ col: rgbf('#8a8e94'), body: [0.07, 0.08, 0.16], bodyY: 0.1, head: [0.05, 0.05, 0.06], beak: [0.012, 0.01, 0.025], beakCol: rgbf('#3a3a30'),
+    tail: [0.04, 0.012, 0.14], tailCol: rgbf('#6a6e74'), leg: [0.01, 0.03], legCol: rgbf('#d8b040') }), [
+    { name: 'ventre', parent: 'body', p: [0, -0.02, 0.02], s: [0.066, 0.04, 0.12], col: rgbf('#d8d8d0'), tex: TL.stripes },
+  ]),
+  geai: () => rigPlus(birdParts({ col: rgbf('#b09080'), body: [0.09, 0.1, 0.18], bodyY: 0.11, head: [0.065, 0.065, 0.07], beak: [0.014, 0.014, 0.03], beakCol: rgbf('#2a2a2a'),
+    tail: [0.05, 0.012, 0.1], tailCol: [0.08, 0.08, 0.09], wingCol: rgbf('#6a5a50'), leg: [0.012, 0.05], legCol: rgbf('#a08070') }), [
+    { name: 'miroirL', parent: 'wingL', p: [0, 0.02, 0.05], s: [0.024, 0.03, 0.04], col: rgbf('#3a6ad0'), tex: TL.stripes },
+    { name: 'miroirR', parent: 'wingR', p: [0, 0.02, 0.05], s: [0.024, 0.03, 0.04], col: rgbf('#3a6ad0'), tex: TL.stripes },
+    { name: 'moustache', parent: 'head', p: [0, 0.01, 0.03], s: [0.068, 0.012, 0.02], col: [0.08, 0.08, 0.09], tex: TL.fur },
+  ]),
+  alouette: () => rigPlus(birdParts({ col: rgbf('#9a8060'), body: [0.07, 0.07, 0.14], bodyY: 0.08, head: [0.05, 0.05, 0.055], beak: [0.01, 0.01, 0.02], beakCol: rgbf('#8a8070'),
+    tail: [0.04, 0.01, 0.07], leg: [0.01, 0.035], legCol: rgbf('#c0a080') }), [
+    { name: 'huppe', parent: 'head', p: [0, 0.055, -0.01], s: [0.015, 0.025, 0.03], col: rgbf('#7a6048'), tex: TL.fur, r0: [-0.5, 0, 0] },
+  ]),
+  effraie: () => birdParts({ col: rgbf('#e0c898'), body: [0.2, 0.3, 0.2], bodyY: 0.22, head: [0.18, 0.16, 0.14], face: TL.catF, headCol: rgbf('#f4f0e8'), beak: [0.025, 0.03, 0.02], beakCol: rgbf('#e8d8c0'),
+    tail: [0.1, 0.08, 0.05], wingCol: rgbf('#d0b080'), leg: [0.03, 0.08], legCol: rgbf('#f0ece0') }),
+  grand_corbeau: () => { const r = scaleRig(ANIMAL_RIGS.crow(), 1.55); r.lent = [14, 0.7]; return r; },
+  cincle: () => rigPlus(birdParts({ col: rgbf('#3a2a24'), body: [0.07, 0.07, 0.11], bodyY: 0.08, head: [0.05, 0.05, 0.05], headCol: rgbf('#5a3a2a'), beak: [0.01, 0.01, 0.02], beakCol: [0.1, 0.1, 0.1],
+    tail: [0.035, 0.01, 0.04], tailUp: 0.6, leg: [0.012, 0.04], legCol: rgbf('#8a7a60') }), [
+    { name: 'bavette', parent: 'body', p: [0, 0.01, 0.05], s: [0.06, 0.05, 0.02], col: [0.95, 0.95, 0.92], tex: TL.fur },
+  ]),
+  grebe: () => rigPlus(birdParts({ col: rgbf('#6a5a4a'), body: [0.14, 0.1, 0.3], bodyY: 0.1, neck: [0.04, 0.16, 0.04], neckR: [-0.15, 0, 0], neckCol: [0.95, 0.95, 0.93], head: [0.05, 0.05, 0.07],
+    headCol: [0.95, 0.95, 0.93], beak: [0.012, 0.012, 0.06], beakCol: rgbf('#c07070'), tail: [0.04, 0.02, 0.02], leg: [0.01, 0.01] }), [
+    { name: 'crete', parent: 'head', p: [0, 0.05, -0.01], s: [0.04, 0.035, 0.04], col: [0.1, 0.08, 0.07], tex: TL.fur },
+    { name: 'collerette', parent: 'head', p: [0, 0.015, -0.005], s: [0.075, 0.035, 0.04], col: rgbf('#c86030'), tex: TL.fur },
+  ]),
+  butor: () => birdParts({ col: rgbf('#9a7a4a'), body: [0.18, 0.22, 0.3], bodyY: 0.4, neck: [0.07, 0.22, 0.07], neckR: [0.1, 0, 0], neckCol: rgbf('#b8945a'), head: [0.07, 0.07, 0.09], headCol: rgbf('#7a5a34'),
+    beak: [0.025, 0.025, 0.12], beakCol: rgbf('#c8b050'), tail: [0.08, 0.04, 0.06], leg: [0.025, 0.3], legCol: rgbf('#8a9a40') }),
+  grue: () => {
+    const r = rigPlus(birdParts({ col: rgbf('#9aa0a8'), body: [0.22, 0.2, 0.46], bodyY: 0.9, neck: [0.05, 0.4, 0.05], neckR: [0.2, 0, 0], neckCol: [0.1, 0.1, 0.1], head: [0.07, 0.07, 0.1],
+      headCol: [0.9, 0.9, 0.9], beak: [0.02, 0.02, 0.12], beakCol: rgbf('#8a8060'), tail: [0.14, 0.06, 0.12], wing: [0.8, 0.02, 0.3], wingCol: rgbf('#8a9098'), leg: [0.025, 0.7], legCol: [0.15, 0.15, 0.15] }), [
+      { name: 'calotte', parent: 'head', p: [0, 0.065, 0.01], s: [0.04, 0.012, 0.04], col: rgbf('#c02020'), tex: TL.plain },
+    ]);
+    r.lent = [11, 0.55]; r.vol = [1.3, -1.3, 1.35, 0.2]; // en vol : le cou tendu devant, les pattes derrière
+    return r;
+  },
+  lucane: () => {
+    const { P, add } = rigParts();
+    const c = rgbf('#4a2a1a'), m = rgbf('#8a4a2a');
+    add('body', null, [0, 0.012, 0], [0.026, 0.014, 0.045], [0, 0, 0], c, TL.scales);
+    add('neck', 'body', [0, 0.002, 0.024], null);
+    add('head', 'neck', [0, 0, 0], [0.022, 0.01, 0.014], [0, 0, 0.007], c, TL.scales);
+    for (const s of [-1, 1]) add('mandibule' + s, 'head', [s * 0.007, 0.003, 0.014], [0.004, 0.004, 0.026], [0, 0, 0.013], m, TL.plain, { r0: [0, s * -0.35, 0] });
+    for (const [n, sx, sz] of [['legFL', -1, 1], ['legFR', 1, 1], ['legBL', -1, -1], ['legBR', 1, -1]]) add(n, 'body', [sx * 0.013, -0.004, sz * 0.012], [0.02, 0.004, 0.004], [sx * 0.01, -0.004, 0], c, TL.plain);
+    add('wingL', 'body', [-0.01, 0.008, 0], [0.04, 0.002, 0.03], [-0.02, 0, 0], rgbf('#c8b8a0'), TL.plain, { hide: true });
+    add('wingR', 'body', [0.01, 0.008, 0], [0.04, 0.002, 0.03], [0.02, 0, 0], rgbf('#c8b8a0'), TL.plain, { hide: true });
+    const r = new Rig(P); r.kind = 'bird'; return r;
+  },
+  mante: () => {
+    const { P, add } = rigParts();
+    const v = rgbf('#7ab040'), v2 = rgbf('#5a9030');
+    add('body', null, [0, 0.03, 0], [0.012, 0.014, 0.05], [0, 0, 0], v, TL.fur);
+    add('thorax', 'body', [0, 0.005, 0.022], [0.008, 0.008, 0.035], [0, 0.015, 0.012], v2, TL.fur, { r0: [-0.9, 0, 0] });
+    add('neck', 'thorax', [0, 0.035, 0.022], null);
+    add('head', 'neck', [0, 0, 0], [0.016, 0.012, 0.01], [0, 0, 0.004], v, TL.fur);
+    for (const s of [-1, 1]) add('bras' + s, 'thorax', [s * 0.006, 0.025, 0.02], [0.004, 0.025, 0.004], [0, -0.012, 0.004], v2, TL.fur, { r0: [0.9, 0, 0] });
+    for (const [n, sx, sz] of [['legBL', -1, -1], ['legBR', 1, -1], ['legFL', -1, 0.3], ['legFR', 1, 0.3]]) add(n, 'body', [sx * 0.006, -0.005, sz * 0.012], [0.024, 0.003, 0.003], [sx * 0.012, -0.006, 0], v2, TL.fur);
+    const r = new Rig(P); r.kind = 'quad'; r.cfg = {}; return r;
+  },
+  papillon_or: () => {
+    const { P, add } = rigParts();
+    const or = [1.0, 0.78, 0.26], bord = [0.55, 0.36, 0.08];
+    add('body', null, [0, 0, 0], [0.012, 0.012, 0.05], [0, 0, 0], [0.18, 0.12, 0.06], TL.fur);
+    add('neck', 'body', [0, 0, 0.025], null);
+    add('head', 'neck', [0, 0, 0], [0.012, 0.012, 0.012], [0, 0, 0.005], [0.15, 0.1, 0.05], TL.fur);
+    for (const s of [-1, 1]) add('antenne' + s, 'head', [s * 0.004, 0.005, 0.006], [0.002, 0.002, 0.03], [0, 0, 0.015], [0.1, 0.08, 0.05], TL.plain, { r0: [-0.6, s * 0.3, 0] });
+    add('wingL', 'body', [-0.006, 0.002, 0.004], [0.075, 0.003, 0.06], [-0.0375, 0, 0.005], or, TL.plain, { fl: FX_EMIT });
+    add('wingR', 'body', [0.006, 0.002, 0.004], [0.075, 0.003, 0.06], [0.0375, 0, 0.005], or, TL.plain, { fl: FX_EMIT });
+    add('bordL', 'wingL', [-0.07, 0.001, 0], [0.012, 0.003, 0.056], [0, 0, 0.005], bord, TL.plain);
+    add('bordR', 'wingR', [0.07, 0.001, 0], [0.012, 0.003, 0.056], [0, 0, 0.005], bord, TL.plain);
+    add('basL', 'body', [-0.006, 0, -0.012], [0.045, 0.003, 0.04], [-0.022, 0, -0.01], [0.95, 0.66, 0.2], TL.plain, { fl: FX_EMIT, r0: [0, 0, 0] });
+    add('basR', 'body', [0.006, 0, -0.012], [0.045, 0.003, 0.04], [0.022, 0, -0.01], [0.95, 0.66, 0.2], TL.plain, { fl: FX_EMIT, r0: [0, 0, 0] });
+    const r = new Rig(P); r.kind = 'bird'; r.papillon = true; return r;
+  },
+});
+// les points d'apparition (objets du monde « animaux », ajoutés après tous les autres types) ; les taupinières
+for (const [kind, nom] of NAT_BETES) if (kind !== 'papillon_or') OBJ_TYPES.push({ id: 'nat_' + kind, name: nom, cat: 'Animaux', spr: ['a_rabbit'], h: [0.2, 0.2], animal: kind, col: 0, sway: 0, spacing: 3, sink: 0 });
+OBJ_TYPES.push({ id: 'taupiniere', name: 'Taupinière', cat: 'Végétation', spr: ['w4_taupiniere'], h: [0.14, 0.2], col: 0, sway: 0, spacing: 1, sink: 0.05 });
+OBJ_TYPES.forEach((t, i) => { OBJ_INDEX[t.id] = i; });
+// quelques réglages à l'apparition : les grands oiseaux planent haut ; l'hermine des neiges est blanche
+{
+  const _spawnFrom = entities.spawnFrom.bind(entities);
+  entities.spawnFrom = function (w, o, kind) {
+    const arr = _spawnFrom(w, o, kind);
+    if (kind === 'grand_corbeau') for (const e of arr) { e.flyR = 30 + Math.random() * 25; e.flyH = 28 + Math.random() * 18; e.flyS = 0.1 * (Math.random() < 0.5 ? 1 : -1); }
+    if (kind === 'grue') { const s = Math.random() < 0.5 ? 1 : -1, R = 90 + Math.random() * 40, H = 55 + Math.random() * 15; arr.forEach((e, k) => { e.flyR = R + k * 2.5; e.flyH = H + (k % 2) * 1.5; e.flyS = 0.045 * s; e.flyA = k * 0.035 * -s; e.pack0 = arr[0]; }); }
+    if (kind === 'hermine' && w.snowLine && w.heightAt(o.x, o.z) > w.snowLine - 12) for (const e of arr) { e.v = 7; e.rig = ANIMAL_RIGS.hermine(7); }
+    return arr;
+  };
+}
+// (les dépouilles de la chasse : leur nom)
+if (typeof CHASSE_NOMS !== 'undefined') Object.assign(CHASSE_NOMS, {
+  hermine: 'l’hermine', taupe: 'la taupe', mulot: 'le mulot', loir: 'le loir', lievre: 'le lièvre', chat_sauvage: 'le chat sauvage', lezard: 'le lézard', orvet: 'l’orvet',
+  crapaud: 'le crapaud', triton: 'le triton', pic_vert: 'le pic', coucou: 'le coucou', geai: 'le geai', alouette: 'l’alouette', effraie: 'la chouette', grand_corbeau: 'le corbeau',
+  cincle: 'le cincle', grebe: 'le grèbe', butor: 'le butor', grue: 'la grue', lucane: 'la lucane', mante: 'la mante',
+});
+// ---------------------------------------------------------------- les cris (courts, discrets ; aucun ne se répète en boucle)
+Object.assign(SoundEngine.prototype, {
+  natCri(kind, pan, k) {
+    if (!this.ok) return;
+    const t = this.at ? this.at() : this.ctx.currentTime + 0.02, v = clamp(k === undefined ? 1 : k, 0, 1), p = this.pan(clamp(pan || 0, -1, 1), this.amb), R = Math.random;
+    switch (kind) {
+      case 'crapaud': for (let i = 0; i < 4; i++) this.voice(t + i * 0.13, 'sine', 520, 490, 0.09, 0.03 * v, p, { lp: 900 }); return;
+      case 'geai': for (let i = 0; i < 2; i++) { this.voice(t + i * 0.3, 'sawtooth', 1150, 780, 0.26, 0.04 * v, p, { bp: 1600, q: 1.1 }); this.noiseHit(t + i * 0.3, 0.24, 'bandpass', 2400, 1.2, 0.03 * v, p); } return;
+      case 'alouette': for (let i = 0; i < 18; i++) { const f = 2600 + R() * 1900; this.tone(t + i * 0.085 + R() * 0.02, 'sine', f, f * (R() < 0.5 ? 1.15 : 0.85), 0.06, 0.012 * v, p, 0.006); } return;
+      case 'coucou': this.voice(t, 'sine', 690, 680, 0.24, 0.05 * v, p, { lp: 1400 }); this.voice(t + 0.36, 'sine', 570, 560, 0.34, 0.05 * v, p, { lp: 1400 }); return;
+      case 'pic': for (let i = 0; i < 10; i++) this.voice(t + i * 0.11, 'triangle', 1650 - i * 30, 1450 - i * 30, 0.07, 0.022 * v, p, { bp: 1800, q: 1.5 }); return;
+      case 'tambour': for (let i = 0; i < 14; i++) this.noiseHit(t + i * 0.05, 0.02, 'bandpass', 900, 3, 0.05 * v * (1 - i / 18), p); return;
+      case 'effraie': this.noiseHit(t, 1.1, 'bandpass', 3400, 1.5, 0.05 * v, p, 2600); this.voice(t, 'sawtooth', 1500, 1100, 1.0, 0.02 * v, p, { vib: 23, vibDepth: 90, bp: 2200, q: 1 }); return;
+      case 'corbeau': for (let i = 0; i < 2; i++) this.voice(t + i * 0.32, 'sawtooth', 330, 250, 0.2, 0.045 * v, p, { bp: 700, q: 1.3 }); return;
+      case 'cincle': for (let i = 0; i < 2; i++) this.tone(t + i * 0.09, 'sine', 4200, 3600, 0.04, 0.014 * v, p, 0.004); return;
+      case 'grebe': this.voice(t, 'sawtooth', 420, 300, 0.32, 0.03 * v, p, { bp: 800, q: 1.4 }); return;
+      case 'butor': for (let i = 0; i < 3; i++) { this.voice(t + i * 0.9, 'sine', 150, 125, 0.55, 0.09 * v, p, { lp: 300 }); this.noiseHit(t + i * 0.9 - 0.08, 0.1, 'lowpass', 300, 0.8, 0.02 * v, p); } return;
+      case 'grue': for (let i = 0; i < 3; i++) { const f = 640 + R() * 140; this.voice(t + i * 0.34, 'sawtooth', f, f * 0.93, 0.26, 0.03 * v, p, { vib: 18, vibDepth: 25, bp: 1100, q: 1.3 }); } return;
+      case 'hermine': for (let i = 0; i < 6; i++) this.tone(t + i * 0.045, 'square', 1900 + R() * 300, 1700, 0.025, 0.008 * v, p, 0.003); return;
+      case 'loir': this.voice(t, 'sawtooth', 300, 280, 0.6, 0.02 * v, p, { vib: 28, vibDepth: 60, lp: 800 }); return;
+      case 'lucane': this.voice(t, 'sawtooth', 115, 105, 1.4, 0.018 * v, p, { vib: 9, vibDepth: 8, bp: 420, q: 2 }); return;
+      case 'feule': this.noiseHit(t, 0.6, 'highpass', 2600, 0.8, 0.04 * v, p, 4200); this.voice(t + 0.1, 'sawtooth', 160, 120, 0.5, 0.03 * v, p, { lp: 500 }); return;
+      case 'froissement': this.noiseHit(t, 0.14, 'bandpass', 2200, 1.2, 0.02 * v, p); return;
+      case 'terre': this.noiseHit(t, 0.22, 'lowpass', 600, 0.7, 0.04 * v, p); return;
+      case 'plouf': this.noiseHit(t, 0.18, 'lowpass', 1400, 0.7, 0.03 * v, p, 400); return;
+      case 'filet': this.noiseHit(t, 0.18, 'bandpass', 1300, 0.9, 0.05 * v, this.sfx, 500); return;
+    }
+  },
+});
+{
+  const _an = SoundEngine.prototype.animal;
+  SoundEngine.prototype.animal = function (kind, pan, k) { if (kind === 'crapaud') return this.natCri('crapaud', pan, k); return _an.call(this, kind, pan, k); };
+}
+// ---------------------------------------------------------------- les comportements
+const natCri = (e, kind, c, portee) => {
+  const d = Math.hypot(e.x - c.px, e.z - c.pz);
+  if (d > portee || !sound.natCri) return;
+  sound.natCri(kind, ((e.x - c.px) * c.right[0] + (e.z - c.pz) * c.right[2]) / (d || 1), 1 - d / portee);
+};
+const NAT_ARBRES = new Set(['oak', 'pine', 'birch', 'apple', 'deadtree', 'hetre', 'chataignier', 'noyer', 'erable', 'tilleul', 'aulne', 'saule', 'peuplier']);
+const natArbre = (w, x, z, R, loin) => {
+  const L = [];
+  w.query(x, z, R, (o) => { if (o && !o.gone && NAT_ARBRES.has(OBJ_TYPES[o.t].id) && (!loin || Math.hypot(o.x - loin.x, o.z - loin.z) > 6)) L.push(o); }, null);
+  return L.length ? L[(Math.random() * L.length) | 0] : null;
+};
+const NAT_COMPORTE = {
+  // se dresse pour regarder, puis file dans les pierres
+  hermine(e, dt, w, c) {
+    if (e.cache > 0) { e.cache -= dt; e.hidden = true; if (e.cache <= 0) { e.hidden = false; e.state = 'idle'; } return true; }
+    const alerte = e.cfg.flee * (c.crouch ? 0.5 : 1) * (c.sprint ? 1.5 : 1);
+    if (e.dist < alerte) { if (!e.fuitT) { e.fuitT = 1.2; natCri(e, 'hermine', c, 25); } }
+    if (e.fuitT > 0) { e.fuitT -= dt; if (e.fuitT <= 0) { e.fuitT = 0; e.cache = 10 + Math.random() * 12; } e.rig.set('body', 0, 0, 0); return false; }
+    const dresse = e.dist < 18 && e.state === 'idle';
+    e.rig.set('body', dresse ? -0.95 : 0, 0, 0);
+    if (dresse) { e.heading = turnToward(e.heading, Math.atan2(c.px - e.x, c.pz - e.z), dt * 3); e.move = 0; return true; }
+    return false;
+  },
+  // sous la terre ; elle sort le museau de temps en temps, et rentre si l'on approche
+  taupe(e, dt, w, c) {
+    e.move = 0;
+    e.sortT = (e.sortT ?? 8 + Math.random() * 30) - dt;
+    if (e.dehors > 0) {
+      e.dehors -= dt;
+      if (e.dist < 3 && !c.crouch) e.dehors = Math.min(e.dehors, 0.2);
+      e.hidden = false; e.y = w.heightAt(e.x, e.z) - 0.03;
+      if (e.dehors <= 0) { e.hidden = true; e.sortT = 15 + Math.random() * 45; natCri(e, 'terre', c, 12); }
+      return true;
+    }
+    e.hidden = true;
+    if (e.sortT <= 0 && e.dist < 60) {
+      e.dehors = 3 + Math.random() * 4; e.heading = Math.random() * TAU;
+      const y = w.heightAt(e.x, e.z);
+      for (let k = 0; k < 8; k++) particles.spawn(e.x, y + 0.05, e.z, (Math.random() - 0.5) * 0.8, 0.5 + Math.random() * 0.6, (Math.random() - 0.5) * 0.8, [0.36, 0.26, 0.18, 1], 0.04, 0.6, 6, false);
+      natCri(e, 'terre', c, 12);
+    }
+    return true;
+  },
+  // bonds brusques, arrêts, couinements
+  mulot(e, dt, w, c) {
+    if (e.state === 'flee') { e.zigT = (e.zigT || 0) - dt; if (e.zigT <= 0) { e.zigT = 0.25 + Math.random() * 0.3; e.fleeDir += (Math.random() - 0.5) * 1.8; if (Math.random() < 0.3 && sound.squeak) sound.squeak(); } }
+    return false;
+  },
+  // la nuit, dans les arbres ; il grogne
+  loir(e, dt, w, c) {
+    e.grT = (e.grT ?? 20 + Math.random() * 40) - dt;
+    if (e.grT <= 0) { e.grT = 30 + Math.random() * 60; if (c.night > 0.5 && !e.hidden) natCri(e, 'loir', c, 30); }
+    return false;
+  },
+  // reste au gîte jusqu'au dernier moment, puis zigzague
+  lievre(e, dt, w, c) {
+    if (e.state === 'flee') { e.zigT = (e.zigT || 0) - dt; if (e.zigT <= 0) { e.zigT = 0.35 + Math.random() * 0.4; e.fleeDir += (Math.random() < 0.5 ? -1 : 1) * (0.5 + Math.random() * 0.6); } }
+    return false;
+  },
+  // crache quand on insiste ; les yeux luisent
+  chat_sauvage(e, dt, w, c) {
+    e.feuleT = Math.max(0, (e.feuleT || 0) - dt);
+    if (e.dist < 4.5 && e.feuleT <= 0 && !e.hidden) { e.feuleT = 6; natCri(e, 'feule', c, 20); }
+    return false;
+  },
+  // au soleil seulement ; il file dans une fente
+  lezard(e, dt, w, c) {
+    const soleil = c.night < 0.3 && (weather.state === 'clear' || weather.state === 'heat') && weather.cur.rain < 0.1;
+    if (!soleil) { e.hidden = true; return true; }
+    if (e.cache > 0) { e.cache -= dt; e.hidden = true; if (e.cache <= 0) e.hidden = false; return true; }
+    if (e.state === 'flee' && !e.fuite) { e.fuite = true; natCri(e, 'froissement', c, 10); }
+    if (e.fuite && e.state !== 'flee') { e.fuite = false; e.cache = 8 + Math.random() * 10; }
+    return false;
+  },
+  // plonge dès qu'on approche
+  triton(e, dt, w, c) {
+    if (e.cache > 0) { e.cache -= dt; e.hidden = true; if (e.cache <= 0) e.hidden = false; return true; }
+    if (e.dist < 2.2 && !c.crouch) { e.cache = 8 + Math.random() * 8; natCri(e, 'plouf', c, 10); return true; }
+    return false;
+  },
+  // accroché au tronc, le jour ; il tambourine et il rit ; dérangé, il file vers un autre arbre
+  pic_vert(e, dt, w, c) {
+    if (c.night > 0.5) { e.hidden = true; return true; }
+    e.hidden = false;
+    if (!e.perch || e.bouge) {
+      const o = natArbre(w, e.hx, e.hz, 30, e.perch);
+      const a = Math.random() * TAU, rr = o ? 0.35 + Math.min(0.5, (o.h || 8) * 0.03) : 0;
+      const P = o ? { x: o.x + Math.sin(a) * rr, z: o.z + Math.cos(a) * rr, y: w.objectY(o) + 1.4 + Math.random() * 1.8, cap: a + Math.PI } : { x: e.hx, z: e.hz, y: w.heightAt(e.hx, e.hz) + 2, cap: 0 };
+      if (!e.perch) { e.x = P.x; e.z = P.z; e.y = P.y; }
+      e.perch = P; e.vole = !!e.bouge; e.bouge = false;
+    }
+    const P = e.perch;
+    if (e.vole) {
+      const dx = P.x - e.x, dz = P.z - e.z, d = Math.hypot(dx, dz);
+      e.heading = Math.atan2(dx, dz); e.fly = 1; e.phase += dt * 5;
+      const sp = Math.min(d, dt * 8);
+      e.x += dx / (d || 1) * sp; e.z += dz / (d || 1) * sp;
+      e.y = lerp(e.y, P.y + Math.abs(Math.sin(d * 0.5)) * 1.5, Math.min(1, dt * 3)); // vol ondulé
+      if (d < 0.25) { e.vole = false; e.y = P.y; }
+      return true;
+    }
+    e.fly = 0; e.heading = P.cap; e.move = 0;
+    if (e.dist < e.cfg.flee * (c.crouch ? 0.5 : 1)) { e.bouge = true; sound.flutter && sound.flutter(0.5, 0); natCri(e, 'pic', c, 60); return true; }
+    e.tamT = (e.tamT ?? 5 + Math.random() * 15) - dt;
+    if (e.tamT <= 0) { e.tamT = 12 + Math.random() * 25; natCri(e, Math.random() < 0.6 ? 'tambour' : 'pic', c, 70); e.tape = 0.7; }
+    if (e.tape > 0) { e.tape -= dt; e.rig.set('head', Math.max(0, Math.sin(e.tape * 60)) * 0.5, 0, 0); }
+    return true;
+  },
+  // haut dans les arbres ; on l'entend, on ne le voit pas
+  coucou(e, dt, w, c) {
+    if (c.night > 0.5) { e.hidden = true; return true; }
+    e.hidden = false;
+    if (!e.perch || e.bouge) {
+      const o = natArbre(w, e.hx, e.hz, 40, e.perch);
+      const P = o ? { x: o.x + (Math.random() - 0.5), z: o.z + (Math.random() - 0.5), y: w.objectY(o) + (o.h || 8) * 0.72 } : { x: e.hx, z: e.hz, y: w.heightAt(e.hx, e.hz) + 6 };
+      if (!e.perch) { e.x = P.x; e.z = P.z; e.y = P.y; }
+      e.perch = P; e.vole = !!e.bouge; e.bouge = false;
+    }
+    const P = e.perch;
+    if (e.vole) {
+      const dx = P.x - e.x, dz = P.z - e.z, d = Math.hypot(dx, dz);
+      e.heading = Math.atan2(dx, dz); e.fly = 1; e.phase += dt * 6;
+      const sp = Math.min(d, dt * 9);
+      e.x += dx / (d || 1) * sp; e.z += dz / (d || 1) * sp; e.y = lerp(e.y, P.y, Math.min(1, dt * 2));
+      if (d < 0.3) e.vole = false;
+      return true;
+    }
+    e.fly = 0; e.move = 0;
+    if (e.dist < e.cfg.flee * (c.crouch ? 0.5 : 1)) { e.bouge = true; sound.flutter && sound.flutter(0.5, 0); return true; }
+    e.criT = (e.criT ?? 10 + Math.random() * 30) - dt;
+    if (e.criT <= 0) { e.criT = 35 + Math.random() * 60; if (c.night < 0.4) natCri(e, 'coucou', c, 110); }
+    return true;
+  },
+  // la sentinelle : quand il part, il crie, et toutes les bêtes alentour savent
+  geai(e, dt, w, c) {
+    e.cT = Math.max(0, (e.cT || 0) - dt);
+    const alerte = e.cfg.flee * (c.crouch ? 0.5 : 1) * (c.sprint ? 1.4 : 1);
+    if (!(e.flyT > 0) && e.dist < alerte && e.cT <= 0) { e.cT = 8; natCri(e, 'geai', c, 90); entities.scare(e.x, e.z, 35); }
+    else if (!(e.flyT > 0) && e.dist < alerte * 1.8 && e.cT <= 0 && Math.random() < dt * 0.3) { e.cT = 10; natCri(e, 'geai', c, 90); }
+    return false;
+  },
+  // dérangée, elle monte droit dans le ciel en chantant, puis se laisse tomber plus loin
+  alouette(e, dt, w, c) {
+    if (e.chante > 0) {
+      e.chante -= dt; e.fly = 1; e.phase += dt * 8;
+      const sol = w.heightAt(e.x, e.z), haut = e.chante > 5 ? 26 : 0;
+      e.y = e.chante > 5 ? Math.min(sol + haut, e.y + dt * 3) : Math.max(sol, e.y - dt * 7);
+      if (e.chante <= 5) { e.x += Math.sin(e.heading) * dt * 2; e.z += Math.cos(e.heading) * dt * 2; }
+      e.chantT = (e.chantT || 0) - dt;
+      if (e.chantT <= 0 && e.chante > 5) { e.chantT = 1.6; natCri(e, 'alouette', c, 80); }
+      if (e.chante <= 0) { e.fly = 0; e.y = w.heightAt(e.x, e.z); e.state = 'idle'; e.timer = 2; e.hx = e.x; e.hz = e.z; }
+      return true;
+    }
+    if (e.dist < e.cfg.flee * (c.crouch ? 0.5 : 1)) { e.chante = 14 + Math.random() * 6; e.heading = Math.atan2(e.x - c.px, e.z - c.pz); sound.flutter && sound.flutter(0.6, 0); return true; }
+    return false;
+  },
+  // la dame blanche : perchée la nuit ; elle crie comme quelqu'un qu'on étrangle
+  effraie(e, dt, w, c) {
+    e.hootT = 999; // (pas le hululement de la hulotte)
+    e.criT = (e.criT ?? 20 + Math.random() * 60) - dt;
+    if (e.criT <= 0) { e.criT = 50 + Math.random() * 90; if (c.night > 0.5 && !e.hidden) natCri(e, 'effraie', c, 80); }
+    return false;
+  },
+  // fait des révérences sur les pierres ; plonge, et reparaît plus loin
+  cincle(e, dt, w, c) {
+    if (e.plonge > 0) {
+      e.plonge -= dt; e.hidden = true;
+      if (e.plonge <= 0) { e.hidden = false; for (let k = 0; k < 6; k++) { const a = Math.random() * TAU, x = e.hx + Math.cos(a) * (2 + Math.random() * 5), z = e.hz + Math.sin(a) * (2 + Math.random() * 5); const h = w.heightAt(x, z); if (h > w.waterLevel + 0.02 && h < w.waterLevel + 1.5) { e.x = x; e.z = z; e.y = h; break; } } }
+      return true;
+    }
+    e.rig.set('body', Math.sin(c.t * 5 + e.seed) * 0.25, 0, 0);
+    e.criT = (e.criT ?? 5 + Math.random() * 10) - dt;
+    if (e.criT <= 0) { e.criT = 10 + Math.random() * 20; natCri(e, 'cincle', c, 30); }
+    if (e.dist < e.cfg.flee * (c.crouch ? 0.5 : 1) || Math.random() < dt * 0.04) { e.plonge = 4 + Math.random() * 5; natCri(e, 'plouf', c, 15); return true; }
+    return false;
+  },
+  // sur l'eau : il plonge au lieu de s'envoler, et ressort bien plus loin
+  grebe(e, dt, w, c) {
+    if (e.plonge > 0) {
+      e.plonge -= dt; e.hidden = true;
+      if (e.plonge <= 0) {
+        e.hidden = false;
+        for (let k = 0; k < 10; k++) { const a = Math.atan2(e.x - c.px, e.z - c.pz) + (Math.random() - 0.5) * 1.6, d = 8 + Math.random() * 8, x = e.x + Math.sin(a) * d, z = e.z + Math.cos(a) * d; if (w.inside(x, z, 5) && w.heightAt(x, z) < w.waterLevel - 0.4) { e.x = x; e.z = z; break; } }
+        e.y = entities.groundY(w, e, e.x, e.z);
+      }
+      return true;
+    }
+    e.criT = (e.criT ?? 10 + Math.random() * 30) - dt;
+    if (e.criT <= 0) { e.criT = 30 + Math.random() * 50; natCri(e, 'grebe', c, 60); }
+    if (e.dist < 10 * (c.crouch ? 0.6 : 1)) { e.plonge = 8 + Math.random() * 8; natCri(e, 'plouf', c, 20); return true; }
+    return false;
+  },
+  // le bœuf des marais : il mugit au crépuscule ; approché, il se fige le bec au ciel
+  butor(e, dt, w, c) {
+    const h = typeof npcs !== 'undefined' && npcs.hour ? npcs.hour() : 12;
+    e.boumT = (e.boumT ?? 10 + Math.random() * 30) - dt;
+    if (e.boumT <= 0) { e.boumT = 30 + Math.random() * 40; if (h >= 19 || h < 6) natCri(e, 'butor', c, 180); }
+    const fige = !(e.flyT > 0) && e.dist < 13 && e.dist >= e.cfg.flee * (c.crouch ? 0.5 : 1);
+    e.rig.set('neckB', fige ? -0.35 : 0.1, 0, 0); e.rig.set('head', fige ? -1.2 : 0, 0, 0);
+    if (fige) { e.move = 0; e.state = 'idle'; e.timer = 2; return true; }
+    return false;
+  },
+  // au crépuscule, il marche, et parfois vole lourdement en bourdonnant
+  lucane(e, dt, w, c) {
+    const h = typeof npcs !== 'undefined' && npcs.hour ? npcs.hour() : 12;
+    if (!(h >= 18.5 || h < 1)) { e.hidden = true; return true; }
+    e.hidden = false;
+    if (e.vol > 0) {
+      e.vol -= dt; e.fly = 1; e.phase += dt * 20;
+      e.x += Math.sin(e.heading) * dt * 1.4; e.z += Math.cos(e.heading) * dt * 1.4; e.heading += (Math.random() - 0.5) * dt * 3;
+      e.y = w.heightAt(e.x, e.z) + Math.min(2.2, (e.vol > 1.5 ? 2.2 : e.vol * 1.4));
+      for (const q of ['wingL', 'wingR']) { const pa = e.rig.part(q); if (pa) pa.hide = false; }
+      if (e.vol <= 0) { e.fly = 0; e.y = w.heightAt(e.x, e.z); for (const q of ['wingL', 'wingR']) { const pa = e.rig.part(q); if (pa) pa.hide = true; } }
+      return true;
+    }
+    if (Math.random() < dt * 0.03) { e.vol = 3 + Math.random() * 4; natCri(e, 'lucane', c, 18); }
+    return false;
+  },
+  // immobile ; elle tourne la tête pour vous suivre ; de tout près, elle lève les bras
+  mante(e, dt, w, c) {
+    e.move = 0; e.state = 'idle'; e.timer = 5;
+    const a = angDiff(e.heading, Math.atan2(c.px - e.x, c.pz - e.z));
+    e.lookY = clamp(a, -0.9, 0.9); // (poseQuad tourne le cou)
+    const haut = e.dist < 1.2;
+    e.rig.set('bras-1', haut ? -0.4 : 0.9, 0, 0); e.rig.set('bras1', haut ? -0.4 : 0.9, 0, 0);
+    return true;
+  },
+};
+{
+  const _uw = entities.updateWalker.bind(entities);
+  entities.updateWalker = function (e, dt, w, c) {
+    const B = e.cfg.nat && NAT_COMPORTE[e.cfg.nat];
+    if (B && !e.owner) { try { if (B(e, dt, w, c)) return; } catch (err) { console.error(err); } }
+    _uw(e, dt, w, c);
+  };
+  const _ub = entities.updateBird.bind(entities);
+  entities.updateBird = function (e, dt, w, c) {
+    const k = e.cfg.nat;
+    if (k === 'papillon') return nature2.volPapillon(e, dt, w, c);
+    _ub(e, dt, w, c);
+    if (k === 'grand_corbeau' && !e.hidden) { e.criT = (e.criT ?? 10 + Math.random() * 30) - dt; if (e.criT <= 0) { e.criT = 25 + Math.random() * 40; natCri(e, 'corbeau', c, 140); } }
+    if (k === 'grue' && !e.hidden && e === (e.pack0 || e)) { e.criT = (e.criT ?? 5 + Math.random() * 20) - dt; if (e.criT <= 0) { e.criT = 15 + Math.random() * 25; natCri(e, 'grue', c, 260); } }
+  };
+}
+// Au dessin : l'ombre des bêtes nouvelles est à leur taille (l'ombre commune fait au moins 40 cm de large : elle
+// trahirait un lézard de loin), et seulement quand elles touchent le sol (pas sous un pic accroché au tronc, ni sous
+// l'alouette qui monte) ; les grands oiseaux battent des ailes lentement, et planent (rig.lent = [vitesse, ampleur]).
+{
+  const MIENNES = [];
+  for (const [kind] of NAT_BETES) { const C = CREATURES[kind]; if (C && !C.fly) { C.ombreNat = C.radius <= 0.12 ? C.radius * 1.3 : Math.max(0.2, C.radius * 1.1); MIENNES.push(C); } }
+  const _draw = entities.draw.bind(entities);
+  entities.draw = function (buf, sbuf, cam, maxD, t, flags) {
+    for (const C of MIENNES) C.fly = true; // (dans le dessin, « fly » ne sert qu'à taire l'ombre commune)
+    try { _draw(buf, sbuf, cam, maxD, t, flags); } finally { for (const C of MIENNES) delete C.fly; }
+    const w = game.world;
+    if (!sbuf || !w) return;
+    const m2 = maxD * maxD;
+    for (const e of this.list) {
+      if (!e.cfg.ombreNat || e.hidden || e.far || e.dead || e.corpse || e.removed || !e.rig) continue;
+      const dx = e.x - cam[0], dz = e.z - cam[2];
+      if (dx * dx + dz * dz < m2 && e.y < w.heightAt(e.x, e.z) + 0.3) drawShadow(sbuf, e.x, e.y, e.z, e.cfg.ombreNat * (e.scale || 1));
+    }
+  };
+  const _pb = poseBird;
+  poseBird = function (rig, st) {
+    _pb(rig, st);
+    if (rig.papillon) { // posé, les ailes levées s'ouvrent et se ferment lentement ; les ailes de derrière suivent
+      if (!(st.fly > 0)) { const bat = -0.5 - Math.sin(st.t * 2.5 + (st.seed || 0)) * 0.35; rig.set('wingL', 0, 0, bat); rig.set('wingR', 0, 0, -bat); }
+      const a = rig.parts[rig.idx.wingL].r[2]; rig.set('basL', 0, 0, a * 0.85); rig.set('basR', 0, 0, -a * 0.85);
+      return;
+    }
+    if (!rig.lent) return;
+    const vol = st.fly > 0, V = rig.vol;
+    if (V) { rig.set('neckB', vol ? V[0] : V[3], 0, 0); if (vol) { rig.set('neck', V[1], 0, 0); rig.set('legFL', V[2], 0, 0); rig.set('legFR', V[2], 0, 0); } }
+    if (!vol) return;
+    const ph = st.t * rig.lent[0] + (st.seed || 0), k = clamp((Math.sin(ph * 0.13) - 0.1) * 3, 0, 1), a = Math.sin(ph) * rig.lent[1] * (1 - k) + 0.06 * k;
+    rig.set('wingL', 0, 0, a); rig.set('wingR', 0, 0, -a);
+  };
+}
+
+// ============================================================================
 //  LE MODULE
 // ============================================================================
+// LE PAPILLON D'OR : très rare (voir tools/equilibrage/nature.js, qui mesure sa fréquence avec ces fonctions) :
+// seulement le jour (9 h - 17 h), par beau temps, dehors, dans les prés, la lande et les alpages, jamais avant le
+// cinquième jour ni à moins de six jours du précédent ; alors, une chance sur soixante-dix environ par heure de jeu
+// qu'il paraisse, à quelques dizaines de pas. Il vit quelques minutes, fuit qui s'approche trop vite, et s'en va
+// pour de bon s'il a eu trop peur. On le prend au filet, accroupi, ou posé sur une fleur.
+const PAPILLON = { heure: 0.014, h0: 9, h1: 17, jour0: 5, ecart: 6, vie: [200, 320], milieux: ['pres', 'lande', 'alpage'] };
 const nature2 = {
   S() {
     const s = farm.s;
     if (!s) return null;
     const N = s.nature2 && typeof s.nature2 === 'object' ? s.nature2 : (s.nature2 = {});
     if (!N.v) N.v = 1;
+    if (!N.pap || typeof N.pap !== 'object') N.pap = { vus: 0, pris: 0, dernier: -99 };
     return N;
   },
+  // ------------------------------------------------------------ le papillon d'or : quand peut-il paraître ?
+  // (jour, heure, état du ciel, milieu, dernier vu) -> vrai ou faux ; les mêmes règles servent à la mesure
+  papillonPossible(jour, heure, ciel, milieu, dernier) {
+    if (jour < PAPILLON.jour0 || jour - dernier < PAPILLON.ecart) return false;
+    if (heure < PAPILLON.h0 || heure >= PAPILLON.h1) return false;
+    if (!['clear', 'cloudy', 'heat'].includes(ciel)) return false;
+    return PAPILLON.milieux.includes(milieu);
+  },
+  chanceHeure() { return PAPILLON.heure; },
+  papT: 5, pap: null,
+  majPapillon(dt) {
+    const s = farm.s, w = game.world, p = game.player;
+    if (!s || !w || game.mode !== 'play' || game.dying || game.sleeping) return;
+    this.papT -= dt;
+    if (this.papT > 0) return;
+    this.papT = 10;
+    if (this.pap && !this.pap.removed) return;
+    this.pap = null;
+    if (p.underground || p.riding || strange.inEnvers() || (typeof mondes !== 'undefined' && mondes.cur)) return;
+    if (weather.cur.rain > 0.05 || weather.cur.fog > 0.4 || (typeof vallee !== 'undefined' && vallee.snowK > 0.05)) return;
+    if (w.covered(p.pos[0], p.pos[1] + 1.5, p.pos[2])) return;
+    const N = this.S(), h = w.time * 24;
+    if (!this.papillonPossible(s.day, h, weather.state, typeof milieuAt === 'function' ? milieuAt(w, p.pos[0], p.pos[2]) : 'pres', N.pap.dernier)) return;
+    // dix secondes réelles : une fraction d'heure de jeu
+    const k = 10 / (JOUR_SECONDES / 24);
+    if (Math.random() >= 1 - Math.pow(1 - this.chanceHeure(), k)) return;
+    this.apparaitre();
+  },
+  apparaitre(x, z) {
+    const w = game.world, p = game.player, N = this.S();
+    if (x === undefined) {
+      for (let k = 0; k < 12; k++) {
+        const a = Math.random() * TAU, d = 14 + Math.random() * 16, tx = p.pos[0] + Math.sin(a) * d, tz = p.pos[2] + Math.cos(a) * d;
+        if (!w.inside(tx, tz, 10) || w.heightAt(tx, tz) < w.waterLevel + 0.3 || w.covered(tx, w.heightAt(tx, tz) + 1, tz)) continue;
+        x = tx; z = tz; break;
+      }
+      if (x === undefined) return null;
+    }
+    const sol = w.heightAt(x, z);
+    const e = entities.add(w, 'papillon_or', x, z, { hx: x, hz: z });
+    Object.assign(e, { y: sol + 0.8, sol, fly: 1, vie: lerp(PAPILLON.vie[0], PAPILLON.vie[1], Math.random()), peur: 0, cible: null, cibleT: 0, pose: 0, part: 0, flyA: 0, flyR: 0 });
+    this.pap = e;
+    N.pap.vus++; N.pap.dernier = farm.s.day;
+    if (typeof savoir !== 'undefined') savoir.voir('papillon_or');
+    return e;
+  },
+  // son vol : une danse erratique autour des fleurs ; il se pose parfois ; il fuit qui s'approche trop vite
+  volPapillon(e, dt, w, c) {
+    e.hidden = false;
+    const sol = w.heightAt(e.x, e.z);
+    if (e.part > 0) { // il s'en va, pour de bon
+      e.part -= dt; e.fly = 1; e.y += dt * 2.2; e.x += Math.sin(e.heading) * dt * 3; e.z += Math.cos(e.heading) * dt * 3;
+      if (e.part <= 0) { entities.remove(e); if (this.pap === e) this.pap = null; }
+      return;
+    }
+    e.vie -= dt;
+    if (e.vie <= 0 || c.night > 0.45 || c.rain > 0.2) { e.part = 8; e.heading = Math.random() * TAU; return; }
+    const alerte = c.crouch ? 1.9 : c.sprint ? 7 : 3.8;
+    if (e.dist < alerte && !(e.fuite > 0)) this.fuir(e, c.px, c.pz);
+    if (e.part > 0) return;
+    e.fuite = Math.max(0, (e.fuite || 0) - dt);
+    if (e.pose > 0) { // posé sur une fleur (les ailes : au dessin, poseBird)
+      e.pose -= dt; e.fly = 0; e.y = sol + 0.28;
+      return;
+    }
+    e.fly = 1;
+    e.cibleT -= dt;
+    if (!e.cible || e.cibleT <= 0) {
+      const r = e.fuite > 0 ? 2.5 : 1.6;
+      e.cible = [e.hx + (Math.random() - 0.5) * r * 2, sol + (e.fuite > 0 ? 1.5 + Math.random() * 1.5 : 0.35 + Math.random() * 1.1), e.hz + (Math.random() - 0.5) * r * 2];
+      e.cibleT = 0.5 + Math.random() * 1.1;
+      if (!(e.fuite > 0) && Math.random() < 0.12) e.pose = 2 + Math.random() * 4;
+      // le centre de sa danse dérive doucement
+      if (!(e.fuite > 0)) { e.hx += (Math.random() - 0.5) * 2; e.hz += (Math.random() - 0.5) * 2; }
+    }
+    const [tx, ty, tz] = e.cible, dx = tx - e.x, dy = ty - e.y, dz = tz - e.z, d = Math.hypot(dx, dy, dz) || 1;
+    const v = (e.fuite > 0 ? 3.2 : 1.3) * dt;
+    e.x += dx / d * Math.min(v, d) + (Math.random() - 0.5) * dt * 0.8;
+    e.z += dz / d * Math.min(v, d) + (Math.random() - 0.5) * dt * 0.8;
+    e.y = Math.max(sol + 0.2, e.y + dy / d * Math.min(v, d) + Math.sin(c.t * 9 + e.seed) * dt * 0.5);
+    e.heading = turnToward(e.heading, Math.atan2(dx, dz), dt * 8);
+  },
+  fuir(e, px, pz) {
+    e.fuite = 3; e.peur = (e.peur || 0) + 1; e.pose = 0;
+    const a = Math.atan2(e.x - px, e.z - pz) + (Math.random() - 0.5) * 1.2, d = 7 + Math.random() * 7;
+    e.hx = e.x + Math.sin(a) * d; e.hz = e.z + Math.cos(a) * d; e.cible = null;
+    if (e.peur > 4) { e.part = 10; e.heading = a; }
+  },
+  // ------------------------------------------------------------ le filet à papillons
+  PRISES: { papillon_or: 'papillon_or', lucane: 'lucane', mante: 'mante' },
+  cibleFilet(eye, f) {
+    let best = null, bd = 2.7;
+    for (const e of entities.list) {
+      if (e.dead || e.hidden || e.removed || !this.PRISES[e.kind]) continue;
+      const dx = e.x - eye[0], dy = e.y + 0.05 - eye[1], dz = e.z - eye[2], d = Math.hypot(dx, dy, dz);
+      if (d > bd) continue;
+      if ((dx * f[0] + dy * f[1] + dz * f[2]) / (d || 1) < 0.82) continue;
+      best = e; bd = d;
+    }
+    return best;
+  },
+  coupFilet(eye, basis) {
+    const p = game.player, e = this.cibleFilet(eye, basis.f);
+    play.swingT = 0.42; play.cool = 0.7;
+    sound.natCri && sound.natCri('filet', 0, 1);
+    if (!e) return;
+    const accroupi = p.crouch > 0.5;
+    const chance = e.kind === 'papillon_or' ? (e.pose > 0 ? 0.92 : accroupi ? 0.72 : 0.45) : 0.9;
+    if (Math.random() >= chance) { if (e.kind === 'papillon_or') this.fuir(e, p.pos[0], p.pos[2]); return; }
+    const id = this.PRISES[e.kind];
+    farm.give(id, 1); play.flyer(id, [e.x, e.y, e.z], 1);
+    entities.remove(e);
+    if (e === this.pap) { this.pap = null; this.S().pap.pris++; }
+    sound.pop && sound.pop();
+  },
 };
+// le filet : on le fabrique (un manche et des fibres, ou du bois), ou on l'achète à la colporteuse
+RECIPES.push({ out: 'filet_papillons', n: 1, need: { manche: 1, fibre: 6 }, st: null }, { out: 'filet_papillons', n: 1, need: { bois: 2, fibre: 8 }, st: null });
+HAND_GROUPS[4].push('filet_papillons');
+if (typeof HOTTES !== 'undefined' && HOTTES.colporteuse && !HOTTES.colporteuse.fonds.includes('filet_papillons')) HOTTES.colporteuse.fonds.push('filet_papillons');
+HOOKS.primary.push((eye, basis, held, it, id) => {
+  if (!it || it.tool !== 'filet') return false;
+  if (!held) nature2.coupFilet(eye, basis);
+  return true;
+});
+HOOKS.update.push((dt) => { try { nature2.majPapillon(dt); } catch (e) { console.error(e); } });
+// (rechargement d'une partie : le papillon d'une autre vie ne revient pas)
+HOOKS.load.push(() => { nature2.pap = null; nature2.papT = 5; });
 
 // les herbes des plaies : on les applique même le ventre plein, si l'on saigne
 HOOKS.primary.push((eye, basis, held, it, id) => {

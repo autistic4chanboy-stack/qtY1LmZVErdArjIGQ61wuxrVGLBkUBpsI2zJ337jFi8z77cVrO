@@ -73,7 +73,7 @@ function spriteNature(kind, seed) {
     ronce: [32, 26], mousse: [22, 8], usnee: [18, 18], herbe_egaree: [20, 20], pied_mouton: [18, 14], coulemelle: [24, 36], bolet_satan: [18, 16],
     vesse_loup: [16, 10], phalloide: [16, 18], populage: [24, 14], salicaire: [22, 36], massette: [20, 48], menyanthe: [22, 16], sphaigne: [24, 8],
     consoude: [26, 28], genet: [30, 40], pulsatille: [18, 14], euphraise: [22, 10], absinthe: [24, 24], soldanelle: [18, 10], saxifrage: [22, 8],
-    nigritelle: [14, 16], ancolie: [22, 28], airelle: [22, 12], chardon_bleu: [22, 30],
+    nigritelle: [14, 16], ancolie: [22, 28], airelle: [22, 12], chardon_bleu: [22, 30], taupiniere: [16, 8],
   }[kind] || [22, 22];
   const [W, H] = TAILLE, pb = new PixelBuf(W, H);
   const px = (x, y, c, a) => pb.set(Math.round(x), Math.round(y), c, a);
@@ -195,9 +195,32 @@ function spriteNature(kind, seed) {
     case 'airelle': { const bsh = []; for (let k = 0; k < 4; k++) bsh.push({ x: 4 + rnd() * (W - 8), y: 5 + rnd() * 4, r: 3.5 + rnd() * 1.5 }); drawCanopy(pb, bsh, ramp(['#16361a', '#1e4a22', '#2a5e2c']), seed, { noise: 0.4 }); specks(pb, rnd, 9, [[210, 30, 40], [180, 20, 30]], 2, 2, W - 2, H - 2); break; }
     case 'chardon_bleu': { const x = W / 2; drawLine(pb, x, 8, x, H - 1, [110, 140, 190], 2); for (let y = 12; y < H - 2; y += 4) { drawLine(pb, x, y, x - 5, y - 2, [130, 160, 210]); drawLine(pb, x + 1, y + 1, x + 6, y - 1, [110, 140, 190]); }
       for (let a = 0; a < 12; a++) { const t = a / 12 * TAU; drawLine(pb, x, 6, x + Math.cos(t) * 6, 6 + Math.sin(t) * 3.2, [150, 180, 230]); } drawSphere(pb, x + 0.5, 4, 2.6, ramp(['#2a3a80', '#4060b0', '#6a90d8', '#a0c0f0']), seed, { sq: 1.3 }); break; }
+    case 'taupiniere': drawSphere(pb, W / 2, H - 1, W / 2 - 1, ramp(['#3a2618', '#4e3422', '#64442c', '#7a5638']), seed, { sq: 0.75, noise: 0.5 }); break;
     default: tige(W / 2, 4); px(W / 2, 4, [240, 240, 240]);
   }
   if (kind !== 'mousse' && kind !== 'sphaigne' && kind !== 'mouron') edgeDarken(pb, 0.8);
+  return pb;
+}
+// ---------------------------------------------------------------- en main : le filet à papillons, le bâton de houx
+function vmFilet(coup) {
+  const pb = new PixelBuf(VM_W, VM_H), gx = 86, gy = 86;
+  vmArm(pb, gx, gy);
+  const h = vmHandle(pb, gx, gy, coup ? -1.2 : -0.45, 70, ramp(['#5a3e22', '#7a5630', '#9a7040', '#b88c56']), 4);
+  const cx = h.hx + h.dx * 13, cy = h.hy + h.dy * 13, bois = [[110, 80, 45], [140, 104, 60]];
+  for (let a = 0; a < 64; a++) { const t = a / 64 * TAU, x = cx + Math.cos(t) * 13, y = cy + Math.sin(t) * 9; pb.set(Math.round(x), Math.round(y), bois[a % 2]); pb.set(Math.round(x), Math.round(y) + 1, bois[0]); }
+  // (le tulle, opaque : dans la main, un alpha entre 0,75 et 0,9 ferait luire le filet la nuit)
+  for (let y = -8; y <= 8; y++) for (let x = -12; x <= 12; x++) if (x * x / 144 + y * y / 64 < 0.9 && ((x + y) & 1) === 0) pb.set(Math.round(cx + x), Math.round(cy + y), [222, 218, 206]);
+  for (let k = 0; k < 10; k++) { const t = k / 9; pb.set(Math.round(cx - 6 + t * 12), Math.round(cy + 9 + Math.sin(t * Math.PI) * 5), [226, 222, 210]); }
+  vmFist(pb, gx, gy);
+  edgeDarken(pb, 0.8);
+  return pb;
+}
+function vmBaton(coup) {
+  const pb = new PixelBuf(VM_W, VM_H), gx = 84, gy = 84;
+  vmArm(pb, gx, gy);
+  vmHandle(pb, gx, gy, coup ? -0.9 : -0.12, 86, ramp(['#b8b4a0', '#d8d4c0', '#ece8d8', '#faf8ee']), 5);
+  vmFist(pb, gx, gy);
+  edgeDarken(pb, 0.8);
   return pb;
 }
 {
@@ -205,5 +228,8 @@ function spriteNature(kind, seed) {
   addFarmSprites = function (add) {
     _afs(add);
     if (typeof NAT_PLANTES !== 'undefined') NAT_PLANTES.forEach((P, i) => add('w4_' + P.o, spriteNature(P.o, 7311 + i * 29)));
+    add('w4_taupiniere', spriteNature('taupiniere', 9173));
+    VM.filet = [vmFilet(false), vmFilet(true)];
+    VM.baton = [vmBaton(false), vmBaton(true)];
   };
 }
