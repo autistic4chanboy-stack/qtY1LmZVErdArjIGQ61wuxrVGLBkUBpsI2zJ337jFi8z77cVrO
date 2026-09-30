@@ -376,7 +376,7 @@ function extractSystems(G, DB) {
   const safe = (label, fn, d) => { try { return fn(); } catch (e) { DB.log.push('systèmes, ' + label + ' : ' + (e && e.message)); return d; } };
   const J = (expr) => jclone(G.run(expr));
   for (const [file, text] of G.texts) {
-    if (!SYS_FILE.test(file)) continue;
+    if (!SYS_FILE.test(file) || /admin/.test(file)) continue; // (les outils de mise au point restent cachés)
     const M = S.files[file] = parseModule(text);
     // les tables des objets du module (propriétés en majuscules : chasse.XXX, fabrication.LECONS…)
     for (const o of M.objs) {
