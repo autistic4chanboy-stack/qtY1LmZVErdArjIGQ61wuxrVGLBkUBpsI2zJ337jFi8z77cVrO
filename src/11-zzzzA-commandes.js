@@ -191,10 +191,10 @@ const commandes = {
     if (/^une? /i.test(s)) return 'd’' + s;
     return 'de ' + s;
   },
-  // un endroit noté : près d'un lieu qu'on connaît, sinon à tant de mètres de la ferme
+  // un endroit noté : près d'un lieu qu'on connaît, sinon à tant de mètres de lui (ou de la ferme), vers où
   nomIci(x, z) {
-    const w = game.world;
-    let best = null, bd = 260;
+    const w = game.world, card = (a) => (w.cardinal ? w.cardinal(a) : 'le large');
+    let best = null, bd = 700;
     for (const k in w.lm) {
       const L = w.lm[k];
       if (!L || !L.name || L.under || L.secret) continue;
@@ -202,9 +202,10 @@ const commandes = {
       const d = Math.hypot(L.x - x, L.z - z);
       if (d < bd) { bd = d; best = L; }
     }
-    if (best) return `près ${this.de(best.name)}`;
-    const F = w.bld.ferme, a = Math.atan2(x - F.x, z - F.z), d = Math.round(Math.hypot(x - F.x, z - F.z) / 50) * 50;
-    return `à ${d} mètres de la ferme, vers ${w.cardinal ? w.cardinal(a) : 'le large'}`;
+    if (best && bd < 90) return `près ${this.de(best.name)}`;
+    if (best) return `à ${Math.max(100, Math.round(bd / 50) * 50)} mètres ${this.de(best.name)}, vers ${card(Math.atan2(x - best.x, z - best.z))}`;
+    const F = w.bld.ferme, d = Math.max(100, Math.round(Math.hypot(x - F.x, z - F.z) / 50) * 50);
+    return `à ${d} mètres de la ferme, vers ${card(Math.atan2(x - F.x, z - F.z))}`;
   },
   // « ici » : dehors, dans la vallée, à portée d'un chemin
   ici() {
@@ -401,7 +402,7 @@ const commandes = {
   ouvrirColis(k) {
     const C = this.S();
     if (!C.colis.includes(k)) return;
-    if (typeof butin === 'undefined' || !butin.pret()) { butin.donner(k.C.o.splice(0)); this.enlever(k); return; }
+    if (!butin.pret()) { butin.donner(k.C.o.splice(0)); this.enlever(k); return; }
     sound.lootOpen && sound.lootOpen();
     k.vu = 1;
     const chez = k.ouvert ? 'La ficelle a été coupée.' : (k.de || []).slice(0, 3).join(' · ');
