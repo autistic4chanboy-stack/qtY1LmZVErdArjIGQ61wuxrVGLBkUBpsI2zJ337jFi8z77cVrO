@@ -868,7 +868,7 @@ const commandes = {
     st.textContent = `
 #commandes { width: min(880px, calc(100vw - 24px)); }
 #commandes .cm-tete { padding: 6px 18px 0; font-size: 12px; font-style: italic; color: #7a6a52; letter-spacing: .02em; }
-#commandes .cm-body { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.35fr); gap: 16px; padding: 10px 16px 8px; min-height: 250px; }
+#commandes .cm-body { flex: 1 1 auto; min-height: min(250px, 30vh); display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.35fr); gap: 16px; padding: 10px 16px 8px; }
 #commandes .cm-body.cm-un { display: block; max-height: min(460px, 56vh); }
 #commandes .cm-etals, #commandes .cm-arts { max-height: min(420px, 50vh); overflow-y: auto; scrollbar-width: thin; }
 #commandes .cm-etals { display: flex; flex-direction: column; gap: 4px; padding-right: 2px; }
@@ -915,10 +915,10 @@ const commandes = {
 #commandes .cm-opt:disabled { opacity: .55; cursor: default; }
 #commandes .cm-encart .cm-b { align-self: flex-end; margin-top: 3px; }
 #store .cm-du-coffre { margin-bottom: 8px; }
-@media (max-width: 620px) {
-  #commandes .cm-body { grid-template-columns: 1fr; }
-  #commandes .cm-etals { max-height: 22vh; }
-  #commandes .cm-arts { max-height: 30vh; }
+@media (max-width: 620px), (max-height: 420px) {
+  #commandes .cm-body { grid-template-columns: 1fr; gap: 8px; min-height: 0; overflow-y: auto; }
+  #commandes .cm-etals, #commandes .cm-arts { max-height: none; overflow: visible; }
+  #commandes .cm-tete { display: none; }
   #commandes .cm-actions { margin-left: 0; }
 }
 `;
@@ -968,7 +968,7 @@ HOOKS.target.push((eye, f, cand) => {
 HOOKS.update.push((dt) => { if (farm.s && typeof game !== 'undefined' && game.world) commandes.update(dt); });
 HOOKS.draw.push((buf, sbuf, cam, t) => { try { commandes.dessiner(buf, sbuf, cam, t); } catch (e) { console.error('commandes', e); commandes.finir(); } });
 HOOKS.day.push(() => commandes.matin());
-HOOKS.death.push(() => { commandes.tour = null; commandes.encart = false; return false; });
+HOOKS.death.push(() => { try { commandes.finir(); } catch (e) { commandes.tour = null; } commandes.encart = false; return false; });
 HOOKS.load.push(() => {
   commandes.tour = null; commandes.panier.clear(); commandes.encart = false; commandes.onglet = 'etals'; commandes.eFerme = false; commandes.verifT = 1.5;
   if (!farm.s || !game.world) return;
