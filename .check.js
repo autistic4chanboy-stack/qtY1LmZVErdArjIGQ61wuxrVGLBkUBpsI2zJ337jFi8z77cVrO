@@ -45300,9 +45300,9 @@ HOOKS.death.push((cause) => { if (mondes.cur === 'cauchemar') { MONDES.cauchemar
 defItem('page_registre', 'Page du registre', 'ailleurs', 0, ['md_page', '#d8ccb0', '#5a4a3a'], { desc: 'Une page arrachée au registre du Recenseur. Votre nom y est, tout en bas, d’une encre qui n’a pas encore séché.' });
 
 const ENF = { // décors (boîtes)
-  cendre: [0.3, 0.28, 0.27], os: [0.84, 0.8, 0.7], noir: [0.08, 0.07, 0.08], fer: [0.25, 0.22, 0.2],
+  cendre: [0.3, 0.28, 0.27], osC: [0.84, 0.8, 0.7], // (osC : la couleur de l'os ; os(), plus bas, est le modèle d'un tas d'os) noir: [0.08, 0.07, 0.08], fer: [0.25, 0.22, 0.2],
   lave(E, c, t) { E.fl = FX_EMIT; for (let k = 0; k < 6; k++) { const b = 0.85 + Math.sin(t * 1.3 + k * 1.7 + c.id) * 0.15; E.bx((k - 2.5) * 3.4, 0, 0, 3.5, 0.2, c.l || 8, [1.4 * b, 0.42 * b, 0.08 * b], mt(M_BRAISE)); } E.fl = 0; },
-  pont(E) { E.bx(0, -0.1, 0, 3.2, 0.25, 11, ENF.os, TL.bone); for (let z = -4.5; z <= 4.5; z += 1.5) { E.box(-1.7, 0.6, z, 0.18, 1.6, 0.18, ENF.os, TL.bone, 0, 0, -0.3); E.box(1.7, 0.6, z, 0.18, 1.6, 0.18, ENF.os, TL.bone, 0, 0, 0.3); } E.bx(-1.5, 1.2, 0, 0.12, 0.12, 11, ENF.os, TL.bone); E.bx(1.5, 1.2, 0, 0.12, 0.12, 11, ENF.os, TL.bone); },
+  pont(E) { E.bx(0, -0.1, 0, 3.2, 0.25, 11, ENF.osC, TL.bone); for (let z = -4.5; z <= 4.5; z += 1.5) { E.box(-1.7, 0.6, z, 0.18, 1.6, 0.18, ENF.osC, TL.bone, 0, 0, -0.3); E.box(1.7, 0.6, z, 0.18, 1.6, 0.18, ENF.osC, TL.bone, 0, 0, 0.3); } E.bx(-1.5, 1.2, 0, 0.12, 0.12, 11, ENF.osC, TL.bone); E.bx(1.5, 1.2, 0, 0.12, 0.12, 11, ENF.osC, TL.bone); },
   pupitre(E) { E.bx(0, 0, 0, 0.8, 1.1, 0.6, ENF.noir, mt(M_OBSIDIENNE)); E.box(0, 1.2, 0, 1.2, 0.08, 0.8, [0.2, 0.16, 0.12], TL.darkwood, 0, -0.35); E.box(-0.28, 1.28, 0.02, 0.55, 0.05, 0.66, [0.86, 0.8, 0.66], TL.paper, 0, -0.35); E.box(0.28, 1.28, 0.02, 0.55, 0.05, 0.66, [0.86, 0.8, 0.66], TL.paper, 0, -0.35); },
   brasero(E, c, t) { E.bx(0, 0, 0, 0.2, 1.1, 0.2, ENF.fer, TL.iron); E.bx(0, 1.1, 0, 0.8, 0.3, 0.8, ENF.fer, TL.iron); E.fl = FX_EMIT; for (let k = 0; k < 3; k++) E.box(Math.sin(k * 2.1) * 0.15, 1.5 + ((t * 1.2 + k * 0.33) % 1) * 0.5, Math.cos(k * 2.1) * 0.15, 0.22, 0.3, 0.22, [1.4, 0.55, 0.12], TL.flame, t + k); E.fl = 0; },
   table(E, c, t) {
@@ -45320,7 +45320,7 @@ const ENF = { // décors (boîtes)
   },
   autel(E) { E.bx(0, 0, 0, 3, 1.1, 1.4, ENF.noir, mt(M_OBSIDIENNE)); E.bx(0, 1.1, 0, 3.2, 0.12, 1.6, [0.18, 0.16, 0.16], TL.stone); },
   stele(E, c) { E.bx(0, 0, 0, 1.0, 1.8 + (c.v % 3) * 0.3, 0.3, [0.14, 0.12, 0.13], mt(M_OBSIDIENNE)); E.box(0, 1.9 + (c.v % 3) * 0.3, 0, 0.72, 0.72, 0.3, [0.14, 0.12, 0.13], mt(M_OBSIDIENNE), 0, 0, Math.PI / 4); E.fl = FX_EMIT; E.bx(0, 0.8, 0.16, 0.6, 0.7, 0.01, [0.7, 0.22, 0.08], TL.paper); E.fl = 0; },
-  os(E, c) { for (let k = 0; k < 7; k++) E.box(Math.cos(k * 2.3 + c.v) * 0.5, 0.08 + (k % 3) * 0.1, Math.sin(k * 1.7 + c.v) * 0.5, 0.6, 0.08, 0.08, ENF.os, TL.bone, k * 1.3); E.box(0.1, 0.22, 0.1, 0.24, 0.24, 0.22, ENF.os, TL.bone, c.v); },
+  os(E, c) { for (let k = 0; k < 7; k++) E.box(Math.cos(k * 2.3 + c.v) * 0.5, 0.08 + (k % 3) * 0.1, Math.sin(k * 1.7 + c.v) * 0.5, 0.6, 0.08, 0.08, ENF.osC, TL.bone, k * 1.3); E.box(0.1, 0.22, 0.1, 0.24, 0.24, 0.22, ENF.osC, TL.bone, c.v); },
   chaine(E, c, t) { const sw = Math.sin(t * 0.5 + c.id) * 0.1; for (let k = 0; k < 14; k++) E.box(sw * k * 0.1, k * 1.2, 0, 0.1, 1.0, 0.1, ENF.fer, TL.iron, k % 2 ? Math.PI / 2 : 0); E.box(sw * 0.1, -0.4, 0, 0.3, 0.4, 0.06, ENF.fer, TL.iron); },
   arbre(E, c) { E.bx(0, 0, 0, 0.35, 5, 0.35, [0.1, 0.09, 0.08], TL.bark); for (let k = 0; k < 4; k++) E.box(Math.cos(k * 1.6 + c.v) * 0.9, 3.2 + k * 0.5, Math.sin(k * 1.6 + c.v) * 0.9, 0.14, 2.2, 0.14, [0.1, 0.09, 0.08], TL.bark, k * 1.6, 0.9, 0.3); },
 };
