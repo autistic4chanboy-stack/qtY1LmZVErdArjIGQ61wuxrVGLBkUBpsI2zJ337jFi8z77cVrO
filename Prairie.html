@@ -21525,7 +21525,23 @@ class Renderer {
 
 // ---- 09-audio.js
 // ============================================================================
-//  AUDIO PROCÉDURAL (WebAudio) : vent, oiseaux, grillons, chouette, feu, bruitages
+//  AUDIO PROCÉDURAL (WebAudio) — le moteur
+//  Tout est synthétisé. Chemin d'un son : source → bus (bruitages, ambiance,
+//  voix, interface) → mélange → compression douce → adoucissement des aigus →
+//  limiteur → volume général. Réverbération naturelle calculée (dehors, forêt,
+//  montagne, pièce, grande salle, grotte), fondue d'un lieu à l'autre.
+//  SON EN 3D (casque) : ce qui a une place dans le monde passe par un panneau
+//  HRTF ; l'écouteur suit la caméra à chaque image ; atténuation, absorption de
+//  l'air et réverbération selon la distance ; léger effet de proximité.
+//
+//  Pour les autres modules (tout est compatible avec les anciens appels) :
+//   - sound.pan(p, dest)       : p = −1..1 (gauche/droite) OU une position [x,y,z] / {x,y,z} / une bête / un habitant
+//   - sound.ici(pos, fn, o)    : tous les sons joués dans fn() viennent de pos (o.att 'aucune' si le volume tient déjà
+//                                compte de la distance ; o.suivre : la source bouge avec l'objet)
+//   - sound.en3d(pos, dest, o) : un nœud d'entrée placé en pos (pour brancher ses propres nœuds)
+//   - sound.source(clé, type, pos, k) : une boucle d'ambiance placée (rivière, feu, vent…), à rafraîchir
+//   - sound.setLieu(nom), sound.lieuForce : la réverbération (dehors, foret, montagne, piece, salle, grotte)
+//   - sound.set3D(oui) : HRTF (casque) ou panoramique simple
 // ============================================================================
 
 class SoundEngine {
@@ -21533,9 +21549,16 @@ class SoundEngine {
     this.ctx = null;
     this.volume = 0.6;
     this.ambVolume = 0.5;
+    this.son3d = true;
     this.birdT = 1; this.cricketT = 0.5; this.owlT = 20; this.crackleT = 0;
+    this.B = null; this.em = []; this.emMax = 24; this.persist = new Set();
+    this._scope = null; this._depth = 0; this._st = [];
+    this.L = { x: 0, y: 0, z: 0, f: [0, 0, -1], r: [1, 0, 0], u: [0, 1, 0], ok: false };
+    this.lieu = null; this.lieuForce = null; this._irs = {}; this._bufs = {};
+    this.pied = 1;
   }
 
+  // ---------------------------------------------------------------- tampons de bruit
   // Bruit « brun » (grave, sans souffle aigu) qui boucle sans clic
   static brownBuffer(c, seconds) {
     const len = Math.floor(c.sampleRate * seconds), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
@@ -21547,406 +21570,1306 @@ class SoundEngine {
     for (let i = 0; i < len; i++) d[i] /= peak;
     return buf;
   }
-  // Chaîne du vent : bruit brun -> passe-haut 70 Hz -> passe-bas mobile -> gain
-  static buildWind(c, dest) {
-    const src = c.createBufferSource();
-    src.buffer = SoundEngine.brownBuffer(c, 6);
-    src.loop = true;
-    const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 70; hp.Q.value = 0.5;
-    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 320; lp.Q.value = 0.6;
-    const g = c.createGain(); g.gain.value = 0;
-    src.connect(hp).connect(lp).connect(g).connect(dest);
-    src.start();
-    return { src, lp, g };
+  // FFT en place (radix 2)
+  static fft(re, im, inv) {
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; i++) {
+      let bit = n >> 1;
+      for (; j & bit; bit >>= 1) j ^= bit;
+      j ^= bit;
+      if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; }
+    }
+    for (let len = 2; len <= n; len <<= 1) {
+      const ang = (inv ? 2 : -2) * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang), h = len >> 1;
+      for (let i = 0; i < n; i += len) {
+        let cr = 1, ci = 0;
+        for (let k = 0; k < h; k++) {
+          const a = i + k, b = a + h, xr = re[b] * cr - im[b] * ci, xi = re[b] * ci + im[b] * cr;
+          re[b] = re[a] - xr; im[b] = im[a] - xi; re[a] += xr; im[a] += xi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
   }
-  static windLevel(t, high) {
-    const gust = clamp(0.5 + 0.32 * Math.sin(t * 0.21) * Math.sin(t * 0.067 + 1.3) + 0.18 * Math.sin(t * 0.53 + 2.1), 0, 1);
-    return { gain: (0.03 + 0.08 * gust) * (high ? 1.3 : 1), cutoff: 220 + 420 * gust };
+  // Bruit « doux » : même niveau que le bruit blanc sous 1,2 kHz, puis −2 dB par octave, presque rien au-dessus de 12 kHz.
+  // Calculé par FFT : il boucle parfaitement. (Remplace le bruit blanc cru : moins de sifflement, moins de fatigue.)
+  static softNoise(c, n) {
+    const sr = c.sampleRate, re = new Float64Array(n), im = new Float64Array(n);
+    let m2 = 0;
+    for (let k = 1; k < n / 2; k++) {
+      const f = k * sr / n;
+      const M = (f <= 1200 ? 1 : Math.pow(1200 / f, 0.35)) / Math.sqrt(1 + Math.pow(f / 12000, 4)) * (f < 25 ? f / 25 : 1);
+      const ph = Math.random() * 2 * Math.PI;
+      re[k] = M * Math.cos(ph); im[k] = M * Math.sin(ph);
+      re[n - k] = re[k]; im[n - k] = -im[k];
+      m2 += M * M;
+    }
+    SoundEngine.fft(re, im, true);
+    let v = 0;
+    for (let i = 0; i < n; i++) v += re[i] * re[i];
+    // variance visée : celle d'un bruit blanc uniforme (1/3) pondérée par la forme du spectre
+    const s = Math.sqrt((1 / 3) * (m2 / (n / 2 - 1)) / (v / n));
+    const buf = c.createBuffer(1, n, sr), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = re[i] * s;
+    return buf;
   }
-  // Pluie : bruit brun filtré (doux, sans souffle aigu)
-  static buildRain(c, dest) {
-    const src = c.createBufferSource();
-    src.buffer = SoundEngine.brownBuffer(c, 5);
-    src.loop = true;
-    const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 350; hp.Q.value = 0.5;
-    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400; lp.Q.value = 0.4;
-    const g = c.createGain(); g.gain.value = 0;
-    src.connect(hp).connect(lp).connect(g).connect(dest);
-    src.start();
-    return { g };
+  // Réponse impulsionnelle d'un lieu (queue diffuse, aigus qui meurent plus vite que les graves, premières réflexions)
+  static reverbIR(c, P) {
+    const sr = c.sampleRate, n = Math.max(64, Math.floor(sr * P.len)), buf = c.createBuffer(2, n, sr);
+    const pre = Math.floor(P.pre * sr), att = Math.max(1, Math.floor(P.att * sr));
+    const dl = Math.exp(-6.91 / (P.t60 * sr)), dh = Math.exp(-6.91 / (P.t60h * sr));
+    const a = Math.exp(-2 * Math.PI * P.split / sr), b = Math.exp(-2 * Math.PI * P.lp / sr);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      // premières réflexions : des impulsions, adoucies par le même filtre que la queue
+      const er = (P.er || []).map(([tt, g]) => [pre + Math.floor(tt * (ch ? 1.06 : 0.95) * sr), (Math.random() < 0.5 ? -1 : 1) * g * 4]).sort((u, v) => u[0] - v[0]);
+      let lo = 0, el = 1, eh = 1, y = 0, q = 0;
+      for (let i = pre; i < n; i++) {
+        const w = Math.random() * 2 - 1;
+        lo = w + (lo - w) * a;
+        let v = lo * el * 2.2 + (w - lo) * P.hiK * eh;
+        el *= dl; eh *= dh;
+        const k = i - pre;
+        if (k < att) v *= k / att;
+        while (q < er.length && er[q][0] <= i) { if (er[q][0] === i) v += er[q][1]; q++; }
+        y = v + (y - v) * b;
+        d[i] = y;
+      }
+      const fo = Math.floor(n * 0.1);
+      for (let q = 0; q < fo; q++) d[n - 1 - q] *= q / fo;
+    }
+    return buf;
   }
 
-  init() {
-    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+  // ---------------------------------------------------------------- la chaîne
+  init(ctxArg) {
+    if (this.ctx) { if (this.ctx.state === 'suspended' && this.ctx.resume && !this.offline) this.ctx.resume(); return; }
     try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
-      const c = this.ctx = new AC();
-      this.master = c.createGain(); this.master.gain.value = this.volume;
-      // simple limiteur (pas de gain de compensation audible)
-      const lim = c.createDynamicsCompressor();
-      lim.threshold.value = -4; lim.knee.value = 4; lim.ratio.value = 12; lim.attack.value = 0.002; lim.release.value = 0.15;
-      this.master.connect(lim).connect(c.destination);
-      this.sfx = c.createGain(); this.sfx.connect(this.master);
-      this.amb = c.createGain(); this.amb.gain.value = this.ambVolume; this.amb.connect(this.master);
-      const len = c.sampleRate * 2, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
-      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-      this.noise = buf; // bruit blanc : uniquement pour des impacts très courts
+      let c = ctxArg;
+      if (!c) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        try { c = new AC({ latencyHint: 'interactive' }); } catch (e) { c = new AC(); }
+      }
+      this.ctx = c; this.offline = !!ctxArg;
+      const G = (v) => { const g = c.createGain(); g.gain.value = v; return g; };
+      // sortie : compression douce (le mélange se tient), aigus adoucis, limiteur (jamais de saturation), volume général
+      this.vol = G(this.volume); this.vol.connect(c.destination);
+      const lim = this.lim = c.createDynamicsCompressor();
+      lim.threshold.value = -3; lim.knee.value = 2; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.12;
+      lim.connect(this.vol);
+      this.trim = G(SoundEngine.TRIM); this.trim.connect(lim);
+      const shelf = c.createBiquadFilter(); shelf.type = 'highshelf'; shelf.frequency.value = 6500; shelf.gain.value = -3;
+      shelf.connect(this.trim);
+      const glue = this.glue = c.createDynamicsCompressor();
+      glue.threshold.value = -22; glue.knee.value = 16; glue.ratio.value = 2.2; glue.attack.value = 0.02; glue.release.value = 0.35;
+      glue.connect(shelf);
+      const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 28; hp.Q.value = 0.6;
+      hp.connect(glue);
+      this.master = G(1); this.master.connect(hp);
+      // réverbération : deux convolueurs pour passer d'un lieu à l'autre en fondu
+      this.revIn = G(1);
+      this.rev = [0, 1].map(() => { const cv = c.createConvolver(), g = G(0); cv.connect(g).connect(this.master); return { cv, g, on: false }; });
+      this.revCur = 0;
+      // les bus : entrée (volume du bus) → mélange ; envoi vers la réverbération ; retour « distance » des sources placées
+      const bus = (level, send) => {
+        const inp = G(level), snd = G(send), xrv = G(level);
+        inp.connect(this.master); inp.connect(snd); snd.connect(this.revIn); xrv.connect(this.revIn);
+        return { inp, snd, xrv, level, send };
+      };
+      this.B = {
+        sfx: bus(1, 0.5),
+        amb: bus(this.ambVolume, 0.7),
+        voix: bus(SoundEngine.BUS.voix, 0.55),
+      };
+      this.uiBus = G(SoundEngine.BUS.ui); this.uiBus.connect(this.master);
+      this.xrvOf = new Map([[this.B.sfx.inp, this.B.sfx.xrv], [this.B.amb.inp, this.B.amb.xrv], [this.B.voix.inp, this.B.voix.xrv]]);
+      // tampons
+      this.noise = SoundEngine.softNoise(c, 65536); // bruit adouci (l'ancien bruit blanc : pour les modules qui s'en servent)
+      this.pink = this.noise;
       this.brown = SoundEngine.brownBuffer(c, 3);
-      this.wind = SoundEngine.buildWind(c, this.amb);
-      this.rainSnd = SoundEngine.buildRain(c, this.amb);
-    } catch (e) { this.ctx = null; }
+      this.setLieu('dehors');
+    } catch (e) { this.err = e; this.ctx = null; }
   }
   setVolume(v) {
     this.volume = v;
-    if (this.master) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
+    if (this.vol) this.vol.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
   }
   setAmbient(v) {
     this.ambVolume = v;
-    if (this.amb) this.amb.gain.setTargetAtTime(v, this.ctx.currentTime, 0.1);
+    if (!this.B) return;
+    const t = this.ctx.currentTime, A = this.B.amb;
+    A.inp.gain.cancelScheduledValues(t);
+    A.inp.gain.setTargetAtTime(v, t, 0.1);
+    A.xrv.gain.setTargetAtTime(v, t, 0.1);
+  }
+  // son 3D pour casque (HRTF) ou panoramique simple (haut-parleurs)
+  set3D(on) {
+    this.son3d = on !== false;
+    const m = this.son3d ? 'HRTF' : 'equalpower';
+    for (const e of this.em) e.p.panningModel = m;
+    for (const e of this.persist) e.p.panningModel = m;
   }
   get ok() { return this.ctx && this.ctx.state === 'running' && this.volume > 0; }
 
+  // les bus (dans une portée « ici », ils mènent à une source placée)
+  get sfx() { return this._scope ? this._sIn(this.B.sfx.inp) : this.B && this.B.sfx.inp; }
+  get amb() { return this._scope ? this._sIn(this.B.amb.inp) : this.B && this.B.amb.inp; }
+  get voix() { return this._scope ? this._sIn(this.B.voix.inp) : this.B && this.B.voix.inp; }
+  get ui() { return this.uiBus; }
+
+  // ---------------------------------------------------------------- réverbération (le lieu)
+  setLieu(k) {
+    if (!this.ctx) return;
+    k = this.lieuForce || k;
+    const P = SoundEngine.LIEUX[k];
+    if (!P || k === this.lieu) return;
+    this.lieu = k;
+    const ir = this._irs[k] || (this._irs[k] = SoundEngine.reverbIR(this.ctx, P));
+    const t = this.ctx.currentTime, old = this.rev[this.revCur], nw = this.rev[1 - this.revCur];
+    this.revCur = 1 - this.revCur;
+    nw.cv.buffer = ir;
+    if (!nw.on) { this.revIn.connect(nw.cv); nw.on = true; }
+    const fade = this.offline ? 0.001 : 0.6;
+    nw.g.gain.cancelScheduledValues(t); nw.g.gain.setValueAtTime(nw.g.gain.value, t); nw.g.gain.linearRampToValueAtTime(P.wet, t + fade);
+    old.g.gain.cancelScheduledValues(t); old.g.gain.setValueAtTime(old.g.gain.value, t); old.g.gain.linearRampToValueAtTime(0, t + fade);
+    // l'ancien convolueur se tait puis se débranche (moins de calcul)
+    const tok = this._revTok = (this._revTok || 0) + 1;
+    if (old.on && !this.offline) setTimeout(() => { if (this._revTok === tok && old.on && this.rev[this.revCur] !== old) { try { this.revIn.disconnect(old.cv); } catch (e) { /* déjà */ } old.on = false; } }, P.len * 1000 + 1500);
+  }
+
+  // ---------------------------------------------------------------- le son en 3D
+  // une source placée : entrée → absorption de l'air → proximité → panneau HRTF → bus ; envoi « distance » → réverbération
+  _newEm() {
+    const c = this.ctx, inp = c.createGain(), air = c.createBiquadFilter(), prox = c.createBiquadFilter(), p = c.createPanner(), xs = c.createGain();
+    air.type = 'lowpass'; air.frequency.value = this.nyq(20000); air.Q.value = 0.4;
+    prox.type = 'lowshelf'; prox.frequency.value = 220; prox.gain.value = 0;
+    p.panningModel = this.son3d ? 'HRTF' : 'equalpower'; p.distanceModel = 'inverse'; p.refDistance = 2; p.maxDistance = 20000; p.rolloffFactor = 1;
+    xs.gain.value = 0;
+    inp.connect(air); air.connect(prox); prox.connect(p); prox.connect(xs);
+    const em = { inp, air, prox, p, xs, dest: null, busy: 0, suivre: null, att: 'phys', o: null, pos: [0, 0, 0] };
+    inp._em = em;
+    return em;
+  }
+  _route(em, dest) {
+    if (em.dest === dest) return;
+    try { em.p.disconnect(); em.xs.disconnect(); } catch (e) { /* rien */ }
+    em.p.connect(dest);
+    em.xs.connect(this.xrvOf.get(dest) || this.B.sfx.xrv);
+    em.dest = dest;
+  }
+  // place une source (pos : [x,y,z]) ; o.att : 'phys' (atténuation réelle) ou 'aucune' (le volume est déjà réglé par l'appelant)
+  _place(em, pos, lisse) {
+    const L = this.L, p = em.p, o = em.o || {};
+    let x = pos[0], y = pos[1], z = pos[2];
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) { x = L.x; y = L.y; z = L.z; } // position impossible : au centre
+    em.pos[0] = x; em.pos[1] = y; em.pos[2] = z;
+    const d = Math.hypot(x - L.x, y - L.y, z - L.z), t = this.ctx.currentTime;
+    if (p.positionX) {
+      if (lisse) { p.positionX.setTargetAtTime(x, t, 0.04); p.positionY.setTargetAtTime(y, t, 0.04); p.positionZ.setTargetAtTime(z, t, 0.04); }
+      else { p.positionX.cancelScheduledValues(t); p.positionY.cancelScheduledValues(t); p.positionZ.cancelScheduledValues(t); p.positionX.value = x; p.positionY.value = y; p.positionZ.value = z; }
+    } else p.setPosition(x, y, z);
+    const phys = em.att !== 'aucune';
+    if (!lisse) {
+      p.refDistance = o.ref || 2;
+      p.rolloffFactor = phys ? (o.roll === undefined ? 1 : o.roll) : 0;
+    }
+    // l'air mange les aigus au loin ; tout près, un peu plus de grave (effet de proximité)
+    const fc = this.nyq(Math.min(20000, 700 + 21000 / (1 + d / 22)));
+    const prox = d < 1.6 ? 5 * (1 - d / 1.6) : 0;
+    const wet = (phys ? 0.32 / (1 + d / 120) : 0.36) * Math.min(1, d / 35);
+    if (lisse) { em.air.frequency.setTargetAtTime(fc, t, 0.1); em.prox.gain.setTargetAtTime(prox, t, 0.1); em.xs.gain.setTargetAtTime(wet, t, 0.1); }
+    else { em.air.frequency.value = fc; em.prox.gain.value = prox; em.xs.gain.value = wet; }
+  }
+  // une source ponctuelle, prise dans la réserve (réutilisée) ; renvoie son entrée
+  emit(pos, dest, o) {
+    const c = this.ctx, now = c.currentTime;
+    o = o || {};
+    let em = null, libre = null;
+    for (const e of this.em) if (e.busy <= now) { if (e.dest === dest) { em = e; break; } if (!libre) libre = e; }
+    em = em || libre;
+    if (!em) {
+      if (this.em.length < this.emMax) { em = this._newEm(); this.em.push(em); }
+      else { em = this.em[0]; for (const e of this.em) if (e.busy < em.busy) em = e; }
+    }
+    this._route(em, dest);
+    em.o = o; em.att = o.att || 'phys'; em.suivre = o.suivre || null; em.busy = now + (o.dur || 0.5);
+    this._place(em, pos, false);
+    return em.inp;
+  }
+  // un nœud d'entrée placé en pos (pour les modules qui construisent leurs propres sons)
+  en3d(pos, dest, o) {
+    if (!this.ctx) return null;
+    const P = this.pos3(pos), d = dest || this.B.sfx.inp;
+    if (!P) return d;
+    return this.emit(P, d._em ? d._em.dest : d, o);
+  }
+  // une source durable (boucle d'ambiance) : hors réserve ; libérer avec lacher()
+  tenir(pos, dest, o) {
+    const em = this._newEm();
+    this._route(em, dest || this.B.amb.inp);
+    em.o = o || {}; em.att = em.o.att || 'phys'; em.busy = Infinity;
+    this._place(em, pos, false);
+    this.persist.add(em);
+    return em;
+  }
+  lacher(em) {
+    if (!em) return;
+    this.persist.delete(em);
+    try { em.p.disconnect(); em.xs.disconnect(); em.inp.disconnect(); } catch (e) { /* rien */ }
+  }
+  // position sous toutes ses formes : [x,y,z], [x,z], {x,y,z}, {x,z}, une bête (y au sol + hauteur), un habitant (bouche)
+  pos3(p) {
+    if (!p || typeof p === 'number') return null;
+    if (typeof p === 'function') return this.pos3(p());
+    if (p.length !== undefined) return p.length >= 3 ? [+p[0], +p[1], +p[2]] : p.length === 2 ? this.sol(+p[0], +p[1]) : null;
+    if (typeof p.x !== 'number' || typeof p.z !== 'number') return null;
+    if (typeof p.y !== 'number') return this.sol(p.x, p.z);
+    const h = typeof p.h === 'number' ? p.h * (p.scale || 1) * 0.6 : p.st && p.d ? 1.55 : 0;
+    return [p.x, p.y + h, p.z];
+  }
+  sol(x, z) {
+    try { const w = game.world; return [x, Math.max(w.heightAt(x, z), w.waterLevel) + 1.2, z]; } catch (e) { return [x, this.L.y, z]; }
+  }
+  // direction seule (−1 gauche … 1 droite) : une position virtuelle autour de la tête, devant (ou derrière)
+  virt(p, dist, derriere) {
+    const L = this.L, a = Math.asin(clamp(p, -1, 1)), s = Math.sin(a), co = Math.cos(a) * (derriere ? -1 : 1), D = dist || 2.5;
+    let fx = L.f[0], fz = L.f[2];
+    const n = Math.hypot(fx, fz) || 1; fx /= n; fz /= n;
+    return [L.x + (L.r[0] * s + fx * co) * D, L.y, L.z + (L.r[2] * s + fz * co) * D];
+  }
+  // direction d'un son : p = −1..1 (ancien panoramique) ou une position ; dest : le bus (ou un nœud) où il doit aller.
+  // Dans une portée « ici », tout vient de la source placée. Sans direction (p = 0) : au centre, comme avant.
   pan(p, dest) {
-    const c = this.ctx;
+    const c = this.ctx, d0 = dest || this.sfx;
+    if (d0 && d0._em) return d0;
+    const pos = typeof p === 'number' ? null : this.pos3(p);
+    if (pos) return this.emit(pos, d0, { att: 'phys', ref: 5, dur: 1.5 });
+    if (this._scope) { const S = this._scope; if (!S.pos) S.pos = this.pos3(S.src) || [this.L.x, this.L.y, this.L.z]; return this.emit(S.pos, d0, S.o); }
+    const v = clamp(+p || 0, -1, 1);
+    if (!v) return d0;
+    if (this.son3d && this.L.ok) return this.emit(this.virt(v, 2.5), d0, { att: 'aucune', dur: 1.5 });
     const s = c.createStereoPanner ? c.createStereoPanner() : c.createGain();
-    if (s.pan) s.pan.value = clamp(p, -1, 1);
-    s.connect(dest || this.sfx);
+    if (s.pan) s.pan.value = v;
+    s.connect(d0);
     return s;
   }
-  env(g, t, a, peak, dur) {
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(peak, t + a);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  // tous les sons joués pendant fn() viennent de pos (portées imbriquées permises)
+  ici(pos, fn, o) {
+    const k = this.entrer(pos, o);
+    try { return fn(); } finally { this.sortir(k); }
   }
-  noiseHit(t, dur, type, freq, q, vol, out, sweepTo) {
-    const c = this.ctx, s = c.createBufferSource();
-    s.buffer = this.noise;
-    const f = c.createBiquadFilter(); f.type = type; f.frequency.setValueAtTime(freq, t); f.Q.value = q;
-    if (sweepTo) f.frequency.exponentialRampToValueAtTime(sweepTo, t + dur);
-    const g = c.createGain(); g.gain.value = 0; this.env(g, t, 0.004, vol, dur);
-    s.connect(f).connect(g).connect(out || this.sfx);
-    s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.05);
+  // la même chose sans fermeture (pour les appels à chaque image) : k = entrer(pos, o) ; … ; sortir(k)
+  entrer(pos, o) {
+    if (!this.ctx || !pos) return 0;
+    const k = ++this._depth;
+    const S = this._st[k] || (this._st[k] = { src: null, pos: null, o: null, ins: new Map(), prev: null });
+    S.src = pos; S.pos = null; S.o = o || SoundEngine.NUL; S.prev = this._scope;
+    if (S.ins.size) S.ins.clear();
+    this._scope = S;
+    return k;
+  }
+  sortir(k) { if (!k) return; const S = this._st[k]; this._scope = S.prev; this._depth = k - 1; }
+  _sIn(dest) {
+    const S = this._scope;
+    let n = S.ins.get(dest);
+    if (n) return n;
+    if (!S.pos) S.pos = this.pos3(S.src) || [this.L.x, this.L.y, this.L.z];
+    const o = S.o.suivre === true && typeof S.src === 'object' ? Object.assign({}, S.o, { suivre: S.src }) : S.o;
+    n = this.emit(S.pos, dest, o);
+    S.ins.set(dest, n);
+    return n;
+  }
+  // un son se termine à « fin » : la source placée qui le porte reste réservée jusque-là
+  mark(out, fin) { const e = out && out._em; if (e && fin > e.busy) e.busy = fin; }
+  // l'écouteur suit la caméra (position et orientation)
+  ecoute(pos, yaw, pitch) {
+    if (!this.ctx || !pos || !Number.isFinite(pos[0] + pos[1] + pos[2] + yaw + pitch)) return;
+    const L = this.L, l = this.ctx.listener;
+    // rien à faire si la caméra n'a pas bougé (régler un paramètre audio coûte : on ne touche qu'à ce qui change)
+    const bouge = !L.ok || Math.abs(pos[0] - L.x) + Math.abs(pos[1] - L.y) + Math.abs(pos[2] - L.z) > 0.004;
+    const tourne = !L.ok || Math.abs(yaw - L.yaw) + Math.abs(pitch - L.pitch) > 0.0015;
+    if (!bouge && !tourne) return;
+    L.ok = true;
+    if (bouge) { L.x = pos[0]; L.y = pos[1]; L.z = pos[2]; }
+    if (tourne) { const b = cameraBasis(yaw, pitch); L.f = b.f; L.r = b.r; L.u = b.u; L.yaw = yaw; L.pitch = pitch; }
+    if (l.positionX) {
+      if (bouge) { l.positionX.value = L.x; l.positionY.value = L.y; l.positionZ.value = L.z; }
+      if (tourne) { l.forwardX.value = L.f[0]; l.forwardY.value = L.f[1]; l.forwardZ.value = L.f[2]; l.upX.value = L.u[0]; l.upY.value = L.u[1]; l.upZ.value = L.u[2]; }
+    } else { l.setPosition(L.x, L.y, L.z); l.setOrientation(L.f[0], L.f[1], L.f[2], L.u[0], L.u[1], L.u[2]); }
+  }
+  // chaque image : les sources qui bougent (bêtes qui crient en courant…), si elles ont bougé
+  suivre() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    for (const e of this.em) {
+      if (!e.suivre || e.busy <= now) continue;
+      const P = this.pos3(e.suivre);
+      if (P && Math.abs(P[0] - e.pos[0]) + Math.abs(P[1] - e.pos[1]) + Math.abs(P[2] - e.pos[2]) > 0.15) this._place(e, P, true);
+    }
+  }
+
+  // ---------------------------------------------------------------- primitives (adoucies)
+  at(delay) { return this.ctx.currentTime + (delay || 0) + 0.01; }
+  // une fréquence de filtre toujours sous la moitié de la fréquence d'échantillonnage (casques à 16 ou 32 kHz)
+  nyq(f) { return Math.min(f, this.ctx.sampleRate * 0.45); }
+  lp(freq, dest) {
+    const f = this.ctx.createBiquadFilter(), d = dest || this.sfx;
+    f.type = 'lowpass'; f.frequency.value = this.nyq(freq); f.connect(d);
+    if (d && d._em) f._em = d._em;
+    return f;
+  }
+  env(g, t, a, peak, dur) {
+    const p = Math.max(peak, 0.00012);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(p, t + a);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(dur, a + 0.004));
+  }
+  // les aigus paraissent plus forts : on les baisse un peu (courbe d'égale sonie, très simplifiée)
+  loud(f) { return f > 2200 ? Math.pow(2200 / f, 0.45) : 1; }
+  // formes d'onde douces (les harmoniques aiguës des carrés et des dents de scie sont atténuées)
+  wave(type) {
+    if (type !== 'square' && type !== 'sawtooth') return null;
+    const W = this._waves || (this._waves = {});
+    if (W[type]) return W[type];
+    const n = 48, re = new Float32Array(n + 1), im = new Float32Array(n + 1);
+    for (let k = 1; k <= n; k++) {
+      if (type === 'square' && k % 2 === 0) continue;
+      im[k] = (type === 'square' ? 1 : (k % 2 ? 1 : -1)) / k / Math.sqrt(1 + Math.pow(k / 8, 2));
+    }
+    return (W[type] = this.ctx.createPeriodicWave(re, im));
+  }
+  setWave(o, type) { const w = this.wave(type); if (w) o.setPeriodicWave(w); else o.type = type === 'triangle' ? 'triangle' : 'sine'; }
+  // bruit filtré enveloppé ; att (facultatif) : attaque plus lente (souffles, froissements)
+  noiseHit(t, dur, type, freq, q, vol, out, sweepTo, att) {
+    const c = this.ctx, R = Math.random;
+    dur = Math.max(0.006, dur * (0.94 + R() * 0.12));
+    const f0 = this.nyq(Math.min(9000, Math.max(20, freq * (0.96 + R() * 0.08))));
+    const s = c.createBufferSource(); s.buffer = this.noise;
+    const f = c.createBiquadFilter(); f.type = type; f.frequency.setValueAtTime(f0, t); f.Q.value = Math.min(q, 9);
+    if (sweepTo) f.frequency.exponentialRampToValueAtTime(this.nyq(Math.min(9000, Math.max(20, sweepTo))), t + dur);
+    const g = c.createGain(); g.gain.value = 0;
+    const a = att ? Math.min(att, dur * 0.8) : clamp(dur * 0.12, 0.003, 0.012);
+    this.env(g, t, a, vol * (0.9 + R() * 0.2), dur);
+    const o = out || this.sfx;
+    s.connect(f).connect(g).connect(o);
+    s.loop = true; // le bruit doux boucle sans raccord
+    s.start(t, R() * this.noise.duration); s.stop(t + dur + 0.05);
+    this.mark(o, t + dur + 0.05);
   }
   tone(t, type, f0, f1, dur, vol, out, attack = 0.005) {
-    const c = this.ctx, o = c.createOscillator(); o.type = type;
+    const c = this.ctx, o = c.createOscillator();
+    this.setWave(o, type);
     o.frequency.setValueAtTime(f0, t);
-    if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
-    const g = c.createGain(); g.gain.value = 0; this.env(g, t, attack, vol, dur);
-    o.connect(g).connect(out || this.sfx);
-    o.start(t); o.stop(t + dur + 0.05);
-  }
-
-  // ------------------------------------------------------------ ambiance
-  update(dt, E) {
-    if (!this.ok) return;
-    const c = this.ctx, t = c.currentTime;
-    const calm = 1 - clamp(E.rain * 1.5, 0, 1);
-    this.windT = (this.windT || 0) - dt;
-    if (this.windT <= 0) {
-      this.windT = 0.2;
-      // le vent ne souffle que pendant les tempêtes
-      const wl = SoundEngine.windLevel(t, E.height > 12);
-      this.wind.g.gain.setTargetAtTime(wl.gain * E.storm * (E.inside ? 0.45 : 1), t, 0.8);
-      this.wind.lp.frequency.setTargetAtTime(wl.cutoff, t, 0.6);
-      this.rainSnd.g.gain.setTargetAtTime(0.17 * E.rain * (E.inside ? 0.5 : 1), t, 0.8);
-    }
-    // gouttes (texture de la pluie)
-    if (E.rain > 0.05 && !E.inside) {
-      this.dropT = (this.dropT || 0) - dt;
-      if (this.dropT <= 0) {
-        this.dropT = (0.02 + Math.random() * 0.1) / E.rain;
-        const f = 1800 + Math.random() * 2600;
-        this.tone(t, 'sine', f, f * 0.8, 0.012, 0.006 * E.rain * (0.3 + Math.random() * 0.7), this.pan(Math.random() * 2 - 1, this.amb), 0.002);
-      }
-    }
-    // oiseaux (jour, pas sous la pluie)
-    this.birdT -= dt;
-    if (this.birdT <= 0) {
-      this.birdT = 0.8 + Math.random() * 4 / Math.max(0.2, E.day);
-      if (E.day > 0.25 && calm > 0.5) this.chirp(E.day * calm);
-    }
-    // grillons (nuit)
-    this.cricketT -= dt;
-    if (this.cricketT <= 0) {
-      this.cricketT = 0.35 + Math.random() * 0.8;
-      if (E.night > 0.2 && calm > 0.5) this.cricket(E.night * calm);
-    }
-    // chouette
-    this.owlT -= dt;
-    if (this.owlT <= 0) {
-      this.owlT = 25 + Math.random() * 40;
-      if (E.night > 0.6) this.owl();
-    }
-    // crépitement du feu de camp (petits claquements, seulement tout près)
-    if (E.fire > 0.05) {
-      this.crackleT -= dt;
-      if (this.crackleT <= 0) {
-        this.crackleT = 0.08 + Math.random() * 0.35;
-        this.noiseHit(t, 0.012 + Math.random() * 0.02, 'bandpass', 1400 + Math.random() * 1600, 1.4, 0.05 * E.fire * (0.3 + Math.random() * 0.7), this.pan(E.firePan, this.amb));
-      }
-    }
-  }
-  chirp(k) {
-    const t = this.ctx.currentTime + 0.02, p = this.pan(Math.random() * 2 - 1, this.amb);
-    const n = 2 + ((Math.random() * 5) | 0), base = 2300 + Math.random() * 1900, vol = (0.02 + Math.random() * 0.025) * k;
-    const pattern = Math.random();
-    for (let i = 0; i < n; i++) {
-      const st = t + i * (0.08 + Math.random() * 0.06);
-      const f0 = base * (1 + Math.random() * 0.15), f1 = pattern < 0.5 ? f0 * 1.45 : f0 * 0.7;
-      this.tone(st, 'sine', f0, f1, 0.05 + Math.random() * 0.04, vol, p, 0.008);
-    }
-  }
-  cricket(k) {
-    const t = this.ctx.currentTime + 0.02, p = this.pan(Math.random() * 2 - 1, this.amb);
-    const f = 4300 + Math.random() * 500, vol = 0.006 * k, n = 2 + ((Math.random() * 3) | 0);
-    for (let i = 0; i < n; i++) this.tone(t + i * 0.05, 'sine', f, f * 0.98, 0.03, vol, p, 0.006);
-  }
-  owl() {
-    const t = this.ctx.currentTime + 0.05, p = this.pan(Math.random() * 1.6 - 0.8, this.amb);
-    const f = this.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900;
-    f.connect(p);
-    this.tone(t, 'sine', 400, 370, 0.4, 0.06, f, 0.06);
-    this.tone(t + 0.62, 'sine', 410, 360, 0.75, 0.065, f, 0.08);
-  }
-
-  // ------------------------------------------------------------ tonnerre
-  thunder(k) {
-    if (!this.ok) return;
-    const c = this.ctx, t = c.currentTime;
-    if (k > 0.65) this.noiseHit(t, 0.1, 'bandpass', 900, 0.6, 0.12 * k, this.amb, 300);
-    const s = c.createBufferSource(); s.buffer = this.brown;
-    const lp = c.createBiquadFilter(); lp.type = 'lowpass';
-    lp.frequency.setValueAtTime(500 + 500 * k, t); lp.frequency.exponentialRampToValueAtTime(80, t + 3.5 + k);
+    if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
     const g = c.createGain(); g.gain.value = 0;
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(0.5 * (0.35 + 0.65 * k), t + 0.06 + (1 - k) * 0.5);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 4 + k * 2);
-    s.connect(lp).connect(g).connect(this.amb);
-    s.start(t, Math.random() * 1.5); s.stop(t + 6.5);
+    const dur2 = Math.max(dur, 0.008), dure = type === 'square' || type === 'sawtooth';
+    const a = Math.min(dur2 * 0.5, Math.max(attack, dure ? 0.006 : 0.004));
+    this.env(g, t, a, vol * this.loud(Math.max(f0, f1)) * (0.95 + Math.random() * 0.1), dur2);
+    let node = o;
+    if (dure) { const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.5; lp.frequency.value = clamp(Math.max(f0, f1) * 4, 1800, 6500); o.connect(lp); node = lp; }
+    const d = out || this.sfx;
+    node.connect(g).connect(d);
+    o.start(t); o.stop(t + dur2 + 0.05);
+    this.mark(d, t + dur2 + 0.05);
   }
-
-  // ------------------------------------------------------------ cris d'animaux
+  // voix (cris de bêtes, grincements, violon…) : o = { vib, vibDepth, bp, q, lp, lp2 }
   voice(t, type, f0, f1, dur, vol, out, o = {}) {
-    const c = this.ctx, osc = c.createOscillator(); osc.type = type;
-    osc.frequency.setValueAtTime(f0, t); osc.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const c = this.ctx, osc = c.createOscillator();
+    this.setWave(osc, type);
+    osc.frequency.setValueAtTime(f0, t); osc.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
+    const nodes = [osc];
     if (o.vib) {
       const l = c.createOscillator(), lg = c.createGain();
-      l.frequency.value = o.vib; lg.gain.value = o.vibDepth || 20;
+      l.frequency.value = o.vib * (0.95 + Math.random() * 0.1); lg.gain.value = o.vibDepth || 20;
       l.connect(lg).connect(osc.frequency); l.start(t); l.stop(t + dur + 0.05);
     }
     let node = osc;
     if (o.bp) { const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = o.bp; f.Q.value = o.q || 1; node.connect(f); node = f; }
-    if (o.lp) { const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(o.lp, t); if (o.lp2) f.frequency.exponentialRampToValueAtTime(o.lp2, t + dur); node.connect(f); node = f; }
+    const dure = type === 'square' || type === 'sawtooth';
+    if (o.lp || dure) {
+      const f = c.createBiquadFilter(); f.type = 'lowpass';
+      const lp = this.nyq(Math.min(o.lp || 20000, dure ? clamp(Math.max(f0, f1) * 6, 2400, 6000) : 20000));
+      f.frequency.setValueAtTime(lp, t); if (o.lp2) f.frequency.exponentialRampToValueAtTime(Math.min(o.lp2, lp), t + dur);
+      node.connect(f); node = f;
+    }
     const g = c.createGain(); g.gain.value = 0;
+    const v = Math.max(vol * this.loud(Math.max(f0, f1)), 0.00012);
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(vol, t + Math.min(0.06, dur * 0.25));
-    g.gain.setValueAtTime(vol, t + dur * 0.65);
+    g.gain.linearRampToValueAtTime(v, t + clamp(dur * 0.25, 0.008, 0.06));
+    g.gain.setValueAtTime(v, t + dur * 0.65);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    node.connect(g).connect(out);
+    const d = out || this.sfx;
+    node.connect(g).connect(d);
     osc.start(t); osc.stop(t + dur + 0.05);
+    this.mark(d, t + dur + 0.05);
+    return nodes;
   }
+
+  // ---------------------------------------------------------------- cris « voisés » (bêtes, voix)
+  // Une source (dent de scie douce) → formants en parallèle → enveloppe. Hauteur en points [t, f] (relatifs à la durée),
+  // vibrato, rugosité (modulation d'amplitude rapide), souffle (bruit), formants [[f, Q, gain] ou [[f0,f1], Q, gain]].
+  cri(t, o, out) {
+    const c = this.ctx, dur = o.dur, d = out || this.sfx;
+    const osc = c.createOscillator();
+    this.setWave(osc, o.type || 'sawtooth');
+    const P = o.f;
+    osc.frequency.setValueAtTime(P[0][1], t);
+    for (let i = 1; i < P.length; i++) osc.frequency.exponentialRampToValueAtTime(Math.max(20, P[i][1]), t + P[i][0] * dur);
+    const oscs = [osc], srcs = [];
+    if (o.vib) {
+      const l = c.createOscillator(), lg = c.createGain();
+      l.frequency.value = o.vib[0] * (0.93 + Math.random() * 0.14); lg.gain.value = P[0][1] * o.vib[1];
+      l.connect(lg).connect(osc.frequency); oscs.push(l);
+    }
+    // corps : filtres de formants en parallèle
+    const body = c.createGain(); body.gain.value = 1;
+    for (const [F, Q, A] of o.form) {
+      const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = Q;
+      if (typeof F === 'number') bp.frequency.value = F;
+      else { bp.frequency.setValueAtTime(F[0], t); for (let i = 1; i < F.length; i++) bp.frequency.linearRampToValueAtTime(F[i], t + dur * i / (F.length - 1)); }
+      const g = c.createGain(); g.gain.value = A;
+      osc.connect(bp).connect(g).connect(body);
+    }
+    if (o.souffle) {
+      const s = c.createBufferSource(); s.buffer = this.noise;
+      const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = o.souffle[1] || 1500; f.Q.value = 0.8;
+      const g = c.createGain(); g.gain.value = o.souffle[0];
+      s.connect(f).connect(g).connect(body);
+      s.loop = true; s.start(t, Math.random() * this.noise.duration); srcs.push(s);
+    }
+    let node = body;
+    if (o.rug) { // rugosité : l'amplitude tremble vite
+      const am = c.createGain(), l = c.createOscillator(), lg = c.createGain();
+      am.gain.value = 1 - o.rug[1]; l.type = 'triangle'; l.frequency.value = o.rug[0] * (0.9 + Math.random() * 0.2); lg.gain.value = o.rug[1];
+      l.connect(lg).connect(am.gain); body.connect(am); node = am; oscs.push(l);
+    }
+    const lpf = c.createBiquadFilter(); lpf.type = 'lowpass'; lpf.frequency.value = o.lp || 5000; lpf.Q.value = 0.5;
+    node.connect(lpf);
+    const g = c.createGain(); g.gain.value = 0;
+    const v = Math.max(o.vol, 0.00012), a = o.a || clamp(dur * 0.12, 0.01, 0.08), r = o.r || dur * 0.35;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(v, t + a);
+    g.gain.linearRampToValueAtTime(v * (o.sus || 0.85), t + Math.max(a + 0.002, dur - r)); // tenue qui s'affaisse (sans marche)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    lpf.connect(g).connect(d);
+    for (const s of oscs) { s.start(t); s.stop(t + dur + 0.05); }
+    for (const s of srcs) s.stop(t + dur + 0.05);
+    this.mark(d, t + dur + 0.05);
+  }
+
+  // ---------------------------------------------------------------- tampons synthétisés (variantes gardées)
+  // tampon(clé, n, durée, fn(d, sr, i)) : une variante au hasard, calculée à la première demande
+  tampon(key, n, dur, fn, iv) {
+    const arr = this._bufs[key] || (this._bufs[key] = []);
+    const i = iv === undefined ? (Math.random() * n) | 0 : iv;
+    if (!arr[i]) {
+      // calculés à 22 050 Hz (tout est sous 8 kHz) : deux fois moins de calcul ; le navigateur rééchantillonne à la lecture
+      const sr = Math.min(this.ctx.sampleRate, SoundEngine.SR_SYNTH), len = Math.max(32, Math.ceil(sr * dur)), b = this.ctx.createBuffer(1, len, sr), d = b.getChannelData(0);
+      fn(d, sr, i);
+      const fi = Math.min(24, len >> 3), fo = Math.min(Math.floor(len * 0.06), 2000);
+      for (let k = 0; k < fi; k++) d[k] *= k / fi;
+      for (let k = 0; k < fo; k++) d[len - 1 - k] *= k / fo;
+      arr[i] = b;
+    }
+    return arr[i];
+  }
+  jouer(b, t, vol, out, rate, pan) {
+    const c = this.ctx, s = c.createBufferSource(), g = c.createGain();
+    s.buffer = b; s.playbackRate.value = rate || 1; g.gain.value = vol;
+    let d = out || this.sfx;
+    if (pan && !d._em && c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = clamp(pan, -1, 1); p.connect(d); d = p; }
+    s.connect(g).connect(d);
+    s.start(t);
+    this.mark(out || this.sfx, t + b.duration / (rate || 1) + 0.02);
+    return s;
+  }
+}
+SoundEngine.NUL = {};
+// anciens assistants (le jeu ne s'en sert plus ; gardés pour qui les appellerait encore)
+SoundEngine.buildWind = function (c, dest) {
+  const src = c.createBufferSource();
+  src.buffer = SoundEngine.brownBuffer(c, 6); src.loop = true;
+  const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 70; hp.Q.value = 0.5;
+  const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 320; lp.Q.value = 0.6;
+  const g = c.createGain(); g.gain.value = 0;
+  src.connect(hp).connect(lp).connect(g).connect(dest);
+  src.start();
+  return { src, lp, g };
+};
+SoundEngine.windLevel = function (t, high) {
+  const gust = clamp(0.5 + 0.32 * Math.sin(t * 0.21) * Math.sin(t * 0.067 + 1.3) + 0.18 * Math.sin(t * 0.53 + 2.1), 0, 1);
+  return { gain: (0.03 + 0.08 * gust) * (high ? 1.3 : 1), cutoff: 220 + 420 * gust };
+};
+SoundEngine.buildRain = function (c, dest) {
+  const src = c.createBufferSource();
+  src.buffer = SoundEngine.brownBuffer(c, 5); src.loop = true;
+  const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 350; hp.Q.value = 0.5;
+  const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400; lp.Q.value = 0.4;
+  const g = c.createGain(); g.gain.value = 0;
+  src.connect(hp).connect(lp).connect(g).connect(dest);
+  src.start();
+  return { g };
+};
+// fréquence d'échantillonnage des tampons synthétisés
+SoundEngine.SR_SYNTH = 22050;
+// équilibre des familles de sons (voix et interface : un peu en retrait)
+SoundEngine.BUS = { voix: 0.9, ui: 0.7 };
+// gain de sortie : compense le gain de rattrapage automatique du compresseur doux
+SoundEngine.TRIM = 0.62;
+// les lieux (réverbération) : longueur, pré-délai, T60 des graves et des aigus, premières réflexions, niveau
+SoundEngine.LIEUX = {
+  dehors: { len: 1.6, pre: 0.02, t60: 1.0, t60h: 0.35, split: 1100, hiK: 0.55, att: 0.03, lp: 4800, er: [[0.013, 0.22], [0.029, 0.1]], wet: 0.2 },
+  foret: { len: 2.0, pre: 0.012, t60: 1.5, t60h: 0.5, split: 1000, hiK: 0.6, att: 0.02, lp: 4200, er: [[0.009, 0.25], [0.016, 0.22], [0.026, 0.18], [0.041, 0.13], [0.058, 0.09]], wet: 0.26 },
+  montagne: { len: 3.0, pre: 0.02, t60: 1.6, t60h: 0.5, split: 900, hiK: 0.5, att: 0.03, lp: 3800, er: [[0.24, 0.3], [0.52, 0.2], [0.9, 0.12]], wet: 0.24 },
+  piece: { len: 0.9, pre: 0.003, t60: 0.45, t60h: 0.25, split: 1400, hiK: 0.75, att: 0.004, lp: 5500, er: [[0.004, 0.45], [0.007, 0.38], [0.011, 0.32], [0.016, 0.26], [0.022, 0.2], [0.03, 0.14]], wet: 0.3 },
+  salle: { len: 3.4, pre: 0.022, t60: 2.6, t60h: 1.2, split: 1000, hiK: 0.65, att: 0.03, lp: 4600, er: [[0.019, 0.32], [0.033, 0.28], [0.049, 0.22], [0.068, 0.18]], wet: 0.36 },
+  grotte: { len: 4.2, pre: 0.03, t60: 3.2, t60h: 1.1, split: 850, hiK: 0.6, att: 0.02, lp: 3600, er: [[0.037, 0.4], [0.061, 0.34], [0.094, 0.28], [0.137, 0.22], [0.196, 0.16]], wet: 0.45 },
+};
+
+// ============================================================================
+//  PETITE SYNTHÈSE « À L'ÉCHANTILLON » (tampons calculés une fois, variantes)
+// ============================================================================
+SoundEngine.SYN = {
+  // filtre biquadratique (RBJ) : une fonction x → y ; 'lp', 'hp', 'bp' (0 dB au centre)
+  bq(type, f, q, sr) {
+    const w = 2 * Math.PI * Math.min(f, sr * 0.45) / sr, cs = Math.cos(w), sn = Math.sin(w), al = sn / (2 * q);
+    let b0, b1, b2;
+    if (type === 'lp') { b0 = (1 - cs) / 2; b1 = 1 - cs; b2 = b0; } else if (type === 'hp') { b0 = (1 + cs) / 2; b1 = -(1 + cs); b2 = b0; } else { b0 = al; b1 = 0; b2 = -al; }
+    const a0 = 1 + al, a1 = -2 * cs / a0, a2 = (1 - al) / a0;
+    b0 /= a0; b1 /= a0; b2 /= a0;
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    return (x) => { const y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2; x2 = x1; x1 = x; y2 = y1; y1 = y; return y; };
+  },
+  // un mode de vibration (bois, pierre, métal) : sinusoïde amortie
+  mode(d, sr, t0, f, tau, a) {
+    if (f > sr * 0.45) return; // au-delà de la moitié de la fréquence d'échantillonnage : on l'omet
+    const i0 = Math.floor(t0 * sr), w = 2 * Math.PI * f / sr, k = Math.exp(-1 / (tau * sr)), at = Math.max(2, Math.floor(sr * 0.0008));
+    let e = a, ph = Math.random() * 0.4;
+    for (let i = i0, j = 0; i < d.length && e > 1e-5; i++, j++) { d[i] += Math.sin(ph) * e * (j < at ? j / at : 1); ph += w; e *= k; }
+  },
+  // un souffle de bruit enveloppé (attaque, déclin), passé dans un filtre
+  bruit(d, sr, t0, att, tau, a, filt) {
+    const i0 = Math.floor(t0 * sr), na = Math.max(1, att * sr), k = Math.exp(-1 / (tau * sr));
+    let e = 1;
+    for (let i = i0, j = 0; i < d.length; i++, j++) {
+      let env;
+      if (j < na) env = j / na; else { e *= k; env = e; if (e < 1e-3) break; }
+      const x = Math.random() * 2 - 1;
+      d[i] += (filt ? filt(x) : x) * env * a;
+    }
+  },
+  // une note sifflée (oiseaux, grillons…) : glissement f0 → f1 (courbe c), vibrato, 2e harmonique, modulation d'amplitude
+  note(d, sr, t0, dur, f0, f1, a, o) {
+    o = o || {};
+    const i0 = Math.floor(t0 * sr), n = Math.floor(dur * sr), c = o.c || 1, vib = o.vib || 0, vd = o.vd || 0, h2 = o.h2 || 0, am = o.am || 0, amd = o.amd || 0, dec2 = (o.dec || 1.5) > 2.2;
+    let ph = 0;
+    for (let j = 0; j < n && i0 + j < d.length; j++) {
+      const u = j / n, tt = j / sr;
+      const f = f0 + (f1 - f0) * (c === 1 ? u : Math.pow(u, c)) + (vib ? Math.sin(2 * Math.PI * vib * tt) * vd * f0 : 0);
+      ph += 2 * Math.PI * f / sr;
+      let env;
+      if (o.att) { if (u < o.att) env = u / o.att; else { const r = 1 - (u - o.att) / (1 - o.att); env = r * r * (dec2 ? r : 1); } }
+      else { const sn = Math.sin(Math.PI * u); env = sn * (1.35 - 0.35 * sn); } // ≈ sin^0.7, sans puissance
+      if (am) env *= 1 - amd + amd * (0.5 + 0.5 * Math.sin(2 * Math.PI * am * tt));
+      d[i0 + j] += (Math.sin(ph) + h2 * Math.sin(2 * ph)) * env * a;
+    }
+  },
+  lp1(d, sr, f) { const a = Math.exp(-2 * Math.PI * f / sr); let y = 0; for (let i = 0; i < d.length; i++) { y = d[i] + (y - d[i]) * a; d[i] = y; } },
+  norm(d, peak) { let m = 1e-9; for (let i = 0; i < d.length; i++) { const v = Math.abs(d[i]); if (v > m) m = v; } const k = (peak || 1) / m; for (let i = 0; i < d.length; i++) d[i] *= k; },
+};
+
+// les tampons : pas, gouttes, cris d'oiseaux… (chacun : fonction de remplissage ; normalisés à une crête de 1)
+SoundEngine.TAMPONS = {
+  // ---- les pas : talon puis semelle
+  herbe: [0.2, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN, b1 = S.bq('bp', 800 + R() * 600, 0.8, sr), b2 = S.bq('bp', 1900 + R() * 900, 1.3, sr);
+    for (const [t0, a] of [[0.004, 1], [0.035 + R() * 0.03, 0.6 + R() * 0.3]]) {
+      S.bruit(d, sr, t0, 0.005 + R() * 0.004, 0.026 + R() * 0.02, 0.55 * a, b1);
+      const n = 8 + ((R() * 10) | 0);
+      for (let k = 0; k < n; k++) S.bruit(d, sr, t0 + R() * 0.07, 0.0006, 0.002 + R() * 0.003, (0.15 + R() * 0.25) * a, b2);
+      S.mode(d, sr, t0, 75 + R() * 25, 0.02, 0.15 * a);
+    }
+    S.lp1(d, sr, 5200);
+  }],
+  terre: [0.2, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN, l = S.bq('lp', 600 + R() * 300, 0.7, sr), b = S.bq('bp', 1700, 1.2, sr);
+    for (const [t0, a] of [[0.004, 1], [0.04 + R() * 0.02, 0.55]]) {
+      S.bruit(d, sr, t0, 0.005, 0.03 + R() * 0.015, 0.8 * a, l);
+      S.mode(d, sr, t0, 68 + R() * 20, 0.028, 0.35 * a);
+      for (let k = 0; k < 5; k++) S.bruit(d, sr, t0 + R() * 0.05, 0.0006, 0.002, 0.08 * a, b);
+    }
+  }],
+  pierre: [0.16, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN, t0 = 0.003;
+    S.mode(d, sr, t0, 1500 + R() * 600, 0.006, 0.35); S.mode(d, sr, t0, 2600 + R() * 700, 0.004, 0.14); S.mode(d, sr, t0, 480 + R() * 160, 0.012, 0.3);
+    S.mode(d, sr, t0, 115 + R() * 30, 0.016, 0.45);
+    S.bruit(d, sr, t0, 0.0012, 0.006, 0.22, S.bq('bp', 2000, 1, sr));
+    S.bruit(d, sr, t0 + 0.028 + R() * 0.02, 0.006, 0.02, 0.1, S.bq('bp', 1200, 0.9, sr));
+    S.lp1(d, sr, 6000);
+  }],
+  bois: [0.22, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN;
+    for (const [t0, a] of [[0.003, 1], [0.045 + R() * 0.02, 0.45]]) {
+      S.mode(d, sr, t0, 135 + R() * 50, 0.05, 0.55 * a); S.mode(d, sr, t0, 360 + R() * 120, 0.028, 0.32 * a); S.mode(d, sr, t0, 900 + R() * 300, 0.011, 0.14 * a);
+      S.bruit(d, sr, t0, 0.0012, 0.005, 0.18 * a, S.bq('lp', 1800, 0.7, sr));
+    }
+  }],
+  eau: [0.4, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN;
+    S.bruit(d, sr, 0.005, 0.014, 0.075, 0.5, S.bq('bp', 1000 + R() * 500, 0.7, sr));
+    S.bruit(d, sr, 0.01, 0.02, 0.11, 0.5, S.bq('lp', 420, 0.7, sr));
+    for (let k = 0, n = 3 + ((R() * 3) | 0); k < n; k++) { const f = 450 + R() * 900; S.note(d, sr, 0.03 + R() * 0.22, 0.025 + R() * 0.03, f, f * 1.7, 0.1 + R() * 0.1, { att: 0.12, dec: 2 }); }
+    S.lp1(d, sr, 5000);
+  }],
+  neige: [0.2, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN, b = S.bq('bp', 1200 + R() * 500, 0.7, sr);
+    for (let k = 0; k < 90; k++) S.bruit(d, sr, 0.003 + Math.pow(R(), 1.6) * 0.12, 0.0003, 0.0015 + R() * 0.002, 0.25 + R() * 0.3, b);
+    S.mode(d, sr, 0.003, 80, 0.02, 0.18);
+    S.lp1(d, sr, 3800);
+  }],
+  // ---- eau
+  plouf: [0.75, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN;
+    S.bruit(d, sr, 0.003, 0.003, 0.045, 0.55, S.bq('bp', 1400, 0.6, sr));
+    S.bruit(d, sr, 0.006, 0.02, 0.17, 0.55, S.bq('lp', 850, 0.7, sr));
+    S.bruit(d, sr, 0.07, 0.05, 0.2, 0.25, S.bq('bp', 600, 0.8, sr));
+    for (let k = 0; k < 11; k++) { const tt = 0.04 + R() * 0.5, f = 550 + R() * 1400; S.note(d, sr, tt, 0.02 + R() * 0.04, f, f * 1.5, (0.1 + R() * 0.12) * (1 - tt), { att: 0.08, dec: 2 }); }
+    S.lp1(d, sr, 5000);
+  }],
+  goutte: [0.3, (d, sr) => { // goutte qui tombe dans une flaque (grotte, puits)
+    const R = Math.random, S = SoundEngine.SYN, f = 700 + R() * 900;
+    S.note(d, sr, 0.004, 0.06 + R() * 0.03, f, f * (1.5 + R() * 0.5), 0.8, { att: 0.05, dec: 2.2, c: 0.5 });
+    S.bruit(d, sr, 0.004, 0.001, 0.004, 0.15, S.bq('bp', 2500, 1, sr));
+    S.lp1(d, sr, 6000);
+  }],
+  // ---- interface et petits objets
+  pieces: [0.5, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN;
+    for (let k = 0, t = 0.004; k < 3; k++, t += 0.045 + R() * 0.06) {
+      const f = 1500 + R() * 600, a = k ? 0.6 : 1;
+      S.mode(d, sr, t, f, 0.09, 0.5 * a); S.mode(d, sr, t, f * 2.38, 0.05, 0.22 * a); S.mode(d, sr, t, f * 3.9, 0.025, 0.08 * a);
+      S.bruit(d, sr, t, 0.0005, 0.002, 0.1 * a, S.bq('bp', 3000, 1, sr));
+    }
+    S.lp1(d, sr, 7000);
+  }],
+  page: [0.4, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN, b = S.bq('bp', 1700 + R() * 700, 0.6, sr);
+    S.bruit(d, sr, 0.01, 0.04, 0.09, 0.3, b);
+    for (let k = 0; k < 26; k++) S.bruit(d, sr, 0.01 + Math.pow(R(), 0.8) * 0.25, 0.001, 0.004 + R() * 0.006, 0.15 + R() * 0.2, b);
+    S.lp1(d, sr, 4500);
+  }],
+  toc: [0.25, (d, sr) => { // jointure sur une porte de bois
+    const R = Math.random, S = SoundEngine.SYN, t0 = 0.003;
+    S.mode(d, sr, t0, 120 + R() * 40, 0.045, 0.6); S.mode(d, sr, t0, 300 + R() * 90, 0.025, 0.4); S.mode(d, sr, t0, 760 + R() * 200, 0.01, 0.16);
+    S.bruit(d, sr, t0, 0.001, 0.004, 0.2, S.bq('lp', 1500, 0.7, sr));
+  }],
+  coup: [0.3, (d, sr) => { // un coup sur du dur (bois, pierre)
+    const R = Math.random, S = SoundEngine.SYN, t0 = 0.003;
+    S.mode(d, sr, t0, 170 + R() * 60, 0.03, 0.45); S.mode(d, sr, t0, 780 + R() * 300, 0.014, 0.3); S.mode(d, sr, t0, 1700 + R() * 500, 0.007, 0.16);
+    S.bruit(d, sr, t0, 0.0012, 0.006, 0.25, S.bq('bp', 1400, 0.8, sr));
+    S.lp1(d, sr, 6000);
+  }],
+  sabot: [0.2, (d, sr) => { // sabot de cheval
+    const R = Math.random, S = SoundEngine.SYN, t0 = 0.003;
+    S.mode(d, sr, t0, 420 + R() * 160, 0.018, 0.5); S.mode(d, sr, t0, 1100 + R() * 300, 0.008, 0.2); S.mode(d, sr, t0, 95 + R() * 20, 0.03, 0.4);
+    S.bruit(d, sr, t0, 0.001, 0.008, 0.25, S.bq('bp', 900, 0.8, sr));
+  }],
+  croque: [0.12, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN, b = S.bq('bp', 1100 + R() * 500, 0.9, sr);
+    for (let k = 0; k < 14; k++) S.bruit(d, sr, 0.003 + Math.pow(R(), 1.5) * 0.06, 0.0005, 0.003 + R() * 0.004, 0.3 + R() * 0.3, b);
+    S.mode(d, sr, 0.003, 150, 0.02, 0.2);
+    S.lp1(d, sr, 3500);
+  }],
+  // ---- oiseaux
+  merle: [2.0, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN, base = 1650 + R() * 450;
+    let t = 0.03;
+    for (let k = 0, n = 4 + ((R() * 5) | 0); k < n && t < 1.5; k++) {
+      const du = 0.07 + R() * 0.14, f0 = base * (0.85 + R() * 0.6), f1 = f0 * (0.78 + R() * 0.5);
+      S.note(d, sr, t, du, f0, f1, 0.5 + R() * 0.3, { vib: 22 + R() * 20, vd: 0.012, h2: 0.08, c: 0.7 });
+      t += du + 0.02 + R() * 0.07;
+    }
+    if (R() < 0.5) for (let k = 0, n = 4 + ((R() * 4) | 0); k < n && t < 1.9; k++) { const f = 2700 + R() * 1000; S.note(d, sr, t, 0.03, f, f * 0.8, 0.16, {}); t += 0.042; }
+  }],
+  mesange: [1.6, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN, fA = 3300 + R() * 400, fB = 2400 + R() * 300;
+    for (let k = 0, t = 0.03, n = 3 + ((R() * 3) | 0); k < n; k++, t += 0.24) { S.note(d, sr, t, 0.07, fA, fA * 0.95, 0.42, {}); S.note(d, sr, t + 0.1, 0.09, fB, fB * 0.97, 0.5, {}); }
+  }],
+  pinson: [1.4, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN, f = 2900 + R() * 400;
+    let t = 0.03, per = 0.078;
+    for (let k = 0, n = 8 + ((R() * 5) | 0); k < n; k++) { const ff = f * (1 - k * 0.013); S.note(d, sr, t, 0.045, ff, ff * 0.76, 0.4, {}); t += per; per *= 0.96; }
+    S.note(d, sr, t + 0.03, 0.2, 3400, 1900, 0.5, { c: 0.6 });
+  }],
+  tourterelle: [1.8, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN, f = 520 + R() * 60;
+    for (let k = 0; k < 3; k++) S.note(d, sr, 0.05 + k * 0.56, 0.46, f, f * 0.93, 0.6, { am: 26 + R() * 6, amd: 0.75, h2: 0.18 });
+  }],
+  coucou: [2.4, (d, sr) => {
+    const S = SoundEngine.SYN;
+    for (let k = 0; k < 3; k++) { const t = 0.05 + k * 0.78; S.note(d, sr, t, 0.22, 720, 700, 0.6, { h2: 0.05 }); S.note(d, sr, t + 0.29, 0.32, 585, 560, 0.6, { h2: 0.05 }); }
+  }],
+  alouette: [3.4, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN;
+    for (let t = 0.03; t < 3.2;) { const du = 0.03 + R() * 0.06, f0 = 2500 + R() * 1700, f1 = f0 * (0.85 + R() * 0.3); S.note(d, sr, t, du, f0, f1, 0.22 + R() * 0.2, { vib: 55, vd: 0.02 }); t += du + R() * 0.025; }
+  }],
+  moineau: [1.2, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN;
+    for (let k = 0, t = 0.03, n = 3 + ((R() * 4) | 0); k < n; k++, t += 0.13 + R() * 0.12) { const f = 2600 + R() * 600; S.note(d, sr, t, 0.05, f * 1.2, f * 0.8, 0.45, { vib: 170, vd: 0.05, h2: 0.25 }); }
+  }],
+  chouette: [3.4, (d, sr) => { // « hou… hou-hou-hou-houuu »
+    const R = Math.random, S = SoundEngine.SYN, f = 400 + R() * 40;
+    S.note(d, sr, 0.03, 0.5, f * 1.04, f, 0.6, { vib: 5, vd: 0.008, h2: 0.06 });
+    let t = 1.5 + R() * 0.5;
+    for (let k = 0; k < 3; k++) { S.note(d, sr, t, 0.11, f * 1.06, f, 0.42, { h2: 0.05 }); t += 0.17; }
+    S.note(d, sr, t + 0.05, 0.8, f * 1.05, f * 0.96, 0.55, { vib: 7, vd: 0.02, h2: 0.06 });
+  }],
+  grillon: [2.0, (d, sr) => { // un grillon qui chante tout seul (en boucle)
+    const R = Math.random, S = SoundEngine.SYN, f = 4100 + R() * 500, per = 0.42 + R() * 0.3;
+    for (let t = 0.03 + R() * 0.2; t < 1.9; t += per * (0.93 + R() * 0.14)) for (let p = 0, n = 3 + ((R() * 2) | 0); p < n; p++) S.note(d, sr, t + p * 0.027, 0.016, f, f * 0.99, 0.5, { att: 0.25, dec: 1.2 });
+  }],
+  grenouille: [0.5, (d, sr) => { // « krrôa » : impulsions graves, en rafale
+    const R = Math.random, S = SoundEngine.SYN, f = 420 + R() * 260, rate = 26 + R() * 14, du = 0.2 + R() * 0.15, b = S.bq('bp', f, 3, sr);
+    for (let t = 0.01, k = 0; t < du; t += 1 / rate, k++) S.bruit(d, sr, t, 0.001, 0.009, 0.6 * Math.sin(Math.PI * t / du), b);
+    S.lp1(d, sr, 2500);
+  }],
+  pic: [1.2, (d, sr) => { // pic qui tambourine
+    const R = Math.random, S = SoundEngine.SYN, f = 850 + R() * 400;
+    let t = 0.02, per = 0.05;
+    for (let k = 0, n = 12 + ((R() * 8) | 0); k < n; k++) { const a = 0.5 * (1 - k / (n + 4)); S.mode(d, sr, t, f, 0.012, a); S.mode(d, sr, t, f * 2.3, 0.005, a * 0.3); t += per; per *= 1.012; }
+  }],
+  crepite: [0.05, (d, sr) => { // un crépitement de feu
+    const R = Math.random, S = SoundEngine.SYN;
+    S.bruit(d, sr, 0.001, 0.0004, 0.002 + R() * 0.004, 1, S.bq('bp', 1200 + R() * 2000, 1.2, sr));
+    S.lp1(d, sr, 5000);
+  }],
+};
+// volumes de base des pas (crête)
+SoundEngine.PAS = { herbe: 0.063, terre: 0.09, pierre: 0.29, bois: 0.048, eau: 0.064, neige: 0.07 };
+
+Object.assign(SoundEngine.prototype, {
+  // un tampon de la bibliothèque (variantes gardées : n par sorte)
+  tb(nom, n, iv) {
+    const T = SoundEngine.TAMPONS[nom];
+    return this.tampon(nom, n || 6, T[0], (d, sr, i) => { T[1](d, sr, i); SoundEngine.SYN.norm(d, 1); }, iv);
+  },
+  // mise en train : les tampons se calculent un par un, en tâche de fond (jamais tous d'un coup pendant le jeu)
+  chauffer() {
+    if (!this._chauffe) {
+      const L = [], T = (nom, n) => { for (let i = 0; i < n; i++) L.push(() => this.tb(nom, n, i)); };
+      for (const k of ['herbe', 'terre', 'pierre', 'bois']) T(k, 6);
+      for (const k of ['coup', 'toc', 'pieces', 'page']) T(k, 6);
+      L.push(() => this.boucleTampon && this.boucleTampon('bruit'), () => this.boucleTampon && this.boucleTampon('gouttes'));
+      for (const k of ['merle', 'mesange', 'pinson', 'tourterelle', 'moineau', 'alouette', 'coucou']) T(k, 5);
+      T('chouette', 4); T('pic', 4);
+      for (const k of ['eau', 'neige', 'sabot', 'croque', 'grenouille']) T(k, 6);
+      T('plouf', 5); T('goutte', 8);
+      for (const k of ['grillon', 'feuilles', 'riviere', 'clapotis', 'feu', 'bourdon']) L.push(() => this.boucleTampon && this.boucleTampon(k));
+      this._chauffe = L;
+    }
+    const f = this._chauffe.shift();
+    if (f) f();
+    return this._chauffe.length;
+  },
+
+  // ------------------------------------------------------------ tonnerre (vient de l'éclair : portée « ici », sinon d'une direction au hasard)
+  thunder(k) {
+    if (!this.ok) return;
+    const c = this.ctx, t = c.currentTime + 0.02, K = clamp(k, 0.2, 1), R = Math.random, L = this.L;
+    const S = this._scope, dist = 180 + (1 - K) * 1300;
+    let pos = S ? this.pos3(S.src) : null;
+    if (!pos) { const a = R() * TAU; pos = [L.x + Math.cos(a) * dist, L.y + 150 + R() * 250, L.z + Math.sin(a) * dist]; }
+    // le grondement roule le long de l'horizon : une seconde source, décalée
+    const a0 = Math.atan2(pos[2] - L.z, pos[0] - L.x) + (R() < 0.5 ? -1 : 1) * (0.35 + R() * 0.4), d0 = Math.hypot(pos[0] - L.x, pos[2] - L.z) * 1.1;
+    const pos2 = [L.x + Math.cos(a0) * d0, pos[1] * 0.8, L.z + Math.sin(a0) * d0];
+    const A = this.B.amb.inp, o1 = this.emit(pos, A, { att: 'aucune', dur: 9 }), o2 = this.emit(pos2, A, { att: 'aucune', dur: 9 });
+    if (K > 0.62) { // claquement de l'éclair tout proche
+      this.noiseHit(t, 0.1, 'bandpass', 1500, 0.5, 0.2 * K, o1, 500);
+      this.noiseHit(t + 0.012, 0.45, 'lowpass', 2400, 0.6, 0.28 * K, o1, 260);
+    }
+    const s = c.createBufferSource(); s.buffer = this.brown; s.loop = true;
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.6;
+    lp.frequency.setValueAtTime(420 + 520 * K, t); lp.frequency.exponentialRampToValueAtTime(75, t + 4 + K * 2);
+    const g = c.createGain(), g2 = c.createGain(), v = 0.34 * (0.25 + 0.75 * K);
+    g.gain.value = 0; g2.gain.value = 0;
+    // plusieurs roulements qui se chevauchent
+    let tt = t + 0.04 + (1 - K) * 0.4;
+    g.gain.setValueAtTime(0.0001, t); g2.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(v, tt);
+    const n = 3 + ((R() * 3) | 0);
+    for (let i = 0; i < n; i++) {
+      const p = v * (0.45 + R() * 0.5) * (1 - i / (n + 1)), dt = 0.5 + R() * 0.9;
+      g.gain.linearRampToValueAtTime(p * 0.55, tt + dt * 0.5); g.gain.linearRampToValueAtTime(p, tt + dt);
+      g2.gain.linearRampToValueAtTime(p * 0.8, tt + dt * 0.7);
+      tt += dt;
+    }
+    g.gain.exponentialRampToValueAtTime(0.0001, tt + 1.8 + K);
+    g2.gain.exponentialRampToValueAtTime(0.0001, tt + 2.2 + K);
+    s.connect(lp); lp.connect(g).connect(o1); lp.connect(g2).connect(o2);
+    s.start(t, R() * 2); s.stop(tt + 3.4 + K);
+    this.mark(o1, tt + 3.4 + K); this.mark(o2, tt + 3.4 + K);
+    // un souffle très grave, qu'on sent plus qu'on n'entend
+    this.tone(t + 0.05, 'sine', 48, 34, 2.5 + K, 0.12 * K, o1, 0.3);
+  },
+
+  // ------------------------------------------------------------ cris des bêtes (formants, vibrato, rugosité ; jamais deux fois pareil)
   animal(kind, pan, k) {
     if (!this.ok) return;
-    const t = this.ctx.currentTime + 0.02, p = this.pan(pan, this.amb), v = clamp(k, 0, 1);
+    const t = this.ctx.currentTime + 0.02, p = this.pan(pan, this.amb), v = clamp(k, 0, 1), R = Math.random;
     switch (kind) {
-      case 'sheep': this.voice(t, 'sawtooth', 340, 300, 0.55, 0.05 * v, p, { vib: 7, vibDepth: 28, bp: 1300, q: 2 }); break;
-      case 'cow': this.voice(t, 'sawtooth', 118, 96, 1.3, 0.09 * v, p, { lp: 700, lp2: 260 }); break;
-      case 'pig': for (let i = 0; i < 2; i++) this.voice(t + i * 0.2, 'square', 190, 130, 0.14, 0.035 * v, p, { bp: 700, q: 1.5 }); break;
-      case 'hen': for (let i = 0; i < 3; i++) this.voice(t + i * 0.11, 'triangle', 760, 520, 0.07, 0.04 * v, p, { bp: 900, q: 1.2 }); break;
-      case 'horse': this.voice(t, 'sawtooth', 950, 480, 0.9, 0.035 * v, p, { vib: 13, vibDepth: 60, bp: 1400, q: 1.2 }); break;
-      case 'duck': for (let i = 0; i < 2; i++) this.voice(t + i * 0.16, 'sawtooth', 540, 430, 0.12, 0.045 * v, p, { bp: 1100, q: 3 }); break;
+      case 'sheep': {
+        const f = 285 + R() * 65, du = 0.55 + R() * 0.35, vr = 6.2 + R() * 1.4;
+        this.cri(t, { dur: du, f: [[0, f * 0.95], [0.15, f * 1.05], [1, f * 0.88]], vib: [vr, 0.03], rug: [vr, 0.45], form: [[720, 5, 1], [1700, 7, 0.55], [2700, 9, 0.18]], souffle: [0.05, 2000], vol: 0.13 * v, lp: 4200 }, p);
+        break;
+      }
+      case 'cow': {
+        const f = 105 + R() * 28, du = 1.1 + R() * 0.55;
+        this.cri(t, { dur: du, f: [[0, f * 0.9], [0.25, f * 1.08], [0.7, f * 1.02], [1, f * 0.84]], vib: [4, 0.01], form: [[[250, 520, 600, 330], 4, 1], [[820, 1040, 1120, 880], 6, 0.45], [2300, 8, 0.1]], souffle: [0.035, 800], vol: 0.18 * v, lp: 2600, a: 0.14, r: du * 0.4 }, p);
+        break;
+      }
+      case 'pig': {
+        if (v > 0.95 && R() < 0.5) { // le cochon (ou le sanglier) qui charge : un cri aigu
+          this.cri(t, { dur: 0.5, f: [[0, 820], [0.3, 1150], [1, 700]], vib: [9, 0.04], rug: [30, 0.3], form: [[1300, 3, 1], [2600, 5, 0.35]], souffle: [0.1, 1800], vol: 0.066 * v, lp: 4000 }, p);
+          break;
+        }
+        for (let i = 0, n = 2 + ((R() * 3) | 0), tt = t; i < n; i++) {
+          const f = 95 + R() * 40, du = 0.13 + R() * 0.1;
+          this.cri(tt, { type: 'square', dur: du, f: [[0, f * 1.1], [1, f * 0.84]], rug: [38 + R() * 14, 0.7], form: [[450, 3, 1], [1100, 5, 0.35]], souffle: [0.3, 700], vol: 0.15 * v, lp: 2400, a: 0.015 }, p);
+          tt += du + 0.06 + R() * 0.12;
+        }
+        break;
+      }
+      case 'hen': {
+        let tt = t;
+        for (let i = 0, n = 3 + ((R() * 4) | 0); i < n; i++) {
+          const f = 560 + R() * 240, du = 0.06 + R() * 0.035;
+          this.cri(tt, { dur: du, f: [[0, f * 1.15], [1, f * 0.8]], form: [[950, 3, 1], [1900, 5, 0.35]], vol: 0.065 * v, lp: 3800, a: 0.008 }, p);
+          tt += du + 0.05 + R() * 0.09;
+        }
+        if (R() < 0.35) this.cri(tt + 0.05, { dur: 0.36, f: [[0, 680], [0.3, 960], [1, 780]], vib: [8, 0.02], form: [[1050, 3, 1], [2100, 5, 0.3]], vol: 0.06 * v, lp: 3800 }, p);
+        break;
+      }
+      case 'horse': {
+        const du = 1.0 + R() * 0.35, f = 700 + R() * 120;
+        this.cri(t, { dur: du, f: [[0, f], [0.15, f * 1.2], [0.6, f * 0.85], [1, f * 0.5]], vib: [11 + R() * 3, 0.07], rug: [12, 0.25], form: [[1000, 3, 1], [2000, 4, 0.45], [3000, 6, 0.12]], souffle: [0.07, 1500], vol: 0.074 * v, lp: 3800 }, p);
+        this.noiseHit(t + du + 0.05, 0.28, 'lowpass', 1100, 0.6, 0.012 * v, p, 400); // l'ébrouement
+        break;
+      }
+      case 'duck': {
+        for (let i = 0, n = 2 + ((R() * 3) | 0), tt = t; i < n; i++) {
+          const f = 240 + R() * 50, du = 0.11 + R() * 0.05;
+          this.cri(tt, { type: 'square', dur: du, f: [[0, f * 1.1], [1, f * 0.9]], rug: [55, 0.45], form: [[1000, 6, 1], [2300, 8, 0.5]], vol: 0.22 * v, lp: 3600, a: 0.012 }, p);
+          tt += du + 0.05 + R() * 0.08;
+        }
+        break;
+      }
+      default: return;
     }
-  }
+  },
+
+  // ------------------------------------------------------------ oiseaux, grillons, chouette (anciens appels : direction au hasard)
+  oiseau(sorte, pos, k, n) {
+    if (!this.ok) return;
+    const R = Math.random, b = this.tb(sorte, n || 5), out = pos ? this.en3d(pos, this.B.amb.inp, { ref: 7, roll: 0.9, dur: b.duration + 0.2 }) : this.amb;
+    const vol = (SoundEngine.VOL_OISEAUX[sorte] || 0.05) * (k === undefined ? 1 : k) * (0.8 + R() * 0.4);
+    this.jouer(b, this.at(0.01), vol, out, 0.94 + R() * 0.12);
+  },
+  chirp(k) {
+    if (!this.ok) return;
+    const p = this._scope ? null : this.virt(Math.random() * 2 - 1, 10 + Math.random() * 20);
+    if (p) p[1] += 3 + Math.random() * 6;
+    this.oiseau(['merle', 'mesange', 'pinson'][(Math.random() * 3) | 0], p, k * 2.2);
+  },
+  cricket(k) {
+    if (!this.ok) return;
+    const p = this._scope ? null : this.virt(Math.random() * 2 - 1, 4 + Math.random() * 8), t = this.at();
+    if (p) p[1] -= 1.4;
+    const out = p ? this.en3d(p, this.B.amb.inp, { ref: 2, dur: 1 }) : this.amb, f = 4100 + Math.random() * 400;
+    for (let i = 0, n = 2 + ((Math.random() * 3) | 0); i < n; i++) this.tone(t + i * 0.028, 'sine', f, f * 0.99, 0.018, 0.1 * k, out, 0.004);
+  },
+  owl() {
+    if (!this.ok) return;
+    const p = this._scope ? null : this.virt(Math.random() * 1.6 - 0.8, 25 + Math.random() * 30, Math.random() < 0.5);
+    if (p) p[1] += 8;
+    this.oiseau('chouette', p, 1, 4);
+  },
 
   // ------------------------------------------------------------ bruitages
   shot() {
     if (!this.ok) return;
-    const t = this.ctx.currentTime;
-    this.noiseHit(t, 0.22, 'lowpass', 5000, 0.7, 0.45, null, 400);
-    this.tone(t, 'sine', 140, 45, 0.18, 0.7);
-    this.noiseHit(t + 0.02, 0.45, 'lowpass', 700, 0.5, 0.06, null, 150);
-  }
-  dryFire() { if (this.ok) this.tone(this.ctx.currentTime, 'square', 1800, 1200, 0.02, 0.04); }
+    const t = this.ctx.currentTime + 0.005;
+    this.noiseHit(t, 0.3, 'lowpass', 4200, 0.7, 1.0, null, 260);
+    this.tone(t, 'sine', 135, 40, 0.24, 1.0, null, 0.002);
+    this.noiseHit(t + 0.015, 0.8, 'lowpass', 900, 0.5, 0.12, null, 110);
+    this.tone(t + 0.004, 'triangle', 2000, 1500, 0.02, 0.015);
+  },
+  dryFire() {
+    if (!this.ok) return;
+    const t = this.at();
+    this.tone(t, 'triangle', 1700, 1350, 0.022, 0.14, null, 0.002);
+    this.noiseHit(t, 0.012, 'bandpass', 2400, 1.2, 0.12);
+  },
   reload() {
     if (!this.ok) return;
-    const t = this.ctx.currentTime;
-    this.tone(t + 0.05, 'square', 900, 600, 0.03, 0.05);
-    this.tone(t + 0.1, 'triangle', 500, 300, 0.05, 0.08);
-    this.tone(t + 0.58, 'square', 1100, 700, 0.03, 0.06);
-    this.tone(t + 0.62, 'triangle', 420, 260, 0.06, 0.09);
-  }
+    const t = this.at();
+    const clac = (tt, f, v) => { this.jouer(this.tb('coup'), tt, v, this.sfx, f); this.tone(tt, 'triangle', 900 * f, 620 * f, 0.04, v * 0.12); };
+    clac(t + 0.05, 1.5, 0.05);
+    this.noiseHit(t + 0.14, 0.12, 'bandpass', 900, 1, 0.015, null, 600);
+    clac(t + 0.58, 1.7, 0.055);
+    clac(t + 0.63, 1.2, 0.07);
+  },
+  // les pas (du joueur) : selon le sol, un pied puis l'autre, jamais deux fois le même
   step(mat, speed) {
     if (!this.ok) return;
-    const t = this.ctx.currentTime, v = 0.05 + Math.min(speed, 9) * 0.005;
-    if (mat === 'water') this.noiseHit(t, 0.2, 'lowpass', 700, 0.8, v * 0.9, null, 250);
-    else if (mat === 'hard') { this.noiseHit(t, 0.03, 'bandpass', 2000, 1.5, v * 0.35); this.tone(t, 'sine', 160, 80, 0.05, v * 0.6); }
-    else if (mat === 'wood') { this.tone(t, 'sine', 190, 110, 0.07, v * 0.8); this.noiseHit(t, 0.04, 'bandpass', 900, 2, v * 0.3); }
-    else if (mat === 'soft') { this.noiseHit(t, 0.06, 'lowpass', 450, 0.7, v * 0.7); this.tone(t, 'sine', 110, 70, 0.05, v * 0.4); }
-    else this.noiseHit(t, 0.07, 'bandpass', 520 + Math.random() * 200, 1.2, v * 0.5);
-  }
+    const R = Math.random, sp = Math.min(speed || 4, 9);
+    let k = mat === 'water' ? 'eau' : mat === 'hard' ? 'pierre' : mat === 'wood' ? 'bois' : mat === 'soft' ? 'terre' : 'herbe';
+    if (k === 'pierre' && !this._scope && this.surNeige()) k = 'neige';
+    this.pied = -this.pied;
+    const v = SoundEngine.PAS[k] * (0.5 + sp / 9 * 0.6) * (0.85 + R() * 0.3);
+    this.jouer(this.tb(k), this.at(), v, this.sfx, 0.92 + R() * 0.16, this._scope ? 0 : this.pied * 0.1);
+    if (k === 'bois' && R() < 0.04) this.voice(this.at(0.05), 'sawtooth', 230 + R() * 80, 180 + R() * 40, 0.3 + R() * 0.2, 0.006, this.sfx, { bp: 700, q: 3, vib: 9, vibDepth: 12 });
+  },
+  // le joueur marche-t-il sur la neige ? (le sol de neige compte pour « dur » dans le jeu)
+  surNeige() {
+    try { const p = game.player, m = game.world.matAt(p.pos[0], p.pos[2]); return m === M_SNOW; } catch (e) { return false; }
+  },
   land(k) {
     if (!this.ok) return;
-    const t = this.ctx.currentTime;
-    this.noiseHit(t, 0.12, 'lowpass', 400, 0.7, 0.15 * k);
-    this.tone(t, 'sine', 90, 45, 0.12, 0.25 * k);
-  }
-  splash() { if (this.ok) this.noiseHit(this.ctx.currentTime, 0.45, 'lowpass', 1200, 0.6, 0.22, null, 250); }
-  click() { if (this.ok) this.tone(this.ctx.currentTime, 'sine', 1200, 1000, 0.03, 0.04); }
-  pop() { if (this.ok) this.tone(this.ctx.currentTime, 'sine', 420, 880, 0.07, 0.12); }
-  remove() { if (this.ok) this.tone(this.ctx.currentTime, 'sine', 700, 260, 0.09, 0.1); }
+    const t = this.at(), s = this.surNeige() ? 'neige' : 'terre';
+    this.jouer(this.tb(s), t, 0.1 * k, this.sfx, 0.8, -0.1);
+    this.jouer(this.tb(s), t + 0.035, 0.08 * k, this.sfx, 0.86, 0.1);
+    this.tone(t, 'sine', 90, 45, 0.16, 0.07 * k, null, 0.004);
+  },
+  splash() { if (this.ok) this.jouer(this.tb('plouf', 5), this.at(), 0.073, this.sfx, 0.9 + Math.random() * 0.2); },
+  click() { if (!this.ok) return; const t = this.at(); this.tone(t, 'sine', 1050, 720, 0.035, 0.08, this.ui, 0.002); this.noiseHit(t, 0.01, 'lowpass', 2500, 0.7, 0.04, this.ui); },
+  pop() { if (!this.ok) return; const t = this.at(); this.tone(t, 'sine', 380, 760, 0.075, 0.11, this.ui, 0.004); this.tone(t + 0.01, 'sine', 760, 1150, 0.05, 0.02, this.ui, 0.004); },
+  remove() { if (this.ok) this.tone(this.at(), 'sine', 640, 280, 0.1, 0.1, this.ui, 0.004); },
   impact(kind) {
     if (!this.ok) return;
-    const t = this.ctx.currentTime + 0.03;
-    if (kind === 'hard') { this.tone(t, 'triangle', 1500, 700, 0.05, 0.05); this.noiseHit(t, 0.03, 'bandpass', 2500, 1.5, 0.05); }
-    else this.noiseHit(t, 0.07, 'lowpass', 600, 0.8, 0.1);
-  }
-}
+    const t = this.ctx.currentTime + 0.03, R = Math.random;
+    if (kind === 'hard') this.jouer(this.tb('coup'), t, 0.12, this.sfx, 0.9 + R() * 0.25);
+    else { this.jouer(this.tb('terre'), t, 0.042, this.sfx, 0.8 + R() * 0.2); this.noiseHit(t, 0.07, 'lowpass', 600, 0.8, 0.012); }
+  },
+});
+// volume de chaque oiseau (crête)
+SoundEngine.VOL_OISEAUX = { merle: 0.11, mesange: 0.07, pinson: 0.08, tourterelle: 0.1, coucou: 0.1, alouette: 0.05, moineau: 0.065, chouette: 0.18, pic: 0.1 };
 
 const sound = new SoundEngine();
+
+// l'écouteur suit exactement la caméra rendue (cinématiques comprises)
+if (typeof Renderer !== 'undefined' && Renderer.prototype && Renderer.prototype.render) {
+  const _render = Renderer.prototype.render;
+  Renderer.prototype.render = function (F) {
+    try { if (F && F.cam && sound.ctx) { sound.ecoute(F.cam.pos, F.cam.yaw, F.cam.pitch); sound._rendT = performance.now(); } } catch (e) { /* rien */ }
+    return _render.call(this, F);
+  };
+}
 
 // ---- 09-zaudio-farm.js
 // ============================================================================
 //  AUDIO (FERME) : cloche, portes, voix des habitants, bêtes, pêche, arc,
-//  horreur discrète, ambiances propres à chaque biome (jamais de souffle continu)
+//  horreur discrète. Mêmes noms et mêmes paramètres qu'avant ; sons adoucis,
+//  variés d'une fois à l'autre, placés dans le monde quand on sait d'où ils
+//  viennent (portée sound.ici, ou position passée à la place du « pan »).
+//  (Les ambiances par milieu sont dans 09-zzzaudio-scene.js.)
 // ============================================================================
 
 Object.assign(SoundEngine.prototype, {
-  // ---------------------------------------------------------------- utilitaires
-  at(delay) { return this.ctx.currentTime + (delay || 0) + 0.01; },
-  lp(freq, dest) { const f = this.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq; f.connect(dest || this.sfx); return f; },
+  // bruit enveloppé à attaque lente (souffles, froissements) : noiseHit(…, att)
+  souffle(t, dur, type, f, q, vol, out, f1, att) { this.noiseHit(t, dur, type, f, q, vol, out, f1, att); },
+  // la cloche de l'église, au clocher (si on sait où il est)
+  clocher() {
+    try {
+      const w = game.world;
+      if (!w || !w.inter) return null;
+      if (this._clo && this._clo.w === w) return this._clo.p;
+      const it = w.inter.find((i) => i.kind === 'bell'), B = w.bld && w.bld.eglise;
+      const p = it ? [it.x, (it.y || (B ? B.y : 0)) + 9, it.z] : B ? [B.x, B.y + 11, B.z] : null;
+      this._clo = { w, p };
+      return p;
+    } catch (e) { return null; }
+  },
+  forgePos() {
+    try { const B = game.world.bld.forge; return B ? [B.x, B.y + 1.2, B.z] : null; } catch (e) { return null; }
+  },
 
-  // ---------------------------------------------------------------- cloche de l'église (sons partiels, longue résonance)
+  // ---------------------------------------------------------------- cloche de l'église (partiels d'une vraie cloche, battements lents)
   bell(k = 1) {
     if (!this.ok) return;
-    const t = this.at(), out = this.lp(2400, this.amb), v = 0.07 * k;
-    for (const [f, a, d] of [[220, 1, 4.5], [440, 0.5, 3], [528, 0.35, 2.4], [660, 0.25, 2], [880, 0.12, 1.4]]) this.tone(t, 'sine', f, f * 0.998, d, v * a, out, 0.004);
+    const t = this.at(), R = Math.random, P = this._scope ? null : this.clocher();
+    const out = this.lp(3200, P ? this.emit(P, this.B.amb.inp, { att: 'aucune', dur: 7.5 }) : this.amb);
+    const f = 196 * (0.995 + R() * 0.01), v = 0.06 * k;
+    for (const [m, a, d] of [[0.5, 0.5, 6.5], [0.5025, 0.28, 6], [1, 1, 4.6], [1.0035, 0.35, 4.2], [1.19, 0.45, 3.2], [1.5, 0.28, 2.4], [2, 0.42, 2.8], [2.52, 0.16, 1.6], [2.99, 0.12, 1.2], [4.02, 0.06, 0.8]]) this.tone(t, 'sine', f * m, f * m * 0.9985, d, v * a, out, 0.003);
+    this.noiseHit(t, 0.04, 'bandpass', 1700, 0.9, 0.03 * k, out);
   },
   // ---------------------------------------------------------------- portes, serrures
-  door(open) { if (!this.ok) return; const t = this.at(); this.voice(t, 'sawtooth', open ? 180 : 240, open ? 120 : 160, open ? 0.35 : 0.18, 0.018, this.sfx, { lp: 700 }); this.noiseHit(t + (open ? 0.3 : 0.12), 0.06, 'lowpass', 500, 0.8, 0.12); },
-  lock(on) { if (!this.ok) return; const t = this.at(); this.tone(t, 'square', on ? 900 : 700, on ? 600 : 1000, 0.03, 0.04); this.noiseHit(t + 0.05, 0.03, 'bandpass', 2400, 2, 0.06); },
-  knock(n = 3) { if (!this.ok) return; const t = this.at(); for (let i = 0; i < n; i++) { this.noiseHit(t + i * 0.32, 0.07, 'lowpass', 420, 0.8, 0.3); this.tone(t + i * 0.32, 'sine', 120, 70, 0.08, 0.25); } },
-  chain() { if (!this.ok) return; const t = this.at(), out = this.lp(1800, this.amb); for (let i = 0; i < 14; i++) this.tone(t + i * 0.12, 'square', 700 + Math.random() * 300, 500, 0.04, 0.012, out); },
-  scratch() { if (!this.ok) return; const t = this.at(); for (let i = 0; i < 6; i++) this.noiseHit(t + i * 0.09, 0.08, 'bandpass', 1800 + i * 90, 3, 0.03); },
-  // ---------------------------------------------------------------- voix : murmure syllabique (pas de mots)
-  mumble(pitch = 1, len = 30, pan = 0, vol = 1) {
+  door(open) {
     if (!this.ok) return;
-    const n = clamp(Math.round(len / 9), 2, 9), t = this.at(), p = this.pan(clamp(pan / 8, -0.8, 0.8));
-    const base = 150 * pitch;
-    for (let i = 0; i < n; i++) {
-      const st = t + i * (0.11 + Math.random() * 0.05), f = base * (0.9 + Math.random() * 0.35);
-      this.voice(st, 'triangle', f, f * (0.85 + Math.random() * 0.3), 0.09 + Math.random() * 0.05, 0.022 * vol, p, { bp: 900 * pitch, q: 1.4 });
+    const t = this.at(), R = Math.random;
+    if (open) {
+      if (R() < 0.8) this.voice(t, 'sawtooth', 190 + R() * 60, 130 + R() * 30, 0.32 + R() * 0.22, 0.035, this.sfx, { bp: 850 + R() * 400, q: 3, vib: 15 + R() * 8, vibDepth: 16, lp: 2400 });
+      this.jouer(this.tb('toc'), t + 0.015, 0.1, this.sfx, 1.35 + R() * 0.2);
+    } else {
+      this.jouer(this.tb('toc'), t + 0.1, 0.045, this.sfx, 0.8 + R() * 0.1);
+      this.jouer(this.tb('coup'), t + 0.12, 0.015, this.sfx, 1.6 + R() * 0.2);
     }
   },
-  hurtHuman(pitch = 1) { if (!this.ok) return; const t = this.at(); this.voice(t, 'sawtooth', 320 * pitch, 180 * pitch, 0.35, 0.06, this.sfx, { bp: 900, q: 1 }); },
+  lock(on) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random;
+    this.jouer(this.tb('coup'), t, 0.1, this.sfx, (on ? 2.2 : 1.9) + R() * 0.1);
+    this.jouer(this.tb('coup'), t + 0.06, 0.085, this.sfx, (on ? 2.6 : 2.3) + R() * 0.1);
+    this.tone(t + 0.06, 'triangle', on ? 1500 : 1300, on ? 1350 : 1180, 0.05, 0.01);
+  },
+  knock(n = 3) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random;
+    for (let i = 0, tt = t; i < n; i++, tt += 0.28 + R() * 0.07) this.jouer(this.tb('toc'), tt, 0.15 * (i === n - 1 ? 0.85 : 1) * (0.9 + R() * 0.2), this.sfx, 0.93 + R() * 0.12);
+  },
+  chain() {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, out = this.lp(3800, this.amb);
+    for (let i = 0; i < 14; i++) { const tt = t + i * 0.1 + R() * 0.05, f = 1100 + R() * 900; this.tone(tt, 'triangle', f, f * 0.98, 0.06, 0.024, out, 0.002); this.tone(tt, 'sine', f * 2.7, f * 2.66, 0.035, 0.008, out, 0.002); }
+  },
+  scratch() { if (!this.ok) return; const t = this.at(), R = Math.random; for (let i = 0; i < 6; i++) this.noiseHit(t + i * 0.09 + R() * 0.02, 0.08, 'bandpass', 1500 + i * 70, 2, 0.08, null, 1300, 0.01); },
+
+  // ---------------------------------------------------------------- voix : un murmure qui ressemble à des mots (formants, intonation), sans mots
+  mumble(pitch = 1, len = 30, pan = 0, vol = 1) {
+    if (!this.ok) return;
+    const c = this.ctx, R = Math.random, n = clamp(Math.round(len / 9), 2, 9), t = this.at();
+    const out = this._scope ? this.voix : this.pan(clamp(pan / 8, -0.8, 0.8), this.voix);
+    const f0 = 150 * pitch * (0.96 + R() * 0.08), peak = 0.095 * vol;
+    const osc = c.createOscillator(); this.setWave(osc, 'sawtooth');
+    const mk = (f, q, a) => { const b = c.createBiquadFilter(), g = c.createGain(); b.type = 'bandpass'; b.frequency.value = f; b.Q.value = q; g.gain.value = a; osc.connect(b).connect(g); return [b, g]; };
+    const [F1, g1] = mk(600, 5, 1), [F2, g2] = mk(1500, 8, 0.55), [, g3] = mk(2600, 10, 0.12);
+    const env = c.createGain(), lpf = c.createBiquadFilter();
+    lpf.type = 'lowpass'; lpf.frequency.value = 3400; lpf.Q.value = 0.5;
+    g1.connect(lpf); g2.connect(lpf); g3.connect(lpf); lpf.connect(env).connect(out);
+    env.gain.value = 0; env.gain.setValueAtTime(0.0001, t);
+    osc.frequency.setValueAtTime(f0 * 1.05, t);
+    const V = [[750, 1250], [450, 1900], [300, 2250], [500, 900], [350, 800], [600, 1650], [520, 1500]];
+    const question = R() < 0.25;
+    let tt = t + 0.01;
+    for (let i = 0; i < n; i++) {
+      const du = 0.1 + R() * 0.07, v = V[(R() * V.length) | 0], acc = i === 0 ? 1 : 0.6 + R() * 0.4;
+      F1.frequency.setTargetAtTime(v[0] * (0.94 + R() * 0.12), tt, 0.02);
+      F2.frequency.setTargetAtTime(v[1] * (0.94 + R() * 0.12), tt, 0.025);
+      const fin = question && i === n - 1 ? 1.25 : 1;
+      osc.frequency.linearRampToValueAtTime(f0 * (1.05 - 0.15 * i / n) * (0.95 + R() * 0.1) * fin, tt + du * 0.6);
+      env.gain.linearRampToValueAtTime(peak * acc, tt + 0.03);
+      env.gain.linearRampToValueAtTime(peak * acc * 0.7, tt + du - 0.025);
+      env.gain.linearRampToValueAtTime(peak * 0.1, tt + du);
+      if (R() < 0.45) this.noiseHit(Math.max(t, tt - 0.012), 0.035, 'bandpass', R() < 0.5 ? 2800 : 1300, 1.2, peak * 0.05, out);
+      tt += du + R() * 0.035;
+    }
+    env.gain.linearRampToValueAtTime(0.0001, tt + 0.06);
+    osc.start(t); osc.stop(tt + 0.1);
+    this.mark(out, tt + 0.1);
+  },
+  hurtHuman(pitch = 1) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, f = 210 * pitch * (0.93 + R() * 0.14);
+    this.cri(t, { dur: 0.3 + R() * 0.1, f: [[0, f * 1.15], [0.3, f], [1, f * 0.72]], rug: [30, 0.25], form: [[700, 5, 1], [1150, 7, 0.6], [2600, 9, 0.15]], souffle: [0.12, 1400], vol: 0.27, lp: 3200, a: 0.012 }, this.voix);
+  },
   scream(pitch = 1) {
     if (!this.ok) return;
-    const t = this.at(), out = this.lp(2600, this.amb);
-    this.voice(t, 'sawtooth', 700 * pitch, 260 * pitch, 1.1, 0.06, out, { vib: 29, vibDepth: 70, bp: 1300, q: 0.8 });
+    const t = this.at(), R = Math.random, f = 420 * pitch * (0.94 + R() * 0.12), du = 1.0 + R() * 0.3;
+    const out = this.lp(3000, this._scope ? this.voix : this.amb);
+    this.cri(t, { dur: du, f: [[0, f * 0.9], [0.12, f * 1.25], [0.6, f * 1.1], [1, f * 0.7]], vib: [5.5, 0.025], rug: [42, 0.3], form: [[850, 5, 1], [1250, 6, 0.7], [2700, 8, 0.25]], souffle: [0.1, 1800], vol: 0.2, lp: 3000, a: 0.05 }, out);
   },
-  // ---------------------------------------------------------------- joueur
-  hurt(dmg) { if (!this.ok) return; const t = this.at(); this.tone(t, 'sine', 130, 60, 0.2, 0.25); this.voice(t, 'sawtooth', 210, 140, 0.25, 0.05, this.sfx, { bp: 700, q: 1.2 }); },
-  breath(k) { if (!this.ok) return; const t = this.at(); this.noiseHit(t, 0.35, 'bandpass', 700, 1.5, 0.025 * k); this.noiseHit(t + 0.4, 0.3, 'bandpass', 520, 1.5, 0.02 * k); },
-  eat() { if (!this.ok) return; const t = this.at(); for (let i = 0; i < 3; i++) this.noiseHit(t + i * 0.16, 0.05, 'bandpass', 1300, 2, 0.06); },
-  equip() { if (!this.ok) return; this.noiseHit(this.at(), 0.05, 'bandpass', 1800, 1.5, 0.04); },
-  swish(k = 1) { if (!this.ok) return; this.noiseHit(this.at(), 0.16, 'bandpass', 1400, 1.2, 0.05 * k, null, 500); },
+  // ---------------------------------------------------------------- joueur (au centre, tout près)
+  hurt(dmg) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, fem = typeof farm !== 'undefined' && farm.s && farm.s.fem, f = (fem ? 250 : 150) * (0.94 + R() * 0.12);
+    this.tone(t, 'sine', 120, 55, 0.2, 0.16, null, 0.004);
+    this.cri(t + 0.01, { dur: 0.22 + R() * 0.06, f: [[0, f * 1.1], [1, f * 0.8]], rug: [30, 0.3], form: [[600, 5, 1], [1100, 7, 0.5]], souffle: [0.2, 1200], vol: 0.24, lp: 2500, a: 0.01 }, this.sfx);
+  },
+  breath(k) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random;
+    this.noiseHit(t, 0.42, 'bandpass', 950 + R() * 150, 0.9, 0.054 * k, null, 1300, 0.16);
+    this.noiseHit(t + 0.5, 0.48, 'bandpass', 640 + R() * 80, 0.9, 0.047 * k, null, 420, 0.06);
+  },
+  eat() {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random;
+    for (let i = 0; i < 3; i++) { const tt = t + i * 0.17 + R() * 0.03; this.jouer(this.tb('croque'), tt, 0.027, this.sfx, 0.85 + R() * 0.3); this.tone(tt, 'sine', 140, 90, 0.05, 0.008); }
+  },
+  equip() { if (!this.ok) return; const t = this.at(); this.noiseHit(t, 0.1, 'bandpass', 1300, 0.8, 0.12, null, 900, 0.02); this.tone(t + 0.04, 'triangle', 2100, 2000, 0.04, 0.02); },
+  swish(k = 1) { if (!this.ok) return; this.noiseHit(this.at(), 0.2, 'bandpass', 650, 1.1, 0.115 * k, null, 1900, 0.06); },
   pop2() { this.pop(); },
-  tick() { if (!this.ok) return; this.tone(this.at(), 'sine', 1500, 1900, 0.03, 0.025); },
-  coin() { if (!this.ok) return; const t = this.at(); this.tone(t, 'triangle', 1900, 1900, 0.08, 0.05); this.tone(t + 0.07, 'triangle', 2500, 2500, 0.14, 0.05); },
-  quest(done) { if (!this.ok) return; const t = this.at(); const f = done ? [523, 659, 784] : [440, 554]; f.forEach((x, i) => this.tone(t + i * 0.12, 'triangle', x, x, 0.3, 0.04)); },
-  page() { if (!this.ok) return; this.noiseHit(this.at(), 0.18, 'bandpass', 3200, 0.8, 0.03, null, 1400); },
+  tick() { if (!this.ok) return; this.tone(this.at(), 'sine', 1500, 1350, 0.025, 0.06, this.ui, 0.002); },
+  coin() { if (!this.ok) return; this.jouer(this.tb('pieces'), this.at(), 0.065, this.ui, 0.95 + Math.random() * 0.1); },
+  quest(done) {
+    if (!this.ok) return;
+    const t = this.at(), f = done ? [523.25, 659.25, 783.99] : [440, 554.37];
+    f.forEach((x, i) => { const tt = t + i * 0.13; this.tone(tt, 'sine', x, x, 0.9, 0.028, this.sfx, 0.004); this.tone(tt, 'sine', x * 2, x * 2, 0.45, 0.007, this.sfx, 0.004); this.tone(tt, 'triangle', x, x, 0.22, 0.01, this.sfx, 0.006); });
+  },
+  page() { if (!this.ok) return; this.jouer(this.tb('page'), this.at(), 0.044, this.ui, 0.9 + Math.random() * 0.2); },
   // ---------------------------------------------------------------- travaux
-  dig(k = 1) { if (!this.ok) return; const t = this.at(); this.noiseHit(t, 0.12, 'lowpass', 500, 0.9, 0.16 * k); this.tone(t, 'sine', 90, 55, 0.1, 0.12 * k); },
-  plant() { if (!this.ok) return; this.noiseHit(this.at(), 0.08, 'lowpass', 700, 0.8, 0.07); },
-  pour() { if (!this.ok) return; const t = this.at(); for (let i = 0; i < 6; i++) this.tone(t + i * 0.04, 'sine', 900 + Math.random() * 900, 600, 0.05, 0.012); },
-  scythe() { if (!this.ok) return; this.noiseHit(this.at(), 0.25, 'bandpass', 2600, 0.8, 0.05, null, 1200); },
-  place() { if (!this.ok) return; const t = this.at(); this.noiseHit(t, 0.06, 'lowpass', 600, 0.8, 0.12); this.tone(t, 'sine', 160, 90, 0.07, 0.12); },
+  dig(k = 1) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random;
+    this.jouer(this.tb('terre'), t, 0.09 * k, this.sfx, 0.7 + R() * 0.15);
+    this.noiseHit(t + 0.02, 0.14, 'bandpass', 1000, 0.9, 0.011 * k, null, 600);
+    this.tone(t, 'sine', 90, 55, 0.1, 0.028 * k);
+  },
+  plant() { if (!this.ok) return; const t = this.at(); this.jouer(this.tb('terre'), t, 0.087, this.sfx, 1.05 + Math.random() * 0.15); this.noiseHit(t, 0.08, 'lowpass', 700, 0.8, 0.019); },
+  pour() {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random;
+    this.noiseHit(t, 0.36, 'bandpass', 1000, 0.8, 0.066, null, 700, 0.03);
+    for (let i = 0; i < 7; i++) { const f = 500 + R() * 700; this.tone(t + i * 0.045 + R() * 0.02, 'sine', f, f * 1.6, 0.04, 0.023); }
+  },
+  scythe() { if (!this.ok) return; const t = this.at(); this.noiseHit(t, 0.28, 'bandpass', 1300, 0.9, 0.035, null, 2600, 0.05); this.jouer(this.tb('herbe'), t + 0.12, 0.03, this.sfx, 1.2); },
+  place() { if (!this.ok) return; const t = this.at(); this.jouer(this.tb('coup'), t, 0.16, this.sfx, 0.75 + Math.random() * 0.1); this.tone(t, 'sine', 150, 90, 0.07, 0.13); },
   // couvercle qui grince puis objets qui s'entrechoquent
-  lootOpen() { if (!this.ok) return; const t = this.at(); this.voice(t, 'sawtooth', 240, 180, 0.22, 0.012, this.sfx, { bp: 900, q: 3 }); this.noiseHit(t + 0.18, 0.08, 'lowpass', 900, 0.8, 0.08); this.tone(t + 0.26, 'triangle', 1400, 1400, 0.06, 0.02); },
+  lootOpen() {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random;
+    this.voice(t, 'sawtooth', 240, 180, 0.22, 0.008, this.sfx, { bp: 900, q: 3, vib: 14, vibDepth: 10 });
+    this.jouer(this.tb('coup'), t + 0.18, 0.05, this.sfx, 0.9 + R() * 0.2);
+    this.tone(t + 0.26, 'triangle', 1400, 1380, 0.07, 0.008);
+  },
   // feuillage secoué
-  shake() { if (!this.ok) return; const t = this.at(); for (let i = 0; i < 4; i++) this.noiseHit(t + i * 0.07, 0.12, 'bandpass', 2200 + i * 200, 0.7, 0.03, null, 900); },
-  treeFall() { if (!this.ok) return; const t = this.at(); this.voice(t, 'sawtooth', 90, 50, 1.2, 0.03, this.sfx, { lp: 300 }); this.noiseHit(t + 1.1, 0.5, 'lowpass', 300, 0.7, 0.25); },
+  shake() { if (!this.ok) return; const t = this.at(); for (let i = 0; i < 4; i++) this.noiseHit(t + i * 0.07, 0.15, 'bandpass', 1300 + i * 150, 0.7, 0.05, null, 900, 0.02); },
+  treeFall() {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random;
+    this.voice(t, 'sawtooth', 90, 50, 1.2, 0.02, this.sfx, { lp: 320, vib: 6, vibDepth: 4 });
+    for (let i = 0; i < 6; i++) this.jouer(this.tb('coup'), t + 0.3 + R() * 0.8, 0.025 + R() * 0.025, this.sfx, 0.6 + R() * 0.5);
+    this.noiseHit(t + 1.1, 0.55, 'lowpass', 300, 0.7, 0.15);
+    this.tone(t + 1.1, 'sine', 70, 38, 0.4, 0.12, null, 0.01);
+  },
   // ---------------------------------------------------------------- pêche et arc
-  cast() { if (!this.ok) return; const t = this.at(); this.noiseHit(t, 0.2, 'bandpass', 2400, 0.8, 0.04, null, 900); this.noiseHit(t + 0.45, 0.2, 'lowpass', 900, 0.7, 0.07); },
-  bite() { if (!this.ok) return; const t = this.at(); this.noiseHit(t, 0.12, 'lowpass', 1100, 0.7, 0.12); this.tone(t, 'sine', 300, 150, 0.08, 0.06); },
-  reel(k = 1) { if (!this.ok) return; const t = this.at(); for (let i = 0; i < 8; i++) this.tone(t + i * 0.035, 'square', 1500, 1400, 0.012, 0.012 * k); },
-  catchFish() { if (!this.ok) return; const t = this.at(); this.splash(); this.tone(t + 0.1, 'triangle', 660, 990, 0.18, 0.04); },
-  bowDraw() { if (!this.ok) return; this.voice(this.at(), 'sawtooth', 110, 170, 0.6, 0.015, this.sfx, { lp: 600 }); },
-  bowShot() { if (!this.ok) return; const t = this.at(); this.tone(t, 'triangle', 220, 90, 0.12, 0.12); this.noiseHit(t, 0.18, 'bandpass', 2000, 0.8, 0.05, null, 700); },
+  cast() { if (!this.ok) return; const t = this.at(); this.noiseHit(t, 0.22, 'bandpass', 1200, 0.9, 0.035, null, 2400, 0.05); this.jouer(this.tb('goutte'), t + 0.45, 0.02, this.sfx, 0.55); this.noiseHit(t + 0.45, 0.2, 'lowpass', 900, 0.7, 0.015); },
+  bite() { if (!this.ok) return; const t = this.at(); this.jouer(this.tb('goutte'), t, 0.05, this.sfx, 0.5 + Math.random() * 0.1); this.noiseHit(t, 0.12, 'lowpass', 1000, 0.7, 0.033); },
+  reel(k = 1) { if (!this.ok) return; const t = this.at(); for (let i = 0; i < 8; i++) this.tone(t + i * 0.035, 'triangle', 1400, 1300, 0.014, 0.025 * k, null, 0.002); },
+  catchFish() { if (!this.ok) return; const t = this.at(); this.splash(); this.tone(t + 0.1, 'triangle', 660, 990, 0.18, 0.03); },
+  bowDraw() { if (!this.ok) return; this.voice(this.at(), 'sawtooth', 110, 170, 0.6, 0.009, this.sfx, { lp: 600 }); },
+  bowShot() {
+    if (!this.ok) return;
+    const t = this.at();
+    this.tone(t, 'triangle', 220, 95, 0.14, 0.2);
+    this.voice(t, 'sawtooth', 180, 140, 0.12, 0.025, this.sfx, { lp: 1200 });
+    this.noiseHit(t, 0.2, 'bandpass', 1500, 0.8, 0.08, null, 600, 0.02);
+  },
   // ---------------------------------------------------------------- bêtes
-  hoof(mat, speed) { if (!this.ok) return; const t = this.at(), v = 0.07; for (let i = 0; i < 2; i++) { this.tone(t + i * 0.09, 'sine', 140, 70, 0.06, v); this.noiseHit(t + i * 0.09, 0.04, 'lowpass', mat === 'hard' ? 1800 : 600, 1, v * 0.6); } },
-  whistle() { if (!this.ok) return; const t = this.at(); this.tone(t, 'sine', 1800, 2400, 0.25, 0.05); this.tone(t + 0.3, 'sine', 2400, 1700, 0.35, 0.05); },
-  bark(k = 1, pan = 0) { if (!this.ok) return; const t = this.at(), p = this.pan(clamp(pan / 20, -0.9, 0.9)); this.voice(t, 'sawtooth', 420, 260, 0.13, 0.05 * k, p, { bp: 900, q: 1.3 }); },
-  growl(k = 1) { if (!this.ok) return; this.voice(this.at(), 'sawtooth', 90, 70, 0.8, 0.04 * k, this.sfx, { vib: 23, vibDepth: 12, lp: 500 }); },
-  howl(d = 50) { if (!this.ok) return; const k = clamp(1 - d / 150, 0.1, 1), t = this.at(); this.voice(t, 'sine', 380, 560, 1.6, 0.03 * k, this.lp(1500, this.amb), { vib: 5, vibDepth: 12 }); },
-  crow(k = 1) { if (!this.ok) return; const t = this.at(), p = this.pan(Math.random() * 2 - 1, this.amb); for (let i = 0; i < 2 + (Math.random() * 2 | 0); i++) this.voice(t + i * 0.28, 'sawtooth', 620, 480, 0.2, 0.035 * k, p, { bp: 1100, q: 2 }); },
-  hurtAnimal(kind) { if (!this.ok) return; this.voice(this.at(), 'sawtooth', 520, 300, 0.25, 0.05, this.sfx, { bp: 1200, q: 1.5 }); },
-  frog(k = 1) { if (!this.ok) return; const t = this.at(), p = this.pan(Math.random() * 2 - 1, this.amb); for (let i = 0; i < 2; i++) this.voice(t + i * 0.14, 'square', 190, 150, 0.09, 0.012 * k, p, { bp: 600, q: 3 }); },
-  woodpecker() { if (!this.ok) return; const t = this.at(), p = this.pan(Math.random() * 2 - 1, this.amb); for (let i = 0; i < 12; i++) this.noiseHit(t + i * 0.055, 0.015, 'bandpass', 1500, 3, 0.02, p); },
-  lap(k = 1) { if (!this.ok) return; const t = this.at(), p = this.pan(Math.random() * 2 - 1, this.amb); this.noiseHit(t, 0.4, 'lowpass', 380, 0.7, 0.03 * k, p, 180); },
-  bubble() { if (!this.ok) return; const t = this.at(), p = this.pan(Math.random() * 2 - 1, this.amb); this.tone(t, 'sine', 300 + Math.random() * 200, 700, 0.06, 0.012, p); },
-  eagle() { if (!this.ok) return; this.voice(this.at(), 'sine', 1800, 1300, 0.9, 0.012, this.pan(Math.random() * 2 - 1, this.amb), { vib: 11, vibDepth: 60 }); },
-  drip() { if (!this.ok) return; const t = this.at(), f = 900 + Math.random() * 900; this.tone(t, 'sine', f, f * 1.6, 0.05, 0.03, this.pan(Math.random() * 2 - 1, this.amb)); },
-  anvil() { if (!this.ok) return; const t = this.at(); for (const f of [1500, 2300, 3100]) this.tone(t, 'sine', f, f, 0.5, 0.012, this.lp(3500, this.amb)); },
+  hoof(mat, speed) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, dur = mat === 'hard';
+    for (let i = 0; i < 2; i++) this.jouer(this.tb('sabot'), t + i * (0.085 + R() * 0.015), 0.09 * (i ? 0.8 : 1), this.sfx, (dur ? 1.2 : 0.8) + R() * 0.1);
+    if (!dur) this.jouer(this.tb('terre'), t, 0.05, this.sfx, 0.9);
+  },
+  whistle() { if (!this.ok) return; const t = this.at(); this.voice(t, 'sine', 1700, 2300, 0.25, 0.027, this.sfx, { vib: 6, vibDepth: 14 }); this.voice(t + 0.3, 'sine', 2300, 1650, 0.35, 0.027, this.sfx, { vib: 6, vibDepth: 14 }); },
+  bark(k = 1, pan = 0) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, p = this._scope ? this.sfx : this.pan(clamp(pan / 20, -0.9, 0.9)), f = 380 + R() * 90;
+    this.cri(t, { dur: 0.13 + R() * 0.05, f: [[0, f * 1.1], [0.3, f * 1.2], [1, f * 0.7]], rug: [60, 0.35], form: [[800, 3, 1], [1500, 5, 0.5], [2500, 7, 0.15]], souffle: [0.35, 1200], vol: 0.22 * k, lp: 3500, a: 0.006 }, p);
+  },
+  growl(k = 1) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, f = 78 + R() * 22, du = 0.7 + R() * 0.3;
+    this.cri(t, { dur: du, f: [[0, f], [0.5, f * 1.12], [1, f * 0.9]], rug: [24 + R() * 8, 0.6], form: [[300, 2, 1], [800, 4, 0.4]], souffle: [0.4, 500], vol: 0.18 * k, lp: 1300, a: 0.08 }, this.sfx);
+  },
+  howl(d = 50) {
+    if (!this.ok) return;
+    const k = clamp(1 - d / 150, 0.1, 1), t = this.at(), R = Math.random, f = 360 + R() * 60, du = 1.8 + R() * 0.8;
+    // un hurlement porte loin : pas d'atténuation en plus de celle de l'appel (la distance d la donne déjà)
+    const S = this._scope, P = S ? this.pos3(S.src) : this.virt(R() * 2 - 1, 60 + d, R() < 0.5);
+    const out = this.lp(1800, P ? this.emit(P, this.B.amb.inp, { att: 'aucune', dur: du + 0.5 }) : this.amb);
+    this.cri(t, { type: 'triangle', dur: du, f: [[0, f], [0.2, f * 1.45], [0.75, f * 1.35], [1, f * 0.9]], vib: [5, 0.015], form: [[700, 2, 1], [1400, 4, 0.3]], souffle: [0.05, 1000], vol: 0.06 * k, lp: 1800, a: 0.25, r: du * 0.4 }, out);
+  },
+  crow(k = 1) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, p = this._scope ? this.amb : this.pan(R() * 2 - 1, this.amb);
+    for (let i = 0, n = 2 + ((R() * 2) | 0); i < n; i++) { const f = 560 + R() * 80; this.cri(t + i * (0.28 + R() * 0.08), { dur: 0.2 + R() * 0.06, f: [[0, f], [0.3, f * 1.08], [1, f * 0.8]], rug: [70, 0.5], form: [[1100, 3, 1], [1900, 5, 0.45]], souffle: [0.25, 1500], vol: 0.13 * k, lp: 3200, a: 0.015 }, p); }
+  },
+  hurtAnimal(kind) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, gros = kind === 'cow' || kind === 'horse' || kind === 'boar' || kind === 'bear' || kind === 'deer', f = (gros ? 300 : 520) * (0.9 + R() * 0.2);
+    this.cri(t, { dur: 0.28, f: [[0, f], [0.2, f * 1.15], [1, f * 0.6]], vib: [9, 0.03], rug: [35, 0.3], form: [[gros ? 800 : 1100, 3, 1], [2200, 5, 0.3]], souffle: [0.15, 1500], vol: 0.15, lp: 3500 }, this.sfx);
+  },
+  frog(k = 1) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, p = this._scope ? this.amb : this.pan(R() * 2 - 1, this.amb);
+    for (let i = 0, n = 1 + ((R() * 2) | 0); i < n; i++) this.jouer(this.tb('grenouille', 6), t + i * (0.26 + R() * 0.1), 0.05 * k, p, 0.9 + R() * 0.2);
+  },
+  woodpecker() { if (!this.ok) return; const p = this._scope ? this.amb : this.pan(Math.random() * 2 - 1, this.amb); this.jouer(this.tb('pic', 4), this.at(), 0.045, p, 0.95 + Math.random() * 0.1); },
+  lap(k = 1) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, p = this._scope ? this.amb : this.pan(R() * 2 - 1, this.amb);
+    this.noiseHit(t, 0.5, 'lowpass', 420, 0.7, 0.035 * k, p, 180, 0.12);
+    if (R() < 0.6) this.jouer(this.tb('goutte'), t + 0.1 + R() * 0.2, 0.012 * k, p, 0.6 + R() * 0.3);
+  },
+  bubble() { if (!this.ok) return; const t = this.at(), p = this._scope ? this.amb : this.pan(Math.random() * 2 - 1, this.amb); this.tone(t, 'sine', 300 + Math.random() * 200, 700, 0.06, 0.014, p, 0.006); },
+  eagle() {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, p = this._scope ? this.amb : this.pan(R() * 2 - 1, this.amb);
+    this.cri(t, { type: 'triangle', dur: 0.9, f: [[0, 1650], [0.2, 1750], [1, 1250]], vib: [11, 0.03], form: [[1600, 1.5, 1], [3200, 3, 0.2]], vol: 0.024, lp: 3500, a: 0.04 }, p);
+  },
+  drip() { if (!this.ok) return; const p = this._scope ? this.amb : this.pan(Math.random() * 2 - 1, this.amb); this.jouer(this.tb('goutte'), this.at(), 0.045, p, 0.85 + Math.random() * 0.35); },
+  // le marteau sur l'enclume (à la forge, si on sait où elle est)
+  anvil() {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, P = this._scope ? null : this.forgePos();
+    const out = this.lp(4500, P ? this.emit(P, this.B.amb.inp, { ref: 4, dur: 2.5 }) : this.amb);
+    for (let i = 0, n = 2 + ((R() * 3) | 0); i < n; i++) {
+      const tt = t + i * (0.42 + R() * 0.08), f = 1150 + R() * 60, a = i === n - 1 ? 0.6 : 1;
+      this.tone(tt, 'sine', f, f, 0.55, 0.024 * a, out, 0.002); this.tone(tt, 'sine', f * 2.76, f * 2.76, 0.25, 0.01 * a, out, 0.002); this.tone(tt, 'sine', 420, 400, 0.12, 0.02 * a, out, 0.002);
+      this.noiseHit(tt, 0.02, 'bandpass', 2500, 1, 0.025 * a, out);
+    }
+  },
   // ---------------------------------------------------------------- horreur (courts, jamais en boucle)
   glitchSnd(k) {
     if (!this.ok) return;
-    const t = this.ctx.currentTime;
-    for (let i = 0; i < 3 + k * 3; i++) this.tone(t + i * 0.045, 'square', 200 + Math.random() * 1800, 100 + Math.random() * 600, 0.035, 0.02 * Math.min(1.5, k), this.sfx, 0.002);
+    const t = this.ctx.currentTime, R = Math.random;
+    for (let i = 0; i < 3 + k * 3; i++) this.tone(t + i * 0.045, 'square', 200 + R() * 1400, 100 + R() * 500, 0.035, 0.025 * Math.min(1.5, k), this.sfx, 0.003);
+    this.noiseHit(t, 0.08 + 0.05 * k, 'bandpass', 1200, 0.8, 0.02 * k);
   },
+  // chuchotement : vient de derrière (plus souvent), tout près ; pan 0 : dans la tête
   whisper(pan = 0, k = 0.5) {
     if (!this.ok) return;
-    const t = this.at(), p = this.pan(pan, this.amb);
-    for (let i = 0; i < 5; i++) this.noiseHit(t + i * 0.13, 0.1, 'bandpass', 1600 + Math.random() * 1400, 4, 0.012 * k, p);
-    this.voice(t, 'sine', 180, 140, 0.8, 0.008 * k, p, { lp: 400 });
+    const t = this.at(), R = Math.random;
+    let out = this.amb;
+    if (!this._scope && pan && this.L.ok && this.son3d) out = this.emit(this.virt(clamp(pan, -1, 1), 1.3, R() < 0.6), this.B.amb.inp, { att: 'aucune', dur: 2 });
+    else if (!this._scope && pan) out = this.pan(pan, this.amb);
+    const V = [[700, 1200], [400, 2000], [300, 2300], [500, 900], [600, 1700]];
+    for (let i = 0, n = 5 + ((R() * 3) | 0); i < n; i++) {
+      const tt = t + i * (0.12 + R() * 0.06), v = V[(R() * V.length) | 0];
+      this.noiseHit(tt, 0.12, 'bandpass', v[1], 3, 0.02 * k, out, v[1] * 0.9, 0.03);
+      this.noiseHit(tt, 0.12, 'bandpass', v[0], 3, 0.018 * k, out, v[0] * 1.05, 0.03);
+      if (R() < 0.3) this.noiseHit(Math.max(t, tt - 0.03), 0.06, 'bandpass', 3600, 1.5, 0.006 * k, out, 3200, 0.015);
+    }
+    this.voice(t, 'sine', 180, 140, 0.8, 0.007 * k, out, { lp: 400 });
   },
   heartbeat(k) {
     if (!this.ok) return;
-    const t = this.ctx.currentTime;
-    this.tone(t, 'sine', 62, 40, 0.14, 0.3 * k); this.tone(t + 0.22, 'sine', 55, 38, 0.16, 0.24 * k);
+    const t = this.ctx.currentTime + 0.005;
+    this.tone(t, 'sine', 60, 40, 0.16, 0.18 * k, this.sfx, 0.008); this.noiseHit(t, 0.08, 'lowpass', 160, 0.7, 0.056 * k);
+    this.tone(t + 0.22, 'sine', 54, 38, 0.18, 0.14 * k, this.sfx, 0.008); this.noiseHit(t + 0.22, 0.08, 'lowpass', 140, 0.7, 0.04 * k);
   },
   steps1(k, pan) {
     if (!this.ok) return;
-    const t = this.at(), p = this.pan(clamp(pan / 15, -0.9, 0.9));
-    this.noiseHit(t, 0.12, 'lowpass', 380, 0.7, 0.16 * k, p); this.tone(t, 'sine', 70, 40, 0.14, 0.18 * k, p);
+    const t = this.at(), R = Math.random, out = this._scope ? this.sfx : this.pan(clamp(pan / 15, -0.9, 0.9));
+    this.jouer(this.tb(R() < 0.5 ? 'terre' : 'herbe'), t, 0.14 * k, out, 0.72 + R() * 0.08);
+    this.tone(t, 'sine', 70, 40, 0.14, 0.045 * k, out, 0.006);
   },
-  stab() { if (!this.ok) return; const t = this.at(); this.noiseHit(t, 0.12, 'bandpass', 1800, 1.2, 0.2); this.tone(t, 'sine', 90, 40, 0.3, 0.3); },
-  redNight() { if (!this.ok) return; const t = this.at(), out = this.lp(500, this.amb); this.voice(t, 'sine', 55, 52, 6, 0.05, out); this.voice(t + 0.5, 'sine', 82, 78, 5, 0.03, out); },
-  enversShift(on) { if (!this.ok) return; const t = this.at(); this.voice(t, 'sawtooth', on ? 400 : 60, on ? 60 : 400, 1.2, 0.04, this.lp(900)); },
-  silence(sec) { if (!this.ctx) return; this.amb.gain.setTargetAtTime(0, this.ctx.currentTime, 0.2); setTimeout(() => this.setAmbient(this.ambVolume), sec * 1000); },
-
-  // ---------------------------------------------------------------- ambiance par biome
-  // E : { biome, day, night, rain, inside, under, envers, red, town, tension }
-  biomeAmb(dt, E) {
+  stab() { if (!this.ok) return; const t = this.at(); this.noiseHit(t, 0.1, 'bandpass', 900, 1, 0.13); this.noiseHit(t + 0.01, 0.15, 'lowpass', 500, 0.7, 0.12); this.tone(t, 'sine', 90, 40, 0.3, 0.26); },
+  redNight() {
     if (!this.ok) return;
-    this.bT = (this.bT || 2) - dt;
-    if (this.bT > 0) return;
-    this.bT = 1.2 + Math.random() * 2.5;
-    const r = Math.random(), calm = E.rain < 0.4;
-    if (E.envers) { if (r < 0.3) this.whisper(Math.random() * 2 - 1, 0.35); else if (r < 0.45) this.voice(this.at(), 'sine', 48, 46, 4, 0.03, this.lp(300, this.amb)); return; }
-    if (E.under) { if (r < 0.5) this.drip(); return; }
-    if (E.red) { if (r < 0.12) this.whisper(Math.random() * 2 - 1, 0.25); return; }
-    switch (E.biome) {
-      case 'foret': case 'bouleaux':
-        if (E.day > 0.5 && calm && r < 0.12) this.woodpecker();
-        if (E.night > 0.5 && r < 0.05) this.owl();
-        break;
-      case 'marais':
-        if (r < 0.45) this.frog(E.night > 0.5 ? 1 : 0.6);
-        if (r > 0.8) this.bubble();
-        break;
-      case 'lac':
-        if (r < 0.5) this.lap(0.8);
-        if (E.day > 0.5 && r > 0.93) this.animal('duck', Math.random() * 2 - 1, 0.5);
-        break;
-      case 'hauteurs':
-        if (E.day > 0.5 && calm && r < 0.06) this.eagle();
-        break;
-      case 'ville':
-        if (E.day > 0.5 && !E.inside && r < 0.18) this.mumble(0.8 + Math.random() * 0.8, 20, (Math.random() - 0.5) * 12, 0.35);
-        if (E.day > 0.5 && r > 0.92 && E.forge) this.anvil();
-        break;
-    }
+    const t = this.at(), out = this.lp(500, this.amb);
+    this.voice(t, 'sine', 55, 52, 6, 0.05, out); this.voice(t + 0.5, 'sine', 82, 78, 5, 0.03, out);
+    this.voice(t + 1.2, 'triangle', 110, 104, 4.5, 0.008, this.lp(700, this.amb), { vib: 0.3, vibDepth: 2 });
+  },
+  enversShift(on) { if (!this.ok) return; const t = this.at(); this.voice(t, 'sawtooth', on ? 400 : 60, on ? 60 : 400, 1.2, 0.04, this.lp(900)); },
+  silence(sec) {
+    if (!this.ctx) return;
+    const g = this.B.amb.inp.gain, t = this.ctx.currentTime;
+    g.cancelScheduledValues(t); g.setTargetAtTime(0, t, 0.2);
+    clearTimeout(this._silT);
+    this._silT = setTimeout(() => this.setAmbient(this.ambVolume), sec * 1000);
   },
 });
 
@@ -21959,31 +22882,545 @@ const _animalCall = SoundEngine.prototype.animal;
 Object.assign(SoundEngine.prototype, {
   animal(kind, pan, k) {
     if (!this.ok) return;
-    const t = this.ctx.currentTime + 0.02, p = this.pan(pan || 0, this.amb), v = clamp(k, 0, 1);
+    const t = this.ctx.currentTime + 0.02, v = clamp(k, 0, 1), R = Math.random;
+    const P = () => this.pan(pan || 0, this.amb);
     switch (kind) {
-      case 'goat': this.voice(t, 'sawtooth', 460, 400, 0.45, 0.04 * v, p, { vib: 12, vibDepth: 40, bp: 1400, q: 2 }); return;
-      case 'donkey': for (let i = 0; i < 3; i++) { this.voice(t + i * 0.55, 'sawtooth', 720, 520, 0.28, 0.04 * v, p, { bp: 1100, q: 1.4 }); this.voice(t + i * 0.55 + 0.28, 'sawtooth', 190, 150, 0.26, 0.05 * v, p, { bp: 500, q: 1.2 }); } return;
-      case 'goose': for (let i = 0; i < 2; i++) this.voice(t + i * 0.22, 'square', 520, 430, 0.16, 0.035 * v, p, { bp: 900, q: 2.5 }); return;
-      case 'heron': this.voice(t, 'sawtooth', 300, 180, 0.35, 0.03 * v, p, { bp: 700, q: 1.5 }); return;
-      case 'pheasant': for (let i = 0; i < 2; i++) this.voice(t + i * 0.18, 'square', 900, 700, 0.1, 0.03 * v, p, { bp: 1500, q: 2 }); return;
-      case 'magpie': for (let i = 0; i < 5; i++) this.voice(t + i * 0.07, 'square', 1500 + Math.random() * 300, 1200, 0.05, 0.02 * v, p, { bp: 2000, q: 2 }); return;
+      case 'goat': { const f = 380 + R() * 80, vr = 9 + R() * 3; this.cri(t, { dur: 0.4 + R() * 0.2, f: [[0, f], [0.2, f * 1.06], [1, f * 0.9]], vib: [vr, 0.04], rug: [vr, 0.55], form: [[800, 5, 1], [1900, 7, 0.55], [2900, 9, 0.15]], souffle: [0.06, 2200], vol: 0.125 * v, lp: 4200 }, P()); return; }
+      case 'donkey': {
+        const p = P();
+        for (let i = 0, tt = t; i < 3; i++, tt += 0.62 + R() * 0.08) {
+          this.cri(tt, { dur: 0.3, f: [[0, 640], [1, 880]], form: [[1200, 3, 1], [2400, 5, 0.4]], souffle: [0.35, 1600], vol: 0.1 * v, lp: 3500, a: 0.04 }, p);
+          this.cri(tt + 0.3, { dur: 0.32, f: [[0, 230], [1, 165]], rug: [26, 0.5], form: [[500, 3, 1], [1100, 5, 0.5]], souffle: [0.2, 800], vol: 0.19 * v, lp: 2500, a: 0.03 }, p);
+        }
+        return;
+      }
+      case 'goose': { const p = P(); for (let i = 0, n = 2 + ((R() * 2) | 0), tt = t; i < n; i++, tt += 0.22 + R() * 0.08) { const f = 380 + R() * 60; this.cri(tt, { type: 'square', dur: 0.18, f: [[0, f], [0.5, f * 1.08], [1, f * 0.92]], rug: [45, 0.35], form: [[900, 5, 1], [2000, 7, 0.45]], vol: 0.21 * v, lp: 3400, a: 0.015 }, p); } return; }
+      case 'heron': this.cri(t, { dur: 0.35, f: [[0, 230], [1, 170]], rug: [48, 0.8], form: [[600, 3, 1], [1500, 4, 0.45]], souffle: [0.3, 1200], vol: 0.2 * v, lp: 2800, a: 0.02 }, P()); return;
+      case 'pheasant': {
+        const p = P();
+        for (let i = 0; i < 2; i++) this.cri(t + i * 0.19, { type: 'square', dur: 0.12, f: [[0, 1080], [1, 840]], form: [[1400, 3, 1], [2800, 5, 0.35]], vol: 0.06 * v, lp: 3800, a: 0.008 }, p);
+        this.flutter(0.5 * v, 0);
+        return;
+      }
+      case 'magpie': { const p = P(); for (let i = 0, n = 6 + ((R() * 4) | 0); i < n; i++) this.cri(t + i * (0.075 + R() * 0.02), { dur: 0.055, f: [[0, 1300], [1, 1000]], rug: [90, 0.6], form: [[1600, 2, 1], [3000, 3, 0.35]], souffle: [0.5, 2000], vol: 0.08 * v, lp: 3800, a: 0.006 }, p); return; }
       case 'frog': this.frog && this.frog(v); return;
     }
     return _animalCall.call(this, kind, pan, k);
   },
-  flutter(k = 1, pan = 0) { if (!this.ok) return; const t = this.at(), p = this.pan(clamp(pan / 10, -0.9, 0.9)); for (let i = 0; i < 6; i++) this.noiseHit(t + i * 0.05, 0.04, 'bandpass', 700 + i * 60, 1.2, 0.03 * k, p); },
-  squeak() { if (!this.ok) return; const t = this.at(), p = this.pan(Math.random() * 2 - 1, this.amb); for (let i = 0; i < 2; i++) this.tone(t + i * 0.06, 'sine', 5200, 6000, 0.02, 0.006, p); },
-  hiss() { if (!this.ok) return; this.noiseHit(this.at(), 0.5, 'highpass', 3000, 0.8, 0.03, null, 5000); },
-  whistleMarmot() { if (!this.ok) return; const t = this.at(), p = this.pan(Math.random() * 1.6 - 0.8, this.amb); this.tone(t, 'sine', 2600, 2300, 0.18, 0.02, p); },
-  shovel(k = 1) { if (!this.ok) return; const t = this.at(); this.noiseHit(t, 0.1, 'lowpass', 700, 0.8, 0.14 * k); this.noiseHit(t + 0.08, 0.14, 'bandpass', 1800, 1.2, 0.04 * k); this.tone(t, 'sine', 120, 70, 0.08, 0.1 * k); },
-  shovelHit() { if (!this.ok) return; const t = this.at(); this.tone(t, 'triangle', 1300, 900, 0.06, 0.05); this.noiseHit(t, 0.05, 'bandpass', 2400, 2, 0.05); },
-  bubble2() { if (!this.ok) return; const t = this.at(); for (let i = 0; i < 5; i++) this.tone(t + i * 0.09 + Math.random() * 0.05, 'sine', 260 + Math.random() * 240, 520, 0.05, 0.012); },
-  scream2() { if (!this.ok) return; const t = this.at(); this.voice(t, 'sawtooth', 1500, 900, 0.7, 0.03, this.lp(3000), { vib: 31, vibDepth: 120, bp: 1800, q: 1 }); },
-  candle() { if (!this.ok) return; this.noiseHit(this.at(), 0.3, 'bandpass', 900, 0.8, 0.012, null, 300); },
-  wind1() { if (!this.ok) return; this.noiseHit(this.at(), 1.8, 'lowpass', 500, 0.6, 0.05, this.amb, 180); },
-  rumble() { if (!this.ok) return; const t = this.at(); this.tone(t, 'sine', 48, 38, 2.2, 0.12, this.amb, 0.4); this.noiseHit(t, 1.6, 'lowpass', 180, 0.6, 0.12, this.amb, 60); },
-  splashBig() { if (!this.ok) return; const t = this.at(); this.noiseHit(t, 0.7, 'lowpass', 1400, 0.6, 0.25, null, 200); },
+  // battements d'ailes : un envol (de plus en plus vite)
+  flutter(k = 1, pan = 0) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, p = this._scope ? this.sfx : this.pan(clamp(pan / 10, -0.9, 0.9));
+    for (let i = 0, tt = t, per = 0.075; i < 8; i++, tt += per, per *= 0.93) this.noiseHit(tt, 0.05, 'bandpass', 650 + R() * 250, 0.8, 0.035 * k * (1 - i * 0.07), p, 450, 0.012);
+  },
+  squeak() { if (!this.ok) return; const t = this.at(), p = this._scope ? this.amb : this.pan(Math.random() * 2 - 1, this.amb); for (let i = 0; i < 2; i++) this.tone(t + i * 0.06, 'sine', 3200 + Math.random() * 500, 3700, 0.025, 0.012, p, 0.004); },
+  hiss() { if (!this.ok) return; this.noiseHit(this.at(), 0.5, 'bandpass', 2600, 1, 0.07, null, 3200, 0.05); },
+  whistleMarmot() { if (!this.ok) return; const t = this.at(), p = this._scope ? this.amb : this.pan(Math.random() * 1.6 - 0.8, this.amb); this.voice(t, 'sine', 2500, 2250, 0.18, 0.015, p, { vib: 20, vibDepth: 25 }); },
+  shovel(k = 1) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random;
+    this.jouer(this.tb('terre'), t, 0.066 * k, this.sfx, 0.72 + R() * 0.12);
+    this.noiseHit(t + 0.08, 0.14, 'bandpass', 1500, 1.2, 0.008 * k, null, 1100);
+    this.tone(t, 'sine', 120, 70, 0.08, 0.018 * k);
+  },
+  shovelHit() { if (!this.ok) return; const t = this.at(); this.jouer(this.tb('coup'), t, 0.26, this.sfx, 2.1 + Math.random() * 0.2); this.tone(t, 'sine', 1350, 1300, 0.12, 0.05, null, 0.002); },
+  bubble2() { if (!this.ok) return; const t = this.at(), R = Math.random; for (let i = 0; i < 5; i++) this.tone(t + i * 0.09 + R() * 0.05, 'sine', 260 + R() * 240, 520, 0.05, 0.014, null, 0.006); },
+  // la mandragore : un cri trop aigu, qui ne ressemble à rien de vivant (mais sans percer l'oreille)
+  scream2() {
+    if (!this.ok) return;
+    const t = this.at();
+    this.cri(t, { dur: 0.75, f: [[0, 1400], [0.3, 1550], [1, 900]], vib: [31, 0.07], rug: [55, 0.4], form: [[1600, 2, 1], [3000, 3, 0.3]], souffle: [0.15, 2500], vol: 0.05, lp: 3000, a: 0.03 }, this.lp(3000));
+  },
+  candle() { if (!this.ok) return; this.noiseHit(this.at(), 0.3, 'bandpass', 700, 0.8, 0.012, null, 300, 0.05); },
+  // un coup de vent qui passe d'un côté à l'autre
+  wind1() {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, s = R() < 0.5 ? -1 : 1, t0 = this.ctx.currentTime, du = 1.9;
+    let out = this.amb;
+    if (!this._scope && this.L.ok) {
+      const L = this.L, a0 = Math.atan2(L.f[2], L.f[0]) + s * 1.3;
+      out = this.emit(this.virt(0, 1), this.B.amb.inp, { att: 'aucune', dur: du + 0.3, suivre: () => { const u = clamp((this.ctx.currentTime - t0) / du, 0, 1), a = a0 - s * 2.6 * u; return [this.L.x + Math.cos(a) * 9, this.L.y + 2, this.L.z + Math.sin(a) * 9]; } });
+    }
+    this.noiseHit(t, du, 'lowpass', 520, 0.6, 0.05, out, 190, 0.45);
+  },
+  rumble() { if (!this.ok) return; const t = this.at(); this.tone(t, 'sine', 48, 38, 2.2, 0.12, this.amb, 0.4); this.noiseHit(t, 1.6, 'lowpass', 180, 0.6, 0.12, this.amb, 60, 0.3); },
+  splashBig() { if (!this.ok) return; const t = this.at(); this.jouer(this.tb('plouf', 5), t, 0.11, this.sfx, 0.7 + Math.random() * 0.1); this.tone(t, 'sine', 80, 45, 0.3, 0.025, null, 0.01); },
 });
+
+// ---- 09-zzzaudio-scene.js
+// ============================================================================
+//  AMBIANCES EN 3D : des sources placées autour de l'écouteur plutôt qu'un fond
+//  plat. Le vent vient d'un côté (celui de l'orage), la pluie tombe tout autour
+//  (et sur le toit quand on est dedans), la rivière coule là où elle coule, le
+//  lac clapote à la rive, le feu crépite à sa place, les oiseaux chantent dans
+//  les arbres, les grillons dans l'herbe, la chouette au loin, les gouttes
+//  dans les grottes. Tout respire : fondus lents, rafales, jamais pareil.
+//  Le lieu règle la réverbération (dehors, forêt, montagne, pièce, grande
+//  salle, grotte), en fondu.
+//  API : sound.source(clé, type, pos, k [, o]) — une boucle placée (types :
+//  riviere, clapotis, feu, vent, feuilles, grillon, bourdon), à rafraîchir au
+//  moins toutes les secondes ; elle s'éteint seule sinon.
+// ============================================================================
+
+// boucles (sans raccord) : [durée, remplissage]
+SoundEngine.BOUCLES = {
+  // ruisseau : un gargouillis grave, des éclats, beaucoup de petites bulles qui montent
+  riviere: [6, (d, sr, D) => {
+    const R = Math.random, S = SoundEngine.SYN, n = d.length, lo = S.bq('bp', 450, 0.7, sr), hi = S.bq('bp', 2200, 0.9, sr);
+    let m1 = 0.5, m2 = 0.5, v1 = 0, v2 = 0;
+    for (let i = 0; i < n; i++) {
+      if (i % 64 === 0) { v1 += (R() - 0.5) * 0.08 - v1 * 0.02; v2 += (R() - 0.5) * 0.2 - v2 * 0.06; m1 = clamp(m1 + v1 * 0.1, 0.25, 1); m2 = clamp(m2 + v2 * 0.1, 0.1, 1); }
+      const x = R() * 2 - 1;
+      d[i] += lo(x) * 0.5 * m1 + hi(x) * 0.12 * m2;
+    }
+    for (let k = 0, N = Math.floor(D * 45); k < N; k++) { const f = 300 + Math.pow(R(), 1.6) * 1400, t = R() * (D - 0.06); S.note(d, sr, t, 0.012 + R() * 0.03, f, f * (1.3 + R() * 0.8), 0.06 + R() * 0.12, { att: 0.15, dec: 2, c: 0.5 }); }
+  }],
+  // clapotis : de petites vagues qui viennent mourir à la rive
+  clapotis: [8, (d, sr, D) => {
+    const R = Math.random, S = SoundEngine.SYN, lo = S.bq('lp', 380, 0.7, sr), n = d.length;
+    let m = 0.3, v = 0;
+    for (let i = 0; i < n; i++) { if (i % 128 === 0) { v += (R() - 0.5) * 0.05 - v * 0.03; m = clamp(m + v * 0.1, 0.1, 0.5); } d[i] += lo(R() * 2 - 1) * 0.25 * m; }
+    for (let t = 0.2 + R() * 0.5; t < D - 0.6; t += 1.1 + R() * 1.6) {
+      S.bruit(d, sr, t, 0.08 + R() * 0.06, 0.25 + R() * 0.15, 0.5 + R() * 0.3, S.bq('lp', 500 + R() * 200, 0.7, sr));
+      S.bruit(d, sr, t + 0.06, 0.03, 0.12, 0.12 + R() * 0.08, S.bq('bp', 1100 + R() * 400, 0.8, sr));
+      for (let k = 0; k < 3; k++) { const f = 500 + R() * 800; S.note(d, sr, t + 0.1 + R() * 0.3, 0.02 + R() * 0.02, f, f * 1.5, 0.04 + R() * 0.04, { att: 0.12, dec: 2 }); }
+    }
+  }],
+  // feu : un souffle grave qui ondule, des crépitements, parfois une bûche qui craque
+  feu: [5, (d, sr, D) => {
+    const R = Math.random, S = SoundEngine.SYN, n = d.length, lo = S.bq('lp', 260, 0.7, sr), hs = S.bq('bp', 1800, 0.6, sr);
+    let m = 0.5, v = 0;
+    for (let i = 0; i < n; i++) { if (i % 64 === 0) { v += (R() - 0.5) * 0.12 - v * 0.05; m = clamp(m + v * 0.1, 0.2, 1); } const x = R() * 2 - 1; d[i] += lo(x) * 0.9 * m + hs(x) * 0.02; }
+    for (let k = 0, N = Math.floor(D * 14); k < N; k++) { const a = Math.pow(R(), 3) * 0.9 + 0.05; S.bruit(d, sr, R() * (D - 0.02), 0.0003, 0.0015 + R() * 0.004, a, S.bq('bp', 900 + R() * 2600, 1.1, sr)); }
+    for (let k = 0, N = 1 + ((R() * 2) | 0); k < N; k++) { const t = 0.3 + R() * (D - 0.8); S.mode(d, sr, t, 380 + R() * 500, 0.02, 0.35); S.bruit(d, sr, t, 0.0005, 0.01, 0.4, S.bq('bp', 1500, 0.8, sr)); }
+  }],
+  // gouttes de pluie tout près (sur l'herbe, sur les feuilles, dans les flaques)
+  gouttes: [3, (d, sr, D) => {
+    const R = Math.random, S = SoundEngine.SYN, b = S.bq('bp', 2600, 0.9, sr);
+    for (let k = 0, N = Math.floor(D * 28); k < N; k++) {
+      const t = R() * (D - 0.03);
+      if (R() < 0.3) { const f = 1400 + R() * 1600; S.note(d, sr, t, 0.012 + R() * 0.012, f, f * 0.7, 0.1 + R() * 0.2, { att: 0.08, dec: 2.5 }); }
+      else S.bruit(d, sr, t, 0.0003, 0.0015 + R() * 0.002, 0.2 + R() * 0.5, b);
+    }
+    S.lp1(d, sr, 6500);
+  }],
+  // feuillage agité par une rafale
+  feuilles: [4, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN, b = S.bq('bp', 2400, 0.7, sr), n = d.length;
+    let m = 0.5, v = 0;
+    for (let i = 0; i < n; i++) { if (i % 32 === 0) { v += (R() - 0.5) * 0.35 - v * 0.2; m = clamp(m + v * 0.1, 0, 1); } d[i] += b(R() * 2 - 1) * m * m; }
+    S.lp1(d, sr, 5500);
+  }],
+  // un grillon qui chante tout seul
+  grillon: [2, (d, sr, D) => {
+    const R = Math.random, S = SoundEngine.SYN, f = 3600 + R() * 500, per = 0.42 + R() * 0.3;
+    for (let t = 0.03 + R() * 0.2; t < D - 0.12; t += per * (0.95 + R() * 0.1)) for (let p = 0, n = 3 + ((R() * 2) | 0); p < n; p++) S.note(d, sr, t + p * 0.027, 0.016, f, f * 0.99, 0.5, { att: 0.25, dec: 1.2 });
+  }],
+  // un long bruit doux (vent, lit de pluie) : assez long pour qu'on n'entende jamais la boucle
+  bruit: [9, (d, sr) => {
+    const R = Math.random, n = d.length;
+    let b0 = 0, b1 = 0, b2 = 0;
+    for (let i = 0; i < n; i++) { const x = R() * 2 - 1; b0 = 0.99765 * b0 + x * 0.099046; b1 = 0.963 * b1 + x * 0.2965164; b2 = 0.57 * b2 + x * 1.0526913; d[i] = (b0 + b1 + b2 + x * 0.1848) * 0.6 + x * 0.25; }
+    SoundEngine.SYN.lp1(d, sr, 9000);
+  }],
+  // bourdon grave des souterrains (on le sent plus qu'on ne l'entend)
+  bourdon: [7, (d, sr) => {
+    const R = Math.random, S = SoundEngine.SYN, lo = S.bq('lp', 120, 0.7, sr), n = d.length;
+    let m = 0.5, v = 0;
+    for (let i = 0; i < n; i++) { if (i % 256 === 0) { v += (R() - 0.5) * 0.03 - v * 0.01; m = clamp(m + v, 0.3, 1); } d[i] += lo(R() * 2 - 1) * m; }
+  }, 8000],
+};
+// volume de chaque boucle (k = 1)
+SoundEngine.VOL_BOUCLES = { riviere: 0.2, clapotis: 0.22, feu: 0.22, gouttes: 0.07, feuilles: 0.06, grillon: 0.12, bourdon: 0.05, vent: 0.14 };
+// les oiseaux selon le milieu : [sorte, poids]
+SoundEngine.OISEAUX = {
+  foret: [['merle', 3], ['mesange', 3], ['pinson', 3], ['pic', 1], ['tourterelle', 1], ['coucou', 0.4]],
+  bouleaux: [['mesange', 3], ['pinson', 3], ['merle', 2], ['pic', 1.2]],
+  plaine: [['alouette', 2], ['merle', 1], ['pinson', 1], ['tourterelle', 1], ['coucou', 0.3]],
+  ferme: [['moineau', 3], ['merle', 1.5], ['tourterelle', 2], ['mesange', 1]],
+  ville: [['moineau', 4], ['tourterelle', 1], ['merle', 1]],
+  lande: [['alouette', 3], ['pinson', 1]],
+  lac: [['merle', 1], ['mesange', 1], ['pinson', 1]],
+  marais: [['merle', 1], ['mesange', 1]],
+  hauteurs: [['alouette', 1]],
+};
+
+Object.assign(SoundEngine.prototype, {
+  // ---------------------------------------------------------------- boucles placées
+  boucleTampon(nom) {
+    const key = 'B_' + nom;
+    if (this._bufs[key]) return this._bufs[key];
+    const [dur, fill, srB] = SoundEngine.BOUCLES[nom], sr = Math.min(this.ctx.sampleRate, srB || SoundEngine.SR_SYNTH), n = Math.floor(dur * sr), X = Math.floor(0.25 * sr);
+    const tmp = new Float32Array(n + X);
+    fill(tmp, sr, dur + 0.25);
+    const b = this.ctx.createBuffer(1, n, sr), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = tmp[i];
+    for (let i = 0; i < X; i++) { const a = i / X; d[i] = tmp[i] * Math.sqrt(a) + tmp[n + i] * Math.sqrt(1 - a); } // le raccord : fondu enchaîné
+    SoundEngine.SYN.norm(d, 1);
+    return (this._bufs[key] = b);
+  },
+  _boucleNew(type, pos, o) {
+    const c = this.ctx, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    if (type === 'vent') { s.buffer = this.boucleTampon('bruit'); f.type = 'lowpass'; f.frequency.value = 400; f.Q.value = 0.6; }
+    else { s.buffer = this.boucleTampon(type); f.type = 'lowpass'; f.frequency.value = this.nyq(o.lp || 20000); f.Q.value = 0.5; }
+    s.loop = true; s.playbackRate.value = o.rate || 1;
+    g.gain.value = 0;
+    s.connect(f).connect(g);
+    const dest = o.dest || this.B.amb.inp;
+    let em = null;
+    if (pos) { em = this.tenir(pos, dest, { att: o.att || 'phys', ref: o.ref || 3, roll: o.roll }); g.connect(em.inp); }
+    else g.connect(dest);
+    s.start(c.currentTime + 0.02, Math.random() * s.buffer.duration);
+    return { s, f, g, em, type, vu: 0, niv: 0 };
+  },
+  // une boucle d'ambiance placée (clé unique), niveau k ; à rafraîchir, sinon elle s'éteint en fondu
+  source(cle, type, pos, k, o) {
+    if (!this.ok || !SoundEngine.BOUCLES[type] && type !== 'vent') return null;
+    o = o || {};
+    const M = this.sources || (this.sources = new Map()), now = this.ctx.currentTime;
+    let x = M.get(cle);
+    if (!x) {
+      if (!(k > 0.002)) return null;
+      x = this._boucleNew(type, pos ? this.pos3(pos) : null, o);
+      M.set(cle, x);
+    }
+    x.vu = now; x.niv = k;
+    if (o.lp !== undefined && x.lp !== o.lp) { if (x.lp !== undefined) x.f.frequency.setTargetAtTime(this.nyq(o.lp), now, 0.25); x.lp = o.lp; } // on entre, on sort : la boucle s'assourdit ou s'ouvre
+    const cible = Math.max(0, k) * (o.vol || SoundEngine.VOL_BOUCLES[type] || 0.1);
+    if (x.cible === undefined || Math.abs(cible - x.cible) > Math.max(0.0004, x.cible * 0.03)) { x.cible = cible; x.g.gain.setTargetAtTime(cible, now, o.tau || 0.8); }
+    if (pos && x.em) {
+      const P = this.pos3(pos);
+      if (P && Math.hypot(P[0] - x.em.pos[0], P[1] - x.em.pos[1], P[2] - x.em.pos[2]) > (o.pas || 0.25)) this._place(x.em, P, true);
+    }
+    return x;
+  },
+  _sourcesTick() {
+    if (!this.sources) return;
+    const now = this.ctx.currentTime;
+    for (const [cle, x] of this.sources) {
+      let fin = now - x.vu > 1.6;
+      if (!fin) { if (x.niv <= 0.002) { x.zero = x.zero || now; fin = now - x.zero > 3; } else x.zero = 0; }
+      if (!fin) continue;
+      this.sources.delete(cle);
+      x.g.gain.cancelScheduledValues(now); x.g.gain.setTargetAtTime(0, now, 0.35);
+      try { x.s.stop(now + 2); } catch (e) { /* déjà */ }
+      const em = x.em;
+      if (em) setTimeout(() => this.lacher(em), 2300);
+    }
+  },
+  // tout couper (changement de partie)
+  sourcesStop() { if (!this.sources) return; for (const x of this.sources.values()) x.vu = -1e9; this._sourcesTick(); },
+
+  // ---------------------------------------------------------------- chaque image
+  update(dt, E) {
+    if (!this.ok) return;
+    // l'écouteur suit le joueur si aucune image n'a été rendue récemment (sinon : la caméra, voir Renderer.render)
+    try {
+      if (!(performance.now() - (this._rendT || 0) < 250) && typeof game !== 'undefined' && game.player && game.world) { const p = game.player; this.ecoute(p.eyePos(), p.yaw, p.pitch); }
+    } catch (e) { /* rien */ }
+    this.suivre();
+    const S = this.sc || (this.sc = { acc: 0, lieuT: 0, oiseauT: 2, nuitT: 4, chouetteT: 30, eauT: 0, feuT: 0, arbres: [], arbresT: 0, arbresP: null, rafale: 0, rafaleT: 20, rafaleA: 0, rafaleS: 1, grillons: [], gouttesT: 0, vieux: 0, bioT: 0, caveT: 3 });
+    S.acc += dt;
+    if (S.acc < 0.1) return;
+    const d = S.acc;
+    S.acc = 0;
+    try { this._scene(d, E, S); } catch (e) { if (!this._sceneErr) { this._sceneErr = true; console.error('son (scène)', e); } }
+  },
+  _scene(dt, E, S) {
+    const now = this.ctx.currentTime, R = Math.random, B = this.bio || {}, L = this.L;
+    const G = typeof game !== 'undefined' ? game : null, w = G && G.world, p = G && G.player;
+    if (!w || !p) return;
+    const ferme = G.kind === 'farm', mondeAPart = typeof mondes !== 'undefined' && mondes.cur;
+    const under = !!(p.underground || (ferme && B.under));
+    const inside = !!E.inside && !under;
+    const dehors = !inside && !under;
+    const biome = ferme ? B.biome || 'plaine' : 'plaine';
+    const quiet = !(E.day > 0) && !(E.night > 0); // nuit rouge, Envers, temps arrêté, autres mondes
+    const calme = 1 - clamp((E.rain || 0) * 1.5, 0, 1);
+    // les tampons se calculent un à un au début de la partie, quand le navigateur a le temps (entre deux images)
+    if (!this._chaud && !this._chauffeEnCours) {
+      if (typeof requestIdleCallback === 'function') {
+        this._chauffeEnCours = true;
+        const f = (dl) => {
+          let n = this.chauffer();
+          while (n > 0 && dl.timeRemaining() > 4) n = this.chauffer();
+          if (n > 0) requestIdleCallback(f, { timeout: 1500 }); else { this._chaud = true; this._chauffeEnCours = false; }
+        };
+        requestIdleCallback(f, { timeout: 1500 });
+      } else if (!this.chauffer()) this._chaud = true;
+    }
+    // ---- le lieu : la réverbération
+    S.lieuT -= dt;
+    if (S.lieuT <= 0) { S.lieuT = 0.3; this.setLieu(this._lieuAuto(w, p, under, inside, biome, mondeAPart)); }
+    // ---- le vent : seulement dans l'orage, sur les hauteurs, et par rafales ; il vient d'un côté
+    const haut = biome === 'hauteurs' || (E.height || 0) > 55;
+    S.rafaleT -= dt;
+    if (S.rafaleT <= 0 && S.rafale <= 0) {
+      S.rafaleT = 25 + R() * 50;
+      if (dehors && !quiet && R() < (haut ? 0.9 : biome === 'lande' || biome === 'plaine' ? 0.6 : 0.45)) { S.rafale = 4 + R() * 5; S.rafaleD = S.rafale; S.rafaleA = R() * TAU; S.rafaleS = R() < 0.5 ? -1 : 1; }
+    }
+    let gust = 0;
+    if (S.rafale > 0) { S.rafale -= dt; const u = 1 - S.rafale / S.rafaleD; gust = Math.sin(Math.PI * clamp(u, 0, 1)); }
+    const tw = now * 0.9, souffle = clamp(0.5 + 0.32 * Math.sin(tw * 0.21) * Math.sin(tw * 0.067 + 1.3) + 0.18 * Math.sin(tw * 0.53 + 2.1), 0, 1);
+    const orage = mondeAPart ? 0 : clamp(E.storm || 0, 0, 1);
+    let vent = orage * (0.55 + 0.45 * souffle) + (haut ? 0.28 + 0.22 * souffle : 0) + gust * 0.38;
+    if (under) vent = 0;
+    if (inside) vent *= 0.35;
+    const wa = (typeof weather !== 'undefined' && weather.windAngle !== undefined ? weather.windAngle : 0) + (S.rafale > 0 ? S.rafaleA + S.rafaleS * (1 - S.rafale / S.rafaleD) * 1.6 : 0);
+    const vpos = [L.x + Math.cos(wa) * 14, L.y + 3, L.z + Math.sin(wa) * 14];
+    const vx = this.source('vent', 'vent', vpos, vent, { att: 'aucune', tau: 0.6 });
+    if (vx) vx.f.frequency.setTargetAtTime((inside ? 160 : 230) + 520 * clamp(souffle * orage + gust * 0.8 + (haut ? 0.3 : 0), 0, 1), now, 0.6);
+    // un second souffle, de l'autre côté, plus sifflant (orage, sommets)
+    const v2 = orage * 0.6 + (haut ? 0.35 : 0);
+    const vx2 = this.source('vent2', 'vent', [L.x - Math.cos(wa + 0.7) * 16, L.y + 6, L.z - Math.sin(wa + 0.7) * 16], under ? 0 : v2 * (0.4 + 0.6 * souffle) * (inside ? 0.3 : 1), { att: 'aucune', tau: 0.8, vol: 0.05 });
+    if (vx2) { vx2.f.type = 'bandpass'; vx2.f.Q.value = 5; vx2.f.frequency.setTargetAtTime(480 + 520 * souffle, now, 1.2); }
+    // le feuillage, pendant la rafale, dans les arbres
+    const bois = biome === 'foret' || biome === 'bouleaux';
+    this.source('feuilles', 'feuilles', [L.x + Math.cos(wa + 0.3) * 7, L.y + 5, L.z + Math.sin(wa + 0.3) * 7], dehors && bois ? gust * 0.9 + orage * 0.5 : 0, { att: 'aucune', tau: 0.7 });
+    // ---- la pluie : un lit large, et des gouttes tout autour (sur le toit quand on est à l'abri)
+    this._pluie(dt, E, S, under, inside, now);
+    // ---- l'eau : la rivière qui coule, le lac qui clapote
+    S.eauT -= dt;
+    if (S.eauT <= 0) { S.eauT = 0.5; this._eau(w, p, S, under); }
+    if (S.riv) this.source('riviere', 'riviere', S.riv.p, S.riv.k * (inside ? 0.35 : 1), { ref: 6, roll: 0.9, lp: inside ? 1200 : 20000 });
+    if (S.rive) this.source('clapotis', 'clapotis', S.rive.p, S.rive.k * (inside ? 0.3 : 1) * (E.storm > 0.5 ? 1.5 : 1), { ref: 4, roll: 0.9 });
+    // ---- le feu : le vrai foyer le plus proche
+    S.feuT -= dt;
+    if (S.feuT <= 0) { S.feuT = 0.4; S.feu = (E.fire || 0) > 0.02 || (typeof vallee !== 'undefined' && vallee.burning && vallee.burning.size) ? this._feu(w, p) : null; }
+    if (S.feu) this.source('feu', 'feu', S.feu.p, S.feu.k, { ref: S.feu.gros ? 7 : 1.6, roll: 1 });
+    // ---- les oiseaux (le jour, par beau temps), dans les arbres
+    S.arbresT -= dt;
+    if (S.arbresT <= 0 && dehors) { S.arbresT = 3; this._arbres(w, p, S); }
+    S.oiseauT -= dt;
+    if (S.oiseauT <= 0) {
+      const jour = E.day || 0, aube = this._heure() >= 5 && this._heure() < 9 ? 1.6 : 1;
+      S.oiseauT = (0.9 + R() * 3.2) / Math.max(0.25, jour * aube) * (bois ? 0.8 : biome === 'ville' ? 1.4 : 1.1);
+      if (dehors && !quiet && jour > 0.25 && calme > 0.5 && !mondeAPart) this._chanteur(biome, S, jour * calme);
+    }
+    // ---- la nuit : grillons dans l'herbe, chouette au loin, grenouilles près de l'eau
+    const nuit = E.night || 0, herbeux = biome === 'plaine' || biome === 'ferme' || biome === 'lande' || biome === 'lac' || biome === 'bouleaux';
+    this._grillons(S, dehors && !quiet && nuit > 0.3 && calme > 0.6 && herbeux && !mondeAPart ? nuit : 0, p);
+    S.chouetteT -= dt;
+    if (S.chouetteT <= 0) {
+      S.chouetteT = 22 + R() * 40;
+      if (dehors && !quiet && nuit > 0.6 && (bois || biome === 'ferme' || biome === 'plaine') && S.arbres.length) { const a = S.arbres[(R() * S.arbres.length) | 0]; if (Math.hypot(a[0] - L.x, a[2] - L.z) > 12) this.oiseau('chouette', a, 1, 4); }
+    }
+    // ---- sous terre : gouttes, bourdon lointain
+    if (under && !mondeAPart) {
+      S.caveT -= dt;
+      if (S.caveT <= 0) {
+        S.caveT = 0.6 + R() * 2.2;
+        const a = R() * TAU, r = 3 + R() * 12, pos = [L.x + Math.cos(a) * r, L.y + 1 + R() * 3, L.z + Math.sin(a) * r];
+        this.jouer(this.tb('goutte', 8), this.at(), 0.05 + R() * 0.05, this.en3d(pos, this.B.amb.inp, { ref: 2, dur: 0.6 }), 0.8 + R() * 0.5);
+      }
+    }
+    this.source('bourdon', 'bourdon', null, under && !mondeAPart ? 1 : 0, { tau: 2 });
+    this._sourcesTick();
+  },
+  _heure() { try { return npcs.hour(); } catch (e) { return 12; } },
+  // le lieu où l'on est (pour la réverbération)
+  _lieuAuto(w, p, under, inside, biome, mondeAPart) {
+    if (under || (mondeAPart && mondeAPart !== 'bonbons')) return 'grotte';
+    if (inside) {
+      const S = this.sc;
+      if (!S.bldT || performance.now() - S.bldT > 1000) {
+        S.bldT = performance.now(); S.bld = null;
+        const px = p.pos[0], pz = p.pos[2];
+        for (const k in w.bld || {}) {
+          const B = w.bld[k];
+          if (!B || !B.f || !B.W || Math.abs(B.x - px) > 40 || Math.abs(B.z - pz) > 40) continue;
+          const [lx, lz] = World.blockLocal({ x: B.f.x, z: B.f.z, r: B.f.r }, px, pz);
+          if (Math.abs(lx) < B.W / 2 && Math.abs(lz) < B.D / 2) { S.bld = B; break; }
+        }
+      }
+      const B = S.bld;
+      if (B && (/eglise|chapelle|temple|biblio|halle|grange|mairie|auberge/.test(B.key || '') || B.W * B.D > 150)) return 'salle';
+      return 'piece';
+    }
+    if (biome === 'foret' || biome === 'bouleaux' || biome === 'marais') return 'foret';
+    if (biome === 'hauteurs') return 'montagne';
+    return 'dehors';
+  },
+  // pluie : un lit stéréo large (hors 3D : elle est partout) + quatre nappes de gouttes placées autour
+  _pluie(dt, E, S, under, inside, now) {
+    const rain = under ? 0 : clamp(E.rain || 0, 0, 1), c = this.ctx, L = this.L;
+    if (!S.pl && rain > 0.02) {
+      const mk = (rate) => { const s = c.createBufferSource(); s.buffer = this.boucleTampon('bruit'); s.loop = true; s.playbackRate.value = rate; const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 280; const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200; lp.Q.value = 0.5; s.connect(hp).connect(lp); s.start(now, Math.random() * 8.5); return { s, lp }; };
+      const a = mk(1), b = mk(0.97), m = c.createChannelMerger(2), g = c.createGain();
+      g.gain.value = 0;
+      a.lp.connect(m, 0, 0); b.lp.connect(m, 0, 1); m.connect(g).connect(this.B.amb.inp);
+      S.pl = { a, b, g, zero: 0 };
+    }
+    if (S.pl) {
+      const v = rain * rain * (inside ? 0.07 : 0.28);
+      S.pl.g.gain.setTargetAtTime(v, now, 0.8);
+      const lp = inside ? 900 : 4200 + rain * 1400;
+      S.pl.a.lp.frequency.setTargetAtTime(lp, now, 0.5); S.pl.b.lp.frequency.setTargetAtTime(lp * 1.08, now, 0.5);
+      if (rain <= 0.02) { S.pl.zero += dt; if (S.pl.zero > 4) { S.pl.g.gain.setTargetAtTime(0, now, 0.3); const P = S.pl; try { P.a.s.stop(now + 1.5); P.b.s.stop(now + 1.5); } catch (e) { /* rien */ } S.pl = null; } } else S.pl.zero = 0;
+    }
+    // les gouttes : devant, derrière, à gauche, à droite (au sol dehors ; au-dessus, sur le toit, dedans)
+    const k = rain * (inside ? 0.5 : 1);
+    for (let i = 0; i < 4; i++) {
+      const a = i * Math.PI / 2 + 0.6, r = inside ? 2.2 : 3.5;
+      this.source('gouttes' + i, 'gouttes', [L.x + Math.cos(a) * r, L.y + (inside ? 2.6 : -1.3), L.z + Math.sin(a) * r], k, { att: 'aucune', rate: 0.9 + i * 0.07, lp: inside ? 1400 : 20000, pas: 1 });
+    }
+  },
+  // la rivière la plus proche (lit connu du plan de la vallée) ; la rive d'un lac (l'eau sous le niveau)
+  _eau(w, p, S, under) {
+    S.riv = null; S.rive = null;
+    if (under || !w.heightAt) return;
+    const px = p.pos[0], pz = p.pos[2], WL = w.waterLevel;
+    // rivières
+    if (!S.rivs || S.rivsW !== w) {
+      S.rivsW = w; S.rivs = [];
+      try { if (w.designed && typeof VALLEY_DESIGN !== 'undefined') { const P = VALLEY_DESIGN.P || designPrepare(VALLEY_DESIGN); S.rivs = P.rivers.map((R) => ({ w: R.w, pts: R.pts })); } } catch (e) { S.rivs = []; }
+    }
+    let best = null;
+    for (const V of S.rivs) for (let i = 1; i < V.pts.length; i++) {
+      const a = V.pts[i - 1], b = V.pts[i], dx = b[0] - a[0], dz = b[1] - a[1], L2 = dx * dx + dz * dz || 1;
+      const t = clamp(((px - a[0]) * dx + (pz - a[1]) * dz) / L2, 0, 1), x = a[0] + dx * t, z = a[1] + dz * t, d = Math.hypot(px - x, pz - z);
+      if (!best || d < best.d) best = { d, x, z, w: V.w };
+    }
+    if (best && best.d < 90) {
+      // au milieu du lit, à la surface
+      const k = clamp(1.25 - best.d / 90, 0, 1) * (best.w > 5 ? 1 : 0.7);
+      S.riv = { p: [best.x, WL + 0.3, best.z], k };
+    }
+    // rive d'un lac ou d'un étang : on cherche l'eau autour (16 directions, 5 distances)
+    let near = null;
+    for (const r of [4, 9, 16, 26, 40]) {
+      for (let j = 0; j < 16; j++) {
+        const a = j / 16 * TAU, x = px + Math.cos(a) * r, z = pz + Math.sin(a) * r;
+        if (w.heightAt(x, z) < WL - 0.2) { const d = r; if (!near || d < near.d) near = { d, x, z }; }
+      }
+      if (near) break;
+    }
+    if (near && !(S.riv && best.d < near.d + 8)) S.rive = { p: [near.x, WL + 0.2, near.z], k: clamp(1.2 - near.d / 40, 0.15, 1) };
+  },
+  // le foyer le plus proche : feux de camp, cheminées, fours, grands feux ; arbres qui brûlent (pas les bougies)
+  _feu(w, p) {
+    const px = p.pos[0], pz = p.pos[2];
+    let best = null;
+    for (const l of w.lights || []) {
+      if (!l.flicker) continue;
+      const id = l.prop ? l.prop.id : 'campfire';
+      if (!SoundEngine.FEUX[id]) continue;
+      const d = Math.hypot(l.x - px, l.z - pz);
+      if (d < 26 && (!best || d < best.d)) best = { d, p: [l.x, l.y - 0.3, l.z], k: SoundEngine.FEUX[id], gros: id === 'feu_geant' };
+    }
+    if (typeof vallee !== 'undefined' && vallee.burning && vallee.burning.size) {
+      for (const b of vallee.burning.values()) { const d = Math.hypot(b.x - px, b.z - pz); if (d < 90 && (!best || d < best.d)) best = { d, p: [b.x, b.y + b.h * 0.5, b.z], k: b.tree ? 2.5 : 1.2, gros: true }; }
+    }
+    return best;
+  },
+  // les arbres autour (pour y percher les oiseaux et la chouette)
+  _arbres(w, p, S) {
+    const px = p.pos[0], pz = p.pos[2];
+    if (S.arbresP && Math.hypot(S.arbresP[0] - px, S.arbresP[1] - pz) < 8 && S.arbres.length) return;
+    S.arbresP = [px, pz]; S.arbres = [];
+    if (!w.query || typeof OBJ_TYPES === 'undefined') return;
+    const A = S.arbres;
+    w.query(px, pz, 38, (o) => {
+      if (!o || o.gone || A.length > 40) return;
+      const T = OBJ_TYPES[o.t];
+      if (!T || T.cat !== 'Arbres' || (o.h || 0) < 3) return;
+      if (Math.hypot(o.x - px, o.z - pz) < 5) return;
+      A.push([o.x, w.objectY(o) + o.h * (0.6 + Math.random() * 0.3), o.z]);
+    }, null);
+  },
+  // un oiseau chante : dans un arbre s'il y en a, sinon dans la haie ou (l'alouette) haut dans le ciel
+  _chanteur(biome, S, k) {
+    const R = Math.random, T = SoundEngine.OISEAUX[biome] || SoundEngine.OISEAUX.plaine, L = this.L;
+    let tot = 0;
+    for (const [, w] of T) tot += w;
+    let r = R() * tot, sorte = T[0][0];
+    for (const [s, w] of T) { r -= w; if (r <= 0) { sorte = s; break; } }
+    let pos;
+    if (sorte === 'alouette') { const a = R() * TAU, d = 20 + R() * 30; pos = [L.x + Math.cos(a) * d, L.y + 25 + R() * 20, L.z + Math.sin(a) * d]; }
+    else if (S.arbres.length) pos = S.arbres[(R() * S.arbres.length) | 0];
+    else { const a = R() * TAU, d = 10 + R() * 25; pos = [L.x + Math.cos(a) * d, L.y + 1 + R() * 3, L.z + Math.sin(a) * d]; }
+    this.oiseau(sorte, pos, k);
+  },
+  // les grillons : trois à cinq, chacun à sa place dans l'herbe ; ils se taisent quand on s'approche
+  _grillons(S, k, p) {
+    const L = this.L, R = Math.random, G = S.grillons, px = p.pos[0], pz = p.pos[2];
+    const n = k > 0 ? 4 : 0;
+    while (G.length < n) G.push({ id: 'grillon' + ((S.gid = (S.gid || 0) + 1)), pos: null, tait: 0 });
+    for (let i = 0; i < G.length; i++) {
+      const g = G[i];
+      if (i >= n) { this.source(g.id, 'grillon', g.pos, 0); continue; }
+      if (!g.pos || Math.hypot(g.pos[0] - px, g.pos[2] - pz) > 18) {
+        const a = R() * TAU, d = 5 + R() * 10, x = px + Math.cos(a) * d, z = pz + Math.sin(a) * d;
+        let y = L.y - 1.5;
+        try { y = game.world.heightAt(x, z) + 0.1; } catch (e) { /* rien */ }
+        if (g.pos) this.source(g.id, 'grillon', g.pos, 0);
+        g.id = 'grillon' + ((S.gid = (S.gid || 0) + 1)); g.pos = [x, y, z];
+      }
+      if (Math.hypot(g.pos[0] - px, g.pos[2] - pz) < 2.8) g.tait = 7;
+      g.tait = Math.max(0, g.tait - 0.1);
+      this.source(g.id, 'grillon', g.pos, g.tait > 0 ? 0 : k * (0.7 + 0.3 * Math.sin(i * 1.7)), { ref: 2.5, roll: 1, rate: 0.96 + i * 0.03, tau: g.tait > 0 ? 0.08 : 1.5 });
+    }
+    if (!n) G.length = 0;
+  },
+
+  // ---------------------------------------------------------------- selon le milieu (appelé par le jeu en mode ferme)
+  // E : { biome, day, night, rain, inside, under, envers, red, town, tension, forge }
+  biomeAmb(dt, E) {
+    if (!this.ok) return;
+    this.bio = E;
+    this.bT = (this.bT || 2) - dt;
+    if (this.bT > 0) return;
+    this.bT = 1.2 + Math.random() * 2.5;
+    const r = Math.random(), calm = E.rain < 0.4, L = this.L, R = Math.random;
+    const loin = (d0, d1, h) => { const a = R() * TAU, d = d0 + R() * (d1 - d0); return [L.x + Math.cos(a) * d, L.y + (h || 0), L.z + Math.sin(a) * d]; };
+    if (E.envers) {
+      if (r < 0.3) this.whisper(Math.random() * 2 - 1, 0.35);
+      else if (r < 0.45) this.voice(this.at(), 'sine', 48, 46, 4, 0.03, this.lp(300, this.amb));
+      return;
+    }
+    if (E.under) return; // (les gouttes et le bourdon sont dans la scène)
+    if (E.red) { if (r < 0.12) this.whisper(Math.random() * 2 - 1, 0.25); return; }
+    if (E.inside) {
+      // la maison travaille : un craquement de bois, quelque part, rarement (la nuit surtout)
+      if (r < (E.night > 0.5 ? 0.05 : 0.015)) this.ici(loin(2, 5, 1.5), () => this.voice(this.at(), 'sawtooth', 200 + R() * 120, 150 + R() * 60, 0.25 + R() * 0.3, 0.004, this.amb, { bp: 650 + R() * 300, q: 3, vib: 10, vibDepth: 14 }));
+      return;
+    }
+    switch (E.biome) {
+      case 'foret': case 'bouleaux':
+        if (E.day > 0.5 && calm && r < 0.1) this.ici(this._unArbre() || loin(15, 35, 4), () => this.woodpecker(), SoundEngine.LOIN);
+        break;
+      case 'marais':
+        if (r < 0.45) this.ici(this._presDeLEau() || loin(6, 20, -1), () => this.frog(E.night > 0.5 ? 1 : 0.6), SoundEngine.LOIN);
+        if (r > 0.8) this.ici(this._presDeLEau() || loin(4, 12, -1), () => this.bubble(), SoundEngine.LOIN);
+        break;
+      case 'lac':
+        if (E.night > 0.5 && r < 0.2) this.ici(this._presDeLEau() || loin(8, 25, -1), () => this.frog(0.7), SoundEngine.LOIN);
+        if (E.day > 0.5 && r > 0.93) this.animal('duck', loin(20, 45, -1), 0.5);
+        break;
+      case 'hauteurs':
+        if (E.day > 0.5 && calm && r < 0.06) this.ici(loin(60, 140, 45), () => this.eagle(), { att: 'aucune' }); // un cri qui porte : seule l'air l'assourdit
+        break;
+      case 'ville':
+        if (E.day > 0.5 && r < 0.3) { const n = this._habitantPres(); if (n) this.ici(n, () => this.mumble(n.voice || (0.8 + Math.random() * 0.8), 20, 0, 0.45), { att: 'phys', ref: 3 }); }
+        if (E.day > 0.5 && r > 0.9 && E.forge) this.anvil();
+        break;
+    }
+  },
+  _unArbre() { const A = this.sc && this.sc.arbres; return A && A.length ? A[(Math.random() * A.length) | 0] : null; },
+  _presDeLEau() { const S = this.sc; if (!S) return null; const q = S.rive || S.riv; if (!q) return null; return [q.p[0] + (Math.random() - 0.5) * 8, q.p[1], q.p[2] + (Math.random() - 0.5) * 8]; },
+  // un habitant éveillé, à portée de voix, qui ne parle pas déjà au joueur
+  _habitantPres() {
+    try {
+      const L = this.L, c = [];
+      for (const n of npcs.list) if (n.st && n.st.alive && !n.vanished && n.state !== 'sleep' && n.state !== 'gone' && !n.talking && n.dist > 4 && n.dist < 28) c.push(n);
+      return c.length ? c[(Math.random() * c.length) | 0] : null;
+    } catch (e) { return null; }
+  },
+});
+// les foyers qui s'entendent (et leur force)
+// les bruits d'ambiance placés au loin : une atténuation plus douce (on les entend de plus loin)
+SoundEngine.LOIN = { att: 'phys', ref: 7, roll: 0.8 };
+SoundEngine.FEUX = { campfire: 1, feu_camp: 1, cheminee: 0.8, four: 0.55, feu_geant: 2.2, brasero: 0.9, forge: 0.9 };
 
 // ---- 10-entities.js
 // ============================================================================
@@ -43875,7 +45312,7 @@ function legFrapper(eye) {
     const ang = Math.atan2(best.x - p.pos[0], best.z - p.pos[2]), rel = angDiff(p.yaw + Math.PI, ang);
     const side = Math.abs(rel) < 0.5 ? 'droit devant vous' : Math.abs(rel) > 2.6 ? 'derrière vous' : rel > 0 ? 'sur votre gauche' : 'sur votre droite';
     const loin = bd < 12 ? 'tout près' : bd < 35 ? 'pas loin' : 'plus loin';
-    if (sound.ok) { const pan = sound.pan(clamp(-Math.sin(rel), -0.9, 0.9)); for (let k = 0; k < 3; k++) sound.noiseHit(sound.at(k * 0.32 + 0.2), 0.07, 'lowpass', 420, 1, 0.22 * clamp(1 - bd / 100, 0.2, 1), pan); sound.noiseHit(sound.at(1.4), 0.07, 'lowpass', 420, 1, 0.22, pan); }
+    if (sound.ok) { const pan = sound.en3d ? sound.en3d([best.x, p.pos[1], best.z], null, { att: 'aucune', dur: 2 }) : sound.pan(clamp(-Math.sin(rel), -0.9, 0.9)); /* C5 : la réponse vient vraiment de là (devant, derrière…) */ for (let k = 0; k < 3; k++) sound.noiseHit(sound.at(k * 0.32 + 0.2), 0.07, 'lowpass', 420, 1, 0.22 * clamp(1 - bd / 100, 0.2, 1), pan); sound.noiseHit(sound.at(1.4), 0.07, 'lowpass', 420, 1, 0.22, pan); }
     ui.subtitle('', `(Trois coups, puis un : on vous répond ${side}, ${loin}.)`, 4);
   }, 2400);
 }
@@ -59392,6 +60829,66 @@ function carnetCorpsEsprit() {
   };
 }
 
+// ---- 12-zzzzz-sons.js
+// ============================================================================
+//  SONS AJOUTÉS PAR D'AUTRES MODULES, ADOUCIS (agent C5)
+//  Mêmes noms, mêmes paramètres ; seules les variantes trop aiguës ou trop
+//  sèches sont refaites (papier froissé, verre brisé, coups de bois, crochets,
+//  métal traîné des cauchemars). Le reste passe déjà par les primitives douces.
+// ============================================================================
+{
+  const P = SoundEngine.prototype, _fouille = P.fouille, _coup = P.objetCoup, _casse = P.objetCasse;
+  Object.assign(P, {
+    fouille(k) {
+      if (!this.ok) return;
+      const t = this.at(), R = Math.random;
+      if (k === 'papier') { for (let i = 0; i < 4; i++) this.jouer(this.tb('page'), t + i * 0.13 + R() * 0.05, 0.03, this.sfx, 0.8 + R() * 0.35); return; }
+      if (k === 'verre' || k === 'vaisselle') {
+        for (let i = 0; i < 3; i++) { const tt = t + i * 0.16 + R() * 0.05, f = 1800 + R() * 1100; this.tone(tt, 'sine', f, f * 0.97, 0.16, 0.022, null, 0.003); this.tone(tt, 'sine', f * 2.41, f * 2.37, 0.07, 0.005, null, 0.003); }
+        this.noiseHit(t, 0.15, 'bandpass', 700, 1.5, 0.05);
+        return;
+      }
+      if (_fouille) return _fouille.call(this, k);
+    },
+    objetCoup(m, k = 1) {
+      if (!this.ok) return;
+      if (m === 'bois') { const t = this.at(), R = Math.random; this.jouer(this.tb('coup'), t, 0.09 * k, this.sfx, 0.75 + R() * 0.2); this.tone(t, 'triangle', 180 + R() * 30, 110, 0.07, 0.03 * k); return; }
+      if (_coup) return _coup.call(this, m, k);
+    },
+    objetCasse(m, gros) {
+      if (!this.ok) return;
+      if (m === 'verre') {
+        const t = this.at(), R = Math.random;
+        this.noiseHit(t, 0.22, 'bandpass', 2600, 0.8, 0.07, null, 1800);
+        for (let i = 0; i < 9; i++) { const f = 1700 + R() * 2300; this.tone(t + i * 0.025 + R() * 0.05, 'sine', f, f * (0.85 + R() * 0.2), 0.06 + R() * 0.12, 0.016, null, 0.002); }
+        return;
+      }
+      if (_casse) return _casse.call(this, m, gros);
+    },
+    // crochetage : de petits bruits de métal, précis mais pas perçants
+    crocCale() { if (!this.ok) return; const t = this.at(); this.tone(t, 'triangle', 1900, 1600, 0.02, 0.03, null, 0.002); this.noiseHit(t + 0.01, 0.02, 'bandpass', 2400, 2, 0.02); },
+    crocRate() { if (!this.ok) return; const t = this.at(); for (let i = 0; i < 4; i++) this.noiseHit(t + i * 0.05, 0.05, 'bandpass', 2000 - i * 150, 2.5, 0.04); this.tone(t, 'triangle', 700, 520, 0.05, 0.025); },
+    crocCasse() { if (!this.ok) return; const t = this.at(); this.tone(t, 'triangle', 2400, 900, 0.035, 0.05, null, 0.002); this.noiseHit(t, 0.05, 'bandpass', 2600, 1.2, 0.05); this.tone(t + 0.12, 'triangle', 1700, 1680, 0.1, 0.02); },
+  });
+}
+// les autres mondes : leur bus passe par les bruitages (et donc par la réverbération du lieu)
+if (typeof MSON !== 'undefined') {
+  const _so = MSON.sortie;
+  MSON.sortie = function () {
+    if (!this.bus && sound.ctx && sound.B) { this.bus = sound.ctx.createGain(); this.bus.gain.value = 0.9; this.bus.connect(sound.B.sfx.inp); }
+    return this.bus || _so.call(this);
+  };
+}
+// le métal traîné sur la pierre (cauchemars) : moins de sifflement
+if (typeof MSON !== 'undefined') {
+  MSON.metal = function (k = 1, dur = 1.2, pan = 0) {
+    if (!this.ok) return;
+    const t = this.at(), out = this.pan(pan), R = Math.random;
+    for (let i = 0; i < 3; i++) sound.noiseHit(t + i * dur / 3, dur / 2.5, 'bandpass', 1700 + R() * 900, 6, 0.06 * k, out, 1300 + R() * 600, 0.08);
+    for (let i = 0; i < 8; i++) sound.tone(t + R() * dur, 'triangle', 1800 + R() * 1200, 1500, 0.03, 0.01 * k, out, 0.003);
+  };
+}
+
 // ---- 13-main.js
 // ============================================================================
 //  JEU : modes (ferme / création), boucle principale, interactions, journées
@@ -60657,6 +62154,264 @@ window.addEventListener('DOMContentLoaded', () => {
     el.classList.add('open');
   });
 });
+
+// ---- 13-zz-son3d.js
+// ============================================================================
+//  LE SON EN 3D, BRANCHÉ SUR LE MONDE (agent C5)
+//  Les bruits qui ont une place viennent de cette place : les bêtes (cris,
+//  aboiements, grognements, envols), les habitants (paroles, cris, pas, portes
+//  qu'ils ouvrent), les choses étranges (pas qui suivent, murmures), les coups
+//  de feu et les pièges des chasseurs, la foudre (de l'arbre frappé), le
+//  violoneux, la tornade. Réglage « Son 3D pour casque » dans les Options.
+//  Rien n'est sauvegardé dans la partie (réglage : settings.son3d).
+// ============================================================================
+
+// ---------------------------------------------------------------- le réglage
+DEFAULT_SETTINGS.son3d = true;
+if (settings.son3d === undefined) settings.son3d = true;
+{
+  const _apply = game.applySettings.bind(game);
+  game.applySettings = function () { const r = _apply(); try { sound.set3D(settings.son3d !== false); } catch (e) { /* rien */ } return r; };
+  const _init = ui.init.bind(ui);
+  ui.init = function () {
+    const r = _init();
+    try {
+      const amb = $('#o-amb'), lab = amb && amb.closest('label');
+      if (lab && !$('#o-son3d')) {
+        const l = document.createElement('label');
+        l.className = 'row';
+        l.innerHTML = '<input type="checkbox" id="o-son3d"> Son 3D pour casque';
+        lab.after(l);
+        const el = $('#o-son3d');
+        el.checked = settings.son3d !== false;
+        el.onchange = () => { settings.son3d = el.checked; store.set('prairie.settings', settings); game.applySettings(); sound.click(); };
+      }
+    } catch (e) { console.error('son3d option', e); }
+    return r;
+  };
+}
+
+// ---------------------------------------------------------------- les bêtes : leurs bruits viennent d'elles
+const SON3D_BETE = { att: 'phys', ref: 10, roll: 0.5, suivre: true };
+{
+  const _uw = entities.updateWalker, _ub = entities.updateBird;
+  entities.updateWalker = function (e, dt, w, c) { const k = sound.entrer(e, SON3D_BETE); try { return _uw.call(this, e, dt, w, c); } finally { sound.sortir(k); } };
+  entities.updateBird = function (e, dt, w, c) { const k = sound.entrer(e, SON3D_BETE); try { return _ub.call(this, e, dt, w, c); } finally { sound.sortir(k); } };
+  // les cris spontanés : on entend plus loin qu'avant, et d'où ils viennent
+  const _calls = entities.calls;
+  entities.calls = function (dt, c) {
+    if (!sound.ctx) return _calls.call(this, dt, c);
+    this.callT -= dt;
+    if (this.callT > 0) return;
+    this.callT = 1.2 + Math.random() * 3.5;
+    if (c.rain > 0.7 || c.silent) return;
+    const near = this.list.filter((e) => e.cfg.call && !e.hidden && !e.far && !e.dead && Math.hypot(e.x - c.px, e.z - c.pz) < 40);
+    if (!near.length) return;
+    const e = near[(Math.random() * near.length) | 0], d = Math.hypot(e.x - c.px, e.z - c.pz);
+    sound.ici(e, () => sound.animal(e.cfg.call, 0, clamp(1.15 - d / 45, 0.25, 1)), { att: 'phys', ref: 6, roll: 0.7, suivre: true });
+  };
+}
+
+// ---------------------------------------------------------------- les habitants : leur voix, leurs cris, leurs pas
+const SON3D_VOIX = { att: 'phys', ref: 3, roll: 1, suivre: true };
+{
+  const _say = npcs.say.bind(npcs);
+  npcs.say = function (n, text, dur) { const k = sound.entrer(n, SON3D_VOIX); try { return _say(n, text, dur); } finally { sound.sortir(k); } };
+  const _hurt = npcs.hurt.bind(npcs);
+  npcs.hurt = function (n, dmg, by) { const k = sound.entrer(n, SON3D_VOIX); try { return _hurt(n, dmg, by); } finally { sound.sortir(k); } };
+  const _kill = npcs.kill.bind(npcs);
+  npcs.kill = function (n, by, wit) { const k = sound.entrer(n, { att: 'phys', ref: 8, roll: 0.6 }); try { return _kill(n, by, wit); } finally { sound.sortir(k); } };
+  const _knock = npcs.knock.bind(npcs);
+  npcs.knock = function (dr) { const k = sound.entrer(dr ? [dr.x, (dr.y || 0) + 1.2, dr.z] : null, { att: 'phys', ref: 3 }); try { return _knock(dr); } finally { sound.sortir(k); } };
+  const _view = talk.view.bind(talk);
+  talk.view = function (text, options, raw) { const k = sound.entrer(talk.n, SON3D_VOIX); try { return _view(text, options, raw); } finally { sound.sortir(k); } };
+}
+// les pas des habitants qui marchent près de soi, les sabots des bêtes, et les portes qu'on ouvre ou referme ailleurs
+const SON3D_SABOTS = { horse: 0.06, donkey: 0.05, cow: 0.05, deer: 0.03, goat: 0.025, sheep: 0.02, boar: 0.035 };
+const son3d = {
+  portes: null, porteT: 0,
+  sol(w, x, y, z) {
+    try {
+      if (w.covered(x, y + 1.2, z)) return 'wood';
+      const m = w.matAt(x, z);
+      if (m === M_PLANKS || m === M_LOGS || m === M_CRATE) return 'wood';
+      if (m === M_DIRT || m === M_SAND || m === M_THATCH) return 'soft';
+      if (m === M_ROCK || m === M_COBBLE || m >= M_STONE) return 'hard';
+    } catch (e) { /* rien */ }
+    return 'grass';
+  },
+  update(dt) {
+    if (!sound.ok || !farm.s || !game.world) return;
+    const w = game.world, p = game.player;
+    // pas
+    for (const n of npcs.list) {
+      if (!(n.dist < 22) || !n.st || !n.st.alive || n.vanished || n.state !== 'walk' || !(n.move > 0.4) || n.hunting) { n._pasK = undefined; continue; }
+      const k = Math.floor(n.phase / Math.PI);
+      if (n._pasK === undefined) { n._pasK = k; continue; }
+      if (k === n._pasK) continue;
+      n._pasK = k;
+      const t = sound.entrer([n.x, (n.y || 0) + 0.1, n.z], { att: 'phys', ref: 2, roll: 1 });
+      try { sound.step(this.sol(w, n.x, n.y || 0, n.z), n.run ? 5 : 2.5); } finally { sound.sortir(t); }
+    }
+    // sabots des grosses bêtes qui marchent tout près (chevaux, vaches, ânes, cerfs, chèvres, moutons)
+    for (const e of entities.list) {
+      const S = SON3D_SABOTS[e.kind];
+      if (!S || !(e.dist < 16) || e.hidden || e.dead || e.ridden || !(e.move > 0.35)) { e._pasK = undefined; continue; }
+      const k = Math.floor(e.phase / (Math.PI / 2));
+      if (e._pasK === undefined) { e._pasK = k; continue; }
+      if (k === e._pasK) continue;
+      e._pasK = k;
+      const t = sound.entrer([e.x, (e.y || 0) + 0.1, e.z], { att: 'phys', ref: 2, roll: 1 });
+      try {
+        const dur = this.sol(w, e.x, e.y || 0, e.z) === 'hard';
+        sound.jouer(sound.tb(dur ? 'sabot' : 'terre'), sound.at(), S * (e.run ? 1.3 : 1) * (0.8 + Math.random() * 0.4), sound.sfx, (dur ? 1.1 : 0.8) + Math.random() * 0.15);
+      } finally { sound.sortir(t); }
+    }
+    // portes (ouvertes ou fermées par d'autres que soi)
+    this.porteT -= dt;
+    if (this.porteT > 0) return;
+    this.porteT = 0.15;
+    if (!this.portes || this.portes.w !== w) this.portes = { w, etat: new Map() };
+    const E = this.portes.etat;
+    for (let i = 0; i < w.doors.length; i++) {
+      const dr = w.doors[i], d = Math.hypot(dr.x - p.pos[0], dr.z - p.pos[2]);
+      if (d > 20) { E.delete(i); continue; }
+      const o = dr.open ? 1 : 0, avant = E.get(i);
+      E.set(i, o);
+      if (avant === undefined || avant === o || d < 2.6) continue;
+      sound.ici([dr.x, (dr.y || 0) + (dr.h || 2) * 0.5, dr.z], () => sound.door(!!o), { att: 'phys', ref: 3 });
+    }
+  },
+};
+HOOKS.update.push((dt) => { try { son3d.update(dt); } catch (e) { if (!son3d.err) { son3d.err = true; console.error('son3d', e); } } });
+
+// ---------------------------------------------------------------- les choses étranges : elles ont une place, elles aussi
+{
+  const OPT = { att: 'aucune', suivre: true };
+  for (const k of Object.keys(strange)) {
+    if (!k.startsWith('E_') || typeof strange[k] !== 'function') continue;
+    const f = strange[k];
+    strange[k] = function (e, dt, c) { const t = sound.entrer(e, OPT); try { return f.call(this, e, dt, c); } finally { sound.sortir(t); } };
+  }
+}
+
+// ---------------------------------------------------------------- la foudre : le tonnerre vient de l'arbre frappé
+if (typeof vallee !== 'undefined' && vallee.strike) {
+  const _strike = vallee.strike.bind(vallee);
+  vallee.strike = function (o, i) {
+    let pos = null;
+    try { pos = [o.x, game.world.objectY(o) + (o.h || 8), o.z]; } catch (e) { /* rien */ }
+    const k = sound.entrer(pos, { att: 'aucune' });
+    try { return _strike(o, i); } finally { sound.sortir(k); }
+  };
+}
+
+// ---------------------------------------------------------------- la chasse : coups de feu, impacts, pièges, grognements, d'où ils viennent
+if (typeof chasse !== 'undefined') {
+  const O = { att: 'aucune' };
+  const scoped = (nom, posOf) => {
+    const f = chasse[nom];
+    if (typeof f !== 'function') return;
+    chasse[nom] = function (...a) { const P = posOf(...a); const k = sound.entrer(P, O); try { return f.apply(this, a); } finally { sound.sortir(k); } };
+  };
+  scoped('sonTir', (pos, soi) => (soi || !pos ? null : [pos[0], (pos[1] !== undefined ? pos[1] : 0) + 0.5, pos[2]]));
+  scoped('sonImpact', (pt) => (pt ? [pt[0], pt[1], pt[2]] : null));
+  scoped('sonMachoires', (x, z) => [x, z]);
+  scoped('sonGrogne', (e) => e);
+}
+
+// ---------------------------------------------------------------- le violoneux : sa musique vient de lui
+if (typeof activites !== 'undefined' && activites.jouerMusique) {
+  const _jm = activites.jouerMusique.bind(activites);
+  activites.jouerMusique = function (dt) {
+    const r = _jm(dt);
+    try {
+      const m = this.musique, V = game.world.act && game.world.act.violon;
+      if (m && V && m.g && !m.em && sound.ctx) {
+        m.em = sound.tenir([V.x, (V.y || 0) + 1.3, V.z], sound.B.sfx.inp, { att: 'aucune' });
+        m.g.disconnect(); m.g.connect(m.em.inp);
+        const em = m.em, g = m.g;
+        // quand la musique s'arrête, on rend la source (après le fondu)
+        const libere = () => { if (activites.musique === m) { setTimeout(libere, 1500); return; } setTimeout(() => { try { g.disconnect(); } catch (e) { /* rien */ } sound.lacher(em); }, 1500); };
+        setTimeout(libere, 1500);
+      }
+    } catch (e) { /* rien */ }
+    return r;
+  };
+}
+
+// ---------------------------------------------------------------- la tornade : le grondement vient d'elle
+if (typeof tornade !== 'undefined' && tornade.sonMaj) {
+  const _sm = tornade.sonMaj.bind(tornade);
+  tornade.sonMaj = function (k) {
+    const r = _sm(k);
+    try {
+      const S = this.son, E = this.E;
+      if (S && E && sound.ctx) {
+        const pos = [E.x, (E.y || game.world.heightAt(E.x, E.z)) + 12, E.z];
+        if (!S.em) {
+          S.em = sound.tenir(pos, sound.B.amb.inp, { att: 'aucune' });
+          S.g.disconnect(); S.g2.disconnect(); S.g.connect(S.em.inp); S.g2.connect(S.em.inp);
+          const em = S.em, T = this, S0 = S;
+          const libere = () => { if (T.son === S0) { setTimeout(libere, 1500); return; } setTimeout(() => sound.lacher(em), 1500); };
+          setTimeout(libere, 1500);
+        } else sound._place(S.em, pos, true);
+      }
+    } catch (e) { /* rien */ }
+    return r;
+  };
+}
+
+// ---------------------------------------------------------------- d'autres voix qui ont une place
+// la lavandière bat le linge au lavoir (mais quand elle surgit, c'est devant vous)
+if (typeof lavandiere !== 'undefined' && lavandiere.update) {
+  const _u = lavandiere.update, _s = lavandiere.surgir;
+  lavandiere.update = function (dt, eye) {
+    let L = null;
+    try { L = this.lavoir(); } catch (e) { /* rien */ }
+    const k = sound.entrer(L, { att: 'aucune' });
+    try { return _u.call(this, dt, eye); } finally { sound.sortir(k); }
+  };
+  lavandiere.update.__orig = _u; // (l'original reste lisible : l'outil d'équilibrage y cherche ses tirages)
+  if (_s) lavandiere.surgir = function (...a) { const sc = sound._scope; sound._scope = null; try { return _s.apply(this, a); } finally { sound._scope = sc; } };
+}
+// la voix des nuits noires murmure de là où elle attend
+if (typeof evNuitNoire !== 'undefined' && evNuitNoire.update) {
+  const _u = evNuitNoire.update;
+  evNuitNoire.update = function (dt, eye, basis, sky) {
+    const V = typeof evenements !== 'undefined' ? evenements.voix : null;
+    const k = sound.entrer(V ? () => [V.x, (typeof V.y === 'number' ? V.y : game.world.heightAt(V.x, V.z)) + 1.5, V.z] : null, { att: 'aucune' });
+    try { return _u.call(this, dt, eye, basis, sky); } finally { sound.sortir(k); }
+  };
+}
+// le sorcier de la bibliothèque : ses murmures, ses sorts, ses pages, d'où il se tient
+if (typeof biblio !== 'undefined' && biblio.traquer) {
+  const _t = biblio.traquer;
+  biblio.traquer = function (dt, sky, playing) {
+    const E = this.E, ici = E && E.st && E.st !== 'absent' ? () => [E.x, (E.y || 0) + 1.7, E.z] : null;
+    const k = sound.entrer(ici, { att: 'aucune' });
+    try { return _t.call(this, dt, sky, playing); } finally { sound.sortir(k); }
+  };
+}
+// le grand vol d'oies sauvages passe au-dessus de vous
+if (typeof EV_FX !== 'undefined' && EV_FX.oiseaux && EV_FX.oiseaux.update) {
+  const _u = EV_FX.oiseaux.update;
+  EV_FX.oiseaux.update = function (E, dt) {
+    let pos = null;
+    if (E && E.vols && E.vols.length) {
+      let x = 0, z = 0, h = 0;
+      for (const V of E.vols) { x += V.x; z += V.z; h += V.h || 40; }
+      const n = E.vols.length;
+      x /= n; z /= n;
+      try { pos = [x, game.world.heightAt(x, z) + h / n, z]; } catch (e) { pos = null; }
+    }
+    const k = sound.entrer(pos, { att: 'aucune' });
+    try { return _u.call(this, E, dt); } finally { sound.sortir(k); }
+  };
+}
+
+// ---------------------------------------------------------------- une nouvelle partie : les boucles d'ambiance repartent de zéro
+HOOKS.load.push(() => { try { sound.sourcesStop(); if (sound.sc) { sound.sc.grillons = []; sound.sc.arbres = []; sound.sc.arbresP = null; } } catch (e) { /* rien */ } });
 
 // ---- 14-i18n-en.js
 // ============================================================================

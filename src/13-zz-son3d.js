@@ -214,6 +214,7 @@ if (typeof lavandiere !== 'undefined' && lavandiere.update) {
     const k = sound.entrer(L, { att: 'aucune' });
     try { return _u.call(this, dt, eye); } finally { sound.sortir(k); }
   };
+  lavandiere.update.__orig = _u; // (l'original reste lisible : l'outil d'équilibrage y cherche ses tirages)
   if (_s) lavandiere.surgir = function (...a) { const sc = sound._scope; sound._scope = null; try { return _s.apply(this, a); } finally { sound._scope = sc; } };
 }
 // la voix des nuits noires murmure de là où elle attend
