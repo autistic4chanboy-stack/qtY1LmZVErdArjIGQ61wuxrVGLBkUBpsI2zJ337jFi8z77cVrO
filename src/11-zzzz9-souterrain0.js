@@ -498,7 +498,7 @@ const souterrain = {
   ciel(sky) {
     const N = [0, 0, 0];
     sky.zen = [0.003, 0.003, 0.004]; sky.hor = [0.004, 0.004, 0.005]; sky.glow = N; sky.haze = [0.004, 0.0035, 0.004];
-    sky.amb = [0.016, 0.017, 0.021]; sky.sunCol = N; sky.moonCol = N; sky.cloudLit = N; sky.cloudDark = N;
+    sky.amb = [0.024, 0.025, 0.03]; sky.sunCol = N; sky.moonCol = N; sky.cloudLit = N; sky.cloudDark = N;
     sky.stars = 0; sky.sunVis = 0; sky.moonVis = 0; sky.cloudCover = 0; sky.mist = 0; sky.shadowK = 0; sky.nightLit = 1; sky.wet = 0; sky.frost = 0;
     sky.fog = [5, 78];
     if (this.cielFx) this.cielFx(sky);

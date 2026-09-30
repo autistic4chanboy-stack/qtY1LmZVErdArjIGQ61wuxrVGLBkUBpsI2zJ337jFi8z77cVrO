@@ -53,9 +53,9 @@ function texSoutHumus(seed) {
     const v = tileFbm(tn, x / 10, y / 10, 12.8, 3) * 0.9;
     pb.set(x, y, rampPick(pal, v, x, y));
   }
-  for (let k = 0; k < 26; k++) { // filaments pâles (le mycélium)
+  for (let k = 0; k < 14; k++) { // filaments pâles, à peine (le mycélium)
     let x = rnd() * TS, y = rnd() * TS, a = rnd() * TAU;
-    for (let s = 0; s < 18 + rnd() * 30; s++) { a += (rnd() - 0.5) * 0.9; x += Math.cos(a); y += Math.sin(a); pb.setW(x, y, rnd() < 0.3 ? [196, 196, 170] : [140, 142, 124]); }
+    for (let s = 0; s < 10 + rnd() * 18; s++) { a += (rnd() - 0.5) * 0.9; x += Math.cos(a); y += Math.sin(a); if (rnd() < 0.7) pb.setW(x, y, rnd() < 0.2 ? [118, 112, 94] : [92, 84, 68]); }
   }
   return pb;
 }
@@ -125,14 +125,14 @@ Object.assign(PROP_MODELS, {
   sout_bougie(E) { E.bx(0, 0, 0, 0.07, 0.07, 0.07, [0.8, 0.76, 0.66], TL.plain); E.bx(0, 0, 0, 0.13, 0.015, 0.13, [0.62, 0.58, 0.5], TL.plain); },
   // concrétions : o.s (taille), o.data.v (forme)
   sout_stalag(E, o) {
-    const v = soutH(o, 5), h = 0.9 + v * 1.4;
-    let y = 0, w = 0.34 + v * 0.18;
-    for (let k = 0; k < 5; k++) { const hh = h / 5; E.bx((soutH(o, k + 9) - 0.5) * 0.05, y, 0, w, hh + 0.02, w * 0.92, k > 2 ? SPC.calc : SPC.calcS, mt(M_SCALCITE), k * 0.7); y += hh; w *= 0.72; }
+    const v = soutH(o, 5), h = 0.9 + v * 1.6, n = 8;
+    let y = 0, w = 0.4 + v * 0.22;
+    for (let k = 0; k < n; k++) { const hh = h / n, c = k > 5 ? SPC.calc : k > 2 ? [0.74, 0.69, 0.6] : SPC.calcS; E.bx((soutH(o, k + 9) - 0.5) * 0.04 * k, y, 0, w, hh + 0.02, w * 0.9, c, mt(M_SCALCITE), k * 0.52 + v * 3); y += hh; w *= 0.82; }
   },
   sout_stalac(E, o) {
-    const v = soutH(o, 6), h = 0.8 + v * 1.8;
-    let y = 0, w = 0.3 + v * 0.16;
-    for (let k = 0; k < 5; k++) { const hh = h / 5; E.bx(0, -y - hh, 0, w, hh + 0.02, w * 0.9, k < 2 ? SPC.calcS : SPC.calc, mt(M_SCALCITE), k * 0.9); y += hh; w *= 0.7; }
+    const v = soutH(o, 6), h = 0.7 + v * 2.2, n = 7;
+    let y = 0, w = 0.32 + v * 0.18;
+    for (let k = 0; k < n; k++) { const hh = h / n; E.bx(0, -y - hh, 0, w, hh + 0.02, w * 0.9, k < 2 ? SPC.calcS : k > 4 ? SPC.calc : [0.74, 0.69, 0.6], mt(M_SCALCITE), k * 0.61 + v * 2); y += hh; w *= 0.78; }
   },
   sout_eboulis(E, o) {
     const v = soutH(o, 7) * 10;
@@ -140,6 +140,7 @@ Object.assign(PROP_MODELS, {
   },
   // champignons qui luisent (chapeaux émissifs) ; data.b : bleus
   sout_champi(E, o, t) {
+    if (o.data && o.data.pris) return;
     const v = soutH(o, 8) * 10, bleu = o.data && o.data.b, T = t ? t.t || 0 : 0;
     for (let k = 0; k < 5; k++) {
       const a = k * 2.4 + v, r = k ? 0.18 + (k % 3) * 0.12 : 0, h = 0.14 + ((k * 7 + v * 3) % 5) * 0.05;
@@ -151,21 +152,39 @@ Object.assign(PROP_MODELS, {
       E.fl = 0;
     }
   },
-  // un grand champignon (les forêts de la Nef) : pied pâle, chapeau large et luisant par-dessous
+  // un grand champignon (les forêts de la Nef) : pied pâle, chapeau bombé, lamelles qui luisent par-dessous, points luisants dessus
   sout_champi_grand(E, o) {
-    const v = soutH(o, 11), h = 1.6 + v * 2.2, R = 0.8 + v * 0.9;
-    E.bx(0, 0, 0, 0.22 + v * 0.1, h, 0.22 + v * 0.1, SPC.pied, TL.plain, v * 3);
-    E.bx(0, h, 0, R * 2, 0.18, R * 2, rgbf('#3a3448'), TL.plain, v * 5);
-    E.bx(0, h + 0.18, 0, R * 1.5, 0.14, R * 1.5, rgbf('#4a4058'), TL.plain, v * 5 + 0.4);
-    E.fl = FX_EMIT; E.bx(0, h - 0.03, 0, R * 1.8, 0.03, R * 1.8, [0.25, 0.8, 0.75], TL.plain, v * 5); E.fl = 0;
+    const v = soutH(o, 11), h = 1.8 + v * 2.4, R = 0.9 + v * 1.1, rr = v * 5, pw = 0.26 + v * 0.14;
+    for (let k = 0; k < 4; k++) E.bx(Math.sin(k * 1.7 + rr) * 0.04, k * h / 4, 0, pw * (1 - k * 0.08), h / 4 + 0.02, pw * (1 - k * 0.08), SPC.pied, TL.plain, rr + k * 0.3);
+    E.bx(0, h * 0.72, 0, pw * 2.2, 0.08, pw * 2.2, rgbf('#bcb6a4'), TL.plain, rr); // l'anneau
+    E.fl = FX_EMIT; E.bx(0, h - 0.06, 0, R * 1.9, 0.07, R * 1.9, [0.22, 0.75, 0.7], TL.plain, rr); E.fl = 0;
+    E.bx(0, h, 0, R * 2, 0.22, R * 2, rgbf('#4a3e5a'), TL.plain, rr);
+    E.bx(0, h + 0.2, 0, R * 1.6, 0.2, R * 1.6, rgbf('#54466a'), TL.plain, rr + 0.35);
+    E.bx(0, h + 0.38, 0, R * 1.05, 0.16, R * 1.05, rgbf('#5e4e74'), TL.plain, rr + 0.7);
+    E.fl = FX_EMIT;
+    for (let k = 0; k < 5; k++) { const a = k * 1.3 + rr, d = R * (0.35 + (k % 3) * 0.18); E.bx(Math.cos(a) * d, h + 0.21 + (k % 2) * 0.18, Math.sin(a) * d, 0.09, 0.03, 0.09, [0.4, 0.95, 0.85], TL.plain); }
+    E.fl = 0;
   },
-  // cristaux de roche (o.s : taille) ; quelques faces luisent faiblement à la lanterne
+  // des vers luisants à la voûte : un semis de points pâles (le ciel d'en bas)
+  sout_vers(E, o, t) {
+    const v = soutH(o, 14) * 10, T = t ? t.t || 0 : 0;
+    E.fl = FX_EMIT;
+    for (let k = 0; k < 14; k++) {
+      const a = k * 2.39996 + v, d = Math.sqrt(k / 14) * 2.2, p = 0.55 + 0.45 * Math.sin(T * (0.3 + (k % 5) * 0.11) + k * 1.7 + v);
+      E.bx(Math.cos(a) * d, -0.04 - (k % 4) * 0.12, Math.sin(a) * d, 0.035, 0.035 + (k % 3) * 0.04, 0.035, [0.45 * p, 0.95 * p, 0.8 * p], TL.plain);
+    }
+    E.fl = 0;
+  },
+  // cristaux de roche (o.s : taille) : des prismes pâles, pointus, qui luisent faiblement à la lanterne ; data.c : teinte
   sout_cristal(E, o) {
-    const v = soutH(o, 12) * 10;
-    for (let k = 0; k < 6; k++) {
-      const a = k * 1.9 + v, tilt = 0.25 + (k % 3) * 0.18, h = 0.5 + ((k * 5 + v) % 4) * 0.28;
-      E.fl = k % 2 ? FX_EMIT : 0;
-      E.box(Math.cos(a) * 0.12, h / 2, Math.sin(a) * 0.12, 0.12, h, 0.12, k % 2 ? [0.42, 0.48, 0.58] : SPC.cristal, TL.glass, a, Math.cos(a) * tilt, Math.sin(a) * tilt);
+    const v = soutH(o, 12) * 10, tint = [[0.78, 0.9, 1.05], [0.9, 0.8, 1.05], [1.05, 0.92, 0.72]][((v * 7) | 0) % 3];
+    for (let k = 0; k < 7; k++) {
+      const a = k * 1.9 + v, tilt = k ? 0.22 + (k % 3) * 0.16 : 0.05, h = k ? 0.45 + ((k * 5 + v) % 4) * 0.3 : 1.4 + (v % 1) * 0.6, w = k ? 0.13 + (k % 2) * 0.05 : 0.24;
+      const cx = k ? Math.cos(a) * 0.16 : 0, cz = k ? Math.sin(a) * 0.16 : 0, rx = Math.cos(a) * tilt, rz = Math.sin(a) * tilt;
+      E.fl = FX_EMIT;
+      const g = k % 2 ? 0.55 : 0.75;
+      E.box(cx, h / 2, cz, w, h, w, [tint[0] * g, tint[1] * g, tint[2] * g], TL.glass, a, rx, rz);
+      E.box(cx + Math.sin(rz) * -h * 0.5, h + 0.05, cz + Math.sin(rx) * h * 0.5, w * 0.6, 0.16, w * 0.6, [tint[0] * 0.95, tint[1] * 0.95, tint[2] * 0.95], TL.plain, a + 0.78, rx, rz);
       E.fl = 0;
     }
   },
@@ -185,14 +204,82 @@ Object.assign(PROP_MODELS, {
     E.bx(0, 0, 0, 0.5, 0.22, 0.44, SPC.roche, mt(M_SROCHE), 0.3); E.bx(0.03, 0.22, 0, 0.38, 0.2, 0.34, SPC.roche, mt(M_SROCHE), 1.1); E.bx(0, 0.42, 0.02, 0.26, 0.26, 0.2, SPC.rocheS, mt(M_SROCHE), 0.6);
     for (let k = 0; k < n; k++) E.bx(-0.07 * (n - 1) / 2 + k * 0.07, 0.48, 0.115, 0.025, 0.14, 0.012, [0.85, 0.82, 0.74], 0);
   },
+  // ---- ce qui se cueille, ce qui se casse (data.pris : cueilli ; data.n : ce qui reste d'un filon)
+  // un filon : des éclats de minerai dans la roche (data.m : galene, magnetite, soufre, salpetre, luisante, cristal)
+  sout_filon(E, o) {
+    const m = (o.data && o.data.m) || 'galene', n = o.data && o.data.n !== undefined ? o.data.n : 4, v = soutH(o, 15) * 10;
+    E.bx(0, 0, 0, 1.1, 0.34, 0.8, SPC.rocheS, mt(M_SROCHE), v);
+    E.bx(0.1, 0.3, -0.05, 0.8, 0.28, 0.6, SPC.roche, mt(M_SROCHE), v + 0.5);
+    const C = { galene: [[0.46, 0.5, 0.58], TL.iron], magnetite: [[0.13, 0.12, 0.14], TL.iron], soufre: [[0.9, 0.78, 0.22], TL.plain], salpetre: [[0.92, 0.9, 0.86], TL.plain], luisante: [[0.45, 0.95, 0.8], TL.plain], cristal: [[0.82, 0.9, 1], TL.glass] }[m] || [[0.5, 0.5, 0.5], 0];
+    const nb = Math.max(0, Math.min(6, n + 2));
+    for (let k = 0; k < nb; k++) {
+      const a = k * 2.1 + v, x = Math.cos(a) * 0.32, z = Math.sin(a) * 0.24, big = m === 'cristal' ? 0.12 : 0.18;
+      if (m === 'luisante' || m === 'cristal') E.fl = FX_EMIT;
+      if (m === 'cristal') E.box(x, 0.55, z, big, 0.4, big, C[0], C[1], a, 0.3 * Math.cos(a), 0.3 * Math.sin(a));
+      else E.box(x, 0.36 + (k % 2) * 0.12, z, big + (k % 3) * 0.05, 0.12 + (k % 2) * 0.06, big, m === 'luisante' ? [C[0][0] * 0.8, C[0][1] * 0.8, C[0][2] * 0.8] : C[0], C[1], a, 0.4, 0.2);
+      E.fl = 0;
+    }
+  },
+  // pied-de-pierre : champignons blancs, durs, sur l'argile des rives
+  sout_pied_pierre(E, o) {
+    if (o.data && o.data.pris) return;
+    const v = soutH(o, 16) * 10;
+    for (let k = 0; k < 4; k++) { const a = k * 1.7 + v, d = k ? 0.14 + (k % 2) * 0.1 : 0, h = 0.1 + ((k + v) % 3) * 0.04; E.bx(Math.cos(a) * d, 0, Math.sin(a) * d, 0.06, h, 0.06, [0.86, 0.84, 0.78], TL.plain); E.bx(Math.cos(a) * d, h, Math.sin(a) * d, 0.16, 0.06, 0.16, [0.92, 0.9, 0.84], TL.plain, a); }
+  },
+  // mousse luisante : des coussins verts qui luisent, au pied des parois
+  sout_mousse(E, o, t) {
+    if (o.data && o.data.pris) return;
+    const v = soutH(o, 17) * 10;
+    E.fl = FX_EMIT;
+    for (let k = 0; k < 5; k++) { const a = k * 1.3 + v, d = k ? 0.2 + (k % 3) * 0.12 : 0; E.bx(Math.cos(a) * d, 0, Math.sin(a) * d, 0.3 - (k % 2) * 0.08, 0.05 + (k % 2) * 0.03, 0.26, [0.16, 0.62, 0.4], TL.leaves, a); }
+    E.fl = 0;
+  },
+  // lichen d'argent, sur une pierre
+  sout_lichen(E, o) {
+    const v = soutH(o, 18) * 10, pris = o.data && o.data.pris;
+    E.bx(0, 0, 0, 0.7, 0.36, 0.5, SPC.roche, mt(M_SROCHE), v);
+    if (!pris) for (let k = 0; k < 4; k++) E.bx(-0.2 + k * 0.13, 0.36, (k % 2) * 0.1 - 0.05, 0.16, 0.02, 0.14, [0.78, 0.8, 0.84], TL.plain, v + k);
+  },
+  // fougère pâle (sous le puits de jour)
+  sout_fougere(E, o) {
+    if (o.data && o.data.pris) return;
+    const v = soutH(o, 19) * 10;
+    for (let k = 0; k < 7; k++) { const a = k / 7 * TAU + v; E.box(Math.cos(a) * 0.22, 0.2, Math.sin(a) * 0.22, 0.1, 0.02, 0.5, [0.74, 0.8, 0.64], TL.leaves, -a + Math.PI / 2, -0.6); }
+  },
+  // algue blanche, à fleur d'eau tiède
+  sout_algue(E, o, t) {
+    if (o.data && o.data.pris) return;
+    const v = soutH(o, 20) * 10, T = t ? t.t || 0 : 0;
+    for (let k = 0; k < 6; k++) { const a = k * 1.1 + v, d = 0.1 + (k % 3) * 0.15; E.box(Math.cos(a) * d, 0.02, Math.sin(a) * d, 0.08, 0.02, 0.42, [0.9, 0.9, 0.84], TL.plain, a + Math.sin(T * 0.5 + k) * 0.2); }
+  },
+  // chapeau-de-suie : champignons noirs, poudrés de jaune, près des souffles chauds
+  sout_suie(E, o) {
+    if (o.data && o.data.pris) return;
+    const v = soutH(o, 21) * 10;
+    for (let k = 0; k < 3; k++) { const a = k * 2.2 + v, d = k ? 0.16 : 0, h = 0.14 + k * 0.03; E.bx(Math.cos(a) * d, 0, Math.sin(a) * d, 0.05, h, 0.05, [0.2, 0.18, 0.16], TL.plain); E.bx(Math.cos(a) * d, h, Math.sin(a) * d, 0.2, 0.08, 0.2, [0.12, 0.1, 0.1], TL.plain, a); E.bx(Math.cos(a) * d, h + 0.08, Math.sin(a) * d, 0.12, 0.01, 0.12, [0.7, 0.62, 0.2], TL.plain, a); }
+  },
+  // un tas de guano, sous les voûtes où dorment les chauves-souris
+  sout_guano(E, o) {
+    const n = o.data && o.data.pris ? 0.35 : 1, v = soutH(o, 22) * 10;
+    E.bx(0, 0, 0, 1.2 * n + 0.2, 0.16 * n, 0.9 * n + 0.2, [0.3, 0.26, 0.2], TL.soil, v);
+    if (n > 0.5) E.bx(0.1, 0.14, 0, 0.7, 0.12, 0.5, [0.36, 0.3, 0.22], TL.soil, v + 0.6);
+  },
+  // une vasque de calcite où l'eau goutte (et roule parfois une perle)
+  sout_vasque(E, o) {
+    const pris = o.data && o.data.pris;
+    for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; E.box(Math.cos(a) * 0.5, 0.08, Math.sin(a) * 0.5, 0.36, 0.16, 0.14, SPC.calc, mt(M_SCALCITE), -a + Math.PI / 2); }
+    E.bx(0, 0.02, 0, 0.84, 0.08, 0.84, [0.3, 0.42, 0.44], TL.glass);
+    if (!pris) { E.fl = FX_EMIT; E.bx(0.12, 0.1, -0.05, 0.07, 0.07, 0.07, [0.95, 0.93, 0.86], TL.plain); E.fl = 0; }
+  },
   // un fil de lin tendu, noué à un piquet (le fil d'Ariane de quelqu'un d'autre)
   sout_piquet(E) { E.bx(0, 0, 0, 0.06, 0.5, 0.06, SPC.boisS, TL.darkwood); E.box(0, 0.42, 0, 0.1, 0.06, 0.1, [0.8, 0.76, 0.64], TL.rope, 0.4); },
 });
 Object.assign(PROP_LIGHTS, {
   sout_champi: { c: [0.16, 0.62, 0.55], r: 5.5, y: 0.35 },
-  sout_champi_grand: { c: [0.2, 0.7, 0.62], r: 9, y: 1.2 },
-  sout_cristal: { c: [0.3, 0.38, 0.62], r: 3.2, y: 0.6 },
+  sout_champi_grand: { c: [0.22, 0.72, 0.64], r: 11, y: 1.4 },
+  sout_cristal: { c: [0.38, 0.46, 0.72], r: 4.5, y: 0.9 },
+  sout_mousse: { c: [0.1, 0.42, 0.28], r: 4, y: 0.2 },
 });
 Object.assign(PROP_COLL, {
-  sout_stalag: [0.28, 0.28, 1.6], sout_champi_grand: [0.2, 0.2, 2.4], sout_cairn: [0.26, 0.24, 0.7],
+  sout_stalag: [0.28, 0.28, 1.6], sout_champi_grand: [0.2, 0.2, 2.4], sout_cairn: [0.26, 0.24, 0.7], sout_filon: [0.5, 0.36, 0.6], sout_lichen: [0.32, 0.22, 0.36],
 });

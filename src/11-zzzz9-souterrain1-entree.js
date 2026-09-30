@@ -185,5 +185,5 @@ HOOKS.load.push(() => {
 // dessous, la lanterne éclaire aussi un peu la voûte (la lueur renvoyée par la pierre)
 HOOKS.lights.push((eye) => {
   if (!souterrain.actif || !game.lantern || !(farm.count('lanterne') || farm.count('lanterne_aube'))) return [];
-  return [{ x: eye[0], y: eye[1] + 0.6, z: eye[2], r: 24, c: [0.12, 0.09, 0.06], d: 0.01 }];
+  return [{ x: eye[0], y: eye[1] + 0.6, z: eye[2], r: 26, c: [0.15, 0.115, 0.075], d: 0.01 }];
 });

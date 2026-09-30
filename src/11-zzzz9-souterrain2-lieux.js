@@ -5,27 +5,28 @@
 //  retour vers la surface (la mine, les racines du grand chêne, l'antre).
 //  Tout est posé à la génération, après le reste, avec le bit VER_SOUS.
 // ============================================================================
+DYN_PROPS.add('sout_vers');
 const SOUT_DECOR = {
   // clé de salle : { objet: nombre, … } (les nombres sont des essais : on en pose ce qui trouve sa place)
-  seuil: { sout_stalag: 5, sout_stalac: 10, sout_eboulis: 3 },
-  nef: { sout_stalag: 34, sout_stalac: 40, sout_champi: 95, sout_champi_grand: 42, sout_eboulis: 12 },
+  seuil: { sout_stalag: 5, sout_stalac: 10, sout_eboulis: 3, sout_vers: 3 },
+  nef: { sout_stalag: 34, sout_stalac: 40, sout_champi: 130, sout_champi_grand: 48, sout_eboulis: 12, sout_vers: 24 },
   cristal_a: { sout_cristal: 38, sout_stalac: 12, sout_stalag: 5 },
   cristal_b: { sout_cristal: 24, sout_stalac: 8 },
   cristal_c: { sout_cristal: 18, sout_stalac: 6 },
   souffle: { sout_eboulis: 10, sout_stalac: 4 },
   gouffres: { sout_eboulis: 12, sout_stalac: 10 },
-  echos: { sout_stalag: 10, sout_stalac: 14, sout_eboulis: 4 },
+  echos: { sout_stalag: 10, sout_stalac: 14, sout_eboulis: 4, sout_vers: 10 },
   hameau: { sout_champi: 24, sout_stalac: 10 },
-  dormeurs: { sout_stalag: 12, sout_stalac: 24 },
-  racines: { sout_racines: 16, sout_eboulis: 4, sout_champi: 5 },
-  ruines: { sout_stalac: 22, sout_stalag: 8, sout_eboulis: 10 },
-  orgues: { sout_stalag: 80, sout_stalac: 36 },
+  dormeurs: { sout_stalag: 12, sout_stalac: 24, sout_vers: 6 },
+  racines: { sout_racines: 16, sout_eboulis: 4, sout_champi: 5, sout_vers: 12 },
+  ruines: { sout_stalac: 22, sout_stalag: 8, sout_eboulis: 10, sout_vers: 22, sout_champi: 20 },
+  orgues: { sout_stalag: 80, sout_stalac: 36, sout_vers: 14 },
 };
 // les exigences de chaque objet : [au sol ?, place libre (m), hauteur libre min, max, près d'un mur ?]
 const SOUT_POSE = {
   sout_stalag: [true, 1.6, 2.6, 99, false], sout_stalac: [false, 0.8, 3.0, 13, false], sout_eboulis: [true, 1.2, 2, 99, true],
   sout_champi: [true, 0.6, 1.2, 99, true], sout_champi_grand: [true, 2.2, 5.5, 99, false], sout_cristal: [true, 0.8, 1.6, 99, true],
-  sout_racines: [false, 1.0, 3.2, 16, false], sout_os: [true, 0.6, 1.8, 99, false],
+  sout_racines: [false, 1.0, 3.2, 16, false], sout_os: [true, 0.6, 1.8, 99, false], sout_vers: [false, 1.6, 4, 60, false],
 };
 
 SOUT_GEN.push((w, rnd, B) => {
@@ -58,6 +59,10 @@ SOUT_GEN.push((w, rnd, B) => {
   };
   const pris = [];
   const loin = (x, z, d) => { for (const q of pris) if (Math.abs(q[0] - x) < d && Math.abs(q[1] - z) < d && Math.hypot(q[0] - x, q[1] - z) < d) return false; return true; };
+  // les champignons lumineux se cueillent (et repoussent en trois jours)
+  w.soutCueillettes = w.soutCueillettes || [];
+  let nChampi = 0;
+  const champi = (bleu) => Object.assign({ k: 'd' + nChampi++, it: 'champi_lumineux', every: 3 }, bleu ? { b: 1 } : {});
   // ------------------------------------------------ les salles du plan
   for (const [key, cx, cz, rx, rz, rot] of SOUT_PLAN.salles) {
     const D = SOUT_DECOR[key];
@@ -69,7 +74,8 @@ SOUT_GEN.push((w, rnd, B) => {
         const a = rnd() * TAU, r = Math.sqrt(rnd()) * 0.95, lx = Math.cos(a) * r * rx, lz = Math.sin(a) * r * rz;
         const x = cx + lx * co + lz * si, z = cz - lx * si + lz * co;
         if (!loin(x, z, id === 'sout_champi' ? 1.6 : id === 'sout_cristal' ? 1.2 : 2.4) || surPassage(x, z) || !ok(id, x, z)) continue;
-        pose(id, x, z, rnd() * TAU, id === 'sout_champi' && rnd() < 0.3 ? { b: 1 } : undefined, id === 'sout_cristal' ? 0.7 + rnd() * 0.9 : id === 'sout_stalag' && key === 'orgues' ? 1.3 + rnd() * 1.4 : undefined);
+        pose(id, x, z, rnd() * TAU, id === 'sout_champi' ? champi(rnd() < 0.3) : undefined, id === 'sout_cristal' ? 0.7 + rnd() * 0.9 : id === 'sout_stalag' && key === 'orgues' ? 1.3 + rnd() * 1.4 : undefined);
+        if (id === 'sout_champi') w.soutCueillettes.push(w.props.length - 1);
         pris.push([x, z]); n++;
       }
     }
@@ -93,7 +99,7 @@ SOUT_GEN.push((w, rnd, B) => {
       const side = (rnd() - 0.5) * 2 * (A[3] || 2.5) * 0.7, x = x0 + nx * side, z = z0 + nz * side;
       if (id !== 'sout_stalac' && Math.abs(side) < 1.4) continue;
       if (!loin(x, z, 1.5) || !ok(id, x, z)) continue;
-      pose(id, x, z, rnd() * TAU); pris.push([x, z]);
+      pose(id, x, z, rnd() * TAU, id === 'sout_champi' ? champi(rnd() < 0.3) : undefined); if (id === 'sout_champi') w.soutCueillettes.push(w.props.length - 1); pris.push([x, z]);
     }
   }
   // les petites salles au bout des boyaux
@@ -102,7 +108,7 @@ SOUT_GEN.push((w, rnd, B) => {
     const [cx, cz, , r] = b.fin;
     for (const [id, n] of [['sout_stalag', 2], ['sout_stalac', 4], ['sout_eboulis', 1], ['sout_champi', 2]]) {
       let m = 0;
-      for (let k = 0; k < n * 10 && m < n; k++) { const a = rnd() * TAU, d = Math.sqrt(rnd()) * r * 0.85, x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d; if (!loin(x, z, 2) || !ok(id, x, z)) continue; pose(id, x, z, rnd() * TAU); pris.push([x, z]); m++; }
+      for (let k = 0; k < n * 10 && m < n; k++) { const a = rnd() * TAU, d = Math.sqrt(rnd()) * r * 0.85, x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d; if (!loin(x, z, 2) || !ok(id, x, z)) continue; pose(id, x, z, rnd() * TAU, id === 'sout_champi' ? champi(false) : undefined); if (id === 'sout_champi') w.soutCueillettes.push(w.props.length - 1); pris.push([x, z]); m++; }
     }
   }
   w.soutDecor = pris.length;
