@@ -68,7 +68,8 @@ const SON3D_VOIX = { att: 'phys', ref: 3, roll: 1, suivre: true };
   const _view = talk.view.bind(talk);
   talk.view = function (text, options, raw) { const k = sound.entrer(talk.n, SON3D_VOIX); try { return _view(text, options, raw); } finally { sound.sortir(k); } };
 }
-// les pas des habitants qui marchent près de soi, et les portes qu'ils ouvrent ou referment
+// les pas des habitants qui marchent près de soi, les sabots des bêtes, et les portes qu'on ouvre ou referme ailleurs
+const SON3D_SABOTS = { horse: 0.06, donkey: 0.05, cow: 0.05, deer: 0.03, goat: 0.025, sheep: 0.02, boar: 0.035 };
 const son3d = {
   portes: null, porteT: 0,
   sol(w, x, y, z) {
@@ -93,6 +94,20 @@ const son3d = {
       n._pasK = k;
       const t = sound.entrer([n.x, (n.y || 0) + 0.1, n.z], { att: 'phys', ref: 2, roll: 1 });
       try { sound.step(this.sol(w, n.x, n.y || 0, n.z), n.run ? 5 : 2.5); } finally { sound.sortir(t); }
+    }
+    // sabots des grosses bêtes qui marchent tout près (chevaux, vaches, ânes, cerfs, chèvres, moutons)
+    for (const e of entities.list) {
+      const S = SON3D_SABOTS[e.kind];
+      if (!S || !(e.dist < 16) || e.hidden || e.dead || e.ridden || !(e.move > 0.35)) { e._pasK = undefined; continue; }
+      const k = Math.floor(e.phase / (Math.PI / 2));
+      if (e._pasK === undefined) { e._pasK = k; continue; }
+      if (k === e._pasK) continue;
+      e._pasK = k;
+      const t = sound.entrer([e.x, (e.y || 0) + 0.1, e.z], { att: 'phys', ref: 2, roll: 1 });
+      try {
+        const dur = this.sol(w, e.x, e.y || 0, e.z) === 'hard';
+        sound.jouer(sound.tb(dur ? 'sabot' : 'terre'), sound.at(), S * (e.run ? 1.3 : 1) * (0.8 + Math.random() * 0.4), sound.sfx, (dur ? 1.1 : 0.8) + Math.random() * 0.15);
+      } finally { sound.sortir(t); }
     }
     // portes (ouvertes ou fermées par d'autres que soi)
     this.porteT -= dt;
@@ -186,6 +201,53 @@ if (typeof tornade !== 'undefined' && tornade.sonMaj) {
       }
     } catch (e) { /* rien */ }
     return r;
+  };
+}
+
+// ---------------------------------------------------------------- d'autres voix qui ont une place
+// la lavandière bat le linge au lavoir (mais quand elle surgit, c'est devant vous)
+if (typeof lavandiere !== 'undefined' && lavandiere.update) {
+  const _u = lavandiere.update, _s = lavandiere.surgir;
+  lavandiere.update = function (dt, eye) {
+    let L = null;
+    try { L = this.lavoir(); } catch (e) { /* rien */ }
+    const k = sound.entrer(L, { att: 'aucune' });
+    try { return _u.call(this, dt, eye); } finally { sound.sortir(k); }
+  };
+  if (_s) lavandiere.surgir = function (...a) { const sc = sound._scope; sound._scope = null; try { return _s.apply(this, a); } finally { sound._scope = sc; } };
+}
+// la voix des nuits noires murmure de là où elle attend
+if (typeof evNuitNoire !== 'undefined' && evNuitNoire.update) {
+  const _u = evNuitNoire.update;
+  evNuitNoire.update = function (dt, eye, basis, sky) {
+    const V = typeof evenements !== 'undefined' ? evenements.voix : null;
+    const k = sound.entrer(V ? () => [V.x, (typeof V.y === 'number' ? V.y : game.world.heightAt(V.x, V.z)) + 1.5, V.z] : null, { att: 'aucune' });
+    try { return _u.call(this, dt, eye, basis, sky); } finally { sound.sortir(k); }
+  };
+}
+// le sorcier de la bibliothèque : ses murmures, ses sorts, ses pages, d'où il se tient
+if (typeof biblio !== 'undefined' && biblio.traquer) {
+  const _t = biblio.traquer;
+  biblio.traquer = function (dt, sky, playing) {
+    const E = this.E, ici = E && E.st && E.st !== 'absent' ? () => [E.x, (E.y || 0) + 1.7, E.z] : null;
+    const k = sound.entrer(ici, { att: 'aucune' });
+    try { return _t.call(this, dt, sky, playing); } finally { sound.sortir(k); }
+  };
+}
+// le grand vol d'oies sauvages passe au-dessus de vous
+if (typeof EV_FX !== 'undefined' && EV_FX.oiseaux && EV_FX.oiseaux.update) {
+  const _u = EV_FX.oiseaux.update;
+  EV_FX.oiseaux.update = function (E, dt) {
+    let pos = null;
+    if (E && E.vols && E.vols.length) {
+      let x = 0, z = 0, h = 0;
+      for (const V of E.vols) { x += V.x; z += V.z; h += V.h || 40; }
+      const n = E.vols.length;
+      x /= n; z /= n;
+      try { pos = [x, game.world.heightAt(x, z) + h / n, z]; } catch (e) { pos = null; }
+    }
+    const k = sound.entrer(pos, { att: 'aucune' });
+    try { return _u.call(this, E, dt); } finally { sound.sortir(k); }
   };
 }
 

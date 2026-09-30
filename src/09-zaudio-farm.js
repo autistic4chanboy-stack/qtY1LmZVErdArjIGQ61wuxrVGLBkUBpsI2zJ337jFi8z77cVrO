@@ -282,8 +282,8 @@ Object.assign(SoundEngine.prototype, {
   steps1(k, pan) {
     if (!this.ok) return;
     const t = this.at(), R = Math.random, out = this._scope ? this.sfx : this.pan(clamp(pan / 15, -0.9, 0.9));
-    this.jouer(this.tb(R() < 0.5 ? 'terre' : 'herbe'), t, 0.22 * k, out, 0.72 + R() * 0.08);
-    this.tone(t, 'sine', 70, 40, 0.14, 0.07 * k, out, 0.006);
+    this.jouer(this.tb(R() < 0.5 ? 'terre' : 'herbe'), t, 0.14 * k, out, 0.72 + R() * 0.08);
+    this.tone(t, 'sine', 70, 40, 0.14, 0.045 * k, out, 0.006);
   },
   stab() { if (!this.ok) return; const t = this.at(); this.noiseHit(t, 0.1, 'bandpass', 900, 1, 0.13); this.noiseHit(t + 0.01, 0.15, 'lowpass', 500, 0.7, 0.12); this.tone(t, 'sine', 90, 40, 0.3, 0.26); },
   redNight() {

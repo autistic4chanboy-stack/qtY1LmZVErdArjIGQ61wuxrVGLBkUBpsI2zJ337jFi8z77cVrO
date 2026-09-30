@@ -66,15 +66,22 @@ SoundEngine.BOUCLES = {
     const R = Math.random, S = SoundEngine.SYN, f = 4000 + R() * 500, per = 0.42 + R() * 0.3;
     for (let t = 0.03 + R() * 0.2; t < D - 0.12; t += per * (0.95 + R() * 0.1)) for (let p = 0, n = 3 + ((R() * 2) | 0); p < n; p++) S.note(d, sr, t + p * 0.027, 0.016, f, f * 0.99, 0.5, { att: 0.25, dec: 1.2 });
   }],
+  // un long bruit doux (vent, lit de pluie) : assez long pour qu'on n'entende jamais la boucle
+  bruit: [9, (d, sr) => {
+    const R = Math.random, n = d.length;
+    let b0 = 0, b1 = 0, b2 = 0;
+    for (let i = 0; i < n; i++) { const x = R() * 2 - 1; b0 = 0.99765 * b0 + x * 0.099046; b1 = 0.963 * b1 + x * 0.2965164; b2 = 0.57 * b2 + x * 1.0526913; d[i] = (b0 + b1 + b2 + x * 0.1848) * 0.6 + x * 0.25; }
+    SoundEngine.SYN.lp1(d, sr, 9000);
+  }],
   // bourdon grave des souterrains (on le sent plus qu'on ne l'entend)
   bourdon: [7, (d, sr) => {
     const R = Math.random, S = SoundEngine.SYN, lo = S.bq('lp', 120, 0.7, sr), n = d.length;
     let m = 0.5, v = 0;
     for (let i = 0; i < n; i++) { if (i % 256 === 0) { v += (R() - 0.5) * 0.03 - v * 0.01; m = clamp(m + v, 0.3, 1); } d[i] += lo(R() * 2 - 1) * m; }
-  }],
+  }, 8000],
 };
 // volume de chaque boucle (k = 1)
-SoundEngine.VOL_BOUCLES = { riviere: 0.2, clapotis: 0.22, feu: 0.22, gouttes: 0.05, feuilles: 0.06, grillon: 0.018, bourdon: 0.05, vent: 0.14 };
+SoundEngine.VOL_BOUCLES = { riviere: 0.2, clapotis: 0.22, feu: 0.22, gouttes: 0.07, feuilles: 0.06, grillon: 0.075, bourdon: 0.05, vent: 0.14 };
 // les oiseaux selon le milieu : [sorte, poids]
 SoundEngine.OISEAUX = {
   foret: [['merle', 3], ['mesange', 3], ['pinson', 3], ['pic', 1], ['tourterelle', 1], ['coucou', 0.4]],
@@ -93,7 +100,7 @@ Object.assign(SoundEngine.prototype, {
   boucleTampon(nom) {
     const key = 'B_' + nom;
     if (this._bufs[key]) return this._bufs[key];
-    const [dur, fill] = SoundEngine.BOUCLES[nom], sr = this.ctx.sampleRate, n = Math.floor(dur * sr), X = Math.floor(0.25 * sr);
+    const [dur, fill, srB] = SoundEngine.BOUCLES[nom], sr = Math.min(this.ctx.sampleRate, srB || SoundEngine.SR_SYNTH), n = Math.floor(dur * sr), X = Math.floor(0.25 * sr);
     const tmp = new Float32Array(n + X);
     fill(tmp, sr, dur + 0.25);
     const b = this.ctx.createBuffer(1, n, sr), d = b.getChannelData(0);
@@ -104,7 +111,7 @@ Object.assign(SoundEngine.prototype, {
   },
   _boucleNew(type, pos, o) {
     const c = this.ctx, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
-    if (type === 'vent') { s.buffer = this.noise; f.type = 'lowpass'; f.frequency.value = 400; f.Q.value = 0.6; }
+    if (type === 'vent') { s.buffer = this.boucleTampon('bruit'); f.type = 'lowpass'; f.frequency.value = 400; f.Q.value = 0.6; }
     else { s.buffer = this.boucleTampon(type); f.type = 'lowpass'; f.frequency.value = o.lp || 20000; f.Q.value = 0.5; }
     s.loop = true; s.playbackRate.value = o.rate || 1;
     g.gain.value = 0;
@@ -128,10 +135,11 @@ Object.assign(SoundEngine.prototype, {
       M.set(cle, x);
     }
     x.vu = now; x.niv = k;
-    x.g.gain.setTargetAtTime(Math.max(0, k) * (o.vol || SoundEngine.VOL_BOUCLES[type] || 0.1), now, o.tau || 0.8);
+    const cible = Math.max(0, k) * (o.vol || SoundEngine.VOL_BOUCLES[type] || 0.1);
+    if (x.cible === undefined || Math.abs(cible - x.cible) > Math.max(0.0004, x.cible * 0.03)) { x.cible = cible; x.g.gain.setTargetAtTime(cible, now, o.tau || 0.8); }
     if (pos && x.em) {
       const P = this.pos3(pos);
-      if (P && Math.hypot(P[0] - x.em.pos[0], P[1] - x.em.pos[1], P[2] - x.em.pos[2]) > 0.25) this._place(x.em, P, true);
+      if (P && Math.hypot(P[0] - x.em.pos[0], P[1] - x.em.pos[1], P[2] - x.em.pos[2]) > (o.pas || 0.25)) this._place(x.em, P, true);
     }
     return x;
   },
@@ -178,6 +186,18 @@ Object.assign(SoundEngine.prototype, {
     const biome = ferme ? B.biome || 'plaine' : 'plaine';
     const quiet = !(E.day > 0) && !(E.night > 0); // nuit rouge, Envers, temps arrêté, autres mondes
     const calme = 1 - clamp((E.rain || 0) * 1.5, 0, 1);
+    // les tampons se calculent un à un au début de la partie, quand le navigateur a le temps (entre deux images)
+    if (!this._chaud && !this._chauffeEnCours) {
+      if (typeof requestIdleCallback === 'function') {
+        this._chauffeEnCours = true;
+        const f = (dl) => {
+          let n = this.chauffer();
+          while (n > 0 && dl.timeRemaining() > 4) n = this.chauffer();
+          if (n > 0) requestIdleCallback(f, { timeout: 1500 }); else { this._chaud = true; this._chauffeEnCours = false; }
+        };
+        requestIdleCallback(f, { timeout: 1500 });
+      } else if (!this.chauffer()) this._chaud = true;
+    }
     // ---- le lieu : la réverbération
     S.lieuT -= dt;
     if (S.lieuT <= 0) { S.lieuT = 0.3; this.setLieu(this._lieuAuto(w, p, under, inside, biome, mondeAPart)); }
@@ -276,24 +296,24 @@ Object.assign(SoundEngine.prototype, {
   _pluie(dt, E, S, under, inside, now) {
     const rain = under ? 0 : clamp(E.rain || 0, 0, 1), c = this.ctx, L = this.L;
     if (!S.pl && rain > 0.02) {
-      const mk = (rate) => { const s = c.createBufferSource(); s.buffer = this.noise; s.loop = true; s.playbackRate.value = rate; const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 280; const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200; lp.Q.value = 0.5; s.connect(hp).connect(lp); s.start(now, Math.random() * 1.4); return { s, lp }; };
+      const mk = (rate) => { const s = c.createBufferSource(); s.buffer = this.boucleTampon('bruit'); s.loop = true; s.playbackRate.value = rate; const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 280; const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200; lp.Q.value = 0.5; s.connect(hp).connect(lp); s.start(now, Math.random() * 8.5); return { s, lp }; };
       const a = mk(1), b = mk(0.97), m = c.createChannelMerger(2), g = c.createGain();
       g.gain.value = 0;
       a.lp.connect(m, 0, 0); b.lp.connect(m, 0, 1); m.connect(g).connect(this.B.amb.inp);
       S.pl = { a, b, g, zero: 0 };
     }
     if (S.pl) {
-      const v = rain * rain * (inside ? 0.06 : 0.11);
+      const v = rain * rain * (inside ? 0.12 : 0.28);
       S.pl.g.gain.setTargetAtTime(v, now, 0.8);
       const lp = inside ? 900 : 4200 + rain * 1400;
       S.pl.a.lp.frequency.setTargetAtTime(lp, now, 0.5); S.pl.b.lp.frequency.setTargetAtTime(lp * 1.08, now, 0.5);
       if (rain <= 0.02) { S.pl.zero += dt; if (S.pl.zero > 4) { S.pl.g.gain.setTargetAtTime(0, now, 0.3); const P = S.pl; try { P.a.s.stop(now + 1.5); P.b.s.stop(now + 1.5); } catch (e) { /* rien */ } S.pl = null; } } else S.pl.zero = 0;
     }
     // les gouttes : devant, derrière, à gauche, à droite (au sol dehors ; au-dessus, sur le toit, dedans)
-    const k = rain * (inside ? 1.3 : 1);
+    const k = rain * (inside ? 0.7 : 1);
     for (let i = 0; i < 4; i++) {
       const a = i * Math.PI / 2 + 0.6, r = inside ? 2.2 : 3.5;
-      this.source('gouttes' + i, 'gouttes', [L.x + Math.cos(a) * r, L.y + (inside ? 2.6 : -1.3), L.z + Math.sin(a) * r], k, { att: 'aucune', rate: 0.9 + i * 0.07, lp: inside ? 1400 : 20000 });
+      this.source('gouttes' + i, 'gouttes', [L.x + Math.cos(a) * r, L.y + (inside ? 2.6 : -1.3), L.z + Math.sin(a) * r], k, { att: 'aucune', rate: 0.9 + i * 0.07, lp: inside ? 1400 : 20000, pas: 1 });
     }
   },
   // la rivière la plus proche (lit connu du plan de la vallée) ; la rive d'un lac (l'eau sous le niveau)
@@ -389,7 +409,7 @@ Object.assign(SoundEngine.prototype, {
       }
       if (Math.hypot(g.pos[0] - px, g.pos[2] - pz) < 2.8) g.tait = 7;
       g.tait = Math.max(0, g.tait - 0.1);
-      this.source(g.id, 'grillon', g.pos, g.tait > 0 ? 0 : k * (0.7 + 0.3 * Math.sin(i * 1.7)), { ref: 1.5, roll: 1, rate: 0.96 + i * 0.03, tau: g.tait > 0 ? 0.08 : 1.5 });
+      this.source(g.id, 'grillon', g.pos, g.tait > 0 ? 0 : k * (0.7 + 0.3 * Math.sin(i * 1.7)), { ref: 2.5, roll: 1, rate: 0.96 + i * 0.03, tau: g.tait > 0 ? 0.08 : 1.5 });
     }
     if (!n) G.length = 0;
   },

@@ -10,7 +10,7 @@
     fouille(k) {
       if (!this.ok) return;
       const t = this.at(), R = Math.random;
-      if (k === 'papier') { for (let i = 0; i < 4; i++) this.jouer(this.tb('page'), t + i * 0.13 + R() * 0.05, 0.05, this.sfx, 0.8 + R() * 0.35); return; }
+      if (k === 'papier') { for (let i = 0; i < 4; i++) this.jouer(this.tb('page'), t + i * 0.13 + R() * 0.05, 0.03, this.sfx, 0.8 + R() * 0.35); return; }
       if (k === 'verre' || k === 'vaisselle') {
         for (let i = 0; i < 3; i++) { const tt = t + i * 0.16 + R() * 0.05, f = 1800 + R() * 1100; this.tone(tt, 'sine', f, f * 0.97, 0.16, 0.022, null, 0.003); this.tone(tt, 'sine', f * 2.41, f * 2.37, 0.07, 0.005, null, 0.003); }
         this.noiseHit(t, 0.15, 'bandpass', 700, 1.5, 0.05);
@@ -20,7 +20,7 @@
     },
     objetCoup(m, k = 1) {
       if (!this.ok) return;
-      if (m === 'bois') { const t = this.at(), R = Math.random; this.jouer(this.tb('coup'), t, 0.15 * k, this.sfx, 0.75 + R() * 0.2); this.tone(t, 'triangle', 180 + R() * 30, 110, 0.07, 0.05 * k); return; }
+      if (m === 'bois') { const t = this.at(), R = Math.random; this.jouer(this.tb('coup'), t, 0.09 * k, this.sfx, 0.75 + R() * 0.2); this.tone(t, 'triangle', 180 + R() * 30, 110, 0.07, 0.03 * k); return; }
       if (_coup) return _coup.call(this, m, k);
     },
     objetCasse(m, gros) {
@@ -38,6 +38,14 @@
     crocRate() { if (!this.ok) return; const t = this.at(); for (let i = 0; i < 4; i++) this.noiseHit(t + i * 0.05, 0.05, 'bandpass', 2000 - i * 150, 2.5, 0.04); this.tone(t, 'triangle', 700, 520, 0.05, 0.025); },
     crocCasse() { if (!this.ok) return; const t = this.at(); this.tone(t, 'triangle', 2400, 900, 0.035, 0.05, null, 0.002); this.noiseHit(t, 0.05, 'bandpass', 2600, 1.2, 0.05); this.tone(t + 0.12, 'triangle', 1700, 1680, 0.1, 0.02); },
   });
+}
+// les autres mondes : leur bus passe par les bruitages (et donc par la réverbération du lieu)
+if (typeof MSON !== 'undefined') {
+  const _so = MSON.sortie;
+  MSON.sortie = function () {
+    if (!this.bus && sound.ctx && sound.B) { this.bus = sound.ctx.createGain(); this.bus.gain.value = 0.9; this.bus.connect(sound.B.sfx.inp); }
+    return this.bus || _so.call(this);
+  };
 }
 // le métal traîné sur la pierre (cauchemars) : moins de sifflement
 if (typeof MSON !== 'undefined') {

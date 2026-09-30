@@ -25,7 +25,7 @@ class SoundEngine {
     this.ambVolume = 0.5;
     this.son3d = true;
     this.birdT = 1; this.cricketT = 0.5; this.owlT = 20; this.crackleT = 0;
-    this.B = null; this.em = []; this.emMax = 18; this.persist = new Set();
+    this.B = null; this.em = []; this.emMax = 24; this.persist = new Set();
     this._scope = null; this._depth = 0; this._st = [];
     this.L = { x: 0, y: 0, z: 0, f: [0, 0, -1], r: [1, 0, 0], u: [0, 1, 0], ok: false };
     this.lieu = null; this.lieuForce = null; this._irs = {}; this._bufs = {};
@@ -359,22 +359,27 @@ class SoundEngine {
   // l'écouteur suit la caméra (position et orientation)
   ecoute(pos, yaw, pitch) {
     if (!this.ctx || !pos) return;
-    const b = cameraBasis(yaw, pitch), L = this.L, l = this.ctx.listener;
-    L.x = pos[0]; L.y = pos[1]; L.z = pos[2]; L.f = b.f; L.r = b.r; L.u = b.u; L.ok = true;
+    const L = this.L, l = this.ctx.listener;
+    // rien à faire si la caméra n'a pas bougé (régler un paramètre audio coûte : on ne touche qu'à ce qui change)
+    const bouge = !L.ok || Math.abs(pos[0] - L.x) + Math.abs(pos[1] - L.y) + Math.abs(pos[2] - L.z) > 0.004;
+    const tourne = !L.ok || Math.abs(yaw - L.yaw) + Math.abs(pitch - L.pitch) > 0.0015;
+    if (!bouge && !tourne) return;
+    L.ok = true;
+    if (bouge) { L.x = pos[0]; L.y = pos[1]; L.z = pos[2]; }
+    if (tourne) { const b = cameraBasis(yaw, pitch); L.f = b.f; L.r = b.r; L.u = b.u; L.yaw = yaw; L.pitch = pitch; }
     if (l.positionX) {
-      l.positionX.value = L.x; l.positionY.value = L.y; l.positionZ.value = L.z;
-      l.forwardX.value = b.f[0]; l.forwardY.value = b.f[1]; l.forwardZ.value = b.f[2];
-      l.upX.value = b.u[0]; l.upY.value = b.u[1]; l.upZ.value = b.u[2];
-    } else { l.setPosition(L.x, L.y, L.z); l.setOrientation(b.f[0], b.f[1], b.f[2], b.u[0], b.u[1], b.u[2]); }
+      if (bouge) { l.positionX.value = L.x; l.positionY.value = L.y; l.positionZ.value = L.z; }
+      if (tourne) { l.forwardX.value = L.f[0]; l.forwardY.value = L.f[1]; l.forwardZ.value = L.f[2]; l.upX.value = L.u[0]; l.upY.value = L.u[1]; l.upZ.value = L.u[2]; }
+    } else { l.setPosition(L.x, L.y, L.z); l.setOrientation(L.f[0], L.f[1], L.f[2], L.u[0], L.u[1], L.u[2]); }
   }
-  // chaque image : les sources qui bougent (bêtes qui crient en courant…)
+  // chaque image : les sources qui bougent (bêtes qui crient en courant…), si elles ont bougé
   suivre() {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
     for (const e of this.em) {
       if (!e.suivre || e.busy <= now) continue;
       const P = this.pos3(e.suivre);
-      if (P) this._place(e, P, true);
+      if (P && Math.abs(P[0] - e.pos[0]) + Math.abs(P[1] - e.pos[1]) + Math.abs(P[2] - e.pos[2]) > 0.15) this._place(e, P, true);
     }
   }
 
@@ -527,11 +532,12 @@ class SoundEngine {
 
   // ---------------------------------------------------------------- tampons synthétisés (variantes gardées)
   // tampon(clé, n, durée, fn(d, sr, i)) : une variante au hasard, calculée à la première demande
-  tampon(key, n, dur, fn) {
+  tampon(key, n, dur, fn, iv) {
     const arr = this._bufs[key] || (this._bufs[key] = []);
-    const i = (Math.random() * n) | 0;
+    const i = iv === undefined ? (Math.random() * n) | 0 : iv;
     if (!arr[i]) {
-      const sr = this.ctx.sampleRate, len = Math.max(32, Math.ceil(sr * dur)), b = this.ctx.createBuffer(1, len, sr), d = b.getChannelData(0);
+      // calculés à 22 050 Hz (tout est sous 8 kHz) : deux fois moins de calcul ; le navigateur rééchantillonne à la lecture
+      const sr = Math.min(this.ctx.sampleRate, SoundEngine.SR_SYNTH), len = Math.max(32, Math.ceil(sr * dur)), b = this.ctx.createBuffer(1, len, sr), d = b.getChannelData(0);
       fn(d, sr, i);
       const fi = Math.min(24, len >> 3), fo = Math.min(Math.floor(len * 0.06), 2000);
       for (let k = 0; k < fi; k++) d[k] *= k / fi;
@@ -552,6 +558,8 @@ class SoundEngine {
   }
 }
 SoundEngine.NUL = {};
+// fréquence d'échantillonnage des tampons synthétisés
+SoundEngine.SR_SYNTH = 22050;
 // équilibre des familles de sons (voix et interface : un peu en retrait)
 SoundEngine.BUS = { voix: 0.9, ui: 0.7 };
 // gain de sortie : compense le gain de rattrapage automatique du compresseur doux
@@ -592,7 +600,7 @@ SoundEngine.SYN = {
     let e = 1;
     for (let i = i0, j = 0; i < d.length; i++, j++) {
       let env;
-      if (j < na) env = j / na; else { e *= k; env = e; if (e < 1e-4) break; }
+      if (j < na) env = j / na; else { e *= k; env = e; if (e < 1e-3) break; }
       const x = Math.random() * 2 - 1;
       d[i] += (filt ? filt(x) : x) * env * a;
     }
@@ -600,13 +608,15 @@ SoundEngine.SYN = {
   // une note sifflée (oiseaux, grillons…) : glissement f0 → f1 (courbe c), vibrato, 2e harmonique, modulation d'amplitude
   note(d, sr, t0, dur, f0, f1, a, o) {
     o = o || {};
-    const i0 = Math.floor(t0 * sr), n = Math.floor(dur * sr), c = o.c || 1, vib = o.vib || 0, vd = o.vd || 0, h2 = o.h2 || 0, am = o.am || 0, amd = o.amd || 0;
+    const i0 = Math.floor(t0 * sr), n = Math.floor(dur * sr), c = o.c || 1, vib = o.vib || 0, vd = o.vd || 0, h2 = o.h2 || 0, am = o.am || 0, amd = o.amd || 0, dec2 = (o.dec || 1.5) > 2.2;
     let ph = 0;
     for (let j = 0; j < n && i0 + j < d.length; j++) {
       const u = j / n, tt = j / sr;
-      const f = f0 + (f1 - f0) * Math.pow(u, c) + (vib ? Math.sin(2 * Math.PI * vib * tt) * vd * f0 : 0);
+      const f = f0 + (f1 - f0) * (c === 1 ? u : Math.pow(u, c)) + (vib ? Math.sin(2 * Math.PI * vib * tt) * vd * f0 : 0);
       ph += 2 * Math.PI * f / sr;
-      let env = o.att ? (u < o.att ? u / o.att : Math.pow(1 - (u - o.att) / (1 - o.att), o.dec || 1.5)) : Math.pow(Math.sin(Math.PI * u), 0.7);
+      let env;
+      if (o.att) { if (u < o.att) env = u / o.att; else { const r = 1 - (u - o.att) / (1 - o.att); env = r * r * (dec2 ? r : 1); } }
+      else { const sn = Math.sin(Math.PI * u); env = sn * (1.35 - 0.35 * sn); } // ≈ sin^0.7, sans puissance
       if (am) env *= 1 - amd + amd * (0.5 + 0.5 * Math.sin(2 * Math.PI * am * tt));
       d[i0 + j] += (Math.sin(ph) + h2 * Math.sin(2 * ph)) * env * a;
     }
@@ -782,13 +792,31 @@ SoundEngine.TAMPONS = {
   }],
 };
 // volumes de base des pas (crête)
-SoundEngine.PAS = { herbe: 0.063, terre: 0.083, pierre: 0.29, bois: 0.066, eau: 0.064, neige: 0.07 };
+SoundEngine.PAS = { herbe: 0.063, terre: 0.09, pierre: 0.29, bois: 0.048, eau: 0.064, neige: 0.07 };
 
 Object.assign(SoundEngine.prototype, {
   // un tampon de la bibliothèque (variantes gardées : n par sorte)
-  tb(nom, n) {
+  tb(nom, n, iv) {
     const T = SoundEngine.TAMPONS[nom];
-    return this.tampon(nom, n || 6, T[0], (d, sr, i) => { T[1](d, sr, i); SoundEngine.SYN.norm(d, 1); });
+    return this.tampon(nom, n || 6, T[0], (d, sr, i) => { T[1](d, sr, i); SoundEngine.SYN.norm(d, 1); }, iv);
+  },
+  // mise en train : les tampons se calculent un par un, en tâche de fond (jamais tous d'un coup pendant le jeu)
+  chauffer() {
+    if (!this._chauffe) {
+      const L = [], T = (nom, n) => { for (let i = 0; i < n; i++) L.push(() => this.tb(nom, n, i)); };
+      for (const k of ['herbe', 'terre', 'pierre', 'bois']) T(k, 6);
+      for (const k of ['coup', 'toc', 'pieces', 'page']) T(k, 6);
+      L.push(() => this.boucleTampon && this.boucleTampon('bruit'), () => this.boucleTampon && this.boucleTampon('gouttes'));
+      for (const k of ['merle', 'mesange', 'pinson', 'tourterelle', 'moineau', 'alouette', 'coucou']) T(k, 5);
+      T('chouette', 4); T('pic', 4);
+      for (const k of ['eau', 'neige', 'sabot', 'croque', 'grenouille']) T(k, 6);
+      T('plouf', 5); T('goutte', 8);
+      for (const k of ['grillon', 'feuilles', 'riviere', 'clapotis', 'feu', 'bourdon']) L.push(() => this.boucleTampon && this.boucleTampon(k));
+      this._chauffe = L;
+    }
+    const f = this._chauffe.shift();
+    if (f) f();
+    return this._chauffe.length;
   },
 
   // ------------------------------------------------------------ tonnerre (vient de l'éclair : portée « ici », sinon d'une direction au hasard)
@@ -862,10 +890,10 @@ Object.assign(SoundEngine.prototype, {
         let tt = t;
         for (let i = 0, n = 3 + ((R() * 4) | 0); i < n; i++) {
           const f = 560 + R() * 240, du = 0.06 + R() * 0.035;
-          this.cri(tt, { dur: du, f: [[0, f * 1.15], [1, f * 0.8]], form: [[950, 3, 1], [1900, 5, 0.35]], vol: 0.1 * v, lp: 3800, a: 0.008 }, p);
+          this.cri(tt, { dur: du, f: [[0, f * 1.15], [1, f * 0.8]], form: [[950, 3, 1], [1900, 5, 0.35]], vol: 0.065 * v, lp: 3800, a: 0.008 }, p);
           tt += du + 0.05 + R() * 0.09;
         }
-        if (R() < 0.35) this.cri(tt + 0.05, { dur: 0.36, f: [[0, 680], [0.3, 960], [1, 780]], vib: [8, 0.02], form: [[1050, 3, 1], [2100, 5, 0.3]], vol: 0.09 * v, lp: 3800 }, p);
+        if (R() < 0.35) this.cri(tt + 0.05, { dur: 0.36, f: [[0, 680], [0.3, 960], [1, 780]], vib: [8, 0.02], form: [[1050, 3, 1], [2100, 5, 0.3]], vol: 0.06 * v, lp: 3800 }, p);
         break;
       }
       case 'horse': {
@@ -889,7 +917,7 @@ Object.assign(SoundEngine.prototype, {
   // ------------------------------------------------------------ oiseaux, grillons, chouette (anciens appels : direction au hasard)
   oiseau(sorte, pos, k, n) {
     if (!this.ok) return;
-    const R = Math.random, b = this.tb(sorte, n || 5), out = pos ? this.en3d(pos, this.B.amb.inp, { ref: 5, roll: 0.9, dur: b.duration + 0.2 }) : this.amb;
+    const R = Math.random, b = this.tb(sorte, n || 5), out = pos ? this.en3d(pos, this.B.amb.inp, { ref: 7, roll: 0.9, dur: b.duration + 0.2 }) : this.amb;
     const vol = (SoundEngine.VOL_OISEAUX[sorte] || 0.05) * (k === undefined ? 1 : k) * (0.8 + R() * 0.4);
     this.jouer(b, this.at(0.01), vol, out, 0.94 + R() * 0.12);
   },
@@ -971,7 +999,7 @@ Object.assign(SoundEngine.prototype, {
   },
 });
 // volume de chaque oiseau (crête)
-SoundEngine.VOL_OISEAUX = { merle: 0.07, mesange: 0.045, pinson: 0.05, tourterelle: 0.06, coucou: 0.06, alouette: 0.03, moineau: 0.04, chouette: 0.14, pic: 0.07 };
+SoundEngine.VOL_OISEAUX = { merle: 0.11, mesange: 0.07, pinson: 0.08, tourterelle: 0.1, coucou: 0.1, alouette: 0.05, moineau: 0.065, chouette: 0.18, pic: 0.1 };
 
 const sound = new SoundEngine();
 
