@@ -9,9 +9,10 @@ Ouvrir **`Prairie.html`** dans un navigateur récent (Chrome, Edge ou Firefox, W
 Aucune installation ni connexion : tout est dans ce seul fichier. La partie est sauvegardée automatiquement.
 Le jeu existe en **français** et en **anglais** (Options, ou le bouton de langue du menu ; bascule à chaud).
 
-**Le wiki de la vallée** : **`Prairie-Wiki.html`** (à ouvrir de même, hors du jeu) est un compagnon autonome : la carte interactive de toute
-la vallée (relief, eaux, forêts, chemins, milieux, lieux-dits, maisons des habitants, zones de pêche ; zoom, recherche) et les fiches de
-tout le jeu (habitants et leur semaine, objets, recettes, cultures, plantes, arbres, bêtes, poissons, alchimie, livres, langues perdues,
+**Le wiki de la vallée** : **`Prairie-Wiki.html`** (à ouvrir de même, hors du jeu) est un compagnon autonome : les cartes interactives,
+en onglets — toute la vallée (relief, eaux, forêts, chemins, milieux, lieux-dits, lieux perdus, villages, maisons des habitants, zones de
+pêche), le Dessous, les Enfers, le cauchemar, le pays des bonbons et les Ténèbres, dessinés depuis le jeu (zoom, recherche, repères qui
+mènent aux fiches) — et les fiches de tout le jeu (habitants et leur semaine, objets, recettes, cultures, plantes, arbres, bêtes, poissons, alchimie, livres, langues perdues,
 légendes…), avec une recherche plein texte. Les secrets restent masqués tant qu'on ne clique pas sur « révéler les secrets ». Il se
 régénère depuis les sources du jeu (la vallée est générée, ≈ 1 minute) : `node tools/wiki-build.js`.
 
@@ -44,7 +45,10 @@ une ceinture de forêt, des alpages, des falaises, et au nord **les Monts Blancs
   basses se noient, les barques flottent), puis se retire. L'**orage** frappe les grands arbres (ils restent noircis) ; les
   jours de canicule éclate parfois un **orage sec**. Un arbre frappé peut prendre feu : l'**incendie** gagne les voisins,
   poussé par le vent, et s'arrête aux prés, aux chemins, à l'eau, sous la pluie — ou à l'arrosoir. En montagne, **il
-  neige** ; il y fait froid : on y a faim plus vite, et la nuit ou sous la neige, sans feu ni toit, le froid tue.
+  neige** ; il y fait froid : on y a faim plus vite, et la nuit ou dans la tourmente, sans feu ni toit, **on gèle**
+  petit à petit — le givre gagne l'écran depuis les bords, la vue pâlit et bleuit ; au bout d'un quart d'heure (quinze
+  minutes réelles) de grand froid, le givre a tout pris, et c'est la fin. Au chaud (un feu, un toit, la potion de
+  chaleur), il recule vite ; redescendu, ou au jour revenu, il fond lentement.
 
 ### La ferme
 
@@ -420,6 +424,63 @@ Les commandes sont dans le menu **Commandes** (Échap).
   les quarante jours environ). Il fuit qui s'approche trop vite ; on le prend au **filet à papillons** (fabriqué, ou
   acheté à la colporteuse), et il se vend **2 000 pièces**.
 
+**Le Dessous**
+- **Le Dessous** : sous la vallée s'étend un monde souterrain d'environ **1,6 km sur 1,5 km**, cent à deux cents mètres
+  sous l'herbe : des galeries et des boyaux, une **Grande Nef** où poussent des champignons grands comme des arbres, des
+  **Cristallières**, le **Souffle** (roche soufrée), les **Gouffres** et la **Salle des Échos**, la **Chambre des
+  Gouttes**, les **Orgues** (forêt de stalagmites), les **Racines** (celles du grand chêne pendent de la voûte), les
+  **Vieilles Mines**, deux lacs (la **Mer muette**, le **Lac tiède**) et la **Rivière noire**, et les ruines d'une
+  **Ville engloutie**. Pas de carte : chaque lieu dit son nom quand on y entre, et l'on retrouve son chemin comme on
+  peut.
+- **Un passage bien caché à Valbrume** : on n'y tombe pas par hasard. Deux habitants en parlent à demi-mot (une
+  rumeur du garde, une comptine de la fillette). Au bout : la **cave des Murés**, où l'on enferma des malades en 1631,
+  et un puits aux barreaux qui descend dans le noir.
+- **Le noir, pour de vrai** : sous terre il n'y a que ce qu'on apporte (la lanterne et ses dix minutes d'huile) et ce
+  qui luit de soi-même (champignons, mousses, vers de voûte, cristaux, et ceux qui vivent là). Dans les grandes salles,
+  le noir porte plus loin. La **pierre luisante** boit le jour quand on la porte dehors, et le rend en lumière verte,
+  froide, huit minutes au plus (clic pour la montrer ou la cacher). La **lentille de cristal**, sur soi, porte la
+  flamme de la lanterne beaucoup plus loin.
+- **Minerais d'en bas** (filons à casser à la pioche) : la **galène** (trois galènes et du charbon au four : un lingot
+  d'argent), le **cristal de roche** (deux cristaux et un lingot d'argent à l'établi : la lentille), la **pierre
+  luisante**, la **magnétite**, le **soufre**, le **salpêtre** ; et les **perles des cavernes**, au fond des vasques.
+- **Plantes d'en bas**, chacune son objet, ses effets, ses essences : le **pied-de-pierre** (cru, il se défend ;
+  grillé au feu, il nourrit), la **mousse luisante**, le **lichen d'argent**, la **fougère pâle**, la **racine du grand
+  chêne**, l'**algue blanche**, le **chapeau-de-suie** (à ne pas manger) ; le **guano** des chauves-souris, engrais
+  très fort ; les champignons lumineux se cueillent et repoussent.
+- **Bêtes d'en bas** : chauves-souris en colonies (elles fuient la lanterne), **protées** et **écrevisses aveugles**
+  qu'on prend à la main au bord de l'eau, **grillons des cavernes** qui ne chantent que dans le noir complet,
+  **scolopendres** qui mordent dans les galeries sèches ; la pêche dans l'eau d'en bas. Et quelque chose, aux
+  Gouffres, qu'on entend souffler.
+- **Ceux d'en bas** : au **Hameau d'En-Bas**, des pâles vivent dans des cabanes de pierre sèche en forme de ruche,
+  à la lueur des pierres luisantes. Ils n'ont pas de noms. La flamme leur brûle les yeux ; ils ne parlent pas à
+  n'importe qui ; ils ne veulent pas de sous. Leur langue, le **parler d'en bas**, ne se traduit pas : chaque mot
+  entendu s'inscrit au carnet (onglet **Langues**) avec ce qui se passait à ce moment-là, et l'on peut ensuite le leur
+  redire (« Dire un mot… ») pour voir ce qu'ils en font. Ils écrivent par **encoches**. Ils troquent, ils gardent
+  leurs morts et leurs souvenirs, et l'un d'eux va et vient dans la longue galerie, une pierre verte à la main.
+- **Les Aëlim, avant eux** : dans la Ville engloutie, des pierres gravées en Hautes Lettres (de nouvelles inscriptions
+  d'aëlin, à lire avec les mots du lexique) et un tombeau fermé.
+- **Remonter** : par où l'on est descendu (le puits de la cave, puis le conduit des douves), et par d'autres chemins
+  qu'on découvre d'en bas et qui ne s'ouvrent, d'en haut, qu'une fois qu'on les a pris. Le **charbon** en main, sous
+  terre, trace une flèche au sol (clic) ou l'efface (clic droit) : de quoi ne pas se perdre deux fois.
+
+**Dire peu**
+- **Le jeu dit peu** : le personnage ne raconte plus ce qu'on voit ou entend déjà, ni ses propres gestes (atteler,
+  dépecer, creuser une fosse, remplir la lanterne, tirer un verrou…). Restent, en une phrase, les refus et leur raison
+  (« Fermé à clé. »), ce qu'on ne peut pas voir (une malédiction posée, un avis de recherche, la dette, un danger dans
+  le noir) et, rarement, une sensation brève ; l'étrange n'est jamais expliqué : le son, la lumière et le silence font
+  le travail. Une règle à connaître (la durée d'une bougie, ce qui amadoue un cheval, où trouver des crochets) se dit
+  **une seule fois par vie** (`penser.une`) ou reste dans la notice de l'objet ; un avertissement ne revient pas sans
+  cesse (`penser.pas`). L'inventaire des pensées : `node tools/pensees.js` (fichier:ligne, par canal et par module).
+- **Les langues perdues se déchiffrent par recoupement, lentement** : aucun habitant ne traduit plus une inscription
+  entière (le bibliothécaire en donne un seul mot par leçon, l'ancien des nains parle des cupules de travers) ; les
+  leçons et les lexiques donnent deux fois moins de mots, dans un **ordre mêlé propre à chaque partie** (pas les mots
+  des pierres d'abord) : il faut relever les pierres et comparer dans le carnet. L'onglet Langues dit ce qu'on sait
+  (mots, grammaire si l'on a lu la préface d'un lexique, ce qu'on lit de chaque pierre), pas où l'apprendre.
+- **Les énigmes se recoupent** : l'ordre des pierres du temple, les coups à frapper chez les nains, le rayonnage de la
+  bibliothèque, la niche des Frappeurs ou la fin des reliques ne sont plus écrits en entier nulle part ; chaque
+  solution se reconstitue à partir d'au moins deux sources obliques (un livre, une réplique, un conte à relire, un
+  objet, la couleur d'une pierre), et l'essai reste possible.
+
 **L'étrange, encore**
 - **Nuits noires** (l'almanach les prédit) : plus aucune lumière au ciel, et des murmures ; une voix vous appelle — il ne
   faut pas répondre. **Neige** possible sur toute la vallée. **Soleil écrasant** : le regarder laisse une tache noire.
@@ -443,7 +504,8 @@ Les commandes sont dans le menu **Commandes** (Échap).
 - **Tous les sons refaits, toujours synthétisés** : plus de bruit blanc cru ni de clics — bruits filtrés et adoucis, attaques
   douces, formes d'onde sans harmoniques perçantes, aigus un peu en retrait ; et jamais deux fois le même son (hauteur,
   timbre, durée, niveau varient un peu). Les **pas** changent avec le sol (herbe, terre, pierre, plancher, eau, neige qui
-  crisse), un pied puis l'autre. Les **bêtes** ont de vraies voix (formants, vibrato, rugosité) : bêlement qui tremble,
+  crisse), un pied puis l'autre : sourds et feutrés, on les sent plus qu'on ne les entend (sur le pavé, un « toc » mat
+  de semelle, sans claquement ; ceux des habitants un peu plus bas encore). Les **bêtes** ont de vraies voix (formants, vibrato, rugosité) : bêlement qui tremble,
   meuglement qui s'ouvre, grognements, caquètements, hennissement et ébrouement, coin-coin, braiment, aboiement,
   hurlement du loup, croassement… Les **habitants** murmurent des syllabes qui ressemblent à des mots, avec l'intonation
   d'une phrase (parfois une question). La **cloche** de l'église a les partiels d'une vraie cloche, qui battent lentement.
@@ -465,8 +527,10 @@ Les commandes sont dans le menu **Commandes** (Échap).
   côté à l'autre (avec le feuillage, en forêt ; toujours sur les sommets) ; la pluie tombe tout autour de vous, et
   sourdement sur le toit quand on est à l'abri ; la rivière coule là où elle coule, le lac clapote à la rive ; le feu
   crépite à sa place (feux de camp, cheminées, fours, incendies) ; les oiseaux chantent dans les arbres — merle, mésange,
-  pinson, tourterelle, coucou, pic, moineaux au village, alouette haut dans le ciel au-dessus des prés —, plus nombreux à
-  l'aube ; la nuit, des grillons dans l'herbe (ils se taisent quand on s'approche), la chouette au loin, les grenouilles
+  pinson, tourterelle, coucou, pic, moineaux au village, alouette haut dans le ciel au-dessus des prés —, **chacun son
+  tour** : un chanteur reprend sa phrase deux ou trois fois de la même branche, puis un silence, plus court à l'aube et
+  en forêt ; les oiseaux des bois et des cours attendent qu'aucun autre ne chante (en forêt, 44 chants par minute
+  avant, dont un tiers du temps à plusieurs ; une dizaine aujourd'hui, jamais ensemble, et trois quarts de silence) ; la nuit, des grillons dans l'herbe (ils se taisent quand on s'approche), la chouette au loin, les grenouilles
   au marais ; sous terre, des gouttes et un grondement sourd.
 - **Options** : « Son 3D pour casque » (coché par défaut ; décoché : simple panoramique, pour des haut-parleurs), à côté
   du volume général et du volume de l'ambiance.
@@ -644,7 +708,8 @@ graine fixe : les chiffres sont reproductibles.
   pour se remettre d'un grand coup (30 → 100 PV). Une vraie plaie ne guérit pas en dormant : il faut un bandage.
 - *Le temps de réagir* : aucune bête ne tue d'un seul coup quelqu'un en pleine santé ; une meute laisse au moins
   10 s après la première morsure (lanterne, feu, abri) ; les ours menacés tuent parfois (un tiers), moins si l'on
-  fait le mort ; le froid tue en quelques heures de jeu, pas en quelques minutes. Restent d'un coup, voulus : le
+  fait le mort ; le froid tue lentement (la montagne : un quart d'heure réel de gel ; un jour de neige : quelques
+  heures de jeu). Restent d'un coup, voulus : le
   tueur, le géant, le bibliothécaire, les Pâles, la balle du chasseur (un quart du temps), une chute de 12 m.
 - *La mentalité* bouge vraiment petit à petit : une journée ordinaire la garde haute (≈ +6), les méfaits, la
   chasse et les nuits dehors sans lumière la font glisser en jours, la fatigue plus vite encore (voulu) ; elle
@@ -659,7 +724,7 @@ graine fixe : les chiffres sont reproductibles.
 | Dormir sans manger, trois nuits de 12 h | 100 → 100 → 100 PV (on survivait en dormant) | 100 → 5 → 5 PV |
 | Loups (10-entities.js) | la meute tue en 7 s après la 1re morsure, jusqu'à 84 PV en 5 s | le loup recule 2 à 4 s après avoir mordu, la meute ne mord qu'un loup à la fois (1,8 s) : 17 s en moyenne (au pire 14 s), 42 PV en 5 s au plus ; un loup seul : 22 → 44 s |
 | Ours : faire le mort (11-zzz30-chasse.js) | sans effet (l'immobilité était lue après le recul du coup) | marche : mort 30 % → 7 % en pleine santé |
-| Froid de la montagne (11-zzvallee.js) | 1 PV/s : mort en 2 h de jeu | 0,5 PV/s : 4 h |
+| Froid de la montagne (11-zzvallee.js) | 1 PV/s : mort en 2 h de jeu | 0,5 PV/s : 4 h ; puis le gel (`11-zzvallee0-gel.js`) : plus de dégâts, un quart d'heure réel de grand froid jusqu'à la mort, le givre à l'écran |
 | Froid d'un jour de neige (11-zzz40-evenements.js) | mort en 2,3 h | 4,2 h |
 | Grêle, toute l'averse dehors (idem) | 43 PV | 21 PV |
 | Accident de chasse (tapi à portée, le Chassedi) | 1/700 par seconde réelle : 11 %/h de jeu | 3,5 % par heure de jeu (× 1,4 accroupi) : 5 %/h, comme avec la journée de 10 min |
@@ -797,8 +862,11 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `07-zzzzzzz-portes.js` | les portes (modèles selon le bâtiment, trois niveaux de détail) |
 | `11-zzzz6-*.js` | la lanterne et son huile, les ruches, la mémoire des recettes d'une vie à l'autre |
 | `11-zzzzA-commandes.js` | le carnet de commandes, le voiturier et ses colis (`farm.s.commandes`) |
+| `11-zzz00b-pensees.js`, `tools/pensees.js` | dire peu : `penser.une` (une règle dite une fois par vie), `penser.pas` (un avertissement espacé), `farm.s.pensees` ; l'inventaire des pensées (`node tools/pensees.js`) |
+| `11-zzvallee0-gel.js` | le gel en altitude : la jauge `farm.s.gel`, le givre à l'écran, la mort de froid |
 | `11-zzzz7-carte*.js`, `07-zzzzzzzzzz-carte.js` | un lieu tous les 200 m (catalogue, textes, lettres, inscriptions, petits secrets), les deux peuples de surface et leurs parlers (`farm.s.carte2`, API `carte2`) |
 | `05-zzzz-nature.js`, `03-zzzz-sprites-nature.js`, `11-zzzz8-nature.js` | la nature : plantes et leurs objets, effets et essences, bois par essence, bêtes nouvelles, papillon d'or (`farm.s.nature2`, API `nature2`) |
+| `11-zzzz9-souterrain*.js`, `07-zzzzzzzzzzz-souterrain.js` | le Dessous : moteur (sol et voûte en reliefs, rendu, physique, bascule), le passage de Valbrume, les salles, minerais, plantes et bêtes d'en bas, ceux d'en bas et leur parler, ce qui s'y cache, les chemins du retour (`farm.s.souterrain`, par identifiants stables ; API `souterrain`) |
 | `11-zzzz4-ferme-temps.js`, `11-zzzz4-meubles.js`, `07-zzzzzzzz-meubles.js` | portée des arroseurs, petites bêtes sous la pluie ; acheter et meubler sa maison (meubles, garde-meuble) |
 | `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |

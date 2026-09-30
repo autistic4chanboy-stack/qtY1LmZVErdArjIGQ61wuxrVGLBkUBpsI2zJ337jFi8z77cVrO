@@ -641,7 +641,6 @@ const legLumiere = { aube: false };
       if (Math.random() < (known ? 0.03 : 0.006) * bizarrerie()) {
         legendaires.obtenir('canne_dame', 'peche', [F.x, F.y + 0.3, F.z]);
         splashAt(F.x, F.y, F.z); sound.catchFish && sound.catchFish();
-        ui.subtitle('', '(Au bout de votre ligne, une autre canne, d’argent et de roseau. Personne ne l’a lâchée : on vous l’a rendue.)', 5);
         return;
       }
     }
@@ -649,7 +648,7 @@ const legLumiere = { aube: false };
       // le lac rend parfois ce qu'il a gardé
       if (Math.random() < 0.07) {
         const pickT = pick([['vieille_piece', 2], ['bijou', 1], ['perle', 1], ['vieille_piece', 3], ['relique', 1]]);
-        if (ITEMS[pickT[0]]) { farm.give(pickT[0], pickT[1]); this.flyer(pickT[0], [F.x, F.y + 0.3, F.z], pickT[1]); splashAt(F.x, F.y, F.z); sound.catchFish && sound.catchFish(); ui.subtitle('', '(Le lac vous rend quelque chose qu’il avait gardé.)', 3); return; }
+        if (ITEMS[pickT[0]]) { farm.give(pickT[0], pickT[1]); this.flyer(pickT[0], [F.x, F.y + 0.3, F.z], pickT[1]); splashAt(F.x, F.y, F.z); sound.catchFish && sound.catchFish(); return; }
       }
       // prises rares plus fréquentes : les poissons rares pèsent trois fois plus, le temps d'une prise
       const boost = [];
@@ -665,7 +664,7 @@ const legLumiere = { aube: false };
   const _chute = corps.chute.bind(corps);
   corps.chute = function (v) {
     if (legendaires.porte('pierre_durn') && v > 10.5) {
-      if (v > 13) { game.shakeT = Math.max(game.shakeT || 0, 0.4); sound.impact && sound.impact('hard'); ui.subtitle('', '(Vous touchez le sol comme on pose une pierre. La pierre de Durn est chaude dans votre poche.)', 3.5); }
+      if (v > 13) { game.shakeT = Math.max(game.shakeT || 0, 0.4); sound.impact && sound.impact('hard'); ui.subtitle('', '(La pierre de Durn est chaude dans votre poche.)', 3); }
       return;
     }
     return _chute(v);
@@ -678,7 +677,7 @@ HOOKS.primary.push((eye, basis, held, it, id) => {
   switch (id) {
     case 'lanterne_aube':
       legLumiere.aube = !legLumiere.aube; sound.click();
-      if (legLumiere.aube) { sound.candle && sound.candle(); ui.subtitle('', '(La flamme s’ouvre, couleur de matin.)', 2); }
+      if (legLumiere.aube) sound.candle && sound.candle();
       play.cool = 0.4; return true;
     case 'cor_mesnie': legCor(); play.cool = 1.2; return true;
     case 'clochette_aubin': legClochette(); play.cool = 1.2; return true;
@@ -686,8 +685,8 @@ HOOKS.primary.push((eye, basis, held, it, id) => {
     case 'bourse_vesh': legBourse(); play.cool = 0.6; return true;
     case 'cle_aelim': legCle(); play.cool = 1; return true;
     case 'chronographe': legChrono(false); play.cool = 1; return true;
-    case 'pierre_durn': ui.subtitle('', pick(['(La pierre bat, très lentement, dans votre paume. Un battement. Puis rien, longtemps.)', '(Elle est tiède. Sous vos pieds, la terre semble plus sûre.)']), 3.5); play.cool = 0.8; return true;
-    case 'larme_aela': ui.subtitle('', pick(['(La goutte d’or bat avec votre cœur. Quand vous la regardez, il fait un peu plus jour.)', '(Elle est tiède comme une joue.)']), 3.5); play.cool = 0.8; return true;
+    case 'pierre_durn': ui.subtitle('', '(La pierre bat, très lentement, dans votre paume.)', 3); play.cool = 0.8; return true;
+    case 'larme_aela': ui.subtitle('', '(Elle est tiède comme une joue.)', 3); play.cool = 0.8; return true;
   }
   return false;
 });
@@ -702,7 +701,7 @@ HOOKS.secondary.push((eye, basis, it, id) => {
 
 function legFrapper(eye) {
   const w = game.world, p = game.player;
-  if (!legJour('pic_frappe', 0.25)) { ui.subtitle('', '(La roche se tait. Les Frappeurs n’aiment pas qu’on les dérange trop souvent.)', 2.5); return; }
+  if (!legJour('pic_frappe', 0.25)) { ui.subtitle('', '(La roche se tait. Pas si souvent.)', 2.5); return; }
   legUser('pic_frappe');
   sound.knock && sound.knock(3); setTimeout(() => sound.knock && sound.knock(1), 1300);
   // le filon (ou le cristal) le plus proche, dans un rayon de 90 m
@@ -716,16 +715,16 @@ function legFrapper(eye) {
     if (d < bd) { bd = d; best = o; }
   }
   setTimeout(() => {
-    if (!best) { ui.subtitle('', '(Rien ne répond. Il n’y a pas de filon à portée des Frappeurs.)', 3); return; }
+    if (!best) { ui.subtitle('', '(Rien ne répond. Pas de filon à portée.)', 3); return; }
     const ang = Math.atan2(best.x - p.pos[0], best.z - p.pos[2]), rel = angDiff(p.yaw + Math.PI, ang);
     const side = Math.abs(rel) < 0.5 ? 'droit devant vous' : Math.abs(rel) > 2.6 ? 'derrière vous' : rel > 0 ? 'sur votre gauche' : 'sur votre droite';
     const loin = bd < 12 ? 'tout près' : bd < 35 ? 'pas loin' : 'plus loin';
     if (sound.ok) { const pan = sound.en3d ? sound.en3d([best.x, p.pos[1], best.z], null, { att: 'aucune', dur: 2 }) : sound.pan(clamp(-Math.sin(rel), -0.9, 0.9)); /* C5 : la réponse vient vraiment de là (devant, derrière…) */ for (let k = 0; k < 3; k++) sound.noiseHit(sound.at(k * 0.32 + 0.2), 0.07, 'lowpass', 420, 1, 0.22 * clamp(1 - bd / 100, 0.2, 1), pan); sound.noiseHit(sound.at(1.4), 0.07, 'lowpass', 420, 1, 0.22, pan); }
-    ui.subtitle('', `(Trois coups, puis un : on vous répond ${side}, ${loin}.)`, 4);
+    ui.subtitle('', `(On vous répond ${side}, ${loin}.)`, 4);
   }, 2400);
 }
 function legCor() {
-  if (!legJour('cor_mesnie', 20)) { ui.subtitle('', '(Vous soufflez : rien qu’un râle de corne. Le cor doit reprendre son souffle, jusqu’à demain.)', 3); return; }
+  if (!legJour('cor_mesnie', 20)) { ui.subtitle('', '(Rien qu’un râle de corne. Pas avant demain.)', 3); return; }
   legUser('cor_mesnie');
   const p = game.player, w = game.world;
   // le son : une longue note grave, puis la meute au loin
@@ -745,7 +744,7 @@ function legCor() {
   }
   const chasses = legChasserEtrange(110);
   if (typeof slender !== 'undefined' && slender.repousser) slender.repousser('cor');
-  ui.subtitle('', n || chasses ? '(Le cor sonne sur toute la vallée. Quelque part au-dessus des nuages, des chevaux répondent. Tout ce qui était là s’en va.)' : '(Le cor sonne sur toute la vallée. Quelque part au-dessus des nuages, des chevaux répondent.)', 5);
+  if (n || chasses) ui.subtitle('', '(Tout ce qui était là s’en va.)', 3.5);
 }
 // fait taire ce qui n'est pas de ce monde (silhouettes, Pâles, doubles, feux follets…) : renvoie le nombre
 function legChasserEtrange(r) {
@@ -763,13 +762,13 @@ function legChasserEtrange(r) {
 function legClochette() {
   const U = legendaires.S().used, h = farm.s.hours;
   U.clochette = (U.clochette || []).filter((t) => h - t < 24);
-  if (U.clochette.length >= 2) { ui.subtitle('', '(La clochette ne tinte plus. Elle a assez parlé pour aujourd’hui.)', 3); return; }
+  if (U.clochette.length >= 2) { ui.subtitle('', '(La clochette ne tinte plus. Pas aujourd’hui.)', 3); return; }
   U.clochette.push(h);
   if (sound.ok) { const t = sound.at(); for (const f of [1318, 1976, 2637]) sound.tone(t, 'sine', f, f, 2.4, 0.03); sound.tone(t + 0.02, 'triangle', 659, 659, 1.8, 0.02); }
   const n = legChasserEtrange(140);
   if (strange.glitchT) strange.glitchT = 0;
   if (typeof slender !== 'undefined' && slender.repousser) slender.repousser('clochette');
-  ui.subtitle('', n ? '(Un tintement sans écho. Au bord de votre vue, des formes se défont, comme de la buée.)' : '(Un tintement clair, sans écho. Le silence qui suit est plus propre.)', 4.5);
+  if (n) ui.subtitle('', '(Au bord de votre vue, des formes se défont.)', 3.5);
 }
 // ------------------------------------------------ le livre sans fin : la page du jour
 function legLivre() {
@@ -800,12 +799,12 @@ function legLivre() {
 // ------------------------------------------------ la bourse de Vesh : l'or, et le prix
 function legBourse() {
   const s = farm.s, V = legendaires.S().vesh;
-  if (V.jour === s.day) { ui.subtitle('', '(La bourse est vide, et froide. Elle se remplira cette nuit.)', 3); return; }
+  if (V.jour === s.day) { ui.subtitle('', '(La bourse est vide, pour aujourd’hui.)', 3); return; }
   V.jour = s.day;
   const n = 80 + Math.floor(Math.random() * 90);
   farm.earn(n); V.dette += n; V.pris += n;
   sound.coin && sound.coin(); sound.whisper && sound.whisper((Math.random() - 0.5) * 2, 0.25);
-  ui.subtitle('', `(${n} pièces glissent dans votre main. Elles sont tièdes. Quelque part, quelqu’un vient de compter.)`, 4);
+  ui.subtitle('', `(${n} pièces glissent dans votre main. Quelque part, quelqu’un vient de compter.)`, 4);
 }
 HOOKS.day.push(() => {
   const s = farm.s;
@@ -817,7 +816,7 @@ HOOKS.day.push(() => {
     for (const q of game.world.props) if (q.data && q.data.items && q.data.items.bourse_vesh) delete q.data.items.bourse_vesh;
     if (s.ship && s.ship.bourse_vesh) delete s.ship.bourse_vesh;
     farm.give('bourse_vesh', 1);
-    setTimeout(() => ui.subtitle('', '(Sous votre oreiller, quelque chose de tiède : la bourse de cuir noir. Elle est revenue.)', 5), 2500);
+    setTimeout(() => ui.subtitle('', '(Sous votre oreiller : la bourse de cuir noir. Elle est revenue.)', 5), 2500);
   }
   // le prix de la Nuit
   if (V.dette >= 400 && Math.random() < 0.6) {
@@ -831,27 +830,27 @@ HOOKS.day.push(() => {
       farm.dirtyProps = true;
       farm.mail('?', 'Sans timbre', k ? 'Tes champs ont noirci cette nuit. C’était le prix.' : 'Nous avons compté. Nous reviendrons.', { strange: true });
     } else if (prix === 'nuit' && strange.s) { strange.s.redTonight = true; farm.mail('?', 'Sans timbre', 'Cette nuit sera rouge. Tu l’as achetée.', { strange: true }); }
-    else if (prix === 'sang') { game.player.hp = Math.max(20, game.player.hp - 35); setTimeout(() => ui.subtitle('', '(Vous vous réveillez faible, avec au bras une marque de dents qui n’est pas la vôtre.)', 5), 2500); }
+    else if (prix === 'sang') { game.player.hp = Math.max(20, game.player.hp - 35); setTimeout(() => ui.subtitle('', '(Vous vous réveillez faible. Au bras, une marque de dents.)', 5), 2500); }
     else { setTimeout(() => { sound.whisper && sound.whisper(0, 0.9); ui.subtitle('???', (s.prenom || '…') + '…', 3); }, 4000); }
   }
 });
 // ------------------------------------------------ Kel, la clé des Aëlim
 function legCle() {
   const w = game.world, p = game.player, T = w.temple;
-  if (!T) { ui.subtitle('', '(Vous tournez la clé dans le vide. Rien ne s’ouvre : ici, il n’y a pas de seuil.)', 3); return; }
+  if (!T) { ui.subtitle('', '(Rien ne s’ouvre. Il n’y a pas de seuil, ici.)', 3); return; }
   const dansTemple = p.underground && Math.hypot(p.pos[0] - T.x, p.pos[2] - T.z) < 140;
-  if (dansTemple) { sound.lock && sound.lock(false); game.teleport(T.exit, 'Vous tournez la clé. L’air se plie comme une page, et la cascade vous éclabousse.'); return; }
-  if (!legJour('cle_seuil', 20)) { ui.subtitle('', '(La clé tourne, mais le seuil ne s’ouvre qu’une fois par jour.)', 3); return; }
+  if (dansTemple) { sound.lock && sound.lock(false); game.teleport(T.exit, 'L’air se plie comme une page.'); return; }
+  if (!legJour('cle_seuil', 20)) { ui.subtitle('', '(Le seuil ne s’ouvre qu’une fois par jour.)', 3); return; }
   legUser('cle_seuil');
   sound.lock && sound.lock(false); strange.glitchT = Math.max(strange.glitchT || 0, 0.4);
-  game.teleport(T.arrive, 'Vous tournez la clé dans le vide. Quelque chose, très loin sous la montagne, fait « clac ».');
+  game.teleport(T.arrive, 'Très loin sous la montagne, quelque chose fait « clac ».');
 }
 HOOKS.load.push(() => {
   if (game._legPortes) return;
   game._legPortes = true;
   const _ud = game.useDoor.bind(game);
   game.useDoor = function (dr) {
-    if (dr && dr.locked && legendaires.porte('cle_aelim')) { dr.locked = false; sound.lock && sound.lock(false); ui.subtitle('', '(La clé de pierre bleue entre toute seule. La serrure s’ajuste à elle.)', 3); }
+    if (dr && dr.locked && legendaires.porte('cle_aelim')) { dr.locked = false; sound.lock && sound.lock(false); }
     return _ud(dr);
   };
   // l'objet en main : les merveilles qui s'animent comme un objet ordinaire (arc, canne, lanterne)
@@ -871,7 +870,7 @@ HOOKS.load.push(() => {
 const legChronoBuf = [];
 function legChrono(auto) {
   const L = legendaires.S(), s = farm.s, p = game.player;
-  if (!auto && !legJour('chrono', 6)) { ui.subtitle('', '(Les aiguilles tremblent, mais refusent de reculer. Pas encore.)', 3); return false; }
+  if (!auto && !legJour('chrono', 6)) { ui.subtitle('', '(Les aiguilles refusent de reculer. Pas encore.)', 3); return false; }
   const snap = legChronoBuf.length ? legChronoBuf[0] : null;
   if (!snap) return false;
   if (!auto) legUser('chrono');
@@ -882,7 +881,7 @@ function legChrono(auto) {
   game.renderer.uploadCover(p.pos[0], p.pos[2]);
   strange.glitchT = Math.max(strange.glitchT || 0, 1.2); game.shakeT = 0.4;
   if (sound.ok) { const t = sound.at(); sound.voice(t, 'sawtooth', 1400, 90, 0.9, 0.04, sound.lp(3000)); for (let k = 0; k < 10; k++) sound.tone(t + k * 0.05, 'square', 2600 - k * 180, 2600 - k * 180, 0.02, 0.01); }
-  ui.subtitle('', auto ? '(Tout se déchire, se replie. Vous êtes debout, dix secondes plus tôt, et vous vous souvenez de votre mort.)' : '(Les trois aiguilles tournent à l’envers. Le monde recule de dix secondes, comme une page qu’on rembobine.)', 5);
+  if (auto) ui.subtitle('', '(Vous vous souvenez de votre mort.)', 4);
   return true;
 }
 HOOKS.update.push((dt, eye, basis, sky, playing) => {
@@ -906,7 +905,7 @@ HOOKS.death.push((cause) => {
     p.hp = 55; corps.panser && corps.panser(); corps.soignerJambe && corps.soignerJambe(true);
     game.shakeT = 0.6; play.hurtFlash = 0;
     if (sound.ok) { const t = sound.at(); for (const f of [523, 784, 1047, 1568]) sound.tone(t, 'sine', f, f, 2.5, 0.025); }
-    ui.subtitle('', '(Une chaleur d’or vous traverse. La larme d’Aëla a dit non. Pas cette fois.)', 5);
+    ui.subtitle('', '(La larme d’Aëla a dit non. Pas cette fois.)', 4);
     return true;
   }
   if (legendaires.porte('chronographe') && !(S.chronoMort && s.day - S.chronoMort < 1) && legChronoBuf.length) {
@@ -923,7 +922,7 @@ HOOKS.update.push((dt, eye, basis, sky, playing) => {
   legendaires._lT = (legendaires._lT || 0) - dt;
   if (legendaires._lT > 0) return;
   legendaires._lT = 20;
-  if (corps.saignement() > 0) { corps.panser(); ui.subtitle('', '(Le sang s’arrête de lui-même. La larme est chaude contre votre peau.)', 3); }
+  if (corps.saignement() > 0) { corps.panser(); ui.subtitle('', '(Le sang s’arrête de lui-même.)', 3); }
   if (corps.jambeCassee() && !corps.C().aela) { corps.soignerJambe(false); corps.C().aela = 1; ui.subtitle('', '(Les os de votre jambe se cherchent, et se trouvent.)', 3); }
 });
 
@@ -1006,12 +1005,12 @@ function addLegendaires(w, seed) {
     const T = w.temple;
     push('leg_lanterne', 'lanterne_aube', T.x - 54.3, T.y, T.z - 9, 'Une lanterne, au pied du mur, qui brûle sans huile', { quand: [4.5, 8.5] });
     push('leg_pierre', 'pierre_durn', T.x + 4.4, T.y + 0.1, T.z - 45.5, 'Une pierre ronde et tiède, contre le flanc du Dormeur', {
-      apres: () => { game.shakeT = 1.2; sound.rumble && sound.rumble(); setTimeout(() => { sound.whisper && sound.whisper(0, 0.4); ui.subtitle('', '(Sous vos pieds, toute la montagne a bougé. Un peu. Comme un dormeur qui se retourne.)', 5); }, 900); },
+      apres: () => { game.shakeT = 1.2; sound.rumble && sound.rumble(); setTimeout(() => { sound.whisper && sound.whisper(0, 0.4); }, 900); },
     });
   }
   // le cor : dans une crevasse où personne n'est mort
   const C = w.crevasses && w.crevasses[7];
-  if (C) { const [[ax, az], [bx, bz]] = C, x = lerp(ax, bx, 0.42), z = lerp(az, bz, 0.42); push('leg_cor', 'cor_mesnie', x, H(x, z) + 0.05, z, 'Quelque chose de corne, pris dans la glace bleue', { pioche: '(La glace tient la corne comme un poing. Il faudrait une pioche.)', avant: () => { sound.impact && sound.impact('hard'); puffAt(x, H(x, z) + 0.4, z, [190, 220, 240], 12, 2, true); } }); }
+  if (C) { const [[ax, az], [bx, bz]] = C, x = lerp(ax, bx, 0.42), z = lerp(az, bz, 0.42); push('leg_cor', 'cor_mesnie', x, H(x, z) + 0.05, z, 'Quelque chose de corne, pris dans la glace bleue', { pioche: '(La glace tient la corne. Il faudrait une pioche.)', avant: () => { sound.impact && sound.impact('hard'); puffAt(x, H(x, z) + 0.4, z, [190, 220, 240], 12, 2, true); } }); }
   // la clochette : au pied du clocher englouti
   if (w.drowned) { const D = w.drowned, a = rnd() * TAU, x = D.x + Math.cos(a) * 3.2, z = D.z + Math.sin(a) * 3.2; push('leg_clochette', 'clochette_aubin', x, H(x, z) + 0.05, z, 'Une clochette de bronze, dans la vase'); }
   w.legSpots = pts;
@@ -1163,7 +1162,6 @@ function legGlace(it, _pg) {
       vallee.fish = null;
       legendaires.obtenir('cle_aelim', 'glace', [it.x, it.y + 0.3, it.z]);
       sound.splash && sound.splash();
-      ui.subtitle('', '(La ligne se tend, très lourde, puis cède d’un coup : au bout, une clé de pierre bleue, sans dents, qui luit sous le givre.)', 5.5);
       return;
     }
   }

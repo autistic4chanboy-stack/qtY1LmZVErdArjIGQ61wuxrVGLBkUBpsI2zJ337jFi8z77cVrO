@@ -136,7 +136,7 @@ const play = {
     const lasse = farm.usure(farm.cellKey(c.x, c.z)) >= TERRE.fatigue[0];
     if (!farm.fertilize(c.x, c.z, it.fert)) return;
     farm.take(id, 1);
-    if (lasse && performance.now() > (this.engraisT || 0)) { this.engraisT = performance.now() + 90000; ui.subtitle('', '(La terre boit l’engrais. Elle reprendra des forces.)', 3); }
+    if (lasse && performance.now() > (this.engraisT || 0)) { this.engraisT = performance.now() + 90000; ui.subtitle('', '(La terre boit l’engrais.)', 3); }
     sound.plant && sound.plant();
     puffAt(c.x, c.y + 0.1, c.z, [70, 55, 35], 6, 1, false);
   },
@@ -365,7 +365,7 @@ const play = {
     this.flyer(item, [x, game.world.heightAt(x, z) + 0.5, z], n);
     if (C.seedBack) farm.give('graines_' + c.c, C.seedBack[0] + Math.floor(Math.random() * (C.seedBack[1] - C.seedBack[0] + 1)));
     else if (ITEMS['graines_' + c.c] && Math.random() < (C.regrow ? 0.05 : 0.12)) farm.give('graines_' + c.c, 1); // quelques graines reviennent
-    if (item === 'mandragore') { sound.scream2 && sound.scream2(); ui.subtitle('', '(La racine hurle en sortant de terre. Puis plus rien.)', 3.5); strange.glitchT = Math.max(strange.glitchT || 0, 0.3); }
+    if (item === 'mandragore') { sound.scream2 && sound.scream2(); strange.glitchT = Math.max(strange.glitchT || 0, 0.3); }
     farm.s.stats.crops += n;
     // le coup de pouce de l'engrais vaut jusqu'à la récolte, que la plante repousse ou non
     c.fert = 0;
@@ -382,7 +382,7 @@ const play = {
     const t = performance.now();
     if (t < (this.lasseT || 0)) return;
     this.lasseT = t + 90000;
-    ui.subtitle('', n >= TERRE.fatigue[1] ? '(La terre est épuisée. Sans engrais, plus rien n’y poussera qu’à grand-peine.)' : '(La terre s’épuise. Il lui faudrait de l’engrais.)', 3.5);
+    ui.subtitle('', n >= TERRE.fatigue[1] ? '(La terre est épuisée.)' : '(La terre s’épuise.)', 3);
   },
 
   // ------------------------------------------------------------- manger

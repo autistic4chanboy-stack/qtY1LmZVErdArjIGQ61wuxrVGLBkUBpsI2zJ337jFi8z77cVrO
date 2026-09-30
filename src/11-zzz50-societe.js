@@ -773,7 +773,7 @@ const societe = {
       e.mort = true; e.move = 0; sound.scream && sound.scream(0.9);
       const n = 40 + ((Math.random() * 80) | 0); farm.earn(n); sound.coin && sound.coin();
       farm.give('cartouche', 3 + ((Math.random() * 4) | 0)); play.flyer('cartouche', [e.x, e.y + 0.6, e.z], 3);
-      ui.subtitle('', `(L’homme s’effondre. Dans sa poche, ${n} pièces, et l’affiche à votre nom, pliée en quatre.)`, 5);
+      ui.subtitle('', `(Dans sa poche, ${n} pièces, et l’affiche à votre nom.)`, 5);
     } else if (!e.cri) e.cri = true;
   },
   draw(buf, sbuf, cam, t) {
@@ -934,8 +934,8 @@ let _socGuardAttack = null;
   const _knock = npcs.knock.bind(npcs);
   npcs.knock = function (dr) {
     if (dr.scelle) {
-      if (game.insideBuilding(dr.bld)) { dr.locked = false; dr.open = 1; sound.lock && sound.lock(false); sound.door && sound.door(true); ui.subtitle('', '(Vous tirez le verrou de l’intérieur.)', 2.5); return; }
-      sound.knock && sound.knock(2); ui.subtitle('', '(Des scellés de cire noire barrent la porte. Personne ne répondra plus ici.)', 3.5); return;
+      if (game.insideBuilding(dr.bld)) { dr.locked = false; dr.open = 1; sound.lock && sound.lock(false); sound.door && sound.door(true); return; }
+      sound.knock && sound.knock(2); ui.subtitle('', '(Des scellés de cire noire barrent la porte.)', 3.5); return;
     }
     // (l'habitant répond au bout de 1,4 s : on lui prête ce qu'il sait juste à ce moment-là)
     const own = this.list.find((n) => n.d.home === dr.bld && n.st.alive && !n.vanished && !n.hunting) || null;
@@ -1175,7 +1175,7 @@ HOOKS.inter.guichet_mairie = () => {
   if (h < 8 || h >= 18) { ui.subtitle('', '(Le guichet est fermé. Une pancarte : « de huit heures à six heures ».)', 3); return; }
   const qui = npcs.alive('maire') ? npcs.byId.maire.name + ' ' + npcs.byId.maire.d.surname : 'le commis';
   ui.choice('Le guichet de la mairie', `Prime due : ${R.prime} pièces. Vous avez ${farm.s.money} pièces.`, [
-    { label: `Payer la prime (${R.prime} pièces)`, fn: () => { const r = societe.payer(qui); ui.close(); ui.subtitle('', r === 'ok' ? '(Le commis compte les pièces deux fois, les range, et tamponne un reçu sans vous regarder.)' : '(Vous n’avez pas de quoi payer.)', 4); } },
+    { label: `Payer la prime (${R.prime} pièces)`, fn: () => { const r = societe.payer(qui); ui.close(); ui.subtitle('', r === 'ok' ? '(Le commis tamponne un reçu sans vous regarder.)' : '(Vous n’avez pas de quoi payer.)', 4); } },
     { label: 'Partir', fn: () => ui.close() },
   ]);
 };

@@ -147,7 +147,7 @@ const corps = {
     C.jambe = Math.max(C.jambe, s.hours + 48); C.attelle = 0;
     sound.impact && sound.impact('hard'); sound.hurt && sound.hurt(30);
     game.shakeT = 0.8;
-    ui.subtitle('', deja ? '(La jambe cassée cède encore. La douleur vous coupe le souffle.)' : '(Un craquement sec. Votre jambe ne vous porte plus : elle est cassée.)', 4);
+    ui.subtitle('', deja ? '(La jambe cassée cède encore.)' : '(Un craquement sec. Votre jambe est cassée.)', 4);
     if (deja) play.hurt(15, null, cause || 'Une mauvaise chute');
   },
   soignerJambe(total) {
@@ -206,7 +206,7 @@ const corps = {
         for (let i = 0; i < 2; i++) particles.spawn(p.pos[0] + (Math.random() - 0.5) * 0.4, p.pos[1] + 0.9, p.pos[2] + (Math.random() - 0.5) * 0.4, 0, -1, 0, [0.45, 0.02, 0.02, 1], 0.05, 0.7, 9, false);
         void y;
       }
-      if (!this.ditSaigne || s.hours > this.ditSaigne + 2) { this.ditSaigne = s.hours; ui.subtitle('', C.saigne > 0.5 ? '(Vous perdez beaucoup de sang. Il faut un bandage, vite.)' : '(Vous saignez. Un bandage arrêterait ça.)', 3.5); }
+      if (!this.ditSaigne || s.hours > this.ditSaigne + 2) { this.ditSaigne = s.hours; ui.subtitle('', C.saigne > 0.5 ? '(Vous perdez beaucoup de sang.)' : '(Vous saignez.)', 3.5); }
       if (p.hp <= 0) game.die(C.cause || 'Mort de ses blessures, lentement');
     }
     if (this.jambeCassee()) {
@@ -265,14 +265,14 @@ HOOKS.primary.push((eye, basis, held, it, id) => {
   if (id === 'bandage') {
     if (!corps.saignement()) { ui.subtitle('', '(Vous ne saignez pas.)', 2); return true; }
     farm.take('bandage', 1); corps.panser(); sound.equip && sound.equip();
-    ui.subtitle('', '(Vous serrez le bandage. Le sang s’arrête.)', 3); play.cool = 0.8;
+    ui.subtitle('', '(Le sang s’arrête.)', 3); play.cool = 0.8;
     return true;
   }
   if (id === 'attelle') {
     if (!corps.jambeCassee()) { ui.subtitle('', '(Vos jambes vont bien.)', 2); return true; }
     if (corps.C().attelle) { ui.subtitle('', '(L’attelle tient déjà la jambe.)', 2); return true; }
     farm.take('attelle', 1); corps.C().attelle = 1; corps.soignerJambe(false); sound.equip && sound.equip();
-    ui.subtitle('', '(Vous immobilisez la jambe entre deux planchettes. Elle se remettra plus vite ; on marche un peu mieux.)', 4); play.cool = 0.8;
+    ui.subtitle('', '(L’attelle tient la jambe.)', 2.5); play.cool = 0.8;
     return true;
   }
   return false;

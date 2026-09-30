@@ -655,39 +655,42 @@ SoundEngine.SYN = {
 
 // les tampons : pas, gouttes, cris d'oiseaux… (chacun : fonction de remplissage ; normalisés à une crête de 1)
 SoundEngine.TAMPONS = {
-  // ---- les pas : talon puis semelle
+  // ---- les pas : talon puis semelle, sourds et feutrés (on les sent plus qu'on ne les entend)
   herbe: [0.2, (d, sr) => {
-    const R = Math.random, S = SoundEngine.SYN, b1 = S.bq('bp', 800 + R() * 600, 0.8, sr), b2 = S.bq('bp', 1900 + R() * 900, 1.3, sr);
-    for (const [t0, a] of [[0.004, 1], [0.035 + R() * 0.03, 0.6 + R() * 0.3]]) {
-      S.bruit(d, sr, t0, 0.005 + R() * 0.004, 0.026 + R() * 0.02, 0.55 * a, b1);
-      const n = 8 + ((R() * 10) | 0);
-      for (let k = 0; k < n; k++) S.bruit(d, sr, t0 + R() * 0.07, 0.0006, 0.002 + R() * 0.003, (0.15 + R() * 0.25) * a, b2);
-      S.mode(d, sr, t0, 75 + R() * 25, 0.02, 0.15 * a);
+    const R = Math.random, S = SoundEngine.SYN, b1 = S.bq('bp', 650 + R() * 400, 0.7, sr), b2 = S.bq('bp', 1300 + R() * 500, 1, sr);
+    for (const [t0, a] of [[0.006, 1], [0.04 + R() * 0.03, 0.55 + R() * 0.25]]) {
+      S.bruit(d, sr, t0, 0.009 + R() * 0.005, 0.03 + R() * 0.02, 0.55 * a, b1);
+      const n = 3 + ((R() * 5) | 0);
+      for (let k = 0; k < n; k++) S.bruit(d, sr, t0 + R() * 0.07, 0.0015, 0.003 + R() * 0.003, (0.05 + R() * 0.08) * a, b2);
+      S.mode(d, sr, t0, 70 + R() * 20, 0.024, 0.2 * a);
     }
-    S.lp1(d, sr, 5200);
+    S.lp1(d, sr, 2600);
   }],
   terre: [0.2, (d, sr) => {
-    const R = Math.random, S = SoundEngine.SYN, l = S.bq('lp', 600 + R() * 300, 0.7, sr), b = S.bq('bp', 1700, 1.2, sr);
-    for (const [t0, a] of [[0.004, 1], [0.04 + R() * 0.02, 0.55]]) {
-      S.bruit(d, sr, t0, 0.005, 0.03 + R() * 0.015, 0.8 * a, l);
-      S.mode(d, sr, t0, 68 + R() * 20, 0.028, 0.35 * a);
-      for (let k = 0; k < 5; k++) S.bruit(d, sr, t0 + R() * 0.05, 0.0006, 0.002, 0.08 * a, b);
+    const R = Math.random, S = SoundEngine.SYN, l = S.bq('lp', 480 + R() * 220, 0.7, sr), b = S.bq('bp', 1300, 1, sr);
+    for (const [t0, a] of [[0.006, 1], [0.045 + R() * 0.02, 0.5]]) {
+      S.bruit(d, sr, t0, 0.008, 0.032 + R() * 0.015, 0.8 * a, l);
+      S.mode(d, sr, t0, 64 + R() * 18, 0.03, 0.35 * a);
+      for (let k = 0; k < 3; k++) S.bruit(d, sr, t0 + R() * 0.05, 0.0015, 0.003, 0.04 * a, b);
     }
+    S.lp1(d, sr, 2200);
   }],
   pierre: [0.16, (d, sr) => {
-    const R = Math.random, S = SoundEngine.SYN, t0 = 0.003;
-    S.mode(d, sr, t0, 1500 + R() * 600, 0.006, 0.35); S.mode(d, sr, t0, 2600 + R() * 700, 0.004, 0.14); S.mode(d, sr, t0, 480 + R() * 160, 0.012, 0.3);
-    S.mode(d, sr, t0, 115 + R() * 30, 0.016, 0.45);
-    S.bruit(d, sr, t0, 0.0012, 0.006, 0.22, S.bq('bp', 2000, 1, sr));
-    S.bruit(d, sr, t0 + 0.028 + R() * 0.02, 0.006, 0.02, 0.1, S.bq('bp', 1200, 0.9, sr));
-    S.lp1(d, sr, 6000);
+    // (une semelle de cuir sur le pavé : un « toc » mat, sans claquement aigu)
+    const R = Math.random, S = SoundEngine.SYN, t0 = 0.004;
+    S.mode(d, sr, t0, 1100 + R() * 400, 0.005, 0.08); S.mode(d, sr, t0, 420 + R() * 120, 0.014, 0.28);
+    S.mode(d, sr, t0, 110 + R() * 25, 0.02, 0.5);
+    S.bruit(d, sr, t0, 0.003, 0.008, 0.08, S.bq('bp', 1200, 0.8, sr));
+    S.bruit(d, sr, t0 + 0.03 + R() * 0.02, 0.008, 0.022, 0.07, S.bq('bp', 800, 0.8, sr));
+    S.lp1(d, sr, 2600);
   }],
   bois: [0.22, (d, sr) => {
     const R = Math.random, S = SoundEngine.SYN;
-    for (const [t0, a] of [[0.003, 1], [0.045 + R() * 0.02, 0.45]]) {
-      S.mode(d, sr, t0, 135 + R() * 50, 0.05, 0.55 * a); S.mode(d, sr, t0, 360 + R() * 120, 0.028, 0.32 * a); S.mode(d, sr, t0, 900 + R() * 300, 0.011, 0.14 * a);
-      S.bruit(d, sr, t0, 0.0012, 0.005, 0.18 * a, S.bq('lp', 1800, 0.7, sr));
+    for (const [t0, a] of [[0.004, 1], [0.05 + R() * 0.02, 0.4]]) {
+      S.mode(d, sr, t0, 130 + R() * 45, 0.05, 0.55 * a); S.mode(d, sr, t0, 340 + R() * 100, 0.026, 0.28 * a); S.mode(d, sr, t0, 820 + R() * 200, 0.009, 0.06 * a);
+      S.bruit(d, sr, t0, 0.003, 0.006, 0.08 * a, S.bq('lp', 1300, 0.7, sr));
     }
+    S.lp1(d, sr, 2800);
   }],
   eau: [0.4, (d, sr) => {
     const R = Math.random, S = SoundEngine.SYN;
@@ -697,10 +700,10 @@ SoundEngine.TAMPONS = {
     S.lp1(d, sr, 5000);
   }],
   neige: [0.2, (d, sr) => {
-    const R = Math.random, S = SoundEngine.SYN, b = S.bq('bp', 1200 + R() * 500, 0.7, sr);
-    for (let k = 0; k < 90; k++) S.bruit(d, sr, 0.003 + Math.pow(R(), 1.6) * 0.12, 0.0003, 0.0015 + R() * 0.002, 0.25 + R() * 0.3, b);
-    S.mode(d, sr, 0.003, 80, 0.02, 0.18);
-    S.lp1(d, sr, 3800);
+    const R = Math.random, S = SoundEngine.SYN, b = S.bq('bp', 1000 + R() * 400, 0.7, sr);
+    for (let k = 0; k < 70; k++) S.bruit(d, sr, 0.004 + Math.pow(R(), 1.6) * 0.12, 0.0008, 0.0018 + R() * 0.002, 0.2 + R() * 0.2, b);
+    S.mode(d, sr, 0.004, 78, 0.022, 0.2);
+    S.lp1(d, sr, 2600);
   }],
   // ---- eau
   plouf: [0.75, (d, sr) => {
@@ -820,7 +823,7 @@ SoundEngine.TAMPONS = {
   }],
 };
 // volumes de base des pas (crête)
-SoundEngine.PAS = { herbe: 0.063, terre: 0.09, pierre: 0.29, bois: 0.048, eau: 0.064, neige: 0.07 };
+SoundEngine.PAS = { herbe: 0.028, terre: 0.034, pierre: 0.066, bois: 0.025, eau: 0.038, neige: 0.03 };
 
 Object.assign(SoundEngine.prototype, {
   // un tampon de la bibliothèque (variantes gardées : n par sorte)
@@ -946,8 +949,10 @@ Object.assign(SoundEngine.prototype, {
   oiseau(sorte, pos, k, n) {
     if (!this.ok) return;
     const R = Math.random, b = this.tb(sorte, n || 5), out = pos ? this.en3d(pos, this.B.amb.inp, { ref: 7, roll: 0.9, dur: b.duration + 0.2 }) : this.amb;
-    const vol = (SoundEngine.VOL_OISEAUX[sorte] || 0.05) * (k === undefined ? 1 : k) * (0.8 + R() * 0.4);
-    this.jouer(b, this.at(0.01), vol, out, 0.94 + R() * 0.12);
+    const vol = (SoundEngine.VOL_OISEAUX[sorte] || 0.05) * (k === undefined ? 1 : k) * (0.8 + R() * 0.4), t = this.at(0.01), rate = 0.94 + R() * 0.12;
+    this.jouer(b, t, vol, out, rate);
+    // (un oiseau chante jusqu'à… : les autres attendent leur tour)
+    if (sorte !== 'chouette') this.oiseauxFin = Math.max(this.oiseauxFin || 0, t + b.duration / rate);
   },
   chirp(k) {
     if (!this.ok) return;
@@ -1000,8 +1005,9 @@ Object.assign(SoundEngine.prototype, {
     let k = mat === 'water' ? 'eau' : mat === 'hard' ? 'pierre' : mat === 'wood' ? 'bois' : mat === 'soft' ? 'terre' : 'herbe';
     if (k === 'pierre' && !this._scope && this.surNeige()) k = 'neige';
     this.pied = -this.pied;
-    const v = SoundEngine.PAS[k] * (0.5 + sp / 9 * 0.6) * (0.85 + R() * 0.3);
-    this.jouer(this.tb(k), this.at(), v, this.sfx, 0.92 + R() * 0.16, this._scope ? 0 : this.pied * 0.1);
+    // (courir s'entend un peu plus, pas beaucoup ; les pas des autres, placés autour de vous, un peu moins)
+    const v = SoundEngine.PAS[k] * (0.62 + sp / 9 * 0.3) * (0.9 + R() * 0.2) * (this._scope ? 0.65 : 1);
+    this.jouer(this.tb(k), this.at(), v, this.sfx, 0.88 + R() * 0.12, this._scope ? 0 : this.pied * 0.08);
     if (k === 'bois' && R() < 0.04) this.voice(this.at(0.05), 'sawtooth', 230 + R() * 80, 180 + R() * 40, 0.3 + R() * 0.2, 0.006, this.sfx, { bp: 700, q: 3, vib: 9, vibDepth: 12 });
   },
   // le joueur marche-t-il sur la neige ? (le sol de neige compte pour « dur » dans le jeu)
@@ -1027,7 +1033,7 @@ Object.assign(SoundEngine.prototype, {
   },
 });
 // volume de chaque oiseau (crête)
-SoundEngine.VOL_OISEAUX = { merle: 0.11, mesange: 0.07, pinson: 0.08, tourterelle: 0.1, coucou: 0.1, alouette: 0.05, moineau: 0.065, chouette: 0.18, pic: 0.1 };
+SoundEngine.VOL_OISEAUX = { merle: 0.085, mesange: 0.052, pinson: 0.06, tourterelle: 0.075, coucou: 0.075, alouette: 0.038, moineau: 0.048, chouette: 0.15, pic: 0.075 };
 
 const sound = new SoundEngine();
 

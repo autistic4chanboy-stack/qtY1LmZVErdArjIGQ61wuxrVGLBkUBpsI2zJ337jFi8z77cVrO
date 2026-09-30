@@ -14,12 +14,11 @@ const LADY_LOOK = { skin: '#eeeae4', hair: '#e8e4dc', hairStyle: 'long', hat: 'v
 const SOWER_LOOK = { skin: '#c8a888', hair: '#3a2e24', hairStyle: 'court', hat: 'paille', top: '#6a5a44', bottom: '#4a3c2c', shoe: '#2a2018', face: TL.blankF, height: 1.06, build: 'mince' };
 const aline = (k) => { const A = typeof LORE_TEXT !== 'undefined' && LORE_TEXT.anomalies && LORE_TEXT.anomalies[k]; return A && A.length ? fmtLine(pick(A), null) : null; };
 const STRANGE_MORE = {
-  hurlement() { sound.howl && sound.howl(150); setTimeout(() => ui.subtitle('', '(Au loin, vers les hauteurs, quelque chose a hurlé. Trop longtemps pour un loup.)', 4), 2500); },
+  hurlement() { sound.howl && sound.howl(150); },
   frappes(c) {
     const w = game.world, p = game.player, M = w.lm.mine;
     if (!p.underground && !(M && Math.hypot(p.pos[0] - M.x, p.pos[2] - M.z) < 60)) { this.s.events.push({ id: 'frappes', h: npcs.hour() + 2, done: false }); return; }
     sound.knock && sound.knock(3); setTimeout(() => sound.knock && sound.knock(2), 2200);
-    const t = aline('frappes'); if (t) setTimeout(() => ui.subtitle('', t, 4), 1200);
   },
   moine(c) {
     const w = game.world, p = game.player, A = w.abbey;
@@ -56,7 +55,6 @@ const STRANGE_MORE = {
     const L = game.world.lm.lac, p = game.player;
     if (!L || Math.hypot(p.pos[0] - L.x, p.pos[2] - L.z) > 260) return;
     sound.bell && sound.bell(0.22);
-    setTimeout(() => ui.subtitle('', '(Sous le lac, une cloche. Une seule fois.)', 4), 1500);
   },
   oiseaux_morts() {
     const w = game.world, B = w.bld.ferme;
@@ -128,7 +126,7 @@ strange.E_chasse = function (e, dt, c) {
   this.fear = Math.max(this.fear, clamp(1 - d / 120, 0, 1) * 0.8);
   if (!e.marked && e.seenT > 2.4) {
     e.marked = true; this.glitchT = 1.2; play.hurt(28, e, 'Emporté par la Chasse volante');
-    ui.subtitle('', '(Un cavalier a tourné la tête vers vous. Il n’avait pas de visage.)', 4);
+    ui.subtitle('', '(Un cavalier a tourné la tête vers vous.)', 4);
   }
   if (e.t >= e.life) {
     if (!farm.s.flags.got_relique_fer && !farm.s.flags.ferMesnie) { const x = p.pos[0] + e.dir[0] * 25, z = p.pos[2] + e.dir[1] * 25; if (w.heightAt(x, z) > w.waterLevel + 0.5) { farm.s.flags.ferMesnie = [Math.round(x), Math.round(z)]; spawnFer(farm.s.flags.ferMesnie); } }

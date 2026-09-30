@@ -12,9 +12,9 @@
 defItem('page_registre', 'Page du registre', 'ailleurs', 0, ['md_page', '#d8ccb0', '#5a4a3a'], { desc: 'Une page arrachée au registre du Recenseur. Votre nom y est, tout en bas, d’une encre qui n’a pas encore séché.' });
 
 const ENF = { // décors (boîtes)
-  cendre: [0.3, 0.28, 0.27], os: [0.84, 0.8, 0.7], noir: [0.08, 0.07, 0.08], fer: [0.25, 0.22, 0.2],
+  cendre: [0.3, 0.28, 0.27], osC: [0.84, 0.8, 0.7], // (osC : la couleur de l'os ; os(), plus bas, est le modèle d'un tas d'os) noir: [0.08, 0.07, 0.08], fer: [0.25, 0.22, 0.2],
   lave(E, c, t) { E.fl = FX_EMIT; for (let k = 0; k < 6; k++) { const b = 0.85 + Math.sin(t * 1.3 + k * 1.7 + c.id) * 0.15; E.bx((k - 2.5) * 3.4, 0, 0, 3.5, 0.2, c.l || 8, [1.4 * b, 0.42 * b, 0.08 * b], mt(M_BRAISE)); } E.fl = 0; },
-  pont(E) { E.bx(0, -0.1, 0, 3.2, 0.25, 11, ENF.os, TL.bone); for (let z = -4.5; z <= 4.5; z += 1.5) { E.box(-1.7, 0.6, z, 0.18, 1.6, 0.18, ENF.os, TL.bone, 0, 0, -0.3); E.box(1.7, 0.6, z, 0.18, 1.6, 0.18, ENF.os, TL.bone, 0, 0, 0.3); } E.bx(-1.5, 1.2, 0, 0.12, 0.12, 11, ENF.os, TL.bone); E.bx(1.5, 1.2, 0, 0.12, 0.12, 11, ENF.os, TL.bone); },
+  pont(E) { E.bx(0, -0.1, 0, 3.2, 0.25, 11, ENF.osC, TL.bone); for (let z = -4.5; z <= 4.5; z += 1.5) { E.box(-1.7, 0.6, z, 0.18, 1.6, 0.18, ENF.osC, TL.bone, 0, 0, -0.3); E.box(1.7, 0.6, z, 0.18, 1.6, 0.18, ENF.osC, TL.bone, 0, 0, 0.3); } E.bx(-1.5, 1.2, 0, 0.12, 0.12, 11, ENF.osC, TL.bone); E.bx(1.5, 1.2, 0, 0.12, 0.12, 11, ENF.osC, TL.bone); },
   pupitre(E) { E.bx(0, 0, 0, 0.8, 1.1, 0.6, ENF.noir, mt(M_OBSIDIENNE)); E.box(0, 1.2, 0, 1.2, 0.08, 0.8, [0.2, 0.16, 0.12], TL.darkwood, 0, -0.35); E.box(-0.28, 1.28, 0.02, 0.55, 0.05, 0.66, [0.86, 0.8, 0.66], TL.paper, 0, -0.35); E.box(0.28, 1.28, 0.02, 0.55, 0.05, 0.66, [0.86, 0.8, 0.66], TL.paper, 0, -0.35); },
   brasero(E, c, t) { E.bx(0, 0, 0, 0.2, 1.1, 0.2, ENF.fer, TL.iron); E.bx(0, 1.1, 0, 0.8, 0.3, 0.8, ENF.fer, TL.iron); E.fl = FX_EMIT; for (let k = 0; k < 3; k++) E.box(Math.sin(k * 2.1) * 0.15, 1.5 + ((t * 1.2 + k * 0.33) % 1) * 0.5, Math.cos(k * 2.1) * 0.15, 0.22, 0.3, 0.22, [1.4, 0.55, 0.12], TL.flame, t + k); E.fl = 0; },
   table(E, c, t) {
@@ -32,7 +32,7 @@ const ENF = { // décors (boîtes)
   },
   autel(E) { E.bx(0, 0, 0, 3, 1.1, 1.4, ENF.noir, mt(M_OBSIDIENNE)); E.bx(0, 1.1, 0, 3.2, 0.12, 1.6, [0.18, 0.16, 0.16], TL.stone); },
   stele(E, c) { E.bx(0, 0, 0, 1.0, 1.8 + (c.v % 3) * 0.3, 0.3, [0.14, 0.12, 0.13], mt(M_OBSIDIENNE)); E.box(0, 1.9 + (c.v % 3) * 0.3, 0, 0.72, 0.72, 0.3, [0.14, 0.12, 0.13], mt(M_OBSIDIENNE), 0, 0, Math.PI / 4); E.fl = FX_EMIT; E.bx(0, 0.8, 0.16, 0.6, 0.7, 0.01, [0.7, 0.22, 0.08], TL.paper); E.fl = 0; },
-  os(E, c) { for (let k = 0; k < 7; k++) E.box(Math.cos(k * 2.3 + c.v) * 0.5, 0.08 + (k % 3) * 0.1, Math.sin(k * 1.7 + c.v) * 0.5, 0.6, 0.08, 0.08, ENF.os, TL.bone, k * 1.3); E.box(0.1, 0.22, 0.1, 0.24, 0.24, 0.22, ENF.os, TL.bone, c.v); },
+  os(E, c) { for (let k = 0; k < 7; k++) E.box(Math.cos(k * 2.3 + c.v) * 0.5, 0.08 + (k % 3) * 0.1, Math.sin(k * 1.7 + c.v) * 0.5, 0.6, 0.08, 0.08, ENF.osC, TL.bone, k * 1.3); E.box(0.1, 0.22, 0.1, 0.24, 0.24, 0.22, ENF.osC, TL.bone, c.v); },
   chaine(E, c, t) { const sw = Math.sin(t * 0.5 + c.id) * 0.1; for (let k = 0; k < 14; k++) E.box(sw * k * 0.1, k * 1.2, 0, 0.1, 1.0, 0.1, ENF.fer, TL.iron, k % 2 ? Math.PI / 2 : 0); E.box(sw * 0.1, -0.4, 0, 0.3, 0.4, 0.06, ENF.fer, TL.iron); },
   arbre(E, c) { E.bx(0, 0, 0, 0.35, 5, 0.35, [0.1, 0.09, 0.08], TL.bark); for (let k = 0; k < 4; k++) E.box(Math.cos(k * 1.6 + c.v) * 0.9, 3.2 + k * 0.5, Math.sin(k * 1.6 + c.v) * 0.9, 0.14, 2.2, 0.14, [0.1, 0.09, 0.08], TL.bark, k * 1.6, 0.9, 0.3); },
 };
@@ -46,7 +46,7 @@ Object.assign(BETES_MONDE, {
     pose(e, r, t, st) { poseHuman(r, Object.assign(st, { pale: false, sit: !!e.assis, tilt: Math.sin(t * 0.6 + e.id) * 0.1 })); if (e.assis) r.set('head', 0.5, 0, 0); } },
   chien_cendre: { rig: () => MONDES_RIGS.chien_cendre(), h: 1.1, r: 0.38, hp: 40, vitesse: [1.3, 6.6], ia: 'chasseur', vue: 22, perd: 55, portee: 1.4, degats: 11, cadence: 1.6, rayon: 14, enclos: 28, cause: 'Déchiré par les chiens de cendre', actif: 200,
     alerte(e) { sound.growl && sound.growl(1); }, bruit(e) { sound.growl && sound.growl(0.5); }, bruitT: 5,
-    meurt(e) { puffAt(e.x, e.y + 0.5, e.z, [60, 56, 52], 18, 1.8, false); ui.subtitle('', '(Le chien s’effondre en cendre. Un peu plus loin, la cendre se relève.)', 4); setTimeout(() => { if (mondes.cur === 'enfers') mondes.bete('chien_cendre', e.hx, e.hz); }, 30000); } },
+    meurt(e) { puffAt(e.x, e.y + 0.5, e.z, [60, 56, 52], 18, 1.8, false); setTimeout(() => { if (mondes.cur === 'enfers') mondes.bete('chien_cendre', e.hx, e.hz); }, 30000); } },
   gardien: { rig: () => MONDES_RIGS.gardien(), h: 2.5, r: 0.45, hp: 999, vitesse: [0, 0], ia: 'immobile', regard: 18, intouchable: true, echelle: 1.0, actif: 300,
     touche(e) { strange.glitchT = Math.max(strange.glitchT, 0.8); ui.subtitle('Le Recenseur', 'Tu as assez frappé pour une vie. Pose ça.', 3.5); },
     proche(e) { if (!farm.s.enfers || !farm.s.enfers.salue) { if (farm.s.enfers) farm.s.enfers.salue = 1; ui.subtitle('Le Recenseur', 'Approche. Je ne mords pas. Je compte.', 3.5); } }, procheD: 6,
@@ -197,7 +197,7 @@ MONDES.enfers = {
   manger() {
     const s = farm.s;
     farm.give('cendre', 1); play.flyer('cendre', game.player.eyePos(), 1); sound.eat && sound.eat();
-    ui.subtitle('', pick(['(Vous tendez la main vers le pain. Il se change en cendre avant d’arriver à vos lèvres.)', '(La viande a l’air tendre. Dans votre bouche, elle a le goût de l’âtre froid.)', '(Le vin coule gris. De la cendre, jusqu’au fond du verre.)']), 4.5);
+    ui.subtitle('', pick(['(Le pain se change en cendre avant d’arriver à vos lèvres.)', '(Le vin coule gris. De la cendre, jusqu’au fond du verre.)']), 4.5);
     const r = this.E(); r.table = (r.table || 0) + 1;
     if (r.table === 3) setTimeout(() => ui.subtitle('Un damné', '… on a tous essayé… la table est toujours servie… c’est ça, le pire…', 4), 1800);
   },
@@ -247,7 +247,7 @@ MONDES.enfers = {
     const p = game.player, E = this.E();
     if (playing && !cine.on) { p.food = Math.max(0, p.food - dt * 0.06); if (p.food <= 0) { p.hp -= dt * 0.15; if (p.hp <= 0) game.die('Mort de faim'); } }
     const f = p.food;
-    const seuils = [[60, '(La faim. Elle est venue plus vite qu’en haut.)'], [35, '(Vous avez tellement faim que vous regardez les chiens de cendre en pensant à de la viande.)'], [15, '(Vos jambes tremblent. Vous ne tenez plus debout que par habitude.)'], [0.5, '(La faim a fini de compter. Il ne reste que le corps, et le corps s’arrête.)']];
+    const seuils = [[60, '(La faim. Elle est venue plus vite qu’en haut.)'], [35, '(Vous regardez les chiens de cendre en pensant à de la viande.)'], [15, '(Vous ne tenez plus debout que par habitude.)'], [0.5, '(La faim a fini de compter. Il ne reste que le corps, et le corps s’arrête.)']];
     for (const [s0, t] of seuils) if (f < s0 && !(E.faimDit || {})[s0]) { E.faimDit = E.faimDit || {}; E.faimDit[s0] = 1; ui.subtitle('', t, 5); break; }
     // tomber dans le fleuve de braise
     const f0 = this.f(), lz = p.pos[2] - f0.z;
@@ -255,7 +255,7 @@ MONDES.enfers = {
       mondes.blesser(10, null, 'Tombé dans le fleuve de braise'); sound.splashBig && sound.splashBig();
       const [x, z] = this.at(clamp(p.pos[0] - f0.x, -50, 50), lz < -44 ? -51 : -37);
       p.pos = [x, f0.y + 0.05, z]; p.vel = [0, 0, 0];
-      ui.subtitle('', '(Le feu ne brûle pas ce qui est déjà mort. Mais il fait mal. Vous êtes de nouveau sur la rive, sans savoir comment.)', 5);
+      ui.subtitle('', '(Le feu ne brûle pas ce qui est déjà mort. Vous êtes de nouveau sur la rive.)', 4);
     }
     // ambiance : bourdon, crépitements, gémissements lointains, chaînes, cendres qui montent
     this.sonT = (this.sonT || 3) - dt;
@@ -345,7 +345,7 @@ HOOKS.death.push((cause) => enfers.intercepter(cause));
     if (!it || !(it.food || it.heal || it.potion || it.drink || it.boisson || it.cat === 'potion' || it.pilule)) return false;
     if (!farm.take(id, 1)) return true;
     farm.give('cendre', 1); play.cool = 0.9; sound.eat && sound.eat();
-    ui.subtitle('', pick(['(À peine dans la bouche, ça devient de la cendre. Vous la recrachez.)', '(De la cendre. Rien que de la cendre, qui colle au palais.)', '(Vous avalez. C’est de la cendre. Vous avez encore plus faim.)']), 4);
+    ui.subtitle('', pick(['(À peine dans la bouche, ça devient de la cendre.)', '(Vous avalez. C’est de la cendre. Vous avez encore plus faim.)']), 4);
     return true;
   };
   mondes.apresInstall.push(() => {

@@ -134,23 +134,19 @@ const FAITH = {
       'Mon Dieu, j’ai peur, et je ne sais pas toujours de quoi. Pardonnez-moi mes fautes, celles dont je me souviens et celles que la vallée m’a fait oublier. Tenez-moi la main dans le noir.',
     ],
     signes_bon: [
-      '(Une chaleur douce vous prend aux épaules, comme une main qu’on y poserait sans peser.)',
-      '(Quelque part, très loin, une cloche sonne une seule fois, et c’est la bonne heure.)',
-      '(Le vent tombe d’un coup ; dans le silence, votre cœur bat lentement, apaisé.)',
+      '(Une chaleur douce vous prend aux épaules.)',
+      '(Le vent tombe. Votre cœur bat lentement.)',
       '(Une odeur de cire chaude et de lys passe près de vous, puis s’en va.)',
-      '(Pendant un instant, vous avez la certitude tranquille d’avoir été entendu.)',
     ],
     signes_neutre: [
-      '(Rien : le silence, simplement, qui n’est ni pour vous ni contre vous.)',
-      '(Vous vous relevez, les genoux raides ; rien n’a changé, sauf peut-être vous.)',
+      '(Rien. Le silence.)',
       '(Au loin, un chien aboie deux fois, puis se tait.)',
       '(Le vent continue de passer, occupé ailleurs.)',
     ],
     signes_mauvais: [
       '(L’amen vous revient en écho, avec une voix de trop.)',
       '(Une goutte froide tombe sur votre nuque, alors qu’il ne pleut pas.)',
-      '(Les mots s’arrêtent dans votre gorge, comme si quelqu’un d’autre venait de les finir à votre place.)',
-      '(Derrière vous, quelqu’un se relève en même temps que vous, et quand vous vous retournez, il n’y a personne.)',
+      '(Derrière vous, quelqu’un se relève en même temps que vous.)',
     ],
     sermons: [
       'Mes frères, saint Aubin rachetait les captifs et ouvrait les prisons. Priez-le pour tous ceux que cette vallée retient, les vivants comme les autres.',
@@ -174,7 +170,6 @@ const FAITH = {
       'Ici est tombé Jean Coutelier, voiturier, par une nuit de brouillard, le 2 novembre 1848. Passant, s’il t’appelle, ne t’arrête pas.',
       'Ne passe pas cette croix après le coucher du soleil : ce qui te suit ne sait pas lire, mais il sait compter. Abbé Mauduit, 1852.',
     ],
-    benitier: '(Vous emplissez la fiole : l’eau est si froide qu’elle vous engourdit les doigts, et pourtant le verre reste tiède au creux de votre main.)',
     messe_debut: 'In nomine Patris, et Filii, et Spiritus Sancti… Mes frères, la paix soit avec vous, et avec ceux qui n’ont pas pu venir.',
     messe_fin: 'Ite, missa est. Rentrez chez vous par le grand chemin, et que chacun soit sous son toit avant la nuit.',
   },
@@ -214,23 +209,18 @@ const FAITH = {
       ],
     },
     signes_bon: [
-      '(Un souffle tiède passe sur votre visage ; il sent la sève, le lait et la pluie qui va venir.)',
-      '(La terre, sous vos genoux, est tiède comme le flanc d’une bête endormie.)',
+      '(Un souffle tiède, qui sent la sève et la pluie.)',
+      '(La terre est tiède sous vos genoux.)',
       '(Quelque part tout près, un oiseau que vous ne voyez pas répond à votre dernier mot.)',
-      '(Une odeur de foin coupé vous enveloppe, puis se dissipe, alors que personne n’a fauché alentour.)',
-      '(Pendant un instant, tout ce qui pousse autour de vous semble se tourner vers vous, comme vers le soleil.)',
     ],
     signes_neutre: [
       '(Une feuille tombe devant vous, et c’est tout.)',
       '(Les arbres continuent de parler entre eux, d’autre chose.)',
-      '(Un insecte grimpe sur votre main, s’arrête, puis repart à ses affaires.)',
-      '(L’air ne change pas : les Anciens sont occupés ailleurs, ou ils dorment.)',
     ],
     signes_mauvais: [
       '(Tout ce qui bruissait autour de vous se tait au même instant.)',
-      '(Une odeur de fruit pourri monte de la terre, puis de vos propres mains.)',
+      '(Une odeur de fruit pourri monte de la terre.)',
       '(Dans les fourrés, quelque chose s’éloigne de vous à reculons, sans vous quitter des yeux.)',
-      '(La mousse, sous votre paume, devient froide et lisse comme la peau d’un noyé.)',
     ],
     inscriptions: {
       pierre_offrandes: 'Une pierre plate, creusée au milieu comme une écuelle par des siècles d’offrandes. Sur le rebord, on devine des épis gravés, et au couteau, plus récent : « La première pour Elle. A. V. »',
@@ -263,9 +253,7 @@ const FAITH = {
       '(Au matin, une de vos poules manque ; il ne reste qu’une plume, et l’empreinte d’une main dans la paille.)',
       '(Un carré de votre champ a noirci pendant la nuit, un carré parfait, de la taille d’une porte.)',
       '(Vous ne retrouvez plus la voix de votre mère : vous savez qu’elle chantait, vous ne savez plus quoi.)',
-      '(Ce matin, un habitant vous a salué d’un prénom qui n’était pas le vôtre, et vous avez répondu.)',
       '(Votre reflet, dans l’eau du seau, met un temps de trop à se relever.)',
-      '(Au réveil, vos draps sont trempés d’une eau froide qui sent le fond du puits.)',
     ],
     inscriptions: {
       dolmen: 'Sur la Table des Géants, des cupules creusées dans la pierre sont reliées par des rigoles qui descendent toutes vers le même bord, vers la terre. Gravé sur la tranche, très profond : « Ici l’on mange avec ceux d’en bas. Pose ta part, et ne regarde pas qui la prend. »',
@@ -308,9 +296,9 @@ const LORE_TEXT = {
     'Règles de la grotte, pour les nouveaux. Un : on entre à la nuit, on ressort à la nuit, et on rebouche l’éboulis derrière soi. Deux : le tabac en haut, sur les planches, les allumettes au sec dans les caisses de fer ; l’eau suinte au fond. Trois : on ne rentre jamais par le marais, sauf avec le Rouquin, et on ne suit pas les lumières. Quatre : si les gabelous vous tiennent, vous ne connaissez ni la grotte, ni le Rouquin, ni votre mère. Cinq : on laisse une chique de tabac sur la pierre du fond. Ne demandez pas pour qui. Le Rouquin dit que depuis qu’on la laisse, on n’a jamais été pris.',
     'Pierrot, si tu lis ça, c’est que je ne suis pas revenu. Cette nuit, je suis rentré par le marais parce que les douaniers tenaient le col, et j’ai vu les feux se ranger tous ensemble au-dessus de l’îlot, comme des chandelles sur un gâteau. Le Rouquin disait que c’était l’or des faux-sauniers. Je n’ai pas pu m’en empêcher : j’y retourne demain avec une pelle. Garde ma part de la dernière passe pour ma sœur, à {hameau}, et ne lui dis pas où j’étais. Si je ne reviens pas, c’est que les feux avaient faim. Le Grand Jacques, octobre 1887.',
   ],
-  grotte_cristaux: 'L’air, ici, bourdonne d’un son trop grave pour l’oreille, un son qu’on sent dans les dents et au creux de la poitrine. Les cristaux s’allument un à un sous votre lumière, puis continuent de luire quand vous la détournez, comme des yeux qui mettent du temps à se fermer.',
+  grotte_cristaux: '(Un son trop grave pour l’oreille. On le sent dans les dents.)',
   antre: {
-    entree: 'Derrière l’éboulis, la grotte exhale un souffle tiède qui sent le fauve, la paille pourrie et le vieux sang. Sur la roche de l’entrée, des griffures profondes, à hauteur d’homme, vont toutes dans le même sens : vers le dehors.',
+    entree: '(Des griffures dans la roche, à hauteur d’homme. Elles vont toutes vers le dehors.)',
     chasseur: 'Carnet de Blaise Coste, piqueux de Valmont. Nuit de la Saint-Martin 1767. Monsieur a fait sonner le départ malgré l’orage et malgré le curé. Dans le noir, j’ai perdu les autres. J’entendais encore leurs cors, mais trop haut. Je me suis jeté à terre et j’ai prié. Quand j’ai relevé la tête, elle était devant moi. Je lui ai mis l’épieu de Marchal dans le flanc ; le fer a cassé dedans. Ce n’est pas un mauvais fer, c’est une mauvaise bête. J’ai suivi le sang jusqu’ici. 13 novembre. Elle est au fond ; je l’entends respirer. L’éboulis a fermé l’entrée cette nuit, sans un bruit. 16 novembre. Plus qu’une charge de poudre. Je ne tire pas : tant qu’elle dort, les enfants des Combes dorment aussi. 19 novembre. Elle ne mourra pas. Elle attend. Alors j’attends aussi, le fusil sur les genoux. Qui trouvera ce carnet, qu’il marche sans bruit et ne lui mette pas de lumière dans les yeux. Et qu’il dise à ma Toinette que je ne suis pas parti avec eux, là-haut. Je suis resté de garde.',
   },
   // ---------------------------------------------------------------- l’abbaye de Montrevel et le grimoire
@@ -349,7 +337,7 @@ const LORE_TEXT = {
       '… Accordé. Mais tu as demandé trop vite : tu ne sais pas encore ce que tu voulais…',
       '… Une pièce de plus. Je les garde toutes, tu sais. Elles sont bien au chaud, en bas…',
       '… Anselme aussi souhaitait tout bas. Il souhaitait toujours la même chose…',
-      '(Votre propre voix remonte du puits, avec un temps de retard : « … exauce-moi… »)',
+      '(Votre voix remonte du puits, en retard : « … exauce-moi… »)',
       '… C’est noté. Tout est noté. Même ce que tu n’as pas osé dire…',
       '… Merci. Reviens. Reviens souvent. Reviens la nuit…',
     ],
@@ -391,9 +379,7 @@ const LORE_TEXT = {
   // ---------------------------------------------------------------- nouvelles apparitions (sous-titres)
   anomalies: {
     moine: [
-      '(Au bord du chemin, une silhouette en froc brun, capuchon baissé, marche vers l’abbaye sans faire plier l’herbe.)',
       '… Avez-vous vu mon visage ? Je l’ai laissé quelque part, par ici. On me l’a pris…',
-      '(Il se retourne. Sous le capuchon, il n’y a qu’une ombre lisse, et pourtant vous savez qu’il vous regarde.)',
     ],
     dame_blanche: [
       'Pardon… Le chemin de Saint-Aubin-des-Eaux, s’il vous plaît ? On m’attend à l’église.',
@@ -402,21 +388,14 @@ const LORE_TEXT = {
       'Merci. Je vais couper par le lac, c’est plus court.',
     ],
     chasse: [
-      '(Au-dessus des nuages, des cors, des abois, un galop qui fait trembler l’air.)',
       'Taïaut ! Taïaut ! … Qui nous regarde, là, en bas ?',
-      '(Face contre terre. Ne relevez pas la tête avant que les chiens se taisent.)',
-    ],
-    frappes: [
-      '(Trois coups dans la roche, tout près. Puis trois autres, plus loin, plus profond.)',
-      '(Des coups réguliers, patients, qui semblent vous précéder dans la galerie.)',
-      '(On frappe sous vos pieds. Au troisième coup, une poussière fine tombe de la voûte.)',
     ],
     lanterne_lac: [
       '(Une lanterne glisse sur le lac, à hauteur d’homme, sans barque et sans rameur.)',
       '(Au milieu du lac, la lanterne s’arrête, puis s’enfonce lentement, toujours allumée, là où dort le clocher.)',
     ],
     semeur: [
-      '(Dans la brume de l’aube, un inconnu sème à la volée dans votre champ. Le grain qu’il lance ne retombe pas.)',
+      '(Dans le champ, des rangs que vous n’avez pas semés.)',
       '… Il faut toujours laisser sa part à la Mère. Anselme le savait. Il le savait, la plupart du temps…',
     ],
   },

@@ -225,9 +225,9 @@ const COEUR = {
 };
 const COEUR_ROMANTIQUE = ['bouquet', 'fleur', 'rose', 'tulipe', 'dahlia', 'lavande', 'bijou', 'perle', 'orchidee', 'edelweiss', 'lys_cimes', 'muguet', 'gateau', 'anneau_fiancailles'];
 const COEUR_PENSEES = {
-  lac: ['(Le soleil descend dans l’eau. Vous n’avez pas envie qu’il finisse.)', '(Vous ne dites rien. Il n’y a rien à dire.)'],
-  piquenique: ['(Le pain, l’herbe tiède, le bruit de l’eau. Pour une fois, la vallée se tient tranquille.)', '(Vous riez. Vous aviez oublié le bruit que ça fait.)'],
-  danse: ['(La vielle grince, les sabots claquent. Le temps d’une chanson, il n’y a plus de nuit dehors.)', '(Vous comptez les pas, et puis vous oubliez de compter.)'],
+  lac: ['(Vous n’avez pas envie que ça finisse.)', '(Vous ne dites rien. Il n’y a rien à dire.)'],
+  piquenique: ['(Pour une fois, la vallée se tient tranquille.)', '(Vous riez. Vous aviez oublié le bruit que ça fait.)'],
+  danse: ['(Le temps d’une chanson, il n’y a plus de nuit dehors.)', '(Vous comptez les pas, et puis vous oubliez de compter.)'],
 };
 const COEUR_OFFICIANTS = {
   cure: ['Mes enfants. Nous voici réunis, devant Dieu et devant cette vallée qui en a vu d’autres, pour unir {a} et {b}.', 'Les anneaux, je vous prie. Et que vos mains ne tremblent pas : ce n’est que de l’or.', 'Je vous déclare unis. Allez. Aimez-vous. Et fermez bien vos portes, la nuit.'],
@@ -517,7 +517,7 @@ const sentiments = {
       const vivres = Object.keys(farm.s.inv).filter((id) => ITEMS[id] && ITEMS[id].cat === 'nourriture' && !ITEMS[id].alcool);
       let k = 0;
       for (const id of vivres) { while (k < 2 && farm.count(id) && farm.take(id, 1)) k++; if (k >= 2) break; }
-      if (!k) { gain = 70; pense = '(Vous n’avez rien apporté. On partage ce qu’on a : presque rien. C’est bien quand même.)'; }
+      if (!k) { gain = 70; pense = '(Vous n’avez rien apporté. C’est bien quand même.)'; }
     }
     const y = n.y + 1.05, mid = [(n.x + p.pos[0]) / 2, y, (n.z + p.pos[2]) / 2];
     const a0 = Math.atan2(p.pos[0] - n.x, p.pos[2] - n.z) + Math.PI / 2;
@@ -591,7 +591,7 @@ const sentiments = {
     const nef = [A.centre[0] + fx * 7, A.y + 2.4, A.centre[1] + fz * 7];
     const plans = [
       { dur: 5, de: { pos: nef, look: [A.autel[0], A.y + 1.2, A.autel[1]] }, a: { pos: [A.centre[0] + fx * 4.5, A.y + 1.9, A.centre[1] + fz * 4.5], look: c }, texte: L ? this.fmt(L[0], n, ab) : '(Il n’y a plus personne pour vous marier. Alors vous vous le dites l’un à l’autre, devant l’autel vide.)', qui, joueur: true, debut: () => { sound.bell && sound.bell(1); } },
-      { dur: 4, orbite: { c, r: 2.6, h: 0.3, a0: A.r + 0.9, a1: A.r + 0.6, look: c }, texte: L ? this.fmt(L[1], n, ab) : '(Vos mains tremblent un peu.)', qui, joueur: true },
+      { dur: 4, orbite: { c, r: 2.6, h: 0.3, a0: A.r + 0.9, a1: A.r + 0.6, look: c }, texte: L ? this.fmt(L[1], n, ab) : '', qui, joueur: true },
       { dur: 4.5, orbite: { c, r: 2.0, h: 0.2, a0: A.r - 0.6, a1: A.r - 0.9, look: [n.x, A.y + 1.5, n.z] }, texte: this.fmt(D.noces, n), qui: n.name, joueur: true },
       { dur: 2.6, orbite: { c, r: 2.2, h: 0.2, a0: A.r + 0.4, a1: A.r + 0.2, look: [p.pos[0], A.y + 1.5, p.pos[2]] }, texte: '(Oui.)', joueur: true },
       { dur: 5, de: { pos: [A.centre[0] + fx * 3, A.y + 1.7, A.centre[1] + fz * 3], look: c }, a: { pos: nef, look: c }, texte: L ? this.fmt(L[2], n, ab) : '(Dehors, les cloches ne sonnent pas. Vous les entendez quand même.)', qui, joueur: true, fin: () => { sound.bell && sound.bell(1); setTimeout(() => sound.bell && sound.bell(0.8), 700); } },
@@ -653,7 +653,7 @@ const sentiments = {
     // l'aide à la ferme : l'être aimé passe (en couple), ou vit là (marié)
     const qui = Object.keys(S.c).filter((id) => S.c[id].e >= 3 && npcs.alive(id));
     const conj = this.conjoint();
-    if (conj) { this.aiderFerme(); setTimeout(() => { if (!game.dying) ui.subtitle('', `(Le potager est arrosé, les bêtes ont mangé. ${conj.name} s’est levé${conj.d.gender === 'f' ? 'e' : ''} avant vous.)`, 4.5); }, 4200); }
+    if (conj) { this.aiderFerme(); setTimeout(() => { if (!game.dying) penser.une('conjoint_ferme', `(Le potager est arrosé, les bêtes ont mangé. ${conj.name} s’est levé${conj.d.gender === 'f' ? 'e' : ''} avant vous.)`, 4.5); }, 4200); }
     else for (const id of qui) {
       if (Math.random() > 0.3) continue;
       const n = npcs.byId[id];
@@ -662,7 +662,7 @@ const sentiments = {
       break;
     }
     // le deuil, appris le lendemain
-    for (const d of S.deuils) if (!d.su && s.day > d.day) { d.su = true; const m = npcs.byId[d.id]; if (m) setTimeout(() => { if (!game.dying) ui.subtitle('', `(Une lettre bordée de noir. Le nom de ${m.name}. Vous la lisez trois fois, et le nom ne change pas.)`, 6); }, 5200); }
+    for (const d of S.deuils) if (!d.su && s.day > d.day) { d.su = true; const m = npcs.byId[d.id]; if (m) setTimeout(() => { if (!game.dying) ui.subtitle('', `(Une lettre bordée de noir. Le nom de ${m.name}.)`, 5); }, 5200); }
     for (const id in S.c) { const n = npcs.byId[id]; if (n && n.st.alive) this.majEtape(n); }
   },
   // ------------------------------------------------------------------ la mort de l'être aimé

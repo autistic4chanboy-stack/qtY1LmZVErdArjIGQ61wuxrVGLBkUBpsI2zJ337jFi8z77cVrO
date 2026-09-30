@@ -93,8 +93,7 @@ const vallee = {
         if (w.heightAt(x, z) < lvl - 0.05) { cr.drown = (cr.drown || 0) + dtH; if (cr.drown > 3) { cr.dead = true; farm.dirtyProps = true; } }
       }
     }
-    if (prev < 0.3 && V.flood >= 0.3 && !game.player.underground) ui.subtitle('', '(L’eau monte : la rivière et les lacs débordent sur les prés du bas.)', 4.5);
-    if (prev > 0.12 && V.flood <= 0.12 && V.peak > 0.3 && !game.player.underground) ui.subtitle('', '(La crue se retire des prés. Il reste de la boue et des herbes couchées.)', 4.5);
+    if (prev < 0.3 && V.flood >= 0.3 && !game.player.underground) ui.subtitle('', '(L’eau monte. La rivière déborde sur les prés du bas.)', 4.5);
     V.peak = V.flood > 0.12 ? Math.max(V.peak || 0, V.flood) : 0;
   },
 
@@ -115,17 +114,14 @@ const vallee = {
     this.bolts = this.bolts.filter((b) => b.t > 0);
     // le feu
     this.fireUpdate(dt, eye, basis);
-    // le froid, là-haut
+    // le froid, là-haut : on gèle petit à petit (11-zzvallee0-gel.js) — un quart d'heure de grand froid, sans feu ni
+    // toit, et c'est la fin ; au chaud, le givre recule vite, et fond lentement ailleurs
     if (w.designed && alt > sl - 4 && !p.underground && !strange.inEnvers()) {
       p.food = Math.max(0, p.food - dt / w.dayLength * CORPS_JOUR.faim); // la faim vient deux fois plus vite
       const inside = w.covered(eye[0], eye[1], eye[2]), warm = inside || game.nearFire(p.pos) || this.fireNear > 0.6;
-      if ((sky.night > 0.5 || (this.snowK > 0.35 && alt > sl + 25)) && !warm) {
-        this.coldAcc += dt;
-        if (!this.coldMsg) { this.coldMsg = 1; ui.subtitle('', '(Le froid vous mord les doigts. Il faudrait du feu, ou un toit.)', 4.5); }
-        // 2 PV toutes les 4 s : 25 PV par heure de jeu, quatre heures sans feu ni toit pour en mourir
-        if (this.coldAcc > 4) { this.coldAcc = 0; const pn = strange.placeName(p.pos); play.hurt(2, null, 'Mort de froid' + (pn ? ' — ' + pn : ' en montagne')); }
-      } else this.coldAcc = 0;
-    } else { this.coldMsg = 0; this.coldAcc = 0; }
+      if ((sky.night > 0.5 || (this.snowK > 0.35 && alt > sl + 25)) && !warm) gel.geler(dt);
+      else gel.degeler(dt, warm);
+    } else gel.degeler(dt, p.underground || w.covered(eye[0], eye[1], eye[2]) || game.nearFire(p.pos));
     // pêche sous la glace
     const F = this.fish;
     if (F) {
@@ -192,7 +188,6 @@ const vallee = {
       if (this.needRebuild) { this.needRebuild = false; game.world.objectsDirty = true; }
       if (this.fire) {
         const p = game.player;
-        if (Math.hypot(this.fire.x - p.pos[0], this.fire.z - p.pos[2]) < 450) ui.subtitle('', '(L’incendie s’est éteint. Des troncs noircis fument encore.)', 4.5);
         this.fire = null;
       }
       return;
@@ -252,7 +247,7 @@ const vallee = {
     let best = null, bd = 4.2;
     for (const b of this.burning.values()) { const d = Math.hypot(b.x - px, b.z - pz); if (d < bd) { bd = d; best = b; } }
     if (!best) return false;
-    if (s.water <= 0) { sound.click(); ui.subtitle('', '(L’arrosoir est vide. Vite, à l’eau !)', 2.5); play.cool = 0.4; return true; }
+    if (s.water <= 0) { sound.click(); ui.subtitle('', '(L’arrosoir est vide.)', 2.5); play.cool = 0.4; return true; }
     s.water = Math.max(0, s.water - 1);
     play.canTilt = 0.5; play.cool = 0.45;
     sound.pour && sound.pour();
@@ -390,9 +385,9 @@ HOOKS.inter.sigle = (it) => {
 HOOKS.inter.refuge = () => game.trySleep('refuge');
 // le trou dans la glace
 HOOKS.inter.peche_glace = (it) => {
-  if (!farm.count('canne')) { ui.subtitle('', '(Un trou rond dans la glace, l’eau noire dessous. Il faudrait une canne à pêche.)', 3.5); return; }
+  if (!farm.count('canne')) { ui.subtitle('', '(Il faudrait une canne à pêche.)', 2.5); return; }
   const F = vallee.fish;
-  if (!F) { vallee.fish = { it, t: 8 + Math.random() * 20, bite: 0 }; /* comme au bord de l'eau : 8 à 28 s (équilibrage) */ sound.splash && sound.splash(); ui.subtitle('', '(Vous laissez filer la ligne dans l’eau noire, et vous attendez.)', 3); return; }
+  if (!F) { vallee.fish = { it, t: 8 + Math.random() * 20, bite: 0 }; /* comme au bord de l'eau : 8 à 28 s (équilibrage) */ sound.splash && sound.splash(); return; }
   if (F.bite > 0) { vallee.fish = null; play.catchFish({ zone: 'lac_gele', x: it.x, y: it.y, z: it.z }); return; }
   ui.subtitle('', '(Rien encore. La ligne ne bouge pas.)', 2);
 };

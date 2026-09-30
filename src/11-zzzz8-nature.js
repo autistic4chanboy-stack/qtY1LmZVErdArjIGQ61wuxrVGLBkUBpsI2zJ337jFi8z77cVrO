@@ -748,14 +748,24 @@ if (typeof CHASSE_NOMS !== 'undefined') Object.assign(CHASSE_NOMS, {
   cincle: 'le cincle', grebe: 'le grèbe', butor: 'le butor', grue: 'la grue', lucane: 'la lucane', mante: 'la mante',
 });
 // ---------------------------------------------------------------- les cris (courts, discrets ; aucun ne se répète en boucle)
+// les cris d'oiseaux (et leur durée, s) ; ceux qui reviennent d'eux-mêmes attendent qu'aucun autre oiseau ne chante
+const NAT_CRI_OISEAU = { coucou: 0.7, pic: 1.1, alouette: 1.6, cincle: 0.15, grebe: 0.35, corbeau: 0.55, grue: 1, geai: 0.6, effraie: 1.1, butor: 2.3 };
+const NAT_CRI_PATIENT = new Set(['coucou', 'cincle', 'grebe', 'corbeau', 'alouette']);
 Object.assign(SoundEngine.prototype, {
   natCri(kind, pan, k) {
     if (!this.ok) return;
-    const t = this.at ? this.at() : this.ctx.currentTime + 0.02, v = clamp(k === undefined ? 1 : k, 0, 1), p = this.pan(clamp(pan || 0, -1, 1), this.amb), R = Math.random;
+    const t = this.at ? this.at() : this.ctx.currentTime + 0.02, v = clamp(k === undefined ? 1 : k, 0, 1), R = Math.random;
+    // (les oiseaux chantent chacun leur tour : un cri qui revient de lui-même attend qu'un autre oiseau se taise)
+    const dur = NAT_CRI_OISEAU[kind];
+    if (dur !== undefined) {
+      if (NAT_CRI_PATIENT.has(kind) && (this.oiseauxFin || 0) > t + 0.3) return;
+      this.oiseauxFin = Math.max(this.oiseauxFin || 0, t + dur);
+    }
+    const p = this.pan(clamp(pan || 0, -1, 1), this.amb);
     switch (kind) {
       case 'crapaud': for (let i = 0; i < 4; i++) this.voice(t + i * 0.13, 'sine', 520, 490, 0.09, 0.03 * v, p, { lp: 900 }); return;
       case 'geai': for (let i = 0; i < 2; i++) { this.voice(t + i * 0.3, 'sawtooth', 1150, 780, 0.26, 0.04 * v, p, { bp: 1600, q: 1.1 }); this.noiseHit(t + i * 0.3, 0.24, 'bandpass', 2400, 1.2, 0.03 * v, p); } return;
-      case 'alouette': for (let i = 0; i < 18; i++) { const f = 2600 + R() * 1900; this.tone(t + i * 0.085 + R() * 0.02, 'sine', f, f * (R() < 0.5 ? 1.15 : 0.85), 0.06, 0.012 * v, p, 0.006); } return;
+      case 'alouette': for (let i = 0; i < 18; i++) { const f = 2600 + R() * 1900; this.tone(t + i * 0.085 + R() * 0.02, 'sine', f, f * (R() < 0.5 ? 1.15 : 0.85), 0.06, 0.009 * v, p, 0.006); } return;
       case 'coucou': this.voice(t, 'sine', 690, 680, 0.24, 0.05 * v, p, { lp: 1400 }); this.voice(t + 0.36, 'sine', 570, 560, 0.34, 0.05 * v, p, { lp: 1400 }); return;
       case 'pic': for (let i = 0; i < 10; i++) this.voice(t + i * 0.11, 'triangle', 1650 - i * 30, 1450 - i * 30, 0.07, 0.022 * v, p, { bp: 1800, q: 1.5 }); return;
       case 'tambour': for (let i = 0; i < 14; i++) this.noiseHit(t + i * 0.05, 0.02, 'bandpass', 900, 3, 0.05 * v * (1 - i / 18), p); return;
@@ -911,7 +921,7 @@ const NAT_COMPORTE = {
     e.fly = 0; e.move = 0;
     if (e.dist < e.cfg.flee * (c.crouch ? 0.5 : 1)) { e.bouge = true; sound.flutter && sound.flutter(0.5, 0); return true; }
     e.criT = (e.criT ?? 10 + Math.random() * 30) - dt;
-    if (e.criT <= 0) { e.criT = 35 + Math.random() * 60; if (c.night < 0.4) natCri(e, 'coucou', c, 110); }
+    if (e.criT <= 0) { e.criT = 70 + Math.random() * 90; if (c.night < 0.4) natCri(e, 'coucou', c, 110); }
     return true;
   },
   // la sentinelle : quand il part, il crie, et toutes les bêtes alentour savent
@@ -930,7 +940,7 @@ const NAT_COMPORTE = {
       e.y = e.chante > 5 ? Math.min(sol + haut, e.y + dt * 3) : Math.max(sol, e.y - dt * 7);
       if (e.chante <= 5) { e.x += Math.sin(e.heading) * dt * 2; e.z += Math.cos(e.heading) * dt * 2; }
       e.chantT = (e.chantT || 0) - dt;
-      if (e.chantT <= 0 && e.chante > 5) { e.chantT = 1.6; natCri(e, 'alouette', c, 80); }
+      if (e.chantT <= 0 && e.chante > 5) { e.chantT = 2.2; natCri(e, 'alouette', c, 80); }
       if (e.chante <= 0) { e.fly = 0; e.y = w.heightAt(e.x, e.z); e.state = 'idle'; e.timer = 2; e.hx = e.x; e.hz = e.z; }
       return true;
     }
@@ -953,7 +963,7 @@ const NAT_COMPORTE = {
     }
     e.rig.set('body', Math.sin(c.t * 5 + e.seed) * 0.25, 0, 0);
     e.criT = (e.criT ?? 5 + Math.random() * 10) - dt;
-    if (e.criT <= 0) { e.criT = 10 + Math.random() * 20; natCri(e, 'cincle', c, 30); }
+    if (e.criT <= 0) { e.criT = 25 + Math.random() * 35; natCri(e, 'cincle', c, 30); }
     if (e.dist < e.cfg.flee * (c.crouch ? 0.5 : 1) || Math.random() < dt * 0.04) { e.plonge = 4 + Math.random() * 5; natCri(e, 'plouf', c, 15); return true; }
     return false;
   },
@@ -969,7 +979,7 @@ const NAT_COMPORTE = {
       return true;
     }
     e.criT = (e.criT ?? 10 + Math.random() * 30) - dt;
-    if (e.criT <= 0) { e.criT = 30 + Math.random() * 50; natCri(e, 'grebe', c, 60); }
+    if (e.criT <= 0) { e.criT = 50 + Math.random() * 60; natCri(e, 'grebe', c, 60); }
     if (e.dist < 10 * (c.crouch ? 0.6 : 1)) { e.plonge = 8 + Math.random() * 8; natCri(e, 'plouf', c, 20); return true; }
     return false;
   },
@@ -1021,7 +1031,7 @@ const NAT_COMPORTE = {
     const k = e.cfg.nat;
     if (k === 'papillon') return nature2.volPapillon(e, dt, w, c);
     _ub(e, dt, w, c);
-    if (k === 'grand_corbeau' && !e.hidden) { e.criT = (e.criT ?? 10 + Math.random() * 30) - dt; if (e.criT <= 0) { e.criT = 25 + Math.random() * 40; natCri(e, 'corbeau', c, 140); } }
+    if (k === 'grand_corbeau' && !e.hidden) { e.criT = (e.criT ?? 10 + Math.random() * 30) - dt; if (e.criT <= 0) { e.criT = 45 + Math.random() * 55; natCri(e, 'corbeau', c, 140); } }
     if (k === 'grue' && !e.hidden && e === (e.pack0 || e)) { e.criT = (e.criT ?? 5 + Math.random() * 20) - dt; if (e.criT <= 0) { e.criT = 15 + Math.random() * 25; natCri(e, 'grue', c, 260); } }
   };
 }

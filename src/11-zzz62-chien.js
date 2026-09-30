@@ -98,15 +98,15 @@ const chien = {
     const s = farm.s, C = this.C(), nom = this.nom();
     if (!this.vivant()) return false;
     const v = chienValeur(id);
-    if (!v) { ui.subtitle('', `(${nom} renifle, puis vous regarde, déçu. Ça ne se mange pas, pour un chien.)`, 3); return false; }
-    if (C.rassasie > s.hours + 24) { ui.subtitle('', `(${nom} renifle, et se détourne : il n’a plus faim.)`, 3); return false; }
+    if (!v) { ui.subtitle('', `(${nom} renifle, puis vous regarde, déçu.)`, 3); return false; }
+    if (C.rassasie > s.hours + 24) { ui.subtitle('', `(${nom} n’a plus faim.)`, 3); return false; }
     if (!farm.take(id, 1)) return false;
     const st0 = this.stade();
     this.repas(v, true);
     e = e || this.entite();
     if (e) { e.mange = 2.4; e.gamelle = null; }
     sound.lapement && sound.lapement(1);
-    ui.subtitle('', st0 >= 2 ? `(${nom} mange comme s’il n’avait rien avalé depuis des jours. C’est le cas.)` : pick([`(${nom} engloutit tout et vous lèche la main.)`, `(${nom} ne fait qu’une bouchée de ${itemName(id).toLowerCase()}.)`, `(${nom} mange, la queue battante.)`]), 3.5);
+    ui.subtitle('', st0 >= 2 ? `(${nom} mange comme s’il n’avait rien avalé depuis des jours.)` : `(${nom} engloutit tout.)`, 3);
     return true;
   },
   repas(h, main) {
@@ -125,17 +125,14 @@ const chien = {
     s.dog.love = (s.dog.love || 0) + 1;
     if (s.hours - (C.caresse ?? -99) > 2) esprit.changer(st >= 1 ? 0.2 : 0.4, 'caresser le chien', 0.8);
     C.caresse = s.hours;
-    ui.subtitle('', st >= 2 ? `(${nom} se laisse faire. Sous la main, on sent les côtes.)` : st === 1 ? `(${nom} se laisse gratter, mais son ventre gargouille.)` : pick([`(${nom} remue la queue et vous pousse la main du museau.)`, `(${nom} se roule dans l’herbe, les pattes en l’air.)`, `(${nom} pose la tête sur votre genou et ferme les yeux.)`]), 3);
+    ui.subtitle('', st >= 2 ? `(Sous la main, on sent les côtes.)` : st === 1 ? `(Son ventre gargouille.)` : `(${nom} pose la tête sur votre genou et ferme les yeux.)`, 3);
   },
   ordonner(o) {
     const C = this.C(), nom = this.nom(), e = this.entite();
     if (!C || !['niche', 'suivre', 'reste', 'libre'].includes(o)) return false;
     C.ordre = o;
     if (e) { e.state = 'idle'; e.timer = 0; e.gamelle = null; e.bloque = 0; if (o === 'reste') { e.hx = e.x; e.hz = e.z; } }
-    if (o === 'niche') { const n = this.niche(); ui.subtitle('', n[3] ? `(${nom} baisse la tête et file vers sa niche.)` : `(${nom} n’a pas de niche : il va se coucher sur le seuil de la maison.)`, 3); }
-    else if (o === 'suivre') ui.subtitle('', `(${nom} se colle à vos talons.)`, 2.5);
-    else if (o === 'reste') ui.subtitle('', `(${nom} se couche et ne bouge plus. Il vous suit des yeux.)`, 2.5);
-    else ui.subtitle('', `(${nom} part renifler le monde.)`, 2.5);
+    if (o === 'niche') { const n = this.niche(); if (!n[3]) ui.subtitle('', `(${nom} n’a pas de niche : il ira sur le seuil.)`, 3); }
     sound.bark && sound.bark(0.5);
     return true;
   },
@@ -152,7 +149,7 @@ const chien = {
     const best = enMain || this.meilleurRepas();
     const opts = [];
     if (best) opts.push({ label: 'Lui donner : ' + itemName(best).toLowerCase(), fn: () => { ui.close(); this.nourrir(best, e); } });
-    else opts.push({ label: 'Lui donner à manger', fn: () => { ui.close(); ui.subtitle('', `(Vous n’avez rien pour lui : il faudrait de la viande, du poisson, du pain, un os… ${nom} vous regarde, plein d’espoir.)`, 4); } });
+    else opts.push({ label: 'Lui donner à manger', fn: () => { ui.close(); ui.subtitle('', `(Vous n’avez rien pour lui.)`, 2.5); } });
     opts.push({ label: 'Le caresser', fn: () => { ui.close(); this.caresser(e); } });
     opts.push({ label: C.ordre === 'niche' ? 'À la niche ! (il y est déjà)' : 'À la niche !', fn: () => { ui.close(); this.ordonner('niche'); } });
     opts.push({ label: 'Au pied ! (qu’il vous suive partout)', fn: () => { ui.close(); this.ordonner('suivre'); } });
@@ -166,12 +163,11 @@ const chien = {
     const s = farm.s, n = (q.data && q.data.n) || 0;
     if (n >= 3) { ui.subtitle('', '(La gamelle est pleine.)', 2); sound.click(); return; }
     const hand = s.hand, id = chienValeur(hand) && farm.count(hand) ? hand : this.meilleurRepas();
-    if (!id) { ui.subtitle('', '(Il faudrait de la viande, du poisson, du pain, un os… pour remplir la gamelle.)', 3); sound.click(); return; }
+    if (!id) { ui.subtitle('', '(Rien pour remplir la gamelle.)', 3); sound.click(); return; }
     farm.take(id, 1);
     const col = { viande: '#9a3a30', patee: '#8a6a4a', pain: '#c48846', os: '#e8dcc0', lait: '#f4f2ea', oeuf: '#f2ede2' }[id] || (ITEMS[id].cat === 'poisson' ? '#9aa0a8' : '#8a4a2a');
     farm.setPropData(q, { n: n + 1, id, col });
     sound.place && sound.place();
-    ui.subtitle('', `(Vous mettez ${itemName(id).toLowerCase()} dans la gamelle.)`, 2.5);
   },
   gamelles() {
     const now = performance.now(), w = game.world;
@@ -223,7 +219,7 @@ const chien = {
     const nom = this.nom(), x = e ? e.x : C.mort.x, z = e ? e.z : C.mort.z;
     game.sleeping = true;
     ui.close(true);
-    await ui.fade(true, `Vous creusez un trou, là, dans la terre meuble, et vous y couchez ${nom}.`, 1000);
+    await ui.fade(true, '', 1000);
     await new Promise((r) => setTimeout(r, 2400));
     if (e) entities.remove(e);
     farm.addProp({ id: 'tombe_chien', x, y: w.heightAt(x, z), z, r: game.player.yaw });
@@ -232,7 +228,7 @@ const chien = {
     game.skipHours(0.5);
     await ui.fade(false, '', 1000);
     game.sleeping = false;
-    ui.subtitle('', '(Un petit tertre, un bâton en travers. C’est tout ce que vous avez su faire.)', 4.5);
+    ui.subtitle('', '(C’est tout ce que vous avez su faire.)', 3.5);
   },
 
   // ------------------------------------------------------------- le chien maigrit
@@ -276,7 +272,7 @@ const chien = {
     if (st > (C.signe || 0) && e.dist < 22 && espritVoit(e.x, e.y + 0.4, e.z, 22)) {
       C.signe = st;
       const nom = this.nom();
-      ui.subtitle('', [null, `(${nom} vous suit en gémissant. Il a faim.)`, `(${nom} a maigri. Il vous regarde sans remuer la queue.)`, `(${nom} ne se lève presque plus. On lui voit les côtes.)`][st], 4);
+      ui.subtitle('', [null, `(${nom} a faim.)`, `(${nom} a maigri.)`, `(${nom} ne se lève presque plus.)`][st], 3);
     }
   },
   tickMort() {
@@ -290,7 +286,7 @@ const chien = {
       e.dead = true; e.corpse = true; e.state = 'sheltered'; e.move = 0;
       this.maigrir(e, 3);
     }
-    if (e && !M.vu && Math.hypot(e.x - p.pos[0], e.z - p.pos[2]) < 14) { M.vu = true; ui.subtitle('', `(${this.nom()} est couché là. Il ne bouge plus. Il ne se relèvera pas.)`, 4.5); }
+    if (e && !M.vu && Math.hypot(e.x - p.pos[0], e.z - p.pos[2]) < 14) { M.vu = true; ui.subtitle('', `(${this.nom()} ne se relèvera pas.)`, 4); }
   },
 
   // ------------------------------------------------------------- ce qu'il fait (remplace une partie de entities.dogAI)
@@ -388,7 +384,7 @@ HOOKS.primary.push((eye, basis, held, it, id) => {
   if (!farm.take('chiot', 1)) return true;
   chien.adopter();
   sound.bark && sound.bark(0.7);
-  ui.subtitle('', `(Le chiot vous mordille les doigts. Vous l’appelez ${chien.nom()}. Il faudra le nourrir.)`, 4.5);
+  ui.subtitle('', `(Vous l’appelez ${chien.nom()}.)`, 3);
   return true;
 });
 // le cadavre se désigne avec E (pour l'enterrer)
@@ -428,7 +424,6 @@ HOOKS.load.push((saved) => {
     const C = chien.C(), e = chien.entite(), p = game.player;
     if (C && e && (C.ordre === 'niche' || C.ordre === 'reste') && Math.hypot(e.x - p.pos[0], e.z - p.pos[2]) < 180 && chien.stade() < 3) {
       C.ordre = 'suivre';
-      setTimeout(() => ui.subtitle('', `(${chien.nom()} dresse les oreilles et accourt.)`, 2.5), 700);
     }
     return r;
   };
@@ -449,7 +444,7 @@ HOOKS.day.push(() => {
   const e = chien.cadavre();
   if (e) entities.remove(e);
   esprit.changer(-2, 'le corps du chien');
-  setTimeout(() => { if (!game.dying) ui.subtitle('', `(Le corps de ${chien.nom()} a disparu pendant la nuit. Il ne reste qu’une trace dans l’herbe, qui s’en va vers le bois.)`, 5); }, 4000);
+  setTimeout(() => { if (!game.dying) ui.subtitle('', `(Le corps de ${chien.nom()} a disparu pendant la nuit. Une trace s’en va vers le bois.)`, 5); }, 4000);
 });
 
 // ---------------------------------------------------------------- les bruits du chien

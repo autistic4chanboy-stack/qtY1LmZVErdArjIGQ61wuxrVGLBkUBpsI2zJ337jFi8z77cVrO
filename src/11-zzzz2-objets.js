@@ -261,13 +261,12 @@ const OBJ_PLAINTES = {
 };
 const OBJ_PENSEES = {
   tier: '(Le fer résiste : il faudrait au moins une pioche {t}.)',
-  machine: '(Quelque chose travaille encore là-dedans. Mieux vaut attendre que ce soit fini.)',
+  machine: '(Quelque chose travaille encore là-dedans.)',
   porteOutil: '(Une porte, ça s’enfonce à la hache.)',
-  porteCede: '(La porte cède dans un craquement. La serrure pend, arrachée.)',
-  porteCassee: '(La porte ne ferme plus : les gonds sont tordus, la serrure arrachée.)',
-  tas: '(Ce qu’il y avait dedans roule par terre.)',
-  tombe: '(La pierre se fend. Sous la terre, quelque chose a remué.)',
-  calvaire: '(La croix tombe. Le vent se tait d’un coup, comme pour écouter.)',
+  porteCede: '(La serrure pend, arrachée.)',
+  porteCassee: '(La porte ne ferme plus.)',
+  tombe: '(Sous la terre, quelque chose a remué.)',
+  calvaire: '(Le vent se tait d’un coup.)',
 };
 
 // ---------------------------------------------------------------- bruits : coups et casse, selon la matière
@@ -721,7 +720,7 @@ const objets = {
       const n = a + Math.floor(Math.random() * (b - a + 1));
       if (n > 0) { farm.give(item, n); play.flyer(item, centre, n); }
     }
-    if (contenu.length) { this.poserTas(B, contenu, L); setTimeout(() => { if (!game.dying) ui.subtitle('', OBJ_PENSEES.tas, 2.5); }, 350); }
+    if (contenu.length) this.poserTas(B, contenu, L);
     this.eclater(m, B, gros);
     this.poserDebris(m, B, gros);
     sound.objetCasse && sound.objetCasse(m, gros);

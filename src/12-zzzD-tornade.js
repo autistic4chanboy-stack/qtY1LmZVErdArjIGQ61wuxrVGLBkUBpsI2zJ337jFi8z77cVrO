@@ -43,7 +43,7 @@ const tornade = {
     const dist = Math.hypot(E.x - p.pos[0], E.z - p.pos[2]);
     if (E.phase === 'ciel') {
       E.vert = Math.min(1, E.vert + dt / 6);
-      if (!E.dit && E.t > 2) { E.dit = true; if (!p.underground) ui.subtitle('', '(Le ciel est devenu vert. Le vent tourne en rond, et les oiseaux se sont tus.)', 4.5); evenements.reagir('tornade'); }
+      if (!E.dit && E.t > 2) { E.dit = true; evenements.reagir('tornade'); }
       if (E.t >= E.cielT) {
         E.phase = 'descente'; E.descT = 0;
         evenements.retenir('tornade');
@@ -60,7 +60,7 @@ const tornade = {
       if (!w.inside(E.x, E.z, 30)) E.solT = E.vie;
       E.y = Math.max(w.heightAt(E.x, E.z), w.waterLevel);
       this.effets(dt, eye, dist);
-      if (E.solT >= E.vie) { E.phase = 'fin'; E.finT = 0; if (dist < 400 && !p.underground) ui.subtitle('', '(La trombe remonte dans les nuages, d’un coup. Le silence qui suit est pire que le vent.)', 5); }
+      if (E.solT >= E.vie) { E.phase = 'fin'; E.finT = 0; }
     } else if (E.phase === 'fin') {
       E.finT += dt; E.bas = Math.min(95, E.finT / 5 * 95); E.vert = Math.max(0, 1 - E.finT / 8);
       if (E.finT >= 8) { this.E = null; this.sonMaj(0); return; }
@@ -87,14 +87,13 @@ const tornade = {
         p.pos[0] = nx; p.pos[2] = nz;
         game.shakeT = Math.max(game.shakeT || 0, (1 - dist / 30) * 0.6);
       }
-      if (dist < 18) { E.debrisT -= dt; if (E.debrisT <= 0) { E.debrisT = 0.9; if (Math.random() < 0.35) { play.hurt(3 + Math.random() * 3, E, 'Emporté par une tornade'); ui.subtitle('', pick(['(Une branche vous frappe au visage.)', '(Des pierres, des tuiles, de la terre : tout vole.)', '(Quelque chose de lourd vous heurte l’épaule.)']), 2); } } }
+      if (dist < 18) { E.debrisT -= dt; if (E.debrisT <= 0) { E.debrisT = 0.9; if (Math.random() < 0.35) { play.hurt(3 + Math.random() * 3, E, 'Emporté par une tornade'); penser.pas('tornade', 12, pick(['(Une branche vous frappe au visage.)', '(Quelque chose de lourd vous heurte l’épaule.)']), 2); } } }
       if (dist < 6.5 && this.lanceT <= 0) {
         if (p.riding) game.dismount();
         this.lanceT = 5;
         const dx = (p.pos[0] - E.x) / (dist || 1), dz = (p.pos[2] - E.z) / (dist || 1), up = 14 + Math.random() * 4;
         p.vel = [-dz * 9 + dx * 4, up, dx * 9 + dz * 4]; p.onGround = false; p.pos[1] += 0.3;
         game.shakeT = 1; sound.hurt && sound.hurt(10);
-        ui.subtitle('', '(Le vent vous arrache du sol. Le ciel, la terre, le ciel.)', 3);
       }
     }
     // les cultures arrachées

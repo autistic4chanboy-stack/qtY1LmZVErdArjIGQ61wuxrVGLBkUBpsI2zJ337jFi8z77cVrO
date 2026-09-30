@@ -229,11 +229,11 @@ const alchimie = {
   // la table de l'échoppe : l'alchimiste doit être vivant, là, et vous tolérer
   tableEchoppe() {
     const n = npcs.byId.alchimiste, p = game.player;
-    if (!n || !n.st.alive) { ui.subtitle('', '(Des scellés de cire sur les tiroirs. Personne ne touchera plus aux fioles de l’alchimiste.)', 4); return; }
+    if (!n || !n.st.alive) { ui.subtitle('', '(Des scellés de cire sur les tiroirs.)', 3); return; }
     const recherche = typeof societe !== 'undefined' && typeof societe.recherche === 'function' && societe.recherche();
     if (npcs.murdererKnown() || recherche || n.st.anger > 0 || (n.st.amitie || 0) < 0) { npcs.say(n, pick(this.DIT.table.refus), 3); return; }
-    if (n.state === 'sleep') { ui.subtitle('', '(L’alchimiste dort. Mieux vaut ne pas toucher à ses fioles sans lui.)', 3.5); return; }
-    if (n.vanished || Math.hypot(n.x - p.pos[0], n.z - p.pos[2]) > 20) { ui.subtitle('', '(L’alchimiste n’est pas là. Mieux vaut ne pas toucher à ses fioles sans lui.)', 3.5); return; }
+    if (n.state === 'sleep') { ui.subtitle('', '(L’alchimiste dort.)', 2.5); return; }
+    if (n.vanished || Math.hypot(n.x - p.pos[0], n.z - p.pos[2]) > 20) { ui.subtitle('', '(L’alchimiste n’est pas là.)', 2.5); return; }
     const A = this.S(), lvl = npcs.level(n), prix = lvl >= 6 ? 0 : lvl >= 3 ? 4 : 8;
     if (!prix || A.tableJour === farm.s.day) { this.ouvrirTable('echoppe'); return; }
     ui.choice('La table de l’alchimiste', `${n.name} vous prête sa table pour la journée, contre ${prix} pièces. Les fioles ne sont pas fournies.`, [
@@ -303,13 +303,13 @@ const alchimie = {
     farm.give('fiole', 1);
     alchemy.flashCol = hexToRgb(P.col).map((v) => v / 255); alchemy.flashT = 1.2;
     switch (id) {
-      case 'bouillie': play.nausea = Math.max(play.nausea || 0, 4); say('Ça ne sent rien, ça n’a aucun goût, et ça colle aux dents. Au moins, la fiole est vide.'); break;
+      case 'bouillie': play.nausea = Math.max(play.nausea || 0, 4); say('Ça colle aux dents.'); break;
       case 'potion_chaleur': BUFF.add('chaleur', P.h); say('Un feu doux s’allume au creux du ventre. Le froid peut toujours venir.'); break;
       case 'potion_sang_froid': BUFF.add('sang_froid', P.h); say('Votre cœur ralentit. Vous pourriez regarder n’importe quoi en face, maintenant.'); break;
       case 'potion_regeneration': BUFF.add('regeneration', P.h); corps.panser(); p.hp = Math.min(100, p.hp + 10); say('Ça picote partout où vous avez mal. Les plaies se referment, lentement.'); break;
       case 'baume_moelle':
-        if (corps.soignerJambe(true)) { corps.C().attelle = 0; say('Une chaleur de moelle et de suif descend dans la jambe. L’os se ressoude, comme une braise qui se referme.', 4.5); }
-        else { p.hp = Math.min(100, p.hp + 10); say('Un goût de suif et de moelle. Vos os vont bien. Ils allaient déjà bien.'); }
+        if (corps.soignerJambe(true)) { corps.C().attelle = 0; say('L’os se ressoude.', 3); }
+        else { p.hp = Math.min(100, p.hp + 10); say('Vos os vont bien. Ils allaient déjà bien.'); }
         break;
       case 'eau_lustrale':
         // les malédictions (module de l'agent D : malediction) : son emballage d'alchemy.drink lave les petites
@@ -325,7 +325,7 @@ const alchimie = {
         const A = this.S();
         A.poison = { k: 0.5, t: 240, cause: 'Empoisonné, d’une fiole qu’il ne fallait pas boire' };
         play.hurt(8, null, A.poison.cause); play.nausea = Math.max(play.nausea || 0, 20);
-        say('Un goût d’amande amère. Votre gorge se serre. Il faudrait un antidote, et vite.', 4.5);
+        say('Un goût d’amande amère. Votre gorge se serre.', 4);
         break;
       }
       case 'fiel_noir':
@@ -337,7 +337,7 @@ const alchimie = {
       case 'potion_soleil': BUFF.add('soleil', P.h); say('Une lumière dorée derrière les paupières. Le monde vous paraît moins cru.'); break;
       case 'potion_peau_pierre': BUFF.add('peau_pierre', P.h); say('Votre peau durcit et grisonne, comme un vieux mur.'); break;
       case 'potion_memoire': say(this.memoire(), 6); break;
-      case 'potion_songe': BUFF.add('songe', P.h); say('Vos paupières s’alourdissent. La nuit prochaine, vous rêverez de quelque chose de vrai.', 4); break;
+      case 'potion_songe': BUFF.add('songe', P.h); say('Vos paupières s’alourdissent.', 3); break;
     }
     if (id !== 'bouillie') this.noterPotion(id, 'b');
     for (const fn of this.onBoire) try { fn(id); } catch (e) { console.error(e); }
@@ -347,11 +347,10 @@ const alchimie = {
   // eau de mémoire : des mots des langues perdues, et les lieux des cartes qu'on porte
   memoire() {
     const w = game.world, dits = [];
-    for (const [lang, k] of [['aelin', 6], ['gorrain', 4]]) {
+    for (const [lang, k] of [['aelin', 3], ['gorrain', 2]]) {
       const L = typeof LANGUES !== 'undefined' && LANGUES[lang];
       if (!L || !L.lex) continue;
-      const inc = Object.keys(L.lex).filter((m) => !savoir.motConnu(lang, m));
-      for (let i = inc.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [inc[i], inc[j]] = [inc[j], inc[i]]; }
+      const inc = typeof langues !== 'undefined' ? langues.inconnus(lang, 'memoire') : Object.keys(L.lex).filter((m) => !savoir.motConnu(lang, m));
       const pris = inc.slice(0, k);
       if (!pris.length) continue;
       savoir.apprendreMots(lang, pris);
@@ -414,7 +413,7 @@ const alchimie = {
     e.corpse = false; e.hidden = true;
     this.carcasses.splice(this.carcasses.indexOf(c), 1);
     sound.pop && sound.pop();
-    ui.subtitle('', got.length ? '(La bête a la gueule noire. La viande est perdue ; le reste, non.)' : '(La bête a la gueule noire. Il n’y a rien à en tirer.)', 3);
+    ui.subtitle('', got.length ? '(La bête a la gueule noire. La viande est perdue.)' : '(La bête a la gueule noire.)', 3);
   },
   majAppats() {
     const A = farm.s.alch;
@@ -435,13 +434,13 @@ const alchimie = {
   majPoison(dt) {
     const A = farm.s.alch, P = A && A.poison;
     if (!P) return;
-    if (BUFF.on('antidote')) { A.poison = null; ui.subtitle('', '(L’antidote brûle, puis apaise. Le poison recule.)', 3); return; }
+    if (BUFF.on('antidote')) { A.poison = null; ui.subtitle('', '(Le poison recule.)', 3); return; }
     const p = game.player;
     P.t -= dt;
     p.hp -= P.k * dt;
     play.nausea = Math.max(play.nausea || 0, 0.8);
     if (p.hp <= 0) { A.poison = null; game.die(P.cause); return; }
-    if (P.t <= 0) { A.poison = null; ui.subtitle('', '(Le poison a fini son œuvre. Vous êtes encore là. À peine.)', 3.5); }
+    if (P.t <= 0) { A.poison = null; ui.subtitle('', '(Le poison a fini son œuvre. Vous êtes encore là.)', 3.5); }
   },
 
   // ================================================================ philtre des morts, songe
@@ -727,14 +726,14 @@ HOOKS.primary.unshift((eye, basis, held, it, id) => {
   const say = (t) => ui.subtitle('', '(' + t + ')', 3);
   if (id === 'bouillie') {
     farm.take('bouillie', 1); farm.give('fiole', 1); sound.pour && sound.pour();
-    say('Vous videz la bouillie dans l’herbe. L’herbe n’en veut pas non plus.');
+    say('L’herbe n’en veut pas non plus.');
     return true;
   }
   if (id === 'fiole_poison') {
-    if (!farm.count('viande')) { say('Versé sur de la viande, ça ferait un appât. Il vous faudrait de la viande.'); return true; }
+    if (!farm.count('viande')) { say('Il vous faudrait de la viande.'); return true; }
     farm.take('viande', 1); farm.take('fiole_poison', 1); farm.give('appat_empoisonne', 1); farm.give('fiole', 1);
     sound.pour && sound.pour();
-    say('Vous versez le poison sur la viande. Elle noircit, lentement.');
+    say('La viande noircit, lentement.');
     return true;
   }
   // l'appât : dans un piège qu'on regarde (piège à lapins, piège à loup posé), sinon par terre
@@ -743,15 +742,13 @@ HOOKS.primary.unshift((eye, basis, held, it, id) => {
   if (q) {
     if (alchimie.appatDans(q)) { say('Il y a déjà un appât dans ce piège.'); return true; }
     farm.take('appat_empoisonne', 1); farm.setPropData(q, { appat: 'poison' }); sound.place && sound.place();
-    say('Vous posez l’appât dans le piège. Ce qui le mordra ne s’en relèvera pas.');
     return true;
   }
   const c = play.cellAt(eye, basis.f);
-  if (!c || c.t > 3.2 || w.heightAt(c.x, c.z) < w.waterLevel) { say('Il faudrait le poser par terre, là où passent les bêtes.'); return true; }
+  if (!c || c.t > 3.2 || w.heightAt(c.x, c.z) < w.waterLevel) { say('Il faudrait le poser par terre.'); return true; }
   farm.take('appat_empoisonne', 1);
   alchimie.poserAppat(c.x + (Math.random() - 0.5) * 0.3, w.groundAt(c.x, c.z, c.y + 0.5, 1), c.z + (Math.random() - 0.5) * 0.3);
   sound.place && sound.place();
-  say('Vous posez l’appât dans l’herbe. Les bêtes le sentiront de loin.');
   return true;
 });
 HOOKS.secondary.unshift((eye, basis, it, id) => {
@@ -842,7 +839,7 @@ HOOKS.day.push(() => {
       farm.give('fourrure', 1); play.flyer('fourrure', [q.x, q.y + 0.3, q.z], 1);
       if (Math.random() < 0.5) farm.give('cuir', 1);
       sound.pop && sound.pop();
-      ui.subtitle('', '(Une martre, raide, la gueule noire. La viande est perdue ; la fourrure, non.)', 3.5);
+      ui.subtitle('', '(Une martre, raide, la gueule noire.)', 3);
       return true;
     }
     return _pp ? _pp(q) : false;

@@ -187,13 +187,13 @@ const GEOLIER_DIT = {
   fin_travail: 'C’est bon pour aujourd’hui. Ça vous fera un jour de moins.',
   fin_tard: 'Il est tard. Votre journée ne comptera pas. Demain, frappez plus fort.',
   nuit: 'Dormez. C’est tout ce qu’il y a à faire, ici, la nuit.',
-  dort: '(Le geôlier ronfle, la tête sur la poitrine.)',
+  dort: '(Le geôlier ronfle.)',
   reveil: 'Hein ? … Qu’est-ce que vous fabriquez ? Dormez, ou je vous fais dormir.',
   halte: 'Halte ! Vous me prenez pour un imbécile ?',
   mains: 'Hé ! Bas les pattes, voleur ! Vous vous croyez où ?',
   rattrape: 'Deux jours de plus. Et la prochaine fois, je vous mets aux fers.',
   libere: 'C’est fini pour vous. Vos affaires sont là. Ce qui n’était pas à vous est retourné à qui de droit.',
-  soupe: '(Le geôlier glisse une écuelle de soupe sous la grille.)',
+  soupe: '(Une écuelle de soupe, sous la grille.)',
   pain: '(Pain sec et cruche d’eau, glissés sous la grille.)',
 };
 const PRISON_PEINE = { vol: 1, braconnage: 1, profanation: 3, agression: 2, meurtre: 6, evasion: 2 };
@@ -321,7 +321,7 @@ const prison = {
     ui.close(true);
     try {
       if (raison === 'rancon') { this.dire(GEOLIER_DIT.rancon, 4); await wait(1500); }
-      await ui.fade(true, raison === 'rancon' ? 'La grille grince. Le geôlier compte vos pièces une deuxième fois, puis vous rend vos affaires.' : 'Un matin, la grille s’ouvre, et personne ne vous dit de rester.', 1100);
+      await ui.fade(true, raison === 'rancon' ? 'Le geôlier compte vos pièces une deuxième fois.' : 'Un matin, la grille s’ouvre, et personne ne vous dit de rester.', 1100);
       const S = societe.S();
       for (const C of S.crimes) if ((P.crimes || []).includes(C.id) && C.leve === 'prison') { C.leve = raison === 'rancon' ? 'rancon' : 'cachot'; C.leveJour = s.day; }
       societe.majAffiches(true);
@@ -423,7 +423,7 @@ const prison = {
     await wait(1600);
     game.sleeping = true;
     try {
-      await ui.fade(true, 'Le geôlier vous ramène en cellule. Vos mains ne se ferment plus.', 1000);
+      await ui.fade(true, 'Le geôlier vous ramène en cellule.', 1000);
       P.travail = null; P.dernierTravail = s.day;
       if (ok) { P.jours -= 1; this.majRancon(); }
       const k = farm.count('masse_forcat'); if (k) farm.take('masse_forcat', k);
@@ -454,7 +454,7 @@ const prison = {
     game.sleeping = true;
     let pris = false;
     try {
-      await ui.fade(true, 'Vous limez, lentement, en comptant les ronflements.', 900);
+      await ui.fade(true, '', 900);
       game.skipHours(1); w.time = (w.time + 1 / 24) % 1; game.lastT = w.time;
       sound.scratch && sound.scratch();
       await wait(900);
@@ -475,7 +475,7 @@ const prison = {
   resoudreClefs() {
     const A = this.attente, P = this.S();
     this.attente = null;
-    if (Math.random() < A.k) { farm.give('trousseau', 1); ui.subtitle('', '(Vous décrochez le trousseau de sa ceinture, clé par clé, sans un bruit.)', 4); return; }
+    if (Math.random() < A.k) { farm.give('trousseau', 1); ui.subtitle('', '(Le trousseau. Le geôlier n’a pas bougé.)', 4); return; }
     P.reveilNuit = farm.s.day;
     this.rattrape(GEOLIER_DIT.mains);
   },
@@ -484,7 +484,7 @@ const prison = {
     ui.close(true);
     P.porte = true; this.appliquerPorte();
     sound.lock && sound.lock(false); sound.door && sound.door(true);
-    ui.subtitle('', '(La troisième clé tourne. La grille s’entrouvre, avec un grincement à réveiller les morts.)', 4);
+    ui.subtitle('', '(Un grincement à réveiller les morts.)', 4);
     if (this.dortMaintenant() && Math.random() < 0.2) P.reveilNuit = farm.s.day;
   },
   async evader(voie) {
@@ -495,7 +495,7 @@ const prison = {
     game.sleeping = true;
     ui.close(true);
     try {
-      await ui.fade(true, voie === 'soupirail' ? 'Vous vous glissez par le soupirail. La pierre vous arrache la peau des épaules. Et puis l’air de la nuit.' : 'Vous montez l’échelle, barreau par barreau, sans respirer. La trappe cède. La nuit.', 1400);
+      await ui.fade(true, voie === 'soupirail' ? 'La pierre vous arrache la peau des épaules. Et puis l’air de la nuit.' : 'La trappe cède. La nuit.', 1400);
       const S = societe.S();
       for (const C of S.crimes) if ((P.crimes || []).includes(C.id) && C.leve === 'prison') { C.leve = null; delete C.leveJour; }
       for (const id of ['masse_forcat', 'lime', 'trousseau']) { const k = farm.count(id); if (k) farm.take(id, k); }
@@ -635,31 +635,31 @@ const prison = {
 HOOKS.inter.k_porte = () => prison.menuPorte();
 HOOKS.inter.k_paillasse = () => {
   const P = prison.S();
-  if (!P.actif) { ui.subtitle('', '(De la paille qui pique, et qui sent la peur des autres.)', 3); return; }
+  if (!P.actif) { ui.subtitle('', '(De la paille qui sent la peur des autres.)', 3); return; }
   game.sleep('cachot');
 };
 HOOKS.inter.k_soupirail = () => {
   const P = prison.S();
   if (!P.actif) { ui.subtitle('', '(Un soupirail, trop haut, trop étroit.)', 2.5); return; }
   if (P.lime >= 3) { ui.choice('Le soupirail', 'Le barreau du milieu est scié. L’ouverture est tout juste assez large.', [{ label: 'Se glisser dehors', fn: () => { ui.close(true); prison.evader('soupirail'); } }, { label: 'Pas encore', fn: () => ui.close() }]); return; }
-  if (!farm.count('lime')) { ui.subtitle('', '(Un soupirail, trop haut, trop étroit. Trois barreaux scellés dans la pierre, et un filet de jour, ou de nuit.)', 4); return; }
+  if (!farm.count('lime')) { ui.subtitle('', '(Trois barreaux, scellés dans la pierre.)', 3); return; }
   ui.choice('Le soupirail', `Trois barreaux. ${P.lime ? `Celui du milieu est entamé (${P.lime} nuit${P.lime > 1 ? 's' : ''} de lime).` : 'Avec la lime, et quelques nuits…'}`, [{ label: 'Limer le barreau du milieu (une heure)', fn: () => { ui.close(true); prison.limer(); } }, { label: 'Pas maintenant', fn: () => ui.close() }]);
 };
 HOOKS.inter.k_pierre = () => {
   const P = prison.S();
   if (!P.actif) { ui.subtitle('', '(Une pierre descellée.)', 2); return; }
-  if (!prison.nuit() && !prison.dortMaintenant()) { ui.subtitle('', '(Une pierre bouge un peu, derrière la paillasse. Pas sous le nez du geôlier.)', 3.5); return; }
+  if (!prison.nuit() && !prison.dortMaintenant()) { ui.subtitle('', '(Une pierre bouge un peu. Pas sous le nez du geôlier.)', 3); return; }
   if (P.limeVue) { ui.subtitle('', '(Le trou, derrière la pierre, est vide.)', 2.5); return; }
   P.limeVue = true;
   farm.give('lime', 1);
   sound.scratch && sound.scratch();
-  ui.subtitle('', '(Derrière la pierre, dans un trou, une lime plate enveloppée dans un chiffon. Quelqu’un l’a laissée là pour le suivant.)', 5);
+  ui.subtitle('', '(Derrière la pierre, une lime plate, dans un chiffon.)', 4);
 };
 HOOKS.inter.k_traits = () => { const P = prison.S(); ui.read('Des traits gravés', PRISON_TRAITS.slice(0, 1 + Math.min(2, (P && P.fois) || 0)).join('\n\n')); };
 HOOKS.inter.k_greffe = () => {
   const P = prison.S();
   const ids = Object.keys(P.saisie || {}).filter((id) => ITEMS[id] && P.saisie[id] > 0);
-  if (!ids.length) { ui.subtitle('', '(Le coffre du greffe. Des registres, des menottes rouillées. Rien à vous.)', 3); return; }
+  if (!ids.length) { ui.subtitle('', '(Rien à vous, dans le coffre du greffe.)', 3); return; }
   for (const id of ids) farm.give(id, P.saisie[id]);
   P.saisie = {};
   sound.lootOpen && sound.lootOpen();

@@ -464,7 +464,7 @@ const chasse = {
     // la prise d'un chasseur : c'est du vol, s'il le voit
     if (e.proie) { const n = npcs.byId[e.proie]; if (n && n.st.alive && npcs.witnesses(e.x, e.z).includes(n)) { npcs.say(n, 'Hé ! C’est ma bête, ça !', 3); npcs.addAmitie(n, -40); if (typeof societe !== 'undefined' && societe.crime) societe.crime({ type: 'vol', victime: n.id, x: e.x, z: e.z }); } if (n && n.recup === e) { n.recup = null; n.goal = null; } }
     this.oter(e);
-    ui.subtitle('', L.length ? `(Vous dépecez ${this.nom(e.kind)}.)` : '(Il n’y a rien à en tirer.)', 2.5);
+    if (!L.length) ui.subtitle('', '(Il n’y a rien à en tirer.)', 2.5);
     S.depecees = (S.depecees || 0) + 1;
     void s;
   },
@@ -543,7 +543,7 @@ const chasse = {
       if (Math.random() < pA) {
         e.piege = null; this.majPiege(t, { prise: 0, vivant: 0, sang: 1 });
         this.blesser(e, 30); entities.startFlee(e, c.px, c.pz); e.timer = 6;
-        if (e.dist < 50) { this.sonRessort(); sound.hurtAnimal && sound.hurtAnimal(e.kind); ui.subtitle('', '(La bête s’arrache au piège et s’enfuit en boitant. Du sang sur les dents de fer.)', 3.5); }
+        if (e.dist < 50) { this.sonRessort(); sound.hurtAnimal && sound.hurtAnimal(e.kind); }
         return;
       }
     }
@@ -567,7 +567,7 @@ const chasse = {
     corps.saigner(0.35, cause);
     if (Math.random() < 0.3) corps.casserJambe(cause);
     play.hurt(16 + Math.random() * 10, null, cause);
-    if (!game.dying) ui.subtitle('', '(Des mâchoires de fer se referment sur votre jambe. Vous ne pouvez plus bouger. E pour tenter de les écarter.)', 5);
+    if (!game.dying) ui.subtitle('', '(Des mâchoires de fer sur votre jambe. E pour les écarter.)', 4);
   },
   degager() {
     const P = this.pris;
@@ -577,11 +577,11 @@ const chasse = {
     game.shakeT = Math.max(game.shakeT || 0, 0.15);
     if (P.force >= 1) {
       this.pris = null;
-      ui.subtitle('', '(Vous écartez les mâchoires et retirez votre jambe. Le sang coule.)', 3.5);
+      ui.subtitle('', '(Le sang coule.)', 3.5);
       return;
     }
     if (Math.random() < 0.3) { corps.saigner(0.02, 'Pris dans un piège à loup'); sound.hurt && sound.hurt(3); }
-    if (!P.dit || game.time > P.dit) { P.dit = game.time + 2.5; ui.subtitle('', pick(['(Les ressorts sont durs. Encore.)', '(Le fer mord plus fort à chaque essai.)', '(Vous forcez. Les dents grincent.)']), 2); }
+    if (!P.dit || game.time > P.dit) { P.dit = game.time + 2.5; ui.subtitle('', '(Les ressorts sont durs. Encore.)', 2); }
   },
   // la monture met le sabot dans le piège : elle se cabre, on tombe, elle s'arrache
   prendreMonture(t, e) {
@@ -592,7 +592,7 @@ const chasse = {
     game.player.vel[1] = 3;
     play.hurt(8 + Math.random() * 6, null, 'Désarçonné près d’un piège à loup');
     entities.startFlee(e, t.x, t.z); e.timer = 3;
-    ui.subtitle('', '(Votre monture met le sabot dans un piège. Elle se cabre, vous jette à terre et s’arrache au fer en hennissant.)', 4.5);
+    ui.subtitle('', '(Votre monture met le sabot dans un piège.)', 3.5);
   },
   prendreHabitant(t, n) {
     const D = this.D(t);
@@ -673,11 +673,10 @@ const chasse = {
     const D = this.D(t), aMoi = this.estAuJoueur(t);
     const e = D.prise ? this.prisonniere(t) : null;
     if (e && !e.dead) {
-      if (e.kind === 'bear') { ui.subtitle('', '(Un ours, même pris, ne se laisse pas approcher à mains nues. Un coup de fusil, plutôt.)', 3.5); return; }
+      if (e.kind === 'bear') { ui.subtitle('', '(Un ours, même pris, ne se laisse pas approcher.)', 3.5); return; }
       e.hp = 0; e.dead = true; e.corpse = true; e.hidden = false; e.move = 0;
       this.majPiege(t, { vivant: 0 });
       sound.hurtAnimal && sound.hurtAnimal(e.kind); puffAt(e.x, e.y + 0.3, e.z, [130, 24, 24], 8, 1.2, false);
-      ui.subtitle('', '(Vous l’achevez d’un coup sec. Elle ne se débat plus.)', 3);
       return;
     }
     if (D.prise) { this.releverPiege(t); return; }
@@ -714,10 +713,9 @@ const chasse = {
     if (aMoi) {
       this.majPiege(t, { prise: 0, vivant: 0, sang: 0, arme: 1, shut: 0, jour: farm.s.day });
       this.sonRessort();
-      ui.subtitle('', `(Vous retirez ${this.nom(kind)} du piège, puis vous le retendez.)`, 3);
     } else {
       this.majPiege(t, { prise: 0, vivant: 0 });
-      ui.subtitle('', `(Vous prenez ${this.nom(kind)} dans le piège du chasseur.)`, 3);
+      ui.subtitle('', `(C’était le piège du chasseur.)`, 3);
       const n = npcs.byId.chasseur;
       if (n && n.st.alive && npcs.witnesses(t.x, t.z).includes(n)) { npcs.say(n, 'Hé ! C’est ma prise ! Voleur !', 3); npcs.addAmitie(n, -50); if (typeof societe !== 'undefined' && societe.crime) societe.crime({ type: 'vol', victime: n.id, x: t.x, z: t.z }); }
     }

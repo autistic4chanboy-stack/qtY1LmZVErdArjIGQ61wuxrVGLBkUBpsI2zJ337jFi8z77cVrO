@@ -17,7 +17,7 @@ const livres = {
   S() {
     const s = farm.s;
     const L = s.livres || (s.livres = {});
-    for (const k of ['secrets', 'marque', 'fini', 'ins']) if (!L[k] || typeof L[k] !== 'object') L[k] = {};
+    for (const k of ['secrets', 'marque', 'fini', 'ins', 'grammaire']) if (!L[k] || typeof L[k] !== 'object') L[k] = {};
     return L;
   },
   secret(k) { return (farm.s && this.S().secrets[k]) || 0; },
@@ -155,15 +155,17 @@ const livres = {
     }
     return P;
   },
-  // les mots d'un lexique (n premiers mots du lexique de la langue)
+  // les mots d'un lexique : une tranche (L.depuis, L.mots) de l'ordre mêlé des livres, propre à la partie (aucun
+  // lexique ne donne toute la langue, ni d'abord les mots des pierres), rangée par ordre alphabétique
   motsLexique(L) {
     const lex = (LANGUES[L.langue] && LANGUES[L.langue].lex) || {};
-    return Object.keys(lex).slice(0, L.mots || 999);
+    const O = typeof langues !== 'undefined' ? langues.ordre(L.langue, 'livres') : Object.keys(lex), d = L.depuis || 0;
+    return O.slice(d, d + (L.mots || 999)).sort((a, b) => a.localeCompare(b));
   },
   pagesLexique(L) {
     const lg = LANGUES[L.langue];
     if (!lg) return [];
-    const P = [{ titre: 'Préface', texte: `${lg.desc}\n\nOn l’écrit en ${lg.ecriture}. Ceux qui la parlaient : ${lg.peuple}.` }];
+    const P = [{ titre: 'Préface', texte: `${lg.desc}\n\nOn l’écrit en ${lg.ecriture}. Ceux qui la parlaient : ${lg.peuple}.`, learn: { grammaire: L.langue } }];
     const mots = this.motsLexique(L);
     for (let i = 0; i < mots.length; i += 7) {
       const part = mots.slice(i, i + 7);
@@ -188,7 +190,7 @@ const livres = {
       const n = pages.length - 1, special = L.secret || L.recettes || L.carte;
       limite = L.langue ? 2 : L.carte ? 0 : Math.max(1, Math.min(2, special ? n - 1 : n));
       if (limite >= n && !special) limite = undefined;
-      if (L.carte) opts.msgLimite = opts.msgLimite || '(Les feuillets sont trop fragiles pour être dépliés ici. Il faut les emprunter au comptoir.)';
+      if (L.carte) opts.msgLimite = opts.msgLimite || '(Trop fragiles pour être dépliés ici. Il faut les emprunter.)';
     } else savoir.lire(id);
     const spreads = Math.ceil(pages.length / 2);
     const spread = opts.surPlace ? 0 : clamp(S.marque[id] || 0, 0, spreads - 1);
@@ -217,7 +219,7 @@ const livres = {
       const pg = P[i];
       if (!pg) return `<div class="pg ${side} vide"></div>`;
       let inner;
-      if (locked(i)) inner = `<div class="scelle">${esc(C.opts.msgLimite || '(Le libraire vous observe par-dessus ses lunettes. Pour lire la suite, il faudra emprunter ce livre au comptoir.)')}</div>`;
+      if (locked(i)) inner = `<div class="scelle">${esc(C.opts.msgLimite || '(Pour lire la suite, il faut emprunter ce livre.)')}</div>`;
       else inner = (pg.titre ? `<h4>${esc(pg.titre)}</h4>` : '') + (pg.html || `<div class="txt">${this.txt(pg.texte)}</div>`);
       return `<div class="pg ${side}${pg.couv ? ' couv' : ''}">${inner}${i > 0 ? `<div class="num">${i}</div>` : ''}</div>`;
     };
@@ -261,7 +263,8 @@ const livres = {
       const n = typeof langues !== 'undefined' ? langues.apprendre(lang, liste, 'livre') : savoir.apprendreMots(lang, liste);
       if (n) msgs.push(lang === 'aelin' ? (n > 1 ? `(Vous retenez ${n} mots d’aëlin.)` : '(Vous retenez un mot d’aëlin.)') : (n > 1 ? `(Vous retenez ${n} mots de gorrain.)` : '(Vous retenez un mot de gorrain.)'));
     }
-    if (A.secret && this.apprendreSecret(A.secret)) msgs.push('(Vous refermez presque le livre. Ce que vous venez de lire, vous ne l’oublierez pas.)');
+    if (A.secret && this.apprendreSecret(A.secret)) msgs.push('(Ce que vous venez de lire, vous ne l’oublierez pas.)');
+    if (A.grammaire && farm.s) { const G = this.S().grammaire; if (!G[A.grammaire]) G[A.grammaire] = farm.s.day; }
   },
   style() {
     if (this.styled) return;

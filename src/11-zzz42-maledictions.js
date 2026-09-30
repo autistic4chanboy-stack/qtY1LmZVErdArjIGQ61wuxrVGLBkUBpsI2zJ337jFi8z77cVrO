@@ -62,22 +62,22 @@ const malediction = {
       else id = 'malchance';
     }
     const S = this.S(), L = S.liste;
-    if (BUFF.on('aube')) { ui.subtitle('', '(Un froid passe sur vous, puis glisse, comme l’eau sur une vitre. La lumière d’Aëla vous garde encore.)', 4); return false; }
+    if (BUFF.on('aube')) { ui.subtitle('', '(Un froid passe sur vous, puis glisse.)', 3); return false; }
     if (L[id]) { L[id].n = (L[id].n || 1) + 1; if (id === 'ombre' && S.ombre) S.ombre.d = Math.max(20, S.ombre.d - 15); return false; }
     L[id] = { cause: cause || 'inconnue', jour: farm.s.day, h: farm.s.hours, n: 1 };
     if (id === 'ombre') S.ombre = { d: 90 };
     // un signe, discret
     const SIGNES = {
-      malchance: '(Une pièce vous glisse des doigts et roule dans l’herbe. Vous ne la retrouvez pas.)',
-      faim: '(Votre ventre se creuse d’un coup, comme si vous n’aviez pas mangé depuis trois jours.)',
-      betes: '(Au loin, les chiens se mettent à aboyer tous ensemble. Vers vous.)',
-      sommeil: '(Une fatigue lourde tombe sur vos épaules, et ne s’en va plus.)',
-      pourriture: '(Une odeur de terre mouillée et de fruit gâté. Elle vient de vos mains.)',
-      poids: '(Vos jambes s’alourdissent, comme si la terre vous tirait par les chevilles.)',
-      ombre: '(Derrière vous, votre ombre a bougé. Un peu en retard sur vous.)',
+      malchance: '(Une pièce vous glisse des doigts. Vous ne la retrouvez pas.)',
+      faim: '(Votre ventre se creuse d’un coup.)',
+      betes: '(Au loin, tous les chiens aboient ensemble. Vers vous.)',
+      sommeil: '(Une fatigue lourde tombe sur vos épaules.)',
+      pourriture: '(Vos mains sentent le fruit gâté.)',
+      poids: '(Vos jambes s’alourdissent.)',
+      ombre: '(Derrière vous, votre ombre a bougé. En retard.)',
     };
-    setTimeout(() => { if (!game.dying) { ui.subtitle('', '(Un froid vous traverse, de la nuque aux talons.)', 3); sound.voice && sound.ok && sound.voice(sound.at(), 'sine', 70, 52, 2.2, 0.06, sound.lp(300, sound.amb)); } }, 400);
-    setTimeout(() => { if (!game.dying) ui.subtitle('', SIGNES[id], 4.5); }, 3600);
+    setTimeout(() => { if (!game.dying) { sound.voice && sound.ok && sound.voice(sound.at(), 'sine', 70, 52, 2.2, 0.06, sound.lp(300, sound.amb)); } }, 400);
+    setTimeout(() => { if (!game.dying) ui.subtitle('', SIGNES[id], 3.5); }, 2600);
     strange.glitchT = Math.max(strange.glitchT || 0, 0.35);
     return true;
   },
@@ -92,7 +92,7 @@ const malediction = {
     if (!ids.length) return false;
     for (const k of ids) { delete L[k]; if (k === 'ombre') S.ombre = null; }
     if (!silent) {
-      ui.subtitle('', ids.includes('ombre') ? '(Derrière vous, quelque chose se défait, sans un bruit. Vous êtes seul. Vraiment seul.)' : '(Quelque chose se détache de vous. Vous respirez mieux, tout à coup.)', 4.5);
+      ui.subtitle('', ids.includes('ombre') ? '(Derrière vous, quelque chose se défait. Vous êtes seul.)' : '(Quelque chose se détache de vous.)', 3.5);
       sound.ok && sound.tone(sound.at(), 'sine', 520, 780, 0.9, 0.03);
     }
     return true;
@@ -101,7 +101,7 @@ const malediction = {
     const ids = this.liste().filter((k) => MALEDICTIONS[k].petite);
     let n = 0;
     for (const k of ids) if (this.lever(k, true)) n++;
-    if (n && !silent) ui.subtitle('', '(L’eau froide descend dans la gorge et lave quelque chose, loin dedans. Vous vous sentez plus léger.)', 4.5);
+    if (n && !silent) ui.subtitle('', '(Quelque chose se lave, loin dedans.)', 3.5);
     return n;
   },
 
@@ -129,10 +129,10 @@ const malediction = {
     if (L.pourriture) {
       let n = 0;
       for (const k in s.crops) { const c = s.crops[k]; if (c.c && !c.dead && !c.tree && Math.random() < 0.15) { c.dead = true; n++; } }
-      if (n) { farm.dirtyProps = true; setTimeout(() => ui.subtitle('', '(Au champ, ce matin, des plants noircis. Ils étaient beaux hier.)', 4), 9000); }
+      if (n) { farm.dirtyProps = true; setTimeout(() => ui.subtitle('', '(Au champ, des plants ont noirci cette nuit.)', 4), 9000); }
     }
     if (L.malchance) for (const q of w.props) if ((q.id === 'piege' || q.id === 'piege_loup') && q.data && q.data.prise && Math.random() < 0.8) farm.setPropData(q, { prise: 0 });
-    if (L.ombre && this.S().ombre) { const d = this.S().ombre.d; setTimeout(() => ui.subtitle('', d < 30 ? '(Cette nuit, il était tout près. Vous avez senti son souffle froid sur votre nuque.)' : '(Cette nuit, il était plus près.)', 4.5), 11000); }
+    if (L.ombre && this.S().ombre) { const d = this.S().ombre.d; setTimeout(() => ui.subtitle('', d < 30 ? '(Cette nuit, il était tout près.)' : '(Cette nuit, il était plus près.)', 4.5), 11000); }
   },
 
   // ------------------------------------------------------------ le carnet : ce qui pèse sur vous
@@ -183,7 +183,7 @@ const malOmbre = {
     if (show && O.d < 45) {
       strange.fear = Math.max(strange.fear || 0, clamp(1 - O.d / 45, 0, 1) * 0.8);
       this.peurT -= dt;
-      if (this.peurT <= 0 && O.d < 30) { this.peurT = 25 + Math.random() * 20; ui.subtitle('', pick(['(Des pas derrière vous. Ils s’arrêtent quand vous vous arrêtez.)', '(Vous ne vous retournez pas. Vous savez qu’il est là.)', '(Une ombre, là où il ne devrait pas y en avoir. Elle a votre taille.)']), 4); }
+      if (this.peurT <= 0 && O.d < 30) { this.peurT = 25 + Math.random() * 20; ui.subtitle('', '(Des pas derrière vous. Ils s’arrêtent quand vous vous arrêtez.)', 3.5); }
     }
     if (seen && !this.vuFois) { this.vuFois = true; sound.heartbeat && sound.heartbeat(1); }
   },
@@ -217,7 +217,7 @@ const malOmbre = {
   };
   const _cf = play.catchFish.bind(play);
   play.catchFish = function (F) {
-    if (malediction.a('malchance') && Math.random() < 0.6) { sound.reel && sound.reel(0.3); ui.subtitle('', pick(['(Il s’est décroché. Encore.)', '(La ligne se détend d’un coup. Plus rien au bout.)', '(Un éclair d’écailles, et il repart. La chance n’est pas avec vous.)']), 2.5); return; }
+    if (malediction.a('malchance') && Math.random() < 0.6) { sound.reel && sound.reel(0.3); ui.subtitle('', '(Il s’est décroché. Encore.)', 2.5); return; }
     return _cf(F);
   };
   // la faim : on mange, et ça ne tient pas
@@ -235,7 +235,7 @@ const malOmbre = {
     const r = _hc(x, z, c, silent);
     if (C && Math.random() < 0.35) {
       const got = farm.count(item) - n0;
-      if (got > 0) { farm.take(item, got); puffAt(x, game.world.heightAt(x, z) + 0.4, z, [50, 40, 30], 8, 1, false); ui.subtitle('', '(Ça pourrit entre vos doigts. Une bouillie noire, qui sent la cave.)', 3); }
+      if (got > 0) { farm.take(item, got); puffAt(x, game.world.heightAt(x, z) + 0.4, z, [50, 40, 30], 8, 1, false); ui.subtitle('', '(Ça pourrit entre vos doigts.)', 3); }
     }
     return r;
   };
@@ -267,12 +267,12 @@ const malOmbre = {
   };
 }
 function malBoire(id) {
-  if (id === 'eau_lustrale') { if (!malediction.leverPetites()) ui.subtitle('', '(Une eau très froide, très pure. Elle n’a rien trouvé à laver.)', 3); }
+  if (id === 'eau_lustrale') { if (!malediction.leverPetites()) ui.subtitle('', '(L’eau n’a rien trouvé à laver.)', 3); }
   else if (id === 'fiel_noir') { setTimeout(() => malediction.frapper('faim', 'boisson'), 800); }
   else if (id === 'potion_soleil') {
     const T = evenements.S().tache;
     if (!BUFF.on('soleil')) BUFF.add('soleil', 12);
-    if (T.a > 0.01) { evSoleil.effacer(); ui.subtitle('', '(Une chaleur dorée derrière les yeux. La tache noire se dissout, lentement, puis plus rien.)', 4); }
+    if (T.a > 0.01) evSoleil.effacer();
   }
 }
 BUFF_NAMES.soleil = 'Les yeux protégés du soleil';
@@ -310,7 +310,7 @@ HOOKS.primary.push((eye, basis, held, it, id) => {
   sound.impact && sound.impact('hard');
   puffAt(eye[0] + f[0] * bt, eye[1] + f[1] * bt, eye[2] + f[2] * bt, [120, 125, 110], 8, 1.8, true);
   malPierres[i] = (malPierres[i] || 0) + 1;
-  if (malPierres[i] === 1) ui.subtitle('', '(La pierre sonne creux sous la pioche. Elle est là depuis bien avant la ferme.)', 3);
+  if (malPierres[i] === 1) ui.subtitle('', '(Elle est là depuis bien avant la ferme.)', 3);
   if (malPierres[i] < 5) return true;
   // elle se brise
   farm.setPropData(best, { brisee: 1 });
@@ -334,10 +334,9 @@ HOOKS.primary.push((eye, basis, held, it, id) => {
     s.flags[k] = (s.flags[k] || 0) + 1;
     play.swingT = 0.32; play.cool = 0.6;
     sound.shovel && sound.shovel(1); puffAt(c.x, c.y + 0.1, c.z, [96, 68, 44], 12, 2, false);
-    if (s.flags[k] === 1) ui.subtitle('', '(Vous creusez sur une tombe. La terre est meuble, comme si elle attendait.)', 3.5);
+    if (s.flags[k] === 1) ui.subtitle('', '(Vous creusez sur une tombe.)', 3);
     if (s.flags[k] < 3) return;
     if (s.flags[k] === 3) {
-      ui.subtitle('', '(La pelle heurte du bois pourri. Une odeur monte. Vous êtes en train de déterrer quelqu’un.)', 4.5);
       if (Math.random() < 0.5) { farm.give('bijou', 1); play.flyer('bijou', [c.x, c.y + 0.4, c.z], 1); }
       farm.give('os', 1); play.flyer('os', [c.x, c.y + 0.4, c.z], 1);
       const wit = npcs.witnesses(c.x, c.z);
@@ -373,7 +372,7 @@ HOOKS.load.push(() => {
   // les chevaux refusent de porter qui est maudit
   const _mount = game.mount.bind(game);
   game.mount = function (e) {
-    if (malediction.a('betes') && e && e.owner && Math.random() < 0.7) { sound.animal && sound.animal('horse', 0, 0.8); ui.subtitle('', '(Le cheval se cabre, roule des yeux, et refuse de vous porter.)', 3); return; }
+    if (malediction.a('betes') && e && e.owner && Math.random() < 0.7) { sound.animal && sound.animal('horse', 0, 0.8); ui.subtitle('', '(Le cheval refuse de vous porter.)', 3); return; }
     return _mount(e);
   };
   // le sommeil sans repos
@@ -384,7 +383,7 @@ HOOKS.load.push(() => {
     if (maudit && !game.dying && farm.s && !farm.s.over) {
       const p = game.player;
       p.hp = Math.max(5, p.hp - 32); p.stamina = 0.3; p.food = Math.max(0, p.food - 8);
-      setTimeout(() => ui.subtitle('', pick(['(Vous vous réveillez plus las qu’avant. Des mains, dans le rêve, qui vous retenaient au fond.)', '(Une nuit sans repos. Quelqu’un vous a regardé dormir, vous en êtes sûr.)', '(Vous avez rêvé que vous creusiez. Vous avez de la terre sous les ongles.)']), 5), 1500);
+      setTimeout(() => ui.subtitle('', pick(['(Vous vous réveillez plus las qu’avant.)', '(Une nuit sans repos. Quelqu’un vous a regardé dormir.)']), 4), 1500);
     }
   };
   // le carnet : ce qui pèse sur vous

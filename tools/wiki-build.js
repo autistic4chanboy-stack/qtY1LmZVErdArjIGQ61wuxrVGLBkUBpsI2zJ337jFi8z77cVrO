@@ -92,6 +92,31 @@ function encodePNG(w, h, px, ch = 4) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), pngChunk('IHDR', ihdr), pngChunk('IDAT', zlib.deflateSync(filterRows(w, h, px, ch), { level: 9, memLevel: 9 })), pngChunk('IEND', Buffer.alloc(0))]);
 }
 const pngURL = (w, h, px, ch) => 'data:image/png;base64,' + encodePNG(w, h, px, ch).toString('base64');
+// image RVB → PNG à palette (256 couleurs au plus, sinon RVB) : les plans dessinés par l'outil ont peu de teintes
+function planPNG(w, h, rgb) {
+  const idx = new Uint8Array(w * h), pal = new Map(), cols = [];
+  for (let k = 0; k < w * h; k++) {
+    const c = (rgb[k * 3] << 16) | (rgb[k * 3 + 1] << 8) | rgb[k * 3 + 2];
+    let i = pal.get(c);
+    if (i === undefined) { if (cols.length >= 256) return { url: pngURL(w, h, rgb, 3), w, h, n: -1 }; i = cols.length; pal.set(c, i); cols.push(c); }
+    idx[k] = i;
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 3;
+  const plte = Buffer.alloc(cols.length * 3);
+  cols.forEach((c, i) => { plte[i * 3] = c >> 16 & 255; plte[i * 3 + 1] = c >> 8 & 255; plte[i * 3 + 2] = c & 255; });
+  // (palette : lignes sans filtre, ou « haut » quand il fait mieux : les deux se compressent bien)
+  const raw = Buffer.alloc((w + 1) * h);
+  for (let y = 0; y < h; y++) {
+    let same = 0;
+    if (y) for (let x = 0; x < w; x++) if (idx[y * w + x] === idx[(y - 1) * w + x]) same++;
+    const up = y && same > w * 0.6;
+    raw[y * (w + 1)] = up ? 2 : 0;
+    for (let x = 0; x < w; x++) raw[y * (w + 1) + 1 + x] = up ? (idx[y * w + x] - idx[(y - 1) * w + x]) & 255 : idx[y * w + x];
+  }
+  const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), pngChunk('IHDR', ihdr), pngChunk('PLTE', plte), pngChunk('IDAT', zlib.deflateSync(raw, { level: 9, memLevel: 9 })), pngChunk('IEND', Buffer.alloc(0))]);
+  return { url: 'data:image/png;base64,' + png.toString('base64'), w, h, n: cols.length };
+}
 // grille de données compressée (lignes filtrées + deflate brut) : décodée par la page (inflate maison)
 const packGrid = (w, h, px, ch = 1) => ({ w, h, ch, z: zlib.deflateRawSync(filterRows(w, h, px, ch), { level: 9, memLevel: 9 }).toString('base64') });
 const packBytes = (buf) => ({ n: buf.byteLength, z: zlib.deflateRawSync(Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength), { level: 9 }).toString('base64') });
@@ -299,7 +324,7 @@ const TECH_TABLES = /^(GLSL_|SH$|TEX_|MAX_|CHUNK$|RING$|PC\d*$|NOC$|TL$|WHITE$|M
 // Ce qu'on garde d'un module : son en-tête (le résumé du système), ses tables et le commentaire qui les
 // précède, ses constantes simples, ses objets (« const chasse = { … } »), ses sections, les commentaires des
 // méthodes, les objets qu'il crée (defItem) et les répliques de cinématiques (« texte: … »).
-const SYS_FILE = /^(11-zzz|12-zzz|07-zzzzz)/;
+const SYS_FILE = /^(11-zzz|12-zzz|07-zzzzz|11-zzvallee0|09-zzzaudio|09-audio|13-zz-)/;
 function parseModule(text) {
   const L = text.split('\n');
   const out = { head: [], tables: {}, scal: {}, objs: [], items: [], secs: [], blocks: [], mdocs: {}, mtexts: {} };
@@ -1038,6 +1063,26 @@ function vieTextes(G) {
   g('conteSemaine', /const C = ACT_CONTES\[Math\.floor\(farm\.s\.day \/ (\d+)\) % ACT_CONTES\.length\]/);
   return R;
 }
+// ce que le code des nouveautés dit en toutes lettres (leçons de langues, options du son…), là où aucune table ne le porte
+function textesNouveautes(G) {
+  const src = (f) => (G.texts.find(([n]) => n === f) || [])[1] || '';
+  const num = (t, re) => { const m = t.match(re); return m ? m.slice(1).map((x) => (/^-?\d+(?:\.\d+)?$/.test(x) ? +x : x)) : null; };
+  const R = {};
+  const L = src('11-zzz22-langues.js');
+  R.langues = {
+    motsPrix: num(L, /if \(!farm\.pay\((\d+)\)\) return V\('Trente/), motsN: num(L, /enseigner\('aelin', (\d+), 'libraire'\)/),
+    pierrePrix: num(L, /if \(!farm\.pay\((\d+)\)\) return V\('Vingt/), nainAmitie: num(L, /npcs\.level\(n\) >= (\d+)\) O\.push\(\{ label: 'Apprenez-moi la langue des pierres'/),
+    nainQuota: num(L, /const quota = (\d+) \+ Math\.floor\(npcs\.level\(n\) \/ (\d+)\)/), cupulesAmitie: num(L, /npcs\.level\(n\) >= (\d+)\) O\.push\(\{ label: 'Que disent les cupules/),
+  };
+  const S3 = src('13-zz-son3d.js');
+  R.son = { option: (num(S3, /id="o-son3d"> ([^'<]+)'/) || [null])[0], defaut: /DEFAULT_SETTINGS\.son3d = true/.test(S3) };
+  // les options du jeu (le panneau « Options » de src/shell.html)
+  try {
+    const html = fs.readFileSync(path.join(ROOT, 'src', 'shell.html'), 'utf8'), m = html.match(/<div id="dlg-options"[\s\S]*?<div class="cols">([\s\S]*?)<\/div>\s*<div class="actions">/);
+    if (m) R.options = [...m[1].matchAll(/<label[^>]*>(?:<input[^>]*>)?\s*([^<]+?)\s*(?:<output|<input|<select|<\/label>)/g)].map((q) => q[1].trim());
+  } catch (e) { /* rien */ }
+  return R;
+}
 // la vie de la vallée : les mesures, les textes du code, et les figurines des portes et des meubles
 function extractVie(G, DB, FIGS) {
   const V = G.run(`(${vieProbe.toString()})()`);
@@ -1191,6 +1236,19 @@ async function extract() {
       dep('dep:chien:0', { id: 'wiki-c', t: 'chien', x: 0, y: 0, z: 0, r: 0, pose: 'cote' }, 0, 80);
       dep('dep:chien:3', { id: 'wiki-c', t: 'chien', x: 0, y: 0, z: 0, r: 0, pose: 'cote' }, 3, 80);
     }
+    // ceux d'en bas (le Dessous) : chacun sa figurine et son buste, comme les habitants ; le Hoûm et les bêtes d'en bas
+    {
+      const SG = G.get('SOUT_GENS');
+      if (Array.isArray(SG)) SG.forEach((g, i) => {
+        const rig = `(() => { const g = SOUT_GENS[${i}]; let r = humanRig(g.look); if (g.look.bandeau && typeof rigPlus === 'function') r = rigPlus(r, [{ name: 'bandeau', parent: 'head', p: [0, 0.15, 0.004], s: [0.3, 0.052, 0.3], col: rgbf('#3a3630'), tex: TL.cloth }]); try { poseHuman(r, { t: 0, move: 0 }); } catch (e) {} return r; })()`;
+        const full = safe('figurine ' + g.k, () => renderRig(rig, 128));
+        const bust = safe('buste ' + g.k, () => renderRig(rig.replace('return r; })()', 'for (const q of r.parts) if (/^(leg|shoe|skirt|coatTail|foot|feet|knee|thigh|shin|calf|boot|ankle|toe)/i.test(q.name)) q.hide = true; return r; })()'), 64));
+        fig['sout:' + g.k] = { full: full ? shelf.add(trim(full)) : null, bust: bust ? shelf.add(trim(bust)) : null };
+      });
+      if (G.has('soutHoum')) { const cv = safe('le Hoûm', () => renderRig('(() => { const r = soutHoum.rig(); try { poseQuad(r, { t: 0, move: 0 }); } catch (e) {} return r; })()', 128)); if (cv) fig['sout:houm'] = { full: shelf.add(trim(cv)) }; }
+      const SR = G.get('SOUT_RIGS');
+      if (SR) for (const k of Object.keys(SR)) { const cv = safe('bête d’en bas ' + k, () => renderRig(`(() => { const r = SOUT_RIGS[${JSON.stringify(k)}](); try { if (r.kind === 'bird') poseBird(r, { t: 0, move: 0 }); else if (r.kind === 'quad') poseQuad(r, { t: 0, move: 0 }); } catch (e) {} return r; })()`, 96)); if (cv) fig['sb:' + k] = { full: shelf.add(trim(cv)) }; }
+    }
     {
       const AL = G.get('ACT_LOOKS');
       if (AL && typeof AL === 'object') for (const k of Object.keys(AL)) { const cv = safe('figurine ' + k, () => human(`ACT_LOOKS[${JSON.stringify(k)}]`, 128, false)); if (cv) fig['act:' + k] = { full: shelf.add(trim(cv)) }; }
@@ -1254,6 +1312,11 @@ async function extract() {
   // l'équilibrage : la section du README qui le raconte (convertie en fiche)
   DB.derived.equilibrage = safe('README (équilibrage)', () => { const md = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8'), a = md.search(/^## Équilibrage\s*$/m); if (a < 0) return null; const b = md.slice(a + 5).search(/^## /m); return md.slice(a, b < 0 ? undefined : a + 5 + b); }, null);
   say('vie de la vallée mesurée');
+  // les plans : le Dessous, puis les autres mondes (ouverts et défaits l'un après l'autre, après tout le reste)
+  DB.world.dessous = safe('plan du Dessous', () => planDessous(G, DB), null);
+  DB.world.mondes = safe('plans des autres mondes', () => planMondes(G, DB), {});
+  DB.derived.nv = safe('nouveautés, mesures', () => textesNouveautes(G), {});
+  say(`plans dessinés : le Dessous${DB.world.dessous ? ` (${DB.world.dessous.img.w} × ${DB.world.dessous.img.h} px, ${Math.round(DB.world.dessous.img.url.length / 1024)} Ko)` : ' (absent)'}, ${Object.keys(DB.world.mondes || {}).length} autres mondes`);
   // la planche des figurines (les portes et les meubles s'y sont ajoutés)
   if (FIGS) {
     DB.images.figures = Object.assign(FIGS.shelf.png(), { index: FIGS.fig });
@@ -1341,7 +1404,10 @@ function extractWorld(G, w, DB) {
 
   // ---------------------------------------------------------------- tracés
   const r1 = (v) => Math.round(v * 10) / 10;
-  W.lm = Object.values(w.lm || {}).map((L) => ({ key: L.key, name: L.name, x: r1(L.x), z: r1(L.z), y: r1(L.y ?? w.heightAt(L.x, L.z)), r: r1(L.r || 6), secret: !!L.secret, under: !!L.under, fish: L.fish || null }));
+  W.lm = Object.values(w.lm || {}).map((L) => { const o = { key: L.key, name: L.name, x: r1(L.x), z: r1(L.z), y: r1(L.y ?? w.heightAt(L.x, L.z)), r: r1(L.r || 6), secret: !!L.secret, under: !!L.under, fish: L.fish || null }; if (L.c2) o.c2 = L.c2; if (L.peuple) o.peuple = L.peuple; if (L.souterrain) o.souterrain = 1; return o; });
+  // les lieux perdus (un tous les deux cents mètres) : leur sorte, leur carré
+  W.c2 = w.carte2 && w.carte2.lieux ? w.carte2.lieux.map((L) => [L.i, L.t, r1(L.x), r1(L.z), L.nom, L.gi, L.gj]) : null;
+  W.peuples = w.peuples ? Object.keys(w.peuples).filter((k) => k !== 'n') : null;
   W.bld = Object.values(w.bld || {}).map((B) => ({ key: B.key, name: B.name, x: r1(B.x), z: r1(B.z), y: r1(B.y), W: B.W, D: B.D, rot: B.f ? Math.round(B.f.r * 1000) / 1000 : 0, under: !!B.under }));
   W.nav = { nodes: (w.nav && w.nav.nodes || []).map((q) => [r1(q.x), r1(q.z), q.iso ? 1 : 0, q.tag || '']), edges: (w.nav && w.nav.edges || []).map((e) => (Array.isArray(e) ? [e[0], e[1]] : [e.a, e.b])) };
   W.inter = (w.inter || []).map((it) => ({ kind: it.kind, id: it.id, name: it.name || '', x: r1(it.x), y: r1(it.y ?? 0), z: r1(it.z), data: jclone(it.data ? Object.fromEntries(Object.entries(it.data).filter(([k, v]) => typeof v !== 'object' || v === null || (Array.isArray(v) && v.length < 8 && v.every((x) => typeof x !== 'object')))) : null) }));
@@ -1375,6 +1441,265 @@ function extractWorld(G, w, DB) {
     rows.sort((p, q) => p[5] - q[5]);
     W.blocks = { n: rows.length, pal, data: packBytes(Int16Array.from(rows.flat().map((v) => Math.max(-32768, Math.min(32767, v))))) };
   }
+}
+
+// ============================================================================
+//  LES PLANS : le Dessous et les autres mondes, dessinés par l'outil
+//  Le fond de chaque plan est une image calculée ici, depuis les données du
+//  jeu : pour le Dessous, le sol et la voûte des galeries (les deux reliefs de
+//  souterrain, grilles de 2 m), la matière du sol et l'eau d'en bas, puis, vus
+//  de dessus, les objets posés et les blocs qui n'existent que dessous (leurs
+//  boîtes, telles que les modèles du jeu les émettent) ; pour les autres
+//  mondes, ce que chacun construit quand on y entre (blocs, décors), capturé
+//  dans la machine virtuelle. Les repères (salles, gens, secrets…) sont posés
+//  par la page, par-dessus.
+// ============================================================================
+class Plan {
+  constructor(x0, z0, x1, z1, ppm, bg) {
+    this.x0 = x0; this.z0 = z0; this.ppm = ppm;
+    this.w = Math.max(1, Math.ceil((x1 - x0) * ppm)); this.h = Math.max(1, Math.ceil((z1 - z0) * ppm));
+    this.px = new Uint8ClampedArray(this.w * this.h * 3);
+    if (bg) for (let k = 0; k < this.w * this.h; k++) { this.px[k * 3] = bg[0]; this.px[k * 3 + 1] = bg[1]; this.px[k * 3 + 2] = bg[2]; }
+  }
+  set(i, j, c) { if (i < 0 || j < 0 || i >= this.w || j >= this.h) return; const o = (j * this.w + i) * 3; this.px[o] = c[0]; this.px[o + 1] = c[1]; this.px[o + 2] = c[2]; }
+  // polygone (coordonnées du monde), rempli aux centres des pixels ; trop petit, il marque au moins son pixel
+  poly(pts, c, min) {
+    const P = pts.map(([x, z]) => [(x - this.x0) * this.ppm, (z - this.z0) * this.ppm]);
+    let y0 = Infinity, y1 = -Infinity, sx = 0, sy = 0, n = 0;
+    for (const p of P) { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); sx += p[0]; sy += p[1]; }
+    const j0 = Math.max(0, Math.ceil(y0 - 0.5)), j1 = Math.min(this.h - 1, Math.floor(y1 - 0.5)), xs = [];
+    for (let j = j0; j <= j1; j++) {
+      const y = j + 0.5; xs.length = 0;
+      for (let a = 0, b = P.length - 1; a < P.length; b = a++) { const [xa, ya] = P[a], [xb, yb] = P[b]; if ((ya <= y) !== (yb <= y)) xs.push(xa + (y - ya) / (yb - ya) * (xb - xa)); }
+      xs.sort((p, q) => p - q);
+      for (let k = 0; k + 1 < xs.length; k += 2) for (let i = Math.max(0, Math.ceil(xs[k] - 0.5)); i <= Math.min(this.w - 1, Math.floor(xs[k + 1] - 0.5)); i++) { const o = (j * this.w + i) * 3; this.px[o] = c[0]; this.px[o + 1] = c[1]; this.px[o + 2] = c[2]; n++; }
+    }
+    if (!n && min) this.set(Math.floor(sx / P.length), Math.floor(sy / P.length), c);
+    return n;
+  }
+  // l'image : réduite à 256 couleurs (coupe médiane) puis en PNG à palette
+  png() { quantize256(this.px); return planPNG(this.w, this.h, this.px); }
+}
+// réduit les couleurs d'une image RVB à 256 au plus, sur place (coupe médiane, pondérée par le nombre de pixels)
+function quantize256(px) {
+  const n = px.length / 3, key = (k) => ((px[k * 3] >> 2) << 12) | ((px[k * 3 + 1] >> 2) << 6) | (px[k * 3 + 2] >> 2);
+  const H = new Map();
+  for (let k = 0; k < n; k++) { const q = key(k); let e = H.get(q); if (!e) H.set(q, (e = [0, 0, 0, 0])); e[0]++; e[1] += px[k * 3]; e[2] += px[k * 3 + 1]; e[3] += px[k * 3 + 2]; }
+  const cols = [...H.entries()].map(([q, e]) => ({ q, n: e[0], c: [e[1] / e[0], e[2] / e[0], e[3] / e[0]] }));
+  if (cols.length <= 256) { const exact = new Set(); for (let k = 0; k < n; k++) exact.add((px[k * 3] << 16) | (px[k * 3 + 1] << 8) | px[k * 3 + 2]); if (exact.size <= 256) return; }
+  let boxes = [cols];
+  const range = (b, ch) => { let lo = 255, hi = 0; for (const e of b) { lo = Math.min(lo, e.c[ch]); hi = Math.max(hi, e.c[ch]); } return hi - lo; };
+  while (boxes.length < 256) {
+    let best = -1, bs = -1, bch = 0;
+    boxes.forEach((b, i) => { if (b.length < 2) return; const w = b.reduce((a, e) => a + e.n, 0); for (let ch = 0; ch < 3; ch++) { const s = range(b, ch) * Math.sqrt(w); if (s > bs) { bs = s; best = i; bch = ch; } } });
+    if (best < 0 || bs <= 0) break;
+    const b = boxes[best].sort((p, q) => p.c[bch] - q.c[bch]), tot = b.reduce((a, e) => a + e.n, 0);
+    let acc = 0, cut = 1;
+    for (let i = 0; i < b.length - 1; i++) { acc += b[i].n; if (acc >= tot / 2) { cut = i + 1; break; } cut = i + 1; }
+    boxes.splice(best, 1, b.slice(0, cut), b.slice(cut));
+  }
+  const map = new Map();
+  for (const b of boxes) { const w = b.reduce((a, e) => a + e.n, 0) || 1, c = [0, 1, 2].map((ch) => Math.round(b.reduce((a, e) => a + e.c[ch] * e.n, 0) / w)); for (const e of b) map.set(e.q, c); }
+  for (let k = 0; k < n; k++) { const c = map.get(key(k)); px[k * 3] = c[0]; px[k * 3 + 1] = c[1]; px[k * 3 + 2] = c[2]; }
+}
+// les faces d'une boîte (matrice 3 × 4 du jeu : axes mis à l'échelle, puis le centre) qu'on voit d'en haut, ombrées
+const PLAN_L = (() => { const v = [-0.42, 0.8, -0.44], l = Math.hypot(...v); return v.map((x) => x / l); })();
+function boxTopFaces(M, rgb, emit, out) {
+  const A = [[M[0], M[4], M[8]], [M[1], M[5], M[9]], [M[2], M[6], M[10]]], T = [M[3], M[7], M[11]];
+  for (let ax = 0; ax < 3; ax++) for (const sg of [1, -1]) {
+    const a = A[ax], l = Math.hypot(a[0], a[1], a[2]);
+    if (!(l > 1e-6)) continue;
+    const nrm = [a[0] * sg / l, a[1] * sg / l, a[2] * sg / l];
+    if (nrm[1] < 0.02) continue;
+    const o1 = A[(ax + 1) % 3], o2 = A[(ax + 2) % 3], c = [T[0] + a[0] * sg * 0.5, T[1] + a[1] * sg * 0.5, T[2] + a[2] * sg * 0.5];
+    const pts = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([p, q]) => [c[0] + (o1[0] * p + o2[0] * q) * 0.5, c[2] + (o1[2] * p + o2[2] * q) * 0.5]);
+    const top = c[1] + Math.abs(o1[1]) * 0.5 + Math.abs(o2[1]) * 0.5;
+    const k = emit ? 1 : 0.58 + 0.42 * Math.max(0, nrm[0] * PLAN_L[0] + nrm[1] * PLAN_L[1] + nrm[2] * PLAN_L[2]);
+    out.push({ y: top, yc: c[1], pts, c: [Math.min(255, rgb[0] * k), Math.min(255, rgb[1] * k), Math.min(255, rgb[2] * k)] });
+  }
+}
+// un bloc du monde (x, y, z = pied, sx, sy, sz, rotation) en matrice de boîte
+const blocM = (x, y, z, sx, sy, sz, r) => { const c = Math.cos(r || 0), s = Math.sin(r || 0); return [sx * c, 0, sz * s, x, 0, sy, 0, y + sy / 2, -sx * s, 0, sz * c, z]; };
+// peindre des boîtes vues de dessus, de la plus basse à la plus haute
+function paintFaces(P, faces, min) { faces.sort((a, b) => a.y - b.y || a.yc - b.yc); for (const f of faces) P.poly(f.pts, f.c, min); }
+// capturer dans la machine virtuelle les boîtes qu'émet du code du jeu (le corps d'une fonction qui reçoit PE, déjà branché) :
+// [M (12), r, v, b (0-255, couleur moyenne de la face), lueur] à plat
+const CAPTURE_BOXES = `(emit) => {
+  const out = [], cap = { box(W, ox, oy, oz, sx, sy, sz, col, code) {
+    const M = new Array(12);
+    for (let r = 0; r < 3; r++) { const a0 = W[r * 4], a1 = W[r * 4 + 1], a2 = W[r * 4 + 2]; M[r * 4] = a0 * sx; M[r * 4 + 1] = a1 * sy; M[r * 4 + 2] = a2 * sz; M[r * 4 + 3] = a0 * ox + a1 * oy + a2 * oz + W[r * 4 + 3]; }
+    // (une couleur qui n'en est pas une — un modèle qui a pris la place d'une couleur du même nom — : celle de la tuile)
+    const okCol = col && typeof col !== 'function' && typeof col[0] === 'number';
+    let fc = null; try { fc = ICON3D.faceColor(okCol ? col : [1, 1, 1], code, false); } catch (e) { fc = { c: [150, 150, 150], emit: false }; }
+    out.push(...M, Math.min(255, fc.c[0]), Math.min(255, fc.c[1]), Math.min(255, fc.c[2]), fc.emit ? 1 : 0);
+  } };
+  const b0 = PE.buf, fl0 = PE.fl;
+  PE.buf = cap; PE.fl = 0;
+  try { emit(cap); } finally { PE.buf = b0; PE.fl = fl0; }
+  return out;
+}`;
+function facesOfBoxes(flat, out = []) { for (let i = 0; i + 16 <= flat.length; i += 16) boxTopFaces(flat.slice(i, i + 12), [flat[i + 12], flat[i + 13], flat[i + 14]], !!flat[i + 15], out); return out; }
+
+// ---------------------------------------------------------------- le Dessous
+const PLAN_DESSOUS_PPM = 1; // pixels par mètre
+function planDessous(G, DB) {
+  if (!G.has('souterrain') || !G.has('SOUT_PLAN')) return null;
+  G.run('souterrain.construire()');
+  const C = jclone(G.run('({ N: SOUT_N, W: SOUT_W, cell: SOUT_CELL, X0: SOUT_X0, X1: SOUT_X1, Z0: SOUT_Z0, Z1: SOUT_Z1, WL: SOUT_WL, ROCK: SOUT_ROCK, TOP: SOUT_TOP, VER: VER_SOUS, MAT: SOUT_MAT })'));
+  const F = G.run('souterrain.F'), V = G.run('souterrain.V'), FM = G.run('souterrain.FM');
+  const ppm = PLAN_DESSOUS_PPM, ROCHE = [54, 49, 45], P = new Plan(C.X0, C.Z0, C.X1, C.Z1, ppm, ROCHE), w = P.w, h = P.h;
+  const MATK = {}; for (const [k, i] of Object.entries(C.MAT || {})) MATK[i] = k;
+  // (même triangulation que le jeu : souterrain.interp)
+  const tri = (A, x, z) => {
+    const gx = Math.min(C.N - 1e-4, Math.max(0, x / C.cell)), gz = Math.min(C.N - 1e-4, Math.max(0, z / C.cell)), i = Math.floor(gx), j = Math.floor(gz), fx = gx - i, fz = gz - j, k = j * C.W + i;
+    const ha = A[k], hb = A[k + 1], hc = A[k + C.W], hd = A[k + C.W + 1];
+    return fx + fz <= 1 ? ha + (hb - ha) * fx + (hc - ha) * fz : hd + (hc - hd) * (1 - fx) + (hb - hd) * (1 - fz);
+  };
+  const fl = new Float32Array(w * h), haut = new Float32Array(w * h), op = new Uint8Array(w * h), mt = new Array(w * h);
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const x = C.X0 + (i + 0.5) / ppm, z = C.Z0 + (j + 0.5) / ppm, k = j * w + i, f = tri(F, x, z), v = tri(V, x, z);
+    fl[k] = f; haut[k] = v - f;
+    op[k] = f < C.ROCK - 1 && v - f > 0.3 ? 1 : 0;
+    if (op[k]) mt[k] = MATK[FM[Math.min(C.N, Math.round(z / C.cell)) * C.W + Math.min(C.N, Math.round(x / C.cell))]] || 'roche';
+  }
+  const SOL = { roche: [182, 170, 150], calcite: [214, 211, 198], argile: [198, 164, 122], humus: [146, 136, 104], soufre: [208, 190, 112] };
+  const EAU0 = [108, 140, 160], EAU1 = [34, 54, 84], BORD = [30, 26, 24], RIVE = [92, 82, 72];
+  const q = (v, n) => Math.round(v * n) / n;
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const k = j * w + i;
+    if (!op[k]) {
+      // la roche, et un liseré clair au ras des galeries (on lit mieux les parois)
+      let near = false; for (let dj = -2; dj <= 2 && !near; dj++) for (let di = -2; di <= 2 && !near; di++) { const ii = i + di, jj = j + dj; if (ii >= 0 && jj >= 0 && ii < w && jj < h && op[jj * w + ii] && di * di + dj * dj <= 5) near = true; }
+      if (near) P.set(i, j, RIVE);
+      continue;
+    }
+    // une paroi tout près : le trait sombre du bord
+    let bord = false; for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const ii = i + di, jj = j + dj; if (ii < 0 || jj < 0 || ii >= w || jj >= h || !op[jj * w + ii]) bord = true; }
+    if (bord) { P.set(i, j, BORD); continue; }
+    const f = fl[k];
+    let c;
+    if (f < C.WL - 0.05) { const t = q(Math.min(1, (C.WL - f) / 7), 6); c = [0, 1, 2].map((ch) => EAU0[ch] + (EAU1[ch] - EAU0[ch]) * t); }
+    else {
+      const b = SOL[mt[k]] || SOL.roche, t = q(Math.max(0, Math.min(1, (f + 160) / 115)), 8);
+      const gx = (fl[k + 1] - fl[k - 1]) * ppm / 2, gz = (fl[k + w] - fl[k - w]) * ppm / 2, n = [-gx * 1.6, 1, -gz * 1.6], nl = Math.hypot(...n);
+      const s = q(Math.max(0.55, Math.min(1.15, 0.5 + 0.62 * (n[0] * PLAN_L[0] + n[1] * PLAN_L[1] + n[2] * PLAN_L[2]) / nl)), 7);
+      const kk = (0.7 + 0.36 * t) * s;
+      c = b.map((v) => v * kk);
+      if (haut[k] < 2.05 && (i + j) % 4 === 0) c = c.map((v) => v * 0.72); // un boyau bas : on s'y baisse
+    }
+    P.set(i, j, c.map(Math.round));
+  }
+  // vus de dessus : les objets posés au sol d'en bas (pas ce qui pend de la voûte) et les blocs d'en bas
+  let faces = [];
+  try {
+    const flat = G.run(`(${CAPTURE_BOXES})(() => {
+      const w = game.world, T = { t: 1.3, hour: 12, night: 1, day: 0, wind: 0.2, rain: 0 }, SKIP = new Set(['sout_stalac', 'sout_racines', 'sout_vers', 'sout_barreaux', 'sout_echelle_racines']);
+      for (const q of w.props) { if (!(q.ver & VER_SOUS) || SKIP.has(q.id) || !PROP_MODELS[q.id]) continue; PE.frame(q.x, q.y, q.z, q.r, q.s || 1); try { PROP_MODELS[q.id](PE, q, T); } catch (e) { /* rien */ } }
+    })`);
+    facesOfBoxes(flat, faces);
+    const mats = DB.derived.mats || [];
+    const bl = jclone(G.run('game.world.blocks.filter((b) => (b.ver & VER_SOUS) && !b.hidden).map((b) => [b.x, b.y, b.z, b.sx, b.sy, b.sz, b.r || 0, b.m])')) || [];
+    for (const [x, y, z, sx, sy, sz, r, m] of bl) boxTopFaces(blocM(x, y, z, sx, sy, sz, r), (mats[m] && mats[m].avg) || [140, 130, 120], false, faces);
+  } catch (e) { DB.log.push('plan du Dessous, objets : ' + (e && e.message)); }
+  paintFaces(P, faces, true);
+  const img = P.png();
+  // ce que la page pose par-dessus : les salles du plan, les lieux, ce qui est posé, ceux d'en bas, les secrets
+  const raw = jclone(G.run(`(() => {
+    const w = game.world, r1 = (v) => Math.round(v * 10) / 10, reg = (x, z) => souterrain.dansRegion(x, z);
+    const KEEP = /^(sout_filon|sout_vasque|sout_pied_pierre|sout_mousse|sout_lichen|sout_fougere|sout_algue|sout_suie|sout_guano|sout_champi|sout_fleche|sout_cairn|sout_dormeur|sout_colonne|stele)$/;
+    const props = {};
+    for (const q of w.props) if ((q.ver & VER_SOUS) && KEEP.test(q.id)) (props[q.id] || (props[q.id] = [])).push([r1(q.x), r1(q.z), Math.round((q.r || 0) * 100) / 100, (q.data && (q.data.m || q.data.it)) || '']);
+    const inter = w.inter.filter((it) => isFinite(it.x) && (/^sout_/.test(it.kind) || ((it.y < SOUT_TOP || it.y < w.heightAt(it.x, it.z) - 3) && reg(it.x, it.z)))).map((it) => [it.kind, it.id, it.name || '', r1(it.x), r1(it.y), r1(it.z), String((it.data && (it.data.ins || it.data.k || it.data.table || it.data.n)) ?? '')]);
+    const lm = Object.values(w.lm).filter((L) => L.souterrain || /^sout_/.test(L.key) || (L.under && reg(L.x, L.z))).map((L) => [L.key, L.name, r1(L.x), r1(L.z), r1(L.y || 0), L.r || 6, L.souterrain ? 1 : 0]);
+    const V = w.soutVillage, pt = (a) => (a ? [r1(a[0]), r1(a[1])] : null);
+    // (le centre et la pierre d'appel sont rangés x, y, z ; le reste x, z)
+    const village = V ? { c: V.c ? [r1(V.c[0]), r1(V.c[2])] : null, appel: V.appel ? [r1(V.appel[0]), r1(V.appel[2])] : null, garde: pt(V.garde), entree: pt(V.entree), encoches: V.encoches ? [r1(V.encoches.x), r1(V.encoches.z)] : null, rive: pt(V.rive), planches: (V.planches || []).map(pt), claies: (V.claies || []).map(pt), huttes: (V.huttes || []).map((H) => [r1(H.x), r1(H.z)]) } : null;
+    const X = w.soutSecrets || {}, Rt = w.soutRetours || {};
+    return {
+      salles: SOUT_PLAN.salles.map((s) => [s[0], s[1], s[2], s[3], s[4]]), lacs: SOUT_PLAN.lacs.map((s) => [s[0], s[1], s[2], s[3], s[4]]), riviere: SOUT_PLAN.riviere, gouffres: SOUT_PLAN.gouffres,
+      galeries: SOUT_PLAN.galeries.map((g) => [g[0], g[1].map((p) => [r1(p[0]), r1(p[1])])]), zones: SOUT_ZONES,
+      props, inter, lm, village,
+      dormeurs: (X.dormeurs || []).map((d) => [r1(d[0]), r1(d[2])]), tombeau: X.tombeau ? [r1(X.tombeau.x), r1(X.tombeau.z)] : null,
+      sorties: (Rt.sorties || []).map((s) => ({ k: s.k, bas: [r1(s.bas[0]), r1(s.bas[2])], haut: [r1(s.haut[0]), r1(s.haut[2])] })), fleches: Rt.fleches || 0, chemin: Rt.chemin || 0,
+      nids: typeof soutBetes !== 'undefined' ? soutBetes.construireNids().map((n) => [n.k, r1(n.x), r1(n.z), n.n]) : [],
+      cueillettes: typeof SOUT_CUEILLETTES !== 'undefined' ? SOUT_CUEILLETTES.map((c) => [c[0], c[1], c[2], c[3], c[4], c[5], c[6] && c[6].m || '']) : [],
+      gens: typeof SOUT_GENS !== 'undefined' ? SOUT_GENS.map((g) => [g.k, g.nom, g.dit, g.lieu]) : [],
+    };
+  })()`)) || {};
+  return { x0: C.X0, z0: C.Z0, x1: C.X0 + w / ppm, z1: C.Z0 + h / ppm, ppm, img, wl: C.WL, faces: faces.length, open: op.reduce((a, v) => a + v, 0), raw };
+}
+
+// ---------------------------------------------------------------- les autres mondes : ce qu'ils construisent quand on y entre
+// Dans la machine virtuelle, chaque monde est ouvert comme le jeu l'ouvre (MONDES[nom].entrer, « restaurer » : sans
+// déplacer ni faire parler le personnage, posé devant la ferme pour les mondes qui se dressent autour de lui), puis
+// défait : on garde ses blocs, les boîtes de ses décors (vues de dessus) et la place de ses décors et de ses bêtes.
+const MONDES_TABLES = ['ENF', 'CM', 'BB', 'TNM'];
+function planMondes(G, DB) {
+  if (!G.has('MONDES') || !G.has('mondes')) return {};
+  const R = G.run(`(() => {
+    const out = {}, w = game.world, p0 = game.player, T = {};
+    for (const n of ${JSON.stringify(MONDES_TABLES)}) { try { T[n] = eval(n); } catch (e) { /* ce monde n'a pas de table de décors */ } }
+    const nomModele = (f) => { if (!f) return ''; for (const n in T) for (const k in T[n]) if (T[n][k] === f) return n + '.' + k; return '?'; };
+    const cap = ${CAPTURE_BOXES};
+    const F = (w.lm && w.lm.ferme) || { x: w.size / 2, z: w.size / 2 };
+    for (const nom of Object.keys(MONDES)) {
+      const D = MONDES[nom], o = { err: null, aPart: !!D.aPart, titre: D.titre || nom, fond: (typeof MONDES_FOND !== 'undefined' && MONDES_FOND[nom]) || null };
+      game.player = { pos: [F.x, w.heightAt(F.x, F.z) + 0.1, F.z], vel: [0, 0, 0], yaw: 0, pitch: 0, eyePos() { return [this.pos[0], this.pos[1] + 1.6, this.pos[2]]; } };
+      o.entree = game.player.pos.slice();
+      // (une vision se dresse autour de l'endroit où l'on est : graine fixe, pour que le plan ne change pas d'une construction à l'autre)
+      const S = mondes.S(); S.pris = {};
+      if (D.aPart) delete S[nom]; else S[nom] = { graine: 20260930, x: game.player.pos[0], z: game.player.pos[2], yaw: 0, durete: 0, fin: 0 };
+      mondes.cur = nom; mondes.blocs = []; mondes.choses = []; mondes.betes = []; mondes.caches = [];
+      try { D.entrer({ restaurer: true }); } catch (e) { o.err = String(e && e.message); }
+      o.depart = D.depart ? Array.from(D.depart) : null;
+      o.blocs = mondes.blocs.filter((b) => !b.hidden).map((b) => [b.x, b.y, b.z, b.sx, b.sy, b.sz, b.r || 0, b.m, b.ceil ? 1 : 0]);
+      o.choses = mondes.choses.map((c) => ({ x: c.x, y: c.y, z: c.z, r: c.r || 0, m: nomModele(c.modele), item: c.item || null, nom: c.nom || null, cle: c.cle || null, v: c.v === undefined ? null : c.v, prendre: !!c.prendre, lum: !!c.lumiere }));
+      o.boites = cap(() => { for (const c of mondes.choses) { if (!c.modele) continue; PE.frame(c.x, c.y, c.z, c.r, c.s); try { c.modele(PE, c, 1.3); } catch (e) { /* rien */ } } });
+      o.betes = mondes.betes.map((e) => ({ k: e.kind, x: e.x, y: e.y, z: e.z, nom: e.nom || null, role: e.role || null, assis: !!e.assis, v: e.v }));
+      o.L = D.L ? JSON.parse(JSON.stringify(D.L)) : null;
+      try { mondes.nettoyer(); } catch (e) { /* rien */ }
+      try { if (D.sortir) D.sortir({ silencieux: true, garderPos: true }); } catch (e) { /* rien */ }
+      mondes.cur = null; delete S[nom];
+      out[nom] = o;
+    }
+    game.player = p0;
+    return out;
+  })()`);
+  const mats = DB.derived.mats || [], out = {};
+  for (const [nom, o] of Object.entries(jclone(R) || {})) {
+    if (o.err) DB.log.push(`plan de ${nom} : ${o.err}`);
+    const pts = [];
+    for (const b of o.blocs) if (!b[8]) pts.push([b[0] - b[3] / 2, b[2] - b[5] / 2], [b[0] + b[3] / 2, b[2] + b[5] / 2]);
+    for (const c of o.choses) pts.push([c.x, c.z]);
+    if (pts.length < 4) continue;
+    // l'emprise : ce que le monde construit (sans les plafonds), une marge autour
+    const xs = pts.map((p) => p[0]).sort((a, b) => a - b), zs = pts.map((p) => p[1]).sort((a, b) => a - b);
+    const lo = (a) => a[Math.floor(a.length * 0.005)], hi = (a) => a[Math.ceil(a.length * 0.995) - 1];
+    const x0 = Math.floor(lo(xs) - 6), x1 = Math.ceil(hi(xs) + 6), z0 = Math.floor(lo(zs) - 6), z1 = Math.ceil(hi(zs) + 6);
+    const ppm = Math.max(2, Math.min(8, Math.floor(640 / Math.max(x1 - x0, z1 - z0))));
+    const BG = { enfers: [26, 12, 10], cauchemar: [14, 13, 13], bonbons: [236, 206, 222], tenebres: [16, 16, 22] }[nom] || [30, 28, 26];
+    const P = new Plan(x0, z0, x1, z1, ppm, BG), faces = [];
+    // une vision en surimpression : la vallée dessous (relief ombré, l'eau), teintée comme le monde la teint
+    if (!o.aPart) {
+      try {
+        const Hs = G.run('game.world.heights'), N = G.run('game.world.N'), W1 = G.run('game.world.W'), cell = G.run('game.world.cell'), WL = G.run('game.world.waterLevel');
+        const hAt = (x, z) => { const gx = Math.max(0, Math.min(N - 1.001, x / cell)), gz = Math.max(0, Math.min(N - 1.001, z / cell)), i = gx | 0, j = gz | 0, fx = gx - i, fz = gz - j, k = j * W1 + i; return (Hs[k] * (1 - fx) + Hs[k + 1] * fx) * (1 - fz) + (Hs[k + W1] * (1 - fx) + Hs[k + W1 + 1] * fx) * fz; };
+        const TEINTE = nom === 'bonbons' ? { sol: [240, 196, 220], eau: [150, 200, 230] } : { sol: [58, 52, 64], eau: [22, 26, 40] };
+        for (let j = 0; j < P.h; j++) for (let i = 0; i < P.w; i++) {
+          const x = x0 + (i + 0.5) / ppm, z = z0 + (j + 0.5) / ppm, hh = hAt(x, z);
+          if (hh < WL) { P.set(i, j, TEINTE.eau); continue; }
+          const d = 1.2, gx = (hAt(x + d, z) - hAt(x - d, z)) / (2 * d), gz = (hAt(x, z + d) - hAt(x, z - d)) / (2 * d), n = [-gx * 1.4, 1, -gz * 1.4], nl = Math.hypot(...n);
+          const s = Math.round(Math.max(0.6, Math.min(1.12, 0.45 + 0.7 * (n[0] * PLAN_L[0] + n[1] * PLAN_L[1] + n[2] * PLAN_L[2]) / nl)) * 8) / 8;
+          P.set(i, j, TEINTE.sol.map((v) => Math.round(v * s)));
+        }
+      } catch (e) { DB.log.push(`plan de ${nom}, la vallée dessous : ${e && e.message}`); }
+    }
+    for (const [x, y, z, sx, sy, sz, r, m, ceil] of o.blocs) if (!ceil) boxTopFaces(blocM(x, y, z, sx, sy, sz, r), (mats[m] && mats[m].avg) || [120, 110, 100], /braise|lave/i.test((mats[m] && mats[m].id) || ''), faces);
+    facesOfBoxes(o.boites, faces);
+    paintFaces(P, faces, true);
+    out[nom] = { titre: o.titre, aPart: o.aPart, x0, z0, x1: x0 + P.w / ppm, z1: z0 + P.h / ppm, ppm, img: P.png(), fond: o.fond, entree: o.entree, depart: o.depart, choses: o.choses, betes: o.betes, L: o.L, err: o.err };
+  }
+  return out;
 }
 
 // ============================================================================
@@ -1435,7 +1760,10 @@ function buildWiki(DB) {
   const iconOf = (id) => (ICON[id] !== undefined ? `<i class="ic ic-${ICON[id]}"></i>` : '');
   const iname = (id) => (ITEMS[id] ? ITEMS[id].name : id === 'argent' ? 'pièces' : (QITEMS[id] && QITEMS[id].name) || id);
   const IL = (id, n) => { const nm = iname(id); const p = pages.get('it:' + id); const q = n !== undefined && n !== null && n !== '' ? `<small>×${esc(n)}</small>` : ''; if (!p) return `<span class="il">${esc(nm)}${q ? ' ' + q : ''}</span>`; return `<a class="il${p.x ? ' lsec' : ''}" href="#/p/it:${encodeURIComponent(id)}">${iconOf(id)}${esc(nm)}</a>${q ? ' ' + q : ''}`; };
-  const groupLink = (k) => (GROUPS[k] ? `<span class="il grp" title="${esc(GROUPS[k].map(iname).join(', '))}">${esc(GROUP_NAMES[k] || k)}</span>` : IL(k));
+  // (un grand groupe — les vingt bois — ne répète pas tous ses membres à chaque recette : les premiers, et le compte)
+  const GRAND = 8;
+  const groupTitle = (k) => { const L = GROUPS[k].map(iname); return L.length > GRAND ? `${L.slice(0, 6).join(', ')}… (${L.length} en tout)` : L.join(', '); };
+  const groupLink = (k) => (GROUPS[k] ? `<span class="il grp" title="${esc(groupTitle(k))}">${esc(GROUP_NAMES[k] || k)}</span>` : IL(k));
   const needList = (need) => Object.entries(need || {}).map(([k, n]) => (GROUPS[k] ? groupLink(k) + ` <small>×${n}</small>` : IL(k, n))).join(', ');
   const SEC = (html, note) => (html ? `<div class="sec">${html}</div>${note === false ? '' : `<p class="sec-note">${esc(note || 'Masqué : cliquez sur « révéler les secrets » pour le lire.')}</p>`}` : '');
   const secS = (html) => `<span class="sec">${html}</span>`;
@@ -1513,9 +1841,9 @@ function buildWiki(DB) {
   const bearing = (x, z, from = FARM) => {
     const dx = x - from.x, dz = z - from.z, d = Math.hypot(dx, dz);
     if (d < 40) return 'tout près';
-    const a = Math.atan2(dx, -dz), dirs = ['nord', 'nord-est', 'est', 'sud-est', 'sud', 'sud-ouest', 'ouest', 'nord-ouest'];
+    const a = Math.atan2(dx, -dz), dirs = ['au nord', 'au nord-est', 'à l’est', 'au sud-est', 'au sud', 'au sud-ouest', 'à l’ouest', 'au nord-ouest'];
     const k = ((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8;
-    return `${d >= 1000 ? nfmt(Math.round(d / 100) / 10) + ' km' : Math.round(d / 10) * 10 + ' m'} au ${dirs[k]}`;
+    return `${d >= 1000 ? nfmt(Math.round(d / 100) / 10) + ' km' : Math.round(d / 10) * 10 + ' m'} ${dirs[k]}`;
   };
   // le lieu le plus parlant autour d'un point
   const lmSorted = (W.lm || []).slice().sort((a, b) => a.r - b.r);
@@ -1665,8 +1993,11 @@ function buildWiki(DB) {
     if (rows.length) h += `<h3>Où le trouver</h3><dl class="kv wide">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
     // à quoi il sert
     const us = USE[id] || [], urows = [];
-    const ur = us.filter((u) => u.k === 'recipe');
+    // (un membre d'un grand groupe renvoie à la fiche du groupe au lieu de recopier toutes ses recettes)
+    const parGrand = (u) => u.group && u.group !== id && GROUPS[u.group] && GROUPS[u.group].length > GRAND;
+    const ur = us.filter((u) => u.k === 'recipe' && !parGrand(u)), urg = us.filter((u) => u.k === 'recipe' && parGrand(u));
     if (ur.length) urows.push(['Recettes', `<table class="t"><tr><th>Donne</th><th>Il faut</th><th>Où</th></tr>${uniq(ur.map((u) => u.ri)).map((ri) => recipeRow(RECIPES[ri])).join('')}</table>`]);
+    for (const g of uniq(urg.map((u) => u.group))) { const n = uniq(urg.filter((u) => u.group === g).map((u) => u.ri)).length; urows.push([ur.length ? 'Et aussi' : 'Recettes', `partout où l’on demande ${groupLink(g)} : ${n > 1 ? `${n} recettes` : 'une recette'}${ITEMS[g] ? ` (voir ${IL(g)})` : ''}`]); }
     const um = us.filter((u) => u.k === 'machine');
     if (um.length) urows.push(['Machines', um.map((u) => `${esc(machName(u.m))} → ${IL(u.e.out[0], u.e.out[1])}`).join('<br>')]);
     const ub = us.filter((u) => u.k === 'buy');
@@ -1744,7 +2075,7 @@ function buildWiki(DB) {
     const n = spawn.reduce((a, s) => a + ((W.objCounts || {})[s] || 0), 0);
     if (n) h += `<dt>Dans la vallée</dt><dd>${plur(n, 'gîte', 'gîtes')} ${spawn.some((s) => W.species && W.species.idx[s]) ? mapBtn('an:' + k, 'où les trouver') : ''}</dd>`;
     h += '</dl>';
-    const extra = Object.keys(c).filter((q) => !TRAITS[q] && !['walk', 'run', 'range', 'flee', 'radius', 'idle', 'call', 'solid', 'rig', 'h', 'dmg'].includes(q));
+    const extra = Object.keys(c).filter((q) => !TRAITS[q] && !['walk', 'run', 'range', 'flee', 'radius', 'idle', 'call', 'solid', 'rig', 'h', 'dmg', 'nat', 'ombreNat'].includes(q));
     if (extra.length) h += `<details><summary>Autres caractéristiques</summary><dl class="kv">${extra.map((q) => `<dt>${esc(q)}</dt><dd>${esc(JSON.stringify(c[q]))}</dd>`).join('')}</dl></details>`;
     p.h = h;
     p.g = e ? (e[2].includes('ferme') ? 'À la ferme' : e[2].some((x) => ['rochers', 'neiges', 'alpage', 'sapiniere'].includes(x)) ? 'En montagne' : e[2].some((x) => ['marais', 'berges', 'riviere'].includes(x)) ? 'Au bord de l’eau' : 'Des bois et des prés') : 'Autres';
@@ -1768,7 +2099,7 @@ function buildWiki(DB) {
   }
 
   // ---------------------------------------------------------------- 8) HABITANTS
-  const AREA = { ville: NAMES.ville, hameau: NAMES.hameau, lac: 'le grand lac', foret: 'la forêt', plateau: 'le plateau', nomade: 'sur les routes', sources: 'les Sources', nains: 'sous la montagne' };
+  const AREA = { ville: NAMES.ville, hameau: NAMES.hameau, lac: 'le grand lac', foret: 'la forêt', plateau: 'le plateau', nomade: 'sur les routes', sources: 'les Sources', nains: 'sous la montagne', planches: 'les Planches', estive: 'l’estive' };
   const placeKey = (pl, d) => {
     if (pl === 'home') return { t: 'chez soi', k: d.home };
     if (pl === 'work') return { t: d.work && d.work !== d.home ? 'au travail' : 'à l’ouvrage, chez soi', k: d.work || d.home };
@@ -1778,6 +2109,8 @@ function buildWiki(DB) {
     if (typeof pl === 'string' && (pl === 'bains' || pl.startsWith('sources:'))) { const k = LALIAS.bains || 'sources', sub = pl === 'bains' ? 'bains' : pl.slice(8); return { t: `${lieuName(k)} (${humanKey(sub)})`, k }; }
     if (typeof pl === 'string' && pl.startsWith('nain:')) { const k = LM.nains ? 'nains' : Object.keys(LM).find((q) => /nain/.test(q)) || 'nains'; return { t: `sous la montagne (${humanKey(pl.slice(5))})`, k }; }
     if (pl === 'messe') return { t: 'à la messe', k: 'eglise' };
+    // (les deux peuples : leurs places à eux — le quai, la grève, la jasse, le feu…)
+    if (typeof pl === 'string' && pl.startsWith('c2:')) { const k = (d.area || '') + '_' + pl.slice(3); return LM[k] ? { t: lieuName(k), k } : { t: humanKey(pl.slice(3)), k: d.area || '' }; }
     if (typeof pl === 'string' && pl.startsWith('pt:')) return { t: 'quelque part, en chemin', k: '' };
     const k = pl === 'marche' ? 'marche' : pl === 'champ' ? (d.home || 'ferme') : LALIAS[pl] || pl;
     return { t: LIEUN[pl] || (LM[pl] && LM[pl].name) || { champ: 'aux champs', lavoir: 'au lavoir', foret: 'en forêt', lande: 'sur la lande' }[pl] || pl, k };
@@ -1818,7 +2151,7 @@ function buildWiki(DB) {
     if (d.surname) facts.push(['Nom', esc(d.surname)]);
     if (d.age) facts.push(['Âge', d.age + ' ans']);
     facts.push(['Genre', d.gender === 'f' ? 'femme' : d.gender === 'm' ? 'homme' : esc(d.gender || '—')]);
-    if (d.area) facts.push(['Vit', esc(AREA[d.area] || d.area)]);
+    if (d.area) facts.push(['Vit', d.area === 'planches' || d.area === 'estive' ? lk('peuple:' + d.area, AREA[d.area]) : esc(AREA[d.area] || d.area)]);
     if (d.home) facts.push(['Maison', placeLink(d.home)]);
     if (d.work && d.work !== d.home) facts.push(['Travail', placeLink(d.work)]);
     if (d.traits && d.traits.length) facts.push(['Caractère', esc(d.traits.join(', '))]);
@@ -1906,7 +2239,8 @@ function buildWiki(DB) {
   for (const [k, L] of Object.entries(LANG)) {
     const lex = Object.entries(L.lex || {}).sort((a, b) => a[0].localeCompare(b[0], 'fr'));
     let h = `<p class="lead">${FILL(L.desc || '')}</p><dl class="kv"><dt>Peuple</dt><dd>${esc(L.peuple || '—')}</dd><dt>Écriture</dt><dd>${esc(L.ecriture || '—')}</dd><dt>Mots connus</dt><dd>${lex.length}</dd></dl>`;
-    h += `<h3>Lexique</h3><table class="t lex"><tr><th>Mot</th><th>Graphie</th><th>Sens</th></tr>${lex.map(([m, s]) => `<tr><td><b>${esc(m)}</b></td><td><canvas class="glyph" data-lang="${esc(k)}" data-text="${esc(m)}" data-size="14"></canvas></td><td>${esc(s)}</td></tr>`).join('')}</table>`;
+    // (les langues se déchiffrent par recoupement : le sens des mots ne se lit que sous « révéler les secrets »)
+    h += `<h3>Lexique</h3><table class="t lex"><tr><th>Mot</th><th>Graphie</th><th>Sens</th></tr>${lex.map(([m, s]) => `<tr><td><b>${esc(m)}</b></td><td><canvas class="glyph" data-lang="${esc(k)}" data-text="${esc(m)}" data-size="14"></canvas></td><td>${secS(esc(s))}</td></tr>`).join('')}</table><p class="sec-note">Le sens des mots est masqué : la langue se déchiffre par recoupement (ou en révélant les secrets).</p>`;
     const ins = INSC.filter((I) => I[1] === k);
     if (ins.length) h += `<h3>Inscriptions</h3><ul class="cards">${ins.map((I) => `<li>${link('ins:' + I[0], I[2])}</li>`).join('')}</ul>`;
     const books = Object.entries(LIVRES).filter(([, b]) => b.langue === k).map(([b]) => IL('livre_' + b));
@@ -2156,7 +2490,7 @@ function buildWiki(DB) {
   const quotes = (a, who) => (a && a.length ? `<ul class="qs">${a.filter(Boolean).map((t) => `<li>${FILL(String(t).replace(/^\(([^()]*)\)$/, '$1'), who)}</li>`).join('')}</ul>` : '');
   const bold1 = (s) => cap(String(s || ''));
   // ---- le texte des en-têtes : on garde la prose, on ôte le code (appels, chemins, clés, fichiers)
-  const CODEISH = /[a-z]\.[a-zA-Z_(]|[a-zA-Z]_[a-zA-Z]|[a-zA-Z]\(|[a-z][A-Z]|\.js\b|zzz|\bfarm\b|=>|\bAPI\b|\bagent [A-Z]\b|\bHOOKS\b|[{}|]|\blicence\b|\b(?:inter|kind|data|strange|cine|true|false|null|BUFF|id)\b/;
+  const CODEISH = /[a-z]\.[a-zA-Z_(]|[a-zA-Z]_[a-zA-Z]|[a-zA-Z]\(|[a-z][A-Z]|\.js\b|zzz|\bfarm\b|=>|\bAPI\b|\bagent [A-Z]\d?\b|\bHOOKS\b|[{}|]|\blicence\b|\b(?:inter|kind|data|strange|cine|true|false|null|BUFF|id)\b/;
   const CODETOK = /(?:^|[\s(:])(?:[A-Za-z_$][\w$]*\.[A-Za-z_$][\w$]*|[a-z]+[A-Z]\w*\(|\w+\([^()\s]*\))/;
   // découpe une phrase en propositions (« ; » et « . ») hors des parenthèses
   const clauses = (t) => {
@@ -2198,7 +2532,7 @@ function buildWiki(DB) {
     }).join('');
   }).join('');
   const CAPW = "(?:[A-ZÀ-ÖØ-ÞŒ][’'])?[A-ZÀ-ÖØ-ÞŒ0-9][A-ZÀ-ÖØ-ÞŒ0-9’'-]*";
-  const TITLE_RE = new RegExp('^(' + CAPW + '(?:\\s+' + CAPW + ')*)(?:\\s*\\(([^()]{0,60})\\))?\\s*(?:[.:—–]\\s*|$|(?=\\())');
+  const TITLE_RE = new RegExp('^(' + CAPW + '(?:,?\\s+' + CAPW + ')*)(?:\\s*\\(([^()]{0,60})\\))?\\s*(?:[.:—–]\\s*|$|(?=\\())');
   const DROP = /^(API|État|Etat|Sauvegarde|Essais|Données|Branchements|Probabilité par nuit|C['’]est une entité|mondes\.|\(la mécanique)/;
   const headParts = (file) => {
     const M = MF[file];
@@ -2206,7 +2540,8 @@ function buildWiki(DB) {
     const H = M.head.slice();
     let title = '', sub = '';
     { // le titre (en capitales), une parenthèse ou une courte proposition qui le suit : le sous-titre
-      const first = H[0].trim(), m = first.match(TITLE_RE);
+      // (la signature d'un agent, « (agent C3, huitième vague) », n'est pas un sous-titre)
+      const first = H[0].trim().replace(/\s*\(agent [A-Z]\d?(?:,[^()]*)?\)/, ''), m = first.match(TITLE_RE);
       if (m && /[A-ZÀ-Ý]{3,}/.test(m[1])) {
         title = m[1].trim();
         if (m[2] && !/^(agent [A-Z]|\d+)$/.test(m[2].trim()) && !CODEISH.test(cleanText(m[2]).replace(/\s:$/, ''))) sub = cleanText(m[2]).replace(/\s*[:;,]$/, '');
@@ -3423,6 +3758,556 @@ function buildWiki(DB) {
     SP('sys:equilibrage', { t: 'L’équilibrage', s: 'Commerce, risques, survie, hasard : les mesures et les réglages', c: ['equilibrage'], i: '⚖', h });
   }
 
+  // ==== LA HUITIÈME VAGUE : les lieux perdus, les deux peuples, la nature, le Dessous, le carnet de commandes, la lanterne, les ruches, le son ====
+  // Les fiches sont tirées du jeu (en-têtes des modules, tables, ce que la génération a posé dans la vallée). Ce que le jeu ne dit nulle
+  // part en clair (une heure, un geste, un mot qu'on ne traduit jamais) est rédigé dans tools/wiki-secrets.js : sous « révéler les secrets ».
+  let SOL = {};
+  try { SOL = require('./wiki-secrets.js'); } catch (e) { (DB.log || []).push('wiki-secrets.js : ' + e.message); }
+  const C2T = {}; // sorte de lieu perdu → [nom, signe, fiche] (les losanges de la carte)
+  const planBtn = (id, target, text = 'Voir sur le plan') => `<a class="btn map" href="#/plan/${esc(id)}${target ? '/' + encodeURIComponent(target) : ''}">🗺 ${esc(text)}</a>`;
+  const solRows = (L) => (L || []).map(([t, x]) => `<h4>${esc(t)}</h4><p>${esc(x)}</p>`).join('');
+  const solPick = (L, keys) => (L || []).filter(([t]) => keys.includes(t));
+  const pcs = (n) => plur(n, 'pièce', 'pièces');
+  const engr = (t, x, more) => `<section class="bookpage"><h4>${esc(t)}</h4><blockquote class="engr">${esc(x).replace(/\n/g, '<br>')}</blockquote>${more ? `<p class="note">${esc(more)}</p>` : ''}</section>`;
+  const addCat = (id, c) => { const p = pages.get(id); if (p && !p.c.includes(c)) p.c.push(c); };
+  const figOf = (key, box, capt, href) => (FIG[key] && FIG[key].full ? figInline(FIG[key].full, box, capt, href) : '');
+
+  // ---------------------------------------------------------------- 21) LES LIEUX PERDUS (un tous les deux cents mètres)
+  const FC2 = { carte: fileHas(/^11-zzzz7-carte\.js$/), textes: fileHas(/^11-zzzz7-carte2/), peuples: fileHas(/^11-zzzz7-carte3/), jeu: fileHas(/^11-zzzz7-carte4/) };
+  const C2L = (W.lm || []).filter((L) => L.c2);
+  const HNOM = { morel: 'Le colporteur Morel', vignal: 'Les sœurs Vignal', trois_croix: 'Anselme Varenne et les trois croix' };
+  if (FC2.carte || C2L.length) {
+    const C2NOMS = U('C2_NOMS', {}), C2TY = U('C2_TYPES', {}), C2TX = U('C2_TEXTES', {}), C2TXP = U('C2_TEXTES_POOLS', {}), C2INSP = U('C2_INS_POOLS', {}), C2LP = U('C2_LETTRES_POOLS', {});
+    const C2REG = U('C2_REGISTRES', []), C2MAR = U('C2_MARQUES', []), C2HIS = U('C2_HISTOIRES', []), C2IND = U('C2_INDICES', {}), C2MM = T('C2_MARQUES_MOTS', []);
+    for (const k of ['C2_MIL', 'C2_CARRE', 'C2_PAS', 'C2_TERRE_MIN', 'C2_PAS_UN_LIEU', 'C2_GARDE', 'C2_PARTOUT', 'C2_ARBRES_PORTEURS', 'C2_ROMAINS', 'C2_CLES', 'C2_SECRETS']) used.add(k);
+    const PAP = T('F2_PAPIERS', {});
+    const SORTES = {
+      croix_peste: ['Croix de peste', '✝'], chapelle_ruine: ['Chapelle ruinée', '⌂'], oratoire: ['Oratoire', '∩'], tombe_isolee: ['Tombe isolée', '▭'], lanterne_morts: ['Lanterne des morts', 'i'],
+      gibet: ['Gibet', 'Π'], menhir: ['Menhir', '|'], cromlech: ['Cercle de pierres', 'o'], pierre_cupules: ['Pierre à cupules', '∴'], dolmen_petit: ['Petit dolmen', 'π'],
+      pierre_branlante: ['Pierre branlante', '●'], borne_ancienne: ['Borne ancienne', '▯'], loge_charbonnier: ['Loge de charbonniers', '^'], four_chaux: ['Four à chaux', 'U'],
+      cabane_bucheron: ['Cabane de bûcheron', '⌂'], bergerie_ruine: ['Bergerie ruinée', '⌂'], borie: ['Borie', '∩'], affut: ['Affût de chasseur', '#'], cabane_perchee: ['Cabane perchée', 'Y'],
+      glaciere: ['Glacière', '*'], puits_perdu: ['Puits perdu', '◎'], moulin_ruine: ['Moulin en ruine', 'X'], tour_ruine: ['Tour en ruine', '▮'], camp_abandonne: ['Camp abandonné', 'Δ'],
+      charrette_abandonnee: ['Charrette abandonnée', '='], galerie_prospecteur: ['Galerie de prospecteur', '∏'], source_sacree: ['Source sacrée', '≈'], arbre_offrandes: ['Arbre aux offrandes', '♣'],
+      rucher: ['Rucher', '≡'], jardin_clos: ['Jardin clos et son cadran', '◷'], pigeonnier: ['Pigeonnier', 'o'], cairn_sommet: ['Cairn de sommet', '▲'], croix_col: ['Croix de col', '✝'],
+      croix_avalanche: ['Croix d’avalanche', '✝'], abri_sous_roche: ['Abri sous roche', '∩'], trou_souffleur: ['Trou souffleur', '○'], rocher_aigle: ['Rocher de l’aigle', 'v'],
+      pierre_sel: ['Pierres à sel', '◇'], rocher_marques: ['Rocher aux marques', '⊤'], corps_gele: ['Dormeur de glace', '✱'], barque_echouee: ['Barque échouée', '◡'],
+      ponton_ruine: ['Ponton ruiné', '='], maison_forestiere: ['Maison forestière', '⌂'], fosse_loups: ['Fosse aux loups', '○'], ferme_brulee: ['Ferme brûlée', '⌂'],
+      calvaire_trois: ['Calvaire aux trois croix', '✝'], poteau_dame: ['Poteau de la Dame', '|'], refuge_ruine: ['Refuge écroulé', '⌂'], cache_contrebandiers: ['Cache de contrebandiers', '▾'],
+      signal_geodesique: ['Signal géodésique', '△'],
+    };
+    const sorteNom = (t) => (SORTES[t] ? SORTES[t][0] : cap(humanKey(t)));
+    // (les textes et les lettres de chaque sorte : ce que la génération a posé, et ce que dit le module)
+    const POOL_SORTE = { croix_peste: 'croix_peste', chapelle: 'chapelle_ruine', tombe: 'tombe_isolee', gibet: 'gibet', menhir: 'menhir', cupules: 'pierre_cupules', borne: 'borne_ancienne', four_chaux: 'four_chaux', glaciere: 'glaciere', tour: 'tour_ruine', source: 'source_sacree', rucher: 'rucher', col: 'croix_col', avalanche: 'croix_avalanche', trois_croix: 'calvaire_trois', oratoire: 'oratoire', voeux: 'arbre_offrandes', refuge: 'refuge_ruine', signal: 'signal_geodesique' };
+    const LPOOL_SORTE = { charbonnier: 'loge_charbonnier', bucheron: 'cabane_bucheron', berger: 'bergerie_ruine', chasseur: 'affut', enfant: 'cabane_perchee', moulin: 'moulin_ruine', camp: 'camp_abandonne', charrette: 'charrette_abandonnee', prospecteur: 'galerie_prospecteur', pigeon: 'pigeonnier', gele: 'corps_gele', pecheur: 'barque_echouee', forestier: 'maison_forestiere', ferme: 'ferme_brulee', contrebande: 'cache_contrebandiers' };
+    const LPOOLN = { charbonnier: 'les loges des charbonniers', bucheron: 'les cabanes de bûcherons', berger: 'les bergeries ruinées', chasseur: 'les affûts', enfant: 'la cabane perchée', moulin: 'les moulins en ruine', camp: 'les camps abandonnés', charrette: 'les charrettes abandonnées', prospecteur: 'les galeries de prospecteurs', pigeon: 'les pigeonniers', gele: 'les poches du dormeur de glace', pecheur: 'les barques', forestier: 'la maison forestière', ferme: 'la ferme brûlée', contrebande: 'les caches des contrebandiers' };
+    const LTAB = { c2_abandon: 'ce qu’on laisse en partant', c2_charbonnier: 'la loge des charbonniers', c2_bucheron: 'la cabane du bûcheron', c2_chasseur: 'l’affût', c2_berger: 'la bergerie', c2_rucher: 'le rucher', c2_pecheur: 'la barque', c2_mine: 'la galerie du prospecteur', c2_glaciere: 'la glacière', c2_pigeons: 'le pigeonnier', c2_sel: 'les pierres à sel', c2_t_modeste: 'un petit trésor', c2_t_sacre: 'un trésor sacré', c2_t_montagne: 'un trésor de montagne', c2_t_enfant: 'un trésor d’enfant', c2_t_puits: 'le fond d’un puits', c2_t_offrande: 'les offrandes', c2_t_corps: 'les poches d’un mort', c2_t_nid: 'un nid', c2_t_roche: 'la terre et la roche', c2_t_histoire: 'la cachette d’une histoire' };
+    for (const [k, n] of Object.entries(LTAB)) if (pages.has('bt:' + k)) Object.assign(P('bt:' + k), { t: 'Butin : ' + n, s: 'Un lieu perdu : ce qu’on y trouve en fouillant' });
+    const idxOf = (L) => +String(L.key).replace(/^c2_/, '');
+    const c2i = {};
+    for (const it of INTER) if (it.kind === 'c2' && it.data && it.data.l !== undefined) (c2i[it.data.l] || (c2i[it.data.l] = [])).push(it);
+    const interOf = (L) => c2i[idxOf(L)] || [];
+    // les pierres gravées posées sur les lieux (les deux langues perdues)
+    const insNear = {};
+    for (const it of INTER) {
+      if (it.kind !== 'inscription' || !it.data || !it.data.ins || it.y < -40) continue;
+      let best = null, bd = 10;
+      for (const L of C2L) { const d = dist(L.x, L.z, it.x, it.z) - L.r; if (d < bd) { bd = d; best = L; } }
+      if (best) (insNear[best.key] || (insNear[best.key] = [])).push(it.data.ins);
+    }
+    const poolOfTxt = {}, poolOfPap = {};
+    for (const [p, L] of Object.entries(C2TXP)) for (const t of L) poolOfTxt[t] = p;
+    for (const [p, L] of Object.entries(C2LP)) for (const t of L) poolOfPap[t] = p;
+    const S_TXT = {}, S_PAP = {}, S_TAB = {}, S_ACT = {};
+    const addS = (o, k, v) => (o[k] || (o[k] = new Set())).add(v);
+    for (const [p, t] of Object.entries(POOL_SORTE)) if (C2TXP[p]) addS(S_TXT, t, p);
+    for (const [p, t] of Object.entries(LPOOL_SORTE)) if (C2LP[p]) addS(S_PAP, t, p);
+    for (const L of C2L) for (const it of interOf(L)) {
+      const d = it.data;
+      if (d.txt && poolOfTxt[d.txt]) addS(S_TXT, L.c2, poolOfTxt[d.txt]);
+      if (d.pap && poolOfPap[d.pap]) addS(S_PAP, L.c2, poolOfPap[d.pap]);
+      if (d.table && d.a !== 'cache') addS(S_TAB, L.c2, d.table);
+      if (d.a !== 'cache' && d.a !== 'lettre') addS(S_ACT, L.c2, it.name);
+    }
+    const txtHTML = (id) => { const X = C2TX[id]; return X ? engr(X[0], X[1], X[2]) : ''; };
+    const histOf = (d) => C2HIS.find((H) => (d.txt && (H.textes || []).some((q) => q[1] === d.txt)) || (d.pap && (H.lettres || []).some((q) => q[1] === d.pap)) || (d.a === 'cache' && d.cle === H.id));
+    const REGN = (L) => idxOf(L) % 4;
+    const regHTML = (i) => `<section class="bookpage"><h4>Le registre n° ${i + 1}</h4><ul class="qs">${(C2REG[i] || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section>`;
+
+    // ---- les lettres : où on les trouve dans cette vallée ; leur texte, sous les secrets
+    const papOu = {};
+    for (const L of C2L) for (const it of interOf(L)) if (it.data.pap) (papOu[it.data.pap] || (papOu[it.data.pap] = [])).push(L);
+    for (const id of Object.keys(PAP).filter((q) => /^c2_/.test(q))) {
+      const Pp = PAP[id], pool = poolOfPap[id], H = C2HIS.find((q) => (q.lettres || []).some((x) => x[1] === id)), ou = papOu[id] || [];
+      let h = `<p class="lead">Une lettre des lieux perdus${pool ? `, de celles qu’on trouve dans ${esc(LPOOLN[pool] || humanKey(pool))}` : ''}${H ? `, un morceau de l’histoire : ${lk('c2h:' + H.id, HNOM[H.id] || H.id)}` : ''}. Une fois trouvée, on la relit dans la sacoche (onglet Lettres).</p>`;
+      h += ou.length ? `<p>Dans la vallée de ce wiki : ${ou.map((L) => placeLink(L.key, cap(L.name))).join(', ')} ${mapBtn('li:' + ou[0].key)}</p>` : `<p class="note">Dans la vallée de ce wiki, aucun lieu ne la porte.</p>`;
+      h += SEC(`<section class="bookpage"><h4>${esc(Pp.t)}</h4>${para(Pp.x)}${Pp.s ? `<p class="note">${FILL(Pp.s)}</p>` : ''}</section>${C2IND[id] ? `<p>La lire fait paraître une cachette : ${lk('c2h:' + C2IND[id], HNOM[C2IND[id]] || C2IND[id])}.</p>` : ''}`, 'Le texte de la lettre est masqué : cliquez sur « révéler les secrets » pour le lire.');
+      P('c2l:' + id, { t: `« ${Pp.t} »`, s: 'Lettre' + (pool ? ' — ' + (LPOOLN[pool] || humanKey(pool)) : H ? ' — une histoire à recouper' : ''), c: ['lieux2'], g: 'Les lettres', i: '✉', h });
+    }
+
+    // ---- les histoires à recouper
+    for (const H of C2HIS) {
+      const where = (pred) => C2L.filter((L) => interOf(L).some((it) => pred(it.data)));
+      let s = '<h3>Les morceaux, dans la vallée de ce wiki</h3><ul>';
+      for (const [t, txt] of H.textes || []) { const Ls = where((d) => d.txt === txt); s += `<li>${lk('c2t:' + t, sorteNom(t))} :${Ls.length ? Ls.map((L) => placeLink(L.key, cap(L.name))).join(', ') : '—'}${txtHTML(txt)}</li>`; }
+      for (const [t, pap] of H.lettres || []) { const Ls = where((d) => d.pap === pap); s += `<li>${esc(sorteNom(t))} : ${Ls.length ? Ls.map((L) => placeLink(L.key, cap(L.name))).join(', ') : '—'} — ${lk('c2l:' + pap, PAP[pap] ? '« ' + PAP[pap].t + ' »' : pap)}</li>`; }
+      if (H.id === 'trois_croix') { const Ls = C2L.filter((L) => L.c2 === 'cairn_sommet' && REGN(L) === 0); if (Ls.length) s += `<li>Le registre n° 1 des cairns de sommet : ${Ls.map((L) => placeLink(L.key, cap(L.name))).join(', ')}</li>`; }
+      const cache = where((d) => d.a === 'cache' && d.cle === H.id);
+      if (cache.length) s += `<li>La cachette : ${cache.map((L) => placeLink(L.key, cap(L.name))).join(', ')} ${mapBtn('li:' + cache[0].key)}</li>`;
+      s += '</ul>';
+      const plus = (H.cache && H.cache.plus) || H.plus || [];
+      if (plus.length) s += `<p>Au bout : ${plus.map(([id, n]) => IL(id, n > 1 ? n : undefined)).join(', ')}, et ce que garde ${link('bt:c2_t_histoire', 'la cachette')}.</p>`;
+      if (SOL.HISTOIRES && SOL.HISTOIRES[H.id]) s += `<h3>Le fin mot</h3><p>${esc(SOL.HISTOIRES[H.id])}</p>`;
+      const h = `<p class="lead">Une histoire à recouper, dans les lieux perdus : des morceaux épars (une tombe, un linteau, une lettre, un registre), et au bout une cachette, qu’on ne voit qu’une fois l’indice lu.</p>` + SEC(s, 'Les morceaux de l’histoire et son fin mot sont masqués (secrets).');
+      P('c2h:' + H.id, { t: HNOM[H.id] || cap(humanKey(H.id)), s: 'Une histoire à recouper', c: ['lieux2'], g: 'Les histoires', i: '❦', h });
+    }
+
+    // ---- les sortes de lieux
+    const byType = {};
+    for (const L of C2L) (byType[L.c2] || (byType[L.c2] = [])).push(L);
+    const REQ = { arbre: 'un grand arbre tout près', adosse: 'une pente derrière', eau: 'l’eau tout près', sommet: 'un point haut' };
+    for (const t of uniq([...Object.keys(C2TY), ...Object.keys(byType)])) {
+      const Y = C2TY[t] || {}, Ls = (byType[t] || []).slice().sort((a, b) => a.name.localeCompare(b.name, 'fr')), [nom, sg] = SORTES[t] || [sorteNom(t), '•'];
+      C2T[t] = [nom, sg, 'c2t:' + t];
+      const noms = C2NOMS[t] || [];
+      let h = `<p class="lead">${Ls.length ? `${plur(Ls.length, 'lieu', 'lieux')} de cette sorte dans la vallée de ce wiki` : 'Aucun lieu de cette sorte dans la vallée de ce wiki'}.${noms.length ? ` On les appelle ${noms.map((n) => '« ' + esc(n) + ' »').join(', ')}.` : ''}</p>`;
+      const mil = (Y.mil || []).map((m) => `<a class="tag hab" href="#/p/${encodeURIComponent('mil:' + m)}">${esc(HAB[m] || m)}</a>`).join(' ');
+      h += `<dl class="kv">${mil ? `<dt>Milieux</dt><dd>${mil}</dd>` : ''}${Y.alt ? `<dt>Hauteur</dt><dd>de ${nfmt(Y.alt[0])} à ${nfmt(Y.alt[1])} m au-dessus de l’eau</dd>` : ''}${Y.req ? `<dt>Il lui faut</dt><dd>${esc(REQ[Y.req] || Y.req)}</dd>` : ''}${Y.r ? `<dt>Emprise</dt><dd>${nfmt(Y.r * 2)} m environ</dd>` : ''}</dl>`;
+      if (S_ACT[t]) h += `<h3>On peut y…</h3><ul class="cols">${[...S_ACT[t]].map((a) => `<li>${esc(a)}</li>`).join('')}</ul>`;
+      const txts = uniq([...(S_TXT[t] || [])].flatMap((p) => C2TXP[p] || []));
+      if (txts.length) h += `<h3>Ce qu’on y lit</h3><p class="note">Chaque lieu porte l’un de ces textes ; on le lit tel quel, personne ne l’explique.</p>${txts.map(txtHTML).join('')}`;
+      if (t === 'cairn_sommet' && C2REG.length) h += `<h3>Le registre du sommet</h3><p>Dans la boîte de fer, un registre, où l’on peut écrire son nom. ${plur(C2REG.length, 'registre différent', 'registres différents')}, selon les cairns.</p>` + SEC(C2REG.map((R, i) => regHTML(i)).join(''), 'Ce qu’on lit dans les registres est masqué (secrets).');
+      if (t === 'rocher_marques') h += `<h3>Les marques</h3>${C2MAR.length ? `<ul class="qs">${C2MAR.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${C2MM.length ? `<p>Ce sont celles des familles de ${lk('peuple:estive', 'l’estive')} ; sous chacune, un mot taillé : ${C2MM.map((m) => '<b>' + esc(String(m).toUpperCase()) + '</b>').join(', ')} (${lk('parler:estive', 'le parler des hauts')}).</p>` : ''}`;
+      const ins = uniq(Ls.flatMap((L) => insNear[L.key] || []));
+      if (ins.length) h += `<h3>Les pierres gravées</h3><ul class="cards">${ins.map((i) => `<li>${link('ins:' + i)}</li>`).join('')}</ul>`;
+      const paps = uniq([...(S_PAP[t] || [])].flatMap((p) => C2LP[p] || []).concat(Ls.flatMap((L) => interOf(L).map((it) => it.data.pap).filter(Boolean))));
+      if (paps.length) h += `<h3>Les lettres qu’on y trouve</h3><ul class="cards">${paps.map((id) => `<li>${lk('c2l:' + id)}</li>`).join('')}</ul>`;
+      if (S_TAB[t]) h += SEC(`<h3>Ce qu’on y trouve en fouillant</h3><p>${[...S_TAB[t]].map((b) => link('bt:' + b)).join(', ')}</p>`, false);
+      if (SOL.LIEUX && SOL.LIEUX[t]) h += SEC(`<h3>À son heure</h3><p>${esc(SOL.LIEUX[t])}</p>`, 'Ce qui n’arrive qu’à son heure (ou à qui sait) est masqué : révélez les secrets.');
+      const hs = C2HIS.filter((H) => (H.textes || []).some((q) => q[0] === t) || (H.lettres || []).some((q) => q[0] === t) || (H.cache && H.cache.type === t) || (H.id === 'trois_croix' && (t === 'calvaire_trois' || t === 'cairn_sommet')));
+      if (hs.length) h += `<h3>Une histoire passe par là</h3><ul class="cards">${hs.map((H) => `<li>${link('c2h:' + H.id)}</li>`).join('')}</ul>`;
+      if (Ls.length) h += `<h3>Dans la vallée</h3><ul class="cols">${Ls.map((L) => `<li>${placeLink(L.key, cap(L.name))} <small>${esc(bearing(L.x, L.z))}</small></li>`).join('')}</ul>`;
+      h += `<p>${mapBtn('couche:lieux2', 'Les lieux perdus sur la carte')} ${lk('sys:lieux2', 'Tous les lieux perdus')}</p>`;
+      P('c2t:' + t, { t: nom, s: 'Une sorte de lieu perdu', c: ['lieux2'], g: 'Les sortes de lieux', i: sg, h });
+    }
+
+    // ---- chaque lieu de la vallée : sa sorte, ce qu'on y lit, ses lettres, son butin, son secret
+    for (const L of C2L) {
+      const p = pages.get('li:' + L.key);
+      if (!p) continue;
+      const I = interOf(L);
+      let b = `<p class="lead">${link('c2t:' + L.c2, sorteNom(L.c2))} : un lieu perdu.</p>`;
+      const acts = uniq(I.filter((it) => !['butin', 'cache', 'lettre', 'lire', 'prier', 'registre'].includes(it.data.a)).map((it) => it.name));
+      if (acts.length) b += `<h3>On peut y…</h3><ul class="cols">${acts.map((a) => `<li>${esc(a)}</li>`).join('')}</ul>`;
+      const txt = I.filter((it) => it.data.txt);
+      if (txt.length) b += `<h3>Ce qu’on y lit</h3>${txt.map((it) => `<p class="note">${esc(it.name)}</p>${txtHTML(it.data.txt)}`).join('')}`;
+      const reg = I.find((it) => it.data.a === 'registre');
+      if (reg) b += `<h3>Le registre</h3><p>La boîte de fer du cairn : un registre, où l’on peut écrire son nom (le n° ${REGN(L) + 1} des quatre).</p>` + SEC(regHTML(REGN(L)), 'Ce qu’on y lit est masqué (secrets).');
+      const ins = uniq(insNear[L.key] || []);
+      if (ins.length) b += `<h3>Une pierre gravée</h3><ul class="cards">${ins.map((i) => `<li>${link('ins:' + i)}</li>`).join('')}</ul>`;
+      const paps = uniq(I.map((it) => it.data.pap).filter(Boolean));
+      if (paps.length) b += `<h3>Une lettre</h3><ul class="cards">${paps.map((id) => `<li>${link('c2l:' + id)}</li>`).join('')}</ul>`;
+      const bt = I.filter((it) => it.data.table && it.data.a !== 'cache');
+      if (bt.length) b += SEC(`<h3>Ce qu’on y trouve</h3><ul>${bt.map((it) => `<li>${esc(it.name)}${it.data.titre ? ` <small>(« ${esc(it.data.titre)} »)</small>` : ''} : ${link('bt:' + it.data.table)}${it.data.un ? ' <small>une seule fois</small>' : it.data.rf ? ` <small>se regarnit en ${plur(it.data.rf, 'jour', 'jours')}</small>` : ''}${it.data.pelle ? ' <small>(une pelle)</small>' : ''}${it.data.sacrilege ? ' <small>(on n’y touche pas sans le payer)</small>' : ''}</li>`).join('')}</ul>`, false);
+      const cache = I.filter((it) => it.data.a === 'cache');
+      if (cache.length) b += SEC(`<h3>Une cachette</h3><ul>${cache.map((it) => `<li>« ${esc(it.name)} »${it.data.pelle ? ' (une pelle)' : ''} — elle ne paraît qu’une fois l’indice lu : ${it.data.cle && C2HIS.some((H) => H.id === it.data.cle) ? link('c2h:' + it.data.cle) : 'une histoire'}</li>`).join('')}</ul>`, false);
+      const H = uniq(I.map((it) => histOf(it.data)).filter(Boolean));
+      if (H.length) b += `<p>Une histoire passe par là : ${H.map((q) => link('c2h:' + q.id)).join(', ')}.</p>`;
+      if (SOL.LIEUX && SOL.LIEUX[L.c2]) b += SEC(`<h3>À son heure</h3><p>${esc(SOL.LIEUX[L.c2])}</p>`, 'Ce qui n’arrive qu’à son heure est masqué (secrets).');
+      const mb = `<p>${mapBtn('li:' + L.key)}</p>`;
+      let h = p.h.replace(/<div class="sec"><h3>Ce qui s’y cache<\/h3>[\s\S]*?<\/div>/, '');
+      h = h.includes(mb) ? h.replace(mb, mb + b) : b + h;
+      p.h = h;
+      p.s = 'Lieu perdu — ' + sorteNom(L.c2).toLowerCase();
+      p.i = (SORTES[L.c2] || [])[1] || p.i;
+      p.g = 'Lieux perdus';
+      if (!p.c.includes('lieux2')) p.c.push('lieux2');
+    }
+
+    // ---- la fiche d'ensemble
+    {
+      let h = intro(FC2.carte, { skip: /^(Génération|Mesure)/ }) + `<p>${mapBtn('couche:lieux2', 'Les lieux perdus sur la carte')}</p>`;
+      h += `<p class="note">Les lieux, leurs textes, leurs lettres et leurs cachettes se tirent avec la vallée de chaque partie : ce wiki montre ceux de la sienne (les mêmes sortes, d’autres places).</p>`;
+      const n = Object.fromEntries(Object.entries(byType).map(([t, L]) => [t, L.length]));
+      h += `<h3>Les sortes de lieux</h3><ul class="cols">${Object.keys(C2T).sort((a, b) => C2T[a][0].localeCompare(C2T[b][0], 'fr')).map((t) => `<li>${link('c2t:' + t)} <small>${n[t] || 0}</small></li>`).join('')}</ul>`;
+      h += intro(FC2.textes, { nolead: true, skip: /solutions/i });
+      if (C2HIS.length) h += `<h3>Les histoires à recouper</h3><ul class="cards">${C2HIS.map((H) => `<li>${link('c2h:' + H.id)}</li>`).join('')}</ul>`;
+      const letters = Object.keys(PAP).filter((q) => /^c2_/.test(q));
+      if (letters.length) h += `<h3>Les lettres</h3><p>${plur(letters.length, 'lettre', 'lettres')}, glissées dans les coffres, les caisses, les poches : ${letters.map((id) => link('c2l:' + id, PAP[id].t)).join(' · ')}</p>`;
+      const insAll = uniq(Object.values(C2INSP).flat()).filter((i) => pages.has('ins:' + i));
+      if (insAll.length) h += `<h3>Les pierres gravées nouvelles</h3><p class="note">En aëlin et en gorrain, avec les seuls mots des deux langues : elles se déchiffrent par recoupement, comme les autres.</p><ul class="cards">${insAll.map((i) => `<li>${link('ins:' + i)}</li>`).join('')}</ul>`;
+      if (SOL.LIEUX) h += SEC(`<h3>Ce qui n’arrive qu’à son heure</h3><ul>${Object.entries(SOL.LIEUX).filter(([t]) => C2T[t]).map(([t, x]) => `<li><b>${link('c2t:' + t)}</b> : ${esc(x)}</li>`).join('')}</ul>`, 'Les secrets des lieux perdus sont masqués : révélez-les pour les lire.');
+      SP('sys:lieux2', { t: 'Les lieux perdus', s: 'Un lieu tous les deux cents mètres', c: ['lieux2'], i: '◇', h }, [FC2.carte, FC2.textes]);
+    }
+  }
+
+  // ---------------------------------------------------------------- 22) LES DEUX PEUPLES (les Planches, l'estive)
+  const PARL = U('C2_PARLERS', {}), EXPL = U('C2_EXPLIQUE', {}), EXPLL = U('C2_EXPLIQUE_LIGNES', {}), C2P = U('C2P_TEXTES', {}), SIFF = U('C2P_SIFFLER', {}), PIDS = U('C2_PEUPLE_IDS', []);
+  used.add('C2_HABITANTS'); used.add('C2_MARQUES_MOTS');
+  const PEUP = {
+    planches: { t: 'Les Planches', s: 'Ceux de Saint-Aubin-des-Eaux, sur le lac', i: '≋', only: /^Les planches/i, lieux: /^(planches|pl_)/, textes: ['pl_ecriteau', 'dame'] },
+    estive: { t: 'L’estive', s: 'Les bergers du haut pâturage de l’ouest', i: '⛰', only: /^L[’']estive/i, lieux: /^(estive|es_)/, textes: ['es_ecriteau', 'marques', 'cairn', 'porte'] },
+  };
+  if (FC2.peuples || Object.keys(PARL).length) {
+    for (const [k, Pp] of Object.entries(PEUP)) {
+      const gens = PIDS.filter((id) => id.startsWith(k + '_') && NPC_BY[id]);
+      let h = intro(FC2.peuples, { only: Pp.only });
+      if (gens.length) h = `<div class="figrow">${gens.map((id) => figOf('pnj:' + id, 110, esc(npcName(id)) + `<br><small>${esc(NPC_BY[id].role || '')}</small>`, '#/p/' + encodeURIComponent('pnj:' + id))).join('')}</div>` + h;
+      if (LM[k]) h += `<p>${mapBtn('li:' + k)}</p>`;
+      if (gens.length) {
+        h += `<h3>Leurs gens</h3><table class="t"><tr><th>Qui</th><th>Boutique</th><th>Quêtes</th></tr>${gens.map((id) => { const d = NPC_BY[id]; return `<tr><td>${npcLink(id)}</td><td>${d.shop ? esc(d.shop.name || 'une boutique') : '—'}</td><td>${(d.quests || []).map((q) => '« ' + esc(q.title) + ' »').join('<br>') || '—'}</td></tr>`; }).join('')}</table>`;
+        gens.forEach((id) => addCat('pnj:' + id, 'peuples'));
+      }
+      const lieux = [...(W.lm || []).filter((L) => Pp.lieux.test(L.key) && L.key !== k).map((L) => L.key), ...(W.bld || []).filter((B) => Pp.lieux.test(B.key) && !LM[B.key]).map((B) => B.key)].filter((q) => pages.has('li:' + q));
+      if (lieux.length) { h += `<h3>Leurs lieux</h3><ul class="cards">${lieux.map((q) => `<li>${placeLink(q)}</li>`).join('')}</ul>`; lieux.concat(k).forEach((q) => addCat('li:' + q, 'peuples')); }
+      const tx = Pp.textes.filter((q) => C2P[q]);
+      if (tx.length) h += `<h3>Leurs coutumes, ce qu’on y voit</h3>${tx.map((q) => engr(C2P[q][0], C2P[q][1], C2P[q][2])).join('')}`;
+      const sf = Object.entries(SIFF).filter(([id]) => id.startsWith(k + '_'));
+      if (sf.length) h += `<h3>Ne pas siffler</h3><ul class="qs">${sf.map(([id, x]) => `<li>${FILL(x, id)} <small>— ${npcLink(id, npcName(id))}</small></li>`).join('')}</ul>`;
+      if (PARL[k]) h += `<h3>Leur parler</h3><p>${lk('parler:' + k, cap(PARL[k].nom || k))} : ${Object.values(PARL[k].formes || {}).map((f) => '<i>' + esc(f[0]) + '</i>').join(', ')}…</p>`;
+      if (SOL.PEUPLES && SOL.PEUPLES[k]) h += SEC(`<h3>Ce qui ne se dit pas</h3>${solRows(SOL.PEUPLES[k])}`, 'Leurs coutumes à leur heure, et ce qu’ils cachent, sont masqués (secrets).');
+      SP('peuple:' + k, { t: Pp.t, s: Pp.s, c: ['peuples'], i: Pp.i, h });
+    }
+    // leurs parlers : les mots ; le sens, et qui l'explique, sous les secrets
+    for (const [k, Pa] of Object.entries(PARL)) {
+      const mots = Object.keys(Pa.mots || {});
+      let h = `<p class="lead">${esc(Pa.desc || '')}</p><dl class="kv"><dt>Qui le parle</dt><dd>${pages.has('peuple:' + k) ? link('peuple:' + k, Pa.peuple || PEUP[k].t) : esc(Pa.peuple || '')}</dd><dt>Des mots</dt><dd>${mots.length}, qu’on entend dans leurs phrases</dd></dl>`;
+      h += `<p class="note">Leur parler ne se traduit pas : les mots entendus vont au carnet (onglet Langues), où l’on note ce qu’on croit qu’ils veulent dire ; quelques-uns seulement se font expliquer.</p>`;
+      h += `<h3>Les mots</h3><table class="t lex"><tr><th>Le mot</th><th>Comme on l’entend</th><th>Le sens</th></tr>${mots.map((m) => `<tr><td><b>${esc(m)}</b></td><td>${((Pa.formes || {})[m] || [m]).map((f) => '<i>' + esc(f) + '</i>').join(', ')}</td><td>${secS(esc(Pa.mots[m]))}</td></tr>`).join('')}</table><p class="sec-note">Le sens des mots est masqué : cliquez sur « révéler les secrets » pour le lire.</p>`;
+      const ex = Object.entries(EXPL).filter(([id]) => id.startsWith(k + '_'));
+      const jamais = Object.keys(EXPLL).filter((id) => id.startsWith(k + '_') && !EXPL[id]);
+      if (ex.length || jamais.length) h += SEC(`<h3>Qui explique un mot</h3><ul>${ex.map(([id, [am, n]]) => `<li>${npcLink(id)} : à partir de l’amitié ${am}, ${plur(n, 'mot', 'mots')} au plus.</li>`).join('')}${jamais.map((id) => `<li>${npcLink(id)} : jamais.</li>`).join('')}</ul>${Object.entries(EXPLL).filter(([id]) => id.startsWith(k + '_')).map(([id, E]) => `<h4>${npcLink(id, npcName(id))}</h4>${quotes(Object.values(E).flat().filter((x) => typeof x === 'string').map((x) => String(x).replace(/\{forme\}/g, '‹le mot›').replace(/\{[Ss]ens\}/g, '‹son sens›')), id)}`).join('')}`, 'Qui explique quoi, et à quelle amitié, est masqué (secrets).');
+      SP('parler:' + k, { t: cap(Pa.nom || k), s: 'Le parler ' + (k === 'planches' ? 'des Planches' : k === 'estive' ? 'de l’estive' : humanKey(k)), c: ['peuples'], i: '❝', h });
+    }
+    {
+      let h = `<p class="lead">Deux peuples de surface, qui ne sont ni de la ville ni du hameau : ${link('peuple:planches', 'les Planches')}, sur le lac, et ${link('peuple:estive', 'l’estive')}, là-haut, à l’ouest.</p>` + intro(FC2.peuples, { nolead: true, skip: /^(Les planches|L[’']estive)/i }) + `<ul class="cards">${Object.keys(PEUP).filter((k) => pages.has('peuple:' + k)).map((k) => `<li>${link('peuple:' + k)}</li>`).join('')}${Object.keys(PARL).map((k) => `<li>${link('parler:' + k)}</li>`).join('')}</ul>`;
+      h += `<h3>Leur vie</h3>` + intro(FC2.jeu, { nolead: true, skip: /^Le jeu|^Les deux peuples/i });
+      SP('sys:peuples', { t: 'Les deux peuples', s: 'Les Planches, sur le lac ; l’estive, là-haut', c: ['peuples'], i: '⚑', h }, [FC2.peuples, FC2.jeu]);
+    }
+  }
+
+  // ---------------------------------------------------------------- 23) LA NATURE (chaque plante son objet, les bois, les bêtes nouvelles, le papillon d'or)
+  const FNAT = fileHas(/^11-zzzz8-nature/);
+  {
+    const NATF = U('NAT_FLEURS', []), NATA = U('NAT_AUTRES', []), NATP = U('NAT_PLANTES', []), NATB = U('NAT_BETES', []), NATBOIS = U('NAT_BOIS', []), FW = U('FLORA_WILD', []);
+    const NFI = U('NAT_FINS', {}), CRI = U('NAT_CRI_OISEAU', {}), CRIP = U('NAT_CRI_PATIENT', []), PAPI = U('PAPILLON', null);
+    for (const k of ['NAT_TEINTES', 'NAT_ARBRES', 'NAT_COMPORTE', 'NAT_PRIX', 'NAT_CAT_ICON', 'NAT_BOIS_DE']) used.add(k);
+    if (FNAT || NATP.length) {
+      // les bois : un par essence d'arbre
+      if (NATBOIS.length) {
+        let h = `<p class="lead">Chaque essence d’arbre donne son bois : ${NATBOIS.length} bois, chacun son objet. « Du bois », dans une recette, une quête ou une machine, se prend au choix parmi eux.</p>`;
+        h += `<table class="t"><tr><th>Bois</th><th></th><th>Ce qu’on en dit</th><th>Des arbres</th></tr>${NATBOIS.map(([id, nom, ec, co, desc, arbres]) => `<tr><td>${IL(id)}</td><td><span class="sw" style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${esc(ec)};border:3px solid ${esc(co)}"></span></td><td>${esc(desc || '')}</td><td>${(arbres || []).map((a) => (pages.has('pl:' + a) ? link('pl:' + a) : esc(humanKey(a)))).join(', ')}</td></tr>`).join('')}</table>`;
+        if (Object.keys(NFI).length) h += `<h3>Les meubles fins</h3><p>Le même meuble, d’un bois qui se voit : ${Object.values(NFI).map((id) => IL(id)).join(', ')}.</p>`;
+        SP('nat:bois', { t: 'Les bois', s: 'Un bois par essence d’arbre', c: ['nature'], i: '🪵', h });
+      }
+      // le papillon d'or : ce qui se voit ; ses conditions exactes (secrets)
+      if (PAPI || pages.has('an:papillon_or')) {
+        let h = figOf('an:papillon_or', 110, 'Le papillon d’or');
+        h += `<p class="lead">${esc(NA.papillon_or || 'Le plus rare des papillons.')}</p><ul class="cards">${[['an:papillon_or', 'la bête'], ['it:papillon_or', 'l’objet (2 000 pièces)'], ['it:filet_papillons', 'pour le prendre']].filter(([q]) => pages.has(q)).map(([q, s]) => `<li>${link(q)} <small>${esc(s)}</small></li>`).join('')}</ul>`;
+        if (PAPI) {
+          const mil = (PAPI.milieux || []).map((m) => `<a class="tag hab" href="#/p/${encodeURIComponent('mil:' + m)}">${esc(HAB[m] || m)}</a>`).join(' ');
+          let s = `<h3>Quand il paraît</h3><ul><li>Seulement le jour, de ${hours(PAPI.h0)} à ${hours(PAPI.h1)}, par beau temps (ciel clair, nuageux ou canicule : ni pluie, ni brouillard, ni neige).</li><li>Dehors, à découvert, dans ${mil} ; jamais sous terre, à cheval, dans l’Envers ou un autre monde.</li><li>Jamais avant le ${PAPI.jour0}ᵉ jour, ni à moins de ${plur(PAPI.ecart, 'jour', 'jours')} du précédent.</li><li>Alors, une chance sur ${Math.round(1 / PAPI.heure)} par heure de jeu (tirée toutes les dix secondes) qu’il paraisse, à quelques dizaines de pas.</li>${PAPI.vie ? `<li>Il vit ${dur(PAPI.vie[0])} à ${dur(PAPI.vie[1])}.</li>` : ''}</ul>`;
+          const doc = (docOf('PAPILLON').match(/Le joueur typique[^.]*\./) || [])[0];
+          if (doc) s += `<p class="note">${esc(doc.replace(/\s*\(la mesure\)/, ''))} (C’est ce que mesure le jeu.)</p>`;
+          if (SOL.NATURE && SOL.NATURE.papillon) s += `<h3>Le prendre</h3><p>${esc(SOL.NATURE.papillon)}</p>`;
+          h += SEC(s, 'Ses conditions exactes sont masquées : cliquez sur « révéler les secrets » pour les lire.');
+        }
+        SP('nat:papillon', { t: 'Le papillon d’or', s: 'Le plus rare de la vallée', c: ['nature'], i: '🦋', h });
+      }
+      // la fiche d'ensemble
+      let h = intro(FNAT, { skip: /^Données/ });
+      const L1 =[...NATF, ...NATA].map((q) => q[1]).filter((id) => ITEMS[id]);
+      if (L1.length) h += `<h3>Chaque plante son objet</h3><p>Les fleurs qui donnaient toutes des « fleurs des champs », les buissons, les fougères, les roseaux, les nénuphars ont désormais leur objet ; « fleur », « baies » et « bois » deviennent des groupes au choix.</p><p>${L1.map((id) => IL(id)).join(', ')}</p>`;
+      if (NATP.length) {
+        const by = {};
+        for (const q of NATP) (by[q.cat || 'Autres'] || (by[q.cat || 'Autres'] = [])).push(q);
+        h += `<h3>Les plantes nouvelles</h3><p class="note">${NATP.length} plantes : chacune son objet, sa notice pour l’herbier, ses essences ; certaines restent à faire nommer par l’alchimiste.</p>${Object.entries(by).map(([c, L]) => `<h4>${esc(c)}</h4><p>${L.map((q) => (pages.has('pl:' + q.o) ? link('pl:' + q.o, q.nom) : IL(q.it))).join(', ')}</p>`).join('')}`;
+      }
+      if (NATB.length) h += `<h3>Les bêtes nouvelles</h3><p>${NATB.map((q) => (pages.has('an:' + q[0]) ? link('an:' + q[0]) : esc(q[1]))).join(', ')}</p>`;
+      if (pages.has('nat:bois')) h += `<h3>Les bois</h3><p>${link('nat:bois')} : un bois par essence d’arbre, et les meubles fins.</p>`;
+      if (pages.has('nat:papillon')) h += `<h3>Le papillon d’or</h3><p>${link('nat:papillon')}</p>`;
+      const OIS = { coucou: 'coucou', pic: 'pic_vert', alouette: 'alouette', cincle: 'cincle', grebe: 'grebe', corbeau: 'grand_corbeau', grue: 'grue', geai: 'geai', effraie: 'effraie', butor: 'butor' };
+      if (Object.keys(CRI).length) h += `<h3>Les cris d’oiseaux</h3><p>Chaque oiseau a son cri, qui vient de lui : ${Object.keys(CRI).map((b) => (pages.has('an:' + (OIS[b] || b)) ? link('an:' + (OIS[b] || b)) : esc(humanKey(b)))).join(', ')}.${CRIP.length ? ` Ceux qui reviennent d’eux-mêmes (${CRIP.map((b) => esc(pages.has('an:' + (OIS[b] || b)) ? pages.get('an:' + (OIS[b] || b)).t.toLowerCase() : humanKey(b))).join(', ')}) attendent qu’aucun autre oiseau ne chante.` : ''}</p>`;
+      if (FW.length) h += `<h3>Les fleurs sauvages</h3><p>${FW.map((q) => (pages.has('pl:' + q[0]) ? link('pl:' + q[0], q[1]) : esc(q[1]))).join(', ')}</p>`;
+      if (SOL.NATURE) h += SEC(`<h3>Ce que les plantes ne disent pas</h3>${['egarement', 'plaies', 'amanite', 'mousse'].filter((k) => SOL.NATURE[k]).map((k) => `<p>${esc(SOL.NATURE[k])}</p>`).join('')}`, 'Quelques effets des plantes, et un moyen de s’orienter, sont masqués (secrets).');
+      SP('sys:nature', { t: 'La nature', s: 'Chaque plante son objet, les bois, les bêtes nouvelles', c: ['nature'], i: '❀', h }, FNAT);
+      for (const q of NATB) { addCat('an:' + q[0], 'nature'); }
+      for (const q of NATP) addCat('pl:' + q.o, 'nature');
+    }
+  }
+
+  // ---------------------------------------------------------------- 24) LE DESSOUS (les salles, ceux d'en bas, leur parler, ce qui pousse, ce qui vit, ce qui se cache)
+  const SOUT = (DB.world.dessous && DB.world.dessous.raw) || null;
+  const FS = (n) => fileHas(new RegExp('^11-zzzz9-souterrain' + n));
+  if (FS(0) || SOUT) {
+    const SZ = U('SOUT_ZONES', {}), SGENS = U('SOUT_GENS', []), SDIRE = U('SOUT_DIRE', {}), SENTRE = U('SOUT_ENTRE', []), SCTX = U('SOUT_CTX', {}), SLEX = U('SOUT_LEX', []), SNUM = U('SOUT_NUM', {});
+    const SENC = U('SOUT_ENCOCHES', []), SCUE = U('SOUT_CUEILLETTES', []), SDEC = U('SOUT_DECOR', {});
+    for (const k of ['SOUT_GEN', 'SOUT_PLAN', 'SOUT_MAT', 'SOUT_EV', 'SOUT_POST', 'SOUT_NW', 'SOUT_POSE', 'SOUT_RIGS', 'SOUT_GENS_BY', 'SOUT_ENC_BY', 'SOUT_ENTREE', 'SOUT_PUITS_MINE', 'SOUT_N', 'SOUT_X0']) used.add(k);
+    const R = SOUT || {}, DS = SOL.DESSOUS || {};
+    const GAL = { descente: 'la galerie qui descend', fissure: 'la fissure', cristal_ab: 'entre les Cristallières', cristal_ac: 'entre les Cristallières', mines_n: 'les Vieilles Mines', mines_s: 'les Vieilles Mines', vers_riviere: 'la galerie de la rivière', ruines_lac: 'entre la Ville engloutie et la Mer muette', mines_riviere: 'entre les mines et la rivière' };
+    const zoneName = (k) => (k === '*' ? 'partout' : SZ[k] || GAL[k] || humanKey(k));
+    const zoneLink = (k) => (pages.has('li:sout_' + k) ? link('li:sout_' + k, zoneName(k)) : esc(zoneName(k)));
+    const zones = [...(R.salles || []), ...(R.lacs || [])];
+    const zoneAt = (x, z) => { let best = null, bd = 1e9; for (const [k, sx, sz, rx, rz] of zones) { const d = Math.hypot((x - sx) / (rx || 1), (z - sz) / (rz || 1)); if (d < bd) { bd = d; best = k; } } return best; };
+    const zonesOf = (L) => uniq((L || []).map((k) => zoneLink(/^cristal_/.test(k) ? 'cristal_a' : k === 'mines_n' || k === 'mines_s' ? 'mines' : k))).join(', ');
+    // (au-dessus : « près du camp », « près de la chapelle »)
+    const pres = (key) => { const n = lieuName(key); return /^le /i.test(n) ? 'du ' + n.slice(3) : /^les /i.test(n) ? 'des ' + n.slice(4) : 'de ' + n; };
+    const DECN = { sout_stalag: 'stalagmites', sout_stalac: 'stalactites', sout_eboulis: 'éboulis', sout_vers: 'vers luisants à la voûte', sout_champi: 'champignons lumineux', sout_champi_grand: 'champignons géants', sout_cristal: 'cristaux', sout_racines: 'racines', sout_os: 'os' };
+    const NIDN = { chauve: ['chauves-souris', 'en colonies sous les hautes voûtes', 'aile_chauve_souris'], protee: ['protées', 'au fond de l’eau, près des rives', 'protee'], ecrevisse: ['écrevisses aveugles', 'dans les hauts-fonds', 'ecrevisse_aveugle'], grillon: ['grillons des cavernes', 'le long des parois', 'grillon_pale'], scolopendre: ['scolopendres', 'dans les galeries sèches', 'venin'] };
+    const PLACE = { mur: 'sur les parois', sol: 'au sol', rive: 'sur les rives', eau: 'dans l’eau' };
+    const waterY = W.waterLevel || 0;
+    const depth = (y) => Math.round(waterY - y);
+    const MINI = { galene: 'galene', magnetite: 'magnetite', soufre: 'soufre', salpetre: 'salpetre', luisante: 'luisante', cristal: 'cristal_roche' };
+    const filons = {};
+    for (const [x, z, , m] of (R.props || {}).sout_filon || []) { const zk = zoneAt(x, z); ((filons[zk] || (filons[zk] = {}))[m] = (filons[zk][m] || 0) + 1); }
+    const nidsBy = {};
+    for (const [k, x, z, n] of R.nids || []) { const zk = zoneAt(x, z); ((nidsBy[zk] || (nidsBy[zk] = {}))[k] = (nidsBy[zk][k] || 0) + (n || 1)); }
+    const soutIns = INTER.filter((it) => it.kind === 'inscription' && it.y < -40 && it.data && it.data.ins);
+    const GD = Object.fromEntries(SGENS.map((g) => [g.k, g]));
+    const gNom = (g) => `${g.nom}, ${g.dit}`;
+    const LIEUG = { encoches: 'chez lui, près des dalles d’encoches', planches: 'aux planches, au travail', pain: 'près de la pierre au pain', rive: 'au bord de l’eau tiède', hutte: 'devant sa cabane', tour: 'fait le tour du hameau, un panier sur le dos', appel: 'près de la pierre d’appel, à l’entrée', place: 'sur la place, à jouer', route: 'dans la longue galerie, entre le hameau et la Chambre des Gouttes' };
+    const dire = (L, who) => `<ul class="qs">${(L || []).map(([t, c]) => `<li><i>${esc(t)}</i>${SCTX[c] ? ` <small>— ${esc(SCTX[c])}</small>` : ''}</li>`).join('')}</ul>`;
+
+    // ---- ceux d'en bas : une fiche chacun
+    const GROLE = { un: ['La pierre au pain', 'La peau pliée', '« Pèst… d’sû ? »'], se: ['Entrer', 'Le guetteur ramène'], tre: ['Le troc'], katr: ['Le troc'], deu: ['Le troc'], neu: ['Le troc', 'Profaner'], di: ['Le jeune'] };
+    for (const g of SGENS) {
+      const F = FIG['sout:' + g.k];
+      let h = F && F.full ? figInline(F.full, 128, esc(gNom(g))) : '';
+      h += `<dl class="kv"><dt>Son nom</dt><dd>${esc(g.nom)} <small>(ils se nomment par des nombres)</small></dd><dt>On le trouve</dt><dd>${esc(LIEUG[g.lieu] || humanKey(g.lieu))}, au ${pages.has('li:sout_hameau') ? link('li:sout_hameau', 'Hameau d’En-Bas') : 'Hameau d’En-Bas'}</dd><dt>Les siens</dt><dd>${lk('sout:gens', 'Ceux d’en bas')}</dd></dl>`;
+      if (SDIRE[g.k]) h += `<h3>Ce qu’on l’entend dire</h3><p class="note">Dans ${lk('parler:bas', 'le parler d’en bas')}, qu’on ne traduit pas.</p>${dire(SDIRE[g.k], g.k)}`;
+      const ent = SENTRE.filter((q) => q[0] === g.k || q[2] === g.k);
+      if (ent.length) h += `<h3>Entre eux</h3><ul class="qs">${ent.map(([a, t, b, r]) => `<li>${esc(GD[a] ? GD[a].nom : a)} : <i>${esc(t)}</i> — ${esc(GD[b] ? GD[b].nom : b)} : <i>${esc(r)}</i></li>`).join('')}</ul>`;
+      const rows = solPick(DS.gens, GROLE[g.k] || []);
+      if (rows.length) h += SEC(solRows(rows), 'Ce qui ne se dit pas est masqué (secrets).');
+      P('sout:g:' + g.k, { t: gNom(g), s: 'Ceux d’en bas', c: ['dessous'], g: 'Ceux d’en bas', i: F && F.bust ? 'fg:' + F.bust.join(',') : '☺', fig: F ? F.full : undefined, h });
+    }
+    {
+      let h = SGENS.length ? `<div class="figrow">${SGENS.map((g) => figOf('sout:' + g.k, 96, esc(gNom(g)), '#/p/' + encodeURIComponent('sout:g:' + g.k))).join('')}</div>` : '';
+      h += intro(FS(5), { secret: /^(?!(Ceux d.en bas\W*)?Au Hameau)/i });
+      h += `<p>${planBtn('dessous', 'li:sout_hameau', 'Le hameau sur le plan')} ${lk('parler:bas', 'Le parler d’en bas')} · ${lk('sout:encoches', 'Les dalles d’encoches')}</p>`;
+      if (SENTRE.length) h += `<h3>Ce qu’ils se disent entre eux</h3><p class="note">Entendu de loin, dans le noir.</p><ul class="qs">${SENTRE.map(([a, t, b, r]) => `<li>${GD[a] ? link('sout:g:' + a, GD[a].nom) : esc(a)} : <i>${esc(t)}</i> — ${GD[b] ? link('sout:g:' + b, GD[b].nom) : esc(b)} : <i>${esc(r)}</i></li>`).join('')}</ul>`;
+      if (DS.gens) h += SEC(`<h3>Ce qui ne se dit pas</h3>${solRows(DS.gens)}`, 'Comment on entre chez eux, et le reste, est masqué : révélez les secrets.');
+      SP('sout:gens', { t: 'Ceux d’en bas', s: 'Dix pâles, au Hameau d’En-Bas', c: ['dessous'], i: FIG['sout:un'] && FIG['sout:un'].bust ? 'fg:' + FIG['sout:un'].bust.join(',') : '☻', h }, FS(5));
+    }
+    // ---- le parler d'en bas : jamais traduit en jeu (le lexique : secrets)
+    {
+      let h = `<p class="lead">Ceux d’en bas ont gardé un peu de la langue d’en haut, usée jusqu’à l’os : le parler d’en bas. On l’entend, on le note ; le jeu ne le traduit jamais.</p><p>Chaque mot entendu va au carnet (onglet Langues), avec les circonstances. ${lk('sout:gens', 'Ceux d’en bas')} · ${lk('sout:encoches', 'Les dalles d’encoches')}</p>`;
+      if (SLEX.length) h += `<h3>Les mots</h3><p>${SLEX.map((m) => `<span class="tag">${esc(m)}</span>`).join(' ')}</p>`;
+      if (Object.keys(SCTX).length) h += `<h3>Comme le carnet les note</h3><p class="note">Ce qu’on a vu quand on a entendu le mot : c’est tout ce qu’on en sait.</p><ul class="qs">${uniq(Object.values(SCTX)).map((c) => `<li>${esc(c)}</li>`).join('')}</ul>`;
+      const LX = SOL.PARLER_BAS || {};
+      if (Object.keys(LX).length) h += SEC(`<h3>Le lexique</h3><p class="note">Le seul qui existe : le jeu ne le donne nulle part.</p><table class="t lex"><tr><th>Mot</th><th>Sens</th></tr>${Object.entries(LX).map(([m, s]) => `<tr><td><b>${esc(m)}</b></td><td>${esc(s)}</td></tr>`).join('')}</table>${Object.keys(SNUM).length ? `<h4>Les nombres sont des noms</h4><p>${Object.entries(SNUM).map(([m, k]) => `<b>${esc(m)}</b> : ${GD[k] ? link('sout:g:' + k, gNom(GD[k])) : k === 'onz' ? 'le onzième (le géomètre, mort)' : esc(k)}`).join(' · ')}</p>` : ''}`, 'Le sens des mots d’en bas est masqué : cliquez sur « révéler les secrets » pour le lire.');
+      SP('parler:bas', { t: 'Le parler d’en bas', s: 'Jamais traduit', c: ['dessous'], i: '❝', h });
+    }
+    // ---- les dalles d'encoches, et le mur des jours
+    {
+      const jours = INTER.find((it) => it.id === 'sout_jours');
+      let h = `<p class="lead">Dans la maison du vieux, au Hameau d’En-Bas, six dalles couvertes d’encoches ; on y reconnaît les mots qu’on a déjà entendus.</p>`;
+      if (SENC.length) h += `<h3>Les dalles</h3><ul class="qs">${SENC.map(([k, t]) => `<li><i>${esc(t)}</i>${SOL.ENCOCHES && SOL.ENCOCHES[k] ? ' ' + secS('— ' + esc(SOL.ENCOCHES[k])) : ''}</li>`).join('')}</ul><p class="sec-note">Ce qu’elles disent, en français, est masqué (secrets).</p>`;
+      if (jours && jours.data && jours.data.text) h += engr(jours.data.text[0], jours.data.text[1]);
+      h += `<p>${planBtn('dessous', 'p:sout:encoches')} ${lk('parler:bas', 'Le parler d’en bas')}</p>`;
+      SP('sout:encoches', { t: 'Les dalles d’encoches', s: 'Au Hameau d’En-Bas', c: ['dessous'], i: '▤', h });
+    }
+    // ---- dans le noir
+    {
+      let h = `<p class="lead">Sous la terre, on n’y voit rien : la lanterne (et son huile), la pierre luisante, les repères de ceux d’en bas.</p>`;
+      h += solRows(solPick(DS.noir, ['La lumière']));
+      h += `<ul class="cards">${['sys:lanterne', 'it:lanterne', 'it:luisante', 'it:lentille_cristal', 'it:charbon'].filter((q) => pages.has(q)).map((q) => `<li>${link(q)}</li>`).join('')}</ul>`;
+      const reste = (DS.noir || []).filter(([t]) => t !== 'La lumière');
+      if (reste.length) h += SEC(solRows(reste), 'Les repères, et ce qui aide à retrouver son chemin, sont masqués (secrets).');
+      SP('sout:noir', { t: 'Dans le noir', s: 'Se voir, se repérer, sous la terre', c: ['dessous'], i: '☾', h });
+    }
+    // ---- les minerais d'en bas (leurs filons : secrets)
+    {
+      const mins = SCUE.filter((c) => c[0] === 'sout_filon' || c[0] === 'sout_vasque');
+      let h = intro(FS(3), { only: /^Des minerais/i });
+      h += `<h3>Les minerais</h3><table class="t"><tr><th>Minerai</th><th>Où</th><th>Filons</th></tr>${mins.map((c) => `<tr><td>${IL(c[1])}</td><td>${secS(zonesOf(c[2]))}</td><td>${nfmt(c[3])}</td></tr>`).join('')}</table><p class="sec-note">Où sont les filons : masqué (secrets). ${planBtn('dessous', '', 'Le plan (couche « Les minerais »)')}</p>`;
+      h += `<p>Casser un filon : ${IL('pioche')} en main, <kbd>E</kbd>. La galène se fond en ${IL('lingot_argent')} ; le cristal de roche et l’argent font la ${IL('lentille_cristal')}.</p>`;
+      SP('sout:minerais', { t: 'Les minerais d’en bas', s: 'Galène, cristal, pierre luisante, magnétite…', c: ['dessous'], i: '⛏', h }, FS(3));
+    }
+    // ---- les plantes d'en bas
+    {
+      const pl = SCUE.filter((c) => c[0] !== 'sout_filon' && c[0] !== 'sout_vasque');
+      let h = `<p class="lead">Ce qui pousse sans soleil : chacune son objet, son effet, ses essences. <kbd>E</kbd> pour cueillir ; la plupart repoussent.</p>`;
+      h += `<table class="t"><tr><th>Plante</th><th>Où</th><th></th><th>Dans le Dessous</th><th>Repousse</th></tr>${pl.map((c) => `<tr><td>${IL(c[1])}</td><td>${zonesOf(c[2])}</td><td>${esc(PLACE[c[5]] || c[5] || '')}</td><td>${nfmt(c[3])}</td><td>${c[4] ? plur(c[4], 'jour', 'jours') : 'jamais'}</td></tr>`).join('')}</table>`;
+      const ch = ((R.props || {}).sout_champi || []).length;
+      if (ch) h += `<p>Et les ${IL('champi_lumineux')} des grottes, qu’on connaissait déjà : ${nfmt(ch)} touffes dans le Dessous.</p>`;
+      h += `<p>${planBtn('dessous', '', 'Le plan (couche « Les plantes d’en bas »)')}</p>`;
+      SP('sout:plantes', { t: 'Les plantes d’en bas', s: 'Ce qui pousse sans soleil', c: ['dessous'], i: '☘', h });
+    }
+    // ---- les bêtes d'en bas
+    {
+      const tot = {};
+      for (const [k, , , n] of R.nids || []) tot[k] = (tot[k] || 0) + (n || 1);
+      let h = `<div class="figrow">${Object.keys(NIDN).map((k) => figOf('sb:' + k, 96, esc(cap(NIDN[k][0])))).join('')}</div>` + intro(FS(4));
+      h += `<table class="t"><tr><th>Bête</th><th>Où</th><th>Dans le Dessous</th><th>Ce qu’elle laisse</th></tr>${Object.entries(NIDN).map(([k, [n, ou, it]]) => `<tr><td>${esc(cap(n))}</td><td>${esc(ou)}${Object.entries(nidsBy).filter(([, o]) => o[k]).length ? ' : ' + Object.entries(nidsBy).filter(([, o]) => o[k]).map(([zk]) => zoneLink(zk)).join(', ') : ''}</td><td>${tot[k] ? nfmt(tot[k]) : '—'}</td><td>${ITEMS[it] ? IL(it) : '—'}</td></tr>`).join('')}</table>`;
+      h += `<p>${pages.has('sout:houm') ? '' : ''}${planBtn('dessous', '', 'Le plan (couche « Les bêtes d’en bas »)')}</p>`;
+      SP('sout:betes', { t: 'Les bêtes d’en bas', s: 'Chauves-souris, protées, écrevisses, grillons, scolopendres', c: ['dessous'], i: '🦇', h }, FS(4));
+    }
+    // ---- les secrets : l'entrée, les autres sorties, le Hoûm
+    if (DS.entree) {
+      let h = `<p class="lead">On y entre par un passage bien caché de Valbrume.</p>` + SEC(intro(FS(1)) + solRows(DS.entree), 'Le passage est masqué : révélez les secrets.') + `<p>${planBtn('dessous', 'p:sout:entree', 'Le passage sur le plan')} ${pages.has('li:sout_cave') ? link('li:sout_cave') : ''}</p>`;
+      SP('sout:entree', { t: 'Le passage de Valbrume', s: 'Comment on descend', c: ['dessous'], i: '▦', x: 1, h }, FS(1));
+    }
+    if (DS.retours) {
+      let h = intro(FS(7)) + SEC(solRows(solPick(DS.retours, ['Le guetteur'])), false) +`<p>${planBtn('dessous', 'p:sout:retours', 'Les sorties sur le plan')}</p>`;
+      SP('sout:retours', { t: 'Les chemins du retour', s: 'Le vieux puits de la mine, les racines du grand chêne', c: ['dessous'], i: '⇡', x: 1, h }, FS(7));
+    }
+    if (DS.houm) {
+      let h = figOf('sout:houm', 160, 'Le Hoûm') + solRows(DS.houm) + `<p>${ITEMS.dent_houm ? IL('dent_houm') : ''} ${planBtn('dessous', 'p:sout:houm', 'Où il rôde')}</p>`;
+      SP('sout:houm', { t: 'Le Hoûm', s: 'Aux Gouffres : il chasse au bruit', c: ['dessous'], i: FIG['sout:houm'] ? 'fg:' + FIG['sout:houm'].full.join(',') : '☊', fig: FIG['sout:houm'] ? FIG['sout:houm'].full : undefined, x: 1, h }, FS(6));
+    }
+
+    // ---- les salles : publiques (le plan les nomme), sauf ce qui se cache
+    const SECRETES = new Set(['sout_dormeurs', 'sout_tombeau', 'sout_cave']);
+    const SL = (W.lm || []).filter((L) => L.souterrain || L.key === 'sout_cave');
+    // (trois salles portent le même nom : on les distingue par leur taille ; les salles publiques d'abord, pour les liens)
+    const CRI3 = { cristal_a: 'la grande salle', cristal_b: 'la salle du milieu', cristal_c: 'la petite salle' };
+    for (const [k, t] of Object.entries(CRI3)) if (pages.has('li:sout_' + k)) P('li:sout_' + k).t = `${cap(SZ[k] || 'les Cristallières')} (${t})`;
+    for (const L of SL) if (pages.has('li:' + L.key)) P('li:' + L.key).x = SECRETES.has(L.key) ? 1 : 0;
+    for (const L of SL) {
+      const p = pages.get('li:' + L.key);
+      if (!p) continue;
+      const k = L.key.replace(/^sout_/, '');
+      if (L.key === 'sout_hameau_c') { Object.assign(p, { t: 'Le cœur du Hameau d’En-Bas', s: 'Le Dessous', x: 0, g: 'Le Dessous', h: `<p>La place du hameau : la pierre au pain, les cabanes en ruche, les claies. Voir ${link('li:sout_hameau')}.</p><p>${planBtn('dessous', 'li:sout_hameau')}</p>` }); addCat(p.id, 'dessous'); continue; }
+      let h = `<dl class="kv"><dt>Où</dt><dd>${k === 'cave' ? `sous la rue de Valbrume, derrière la grille des douves ; un puits descend au ${link('li:sout_seuil', 'Seuil')}` : `${link('sys:dessous', 'le Dessous')}, à ${depth(L.y)} m sous l’eau de la vallée`}</dd>`;
+      if (L.r >= 12) h += `<dt>Étendue</dt><dd>${Math.round(L.r * 2)} m environ</dd>`;
+      const up = k === 'cave' ? null : placeAt(L.x, L.z, false);
+      if (up) h += `<dt>Au-dessus</dt><dd>${up.near ? 'près ' + placeLink(up.key, pres(up.key)) : placeLink(up.key)}</dd>`;
+      h += `</dl><p>${planBtn('dessous', 'li:' + L.key)}</p>`;
+      const dec = SDEC[k];
+      if (dec) h += `<h3>Ce qu’on y voit</h3><p>${Object.entries(dec).map(([m, n]) => `${nfmt(n)} ${esc(DECN[m] || humanKey(m))}`).join(', ')}.</p>`;
+      const cue = SZ[k] ? SCUE.filter((c) => c[0] !== 'sout_filon' && c[0] !== 'sout_vasque' && (c[2] || []).some((z) => z === k || z === '*')) : [];
+      if (cue.length) h += `<h3>Ce qui s’y cueille</h3><p>${cue.map((c) => IL(c[1]) + ` <small>${esc(PLACE[c[5]] || '')}</small>`).join(', ')}</p>`;
+      const nb = nidsBy[k];
+      if (nb) h += `<h3>Ce qui y vit</h3><p>${Object.entries(nb).map(([b, n]) => `${esc((NIDN[b] || [b])[0])} <small>(${n})</small>`).join(', ')} — ${link('sout:betes')}</p>`;
+      const fl = filons[k];
+      const vas = SCUE.find((c) => c[0] === 'sout_vasque');
+      if (fl || (vas && (vas[2] || []).includes(k))) h += SEC(`<h3>Les filons</h3><p>${Object.entries(fl || {}).map(([m, n]) => `${IL(MINI[m] || m)} <small>×${n}</small>`).join(', ')}${vas && (vas[2] || []).includes(k) ? `${fl ? ', ' : ''}des vasques (${IL('perle_caverne')})` : ''}</p>`, false);
+      const ins = soutIns.filter((it) => zoneAt(it.x, it.z) === k);
+      if (ins.length) h += `<h3>Les pierres gravées</h3><ul class="cards">${ins.map((it) => `<li>${pages.has('ins:' + it.data.ins) ? link('ins:' + it.data.ins) : esc(it.name)}</li>`).join('')}</ul>`;
+      if (k === 'hameau') {
+        h += `<h3>Ceux d’en bas</h3><ul class="cards">${SGENS.map((g) => `<li>${link('sout:g:' + g.k)}</li>`).join('')}</ul><p>${lk('sout:gens', 'Ceux d’en bas')} · ${lk('parler:bas', 'Leur parler')} · ${lk('sout:encoches', 'Les dalles d’encoches')}</p>`;
+        const jours = INTER.find((it) => it.id === 'sout_jours');
+        if (jours && jours.data && jours.data.text) h += engr(jours.data.text[0], jours.data.text[1]);
+      }
+      if (k === 'dormeurs' && DS.gouttes) h += `<p>${esc(DS.gouttes)}</p>` + solRows(solPick(DS.gens, ['Le jeune', 'Profaner']));
+      if (k === 'tombeau' && DS.tombeau) h += solRows(DS.tombeau) + `<p>${['miroir_aelim', 'tablette_aelim', 'lentille_cristal'].filter((q) => ITEMS[q]).map((q) => IL(q)).join(', ')}</p>`;
+      if (k === 'cave') { const tr = INTER.find((it) => it.id === 'sout_traits'); if (tr && tr.data && tr.data.text) h += engr(tr.data.text[0], tr.data.text[1]); h += `<p>${lk('sout:entree', 'Le passage de Valbrume')}</p>`; }
+      if (k === 'ruines' && pages.has('li:sout_tombeau')) h += SEC(`<p>Quelque part dans la salle : ${link('li:sout_tombeau')}.</p>`, false);
+      if (k === 'mines' || k === 'racines') h += SEC(`<p>${link('sout:retours')} : ${esc(k === 'mines' ? 'des barreaux montent aux Galeries de la mine' : 'une échelle de racines monte au pied du grand chêne')}.</p>`, false);
+      const near = SL.filter((o) => o.key !== L.key && o.key !== 'sout_hameau_c' && !SECRETES.has(o.key)).sort((a, b) => dist(a.x, a.z, L.x, L.z) - dist(b.x, b.z, L.x, L.z)).slice(0, 4);
+      if (near.length) h += `<h3>Les salles voisines</h3><ul class="cards">${near.map((o) => `<li>${link('li:' + o.key)} <small>${Math.round(dist(o.x, o.z, L.x, L.z))} m</small></li>`).join('')}</ul>`;
+      Object.assign(p, { h, x: SECRETES.has(L.key) ? 1 : 0, s: 'Le Dessous', g: 'Le Dessous', i: SECRETES.has(L.key) ? '⚿' : '⛏' });
+      p.map = undefined;
+      addCat(p.id, 'dessous');
+    }
+    // (les pierres gravées d'en bas : sous terre, pas dans la vallée)
+    for (const it of soutIns) {
+      const p = pages.get('ins:' + it.data.ins);
+      if (!p) continue;
+      const zk = zoneAt(it.x, it.z);
+      p.h = p.h.replace(/<dt>Où<\/dt><dd>[\s\S]*?<\/dd>/, `<dt>Où</dt><dd>sous terre, ${zoneLink(zk)} ${planBtn('dessous', 'p:ins:' + it.data.ins, 'la pierre')}</dd>`);
+      addCat(p.id, 'dessous');
+    }
+    // ---- la fiche d'ensemble
+    {
+      let h = intro(FS(0), { only: /^Sous la vallée/ }).replace(/\s*Technique\b[^<]*/, '').replace(/\s*\(x [\d-]+, z [\d-]+\)/, '');
+      h += `<p>${planBtn('dessous', '', 'Le plan du Dessous')}</p>`;
+      h += `<p>Des galeries et des salles garnies de concrétions, de champignons qui luisent, de cristaux, de racines, d’étais et d’éboulis ; des lacs, une rivière ; ceux d’en bas, leur hameau et leurs repères.</p>`;
+      const rooms = SL.filter((L) => L.key !== 'sout_hameau_c' && pages.has('li:' + L.key));
+      h += `<h3>Les salles</h3><table class="t"><tr><th>Salle</th><th>Profondeur</th><th>Étendue</th></tr>${rooms.map((L) => `<tr${SECRETES.has(L.key) ? ' class="sec"' : ''}><td>${link('li:' + L.key)}</td><td>${depth(L.y)} m</td><td>${L.r >= 12 ? Math.round(L.r * 2) + ' m' : '—'}</td></tr>`).join('')}</table>`;
+      h += `<h3>Ce qu’on y trouve</h3><ul class="cards">${['sout:gens', 'parler:bas', 'sout:encoches', 'sout:noir', 'sout:minerais', 'sout:plantes', 'sout:betes'].filter((q) => pages.has(q)).map((q) => `<li>${link(q)}</li>`).join('')}</ul>`;
+      const up = (R.lm || []).filter((q) => !/^sout_/.test(q[0]) && pages.has('li:' + q[0]));
+      if (up.length) h += `<h3>Les autres dessous</h3><p class="note">Sous la même région, mais plus près de la surface, et sans lien avec lui : </p><ul class="cards">${up.map((q) => `<li>${link('li:' + q[0])}</li>`).join('')}</ul>`;
+      h += SEC(`<h3>Ce qui se cache</h3><ul class="cards">${['sout:entree', 'sout:retours', 'sout:houm', 'li:sout_dormeurs', 'li:sout_tombeau', 'li:sout_cave'].filter((q) => pages.has(q)).map((q) => `<li>${link(q)}</li>`).join('')}</ul>`, 'Le passage, les sorties et ce qui se cache sont masqués (secrets).');
+      SP('sys:dessous', { t: 'Le Dessous', s: 'Sous la vallée, à cent vingt mètres sous l’herbe', c: ['dessous'], i: '⛏', h }, [FS(0), FS(2)]);
+    }
+  }
+
+  // ---------------------------------------------------------------- 25) AU QUOTIDIEN : le carnet de commandes, la lanterne, les ruches, les recettes gardées, le gel, le son, les pensées
+  {
+    const FCMD = fileHas(/^11-zzzzA-commandes/);
+    if (FCMD) {
+      const CMD = U('CMD', {}), DIT = U('CMD_DIT', {}), LAISSE = U('CMD_LAISSE', []), EXCL = U('COMMANDES_EXCLUS', []), VIV = U('CMD_VIVANT', []);
+      used.add('CMD_LOOK');
+      let h = FIG['look:CMD_LOOK'] ? `<div class="figrow">${figInline(figRect('look:CMD_LOOK'), 110, 'Le voiturier')}</div>` : '';
+      h += intro(FCMD, { skip: /^Rien n.est généré/ });
+      const Pt = CMD.port || {};
+      h += `<h3>Les chiffres</h3><dl class="kv">`;
+      if (Pt.base !== undefined) h += `<dt>Le port</dt><dd>${pcs(Pt.base)} par étal, et ${pcs(Pt.km)} de plus par kilomètre commencé jusqu’au point de livraison (${pcs(Pt.max)} au plus) ; ${pcs(Pt.nomade)} pour un colporteur ; ${pcs(Pt.meuble)} par meuble</dd>`;
+      if (CMD.heure) h += `<dt>Le voiturier passe</dt><dd>le lendemain matin, entre ${hours(CMD.heure[0])} et ${hours(CMD.heure[1])}</dd>`;
+      if (CMD.max) h += `<dt>Par article</dt><dd>${CMD.max} au plus par commande (un objet unique : un seul, s’il n’est pas déjà en route)</dd>`;
+      if (CMD.perdu) h += `<dt>Colis perdu</dt><dd>${pct(CMD.perdu)} des colis</dd>`;
+      if (CMD.vole) h += `<dt>Colis ouvert</dt><dd>laissé seul : ${pct(CMD.vole)} (${pct(CMD.voleFerme)} devant la ferme, où le chien garde)</dd>`;
+      if (CMD.vu) h += `<dt>On le voit venir</dt><dd>à ${CMD.vu} m ; au-delà de ${CMD.loin} m, il s’en va sans qu’on le voie</dd>`;
+      h += `</dl>`;
+      if (EXCL.length) h += `<p>Ne prennent pas de commandes : ${EXCL.map((id) => npcLink(id)).join(', ')} (les nains ne commercent pas avec la surface par écrit).</p>`;
+      if (VIV.length) h += `<p>Ce qui vit ne voyage pas en colis : ${VIV.map((id) => IL(id)).join(', ')}.</p>`;
+      if (Object.keys(DIT).length) h += `<h3>Ce que dit le voiturier</h3>${Object.entries(DIT).map(([k, L]) => `<h4>${esc({ pose: 'En posant le colis', pluie: 'Sous la pluie', parler: 'Quand on lui parle', rouge: 'Après une nuit rouge', tueur: 'Quand le tueur rôde' }[k] || cap(humanKey(k)))}</h4>${quotes(L)}`).join('')}`;
+      if (LAISSE.length) h += SEC(`<h3>Ce qu’on laisse dans un colis ouvert</h3><p>${LAISSE.map((id) => IL(id)).join(', ')}</p>`, false);
+      if (SOL.COMMANDES) h += SEC(`<h3>Ce que le carnet ne dit pas</h3>${solRows(SOL.COMMANDES)}`, 'Le détail des tournées, des colis ouverts ou perdus est masqué (secrets).');
+      h += `<p>${ITEMS.carnet_commandes ? IL('carnet_commandes') : ''}</p>`;
+      SP('sys:commandes', { t: 'Le carnet de commandes', s: 'Commander, et le voiturier livre au matin', c: ['quotidien'], i: '📦', h }, FCMD);
+    }
+    const FLAN = fileHas(/^11-zzzz6-lanterne/);
+    if (FLAN) {
+      const LC = U('LANTERNE_COMBUSTIBLES', []);
+      let h = intro(FLAN);
+      if (LC.length) h += `<h3>Ce qui la recharge</h3><table class="t"><tr><th>Combustible</th><th>Flamme</th></tr>${LC.map(([id, s]) => `<tr><td>${IL(id)}</td><td>${dur(s)}${s >= scal('LANTERNE_MAX', 600) ? ' (pleine)' : ''}</td></tr>`).join('')}</table>`;
+      h += `<p>${['it:lanterne', 'it:huile_lampe', 'sout:noir'].filter((q) => pages.has(q)).map((q) => link(q)).join(' · ')}</p>`;
+      SP('sys:lanterne', { t: 'La lanterne et son huile', s: `Dix minutes de flamme, puis il faut la recharger`, c: ['quotidien'], i: '🏮', h }, FLAN);
+    }
+    const FRU = fileHas(/^11-zzzz6-ruches/);
+    if (FRU) {
+      let h = intro(FRU) + `<p>${['ruche', 'enfumoir', 'cire_abeille', 'miel', 'bougie', 'hydromel'].filter((q) => ITEMS[q]).map((q) => IL(q)).join(', ')}</p>`;
+      if (pages.has('c2t:rucher')) h += `<p>Et, dans la nature, ${link('c2t:rucher', 'les ruchers des lieux perdus')}.</p>`;
+      SP('sys:ruches', { t: 'Les ruches', s: 'Le miel chaque matin, la cire tous les trois jours', c: ['quotidien'], i: '🐝', h }, FRU);
+    }
+    const FREC = fileHas(/^11-zzzz6-recettes/);
+    if (FREC) SP('sys:recettes-gardees', { t: 'Ce que les mains n’oublient pas', s: 'Les recettes apprises survivent à la mort', c: ['quotidien'], i: '✋', h: intro(FREC) + `<p>${link('cat:recettes', 'Les recettes')}</p>` }, FREC);
+    const FGEL = fileHas(/^11-zzvallee0-gel/);
+    if (FGEL) {
+      let h = intro(FGEL);
+      const g = (k) => scal(k, null);
+      if (g('GEL_DUREE')) h += `<dl class="kv"><dt>Du premier givre à la fin</dt><dd>${dur(g('GEL_DUREE'))} de grand froid (temps réel)</dd>${g('GEL_FONTE_CHAUD') ? `<dt>Au feu, sous un toit</dt><dd>${dur(g('GEL_FONTE_CHAUD'))} pour tout faire fondre</dd>` : ''}${g('GEL_FONTE_DOUX') ? `<dt>Hors du grand froid</dt><dd>${dur(g('GEL_FONTE_DOUX'))}</dd>` : ''}</dl>`;
+      SP('sys:gel', { t: 'Le gel, là-haut', s: 'Au-dessus des neiges, la nuit, sans feu ni toit', c: ['quotidien'], i: '❄', h }, FGEL);
+    }
+    const F3D = fileHas(/^13-zz-son3d/), FSC = fileHas(/^09-zzzaudio-scene/), FAU = fileHas(/^09-audio/), FSO = fileHas(/^12-zzzzz-sons/);
+    if (F3D || FSC) {
+      const NV = (DB.derived.nv || {});
+      for (const k of ['SON3D_BETE', 'SON3D_VOIX', 'SON3D_SABOTS']) used.add(k);
+      let h = intro(F3D);
+      if (NV.son && NV.son.option) h += `<p>Le réglage : « ${esc(NV.son.option)} », dans les Options${NV.son.defaut ? ' (coché d’office)' : ''}.</p>`;
+      if (FSC) h += `<h3>Les ambiances</h3>` + intro(FSC, { nolead: true });
+      if (FSO) h += `<h3>Des sons plus doux</h3>` + intro(FSO, { nolead: true });
+      if ((NV.options || []).length) h += `<h3>Les options du jeu</h3><ul class="cols">${NV.options.map((o) => `<li>${esc(o)}</li>`).join('')}</ul>`;
+      SP('sys:son', { t: 'Le son', s: 'Des bruits qui viennent de quelque part', c: ['quotidien'], i: '♫', h }, [F3D, FSC, FAU, FSO].filter(Boolean));
+    }
+    const FPEN = fileHas(/^11-zzz00b-pensees/);
+    if (FPEN) SP('sys:pensees', { t: 'Les pensées', s: 'Moins dire', c: ['corps'], g: 'Le corps et l’esprit', i: '…', h: intro(FPEN) }, FPEN);
+  }
+
+  // ---------------------------------------------------------------- 26) LES LANGUES PERDUES, DÉSORMAIS ; LES PLANS DES MONDES
+  {
+    const NL = (DB.derived.nv || {}).langues || {};
+    const p = pages.get('sys:langues');
+    if (p) {
+      const v = (a, d) => (a && a.length ? a[0] : d);
+      let s = `<h3>Qui enseigne quoi, désormais</h3><p>Peu de mots à la fois, une leçon par jour, jamais une pierre entière : la langue se déchiffre lentement, par recoupement.</p><ul>`;
+      s += `<li>${npcLink('libraire', 'Le bibliothécaire')} : l’aëlin, ${plur(v(NL.motsN, 2), 'mot', 'mots')} par leçon pour ${pcs(v(NL.motsPrix, 30))} ; ou, pour ${pcs(v(NL.pierrePrix, 20))}, un seul mot d’une pierre qu’on a relevée (il ne lit pas à votre place). Une leçon par jour.</li>`;
+      s += `<li>${npcLink('nain_ancien', 'L’ancien des nains')} : le gorrain, dès l’amitié ${v(NL.nainAmitie, 1)}, un mot à la fois, ${v(NL.nainQuota, 1)} par jour (un de plus tous les ${NL.nainQuota && NL.nainQuota[1] ? NL.nainQuota[1] : 6} niveaux d’amitié) ; à l’amitié ${v(NL.cupulesAmitie, 3)}, il dit un peu, de travers, ce que disent les cupules qu’on a relevées (une fois par pierre).</li>`;
+      s += `<li>Les lexiques (livres) : quelques mots chacun, dans un ordre mêlé propre à chaque partie.</li><li>Personne ne traduit une pierre entière. Seule déduction faite par le jeu, sans rien dire : le dernier mot inconnu d’une pierre dont on connaît déjà le sens.</li></ul>`;
+      const i = p.h.indexOf('<h3>Les langues</h3>');
+      p.h = i >= 0 ? p.h.slice(0, i) + s + p.h.slice(i) : p.h + s;
+    }
+    // les plans des mondes
+    for (const wk of ['enfers', 'cauchemar', 'bonbons', 'tenebres']) {
+      const q = pages.get('monde:' + wk), M = (DB.world.mondes || {})[wk];
+      if (q && M && M.img) q.h = `<p>${planBtn(wk, '', 'Voir le plan')}</p>` + q.h;
+    }
+    const pd = pages.get('it:carnet_onz');
+    if (pd && SOUT) pd.h += `<p>${planBtn('dessous', 'p:it:carnet_onz', 'La cabane vide, sur le plan')}</p>`;
+  }
+
   // ==== PRISON, VOL À LA TIRE ET SENTIMENTS (modules à venir : leurs fiches se font d'elles-mêmes) ====
   // et, plus généralement, tout module de nouveautés qu'aucune fiche ne couvre encore
   const genericPage = (file, cat, g) => {
@@ -3492,6 +4377,7 @@ function buildWiki(DB) {
   const itemGroup = (p) => { const id = p.id.slice(3), it = ITEMS[id]; return it ? CATN[it.cat] || cap(it.cat || 'Autres') : 'Autres'; };
   const isSys = (id) => SYSP.includes(id);
   const sysGroup = (cat, t) => { const ids = byCat(cat).filter(isSys); return ids.length ? [{ t, ids }] : []; };
+  const sysFirst = (ids) => ids.sort((a, b) => b.startsWith('sys:') - a.startsWith('sys:'));
   const cats = [
     { id: 'nouveautes', t: 'Nouveautés', d: 'Tout ce qui est arrivé dans la vallée : le corps et l’esprit, les maisons et les serrures, fouiller et casser, les activités des villes, la chasse, la société, les événements, les Trois, les autres mondes, les merveilles…', page: true, nouveau: true },
     { id: 'commandes', t: 'Commandes et mécaniques', d: 'Les touches du jeu, et ce que les nouveautés y ajoutent.', page: true, nouveau: true },
@@ -3512,7 +4398,12 @@ function buildWiki(DB) {
     { id: 'legendes', t: 'Légendes et lore', d: 'Légendes, fois, divinités, signes, textes du monde.', groups: groupBy(byCat('legendes'), (p) => (p.id.startsWith('my:') ? 'Légendes' : p.id.startsWith('foi:') ? 'Les fois' : p.id.startsWith('div:') ? 'Les divinités' : 'Textes')) },
     { id: 'cartes', t: 'Cartes des régions', d: 'Les cartes qu’on achète : jamais toute la vallée.', groups: [...sysGroup('cartes', 'Comment on les dessine'), { t: 'Cartes', ids: sortT(byCat('cartes').filter((i) => !isSys(i))) }] },
     { id: 'etrange', t: 'L’étrange', d: 'Apparitions, manifestations, lettres… (secrets).', groups: [{ t: 'L’étrange', ids: byCat('etrange') }] },
-    { id: 'corps', t: 'Corps et esprit', d: 'Chutes, blessures, mentalité, le sommeil et la fatigue, ce qu’on mange, le chien, l’alcool.', nouveau: true, groups: groupBy(byCat('corps'), (p) => p.g || 'Le corps et l’esprit') },
+    { id: 'lieux2', t: 'Lieux perdus', d: 'Un lieu tous les deux cents mètres : croix, chapelles, pierres levées, cabanes, sources… leurs sortes, ce qu’on y lit, leurs lettres, leurs histoires (et leurs secrets).', nouveau: true, groups: [{ t: 'Les lieux perdus', ids: byCat('lieux2').filter(isSys) }, { t: 'Les sortes de lieux', ids: sortT(byCat('lieux2').filter((i) => i.startsWith('c2t:'))) }, { t: 'Les histoires à recouper', ids: byCat('lieux2').filter((i) => i.startsWith('c2h:')) }, { t: 'Les lettres', ids: sortT(byCat('lieux2').filter((i) => i.startsWith('c2l:'))) }, { t: 'Les lieux de la vallée', ids: sortT(byCat('lieux2').filter((i) => i.startsWith('li:'))) }] },
+    { id: 'peuples', t: 'Les deux peuples', d: 'Les Planches, sur le lac, et l’estive, là-haut : leurs gens, leurs coutumes, leurs parlers.', nouveau: true, groups: [{ t: 'Les deux peuples', ids: sysFirst(byCat('peuples').filter((i) => isSys(i) && !i.startsWith('parler:'))) }, { t: 'Leurs parlers', ids: byCat('peuples').filter((i) => i.startsWith('parler:')) }, { t: 'Leurs gens', ids: sortT(byCat('peuples').filter((i) => i.startsWith('pnj:'))) }, { t: 'Leurs lieux', ids: sortT(byCat('peuples').filter((i) => i.startsWith('li:'))) }] },
+    { id: 'dessous', t: 'Le Dessous', d: 'Sous la vallée : les salles et leur plan, ceux d’en bas et leur parler, les minerais, les plantes et les bêtes d’en bas ; le passage, le Hoûm et le tombeau (secrets).', nouveau: true, groups: [{ t: 'Le Dessous', ids: sysFirst(byCat('dessous').filter((i) => isSys(i) && !/^(sout:g:|parler:|sout:gens|sout:encoches)/.test(i))) }, { t: 'Les salles', ids: sortT(byCat('dessous').filter((i) => i.startsWith('li:'))) }, { t: 'Ceux d’en bas', ids: [...['sout:gens', 'parler:bas', 'sout:encoches'].filter((i) => byCat('dessous').includes(i)), ...byCat('dessous').filter((i) => i.startsWith('sout:g:'))] }, { t: 'Les pierres gravées', ids: byCat('dessous').filter((i) => i.startsWith('ins:')) }] },
+    { id: 'nature', t: 'La nature', d: 'Chaque plante son objet, les bois, les plantes et les bêtes nouvelles, les cris d’oiseaux, le papillon d’or.', nouveau: true, groups: [{ t: 'La nature', ids: sysFirst(byCat('nature').filter(isSys)) }, { t: 'Les plantes nouvelles', ids: sortT(byCat('nature').filter((i) => i.startsWith('pl:'))) }, { t: 'Les bêtes nouvelles', ids: sortT(byCat('nature').filter((i) => i.startsWith('an:'))) }] },
+    { id: 'quotidien', t: 'Au quotidien', d: 'Le carnet de commandes et le voiturier, la lanterne et son huile, les ruches, les recettes qu’on n’oublie pas, le gel là-haut, le son.', nouveau: true, groups: [{ t: 'Au quotidien', ids: byCat('quotidien') }] },
+    { id: 'corps', t: 'Corps et esprit', d:'Chutes, blessures, mentalité, le sommeil et la fatigue, ce qu’on mange, le chien, l’alcool.', nouveau: true, groups: groupBy(byCat('corps'), (p) => p.g || 'Le corps et l’esprit') },
     { id: 'maisons', t: 'Maisons, lits et serrures', d: 'Dormir et la fatigue, louer une maison, l’acheter et la meubler, les portes, crocheter une serrure, la poterne.', nouveau: true, groups: groupBy(byCat('maisons'), (p) => p.g || 'Se loger') },
     { id: 'fouilles', t: 'Fouiller, ramasser, casser', d: 'Les armoires et les tiroirs-caisses, le menu de butin, ce qui se casse et à qui c’était, les morts qui restent au sol.', nouveau: true, groups: groupBy(byCat('fouilles'), (p) => p.g || 'Fouiller') },
     { id: 'activites', t: 'Activités des villes et villages', d: 'Les dés, le vingt-et-un, la veillée, les petits travaux, le puits, la diseuse, les quilles, la tombola, les concours, les étals du Marchedi…', nouveau: true, groups: groupBy(byCat('activites'), (p) => p.g || 'Les activités') },
@@ -3562,7 +4453,8 @@ function buildWiki(DB) {
     for (const c of [...cats.filter((q) => q.nouveau), ...cats.filter((q) => !q.nouveau)]) {
       const ids = SYSP.filter((id) => { const p = pages.get(id); return p && p.c.includes(c.id) && (!p.c.length || cats.findIndex((q) => p.c.includes(q.id)) === cats.indexOf(c)); });
       if (!ids.length) continue;
-      const main = ids.filter((id) => !SUBF.test(id)), subs = ids.filter((id) => SUBF.test(id));
+      // (la fiche d'ensemble d'une section, « sys: », d'abord)
+      const main = ids.filter((id) => !SUBF.test(id)).sort((a, b) => b.startsWith('sys:') - a.startsWith('sys:')), subs = ids.filter((id) => SUBF.test(id));
       n += ids.length;
       h += `<h2><a href="#/cat/${esc(c.id)}">${esc(c.t)}</a></h2>${c.nouveau ? '' : '<p class="note">(une section d’avant, qui s’est enrichie)</p>'}<ul class="nv">${main.map((id) => { const p = pages.get(id); return `<li${p.x ? ' class="sec"' : ''}>${link(id)}${p.s ? ` <small>— ${esc(p.s)}</small>` : ''}</li>`; }).join('')}</ul>${subs.length ? `<p class="note">Et ${subs.length} fiches : ${subs.slice(0, 40).map((id) => (isSec(id) ? secS(link(id)) : link(id))).join(' · ')}${subs.length > 40 ? '…' : ''}.</p>` : ''}`;
     }
@@ -3595,7 +4487,7 @@ function buildWiki(DB) {
     P('cat:commandes', { t: 'Commandes et mécaniques', s: 'Touches et gestes', c: [], i: '⌨', h });
   }
 
-  return { pages: [...pages.values()], cats, other, used: [...used], SAFE_INTER, safeInter, VIE_MAP };
+  return { pages: [...pages.values()], cats, other, used: [...used], SAFE_INTER, safeInter, VIE_MAP, ids: new Set(pages.keys()), titles: Object.fromEntries([...pages.values()].map((p) => [p.id, p.t])), C2T };
 }
 
 // ---------------------------------------------------------------- les données de la carte (pour la page)
@@ -3612,7 +4504,8 @@ function buildMapData(DB, wiki) {
   const homes = {};
   for (const d of NPCS) for (const b of uniq([d.home, d.work].filter(Boolean))) (homes[b] || (homes[b] = [])).push([d.id, `${(d.names || [])[0] || ''} ${d.surname || ''}`.trim(), d.home === b ? 1 : 0, d.role || '']);
   const SAFE = wiki.SAFE_INTER;
-  const poi = (W.inter || []).map((it) => [it.kind, it.name || it.kind, it.x, it.z, (wiki.safeInter ? wiki.safeInter(it) : SAFE.has(it.kind)) ? 0 : 1, it.data ? String(it.data.table || it.data.ins || it.data.kind || it.data.sigle || it.data.faith || it.data.key || '') : '']);
+  // (ce qui est à cent mètres sous la vallée — le Dessous, les mondes à part — va sur leurs plans, pas sur celle-ci)
+  const poi = (W.inter || []).filter((it) => !(it.y < -40)).map((it) => [it.kind, it.name || it.kind, it.x, it.z, (wiki.safeInter ? wiki.safeInter(it) : SAFE.has(it.kind)) ? 0 : 1, it.data ? String(it.data.table || it.data.ins || it.data.kind || it.data.sigle || it.data.faith || it.data.key || '') : '']);
   const spawns = {};
   for (const t of OT) if (t.animal && t.animal !== 'villager') (spawns[t.animal] || (spawns[t.animal] = [])).push(t.id);
   const spNames = {};
@@ -3624,7 +4517,11 @@ function buildMapData(DB, wiki) {
     size: W.size, wl: W.waterLevel, knots: W.altKnots, shadeFlat: W.shadeFlat, snow: W.snowLine,
     grids: { ground: W.ground, shade: W.shade, alt: W.alt, forest: W.forest, milieu: W.milieu },
     mats: (DB.derived.mats || []).map((m) => [m.id, m.avg]), milieux: (W.milieuKeys || []).map((k) => [k, HAB[k] || k]),
-    lm: (W.lm || []).map((L) => [L.key, L.name, L.x, L.z, L.r, (L.secret ? 1 : 0) | (L.under ? 2 : 0), L.fish || '', L.y]),
+    // (drapeaux : 1 secret, 2 sous terre, 4 un lieu perdu, 8 un village des deux peuples)
+    lm: (W.lm || []).filter((L) => !L.souterrain).map((L) => [L.key, L.name, L.x, L.z, L.r, (L.secret ? 1 : 0) | (L.under ? 2 : 0) | (L.c2 ? 4 : 0) | (L.peuple ? 8 : 0), L.fish || '', L.y]),
+    // les lieux perdus : [lieu-dit, sorte] ; les sortes : [nom, signe, fiche]
+    c2: (W.lm || []).filter((L) => L.c2).map((L) => [L.key, L.c2]), c2t: wiki.C2T || {},
+    peuples: (W.lm || []).filter((L) => L.peuple).map((L) => [L.key, L.peuple, 'peuple:' + L.peuple]),
     bld: (W.bld || []).map((B) => [B.key, /^vide\d*$/.test(B.name) ? 'maison vide' : B.name, B.x, B.z, B.under ? 1 : 0]),
     homes, nav: W.nav, poi, props: (W.props || []).filter((p) => PROP_LABELS[p[0]]).map((p) => [p[0], p[1], p[2]]), propLabels: PROP_LABELS,
     fish: W.fishZones || [], fishBy, eaux: EAUX, lakes: W.lakes || [], pools: W.pools || [], moat: W.moat, bridges: W.bridges || [], crevasses: W.crevasses || [],
@@ -3632,6 +4529,131 @@ function buildMapData(DB, wiki) {
     vie: wiki.VIE_MAP || null,
     blocks: W.blocks, species: W.species, spawns, spNames, sigils: Object.fromEntries(Object.entries(SIGT).map(([k, v]) => [k, (v && v.titre) || k])),
   };
+}
+
+// ---------------------------------------------------------------- les plans (le Dessous, les autres mondes) : leur image et leurs repères
+// Un repère : { l: couche, x, z (mètres), t: nom, s: sous-titre, p: fiche, i: signe, c: couleur, k: 'zone' | 'pt' | 'dot' | 'fl',
+// r: rayon (zone), a: angle (flèche), x2: secret }. Les couches : [clé, nom, secrète, allumée].
+const PLAN_DECORS = {
+  'ENF.pont': ['le gué d’os', '═'], 'ENF.pupitre': ['le registre du Recenseur', '▤'], 'ENF.table': ['la table servie', '▭'], 'ENF.puits': ['le puits des noms', '◎'], 'ENF.porte': ['la Porte noire', '▮'], 'ENF.autel': ['l’autel devant la Porte', '▬'],
+  'CM.lit': ['le lit', '▭'], 'CM.table': ['la table, et la lettre du notaire', '✉'], 'CM.chaiseEnvers': ['la chaise, au plafond', '⊥'], 'CM.berceuse': ['la berceuse qui se balance', '◡'], 'CM.portrait': ['le portrait sans visage', '▢'], 'CM.cheminee': ['la cheminée', '▦'], 'CM.fenetre': ['la fenêtre rouge', '▯'], 'CM.poupee': ['la poupée', '•'], 'CM.armoire': ['l’armoire qui s’ouvre', '▮'], 'CM.dessin': ['le dessin d’enfant', '✎'], 'CM.issue': ['l’issue : une porte de lumière', '☼'],
+  'BB.herse': ['la porte du château', '⌂'], 'BB.trone': ['le trône du roi de sucre', '♛'], 'BB.fontaine': ['la fontaine', '◎'], 'BB.bonbonTable': ['une table de bonbons', '▭'],
+  'TNM.autel': ['l’autel', '▬'], 'TNM.coeur': ['le cœur noir', '♥'], 'TNM.gibet': ['le gibet', '⊓'], 'TNM.cle': ['la clé des cages', '⚷'],
+};
+const PLAN_ZONES = {
+  enfers: [['ENF.lave', 'le fleuve de braise'], ['@depart', 'la grève de cendre'], ['ENF.stele', 'le champ des âmes', 'betes:ame'], ['ENF.porte', 'la Porte noire']],
+  cauchemar: [['@L:maison', 'la maison-souvenir'], ['@L:couloir', 'le couloir qui ne finit pas'], ['@L:issue', 'l’issue']],
+  bonbons: [['BB.trone', 'le château de dragées'], ['BB.cheminee', 'les maisons de pain d’épice'], ['BB.pave', 'le sentier de dragées']],
+  tenebres: [['TNM.vitrail', 'la cathédrale'], ['TNM.cage', 'les cages']],
+};
+function buildPlansData(DB, wiki) {
+  const T = (n, d) => (DB.tables[n] ? DB.tables[n].v : d), has = (id) => wiki.ids.has(id), pg = (id, alt) => (has(id) ? id : alt && has(alt) ? alt : '');
+  const ITEMS = T('ITEMS', {}), r1 = (v) => Math.round(v * 10) / 10, out = [];
+  const titre = (id) => (wiki.titles && wiki.titles[id]) || id;
+  // ---- le Dessous
+  const S = DB.world.dessous;
+  if (S && S.raw) {
+    const R = S.raw, marks = [], Z = R.zones || {};
+    const M = (o) => { o.x = r1(o.x); o.z = r1(o.z); marks.push(o); return o; };
+    const salle = (k) => pg('li:sout_' + k, 'sys:dessous');
+    for (const [k, x, z, rx, rz] of R.salles || []) M({ l: 'salles', k: 'zone', x, z, r: Math.max(rx, rz), t: cap(Z[k] || k), p: salle(k), x2: k === 'dormeurs' ? 1 : 0 });
+    for (const [k, x, z, rx, rz] of R.lacs || []) M({ l: 'salles', k: 'zone', x, z, r: Math.max(rx, rz), t: cap(Z[k] || k), p: salle(k), c: 'eau' });
+    for (const L of R.lm || []) {
+      const [key, name, x, z, y, r] = L;
+      if (key === 'sout_riviere' || key === 'sout_mines') M({ l: 'salles', k: 'zone', x, z, r: Math.max(40, r), t: cap(name), p: pg('li:' + key, 'sys:dessous'), c: key === 'sout_riviere' ? 'eau' : '' });
+      else if (key === 'sout_hameau_c') continue; // (le nom du hameau est celui de sa salle)
+      else if (key === 'sout_cave') M({ l: 'entree', k: 'pt', x, z, t: cap(name), s: 'Sous la rue de Valbrume : des os, des traits sur le mur, un puits', p: pg('li:sout_cave', 'sout:entree'), i: '⚿' });
+      else if (key === 'sout_tombeau') M({ l: 'caches', k: 'pt', x, z, t: cap(name), s: 'Fermé d’une dalle taillée d’un œil', p: pg('li:sout_tombeau', 'sout:tombeau'), i: '⛫' });
+      else if (!L[6] && !/^sout_/.test(key)) M({ l: 'lahaut', k: 'pt', x, z, t: cap(name), s: `Un dessous de là-haut, ${Math.round(-y) > 0 ? Math.round(-y) + ' m sous l’eau ou la terre' : 'juste sous la surface'}`, p: pg('li:' + key), i: '⛏' });
+    }
+    const V = R.village || {};
+    const hm = (k, x, z, t, s, p, i) => { if (x !== undefined && x !== null && z > 0) M({ l: 'hameau', k: 'pt', x, z, t, s, p, i }); };
+    if (V.appel) hm(0, V.appel[0], V.appel[1], 'la pierre d’appel', 'Marquée de trois entailles, à l’entrée du hameau, dans le noir', pg('sout:gens'), '◈');
+    for (const it of R.inter || []) {
+      const [kind, id, name, x, y, z, d] = it;
+      if (kind === 'sout_pain') hm(0, x, z, 'la pierre au pain', 'Au milieu du hameau', pg('sout:gens'), '◍');
+      else if (kind === 'lire' && id === 'sout_jours') hm(0, x, z, 'le mur des jours', 'Des encoches par paquets de cinq, des milliers', pg('sout:encoches'), '▥');
+      else if (kind === 'sout_carnet') M({ l: 'caches', k: 'pt', x, z, t: 'la cabane vide', s: 'Celle du onzième ; sous la couche, un carnet', p: pg('it:carnet_onz', 'sout:gens'), i: '✎' });
+      else if (kind === 'sout_grille') M({ l: 'entree', k: 'pt', x, z, t: 'la grille de l’exutoire', s: 'Dans les douves de Valbrume, au pied de la tour : le passage caché', p: pg('sout:entree'), i: '▦' });
+      else if (kind === 'sout_remonter') M({ l: 'entree', k: 'pt', x: x + 3, z: z + 3, t: 'le pied du puits', s: 'Les barreaux montent à la cave des Murés', p: pg('sout:entree'), i: '⇡' });
+      else if (kind === 'sout_sortie') M({ l: 'sorties', k: 'pt', x, z, t: d === 'mine' ? 'le vieux puits de la mine' : d === 'chene' ? 'les racines du grand chêne' : cap(name), s: d === 'mine' ? 'Des barreaux montent aux Galeries de la mine' : d === 'chene' ? 'On sort au pied du grand chêne' : '', p: pg('sout:retours'), i: '⇡' });
+      else if (kind === 'sout_trou') M({ l: 'sorties', k: 'pt', x, z, t: d === 'mine' ? 'la pierre qui bouchait le trou (les Galeries)' : 'le trou entre les racines', s: 'D’en haut : on ne passe qu’une fois sorti par là', p: pg('sout:retours'), i: '⇣' });
+      else if (kind === 'inscription' && /^ins_/.test(id)) { const ins = id.slice(4); M({ l: ins === 'a_oeil' ? 'caches' : 'inscr', k: 'pt', x, z, t: 'une pierre gravée', s: 'En Hautes Lettres', p: pg('ins:' + ins), i: '𐌰' }); }
+      else if (kind === 'sout_enc' && id === 'sout_enc_e_onz') hm(0, x, z, 'les dalles d’encoches', 'Dans la maison du vieux : six dalles', pg('sout:encoches'), '▤');
+    }
+    for (const [k, nom, dit] of R.gens || []) {
+      const at = { un: V.encoches, deu: V.planches && V.planches[0], tre: V.c && [V.c[0] + 2, V.c[1] - 1.5], katr: V.rive, sin: V.huttes && V.huttes[1], si: V.claies && V.claies[0], se: V.garde, ui: V.huttes && V.huttes[2], neu: V.c && [V.c[0] + 3, V.c[1] + 2], di: V.entree }[k];
+      if (at && at[1] > 0) M({ l: 'gens', k: 'dot', x: at[0], z: at[1], t: `${nom}, ${dit}`, s: 'Ceux d’en bas', p: pg('sout:g:' + k, 'sout:gens'), c: 'gens' });
+    }
+    // les secrets : ceux qui dorment sous la goutte, le Hoûm, les vasques, les minerais, les flèches du géomètre, les repères
+    if ((R.dormeurs || []).length) { const d = R.dormeurs, x = d.reduce((a, q) => a + q[0], 0) / d.length, z = d.reduce((a, q) => a + q[1], 0) / d.length; M({ l: 'caches', k: 'pt', x, z, t: `${d.length} dormeurs`, s: 'Ceux d’en bas couchent leurs morts sous la goutte', p: salle('dormeurs'), i: '✝' }); }
+    const gf = (R.salles || []).find((q) => q[0] === 'gouffres');
+    if (gf) M({ l: 'caches', k: 'pt', x: gf[1] + 20, z: gf[2] - 18, t: 'le Hoûm', s: 'Aux Gouffres et à la Salle des Échos : il chasse au bruit', p: pg('sout:houm'), i: '☊' });
+    const P = R.props || {};
+    const MINC = { galene: '#7a808c', magnetite: '#2e2c30', soufre: '#e0c840', salpetre: '#ece8de', luisante: '#5ae8c0', cristal: '#bfe0ff' };
+    const MINI = { galene: 'galene', magnetite: 'magnetite', soufre: 'soufre', salpetre: 'salpetre', luisante: 'luisante', cristal: 'cristal_roche' };
+    for (const [x, z, , m] of P.sout_filon || []) M({ l: 'minerais', k: 'dot', x, z, t: cap((ITEMS[MINI[m]] && ITEMS[MINI[m]].name) || m), s: 'Un filon (pioche)', p: pg('it:' + MINI[m], 'sout:minerais'), c: MINC[m] || '#aaa', x2: 1 });
+    for (const [x, z] of P.sout_vasque || []) M({ l: 'minerais', k: 'dot', x, z, t: 'une vasque', s: 'Au fond, une perle des cavernes', p: pg('it:perle_caverne', 'sout:minerais'), c: '#f0ece0', x2: 1 });
+    const CUE = Object.fromEntries((R.cueillettes || []).map((c) => [c[0], c[1]]));
+    for (const id of ['sout_pied_pierre', 'sout_mousse', 'sout_lichen', 'sout_fougere', 'sout_algue', 'sout_suie', 'sout_guano']) for (const [x, z] of P[id] || []) { const it = CUE[id]; M({ l: 'plantes', k: 'dot', x, z, t: cap((ITEMS[it] && ITEMS[it].name) || it), s: 'Se cueille (E)', p: pg('it:' + it, 'sout:plantes'), c: '#8ac86a' }); }
+    { const L = P.sout_champi || []; for (let i = 0; i < L.length; i += 3) M({ l: 'plantes', k: 'dot', x: L[i][0], z: L[i][1], t: 'des champignons lumineux', s: 'Ils se cueillent, et repoussent', p: pg('it:champi_lumineux', 'sout:plantes'), c: '#6ad8e8' }); }
+    const NIDS = { chauve: ['une colonie de chauves-souris', '#6a5a7a'], protee: ['des protées, au bord de l’eau', '#f0c8c0'], ecrevisse: ['des écrevisses aveugles', '#e8dcc8'], grillon: ['des grillons des cavernes', '#c8b89a'], scolopendre: ['une scolopendre', '#b8502a'] };
+    for (const [k, x, z, n] of R.nids || []) { const N = NIDS[k] || [k, '#aaa']; M({ l: 'betes', k: 'dot', x, z, t: N[0] + (n > 1 && k !== 'scolopendre' ? ` (${n})` : ''), s: 'Les bêtes d’en bas', p: pg('sout:betes'), c: N[1] }); }
+    for (const [x, z, a] of P.sout_fleche || []) M({ l: 'fleches', k: 'fl', x, z, a, t: 'une flèche au charbon', s: 'Le géomètre, 1872 : la pointe vers la mine', p: pg('sout:retours'), x2: 1 });
+    for (const [x, z] of P.sout_cairn || []) M({ l: 'reperes', k: 'dot', x, z, t: 'un tas de pierres', s: 'Trois entailles : le signe de ceux d’en bas', p: pg('sout:noir', 'sout:gens'), c: '#d8c8a8' });
+    out.push({
+      id: 'dessous', t: 'Le Dessous', i: '⛏', s: `Sous la vallée, de ${Math.round(-(S.wl || -150) - 30)} à ${Math.round(-(S.wl || -150) + 40)} mètres sous l’herbe : le plan des galeries, dessiné depuis le sol et la voûte du jeu.`,
+      img: S.img, x0: S.x0, z0: S.z0, x1: S.x1, z1: S.z1, ppm: S.ppm, bg: '#36312d', coords: 1, surface: 1, lahaut: 1, p: pg('sys:dessous'),
+      layers: [['salles', 'Les salles, les lacs, la rivière', 0, 1], ['hameau', 'Le Hameau d’En-Bas', 0, 1], ['gens', 'Ceux d’en bas', 0, 1], ['inscr', 'Les pierres gravées', 0, 1], ['reperes', 'Les tas de pierres (repères)', 0, 1], ['plantes', 'Les plantes d’en bas', 0, 0], ['betes', 'Les bêtes d’en bas', 0, 0], ['surface', 'La vallée au-dessus, en transparence', 0, 0],
+        ['entree', 'Le passage de Valbrume', 1, 1], ['sorties', 'Les autres sorties', 1, 1], ['caches', 'Ce qui se cache', 1, 1], ['minerais', 'Les minerais, les vasques', 1, 1], ['fleches', 'Les flèches du géomètre', 1, 0], ['lahaut', 'Les dessous de là-haut (mine, clocher…)', 1, 1]],
+      marks,
+    });
+  }
+  // ---- les autres mondes
+  const ST = T('ENFERS_STELES', []);
+  for (const [nom, o] of Object.entries(DB.world.mondes || {})) {
+    if (!o || !o.img) continue;
+    const marks = [], page = pg('monde:' + nom, 'sys:mondes');
+    const M = (m) => { m.x = r1(m.x); m.z = r1(m.z); marks.push(m); return m; };
+    const byM = {};
+    for (const c of o.choses || []) (byM[c.m] || (byM[c.m] = [])).push(c);
+    const mid = (L) => [L.reduce((a, c) => a + c.x, 0) / L.length, L.reduce((a, c) => a + c.z, 0) / L.length];
+    const ext = (L) => Math.max(8, ...L.map((c) => Math.hypot(c.x - mid(L)[0], c.z - mid(L)[1])));
+    // les étendues (des noms posés sur une région du plan)
+    for (const [src, t, alt] of PLAN_ZONES[nom] || []) {
+      let at = null, r = 20;
+      if (src === '@depart' && o.depart) at = [o.depart[0], o.depart[2] + 4];
+      else if (src.startsWith('@L:') && o.L && o.fond) { const L = o.L, seg = src.slice(3) === 'maison' ? L.maison : src.slice(3) === 'couloir' ? L.couloir : [L.couloir[1], L.fin]; at = [o.fond.x, o.fond.z + (seg[0] + seg[1]) / 2]; r = (seg[1] - seg[0]) / 2; }
+      else if (alt === 'betes:ame') { const A = (o.betes || []).filter((b) => b.k === 'ame' && !b.nom); at = A.length ? mid(A) : o.fond ? [o.fond.x, o.fond.z - 14] : null; }
+      else if (byM[src]) { at = mid(byM[src]); r = ext(byM[src]); }
+      if (at) M({ l: 'noms', k: 'zone', x: at[0], z: at[1], r: Math.max(12, r), t: cap(t), p: page });
+    }
+    for (const [m, L] of Object.entries(byM)) {
+      const d = PLAN_DECORS[m];
+      if (m === 'ENF.stele') L.forEach((c) => { const S2 = ST[c.v]; M({ l: 'decors', k: 'pt', x: c.x, z: c.z, t: S2 ? 'Stèle : « ' + S2[0] + ' »' : 'une stèle', s: 'Gravée dans la pierre noire (E : la lire)', p: page, i: '▮' }); });
+      else if (d) for (const c of L.slice(0, 3)) M({ l: 'decors', k: 'pt', x: c.x, z: c.z, t: cap(d[0]), s: '', p: page, i: d[1] });
+    }
+    for (const c of o.choses || []) if (c.item && has('it:' + c.item)) M({ l: 'cueillir', k: 'dot', x: c.x, z: c.z, t: cap(titre('it:' + c.item)), s: 'Se ramasse', p: 'it:' + c.item, c: '#e8d070' });
+    const seen = {};
+    for (const b of o.betes || []) {
+      const p2 = pg('an:m:' + b.k, page), n = seen[b.k] = (seen[b.k] || 0) + 1;
+      const t = b.nom ? b.nom : cap(titre(p2) || b.k);
+      if (!b.nom && n > 1) continue; // (une seule étiquette par espèce ; les autres, de simples points)
+      M({ l: 'betes', k: 'pt', x: b.x, z: b.z, t, s: b.nom ? 'Une âme, près de la Porte' : '', p: p2, i: b.k === 'gardien' ? '☉' : b.k === 'ame' ? '☁' : '✱' });
+    }
+    for (const b of o.betes || []) if (!b.nom && seen[b.k] > 1) M({ l: 'betes', k: 'dot', x: b.x, z: b.z, t: cap(titre(pg('an:m:' + b.k, page)) || b.k), s: '', p: pg('an:m:' + b.k, page), c: '#d8b8a8' });
+    const TT = { enfers: 'Les Enfers', cauchemar: 'Le cauchemar', bonbons: 'Le pays des bonbons', tenebres: 'Les Ténèbres' };
+    const NOTE = {
+      enfers: 'Sous la vallée, sous l’Envers même : ce que le monde construit quand on y descend (les âmes du champ sont celles de vos victimes : ici, une partie neuve n’en a pas).',
+      cauchemar: 'Le rêve qui tourne mal : la maison-souvenir, le couloir qui boucle, l’issue au bout.',
+      bonbons: 'Une vision qui se dresse autour de l’endroit où l’on est (ici : devant la ferme) ; la disposition change à chaque fois.',
+      tenebres: 'Une vision qui se dresse autour de l’endroit où l’on est (ici : devant la ferme) ; la disposition change à chaque fois.',
+    };
+    out.push({ id: nom, t: TT[nom] || cap(o.titre || nom), i: { enfers: '🜂', cauchemar: '☾', bonbons: '🍬', tenebres: '🜏' }[nom] || '◐', s: NOTE[nom] || '', img: o.img, x0: o.x0, z0: o.z0, x1: o.x1, z1: o.z1, ppm: o.ppm, bg: { enfers: '#1a0c0a', cauchemar: '#0e0d0d', bonbons: '#eccede', tenebres: '#101016' }[nom] || '#222', coords: 0, p: page,
+      layers: [['noms', 'Les lieux', 0, 1], ['decors', 'Ce qui s’y dresse', 0, 1], ['betes', 'Ce qui y vit', 0, 1], ['cueillir', 'Ce qu’on y ramasse', 0, 1]], marks });
+  }
+  const ORD = ['dessous', 'enfers', 'cauchemar', 'bonbons', 'tenebres'];
+  return out.sort((a, b) => ORD.indexOf(a.id) - ORD.indexOf(b.id));
 }
 
 // ============================================================================
@@ -3691,7 +4713,7 @@ function CLIENT(D) {
 
   // ---------------------------------------------------------------- navigation (catégories)
   function renderNav() {
-    $('#nav').innerHTML = `<a class="navmap" href="#/carte">🗺 La carte de la vallée</a>` + CATS.map((c) => {
+    $('#nav').innerHTML = `<a class="navmap" href="#/carte">🗺 Les cartes <small>vallée, Dessous, Enfers…</small></a>` + CATS.map((c) => {
       const n = c.groups ? c.groups.reduce((a, g) => a + g.ids.filter((id) => visible(PAGES.get(id))).length, 0) : 0;
       if (!n && !c.page && !PAGES.has('cat:' + c.id)) return '';
       if (!reveal && !n && !c.page) return '';
@@ -3701,7 +4723,7 @@ function CLIENT(D) {
 
   // ---------------------------------------------------------------- vues
   let mode = '';
-  const setMode = (m) => { if (mode === m) return; mode = m; document.body.dataset.mode = m; if (m !== 'map') MAP.stop(); };
+  const setMode = (m) => { if (mode === m) return; mode = m; document.body.dataset.mode = m; if (m !== 'map') { MAP.stop(); if (VIEW && VIEW.stop) VIEW.stop(); } };
   const crumbs = (items) => `<nav class="crumbs">${items.map(([t, h]) => (h ? `<a href="${h}">${esc(t)}</a>` : `<span>${esc(t)}</span>`)).join(' › ')}</nav>`;
   const secretNote = '<div class="secret-page"><p>Cette fiche est un <b>secret</b> : un lieu caché, une solution, une chose qu’on découvre en jouant.</p><p><button class="btn" data-reveal>🔒 Révéler les secrets</button></p></div>';
   const card = (p) => `<a class="card${p.x ? ' is-sec' : ''}" href="#/p/${encodeURIComponent(p.id)}">${iconHTML(p.i, 36)}<span class="ct">${esc(p.t)}</span>${p.s ? `<span class="cs">${esc(p.s)}</span>` : ''}</a>`;
@@ -3713,6 +4735,7 @@ function CLIENT(D) {
       <header class="hd"><div><h1>Prairie — le wiki de la vallée</h1><p class="sub">Tout ce que contient la vallée : ses gens, ses bêtes, ses plantes, ses objets, ses langues perdues et ses secrets. ${total} fiches.</p></div></header>
       <p class="lead">Ce compagnon se lit à côté du jeu. Il a été tiré du jeu lui-même, le ${new Date(D.meta.built).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}. Dans le jeu, il n’y a jamais de carte de toute la vallée : ici, si.</p>
       <p><a class="btn big" href="#/carte">🗺 Ouvrir la carte de la vallée</a> ${reveal ? '' : '<button class="btn" data-reveal>🔒 Révéler les secrets</button>'}</p>
+      ${(D.plans || []).length ? `<p class="plans">Et les plans de ce qui n’est pas sur la carte : ${(D.plans || []).map((P) => `<a class="btn" href="#/plan/${P.id}">${esc(P.i || '')} ${esc(P.t)}</a>`).join(' ')}</p>` : ''}
       <div class="cats">${CATS.map((c) => { const n = c.groups ? c.groups.reduce((a, g) => a + g.ids.filter((id) => visible(PAGES.get(id))).length, 0) : 0; if (!n && !c.page) return ''; return `<a class="catcard" href="#/cat/${c.id}"><b>${esc(c.t)}</b>${n ? ` <small>${n}</small>` : ''}<span>${esc(c.d || '')}</span></a>`; }).join('')}</div>
       ${D.log && D.log.length ? `<details class="log"><summary>Journal de construction (${D.log.length})</summary><ul>${D.log.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></details>` : ''}
     </article>`;
@@ -3922,14 +4945,43 @@ function CLIENT(D) {
 
   // ---------------------------------------------------------------- LA CARTE
   const M = D.map;
+  // la vue active : la carte de la vallée (MAP) ou un plan (le Dessous, les Enfers…) ; les gestes et les outils vont à elle
+  let VIEW = null;
+  const V = () => VIEW || MAP;
+  // étiquettes sans chevauchement (les plus importantes d'abord), l'échelle et le nord : communes à la carte et aux plans
+  const LABEL_FONT = { region: (l) => 'italic 600 ' + Math.round(13 + Math.min(8, l.pr * 2)) + 'px Georgia, serif', town: () => '600 13px Georgia, serif', npc: () => '11px Georgia, serif', bld: () => '11px Georgia, serif', peuple: () => 'italic 700 14px Georgia, serif', lieu2: () => 'italic 11px Georgia, serif', salle: (l) => 'italic 600 ' + Math.round(12 + Math.min(6, l.pr)) + 'px Georgia, serif' };
+  const LABEL_COL = { secret: '#8a1e14', rent: '#2c5a2a', act: '#6a2e10', under: '#4a2a6a', water: '#1e4a6a', region: 'rgba(60,44,28,.78)', npc: '#7a2414', bld: '#4a3826', lieu2: '#1e3a3a', peuple: '#2e4a1e' };
+  function drawLabels(c, labels, dark) {
+    labels.sort((a, b) => b.pr - a.pr);
+    const placed = [];
+    for (const l of labels) {
+      c.font = (LABEL_FONT[l.cls] || (() => 'italic 12px Georgia, serif'))(l);
+      const w = c.measureText(l.t).width, h = 14;
+      const x0 = l.left ? l.x : l.x - w / 2, y0 = l.y - h / 2;
+      if (placed.some((p) => x0 < p[0] + p[2] && x0 + w > p[0] && y0 < p[1] + p[3] && y0 + h > p[1])) continue;
+      placed.push([x0 - 2, y0 - 1, w + 4, h + 2]);
+      c.textAlign = 'left'; c.textBaseline = 'middle';
+      c.lineWidth = 3; c.strokeStyle = dark ? 'rgba(20,16,14,.85)' : 'rgba(246,238,216,.85)'; c.strokeText(l.t, x0, l.y);
+      c.fillStyle = l.col || (dark ? (l.cls === 'secret' ? '#ff9a80' : l.cls === 'water' ? '#a8d0f0' : l.cls === 'salle' ? '#f4e6c4' : '#e8dcc0') : LABEL_COL[l.cls] || '#2a1d12');
+      c.fillText(l.t, x0, l.y);
+    }
+  }
+  function drawScale(c, W, H, k, dark) {
+    const target = 120 / k, pw = Math.pow(10, Math.floor(Math.log10(target))), step = [1, 2, 5, 10].map((m) => m * pw).find((s) => s >= target * 0.6) || pw;
+    const bw = step * k, ink = dark ? '#f0e4c8' : '#2a1d12';
+    c.fillStyle = dark ? 'rgba(20,16,14,.8)' : 'rgba(246,238,216,.85)'; c.fillRect(12, H - 34, bw + 16, 24);
+    c.fillStyle = ink; c.fillRect(20, H - 18, bw, 3); c.fillRect(20, H - 23, 1.5, 8); c.fillRect(20 + bw - 1.5, H - 23, 1.5, 8);
+    c.font = '11px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.fillText(step >= 1000 ? step / 1000 + ' km' : step + ' m', 20 + bw / 2, H - 22);
+    c.textAlign = 'center'; c.font = '600 13px Georgia, serif'; c.fillStyle = ink; c.fillText('N', W - 24, 98); c.beginPath(); c.moveTo(W - 24, 102); c.lineTo(W - 29, 116); c.lineTo(W - 24, 112); c.lineTo(W - 19, 116); c.closePath(); c.fill();
+  }
   const MAP = {
     ready: false, raf: 0, cv: null, ctx: null, base: null, dpr: 1, cx: M.size / 2, cz: M.size / 2, k: 0.3,
-    layers: Object.assign({ relief: 1, eaux: 1, roches: 1, forets: 1, chemins: 1, courbes: 0, milieux: 0, batiments: 1, lieux: 1, habitants: 1, peche: 0, panneaux: 0, details: 1, zones: 0, louer: 1, activites: 1, fouilles: 0, secrets: 1, souterrains: 1, cachettes: 0, tresors: 1, rares: 0 }, store.get('layers', {})),
+    layers: Object.assign({ relief: 1, eaux: 1, roches: 1, forets: 1, chemins: 1, courbes: 0, milieux: 0, batiments: 1, lieux: 1, lieux2: 1, peuples: 1, habitants: 1, peche: 0, panneaux: 0, details: 1, zones: 0, louer: 1, activites: 1, fouilles: 0, secrets: 1, souterrains: 1, cachettes: 0, tresors: 1, rares: 0 }, store.get('layers', {})),
     sel: null, hl: null, hover: null, G: null,
     LAYERS: [
       ['Fond', [['relief', 'Relief ombré'], ['eaux', 'Eaux'], ['roches', 'Neige et roches'], ['forets', 'Forêts'], ['courbes', 'Courbes de niveau (10 m)'], ['milieux', 'Milieux (couleurs)']]],
       ['Tracés', [['chemins', 'Chemins'], ['batiments', 'Bâtiments'], ['details', 'Détails (ponts, croix, pierres…)'], ['zones', 'Zones où l’on ne bâtit pas'], ['peche', 'Zones de pêche'], ['panneaux', 'Panneaux et poteaux']]],
-      ['Noms', [['lieux', 'Lieux-dits'], ['habitants', 'Maisons des habitants']]],
+      ['Noms', [['lieux', 'Lieux-dits'], ['lieux2', 'Lieux (un tous les 200 m)'], ['peuples', 'Les deux peuples (les Planches, l’estive)'], ['habitants', 'Maisons des habitants']]],
       ['La vie des villes', [['louer', 'Maisons à louer, la poterne'], ['activites', 'Activités (jeux, concours, veillée…)'], ['fouilles', 'Où fouiller (de près)']]],
       ['Secrets', [['secrets', 'Lieux secrets'], ['souterrains', 'Souterrains'], ['tresors', 'Trésors et grottes'], ['cachettes', 'Cachettes, coffres, notes…'], ['rares', 'Plantes rares']], true],
     ],
@@ -4008,54 +5060,43 @@ function CLIENT(D) {
     start(arg) {
       const wrap = $('#mapwrap');
       if (!this.cv) this.build(wrap);
+      this.panel();
       if (!this.G) { $('#maploading').hidden = false; setTimeout(() => { try { this.init(); this.compose(); } catch (e) { $('#maploading').textContent = 'La carte n’a pas pu être dessinée : ' + e.message; return; } $('#maploading').hidden = true; this.ready = true; this.resize(); this.go(arg); }, 30); return; }
       this.ready = true; this.resize(); this.go(arg);
     },
     stop() { cancelAnimationFrame(this.raf); this.raf = 0; },
+    fitAll() { this.fit(M.size / 2, M.size / 2, M.size / 2); this.hl = null; this.sel = null; this.info(null); this.req(); },
+    // (une seule fois : le canevas, les gestes, les boutons et la recherche vont à la vue active, la vallée ou un plan)
     build(wrap) {
       this.cv = $('#map'); this.ctx = this.cv.getContext('2d');
-      this.panel();
-      window.addEventListener('resize', () => { if (mode === 'map') this.resize(); });
+      window.addEventListener('resize', () => { if (mode === 'map') V().resize(); });
       // glisser, molette, pincer
       const pts = new Map(); let drag = null, moved = 0, pinch = null;
       const cv = this.cv;
-      cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); moved = 0; if (pts.size === 1) drag = [e.clientX, e.clientY, this.cx, this.cz]; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), k: this.k, mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 }; drag = null; } });
+      cv.addEventListener('pointerdown', (e) => { const S = V(); cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); moved = 0; if (pts.size === 1) drag = [e.clientX, e.clientY, S.cx, S.cz]; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), k: S.k, mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 }; drag = null; } });
       cv.addEventListener('pointermove', (e) => {
-        if (!pts.has(e.pointerId)) { this.hoverAt(e.clientX, e.clientY); return; }
+        const S = V();
+        if (!pts.has(e.pointerId)) { S.hoverAt(e.clientX, e.clientY); return; }
         pts.set(e.pointerId, [e.clientX, e.clientY]);
-        if (pinch && pts.size >= 2) { const [a, b] = [...pts.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); this.zoomAt(pinch.mx, pinch.my, pinch.k * d / Math.max(10, pinch.d), true); moved = 99; return; }
-        if (drag) { const dx = e.clientX - drag[0], dy = e.clientY - drag[1]; moved = Math.max(moved, Math.abs(dx) + Math.abs(dy)); this.cx = drag[2] - dx / this.k; this.cz = drag[3] - dy / this.k; this.clampView(); this.req(); }
+        if (pinch && pts.size >= 2) { const [a, b] = [...pts.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); S.zoomAt(pinch.mx, pinch.my, pinch.k * d / Math.max(10, pinch.d), true); moved = 99; return; }
+        if (drag) { const dx = e.clientX - drag[0], dy = e.clientY - drag[1]; moved = Math.max(moved, Math.abs(dx) + Math.abs(dy)); S.cx = drag[2] - dx / S.k; S.cz = drag[3] - dy / S.k; S.clampView(); S.req(); }
       });
-      const up = (e) => { if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if (pts.size < 2) pinch = null; if (pts.size === 0) { if (drag && moved < 6) this.click(e.clientX, e.clientY); drag = null; } else if (pts.size === 1) { const [p] = [...pts.values()]; drag = [p[0], p[1], this.cx, this.cz]; } };
+      const up = (e) => { const S = V(); if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if (pts.size < 2) pinch = null; if (pts.size === 0) { if (drag && moved < 6) S.click(e.clientX, e.clientY); drag = null; } else if (pts.size === 1) { const [p] = [...pts.values()]; drag = [p[0], p[1], S.cx, S.cz]; } };
       cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
-      cv.addEventListener('wheel', (e) => { e.preventDefault(); const f = Math.exp(-Math.sign(e.deltaY) * Math.min(1, Math.abs(e.deltaY) / (e.deltaMode ? 3 : 100)) * 0.35); this.zoomAt(e.clientX, e.clientY, this.k * f); }, { passive: false });
-      cv.addEventListener('dblclick', (e) => this.zoomAt(e.clientX, e.clientY, this.k * 2));
-      $('#zin').onclick = () => { const r = cv.getBoundingClientRect(); this.zoomAt(r.left + r.width / 2, r.top + r.height / 2, this.k * 1.6); };
-      $('#zout').onclick = () => { const r = cv.getBoundingClientRect(); this.zoomAt(r.left + r.width / 2, r.top + r.height / 2, this.k / 1.6); };
-      $('#zall').onclick = () => { this.fit(M.size / 2, M.size / 2, M.size / 2); this.hl = null; this.sel = null; this.info(null); this.req(); };
+      cv.addEventListener('wheel', (e) => { e.preventDefault(); const S = V(), f = Math.exp(-Math.sign(e.deltaY) * Math.min(1, Math.abs(e.deltaY) / (e.deltaMode ? 3 : 100)) * 0.35); S.zoomAt(e.clientX, e.clientY, S.k * f); }, { passive: false });
+      cv.addEventListener('dblclick', (e) => V().zoomAt(e.clientX, e.clientY, V().k * 2));
+      $('#zin').onclick = () => { const r = cv.getBoundingClientRect(); V().zoomAt(r.left + r.width / 2, r.top + r.height / 2, V().k * 1.6); };
+      $('#zout').onclick = () => { const r = cv.getBoundingClientRect(); V().zoomAt(r.left + r.width / 2, r.top + r.height / 2, V().k / 1.6); };
+      $('#zall').onclick = () => V().fitAll();
       $('#layerbtn').onclick = () => $('#layers').classList.toggle('open');
-      // recherche sur la carte
+      $('#layers').addEventListener('change', (e) => { const k = e.target.dataset.l; if (k) V().onLayer(k, e.target.checked); });
+      // recherche sur la carte (celle de la vue active)
       const mq = $('#mq'), ms = $('#msug');
-      const feats = () => {
-        const f = [];
-        for (const L of M.lm) if (reveal || !L[5]) f.push({ t: L[1], s: L[5] & 2 ? 'souterrain' : L[5] & 1 ? 'lieu secret' : 'lieu-dit', go: () => this.go('li:' + L[0]) });
-        for (const B of M.bld) if (!f.some((q) => norm(q.t) === norm(B[1])) && (reveal || !B[4])) f.push({ t: B[1], s: 'bâtiment', go: () => this.go('li:' + B[0]) });
-        for (const [b, a] of Object.entries(M.homes)) for (const [id, nm, home, role] of a) if (home && (reveal || !(PAGES.get('pnj:' + id) || {}).x)) f.push({ t: nm, s: role + ' — sa maison', go: () => this.go('li:' + b) });
-        for (const [id, nm] of Object.entries(M.spNames)) { const pg = PAGES.get('pl:' + id); if (pg && visible(pg)) f.push({ t: nm, s: 'où elle pousse', go: () => this.go('pl:' + id) }); }
-        for (const [k, a] of Object.entries(M.spawns)) { const pg = PAGES.get('an:' + k); if (pg && visible(pg)) f.push({ t: pg.t, s: 'où la trouver', go: () => this.go('an:' + k) }); }
-        const V = M.vie;
-        if (V) {
-          for (const q of V.louer) f.push({ t: q[1], s: 'maison à louer', go: () => { this.layers.louer = 1; this.go('xy:' + q[2] + ',' + q[3]); } });
-          if (V.poterne) f.push({ t: V.poterne[2], s: 'porte du rempart', go: () => { this.layers.louer = 1; this.go('xy:' + V.poterne[0] + ',' + V.poterne[1]); } });
-          for (const q of V.act) f.push({ t: q[1], s: 'activité', go: () => { this.layers.activites = 1; this.go('xy:' + q[2] + ',' + q[3]); } });
-        }
-        return f;
-      };
       let list = [];
       mq.addEventListener('input', () => {
         const v = norm(mq.value.trim());
         if (v.length < 2) { ms.hidden = true; return; }
-        list = feats().filter((f) => norm(f.t).includes(v)).sort((a, b) => norm(a.t).indexOf(v) - norm(b.t).indexOf(v) || a.t.length - b.t.length).slice(0, 12);
+        list = V().feats().filter((f) => norm(f.t).includes(v)).sort((a, b) => norm(a.t).indexOf(v) - norm(b.t).indexOf(v) || a.t.length - b.t.length).slice(0, 12);
         ms.innerHTML = list.map((f, i) => `<a href="#" data-i="${i}"><span>${esc(f.t)}</span><small>${esc(f.s)}</small></a>`).join('') || '<p>Rien.</p>';
         ms.hidden = false;
       });
@@ -4064,19 +5105,33 @@ function CLIENT(D) {
       mq.addEventListener('keydown', (e) => { if (e.key === 'Enter' && list[0]) { ms.hidden = true; mq.blur(); list[0].go(); } if (e.key === 'Escape') { ms.hidden = true; mq.blur(); } });
       mq.addEventListener('blur', () => setTimeout(() => { ms.hidden = true; }, 150));
     },
+    // ce que la recherche de la carte connaît
+    feats() {
+      const f = [];
+      for (const L of M.lm) if ((reveal || !(L[5] & 3)) && !(L[5] & 4)) f.push({ t: L[1], s: L[5] & 2 ? 'souterrain' : L[5] & 1 ? 'lieu secret' : L[5] & 8 ? 'un des deux peuples' : 'lieu-dit', go: () => this.go('li:' + L[0]) });
+      for (const [key, t] of M.c2 || []) { const L = M.lm.find((q) => q[0] === key), T = (M.c2t || {})[t]; if (L) f.push({ t: L[1], s: 'lieu perdu' + (T ? ' — ' + T[0].toLowerCase() : ''), go: () => { this.layers.lieux2 = 1; this.go('li:' + key); } }); }
+      for (const B of M.bld) if (!f.some((q) => norm(q.t) === norm(B[1])) && (reveal || !B[4])) f.push({ t: B[1], s: 'bâtiment', go: () => this.go('li:' + B[0]) });
+      for (const [b, a] of Object.entries(M.homes)) for (const [id, nm, home, role] of a) if (home && (reveal || !(PAGES.get('pnj:' + id) || {}).x)) f.push({ t: nm, s: role + ' — sa maison', go: () => this.go('li:' + b) });
+      for (const [id, nm] of Object.entries(M.spNames)) { const pg = PAGES.get('pl:' + id); if (pg && visible(pg)) f.push({ t: nm, s: 'où elle pousse', go: () => this.go('pl:' + id) }); }
+      for (const [k, a] of Object.entries(M.spawns)) { const pg = PAGES.get('an:' + k); if (pg && visible(pg)) f.push({ t: pg.t, s: 'où la trouver', go: () => this.go('an:' + k) }); }
+      const V = M.vie;
+      if (V) {
+        for (const q of V.louer) f.push({ t: q[1], s: 'maison à louer', go: () => { this.layers.louer = 1; this.go('xy:' + q[2] + ',' + q[3]); } });
+        if (V.poterne) f.push({ t: V.poterne[2], s: 'porte du rempart', go: () => { this.layers.louer = 1; this.go('xy:' + V.poterne[0] + ',' + V.poterne[1]); } });
+        for (const q of V.act) f.push({ t: q[1], s: 'activité', go: () => { this.layers.activites = 1; this.go('xy:' + q[2] + ',' + q[3]); } });
+      }
+      return f;
+    },
     panel() {
       const el = $('#layers');
       el.innerHTML = '<button class="x" aria-label="Fermer">×</button>' + this.LAYERS.map(([t, a, sec]) => `<fieldset class="${sec ? 'secl' : ''}"${sec && !reveal ? ' hidden' : ''}><legend>${esc(t)}</legend>${a.map(([k, n]) => `<label><input type="checkbox" data-l="${k}" ${this.layers[k] ? 'checked' : ''}> ${esc(n)}</label>`).join('')}</fieldset>`).join('') + '<div id="legend"></div>';
       el.querySelector('.x').onclick = () => el.classList.remove('open');
-      if (this.panelBound) { this.legend(); return; }
-      this.panelBound = true;
-      el.addEventListener('change', (e) => {
-        const k = e.target.dataset.l; if (!k) return;
-        this.layers[k] = e.target.checked ? 1 : 0; store.set('layers', this.layers);
-        if (['relief', 'eaux', 'roches', 'forets', 'courbes', 'milieux', 'chemins'].includes(k)) { if (k !== 'milieux' || !e.target.checked) { if (this.hl && this.hl.mil) this.hl = null; } this.compose(); }
-        this.legend(); this.req();
-      });
       this.legend();
+    },
+    onLayer(k, on) {
+      this.layers[k] = on ? 1 : 0; store.set('layers', this.layers);
+      if (['relief', 'eaux', 'roches', 'forets', 'courbes', 'milieux', 'chemins'].includes(k)) { if (k !== 'milieux' || !on) { if (this.hl && this.hl.mil) this.hl = null; } this.compose(); }
+      this.legend(); this.req();
     },
     legend() {
       const el = $('#legend'); if (!el) return;
@@ -4100,7 +5155,7 @@ function CLIENT(D) {
     },
     toWorld(sx, sy) { const r = this.cv.getBoundingClientRect(); return [this.cx + (sx - r.left - this.W / 2) / this.k, this.cz + (sy - r.top - this.H / 2) / this.k]; },
     toScreen(x, z) { return [(x - this.cx) * this.k + this.W / 2, (z - this.cz) * this.k + this.H / 2]; },
-    req() { if (!this.raf && this.ready && mode === 'map') this.raf = requestAnimationFrame(() => { this.raf = 0; this.draw(); }); },
+    req() { if (!this.raf && this.ready && mode === 'map' && V() === this) this.raf = requestAnimationFrame(() => { this.raf = 0; this.draw(); }); },
     // aller vers une cible (lien #/carte/…)
     go(arg) {
       this.hl = null; this.sel = null;
@@ -4109,7 +5164,8 @@ function CLIENT(D) {
       if (kind === 'li') {
         const L = M.lm.find((q) => q[0] === v), B = M.bld.find((q) => q[0] === v);
         const X = L ? { x: L[2], z: L[3], r: L[4] } : B ? { x: B[2], z: B[3], r: 10 } : null;
-        if (X) { this.sel = { kind: 'li', key: v, x: X.x, z: X.z, r: X.r }; this.fit(X.x, X.z, Math.max(60, X.r * 2.2)); this.info(this.sel); if (L && reveal && (L[5] & 1)) this.layers.secrets = 1; if (L && reveal && (L[5] & 2)) this.layers.souterrains = 1; }
+        // (un lieu perdu est petit : on le montre avec ses voisins, à deux cents mètres)
+        if (X) { this.sel = { kind: 'li', key: v, x: X.x, z: X.z, r: X.r }; this.fit(X.x, X.z, Math.max(L && (L[5] & 4) ? 170 : 60, X.r * 2.2)); if (L && (L[5] & 4)) this.layers.lieux2 = 1; this.info(this.sel); if (L && reveal && (L[5] & 1)) this.layers.secrets = 1; if (L && reveal && (L[5] & 2)) this.layers.souterrains = 1; }
       } else if (kind === 'pl' || kind === 'an') {
         const ids = kind === 'pl' ? [v] : M.spawns[v] || [];
         const pts = [];
@@ -4252,9 +5308,30 @@ function CLIENT(D) {
         marks.push({ x: sx, y: sy, r: 7, f: { kind: 'li', key: Bd[0], x: Bd[2], z: Bd[3] } });
         if (k > 1.6) labels.push({ x: sx, y: sy, t: Bd[1], pr: 2, cls: 'bld' });
       }
+      // les lieux perdus (un tous les deux cents mètres), chacun le signe de sa sorte
+      if (L.lieux2 && k > 0.12) {
+        this.lmIdx = this.lmIdx || new Map(M.lm.map((q) => [q[0], q]));
+        for (const [key, t] of M.c2 || []) {
+          const Lm = this.lmIdx.get(key); if (!Lm || !inV(Lm[2], Lm[3], 30)) continue;
+          const TY = (M.c2t || {})[t] || ['', '•'], [sx, sy] = T(Lm[2], Lm[3]), rr = k > 0.5 ? 6.5 : 4.5;
+          c.beginPath(); c.moveTo(sx, sy - rr); c.lineTo(sx + rr, sy); c.lineTo(sx, sy + rr); c.lineTo(sx - rr, sy); c.closePath();
+          c.fillStyle = 'rgba(244,236,212,.95)'; c.fill(); c.strokeStyle = '#2c4c4c'; c.lineWidth = 1.2; c.stroke();
+          if (k > 0.5) { c.font = '9px serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#1e3a3a'; c.fillText(TY[1] || '•', sx, sy + 0.5); }
+          marks.push({ x: sx, y: sy, r: 9, f: { kind: 'li', key, x: Lm[2], z: Lm[3] } });
+          if (k > 0.9) labels.push({ x: sx + 8, y: sy, t: Lm[1], pr: 2.4, cls: 'lieu2', left: true });
+        }
+      }
+      // les deux peuples : leur village
+      if (L.peuples) for (const [key] of M.peuples || []) {
+        const Lm = (this.lmIdx || (this.lmIdx = new Map(M.lm.map((q) => [q[0], q])))).get(key); if (!Lm || !inV(Lm[2], Lm[3], 200)) continue;
+        const [sx, sy] = dot(Lm[2], Lm[3], 6, '#3a5a2a', '#fbf2dc');
+        marks.push({ x: sx, y: sy, r: 11, f: { kind: 'li', key, x: Lm[2], z: Lm[3] } });
+        if (k > 0.1) labels.push({ x: sx + 9, y: sy, t: Lm[1], pr: 6, cls: 'peuple', left: true });
+      }
       // lieux-dits
       if (L.lieux || L.secrets || L.souterrains) for (const Lm of M.lm) {
         const sec = Lm[5] & 1, und = Lm[5] & 2;
+        if (Lm[5] & 4 || Lm[5] & 8) continue; // (les lieux perdus, les villages des peuples : leurs couches à eux)
         if (und ? !(reveal && L.souterrains) : sec ? !(reveal && L.secrets) : !L.lieux) continue;
         const r = Lm[4];
         if (!inV(Lm[2], Lm[3], r + 200)) continue;
@@ -4269,29 +5346,8 @@ function CLIENT(D) {
       }
       // sélection
       if (this.sel) { const [sx, sy] = T(this.sel.x, this.sel.z); c.strokeStyle = 'rgba(160,30,20,.95)'; c.lineWidth = 2.2; c.beginPath(); c.arc(sx, sy, Math.max(10, (this.sel.r || 6) * k), 0, Math.PI * 2); c.stroke(); }
-      // étiquettes (sans chevauchement)
-      labels.sort((a, b) => b.pr - a.pr);
-      const placed = [];
-      for (const l of labels) {
-        const f = l.cls === 'region' ? 'italic 600 ' + Math.round(13 + Math.min(8, l.pr * 2)) + 'px Georgia, serif' : l.cls === 'town' ? '600 13px Georgia, serif' : l.cls === 'npc' || l.cls === 'bld' ? '11px Georgia, serif' : 'italic 12px Georgia, serif';
-        c.font = f;
-        const w = c.measureText(l.t).width, h = 14;
-        const x0 = l.left ? l.x : l.x - w / 2, y0 = l.y - h / 2;
-        if (placed.some((p) => x0 < p[0] + p[2] && x0 + w > p[0] && y0 < p[1] + p[3] && y0 + h > p[1])) continue;
-        placed.push([x0 - 2, y0 - 1, w + 4, h + 2]);
-        c.textAlign = 'left'; c.textBaseline = 'middle';
-        c.lineWidth = 3; c.strokeStyle = 'rgba(246,238,216,.85)'; c.strokeText(l.t, x0, l.y);
-        c.fillStyle = l.cls === 'secret' ? '#8a1e14' : l.cls === 'rent' ? '#2c5a2a' : l.cls === 'act' ? '#6a2e10' : l.cls === 'under' ? '#4a2a6a' : l.cls === 'water' ? '#1e4a6a' : l.cls === 'region' ? 'rgba(60,44,28,.78)' : l.cls === 'npc' ? '#7a2414' : l.cls === 'bld' ? '#4a3826' : '#2a1d12';
-        c.fillText(l.t, x0, l.y);
-      }
-      // échelle
-      const target = 120 / k, pw = Math.pow(10, Math.floor(Math.log10(target))), step = [1, 2, 5, 10].map((m) => m * pw).find((s) => s >= target * 0.6) || pw;
-      const bw = step * k;
-      c.fillStyle = 'rgba(246,238,216,.85)'; c.fillRect(12, H - 34, bw + 16, 24);
-      c.fillStyle = '#2a1d12'; c.fillRect(20, H - 18, bw, 3); c.fillRect(20, H - 23, 1.5, 8); c.fillRect(20 + bw - 1.5, H - 23, 1.5, 8);
-      c.font = '11px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.fillText(step >= 1000 ? step / 1000 + ' km' : step + ' m', 20 + bw / 2, H - 22);
-      // nord
-      c.textAlign = 'center'; c.font = '600 13px Georgia, serif'; c.fillStyle = '#2a1d12'; c.fillText('N', W - 24, 58); c.beginPath(); c.moveTo(W - 24, 62); c.lineTo(W - 29, 76); c.lineTo(W - 24, 72); c.lineTo(W - 19, 76); c.closePath(); c.fill();
+      drawLabels(c, labels);
+      drawScale(c, W, H, k, false);
     },
     sym(id) { return { poteau_dir: '⇞', panneau_carte: '▦', calvaire: '✝', croix: '✝', pierre_dressee: '▲', dolmen: '⊓', stele: '▮', cairn: '⩓', pont_bois: '═', tombe: '†', moulin_ailes: '✢', ponton: '⊏', barque: '◡', tente: '⛺', feu_camp: '♨', statue: '♜', monument: '♜', ruche: '⬢', four_pain: '⌂', abreuvoir: '▭', lampadaire: '•', puits_deco: '◎', cascade: '≋' }[id] || '·'; },
     // ------------------------------------------------------------ survol, clic, fiche
@@ -4335,7 +5391,11 @@ function CLIENT(D) {
         const who = (M.homes[f.key] || []).filter(([id]) => visible(PAGES.get('pnj:' + id)));
         if (who.length) h += `<p>${who.map(([id, nm, home, role]) => `<a href="#/p/${encodeURIComponent('pnj:' + id)}">${esc(nm)}</a> <small>${esc(role)}${home ? '' : ' (y travaille)'}</small>`).join('<br>')}</p>`;
         if (L && L[6] && M.fishBy[L[6]]) h += `<p><b>Pêche :</b> ${M.fishBy[L[6]].slice(0, 12).map(([id, n]) => `<a href="#/p/${encodeURIComponent('it:' + id)}">${esc(n)}</a>`).join(', ')}${M.fishBy[L[6]].length > 12 ? '…' : ''}</p>`;
+        const c2 = (M.c2 || []).find((q) => q[0] === f.key), TY = c2 && (M.c2t || {})[c2[1]];
+        if (TY) h += `<p>Un lieu perdu : ${PAGES.has(TY[2]) ? `<a href="#/p/${encodeURIComponent(TY[2])}">${esc(TY[0])}</a>` : esc(TY[0])}</p>`;
+        const pe = (M.peuples || []).find((q) => q[0] === f.key);
         h += pgLink('li:' + f.key);
+        if (pe) h += ' ' + pgLink(pe[2], 'Le peuple');
       } else if (f.kind === 'sp') {
         h += `<h3>${esc(f.title)}</h3><p>${f.n ? `${f.total} dans la vallée${f.total > f.n ? ` (${f.n} montrés)` : ''}.` : 'Aucune dans la vallée.'}</p>${f.page ? pgLink(f.page) : ''}`;
       } else if (f.kind === 'mil') {
@@ -4367,10 +5427,190 @@ function CLIENT(D) {
       el.hidden = false;
     },
   };
+  // ---------------------------------------------------------------- LES PLANS (le Dessous, les Enfers, les autres mondes)
+  // Une image dessinée par l'outil, des repères par-dessus (couches, secrets), même maniement que la carte de la vallée.
+  function makePlan(P) {
+    const store2 = store.get('plan.' + P.id, {});
+    const layers = {}; for (const [k, , , on] of P.layers) layers[k] = store2[k] !== undefined ? store2[k] : on;
+    const dark = P.id !== 'bonbons';
+    const PV = {
+      id: P.id, P, ready: false, raf: 0, cx: (P.x0 + P.x1) / 2, cz: (P.z0 + P.z1) / 2, k: 1, W: 1, H: 1, dpr: 1, img: null, layers, sel: null, marks: [], fitted: false,
+      start(arg) {
+        this.ready = false;
+        if (!this.img) {
+          $('#maploading').textContent = 'Le plan se dessine…'; $('#maploading').hidden = false;
+          const im = new Image();
+          im.onload = () => { this.img = im; $('#maploading').hidden = true; this.ready = true; this.resize(); this.go(arg); };
+          im.onerror = () => { $('#maploading').textContent = 'Le plan n’a pas pu être affiché.'; };
+          im.src = P.img.url;
+          this.panel();
+          return;
+        }
+        this.panel(); this.ready = true; this.resize(); this.go(arg);
+      },
+      stop() { cancelAnimationFrame(this.raf); this.raf = 0; },
+      resize() {
+        const cv = MAP.cv, r = cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+        this.dpr = dpr; cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
+        this.W = r.width; this.H = r.height;
+        if (!this.fitted) { this.fitted = true; this.fitAll(true); }
+        this.req();
+      },
+      span() { return Math.max(P.x1 - P.x0, P.z1 - P.z0); },
+      fit(x, z, r) { this.cx = x; this.cz = z; this.k = Math.min(Math.min(this.W, this.H) / (2 * Math.max(4, r)), 40); this.clampView(); this.req(); },
+      fitAll(silent) { this.cx = (P.x0 + P.x1) / 2; this.cz = (P.z0 + P.z1) / 2; this.k = Math.min((this.W - 20) / (P.x1 - P.x0), (this.H - 110) / (P.z1 - P.z0)); this.clampView(); this.sel = null; if (!silent) this.info(null); this.req(); },
+      clampView() { const m = this.span(); this.cx = Math.max(P.x0 - m * 0.1, Math.min(P.x1 + m * 0.1, this.cx)); this.cz = Math.max(P.z0 - m * 0.1, Math.min(P.z1 + m * 0.1, this.cz)); this.k = Math.max(Math.min(this.W, this.H) / (m * 1.5), Math.min(P.ppm * 10, this.k)); },
+      zoomAt: MAP.zoomAt, toWorld: MAP.toWorld, toScreen: MAP.toScreen,
+      get cv() { return MAP.cv; },
+      req() { if (!this.raf && this.ready && mode === 'map' && V() === this) this.raf = requestAnimationFrame(() => { this.raf = 0; this.draw(); }); },
+      shown(m) { return this.layers[m.l] && (reveal || !(m.x2 || this.secretLayer(m.l))); },
+      secretLayer(l) { const L = P.layers.find((q) => q[0] === l); return !!(L && L[2]); },
+      // aller vers une cible : li:clé (un repère qui mène à cette fiche), p:fiche, xy:x,z, t:nom
+      go(arg) {
+        this.sel = null;
+        if (!arg) { this.info(null); this.req(); return; }
+        const [kind, ...rest] = arg.split(':'); const v = rest.join(':');
+        let m = null;
+        if (kind === 'li' || kind === 'p') { const id = kind === 'li' ? 'li:' + v : v; m = P.marks.find((q) => q.p === id && (q.k === 'zone' || q.k === 'pt')) || P.marks.find((q) => q.p === id); }
+        else if (kind === 't') m = P.marks.find((q) => norm(q.t) === norm(v));
+        else if (kind === 'xy') { const [x, z] = v.split(',').map(Number); this.sel = { x, z, r: 3 }; this.fit(x, z, 40); this.info({ x, z }); return; }
+        if (m) {
+          if (!this.layers[m.l]) { this.layers[m.l] = 1; this.panel(); }
+          this.sel = { x: m.x, z: m.z, r: m.k === 'zone' ? m.r : 3 };
+          this.fit(m.x, m.z, m.k === 'zone' ? Math.max(40, m.r * 1.6) : 45);
+          this.info(this.visibleMark(m) ? m : null);
+        } else this.info(null);
+        this.req();
+      },
+      visibleMark(m) { return !(m.x2 || this.secretLayer(m.l)) || reveal; },
+      draw() {
+        const c = MAP.ctx, dpr = this.dpr, W = this.W, H = this.H, k = this.k;
+        c.setTransform(dpr, 0, 0, dpr, 0, 0);
+        c.fillStyle = P.bg || '#222'; c.fillRect(0, 0, W, H);
+        const T = (x, z) => [(x - this.cx) * k + W / 2, (z - this.cz) * k + H / 2];
+        c.setTransform(dpr * k, 0, 0, dpr * k, dpr * (W / 2 - this.cx * k), dpr * (H / 2 - this.cz * k));
+        c.imageSmoothingEnabled = k * 1 < P.ppm * 1.2;
+        if (this.img) c.drawImage(this.img, P.x0, P.z0, P.img.w / P.ppm, P.img.h / P.ppm);
+        const px = 1 / k;
+        // la vallée au-dessus, en transparence (le Dessous est sous la vallée : mêmes mètres)
+        if (P.surface && this.layers.surface) {
+          if (!MAP.G) { try { MAP.init(); MAP.compose(); } catch (e) { /* tant pis */ } }
+          if (MAP.base) { c.globalAlpha = 0.3; c.imageSmoothingEnabled = true; c.drawImage(MAP.base, 0, 0, M.size, M.size); c.globalAlpha = 1; }
+        }
+        // les dessous de là-haut (la mine, le clocher…) : les blocs enfouis de la vallée, dans l'emprise du plan
+        if (P.lahaut && this.layers.lahaut && reveal) {
+          if (!MAP.G) { try { MAP.init(); } catch (e) { /* tant pis */ } }
+          const B = MAP.G && MAP.G.blocks;
+          if (B) {
+            c.lineWidth = 0.4 * px; c.strokeStyle = 'rgba(230,210,255,.7)'; c.fillStyle = 'rgba(150,110,190,.55)';
+            for (let i = 0; i < M.blocks.n; i++) {
+              const o = i * 8; if (!B[o + 7]) continue;
+              const x = B[o] / 10, z = B[o + 1] / 10, sx = B[o + 2] / 10, sz = B[o + 3] / 10, r = B[o + 4] / 1000;
+              if (x < P.x0 || x > P.x1 || z < P.z0 || z > P.z1) continue;
+              c.save(); c.translate(x, z); c.rotate(-r); c.fillRect(-sx / 2, -sz / 2, sx, sz); if (sx * k > 3) c.strokeRect(-sx / 2, -sz / 2, sx, sz); c.restore();
+            }
+          }
+        }
+        c.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const marks = []; this.marks = marks;
+        const labels = [];
+        const vx0 = this.cx - W / 2 / k, vx1 = this.cx + W / 2 / k, vz0 = this.cz - H / 2 / k, vz1 = this.cz + H / 2 / k;
+        const inV = (x, z, m = 0) => x > vx0 - m && x < vx1 + m && z > vz0 - m && z < vz1 + m;
+        for (const m of P.marks) {
+          if (!this.shown(m) || !inV(m.x, m.z, m.k === 'zone' ? m.r : 20)) continue;
+          const [sx, sy] = T(m.x, m.z), sec = !!(m.x2 || this.secretLayer(m.l));
+          if (m.k === 'zone') {
+            if (k * m.r < 14 && !(this.sel && this.sel.x === m.x && this.sel.z === m.z)) continue;
+            labels.push({ x: sx, y: sy, t: m.t, pr: 4 + Math.min(4, m.r / 30), cls: sec ? 'secret' : m.c === 'eau' ? 'water' : 'salle' });
+            marks.push({ x: sx, y: sy, r: 14, f: m });
+          } else if (m.k === 'dot') {
+            if (k < 0.35 && m.l !== 'gens') continue;
+            const rr = m.l === 'gens' ? 4 : Math.max(2.2, Math.min(4, k * 1.6));
+            c.beginPath(); c.arc(sx, sy, rr, 0, Math.PI * 2); c.fillStyle = m.c === 'gens' ? '#f4ecd8' : m.c || '#ccc'; c.fill(); c.lineWidth = 1; c.strokeStyle = sec ? '#ff6a50' : dark ? 'rgba(0,0,0,.75)' : 'rgba(60,40,20,.7)'; c.stroke();
+            marks.push({ x: sx, y: sy, r: 7, f: m });
+            if (m.l === 'gens' && k > 1.2) labels.push({ x: sx + 6, y: sy, t: m.t.split(',')[0], pr: 2, cls: 'npc', left: true, col: dark ? '#f4d8b0' : '#7a2414' });
+          } else if (m.k === 'fl') {
+            if (k < 0.5) continue;
+            c.save(); c.translate(sx, sy); c.rotate(-(m.a || 0) + Math.PI); c.strokeStyle = '#1a1612'; c.fillStyle = '#e8e0d0'; c.lineWidth = 1;
+            c.beginPath(); c.moveTo(0, -6); c.lineTo(4, 2); c.lineTo(1.2, 1); c.lineTo(1.2, 6); c.lineTo(-1.2, 6); c.lineTo(-1.2, 1); c.lineTo(-4, 2); c.closePath(); c.fill(); c.stroke(); c.restore();
+            marks.push({ x: sx, y: sy, r: 7, f: m });
+          } else {
+            const rr = m.big ? 8.5 : 7;
+            c.beginPath(); c.arc(sx, sy, rr, 0, Math.PI * 2); c.fillStyle = sec ? 'rgba(90,20,14,.92)' : 'rgba(251,242,220,.95)'; c.fill(); c.lineWidth = 1.3; c.strokeStyle = sec ? '#ffb090' : '#5a3a1a'; c.stroke();
+            c.font = '10px serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = sec ? '#ffe8d8' : '#3a2410'; c.fillText(m.i || '•', sx, sy + 0.5);
+            marks.push({ x: sx, y: sy, r: 10, f: m });
+            if (k > (m.big ? 0.25 : 0.9)) labels.push({ x: sx + rr + 3, y: sy, t: m.t, pr: m.big ? 7 : 3, cls: sec ? 'secret' : 'place', left: true });
+          }
+        }
+        if (this.sel) { const [sx, sy] = T(this.sel.x, this.sel.z); c.strokeStyle = dark ? 'rgba(255,190,120,.95)' : 'rgba(160,30,20,.95)'; c.lineWidth = 2.2; c.beginPath(); c.arc(sx, sy, Math.max(12, (this.sel.r || 3) * k), 0, Math.PI * 2); c.stroke(); }
+        drawLabels(c, labels, dark);
+        drawScale(c, W, H, k, dark);
+      },
+      hoverAt(sx, sy) {
+        const el = $('#mapinfo'); if (!el) return;
+        const [x, z] = this.toWorld(sx, sy), m = this.nearZone(x, z);
+        el.textContent = P.coords ? `x ${Math.round(x)} · z ${Math.round(z)}${m ? ' · ' + m.t : ''}` : (m ? m.t : P.t);
+        MAP.cv.style.cursor = this.hit(sx, sy) ? 'pointer' : 'grab';
+      },
+      nearZone(x, z) { let best = null, bd = 1e9; for (const m of P.marks) { if (m.k !== 'zone' || !this.shown(m)) continue; const d = Math.hypot(m.x - x, m.z - z) / (m.r || 10); if (d < bd) { bd = d; best = m; } } return bd < 1.3 ? best : null; },
+      hit: MAP.hit,
+      click(sx, sy) {
+        const f = this.hit(sx, sy);
+        if (f) { this.sel = { x: f.x, z: f.z, r: f.k === 'zone' ? Math.min(f.r, 30) : 3 }; this.info(f); this.req(); return; }
+        const [x, z] = this.toWorld(sx, sy);
+        if (x < P.x0 || z < P.z0 || x > P.x1 || z > P.z1) { this.info(null); return; }
+        this.sel = { x, z, r: 3 }; this.info({ x, z }); this.req();
+      },
+      info(f) {
+        const el = $('#mapcard');
+        if (!f) { el.hidden = true; return; }
+        const pgLink = (id, t) => { const p = PAGES.get(id); return p && visible(p) ? `<a class="btn" href="#/p/${encodeURIComponent(id)}">${esc(t || 'Ouvrir la fiche')}</a>` : ''; };
+        let h = '';
+        if (f.t) {
+          h += `<h3>${esc(f.t)}</h3>${f.s ? `<p class="sub">${esc(f.s)}</p>` : ''}`;
+          if (P.coords) h += `<p>x ${Math.round(f.x)} · z ${Math.round(f.z)}</p>`;
+          if (f.p) h += pgLink(f.p);
+        } else {
+          const m = this.nearZone(f.x, f.z);
+          h += `<h3>${esc(m ? m.t : P.t)}</h3>${P.coords ? `<p>x ${Math.round(f.x)} · z ${Math.round(f.z)}</p>` : ''}${m && m.p ? pgLink(m.p) : P.p ? pgLink(P.p) : ''}`;
+        }
+        el.innerHTML = '<button class="x" aria-label="Fermer">×</button>' + h;
+        el.querySelector('.x').onclick = () => { el.hidden = true; this.sel = null; this.req(); };
+        el.hidden = false;
+      },
+      panel() {
+        const el = $('#layers');
+        const fs = (sec) => P.layers.filter((q) => !!q[2] === sec).map(([k2, n]) => `<label><input type="checkbox" data-l="${k2}" ${this.layers[k2] ? 'checked' : ''}> ${esc(n)}</label>`).join('');
+        el.innerHTML = '<button class="x" aria-label="Fermer">×</button>' + `<fieldset><legend>${esc(P.t)}</legend>${fs(false)}</fieldset>` + (P.layers.some((q) => q[2]) ? `<fieldset class="secl"${reveal ? '' : ' hidden'}><legend>Secrets</legend>${fs(true)}</fieldset>` : '') + `<p class="note">${esc(P.s || '')}</p>` + (P.p && PAGES.has(P.p) ? `<p><a href="#/p/${encodeURIComponent(P.p)}">La fiche</a></p>` : '');
+        el.querySelector('.x').onclick = () => el.classList.remove('open');
+      },
+      onLayer(k2, on) { this.layers[k2] = on ? 1 : 0; const s = {}; for (const k3 of Object.keys(this.layers)) s[k3] = this.layers[k3]; store.set('plan.' + P.id, s); this.req(); },
+      feats() { return P.marks.filter((m) => this.visibleMark(m) && m.k !== 'dot' && m.k !== 'fl').concat(P.marks.filter((m) => this.visibleMark(m) && m.k === 'dot' && m.l === 'gens')).map((m) => ({ t: m.t, s: m.s || P.t, go: () => { if (!this.layers[m.l]) { this.layers[m.l] = 1; this.panel(); } this.sel = { x: m.x, z: m.z, r: m.k === 'zone' ? m.r : 3 }; this.fit(m.x, m.z, m.k === 'zone' ? Math.max(40, m.r * 1.6) : 45); this.info(m); } })); },
+    };
+    return PV;
+  }
+  const PLANS = {};
+  for (const P of D.plans || []) PLANS[P.id] = makePlan(P);
+  // les onglets, en haut de la carte : la vallée, puis chaque plan
+  function renderTabs(cur) {
+    const el = $('#maptabs'); if (!el) return;
+    el.innerHTML = `<a href="#/carte" data-t="vallee"${cur === 'vallee' ? ' class="on"' : ''}>🗺 La vallée</a>` + (D.plans || []).map((P) => `<a href="#/plan/${P.id}" data-t="${P.id}"${cur === P.id ? ' class="on"' : ''}>${esc(P.i || '')} ${esc(P.t)}</a>`).join('');
+  }
   function showMap(arg) {
     setMode('map'); activeNav('carte');
-    if (MAP.cv) MAP.panel();
+    if (VIEW && VIEW !== MAP) VIEW.stop();
+    VIEW = MAP; renderTabs('vallee'); $('#mq').value = ''; $('#mapcard').hidden = true;
     MAP.start(arg);
+  }
+  function showPlan(id, arg) {
+    const PV = PLANS[id];
+    if (!PV) return showMap('');
+    setMode('map'); activeNav('carte');
+    if (!MAP.cv) MAP.build($('#mapwrap'));
+    if (VIEW && VIEW !== PV) VIEW.stop();
+    VIEW = PV; renderTabs(id); $('#mq').value = ''; $('#mapcard').hidden = true;
+    if ($('#mapinfo')) $('#mapinfo').textContent = PV.P.t;
+    PV.start(arg);
   }
   setTimeout(() => { try { if (!IDX) buildIndex(); } catch (e) { /* plus tard */ } }, 1500);
 
@@ -4381,6 +5621,7 @@ function CLIENT(D) {
     if (kind === 'p') showPage(arg);
     else if (kind === 'cat') showCat(arg);
     else if (kind === 'carte') showMap(arg);
+    else if (kind === 'plan') { const j = arg.indexOf('/'); showPlan(j < 0 ? arg : arg.slice(0, j), j < 0 ? '' : arg.slice(j + 1)); }
     else if (kind === 'cherche') showSearch(arg);
     else showHome();
   }
@@ -4391,7 +5632,7 @@ function CLIENT(D) {
   $('#nav').addEventListener('click', (e) => { if (e.target.closest('a')) document.body.classList.remove('navopen'); });
   renderNav();
   route();
-  window.PRAIRIE_WIKI = { D, MAP, search, PAGES };
+  window.PRAIRIE_WIKI = { D, MAP, PLANS, search, PAGES, get VIEW() { return V(); } };
 }
 
 // ============================================================================
@@ -4551,7 +5792,11 @@ body[data-mode="map"] #mapwrap { display: block; }
 .short { display: none; }
 body[data-mode="map"] #main, body[data-mode="map"] #nav { display: none; }
 #map { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; background: #d9cba6; }
-#maptools { position: absolute; top: 12px; left: 12px; display: flex; gap: 6px; align-items: flex-start; z-index: 5; flex-wrap: wrap; max-width: calc(100% - 24px); }
+#maptabs { position: absolute; top: 0; left: 0; right: 0; z-index: 7; display: flex; gap: 4px; padding: 6px 10px; background: rgba(241,231,207,.94); border-bottom: 1px solid rgba(90,60,30,.35); box-shadow: 0 2px 8px rgba(40,25,10,.18); overflow-x: auto; white-space: nowrap; scrollbar-width: thin; }
+#maptabs a { border: 1px solid transparent; border-radius: 4px; padding: 3px 10px; color: var(--ink); font-size: .95em; }
+#maptabs a:hover { background: rgba(160,110,50,.15); }
+#maptabs a.on { background: var(--card); border-color: rgba(90,60,30,.45); font-weight: 600; box-shadow: 0 1px 2px rgba(60,40,20,.2); }
+#maptools { position: absolute; top: 50px; left: 12px; display: flex; gap: 6px; align-items: flex-start; z-index: 5; flex-wrap: wrap; max-width: calc(100% - 24px); }
 #maptools .mq { position: relative; }
 #mq { width: 250px; max-width: 60vw; padding: 6px 10px; border: 1px solid rgba(90,60,30,.5); border-radius: 4px; background: #f8f0dc; font: inherit; font-size: .95em; }
 #msug { position: absolute; top: 100%; left: 0; width: 320px; max-width: 80vw; margin-top: 3px; background: var(--card); border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 6px 18px rgba(40,25,10,.3); max-height: 60vh; overflow: auto; }
@@ -4560,7 +5805,7 @@ body[data-mode="map"] #main, body[data-mode="map"] #nav { display: none; }
 #msug a:hover { background: var(--hl); }
 #msug p { margin: 6px 10px; }
 #maptools button { min-width: 34px; justify-content: center; }
-#layers { position: absolute; top: 56px; left: 12px; z-index: 6; background: var(--card); border: 1px solid rgba(90,60,30,.4); border-radius: 4px; padding: 8px 12px 10px; box-shadow: 0 4px 14px rgba(40,25,10,.25); display: none; max-height: calc(100% - 80px); overflow: auto; font-size: .92em; width: 280px; max-width: calc(100% - 24px); }
+#layers { position: absolute; top: 94px; left: 12px; z-index: 6; background: var(--card); border: 1px solid rgba(90,60,30,.4); border-radius: 4px; padding: 8px 12px 10px; box-shadow: 0 4px 14px rgba(40,25,10,.25); display: none; max-height: calc(100% - 80px); overflow: auto; font-size: .92em; width: 280px; max-width: calc(100% - 24px); }
 #layers.open { display: block; }
 #layers fieldset { border: 0; border-top: 1px solid var(--line); margin: 6px 0 0; padding: 4px 0 0; }
 #layers legend { font-variant: small-caps; color: var(--ink2); padding: 0 4px 0 0; }
@@ -4606,6 +5851,7 @@ function writeHTML(DB) {
   say('fiches du wiki…');
   const wiki = buildWiki(DB);
   const map = buildMapData(DB, wiki);
+  const plans = buildPlansData(DB, wiki);
   // plantes rares (rareté ≥ 2) : positions pour la couche secrète
   {
     const T = (n, d) => (DB.tables[n] ? DB.tables[n].v : d);
@@ -4624,7 +5870,7 @@ function writeHTML(DB) {
     pages: wiki.pages.map((p) => { const o = { id: p.id, t: p.t, s: p.s, c: p.c, i: p.i, h: p.h }; if (p.x) o.x = 1; if (p.fig) o.fig = p.fig; return o; }),
     icons: { url: DB.images.icons.url, cols: DB.images.icons.cols, n: DB.images.icons.n },
     figures: { url: DB.images.figures.url, w: DB.images.figures.w, h: DB.images.figures.h },
-    langCode: DB.derived.langCode || '', map,
+    langCode: DB.derived.langCode || '', map, plans,
   };
   const json = JSON.stringify(D).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
   const html = `<!DOCTYPE html>
@@ -4649,6 +5895,7 @@ function writeHTML(DB) {
   <nav id="nav" aria-label="Sections"></nav>
   <main id="main"></main>
   <div id="mapwrap">
+    <nav id="maptabs" aria-label="Les cartes"></nav>
     <canvas id="map" aria-label="Carte de la vallée"></canvas>
     <div id="maptools"><div class="mq"><input id="mq" type="search" placeholder="Chercher sur la carte…" autocomplete="off"><div id="msug" hidden></div></div><button class="btn" id="layerbtn" title="Couches">☰ Couches</button><button class="btn" id="zin" title="Zoomer">+</button><button class="btn" id="zout" title="Dézoomer">−</button><button class="btn" id="zall" title="Toute la vallée">⤢</button></div>
     <div id="layers"></div>
@@ -4668,7 +5915,7 @@ function writeHTML(DB) {
   if (/<\/script/i.test(json) || /<\/script/i.test(CLIENT.toString())) throw new Error('les données contiennent « </script » : le fichier serait cassé');
   fs.writeFileSync(OUT, html);
   const kb = (s) => Math.round(Buffer.byteLength(s) / 1024);
-  say(`écrit ${path.relative(process.cwd(), OUT) || OUT} : ${kb(html)} Ko (fiches ${kb(JSON.stringify(D.pages))} Ko, carte ${kb(JSON.stringify(map))} Ko, icônes ${kb(D.icons.url)} Ko, figurines ${kb(D.figures.url)} Ko) — ${D.pages.length} fiches, ${wiki.cats.length} sections, ${wiki.other.length} « autres tables »`);
+  say(`écrit ${path.relative(process.cwd(), OUT) || OUT} : ${kb(html)} Ko (fiches ${kb(JSON.stringify(D.pages))} Ko, carte ${kb(JSON.stringify(map))} Ko, plans ${kb(JSON.stringify(plans))} Ko, icônes ${kb(D.icons.url)} Ko, figurines ${kb(D.figures.url)} Ko) — ${D.pages.length} fiches, ${wiki.cats.length} sections, ${wiki.other.length} « autres tables »`);
   return { D, wiki };
 }
 
@@ -4683,5 +5930,5 @@ async function main() {
   say('terminé');
 }
 
-module.exports = { encodePNG, pngURL, packGrid, packBytes, FakeCanvas, loadGame, URL_TO_CANVAS, jclone, extract, buildWiki, writeHTML, CLIENT };
+module.exports = { encodePNG, pngURL, packGrid, packBytes, FakeCanvas, loadGame, URL_TO_CANVAS, jclone, extract, buildWiki, writeHTML, CLIENT, Plan, planPNG, planDessous, planMondes: typeof planMondes === 'function' ? planMondes : null };
 if (require.main === module) main().then(() => process.exit(0), (e) => { console.error(e && e.stack || e); process.exit(1); });

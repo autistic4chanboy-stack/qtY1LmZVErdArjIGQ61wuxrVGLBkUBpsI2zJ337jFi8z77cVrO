@@ -551,7 +551,7 @@ const fondation = {
     if (game.dying) { this.escorte = false; return; }
     game.sleeping = true;
     ui.close(true);
-    await ui.fade(true, 'Une main gantée se referme sur votre bras. On vous fait remonter une échelle, longtemps, sans un mot.', 900);
+    await ui.fade(true, 'Une main gantée se referme sur votre bras.', 900);
     await new Promise((res) => setTimeout(res, 2200));
     S.escortes = (S.escortes || 0) + 1;
     let msg = '';
@@ -559,7 +559,7 @@ const fondation = {
       S.escortes = 0; S.scelle = s.day + 2;
       const K = savoir.S().lieux; delete K.fondation; delete K.fondation_entree;
       if (typeof slender !== 'undefined' && slender.S && s.slender) s.slender.repit = s.hours + 6;
-      $('#fade-text').textContent = 'Une piqûre au bras. Le goût du métal. Vous vous réveillez dans l’herbe, près d’une cabane en ruine, sans savoir très bien ce que vous faisiez là.';
+      $('#fade-text').textContent = 'Une piqûre au bras. Vous vous réveillez dans l’herbe, sans savoir très bien ce que vous faisiez là.';
       await new Promise((res) => setTimeout(res, 3200));
     }
     p.pos = F.sortie.slice(); p.vel = [0, 0, 0];
@@ -612,27 +612,27 @@ const fondation = {
     if (S.evacue) { ui.read('Console MTC-3', 'ÉVACUATION TEMPORELLE EFFECTUÉE.\n\nTout le personnel a quitté cette époque. La machine ne répond plus qu’en clignotant : une lumière verte, une rouge, une verte.', ''); return; }
     const opts = [{ label: 'Lire le journal de la machine', fn: () => { ui.close(true); this.ouvrirTerminal('machine'); } }];
     if (farm.count('badge_fondation')) opts.push({ label: s.day - (S.machine || -99) < 7 ? 'Saut d’observation (en recharge)' : 'Passer le badge : saut d’observation', fn: () => { ui.close(true); this.saut(); } });
-    else opts.push({ label: 'Toucher l’écran', fn: () => { ui.close(); if (sound.ok) sound.tone(sound.at(), 'square', 300, 300, 0.25, 0.04); ui.subtitle('', '(« ACCÈS REFUSÉ — BADGE REQUIS ». L’écran rougit un instant.)', 3); } });
+    else opts.push({ label: 'Toucher l’écran', fn: () => { ui.close(); if (sound.ok) sound.tone(sound.at(), 'square', 300, 300, 0.25, 0.04); ui.subtitle('', '(« ACCÈS REFUSÉ — BADGE REQUIS ».)', 3); } });
     opts.push({ label: 'Partir', fn: () => ui.close() });
     ui.choice('La console de la machine', 'Trois écrans, des voyants qui clignotent, un anneau immense qui ronronne derrière la vitre. Des lettres vertes défilent : « MTC-3 CLIO — EN VEILLE ».', opts);
   },
   async saut() {
     const S = this.S(), s = farm.s, p = game.player, F = this.W();
-    if (s.day - (S.machine || -99) < 7) { ui.subtitle('', '(« RECHARGE EN COURS ». L’anneau tourne à peine.)', 3); return; }
+    if (s.day - (S.machine || -99) < 7) { ui.subtitle('', '(« RECHARGE EN COURS ».)', 3); return; }
     S.machine = s.day;
     const c = [F.x, F.y + 3.85, F.z - 20], eye = p.eyePos();
     this.machineT = 12;
     if (sound.ok) { const t = sound.at(); sound.voice(t, 'sawtooth', 50, 400, 6, 0.05, sound.lp(1200)); sound.voice(t + 3, 'sine', 200, 1600, 3, 0.04, sound.sfx); }
     await cine.jouer([
-      { dur: 3.2, de: { pos: eye, look: c }, a: { pos: [F.x + 3, F.y + 2.4, F.z - 12], look: c }, texte: 'L’anneau se met à tourner. Le sol vibre, puis l’air lui-même.', secousse: 0.03 },
-      { dur: 3.6, orbite: { c, r: 7, h: 0.2, a0: 0.2, a1: 1.3 }, texte: 'Au centre, la lumière devient blanche, puis plus que blanche.', secousse: 0.06 },
+      { dur: 3.2, de: { pos: eye, look: c }, a: { pos: [F.x + 3, F.y + 2.4, F.z - 12], look: c }, secousse: 0.03 },
+      { dur: 3.6, orbite: { c, r: 7, h: 0.2, a0: 0.2, a1: 1.3 }, secousse: 0.06 },
       { dur: 4.5, de: { pos: [F.x, F.y + 2, F.z - 13], look: c }, fondu: 'noir', texte: 'Pendant quatre secondes, vous êtes debout au même endroit, cent cinquante ans plus tard.' },
       { dur: 5.5, de: { pos: [F.x, F.y + 2, F.z - 13], look: c }, fondu: 'noir', texte: 'Il n’y a plus de ferme. Le lac a monté jusqu’aux premières maisons de la ville, qui n’ont plus de toits. Il neige, en plein été.' },
       { dur: 4.5, de: { pos: [F.x, F.y + 2, F.z - 13], look: c }, fondu: 'noir', texte: 'Au loin, sur la crête, quelque chose de très grand est assis, et regarde la vallée. Il vous a vu.' },
     ], { passer: false });
     this.machineT = 0;
     strange.glitchT = Math.max(strange.glitchT || 0, 1.2);
-    ui.subtitle('', '(Vous êtes à genoux devant la console. Vos mains tremblent. Des pas pressés arrivent de tous les côtés.)', 4.5);
+    ui.subtitle('', '(Des pas pressés arrivent de tous les côtés.)', 3.5);
     const r = this.cherch.find((q) => q.etat !== 'parti');
     if (r) setTimeout(() => this.reconduire(r, 'machine'), 2500);
   },
@@ -647,7 +647,7 @@ const fondation = {
       this.updateChercheurs(dt);
       // le sas : un cycle de décontamination en passant
       const inSas = Math.abs(p.pos[0] - F.x) < 4 && p.pos[2] - F.z > 27 && p.pos[2] - F.z < 33;
-      if (inSas && !this.sasOn && (this.sasT || 0) <= 0) { this.sasOn = true; this.sasT = 40; if (sound.ok) sound.noiseHit(sound.at(), 2.6, 'highpass', 2500, 0.5, 0.05); ui.subtitle('', '(Un sifflement : une brume froide tombe du plafond, puis s’arrête d’un coup.)', 3); for (let k = 0; k < 40; k++) particles.spawn(F.x + (Math.random() - 0.5) * 7, F.y + 3.2, F.z + 28 + Math.random() * 4, (Math.random() - 0.5) * 0.4, -1.5 - Math.random(), (Math.random() - 0.5) * 0.4, [0.85, 0.92, 1, 0.6], 0.12, 1.6, 0.5, false); }
+      if (inSas && !this.sasOn && (this.sasT || 0) <= 0) { this.sasOn = true; this.sasT = 40; if (sound.ok) sound.noiseHit(sound.at(), 2.6, 'highpass', 2500, 0.5, 0.05); for (let k = 0; k < 40; k++) particles.spawn(F.x + (Math.random() - 0.5) * 7, F.y + 3.2, F.z + 28 + Math.random() * 4, (Math.random() - 0.5) * 0.4, -1.5 - Math.random(), (Math.random() - 0.5) * 0.4, [0.85, 0.92, 1, 0.6], 0.12, 1.6, 0.5, false); }
       if (!inSas) this.sasOn = false;
       this.sasT = (this.sasT || 0) - dt;
       // un ronronnement de machine
@@ -777,7 +777,7 @@ fondation.evacuer = function (r) {
   strange.glitchT = Math.max(strange.glitchT || 0, 1.5); game.shakeT = 0.6;
   if (sound.ok) { const t = sound.at(); sound.voice(t, 'sawtooth', 900, 60, 1.4, 0.06, sound.lp(3000)); sound.noiseHit(t, 1.2, 'bandpass', 2000, 0.5, 0.2); }
   for (const q of this.cherch) { q.etat = 'parti'; for (let k = 0; k < 20; k++) particles.spawn(q.x, q.y + Math.random() * 1.9, q.z, (Math.random() - 0.5) * 2, Math.random() * 2, (Math.random() - 0.5) * 2, [0.8, 0.95, 1, 1], 0.06, 0.8, 0, true); }
-  ui.subtitle('', '(Un éclair blanc, sans bruit. Il n’y a plus personne. Au loin, l’anneau hurle, puis se tait. Ils sont partis — tous, et vers quand ?)', 6);
+  ui.subtitle('', '(Un éclair blanc, sans bruit. Il n’y a plus personne.)', 4.5);
 };
 
 // ---------------------------------------------------------------- les interactions
@@ -786,9 +786,9 @@ HOOKS.inter.fond_trappe = (it) => {
   if (!F) return;
   if (S.scelle && s.day < S.scelle) { ui.subtitle('', '(La dalle ne bouge plus. Quelqu’un l’a scellée, par-dessous.)', 3.5); return; }
   const q = it.data && it.data.prop !== undefined ? game.world.props[it.data.prop] : null;
-  if (!S.dalle) { S.dalle = s.day; if (q) farm.setPropData(q, { ouverte: true }); sound.rumble && sound.rumble(); ui.read('Sous la dalle', 'La dalle est plus légère qu’elle n’en a l’air : elle pivote sur une charnière cachée. Dessous, une trappe d’acier lisse, sans une trace de rouille, avec un petit carré de verre qui s’allume en vert quand vous approchez la main.\n\nQuelqu’un, sous la lande, entretient cette porte.', '(Appuyez encore pour descendre.)'); return; }
+  if (!S.dalle) { S.dalle = s.day; if (q) farm.setPropData(q, { ouverte: true }); sound.rumble && sound.rumble(); ui.read('Sous la dalle', 'La dalle pivote sur une charnière cachée. Dessous, une trappe d’acier lisse, sans une trace de rouille, avec un petit carré de verre qui s’allume en vert quand vous approchez la main.', '(Appuyez encore pour descendre.)'); return; }
   if (sound.ok) { const t = sound.at(); sound.tone(t, 'sine', 880, 880, 0.08, 0.03); sound.tone(t + 0.1, 'sine', 1320, 1320, 0.1, 0.03); }
-  game.teleport(F.arrivee, 'La trappe s’ouvre sans bruit. Une échelle de métal descend, très loin, dans une lumière blanche.');
+  game.teleport(F.arrivee, 'Une échelle de métal descend, très loin, dans une lumière blanche.');
 };
 HOOKS.inter.fond_terminal = (it) => fondation.ouvrirTerminal(it.data.term);
 HOOKS.inter.fond_dossier = (it) => fondation.ouvrirTerminal('dossier', it.data.f);
@@ -840,13 +840,13 @@ HOOKS.primary.push((eye, basis, held, it, id) => {
     case 'lampe_torche': fondation.torcheOn = !fondation.torcheOn; sound.click(); play.cool = 0.3; return true;
     case 'combinaison':
       S.combi = !S.combi; sound.equip && sound.equip(); play.cool = 0.6;
-      ui.subtitle('', S.combi ? '(Vous enfilez la combinaison jaune. Tout sent le caoutchouc, et votre souffle résonne dans la capuche.)' : '(Vous ôtez la combinaison. L’air frais sur le visage.)', 3.5);
+      ui.subtitle('', S.combi ? '(Tout sent le caoutchouc, dans la combinaison.)' : '(L’air frais sur le visage.)', 3);
       return true;
     case 'trousse_fondation':
       if (!farm.take('trousse_fondation', 1)) return true;
       p.hp = Math.min(100, p.hp + 60); corps.panser(); if (corps.jambeCassee()) { corps.C().attelle = 1; corps.soignerJambe(false); }
       play.poisonT = 0; sound.equip && sound.equip(); play.cool = 1;
-      ui.subtitle('', '(Des bandes qui collent toutes seules, une piqûre qui ne fait pas mal. Vous vous sentez… réparé.)', 3.5);
+      ui.subtitle('', '(Vous vous sentez… réparé.)', 3.5);
       return true;
     case 'amnesique':
       if (!farm.take('amnesique', 1)) return true;
@@ -854,7 +854,7 @@ HOOKS.primary.push((eye, basis, held, it, id) => {
       strange.fear = 0; strange.glitchT = Math.max(strange.glitchT || 0, 0.6);
       if (s.slender) { s.slender.repit = s.hours + 24; s.slender.traques = Math.max(0, (s.slender.traques || 0) - 1); }
       play.cool = 1;
-      ui.subtitle('', '(Une piqûre froide. Pendant un moment, vous ne savez plus du tout où vous êtes, ni pourquoi vous teniez cette seringue.)', 4.5);
+      ui.subtitle('', '(Une piqûre froide. Pendant un moment, vous ne savez plus où vous êtes.)', 4);
       return true;
     case 'compteur_kant': fondation.mesurer(); play.cool = 1.2; return true;
   }

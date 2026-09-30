@@ -66,21 +66,19 @@ const temple = {
     const premier = !S.vu;
     S.vu = S.vu || s.day;
     savoir.connaitreLieu('temple');
-    game.teleport(w.temple.arrive, premier ? 'Derrière le rideau d’eau, la roche est creusée. Un escalier taillé descend, longtemps, dans le noir et le froid.' : 'Vous passez derrière la cascade, et vous descendez.');
-    if (premier) setTimeout(() => { if (!game.dying) ui.subtitle('', '(Une salle taillée dans la montagne. Des lettres anguleuses sur les murs. Quelque part, très loin, quelque chose respire.)', 5.5); }, 1600);
+    game.teleport(w.temple.arrive, premier ? 'Derrière le rideau d’eau, un escalier descend dans le noir.' : '');
     void it;
   },
   // ------------------------------------------------------------ les trois pierres
   toucher(it) {
     const k = it.data && it.data.k;
     if (!TPL_ORDRE.includes(k)) return;
-    if (this.ouvert()) { ui.subtitle('', pick(['(La pierre est tiède sous la main. La porte est ouverte.)', '(Les trois pierres brillent ensemble, doucement.)']), 3); return; }
-    if (this.seq.includes(k)) { ui.subtitle('', '(Cette pierre brille déjà.)', 2); return; }
+    if (this.ouvert()) return;
+    if (this.seq.includes(k)) return;
     const attendu = TPL_ORDRE[this.seq.length];
     if (k === attendu) {
       this.seq.push(k); this.allumer(k, true);
       this.note(k);
-      ui.subtitle('', { aela: '(La pierre s’éclaire d’une lueur d’aube, rose et or.)', durn: '(La pierre gronde tout bas, comme un dormeur qui soupire.)', vesh: '(La pierre s’assombrit. Une lumière noire, qui n’éclaire rien.)' }[k], 3.5);
       if (this.seq.length === 3) setTimeout(() => this.ouvrir(true), 1500);
       return;
     }
@@ -91,8 +89,8 @@ const temple = {
     for (let i = 0; i < 14; i++) particles.spawn(p[0] + (Math.random() - 0.5) * 8, p[1] + 5 + Math.random() * 2, p[2] + (Math.random() - 0.5) * 8, 0, -1, 0, [0.6, 0.58, 0.52, 0.8], 0.06, 2, 6, false);
     if (this.erreurs >= 3) {
       this.erreurs = 0;
-      setTimeout(() => { sound.impact && sound.impact('hard'); play.hurt(14, null, 'Écrasé par une pierre tombée de la voûte du temple'); ui.subtitle('', '(Une pierre se détache de la voûte et vous frappe l’épaule. La montagne n’aime pas qu’on se trompe.)', 4.5); }, 900);
-    } else ui.subtitle('', '(Un grondement sourd monte de la roche. Les trois pierres s’éteignent.)', 4);
+      setTimeout(() => { sound.impact && sound.impact('hard'); play.hurt(14, null, 'Écrasé par une pierre tombée de la voûte du temple'); ui.subtitle('', '(Une pierre se détache de la voûte.)', 3); }, 900);
+    }
   },
   note(k) {
     if (!sound.ok) return;
@@ -171,17 +169,15 @@ const temple = {
     if (farm.count('cendre_sacree') && S.durnDon !== s.day) {
       farm.take('cendre_sacree', 1);
       S.durnDon = s.day; BUFF.add('pierre', 24);
-      ui.subtitle('', '(Vous répandez la cendre sacrée sur la pierre. Sous votre paume, elle se réchauffe, lentement.)', 4.5);
       divins.parler('durn', 'durn_don', 3500);
       return;
     }
-    ui.subtitle('', '(Sous votre paume, un battement. Un seul. Il vous a fallu une minute pour l’entendre. Il dort profondément.)', 5);
   },
 
   // ------------------------------------------------------------ le tombeau des Aëlim
   tombeau(it) {
     const S = this.S();
-    const opts = [{ label: 'Lire l’inscription', fn: () => { const L = divins.comprendre(TPL_TOMBEAU[0], TPL_TOMBEAU[1]); ui.read('Le tombeau', `Gravé en Hautes Lettres, de haut en bas :\n\n« ${TPL_TOMBEAU[0]} »\n\n${L.join('\n')}`, 'Sur la dalle, une main ouverte, sculptée.'); savoir.apprendreMots('aelin', ['othen']); } }];
+    const opts = [{ label: 'Lire l’inscription', fn: () => { const L = divins.comprendre(TPL_TOMBEAU[0], TPL_TOMBEAU[1]); ui.read('Le tombeau', `Gravé en Hautes Lettres, de haut en bas :\n\n« ${TPL_TOMBEAU[0]} »${L ? `\n\n(« ${L} »)` : ''}`, 'Sur la dalle, une main ouverte, sculptée.'); } }];
     if (!S.pille) opts.push({ label: 'Faire glisser la dalle', fn: () => this.piller(it) });
     if (S.pille && malediction.cause('ombre') === 'tombeau' && farm.count('couronne_aelim')) opts.push({ label: 'Remettre le diadème à sa place', fn: () => this.rendreTombeau() });
     opts.push({ label: 'Partir', fn: () => ui.close() });
@@ -194,7 +190,6 @@ const temple = {
     sound.impact && sound.impact('hard'); sound.rumble && sound.rumble();
     const pos = [it.x, it.y + 0.4, it.z];
     for (const [k, n] of [['couronne_aelim', 1], ['bijou', 2], ['vieille_piece', 5]]) { farm.give(k, n); play.flyer(k, pos, n); }
-    ui.subtitle('', '(La dalle glisse avec un bruit de meule. Dedans, un corps enveloppé de lin, un diadème d’argent pâle sur le front. Vous le prenez.)', 5);
     setTimeout(() => malediction.frapper('ombre', 'tombeau'), 2500);
   },
   rendreTombeau() {
@@ -202,7 +197,6 @@ const temple = {
     ui.close(true);
     if (!farm.take('couronne_aelim', 1)) return;
     S.pille = 0;
-    ui.subtitle('', '(Vous reposez le diadème sur le front du mort, et vous refermez la dalle. Elle glisse toute seule, les derniers pouces.)', 5);
     setTimeout(() => malediction.lever('tombeau'), 2500);
   },
 
@@ -219,9 +213,9 @@ const temple = {
     ui.close(true);
     const k = ['lingot_or', 'couronne_aelim', 'gemme', 'bijou'].find((x) => farm.count(x));
     if (k) farm.take(k, Math.min(farm.count(k), 2));
-    else if (!farm.pay(300)) { ui.subtitle('', '(Vous n’avez plus rien de ce qui a été pris. Ni de quoi le remplacer.)', 4); return; }
+    else if (!farm.pay(300)) { ui.subtitle('', '(Ni ce qui a été pris, ni de quoi le remplacer.)', 3.5); return; }
     puffAt(it.x, it.y, it.z, [220, 200, 140], 8, 1, true);
-    ui.subtitle('', k ? `(Vous remettez ${itemName(k).toLowerCase()} dans le coffre. Le couvercle retombe tout seul.)` : '(Vous déposez trois cents pièces dans le coffre. Ce n’est pas ce qui a été pris. C’est ce que vous pouvez.)', 4.5);
+    ui.subtitle('', k ? `(Vous remettez ${itemName(k).toLowerCase()}.)` : '(Trois cents pièces, faute de mieux.)', 3);
     setTimeout(() => malediction.lever('temple'), 1800);
   },
 
@@ -231,15 +225,14 @@ const temple = {
     const opts = [{ label: 'Boire dans le creux de la main', fn: () => {
       ui.close();
       p.hp = Math.min(100, p.hp + 20); p.food = Math.min(100, p.food + 5);
-      if (S.bu !== s.day) { S.bu = s.day; if (!malediction.leverPetites(true)) ui.subtitle('', '(Une eau si froide qu’elle brûle. Elle a le goût de la pierre, et de rien d’autre.)', 4); else ui.subtitle('', '(L’eau du bassin descend dans la gorge, et quelque chose de lourd s’en va avec elle.)', 4); }
-      else ui.subtitle('', '(L’eau est froide. Elle a déjà donné, aujourd’hui.)', 3);
+      if (S.bu !== s.day) { S.bu = s.day; if (!malediction.leverPetites(true)) ui.subtitle('', '(Une eau si froide qu’elle brûle.)', 3); else ui.subtitle('', '(Quelque chose de lourd s’en va.)', 3.5); }
+      else ui.subtitle('', '(Elle a déjà donné, aujourd’hui.)', 3);
       sound.pour && sound.pour();
     } }];
     if (farm.count('fiole')) opts.push({ label: 'Remplir une fiole', fn: () => {
       ui.close();
-      if (S.fiole === s.day) { ui.subtitle('', '(L’eau glisse de la fiole comme si elle refusait. Une par jour, pas plus.)', 3.5); return; }
+      if (S.fiole === s.day) { ui.subtitle('', '(L’eau refuse la fiole. Une par jour.)', 3); return; }
       S.fiole = s.day; farm.take('fiole', 1); farm.give('eau_lustrale', 1); play.flyer('eau_lustrale', p.eyePos(), 1); sound.pour && sound.pour();
-      ui.subtitle('', '(La fiole se remplit d’une eau très claire. Elle reste froide dans votre poche.)', 3.5);
     } });
     opts.push({ label: 'Partir', fn: () => ui.close() });
     ui.choice('Le bassin sacré', 'Une eau immobile, si claire qu’on voit les lettres gravées au fond. Des poissons pâles y tournent sans bruit.', opts);
@@ -247,7 +240,7 @@ const temple = {
   cristal(q) {
     const S = this.S();
     if (sound.ok) { const f = 520 + ((Math.abs(q.x * 13 + q.z * 7) | 0) % 7) * 70, t = sound.at(), out = sound.lp(3000, sound.amb); sound.tone(t, 'sine', f, f, 3, 0.05, out, 0.01); sound.tone(t, 'sine', f * 1.5, f * 1.5, 2.2, 0.015, out, 0.01); }
-    if (!S.cristal) { S.cristal = 1; savoir.apprendreMots('aelin', ['lira']); ui.subtitle('', '(Le cristal chante quand on le touche. Une note très pure, qui met longtemps à s’éteindre.)', 4); }
+    if (!S.cristal) { S.cristal = 1; savoir.apprendreMots('aelin', ['lira']); }
   },
 };
 

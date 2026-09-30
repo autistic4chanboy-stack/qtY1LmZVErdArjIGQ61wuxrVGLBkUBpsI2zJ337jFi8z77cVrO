@@ -418,7 +418,7 @@ const NPC_NEW = [
         'Nous parlons l’aëlin entre nous, pour les choses sacrées. Si tu veux des mots, apporte du pain. Un pain, un mot. C’est le prix.',
         'Le soleil nous brûle les yeux. Nous ne sortons que les nuits sans lune. Mais pas les nuits noires. Jamais les nuits noires.',
         'Durn dort sous la montagne. Les Sources chaudes, c’est son souffle. Les tremblements, ses rêves. Nous chantons pour qu’il ne se réveille pas.',
-        'Il y a trois pierres à la porte du temple. Aëla, Durn, Vesh. L’aube, le sommeil, la nuit. Celui qui les appelle dans l’ordre entre. Celui qui se trompe… reste.',
+        'Il y a trois pierres à la porte du temple. Celui qui les appelle comme il faut entre. Celui qui se trompe… reste. Nous, chaque matin, nous commençons par la lumière.',
       ],
       rumeurs: [
         'Les géants sont nos cousins de loin. Ils sont grands, nous sommes petits, et tous deux nous étions là avant vous.',

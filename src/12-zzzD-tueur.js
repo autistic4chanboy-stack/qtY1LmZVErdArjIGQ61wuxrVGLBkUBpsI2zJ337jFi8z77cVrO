@@ -126,11 +126,11 @@ const tueur = {
           const ld = Math.hypot(e.x - lum.x, e.z - lum.z) || 1;
           if (ld < lum.r) { tx = lum.x + (e.x - lum.x) / ld * (lum.r + 1); tz = lum.z + (e.z - lum.z) / ld * (lum.r + 1); sp = 1.8; }
           else { sp = 0; e.heading = Math.atan2(dx, dz); }
-          if (!e.ditLum) { e.ditLum = true; ui.subtitle('', '(Il s’arrête au bord de la lumière. Il n’entre pas. Il attend.)', 4); }
+          if (!e.ditLum) e.ditLum = true;
         } else { tx = p.pos[0]; tz = p.pos[2]; sp = 6.2; run = true; }
         strange.fear = Math.max(strange.fear || 0, clamp(1 - d / 30, 0.35, 1));
         // semé
-        if (d > 42 || e.chasseT > 28) { e.etat = 'rode'; e.renonce = true; this.arme(e, false); if (d > 42) ui.subtitle('', '(Plus de pas derrière vous. Vous l’avez semé. Pour l’instant.)', 3.5); }
+        if (d > 42 || e.chasseT > 28) { e.etat = 'rode'; e.renonce = true; this.arme(e, false); if (d > 42) ui.subtitle('', '(Plus de pas derrière vous.)', 3); }
         // rattrapé : un seul coup
         if (d < 1.3 && !cache && !cine.on && !game.dying) {
           e.etat = 'tue'; e.attackAnim = 0.5;
@@ -143,7 +143,7 @@ const tueur = {
         e.porteT += dt; e.heading = Math.atan2(dx, dz);
         if (d > 5) { tx = p.pos[0]; tz = p.pos[2]; sp = 1.6; }
         if (!cache && dehors) { e.etat = 'chasse'; e.chasseT = 0; }
-        else if (e.porteT > 4 && e.coups < 3) { e.porteT = -3 - Math.random() * 3; e.coups++; sound.knock && sound.knock(3); if (e.coups === 1) setTimeout(() => ui.subtitle('', '(Trois coups à la porte. Puis on essaie la poignée, doucement.)', 4), 900); if (Math.random() < 0.4) sound.scratch && sound.scratch(); }
+        else if (e.porteT > 4 && e.coups < 3) { e.porteT = -3 - Math.random() * 3; e.coups++; sound.knock && sound.knock(3); if (Math.random() < 0.4) sound.scratch && sound.scratch(); }
         else if (e.coups >= 3 && e.porteT > 6) { e.etat = 'rode'; e.renonce = true; }
       } else {
         // --- il rôde : vers sa victime ; sinon autour du joueur ; loin des yeux, il fait du chemin sans qu'on le voie
@@ -201,7 +201,7 @@ const tueur = {
     npcs.kill(v, 'errant', []);
     this.S().victime = v.id;
     farm.addProp({ id: 'sang', x: v.x + 0.4, y: w.heightAt(v.x, v.z) + 0.01, z: v.z, r: Math.random() * TAU });
-    if (Math.hypot(v.x - p.pos[0], v.z - p.pos[2]) < 140) setTimeout(() => ui.subtitle('', '(Un cri, dans la nuit. Un seul. Puis des pas qui s’éloignent, sans se presser.)', 5), 600);
+    if (Math.hypot(v.x - p.pos[0], v.z - p.pos[2]) < 140) setTimeout(() => ui.subtitle('', '(Un cri, dans la nuit. Un seul.)', 4), 600);
     this.partir('meurtre', true);
   },
   // blessé : il s'enfuit
@@ -211,7 +211,6 @@ const tueur = {
     sound.hurtHuman && sound.hurtHuman(0.7);
     puffAt(e.x, e.y + 1.2, e.z, [140, 20, 20], 8, 1.5, false);
     this.S().fui = farm.s.day;
-    ui.subtitle('', '(Il porte la main à son flanc. Il ne crie pas. Il recule, puis il s’enfuit dans le noir.)', 4.5);
     void dmg;
   },
 };

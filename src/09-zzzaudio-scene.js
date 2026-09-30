@@ -84,9 +84,9 @@ SoundEngine.BOUCLES = {
 SoundEngine.VOL_BOUCLES = { riviere: 0.2, clapotis: 0.22, feu: 0.22, gouttes: 0.07, feuilles: 0.06, grillon: 0.12, bourdon: 0.05, vent: 0.14 };
 // les oiseaux selon le milieu : [sorte, poids]
 SoundEngine.OISEAUX = {
-  foret: [['merle', 3], ['mesange', 3], ['pinson', 3], ['pic', 1], ['tourterelle', 1], ['coucou', 0.4]],
+  foret: [['merle', 3], ['mesange', 3], ['pinson', 3], ['pic', 0.6], ['tourterelle', 1], ['coucou', 0.15]],
   bouleaux: [['mesange', 3], ['pinson', 3], ['merle', 2], ['pic', 1.2]],
-  plaine: [['alouette', 2], ['merle', 1], ['pinson', 1], ['tourterelle', 1], ['coucou', 0.3]],
+  plaine: [['alouette', 2], ['merle', 1], ['pinson', 1], ['tourterelle', 1], ['coucou', 0.1]],
   ferme: [['moineau', 3], ['merle', 1.5], ['tourterelle', 2], ['mesange', 1]],
   ville: [['moineau', 4], ['tourterelle', 1], ['merle', 1]],
   lande: [['alouette', 3], ['pinson', 1]],
@@ -94,6 +94,8 @@ SoundEngine.OISEAUX = {
   marais: [['merle', 1], ['mesange', 1]],
   hauteurs: [['alouette', 1]],
 };
+// combien de fois un chanteur reprend sa phrase (de…, à…), et le silence entre deux reprises (s, en plus du chant)
+SoundEngine.PHRASES = { merle: [1, 2, 4], mesange: [1, 2, 3], pinson: [1, 3, 3.5], tourterelle: [1, 2, 3], coucou: [1, 3, 1.2], alouette: [0, 1, 2], moineau: [1, 2, 2.5], pic: [0, 0, 6] };
 
 Object.assign(SoundEngine.prototype, {
   // ---------------------------------------------------------------- boucles placées
@@ -238,14 +240,26 @@ Object.assign(SoundEngine.prototype, {
     S.feuT -= dt;
     if (S.feuT <= 0) { S.feuT = 0.4; S.feu = (E.fire || 0) > 0.02 || (typeof vallee !== 'undefined' && vallee.burning && vallee.burning.size) ? this._feu(w, p) : null; }
     if (S.feu) this.source('feu', 'feu', S.feu.p, S.feu.k, { ref: S.feu.gros ? 7 : 1.6, roll: 1 });
-    // ---- les oiseaux (le jour, par beau temps), dans les arbres
+    // ---- les oiseaux (le jour, par beau temps), dans les arbres : un chanteur à la fois, qui reprend sa phrase
+    //      deux ou trois fois de la même branche, puis un silence avant le suivant (plus court à l'aube et en forêt)
     S.arbresT -= dt;
     if (S.arbresT <= 0 && dehors) { S.arbresT = 3; this._arbres(w, p, S); }
     S.oiseauT -= dt;
     if (S.oiseauT <= 0) {
-      const jour = E.day || 0, aube = this._heure() >= 5 && this._heure() < 9 ? 1.6 : 1;
-      S.oiseauT = (0.9 + R() * 3.2) / Math.max(0.25, jour * aube) * (bois ? 0.8 : biome === 'ville' ? 1.4 : 1.1);
-      if (dehors && !quiet && jour > 0.25 && calme > 0.5 && !mondeAPart) this._chanteur(biome, S, jour * calme);
+      const jour = E.day || 0, h = this._heure(), aube = h >= 5 && h < 8.5;
+      const peut = dehors && !quiet && jour > 0.25 && calme > 0.5 && !mondeAPart, C = S.chanteur;
+      if (peut && C && C.reste > 0) {
+        C.reste--;
+        this.oiseau(C.sorte, C.pos, C.k);
+        S.oiseauT = C.pause * (0.8 + R() * 0.5);
+      } else {
+        S.chanteur = null;
+        const base = bois ? 13 : biome === 'ville' ? 28 : biome === 'ferme' ? 18 : 22;
+        S.oiseauT = base * (0.6 + R() * 0.9) * (aube ? 0.55 : 1) / Math.max(0.35, jour);
+        // (un autre oiseau chante encore, ici ou une bête du bois : on attend qu'il se taise)
+        if (peut && this.ctx && (this.oiseauxFin || 0) > this.ctx.currentTime + 0.3) S.oiseauT = 1.5 + R() * 2.5;
+        else if (peut) { const N = this._chanteur(biome, S, jour * calme); if (N) { S.chanteur = N; S.oiseauT = N.pause * (0.8 + R() * 0.5); } }
+      }
     }
     // ---- la nuit : grillons dans l'herbe, chouette au loin, grenouilles près de l'eau
     const nuit = E.night || 0, herbeux = biome === 'plaine' || biome === 'ferme' || biome === 'lande' || biome === 'lac' || biome === 'bouleaux';
@@ -378,7 +392,8 @@ Object.assign(SoundEngine.prototype, {
       A.push([o.x, w.objectY(o) + o.h * (0.6 + Math.random() * 0.3), o.z]);
     }, null);
   },
-  // un oiseau chante : dans un arbre s'il y en a, sinon dans la haie ou (l'alouette) haut dans le ciel
+  // un oiseau chante : dans un arbre s'il y en a (pas celui sous lequel on se tient), sinon dans la haie ou
+  // (l'alouette) haut dans le ciel ; il reprendra sa phrase quelques fois de la même place
   _chanteur(biome, S, k) {
     const R = Math.random, T = SoundEngine.OISEAUX[biome] || SoundEngine.OISEAUX.plaine, L = this.L;
     let tot = 0;
@@ -386,10 +401,13 @@ Object.assign(SoundEngine.prototype, {
     let r = R() * tot, sorte = T[0][0];
     for (const [s, w] of T) { r -= w; if (r <= 0) { sorte = s; break; } }
     let pos;
-    if (sorte === 'alouette') { const a = R() * TAU, d = 20 + R() * 30; pos = [L.x + Math.cos(a) * d, L.y + 25 + R() * 20, L.z + Math.sin(a) * d]; }
-    else if (S.arbres.length) pos = S.arbres[(R() * S.arbres.length) | 0];
-    else { const a = R() * TAU, d = 10 + R() * 25; pos = [L.x + Math.cos(a) * d, L.y + 1 + R() * 3, L.z + Math.sin(a) * d]; }
+    const loin = S.arbres.filter((a) => Math.hypot(a[0] - L.x, a[2] - L.z) > 12);
+    if (sorte === 'alouette') { const a = R() * TAU, d = 25 + R() * 35; pos = [L.x + Math.cos(a) * d, L.y + 25 + R() * 20, L.z + Math.sin(a) * d]; }
+    else if (loin.length || S.arbres.length) { const A = loin.length ? loin : S.arbres; pos = A[(R() * A.length) | 0]; }
+    else { const a = R() * TAU, d = 14 + R() * 25; pos = [L.x + Math.cos(a) * d, L.y + 1 + R() * 3, L.z + Math.sin(a) * d]; }
     this.oiseau(sorte, pos, k);
+    const P = SoundEngine.PHRASES[sorte] || [1, 2, 3];
+    return { sorte, pos, k, reste: P[0] + ((R() * (P[1] - P[0] + 1)) | 0), pause: P[2] + (SoundEngine.TAMPONS[sorte] ? SoundEngine.TAMPONS[sorte][0] : 1.5) };
   },
   // les grillons : trois à cinq, chacun à sa place dans l'herbe ; ils se taisent quand on s'approche
   _grillons(S, k, p) {

@@ -52,10 +52,11 @@ const LIVRES = {
       { titre: 'Registre, 1854', texte: 'Treize habitants sont montés au col pour chercher un enfant. Douze sont redescendus. Le treizième figure encore au recensement, chaque année, sans que personne ne se souvienne de l’avoir recensé.' },
       { titre: 'Une note au crayon', texte: 'Les nains ne sont pas une légende. Le grand-père Morel a commercé avec eux ; il allait au nord-est de la Combe Perdue, là où la falaise a une fente en forme de serrure. Il n’a jamais voulu dire comment on entre. « Il faut frapper comme eux », disait-il.' },
     ] },
-  lexique_aelin: { titre: 'Des langues d’avant : l’aëlin', auteur: 'Frère Anselme de Montrevel', biblio: true, col: '#3a4a6a', langue: 'aelin', mots: 40 },
-  lexique_aelin2: { titre: 'Glossaire des Hautes Lettres', auteur: 'anonyme', biblio: true, col: '#2a3a5a', langue: 'aelin', mots: 999 },
-  lexique_gorrain: { titre: 'Les pierres qui parlent : le gorrain', auteur: 'Docteur Lefèvre, antiquaire', biblio: true, col: '#6a5a3a', langue: 'gorrain', mots: 30 },
-  lexique_gorrain2: { titre: 'Vocabulaire des géants', auteur: 'recueilli au péril de sa vie', biblio: true, col: '#5a4a2a', langue: 'gorrain', mots: 999 },
+  // (lexiques : une tranche de l'ordre mêlé de la partie, voir livres.motsLexique ; aucun ne donne toute la langue)
+  lexique_aelin: { titre: 'Des langues d’avant : l’aëlin', auteur: 'Frère Anselme de Montrevel', biblio: true, col: '#3a4a6a', langue: 'aelin', mots: 20 },
+  lexique_aelin2: { titre: 'Glossaire des Hautes Lettres', auteur: 'anonyme', biblio: true, col: '#2a3a5a', langue: 'aelin', mots: 40, depuis: 12, grand: true },
+  lexique_gorrain: { titre: 'Les pierres qui parlent : le gorrain', auteur: 'Docteur Lefèvre, antiquaire', biblio: true, col: '#6a5a3a', langue: 'gorrain', mots: 15 },
+  lexique_gorrain2: { titre: 'Vocabulaire des géants', auteur: 'recueilli au péril de sa vie', biblio: true, col: '#5a4a2a', langue: 'gorrain', mots: 30, depuis: 9, grand: true },
   les_trois: { titre: 'Les Trois', auteur: 'fragment aëlim traduit', biblio: true, col: '#6a6a8a', secret: 'trois',
     pages: [
       { titre: 'Aëla', texte: 'Aëla est l’Aube. Elle se lève avant le soleil et c’est elle qui lui dit de venir. Elle guérit ce qui peut l’être. Elle ne se montre qu’à qui a veillé toute une nuit sans lumière et sans peur, et encore : une fois dans une vie.' },
@@ -65,7 +66,7 @@ const LIVRES = {
   temple_montagne: { titre: 'Du temple sous la montagne', auteur: 'Frère Anselme de Montrevel', biblio: true, col: '#3a3a3a', secret: 'temple',
     pages: [
       { titre: 'Ce qu’on raconte', texte: 'Les Aëlim auraient creusé, sous la montagne du nord, un temple plus grand que la ville, pour y faire dormir Durn. On y entrerait par l’eau : là où la rivière naît de la montagne, sous les Monts, derrière ce qui tombe.' },
-      { titre: 'Ce qu’on n’ose pas écrire', texte: 'La porte ne s’ouvre qu’à qui sait la lire. Il faut « appeler les Trois » : Aëla, Durn et Vesh, dans l’ordre du jour — l’aube, le sommeil, la nuit. Trois pierres à toucher, dit un fragment. Je n’y suis pas allé. Je suis trop vieux, ou trop sage.' },
+      { titre: 'Ce qu’on n’ose pas écrire', texte: 'La porte ne s’ouvre qu’à qui sait la lire. Un fragment parle de trois pierres qu’on « appelle », et d’un ordre, que le copiste a laissé en blanc ; la marge dit seulement : « comme le jour les amène ». Je n’y suis pas allé. Je suis trop vieux, ou trop sage.' },
     ] },
   maledictions: { titre: 'Traité des malédictions', auteur: 'par une guérisseuse de l’ancien temps', biblio: true, col: '#4a2a4a', secret: 'maledictions',
     pages: [
@@ -81,7 +82,7 @@ const LIVRES = {
   peuple_bas: { titre: 'Le peuple d’en bas', auteur: 'contes recueillis à Clairpré', biblio: true, col: '#4a3a2a', secret: 'nains',
     pages: [
       { titre: 'Les petits hommes', texte: 'Ils sont petits, larges, barbus, et ils vivent sous la montagne depuis que les Aëlim leur ont confié le temple. Ils commercent parfois avec les hommes, en échange de pain, de miel et de laine. Ils ont horreur du soleil et des menteurs.' },
-      { titre: 'Pour les trouver', texte: 'Au bord de la Combe, où la falaise est fendue. On frappe trois coups, puis un, puis trois. Qui ne sait pas frapper reste dehors.' },
+      { titre: 'Pour les trouver', texte: 'Au bord de la Combe, où la falaise est fendue. Qui ne sait pas frapper reste dehors. Les vieux de Clairpré disent qu’ils frappent en trois temps, et que celui du milieu n’a qu’un coup ; pour les deux autres, chacun raconte le sien.' },
     ] },
   contes: { titre: 'Contes de la veillée', auteur: 'recueillis par l’instituteur', biblio: true, col: '#7a5a3a',
     pages: [

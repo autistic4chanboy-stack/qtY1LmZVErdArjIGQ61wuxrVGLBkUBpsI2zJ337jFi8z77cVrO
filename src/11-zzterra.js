@@ -102,11 +102,11 @@ const terra = {
       const h = npcs.hour(), b = game.biomeAt([v.x, v.y, v.z]), night = h >= 21 || h < 4;
       let loot = null;
       if (sand) { if (Math.random() < 0.12) loot = rollLoot('sable'); }
-      else if (night && (b === 'foret' || b === 'bouleaux') && Math.random() < 0.05) { loot = [['mandragore', 1]]; sound.scream2 && sound.scream2(); ui.subtitle('', '(La racine hurle en sortant de terre. Puis plus rien.)', 3.5); strange.glitchT = 0.3; }
+      else if (night && (b === 'foret' || b === 'bouleaux') && Math.random() < 0.05) { loot = [['mandragore', 1]]; sound.scream2 && sound.scream2(); strange.glitchT = 0.3; }
       else if (Math.random() < 0.13) loot = rollLoot('pelle');
       for (const [k, n] of loot || []) { if (k === 'argent') { farm.earn(n); continue; } farm.give(k, n); play.flyer(k, [v.x, w.heights[v.k] + 0.4, v.z], n); }
     }
-    if (before >= w.waterLevel - 0.05 && w.heights[v.k] < w.waterLevel - 0.05) { sound.splash(); ui.subtitle('', '(L’eau remonte au fond du trou.)', 2.5); }
+    if (before >= w.waterLevel - 0.05 && w.heights[v.k] < w.waterLevel - 0.05) sound.splash();
     s.stats.holes = (s.stats.holes || 0) + 1;
   },
   // ---------------------------------------------------------------- remblayer (clic droit)
@@ -115,7 +115,7 @@ const terra = {
     play.swingT = 0.3; play.cool = 0.42;
     if (!v) return;
     const src = farm.count('terre') ? 'terre' : farm.count('sable') ? 'sable' : null;
-    if (!src) { ui.subtitle('', '(Il vous faut de la terre à remettre : creusez ailleurs d’abord.)', 2.5); sound.click(); return; }
+    if (!src) { ui.subtitle('', '(Il vous faut de la terre à remettre.)', 2.5); sound.click(); return; }
     const why = this.blocked(w, v);
     if (why) return this.refuse(why);
     if (!this.edit(w, v, TERRA_STEP, src === 'sable' ? M_SAND : M_DIRT)) { ui.subtitle('', '(Plus haut, la terre s’éboule.)', 2); return; }

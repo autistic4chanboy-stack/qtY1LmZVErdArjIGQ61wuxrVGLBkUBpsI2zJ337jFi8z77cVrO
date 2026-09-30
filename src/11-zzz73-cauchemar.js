@@ -55,13 +55,12 @@ const cauchemar = {
     await suite(where);
     if (issue === 'attrape') {
       p.hp = Math.max(10, p.hp - 25);
-      ui.subtitle('', pick(['(Le drap est trempé. Vous avez crié si fort que votre gorge brûle. Vous n’avez pas pu vous rendormir.)', '(Au réveil, il vous faut longtemps pour être sûr que c’est bien votre maison.)']), 6);
+      ui.subtitle('', '(Vous n’avez pas pu vous rendormir.)', 4);
       if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-14, 'cauchemar');
     } else {
-      ui.subtitle('', pick(['(Il fait jour. Votre cœur bat encore trop vite. Vous avez trouvé la sortie, cette fois.)', '(Vous êtes trempé de sueur. Il y avait une porte. Vous l’avez passée. Vous ne savez plus ce qu’il y avait derrière.)']), 6);
       if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-5, 'cauchemar');
     }
-    if (farm.count('dessin_reve') && !this.C().ditDessin) { this.C().ditDessin = 1; setTimeout(() => ui.subtitle('', '(Dans votre main, le dessin. Vous ne l’avez jamais vu. Vous l’avez pourtant pris.)', 5), 6500); }
+    if (farm.count('dessin_reve') && !this.C().ditDessin) { this.C().ditDessin = 1; setTimeout(() => ui.subtitle('', '(Dans votre main, le dessin du rêve.)', 5), 6500); }
   },
   finir(issue) {
     if (!this.finR) { if (mondes.cur === 'cauchemar') mondes.sortir(); return; }
@@ -178,7 +177,7 @@ MONDES.cauchemar = {
     for (let z = c0 + 4; z < c1 - 1; z += 6) { ch(z % 12 < 6 ? -1.28 : 1.28, z, { y: f.y + 2.1, r: z % 12 < 6 ? Math.PI / 2 : -Math.PI / 2, modele: CM.applique, lumiere: { c: [1.0, 0.8, 0.45], r: 7, y: 0.35, vacille: true } }); }
     for (let z = c0 + 7; z < c1 - 2; z += 12) { ch(-1.27, z, { r: Math.PI / 2, v: Math.round(z), modele: CM.porte }); ch(1.27, z + 6, { r: -Math.PI / 2, v: Math.round(z) + 1, modele: CM.porte }); ch(1.28, z, { y: f.y + 1.5, r: -Math.PI / 2, v: Math.round(z), modele: CM.tableau }); }
     for (let z = c0 + 20; z < c1 - 6; z += 12) ch(0.2, z, { v: Math.round(z), modele: (E, c) => { if (MONDES.cauchemar.boucle >= 1) CM.sang(E, c); } });
-    if (!this.C().dessin) { const c = ch(-1.28, 50, { y: f.y + 1.45, r: Math.PI / 2, modele: CM.dessin, rayon: 0.35, h: 0.3, cle: 'reve_dessin', prendre: (cc) => { this.C().dessin = 1; farm.give('dessin_reve', 1); play.flyer('dessin_reve', [cc.x, cc.y, cc.z], 1); sound.page && sound.page(); ui.subtitle('', '(Un dessin d’enfant, punaisé au mur : un homme avec un sac sur la tête. Il tient la main de quelqu’un. De vous.)', 5); } }); c.y = f.y + 1.45; }
+    if (!this.C().dessin) { const c = ch(-1.28, 50, { y: f.y + 1.45, r: Math.PI / 2, modele: CM.dessin, rayon: 0.35, h: 0.3, cle: 'reve_dessin', prendre: (cc) => { this.C().dessin = 1; farm.give('dessin_reve', 1); play.flyer('dessin_reve', [cc.x, cc.y, cc.z], 1); sound.page && sound.page(); ui.subtitle('', '(Un dessin d’enfant : un homme avec un sac sur la tête. Il tient la main de quelqu’un. De vous.)', 5); } }); c.y = f.y + 1.45; }
     // l'issue : une porte de lumière blanche
     ch(0, L.fin - 0.6, { r: Math.PI, modele: CM.issue, lumiere: { c: [1.2, 1.2, 1.1], r: 10, y: 1.2 }, loin: 90 });
     // on se réveille à côté du lit
@@ -187,7 +186,6 @@ MONDES.cauchemar = {
     this.depart = p.pos.slice();
     if (game.renderer) game.renderer.uploadCover(p.pos[0], p.pos[2]);
     MSON.drone('reve', [41, 43.5], 0.06, 'sine', 180);
-    setTimeout(() => { if (mondes.cur === 'cauchemar') ui.subtitle('', pick(['(Vous êtes chez vous. Ce n’est pas tout à fait chez vous.)', '(Le plafond est trop haut. Il l’a toujours été, non ?)']), 5); }, 2500);
   },
   C() { return cauchemar.C(); },
   get depart() { return this._dep; }, set depart(v) { this._dep = v; },
@@ -214,9 +212,8 @@ MONDES.cauchemar = {
       const e = this.tueur;
       if (e) { let nz = e.z - f.z - L.pas; if (nz < L.couloir[0] + 1) nz = Math.max(L.couloir[0] + 1, p.pos[2] - f.z - 18); e.z = f.z + nz; e.x = f.x + clamp(e.x - f.x, -1, 1); e.y = f.y; }
       if (game.renderer) game.renderer.uploadCover(p.pos[0], p.pos[2]);
-      if (this.boucle === 1) setTimeout(() => ui.subtitle('', '(Ce tableau… vous êtes déjà passé devant.)', 3.5), 1200);
-      if (this.boucle === 2) { sound.knock && sound.knock(3); setTimeout(() => ui.subtitle('', '(Derrière les portes, on frappe. Tout le long du couloir.)', 3.5), 600); }
-      if (this.boucle === L.tours) { this.porteFin.y = -9999; game.world.grid = null; game.world.blocksDirty = true; setTimeout(() => ui.subtitle('', '(Là-bas, au bout, il y a de la lumière.)', 3.5), 1500); }
+      if (this.boucle === 2) sound.knock && sound.knock(3);
+      if (this.boucle === L.tours) { this.porteFin.y = -9999; game.world.grid = null; game.world.blocksDirty = true; }
     }
     // l'issue
     const [ix, iz] = this.at(0, L.fin - 1.2);
@@ -242,7 +239,7 @@ MONDES.cauchemar = {
     const R = S.retour;
     if (R) { const p = game.player; p.pos = R.pos.slice(); p.yaw = R.yaw; p.pitch = R.pitch || 0; }
     S.retour = null;
-    setTimeout(() => ui.subtitle('', '(Vous vous réveillez en sursaut. Il fait encore nuit. Il ne vous reste de ce rêve qu’un bruit de métal sur un plancher.)', 5), 1500);
+    setTimeout(() => ui.subtitle('', '(Vous vous réveillez en sursaut. Il fait encore nuit.)', 5), 1500);
   },
 };
 

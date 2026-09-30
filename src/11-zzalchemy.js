@@ -107,7 +107,7 @@ const alchemy = {
     if (r < 0.3) { play.nausea = 12; ui.subtitle('', '(Le sol tangue. Très mauvaise idée.)', 3); }
     else if (r < 0.5) { p.hp = Math.min(100, p.hp + 15); ui.subtitle('', '(Pas si mauvais, finalement.)', 3); }
     else if (r < 0.7) { BUFF.add('celerite', 0.5); ui.subtitle('', '(Vous avez le hoquet, et les jambes qui s’agitent.)', 3); }
-    else if (r < 0.85) { strange.glitchT = 1.2; ui.subtitle('', '(Pendant une seconde, vous voyez la vallée à l’envers.)', 3); }
+    else if (r < 0.85) { strange.glitchT = 1.2; }
     else { p.food = Math.max(0, p.food - 20); ui.subtitle('', '(Votre estomac se retourne. Vous avez faim, soudain.)', 3); }
   },
   // élixir de croissance : versé sur 3 × 3 cases
