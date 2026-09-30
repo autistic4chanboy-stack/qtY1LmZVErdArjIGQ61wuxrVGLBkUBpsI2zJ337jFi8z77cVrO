@@ -176,7 +176,7 @@ const commandes = {
       const P = this.devant(w.bld[pt.b]);
       return { k: 'maison', b: pt.b, x: P.x, z: P.z, nom: this.nomMaison(pt.b) };
     }
-    if (pt.k === 'ici' && isFinite(pt.x) && isFinite(pt.z)) return { k: 'ici', x: pt.x, z: pt.z, nom: pt.nom || this.nomIci(pt.x, pt.z) };
+    if (pt.k === 'ici' && isFinite(pt.x) && isFinite(pt.z)) return { k: 'ici', x: pt.x, z: pt.z, nom: this.nomIci(pt.x, pt.z) };
     const P = this.devant(w.bld.ferme);
     return { k: 'ferme', x: P.x, z: P.z, nom: 'devant la ferme' };
   },
@@ -192,8 +192,19 @@ const commandes = {
     return 'de ' + s;
   },
   // un endroit noté : près d'un lieu qu'on connaît, sinon à tant de mètres de lui (ou de la ferme), vers où
+  // (en anglais, la phrase se compose d'un bloc : « près du vieux moulin » ne se traduit pas morceau à morceau)
   nomIci(x, z) {
     const w = game.world, card = (a) => (w.cardinal ? w.cardinal(a) : 'le large');
+    if (typeof i18n !== 'undefined' && i18n.lang === 'en') return this.nomIciEn(x, z, card);
+    const B = this.lieuProche(x, z);
+    if (B && B.d < 90) return `près ${this.de(B.L.name)}`;
+    if (B) return `à ${Math.max(100, Math.round(B.d / 50) * 50)} mètres ${this.de(B.L.name)}, vers ${card(Math.atan2(x - B.L.x, z - B.L.z))}`;
+    const F = w.bld.ferme, d = Math.max(100, Math.round(Math.hypot(x - F.x, z - F.z) / 50) * 50);
+    return `à ${d} mètres de la ferme, vers ${card(Math.atan2(x - F.x, z - F.z))}`;
+  },
+  // le lieu connu le plus proche (à moins de 700 m) : { L, d } ou null
+  lieuProche(x, z) {
+    const w = game.world;
     let best = null, bd = 700;
     for (const k in w.lm) {
       const L = w.lm[k];
@@ -202,10 +213,15 @@ const commandes = {
       const d = Math.hypot(L.x - x, L.z - z);
       if (d < bd) { bd = d; best = L; }
     }
-    if (best && bd < 90) return `près ${this.de(best.name)}`;
-    if (best) return `à ${Math.max(100, Math.round(bd / 50) * 50)} mètres ${this.de(best.name)}, vers ${card(Math.atan2(x - best.x, z - best.z))}`;
-    const F = w.bld.ferme, d = Math.max(100, Math.round(Math.hypot(x - F.x, z - F.z) / 50) * 50);
-    return `à ${d} mètres de la ferme, vers ${card(Math.atan2(x - F.x, z - F.z))}`;
+    return best ? { L: best, d: bd } : null;
+  },
+  nomIciEn(x, z, card) {
+    const w = game.world, nom = (s) => T(s).replace(/^(The|An?) /, (m) => m.toLowerCase()), dir = (a) => T(card(a)).replace(/^the /i, '');
+    const B = this.lieuProche(x, z);
+    if (B && B.d < 90) return `near ${nom(B.L.name)}`;
+    if (B) return `${Math.max(100, Math.round(B.d / 50) * 50)} metres ${dir(Math.atan2(x - B.L.x, z - B.L.z))} of ${nom(B.L.name)}`;
+    const F = w.bld.ferme;
+    return `${Math.max(100, Math.round(Math.hypot(x - F.x, z - F.z) / 50) * 50)} metres ${dir(Math.atan2(x - F.x, z - F.z))} of the farm`;
   },
   // « ici » : dehors, dans la vallée, à portée d'un chemin
   ici() {
@@ -224,7 +240,7 @@ const commandes = {
     const w = game.world;
     if (typeof LOC_MAISONS !== 'undefined') for (const b in LOC_MAISONS) if (w.bld[b] && this.maisonAMoi(b)) out.push({ pt: { k: 'maison', b }, nom: `Devant ${LOC_MAISONS[b].nom}`, on: C.pt.k === 'maison' && C.pt.b === b });
     if (C.pt.k === 'maison' && !out.some((o) => o.on)) out[0].on = true; // (la maison n'est plus à vous)
-    if (C.pt.k === 'ici') out.push({ pt: C.pt, nom: `À l’endroit noté, ${C.pt.nom || this.nomIci(C.pt.x, C.pt.z)}`, on: true });
+    if (C.pt.k === 'ici') out.push({ pt: C.pt, nom: `À l’endroit noté, ${this.nomIci(C.pt.x, C.pt.z)}`, on: true });
     const I = this.ici();
     out.push(I.ok ? { pt: { k: 'ici', x: I.x, z: I.z, nom: I.nom }, nom: `Ici, ${I.nom}`, ici: true } : { nom: 'Ici', non: I.pourquoi, ici: true });
     return out;
