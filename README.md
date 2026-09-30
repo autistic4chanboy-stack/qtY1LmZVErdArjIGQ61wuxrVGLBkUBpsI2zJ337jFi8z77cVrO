@@ -420,6 +420,45 @@ Les commandes sont dans le menu **Commandes** (Échap).
   les quarante jours environ). Il fuit qui s'approche trop vite ; on le prend au **filet à papillons** (fabriqué, ou
   acheté à la colporteuse), et il se vend **2 000 pièces**.
 
+**Le Dessous**
+- **Le Dessous** : sous la vallée s'étend un monde souterrain d'environ **1,6 km sur 1,5 km**, cent à deux cents mètres
+  sous l'herbe : des galeries et des boyaux, une **Grande Nef** où poussent des champignons grands comme des arbres, des
+  **Cristallières**, le **Souffle** (roche soufrée), les **Gouffres** et la **Salle des Échos**, la **Chambre des
+  Gouttes**, les **Orgues** (forêt de stalagmites), les **Racines** (celles du grand chêne pendent de la voûte), les
+  **Vieilles Mines**, deux lacs (la **Mer muette**, le **Lac tiède**) et la **Rivière noire**, et les ruines d'une
+  **Ville engloutie**. Pas de carte : chaque lieu dit son nom quand on y entre, et l'on retrouve son chemin comme on
+  peut.
+- **Un passage bien caché à Valbrume** : on n'y tombe pas par hasard. Deux habitants en parlent à demi-mot (une
+  rumeur du garde, une comptine de la fillette). Au bout : la **cave des Murés**, où l'on enferma des malades en 1631,
+  et un puits aux barreaux qui descend dans le noir.
+- **Le noir, pour de vrai** : sous terre il n'y a que ce qu'on apporte (la lanterne et ses dix minutes d'huile) et ce
+  qui luit de soi-même (champignons, mousses, vers de voûte, cristaux, et ceux qui vivent là). Dans les grandes salles,
+  le noir porte plus loin. La **pierre luisante** boit le jour quand on la porte dehors, et le rend en lumière verte,
+  froide, huit minutes au plus (clic pour la montrer ou la cacher). La **lentille de cristal**, sur soi, porte la
+  flamme de la lanterne beaucoup plus loin.
+- **Minerais d'en bas** (filons à casser à la pioche) : la **galène** (trois galènes et du charbon au four : un lingot
+  d'argent), le **cristal de roche** (deux cristaux et un lingot d'argent à l'établi : la lentille), la **pierre
+  luisante**, la **magnétite**, le **soufre**, le **salpêtre** ; et les **perles des cavernes**, au fond des vasques.
+- **Plantes d'en bas**, chacune son objet, ses effets, ses essences : le **pied-de-pierre** (cru, il se défend ;
+  grillé au feu, il nourrit), la **mousse luisante**, le **lichen d'argent**, la **fougère pâle**, la **racine du grand
+  chêne**, l'**algue blanche**, le **chapeau-de-suie** (à ne pas manger) ; le **guano** des chauves-souris, engrais
+  très fort ; les champignons lumineux se cueillent et repoussent.
+- **Bêtes d'en bas** : chauves-souris en colonies (elles fuient la lanterne), **protées** et **écrevisses aveugles**
+  qu'on prend à la main au bord de l'eau, **grillons des cavernes** qui ne chantent que dans le noir complet,
+  **scolopendres** qui mordent dans les galeries sèches ; la pêche dans l'eau d'en bas. Et quelque chose, aux
+  Gouffres, qu'on entend souffler.
+- **Ceux d'en bas** : au **Hameau d'En-Bas**, des pâles vivent dans des cabanes de pierre sèche en forme de ruche,
+  à la lueur des pierres luisantes. Ils n'ont pas de noms. La flamme leur brûle les yeux ; ils ne parlent pas à
+  n'importe qui ; ils ne veulent pas de sous. Leur langue, le **parler d'en bas**, ne se traduit pas : chaque mot
+  entendu s'inscrit au carnet (onglet **Langues**) avec ce qui se passait à ce moment-là, et l'on peut ensuite le leur
+  redire (« Dire un mot… ») pour voir ce qu'ils en font. Ils écrivent par **encoches**. Ils troquent, ils gardent
+  leurs morts et leurs souvenirs, et l'un d'eux va et vient dans la longue galerie, une pierre verte à la main.
+- **Les Aëlim, avant eux** : dans la Ville engloutie, des pierres gravées en Hautes Lettres (de nouvelles inscriptions
+  d'aëlin, à lire avec les mots du lexique) et un tombeau fermé.
+- **Remonter** : par où l'on est descendu (le puits de la cave, puis le conduit des douves), et par d'autres chemins
+  qu'on découvre d'en bas et qui ne s'ouvrent, d'en haut, qu'une fois qu'on les a pris. Le **charbon** en main, sous
+  terre, trace une flèche au sol (clic) ou l'efface (clic droit) : de quoi ne pas se perdre deux fois.
+
 **L'étrange, encore**
 - **Nuits noires** (l'almanach les prédit) : plus aucune lumière au ciel, et des murmures ; une voix vous appelle — il ne
   faut pas répondre. **Neige** possible sur toute la vallée. **Soleil écrasant** : le regarder laisse une tache noire.
@@ -799,6 +838,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzzzA-commandes.js` | le carnet de commandes, le voiturier et ses colis (`farm.s.commandes`) |
 | `11-zzzz7-carte*.js`, `07-zzzzzzzzzz-carte.js` | un lieu tous les 200 m (catalogue, textes, lettres, inscriptions, petits secrets), les deux peuples de surface et leurs parlers (`farm.s.carte2`, API `carte2`) |
 | `05-zzzz-nature.js`, `03-zzzz-sprites-nature.js`, `11-zzzz8-nature.js` | la nature : plantes et leurs objets, effets et essences, bois par essence, bêtes nouvelles, papillon d'or (`farm.s.nature2`, API `nature2`) |
+| `11-zzzz9-souterrain*.js`, `07-zzzzzzzzzzz-souterrain.js` | le Dessous : moteur (sol et voûte en reliefs, rendu, physique, bascule), le passage de Valbrume, les salles, minerais, plantes et bêtes d'en bas, ceux d'en bas et leur parler, ce qui s'y cache, les chemins du retour (`farm.s.souterrain`, par identifiants stables ; API `souterrain`) |
 | `11-zzzz4-ferme-temps.js`, `11-zzzz4-meubles.js`, `07-zzzzzzzz-meubles.js` | portée des arroseurs, petites bêtes sous la pluie ; acheter et meubler sa maison (meubles, garde-meuble) |
 | `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
