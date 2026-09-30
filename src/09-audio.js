@@ -236,7 +236,8 @@ class SoundEngine {
   // place une source (pos : [x,y,z]) ; o.att : 'phys' (atténuation réelle) ou 'aucune' (le volume est déjà réglé par l'appelant)
   _place(em, pos, lisse) {
     const L = this.L, p = em.p, o = em.o || {};
-    const x = pos[0], y = pos[1], z = pos[2];
+    let x = pos[0], y = pos[1], z = pos[2];
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) { x = L.x; y = L.y; z = L.z; } // position impossible : au centre
     em.pos[0] = x; em.pos[1] = y; em.pos[2] = z;
     const d = Math.hypot(x - L.x, y - L.y, z - L.z), t = this.ctx.currentTime;
     if (p.positionX) {
@@ -358,7 +359,7 @@ class SoundEngine {
   mark(out, fin) { const e = out && out._em; if (e && fin > e.busy) e.busy = fin; }
   // l'écouteur suit la caméra (position et orientation)
   ecoute(pos, yaw, pitch) {
-    if (!this.ctx || !pos) return;
+    if (!this.ctx || !pos || !Number.isFinite(pos[0] + pos[1] + pos[2] + yaw + pitch)) return;
     const L = this.L, l = this.ctx.listener;
     // rien à faire si la caméra n'a pas bougé (régler un paramètre audio coûte : on ne touche qu'à ce qui change)
     const bouge = !L.ok || Math.abs(pos[0] - L.x) + Math.abs(pos[1] - L.y) + Math.abs(pos[2] - L.z) > 0.004;

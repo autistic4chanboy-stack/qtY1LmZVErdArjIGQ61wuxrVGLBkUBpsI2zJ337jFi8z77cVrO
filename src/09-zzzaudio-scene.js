@@ -63,7 +63,7 @@ SoundEngine.BOUCLES = {
   }],
   // un grillon qui chante tout seul
   grillon: [2, (d, sr, D) => {
-    const R = Math.random, S = SoundEngine.SYN, f = 4000 + R() * 500, per = 0.42 + R() * 0.3;
+    const R = Math.random, S = SoundEngine.SYN, f = 3600 + R() * 500, per = 0.42 + R() * 0.3;
     for (let t = 0.03 + R() * 0.2; t < D - 0.12; t += per * (0.95 + R() * 0.1)) for (let p = 0, n = 3 + ((R() * 2) | 0); p < n; p++) S.note(d, sr, t + p * 0.027, 0.016, f, f * 0.99, 0.5, { att: 0.25, dec: 1.2 });
   }],
   // un long bruit doux (vent, lit de pluie) : assez long pour qu'on n'entende jamais la boucle
@@ -81,7 +81,7 @@ SoundEngine.BOUCLES = {
   }, 8000],
 };
 // volume de chaque boucle (k = 1)
-SoundEngine.VOL_BOUCLES = { riviere: 0.2, clapotis: 0.22, feu: 0.22, gouttes: 0.07, feuilles: 0.06, grillon: 0.075, bourdon: 0.05, vent: 0.14 };
+SoundEngine.VOL_BOUCLES = { riviere: 0.2, clapotis: 0.22, feu: 0.22, gouttes: 0.07, feuilles: 0.06, grillon: 0.12, bourdon: 0.05, vent: 0.14 };
 // les oiseaux selon le milieu : [sorte, poids]
 SoundEngine.OISEAUX = {
   foret: [['merle', 3], ['mesange', 3], ['pinson', 3], ['pic', 1], ['tourterelle', 1], ['coucou', 0.4]],
@@ -303,14 +303,14 @@ Object.assign(SoundEngine.prototype, {
       S.pl = { a, b, g, zero: 0 };
     }
     if (S.pl) {
-      const v = rain * rain * (inside ? 0.12 : 0.28);
+      const v = rain * rain * (inside ? 0.07 : 0.28);
       S.pl.g.gain.setTargetAtTime(v, now, 0.8);
       const lp = inside ? 900 : 4200 + rain * 1400;
       S.pl.a.lp.frequency.setTargetAtTime(lp, now, 0.5); S.pl.b.lp.frequency.setTargetAtTime(lp * 1.08, now, 0.5);
       if (rain <= 0.02) { S.pl.zero += dt; if (S.pl.zero > 4) { S.pl.g.gain.setTargetAtTime(0, now, 0.3); const P = S.pl; try { P.a.s.stop(now + 1.5); P.b.s.stop(now + 1.5); } catch (e) { /* rien */ } S.pl = null; } } else S.pl.zero = 0;
     }
     // les gouttes : devant, derrière, à gauche, à droite (au sol dehors ; au-dessus, sur le toit, dedans)
-    const k = rain * (inside ? 0.7 : 1);
+    const k = rain * (inside ? 0.5 : 1);
     for (let i = 0; i < 4; i++) {
       const a = i * Math.PI / 2 + 0.6, r = inside ? 2.2 : 3.5;
       this.source('gouttes' + i, 'gouttes', [L.x + Math.cos(a) * r, L.y + (inside ? 2.6 : -1.3), L.z + Math.sin(a) * r], k, { att: 'aucune', rate: 0.9 + i * 0.07, lp: inside ? 1400 : 20000, pas: 1 });

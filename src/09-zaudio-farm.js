@@ -207,7 +207,9 @@ Object.assign(SoundEngine.prototype, {
   howl(d = 50) {
     if (!this.ok) return;
     const k = clamp(1 - d / 150, 0.1, 1), t = this.at(), R = Math.random, f = 360 + R() * 60, du = 1.8 + R() * 0.8;
-    const out = this.lp(1800, this._scope ? this.amb : this.emit(this.virt(R() * 2 - 1, 60 + d, R() < 0.5), this.B.amb.inp, { att: 'aucune', dur: du + 0.5 }));
+    // un hurlement porte loin : pas d'atténuation en plus de celle de l'appel (la distance d la donne déjà)
+    const S = this._scope, P = S ? this.pos3(S.src) : this.virt(R() * 2 - 1, 60 + d, R() < 0.5);
+    const out = this.lp(1800, P ? this.emit(P, this.B.amb.inp, { att: 'aucune', dur: du + 0.5 }) : this.amb);
     this.cri(t, { type: 'triangle', dur: du, f: [[0, f], [0.2, f * 1.45], [0.75, f * 1.35], [1, f * 0.9]], vib: [5, 0.015], form: [[700, 2, 1], [1400, 4, 0.3]], souffle: [0.05, 1000], vol: 0.06 * k, lp: 1800, a: 0.25, r: du * 0.4 }, out);
   },
   crow(k = 1) {
