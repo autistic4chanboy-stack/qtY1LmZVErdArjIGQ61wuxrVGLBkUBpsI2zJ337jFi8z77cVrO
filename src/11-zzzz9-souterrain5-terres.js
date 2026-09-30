@@ -741,9 +741,14 @@ const soutTerres = {
     ui.choice(this.nom(e), '« ' + texte + ' »', opts);
     void T;
   },
-  mots(e) {
-    const L = soutParler.entendus().slice(0, 16);
-    ui.choice(this.nom(e), 'Quel mot ?', L.map((m) => ({ label: '« ' + m + ' »', fn: () => this.reagir(e, m) })).concat([{ label: 'Aucun', fn: () => this.panneau(e, ['…', 'echo']) }]));
+  // les mots entendus, par pages de dix
+  mots(e, page) {
+    const T = soutParler.entendus(), n = 10, pg = page || 0, L = T.slice(pg * n, pg * n + n);
+    const O = L.map((m) => ({ label: '« ' + m + ' »', fn: () => this.reagir(e, m) }));
+    if (T.length > (pg + 1) * n) O.push({ label: 'D’autres mots…', fn: () => this.mots(e, pg + 1) });
+    else if (pg > 0) O.push({ label: 'Les premiers mots…', fn: () => this.mots(e, 0) });
+    O.push({ label: 'Aucun', fn: () => this.panneau(e, ['…', 'echo']) });
+    ui.choice(this.nom(e), 'Quel mot ?', O);
   },
   // chacun réagit aux mots qu'on lui dit
   reagir(e, m) {
