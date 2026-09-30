@@ -436,3 +436,32 @@ Object.assign(PROP_MODELS, {
   },
 });
 Object.assign(PROP_COLL, { sout_colonne: [0.45, 0.45, 2.4], sout_pilier_aelim: [0.4, 0.4, 2.6], sout_porte_aelim: [0.75, 0.2, 2.35], sout_coffre_aelim: [0.56, 0.34, 0.66] });
+
+// ---------------------------------------------------------------- les chemins du retour
+Object.assign(PROP_MODELS, {
+  // un trou dans le sol, bordé d'éboulis (data.petit : entre des racines ; data.bouche : une grosse pierre dessus)
+  sout_trou(E, o) {
+    const d = o.data || {}, v = soutH(o, 30) * 10;
+    if (d.petit) { // entre les racines : un trou noir, des racines qui l'enjambent
+      E.bx(0, 0.015, 0, 0.8, 0.02, 0.62, [0.015, 0.012, 0.01], 0, v * 0.1);
+      E.bx(0, 0.0, 0, 1.1, 0.03, 0.9, rgbf('#3a2c20'), TL.soil, v * 0.1);
+      for (let i = 0; i < 4; i++) { const a = i * 1.7 + v; E.box(Math.cos(a) * 0.25, 0.14, Math.sin(a) * 0.2, 1.5, 0.16, 0.16, SPC.racine, TL.bark, a, 0, 0.18 * Math.sin(a * 3)); }
+      return;
+    }
+    E.bx(0, -0.02, 0, 1.3, 0.03, 1.1, [0.02, 0.02, 0.02], 0, v * 0.1);
+    for (let i = 0; i < 9; i++) { const a = i / 9 * TAU + v, r = 0.85; E.box(Math.cos(a) * r, 0.08, Math.sin(a) * r, 0.4, 0.18 + (i % 3) * 0.06, 0.3, SPC.roche, TL.stone, -a); }
+    if (d.bouche) E.box(0.1, 0.25, 0, 1.1, 0.5, 0.9, SPC.rocheS, TL.stone, v, 0.1, 0.05);
+  },
+  // une échelle de racines : des racines tordues qui montent, des nœuds pour les pieds (data.h : hauteur)
+  sout_echelle_racines(E, o) {
+    const h = (o.data && o.data.h) || 6, v = soutH(o, 31) * 10;
+    for (const s of [-0.28, 0.28]) for (let y = 0; y < h; y += 1.2) E.box(s + Math.sin(y + v) * 0.05, y + 0.6, 0, 0.12, 1.25, 0.12, SPC.racine, TL.bark, 0, Math.sin(y * 1.3 + v) * 0.08, 0);
+    for (let y = 0.4; y < h; y += 0.45) E.box(0, y, 0.02, 0.62, 0.08, 0.1, v3.scale(SPC.racine, 0.85), TL.bark, 0, 0, Math.sin(y * 2.1 + v) * 0.1);
+  },
+  // une flèche au charbon sur le sol, la pointe vers +z (data.p : pâlie par les années)
+  sout_fleche(E, o) {
+    const c = o.data && o.data.p ? [0.06, 0.055, 0.05] : [0.03, 0.03, 0.03];
+    E.bx(0, 0, -0.15, 0.1, 0.012, 1.0, c, 0);
+    E.box(0.12, 0.006, 0.2, 0.09, 0.012, 0.48, c, 0, -0.62); E.box(-0.12, 0.006, 0.2, 0.09, 0.012, 0.48, c, 0, 0.62);
+  },
+});
