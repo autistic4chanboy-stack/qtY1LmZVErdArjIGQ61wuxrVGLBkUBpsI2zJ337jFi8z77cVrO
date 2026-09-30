@@ -69,6 +69,15 @@ peut pas acheter de bêtes. (Les parties commencées avant cette version gardent
   Ça pousse **en heures** (un radis en 8 h de jeu, moins de 7 minutes ; une citrouille en 40 h, deux journées), même la nuit.
   Houe de fer et arrosoirs de cuivre ou de fer travaillent 3 × 3 cases ; arroseurs, engrais et semoir accélèrent encore.
   La pluie arrose, le gel tue les jeunes pousses sensibles, l'orage couche les récoltes, la canicule assèche.
+- **La terre** : une case arrosée (ou mouillée par la pluie) reste humide **deux jours** ; sèche, la culture tient encore
+  **deux jours** avant d'être perdue (la canicule presse un peu les choses). Une case labourée qu'on laisse vide reverdit
+  au même rythme. **La terre se fatigue** : chaque case compte ses récoltes ; au-delà de cinq sans engrais, on y pousse
+  deux fois plus lentement, au-delà de dix, quatre fois (la terre lasse est plus pâle, et le personnage le remarque).
+  L'engrais remet le compte à zéro (et donne toujours son coup de pouce) ; une longue jachère aussi, peu à peu.
+- **Les arroseurs** gardent humide un carré de **7 × 7 cases** (celui de fer : **9 × 9**) ; le carré se montre quand on
+  en tient un en main ou qu'on en regarde un de près.
+- **Le temps** : il pleut **deux fois moins** qu'avant (les crues et les orages suivent) ; sous la pluie ou la neige,
+  **ni papillons, ni lucioles** : ceux qui volaient s'en vont, ils reviennent avec le beau temps.
   Les corbeaux mangent les semis : un épouvantail ne protège qu'à **six mètres** autour de lui (dix pour celui de fer) ;
   en le tenant en main, un anneau de paille lumineux montre sa portée (et celle des autres). Les oiseaux s'en écartent.
 - **Élevage** : poules, vaches, moutons, cochons et cheval s'achètent au ranch et arrivent le lendemain.
@@ -218,6 +227,18 @@ Les commandes sont dans le menu **Commandes** (Échap).
   maire s'en occupe aussi. Le locataire a la clé (la porte se referme à clé derrière lui), le lit et un coffre cerclé de
   fer. Loyer dû chaque semaine : avis d'échéance, lettre de rappel au troisième jour de retard, expulsion au sixième (le
   coffre est saisi, on le reprend à la mairie contre la dette). « Rendre les clés » quand on veut.
+- **Acheter sa maison** : les trois maisons de la commune s'achètent aussi, chez le maire (« Les maisons de la commune »)
+  ou sur l'écriteau : vingt semaines de loyer, comptant. Elle est alors à vous pour toujours — la clé, le lit, le coffre,
+  plus de loyer ni d'expulsion. Un bail en cours se change en achat (le coffre suit) ; on peut la revendre à la commune,
+  moitié prix.
+- **Meubler sa maison** (celle de la ferme, une maison louée ou achetée) : un meuble en main, son fantôme suit le regard,
+  se colle aux murs et tourne d'un quart de tour (clic droit ou R) ; il refuse les murs, les autres meubles et le passage
+  devant la porte. E le reprend. Lit (on y dort), lit clos, armoire, commode, buffet, malle (on y range), étagère,
+  horloge comtoise (elle sonne les heures), chandelier, guéridon et sa lampe (E : allumer), tableau (au mur), fauteuil,
+  table, chaises, banc, coffre, tapis, pot de fleurs. Ils s'achètent au **garde-meuble de la commune** (le grenier de la
+  mairie : les successions que personne n'a réclamées) et d'occasion chez le brocanteur du Marchedi, ou se fabriquent à
+  l'établi (recettes à trouver, Manuel du menuisier ; les clous se forgent). Casser ses propres meubles n'est pas un
+  crime ; ceux d'une maison saisie partent à la mairie avec le coffre.
 - **Crocheter** : avec un jeu de crochets (le colporteur, le forgeron, ou l'établi), E sur une porte fermée à clé :
   « Frapper » ou « Crocheter ». Petit jeu d'adresse : les goupilles montent et descendent, on cale chacune quand elle
   affleure la ligne (Espace, E ou clic) ; plus la serrure est bonne, plus elles sont nombreuses et rapides. Un raté fait
@@ -356,7 +377,7 @@ fréquences, et la commande échoue si l'on recasse un équilibre :
 
 ```bash
 node tools/equilibrage.js                 # les quatre domaines (≈ 3 min)
-node tools/equilibrage.js commerce        # ou un seul : commerce, risques, survie, hasard
+node tools/equilibrage.js commerce        # ou un seul : commerce, ferme, risques, survie, hasard
 ```
 
 Aucun réglage ne touche à la génération de la vallée : les anciennes parties retrouvent leurs objets (l'empreinte des
@@ -627,6 +648,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzz8*.js` | objets légendaires et mythiques, l'Homme long, la Fondation |
 | `11-zzz9*.js` | vol à la tire, prison (cachot, rançon, carrière, évasion), sentiments ; sommeil et fatigue, lits, maisons à louer, crochetage et poterne, fouilles et cachettes, activités des villes et villages |
 | `07-zzzzzzz-portes.js` | les portes (modèles selon le bâtiment, trois niveaux de détail) |
+| `11-zzzz4-ferme-temps.js`, `11-zzzz4-meubles.js`, `07-zzzzzzzz-meubles.js` | portée des arroseurs, petites bêtes sous la pluie ; acheter et meubler sa maison (meubles, garde-meuble) |
 | `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
 | `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus bas) |
