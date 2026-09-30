@@ -21233,6 +21233,475 @@ Object.assign(PROP_LIGHTS, {
   c2_chaudron: { c: [1.0, 0.55, 0.22], r: 6, y: 0.3, flicker: true, lit: true },
 });
 
+// ---- 07-zzzzzzzzzzz-souterrain.js
+// ============================================================================
+//  LE DESSOUS (agent C3) — matières et modèles du monde souterrain
+//  - cinq matières peintes pour la roche d'en bas (calcaire mouillé, calcite,
+//    argile, terreau des champignonnières, roche soufrée) : le sol et la voûte
+//    des galeries sont des reliefs (11-zzzz9-souterrain0.js) qui les emploient ;
+//  - les objets posés d'en bas, en boîtes (le style « 1996 » du jeu) : grille de
+//    l'exutoire, entailles, barreaux du puits, os et restes des Murés, concrétions,
+//    champignons qui luisent, cristaux, racines, étais de mine, repères des Terrés…
+// ============================================================================
+
+// ---------------------------------------------------------------- les matières
+function texSoutRoche(seed) {
+  const pal = ramp(['#352f29', '#433b33', '#51483e', '#605549', '#6f6354', '#7f7160', '#91826f']);
+  const pb = new PixelBuf(TS, TS), tn = makeTileNoise(seed), wor = makeWorley(seed, 5), rnd = mulberry32(seed + 17);
+  for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) {
+    const warp = tileFbm(tn, x / 16, y / 16, 8, 2) * 9;
+    let v = 0.46 + (tileFbm(tn, x / 14 + 3, y / 10, 9.1429, 3) - 0.5) * 0.7 + (tn(x / 3, y / 3, 42.6667) - 0.5) * 0.16;
+    v += Math.sin((y + warp) * 0.42) * 0.07; // lits de la pierre (horizontaux sur les parois)
+    const w = wor(x / TS * 5, y / TS * 5), e = w.f2 - w.f1;
+    if (e < 0.022 && tn(x / 8 + 9, y / 8, 16) > 0.45) v -= 0.3; // fissures, çà et là
+    pb.set(x, y, rampPick(pal, v, x, y));
+  }
+  for (let k = 0; k < 60; k++) { const x = (rnd() * TS) | 0, y = (rnd() * TS) | 0; pb.setW(x, y, [190, 180, 158]); if (rnd() < 0.5) pb.setW(x, y + 1, [150, 142, 124]); }
+  return pb;
+}
+function texSoutCalcite(seed) {
+  const pal = ramp(['#8a806e', '#9d927e', '#b0a58e', '#c1b69d', '#d0c5ab', '#ddd3ba', '#e8dfc8']);
+  const pb = new PixelBuf(TS, TS), tn = makeTileNoise(seed);
+  for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) {
+    const ond = Math.sin((y + tileFbm(tn, x / 12, y / 12, 10.6667, 3) * 26) * 0.55); // coulées, en rides
+    const v = 0.5 + ond * 0.16 + (tn(x / 3, y / 3, 42.6667) - 0.5) * 0.22;
+    pb.set(x, y, rampPick(pal, v, x, y));
+  }
+  return pb;
+}
+function texSoutArgile(seed) {
+  const pal = ramp(['#3e3023', '#4c3b2b', '#5a4633', '#69523c', '#785f46', '#886c50']);
+  const pb = new PixelBuf(TS, TS), tn = makeTileNoise(seed), rnd = mulberry32(seed + 3);
+  for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) {
+    const v = tileFbm(tn, x / 16, y / 16, 8, 3) * 0.85 + tn(x / 3, y / 3, 42.6667) * 0.12;
+    pb.set(x, y, rampPick(pal, v, x, y));
+  }
+  for (let k = 0; k < 40; k++) { // flaques luisantes, empreintes
+    const x = (rnd() * TS) | 0, y = (rnd() * TS) | 0, r = 1 + ((rnd() * 3) | 0);
+    for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r) pb.setW(x + i, y + j, j < 0 ? [120, 108, 92] : [52, 42, 32]);
+  }
+  return pb;
+}
+function texSoutHumus(seed) {
+  const pal = ramp(['#2a211a', '#352a21', '#413328', '#4d3d30', '#5a4838']);
+  const pb = new PixelBuf(TS, TS), tn = makeTileNoise(seed), rnd = mulberry32(seed + 5);
+  for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) {
+    const v = tileFbm(tn, x / 10, y / 10, 12.8, 3) * 0.9;
+    pb.set(x, y, rampPick(pal, v, x, y));
+  }
+  for (let k = 0; k < 14; k++) { // filaments pâles, à peine (le mycélium)
+    let x = rnd() * TS, y = rnd() * TS, a = rnd() * TAU;
+    for (let s = 0; s < 10 + rnd() * 18; s++) { a += (rnd() - 0.5) * 0.9; x += Math.cos(a); y += Math.sin(a); if (rnd() < 0.7) pb.setW(x, y, rnd() < 0.2 ? [118, 112, 94] : [92, 84, 68]); }
+  }
+  return pb;
+}
+function texSoutSoufre(seed) {
+  const pal = ramp(['#2a2724', '#35312d', '#413c37', '#4e4842', '#5c554e']);
+  const jaune = ramp(['#6d5a17', '#8f7a21', '#b39b2c', '#d4bb45']);
+  const pb = new PixelBuf(TS, TS), tn = makeTileNoise(seed), wor = makeWorley(seed, 6);
+  for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) {
+    const w = wor(x / TS * 6, y / TS * 6), e = w.f2 - w.f1;
+    const cr = tileFbm(tn, x / 9, y / 9, 14.2222, 3);
+    let c = rampPick(pal, 0.45 + (cr - 0.5) * 0.6 + (e < 0.06 ? -0.3 : 0), x, y);
+    if (cr > 0.64 && e > 0.05) c = rampPick(jaune, (cr - 0.64) * 3.2, x, y);
+    pb.set(x, y, c);
+  }
+  return pb;
+}
+const M_SROCHE = MATERIALS.push({ id: 'sout_roche', name: 'Roche d’en bas', scale: 3, gen: () => texSoutRoche(611) }) - 1;
+const M_SCALCITE = MATERIALS.push({ id: 'sout_calcite', name: 'Calcite', scale: 3, gen: () => texSoutCalcite(612) }) - 1;
+const M_SARGILE = MATERIALS.push({ id: 'sout_argile', name: 'Argile', scale: 3, gen: () => texSoutArgile(613) }) - 1;
+const M_SHUMUS = MATERIALS.push({ id: 'sout_humus', name: 'Terreau noir', scale: 3, gen: () => texSoutHumus(614) }) - 1;
+const M_SSOUFRE = MATERIALS.push({ id: 'sout_soufre', name: 'Roche soufrée', scale: 3, gen: () => texSoutSoufre(615) }) - 1;
+
+// ---------------------------------------------------------------- les modèles (boîtes)
+const SPC = {
+  roche: rgbf('#5a5248'), rocheS: rgbf('#3e3831'), calc: rgbf('#cfc3a4'), calcS: rgbf('#a89c82'), os: [0.86, 0.82, 0.72],
+  fer: rgbf('#4a3e36'), rouille: rgbf('#6e4a32'), bois: rgbf('#5a4430'), boisS: rgbf('#3e2e20'), corde: rgbf('#8a7a5a'),
+  pied: rgbf('#d8d2c0'), chapeau: [0.35, 0.95, 0.85], chapeauB: [0.5, 0.75, 1.15], cristal: [0.8, 0.88, 1.0], racine: rgbf('#4a3a2a'),
+};
+const soutH = (o, k) => hash2i(Math.round(o.x * 7), Math.round(o.z * 7), k || 1);
+Object.assign(PROP_MODELS, {
+  // la grille de l'exutoire, dans son arche de pierre (au pied de la tour, à fleur d'eau) ; data.ouverte : la barre est levée
+  sout_grille(E, o) {
+    const ouv = o.data && o.data.ouverte;
+    E.bx(-0.95, -0.5, 0, 0.4, 2.1, 0.5, SPC.roche, TL.stone); E.bx(0.95, -0.5, 0, 0.4, 2.1, 0.5, SPC.roche, TL.stone);
+    E.bx(0, 1.35, 0, 2.3, 0.45, 0.5, SPC.roche, TL.stone);
+    E.bx(0, -0.5, -0.05, 1.5, 1.85, 0.1, [0.02, 0.02, 0.02], 0); // le noir, derrière
+    const dx = ouv ? 0.55 : 0;
+    for (let k = 0; k < 6; k++) E.bx(-0.62 + k * 0.25 + dx, -0.45, 0.12, 0.06, 1.75, 0.06, SPC.rouille, TL.iron);
+    for (const y of [0.1, 0.8]) E.bx(dx, y, 0.14, 1.4, 0.07, 0.05, SPC.fer, TL.iron);
+    if (!ouv) E.bx(0, 0.42, 0.2, 1.8, 0.1, 0.08, SPC.fer, TL.iron); // la barre
+    else E.box(0.95, 0.9, 0.22, 0.1, 1.6, 0.08, SPC.fer, TL.iron, 0, 0, 0.1);
+  },
+  // trois entailles verticales, taillées dans la pierre (le signe de ceux d'en bas)
+  sout_entailles(E) { for (let k = 0; k < 3; k++) E.bx(-0.09 + k * 0.09, 0, 0, 0.035, 0.34 - (k === 1 ? 0 : 0.06), 0.02, [0.09, 0.08, 0.07], 0); },
+  // le puits des Murés : une margelle éboulée, et des barreaux de fer qui descendent dans le noir
+  sout_puits(E) {
+    for (let k = 0; k < 9; k++) { const a = k / 9 * TAU; E.box(Math.cos(a) * 1.05, 0.14 + (k % 3) * 0.05, Math.sin(a) * 1.05, 0.62, 0.28 + (k % 3) * 0.1, 0.34, SPC.roche, TL.stone, -a); }
+    E.bx(0, -0.02, 0, 1.7, 0.03, 1.7, [0.01, 0.01, 0.01], 0);
+    for (let k = 0; k < 6; k++) E.bx(0, -0.3 - k * 0.42, -0.78, 0.5, 0.05, 0.05, SPC.rouille, TL.iron);
+  },
+  // barreaux scellés dans la paroi (data.h : hauteur)
+  sout_barreaux(E, o) {
+    const h = (o.data && o.data.h) || 4, n = Math.max(2, Math.round(h / 0.42));
+    for (let k = 0; k < n; k++) { E.bx(0, 0.2 + k * 0.42, 0, 0.52, 0.05, 0.05, SPC.rouille, TL.iron); for (const s of [-0.24, 0.24]) E.bx(s, 0.2 + k * 0.42, -0.1, 0.05, 0.05, 0.2, SPC.fer, TL.iron); }
+  },
+  sout_os(E, o) {
+    const v = soutH(o, 3) * 10;
+    for (let k = 0; k < 6; k++) E.box(Math.cos(k * 2.3 + v) * 0.35, 0.04 + (k % 3) * 0.05, Math.sin(k * 1.7 + v) * 0.3, 0.46, 0.06, 0.06, SPC.os, TL.bone, k * 1.3 + v);
+    E.box(0.12, 0.1, 0.05, 0.2, 0.18, 0.2, SPC.os, TL.bone, v);
+  },
+  // une corbeille d'osier, vide depuis longtemps
+  sout_panier(E) {
+    E.bx(0, 0, 0, 0.5, 0.26, 0.38, rgbf('#6a5436'), TL.straw);
+    E.bx(0, 0.02, 0, 0.42, 0.25, 0.3, [0.08, 0.06, 0.05], 0);
+    E.box(0, 0.4, 0, 0.04, 0.34, 0.04, rgbf('#6a5436'), TL.straw, 0, 0, 0);
+  },
+  sout_bougie(E) { E.bx(0, 0, 0, 0.07, 0.07, 0.07, [0.8, 0.76, 0.66], TL.plain); E.bx(0, 0, 0, 0.13, 0.015, 0.13, [0.62, 0.58, 0.5], TL.plain); },
+  // concrétions : o.s (taille), o.data.v (forme)
+  sout_stalag(E, o) {
+    const v = soutH(o, 5), h = 0.9 + v * 1.6, n = 8;
+    let y = 0, w = 0.4 + v * 0.22;
+    for (let k = 0; k < n; k++) { const hh = h / n, c = k > 5 ? SPC.calc : k > 2 ? [0.74, 0.69, 0.6] : SPC.calcS; E.bx((soutH(o, k + 9) - 0.5) * 0.04 * k, y, 0, w, hh + 0.02, w * 0.9, c, mt(M_SCALCITE), k * 0.52 + v * 3); y += hh; w *= 0.82; }
+  },
+  sout_stalac(E, o) {
+    const v = soutH(o, 6), h = 0.7 + v * 2.2, n = 7;
+    let y = 0, w = 0.32 + v * 0.18;
+    for (let k = 0; k < n; k++) { const hh = h / n; E.bx(0, -y - hh, 0, w, hh + 0.02, w * 0.9, k < 2 ? SPC.calcS : k > 4 ? SPC.calc : [0.74, 0.69, 0.6], mt(M_SCALCITE), k * 0.61 + v * 2); y += hh; w *= 0.78; }
+  },
+  sout_eboulis(E, o) {
+    const v = soutH(o, 7) * 10;
+    for (let k = 0; k < 7; k++) E.box(Math.cos(k * 2.1 + v) * (0.3 + (k % 3) * 0.25), 0.1 + (k % 2) * 0.1, Math.sin(k * 1.9 + v) * (0.3 + (k % 4) * 0.2), 0.36 + (k % 3) * 0.14, 0.26 + (k % 2) * 0.12, 0.34 + (k % 4) * 0.08, SPC.roche, mt(M_SROCHE), k + v, k * 0.3);
+  },
+  // champignons qui luisent (chapeaux émissifs) ; data.b : bleus
+  sout_champi(E, o, t) {
+    if (o.data && o.data.pris) return;
+    const v = soutH(o, 8) * 10, bleu = o.data && o.data.b, T = t ? t.t || 0 : 0;
+    for (let k = 0; k < 5; k++) {
+      const a = k * 2.4 + v, r = k ? 0.18 + (k % 3) * 0.12 : 0, h = 0.14 + ((k * 7 + v * 3) % 5) * 0.05;
+      const x = Math.cos(a) * r, z = Math.sin(a) * r;
+      E.bx(x, 0, z, 0.035, h, 0.035, SPC.pied, TL.plain);
+      E.fl = FX_EMIT;
+      const p = 0.8 + Math.sin(T * 0.7 + k + v) * 0.12, c = bleu ? SPC.chapeauB : SPC.chapeau;
+      E.bx(x, h, z, 0.12 + (k === 0 ? 0.06 : 0), 0.04, 0.12 + (k === 0 ? 0.06 : 0), [c[0] * p, c[1] * p, c[2] * p], TL.plain);
+      E.fl = 0;
+    }
+  },
+  // un grand champignon (les forêts de la Nef) : pied pâle, chapeau bombé, lamelles qui luisent par-dessous, points luisants dessus
+  sout_champi_grand(E, o) {
+    const v = soutH(o, 11), h = 1.8 + v * 2.4, R = 0.9 + v * 1.1, rr = v * 5, pw = 0.26 + v * 0.14;
+    for (let k = 0; k < 4; k++) E.bx(Math.sin(k * 1.7 + rr) * 0.04, k * h / 4, 0, pw * (1 - k * 0.08), h / 4 + 0.02, pw * (1 - k * 0.08), SPC.pied, TL.plain, rr + k * 0.3);
+    E.bx(0, h * 0.72, 0, pw * 2.2, 0.08, pw * 2.2, rgbf('#bcb6a4'), TL.plain, rr); // l'anneau
+    E.fl = FX_EMIT; E.bx(0, h - 0.06, 0, R * 1.9, 0.07, R * 1.9, [0.22, 0.75, 0.7], TL.plain, rr); E.fl = 0;
+    E.bx(0, h, 0, R * 2, 0.22, R * 2, rgbf('#4a3e5a'), TL.plain, rr);
+    E.bx(0, h + 0.2, 0, R * 1.6, 0.2, R * 1.6, rgbf('#54466a'), TL.plain, rr + 0.35);
+    E.bx(0, h + 0.38, 0, R * 1.05, 0.16, R * 1.05, rgbf('#5e4e74'), TL.plain, rr + 0.7);
+    E.fl = FX_EMIT;
+    for (let k = 0; k < 5; k++) { const a = k * 1.3 + rr, d = R * (0.35 + (k % 3) * 0.18); E.bx(Math.cos(a) * d, h + 0.21 + (k % 2) * 0.18, Math.sin(a) * d, 0.09, 0.03, 0.09, [0.4, 0.95, 0.85], TL.plain); }
+    E.fl = 0;
+  },
+  // des vers luisants à la voûte : un semis de points pâles (le ciel d'en bas)
+  sout_vers(E, o, t) {
+    const v = soutH(o, 14) * 10, T = t ? t.t || 0 : 0;
+    E.fl = FX_EMIT;
+    for (let k = 0; k < 14; k++) {
+      const a = k * 2.39996 + v, d = Math.sqrt(k / 14) * 2.2, p = 0.55 + 0.45 * Math.sin(T * (0.3 + (k % 5) * 0.11) + k * 1.7 + v);
+      E.bx(Math.cos(a) * d, -0.04 - (k % 4) * 0.12, Math.sin(a) * d, 0.035, 0.035 + (k % 3) * 0.04, 0.035, [0.45 * p, 0.95 * p, 0.8 * p], TL.plain);
+    }
+    E.fl = 0;
+  },
+  // cristaux de roche (o.s : taille) : des prismes pâles, pointus, qui luisent faiblement à la lanterne ; data.c : teinte
+  sout_cristal(E, o) {
+    const v = soutH(o, 12) * 10, tint = [[0.78, 0.9, 1.05], [0.9, 0.8, 1.05], [1.05, 0.92, 0.72]][((v * 7) | 0) % 3];
+    for (let k = 0; k < 7; k++) {
+      const a = k * 1.9 + v, tilt = k ? 0.22 + (k % 3) * 0.16 : 0.05, h = k ? 0.45 + ((k * 5 + v) % 4) * 0.3 : 1.4 + (v % 1) * 0.6, w = k ? 0.13 + (k % 2) * 0.05 : 0.24;
+      const cx = k ? Math.cos(a) * 0.16 : 0, cz = k ? Math.sin(a) * 0.16 : 0, rx = Math.cos(a) * tilt, rz = Math.sin(a) * tilt;
+      E.fl = FX_EMIT;
+      const g = k % 2 ? 0.55 : 0.75;
+      E.box(cx, h / 2, cz, w, h, w, [tint[0] * g, tint[1] * g, tint[2] * g], TL.glass, a, rx, rz);
+      E.box(cx + Math.sin(rz) * -h * 0.5, h + 0.05, cz + Math.sin(rx) * h * 0.5, w * 0.6, 0.16, w * 0.6, [tint[0] * 0.95, tint[1] * 0.95, tint[2] * 0.95], TL.plain, a + 0.78, rx, rz);
+      E.fl = 0;
+    }
+  },
+  sout_racines(E, o) {
+    const v = soutH(o, 13) * 10, n = 5 + ((v * 3) | 0) % 4;
+    for (let k = 0; k < n; k++) { const x = Math.cos(k * 2.3 + v) * 0.7, z = Math.sin(k * 1.7 + v) * 0.7, L = 1.2 + ((k * 3 + v) % 5) * 0.5; E.box(x, -L / 2, z, 0.07 + (k % 2) * 0.05, L, 0.07, SPC.racine, TL.bark, k, 0.12 * Math.sin(k + v), 0.1 * Math.cos(k * 2 + v)); }
+  },
+  // étai de mine (deux montants, un chapeau), bois noirci
+  sout_etai(E) {
+    for (const s of [-1.3, 1.3]) E.bx(s, 0, 0, 0.22, 2.5, 0.22, SPC.bois, TL.darkwood);
+    E.bx(0, 2.5, 0, 3.0, 0.24, 0.26, SPC.bois, TL.darkwood);
+    E.box(-1.05, 2.25, 0, 0.12, 0.6, 0.12, SPC.boisS, TL.darkwood, 0, 0, 0.8); E.box(1.05, 2.25, 0, 0.12, 0.6, 0.12, SPC.boisS, TL.darkwood, 0, 0, -0.8);
+  },
+  // repère de ceux d'en bas : pierres empilées, la plus haute entaillée (data.n : nombre d'entailles, data.d : direction)
+  sout_cairn(E, o) {
+    const n = (o.data && o.data.n) || 1;
+    E.bx(0, 0, 0, 0.5, 0.22, 0.44, SPC.roche, mt(M_SROCHE), 0.3); E.bx(0.03, 0.22, 0, 0.38, 0.2, 0.34, SPC.roche, mt(M_SROCHE), 1.1); E.bx(0, 0.42, 0.02, 0.26, 0.26, 0.2, SPC.rocheS, mt(M_SROCHE), 0.6);
+    for (let k = 0; k < n; k++) E.bx(-0.07 * (n - 1) / 2 + k * 0.07, 0.48, 0.115, 0.025, 0.14, 0.012, [0.85, 0.82, 0.74], 0);
+  },
+  // ---- ce qui se cueille, ce qui se casse (data.pris : cueilli ; data.n : ce qui reste d'un filon)
+  // un filon : des éclats de minerai dans la roche (data.m : galene, magnetite, soufre, salpetre, luisante, cristal)
+  sout_filon(E, o) {
+    const m = (o.data && o.data.m) || 'galene', n = o.data && o.data.n !== undefined ? o.data.n : 4, v = soutH(o, 15) * 10;
+    E.bx(0, 0, 0, 1.1, 0.34, 0.8, SPC.rocheS, mt(M_SROCHE), v);
+    E.bx(0.1, 0.3, -0.05, 0.8, 0.28, 0.6, SPC.roche, mt(M_SROCHE), v + 0.5);
+    const C = { galene: [[0.46, 0.5, 0.58], TL.iron], magnetite: [[0.13, 0.12, 0.14], TL.iron], soufre: [[0.9, 0.78, 0.22], TL.plain], salpetre: [[0.92, 0.9, 0.86], TL.plain], luisante: [[0.45, 0.95, 0.8], TL.plain], cristal: [[0.82, 0.9, 1], TL.glass] }[m] || [[0.5, 0.5, 0.5], 0];
+    const nb = Math.max(0, Math.min(6, n + 2));
+    for (let k = 0; k < nb; k++) {
+      const a = k * 2.1 + v, x = Math.cos(a) * 0.32, z = Math.sin(a) * 0.24, big = m === 'cristal' ? 0.12 : 0.18;
+      if (m === 'luisante' || m === 'cristal') E.fl = FX_EMIT;
+      if (m === 'cristal') E.box(x, 0.55, z, big, 0.4, big, C[0], C[1], a, 0.3 * Math.cos(a), 0.3 * Math.sin(a));
+      else E.box(x, 0.36 + (k % 2) * 0.12, z, big + (k % 3) * 0.05, 0.12 + (k % 2) * 0.06, big, m === 'luisante' ? [C[0][0] * 0.8, C[0][1] * 0.8, C[0][2] * 0.8] : C[0], C[1], a, 0.4, 0.2);
+      E.fl = 0;
+    }
+  },
+  // pied-de-pierre : champignons blancs, durs, sur l'argile des rives
+  sout_pied_pierre(E, o) {
+    if (o.data && o.data.pris) return;
+    const v = soutH(o, 16) * 10;
+    for (let k = 0; k < 4; k++) { const a = k * 1.7 + v, d = k ? 0.14 + (k % 2) * 0.1 : 0, h = 0.1 + ((k + v) % 3) * 0.04; E.bx(Math.cos(a) * d, 0, Math.sin(a) * d, 0.06, h, 0.06, [0.86, 0.84, 0.78], TL.plain); E.bx(Math.cos(a) * d, h, Math.sin(a) * d, 0.16, 0.06, 0.16, [0.92, 0.9, 0.84], TL.plain, a); }
+  },
+  // mousse luisante : des coussins verts qui luisent, au pied des parois
+  sout_mousse(E, o, t) {
+    if (o.data && o.data.pris) return;
+    const v = soutH(o, 17) * 10;
+    E.fl = FX_EMIT;
+    for (let k = 0; k < 5; k++) { const a = k * 1.3 + v, d = k ? 0.2 + (k % 3) * 0.12 : 0; E.bx(Math.cos(a) * d, 0, Math.sin(a) * d, 0.3 - (k % 2) * 0.08, 0.05 + (k % 2) * 0.03, 0.26, [0.16, 0.62, 0.4], TL.leaves, a); }
+    E.fl = 0;
+  },
+  // lichen d'argent, sur une pierre
+  sout_lichen(E, o) {
+    const v = soutH(o, 18) * 10, pris = o.data && o.data.pris;
+    E.bx(0, 0, 0, 0.7, 0.36, 0.5, SPC.roche, mt(M_SROCHE), v);
+    if (!pris) for (let k = 0; k < 4; k++) E.bx(-0.2 + k * 0.13, 0.36, (k % 2) * 0.1 - 0.05, 0.16, 0.02, 0.14, [0.78, 0.8, 0.84], TL.plain, v + k);
+  },
+  // fougère pâle (sous le puits de jour)
+  sout_fougere(E, o) {
+    if (o.data && o.data.pris) return;
+    const v = soutH(o, 19) * 10;
+    for (let k = 0; k < 7; k++) { const a = k / 7 * TAU + v; E.box(Math.cos(a) * 0.22, 0.2, Math.sin(a) * 0.22, 0.1, 0.02, 0.5, [0.74, 0.8, 0.64], TL.leaves, -a + Math.PI / 2, -0.6); }
+  },
+  // algue blanche, à fleur d'eau tiède
+  sout_algue(E, o, t) {
+    if (o.data && o.data.pris) return;
+    const v = soutH(o, 20) * 10, T = t ? t.t || 0 : 0;
+    for (let k = 0; k < 6; k++) { const a = k * 1.1 + v, d = 0.1 + (k % 3) * 0.15; E.box(Math.cos(a) * d, 0.02, Math.sin(a) * d, 0.08, 0.02, 0.42, [0.9, 0.9, 0.84], TL.plain, a + Math.sin(T * 0.5 + k) * 0.2); }
+  },
+  // chapeau-de-suie : champignons noirs, poudrés de jaune, près des souffles chauds
+  sout_suie(E, o) {
+    if (o.data && o.data.pris) return;
+    const v = soutH(o, 21) * 10;
+    for (let k = 0; k < 3; k++) { const a = k * 2.2 + v, d = k ? 0.16 : 0, h = 0.14 + k * 0.03; E.bx(Math.cos(a) * d, 0, Math.sin(a) * d, 0.05, h, 0.05, [0.2, 0.18, 0.16], TL.plain); E.bx(Math.cos(a) * d, h, Math.sin(a) * d, 0.2, 0.08, 0.2, [0.12, 0.1, 0.1], TL.plain, a); E.bx(Math.cos(a) * d, h + 0.08, Math.sin(a) * d, 0.12, 0.01, 0.12, [0.7, 0.62, 0.2], TL.plain, a); }
+  },
+  // un tas de guano, sous les voûtes où dorment les chauves-souris
+  sout_guano(E, o) {
+    const n = o.data && o.data.pris ? 0.35 : 1, v = soutH(o, 22) * 10;
+    E.bx(0, 0, 0, 1.2 * n + 0.2, 0.16 * n, 0.9 * n + 0.2, [0.3, 0.26, 0.2], TL.soil, v);
+    if (n > 0.5) E.bx(0.1, 0.14, 0, 0.7, 0.12, 0.5, [0.36, 0.3, 0.22], TL.soil, v + 0.6);
+  },
+  // une vasque de calcite où l'eau goutte (et roule parfois une perle)
+  sout_vasque(E, o) {
+    const pris = o.data && o.data.pris;
+    for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; E.box(Math.cos(a) * 0.5, 0.08, Math.sin(a) * 0.5, 0.36, 0.16, 0.14, SPC.calc, mt(M_SCALCITE), -a + Math.PI / 2); }
+    E.bx(0, 0.02, 0, 0.84, 0.08, 0.84, [0.3, 0.42, 0.44], TL.glass);
+    if (!pris) { E.fl = FX_EMIT; E.bx(0.12, 0.1, -0.05, 0.07, 0.07, 0.07, [0.95, 0.93, 0.86], TL.plain); E.fl = 0; }
+  },
+  // un fil de lin tendu, noué à un piquet (le fil d'Ariane de quelqu'un d'autre)
+  sout_piquet(E) { E.bx(0, 0, 0, 0.06, 0.5, 0.06, SPC.boisS, TL.darkwood); E.box(0, 0.42, 0, 0.1, 0.06, 0.1, [0.8, 0.76, 0.64], TL.rope, 0.4); },
+});
+Object.assign(PROP_LIGHTS, {
+  sout_champi: { c: [0.16, 0.62, 0.55], r: 5.5, y: 0.35 },
+  sout_champi_grand: { c: [0.22, 0.72, 0.64], r: 11, y: 1.4 },
+  sout_cristal: { c: [0.38, 0.46, 0.72], r: 4.5, y: 0.9 },
+  sout_mousse: { c: [0.1, 0.42, 0.28], r: 4, y: 0.2 },
+});
+Object.assign(PROP_COLL, {
+  sout_stalag: [0.28, 0.28, 1.6], sout_champi_grand: [0.2, 0.2, 2.4], sout_cairn: [0.26, 0.24, 0.7], sout_filon: [0.5, 0.36, 0.6], sout_lichen: [0.32, 0.22, 0.36],
+});
+
+// ---------------------------------------------------------------- ceux d'en bas : le Hameau (ni bois, ni fer : de la pierre, des os, des racines, du feutre)
+Object.assign(PROP_MODELS, {
+  // la pierre d'appel, à l'entrée du hameau : un bloc arrondi, trois creux usés à force d'être frappés, la pierre à frapper au pied
+  sout_appel(E) {
+    E.bx(0, 0, 0, 1.15, 0.8, 0.95, SPC.roche, mt(M_SROCHE), 0.1);
+    E.bx(0, 0.78, 0, 0.9, 0.32, 0.75, SPC.roche, mt(M_SROCHE), -0.18);
+    E.bx(0.04, 1.08, 0, 0.55, 0.16, 0.48, SPC.rocheS, mt(M_SROCHE), 0.35);
+    for (let k = 0; k < 3; k++) E.bx(-0.24 + k * 0.24, 0.66, 0.46, 0.14, 0.14, 0.05, [0.13, 0.12, 0.11], 0);
+    E.box(0.52, 0.07, 0.62, 0.24, 0.14, 0.17, SPC.calc, mt(M_SCALCITE), 0.6);
+  },
+  // la pierre au pain : une table de pierre ; onze creux sur le bord ; data.pain : un pain posé
+  sout_pierre_pain(E, o) {
+    for (const s of [-0.52, 0.52]) E.bx(s, 0, 0, 0.32, 0.56, 0.52, SPC.roche, mt(M_SROCHE), s * 0.3);
+    E.bx(0, 0.56, 0, 1.6, 0.14, 0.86, SPC.calcS, mt(M_SCALCITE), 0.02);
+    for (let k = 0; k < 11; k++) E.bx(-0.65 + k * 0.13, 0.7, 0.33, 0.075, 0.012, 0.075, [0.22, 0.2, 0.17], 0);
+    if (o.data && o.data.pain) E.bx(0, 0.7, -0.06, 0.38, 0.16, 0.22, rgbf('#b07a3a'), TL.bread, 0.2);
+  },
+  // une lampe : une pierre luisante au bout d'une racine plantée dans un tas de pierres (data.h : hauteur)
+  sout_lampe(E, o) {
+    const v = soutH(o, 23) * 10, h = (o.data && o.data.h) || 1.15;
+    E.bx(0, 0, 0, 0.5, 0.28, 0.44, SPC.roche, mt(M_SROCHE), v);
+    E.bx(0, 0.28, 0, 0.34, 0.26, 0.32, SPC.rocheS, mt(M_SROCHE), v + 0.7);
+    E.bx(0, 0.54, 0, 0.09, h - 0.54, 0.09, SPC.racine, TL.bark, v);
+    E.box(0.05, h - 0.05, 0, 0.05, 0.22, 0.05, SPC.racine, TL.bark, v, 0, 0.5);
+    E.fl = FX_EMIT; E.bx(0, h, 0, 0.17, 0.14, 0.16, [0.32, 0.95, 0.74], TL.plain, v * 2); E.fl = 0;
+  },
+  // une couche de feutre (d'amadou battu), roulée à la tête
+  sout_couche(E) {
+    E.bx(0, 0, 0, 0.9, 0.07, 1.85, rgbf('#5e584e'), TL.wool);
+    E.box(0, 0.13, -0.72, 0.74, 0.15, 0.32, rgbf('#6c665a'), TL.wool, 0, 0.1);
+  },
+  // une claie de racines où sèchent des algues blanches et des protées
+  sout_claie(E, o) {
+    const v = soutH(o, 24) * 10;
+    for (const s of [-0.95, 0.95]) E.bx(s, 0, 0, 0.09, 1.65, 0.09, SPC.racine, TL.bark, v);
+    E.bx(0, 1.56, 0, 2.05, 0.06, 0.06, SPC.racine, TL.bark);
+    for (let k = 0; k < 7; k++) {
+      const x = -0.8 + k * 0.27, L = 0.3 + ((k * 3 + v) % 4) * 0.08;
+      E.bx(x, 1.56 - L, 0, k % 3 === 1 ? 0.07 : 0.1, L, 0.025, k % 3 === 1 ? [0.95, 0.8, 0.78] : [0.9, 0.9, 0.84], TL.plain, (k % 2) * 0.3);
+    }
+  },
+  // une planche à champignons : un cadre de pierres, du terreau noir, des rangs de pieds-de-pierre ; quelques bleus qui luisent
+  sout_planche(E, o) {
+    const v = soutH(o, 25) * 10;
+    for (const [x, z, sx, sz] of [[0, -0.85, 3.8, 0.22], [0, 0.85, 3.8, 0.22], [-1.85, 0, 0.22, 1.5], [1.85, 0, 0.22, 1.5]]) E.bx(x, 0, z, sx, 0.24, sz, SPC.roche, mt(M_SROCHE));
+    E.bx(0, 0, 0, 3.5, 0.2, 1.5, rgbf('#2e241c'), TL.soil);
+    for (let k = 0; k < 16; k++) {
+      const x = -1.45 + (k % 8) * 0.41 + ((k * 7 + v) % 3) * 0.03, z = k < 8 ? -0.36 : 0.36, h = 0.08 + ((k + v) % 3) * 0.03, bleu = ((k * 5 + v) | 0) % 7 === 0;
+      E.bx(x, 0.2, z, 0.05, h, 0.05, [0.86, 0.84, 0.78], TL.plain);
+      if (bleu) E.fl = FX_EMIT;
+      E.bx(x, 0.2 + h, z, 0.15, 0.05, 0.15, bleu ? [0.4, 0.62, 1.0] : [0.9, 0.88, 0.82], TL.plain, k);
+      E.fl = 0;
+    }
+  },
+  // un filet de fibres tendu entre deux piquets d'os, au bord de l'eau
+  sout_filet(E) {
+    for (const s of [-1.1, 1.1]) E.bx(s, 0, 0, 0.07, 1.3, 0.07, SPC.os, TL.bone);
+    for (let k = 0; k < 5; k++) E.bx(0, 0.25 + k * 0.24, 0, 2.2, 0.02, 0.02, [0.62, 0.58, 0.5], TL.rope);
+    for (let k = 0; k < 9; k++) E.bx(-1.0 + k * 0.25, 0.25, 0, 0.02, 0.98, 0.02, [0.62, 0.58, 0.5], TL.rope);
+  },
+  // une dalle d'encoches, debout (data.ins : ce qu'elle dit ; le dessin est tiré du texte)
+  sout_encoches(E, o) {
+    E.bx(0, 0, 0, 1.05, 1.75, 0.26, SPC.calcS, mt(M_SCALCITE), 0);
+    E.bx(0, 1.75, 0, 0.8, 0.18, 0.22, SPC.calcS, mt(M_SCALCITE), 0.05);
+    const t = String((o.data && o.data.ins) || 'x');
+    let x = -0.4, y = 1.5;
+    for (let i = 0; i < t.length && y > 0.2; i++) {
+      const c = t.charCodeAt(i);
+      if (c === 32) { x += 0.07; if (x > 0.38) { x = -0.4; y -= 0.24; } continue; }
+      const n = 1 + (c % 4), bar = c % 3 === 0;
+      for (let k = 0; k < n; k++) E.bx(x + k * 0.03, y - 0.16, 0.13, 0.014, 0.16, 0.012, [0.12, 0.11, 0.1], 0);
+      if (bar) E.box(x + n * 0.015 - 0.015, y - 0.08, 0.135, n * 0.03 + 0.03, 0.012, 0.012, [0.12, 0.11, 0.1], 0, 0, 0, 0.5);
+      x += n * 0.03 + 0.04;
+      if (x > 0.38) { x = -0.4; y -= 0.24; }
+    }
+  },
+  // une jarre de terre crue
+  sout_jarre(E, o) {
+    const c = rgbf('#76685a'), v = soutH(o, 26) * 6;
+    E.bx(0, 0, 0, 0.34, 0.08, 0.34, c, TL.terracotta, v); E.bx(0, 0.08, 0, 0.46, 0.34, 0.46, c, TL.terracotta, v + 0.4);
+    E.bx(0, 0.42, 0, 0.34, 0.1, 0.34, c, TL.terracotta, v); E.bx(0, 0.52, 0, 0.24, 0.07, 0.24, v3.scale(c, 0.8), TL.terracotta, v + 0.4);
+  },
+  // une pierre plate pour s'asseoir
+  sout_siege(E, o) { const v = soutH(o, 27) * 4; E.bx(0, 0, 0, 0.56, 0.3, 0.5, SPC.roche, mt(M_SROCHE), v * 0.1); E.bx(0, 0.3, 0, 0.5, 0.13, 0.46, SPC.rocheS, mt(M_SROCHE), v * 0.1 + 0.05); },
+  // un rideau de feutre pendu à une porte basse
+  sout_rideau(E) { E.bx(0, 0.05, 0, 0.95, 1.6, 0.04, rgbf('#4e4a42'), TL.wool); E.bx(0, 1.62, 0, 1.1, 0.06, 0.08, SPC.racine, TL.bark); },
+});
+Object.assign(PROP_LIGHTS, { sout_lampe: { c: [0.3, 0.92, 0.66], r: 14, y: 1.2 } });
+Object.assign(PROP_COLL, { sout_appel: [0.55, 0.45, 1.1], sout_pierre_pain: [0.78, 0.42, 0.7], sout_lampe: [0.22, 0.2, 1.1], sout_claie: [1.0, 0.1, 1.6], sout_encoches: [0.52, 0.14, 1.8], sout_jarre: [0.22, 0.22, 0.6] });
+
+// ---------------------------------------------------------------- ceux qui dorment ; les ruines d'avant
+Object.assign(PROP_MODELS, {
+  // un dormeur : couché sous la goutte, les mains croisées ; la calcite le recouvre (data.c : de 0 à 1) ; data.b : des bottes ; data.p : un petit
+  sout_dormeur(E, o) {
+    const d = o.data || {}, c = clamp(d.c || 0, 0, 1), k = d.p ? 0.62 : 1;
+    const peau = [0.84, 0.8, 0.76], habit = d.b ? rgbf('#4e3e2e') : rgbf('#55514a'), cal = SPC.calc;
+    const m = (a) => [lerp(a[0], cal[0], c * 0.85), lerp(a[1], cal[1], c * 0.85), lerp(a[2], cal[2], c * 0.85)];
+    const tx0 = c > 0.55 ? mt(M_SCALCITE) : 0, L = 1.72 * k;
+    E.bx(0, 0, L * 0.42, 0.32 * k, 0.08, 0.28 * k, SPC.roche, mt(M_SROCHE)); // la pierre sous la tête
+    for (const s of [-1, 1]) E.bx(s * 0.1 * k, 0, -L * 0.24, 0.15 * k, 0.15 * k, L * 0.48, m(habit), tx0 || TL.cloth);
+    E.bx(0, 0, L * 0.13, 0.42 * k, 0.21 * k, L * 0.34, m(habit), tx0 || TL.cloth);
+    E.bx(0, 0.08, L * 0.41, 0.21 * k, 0.21 * k, 0.24 * k, m(peau), tx0 || TL.skin);
+    E.bx(0, 0.21 * k, L * 0.16, 0.3 * k, 0.06, 0.11, m(peau), tx0 || TL.skin, 0.2);
+    if (d.b) for (const s of [-1, 1]) E.bx(s * 0.1, 0, -L * 0.5, 0.17, 0.24, 0.3, rgbf('#2a2018'), TL.leather);
+    if (c > 0.12) { const sz = L * (0.35 + 0.7 * c); E.bx(0, 0, -L / 2 - 0.05 + sz / 2, 0.52 * k + 0.12 * c, 0.1 + 0.26 * c, sz, cal, mt(M_SCALCITE)); }
+  },
+  // une colonne des gens d'avant : des tambours empilés (data.n) ; data.f : tombée
+  sout_colonne(E, o) {
+    const d = o.data || {}, n = d.n || 3, v = soutH(o, 29) * 3, c = rgbf('#8a8478');
+    if (d.f) { for (let k = 0; k < n; k++) E.box(0, 0.36, k * 0.72 - n * 0.36, 0.7, 0.7, 0.68, v3.scale(c, 0.9 + (k % 2) * 0.1), TL.stone, k * 0.3 + v, Math.PI / 2); return; }
+    E.bx(0, 0, 0, 1.0, 0.3, 1.0, v3.scale(c, 0.85), TL.stone);
+    for (let k = 0; k < n; k++) E.bx(0, 0.3 + k * 0.8, 0, 0.7, 0.8, 0.7, v3.scale(c, 0.92 + (k % 2) * 0.08), TL.stone, k * 0.2 + v);
+    if (d.cap) E.bx(0, 0.3 + n * 0.8, 0, 0.95, 0.28, 0.95, c, TL.stone);
+  },
+  // un pilier gravé devant le tombeau, un cristal au sommet (data.n : aela, durn, vesh ; data.t : l'instant où on l'a frappé)
+  sout_pilier_aelim(E, o, t) {
+    const d = o.data || {}, n = d.n || 'aela', c = rgbf('#9a9486'), T = t ? t.t || 0 : 0;
+    E.bx(0, 0, 0, 0.9, 0.35, 0.9, v3.scale(c, 0.8), TL.stone);
+    E.bx(0, 0.35, 0, 0.56, 2.1, 0.56, c, TL.stone);
+    E.bx(0, 2.45, 0, 0.8, 0.22, 0.8, v3.scale(c, 0.9), TL.stone);
+    const ink = [0.16, 0.14, 0.12], z = 0.285;
+    if (n === 'aela') { E.bx(0, 1.5, z, 0.14, 0.14, 0.02, ink, 0); for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; E.box(Math.cos(a) * 0.17, 1.57 + Math.sin(a) * 0.17, z, 0.12, 0.03, 0.02, ink, 0, 0, 0, a); } }
+    else if (n === 'durn') { for (let k = 0; k < 3; k++) E.bx(0, 1.38 + k * 0.1, z, 0.34 - k * 0.06, 0.035, 0.02, ink, 0); }
+    else { E.bx(0, 1.42, z, 0.3, 0.3, 0.02, [0.05, 0.05, 0.05], 0); E.bx(0.08, 1.62, z + 0.005, 0.07, 0.07, 0.02, c, TL.stone); }
+    const vib = d.t && T - d.t < 3 ? 1 - (T - d.t) / 3 : 0;
+    E.fl = FX_EMIT;
+    const g = 0.35 + vib * 0.65, tint = n === 'aela' ? [1, 0.92, 0.7] : n === 'durn' ? [0.7, 0.85, 1] : [0.7, 0.62, 0.9];
+    E.box(0, 2.75, 0, 0.2, 0.44, 0.2, [tint[0] * g, tint[1] * g, tint[2] * g], TL.glass, 0.4 + vib * Math.sin(T * 40) * 0.05);
+    E.fl = 0;
+  },
+  // la porte du tombeau : une dalle où l'on a taillé un œil ; data.ouverte : descendue dans le sol
+  sout_porte_aelim(E, o) {
+    const ouv = o.data && o.data.ouverte, y = ouv ? -2.25 : 0, c = rgbf('#7e786c');
+    E.bx(0, y, 0, 1.5, 2.35, 0.3, c, TL.stone);
+    if (!ouv) {
+      const ink = [0.18, 0.16, 0.14];
+      for (const s of [-1, 1]) { E.box(s * 0.2, 1.66, 0.16, 0.44, 0.045, 0.02, ink, 0, 0, 0, s * 0.32); E.box(s * 0.2, 1.54, 0.16, 0.44, 0.045, 0.02, ink, 0, 0, 0, -s * 0.32); }
+      E.bx(0, 1.53, 0.155, 0.13, 0.13, 0.03, [0.03, 0.03, 0.03], 0);
+      for (let k = 0; k < 5; k++) E.bx(-0.3 + k * 0.15, 0.5, 0.16, 0.03, 0.5, 0.02, ink, 0);
+    }
+  },
+  // une tablette de pierre fine, gravée (data.pris : emportée)
+  sout_tablette(E, o) { if (o.data && o.data.pris) return; E.bx(0, 0, 0, 0.42, 0.05, 0.3, rgbf('#a09a8c'), TL.stone, 0.2); for (let k = 0; k < 4; k++) E.bx(-0.12 + k * 0.08, 0.05, 0, 0.02, 0.005, 0.22, [0.2, 0.18, 0.16], 0, 0.2); },
+  // un coffre de pierre (data.ouvert : le couvercle poussé)
+  sout_coffre_aelim(E, o) {
+    const ouv = o.data && o.data.ouvert, c = rgbf('#8c8678');
+    E.bx(0, 0, 0, 1.1, 0.6, 0.66, c, TL.stone);
+    E.bx(0, 0.02, 0, 0.94, 0.6, 0.5, [0.08, 0.07, 0.06], 0);
+    if (ouv) E.box(0.35, 0.66, 0.1, 1.16, 0.12, 0.72, v3.scale(c, 0.95), TL.stone, 0.3); else E.bx(0, 0.6, 0, 1.16, 0.12, 0.72, v3.scale(c, 0.95), TL.stone);
+  },
+});
+Object.assign(PROP_COLL, { sout_colonne: [0.45, 0.45, 2.4], sout_pilier_aelim: [0.4, 0.4, 2.6], sout_porte_aelim: [0.75, 0.2, 2.35], sout_coffre_aelim: [0.56, 0.34, 0.66] });
+
+// ---------------------------------------------------------------- les chemins du retour
+Object.assign(PROP_MODELS, {
+  // un trou dans le sol, bordé d'éboulis (data.petit : entre des racines ; data.bouche : une grosse pierre dessus)
+  sout_trou(E, o) {
+    const d = o.data || {}, v = soutH(o, 30) * 10;
+    if (d.petit) { // entre les racines : un trou noir, des racines qui l'enjambent
+      E.bx(0, 0.015, 0, 0.8, 0.02, 0.62, [0.015, 0.012, 0.01], 0, v * 0.1);
+      E.bx(0, 0.0, 0, 1.1, 0.03, 0.9, rgbf('#3a2c20'), TL.soil, v * 0.1);
+      for (let i = 0; i < 4; i++) { const a = i * 1.7 + v; E.box(Math.cos(a) * 0.25, 0.14, Math.sin(a) * 0.2, 1.5, 0.16, 0.16, SPC.racine, TL.bark, a, 0, 0.18 * Math.sin(a * 3)); }
+      return;
+    }
+    E.bx(0, -0.02, 0, 1.3, 0.03, 1.1, [0.02, 0.02, 0.02], 0, v * 0.1);
+    for (let i = 0; i < 9; i++) { const a = i / 9 * TAU + v, r = 0.85; E.box(Math.cos(a) * r, 0.08, Math.sin(a) * r, 0.4, 0.18 + (i % 3) * 0.06, 0.3, SPC.roche, TL.stone, -a); }
+    if (d.bouche) E.box(0.1, 0.25, 0, 1.1, 0.5, 0.9, SPC.rocheS, TL.stone, v, 0.1, 0.05);
+  },
+  // une échelle de racines : des racines tordues qui montent, des nœuds pour les pieds (data.h : hauteur)
+  sout_echelle_racines(E, o) {
+    const h = (o.data && o.data.h) || 6, v = soutH(o, 31) * 10;
+    for (const s of [-0.28, 0.28]) for (let y = 0; y < h; y += 1.2) E.box(s + Math.sin(y + v) * 0.05, y + 0.6, 0, 0.12, 1.25, 0.12, SPC.racine, TL.bark, 0, Math.sin(y * 1.3 + v) * 0.08, 0);
+    for (let y = 0.4; y < h; y += 0.45) E.box(0, y, 0.02, 0.62, 0.08, 0.1, v3.scale(SPC.racine, 0.85), TL.bark, 0, 0, Math.sin(y * 2.1 + v) * 0.1);
+  },
+  // une flèche au charbon sur le sol, la pointe vers +z (data.p : pâlie par les années)
+  sout_fleche(E, o) {
+    const c = o.data && o.data.p ? [0.06, 0.055, 0.05] : [0.03, 0.03, 0.03];
+    E.bx(0, 0, -0.15, 0.1, 0.012, 1.0, c, 0);
+    E.box(0.12, 0.006, 0.2, 0.09, 0.012, 0.48, c, 0, -0.62); E.box(-0.12, 0.006, 0.2, 0.09, 0.012, 0.48, c, 0, 0.62);
+  },
+});
+
 // ---- 08-renderer.js
 // ============================================================================
 //  RENDU : cycle jour/nuit, terrain par morceaux, sprites, herbe, eau, blocs
@@ -62242,6 +62711,3389 @@ HOOKS.load.push(() => {
     ICON3D.boxesFor = function (id) { const it = ITEMS[id]; nature2.finIcone = (it && it.fin) || null; try { return _bf(id); } finally { nature2.finIcone = null; } };
   }
 });
+
+// ---- 11-zzzz9-souterrain0.js
+// ============================================================================
+//  LE DESSOUS (agent C3, huitième vague) — le moteur du monde souterrain
+//  Sous la vallée, à cent vingt ou cent cinquante mètres sous les champs, un
+//  réseau de galeries, de salles immenses, de lacs et d'une rivière, plus d'un
+//  kilomètre et demi de côté (x 860-2420, z 1045-2580). On y entre par un
+//  passage bien caché de Valbrume (voir 11-zzzz9-souterrain1-entree.js).
+//  Technique (la vallée reste le monde du jeu : habitants, bêtes, temps, tout
+//  continue là-haut) :
+//   - le sol et la voûte des galeries sont deux reliefs (grilles de 2 m) calculés
+//     depuis un plan dessiné (SOUT_PLAN : salles, galeries, rivière, lacs,
+//     piliers, gouffres), par des « creuseurs » : le sol est le plus bas des
+//     creuseurs, la voûte le plus haut ; hors des galeries, la roche est pleine ;
+//   - dessous, le rendu de la vallée dessine ces reliefs à la place du sien :
+//     les textures du relief sont échangées le temps de l'image, et la voûte est
+//     dessinée par le même programme que le sol, en miroir (y → −y) ; l'eau d'en
+//     bas est le plan d'eau du jeu, abaissé à SOUT_WL ;
+//   - le personnage marche sur ce relief (un monde « mandataire » est passé à
+//     Player.update : même vallée, autre sol, autre eau) ; ce qui est posé
+//     dessous (objets, blocs, plantes) porte le bit VER_SOUS : il n'existe que
+//     quand on y est ;
+//   - la grille (≈ 20 Mo) n'est calculée qu'à la première descente ; avant, le
+//     plan se lit point par point (placement des objets à la génération).
+//  API : souterrain (dedans(), floorAt(x, z), vaultAt(x, z), ouvert(x, z, h),
+//        zone(x, z), S(), descendre(), remonter(), …). Sauvegarde : farm.s.souterrain.
+// ============================================================================
+const SOUT_N = 1344, SOUT_CELL = 2, SOUT_W = SOUT_N + 1;
+const SOUT_X0 = 840, SOUT_X1 = 2460, SOUT_Z0 = 1020, SOUT_Z1 = 2620;
+const SOUT_WL = -150;      // l'eau d'en bas : un seul niveau (lacs, rivière, puits noyés)
+const SOUT_ROCK = -24;     // dessus de la roche pleine (hors des galeries)
+const SOUT_DEEP = -420;    // « voûte » de la roche pleine (sous le sol : fermé)
+const SOUT_VMAX = -34;     // jamais plus haut (la vallée, au plus bas, est à −2)
+const SOUT_TOP = -40;      // plus bas que cela, dans la région : on est dessous
+const VER_SOUS = 0x2000;   // ce qui n'existe que dessous
+const SOUT_GEN = [];       // passes de génération des autres modules : fn(w, rnd, B)
+
+// ---------------------------------------------------------------- le plan
+// salles : [clé, x, z, rx, rz, rot, sol, voûte (hauteur au centre), mat. sol, mat. voûte, { und, bowl }]
+// galeries : [clé, [[x, z, sol, demi-largeur, hauteur], …], mat. sol, mat. voûte, { und }]
+// rivière : [[x, z, demi-largeur]…] (le lit sous l'eau, deux berges) ; lacs : [clé, x, z, rx, rz, rot, fond, voûte]
+const SOUT_PLAN = {
+  salles: [
+    ['seuil', 1575, 1640, 17, 12, 0.3, -118, 9, 'roche', 'roche', { und: 0.5, bowl: 2.5 }],
+    ['nef', 1880, 1540, 170, 85, 0.12, -128, 56, 'humus', 'roche', { und: 3.5, bowl: 7 }],
+    ['cristal_a', 1725, 1290, 36, 26, 0.5, -108, 12, 'calcite', 'calcite', { und: 1 }],
+    ['cristal_b', 1785, 1245, 26, 20, -0.4, -106, 10, 'calcite', 'calcite', { und: 0.8 }],
+    ['cristal_c', 1690, 1215, 22, 18, 0.2, -104, 9, 'calcite', 'calcite', { und: 0.8 }],
+    ['souffle', 1600, 1160, 48, 34, -0.3, -100, 14, 'soufre', 'soufre', { und: 1.5 }],
+    ['gouffres', 2240, 1680, 72, 52, 0.4, -70, 30, 'roche', 'roche', { und: 1.2, bowl: 4 }],
+    ['echos', 2385, 1765, 32, 28, 0, -76, 32, 'roche', 'roche', { und: 1 }],
+    ['hameau', 2085, 2190, 62, 46, 0.2, -146, 22, 'humus', 'roche', { und: 1.2, bowl: 3 }],
+    ['dormeurs', 1690, 1812, 22, 18, 0.6, -112, 12, 'calcite', 'calcite', { und: 0.6 }],
+    ['racines', 1752, 2365, 30, 24, 0.3, -50, 13, 'argile', 'roche', { und: 0.8 }],
+    ['ruines', 1262, 2330, 96, 66, -0.15, -141, 38, 'roche', 'roche', { und: 4.5, bowl: 4 }],
+    ['orgues', 1482, 2540, 50, 36, 0.1, -118, 20, 'calcite', 'calcite', { und: 1.4 }],
+  ],
+  lacs: [
+    ['lac', 1060, 1900, 200, 150, -0.2, -186, 46],
+    ['lac_tiede', 2155, 2262, 70, 54, 0.3, -168, 20],
+  ],
+  riviere: [[1482, 1046, 6], [1472, 1110, 9], [1442, 1200, 10], [1420, 1300, 11], [1396, 1420, 11], [1376, 1520, 11], [1360, 1620, 12], [1346, 1700, 12], [1302, 1780, 12], [1232, 1842, 13], [1170, 1880, 14], [1122, 1900, 16]],
+  galeries: [
+    ['murés', [[1585, 1632, -118, 3.2, 5], [1610, 1596, -119, 3.4, 5.5], [1660, 1570, -121, 3.6, 6], [1715, 1552, -124, 4, 7], [1740, 1547, -126, 6, 10]], 'roche', 'roche'],
+    ['vers_riviere', [[1565, 1648, -118, 3.2, 5.5], [1510, 1665, -125, 3.2, 5.5], [1450, 1675, -135, 3.4, 6], [1395, 1672, -145, 4, 7], [1368, 1668, -148.4, 4.5, 8]], 'roche', 'roche'],
+    ['longue', [[1580, 1652, -118, 3.4, 6], [1576, 1760, -121, 3.5, 6], [1561, 1880, -124, 3.5, 6], [1546, 2000, -127, 3.8, 6.5], [1590, 2110, -131, 3.8, 6.5], [1700, 2170, -136, 4, 7], [1850, 2200, -141, 4, 7], [1990, 2200, -145, 4.5, 8], [2035, 2196, -146, 5, 10]], 'roche', 'roche'],
+    ['vers_cristal', [[1848, 1472, -127, 4.5, 9], [1800, 1390, -118, 4, 8], [1760, 1330, -111, 4, 8], [1735, 1300, -108, 5, 9]], 'roche', 'roche'],
+    ['cristal_ab', [[1745, 1276, -108, 3, 6], [1775, 1252, -106, 3, 6]], 'calcite', 'calcite'],
+    ['cristal_ac', [[1712, 1270, -108, 3.4, 6], [1695, 1230, -104, 3.4, 5.5]], 'calcite', 'calcite'],
+    ['vers_souffle', [[1680, 1205, -104, 3.2, 6], [1640, 1180, -102, 3.5, 6], [1615, 1168, -100, 4, 8]], 'roche', 'soufre'],
+    ['fissure', [[1592, 1135, -100, 2.8, 5], [1580, 1095, -96, 2.6, 4], [1570, 1062, -93, 2.2, 3.2]], 'soufre', 'soufre', { lisse: true }],
+    ['mines', [[1562, 1168, -100, 3, 4.5], [1532, 1180, -99, 2.8, 3.4], [1507, 1195, -98, 2.8, 3.4], [1492, 1226, -98, 2.8, 3.4], [1482, 1262, -99, 2.8, 3.4]], 'roche', 'roche', { lisse: true }],
+    ['mines_n', [[1507, 1195, -98, 2.6, 3.2], [1516, 1152, -97, 2.6, 3.2], [1536, 1124, -96, 2.6, 3.2]], 'roche', 'roche', { lisse: true }],
+    ['mines_s', [[1532, 1180, -99, 2.6, 3.2], [1548, 1228, -98, 2.6, 3.2], [1538, 1262, -98, 2.6, 3.2]], 'roche', 'roche', { lisse: true }],
+    ['mines_riviere', [[1482, 1262, -99, 2.8, 4], [1464, 1292, -111, 3.2, 5], [1449, 1330, -127, 3.4, 5.5], [1434, 1350, -145, 3.5, 6], [1418, 1356, -148.4, 3.8, 7]], 'roche', 'roche'],
+    ['vers_gouffres', [[2040, 1570, -126, 5, 10], [2100, 1600, -110, 4.5, 9], [2150, 1630, -92, 4, 8], [2190, 1655, -74, 4.5, 10]], 'roche', 'roche'],
+    ['vers_echos', [[2295, 1700, -70, 3.5, 7], [2345, 1735, -74, 3.5, 7], [2365, 1752, -76, 4, 10]], 'roche', 'roche'],
+    ['descente', [[2250, 1722, -72, 4, 8], [2250, 1820, -90, 4, 8], [2230, 1940, -112, 4, 8], [2180, 2060, -132, 4.5, 9], [2130, 2140, -144, 5, 10]], 'roche', 'roche'],
+    ['chatiere', [[1578, 1762, -121, 3.4, 3.5], [1600, 1772, -119.5, 3.4, 1.6], [1628, 1786, -117, 3.4, 1.55], [1652, 1799, -115, 3.4, 2.8], [1672, 1806, -113, 3.6, 6]], 'calcite', 'calcite', { lisse: true }],
+    ['vers_racines', [[1700, 2170, -136, 3.4, 6], [1660, 2230, -118, 3.2, 6], [1700, 2280, -100, 3.2, 6], [1760, 2272, -85, 3.2, 6], [1790, 2320, -68, 3.2, 6], [1766, 2350, -54, 4, 8]], 'roche', 'roche'],
+    ['vers_ruines', [[1725, 2372, -52, 3.5, 6], [1640, 2400, -70, 3.5, 6], [1560, 2420, -92, 3.5, 6], [1480, 2400, -112, 3.5, 6], [1400, 2370, -130, 4, 7], [1345, 2345, -140, 5, 9]], 'roche', 'roche'],
+    ['ruines_lac', [[1215, 2275, -142, 4, 8], [1170, 2180, -146, 4, 7], [1130, 2090, -148, 4, 8], [1100, 2040, -149, 5, 10]], 'roche', 'roche'],
+    ['vers_orgues', [[1480, 2400, -112, 3.2, 6], [1485, 2460, -115, 3.2, 6], [1482, 2510, -118, 4, 8]], 'calcite', 'calcite'],
+  ],
+  // piliers (la roche pleine du sol à la voûte) : [x, z, r]
+  piliers: [
+    [1800, 1522, 6], [1852, 1582, 9], [1932, 1500, 7], [1992, 1562, 5], [1762, 1560, 4], [1902, 1606, 6], [2012, 1508, 8], [1960, 1590, 3], [1830, 1500, 3],
+    [1240, 2300, 7], [1300, 2350, 5], [1180, 2330, 6], [1330, 2300, 3],
+    [2240, 1720, 4], [2095, 2168, 3], [1490, 2548, 4], [1462, 2530, 2.5],
+  ],
+  // gouffres : [x, z, r, fond]
+  gouffres: [[2226, 1672, 15, -140], [2272, 1702, 10, -138], [2198, 1648, 8, -205], [2395, 1772, 7, -150]],
+  // îlots (le sol remonte au-dessus de l'eau) : [x, z, r, sommet]
+  ilots: [[1010, 1878, 26, -146.5], [2170, 2275, 9, -148.3]],
+  // cheminées (la voûte monte) : [x, z, r, sommet]
+  cheminees: [[1573, 1633, 1.6, -50], [1760, 2374, 2.2, -36]],
+};
+const SOUT_MAT = { roche: M_SROCHE, calcite: M_SCALCITE, argile: M_SARGILE, humus: M_SHUMUS, soufre: M_SSOUFRE };
+const SOUT_ZONES = {
+  seuil: 'le Seuil', nef: 'la Grande Nef', cristal_a: 'les Cristallières', cristal_b: 'les Cristallières', cristal_c: 'les Cristallières', souffle: 'le Souffle',
+  gouffres: 'les Gouffres', echos: 'la Salle des Échos', hameau: 'le Hameau d’En-Bas', dormeurs: 'la Chambre des Gouttes', racines: 'les Racines',
+  ruines: 'la Ville engloutie', orgues: 'les Orgues', lac: 'la Mer muette', lac_tiede: 'le Lac tiède', riviere: 'la Rivière noire', mines: 'les Vieilles Mines',
+};
+for (const k in SOUT_ZONES) LIEU_NAMES['sout_' + k] = SOUT_ZONES[k];
+
+// ---------------------------------------------------------------- les creuseurs
+const SOUT_NW = makeNoise2D(0x50b1), SOUT_NF = makeNoise2D(0x50b2), SOUT_NV = makeNoise2D(0x50b3);
+// petites stalactites : une pointe de voûte, çà et là (par sommet de grille)
+function soutPointe(x, z, cl) {
+  if (cl < 3.2) return 0;
+  const h = hash2i(Math.round(x * 0.5), Math.round(z * 0.5), 77);
+  return h > 0.935 ? 0.6 + (h - 0.935) * 26 : 0;
+}
+const SOUT_EV = {
+  // galerie : segment A → B, largeur, sol, hauteur interpolés ; coupe en voûte (arc), sol en cuvette
+  tube(c, x, z, S) {
+    const dx = c.bx - c.ax, dz = c.bz - c.az, L2 = dx * dx + dz * dz || 1;
+    let t = ((x - c.ax) * dx + (z - c.az) * dz) / L2; t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const qx = c.ax + dx * t, qz = c.az + dz * t, d = Math.hypot(x - qx, z - qz);
+    const rr = (c.ar + (c.br - c.ar) * t) * (1 + 0.2 * SOUT_NW(x * 0.06, z * 0.06) + 0.07 * SOUT_NW(x * 0.2 + 17, z * 0.2));
+    if (d >= rr) return false;
+    const u = d / rr;
+    const y = c.ay + (c.by - c.ay) * t + SOUT_NF(x * 0.025, z * 0.025) * c.und + SOUT_NF(x * 0.11, z * 0.11) * 0.22;
+    const cl = (c.ac + (c.bc - c.ac) * t) * (1 + (c.lisse ? 0.04 : 0.14) * SOUT_NV(x * 0.05, z * 0.05));
+    S.f = y + (c.lisse ? 0.7 : 2.4) * u * u * u * u;
+    S.v = y + cl * Math.sqrt(1 - u * u) + (c.lisse ? SOUT_NV(x * 0.14, z * 0.14) * 0.05 : SOUT_NV(x * 0.14, z * 0.14) * 0.45 - soutPointe(x, z, cl));
+    S.fm = c.fm; S.vm = c.vm;
+    return true;
+  },
+  // salle : ellipse aux bords irréguliers, sol ondulé, voûte en coupole
+  salle(c, x, z, S) {
+    const ex = x - c.cx, ez = z - c.cz, lx = ex * c.co - ez * c.si, lz = ex * c.si + ez * c.co;
+    const k = Math.hypot(lx / c.rx, lz / c.rz) / (1 + 0.14 * SOUT_NW(x * 0.03, z * 0.03) + 0.06 * SOUT_NW(x * 0.09 + 5, z * 0.09));
+    if (k >= 1) return false;
+    const y = c.y + SOUT_NF(x * 0.02 + 3, z * 0.02) * c.und * (1 - k * k) + SOUT_NF(x * 0.1, z * 0.1) * 0.3;
+    const cl = c.cl * (0.82 + 0.18 * SOUT_NV(x * 0.03, z * 0.03));
+    S.f = y + c.bowl * k * k * k * k;
+    S.v = y + cl * Math.sqrt(1 - k * k) + SOUT_NV(x * 0.12, z * 0.12) * 0.9 - soutPointe(x, z, cl);
+    S.fm = c.fm; S.vm = c.vm;
+    return true;
+  },
+  // lac : le fond descend sous l'eau, la voûte s'élève au-dessus
+  lac(c, x, z, S) {
+    const ex = x - c.cx, ez = z - c.cz, lx = ex * c.co - ez * c.si, lz = ex * c.si + ez * c.co;
+    const k = Math.hypot(lx / c.rx, lz / c.rz) / (1 + 0.12 * SOUT_NW(x * 0.02 + 9, z * 0.02) + 0.05 * SOUT_NW(x * 0.08, z * 0.08 + 3));
+    if (k >= 1) return false;
+    const rive = SOUT_WL + 1.1 + SOUT_NF(x * 0.05, z * 0.05) * 0.4;
+    S.f = lerp(c.fond, rive, smoothstep(0.35, 0.93, k)) + SOUT_NF(x * 0.03, z * 0.03 + 7) * 2 * (1 - k) + 3 * Math.pow(k, 10);
+    const cl = c.cl * (0.8 + 0.2 * SOUT_NV(x * 0.02, z * 0.02 + 4));
+    S.v = SOUT_WL + 1 + cl * Math.sqrt(1 - k * k) + SOUT_NV(x * 0.12, z * 0.12) * 1.1 - soutPointe(x, z, cl);
+    S.fm = k > 0.7 ? M_SARGILE : M_SROCHE; S.vm = M_SROCHE;
+    return true;
+  },
+  // rivière : un lit sous l'eau entre deux berges
+  riviere(c, x, z, S) {
+    const dx = c.bx - c.ax, dz = c.bz - c.az, L2 = dx * dx + dz * dz || 1;
+    let t = ((x - c.ax) * dx + (z - c.az) * dz) / L2; t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const qx = c.ax + dx * t, qz = c.az + dz * t, d = Math.hypot(x - qx, z - qz);
+    const rr = (c.ar + (c.br - c.ar) * t) * (1 + 0.12 * SOUT_NW(x * 0.05, z * 0.05));
+    if (d >= rr) return false;
+    const u = d / rr, lit = 0.42 + 0.08 * SOUT_NW(x * 0.04 + 11, z * 0.04);
+    const berge = SOUT_WL + 1.25 + SOUT_NF(x * 0.07, z * 0.07) * 0.35;
+    S.f = lerp(SOUT_WL - 3.2, berge, smoothstep(lit - 0.1, lit + 0.06, u)) + 2.4 * Math.pow(u, 6);
+    const cl = 11 * (0.85 + 0.25 * SOUT_NV(x * 0.03, z * 0.03));
+    S.v = berge + cl * Math.sqrt(1 - u * u) + SOUT_NV(x * 0.13, z * 0.13) * 0.8 - soutPointe(x, z, cl);
+    S.fm = u < lit ? M_SROCHE : M_SARGILE; S.vm = M_SROCHE;
+    return true;
+  },
+};
+// retouches, après les creuseurs (dans l'ordre) : gouffre, îlot, cheminée, pilier
+const SOUT_POST = {
+  gouffre(c, x, z, F, V, k) {
+    if (V[k] - F[k] < 0.5) return;
+    const d = Math.hypot(x - c.cx, z - c.cz) / (c.r * (1 + 0.18 * SOUT_NW(x * 0.1, z * 0.1 + 2)));
+    if (d >= 1) return;
+    F[k] = Math.min(F[k], lerp(c.fond + SOUT_NF(x * 0.2, z * 0.2) * 2, F[k], smoothstep(0.7, 1, d)));
+  },
+  ilot(c, x, z, F, V, k) {
+    const d = Math.hypot(x - c.cx, z - c.cz) / (c.r * (1 + 0.15 * SOUT_NW(x * 0.08 + 4, z * 0.08)));
+    if (d >= 1.4) return;
+    F[k] = Math.max(F[k], c.top - d * d * 3.2 + SOUT_NF(x * 0.15, z * 0.15) * 0.3);
+  },
+  cheminee(c, x, z, F, V, k) {
+    const d = Math.hypot(x - c.cx, z - c.cz);
+    if (d >= c.r + 2.2 || V[k] - F[k] < 0.5) return;
+    V[k] = Math.max(V[k], lerp(c.top, V[k], smoothstep(c.r, c.r + 2.2, d)));
+  },
+  pilier(c, x, z, F, V, k) {
+    const d = Math.hypot(x - c.cx, z - c.cz) / (c.r * (1 + 0.2 * SOUT_NW(x * 0.15, z * 0.15 + 8)));
+    if (d >= 1) return;
+    F[k] = SOUT_ROCK; V[k] = SOUT_DEEP;
+  },
+};
+
+const souterrain = {
+  // ---------------------------------------------------------------- le plan en creuseurs
+  _cv: null, _post: null, _bk: null, BK: 64,
+  creuseurs() {
+    if (this._cv) return this._cv;
+    const P = SOUT_PLAN, L = [], post = [], BR = this.branches();
+    const box = (c, x0, z0, x1, z1) => { c.x0 = x0; c.z0 = z0; c.x1 = x1; c.z1 = z1; return c; };
+    for (const [key, x, z, rx, rz, rot, y, cl, fm, vm, o] of P.salles) {
+      const R = Math.max(rx, rz) * 1.25;
+      L.push(box({ k: 'salle', key, cx: x, cz: z, rx, rz, co: Math.cos(rot), si: Math.sin(rot), y, cl, fm: SOUT_MAT[fm], vm: SOUT_MAT[vm], und: (o && o.und) || 0.6, bowl: (o && o.bowl) || 3 }, x - R, z - R, x + R, z + R));
+    }
+    for (const [key, x, z, rx, rz, rot, fond, cl] of P.lacs) {
+      const R = Math.max(rx, rz) * 1.2;
+      L.push(box({ k: 'lac', key, cx: x, cz: z, rx, rz, co: Math.cos(rot), si: Math.sin(rot), fond, cl }, x - R, z - R, x + R, z + R));
+    }
+    for (let i = 0; i + 1 < P.riviere.length; i++) {
+      const [ax, az, ar] = P.riviere[i], [bx, bz, br] = P.riviere[i + 1], R = Math.max(ar, br) * 1.2;
+      L.push(box({ k: 'riviere', key: 'riviere', ax, az, ar, bx, bz, br }, Math.min(ax, bx) - R, Math.min(az, bz) - R, Math.max(ax, bx) + R, Math.max(az, bz) + R));
+    }
+    // les bouts de galerie qui débouchent dans une salle, un lac ou sur la rivière prennent la hauteur du sol qu'ils y trouvent
+    const S0 = {}, bases = L.slice();
+    const sol = (x, z) => { let f = null; for (const c of bases) if (x >= c.x0 && x <= c.x1 && z >= c.z0 && z <= c.z1 && SOUT_EV[c.k](c, x, z, S0)) f = f === null ? S0.f : Math.min(f, S0.f); return f; };
+    // (un bout resté juste au bord d'une salle y est prolongé jusqu'à y entrer franchement)
+    const entrer = (q) => {
+      if (sol(q[0], q[1]) !== null) return;
+      for (const c of bases) {
+        if (c.k !== 'salle' && c.k !== 'lac') continue;
+        const d = Math.hypot(c.cx - q[0], c.cz - q[1]);
+        if (d > Math.max(c.rx, c.rz) * 1.15) continue;
+        const ux = (c.cx - q[0]) / d, uz = (c.cz - q[1]) / d;
+        for (let s = 1; s < 50; s++) if (SOUT_EV[c.k](c, q[0] + ux * s, q[1] + uz * s, S0)) { q[0] += ux * (s + 5); q[1] += uz * (s + 5); return; }
+      }
+    };
+    const tubes = (key, pts, fm, vm, o) => {
+      pts = pts.map((q) => q.slice());
+      for (const i of [0, pts.length - 1]) { if (o && o.snap === false) continue; entrer(pts[i]); const f = sol(pts[i][0], pts[i][1]); if (f !== null) pts[i][2] = Math.max(SOUT_WL + 1.1, f + 0.05); }
+      for (let i = 0; i + 1 < pts.length; i++) {
+        const [ax, az, ay, ar, ac] = pts[i], [bx, bz, by, br, bc] = pts[i + 1], R = Math.max(ar, br) * 1.35;
+        L.push(box({ k: 'tube', key, ax, az, ay, ar, ac, bx, bz, by, br, bc, fm, vm, und: (o && o.und) || 0.5, lisse: !!(o && o.lisse) }, Math.min(ax, bx) - R, Math.min(az, bz) - R, Math.max(ax, bx) + R, Math.max(az, bz) + R));
+      }
+      return pts;
+    };
+    for (const g of P.galeries) g[1] = tubes(g[0], g[1], SOUT_MAT[g[2]], SOUT_MAT[g[3]], g[4]);
+    bases.length = 0; for (const c of L) bases.push(c);
+    // les boyaux : pas de traverse d'une autre galerie (un fossé ou une marche infranchissable)
+    this._brOk = [];
+    for (const b of BR) {
+      const n0 = L.length;
+      let bad = false;
+      for (let i = 0; i + 1 < b.pts.length && !bad; i++) {
+        const A = b.pts[i], Bq = b.pts[i + 1], len = Math.hypot(Bq[0] - A[0], Bq[1] - A[1]);
+        for (let s = i ? 0 : 10; s <= len && !bad; s += 3) { const x = lerp(A[0], Bq[0], s / len), z = lerp(A[1], Bq[1], s / len), f = sol(x, z); if (f !== null) bad = true; }
+      }
+      if (bad) continue;
+      if (b.fin) { const [x, z, , r] = b.fin; for (let a = 0; a < 6 && b.fin; a++) if (sol(x + Math.cos(a) * r * 1.3, z + Math.sin(a) * r * 1.3) !== null) b.fin = null; }
+      tubes(b.key, b.pts, M_SROCHE, M_SROCHE, null);
+      this._brOk.push(b);
+      if (b.fin) { const [x, z, y, r, cl] = b.fin; L.push(box({ k: 'salle', key: b.key + '_s', cx: x, cz: z, rx: r, rz: r * (0.7 + hash2i(x | 0, z | 0, 3) * 0.5), co: 1, si: 0, y, cl, fm: M_SROCHE, vm: M_SROCHE, und: 0.6, bowl: 2.2 }, x - r * 1.3, z - r * 1.3, x + r * 1.3, z + r * 1.3)); }
+      for (let q = n0; q < L.length; q++) bases.push(L[q]);
+    }
+    for (const [x, z, r, fond] of P.gouffres) post.push(box({ k: 'gouffre', cx: x, cz: z, r, fond }, x - r * 1.3, z - r * 1.3, x + r * 1.3, z + r * 1.3));
+    for (const [x, z, r, top] of P.ilots) post.push(box({ k: 'ilot', cx: x, cz: z, r, top }, x - r * 1.7, z - r * 1.7, x + r * 1.7, z + r * 1.7));
+    for (const [x, z, r, top] of P.cheminees) post.push(box({ k: 'cheminee', cx: x, cz: z, r, top }, x - r - 3, z - r - 3, x + r + 3, z + r + 3));
+    for (const [x, z, r] of P.piliers) post.push(box({ k: 'pilier', cx: x, cz: z, r }, x - r * 1.25, z - r * 1.25, x + r * 1.25, z + r * 1.25));
+    this._cv = L; this._post = post;
+    // seaux de 64 m : quels creuseurs touchent quel carré (les points se calculent sans la grille)
+    const BK = this.BK, bw = Math.ceil((SOUT_N * SOUT_CELL) / BK) + 1, bk = new Array(bw * bw);
+    const add = (list, idx, c) => {
+      for (let j = Math.max(0, Math.floor(c.z0 / BK)); j <= Math.min(bw - 1, Math.floor(c.z1 / BK)); j++) for (let i = Math.max(0, Math.floor(c.x0 / BK)); i <= Math.min(bw - 1, Math.floor(c.x1 / BK)); i++) {
+        const q = j * bw + i; (bk[q] || (bk[q] = [[], []]))[list].push(idx);
+      }
+    };
+    L.forEach((c, i) => add(0, i, c)); post.forEach((c, i) => add(1, i, c));
+    this._bk = bk; this._bw = bw;
+    return L;
+  },
+  // les galeries de traverse : des boyaux tirés au hasard (graine fixe) le long des grandes galeries
+  branches() {
+    if (this._br) return this._br;
+    const rnd = mulberry32(0x50b7a11e), out = [];
+    const src = SOUT_PLAN.galeries.filter((g) => !['chatiere', 'fissure', 'mines_n', 'mines_s', 'mines_o', 'cristal_ab', 'cristal_ac'].includes(g[0]));
+    for (let n = 0; n < 64; n++) {
+      const g = src[(rnd() * src.length) | 0], pts = g[1], i = (rnd() * (pts.length - 1)) | 0, t = 0.2 + rnd() * 0.6;
+      const A = pts[i], B = pts[i + 1];
+      const x0 = lerp(A[0], B[0], t), z0 = lerp(A[1], B[1], t), y0 = lerp(A[2], B[2], t), r0 = lerp(A[3], B[3], t);
+      const dir = Math.atan2(B[0] - A[0], B[1] - A[1]) + (rnd() < 0.5 ? 1 : -1) * (0.9 + rnd() * 0.9);
+      const len = 30 + rnd() * 90, segs = 2 + ((rnd() * 3) | 0), P = [[x0, z0, y0, Math.min(r0, 2.6), 4.5]];
+      let x = x0, z = z0, y = y0, a = dir, ok = true;
+      for (let s = 0; s < segs; s++) {
+        a += (rnd() - 0.5) * 0.9;
+        const l = len / segs; x += Math.sin(a) * l; z += Math.cos(a) * l; y += (rnd() - 0.5) * l * 0.16;
+        if (x < SOUT_X0 + 30 || x > SOUT_X1 - 30 || z < SOUT_Z0 + 30 || z > SOUT_Z1 - 30) { ok = false; break; }
+        P.push([x, z, Math.max(SOUT_WL + 1.4, Math.min(y, SOUT_VMAX - 12)), 2 + rnd() * 1.8, 2.6 + rnd() * 3.6]);
+      }
+      if (!ok || P.length < 2) continue;
+      const fin = P[P.length - 1];
+      out.push({ key: 'boyau' + n, pts: P, fin: rnd() < 0.45 ? [fin[0], fin[1], fin[2], 5 + rnd() * 7, 4 + rnd() * 6] : null });
+    }
+    return (this._br = out);
+  },
+  // ---------------------------------------------------------------- un sommet de la grille (i, j) : sol, voûte, matières
+  _S: { f: 0, v: 0, fm: 0, vm: 0 },
+  _o: { F: new Float32Array(1), V: new Float32Array(1) },
+  sommet(i, j, out) {
+    if (this.F) { const k = j * SOUT_W + i; out.f = this.F[k]; out.v = this.V[k]; out.fm = this.FM[k]; out.vm = this.VM[k]; return out; }
+    this.creuseurs();
+    const x = i * SOUT_CELL, z = j * SOUT_CELL, S = this._S;
+    let f = SOUT_ROCK, v = SOUT_DEEP, fm = M_SROCHE, vm = M_SROCHE;
+    const bq = this._bk[Math.min(this._bw - 1, Math.floor(z / this.BK)) * this._bw + Math.min(this._bw - 1, Math.floor(x / this.BK))];
+    if (bq) {
+      for (const ci of bq[0]) {
+        const c = this._cv[ci];
+        if (x < c.x0 || x > c.x1 || z < c.z0 || z > c.z1 || !SOUT_EV[c.k](c, x, z, S)) continue;
+        if (S.f < f) { f = S.f; fm = S.fm; }
+        if (S.v > v) { v = S.v; vm = S.vm; }
+      }
+      const o = this._o; o.F[0] = f; o.V[0] = v;
+      for (const ci of bq[1]) { const c = this._post[ci]; if (x >= c.x0 && x <= c.x1 && z >= c.z0 && z <= c.z1) SOUT_POST[c.k](c, x, z, o.F, o.V, 0); }
+      f = o.F[0]; v = o.V[0];
+    }
+    if (v > SOUT_VMAX) v = SOUT_VMAX;
+    if (v - f < 0.3) { f = SOUT_ROCK; v = SOUT_DEEP; }
+    out.f = f; out.v = v; out.fm = fm; out.vm = vm;
+    return out;
+  },
+  // ---------------------------------------------------------------- la grille entière (à la première descente)
+  construire() {
+    if (this.F) return;
+    const t0 = performance.now();
+    const W = SOUT_W, F = new Float32Array(W * W), V = new Float32Array(W * W), FM = new Uint8Array(W * W), VM = new Uint8Array(W * W);
+    F.fill(SOUT_ROCK); V.fill(SOUT_DEEP); FM.fill(M_SROCHE); VM.fill(M_SROCHE);
+    const L = this.creuseurs(), S = this._S, C = SOUT_CELL;
+    for (const c of L) {
+      const ev = SOUT_EV[c.k];
+      const i0 = Math.max(0, Math.ceil(c.x0 / C)), i1 = Math.min(SOUT_N, Math.floor(c.x1 / C)), j0 = Math.max(0, Math.ceil(c.z0 / C)), j1 = Math.min(SOUT_N, Math.floor(c.z1 / C));
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+        if (!ev(c, i * C, j * C, S)) continue;
+        const k = j * W + i;
+        if (S.f < F[k]) { F[k] = S.f; FM[k] = S.fm; }
+        if (S.v > V[k]) { V[k] = S.v; VM[k] = S.vm; }
+      }
+    }
+    for (const c of this._post) {
+      const fn = SOUT_POST[c.k];
+      const i0 = Math.max(0, Math.ceil(c.x0 / C)), i1 = Math.min(SOUT_N, Math.floor(c.x1 / C)), j0 = Math.max(0, Math.ceil(c.z0 / C)), j1 = Math.min(SOUT_N, Math.floor(c.z1 / C));
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) fn(c, i * C, j * C, F, V, j * W + i);
+    }
+    for (let k = 0; k < F.length; k++) {
+      if (V[k] > SOUT_VMAX) V[k] = SOUT_VMAX;
+      if (V[k] - F[k] < 0.3) { F[k] = SOUT_ROCK; V[k] = SOUT_DEEP; }
+    }
+    this.F = F; this.V = V; this.FM = FM; this.VM = VM;
+    this.dureeGrille = Math.round(performance.now() - t0);
+  },
+  // ---------------------------------------------------------------- lectures (même triangulation que le maillage)
+  _q: [{ f: 0, v: 0, fm: 0, vm: 0 }, { f: 0, v: 0, fm: 0, vm: 0 }, { f: 0, v: 0, fm: 0, vm: 0 }, { f: 0, v: 0, fm: 0, vm: 0 }],
+  interp(x, z, key) {
+    const gx = clamp(x / SOUT_CELL, 0, SOUT_N - 1e-4), gz = clamp(z / SOUT_CELL, 0, SOUT_N - 1e-4);
+    const i = Math.floor(gx), j = Math.floor(gz), fx = gx - i, fz = gz - j;
+    let ha, hb, hc, hd;
+    if (this.F) {
+      const A = key === 'f' ? this.F : this.V, k = j * SOUT_W + i;
+      ha = A[k]; hb = A[k + 1]; hc = A[k + SOUT_W]; hd = A[k + SOUT_W + 1];
+    } else {
+      const q = this._q;
+      ha = this.sommet(i, j, q[0])[key]; hb = this.sommet(i + 1, j, q[1])[key]; hc = this.sommet(i, j + 1, q[2])[key]; hd = this.sommet(i + 1, j + 1, q[3])[key];
+    }
+    if (fx + fz <= 1) return ha + (hb - ha) * fx + (hc - ha) * fz;
+    return hd + (hc - hd) * (1 - fx) + (hb - hd) * (1 - fz);
+  },
+  floorAt(x, z) { return this.interp(x, z, 'f'); },
+  vaultAt(x, z) { return this.interp(x, z, 'v'); },
+  matAt(x, z) {
+    const i = clamp(Math.round(x / SOUT_CELL), 0, SOUT_N), j = clamp(Math.round(z / SOUT_CELL), 0, SOUT_N);
+    if (this.FM) return this.FM[j * SOUT_W + i];
+    return this.sommet(i, j, this._q[0]).fm;
+  },
+  // de la place pour un corps de hauteur h (sol libre, voûte au-dessus)
+  ouvert(x, z, h) { const f = this.floorAt(x, z); return f < SOUT_ROCK - 1 && this.vaultAt(x, z) - f > (h || 1.9); },
+  normalAt(x, z) { const e = 1; return v3.norm([this.floorAt(x - e, z) - this.floorAt(x + e, z), 2 * e, this.floorAt(x, z - e) - this.floorAt(x, z + e)]); },
+  dansRegion(x, z) { return x > SOUT_X0 && x < SOUT_X1 && z > SOUT_Z0 && z < SOUT_Z1; },
+  // la zone du plan la plus proche (pour les noms de lieux)
+  zone(x, z) {
+    let best = null, bd = 1e9;
+    for (const [key, cx, cz, rx, rz] of SOUT_PLAN.salles) { if (/^boyau/.test(key)) continue; const d = Math.hypot(x - cx, z - cz) / Math.max(rx, rz); if (d < bd) { bd = d; best = key; } }
+    for (const [key, cx, cz, rx, rz] of SOUT_PLAN.lacs) { const d = Math.hypot(x - cx, z - cz) / Math.max(rx, rz); if (d < bd) { bd = d; best = key; } }
+    for (const [cx, cz, r] of SOUT_PLAN.riviere) { const d = Math.hypot(x - cx, z - cz) / (r * 4); if (d < bd) { bd = d; best = 'riviere'; } }
+    if (Math.hypot(x - 1518, z - 1200) < 80 && bd > 0.8) best = 'mines';
+    return bd < 2.2 ? best : null;
+  },
+  nomLieu(x, z) { const k = this.zone(x, z); return k ? SOUT_ZONES[k] : 'les galeries d’en bas'; },
+
+  // ---------------------------------------------------------------- état sauvegardé
+  S() {
+    const s = farm.s;
+    if (!s) return { vu: {} };
+    const S = s.souterrain || (s.souterrain = {});
+    if (!S.vu) S.vu = {}; if (!S.pris) S.pris = {}; if (!S.f) S.f = {};
+    return S;
+  },
+  // ---------------------------------------------------------------- dessous ou pas
+  actif: false,
+  dedans(pos) {
+    if (game.kind !== 'farm' || !farm.s) return false;
+    pos = pos || game.player.pos;
+    return pos[1] < SOUT_TOP && this.dansRegion(pos[0], pos[2]);
+  },
+  // ---------------------------------------------------------------- le monde « mandataire » : la vallée, avec le sol et l'eau d'en bas
+  monde(w) {
+    if (this._m && this._mw === w) return this._m;
+    const S = this;
+    const O = {
+      waterLevel: SOUT_WL,
+      heightAt: (x, z) => S.floorAt(x, z),
+      matAt: (x, z) => S.matAt(x, z),
+      normalAt: (x, z) => S.normalAt(x, z),
+      objectY: (o) => (o.y !== undefined ? o.y : w.heightAt(o.x, o.z)),
+      covered: () => false,
+      query: (x, z, r, a, b) => w.query(x, z, r, a, b),
+      groundAt(x, z, feetY, stepUp, margin) { return World.prototype.groundAt.call(S._m, x, z, feetY, stepUp, margin); },
+      raycastTerrain(o, d, max) { return World.prototype.raycastTerrain.call(S._m, o, d, max); },
+      collideCircle(x, z, feet, head, radius, stepUp, withObjects, ignoreDoors) {
+        let [nx, nz] = World.prototype.collideCircle.call(S._m, x, z, feet, head, radius, stepUp, withObjects, ignoreDoors);
+        const need = head - feet, D = S.depart;
+        if (D && !S.passe(nx, nz, feet, need)) {
+          if (S.passe(nx, D[1], feet, need)) nz = D[1]; else if (S.passe(D[0], nz, feet, need)) nx = D[0]; else { nx = D[0]; nz = D[1]; }
+        }
+        return [nx, nz];
+      },
+    };
+    this._mw = w;
+    this._m = new Proxy(w, {
+      get(t, k) { if (Object.prototype.hasOwnProperty.call(O, k)) return O[k]; return t[k]; },
+      set(t, k, v) { t[k] = v; return true; },
+    });
+    return this._m;
+  },
+  // un corps de hauteur `need`, les pieds à `feet`, tient-il en (x, z) ? (la voûte, ou la roche pleine)
+  passe(x, z, feet, need) {
+    const f = this.floorAt(x, z);
+    if (f > SOUT_ROCK - 1) return false;
+    return this.vaultAt(x, z) - Math.max(f, feet) > need - 0.05;
+  },
+  // la fonction fn, le temps de son appel, voit le monde d'en bas (noyade, flèches, pêche…)
+  avecMonde(fn) {
+    if (!this.actif) return fn();
+    const g = game.world;
+    game.world = this.monde(g);
+    try { return fn(); } finally { game.world = g; }
+  },
+  sousLEau(p) { return p[1] < SOUT_WL && this.floorAt(p[0], p[2]) < SOUT_WL; },
+
+  // ---------------------------------------------------------------- entrer, sortir (le mode « dessous »)
+  basculer(on) {
+    const w = game.world;
+    if (!w || this.actif === on) return;
+    this.actif = on;
+    if (on) { this.construire(); this.depart = null; }
+    this.appliquerVer();
+    npcs.vanishAll && npcs.vanishAll(on || strange.redNight() || strange.inEnvers());
+    if (on) { const S = this.S(); S.descentes = (S.descentes || 0) + 1; }
+    this.kCiel = on ? 1 : 0;
+    MSON && (on ? MSON.drone('souterrain', [41.2, 55, 61.7], 0.035, 'sine', 180) : MSON.stopDrone('souterrain'));
+    if (game.renderer) game.renderer.activeCenter = null;
+    for (const fn of this.aBascule) try { fn(on); } catch (e) { console.error(e); }
+  },
+  aBascule: [],
+  appliquerVer() {
+    const w = game.world;
+    if (!w) return;
+    const on = this.actif, has = !!(w.curVer & VER_SOUS);
+    if (on === has) return;
+    w.curVer = on ? w.curVer | VER_SOUS : w.curVer & ~VER_SOUS;
+    w.objectsDirty = true; w.blocksDirty = true; w.grid = null; w.coverDirty = true;
+    farm.dirtyProps = true;
+  },
+
+  // ---------------------------------------------------------------- chaque image
+  update(dt, eye, basis, sky, playing) {
+    const on = this.dedans();
+    if (on !== this.actif) this.basculer(on);
+    if (!on) return;
+    this.appliquerVer();
+    const p = game.player, S = this.S();
+    // dernier endroit sûr (pour s'en sortir si l'on se trouve pris dans la roche)
+    if (p.onGround && !p.swimming && this.ouvert(p.pos[0], p.pos[2], 1.05)) this.bon = p.pos.slice();
+    const z = this.zone(p.pos[0], p.pos[2]);
+    if (z) { if (!S.vu[z]) S.vu[z] = farm.s.day; if (savoir && savoir.connaitreLieu) savoir.connaitreLieu('sout_' + z); }
+    for (const fn of this.aChaqueImage) try { fn(dt, eye, basis, sky, playing); } catch (e) { console.error(e); }
+  },
+  aChaqueImage: [],
+  // après le pas du personnage : la voûte, la roche, et « dessous » pour le reste de l'image
+  apres(p) {
+    const x = p.pos[0], z = p.pos[2], f = this.floorAt(x, z), vt = this.vaultAt(x, z);
+    if (f > SOUT_ROCK - 1 || (p.pos[1] < f - 1.5 && !p.swimming)) { // pris dans la roche : on revient où l'on était
+      if (this.bon) { p.pos = this.bon.slice(); p.vel = [0, 0, 0]; }
+    } else {
+      if (vt - Math.max(f, p.pos[1]) < 1.86 && !p.riding) p.crouch = Math.max(p.crouch, 1); // un boyau bas : on se baisse
+      const top = p.pos[1] + p.bodyH();
+      if (top > vt - 0.04) { if (p.vel[1] > 0) p.vel[1] = 0; p.pos[1] = Math.max(f, vt - 0.04 - p.bodyH()); }
+    }
+    p.underground = true;
+  },
+
+  // ---------------------------------------------------------------- le ciel d'en bas : il n'y en a pas
+  ciel(sky) {
+    const N = [0, 0, 0];
+    sky.zen = [0.003, 0.003, 0.004]; sky.hor = [0.004, 0.004, 0.005]; sky.glow = N; sky.haze = [0.004, 0.0035, 0.004];
+    sky.amb = [0.024, 0.025, 0.03]; sky.sunCol = N; sky.moonCol = N; sky.cloudLit = N; sky.cloudDark = N;
+    sky.stars = 0; sky.sunVis = 0; sky.moonVis = 0; sky.cloudCover = 0; sky.mist = 0; sky.shadowK = 0; sky.nightLit = 1; sky.wet = 0; sky.frost = 0;
+    sky.fog = [5, 78];
+    if (this.cielFx) this.cielFx(sky);
+  },
+
+  // ---------------------------------------------------------------- rendu (installé une fois)
+  gl: null,
+  installer() {
+    if (this.installe) return;
+    this.installe = true;
+    const R = game.renderer, S = this;
+    const _render = R.render.bind(R), _use = R.use.bind(R), _vis = R.visibleChunks.bind(R), _uao = R.updateActiveObjects.bind(R);
+    this._use = _use;
+    R.render = function (F) {
+      if (!(S.actif && game.kind === 'farm' && S.F)) return _render(F);
+      const G = S.texturer(this);
+      if (!G) return _render(F);
+      this.syncWorld();
+      S.lier(G.hF, G.mF, G.sF);
+      S.image = { vault: false, terrain: false, U: null, n: 0 };
+      F.grass = null; F.rain = 0; F.snow = 0; F.moon2 = 0; F.underwater = S.sousLEau(F.cam.pos);
+      try { return _render(F); } finally { S.image = null; S.lier(this.hTex, this.mTex, this.sTex); }
+    };
+    R.use = function (pr, U) {
+      const im = S.image;
+      if (!im) return _use(pr, U);
+      const O = Object.assign({}, U, S.gl.ovr);
+      if (pr === this.progs.terrain) { im.U = O; im.terrain = true; return _use(pr, O); }
+      if (im.terrain && !im.vault) { im.vault = true; try { S.voute(this, im); } catch (e) { console.error(e); } }
+      return _use(pr, O);
+    };
+    R.visibleChunks = function (pos, b, tanX, tanY, far) { if (S.image) return S.morceaux(pos, b, tanX, tanY, far); return _vis(pos, b, tanX, tanY, far); };
+    // dessous, on ne dessine que les plantes et objets d'en bas (ceux de là-haut sont à cent mètres dans la roche)
+    R.updateActiveObjects = function (cam, Rr) {
+      if (!S.actif) return _uao(cam, Rr);
+      const xz = this.objXZ, all = this.objAll, act = this.objActive, R2 = Rr * Rr;
+      let n = 0;
+      for (let i = 0; i < this.objTotal; i++) {
+        const dx = xz[i * 2] - cam[0], dz = xz[i * 2 + 1] - cam[2];
+        if (dx * dx + dz * dz > R2 || all[i * 13 + 1] > SOUT_TOP) continue;
+        act.set(all.subarray(i * 13, i * 13 + 13), n * 13); n++;
+      }
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.objBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, act.subarray(0, Math.max(1, n) * 13), gl.DYNAMIC_DRAW);
+      this.objCount = n; this.activeCenter = [cam[0], cam[2]];
+    };
+  },
+  // textures des deux reliefs (créées à la première image dessous)
+  texturer(R) {
+    if (this.gl) return this.gl;
+    if (!this.F) return null;
+    const U = 12, W = SOUT_W;
+    gl.activeTexture(gl.TEXTURE0 + U);
+    const neg = new Float32Array(this.V.length);
+    for (let k = 0; k < neg.length; k++) neg[k] = -this.V[k];
+    const G = {
+      hF: glDataTex(W, W, 'R32F', this.F, false), mF: glDataTex(W, W, 'R8', this.FM, false),
+      hV: glDataTex(W, W, 'R32F', neg, false), mV: glDataTex(W, W, 'R8', this.VM, false),
+      sF: glDataTex(W, W, 'R8', new Uint8Array(W * W), true),
+      ovr: { uN: SOUT_N, uCell: SOUT_CELL, uWater: SOUT_WL, uWaterV: SOUT_WL, uCoverW: 0, uFrost: 0, uWet: 0 },
+      vp: new Float32Array(16), lum: new Float32Array(MAX_LIGHTS * 4),
+    };
+    // les morceaux (32 × 32 cellules) qui ont du vide : leurs hauteurs extrêmes (sol et voûte)
+    const nc = Math.ceil(SOUT_N / CHUNK), ch = [];
+    for (let cz = 0; cz < nc; cz++) for (let cx = 0; cx < nc; cx++) {
+      let mn = 1e9, mx = -1e9, open = false;
+      for (let j = cz * CHUNK; j <= Math.min(SOUT_N, cz * CHUNK + CHUNK); j++) for (let i = cx * CHUNK; i <= Math.min(SOUT_N, cx * CHUNK + CHUNK); i++) {
+        const k = j * W + i;
+        if (this.V[k] - this.F[k] > 0.3) { open = true; if (this.F[k] < mn) mn = this.F[k]; if (this.V[k] > mx) mx = this.V[k]; }
+      }
+      if (open) ch.push({ x: cx * CHUNK, z: cz * CHUNK, minH: mn - 2, maxH: Math.min(SOUT_ROCK, mx + 2) });
+    }
+    G.chunks = ch; G.vis = new Float32Array(Math.max(2, ch.length * 2));
+    this.gl = G;
+    return G;
+  },
+  lier(h, m, s) {
+    gl.activeTexture(gl.TEXTURE0 + TEX_H); gl.bindTexture(gl.TEXTURE_2D, h);
+    gl.activeTexture(gl.TEXTURE0 + TEX_M); gl.bindTexture(gl.TEXTURE_2D, m);
+    gl.activeTexture(gl.TEXTURE0 + TEX_S); gl.bindTexture(gl.TEXTURE_2D, s);
+  },
+  morceaux(pos, b, tanX, tanY, far) {
+    const G = this.gl, cell = SOUT_CELL, half = CHUNK * cell / 2;
+    const hx = Math.atan(tanX), hy = Math.atan(tanY);
+    const planes = [
+      v3.add(v3.scale(b.r, Math.cos(hx)), v3.scale(b.f, -Math.sin(hx))), v3.add(v3.scale(b.r, -Math.cos(hx)), v3.scale(b.f, -Math.sin(hx))),
+      v3.add(v3.scale(b.u, Math.cos(hy)), v3.scale(b.f, -Math.sin(hy))), v3.add(v3.scale(b.u, -Math.cos(hy)), v3.scale(b.f, -Math.sin(hy))),
+    ];
+    let n = 0;
+    for (const c of G.chunks) {
+      const cx = c.x * cell + half - pos[0], cz = c.z * cell + half - pos[2], cy = (c.minH + c.maxH) / 2 - pos[1];
+      const r = Math.hypot(half * 1.4143, (c.maxH - c.minH) / 2), d = Math.hypot(cx, cy, cz);
+      if (d - r > far) continue;
+      let out = false;
+      for (const p of planes) if (p[0] * cx + p[1] * cy + p[2] * cz > r) { out = true; break; }
+      if (out) continue;
+      G.vis[n * 2] = c.x; G.vis[n * 2 + 1] = c.z; n++;
+    }
+    if (this.image) this.image.n = n;
+    return { data: G.vis, n };
+  },
+  // la voûte : le relief d'en haut, dessiné par le programme du sol, en miroir (y → −y)
+  voute(R, im) {
+    const G = this.gl, U = im.U;
+    if (!U || !im.n) return;
+    const VP = G.vp; VP.set(U.uViewProj); VP[4] = -VP[4]; VP[5] = -VP[5]; VP[6] = -VP[6]; VP[7] = -VP[7];
+    const L = G.lum; L.set(U.uLights); for (let i = 0; i < MAX_LIGHTS; i++) L[i * 4 + 1] = -L[i * 4 + 1];
+    const c = U.uCamPos, sd = U.uSunDir, md = U.uMoonDir;
+    const O = Object.assign({}, U, { uViewProj: VP, uCamPos: [c[0], -c[1], c[2]], uLights: L, uWater: -1e5, uSunDir: [sd[0], -sd[1], sd[2]], uMoonDir: [md[0], -md[1], md[2]], uShadowK: 0, uBrush: [0, 0, 0, 0] });
+    this.lier(G.hV, G.mV, G.sF);
+    this._use(R.progs.terrain, O);
+    gl.bindVertexArray(R.terrainVAO);
+    gl.enable(gl.CULL_FACE); gl.frontFace(gl.CW);
+    gl.drawElementsInstanced(gl.TRIANGLES, R.chunkIndexCount, gl.UNSIGNED_SHORT, 0, im.n);
+    gl.frontFace(gl.CCW);
+    this.lier(G.hF, G.mF, G.sF);
+  },
+};
+
+// ---------------------------------------------------------------- les accroches
+// le personnage : dessous, il marche sur le sol d'en bas (la vallée au-dessus n'a plus de sol pour lui)
+{
+  const _pu = Player.prototype.update;
+  Player.prototype.update = function (dt, w, c) {
+    if (this !== game.player || this.fly || !souterrain.dedans(this.pos)) return _pu.call(this, dt, w, c);
+    const S = souterrain;
+    if (!S.actif) S.basculer(true);
+    S.depart = [this.pos[0], this.pos[2]];
+    try { return _pu.call(this, dt, S.monde(w), c); } finally { S.depart = null; S.apres(this); }
+  };
+}
+// noyade, flèches, pêche : l'eau et le sol d'en bas
+{
+  const _ub = play.updateBody.bind(play);
+  play.updateBody = function (dt) { return souterrain.avecMonde(() => _ub(dt)); };
+  const _ua = play.updateArrows.bind(play);
+  play.updateArrows = function (dt) { return souterrain.avecMonde(() => _ua(dt)); };
+}
+// ce qui rôde là-haut n'atteint pas ceux d'en bas (bêtes, habitants, l'étrange : leur y est celui de la vallée)
+{
+  const _hurt = play.hurt.bind(play);
+  play.hurt = function (dmg, src, cause) {
+    if (souterrain.actif && src && !src.sout && typeof src.y === 'number' && Math.abs(src.y - game.player.pos[1]) > 8) return;
+    return _hurt(dmg, src, cause);
+  };
+  const _pn = strange.placeName.bind(strange);
+  strange.placeName = function (p) { if (souterrain.actif && p && p[1] < SOUT_TOP && souterrain.dansRegion(p[0], p[2])) return souterrain.nomLieu(p[0], p[2]); return _pn(p); };
+}
+// les habitants et les bêtes de la vallée ne « voient » pas le personnage à travers cent mètres de roche
+{
+  const _nu = npcs.update.bind(npcs);
+  npcs.update = function (dt, w, c) { if (souterrain.actif) c = Object.assign({}, c, { px: -1e5, pz: -1e5, visible: () => false }); return _nu(dt, w, c); };
+  const _eu = entities.update.bind(entities);
+  entities.update = function (dt, w, c) { if (souterrain.actif && game.kind === 'farm') c = Object.assign({}, c, { px: -1e5, pz: -1e5 }); return _eu(dt, w, c); };
+  const _pp = entities.pushPlayer.bind(entities);
+  entities.pushPlayer = function (p) { if (souterrain.actif) return; return _pp(p); };
+  const _ed = entities.draw.bind(entities);
+  entities.draw = function (buf, sbuf, cam, maxD, t, flags) { if (souterrain.actif && game.kind === 'farm') return; return _ed(buf, sbuf, cam, maxD, t, flags); };
+  const _nd = npcs.draw.bind(npcs);
+  npcs.draw = function (buf, sbuf, cam, t, maxD) { if (souterrain.actif) return; return _nd(buf, sbuf, cam, t, maxD); };
+}
+// les sons de la vallée se taisent (oiseaux, grillons) ; dessous, l'eau qui goutte
+{
+  const _su = sound.update.bind(sound);
+  sound.update = function (dt, E) { if (souterrain.actif && game.kind === 'farm') E = Object.assign({}, E, { day: 0, night: 0, rain: 0, storm: 0, inside: true }); return _su(dt, E); };
+}
+// les objets posés de là-haut ne se dessinent pas dessous (et inversement : voir VER_SOUS)
+{
+  const _bp = play.buildProps.bind(play);
+  play.buildProps = function (cam, sky) {
+    const w = game.world;
+    if (!souterrain.actif || !w) return _bp(cam, sky);
+    const all = w.props;
+    if (!souterrain._pr || souterrain._prN !== all.length || farm.dirtyProps) { souterrain._pr = all.filter((q) => q.y < SOUT_TOP + 8); souterrain._prN = all.length; }
+    w.props = souterrain._pr;
+    try { return _bp(cam, sky); } finally { w.props = all; }
+  };
+}
+HOOKS.update.push((dt, eye, basis, sky, playing) => { if (farm.s) souterrain.update(dt, eye, basis, sky, playing); });
+HOOKS.sky.push((sky) => { if (souterrain.actif) souterrain.ciel(sky); });
+HOOKS.load.push((saved) => {
+  souterrain.installer();
+  souterrain.actif = false; souterrain.bon = null; souterrain._pr = null; souterrain.image = null;
+  const w = game.world;
+  if (w && (w.curVer & VER_SOUS)) w.curVer &= ~VER_SOUS;
+  souterrain.S();
+  // la vallée : sous elle, pas de toit (les maisons de là-haut ne couvrent pas les galeries)
+  if (w && !w.__soutCov) {
+    w.__soutCov = true;
+    const _cov = w.covered.bind(w);
+    w.covered = function (x, y, z) { if (y < SOUT_TOP && souterrain.dansRegion(x, z)) return false; return _cov(x, y, z); };
+  }
+  if (souterrain.dedans()) souterrain.basculer(true);
+});
+
+// ---------------------------------------------------------------- la génération : après tout le reste (passes des modules suivants)
+{
+  const _gv = generateValley;
+  generateValley = async function (seed, progress, gen) {
+    const w = await _gv(seed, progress, gen);
+    if (w.designed && SOUT_GEN.length) {
+      try {
+        if (progress) progress('Sous la vallée…');
+        const rnd = mulberry32(((seed | 0) ^ 0x50b7e77a) >>> 0), B = new Builder(w, rnd, new Uint8Array(w.W * w.W));
+        for (const fn of SOUT_GEN) fn(w, rnd, B);
+      } catch (e) { console.error('souterrain', e); }
+    }
+    return w;
+  };
+}
+
+// ---- 11-zzzz9-souterrain1-entree.js
+// ============================================================================
+//  LE DESSOUS — l'entrée (agent C3)
+//  Au pied de la tour est de la porte sud de Valbrume, dans les douves, sous le
+//  pont-levis : une vieille grille, rongée de rouille, fermée par une barre qui
+//  se lève de l'autre côté. On n'y entre pas en forçant : il faut frapper trois
+//  coups, la nuit, sans lumière — et quelqu'un, en bas, répond. (Des indices :
+//  le garde des ponts, une comptine de la petite, les entailles près de la
+//  grille ; les vieux récits des douves disent le reste.)
+//  Derrière : un conduit, la cave des Murés de 1631 (des malades de la
+//  contagion, murés là par les échevins), et un puits aux barreaux qui descend
+//  cent vingt mètres, jusqu'au Seuil.
+//  État : farm.s.souterrain.f (grille, frappes, descentes…).
+// ============================================================================
+// (le plan est dessiné pour la vallée de Valbrume : la ville est en 1572, 1600)
+const SOUT_ENTREE = {
+  grille: [1575.9, 1647.95],          // au pied de la tour est de la porte sud (face aux douves)
+  cave: [1575.9, 1640.5, -1.2],       // la cave des Murés, sous la rue
+  puits: [1575.4, 1638.2],            // le puits aux barreaux (et sa cheminée, en bas)
+  seuil: [1577.2, 1640.4],            // où l'on arrive, en bas
+};
+SOUT_PLAN.cheminees[0] = [SOUT_ENTREE.puits[0], SOUT_ENTREE.puits[1], 1.6, -50];
+
+// la comptine, le garde : les indices de là-haut
+{
+  const npc = (id) => NPC_DATA.find((d) => d.id === id);
+  const g = npc('garde'), f = npc('fillette');
+  if (g && g.lines && g.lines.rumeurs) g.lines.rumeurs.push('Du temps de la contagion, on murait les malades dans les caves de la porte sud. Mon père disait qu’on les entend encore frapper, les nuits où je lève les ponts. Trois coups. Je n’ai jamais répondu. On ne répond pas.');
+  if (f && f.lines && f.lines.rumeurs) f.lines.rumeurs.push('Tu connais la comptine ? « Trois coups sous le pont, sans chandelle et sans nom : la grille se lève, et l’on descend au fond. » Maman dit que c’est une bêtise. Mais elle ne la chante jamais, elle.');
+}
+
+SOUT_GEN.push((w, rnd, B) => {
+  if (!w.townInfo || Math.hypot(w.townInfo.x - 1572, w.townInfo.z - 1600) > 3) return; // (une autre vallée : pas de passage)
+  const WL = w.waterLevel, E = SOUT_ENTREE;
+  // ------------------------------------------------ la grille, les entailles
+  const [gx, gz] = E.grille;
+  B.prop('sout_grille', gx, WL - 0.1, gz, 0, { ouverte: false });
+  const gp = w.props.length - 1;
+  B.inter('sout_grille', 'sout_grille', gx, WL + 0.55, gz + 0.45, 'La grille', { prop: gp });
+  B.prop('sout_entailles', gx + 1.3, WL + 1.25, gz - 0.2, 0);
+  // ------------------------------------------------ la cave des Murés (sous la rue, derrière la tour)
+  const [cx, cz, cy] = E.cave, F = { x: cx, y: cy, z: cz, r: 0 }, Wd = 7.6, Dp = 6, H = 2.3, t = 0.6;
+  const blk = (lx, ly, lz, sx, sy, sz, m) => { B.block(F, lx, ly, lz, sx, sy, sz, m); const b = w.blocks[w.blocks.length - 1]; b.under = true; return b; };
+  blk(0, -0.5, 0, Wd + 2 * t, 0.5, Dp + 2 * t, M_STONE);
+  blk(0, H, 0, Wd + 2 * t, 0.7, Dp + 2 * t, M_MOSSY).ceil = true;
+  blk(-Wd / 2 - t / 2, 0, 0, t, H, Dp + 2 * t, M_MOSSY); blk(Wd / 2 + t / 2, 0, 0, t, H, Dp + 2 * t, M_STONE);
+  blk(0, 0, -Dp / 2 - t / 2, Wd + 2 * t, H, t, M_STONE);
+  // mur sud, percé du conduit (bas, noir)
+  blk(-2.425, 0, Dp / 2 + t / 2, 3.95, H, t, M_MOSSY); blk(2.775, 0, Dp / 2 + t / 2, 3.25, H, t, M_STONE); blk(0.35, 1.15, Dp / 2 + t / 2, 1.6, H - 1.15, t, M_STONE);
+  blk(0.35, 0, Dp / 2 + t * 0.8, 1.6, 1.15, 0.2, M_DARK);
+  const P = (id, lx, ly, lz, r, data) => B.propRel(F, id, lx, ly, lz, r || 0, data);
+  const I = (kind, id, lx, ly, lz, name, data) => B.interRel(F, kind, id, lx, ly, lz, name, data);
+  I('sout_conduit', 'sout_conduit', 0.35, 0.6, Dp / 2 - 0.2, 'Le conduit', {});
+  // les restes
+  P('sout_os', -2.6, 0, 1.4, 0.4); P('sout_os', -3.1, 0, -1.2, 2.1); P('sout_os', 2.4, 0, -2.1, 1.2);
+  P('sout_panier', 1.1, 0, 2.2, 0.3);
+  P('sout_bougie', -1.8, 0, -2.5); P('sout_bougie', -1.5, 0, -2.6); P('sout_bougie', 3.2, 0, 0.8);
+  I('lire', 'sout_traits', -Wd / 2 + 0.2, 1.2, -0.6, 'Des traits, sur le mur', { text: ['Des traits, sur le mur', 'Des traits gravés à la pointe d’un couteau, par paquets de cinq. Il y en a des centaines. Puis ils s’arrêtent.\n\nPlus bas, d’une main qui tremble :\n\n« MDCXXXI. Murés céans par les échevins, pour la contagion. Nous étions onze. On nous passe le pain par la grille. »\n\nEt dessous, d’une autre main, plus ferme, plus tard :\n\n« Le pain ne vient plus. Nous descendons. »', 'gravé dans la pierre'] });
+  // le puits aux barreaux
+  const [px, pz] = E.puits;
+  B.prop('sout_puits', px, cy + 0.02, pz, 0);
+  B.inter('sout_puits', 'sout_puits', px, cy + 0.7, pz, 'Le puits', {});
+  B.landmark('sout_cave', cx, cz, 5, { under: true, secret: true, y: cy });
+  // ------------------------------------------------ en bas : le pied du puits, au Seuil
+  const S = souterrain, fy = S.floorAt(px, pz - 1.35);
+  B.prop('sout_barreaux', px, fy, pz - 1.45, 0, { h: 9 }, 1, VER_SOUS);
+  B.inter('sout_remonter', 'sout_remonter', px, fy + 1.2, pz - 1.1, 'Les barreaux', {});
+  const [sx, sz] = E.seuil;
+  w.sout = { grille: { x: gx, z: gz, prop: gp }, cave: { x: cx, y: cy, z: cz }, arriveeCave: [cx + 0.35, cy + 0.05, cz + Dp / 2 - 1.1], sortieDouves: [gx, WL - 1.5, gz + 2.2], pied: [sx, S.floorAt(sx, sz) + 0.05, sz], hautPuits: [px + 0.9, cy + 0.05, pz + 0.9] };
+});
+
+LIEU_NAMES.sout_cave = 'la cave des Murés';
+// ---------------------------------------------------------------- quelques sons d'en bas
+const soutSon = {
+  clang(k = 1) { if (!sound.ok) return; const t = sound.at(); sound.noiseHit(t, 0.12, 'bandpass', 1500, 4, 0.16 * k); sound.tone(t, 'square', 640, 600, 0.3, 0.03 * k); sound.tone(t, 'sine', 1280, 1250, 0.4, 0.02 * k); },
+};
+// ---------------------------------------------------------------- l'état, les gestes
+const soutEntree = {
+  F() { return souterrain.S().f; },
+  grilleOuverte() { return !!this.F().grille; },
+  prop() { const w = game.world; return w && w.sout && w.props[w.sout.grille.prop]; },
+  // la barre levée : la grille reste ouverte
+  ouvrir() {
+    const F = this.F();
+    F.grille = farm.s.day;
+    const q = this.prop(); if (q) farm.setPropData(q, { ouverte: true });
+  },
+  // de la lumière sur soi ? (la lanterne, la lampe…)
+  lumiere() {
+    if (game.lantern && (farm.count('lanterne') || farm.count('lanterne_aube'))) return true;
+    for (const fn of this.lumieres) try { if (fn()) return true; } catch (e) { /* rien */ }
+    return false;
+  },
+  lumieres: [],
+  frapper(it) {
+    const F = this.F(), p = game.player, now = game.time;
+    if (!F.vueGrille) { F.vueGrille = 1; soutSon.clang(0.5); ui.subtitle('', '(Une grille, rongée de rouille, scellée dans la tour. Derrière, le noir, et un souffle froid qui sent la cave.)', 4.5); return; }
+    soutSon.clang(1);
+    this.coups = (this.coups || []).filter((t) => now - t < 5);
+    this.coups.push(now);
+    if (this.coups.length < 3 || this.attente) return;
+    this.coups = [];
+    const h = npcs.hour(), nuit = h >= 21 || h < 5;
+    if (!nuit) return;
+    this.attente = true;
+    const lum = this.lumiere();
+    setTimeout(() => {
+      this.attente = false;
+      if (game.dying || !farm.s) return;
+      const d = Math.hypot(p.pos[0] - it.x, p.pos[2] - it.z);
+      if (d > 6) return;
+      if (lum || this.lumiere()) { if (MSON.ok) MSON.metal(0.25, 0.6, 0); return; } // quelqu'un, peut-être ; puis plus rien
+      sound.knock && sound.knock(3);
+      ui.subtitle('', '(Trois coups répondent. De l’autre côté.)', 3.5);
+      setTimeout(() => { if (MSON.ok) MSON.metal(0.8, 1.6, 0); sound.lock && sound.lock(false); this.ouvrir(); F.ouvertPar = 'eux'; }, 3200);
+    }, 2600);
+  },
+  // se glisser dans le conduit (la grille ouverte)
+  async entrer() {
+    const w = game.world, p = game.player;
+    if (!w.sout || game.sleeping) return;
+    if (p.riding) game.dismount();
+    const F = this.F();
+    game.sleeping = true;
+    await ui.fade(true, F.conduit ? '' : 'Vous vous glissez dans le conduit, à plat ventre, dans l’eau froide.', F.conduit ? 450 : 900);
+    if (!F.conduit) await new Promise((r) => setTimeout(r, 1800));
+    F.conduit = (F.conduit || 0) + 1;
+    p.pos = w.sout.arriveeCave.slice(); p.vel = [0, 0, 0]; p.yaw = 0; p.pitch = 0;
+    game.renderer.uploadCover(p.pos[0], p.pos[2]);
+    await ui.fade(false, '', 600);
+    game.sleeping = false;
+  },
+  async sortir() {
+    const w = game.world, p = game.player;
+    if (!w.sout || game.sleeping) return;
+    game.sleeping = true;
+    await ui.fade(true, '', 450);
+    p.pos = w.sout.sortieDouves.slice(); p.vel = [0, 0, 0]; p.yaw = Math.PI; p.pitch = 0;
+    game.renderer.uploadCover(p.pos[0], p.pos[2]);
+    await ui.fade(false, '', 600);
+    game.sleeping = false;
+  },
+  // le puits : cent vingt mètres de barreaux
+  async descendre() {
+    const w = game.world, p = game.player;
+    if (!w.sout || game.sleeping) return;
+    const F = this.F();
+    game.sleeping = true;
+    await ui.fade(true, F.descente ? '' : 'Des barreaux de fer, scellés dans la paroi. Vous descendez. Ils sont froids, puis humides, puis vous cessez de les compter.', F.descente ? 700 : 1100);
+    souterrain.construire();
+    await new Promise((r) => setTimeout(r, F.descente ? 700 : 2600));
+    F.descente = (F.descente || 0) + 1;
+    p.pos = w.sout.pied.slice(); p.vel = [0, 0, 0]; p.yaw = Math.PI * 0.75; p.pitch = -0.05;
+    souterrain.basculer(true);
+    await ui.fade(false, '', 900);
+    game.sleeping = false;
+    if (F.descente === 1) setTimeout(() => { if (souterrain.actif && !soutEntree.lumiere()) ui.subtitle('', '(Le noir. Un noir qu’on ne connaît pas, là-haut, même les nuits sans lune.)', 4); }, 1500);
+  },
+  async monter() {
+    const w = game.world, p = game.player;
+    if (!w.sout || game.sleeping) return;
+    if (corps.jambeCassee() && Math.random() < 0.5) { ui.subtitle('', '(Avec cette jambe, vous ne tenez pas aux barreaux.)', 2.5); return; }
+    game.sleeping = true;
+    await ui.fade(true, '', 800);
+    await new Promise((r) => setTimeout(r, 900));
+    p.pos = w.sout.hautPuits.slice(); p.vel = [0, 0, 0]; p.pitch = 0;
+    p.stamina = Math.max(0, p.stamina - 0.5);
+    souterrain.basculer(false);
+    game.renderer.uploadCover(p.pos[0], p.pos[2]);
+    await ui.fade(false, '', 700);
+    game.sleeping = false;
+  },
+};
+HOOKS.inter.sout_grille = (it) => {
+  if (soutEntree.grilleOuverte()) return soutEntree.entrer();
+  return soutEntree.frapper(it);
+};
+HOOKS.inter.sout_conduit = () => soutEntree.sortir();
+HOOKS.inter.sout_puits = () => soutEntree.descendre();
+HOOKS.inter.sout_remonter = () => soutEntree.monter();
+HOOKS.load.push(() => {
+  const q = soutEntree.prop();
+  if (q) q.data = Object.assign({}, q.data || {}, { ouverte: soutEntree.grilleOuverte() });
+  soutEntree.coups = []; soutEntree.attente = false;
+});
+// dessous, la lanterne éclaire aussi un peu la voûte (la lueur renvoyée par la pierre)
+HOOKS.lights.push((eye) => {
+  if (!souterrain.actif || !game.lantern || !(farm.count('lanterne') || farm.count('lanterne_aube'))) return [];
+  // (une lentille de cristal sur soi porte la flamme plus loin)
+  const L = farm.count('lentille_cristal') > 0;
+  return [{ x: eye[0], y: eye[1] + 0.6, z: eye[2], r: L ? 42 : 26, c: L ? [0.19, 0.15, 0.1] : [0.15, 0.115, 0.075], d: 0.01 }];
+});
+
+// ---- 11-zzzz9-souterrain2-lieux.js
+// ============================================================================
+//  LE DESSOUS — les lieux (agent C3) : ce qui garnit les galeries et les salles
+//  (concrétions, champignons qui luisent, cristaux, racines, étais, éboulis,
+//  repères de ceux d'en bas), les noms des lieux, et les autres chemins du
+//  retour vers la surface (la mine, les racines du grand chêne, l'antre).
+//  Tout est posé à la génération, après le reste, avec le bit VER_SOUS.
+// ============================================================================
+DYN_PROPS.add('sout_vers');
+const SOUT_DECOR = {
+  // clé de salle : { objet: nombre, … } (les nombres sont des essais : on en pose ce qui trouve sa place)
+  seuil: { sout_stalag: 5, sout_stalac: 10, sout_eboulis: 3, sout_vers: 3 },
+  nef: { sout_stalag: 34, sout_stalac: 40, sout_champi: 130, sout_champi_grand: 48, sout_eboulis: 12, sout_vers: 24 },
+  cristal_a: { sout_cristal: 38, sout_stalac: 12, sout_stalag: 5 },
+  cristal_b: { sout_cristal: 24, sout_stalac: 8 },
+  cristal_c: { sout_cristal: 18, sout_stalac: 6 },
+  souffle: { sout_eboulis: 10, sout_stalac: 4 },
+  gouffres: { sout_eboulis: 12, sout_stalac: 10 },
+  echos: { sout_stalag: 10, sout_stalac: 14, sout_eboulis: 4, sout_vers: 10 },
+  hameau: { sout_champi: 24, sout_stalac: 10 },
+  dormeurs: { sout_stalag: 12, sout_stalac: 24, sout_vers: 6 },
+  racines: { sout_racines: 16, sout_eboulis: 4, sout_champi: 5, sout_vers: 12 },
+  ruines: { sout_stalac: 22, sout_stalag: 8, sout_eboulis: 10, sout_vers: 22, sout_champi: 20 },
+  orgues: { sout_stalag: 80, sout_stalac: 36, sout_vers: 14 },
+};
+// les exigences de chaque objet : [au sol ?, place libre (m), hauteur libre min, max, près d'un mur ?]
+const SOUT_POSE = {
+  sout_stalag: [true, 1.6, 2.6, 99, false], sout_stalac: [false, 0.8, 3.0, 13, false], sout_eboulis: [true, 1.2, 2, 99, true],
+  sout_champi: [true, 0.6, 1.2, 99, true], sout_champi_grand: [true, 2.2, 5.5, 99, false], sout_cristal: [true, 0.8, 1.6, 99, true],
+  sout_racines: [false, 1.0, 3.2, 16, false], sout_os: [true, 0.6, 1.8, 99, false], sout_vers: [false, 1.6, 4, 60, false],
+};
+
+SOUT_GEN.push((w, rnd, B) => {
+  const S = souterrain;
+  S.creuseurs();
+  const pose = (id, x, z, r, data, s) => {
+    const R = SOUT_POSE[id], f = S.floorAt(x, z), v = S.vaultAt(x, z);
+    return B.prop(id, x, R && !R[0] ? v : f, z, r, data, s, VER_SOUS);
+  };
+  // une place convenable pour l'objet id autour de (x, z)
+  const ok = (id, x, z) => {
+    const R = SOUT_POSE[id] || [true, 1, 2, 99, false];
+    const f = S.floorAt(x, z), v = S.vaultAt(x, z), h = v - f;
+    if (f > SOUT_ROCK - 1 || h < R[2] || h > R[3]) return false;
+    if (R[0] && f < SOUT_WL + 0.3) return false; // pas dans l'eau
+    for (let a = 0; a < 6; a++) { const b = a / 6 * TAU, xx = x + Math.cos(b) * R[1], zz = z + Math.sin(b) * R[1]; if (!S.ouvert(xx, zz, Math.min(R[2], 1.6)) || Math.abs(S.floorAt(xx, zz) - f) > 1.2) return false; }
+    if (R[4]) { let mur = false; for (let a = 0; a < 8 && !mur; a++) { const b = a / 8 * TAU; if (!S.ouvert(x + Math.cos(b) * 3.2, z + Math.sin(b) * 3.2, 1.2)) mur = true; } if (!mur) return false; }
+    return true;
+  };
+  // on ne pose rien sur les grands passages (le milieu des galeries du plan)
+  const passages = [];
+  for (const [key, pts] of SOUT_PLAN.galeries) for (let i = 0; i + 1 < pts.length; i++) passages.push([pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], Math.min(pts[i][3], pts[i + 1][3]) * 0.55]);
+  const surPassage = (x, z) => {
+    for (const [ax, az, bx, bz, r] of passages) {
+      const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1;
+      let t = ((x - ax) * dx + (z - az) * dz) / L2; t = t < 0 ? 0 : t > 1 ? 1 : t;
+      if (Math.hypot(x - ax - dx * t, z - az - dz * t) < r) return true;
+    }
+    return false;
+  };
+  const pris = [];
+  const loin = (x, z, d) => { for (const q of pris) if (Math.abs(q[0] - x) < d && Math.abs(q[1] - z) < d && Math.hypot(q[0] - x, q[1] - z) < d) return false; return true; };
+  // les champignons lumineux se cueillent (et repoussent en trois jours)
+  w.soutCueillettes = w.soutCueillettes || [];
+  let nChampi = 0;
+  const champi = (bleu) => Object.assign({ k: 'd' + nChampi++, it: 'champi_lumineux', every: 3 }, bleu ? { b: 1 } : {});
+  // ------------------------------------------------ les salles du plan
+  for (const [key, cx, cz, rx, rz, rot] of SOUT_PLAN.salles) {
+    const D = SOUT_DECOR[key];
+    if (!D) continue;
+    const co = Math.cos(rot), si = Math.sin(rot);
+    for (const id in D) {
+      let n = 0;
+      for (let k = 0; k < D[id] * 14 && n < D[id]; k++) {
+        const a = rnd() * TAU, r = Math.sqrt(rnd()) * 0.95, lx = Math.cos(a) * r * rx, lz = Math.sin(a) * r * rz;
+        const x = cx + lx * co + lz * si, z = cz - lx * si + lz * co;
+        if (!loin(x, z, id === 'sout_champi' ? 1.6 : id === 'sout_cristal' ? 1.2 : 2.4) || surPassage(x, z) || !ok(id, x, z)) continue;
+        pose(id, x, z, rnd() * TAU, id === 'sout_champi' ? champi(rnd() < 0.3) : undefined, id === 'sout_cristal' ? 0.7 + rnd() * 0.9 : id === 'sout_stalag' && key === 'orgues' ? 1.3 + rnd() * 1.4 : undefined);
+        if (id === 'sout_champi') w.soutCueillettes.push(w.props.length - 1);
+        pris.push([x, z]); n++;
+      }
+    }
+    B.landmark('sout_' + key, cx, cz, Math.max(rx, rz), { under: true, secret: true, y: S.floorAt(cx, cz), souterrain: true });
+  }
+  for (const [key, cx, cz, rx, rz] of SOUT_PLAN.lacs) B.landmark('sout_' + key, cx, cz, Math.max(rx, rz), { under: true, secret: true, y: SOUT_WL, souterrain: true });
+  B.landmark('sout_riviere', 1400, 1450, 60, { under: true, secret: true, y: SOUT_WL, souterrain: true });
+  B.landmark('sout_mines', 1518, 1200, 50, { under: true, secret: true, y: -98, souterrain: true });
+  // ------------------------------------------------ le long des galeries et des boyaux : quelques concrétions, des éboulis
+  const segs = [];
+  for (const [key, pts] of SOUT_PLAN.galeries) for (let i = 0; i + 1 < pts.length; i++) segs.push([key, pts[i], pts[i + 1]]);
+  for (const b of S._brOk || []) for (let i = 0; i + 1 < b.pts.length; i++) segs.push([b.key, b.pts[i], b.pts[i + 1]]);
+  for (const [key, A, Bq] of segs) {
+    const len = Math.hypot(Bq[0] - A[0], Bq[1] - A[1]), mine = /^mines/.test(key);
+    for (let s = 4; s < len; s += mine ? 7 : 9) {
+      const t = s / len, x0 = lerp(A[0], Bq[0], t), z0 = lerp(A[1], Bq[1], t), nx = -(Bq[1] - A[1]) / len, nz = (Bq[0] - A[0]) / len;
+      if (mine) { if (S.ouvert(x0, z0, 2.6)) { B.prop('sout_etai', x0, S.floorAt(x0, z0), z0, Math.atan2(-nz, nx), undefined, undefined, VER_SOUS); pris.push([x0, z0]); } continue; }
+      const u = rnd();
+      const id = u < 0.42 ? 'sout_stalac' : u < 0.6 ? 'sout_eboulis' : u < 0.72 && key !== 'fissure' ? 'sout_champi' : null;
+      if (!id) continue;
+      const side = (rnd() - 0.5) * 2 * (A[3] || 2.5) * 0.7, x = x0 + nx * side, z = z0 + nz * side;
+      if (id !== 'sout_stalac' && Math.abs(side) < 1.4) continue;
+      if (!loin(x, z, 1.5) || !ok(id, x, z)) continue;
+      pose(id, x, z, rnd() * TAU, id === 'sout_champi' ? champi(rnd() < 0.3) : undefined); if (id === 'sout_champi') w.soutCueillettes.push(w.props.length - 1); pris.push([x, z]);
+    }
+  }
+  // les petites salles au bout des boyaux
+  for (const b of S._brOk || []) {
+    if (!b.fin) continue;
+    const [cx, cz, , r] = b.fin;
+    for (const [id, n] of [['sout_stalag', 2], ['sout_stalac', 4], ['sout_eboulis', 1], ['sout_champi', 2]]) {
+      let m = 0;
+      for (let k = 0; k < n * 10 && m < n; k++) { const a = rnd() * TAU, d = Math.sqrt(rnd()) * r * 0.85, x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d; if (!loin(x, z, 2) || !ok(id, x, z)) continue; pose(id, x, z, rnd() * TAU, id === 'sout_champi' ? champi(false) : undefined); if (id === 'sout_champi') w.soutCueillettes.push(w.props.length - 1); pris.push([x, z]); m++; }
+    }
+  }
+  w.soutDecor = pris.length;
+});
+
+// ---- 11-zzzz9-souterrain3-especes.js
+// ============================================================================
+//  LE DESSOUS — ce qui pousse et ce qui se casse (agent C3)
+//  - des minerais d'en bas, en filons : la galène (l'argent, au four), le cristal
+//    de roche (une lentille pour la lanterne), la pierre luisante (elle boit le
+//    jour et le rend dans le noir), la magnétite (qui affole les boussoles), le
+//    soufre et le salpêtre, et les perles des vasques ;
+//  - des plantes d'en bas, chacune son objet, son effet, ses essences : le
+//    pied-de-pierre, la mousse luisante, le lichen d'argent, la fougère pâle,
+//    la racine du grand chêne, l'algue blanche, le chapeau-de-suie (et le
+//    champignon lumineux des grottes, qu'on connaissait déjà) ; le guano ;
+//  - la pêche dans les eaux d'en bas (les poissons des eaux souterraines).
+//  Cueillir, casser : E (une pioche pour les filons). État : farm.s.souterrain.c
+//  (id stable → jour de la cueillette ; filons : ce qui en reste).
+// ============================================================================
+
+// ---------------------------------------------------------------- les objets
+defItem('galene', 'Galène', 'materiau', 9, ['minerai', '#7a808c'], { desc: 'Un minerai lourd, gris-bleu, qui brille comme du plomb frais coupé. Au four, avec du charbon, il rend un peu d’argent.' });
+defItem('lingot_argent', 'Lingot d’argent', 'materiau', 35, ['lingot', '#d8dce4'], { desc: 'De l’argent fondu, tiré de la galène d’en bas. Il noircit vite à l’air, et redevient blanc sous le pouce.' });
+defItem('cristal_roche', 'Cristal de roche', 'materiau', 12, ['gemme', '#e8f0f8'], { desc: 'Un prisme d’eau figée, clair comme le verre, pointu aux deux bouts. On voit à travers, un peu de travers.' });
+defItem('lentille_cristal', 'Lentille de cristal', 'materiau', 70, ['so_lentille', '#e8f0f8'], { desc: 'Un cristal de roche taillé en galet, serti d’argent. Posée devant la flamme de la lanterne, elle porte la lumière plus loin sous la terre. Il suffit de l’avoir sur soi.' });
+defItem('luisante', 'Pierre luisante', 'materiau', 14, ['so_luisante', '#8ae8d0'], { desc: 'Clic : la montrer, ou la cacher. Laissée au grand jour, elle boit la lumière ; dans le noir, elle la rend, froide et verte, un moment. Elle ne brûle rien.' });
+defItem('magnetite', 'Magnétite', 'materiau', 8, ['minerai', '#2e2c30'], { desc: 'Une pierre noire, lourde, qui retient les clous. Près d’elle, les boussoles perdent le nord.' });
+defItem('soufre', 'Soufre', 'materiau', 3, ['tas', '#e0c840'], { alch: true, desc: 'Des croûtes jaunes, grasses au toucher, qui sentent l’œuf pourri et l’allumette.' });
+defItem('salpetre', 'Salpêtre', 'materiau', 3, ['tas', '#ece8de'], { alch: true, desc: 'Une fleur blanche qui pousse sur les parois sèches, comme du givre. Elle pique la langue.' });
+defItem('perle_caverne', 'Perle des cavernes', 'materiau', 40, ['so_perle', '#f0ece0'], { desc: 'Roulée pendant des siècles par l’eau qui goutte, au fond d’une vasque : ronde, laiteuse, sans défaut. Elle n’a jamais vu le jour.' });
+defItem('pied_pierre', 'Pied-de-pierre', 'cueillette', 2, ['champi', '#dcd6c6', '#a89c88'], { food: 5, desc: 'Un champignon blanc, dur comme la craie, qui pousse sur l’argile des rives, en bas. Cru, il se défend.' });
+defItem('pied_pierre_grille', 'Pieds-de-pierre grillés', 'nourriture', 6, ['champi', '#b8a078', '#8a7050'], { food: 26, desc: 'Grillés sur la braise, ils rendent une odeur de noisette et de cave. Nourrissants.' });
+defItem('mousse_luisante', 'Mousse luisante', 'cueillette', 2, ['lichen', '#3ad8a8'], { alch: true, desc: 'Une mousse verte qui luit dans le noir. Dans la main, elle pâlit en une heure ; dans un bocal humide, dit-on, elle tient des jours.' });
+defItem('lichen_argent', 'Lichen d’argent', 'cueillette', 4, ['lichen', '#c8ccd4'], { alch: true, desc: 'Une croûte grise, presque blanche, qui ne pousse que sur les pierres où dort du minerai. Il sent le fer.' });
+defItem('fougere_pale', 'Fougère pâle', 'cueillette', 2, ['herbes', '#c8d8b0'], { food: 1, desc: 'Une fougère décolorée, presque blanche, qui pousse sous le seul rayon de jour d’en bas. Elle sent le foin mouillé.' });
+defItem('racine_chene', 'Racine du grand chêne', 'cueillette', 5, ['racine', '#6a5038'], { food: 1, desc: 'Une racine vivante, épaisse comme le poignet, qui pendait de la voûte. Elle vient de là-haut. De très haut.' });
+defItem('algue_blanche', 'Algue blanche', 'cueillette', 2, ['herbes', '#ece8dc'], { food: 6, desc: 'Des rubans blancs qui flottent dans l’eau tiède d’en bas. Salés, un peu gluants.' });
+defItem('chapeau_suie', 'Chapeau-de-suie', 'cueillette', 3, ['champi', '#2e2a28', '#c8b840'], { food: 1, desc: 'Un petit champignon noir, poudré de jaune, qui ne pousse qu’au bord des souffles chauds. Il noircit les doigts.' });
+defItem('guano', 'Guano', 'materiau', 2, ['tas', '#5a4a36'], { fert: 2, desc: 'Ce que laissent les chauves-souris sous leurs voûtes. Sur une culture, un engrais très fort. Il sent l’ammoniaque.' });
+Object.assign(ESSENCES, {
+  galene: { terre: 2, mort: 1 }, lingot_argent: { lumiere: 2, froid: 1 }, cristal_roche: { lumiere: 2, froid: 1, esprit: 1 }, luisante: { lumiere: 3, ombre: 1 },
+  magnetite: { terre: 3, air: 1 }, soufre: { feu: 3, mort: 1 }, salpetre: { froid: 2, feu: 1 }, perle_caverne: { eau: 2, ombre: 1, sort: 1 },
+  pied_pierre: { terre: 3, vie: 1 }, mousse_luisante: { lumiere: 2, eau: 1, vie: 1 }, lichen_argent: { froid: 1, lumiere: 1, terre: 1 }, fougere_pale: { ombre: 1, air: 1, esprit: 1 },
+  racine_chene: { vie: 3, terre: 2 }, algue_blanche: { eau: 3, vie: 1 }, chapeau_suie: { mort: 2, feu: 2 }, guano: { terre: 1, mort: 1, air: 1 },
+});
+Object.assign(PLANT_LOOK, {
+  pied_pierre: ['Champignon blanc et dur', 'Un champignon trapu, blanc de craie, qui sonne presque quand on le cogne.'],
+  mousse_luisante: ['Mousse qui luit', 'Une mousse d’un vert trop vif, qui luit faiblement dans le creux de la main.'],
+  lichen_argent: ['Croûte presque blanche', 'Une croûte grise, presque argentée, qui sent le fer mouillé.'],
+  fougere_pale: ['Fougère décolorée', 'Une fougère sans couleur, comme une plante qu’on aurait oubliée dans une cave.'],
+  racine_chene: ['Racine épaisse et vivante', 'Une racine noueuse, encore humide de sève, arrachée à une voûte.'],
+  algue_blanche: ['Rubans blancs, gluants', 'Des rubans pâles, un peu salés, qui glissent entre les doigts.'],
+  chapeau_suie: ['Petit champignon noir poudré', 'Un chapeau noir comme la suie, poudré de jaune, qui laisse les doigts noirs.'],
+});
+Object.assign(ALIMENTS_EFFETS, {
+  pied_pierre: { c: 'du pied-de-pierre cru', r: [['coliques', 0.45, 40, 160], ['nausee', 0.3, 30, 120]] },
+  pied_pierre_grille: { r: [['vigueur', 0.25, 20, 60]] },
+  algue_blanche: { r: [['calme', 0.35, 10, 50]] },
+  fougere_pale: { r: [['somnolence', 0.55, 30, 120]] },
+  racine_chene: { r: [['vigueur', 0.5, 20, 60], ['nausee', 0.2, 30, 90]] },
+  chapeau_suie: { c: 'des chapeaux-de-suie', r: [['poison', 0.75, 30, 120, 2], ['fievre', 0.5, 60, 200], ['hallucinations', 0.4, 60, 180]] },
+  mousse_luisante: { r: [['vision_nuit', 0.5, 20, 60, 1, 120, 200], ['nausee', 0.3, 20, 80]] },
+});
+ITEMS.mousse_luisante.food = 1;
+RECIPES.push(
+  { out: 'lingot_argent', n: 1, need: { galene: 3, charbon: 1 }, st: 'four' },
+  { out: 'lentille_cristal', n: 1, need: { cristal_roche: 2, lingot_argent: 1 }, st: 'etabli' },
+  { out: 'pied_pierre_grille', n: 1, need: { pied_pierre: 3 }, st: 'feu' },
+);
+// ce que la guérisseuse et l'alchimiste reprennent volontiers
+{
+  const g = NPC_DATA.find((d) => d.id === 'guerisseuse');
+  if (g && g.shop && g.shop.buys) for (const id of ['mousse_luisante', 'lichen_argent', 'fougere_pale', 'racine_chene']) if (!g.shop.buys.includes(id)) g.shop.buys.push(id);
+}
+// les icônes
+{
+  const _ip = iconPaint;
+  iconPaint = function (shape, c1, c2) {
+    if (typeof shape !== 'string' || !shape.startsWith('so_')) return _ip(shape, c1, c2);
+    const pb = new PixelBuf(16, 16), P = rampOf(c1 || '#aaaaaa');
+    const S = (cx, cy, r, pal, o) => drawSphere(pb, cx, cy, r, pal || P, (cx * 7 + cy) | 0, o || {});
+    const L = (x0, y0, x1, y1, c, w) => drawLine(pb, x0, y0, x1, y1, typeof c === 'string' ? hexToRgb(c) : c, w || 1);
+    switch (shape) {
+      case 'so_luisante': S(8, 9, 5.5, rampOf('#3a4a44'), { sq: 0.8, noise: 0.3 }); for (const [x, y] of [[6, 8], [9, 7], [10, 10], [7, 11], [8, 9]]) pb.set(x, y, [120, 250, 200], EMISSIVE_A); break;
+      case 'so_perle': S(8, 9, 4.5, rampOf('#e8e2d2')); pb.set(6, 7, [255, 255, 250]); pb.set(7, 6, [255, 255, 250]); break;
+      case 'so_lentille': for (let a = 0; a < 40; a++) { const t = a / 40 * TAU; pb.set(8 + Math.cos(t) * 5.5, 8 + Math.sin(t) * 5.5, [200, 204, 214]); pb.set(8 + Math.cos(t) * 6, 8 + Math.sin(t) * 6, [150, 154, 164]); } S(8, 8, 4.6, rampOf('#c8e0f0'), { sq: 1 }); pb.set(6, 6, [255, 255, 255]); L(8, 14, 8, 15, '#9a9ea8'); break;
+      default: return _ip(shape, c1, c2);
+    }
+    edgeDarken(pb, 0.85);
+    return pb;
+  };
+}
+
+// ---------------------------------------------------------------- où ça pousse, où ça se casse (génération)
+// [objet posé, cueillette (objet), zones (clés du plan ; '*' partout), nombre, repousse (jours ; 0 : jamais), place : 'mur' | 'sol' | 'eau' | 'rive']
+const SOUT_CUEILLETTES = [
+  ['sout_filon', 'galene', ['mines', 'souffle', 'gouffres'], 26, 0, 'mur', { m: 'galene' }],
+  ['sout_filon', 'magnetite', ['gouffres', 'echos', 'descente'], 12, 0, 'mur', { m: 'magnetite' }],
+  ['sout_filon', 'soufre', ['souffle', 'fissure'], 14, 0, 'mur', { m: 'soufre' }],
+  ['sout_filon', 'salpetre', ['*'], 22, 0, 'mur', { m: 'salpetre' }],
+  ['sout_filon', 'luisante', ['hameau', 'ruines', 'orgues', 'dormeurs'], 10, 0, 'mur', { m: 'luisante' }],
+  ['sout_filon', 'cristal_roche', ['cristal_a', 'cristal_b', 'cristal_c', 'cristal_ab', 'cristal_ac'], 16, 0, 'mur', { m: 'cristal' }],
+  ['sout_vasque', 'perle_caverne', ['dormeurs', 'orgues', 'cristal_a', 'lac'], 8, 0, 'sol', {}],
+  ['sout_pied_pierre', 'pied_pierre', ['riviere', 'lac', 'lac_tiede', 'vers_riviere', 'ruines_lac', 'mines_riviere'], 30, 3, 'rive', {}],
+  ['sout_mousse', 'mousse_luisante', ['*'], 40, 4, 'mur', {}],
+  ['sout_lichen', 'lichen_argent', ['mines', 'mines_n', 'mines_s', 'souffle', 'gouffres'], 16, 5, 'mur', {}],
+  ['sout_fougere', 'fougere_pale', ['racines'], 12, 3, 'sol', {}],
+  ['sout_algue', 'algue_blanche', ['lac_tiede', 'hameau'], 14, 2, 'eau', {}],
+  ['sout_suie', 'chapeau_suie', ['souffle', 'fissure'], 12, 4, 'sol', {}],
+  ['sout_guano', 'guano', ['nef', 'echos', 'gouffres', 'racines'], 12, 4, 'sol', {}],
+];
+SOUT_GEN.push((w, rnd, B) => {
+  const S = souterrain;
+  S.creuseurs();
+  // les points d'échantillonnage de chaque zone (salles, lacs, galeries, rivière)
+  const zones = {};
+  const add = (k, x, z) => (zones[k] || (zones[k] = [])).push([x, z]);
+  for (const [key, cx, cz, rx, rz, rot] of SOUT_PLAN.salles) { const co = Math.cos(rot), si = Math.sin(rot); for (let k = 0; k < 90; k++) { const a = rnd() * TAU, r = Math.sqrt(rnd()), lx = Math.cos(a) * r * rx, lz = Math.sin(a) * r * rz; add(key, cx + lx * co + lz * si, cz - lx * si + lz * co); } }
+  for (const [key, cx, cz, rx, rz, rot] of SOUT_PLAN.lacs) { const co = Math.cos(rot), si = Math.sin(rot); for (let k = 0; k < 160; k++) { const a = rnd() * TAU, r = 0.75 + rnd() * 0.3, lx = Math.cos(a) * r * rx, lz = Math.sin(a) * r * rz; add(key, cx + lx * co + lz * si, cz - lx * si + lz * co); } }
+  for (const [key, pts] of SOUT_PLAN.galeries) for (let i = 0; i + 1 < pts.length; i++) { const A = pts[i], Bq = pts[i + 1], L = Math.hypot(Bq[0] - A[0], Bq[1] - A[1]); for (let s = 0; s < L; s += 4) { const t = s / L, a = rnd() * TAU, d = rnd() * A[3]; add(key, lerp(A[0], Bq[0], t) + Math.cos(a) * d, lerp(A[1], Bq[1], t) + Math.sin(a) * d); if (/^mines/.test(key)) add('mines', lerp(A[0], Bq[0], t), lerp(A[1], Bq[1], t)); } }
+  for (let i = 0; i + 1 < SOUT_PLAN.riviere.length; i++) { const A = SOUT_PLAN.riviere[i], Bq = SOUT_PLAN.riviere[i + 1], L = Math.hypot(Bq[0] - A[0], Bq[1] - A[1]); for (let s = 0; s < L; s += 3) { const t = s / L, a = rnd() * TAU, d = rnd() * A[2] * 1.1; add('riviere', lerp(A[0], Bq[0], t) + Math.cos(a) * d, lerp(A[1], Bq[1], t) + Math.sin(a) * d); } }
+  const tous = Object.values(zones).flat();
+  const mur = (x, z, h) => { for (let a = 0; a < 8; a++) { const b = a / 8 * TAU; if (!S.ouvert(x + Math.cos(b) * 2.2, z + Math.sin(b) * 2.2, h || 1.2)) return b; } return null; };
+  const pris = [];
+  const loin = (x, z, d) => { for (const q of pris) if (Math.abs(q[0] - x) < d && Math.abs(q[1] - z) < d) return false; return true; };
+  let seq = 0;
+  const L = w.soutCueillettes || (w.soutCueillettes = []);
+  for (const [id, item, zs, n, every, place, data] of SOUT_CUEILLETTES) {
+    const src = zs[0] === '*' ? tous : zs.flatMap((k) => zones[k] || []);
+    if (!src.length) continue;
+    let m = 0;
+    for (let k = 0; k < n * 30 && m < n; k++) {
+      const [x, z] = src[(rnd() * src.length) | 0];
+      const f = S.floorAt(x, z), v = S.vaultAt(x, z);
+      if (f > SOUT_ROCK - 1 || v - f < 2 || !loin(x, z, 3)) continue;
+      let r = rnd() * TAU, y = f;
+      if (place === 'eau') { if (f > SOUT_WL - 0.2 || f < SOUT_WL - 1.4) continue; y = SOUT_WL + 0.01; }
+      else if (f < SOUT_WL + 0.15) continue;
+      if (place === 'rive') { let eau = false; for (let a = 0; a < 6 && !eau; a++) { const b = a / 6 * TAU; if (S.floorAt(x + Math.cos(b) * 4, z + Math.sin(b) * 4) < SOUT_WL - 0.2) eau = true; } if (!eau) continue; }
+      if (place === 'mur') { const b = mur(x, z); if (b === null) continue; r = Math.atan2(Math.cos(b), Math.sin(b)); }
+      if (place === 'sol' && (S.normalAt(x, z)[1] < 0.8 || mur(x, z, 2) !== null && id === 'sout_guano')) continue;
+      const q = B.prop(id, x, y, z, r, Object.assign({ k: 'c' + seq, it: item, every }, data, id === 'sout_filon' ? { n: 3 + ((rnd() * 3) | 0) } : {}), undefined, VER_SOUS);
+      L.push(w.props.length - 1); seq++; m++; pris.push([x, z]);
+      void q;
+    }
+  }
+});
+
+// ---------------------------------------------------------------- cueillir, casser
+const soutCueille = {
+  C() { const S = souterrain.S(); return S.c || (S.c = {}); },
+  // l'état sauvegardé remis sur les objets posés (au chargement, chaque matin)
+  appliquer() {
+    const w = game.world;
+    if (!w || !w.soutCueillettes) return;
+    const C = this.C(), day = farm.s.day;
+    let chg = false;
+    for (const i of w.soutCueillettes) {
+      const q = w.props[i];
+      if (!q || !q.data) continue;
+      const c = C[q.data.k];
+      if (q.id === 'sout_filon') { const n = c && c.n !== undefined ? c.n : q.data.n0 !== undefined ? q.data.n0 : q.data.n; if (q.data.n0 === undefined) q.data.n0 = q.data.n; if (q.data.n !== n) { q.data.n = n; chg = true; } continue; }
+      const pris = !!(c && c.j && (!q.data.every || day - c.j < q.data.every));
+      if (!!q.data.pris !== pris) { q.data.pris = pris; q.data.lit = pris ? false : undefined; chg = true; }
+    }
+    if (chg) { farm.dirtyProps = true; w.objectsDirty = true; }
+    this.grille();
+  },
+  // grille de 8 m des objets à cueillir (pour la touche E)
+  grille() {
+    const w = game.world, G = new Map();
+    for (const i of w.soutCueillettes || []) { const q = w.props[i]; if (!q) continue; const k = Math.floor(q.x / 8) + ',' + Math.floor(q.z / 8); (G.get(k) || G.set(k, []).get(k)).push(q); }
+    this.G = G;
+  },
+  cibles(eye, f, cand) {
+    if (!souterrain.actif || !this.G) return;
+    const cx = Math.floor(eye[0] / 8), cz = Math.floor(eye[2] / 8);
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+      const L = this.G.get((cx + dx) + ',' + (cz + dz));
+      if (!L) continue;
+      for (const q of L) {
+        if (q.data.pris || (q.id === 'sout_filon' && q.data.n <= 0)) continue;
+        const ty = q.y + (q.id === 'sout_filon' ? 0.45 : 0.2), ddx = q.x - eye[0], ddy = ty - eye[1], ddz = q.z - eye[2], d = Math.hypot(ddx, ddy, ddz);
+        if (d > 2.7) continue;
+        const cos = (ddx * f[0] + ddy * f[1] + ddz * f[2]) / (d || 1);
+        if (cos < 0.72) continue;
+        cand({ kind: 'hook', sout: q, use: () => this.prendre(q) }, d * (1.6 - cos * 0.6));
+      }
+    }
+  },
+  prendre(q) {
+    const C = this.C(), d = q.data, id = d.it, day = farm.s.day;
+    if (q.id === 'sout_filon') return this.casser(q);
+    if (d.pris) return;
+    const n = q.id === 'sout_guano' ? 2 + ((Math.random() * 2) | 0) : q.id === 'sout_algue' ? 2 : 1;
+    farm.give(id, n); play.flyer(id, [q.x, q.y + 0.3, q.z], n);
+    sound.pop && sound.pop();
+    C[d.k] = { j: day };
+    d.pris = true; d.lit = false;
+    farm.dirtyProps = true; game.world.objectsDirty = true;
+    if (typeof savoir !== 'undefined' && savoir.voir) savoir.voir(id);
+    if (q.id === 'sout_vasque' && !C.perleDit) { C.perleDit = 1; ui.subtitle('', '(Au fond de l’eau, une bille laiteuse. Elle roule dans la paume, lourde et tiède.)', 4); }
+  },
+  // un filon : trois coups de pioche par morceau
+  casser(q) {
+    const d = q.data, C = this.C();
+    const pioche = farm.bestTool('pioche');
+    if (!pioche) { if (!C.piocheDit) { C.piocheDit = 1; ui.subtitle('', '(Ça ne se détache pas à la main. Il faudrait une pioche.)', 3); } sound.dig && sound.dig(0.3); return; }
+    if (play.cool > 0) return;
+    play.cool = 0.45; play.swingT = 0.42;
+    sound.dig && sound.dig(0.8); soutSon.clang(0.35);
+    const c = d.m === 'soufre' ? [220, 190, 60] : d.m === 'salpetre' ? [230, 228, 220] : d.m === 'luisante' ? [120, 240, 200] : d.m === 'cristal' ? [220, 230, 255] : [120, 124, 134];
+    puffAt(q.x, q.y + 0.5, q.z, c, 8, 1.6, true);
+    q.coups = (q.coups || 0) + 1 + ((ITEMS[pioche] && ITEMS[pioche].tier) || 0) * 0.5;
+    if (q.coups < 3) return;
+    q.coups = 0;
+    const n = d.m === 'soufre' || d.m === 'salpetre' ? 2 : 1;
+    farm.give(d.it, n); play.flyer(d.it, [q.x, q.y + 0.6, q.z], n);
+    d.n = Math.max(0, d.n - 1);
+    C[d.k] = { n: d.n };
+    farm.dirtyProps = true;
+    if (d.n <= 0) sound.pop && sound.pop();
+  },
+};
+HOOKS.target.push((eye, f, cand) => soutCueille.cibles(eye, f, cand));
+HOOKS.load.push(() => soutCueille.appliquer());
+HOOKS.day.push(() => soutCueille.appliquer());
+// l'objet visé brille un peu (comme les autres objets posés)
+HOOKS.update.push(() => { const t = game.target; if (t && t.sout) game.hiProp = t.sout; });
+
+// ---------------------------------------------------------------- la pierre luisante : elle boit le jour, elle le rend dans le noir
+const soutLuisante = {
+  MAX: 480,
+  S() { const S = souterrain.S(); if (typeof S.lum !== 'number') S.lum = 0; return S; },
+  on: false,
+  update(dt, sky) {
+    if (!farm.s || game.kind !== 'farm') return;
+    const S = this.S(), p = game.player, n = farm.count('luisante');
+    if (!n) { this.on = false; return; }
+    // au grand jour, dehors : elle se charge (une minute pour être pleine)
+    if (!p.underground && sky && sky.day > 0.55 && !game.world.covered(p.pos[0], p.pos[1] + 1.2, p.pos[2]) && S.lum < this.MAX) {
+      S.lum = Math.min(this.MAX, S.lum + dt * 8);
+      if (S.lum >= this.MAX && !this.pleineDit) { this.pleineDit = true; }
+    }
+    if (this.on && !game.sleeping) {
+      S.lum = Math.max(0, S.lum - dt);
+      if (S.lum <= 0) { this.on = false; ui.subtitle('', '(La pierre s’éteint. Elle n’est plus qu’une pierre.)', 3); }
+    }
+  },
+  basculer() {
+    const S = this.S();
+    if (this.on) { this.on = false; sound.click && sound.click(); return; }
+    if (S.lum <= 1) { ui.subtitle('', '(La pierre reste grise. Il lui faudrait le jour.)', 3); return; }
+    this.on = true; this.pleineDit = false; sound.click && sound.click();
+  },
+  lumieres(eye) {
+    if (!this.on || !farm.s) return [];
+    const S = this.S(), k = clamp(S.lum / 90, 0.25, 1) * (0.93 + Math.sin(game.time * 1.7) * 0.04);
+    return [{ x: eye[0] + 0.25, y: eye[1] - 0.3, z: eye[2], r: 8.5, c: [0.22 * k, 0.68 * k, 0.52 * k], d: 0.02 }];
+  },
+};
+HOOKS.update.push((dt, eye, basis, sky) => soutLuisante.update(dt, sky));
+HOOKS.lights.push((eye) => soutLuisante.lumieres(eye));
+HOOKS.primary.push((eye, basis, held, it, id) => { if (id !== 'luisante' || held) return false; soutLuisante.basculer(); play.cool = 0.4; return true; });
+soutEntree.lumieres.push(() => soutLuisante.on);
+HOOKS.load.push(() => { soutLuisante.on = false; soutLuisante.S(); });
+
+// ---------------------------------------------------------------- la pêche dans les eaux d'en bas
+{
+  const _fc = play.fishClick.bind(play);
+  play.fishClick = function (eye, f) { return souterrain.avecMonde(() => _fc(eye, f)); };
+  const _fz = play.fishZone.bind(play);
+  play.fishZone = function (x, z) { if (souterrain.actif) return 'souterrain'; return _fz(x, z); };
+}
+
+// ---- 11-zzzz9-souterrain4-betes.js
+// ============================================================================
+//  LE DESSOUS — les bêtes d'en bas (agent C3)
+//  - chauves-souris, en colonies sous les hautes voûtes (elles fuient la
+//    lanterne ; leur guano s'entasse dessous) ;
+//  - protées, pâles et aveugles, au fond de l'eau près des rives (à la main) ;
+//  - écrevisses aveugles dans les hauts-fonds (à la main) ;
+//  - grillons des cavernes, le long des parois (à la main ; leur chant) ;
+//  - scolopendres, dans les galeries sèches : elles se dressent et mordent
+//    quand on les serre de trop près (les armes en viennent à bout).
+//  Elles naissent autour du personnage, dans leurs endroits, et disparaissent
+//  quand il s'éloigne. Dessinées par HOOKS.draw ; touchées par les armes via
+//  strange.raycast / strange.hit (comme les bêtes des autres mondes).
+// ============================================================================
+defItem('protee', 'Protée', 'chasse', 10, ['mue', '#f2dcd6'], { alch: true, desc: 'Un petit animal rose et blanc, comme un lézard sans couleur, sans yeux, qui respire par des houppes rouges. Il se tortille, froid.' });
+defItem('grillon_pale', 'Grillon des cavernes', 'chasse', 1, ['ver', '#c8b89a'], { food: 3, desc: 'Un grillon pâle, aux antennes deux fois longues comme lui. Il ne chante que dans le noir complet.' });
+Object.assign(ESSENCES, { protee: { eau: 2, vie: 2, ombre: 1 }, grillon_pale: { ombre: 1, air: 1, terre: 1 } });
+Object.assign(ALIMENTS_EFFETS, { protee: { c: 'un protée cru', r: [['hallucinations', 0.5, 40, 150], ['nausee', 0.5, 20, 90]] }, grillon_pale: { r: [['nausee', 0.15, 20, 60]] } });
+{ const g = NPC_DATA.find((d) => d.id === 'guerisseuse'); if (g && g.shop && g.shop.buys && !g.shop.buys.includes('protee')) g.shop.buys.push('protee'); }
+
+// ---------------------------------------------------------------- les squelettes
+const SOUT_RIGS = {
+  chauve() { return ANIMAL_RIGS.bat(); },
+  protee() { return mdRecolor(scaleRig(ANIMAL_RIGS.salamandre(), 2.3), (q) => ({ col: /tache/.test(q.name) ? [0.86, 0.36, 0.36] : [0.95, 0.84, 0.8], tex: q.name === 'head' ? TL.plain : TL.skin })); },
+  ecrevisse() {
+    const { P, add } = rigParts(), c = [0.93, 0.88, 0.8];
+    add('body', null, [0, 0.03, 0], [0.05, 0.035, 0.08], [0, 0, 0], c, TL.scales);
+    add('queue', 'body', [0, 0, -0.04], [0.045, 0.025, 0.08], [0, -0.004, -0.04], c, TL.scales);
+    for (const s of [-1, 1]) { add('pince' + s, 'body', [s * 0.03, 0, 0.04], [0.018, 0.015, 0.07], [s * 0.01, 0, 0.035], c, TL.scales); add('ant' + s, 'body', [s * 0.012, 0.012, 0.04], [0.003, 0.003, 0.12], [s * 0.02, 0.01, 0.06], c, TL.plain); }
+    for (let k = 0; k < 3; k++) for (const s of [-1, 1]) add('p' + k + s, 'body', [s * 0.028, -0.01, 0.02 - k * 0.022], [0.035, 0.005, 0.006], [s * 0.015, -0.006, 0], c, TL.plain);
+    const r = new Rig(P); r.kind = 'bug'; return r;
+  },
+  grillon() {
+    const { P, add } = rigParts(), c = [0.78, 0.72, 0.6];
+    add('body', null, [0, 0.025, 0], [0.028, 0.025, 0.06], [0, 0, 0], c, TL.plain);
+    for (const s of [-1, 1]) { add('patte' + s, 'body', [s * 0.016, 0, -0.01], [0.006, 0.04, 0.05], [0, 0.012, -0.02], c, TL.plain, { r0: [0.5, 0, s * 0.3] }); add('ant' + s, 'body', [s * 0.008, 0.012, 0.03], [0.002, 0.002, 0.13], [s * 0.02, 0.02, 0.065], c, TL.plain); }
+    const r = new Rig(P); r.kind = 'bug'; return r;
+  },
+  scolopendre() {
+    const { P, add } = rigParts(), c = rgbf('#7a3a1a'), j = rgbf('#d8a030');
+    add('s0', null, [0, 0.03, 0], [0.07, 0.035, 0.07], [0, 0, 0], c, TL.scales);
+    add('crochets', 's0', [0, 0, 0.04], [0.06, 0.012, 0.03], [0, 0, 0.01], j, TL.plain);
+    for (let k = 1; k < 11; k++) {
+      add('s' + k, 's' + (k - 1), [0, 0, -0.058], [0.075 - k * 0.002, 0.03, 0.055], [0, 0, 0], k % 2 ? c : v3.scale(c, 0.85), TL.scales);
+      for (const s of [-1, 1]) add('l' + k + s, 's' + k, [s * 0.04, -0.01, 0], [0.05, 0.006, 0.008], [s * 0.022, -0.008, 0], j, TL.plain);
+    }
+    const r = new Rig(P); r.kind = 'bug'; return r;
+  },
+};
+
+// ---------------------------------------------------------------- les endroits (tirés du plan une fois)
+const soutBetes = {
+  list: [], nids: null, seq: 0, sonT: 0,
+  // les nids : [genre, x, y, z, nombre] — colonies sous les hautes voûtes, rives, galeries sèches, parois
+  construireNids() {
+    if (this.nids) return this.nids;
+    const S = souterrain, N = [], rnd = mulberry32(0x50b7be7e);
+    S.creuseurs();
+    const salle = (k) => SOUT_PLAN.salles.find((q) => q[0] === k);
+    for (const [k, n] of [['nef', 5], ['echos', 2], ['gouffres', 2], ['racines', 1], ['ruines', 2], ['orgues', 1], ['seuil', 1]]) {
+      const P = salle(k); if (!P) continue;
+      for (let i = 0; i < n; i++) { const a = rnd() * TAU, r = Math.sqrt(rnd()) * 0.6, x = P[1] + Math.cos(a) * r * P[3], z = P[2] + Math.sin(a) * r * P[4]; if (!S.ouvert(x, z, 6)) continue; N.push(['chauve', x, Math.min(S.vaultAt(x, z) - 2, S.floorAt(x, z) + 14), z, 4 + ((rnd() * 5) | 0)]); }
+    }
+    // rives : protées et écrevisses (sur la rivière, les lacs)
+    const rive = (x, z) => { const f = S.floorAt(x, z); return f < SOUT_WL - 0.35 && f > SOUT_WL - 1.6; };
+    const essais = [];
+    for (const [cx, cz, r] of SOUT_PLAN.riviere) for (let i = 0; i < 3; i++) essais.push([cx + (rnd() - 0.5) * r * 2, cz + (rnd() - 0.5) * r * 2]);
+    for (const [, cx, cz, rx, rz] of SOUT_PLAN.lacs) for (let i = 0; i < 26; i++) { const a = rnd() * TAU, k = 0.8 + rnd() * 0.22; essais.push([cx + Math.cos(a) * rx * k, cz + Math.sin(a) * rz * k]); }
+    for (const [x, z] of essais) if (rive(x, z)) N.push([rnd() < 0.5 ? 'protee' : 'ecrevisse', x, S.floorAt(x, z), z, 2 + ((rnd() * 3) | 0)]);
+    // galeries sèches : scolopendres ; parois : grillons
+    for (const [key, pts] of SOUT_PLAN.galeries) {
+      for (let i = 0; i + 1 < pts.length; i++) {
+        const A = pts[i], B = pts[i + 1], t = rnd(), x = lerp(A[0], B[0], t), z = lerp(A[1], B[1], t);
+        if (!S.ouvert(x, z, 2)) continue;
+        const u = rnd();
+        if (u < 0.18 && ['souffle', 'vers_souffle', 'fissure', 'descente', 'vers_echos', 'vers_gouffres', 'vers_ruines', 'mines', 'mines_n', 'mines_s'].includes(key)) N.push(['scolopendre', x, S.floorAt(x, z), z, 1]);
+        else if (u < 0.55) N.push(['grillon', x, S.floorAt(x, z), z, 4 + ((rnd() * 5) | 0)]);
+      }
+    }
+    return (this.nids = N.map(([k, x, y, z, n], i) => ({ i, k, x, y, z, n, vie: 0, mort: 0 })));
+  },
+  // chaque image : naissance autour du personnage, comportements
+  update(dt, playing) {
+    if (!souterrain.actif) { if (this.list.length) this.list = []; return; }
+    const p = game.player, nids = this.construireNids();
+    this.scanT = (this.scanT || 0) - dt;
+    if (this.scanT <= 0) {
+      this.scanT = 0.8;
+      for (const N of nids) {
+        const d = Math.hypot(N.x - p.pos[0], N.z - p.pos[2]);
+        if (d < 85 && !N.vie && game.time > N.mort) this.naitre(N);
+        else if (d > 130 && N.vie) { this.list = this.list.filter((e) => e.nid !== N); N.vie = 0; }
+      }
+    }
+    if (!playing) return;
+    for (let i = this.list.length - 1; i >= 0; i--) {
+      const e = this.list[i];
+      e.t += dt; e.hurtT = Math.max(0, (e.hurtT || 0) - dt);
+      if (e.mort) { e.mortT += dt; if (e.mortT > 1.2) this.list.splice(i, 1); continue; }
+      e.dist = Math.hypot(e.x - p.pos[0], e.z - p.pos[2]);
+      if (e.dist > 70) continue;
+      try { this.IA[e.k].call(this, e, dt, p); } catch (err) { console.error(err); }
+    }
+    this.sons(dt, p);
+  },
+  naitre(N) {
+    N.vie = 1;
+    const S = souterrain;
+    for (let k = 0; k < N.n; k++) {
+      const a = Math.random() * TAU, r = N.k === 'chauve' ? 3 + Math.random() * 8 : 0.5 + Math.random() * 3;
+      let x = N.x + Math.cos(a) * r, z = N.z + Math.sin(a) * r;
+      if (N.k !== 'chauve' && (!S.ouvert(x, z, 0.5) || Math.abs(S.floorAt(x, z) - N.y) > 1.5)) { x = N.x; z = N.z; }
+      const e = { id: ++this.seq, sout: true, k: N.k, nid: N, x, z, y: N.k === 'chauve' ? N.y : S.floorAt(x, z), hx: N.x, hz: N.z, heading: Math.random() * TAU, t: Math.random() * 10, phase: 0, move: 0, hp: N.k === 'scolopendre' ? 8 : 1, a, r, w: (Math.random() < 0.5 ? 1 : -1) * (0.35 + Math.random() * 0.35), etat: 'calme', timer: Math.random() * 3 };
+      e.rig = SOUT_RIGS[N.k]();
+      this.list.push(e);
+    }
+  },
+  // marcher sur le sol d'en bas (et rester sous l'eau, ou hors de l'eau)
+  pas(e, dt, dir, v, eau) {
+    const S = souterrain;
+    e.heading = turnToward(e.heading, dir, dt * 5);
+    const nx = e.x + Math.sin(e.heading) * v * dt, nz = e.z + Math.cos(e.heading) * v * dt, f = S.floorAt(nx, nz);
+    if (!S.ouvert(nx, nz, 0.3) || Math.abs(f - e.y) > 0.6 || (eau === true && f > SOUT_WL - 0.25) || (eau === false && f < SOUT_WL + 0.1)) { e.heading += 1.4 + Math.random(); return false; }
+    e.x = nx; e.z = nz; e.y = f; e.move = 1; e.phase += dt * v * 30;
+    return true;
+  },
+  IA: {
+    chauve(e, dt, p) {
+      const lum = soutEntree.lumiere(), dy = e.y - p.pos[1];
+      if (lum && e.dist < 11 && Math.abs(dy) < 14 && e.etat !== 'fuite') { e.etat = 'fuite'; e.timer = 3 + Math.random() * 2; if (Math.random() < 0.5) soutSon.pepie(clamp(1 - e.dist / 30, 0.2, 1)); }
+      e.timer -= dt;
+      if (e.etat === 'fuite') { e.r = Math.min(26, e.r + dt * 6); if (e.timer <= 0) e.etat = 'calme'; }
+      else e.r += ((e.nid && e.r > 12 ? 8 : e.r) - e.r) * dt * 0.2;
+      e.a += e.w * dt * (e.etat === 'fuite' ? 2.4 : 1) * (6 / Math.max(3, e.r));
+      const x = e.hx + Math.cos(e.a) * e.r, z = e.hz + Math.sin(e.a) * e.r;
+      const S = souterrain, v = S.vaultAt(x, z), f = S.floorAt(x, z);
+      if (v - f > 3.5 && f < SOUT_ROCK - 1) { e.heading = Math.atan2(x - e.x, z - e.z); e.x = x; e.z = z; e.y += (Math.min(v - 1.2, e.nid.y + Math.sin(e.t * 0.7 + e.id) * 2) - e.y) * dt * 2; }
+      else { e.w = -e.w; e.r *= 0.9; }
+    },
+    protee(e, dt, p) { this.IA.nageur.call(this, e, dt, p, 0.25, 0.9); },
+    ecrevisse(e, dt, p) { this.IA.nageur.call(this, e, dt, p, 0.18, 0.7); },
+    nageur(e, dt, p, v, vf) {
+      e.timer -= dt; e.move = Math.max(0, e.move - dt * 3);
+      if (e.dist < 1.8 && (p.sprinting || Math.hypot(p.vel[0], p.vel[2]) > 3) && e.etat !== 'fuite') { e.etat = 'fuite'; e.timer = 1.5; e.fuite = Math.atan2(e.x - p.pos[0], e.z - p.pos[2]); }
+      if (e.etat === 'fuite') { this.pas(e, dt, e.fuite, vf, true); if (e.timer <= 0) e.etat = 'calme'; return; }
+      if (e.timer <= 0) { e.timer = 2 + Math.random() * 5; e.but = Math.random() < 0.6 ? Math.random() * TAU : null; }
+      if (e.but !== null && e.but !== undefined) { if (Math.hypot(e.x - e.hx, e.z - e.hz) > 4) e.but = Math.atan2(e.hx - e.x, e.hz - e.z); this.pas(e, dt, e.but, v, true); }
+    },
+    grillon(e, dt, p) {
+      e.timer -= dt; e.move = 0;
+      if (e.saut > 0) { e.saut -= dt; this.pas(e, dt, e.heading, 1.6, false); e.y += Math.sin((0.35 - e.saut) / 0.35 * Math.PI) * 0.03; return; }
+      if (e.timer <= 0 || (e.dist < 1.6 && Math.random() < dt * 3)) { e.timer = 1.5 + Math.random() * 6; e.saut = 0.35; e.heading = e.dist < 2 ? Math.atan2(e.x - p.pos[0], e.z - p.pos[2]) : Math.random() * TAU; if (Math.hypot(e.x - e.hx, e.z - e.hz) > 3) e.heading = Math.atan2(e.hx - e.x, e.hz - e.z); }
+    },
+    scolopendre(e, dt, p) {
+      e.timer -= dt; e.atk = Math.max(0, (e.atk || 0) - dt);
+      const dy = Math.abs(e.y - p.pos[1]);
+      if (e.dist < 2.8 && dy < 1.5 && !(p.crouch > 0.5 && e.dist > 1.6)) {
+        e.etat = 'colere'; e.heading = turnToward(e.heading, Math.atan2(p.pos[0] - e.x, p.pos[2] - e.z), dt * 6);
+        if (e.dist > 0.9) this.pas(e, dt, e.heading, 2.2, false);
+        else if (e.atk <= 0) {
+          e.atk = 1.4; e.mord = 0.35;
+          soutSon.siffle(1);
+          play.hurt(5, e, 'Mordu par une scolopendre');
+          if (typeof corps !== 'undefined' && Math.random() < 0.5) corps.saigner(0.05, 'Mordu par une scolopendre, dans le noir');
+          if (!e.ditMord) { e.ditMord = 1; ui.subtitle('', '(Une brûlure à la cheville. Quelque chose de long a filé dans le noir.)', 3.5); }
+        }
+        return;
+      }
+      if (e.etat === 'colere' && e.dist > 5) e.etat = 'calme';
+      if (e.timer <= 0) { e.timer = 1.5 + Math.random() * 4; e.but = Math.random() < 0.7 ? Math.random() * TAU : null; }
+      e.move = 0;
+      if (e.but !== null && e.but !== undefined) { if (Math.hypot(e.x - e.hx, e.z - e.hz) > 5) e.but = Math.atan2(e.hx - e.x, e.hz - e.z); this.pas(e, dt, e.but, 0.7, false); }
+    },
+  },
+  sons(dt, p) {
+    this.sonT -= dt;
+    if (this.sonT > 0) return;
+    this.sonT = 0.6 + Math.random() * 1.4;
+    let chauves = 0, grillons = 0;
+    for (const e of this.list) { if (e.dist < 30 && e.k === 'chauve') chauves++; if (e.dist < 14 && e.k === 'grillon') grillons++; }
+    if (chauves && Math.random() < 0.45) soutSon.pepie(Math.min(1, chauves / 8) * 0.6);
+    if (grillons && !soutEntree.lumiere() && Math.random() < 0.7) soutSon.stridule(Math.min(1, grillons / 6));
+  },
+  // ---------------------------------------------------------------- dessin
+  dessiner(buf, sbuf, cam, t) {
+    if (!souterrain.actif) return;
+    for (const e of this.list) {
+      const dx = e.x - cam[0], dz = e.z - cam[2];
+      if (dx * dx + dz * dz > 60 * 60) continue;
+      const r = e.rig;
+      if (e.k === 'chauve') poseBird(r, { fly: 1, t, seed: e.id });
+      else if (e.k === 'protee') poseQuad(r, { move: e.move, phase: e.phase, t });
+      else if (e.k === 'scolopendre') { for (let k = 1; k < 11; k++) r.set('s' + k, 0, Math.sin(e.t * 9 - k * 0.8) * 0.18 * (e.move || 0.2), 0); r.set('s0', e.mord > 0 ? -0.5 : e.etat === 'colere' ? -0.25 : 0, 0, 0); e.mord = Math.max(0, (e.mord || 0) - 0.016); }
+      const fl = (e.hurtT > 0 || (game.target && game.target.bete === e)) ? FX_HI : 0;
+      drawRig(buf, r, e.x, e.mort ? e.y - Math.min(1, e.mortT) * 0.05 : e.y, e.z, e.heading, 1, fl);
+    }
+  },
+  // ---------------------------------------------------------------- attraper (E) : protées, écrevisses, grillons
+  cibles(eye, f, cand) {
+    if (!souterrain.actif) return;
+    for (const e of this.list) {
+      if (e.mort || !['protee', 'ecrevisse', 'grillon'].includes(e.k)) continue;
+      const dx = e.x - eye[0], dy = e.y + 0.05 - eye[1], dz = e.z - eye[2], d = Math.hypot(dx, dy, dz);
+      if (d > 2.4) continue;
+      const cos = (dx * f[0] + dy * f[1] + dz * f[2]) / (d || 1);
+      if (cos < 0.8) continue;
+      cand({ kind: 'hook', bete: e, use: () => this.attraper(e) }, d);
+    }
+  },
+  attraper(e) {
+    if (e.mort) return;
+    const ok = Math.random() < (e.k === 'grillon' ? 0.55 : game.player.crouch > 0.5 ? 0.85 : 0.6);
+    if (!ok) { e.etat = 'fuite'; e.timer = 1.5; e.saut = 0.35; e.fuite = Math.atan2(e.x - game.player.pos[0], e.z - game.player.pos[2]); if (e.k !== 'grillon') { sound.splash && sound.splash(); splashAt(e.x, SOUT_WL, e.z); } return; }
+    const id = e.k === 'protee' ? 'protee' : e.k === 'ecrevisse' ? 'ecrevisse_aveugle' : 'grillon_pale';
+    farm.give(id, 1); play.flyer(id, [e.x, e.y + 0.3, e.z], 1);
+    if (e.k !== 'grillon') sound.splash && sound.splash(); else sound.pop && sound.pop();
+    if (typeof savoir !== 'undefined' && savoir.voir) savoir.voir(id);
+    this.retirer(e);
+  },
+  retirer(e) {
+    const i = this.list.indexOf(e);
+    if (i >= 0) this.list.splice(i, 1);
+    if (e.nid && !this.list.some((q) => q.nid === e.nid)) { e.nid.vie = 0; e.nid.mort = game.time + 240; }
+  },
+  // ---------------------------------------------------------------- les coups (armes, flèches, fusil)
+  raycast(o, d, maxDist) {
+    let best = null;
+    const dh = Math.hypot(d[0], d[2]) || 1e-6;
+    for (const e of this.list) {
+      if (e.mort) continue;
+      const rr = e.k === 'chauve' ? 0.35 : e.k === 'scolopendre' ? 0.35 : 0.15, cx = e.x - o[0], cz = e.z - o[2];
+      const tc = (cx * d[0] + cz * d[2]) / (dh * dh);
+      if (tc < 0 || tc > maxDist) continue;
+      const px = d[0] * tc - cx, pz = d[2] * tc - cz;
+      if (px * px + pz * pz > rr * rr) continue;
+      const y = o[1] + d[1] * tc;
+      if (y < e.y - 0.2 || y > e.y + 0.4) continue;
+      if (!best || tc < best.t) best = { t: tc, s: e, p: [o[0] + d[0] * tc, y, o[2] + d[2] * tc] };
+    }
+    return best;
+  },
+  frapper(e, dmg) {
+    if (e.mort) return;
+    e.hp -= dmg; e.hurtT = 0.3;
+    if (e.k === 'scolopendre') { e.etat = 'colere'; soutSon.siffle(0.6); }
+    if (e.hp > 0) return;
+    e.mort = true; e.mortT = 0;
+    const drop = e.k === 'chauve' ? 'aile_chauve_souris' : e.k === 'scolopendre' ? 'venin' : null;
+    if (drop && ITEMS[drop] && Math.random() < 0.8) { farm.give(drop, 1); play.flyer(drop, [e.x, e.y + 0.3, e.z], 1); }
+    if (e.nid) setTimeout(() => { if (!this.list.some((q) => q.nid === e.nid && !q.mort)) { e.nid.vie = 0; e.nid.mort = game.time + 300; } }, 1500);
+  },
+};
+// quelques sons des bêtes d'en bas
+Object.assign(soutSon, {
+  pepie(k = 1) { if (!sound.ok) return; const t = sound.at(), out = sound.pan(Math.random() * 2 - 1, sound.amb); for (let i = 0; i < 3; i++) sound.tone(t + i * 0.05, 'sine', 7200 + Math.random() * 1800, 6200, 0.03, 0.008 * k, out, 0.002); },
+  stridule(k = 1) { if (!sound.ok) return; const t = sound.at(), out = sound.pan(Math.random() * 2 - 1, sound.amb); for (let i = 0; i < 6; i++) sound.tone(t + i * 0.07, 'square', 4300, 4200, 0.03, 0.004 * k, out, 0.002); },
+  siffle(k = 1) { if (!sound.ok) return; const t = sound.at(); sound.noiseHit(t, 0.35, 'highpass', 3000, 1, 0.08 * k, null, 5000); },
+});
+HOOKS.update.push((dt, eye, basis, sky, playing) => { if (farm.s) soutBetes.update(dt, playing); });
+HOOKS.draw.push((buf, sbuf, cam, t) => soutBetes.dessiner(buf, sbuf, cam, t));
+HOOKS.target.push((eye, f, cand) => soutBetes.cibles(eye, f, cand));
+HOOKS.load.push(() => { soutBetes.list = []; if (soutBetes.nids) for (const N of soutBetes.nids) { N.vie = 0; N.mort = 0; } });
+{
+  const _ray = strange.raycast.bind(strange), _hit = strange.hit.bind(strange);
+  strange.raycast = function (o, d, maxDist) {
+    const a = _ray(o, d, maxDist);
+    if (!souterrain.actif || !soutBetes.list.length) return a;
+    const b = soutBetes.raycast(o, d, a ? a.t : maxDist);
+    return b && (!a || b.t < a.t) ? b : a;
+  };
+  strange.hit = function (e, dmg, from) { if (e && e.sout) return soutBetes.frapper(e, dmg); return _hit(e, dmg, from); };
+}
+
+// ---- 11-zzzz9-souterrain5-terres.js
+// ============================================================================
+//  LE DESSOUS — ceux d'en bas (agent C3)
+//  Au Hameau d'En-Bas vivent dix pâles, dans des cabanes de pierre sèche en
+//  forme de ruche, à la lueur des pierres luisantes : les enfants des onze
+//  qu'on mura en 1631 dans la cave de la porte sud. Ils n'ont pas de noms,
+//  des nombres. Ils ont gardé un peu de la langue d'en haut, usée jusqu'à
+//  l'os : le parler d'en bas. On l'entend, on le note ; on ne le traduit pas.
+//  - la flamme leur brûle les yeux (ils crient, se cachent) ; la pierre
+//    luisante, non. Courir, tirer : ils se sauvent ;
+//  - on n'entre pas chez eux : on frappe trois coups à la pierre d'appel,
+//    sans flamme, et, quand le guetteur demande, on ne dit pas son nom ;
+//  - ensuite : ils parlent (« Écouter », « Dire un mot… » : chacun réagit aux
+//    mots qu'on a entendus), troquent contre du pain ou du sel (jamais contre
+//    des sous), gardent une peau pliée où sont écrits les onze, et une cabane
+//    vide, celle du onzième ; le guetteur ramène au pied du puits ;
+//  - le pain posé sur la pierre au pain se rompt en onze ;
+//  - le jeune va et vient, une pierre verte à la main, entre le hameau et la
+//    Chambre des Gouttes, par la longue galerie ;
+//  - le carnet (onglet Langues) garde chaque mot entendu et les circonstances,
+//    sans traduction ; les dalles d'encoches se lisent : on y reconnaît les
+//    mots qu'on a déjà entendus.
+//  État : farm.s.souterrain.t (admis, refus, mots, noms, dons, liste, pest,
+//  aiguille, mort, profane…). API : soutTerres, soutParler.
+// ============================================================================
+
+// ---------------------------------------------------------------- les objets
+defItem('baton_encoches', 'Bâton à encoches', 'quete', 0, ['racine_long', '#8a7458'], { desc: 'Un bâton de racine poli par les mains, couvert d’encoches et de nœuds. Clic : le lire du bout des doigts, sous la terre.' });
+defItem('aiguille_lui', 'Aiguille dans une coquille', 'quete', 0, ['boussole', '#c8c0b0'], { desc: 'Une aiguille de fer frottée à la pierre noire, posée sur un fil d’eau dans une coquille. Clic : la regarder. Elle ne montre pas le nord.' });
+defItem('carnet_onz', 'Carnet gonflé d’eau', 'quete', 0, ['livre', '#5a4a3a'], { desc: 'Un carnet de géomètre, relié de toile cirée, gonflé d’humidité. Clic : le lire.' });
+
+// ---------------------------------------------------------------- le parler d'en bas : mots, circonstances (jamais de sens)
+const SOUT_LEX = ['lum', 'tsi', 'zyeu', 'lui', 'bô', 'nenn', 'ouï', 'ki', 'nom', 'san', 'd’sû', 'd’sou', 'va', 'vyin', 'pan', 'sèl', 'sou', 'manj', 'frè',
+  'mo', 'dôr', 'gout', 'hoûm', 'mûr', 'grî', 'koû', 'pèst', 'tojor', 'un', 'deû', 'trè', 'katr', 'sin', 'si', 'sè', 'ui', 'neu', 'di', 'onz'];
+// les nombres : le mot → celui qui le porte
+const SOUT_NUM = { un: 'un', 'deû': 'deu', 'trè': 'tre', katr: 'katr', sin: 'sin', si: 'si', 'sè': 'se', ui: 'ui', neu: 'neu', di: 'di', onz: 'onz' };
+const SOUT_CTX = {
+  feu: 'crié, les mains sur les yeux, quand votre flamme brûlait',
+  feu_vieux: 'dit par le vieux, qui détournait la tête de votre flamme',
+  lui: 'murmuré devant la pierre verte que vous teniez',
+  garde: 'demandé par celui qui gardait l’entrée, ses doigts sur votre visage',
+  refus: 'craché par le guetteur, avant qu’il vous tourne le dos',
+  admis: 'dit par le guetteur, quand vous vous êtes tu',
+  admis_frere: 'répété par le guetteur, après vous',
+  onz_toi: 'dit en vous regardant, ou la main sur votre épaule',
+  vyin: 'dit en vous faisant signe d’approcher',
+  pan_main: 'dit la main ouverte, les yeux sur votre sac',
+  pan_don: 'murmuré, le pain serré contre la poitrine',
+  sou: 'dit en repoussant votre pièce du bout des doigts',
+  sel: 'dit avec un sourire, un grain de sel sur la langue',
+  soi: 'dit en se touchant la poitrine',
+  autre: 'dit en montrant quelqu’un d’autre, plus loin',
+  ancien: 'répété par le vieux, qui comptait sur ses doigts',
+  liste: 'dit par le vieux, la peau pliée sur les genoux',
+  pest: 'demandé par le vieux, sans vous regarder',
+  pest_ouï: 'dit par le vieux, qui hochait la tête',
+  pest_nenn: 'dit par le vieux, qui vous mettait quelque chose dans la main',
+  mo: 'dit par le vieux, qui montrait le fond de la longue galerie',
+  dsu: 'dit par le vieux, qui montrait la voûte',
+  mur: 'dit par le vieux, la main à plat sur les encoches',
+  gri: 'dit par le vieux, en frappant trois fois la pierre',
+  houm: 'chuchoté, un doigt sur la bouche',
+  enfant_houm: 'crié par l’enfant, qui s’est caché aussitôt',
+  enfant_lum: 'demandé par l’enfant, qui touchait votre lanterne éteinte',
+  enfant_lui: 'dit par l’enfant, qui vous tendait quelque chose de vert',
+  gout: 'dit par le pêcheur, les mains dans l’eau tiède',
+  manj: 'dit en vous tendant quelque chose à manger',
+  dor: 'chanté tout bas, comme une berceuse',
+  mere: 'soufflé par une femme, près d’un enfant endormi',
+  va: 'dit sans s’arrêter, un panier sur le dos',
+  entre: 'entendu entre eux, de loin, dans le noir',
+  guide: 'dit par le guetteur, qui vous prenait la main',
+  tabou: 'sifflé, avec un geste de recul',
+  nenn: 'dit en secouant la tête',
+  tsi: 'soufflé, tout près, un doigt sur vos lèvres',
+  jeune: 'dit par le jeune, qui s’était arrêté dans la galerie',
+  profane: 'dit par l’enfant, qui vous reniflait les mains',
+  echo: 'répété, la tête penchée',
+};
+// les dalles d'encoches du hameau : [clé, texte]
+const SOUT_ENCOCHES = [
+  ['e_onz', 'onz mûr , pan nenn , d’sou'],
+  ['e_lum', 'lum mo , lui bô'],
+  ['e_mo', 'mo dôr gout'],
+  ['e_houm', 'hoûm ouï , tsi'],
+  ['e_dsu', 'd’sû pèst , d’sû mo'],
+  ['e_tojor', 'tojor onz'],
+];
+const SOUT_ENC_BY = {};
+for (const [k, t] of SOUT_ENCOCHES) SOUT_ENC_BY[k] = t;
+
+const soutParler = {
+  S() { return soutTerres.S(); },
+  norm(m) { return String(m || '').toLowerCase().replace(/'/g, '’').replace(/^[«"“(]+|[»"”).,;:!?…]+$/g, ''); },
+  mots(texte) { return String(texte || '').split(/[\s,;:!?.…«»—()"]+/).map((m) => this.norm(m)).filter((m) => SOUT_LEX.includes(m)); },
+  // un mot entendu : on garde le nombre de fois, et les circonstances (trois au plus)
+  entendre(texte, ctx) {
+    if (!farm.s) return 0;
+    const M = this.S().mots;
+    let neufs = 0;
+    for (const m of this.mots(texte)) {
+      const e = M[m] || (M[m] = { n: 0, c: [], j: farm.s.day, o: Object.keys(M).length });
+      if (!e.n) neufs++;
+      e.n++;
+      if (ctx && !e.c.includes(ctx) && e.c.length < 3) e.c.push(ctx);
+    }
+    return neufs;
+  },
+  connu(m) { const e = this.S().mots[this.norm(m)]; return !!(e && e.n); },
+  entendus() { const M = this.S().mots; return Object.keys(M).filter((m) => M[m].n).sort((a, b) => M[a].o - M[b].o); },
+
+  // ---------------------------------------------------------------- l'écriture : des encoches (lettre → un paquet de traits, parfois barré)
+  canvas(texte, o = {}) {
+    const G = o.size || 22, toks = String(texte).split(/\s+/).filter(Boolean);
+    const lw = (w) => { let n = 0; for (const ch of w.replace(/’/g, '')) n += (1 + (ch.charCodeAt(0) % 4)) * G * 0.2 + G * 0.3; return n; };
+    const W = Math.min(560, Math.max(80, toks.reduce((a, t) => a + (t === ',' ? G * 0.6 : lw(t) + G * 0.7), G)));
+    let lines = 1, x = G * 0.5;
+    for (const t of toks) { const L = t === ',' ? G * 0.6 : lw(t) + G * 0.7; if (x + L > W - G * 0.3) { lines++; x = G * 0.5; } x += L; }
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = lines * G * 1.7 + G * 0.6;
+    const c = cv.getContext('2d');
+    c.fillStyle = o.bg || '#c9c2b2'; c.fillRect(0, 0, cv.width, cv.height);
+    c.strokeStyle = o.ink || '#2e2a24'; c.fillStyle = o.ink || '#2e2a24'; c.lineWidth = Math.max(1.5, G / 10); c.lineCap = 'round';
+    x = G * 0.5; let y = G * 0.4;
+    for (const t of toks) {
+      const L = t === ',' ? G * 0.6 : lw(t) + G * 0.7;
+      if (x + L > W - G * 0.3) { x = G * 0.5; y += G * 1.7; }
+      if (t === ',') { c.beginPath(); c.arc(x + G * 0.2, y + G * 0.6, G * 0.07 + 1, 0, TAU); c.fill(); x += L; continue; }
+      for (const ch of t.replace(/’/g, '')) {
+        const k = ch.charCodeAt(0), n = 1 + (k % 4), x0 = x;
+        for (let i = 0; i < n; i++) { c.beginPath(); c.moveTo(x + i * G * 0.2, y + ((k >> 3) % 2) * G * 0.12); c.lineTo(x + i * G * 0.2, y + G * 1.1); c.stroke(); }
+        if (k % 3 === 0) { c.beginPath(); c.moveTo(x0 - G * 0.08, y + G * 0.75); c.lineTo(x0 + (n - 1) * G * 0.2 + G * 0.08, y + G * 0.35); c.stroke(); }
+        x += n * G * 0.2 + G * 0.3;
+      }
+      x += G * 0.7;
+    }
+    return cv;
+  },
+  // lire une dalle : l'écriture, et dessous ce qu'on reconnaît (le mot tel qu'on l'a entendu ; pas son sens)
+  lire(id, deCarnet) {
+    const t = SOUT_ENC_BY[id];
+    if (!t || !farm.s) return;
+    const V = this.S().ins;
+    if (!V[id]) V[id] = farm.s.day;
+    if (typeof langues !== 'undefined' && langues.style) langues.style();
+    let img = '';
+    try { img = this.canvas(t, { size: 26 }).toDataURL(); } catch (e) { img = ''; }
+    const toks = t.split(/\s+/).filter(Boolean);
+    const gloss = toks.map((w) => {
+      if (w === ',') return '<span class="sep">·</span>';
+      let g = '';
+      try { g = this.canvas(w, { size: 12, bg: '#e8dfc8', ink: '#4a3a28' }).toDataURL(); } catch (e) { g = ''; }
+      const ok = this.connu(w);
+      return `<span class="w ${ok ? 'ok' : 'inc'}"><img src="${g}" alt=""><span>${ok ? '« ' + esc(w) + ' »' : '· · ·'}</span></span>`;
+    }).join('');
+    const mots = toks.filter((w) => w !== ','), n = mots.filter((w) => this.connu(w)).length;
+    const note = !n ? 'Des encoches, par paquets, certaines barrées. Vous n’y reconnaissez rien.'
+      : n === mots.length ? 'Vous reconnaissez chaque paquet d’encoches : ce sont des mots que vous avez entendus. Vous ne savez pas pour autant ce qu’ils disent ensemble.'
+        : `Vous reconnaissez ${n > 1 ? n + ' mots' : 'un mot'} que vous avez entendu${n > 1 ? 's' : ''}. Le reste vous échappe.`;
+    ui.open('#reader', `<h3>Une dalle d’encoches</h3><div class="ins-ecrit"><img src="${img}" alt=""></div><div class="ins-gloss">${gloss}</div><div class="ins-note">${esc(note)}</div><div class="sign">${esc(deCarnet ? 'Relevée dans votre carnet, au Hameau d’En-Bas.' : 'Taillée dans la calcite, au couteau de pierre.')}</div><button class="close">Refermer</button>`);
+    $('#reader .close').onclick = () => ui.close();
+  },
+  // ---------------------------------------------------------------- l'onglet « Langues » de la sacoche
+  ongletHTML() {
+    const M = this.S().mots, L = this.entendus(), V = this.S().ins, ids = Object.keys(V).filter((k) => SOUT_ENC_BY[k]);
+    if (!L.length && !ids.length) return '';
+    let h = `<h4>Le parler d’en bas <span class="lg-n">— ${esc(L.length > 1 ? L.length + ' mots entendus' : L.length ? 'un mot entendu' : 'aucun mot entendu')} · des encoches</span></h4>`;
+    h += '<p class="hint">Ce que disent les pâles d’en bas, noté comme vous l’avez entendu, avec ce qui se passait à ce moment-là. Personne ne vous en a donné la clé.</p><div class="lg-mots">';
+    h += L.map((m) => `<span class="lg-mot"><span><i>${esc(m)}</i> — ${esc(M[m].c.map((k) => SOUT_CTX[k] || k).join(' ; ') || 'entendu')}${M[m].n > 2 ? ` <span class="lg-n">(${M[m].n} fois)</span>` : ''}</span></span>`).join('');
+    h += '</div>';
+    if (ids.length) {
+      h += `<h4>Dalles d’encoches relevées <span class="lg-n">— ${ids.length}</span></h4>`;
+      h += ids.sort((a, b) => V[a] - V[b]).map((k) => { const mots = SOUT_ENC_BY[k].split(/\s+/).filter((w) => w !== ','), n = mots.filter((w) => this.connu(w)).length; return `<button class="note" data-sout-ins="${esc(k)}">Encoches — le Hameau d’En-Bas <span>— ${esc(n ? `${n} mot${n > 1 ? 's' : ''} reconnu${n > 1 ? 's' : ''} sur ${mots.length}` : 'illisible')}</span></button>`; }).join('');
+    }
+    return h;
+  },
+  lierOnglet() { $$('#satchel [data-sout-ins]').forEach((b) => (b.onclick = () => this.lire(b.dataset.soutIns, true))); },
+};
+if (typeof langues !== 'undefined') {
+  const _oh = langues.ongletHTML.bind(langues), _lo = langues.lierOnglet.bind(langues);
+  langues.ongletHTML = function () { let h = _oh(); try { if (farm.s) h += soutParler.ongletHTML(); } catch (e) { console.error(e); } return h; };
+  langues.lierOnglet = function () { _lo(); try { soutParler.lierOnglet(); } catch (e) { console.error(e); } };
+}
+
+// ---------------------------------------------------------------- les gens : nombre, allure, place
+const SOUT_GENS = [
+  { k: 'un', nom: 'Un', dit: 'le vieux', lieu: 'encoches', poste: 'assis', voix: 0.7, look: { skin: '#dcd5cb', hair: '#ecebe6', hairStyle: 'chauve', beard: 'longue', top: '#55514a', bottom: '#47443e', shoe: '#cfc7bc', height: 0.92, build: 'mince', old: true } },
+  { k: 'deu', nom: 'Deû', dit: 'la vieille', lieu: 'planches', poste: 'travail', voix: 1.15, look: { skin: '#e0d9d0', hair: '#e8e6e2', hairStyle: 'chignon', dress: true, top: '#5a564e', bottom: '#4e4a44', shoe: '#d2cabe', height: 0.9, build: 'mince', old: true, fem: true } },
+  { k: 'tre', nom: 'Trè', dit: 'une femme', lieu: 'pain', poste: 'debout', voix: 1.2, look: { skin: '#e6e0d8', hair: '#d8d2c4', hairStyle: 'long', top: '#625d54', bottom: '#4c4842', shoe: '#d6cfc4', height: 0.95, build: 'mince', fem: true, bandeau: true } },
+  { k: 'katr', nom: 'Katr', dit: 'le pêcheur', lieu: 'rive', poste: 'peche', voix: 0.85, look: { skin: '#e2dcd2', hair: '#cfc9bb', hairStyle: 'court', beard: 'courte', top: '#4e4a44', bottom: '#43403a', shoe: '#d0c8bc', height: 0.97, build: 'normal' } },
+  { k: 'sin', nom: 'Sin', dit: 'une femme', lieu: 'hutte', poste: 'assis', voix: 1.25, look: { skin: '#e8e2da', hair: '#e0dacb', hairStyle: 'queue', top: '#58544c', bottom: '#4c4842', shoe: '#d8d0c6', height: 0.94, build: 'mince', fem: true, hood: true, hatCol: '#4e4a44' } },
+  { k: 'si', nom: 'Si', dit: 'le porteur', lieu: 'tour', poste: 'porte', voix: 0.9, look: { skin: '#e2dcd4', hair: '#d4cec2', hairStyle: 'court', top: '#534e47', bottom: '#47433d', shoe: '#cfc8bc', height: 0.98, build: 'normal', bandeau: true } },
+  { k: 'se', nom: 'Sè', dit: 'le guetteur', lieu: 'appel', poste: 'guet', voix: 0.8, look: { skin: '#dcd6ce', hair: '#c8c2b6', hairStyle: 'chauve', top: '#4a4640', bottom: '#403c37', shoe: '#ccc4b8', height: 1.0, build: 'mince', bandeau: true } },
+  { k: 'ui', nom: 'Ui', dit: 'la fileuse', lieu: 'hutte', poste: 'travail', voix: 1.1, look: { skin: '#e4ded6', hair: '#dcd6c8', hairStyle: 'long', dress: true, top: '#5e594f', bottom: '#524d46', shoe: '#d4ccc0', height: 0.93, build: 'normal', fem: true } },
+  { k: 'neu', nom: 'Neu', dit: 'l’enfant', lieu: 'place', poste: 'jeu', voix: 1.6, enfant: true, look: { skin: '#eae5de', hair: '#f0eee8', hairStyle: 'court', top: '#625d54', bottom: '#534e47', shoe: '#dcd6cc', height: 0.66, build: 'mince' } },
+  { k: 'di', nom: 'Di', dit: 'le jeune', lieu: 'route', poste: 'rode', voix: 1.0, look: { skin: '#e6e0d8', hair: '#dedad0', hairStyle: 'court', top: '#58544c', bottom: '#4a4640', shoe: '#d4ccc0', height: 0.96, build: 'mince', hood: true, hatCol: '#48443e' } },
+];
+const SOUT_GENS_BY = {};
+for (const g of SOUT_GENS) SOUT_GENS_BY[g.k] = g;
+// ce que chacun dit quand on l'écoute : [phrase, circonstance, condition ?]
+const SOUT_DIRE = {
+  un: [['Onz. D’sou, tojor onz.', 'ancien'], ['Un, deû, trè, katr, sin, si, sè, ui, neu, di… onz.', 'ancien'], ['Mûr. Tojor mûr.', 'mur'], ['Tsi.', 'tsi']],
+  deu: [['Dôr, dôr… dôr, gout…', 'dor'], ['Manj ?', 'manj'], ['Bô, Onz.', 'onz_toi']],
+  tre: [['Pan ?', 'pan_main'], ['Sèl ?', 'pan_main'], ['Onz. Pan ?', 'pan_main']],
+  katr: [['Gout bô.', 'gout'], ['Gout… tsi.', 'gout'], ['Manj.', 'manj']],
+  sin: [['Tsi. Neu dôr.', 'mere'], ['Neu ! Vyin.', 'mere'], ['Onz.', 'onz_toi']],
+  si: [['Va.', 'va'], ['Va, va.', 'va'], ['Bô.', 'va']],
+  se: [['Hoûm. Tsi.', 'houm'], ['Ki ?', 'garde'], ['Onz. Bô.', 'onz_toi']],
+  ui: [['…', 'echo'], ['Frè.', 'onz_toi'], ['Lui bô.', 'lui']],
+  neu: [['Lum ?', 'enfant_lum'], ['Onz ! Onz !', 'onz_toi'], ['Vyin !', 'vyin']],
+  di: [['Mo dôr.', 'jeune'], ['Va. D’sou.', 'jeune'], ['Onz.', 'onz_toi']],
+};
+// ce qu'ils se disent entre eux (entendu de loin, dans le noir) : [qui, phrase, qui répond, réponse]
+const SOUT_ENTRE = [
+  ['sin', 'Neu ! Vyin.', 'neu', 'Nenn !'],
+  ['tre', 'Pan ?', 'si', 'Nenn. Pan nenn.'],
+  ['katr', 'Hoûm ouï ?', 'se', 'Nenn. Tsi.'],
+  ['si', 'Frè, va.', 'katr', 'Ouï.'],
+  ['deu', 'Onz ?', 'un', 'Nenn. Mo. Dôr.'],
+  ['tre', 'Sèl ?', 'ui', 'Nenn. Sèl nenn.'],
+  ['neu', 'Lum d’sû ?', 'sin', 'Tsi !'],
+  ['se', 'Ki ?', 'si', 'Frè.'],
+  ['un', 'Tojor onz.', 'deu', 'Tojor.'],
+];
+
+// ---------------------------------------------------------------- le hameau (génération : cabanes de pierre sèche en ruche, lampes, planches, claies)
+SOUT_GEN.push((w, rnd, B) => {
+  const S = souterrain;
+  S.creuseurs();
+  const hall = SOUT_PLAN.salles.find((q) => q[0] === 'hameau');
+  if (!hall) return;
+  const [, hx, hz] = hall;
+  const autour = w.props.filter((q) => q.ver === VER_SOUS && Math.abs(q.x - hx) < 110 && Math.abs(q.z - hz) < 100);
+  const V = { huttes: [], lampes: [], planches: [], claies: [], props: [] };
+  const occ = []; // [x, z, r]
+  const libre = (x, z, r) => { for (const q of autour) if (Math.hypot(q.x - x, q.z - z) < r + 0.8) return false; for (const [a, b, rr] of occ) if (Math.hypot(a - x, b - z) < r + rr) return false; return true; };
+  // un sol plat et libre de rayon r autour de (x, z) ? (écart de hauteur ≤ tol)
+  const plat = (x, z, r, tol) => {
+    const f0 = S.floorAt(x, z);
+    if (f0 > SOUT_ROCK - 1 || f0 < SOUT_WL + 0.35 || S.vaultAt(x, z) - f0 < 5) return null;
+    for (let a = 0; a < 10; a++) for (const d of [r * 0.5, r]) {
+      const b = a / 10 * TAU, xx = x + Math.cos(b) * d, zz = z + Math.sin(b) * d, f = S.floorAt(xx, zz);
+      if (Math.abs(f - f0) > tol || f < SOUT_WL + 0.3 || S.vaultAt(xx, zz) - f < 4.5) return null;
+    }
+    return libre(x, z, r) ? f0 : null;
+  };
+  const chercher = (x, z, r, tol, max) => { for (let k = 0; k < (max || 90); k++) { const a = k * 2.39996, d = Math.sqrt(k) * 1.3, xx = x + Math.cos(a) * d, zz = z + Math.sin(a) * d, f = plat(xx, zz, r, tol); if (f !== null) return [xx, zz, f]; } return null; };
+  const blocs0 = w.blocks.length;
+  const bloc = (F, lx, ly, lz, sx, sy, sz, m) => { B.block(F, lx, ly, lz, sx, sy, sz, m || M_COBBLE); const b = w.blocks[w.blocks.length - 1]; b.under = true; b.ver = VER_SOUS; return b; };
+  // une cabane en ruche : des anneaux de pierres qui se resserrent, une porte basse tournée vers (tx, tz)
+  const borie = (x, z, L0, niv, tx, tz) => {
+    const r = Math.atan2(tx - x, tz - z);
+    let fmin = 1e9;
+    for (let a = 0; a < 8; a++) for (const d of [0, L0 * 0.35, L0 * 0.55]) fmin = Math.min(fmin, S.floorAt(x + Math.cos(a / 8 * TAU) * d, z + Math.sin(a / 8 * TAU) * d));
+    const F = { x, y: fmin - 0.4, z, r }, t = 0.6, h = 0.6, porte = 1.05;
+    for (let k = 0; k < niv; k++) {
+      const L = L0 - k * 0.5, y = k * h;
+      if (L - 2 * t < 1.0) { bloc(F, 0, y, 0, L, h, L); continue; }
+      bloc(F, 0, y, -(L / 2 - t / 2), L, h, t);
+      if (k < 4) { const sw = (L - porte) / 2; bloc(F, -(porte / 2 + sw / 2), y, L / 2 - t / 2, sw, h, t); bloc(F, porte / 2 + sw / 2, y, L / 2 - t / 2, sw, h, t); }
+      else bloc(F, 0, y, L / 2 - t / 2, L, h, t);
+      bloc(F, -(L / 2 - t / 2), y, 0, t, h, L - 2 * t); bloc(F, L / 2 - t / 2, y, 0, t, h, L - 2 * t);
+    }
+    const [px, pz] = B.toWorld(F, 0, L0 / 2 + 1.3), [ix, iz] = B.toWorld(F, 0, -0.3);
+    occ.push([x, z, L0 / 2 + 0.6]);
+    return { x, z, r, y: S.floorAt(x, z), L: L0, F, porte: [px, pz], dedans: [ix, iz] };
+  };
+  // ------------------------------------------------ la place et la pierre au pain
+  const c = chercher(hx - 8, hz + 4, 2.4, 0.5) || [hx, hz, S.floorAt(hx, hz)];
+  V.c = [c[0], c[2], c[1]];
+  occ.push([c[0], c[1], 2.2]);
+  // ------------------------------------------------ l'entrée (la longue galerie arrive par l'ouest) : la pierre d'appel, les trois entailles
+  const lg = SOUT_PLAN.galeries.find((g) => g[0] === 'longue'), fin = lg[1][lg[1].length - 1], avant = lg[1][lg[1].length - 2];
+  const ex = fin[0] + (fin[0] - avant[0]) / Math.hypot(fin[0] - avant[0], fin[1] - avant[1]) * 9, ez = fin[1] + (fin[1] - avant[1]) / Math.hypot(fin[0] - avant[0], fin[1] - avant[1]) * 9;
+  const ap = chercher(ex, ez, 1.2, 0.8) || [ex, ez, S.floorAt(ex, ez)];
+  const rApp = Math.atan2(fin[0] - ap[0], fin[1] - ap[1]); // la face aux creux, tournée vers qui arrive
+  B.prop('sout_appel', ap[0], ap[2], ap[1], rApp, undefined, undefined, VER_SOUS);
+  B.inter('sout_appel', 'sout_appel', ap[0] + Math.sin(rApp) * 0.5, ap[2] + 0.75, ap[1] + Math.cos(rApp) * 0.5, 'La pierre', {});
+  B.prop('sout_entailles', ap[0] + Math.sin(rApp) * 0.49 + Math.cos(rApp) * 0.3, ap[2] + 0.9, ap[1] + Math.cos(rApp) * 0.49 - Math.sin(rApp) * 0.3, rApp, undefined, undefined, VER_SOUS);
+  occ.push([ap[0], ap[1], 1.4]);
+  V.appel = [ap[0], ap[2], ap[1], rApp];
+  const gd = [ap[0] + Math.sin(rApp + 1.9) * 2.2, ap[1] + Math.cos(rApp + 1.9) * 2.2];
+  V.garde = gd; V.entree = [fin[0], fin[1]];
+  // ------------------------------------------------ les cabanes (huit, dont celle du onzième) et la maison des encoches
+  const ang0 = Math.atan2(ap[0] - c[0], ap[1] - c[1]);
+  const ench = chercher(c[0] + Math.sin(ang0 + 1.9) * 21, c[1] + Math.cos(ang0 + 1.9) * 21, 4.4, 0.9, 140);
+  if (ench) { V.encoches = borie(ench[0], ench[1], 6.8, 10, c[0], c[1]); }
+  for (let i = 0; i < 8; i++) {
+    const a = ang0 + 0.55 + i * (TAU - 1.1) / 8 + (rnd() - 0.5) * 0.2, d = 15 + rnd() * 6;
+    const p = chercher(c[0] + Math.sin(a) * d, c[1] + Math.cos(a) * d, 3.1, 0.8, 120);
+    if (p) V.huttes.push(borie(p[0], p[1], 4.6, 7, c[0], c[1]));
+  }
+  // dans chaque cabane : une couche, une jarre, une petite lampe ; un rideau de feutre à la porte (sauf chez le onzième)
+  V.huttes.forEach((H, i) => {
+    const P = (id, lx, lz, rr, data) => B.propRel({ x: H.x, y: H.y, z: H.z, r: H.r }, id, lx, 0, lz, rr || 0, data, undefined, VER_SOUS);
+    P('sout_couche', -0.7, -0.4, 0.1);
+    if (i !== 7) {
+      P('sout_jarre', 1.0, -1.0); P('sout_lampe', 1.05, 0.7, 0, { h: 0.8 }); B.propRel({ x: H.x, y: H.y, z: H.z, r: H.r }, 'sout_rideau', 0, 0, H.L / 2 - 0.25, 0, undefined, undefined, VER_SOUS);
+      // une pierre plate devant la porte, pour s'asseoir
+      const [sx, sz] = B.toWorld(H.F, 0, H.L / 2 + 1.0);
+      B.prop('sout_siege', sx, S.floorAt(sx, sz), sz, H.r, undefined, undefined, VER_SOUS);
+    }
+  });
+  // la cabane du onzième (la dernière) : vide ; un carnet, une lanterne morte
+  const onz = V.huttes[7];
+  if (onz) {
+    const [cx, cz] = B.toWorld({ x: onz.x, z: onz.z, r: onz.r }, -0.7, -0.4);
+    B.inter('sout_carnet', 'sout_carnet', cx, onz.y + 0.35, cz, 'Un carnet', {});
+    V.carnet = [cx, onz.y, cz];
+  }
+  // la maison des encoches : les dalles, et le mur des jours
+  if (V.encoches) {
+    const H = V.encoches, F = { x: H.x, y: H.y, z: H.z, r: H.r };
+    const pl = [[-2.0, -1.6, 0.5], [0, -2.1, 0], [2.0, -1.6, -0.5], [-2.35, 0.3, 1.57], [2.35, 0.3, -1.57], [-2.2, 1.6, 1.57]];
+    SOUT_ENCOCHES.forEach(([k], i) => {
+      const [lx, lz, rr] = pl[i];
+      B.propRel(F, 'sout_encoches', lx, 0, lz, rr, { ins: SOUT_ENC_BY[k] }, undefined, VER_SOUS);
+      const [ix, iz] = B.toWorld(F, lx + Math.sin(rr) * 0.3, lz + Math.cos(rr) * 0.3);
+      B.inter('sout_enc', 'sout_enc_' + k, ix, H.y + 1.1, iz, 'Des encoches', { ins: k });
+    });
+    B.propRel(F, 'sout_lampe', -1.5, 0, 1.4, 0, { h: 1.4 }, undefined, VER_SOUS);
+    B.propRel(F, 'sout_couche', 1.3, 0, 1.2, 0.3, undefined, undefined, VER_SOUS);
+    B.propRel(F, 'sout_siege', 0, 0, -0.42, 0, undefined, undefined, VER_SOUS); // le siège du vieux, face à la porte
+    const [jx, jz] = B.toWorld(F, 1.1, -2.2);
+    B.inter('lire', 'sout_jours', jx, H.y + 1.3, jz, 'Le mur', { text: ['Le mur', 'Des encoches, par paquets de cinq, sur toute la paroi, du sol jusqu’où porte le bras : des milliers. Les plus hautes sont prises dans la calcite, comme sous du verre. Les plus basses sont fraîches ; la poussière de pierre y tient encore.', 'gravé dans la pierre'] });
+  }
+  // ------------------------------------------------ la pierre au pain
+  B.prop('sout_pierre_pain', c[0], c[2], c[1], ang0, { pain: 0 }, undefined, VER_SOUS);
+  V.pain = w.props.length - 1;
+  B.inter('sout_pain', 'sout_pain', c[0], c[2] + 0.85, c[1], 'La pierre au pain', {});
+  // ------------------------------------------------ les planches à champignons, les claies, le filet (vers l'eau), les lampes
+  for (let i = 0; i < 3; i++) {
+    const a = ang0 + (i - 1) * 0.42, p = chercher(c[0] + Math.sin(a) * 10, c[1] + Math.cos(a) * 10, 2.2, 0.6, 60);
+    if (p) { B.prop('sout_planche', p[0], p[2], p[1], a + Math.PI / 2, undefined, undefined, VER_SOUS); occ.push([p[0], p[1], 2.2]); V.planches.push([p[0], p[1]]); }
+  }
+  // la rive la plus proche de la place (l'eau tiède)
+  let rive = null;
+  for (let d = 8; d < 70 && !rive; d += 2) for (let a = 0; a < 24; a++) { const b = a / 24 * TAU, x = c[0] + Math.cos(b) * d, z = c[1] + Math.sin(b) * d; if (S.floorAt(x, z) < SOUT_WL - 0.4 && S.ouvert(x, z, 3)) { rive = [x, z]; break; } }
+  if (rive) {
+    // on recule vers la place jusqu'au sec
+    let [x, z] = rive; const dx = c[0] - x, dz = c[1] - z, L = Math.hypot(dx, dz);
+    for (let s = 0; s < L && S.floorAt(x, z) < SOUT_WL + 0.25; s += 0.5) { x += dx / L * 0.5; z += dz / L * 0.5; }
+    V.rive = [x, z, Math.atan2(-dx, -dz)];
+    for (const [off, id] of [[3.5, 'sout_claie'], [-3.5, 'sout_claie'], [0, 'sout_filet']]) {
+      const px = x + Math.cos(Math.atan2(-dx, -dz)) * off - dx / L * (id === 'sout_filet' ? -1.2 : 2.5), pz = z - Math.sin(Math.atan2(-dx, -dz)) * off - dz / L * (id === 'sout_filet' ? -1.2 : 2.5);
+      B.prop(id, px, S.floorAt(px, pz), pz, Math.atan2(-dx, -dz) + Math.PI / 2, undefined, undefined, VER_SOUS);
+      if (id === 'sout_claie') V.claies.push([px, pz]);
+    }
+  }
+  const lampe = (x, z, h) => { const p = chercher(x, z, 0.8, 0.8, 30); if (!p) return; B.prop('sout_lampe', p[0], p[2], p[1], rnd() * TAU, { h: h || 1.15 }, undefined, VER_SOUS); occ.push([p[0], p[1], 0.8]); V.lampes.push([p[0], p[1]]); };
+  for (let k = 0; k < 4; k++) { const a = ang0 + 0.8 + k * TAU / 4; lampe(c[0] + Math.sin(a) * 4.5, c[1] + Math.cos(a) * 4.5, 1.3); }
+  for (const H of V.huttes) lampe(lerp(H.porte[0], c[0], 0.35), lerp(H.porte[1], c[1], 0.35));
+  // le chemin de l'entrée : deux lampes seulement (la pierre d'appel reste dans le noir)
+  lampe(lerp(ap[0], c[0], 0.45), lerp(ap[1], c[1], 0.45)); lampe(lerp(ap[0], c[0], 0.75), lerp(ap[1], c[1], 0.75));
+  // ------------------------------------------------ les repères de la longue galerie : des tas de pierres entaillés, tous les cent cinquante mètres
+  const pts = lg[1];
+  let acc = 0, n = 0;
+  for (let i = pts.length - 1; i > 0; i--) {
+    const A = pts[i], Bq = pts[i - 1], L = Math.hypot(Bq[0] - A[0], Bq[1] - A[1]);
+    for (let s = 0; s < L; s += 5) {
+      acc += 5;
+      if (acc < 150) continue;
+      acc = 0;
+      const t = s / L, x0 = lerp(A[0], Bq[0], t), z0 = lerp(A[1], Bq[1], t), nx = -(Bq[1] - A[1]) / L, nz = (Bq[0] - A[0]) / L;
+      for (const side of [1, -1]) {
+        const x = x0 + nx * side * (A[3] * 0.62), z = z0 + nz * side * (A[3] * 0.62);
+        if (!S.ouvert(x, z, 1.5) || Math.abs(S.floorAt(x, z) - S.floorAt(x0, z0)) > 1.2) continue;
+        B.prop('sout_cairn', x, S.floorAt(x, z), z, Math.atan2(A[0] - Bq[0], A[1] - Bq[1]), { n: 3 }, undefined, VER_SOUS);
+        n++; break;
+      }
+    }
+  }
+  V.cairns = n;
+  // (les blocs d'en bas ne comptent pas dans l'ombre de là-haut)
+  let bx0 = 1e9, bz0 = 1e9, bx1 = -1e9, bz1 = -1e9;
+  for (let k = blocs0; k < w.blocks.length; k++) { const b = w.blocks[k]; bx0 = Math.min(bx0, b.x - 6); bz0 = Math.min(bz0, b.z - 6); bx1 = Math.max(bx1, b.x + 6); bz1 = Math.max(bz1, b.z + 6); }
+  if (bx1 > bx0) V.boite = [bx0, bz0, bx1, bz1];
+  B.landmark('sout_hameau_c', c[0], c[1], 30, { under: true, secret: true, y: c[2], souterrain: true });
+  w.soutVillage = V;
+});
+LIEU_NAMES.sout_hameau_c = 'le Hameau d’En-Bas';
+
+// ---------------------------------------------------------------- les pâles : vie, peur, paroles
+const soutTerres = {
+  list: [], cris: 0, entreT: 20, sonT: 0,
+  S() {
+    const S = souterrain.S();
+    const T = S.t || (S.t = {});
+    for (const [k, v] of [['mots', {}], ['noms', {}], ['ins', {}], ['mort', {}], ['dit', {}]]) if (!T[k] || typeof T[k] !== 'object') T[k] = v;
+    return T;
+  },
+  V() { return game.world && game.world.soutVillage; },
+  admis() { return !!this.S().admis && !this.deuil(); },
+  deuil() { return Object.keys(this.S().mort).length > 0; },
+  // une flamme sur soi (la lanterne à huile, celle de l'aube) : la pierre luisante ne compte pas
+  feu() { return !!(game.lantern && (farm.count('lanterne') || farm.count('lanterne_aube'))); },
+  nom(e) { return this.S().noms[e.k] ? e.g.nom : e.g.dit.charAt(0).toUpperCase() + e.g.dit.slice(1); },
+  // quelqu'un parle : sous-titre, murmure, et les mots entrent dans le carnet
+  dire(e, texte, ctx, dur) {
+    const p = game.player;
+    ui.subtitle(e ? this.nom(e) : '', '« ' + texte + ' »', dur || Math.min(6, 2 + texte.length * 0.05));
+    if (sound.mumble && e) sound.mumble(e.g.voix * 1.1, texte.length * 0.7, e.x - p.pos[0], 0.55);
+    if (e) e.parleT = 1.2 + texte.length * 0.04;
+    return soutParler.entendre(texte, ctx);
+  },
+
+  // ---------------------------------------------------------------- naissance (chaque descente), places
+  construire() {
+    const V = this.V();
+    this.list = [];
+    if (!V || !V.huttes || !V.huttes.length) return;
+    const T = this.S();
+    // les cabanes : chacun la plus proche de sa place (la dernière, celle du onzième, reste vide) ; l'enfant dort chez sa mère
+    const libres = V.huttes.slice(0, Math.max(1, V.huttes.length - 1)), prises = {};
+    const prendre = (x, z) => { let b = null, bd = 1e9; for (const H of libres) { const d = Math.hypot(H.x - x, H.z - z) + (Object.values(prises).includes(H) ? 1e4 : 0); if (d < bd) { bd = d; b = H; } } return b; };
+    for (const g of SOUT_GENS) {
+      if (g.k === 'un' || g.k === 'neu' || g.lieu === 'hutte') continue;
+      const P = this.place({ g, hutte: null });
+      prises[g.k] = prendre(P[0], P[1]);
+    }
+    for (const g of SOUT_GENS) if (g.lieu === 'hutte') prises[g.k] = prendre(V.c[0], V.c[2]);
+    prises.un = V.encoches || libres[0]; prises.neu = prises.sin || libres[0];
+    for (const g of SOUT_GENS) {
+      if (T.mort[g.k]) continue;
+      const hutte = prises[g.k] || libres[0];
+      let rig = humanRig(g.look);
+      if (g.look.bandeau) rig = rigPlus(rig, [{ name: 'bandeau', parent: 'head', p: [0, 0.15, 0.004], s: [0.3, 0.052, 0.3], col: rgbf('#3a3630'), tex: TL.cloth }]);
+      const e = { terre: true, k: g.k, g, rig, hutte, x: 0, y: 0, z: 0, heading: 0, etat: 'poste', t: Math.random() * 10, timer: 2 + Math.random() * 20, phase: 0, move: 0, hp: 20, parleT: 0 };
+      const P = this.poste(e);
+      e.x = P[0] + (Math.random() - 0.5); e.z = P[1] + (Math.random() - 0.5); e.y = souterrain.floorAt(e.x, e.z);
+      if (g.k === 'di') this.placerJeune(e, true);
+      this.list.push(e);
+    }
+  },
+  // la place de chacun (x, z, cap vers lequel il se tourne, pose) ; gardée tant qu'on ne l'oublie pas (e._poste = null)
+  poste(e) { return e._poste || (e._poste = this.place(e)); },
+  place(e) {
+    const V = this.V(), H = e.hutte, g = e.g;
+    const d = (a, b) => [a[0], a[1]];
+    switch (g.lieu) {
+      case 'encoches': return H ? [...d(H.dedans), H.r, 'sit'] : [V.c[0], V.c[2], 0, 'sit'];
+      case 'planches': { const p = V.planches[0] || [V.c[0], V.c[2]]; return [p[0] + 1.2, p[1] + 1.2, Math.atan2(p[0] - p[0] - 1.2, p[1] - p[1] - 1.2), 'work']; }
+      case 'pain': { const a = V.appel[3] + 3.4; return [V.c[0] + Math.sin(a) * 2.1, V.c[2] + Math.cos(a) * 2.1, a + Math.PI, 'stand']; }
+      case 'rive': return V.rive ? [V.rive[0], V.rive[1], V.rive[2], 'fish'] : [V.c[0] + 6, V.c[2], 0, 'stand'];
+      case 'appel': return [V.garde[0], V.garde[1], Math.atan2(V.entree[0] - V.garde[0], V.entree[1] - V.garde[1]), 'stand'];
+      case 'place': return [V.c[0] + 3, V.c[2] + 2, Math.random() * TAU, 'play'];
+      case 'tour': { const L = [...V.planches, ...V.claies, [V.c[0], V.c[2]]]; const p = L[(Math.random() * L.length) | 0] || [V.c[0], V.c[2]]; return [p[0] + 1.5, p[1] - 1.5, Math.random() * TAU, 'carry']; }
+      case 'route': return [V.entree[0], V.entree[1], 0, 'stand'];
+      default: return H ? [H.porte[0] + Math.sin(H.r) * -0.2, H.porte[1] + Math.cos(H.r) * -0.2, H.r, g.poste === 'travail' ? 'worksit' : 'sit'] : [V.c[0], V.c[2], 0, 'stand'];
+    }
+  },
+
+  // ---------------------------------------------------------------- le jeune : la longue galerie, jusqu'à ceux qui dorment
+  route() {
+    if (this._route) return this._route;
+    const lg = SOUT_PLAN.galeries.find((g) => g[0] === 'longue'), ch = SOUT_PLAN.galeries.find((g) => g[0] === 'chatiere'), dm = SOUT_PLAN.salles.find((q) => q[0] === 'dormeurs');
+    const pts = [];
+    const V = this.V();
+    if (V) pts.push([V.c[0], V.c[2]]);
+    for (let i = lg[1].length - 1; i >= 0; i--) { const q = lg[1][i]; pts.push([q[0], q[1]]); if (Math.abs(q[1] - 1760) < 3) break; }
+    for (const q of ch[1]) pts.push([q[0], q[1]]);
+    if (dm) pts.push([dm[1] - 8, dm[2] + 2]);
+    const L = [0];
+    for (let i = 1; i < pts.length; i++) L.push(L[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    return (this._route = { pts, L, tot: L[L.length - 1] });
+  },
+  surRoute(s) {
+    const R = this.route();
+    s = clamp(s, 0, R.tot);
+    let i = 1; while (i < R.L.length - 1 && R.L[i] < s) i++;
+    const t = (s - R.L[i - 1]) / Math.max(0.01, R.L[i] - R.L[i - 1]), A = R.pts[i - 1], B = R.pts[i];
+    return [lerp(A[0], B[0], t), lerp(A[1], B[1], t), Math.atan2(B[0] - A[0], B[1] - A[1])];
+  },
+  // (d'après l'heure : aller au hameau → les dormeurs, rester, revenir, rester ; une demi-heure réelle)
+  sJeune() {
+    const R = this.route(), v = 1.35, aller = R.tot / v, P = aller * 2 + 420, t = ((farm.s.hours || 0) * 50) % P;
+    if (t < 240) return [0, 0];
+    if (t < 240 + aller) return [(t - 240) * v, 1];
+    if (t < 420 + aller) return [R.tot, 0];
+    return [R.tot - (t - 420 - aller) * v, -1];
+  },
+  placerJeune(e, force) {
+    const [s, dir] = this.sJeune();
+    if (!force && Math.abs(s - (e.s || 0)) < 30) return;
+    e.s = s; e.dir = dir;
+    const [x, z, h] = this.surRoute(s);
+    e.x = x; e.z = z; e.y = souterrain.floorAt(x, z); e.heading = dir < 0 ? h + Math.PI : h;
+  },
+
+  // ---------------------------------------------------------------- chaque image
+  update(dt, playing) {
+    if (!souterrain.actif) { if (this.list.length) this.list = []; this.pret = false; return; }
+    const V = this.V();
+    if (!V) return;
+    if (!this.pret) { this.pret = true; this.construire(); }
+    if (!playing) return;
+    const p = game.player, T = this.S(), feu = this.feu();
+    const dv = Math.hypot(p.pos[0] - V.c[0], p.pos[2] - V.c[2]);
+    // le bruit : courir, tirer (voir souterrain.bruits)
+    const br = souterrain.bruitRecent ? souterrain.bruitRecent(3) : 0;
+    if (br >= 2.5 && dv < 45) this.colere = Math.max(this.colere || 0, 40);
+    else if (br >= 1.2 && dv < 28 && !(this.colere > 0)) { this.colere = 12; const q = this.list.find((e) => !e.mort && e.k !== 'di' && e.dist < 20); if (q && this.cris <= 0) { this.cris = 6; this.dire(q, 'Tsi !', 'tsi', 1.8); } }
+    this.colere = Math.max(0, (this.colere || 0) - dt);
+    this.cris = Math.max(0, this.cris - dt);
+    for (const e of this.list) {
+      e.t += dt; e.parleT = Math.max(0, e.parleT - dt); e.hurtT = Math.max(0, (e.hurtT || 0) - dt);
+      if (e.mort) { e.mortT = (e.mortT || 0) + dt; continue; }
+      e.dist = Math.hypot(e.x - p.pos[0], e.z - p.pos[2]);
+      if (e.k === 'di') { this.jeune(e, dt, p, feu); continue; }
+      if (dv > 170) continue;
+      this.vivre(e, dt, p, feu);
+    }
+    if (dv < 60) this.entreEux(dt, p, feu);
+  },
+  // aller vers (x, z) ; renvoie vrai quand on y est
+  marcher(e, dt, x, z, v) {
+    const dx = x - e.x, dz = z - e.z, d = Math.hypot(dx, dz);
+    if (d < 0.25) { e.move = Math.max(0, e.move - dt * 4); return true; }
+    e.heading = turnToward(e.heading, Math.atan2(dx, dz), dt * 6);
+    const st = Math.min(d, v * dt), nx = e.x + Math.sin(e.heading) * st, nz = e.z + Math.cos(e.heading) * st;
+    const f = souterrain.floorAt(nx, nz);
+    if (Math.abs(f - e.y) > 1.2 && d > 1) { e.heading += 0.8; return false; }
+    e.x = nx; e.z = nz; e.y = f; e.move = Math.min(1, v / 1.4); e.phase += dt * v * 2.3;
+    return false;
+  },
+  // un chemin : par la porte de la cabane si l'on est dedans, puis tout droit (le hameau est ouvert)
+  aller(e, but, v) {
+    const H = e.hutte, V = this.V();
+    const dedans = (h) => h && Math.hypot(e.x - h.x, e.z - h.z) < h.L / 2 - 0.2;
+    const hs = [...V.huttes, V.encoches].filter(Boolean);
+    const ici = hs.find(dedans), la = hs.find((h) => Math.hypot(but[0] - h.x, but[1] - h.z) < h.L / 2 - 0.2);
+    e.chemin = [];
+    if (ici && ici !== la) e.chemin.push([ici.porte[0], ici.porte[1]]);
+    if (la && la !== ici) e.chemin.push([la.porte[0], la.porte[1]]);
+    e.chemin.push([but[0], but[1]]);
+    e.v = v || 1.1;
+    void H;
+  },
+  suivre(e, dt) {
+    if (!e.chemin || !e.chemin.length) return true;
+    const [x, z] = e.chemin[0];
+    if (this.marcher(e, dt, x, z, e.v || 1.1)) e.chemin.shift();
+    return !e.chemin.length;
+  },
+  vivre(e, dt, p, feu) {
+    const T = this.S(), g = e.g, V = this.V();
+    const pres = feu && e.dist < 26, colere = this.colere > 0 && e.dist < 60;
+    // ---- la flamme, le bruit, un mort : on se cache
+    if ((pres || colere || this.deuil() || (e.hurtT > 0)) && e.etat !== 'cache' && e.etat !== 'fuite') {
+      if (pres && this.cris <= 0 && e.dist < 22) { this.cris = 7; this.dire(e, pick(['Tsi ! Lum ! Lum !', 'Zyeu ! Lum !', 'Lum ! Tsi !']), 'feu', 2.5); if (sound.whisper) sound.whisper(clamp((e.x - p.pos[0]) / 10, -1, 1), 1); }
+      e.etat = 'fuite'; this.aller(e, e.hutte ? e.hutte.dedans : [V.c[0], V.c[2]], 2.6);
+    }
+    if (e.etat === 'fuite') { if (this.suivre(e, dt)) { e.etat = 'cache'; e.calme = 0; } e.pose = 'run'; return; }
+    if (e.etat === 'cache') {
+      e.pose = 'cower'; e.move = 0;
+      if (e.hutte) e.heading = turnToward(e.heading, e.hutte.r + Math.PI, dt * 3);
+      if (!(feu && e.dist < 34) && this.colere <= 0 && !this.deuil()) { e.calme += dt; if (e.calme > 4 + (e.k.length % 3) * 1.5) { e.etat = 'retour'; const P = this.poste(e); this.aller(e, P, 1.0); } }
+      return;
+    }
+    // ---- le rituel : le guetteur vient à qui a frappé
+    if (e.etat === 'rituel') { e.pose = 'stand'; if (this.suivre(e, dt)) { e.heading = turnToward(e.heading, Math.atan2(p.pos[0] - e.x, p.pos[2] - e.z), dt * 5); if (!e.arrive) { e.arrive = true; this.rituelArrive(e); } } return; }
+    if (e.etat === 'viens') { e.pose = 'stand'; if (this.suivre(e, dt)) { e.heading = turnToward(e.heading, Math.atan2(p.pos[0] - e.x, p.pos[2] - e.z), dt * 4); e.timer -= dt; if (e.timer <= 0) { e.etat = 'retour'; this.aller(e, this.poste(e), 1.0); } } return; }
+    if (e.etat === 'pain') { e.pose = 'stand'; if (this.suivre(e, dt)) { e.heading = turnToward(e.heading, Math.atan2(V.c[0] - e.x, V.c[2] - e.z), dt * 4); e.pose = 'pray'; } return; }
+    // ---- aller à sa place (ou ailleurs, un moment), y faire ce qu'on y fait
+    if (e.etat === 'retour' || e.etat === 'va') {
+      e.pose = e.g.poste === 'porte' ? 'carry' : 'walk';
+      if (this.suivre(e, dt)) { const P = e.etat === 'va' && e.cible ? e.cible : this.poste(e); e.ailleurs = e.etat === 'va'; e.etat = 'poste'; e.timer = 20 + Math.random() * 45; e.cap = P[2]; e.pose = P[3]; }
+      return;
+    }
+    const P = this.poste(e);
+    if (e.cap === undefined) { e.cap = P[2]; e.pose = P[3]; }
+    e.timer -= dt; e.move = Math.max(0, e.move - dt * 3);
+    const regarde = (!this.admis() && e.dist < 9) || (this.admis() && e.dist < 4.5);
+    if (regarde) {
+      e.heading = turnToward(e.heading, Math.atan2(p.pos[0] - e.x, p.pos[2] - e.z), dt * 3);
+      if (!this.admis() && e.dist < 2.6 && e.k !== 'se') { const a = Math.atan2(e.x - p.pos[0], e.z - p.pos[2]); this.marcher(e, dt, e.x + Math.sin(a) * 2, e.z + Math.cos(a) * 2, 1.2); e.heading = turnToward(e.heading, a + Math.PI, dt * 8); e.move = 0.6; }
+      if (this.admis() && e.dist < 3.2 && !e.salue && !ui.panel) { e.salue = true; this.dire(e, pick(['Onz.', 'Bô, Onz.', 'Onz. Vyin.']), 'onz_toi', 2.5); }
+    } else e.heading = turnToward(e.heading, e.cap, dt * 2);
+    if (e.dist > 12) e.salue = false;
+    // l'enfant suit (une fois qu'on est des leurs)
+    if (e.g.enfant && this.admis() && e.dist < 14 && e.dist > 3.2 && !ui.panel) { e.pose = 'walk'; this.marcher(e, dt, p.pos[0], p.pos[2], 1.3); e.ailleurs = true; return; }
+    if (e.timer > 0 || regarde) return;
+    e.timer = 25 + Math.random() * 50;
+    if (e.ailleurs) { e.ailleurs = false; this.aller(e, P, 1.0); e.etat = 'retour'; return; }
+    // un tour : la place, les planches, les claies ; le porteur et l'enfant changent de place
+    if (e.g.lieu === 'tour' || e.g.enfant) { e._poste = null; this.aller(e, this.poste(e), e.g.enfant ? 1.5 : 1.0); e.etat = 'retour'; return; }
+    if (e.k !== 'se' && e.k !== 'un' && Math.random() < 0.45) {
+      const L = [[V.c[0] + (Math.random() - 0.5) * 6, V.c[2] + (Math.random() - 0.5) * 6], ...V.planches, ...V.claies], q = L[(Math.random() * L.length) | 0];
+      e.cible = [q[0] + 1, q[1] + 1, Math.random() * TAU, 'stand']; this.aller(e, e.cible, 1.0); e.etat = 'va';
+    }
+  },
+  // le jeune va et vient ; il s'arrête devant qui vient sans flamme ; il se sauve devant le feu
+  jeune(e, dt, p, feu) {
+    if (e.etat === 'fuite') {
+      e.pose = 'run';
+      const R = this.route(), a = this.surRoute(e.s);
+      e.s = clamp(e.s + e.fdir * 3 * dt, 0, R.tot);
+      const b = this.surRoute(e.s);
+      e.x = b[0]; e.z = b[1]; e.y = souterrain.floorAt(b[0], b[1]); e.heading = e.fdir > 0 ? b[2] : b[2] + Math.PI; e.move = 1; e.phase += dt * 7;
+      void a;
+      if (e.dist > 55 || e.s <= 0 || e.s >= R.tot) { e.etat = 'loin'; e.timer = 20; }
+      return;
+    }
+    if (e.dist > 70) { this.placerJeune(e); e.etat = 'route'; e.move = 0; return; }
+    if (feu && e.dist < 30) {
+      if (this.cris <= 0) { this.cris = 6; this.dire(e, 'Lum ! Tsi !', 'feu', 2.2); }
+      const ds = this.surRoute(Math.min(this.route().tot, (e.s || 0) + 5)), dPlus = Math.hypot(ds[0] - p.pos[0], ds[1] - p.pos[2]);
+      e.fdir = dPlus > e.dist ? 1 : -1; e.etat = 'fuite'; return;
+    }
+    if (e.etat === 'loin') { e.timer -= dt; e.move = 0; e.pose = 'stand'; if (e.timer <= 0) e.etat = 'route'; return; }
+    if (e.dist < 7) {
+      e.move = Math.max(0, e.move - dt * 4); e.pose = 'stand';
+      e.heading = turnToward(e.heading, Math.atan2(p.pos[0] - e.x, p.pos[2] - e.z), dt * 3);
+      if (!e.vuT) { e.vuT = 1; this.dire(e, this.admis() ? 'Onz.' : '…', this.admis() ? 'onz_toi' : 'jeune', 2); }
+      return;
+    }
+    if (e.dist > 14) e.vuT = 0;
+    // suivre la route (à sa vitesse, sans se téléporter tant qu'on le voit)
+    const [s, dir] = this.sJeune();
+    const R = this.route();
+    e.pose = 'walk';
+    if (Math.abs(s - (e.s || 0)) > 1) { const st = Math.sign(s - e.s) * Math.min(Math.abs(s - e.s), 1.35 * dt); e.s = clamp(e.s + st, 0, R.tot); const b = this.surRoute(e.s); e.x = b[0]; e.z = b[1]; e.y = souterrain.floorAt(b[0], b[1]); e.heading = turnToward(e.heading, st > 0 ? b[2] : b[2] + Math.PI, dt * 5); e.move = 1; e.phase += dt * 3.2; }
+    else { e.move = Math.max(0, e.move - dt * 3); e.pose = dir === 0 && e.s > R.tot - 1 ? 'pray' : 'stand'; }
+  },
+  // entre eux : de temps en temps, deux phrases, entendues de loin si l'on se tait
+  entreEux(dt, p, feu) {
+    this.entreT -= dt;
+    if (this.entreT > 0 || feu || ui.panel || this.colere > 0) return;
+    this.entreT = 22 + Math.random() * 30;
+    const libres = this.list.filter((e) => !e.mort && e.etat !== 'cache' && e.etat !== 'fuite' && e.dist < 20 && e.k !== 'di');
+    const L = SOUT_ENTRE.filter(([a, , b]) => libres.some((e) => e.k === a) && libres.some((e) => e.k === b));
+    if (!L.length) return;
+    const [a, t1, b, t2] = pick(L), A = libres.find((e) => e.k === a), Bq = libres.find((e) => e.k === b);
+    this.dire(A, t1, 'entre', 3);
+    A.heading = Math.atan2(Bq.x - A.x, Bq.z - A.z);
+    setTimeout(() => { if (souterrain.actif && !Bq.mort) { this.dire(Bq, t2, 'entre', 3); Bq.heading = Math.atan2(A.x - Bq.x, A.z - Bq.z); } }, 1800);
+    if (t1.startsWith('Neu') || t2.startsWith('Neu')) { const n = this.list.find((e) => e.k === 'neu'); if (n) this.S().noms.neu = 1; }
+  },
+
+  // ---------------------------------------------------------------- la pierre d'appel : trois coups, sans flamme ; et ne pas dire son nom
+  appeler(it) {
+    const T = this.S(), now = game.time;
+    sound.knock && sound.knock(1);
+    if (!T.appelVu) { T.appelVu = 1; }
+    this.coups = (this.coups || []).filter((t) => now - t < 6);
+    this.coups.push(now);
+    if (this.coups.length < 3 || this.attente) return;
+    this.coups = [];
+    this.attente = true;
+    setTimeout(() => { this.attente = false; this.reponse(); }, 2600);
+    void it;
+  },
+  reponse() {
+    const T = this.S(), p = game.player, se = this.list.find((e) => e.k === 'se' && !e.mort);
+    if (!souterrain.actif) return;
+    if (this.deuil()) { ui.subtitle('', '(Rien. Plus personne ne vient.)', 3); return; }
+    if (this.feu()) { if (se) this.dire(se, 'Tsi ! Lum !', 'feu', 2.5); else ui.subtitle('', '« Tsi ! Lum ! »', 2.5); return; }
+    if (!se) return;
+    if (T.refus === farm.s.day && !this.admis()) { return; }
+    if ((se.etat === 'cache' || se.etat === 'fuite') && this.colere > 0) return;
+    se.etat = 'rituel'; se.arrive = false;
+    const a = Math.atan2(se.x - p.pos[0], se.z - p.pos[2]);
+    this.aller(se, [p.pos[0] + Math.sin(a) * 1.1, p.pos[2] + Math.cos(a) * 1.1], 1.5);
+  },
+  rituelArrive(se) {
+    const T = this.S();
+    if (this.admis()) { this.dire(se, 'Onz.', 'onz_toi', 2); se.etat = 'retour'; this.aller(se, this.poste(se), 1.0); return; }
+    if (!T.touche) { T.touche = 1; ui.subtitle('', '(Des doigts froids vous effleurent le visage, les paupières, la bouche.)', 4); }
+    setTimeout(() => {
+      if (!souterrain.actif || se.mort) return;
+      this.dire(se, 'Ki ? … Nom ?', 'garde', 3.5);
+      const opts = [
+        { label: 'Dire votre nom', fn: () => { ui.close(); this.refuser(se); } },
+        { label: 'Ne rien dire', fn: () => { ui.close(); setTimeout(() => this.accepter(se, 'silence'), 2400); } },
+      ];
+      if (soutParler.connu('frè')) opts.push({ label: 'Dire « frè »', fn: () => { ui.close(); this.accepter(se, 'frè'); } });
+      if (soutParler.connu('onz')) opts.push({ label: 'Dire « onz »', fn: () => { ui.close(); this.accepter(se, 'onz'); } });
+      ui.choice('Dans le noir', '« Ki ? … Nom ? »', opts);
+    }, T.touche === 1 ? 2600 : 600);
+    T.touche = 2;
+  },
+  refuser(se) {
+    const T = this.S(), nom = (farm.s.prenom || '').trim() || '…';
+    ui.subtitle('Vous', '« ' + nom + '. »', 2.5);
+    setTimeout(() => { this.dire(se, 'Nom… d’sû. Va.', 'refus', 3); T.refus = farm.s.day; se.etat = 'retour'; this.aller(se, this.poste(se), 1.2); }, 1600);
+  },
+  accepter(se, comment) {
+    const T = this.S();
+    if (comment === 'frè') this.dire(se, 'Frè ? … Frè.', 'admis_frere', 3);
+    else if (comment === 'onz') this.dire(se, 'Onz ? … Onz.', 'onz_toi', 3);
+    else this.dire(se, '… Bô. San nom. Bô.', 'admis', 3.5);
+    T.admis = farm.s.day;
+    se.etat = 'retour'; this.aller(se, this.poste(se), 1.0);
+    // ils sortent des cabanes, viennent voir ; le vieux vous touche l'épaule
+    const V = this.V(), p = game.player;
+    for (const e of this.list) {
+      if (e.mort || e.k === 'se' || e.k === 'di') continue;
+      const a = Math.random() * TAU, r = 2 + Math.random() * 2.5;
+      e.etat = 'viens'; e.timer = 12 + Math.random() * 6; this.aller(e, [p.pos[0] + Math.sin(a) * r, p.pos[2] + Math.cos(a) * r], 1.0);
+    }
+    const un = this.list.find((e) => e.k === 'un' && !e.mort);
+    if (un) setTimeout(() => { if (souterrain.actif) { this.dire(un, 'Onz.', 'onz_toi', 3); } }, 7000);
+    void V;
+  },
+
+  // ---------------------------------------------------------------- parler (E sur l'un d'eux)
+  cibles(eye, f, cand) {
+    if (!souterrain.actif) return;
+    for (const e of this.list) {
+      if (e.mort) continue;
+      const h = 1.55 * e.g.look.height, dx = e.x - eye[0], dy = e.y + h * 0.8 - eye[1], dz = e.z - eye[2], d = Math.hypot(dx, dy, dz);
+      if (d > 2.8) continue;
+      const cos = (dx * f[0] + dy * f[1] + dz * f[2]) / (d || 1);
+      if (cos < 0.8) continue;
+      cand({ kind: 'hook', terre: e, use: () => this.parler(e) }, d * (1.5 - cos * 0.5));
+    }
+  },
+  parler(e) {
+    const T = this.S();
+    if (this.feu()) { if (this.cris <= 0) { this.cris = 4; this.dire(e, 'Tsi ! Lum !', 'feu', 2.2); } e.etat = 'fuite'; this.aller(e, e.hutte ? e.hutte.dedans : [e.x + 5, e.z], 2.6); return; }
+    if (e.etat === 'cache' || e.etat === 'fuite' || this.deuil()) { this.dire(e, 'Tsi !', 'tsi', 1.6); return; }
+    if (T.profane && T.profane > 0) { this.dire(e, e.g.enfant ? 'Gout… d’dôr !' : 'Nenn. Gout d’dôr. Nenn.', e.g.enfant ? 'profane' : 'nenn', 3); e.heading += Math.PI; return; }
+    if (!this.admis()) {
+      if (e.k === 'se' || e.k === 'di') { this.dire(e, 'Ki ?', 'garde', 2); return; }
+      this.dire(e, 'Nenn.', 'nenn', 1.8); return;
+    }
+    e.heading = Math.atan2(game.player.pos[0] - e.x, game.player.pos[2] - e.z);
+    this.panneau(e, null);
+  },
+  // le panneau : ce qu'il dit, et ce qu'on peut faire
+  panneau(e, phrase) {
+    const T = this.S();
+    if (!phrase) { const L = SOUT_DIRE[e.k] || [['…', 'echo']]; phrase = pick(L); }
+    const [texte, ctx] = phrase;
+    soutParler.entendre(texte, ctx);
+    if (sound.mumble) sound.mumble(e.g.voix * 1.1, texte.length * 0.7, 0, 0.5);
+    e.parleT = 1.5;
+    const opts = [{ label: 'Écouter', fn: () => this.panneau(e, null) }];
+    if (soutParler.entendus().length) opts.push({ label: 'Dire un mot…', fn: () => this.mots(e) });
+    if (e.k === 'tre') opts.push({ label: 'Montrer ce que vous avez', fn: () => this.troc(e) });
+    if (farm.count('pain') && e.k !== 'tre') opts.push({ label: 'Donner un pain', fn: () => this.donPain(e) });
+    opts.push({ label: 'S’éloigner', fn: () => ui.close() });
+    ui.choice(this.nom(e), '« ' + texte + ' »', opts);
+    void T;
+  },
+  // les mots entendus, par pages de dix
+  mots(e, page) {
+    const T = soutParler.entendus(), n = 10, pg = page || 0, L = T.slice(pg * n, pg * n + n);
+    const O = L.map((m) => ({ label: '« ' + m + ' »', fn: () => this.reagir(e, m) }));
+    if (T.length > (pg + 1) * n) O.push({ label: 'D’autres mots…', fn: () => this.mots(e, pg + 1) });
+    else if (pg > 0) O.push({ label: 'Les premiers mots…', fn: () => this.mots(e, 0) });
+    O.push({ label: 'Aucun', fn: () => this.panneau(e, ['…', 'echo']) });
+    ui.choice(this.nom(e), 'Quel mot ?', O);
+  },
+  // chacun réagit aux mots qu'on lui dit
+  reagir(e, m) {
+    const T = this.S(), k = e.k, p = game.player;
+    const R = (t, c) => this.panneau(e, [t, c]);
+    const num = SOUT_NUM[m];
+    if (num === k) { T.noms[k] = 1; return R(e.g.nom + '.', 'soi'); }
+    if (num === 'onz') {
+      if (k === 'un' && (T.dons || 0) > 0) return this.liste(e);
+      return R('Onz.', 'onz_toi');
+    }
+    if (num) {
+      const autre = this.list.find((q) => q.k === num && !q.mort);
+      if (!autre) return R('… ' + SOUT_GENS_BY[num].nom + '. Mo.', 'mo');
+      T.noms[num] = 1; e.heading = Math.atan2(autre.x - e.x, autre.z - e.z);
+      if (autre.dist < 30) autre.heading = Math.atan2(e.x - autre.x, e.z - autre.z);
+      return R(autre.g.nom + '.', 'autre');
+    }
+    switch (m) {
+      case 'nom': return R('Tsi !', 'tabou');
+      case 'lum': return k === 'un' ? R('Lum… mo.', 'feu_vieux') : R('Tsi. Lum nenn.', 'nenn');
+      case 'zyeu': return R('Zyeu… lum nenn.', 'nenn');
+      case 'lui':
+        if (e.g.enfant && !T.cadeauEnfant) { T.cadeauEnfant = 1; farm.give('mousse_luisante', 1); play.flyer && play.flyer('mousse_luisante', [e.x, e.y + 0.8, e.z], 1); return R('Lui ! Lui !', 'enfant_lui'); }
+        return R('Lui bô.', 'lui');
+      case 'pan': return k === 'tre' ? this.troc(e) : R('Pan ?', 'pan_main');
+      case 'sèl': return R(farm.count('sel') ? 'Sèl ?' : 'Sèl… nenn.', 'pan_main');
+      case 'sou': return R('Sou ? Nenn.', 'sou');
+      case 'hoûm':
+        if (e.g.enfant) { this.dire(e, 'Hoûm !', 'enfant_houm', 2); ui.close(); e.etat = 'fuite'; this.aller(e, e.hutte ? e.hutte.dedans : [e.x + 4, e.z], 2.6); return; }
+        return R('Hoûm ouï. Tsi, tsi.', 'houm');
+      case 'mo': return k === 'un' ? R('Mo… dôr. Gout.', 'mo') : k === 'di' ? R('Mo dôr.', 'jeune') : R('…', 'echo');
+      case 'dôr': return k === 'deu' ? R('Dôr, dôr… dôr, gout…', 'dor') : R('Dôr.', 'echo');
+      case 'd’sû':
+        if (k === 'un') return R('D’sû… mo.', 'dsu');
+        if (k === 'se') return this.guide(e);
+        return R('Tsi.', 'tsi');
+      case 'd’sou': return R('D’sou. Bô.', 'echo');
+      case 'pèst': return k === 'un' ? this.pest(e) : R('Tsi !', 'tabou');
+      case 'mûr': return k === 'un' ? R('Mûr. Onz mûr.', 'mur') : R('Mûr… onz.', 'echo');
+      case 'grî': return k === 'un' ? R('Grî… trè koû.', 'gri') : k === 'se' ? R('Grî. Koû, koû, koû.', 'gri') : R('…', 'echo');
+      case 'koû': return R('Trè koû.', 'gri');
+      case 'frè': return R('Frè.', 'onz_toi');
+      case 'gout': return k === 'katr' ? this.pecheur(e) : R('Gout bô.', 'gout');
+      case 'manj': return (k === 'katr' || k === 'deu') ? this.pecheur(e) : R('Manj ? … Pan.', 'pan_main');
+      case 'vyin': return R('Vyin.', 'vyin');
+      case 'va': return R('Va ?', 'echo');
+      case 'ki': return R('Onz.', 'onz_toi');
+      case 'tsi': return R('Tsi.', 'tsi');
+      case 'ouï': case 'nenn': case 'bô': case 'san': case 'tojor': return R(m.charAt(0).toUpperCase() + m.slice(1) + ' ?', 'echo');
+      default: return R('…', 'echo');
+    }
+    void p;
+  },
+  // le pêcheur, la vieille : de quoi manger, une fois par jour
+  pecheur(e) {
+    const T = this.S();
+    if (T.manj === farm.s.day) return this.panneau(e, ['Nenn. Manj nenn.', 'nenn']);
+    T.manj = farm.s.day;
+    const id = e.k === 'katr' ? 'algue_blanche' : 'pied_pierre';
+    farm.give(id, 2); play.flyer && play.flyer(id, [e.x, e.y + 0.8, e.z], 2);
+    return this.panneau(e, ['Manj.', 'manj']);
+  },
+  // le vieux : la peau pliée, où sont écrits les onze
+  liste(e) {
+    const T = this.S();
+    soutParler.entendre('Onz. Mûr. Pan nenn. D’sou.', 'liste');
+    ui.close();
+    this.dire(e, 'Onz. Mûr. Pan nenn. D’sou.', 'liste', 4);
+    setTimeout(() => {
+      T.liste = (T.liste || 0) + 1;
+      ui.read('Une peau pliée', 'Une peau de chèvre grattée, pliée dans un linge qui tombe en poussière. Dessus, à l’encre brune, d’une écriture de clerc :\n\nJehan Mauduit, tisserand.\nPerrine, sa femme.\nGuillemette, leur fille.\nDenis Crochard, tonnelier.\nMichel Vaudrey, dit le Sourd.\nCatherine Lebrun, veuve.\nPierre Gaudin, clerc, qui écrit ceci.\nMarguerite Gaudin, sa sœur.\nJacquette, servante chez Lebrun.\nÉtienne Roux, compagnon.\nNicolas, onze ans, sans autre nom.\n\nSous chaque nom, des encoches, par cinq, serrées, qui débordent dans les marges et continuent au dos. Sous le dernier, elles s’arrêtent.', 'Le vieux la replie sans un mot. Puis il vous regarde.');
+    }, 2200);
+  },
+  // le vieux : « pèst… d'sû ? »
+  pest(e) {
+    const T = this.S();
+    soutParler.entendre('Pèst… d’sû ?', 'pest');
+    const opts = [];
+    if (soutParler.connu('ouï')) opts.push({ label: 'Dire « ouï »', fn: () => this.panneau(e, ['… Ouï. D’sû mo. Tojor.', 'pest_ouï']) });
+    if (soutParler.connu('nenn')) opts.push({ label: 'Dire « nenn »', fn: () => {
+      if (T.pest) return this.panneau(e, ['Nenn…', 'pest_nenn']);
+      ui.close();
+      this.dire(e, 'Nenn ?', 'pest', 2);
+      setTimeout(() => {
+        if (!souterrain.actif) return;
+        T.pest = farm.s.day;
+        this.dire(e, 'Pèst nenn… D’sû. Va.', 'pest_nenn', 4);
+        farm.give('baton_encoches', 1); play.flyer && play.flyer('baton_encoches', [e.x, e.y + 0.8, e.z], 1);
+        ui.subtitle('', '(Il vous met dans la main un bâton poli, couvert d’encoches.)', 4);
+      }, 4200);
+    } });
+    opts.push({ label: 'Ne rien dire', fn: () => this.panneau(e, ['…', 'echo']) });
+    ui.choice(this.nom(e), '« Pèst… d’sû ? »', opts);
+  },
+  // le guetteur : il ramène au pied du puits
+  guide(e) {
+    ui.choice(this.nom(e), '« D’sû ? … Vyin. »', [
+      { label: 'Le suivre', fn: async () => {
+        ui.close();
+        soutParler.entendre('D’sû ? Vyin.', 'guide');
+        const w = game.world, P = w.sout && w.sout.pied;
+        if (!P) return;
+        await ui.fade(true, 'Il vous prend la main. Vous marchez longtemps dans le noir ; il ne se trompe jamais.', 900);
+        await new Promise((r) => setTimeout(r, 2200));
+        const p = game.player; p.pos = P.slice(); p.vel = [0, 0, 0];
+        await ui.fade(false, '', 900);
+      } },
+      { label: 'Rester', fn: () => this.panneau(e, ['Bô.', 'echo']) },
+    ]);
+    soutParler.entendre('D’sû ? Vyin.', 'guide');
+  },
+  // donner un pain (à n'importe lequel) : ils le serrent contre eux
+  donPain(e) {
+    if (!farm.take('pain', 1)) return;
+    const T = this.S();
+    T.donnes = (T.donnes || 0) + 1;
+    this.panneau(e, ['Pan… bô, bô.', 'pan_don']);
+  },
+  // la femme au pain : le troc (du pain, du sel ; pas de sous)
+  troc(e) {
+    const T = this.S(), n = farm.count('pain');
+    const O = [];
+    const t = (label, need, give, fn) => O.push({ label, fn: () => {
+      for (const id in need) if (farm.count(id) < need[id]) return this.panneau(e, ['Nenn.', 'nenn']);
+      for (const id in need) farm.take(id, need[id]);
+      for (const id in give) { farm.give(id, give[id]); play.flyer && play.flyer(id, [e.x, e.y + 0.9, e.z], give[id]); }
+      if (fn) fn();
+      sound.pop && sound.pop();
+      this.panneau(e, need.pain ? ['Pan… bô.', 'pan_don'] : need.sel ? ['Sèl !', 'sel'] : ['Bô.', 'echo']);
+    } });
+    t('Deux pains contre une pierre qui luit', { pain: 2 }, { luisante: 1 });
+    t('Un pain contre des pieds-de-pierre grillés', { pain: 1 }, { pied_pierre_grille: 1 });
+    t('Quatre pains contre une perle', { pain: 4 }, { perle_caverne: 1 });
+    if (farm.count('sel')) t('Du sel contre des pieds-de-pierre', { sel: 1 }, { pied_pierre: 2 });
+    if (!T.aiguille) t('Trois pains et une pierre noire contre l’aiguille dans la coquille', { pain: 3, magnetite: 1 }, { aiguille_lui: 1 }, () => { T.aiguille = farm.s.day; });
+    if (farm.s.money > 0) O.push({ label: 'Montrer des pièces', fn: () => this.panneau(e, ['Sou ? Nenn.', 'sou']) });
+    O.push({ label: 'Rien', fn: () => this.panneau(e, ['Pan ?', 'pan_main']) });
+    ui.choice(this.nom(e), n ? '« Pan ? » Elle ouvre la main.' : '« Pan ? » Elle ouvre la main, regarde la vôtre, la referme.', O);
+    soutParler.entendre('Pan ?', 'pan_main');
+  },
+
+  // ---------------------------------------------------------------- la pierre au pain : le pain rompu en onze
+  pierrePain() {
+    const T = this.S(), V = this.V(), w = game.world;
+    if (!this.admis()) { ui.subtitle('', '(Une table de pierre. Onze creux usés sur le bord.)', 3); return; }
+    if (this.feu()) { ui.subtitle('', '« Tsi ! Lum ! »', 2.2); soutParler.entendre('Tsi ! Lum !', 'feu'); return; }
+    if (!farm.count('pain')) { ui.subtitle('', '(Onze creux, usés, sur le bord de la pierre.)', 2.5); return; }
+    if (this.rompre) return;
+    farm.take('pain', 1);
+    const q = w.props[V.pain];
+    if (q) farm.setPropData(q, { pain: 1 });
+    this.rompre = true;
+    for (const e of this.list) { if (e.mort || e.k === 'di') continue; const a = Math.random() * TAU; e.etat = 'pain'; this.aller(e, [V.c[0] + Math.sin(a) * 2.2, V.c[2] + Math.cos(a) * 2.2], 1.1); }
+    setTimeout(() => {
+      this.rompre = false;
+      if (q) farm.setPropData(q, { pain: 0 });
+      if (!souterrain.actif) return;
+      T.dons = (T.dons || 0) + 1;
+      const un = this.list.find((e) => e.k === 'un' && !e.mort);
+      if (un) this.dire(un, 'Pan. Onz.', 'pan_don', 3);
+      ui.subtitle('', '(Ils le rompent en onze. Une part reste sur la pierre, devant vous.)', 4.5);
+      for (const e of this.list) if (e.etat === 'pain') { e.etat = 'retour'; this.aller(e, this.poste(e), 1.0); }
+    }, 9000);
+  },
+
+  // ---------------------------------------------------------------- les coups (armes) : ils fuient ; un mort, et le hameau se tait pour toujours
+  raycast(o, d, maxDist) {
+    let best = null;
+    const dh = Math.hypot(d[0], d[2]) || 1e-6;
+    for (const e of this.list) {
+      if (e.mort) continue;
+      const cx = e.x - o[0], cz = e.z - o[2], tc = (cx * d[0] + cz * d[2]) / (dh * dh);
+      if (tc < 0 || tc > maxDist) continue;
+      const px = d[0] * tc - cx, pz = d[2] * tc - cz;
+      if (px * px + pz * pz > 0.3 * 0.3) continue;
+      const y = o[1] + d[1] * tc, h = 1.75 * e.g.look.height;
+      if (y < e.y || y > e.y + h) continue;
+      if (!best || tc < best.t) best = { t: tc, s: e, p: [o[0] + d[0] * tc, y, o[2] + d[2] * tc] };
+    }
+    return best;
+  },
+  frapper(e, dmg) {
+    if (e.mort) return;
+    e.hp -= dmg; e.hurtT = 3;
+    this.colere = 120;
+    sound.hurtHuman && sound.hurtHuman(e.g.voix);
+    if (e.hp > 0) { this.dire(e, 'Tsi !!', 'tabou', 2); return; }
+    e.mort = true; e.mortT = 0;
+    const T = this.S();
+    T.mort[e.k] = farm.s.day;
+    if (typeof bloodAt === 'function') try { bloodAt(e.x, e.y + 0.5, e.z); } catch (err) { /* rien */ }
+  },
+
+  // ---------------------------------------------------------------- dessin
+  dessiner(buf, sbuf, cam, t) {
+    if (!souterrain.actif) return;
+    for (const e of this.list) {
+      const dx = e.x - cam[0], dz = e.z - cam[2];
+      if (dx * dx + dz * dz > 70 * 70) continue;
+      const po = e.pose || 'stand', r = e.rig, st = { move: e.move, phase: e.phase, t: t + e.t, run: po === 'run' };
+      if (po === 'sit' || po === 'worksit') st.sit = true;
+      if (po === 'work' || po === 'worksit') st.work = true;
+      if (po === 'fish') st.fish = true;
+      if (po === 'carry') st.carry = true;
+      if (po === 'cower') st.cower = true;
+      if (po === 'pray') st.pray = true;
+      if (e.parleT > 0) st.talk = true;
+      if (po === 'stand' && e.dist < 6) { const a = angDiff(e.heading, Math.atan2(game.player.pos[0] - e.x, game.player.pos[2] - e.z)); st.lookY = clamp(a, -1.1, 1.1); st.lookP = -0.1; }
+      if (e.k === 'un' && po === 'sit') st.nod = true;
+      poseHuman(r, st);
+      const fl = (e.hurtT > 2.7 || (game.target && game.target.terre === e)) ? FX_HI : 0;
+      if (e.mort) { // (étendu ; au bout d'un moment, on ne le voit plus : ils l'ont emporté)
+        if (e.mortT < 40) { const M = e._M || (e._M = [new Float32Array(12), new Float32Array(12), new Float32Array(12)]); m34Root(M[0], e.x, e.y + 0.14, e.z, e.heading, e.g.look.height || 1); m34TR(M[1], 0, 0, 0, -Math.PI / 2, 0, 0); m34Mul(M[2], M[0], M[1]); drawRigM(buf, r, M[2], fl); }
+        continue;
+      }
+      drawRig(buf, r, e.x, e.y, e.z, e.heading, e.g.look.height || 1, fl);
+      if (sbuf) drawShadow(sbuf, e.x, e.y, e.z, 0.32 * (e.g.look.height || 1));
+    }
+  },
+  // la pierre verte du jeune
+  lumieres(eye) {
+    const L = [];
+    if (!souterrain.actif) return L;
+    const j = this.list.find((e) => e.k === 'di' && !e.mort);
+    if (j && Math.hypot(j.x - eye[0], j.z - eye[2]) < 70) {
+      const a = j.heading + 0.5;
+      L.push({ x: j.x + Math.sin(a) * 0.35, y: j.y + 1.0, z: j.z + Math.cos(a) * 0.35, r: 7, c: [0.12, 0.5, 0.36], d: 0.02 });
+    }
+    return L;
+  },
+};
+HOOKS.update.push((dt, eye, basis, sky, playing) => { if (farm.s) soutTerres.update(dt, playing); });
+HOOKS.draw.push((buf, sbuf, cam, t) => soutTerres.dessiner(buf, sbuf, cam, t));
+HOOKS.target.push((eye, f, cand) => soutTerres.cibles(eye, f, cand));
+HOOKS.lights.push((eye) => soutTerres.lumieres(eye));
+HOOKS.load.push(() => { soutTerres.list = []; soutTerres.pret = false; soutTerres.colere = 0; soutTerres.rompre = false; soutTerres.attente = false; if (farm.s) soutTerres.S(); });
+HOOKS.inter.sout_appel = (it) => soutTerres.appeler(it);
+HOOKS.inter.sout_pain = () => soutTerres.pierrePain();
+HOOKS.inter.sout_enc = (it) => soutParler.lire(it.data.ins);
+HOOKS.inter.sout_carnet = () => soutCarnet.prendre();
+{
+  const _ray = strange.raycast.bind(strange), _hit = strange.hit.bind(strange);
+  strange.raycast = function (o, d, maxDist) {
+    const a = _ray(o, d, maxDist);
+    if (!souterrain.actif || !soutTerres.list.length) return a;
+    const b = soutTerres.raycast(o, d, a ? a.t : maxDist);
+    return b && (!a || b.t < a.t) ? b : a;
+  };
+  strange.hit = function (e, dmg, from) { if (e && e.terre) return soutTerres.frapper(e, dmg); return _hit(e, dmg, from); };
+}
+// quand on dit « nenn », « ouï » (etc.) il faut les avoir entendus : les mots de réponse viennent d'eux
+
+// ---------------------------------------------------------------- le carnet du onzième (dans la cabane vide)
+const soutCarnet = {
+  PAGES: [
+    '3 avril 1872. Descendu par le vieux puits, sous l’éboulement de la mine, contre l’avis de tous. Des galeries plus anciennes que la mine elle-même, taillées sans fer, dirait-on. Je laisse une flèche au charbon à chaque carrefour, la pointe vers le retour.',
+    '5 avril. Une lumière verte, loin devant, qui s’est éteinte quand j’ai levé ma lampe. Puis des pas, pieds nus, qui s’éloignaient.',
+    '9 avril. Ils ont peur de la flamme. J’ai frappé à une pierre, comme j’avais vu faire. On m’a demandé quelque chose, deux fois. Je n’ai pas compris ; je me suis tu. On m’a pris la main.',
+    'Mai ? Je ne sais plus les jours. Ils ne disent pas les noms. Le vieux compte sur ses doigts jusqu’à onze, et il s’arrête sur moi.',
+    'Ma lampe est vide. Ils n’aiment pas que j’en parle. On m’a donné une pierre qui luit, quand on l’a portée au jour. Il n’y a pas de jour.',
+    'Je note ce qui revient. Lum. Tsi. Pan. Je ne suis sûr de rien. Pan revient chaque fois qu’on me regarde les mains.',
+    'Il y a quelque chose à l’est, dans les salles où l’écho répète. Ils se taisent quand on va par là. Hoûm. Il ne faut pas courir.',
+    'La mère du petit m’a coupé les cheveux. Le vieux m’a touché l’épaule. Onz. J’ai répondu.',
+    'd’sû bô ? onz dôr',
+  ],
+  prendre() {
+    const S = souterrain.S();
+    if (S.carnet) { ui.subtitle('', '(La couche est vide. Elle a gardé une forme.)', 3); return; }
+    S.carnet = farm.s.day;
+    farm.give('carnet_onz', 1);
+    play.flyer && play.flyer('carnet_onz', game.player.eyePos(), 1);
+    ui.subtitle('', '(Sous la couche, un carnet enveloppé de toile cirée.)', 3.5);
+  },
+  lire() {
+    ui.read('Un carnet de géomètre', this.PAGES.join('\n\n'), 'Les dernières pages sont presque vides. L’écriture y est de plus en plus grande.');
+    soutParler.entendre('Lum. Tsi. Pan. Hoûm. Onz.', 'carnet');
+  },
+};
+SOUT_CTX.carnet = 'lu dans le carnet trouvé dans la cabane vide';
+HOOKS.primary.push((eye, basis, held, it, id) => {
+  if (held) return false;
+  if (id === 'carnet_onz') { soutCarnet.lire(); play.cool = 0.4; return true; }
+  if (id === 'aiguille_lui') { soutTerres.aiguille(); play.cool = 0.6; return true; }
+  if (id === 'baton_encoches') { soutTerres.baton(); play.cool = 0.6; return true; }
+  return false;
+});
+
+// ---------------------------------------------------------------- l'aiguille (elle montre le hameau), le bâton (il dit le chemin d'en haut)
+Object.assign(soutTerres, {
+  // où est (x, z) par rapport au regard : en mots
+  direction(x, z) {
+    const p = game.player, a = angDiff(p.yaw + Math.PI, Math.atan2(x - p.pos[0], z - p.pos[2])), d = Math.hypot(x - p.pos[0], z - p.pos[2]);
+    const A = Math.abs(a), cote = a > 0 ? 'à gauche' : 'à droite';
+    const dir = A < 0.3 ? 'droit devant vous' : A < 0.9 ? 'un peu ' + cote : A < 2.2 ? cote : A < 2.8 ? 'derrière vous, ' + cote : 'derrière vous';
+    const loin = d < 40 ? 'tout près' : d < 160 ? 'pas loin' : d < 500 ? 'loin' : 'très loin';
+    return [dir, loin];
+  },
+  aiguille() {
+    const V = this.V();
+    if (!souterrain.actif || !V) { ui.subtitle('', '(L’aiguille tourne, lentement, sans jamais s’arrêter.)', 3); return; }
+    const [dir, loin] = this.direction(V.c[0], V.c[2]);
+    ui.subtitle('', `(L’aiguille frissonne, puis se fixe : ${dir}.)`, 3.5);
+    void loin;
+  },
+  // les sorties connues : le pied du puits, et celles que d'autres modules ajoutent (souterrain.sorties)
+  baton() {
+    const w = game.world;
+    if (!souterrain.actif || !w.sout) { ui.subtitle('', '(Des encoches, des nœuds. Ici, ils ne disent rien.)', 3); return; }
+    const L = [w.sout.pied].concat((souterrain.sorties || []).map((s) => s.bas)).filter(Boolean);
+    const p = game.player;
+    let best = null, bd = 1e9;
+    for (const q of L) { const d = Math.hypot(q[0] - p.pos[0], q[2] - p.pos[2]); if (d < bd) { bd = d; best = q; } }
+    if (!best) return;
+    const [dir, loin] = this.direction(best[0], best[2]);
+    ui.subtitle('', `(Sous les doigts, les encoches disent : ${dir}, ${loin}.)`, 3.5);
+  },
+});
+
+// ---------------------------------------------------------------- les bruits d'en bas (courir, tirer, casser) : pour ceux qui écoutent
+Object.assign(souterrain, {
+  bruits: [],
+  bruitN: 0,
+  bruit(x, z, k) { if (!this.actif) return; this.bruits.push([game.time, x, z, k, ++this.bruitN]); if (this.bruits.length > 40) this.bruits.shift(); },
+  // le plus fort bruit de ces dernières secondes
+  bruitRecent(sec) { let m = 0; for (const [t, , , k] of this.bruits) if (game.time - t < sec && k > m) m = k; return m; },
+});
+{
+  const envelopper = (nom, k) => { const f = sound[nom]; if (typeof f !== 'function') return; sound[nom] = function (...a) { try { const p = game.player; if (p && souterrain.actif) souterrain.bruit(p.pos[0], p.pos[2], k); } catch (e) { /* rien */ } return f.apply(this, a); }; };
+  envelopper('shot', 3);
+  envelopper('land', 0.8);
+}
+HOOKS.update.push((dt) => {
+  if (!souterrain.actif) return;
+  const p = game.player;
+  souterrain.bruitT = (souterrain.bruitT || 0) - dt;
+  if (souterrain.bruitT > 0) return;
+  souterrain.bruitT = 0.5;
+  const v = Math.hypot(p.vel[0], p.vel[2]);
+  if (p.sprinting && v > 3) souterrain.bruit(p.pos[0], p.pos[2], 1.2);
+  else if (v > 1.5 && !(p.crouch > 0.5)) souterrain.bruit(p.pos[0], p.pos[2], 0.35);
+});
+// ---------------------------------------------------------------- dans les grandes salles, le noir porte plus loin (le brouillard recule) ; au hameau, il verdit
+Object.assign(souterrain, {
+  // la salle (ou le lac) du plan où l'on se trouve vraiment (dans l'ellipse), sinon null
+  salleIci(x, z) {
+    for (const L of [SOUT_PLAN.salles, SOUT_PLAN.lacs]) for (const [key, cx, cz, rx, rz, rot] of L) {
+      const co = Math.cos(rot || 0), si = Math.sin(rot || 0), dx = x - cx, dz = z - cz, lx = dx * co - dz * si, lz = dx * si + dz * co;
+      if ((lx / rx) * (lx / rx) + (lz / rz) * (lz / rz) < 1.1) return key;
+    }
+    return null;
+  },
+});
+{
+  const GRANDES = ['nef', 'hameau', 'lac', 'lac_tiede', 'ruines', 'gouffres', 'echos', 'orgues'];
+  const _cf = souterrain.cielFx;
+  souterrain.cielFx = function (sky) {
+    if (_cf) _cf.call(this, sky);
+    const p = game.player;
+    if (!p) return;
+    this._salleT = (this._salleT || 0) - 1;
+    if (this._salleT <= 0) { this._salleT = 20; this._salle = this.salleIci(p.pos[0], p.pos[2]); }
+    const k = this._salle, big = GRANDES.includes(k) ? 1 : 0, vert = k === 'hameau' ? 1 : 0;
+    this._fogK = lerp(this._fogK || 0, big, 0.02); this._vertK = lerp(this._vertK || 0, vert, 0.02);
+    sky.fog = [5 + 5 * this._fogK, 78 + 52 * this._fogK];
+    sky.amb = [sky.amb[0] - 0.004 * this._vertK, sky.amb[1] + 0.008 * this._vertK, sky.amb[2] + 0.001 * this._vertK];
+  };
+}
+// (l'ombre de là-haut ne doit pas garder la trace des cabanes d'en bas)
+souterrain.aBascule.push(() => {
+  const w = game.world, V = w && w.soutVillage;
+  if (!V || !V.boite) return;
+  if (w.shadeDirty && !w.shadeRegion) return;
+  const R = w.shadeRegion;
+  w.shadeRegion = R ? [Math.min(R[0], V.boite[0]), Math.min(R[1], V.boite[1]), Math.max(R[2], V.boite[2]), Math.max(R[3], V.boite[3])] : V.boite.slice();
+  w.shadeDirty = true;
+});
+
+// ---- 11-zzzz9-souterrain6-secrets.js
+// ============================================================================
+//  LE DESSOUS — ce qui se cache (agent C3)
+//  - la Chambre des Gouttes (derrière la chatière) : ceux d'en bas y couchent
+//    leurs morts sous la goutte, et la pierre les prend, du plus ancien, qui
+//    n'est plus qu'une forme, au dernier, qui porte des bottes. Une perle prise
+//    dans leurs vasques, et le hameau vous tourne le dos, jusqu'à ce qu'on la
+//    rende (E sur la vasque vide, une perle en poche) ;
+//  - le Hoûm, aux Gouffres et à la Salle des Échos : une grande bête pâle,
+//    aveugle, qui chasse au bruit (courir, sauter, tirer, casser la roche).
+//    Accroupi, sans bouger, on la laisse passer. Elle ne revient pas si on la
+//    tue ;
+//  - la Ville engloutie : les ruines des Aëlim (murs, colonnes, trois pierres
+//    gravées en Hautes Lettres), et leur tombeau, fermé d'une dalle où l'on a
+//    taillé un œil : la lumière d'une flamme, portée par une lentille de
+//    cristal, l'ouvre. Dedans : un coffre, une tablette.
+//  - la lentille de cristal, sur soi, porte plus loin la flamme de la lanterne.
+//  État : farm.s.souterrain.x.
+// ============================================================================
+
+// ---------------------------------------------------------------- les objets
+defItem('dent_houm', 'Dent du Hoûm', 'tresor', 60, ['croc', '#e8e4dc'], { desc: 'Une dent longue comme le doigt, pâle, presque transparente. Au-dessus de la bouche d’où elle vient, il n’y avait pas d’yeux.' });
+defItem('miroir_aelim', 'Miroir des Aëlim', 'tresor', 180, ['medaillon', '#d8dce4'], { desc: 'Un disque d’argent poli, grand comme la main, gravé au dos de trois signes : un soleil, trois traits, un rond noir. Il est froid, et il le reste.' });
+defItem('tablette_aelim', 'Tablette gravée', 'quete', 0, ['tablette', '#9a9486'], { desc: 'Une tablette de pierre fine couverte de Hautes Lettres, trouvée dans le tombeau de la Ville engloutie. Clic : la lire.' });
+Object.assign(ESSENCES, { dent_houm: { mort: 2, ombre: 2, air: 1 } });
+// les pierres gravées des Aëlim, sous la terre (les mots sont ceux du lexique)
+for (const I of [
+  ['a_noth', 'aelin', 'halim na-aelim neth mora , ser fala', 'Les maisons des Aëlim, sous la montagne ; l’eau est tombée.', null],
+  ['a_ul', 'aelin', 'ul , vesh sae neth sera', 'Silence : Vesh dort sous le lac.', null],
+  ['a_oeil', 'aelin', 'dal na-aelim , mir ael , tora', 'La porte des Aëlim. À l’œil, la lumière : elle s’ouvre.', null],
+  ['a_tablette', 'aelin', 'aelim fala , hemim ulen , ael rim neth thal', 'Les Aëlim sont tombés, les hommes se sont tus ; la lumière est gardée sous la pierre.', null],
+]) if (!INSCR_BY_ID[I[0]]) { INSCRIPTIONS.push(I); INSCR_BY_ID[I[0]] = { id: I[0], lang: I[1], texte: I[2], sens: I[3], lieu: I[4] }; }
+
+// ---------------------------------------------------------------- génération : les dormeurs, les ruines, le tombeau
+SOUT_GEN.push((w, rnd, B) => {
+  const S = souterrain;
+  S.creuseurs();
+  const X = w.soutSecrets = { dormeurs: [] };
+  const salle = (k) => SOUT_PLAN.salles.find((q) => q[0] === k);
+  // ------------------------------------------------ la Chambre des Gouttes
+  const D = salle('dormeurs');
+  if (D) {
+    const [, cx, cz, rx, rz, rot] = D, co = Math.cos(rot), si = Math.sin(rot);
+    const pris = [];
+    let n = 0;
+    for (let k = 0; k < 400 && n < 15; k++) {
+      const a = rnd() * TAU, r = 0.55 + rnd() * 0.3, lx = Math.cos(a) * r * rx, lz = Math.sin(a) * r * rz;
+      const x = cx + lx * co + lz * si, z = cz - lx * si + lz * co, f = S.floorAt(x, z);
+      if (!S.ouvert(x, z, 1.6) || pris.some(([px, pz]) => Math.hypot(px - x, pz - z) < 2.2)) continue;
+      let ok = true;
+      for (const d of [-1, 1]) { const f2 = S.floorAt(x + Math.sin(a) * d, z + Math.cos(a) * d); if (Math.abs(f2 - f) > 0.35) ok = false; }
+      if (!ok) continue;
+      // la tête vers la paroi, les pieds vers le milieu
+      const h = Math.atan2(x - cx, z - cz);
+      const c = n === 0 ? 0 : n === 14 ? 1 : clamp(n / 13 + (rnd() - 0.5) * 0.15, 0.05, 0.98);
+      const data = { c: +c.toFixed(2) };
+      if (n === 0) data.b = 1;
+      if (n === 5) data.p = 1;
+      B.prop('sout_dormeur', x, f, z, h, data, undefined, VER_SOUS);
+      X.dormeurs.push([x, f, z]);
+      if (n === 0 || n === 5 || n === 14) B.inter('sout_dormeur', 'sout_dormeur_' + n, x, f + 0.45, z, 'Un dormeur', { n });
+      pris.push([x, z]); n++;
+    }
+  }
+  // ------------------------------------------------ la Ville engloutie : murs rompus, colonnes, pierres gravées, le tombeau
+  const R = salle('ruines');
+  if (!R) return;
+  const [, rx0, rz0, rrx, rrz, rrot] = R, co = Math.cos(rrot), si = Math.sin(rrot);
+  const dans = (u, v) => { const lx = Math.cos(u) * v * rrx, lz = Math.sin(u) * v * rrz; return [rx0 + lx * co + lz * si, rz0 - lx * si + lz * co]; };
+  const occ = [];
+  const libre = (x, z, r) => !occ.some(([a, b, rr]) => Math.hypot(a - x, b - z) < r + rr);
+  const bas = (x, z, r) => { let m = 1e9, M = -1e9; for (let a = 0; a < 8; a++) for (const d of [0, r * 0.5, r]) { const f = S.floorAt(x + Math.cos(a / 8 * TAU) * d, z + Math.sin(a / 8 * TAU) * d); m = Math.min(m, f); M = Math.max(M, f); } return [m, M]; };
+  const bloc = (F, lx, ly, lz, sx, sy, sz, m) => { B.block(F, lx, ly, lz, sx, sy, sz, m || M_STONE); const b = w.blocks[w.blocks.length - 1]; b.under = true; b.ver = VER_SOUS; return b; };
+  // le tombeau : un endroit assez plat, loin des bords
+  let T = null;
+  for (let k = 0; k < 300 && !T; k++) {
+    const [x, z] = dans(rnd() * TAU, Math.sqrt(rnd()) * 0.6);
+    if (!S.ouvert(x, z, 8)) continue;
+    const [m, M] = bas(x, z, 5.5);
+    if (M - m > 1.6 || m < SOUT_WL + 1) continue;
+    let ok = true;
+    for (let a = 0; a < 12 && ok; a++) { const xx = x + Math.cos(a / 12 * TAU) * 8, zz = z + Math.sin(a / 12 * TAU) * 8; if (!S.ouvert(xx, zz, 3)) ok = false; }
+    if (ok) T = [x, z, m, M];
+  }
+  if (T) {
+    const [x, z, m, M] = T, r = Math.atan2(rx0 - x, rz0 - z) + (rnd() - 0.5) * 0.6; // la porte vers le milieu de la salle
+    const F = { x, y: m - 0.6, z, r }, H = M - m + 0.6 + 3.3, sol = M - m + 0.6 + 0.06, Wd = 6.4, Dp = 5.2, t = 0.7;
+    bloc(F, 0, 0, 0, Wd, sol, Dp); // le dallage intérieur (et le socle)
+    bloc(F, 0, 0, -Dp / 2 + t / 2, Wd, H, t); // le fond
+    bloc(F, -Wd / 2 + t / 2, 0, 0, t, H, Dp - 2 * t); bloc(F, Wd / 2 - t / 2, 0, 0, t, H, Dp - 2 * t); // les côtés
+    const pw = 1.5, sw = (Wd - pw) / 2;
+    bloc(F, -(pw / 2 + sw / 2), 0, Dp / 2 - t / 2, sw, H, t); bloc(F, pw / 2 + sw / 2, 0, Dp / 2 - t / 2, sw, H, t); // la façade
+    bloc(F, 0, sol + 2.35, Dp / 2 - t / 2, pw, H - sol - 2.35, t); // au-dessus de la porte
+    bloc(F, 0, H, 0, Wd + 0.6, 0.45, Dp + 0.6); bloc(F, 0, H + 0.45, 0, Wd - 0.6, 0.3, Dp - 0.6); // le toit, en deux dalles
+    for (const s of [-1, 1]) B.propRel({ x, y: m + sol - 0.6, z, r }, 'sout_colonne', s * 2.2, 0, Dp / 2 + 0.9, 0, { n: 3, cap: 1 }, undefined, VER_SOUS);
+    bloc(F, 0, sol + 2.7, Dp / 2 + 0.9, 5.4, 0.4, 1.0); // le linteau sur les colonnes
+    const y0 = m - 0.6 + sol;
+    B.propRel({ x, y: y0, z, r }, 'sout_porte_aelim', 0, 0, Dp / 2 - t / 2, 0, { ouverte: false }, undefined, VER_SOUS);
+    X.porte = w.props.length - 1;
+    const [ix, iz] = B.toWorld({ x, z, r }, 0, Dp / 2 + 0.2);
+    B.inter('sout_porte_aelim', 'sout_porte_aelim', ix, y0 + 1.6, iz, 'La dalle', {});
+    const [gx, gz] = B.toWorld({ x, z, r }, 1.6, Dp / 2 + 0.05);
+    B.inter('inscription', 'ins_a_oeil', gx, y0 + 1.5, gz, 'Lire l’inscription', { ins: 'a_oeil' });
+    // dedans : le coffre, la tablette, celui qui dort là
+    B.propRel({ x, y: y0, z, r }, 'sout_coffre_aelim', 0, 0, -1.2, 0, { ouvert: false }, undefined, VER_SOUS);
+    X.coffre = w.props.length - 1;
+    const [cx2, cz2] = B.toWorld({ x, z, r }, 0, -1.2);
+    B.inter('sout_coffre_aelim', 'sout_coffre_aelim', cx2, y0 + 0.8, cz2, 'Le coffre', {});
+    B.propRel({ x, y: y0, z, r }, 'sout_os', -1.9, 0, 0.2, 1.4, undefined, undefined, VER_SOUS);
+    const [tx2, tz2] = B.toWorld({ x, z, r }, 2.0, -0.4);
+    B.propRel({ x, y: y0, z, r }, 'sout_tablette', 2.0, 0, -0.4, 0.3, {}, undefined, VER_SOUS);
+    X.tabletteProp = w.props.length - 1;
+    B.inter('sout_tablette', 'sout_tablette', tx2, y0 + 0.4, tz2, 'Une tablette', {});
+    X.tombeau = { x, z, y: y0, r, porte: [ix, iz], tablette: [tx2, y0, tz2] };
+    occ.push([x, z, 7]);
+    B.landmark('sout_tombeau', x, z, 6, { under: true, secret: true, y: y0, souterrain: true });
+  }
+  // les pierres gravées
+  let ins = 0;
+  for (let k = 0; k < 300 && ins < 2; k++) {
+    const [x, z] = dans(rnd() * TAU, 0.2 + rnd() * 0.6), [m, M] = bas(x, z, 1.2);
+    if (!S.ouvert(x, z, 3) || M - m > 0.7 || m < SOUT_WL + 0.8 || !libre(x, z, 6)) continue;
+    const id = ins === 0 ? 'a_noth' : 'a_ul', r = rnd() * TAU;
+    B.prop('stele', x, m - 0.1, z, r, { ins: id }, undefined, VER_SOUS);
+    B.inter('inscription', 'ins_' + id, x + Math.sin(r) * 0.55, m + 1.1, z + Math.cos(r) * 0.55, 'Lire l’inscription', { ins: id });
+    occ.push([x, z, 2]); ins++;
+  }
+  // colonnes (debout, tombées) et murs rompus
+  let nc = 0, nm = 0;
+  for (let k = 0; k < 600 && (nc < 14 || nm < 10); k++) {
+    const [x, z] = dans(rnd() * TAU, Math.sqrt(rnd()) * 0.85);
+    if (!S.ouvert(x, z, 4) || !libre(x, z, 2.5)) continue;
+    const [m, M] = bas(x, z, 1.6);
+    if (M - m > 1.4 || m < SOUT_WL + 0.4) continue;
+    if (nc < 14 && (rnd() < 0.55 || nm >= 10)) {
+      const f = rnd() < 0.4;
+      B.prop('sout_colonne', x, f ? M - 0.1 : m - 0.15, z, rnd() * TAU, f ? { n: 2 + ((rnd() * 3) | 0), f: 1 } : { n: 1 + ((rnd() * 4) | 0), cap: rnd() < 0.3 ? 1 : 0 }, undefined, VER_SOUS);
+      occ.push([x, z, 1.5]); nc++;
+    } else if (nm < 10) {
+      const r = rnd() * TAU, L = 3 + rnd() * 4, F = { x, y: m - 0.8, z, r };
+      const [m2, M2] = bas(x, z, L / 2 + 0.5);
+      if (M2 - m2 > 2) continue;
+      F.y = m2 - 0.8;
+      const nb = 2 + ((rnd() * 3) | 0);
+      for (let i = 0; i < nb; i++) { const w0 = L / nb, h = (M2 - m2) + 0.8 + 0.6 + rnd() * 2.2; bloc(F, -L / 2 + w0 * (i + 0.5), 0, 0, w0 + 0.02, h, 0.8, rnd() < 0.3 ? M_MOSSY : M_STONE); }
+      occ.push([x, z, L / 2 + 0.8]); nm++;
+    }
+  }
+  X.ruines = { colonnes: nc, murs: nm, steles: ins };
+});
+LIEU_NAMES.sout_tombeau = 'le tombeau des Aëlim';
+
+// ---------------------------------------------------------------- les gestes : les dormeurs, la perle rendue, la dalle, le coffre, la tablette
+const soutSecrets = {
+  X() { const S = souterrain.S(); return S.x || (S.x = {}); },
+  dormeur(it) {
+    const n = it.data && it.data.n;
+    const T = { 0: '(Il porte des bottes. Personne, ici, ne porte de bottes.)', 5: '(Un petit. La goutte lui tombe sur le front, toujours au même endroit.)', 14: '(Ce n’est plus qu’une forme sous la pierre, lisse comme une dragée. Une main, peut-être.)' }[n];
+    if (T) ui.subtitle('', T, 4.5);
+    sound.drip && sound.drip();
+  },
+  // la perle prise chez les dormeurs : le hameau le sait
+  estProfane(q) { return q && q.id === 'sout_vasque' && souterrain.salleIci(q.x, q.z) === 'dormeurs'; },
+  // la rendre : E sur la vasque vide, une perle en poche
+  cibles(eye, f, cand) {
+    if (!souterrain.actif || !farm.count('perle_caverne')) return;
+    const w = game.world;
+    for (const i of w.soutCueillettes || []) {
+      const q = w.props[i];
+      if (!q || !q.data || !q.data.pris || !this.estProfane(q)) continue;
+      const dx = q.x - eye[0], dy = q.y + 0.2 - eye[1], dz = q.z - eye[2], d = Math.hypot(dx, dy, dz);
+      if (d > 2.6) continue;
+      if ((dx * f[0] + dy * f[1] + dz * f[2]) / (d || 1) < 0.72) continue;
+      cand({ kind: 'hook', sout: q, use: () => this.rendre(q) }, d);
+    }
+  },
+  rendre(q) {
+    if (!farm.take('perle_caverne', 1)) return;
+    const C = soutCueille.C();
+    delete C[q.data.k];
+    q.data.pris = false; q.data.lit = undefined;
+    farm.dirtyProps = true; game.world.objectsDirty = true;
+    sound.drip && sound.drip();
+    const T = soutTerres.S();
+    if (T.profane) { T.profane = 0; T.rendue = farm.s.day; }
+  },
+  // la dalle à l'œil : une flamme, portée par une lentille, dans l'œil
+  porte() {
+    const w = game.world, X = this.X(), q = w.props[w.soutSecrets.porte];
+    if (!q) return;
+    if (X.porte) { ui.subtitle('', '(La dalle est descendue dans le sol. Il reste une rainure, où l’on pourrait glisser la main.)', 3.5); return; }
+    const feu = game.lantern && (farm.count('lanterne') || farm.count('lanterne_aube'));
+    if (!feu) { ui.subtitle('', X.vuePorte ? '(La pierre est froide. L’œil taillé au milieu est creux, profond.)' : '(Une dalle, taillée d’un œil. Sous vos doigts, l’œil est creux, et profond.)', 4); X.vuePorte = 1; return; }
+    if (!farm.count('lentille_cristal')) { ui.subtitle('', '(La flamme éclaire la dalle. La lumière s’étale, et l’œil reste noir.)', 3.5); return; }
+    this.ouvrirPorte(true);
+  },
+  ouvrirPorte(anim) {
+    const w = game.world, X = this.X(), q = w.props[w.soutSecrets.porte];
+    if (!q) return;
+    if (anim) {
+      X.porte = farm.s.day;
+      ui.subtitle('', '(Le cristal ramasse la flamme en un point. Le point entre dans l’œil.)', 4);
+      if (sound.ok) { const t = sound.at(); sound.tone(t, 'sine', 330, 330, 2.2, 0.05); sound.tone(t + 0.4, 'sine', 495, 495, 2.0, 0.035); sound.noiseHit(t + 1.6, 2.4, 'lowpass', 260, 0.6, 0.16, null, 90); }
+      setTimeout(() => { farm.setPropData(q, { ouverte: true }); removePropCollider(w, q); w.grid = null; }, 1800);
+    } else { q.data = Object.assign({}, q.data, { ouverte: true }); removePropCollider(w, q); w.grid = null; }
+  },
+  coffre() {
+    const w = game.world, X = this.X(), q = w.props[w.soutSecrets.coffre];
+    if (!q) return;
+    if (X.coffre) { ui.subtitle('', '(Vide. Le fond est poli, comme par des mains.)', 3); return; }
+    X.coffre = farm.s.day;
+    farm.setPropData(q, { ouvert: true });
+    for (const [id, n] of [['miroir_aelim', 1], ['lingot_argent', 2]]) { farm.give(id, n); play.flyer && play.flyer(id, [q.x, q.y + 0.8, q.z], n); }
+    sound.dig && sound.dig(0.5);
+  },
+  tablette() {
+    const X = this.X(), w = game.world, q = w.soutSecrets && w.props[w.soutSecrets.tabletteProp];
+    if (X.tablette) { ui.subtitle('', '(Il n’y a plus rien, qu’une trace plus claire dans la poussière.)', 3); return; }
+    X.tablette = farm.s.day; farm.give('tablette_aelim', 1); play.flyer && play.flyer('tablette_aelim', game.player.eyePos(), 1);
+    if (q) farm.setPropData(q, { pris: true });
+    langues.lireInscription('a_tablette');
+  },
+  // les gouttes, dans la chambre des dormeurs
+  sons(dt) {
+    if (!souterrain.actif) return;
+    this.gT = (this.gT || 0) - dt;
+    if (this.gT > 0) return;
+    this.gT = 0.5 + Math.random() * 1.6;
+    const p = game.player, k = souterrain._salle, S = souterrain;
+    if (k === 'dormeurs' || k === 'orgues') sound.drip && sound.drip();
+    else if (Math.random() < 0.18) sound.drip && sound.drip(); // ailleurs, une goutte de temps en temps
+    // l'eau d'en bas, tout près : un clapotis
+    if (sound.ok && Math.random() < 0.5) {
+      for (let a = 0; a < 6; a++) {
+        const b = a / 6 * TAU + Math.random(), x = p.pos[0] + Math.cos(b) * 9, z = p.pos[2] + Math.sin(b) * 9;
+        if (S.floorAt(x, z) < SOUT_WL - 0.4 && S.ouvert(x, z, 1)) { const t = sound.at(), pan = sound.pan(clamp(angDiff(p.yaw + Math.PI, b) / -1.6, -1, 1), sound.amb); sound.noiseHit(t, 0.7, 'lowpass', 420, 0.6, 0.025, pan, 260); break; }
+      }
+    }
+  },
+};
+HOOKS.inter.sout_dormeur = (it) => soutSecrets.dormeur(it);
+HOOKS.inter.sout_porte_aelim = () => soutSecrets.porte();
+HOOKS.inter.sout_coffre_aelim = () => soutSecrets.coffre();
+HOOKS.inter.sout_tablette = () => soutSecrets.tablette();
+HOOKS.target.push((eye, f, cand) => soutSecrets.cibles(eye, f, cand));
+HOOKS.update.push((dt) => { if (farm.s) soutSecrets.sons(dt); });
+HOOKS.primary.push((eye, basis, held, it, id) => { if (held || id !== 'tablette_aelim') return false; langues.lireInscription('a_tablette'); play.cool = 0.4; return true; });
+HOOKS.load.push(() => {
+  const w = game.world;
+  if (!farm.s || !w || !w.soutSecrets) return;
+  const X = soutSecrets.X(), Q = (i) => w.props[i];
+  if (X.porte && Q(w.soutSecrets.porte)) soutSecrets.ouvrirPorte(false);
+  if (X.coffre && Q(w.soutSecrets.coffre)) Q(w.soutSecrets.coffre).data = Object.assign({}, Q(w.soutSecrets.coffre).data, { ouvert: true });
+  if (X.tablette && Q(w.soutSecrets.tabletteProp)) Q(w.soutSecrets.tabletteProp).data = { pris: true };
+});
+// la perle prise chez les dormeurs
+{
+  const _pr = soutCueille.prendre.bind(soutCueille);
+  soutCueille.prendre = function (q) {
+    const avant = q && q.data && q.data.pris;
+    const r = _pr(q);
+    if (q && !avant && q.data.pris && soutSecrets.estProfane(q)) { const T = soutTerres.S(); T.profane = farm.s.day; }
+    return r;
+  };
+}
+
+// ---------------------------------------------------------------- le Hoûm : il chasse au bruit
+const soutHoum = {
+  e: null, pts: null,
+  rig() {
+    const r = quadRig({ col: rgbf('#a6a29a'), body: [0.62, 0.5, 1.9], bodyY: 1.35, bodyTex: TL.skin, leg: [0.12, 1.32], legTex: TL.skin, legIn: 0.12,
+      neck: [0, 0.12], neckS: [0.2, 0.2, 0.95], neckO: [0, 0.02, 0.45], headP: [0, 0, 0.9], head: [0.34, 0.24, 0.78], headCol: rgbf('#b0aaa0'), face: TL.blankF, headTex: TL.skin,
+      ears: [0.52, 0.34, 0.04], earCol: rgbf('#b89a92'), tail: [0.05, 1.3, 0.05] });
+    return rigPlus(r, [
+      { name: 'gueule', parent: 'head', p: [0, -0.07, 0.78], s: [0.3, 0.07, 0.05], col: [0.14, 0.05, 0.05], tex: TL.plain },
+      { name: 'machoire', parent: 'head', p: [0, -0.13, 0.4], s: [0.28, 0.06, 0.72], col: rgbf('#9a948a'), tex: TL.skin },
+      { name: 'dos', parent: 'body', p: [0, 0.27, -0.1], s: [0.26, 0.14, 1.3], col: rgbf('#8e8a82'), tex: TL.skin },
+      { name: 'cote1', parent: 'body', p: [0, 0, 0.3], s: [0.66, 0.46, 0.08], col: rgbf('#96928a'), tex: TL.skin },
+      { name: 'cote2', parent: 'body', p: [0, 0, 0.05], s: [0.66, 0.46, 0.08], col: rgbf('#96928a'), tex: TL.skin },
+      { name: 'cote3', parent: 'body', p: [0, 0, -0.2], s: [0.66, 0.46, 0.08], col: rgbf('#96928a'), tex: TL.skin },
+    ]);
+  },
+  // le territoire : les Gouffres, la Salle des Échos, la galerie entre les deux
+  points() {
+    if (this.pts) return this.pts;
+    const S = souterrain, P = [], rnd = mulberry32(0x50b7a0a0);
+    for (const k of ['gouffres', 'echos']) {
+      const Q = SOUT_PLAN.salles.find((q) => q[0] === k);
+      if (!Q) continue;
+      const [, cx, cz, rx, rz, rot] = Q, co = Math.cos(rot), si = Math.sin(rot);
+      for (let i = 0; i < 160 && P.length < (k === 'gouffres' ? 16 : 26); i++) {
+        const a = rnd() * TAU, r = Math.sqrt(rnd()) * 0.85, lx = Math.cos(a) * r * rx, lz = Math.sin(a) * r * rz, x = cx + lx * co + lz * si, z = cz - lx * si + lz * co;
+        if (S.ouvert(x, z, 3.2) && S.floorAt(x, z) > -86 && this.sur(x, z)) P.push([x, z]);
+      }
+    }
+    const g = SOUT_PLAN.galeries.find((q) => q[0] === 'vers_echos');
+    if (g) for (const q of g[1]) if (S.ouvert(q[0], q[1], 3)) P.push([q[0], q[1]]);
+    return (this.pts = P);
+  },
+  // un sol sûr (pas au bord d'un gouffre)
+  sur(x, z) { const S = souterrain, f = S.floorAt(x, z); for (let a = 0; a < 6; a++) { const b = a / 6 * TAU; if (S.floorAt(x + Math.cos(b) * 2.5, z + Math.sin(b) * 2.5) < f - 3) return false; } return true; },
+  territoire(x, z) {
+    const g = SOUT_PLAN.salles.find((q) => q[0] === 'gouffres'), e = SOUT_PLAN.salles.find((q) => q[0] === 'echos');
+    return (g && Math.hypot(x - g[1], z - g[2]) < 85) || (e && Math.hypot(x - e[1], z - e[2]) < 55) || (x > 2280 && x < 2370 && z > 1690 && z < 1760);
+  },
+  naitre() {
+    const P = this.points();
+    if (!P.length) return;
+    const X = soutSecrets.X();
+    if (X.houmMort) return;
+    const e = P[P.length > 20 ? 20 : 0];
+    this.e = { houm: true, sout: true, x: e[0], z: e[1], y: souterrain.floorAt(e[0], e[1]), heading: 0, etat: 'rode', t: 0, timer: 2, move: 0, phase: 0, hp: 140, but: null, rig: this.rig(), respT: 3, lastB: souterrain.bruitN };
+  },
+  update(dt, playing) {
+    if (!souterrain.actif || !farm.s) { this.e = null; return; }
+    const p = game.player;
+    const pres = this.territoire(p.pos[0], p.pos[2]);
+    if (!this.e) { if (pres) this.naitre(); return; }
+    const e = this.e;
+    if (e.mort) { e.mortT += dt; return; }
+    if (!playing) return;
+    e.t += dt; e.hurtT = Math.max(0, (e.hurtT || 0) - dt);
+    const S = souterrain, dx = p.pos[0] - e.x, dz = p.pos[2] - e.z, d = Math.hypot(dx, dz), dy = Math.abs(p.pos[1] - e.y);
+    e.dist = d;
+    if (d > 150 && !pres) { this.e = null; return; }
+    // entendre : les bruits récents (courir, sauter, tirer, casser)
+    for (const [, x, z, k, n] of S.bruits) {
+      if (n <= e.lastB) continue;
+      const dd = Math.hypot(x - e.x, z - e.z);
+      if (dd < k * 24 && this.territoire(x, z) && e.etat !== 'repu') { e.but = [x, z]; e.etat = k >= 1 ? 'chasse' : e.etat === 'chasse' ? 'chasse' : 'ecoute'; e.timer = k >= 1 ? 8 : 4; if (e.etat === 'chasse' && game.time - (e.criT || -99) > 6) { e.criT = game.time; this.son('grogne', e); } }
+    }
+    e.lastB = S.bruitN;
+    // tout près : il sent qui bouge
+    const coi = p.crouch > 0.5 && Math.hypot(p.vel[0], p.vel[2]) < 0.4, bouge = !coi && Math.hypot(p.vel[0], p.vel[2]) > 0.7;
+    if (d < 1.9 && dy < 2.5 && e.etat !== 'repu' && (bouge || (e.etat === 'chasse' && !coi) || d < 0.75)) { this.mordre(e, p); return; }
+    // le souffle, les pas
+    e.respT -= dt;
+    if (e.respT <= 0) { e.respT = e.etat === 'chasse' ? 1.6 : 3 + Math.random() * 3; if (d < 70) this.son('souffle', e); }
+    // un pas vers (x, z) ; s'il bute (paroi, bord d'un gouffre, hors de son domaine), il essaie de biais
+    // (qui se tient accroupi sans bouger, il le contourne en reniflant)
+    const libre = (h, L) => { const nx = e.x + Math.sin(h) * L, nz = e.z + Math.cos(h) * L, f = S.floorAt(nx, nz); if (coi && Math.hypot(nx - p.pos[0], nz - p.pos[2]) < 1.5) return false; return S.ouvert(nx, nz, 2.2) && Math.abs(f - e.y) < L * 0.9 + 0.3 && this.sur(nx, nz) && this.territoire(nx, nz); };
+    const aller = (x, z, v) => {
+      const a = Math.atan2(x - e.x, z - e.z);
+      let h = null;
+      for (const o of [0, 0.45, -0.45, 0.9, -0.9, 1.4, -1.4, 2.0, -2.0]) if (libre(a + o * (e.cote || 1), 1.6)) { h = a + o * (e.cote || 1); break; }
+      if (h === null) { e.cote = -(e.cote || 1); e.move = 0; return false; }
+      e.heading = turnToward(e.heading, h, dt * 6);
+      const nx = e.x + Math.sin(e.heading) * v * dt, nz = e.z + Math.cos(e.heading) * v * dt, f = S.floorAt(nx, nz);
+      if (!S.ouvert(nx, nz, 2.2) || Math.abs(f - e.y) > 1.1) { e.move = 0; return false; }
+      e.x = nx; e.z = nz; e.y = f; e.move = Math.min(1, v / 3); e.phase += dt * v * 1.6;
+      e.pasT = (e.pasT || 0) - dt * v;
+      if (e.pasT <= 0) { e.pasT = 1.4; if (d < 40) this.son('pas', e); }
+      return Math.hypot(x - e.x, z - e.z) < 1.2;
+    };
+    e.timer -= dt;
+    switch (e.etat) {
+      case 'chasse': if (!e.but || aller(e.but[0], e.but[1], 5.2) || e.timer <= 0) { e.etat = 'fouille'; e.timer = 7; } break;
+      case 'ecoute': e.move = 0; if (e.but) e.heading = turnToward(e.heading, Math.atan2(e.but[0] - e.x, e.but[1] - e.z), dt * 2); if (e.timer <= 0) { e.etat = 'fouille'; e.timer = 5; } break;
+      case 'fouille': if (e.but) aller(e.but[0] + Math.sin(e.t) * 2, e.but[1] + Math.cos(e.t * 0.8) * 2, 1.2); if (Math.random() < dt * 0.6) this.son('renifle', e); if (e.timer <= 0) { e.etat = 'rode'; e.but = null; } break;
+      case 'repu': { const P = this.points(), q = P[P.length - 1] || [e.x, e.z]; if (aller(q[0], q[1], 2.5) || e.timer <= 0) { e.etat = 'rode'; e.but = null; } break; }
+      default: {
+        if (!e.but || e.timer <= 0) { const P = this.points(); e.but = P[(Math.random() * P.length) | 0]; e.timer = 25; }
+        if (e.but && aller(e.but[0], e.but[1], 1.3)) { e.but = null; e.timer = 2 + Math.random() * 4; }
+      }
+    }
+  },
+  mordre(e, p) {
+    if (e.atkT && game.time - e.atkT < 2.5) return;
+    e.atkT = game.time;
+    this.son('cri', e);
+    play.hurt(28, e, 'Pris par le Hoûm, dans le noir');
+    const a = Math.atan2(p.pos[0] - e.x, p.pos[2] - e.z);
+    p.vel[0] += Math.sin(a) * 7; p.vel[2] += Math.cos(a) * 7; p.vel[1] = Math.max(p.vel[1], 4);
+    if (!soutSecrets.X().houmVu) { soutSecrets.X().houmVu = farm.s.day; setTimeout(() => ui.subtitle('', '(Pas d’yeux. Une bouche, et deux grandes oreilles de peau qui tremblaient.)', 4.5), 900); }
+    e.etat = 'repu'; e.timer = 40;
+  },
+  son(k, e) {
+    if (!sound.ok) return;
+    const p = game.player, d = Math.hypot(e.x - p.pos[0], e.z - p.pos[2]), vol = clamp(1 - d / 60, 0.05, 1), t = sound.at();
+    const pan = sound.pan(clamp(angDiff(p.yaw + Math.PI, Math.atan2(e.x - p.pos[0], e.z - p.pos[2])) / -1.6, -1, 1), sound.amb);
+    if (k === 'souffle') { sound.tone(t, 'sine', 70, 52, 1.2, 0.16 * vol, pan, 0.25); sound.noiseHit(t, 1.1, 'lowpass', 240, 0.7, 0.05 * vol, pan); }
+    else if (k === 'pas') { sound.tone(t, 'sine', 80, 45, 0.16, 0.12 * vol, pan); }
+    else if (k === 'renifle') { for (let i = 0; i < 3; i++) sound.noiseHit(t + i * 0.12, 0.08, 'highpass', 2200, 1, 0.05 * vol, pan); }
+    else if (k === 'grogne') { sound.voice(t, 'sawtooth', 90, 60, 0.9, 0.05 * vol, pan, { lp: 500, vib: 9, vibDepth: 8 }); }
+    else if (k === 'cri') { sound.voice(t, 'sawtooth', 420, 140, 0.8, 0.12, sound.sfx || pan, { lp: 1800, vib: 13, vibDepth: 40 }); sound.noiseHit(t, 0.5, 'bandpass', 900, 1, 0.12); }
+  },
+  dessiner(buf, sbuf, cam, t) {
+    const e = this.e;
+    if (!e || !souterrain.actif) return;
+    const r = e.rig;
+    poseQuad(r, { move: e.move, phase: e.phase, run: e.etat === 'chasse', t, lookP: e.etat === 'ecoute' ? 0.62 : e.etat === 'chasse' ? 0.85 : 1.05 + Math.sin(t * 1.3) * 0.1 });
+    const oe = e.etat === 'ecoute' ? 1.35 : 0.95 + Math.sin(t * 4) * 0.08;
+    r.set('earL', 0, 0.2, -oe); r.set('earR', 0, -0.2, oe);
+    const fl = e.hurtT > 0 || (game.target && game.target.houm === e) ? FX_HI : 0;
+    if (e.mort) { const M = e._M || (e._M = [new Float32Array(12), new Float32Array(12), new Float32Array(12)]); m34Root(M[0], e.x, e.y + 0.3, e.z, e.heading, 1); m34TR(M[1], 0, 0, 0, 0, 0, Math.PI / 2); m34Mul(M[2], M[0], M[1]); drawRigM(buf, r, M[2], fl); return; }
+    drawRig(buf, r, e.x, e.y, e.z, e.heading, 1.2, fl);
+    if (sbuf) drawShadow(sbuf, e.x, e.y, e.z, 1.1);
+  },
+  raycast(o, d, maxDist) {
+    const e = this.e;
+    if (!e || e.mort) return null;
+    const dh = Math.hypot(d[0], d[2]) || 1e-6, cx = e.x - o[0], cz = e.z - o[2], tc = (cx * d[0] + cz * d[2]) / (dh * dh);
+    if (tc < 0 || tc > maxDist) return null;
+    const px = d[0] * tc - cx, pz = d[2] * tc - cz;
+    if (px * px + pz * pz > 0.95 * 0.95) return null;
+    const y = o[1] + d[1] * tc;
+    if (y < e.y || y > e.y + 2.6) return null;
+    return { t: tc, s: e, p: [o[0] + d[0] * tc, y, o[2] + d[2] * tc] };
+  },
+  frapper(e, dmg) {
+    if (e.mort) return;
+    e.hp -= dmg; e.hurtT = 0.4;
+    const p = game.player;
+    e.but = [p.pos[0], p.pos[2]]; e.etat = 'chasse'; e.timer = 10;
+    this.son('grogne', e);
+    if (e.hp > 0) return;
+    e.mort = true; e.mortT = 0;
+    this.son('cri', e);
+    soutSecrets.X().houmMort = farm.s.day;
+    farm.give('dent_houm', 1); play.flyer && play.flyer('dent_houm', [e.x, e.y + 1, e.z], 1);
+  },
+};
+HOOKS.update.push((dt, eye, basis, sky, playing) => soutHoum.update(dt, playing));
+HOOKS.draw.push((buf, sbuf, cam, t) => soutHoum.dessiner(buf, sbuf, cam, t));
+HOOKS.load.push(() => { soutHoum.e = null; });
+{
+  const _ray = strange.raycast.bind(strange), _hit = strange.hit.bind(strange);
+  strange.raycast = function (o, d, maxDist) {
+    const a = _ray(o, d, maxDist);
+    if (!souterrain.actif || !soutHoum.e) return a;
+    const b = soutHoum.raycast(o, d, a ? a.t : maxDist);
+    return b && (!a || b.t < a.t) ? b : a;
+  };
+  strange.hit = function (e, dmg, from) { if (e && e.houm) return soutHoum.frapper(e, dmg); return _hit(e, dmg, from); };
+}
+// casser la roche fait du bruit
+{
+  const _c = soutCueille.casser.bind(soutCueille);
+  soutCueille.casser = function (q) { const p = game.player; if (p) souterrain.bruit(p.pos[0], p.pos[2], 1.3); return _c(q); };
+}
+
+// ---- 11-zzzz9-souterrain7-retours.js
+// ============================================================================
+//  LE DESSOUS — les chemins du retour (agent C3)
+//  - le vieux puits de la mine : aux Vieilles Mines, des barreaux montent dans
+//    une cheminée jusqu'à la salle de l'éboulement, dans les Galeries (le
+//    labyrinthe de la mine). D'en haut, une grosse pierre bouche le trou : elle
+//    ne bouge qu'une fois qu'on l'a poussée d'en bas ;
+//  - les racines du grand chêne : de la salle des Racines, on grimpe dans les
+//    racines jusqu'au pied du grand chêne. D'en haut, le trou entre les racines
+//    ne laisse passer qu'une fois qu'on en est sorti ;
+//  - les flèches au charbon du géomètre (1872) : sur le sol, de loin en loin,
+//    du Hameau d'En-Bas jusqu'au vieux puits, la pointe vers la mine ;
+//  - le charbon en main, sous la terre : clic, une flèche au sol vers où l'on
+//    regarde ; clic droit tout près d'une flèche : l'effacer.
+//  État : farm.s.souterrain.r (sorties ouvertes), farm.s.souterrain.m (marques).
+// ============================================================================
+// (le vieux puits : une cheminée au-dessus des Vieilles Mines)
+const SOUT_PUITS_MINE = [1540.8, 1206];
+SOUT_PLAN.cheminees.push([SOUT_PUITS_MINE[0], SOUT_PUITS_MINE[1], 1.35, -62]);
+
+SOUT_GEN.push((w, rnd, B) => {
+  const S = souterrain;
+  S.creuseurs();
+  const R = w.soutRetours = { sorties: [] };
+  // ------------------------------------------------ le vieux puits de la mine
+  if (w.maze) {
+    const M = w.maze, C = (ci) => ci * 5 + 2, ex = M.x0 + (C(11) + 1) * M.R - 2.2, ez = M.z0 + (C(11) + 1) * M.R - 1.6;
+    const [bx, bz] = SOUT_PUITS_MINE, by = S.floorAt(bx, bz);
+    B.prop('sout_barreaux', bx, by, bz - 0.55, 0, { h: 34 }, 1, VER_SOUS);
+    B.inter('sout_sortie', 'sout_sortie_mine', bx, by + 1.2, bz - 0.2, 'Les barreaux', { k: 'mine' });
+    // en haut : le trou sous les éboulis (sans la marque du souterrain : il est dans les Galeries)
+    B.prop('sout_trou', ex, M.y, ez, 0.4, { bouche: 1 });
+    R.trou = w.props.length - 1;
+    B.inter('sout_trou', 'sout_trou_mine', ex, M.y + 0.6, ez, 'Des éboulis', { k: 'mine' });
+    R.sorties.push({ k: 'mine', bas: [bx, by + 0.05, bz + 0.9], haut: [ex + 1.4, M.y + 0.05, ez + 1.2] });
+  }
+  // ------------------------------------------------ les racines du grand chêne
+  const ch = w.lm && w.lm.chene, cm = SOUT_PLAN.cheminees.find((q) => Math.hypot(q[0] - 1760, q[1] - 2374) < 3);
+  if (ch && cm) {
+    const [cx, cz] = cm, cy = S.floorAt(cx, cz);
+    B.prop('sout_echelle_racines', cx, cy, cz - 0.7, 0, { h: 12 }, 1, VER_SOUS);
+    B.inter('sout_sortie', 'sout_sortie_chene', cx, cy + 1.2, cz - 0.4, 'Les racines', { k: 'chene' });
+    // en haut : un trou entre les racines, au pied de l'arbre
+    let hx = null, hz = null;
+    for (let k = 0; k < 40 && hx === null; k++) {
+      const a = k * 2.39996, d = 3.2 + (k % 5) * 0.6, x = ch.x + Math.cos(a) * d, z = ch.z + Math.sin(a) * d;
+      if (w.heightAt(x, z) < w.waterLevel + 0.5 || w.normalAt(x, z)[1] < 0.85) continue;
+      if (w.props.some((q) => Math.abs(q.x - x) < 1.6 && Math.abs(q.z - z) < 1.6)) continue;
+      if (typeof pointFree === 'function' && !pointFree(w, x, z, 0.9)) continue;
+      hx = x; hz = z;
+    }
+    if (hx !== null) {
+      const hy = w.heightAt(hx, hz);
+      B.prop('sout_trou', hx, hy - 0.05, hz, rnd() * TAU, { petit: 1 });
+      B.inter('sout_trou', 'sout_trou_chene', hx, hy + 0.4, hz, 'Un trou', { k: 'chene' });
+      const a = Math.atan2(hx - ch.x, hz - ch.z);
+      R.sorties.push({ k: 'chene', bas: [cx, cy + 0.05, cz + 0.8], haut: [hx + Math.sin(a) * 1.3, hy + 0.1, hz + Math.cos(a) * 1.3] });
+    }
+  }
+  // ------------------------------------------------ les flèches du géomètre : du hameau au vieux puits, la pointe vers la mine
+  const V = w.soutVillage;
+  if (V && w.maze) {
+    S.construire();
+    const W = SOUT_W, N = SOUT_N, F = S.F, Vt = S.V;
+    if (F && Vt) {
+      const idx = (x, z) => Math.round(z / SOUT_CELL) * W + Math.round(x / SOUT_CELL);
+      const ok = (k) => Vt[k] - F[k] > 1.6 && F[k] > SOUT_WL - 0.4 && F[k] < SOUT_ROCK - 1;
+      const dist = new Int32Array(W * W).fill(-1), file = new Int32Array(W * W);
+      const s0 = idx(SOUT_PUITS_MINE[0], SOUT_PUITS_MINE[1] + 1);
+      let a = 0, b = 0;
+      dist[s0] = 0; file[b++] = s0;
+      while (a < b) {
+        const k = file[a++], i = k % W, j = (k / W) | 0;
+        for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const ii = i + di, jj = j + dj;
+          if (ii < 0 || jj < 0 || ii > N || jj > N) continue;
+          const q = jj * W + ii;
+          if (dist[q] >= 0 || !ok(q) || Math.abs(F[q] - F[k]) > 1.2) continue;
+          dist[q] = dist[k] + 1; file[b++] = q;
+        }
+      }
+      let k = idx(V.entree[0], V.entree[1]);
+      if (dist[k] < 0) { for (let r = 1; r < 6 && dist[k] < 0; r++) for (let dj = -r; dj <= r && dist[k] < 0; dj++) for (let di = -r; di <= r; di++) { const q = k + dj * W + di; if (q >= 0 && q < W * W && dist[q] >= 0) { k = q; break; } } }
+      if (dist[k] >= 0) {
+        // on descend la pente des distances jusqu'au puits ; une flèche tous les soixante-dix mètres environ
+        const pts = [];
+        while (dist[k] > 0) {
+          const i = k % W, j = (k / W) | 0;
+          pts.push([i * SOUT_CELL, j * SOUT_CELL]);
+          let best = k;
+          for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const q = (j + dj) * W + i + di; if (dist[q] >= 0 && dist[q] < dist[best]) best = q; }
+          if (best === k) break;
+          k = best;
+        }
+        let acc = 40, n = 0;
+        for (let i = 1; i + 6 < pts.length; i++) {
+          acc += SOUT_CELL;
+          if (acc < 70) continue;
+          const [x, z] = pts[i], [x2, z2] = pts[i + 6];
+          const dx = x2 - x, dz = z2 - z, L = Math.hypot(dx, dz) || 1, nx = -dz / L, nz = dx / L;
+          // un peu sur le côté du passage
+          const side = (n % 2 ? 1 : -1) * 1.1, fx = x + nx * side, fz = z + nz * side;
+          if (!S.ouvert(fx, fz, 1.8) || Math.abs(S.floorAt(fx, fz) - S.floorAt(x, z)) > 0.5) continue;
+          B.prop('sout_fleche', fx, S.floorAt(fx, fz) + 0.01, fz, Math.atan2(dx, dz), { p: 1 }, undefined, VER_SOUS);
+          acc = 0; n++;
+        }
+        R.fleches = n; R.chemin = pts.length * SOUT_CELL;
+      }
+    }
+  }
+});
+
+// ---------------------------------------------------------------- monter, descendre
+const soutRetours = {
+  R() { const S = souterrain.S(); return S.r || (S.r = {}); },
+  sortie(k) { const w = game.world; return w && w.soutRetours && w.soutRetours.sorties.find((q) => q.k === k); },
+  async monter(it) {
+    const k = it.data && it.data.k, s = this.sortie(k);
+    if (!s || this.passe) return;
+    const p = game.player;
+    if (p.legBroken || (typeof corps !== 'undefined' && corps.jambeCassee && corps.jambeCassee())) { ui.subtitle('', '(Pas avec cette jambe.)', 2.5); return; }
+    this.passe = true;
+    const R = this.R(), premier = !R[k];
+    const txt = k === 'mine' ? (premier ? 'Les barreaux montent dans le noir, rongés, certains descellés. Tout en haut, une pierre bouche le passage. Vous poussez. Elle bascule.' : 'Les barreaux, la cheminée, la pierre que vous aviez poussée.') : (premier ? 'Vous montez dans les racines, longtemps, la terre dans les yeux. Puis une odeur d’herbe, et le jour, ou ce qui en reste.' : 'Les racines, la terre, et l’herbe.');
+    try {
+      await ui.fade(true, txt, 900);
+      await new Promise((r) => setTimeout(r, premier ? 2600 : 1200));
+      R[k] = R[k] || farm.s.day;
+      p.pos = s.haut.slice(); p.vel = [0, 0, 0];
+      if (k === 'mine') { const w = game.world, q = w.soutRetours && w.props[w.soutRetours.trou]; if (q) farm.setPropData(q, { bouche: 0 }); }
+      await ui.fade(false, '', 900);
+    } finally { this.passe = false; }
+  },
+  async descendre(it) {
+    const k = it.data && it.data.k, s = this.sortie(k);
+    if (!s || this.passe) return;
+    const R = this.R();
+    if (!R[k]) { ui.subtitle('', k === 'mine' ? '(Des éboulis, et dessous une grosse pierre. Il en sort un souffle froid. Elle ne bouge pas d’ici.)' : '(Entre deux racines, un trou où passe à peine le bras. Il en sort de l’air froid, qui sent la cave.)', 4); return; }
+    this.passe = true;
+    try {
+      await ui.fade(true, k === 'mine' ? 'La pierre, la cheminée, les barreaux froids.' : 'Vous vous glissez entre les racines, les pieds d’abord.', 800);
+      await new Promise((r) => setTimeout(r, 1200));
+      const p = game.player; p.pos = s.bas.slice(); p.vel = [0, 0, 0];
+      await ui.fade(false, '', 900);
+    } finally { this.passe = false; }
+  },
+};
+HOOKS.inter.sout_sortie = (it) => soutRetours.monter(it);
+HOOKS.inter.sout_trou = (it) => soutRetours.descendre(it);
+HOOKS.load.push(() => {
+  const w = game.world;
+  souterrain.sorties = (w && w.soutRetours && w.soutRetours.sorties) || [];
+  soutRetours.passe = false;
+  if (!farm.s || !w || !w.soutRetours) return;
+  const q = w.props[w.soutRetours.trou];
+  if (q && soutRetours.R().mine) q.data = Object.assign({}, q.data, { bouche: 0 });
+});
+
+// ---------------------------------------------------------------- les marques au charbon
+const soutMarques = {
+  L() { const S = souterrain.S(); return S.m || (S.m = []); },
+  // le point du sol visé (à moins de 4 m)
+  vise(eye, f) {
+    const S = souterrain;
+    for (let t = 0.4; t < 4; t += 0.1) { const x = eye[0] + f[0] * t, y = eye[1] + f[1] * t, z = eye[2] + f[2] * t; if (y <= S.floorAt(x, z) + 0.02) return [x, S.floorAt(x, z), z]; }
+    return null;
+  },
+  tracer(eye, f) {
+    const q = this.vise(eye, f);
+    if (!q) return false;
+    const L = this.L(), p = game.player;
+    if (L.length >= 300) L.shift();
+    L.push([+q[0].toFixed(2), +q[1].toFixed(2), +q[2].toFixed(2), +Math.atan2(-Math.sin(p.yaw), -Math.cos(p.yaw)).toFixed(3)]);
+    this.n = (this.n || 0) + 1;
+    if (this.n % 12 === 0) farm.take('charbon', 1);
+    sound.dig && sound.dig(0.15);
+    return true;
+  },
+  effacer(eye, f) {
+    const q = this.vise(eye, f), L = this.L();
+    if (!q) return false;
+    let bi = -1, bd = 0.9;
+    L.forEach((m, i) => { const d = Math.hypot(m[0] - q[0], m[2] - q[2]); if (d < bd) { bd = d; bi = i; } });
+    if (bi < 0) return false;
+    L.splice(bi, 1); sound.click && sound.click();
+    return true;
+  },
+  _M: new Float32Array(12), _L: new Float32Array(12), _O: new Float32Array(12),
+  dessiner(buf, sbuf, cam) {
+    if (!souterrain.actif || !farm.s) return;
+    const L = this.L(), c = [0.05, 0.05, 0.05];
+    for (const [x, y, z, r] of L) {
+      if (Math.abs(x - cam[0]) > 45 || Math.abs(z - cam[2]) > 45) continue;
+      m34Root(this._M, x, y + 0.012, z, r, 1);
+      for (const [cx, cz, sx, sz, ry] of [[0, -0.12, 0.09, 0.85, 0], [0.11, 0.18, 0.08, 0.42, -0.62], [-0.11, 0.18, 0.08, 0.42, 0.62]]) {
+        m34TR(this._L, cx, 0, cz, 0, ry, 0); m34Mul(this._O, this._M, this._L);
+        buf.box(this._O, 0, 0, 0, sx, 0.012, sz, c, 0);
+      }
+    }
+  },
+};
+// ---------------------------------------------------------------- le nom du lieu, quand on y entre (pas de carte : c'est tout ce qu'on a)
+const soutLieu = {
+  el: null, der: null, t: 0,
+  montrer(nom) {
+    if (!this.el) {
+      const st = document.createElement('style');
+      st.textContent = '#sout-lieu{position:fixed;left:0;right:0;top:17%;text-align:center;pointer-events:none;font:italic 22px Georgia,serif;letter-spacing:.06em;color:rgba(222,212,190,.9);text-shadow:0 0 8px #000,0 0 3px #000;opacity:0;transition:opacity 1.2s;z-index:5}#sout-lieu.on{opacity:1}';
+      document.head.appendChild(st);
+      this.el = document.createElement('div'); this.el.id = 'sout-lieu'; document.body.appendChild(this.el);
+    }
+    this.el.textContent = nom.charAt(0).toUpperCase() + nom.slice(1);
+    this.el.classList.add('on');
+    clearTimeout(this.to); this.to = setTimeout(() => this.el && this.el.classList.remove('on'), 3200);
+  },
+  update(dt) {
+    const S = souterrain;
+    if (!S.actif || !farm.s) { this.der = null; return; }
+    this.t -= dt;
+    if (this.t > 0) return;
+    this.t = 0.6;
+    const p = game.player;
+    let k = S.salleIci(p.pos[0], p.pos[2]);
+    if (!k) { const z = S.zone(p.pos[0], p.pos[2]); if (z === 'mines' || z === 'riviere') k = z; }
+    if (!k || k === this.der) return;
+    const nom = k === 'hameau' ? LIEU_NAMES.sout_hameau_c : SOUT_ZONES[k];
+    this.der = k;
+    if (nom && game.mode === 'play') this.montrer(nom);
+  },
+};
+HOOKS.update.push((dt) => soutLieu.update(dt));
+HOOKS.load.push(() => { soutLieu.der = null; });
+// ---------------------------------------------------------------- le jour, par la cheminée des Racines (la fougère pâle y pousse)
+HOOKS.lights.push((eye) => {
+  if (!souterrain.actif || !farm.s) return [];
+  const c = SOUT_PLAN.cheminees.find((q) => Math.hypot(q[0] - 1760, q[1] - 2374) < 3);
+  if (!c || Math.hypot(eye[0] - c[0], eye[2] - c[1]) > 60) return [];
+  const t = (game.world && typeof game.world.time === "number" ? game.world.time : farm.s.time) || 0, j = clamp(Math.min((t - 0.26) / 0.06, (0.76 - t) / 0.06), 0, 1);
+  if (j <= 0) return [];
+  return [{ x: c[0], y: souterrain.floorAt(c[0], c[1]) + 7, z: c[1], r: 20, c: [0.32 * j, 0.34 * j, 0.37 * j], d: 0.01 }];
+});
+HOOKS.primary.push((eye, basis, held, it, id) => { if (held || id !== 'charbon' || !souterrain.actif) return false; soutMarques.tracer(eye, basis.f); play.cool = 0.35; return true; });
+HOOKS.secondary.push((eye, basis, it, id) => { if (id !== 'charbon' || !souterrain.actif) return false; soutMarques.effacer(eye, basis.f); return true; });
+HOOKS.draw.push((buf, sbuf, cam) => soutMarques.dessiner(buf, sbuf, cam));
 
 // ---- 11-zzzzA-commandes.js
 // ============================================================================
