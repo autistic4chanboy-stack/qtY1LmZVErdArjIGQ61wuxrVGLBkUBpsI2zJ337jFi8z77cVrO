@@ -107,12 +107,14 @@ Object.assign(PROP_MODELS, {
   b1_lampe(E, o, t) {
     E.bx(0, 0, 0, 0.16, 0.04, 0.16, B1C.laiton, TL.gold);
     E.bx(0, 0.04, 0, 0.12, 0.12, 0.12, B1C.laiton, TL.metal);
-    const nuit = t && t.night;
+    const nuit = (t && t.night) || (o.data && o.data.jour);
     E.fl = nuit ? FX_EMIT : 0;
     E.bx(0, 0.16, 0, 0.09, 0.2, 0.09, nuit ? [1.25, 1.0, 0.68] : [0.75, 0.72, 0.66], TL.glass);
     E.fl = 0;
     E.bx(0, 0.36, 0, 0.05, 0.02, 0.05, B1C.fer, TL.iron);
   },
+  // la lampe de la galerie de la bibliothèque (un quinquet : allumé jour et nuit, pour les lecteurs)
+  b1_quinquet(E, o, t) { PROP_MODELS.b1_lampe(E, { x: o.x, data: { jour: true } }, t); },
   // patère et manteau pendu (o.data.col)
   b1_patere(E, o) {
     const c = rgbf((o.data && o.data.col) || '#3a3430');
@@ -223,9 +225,9 @@ Object.assign(PROP_MODELS, {
 Object.assign(PROP_COLL, {
   b1_tremie: null, b1_ratelier: [0.7, 0.18, 1.6], b1_metier: [0.82, 0.62, 1.5], b1_rouet: [0.42, 0.18, 1.0], b1_plaque: null, b1_bocal: null, b1_lampe: null,
   b1_patere: null, b1_bol: null, b1_globe: [0.25, 0.25, 1.3], b1_carte_murale: null, b1_lutrin: [0.25, 0.25, 1.2], b1_rouleaux: [0.62, 0.32, 0.9],
-  b1_poele: [0.27, 0.27, 0.9], b1_lilas: null, b1_souliers: null, b1_jouets: null, b1_berceau: [0.3, 0.46, 0.6], b1_chandelle: null, b1_toilette: [0.36, 0.23, 0.85], b1_dessin: null,
+  b1_poele: [0.27, 0.27, 0.9], b1_lilas: null, b1_souliers: null, b1_jouets: null, b1_berceau: [0.3, 0.46, 0.6], b1_chandelle: null, b1_toilette: [0.36, 0.23, 0.85], b1_dessin: null, b1_quinquet: null,
 });
-Object.assign(PROP_LIGHTS, { b1_lampe: { c: [1.0, 0.74, 0.42], r: 5.5, y: 0.3, night: true }, b1_chandelle: { c: [1.0, 0.7, 0.35], r: 4.5, y: 0.33, flicker: true, lit: true } });
+Object.assign(PROP_LIGHTS, { b1_lampe: { c: [1.0, 0.74, 0.42], r: 5.5, y: 0.3, night: true }, b1_quinquet: { c: [1.0, 0.78, 0.48], r: 7, y: 0.3 }, b1_chandelle: { c: [1.0, 0.7, 0.35], r: 4.5, y: 0.33, flicker: true, lit: true } });
 // (la chandelle vacille : elle est redessinée à chaque image, voir DYN_PROPS dans 11-zzzzB1-ville.js)
 // (un meuble sous son drap : la place qu'il prend, selon sa forme)
 const B1_TOILE_COLL = { armoire: [0.62, 0.3, 2.0], horloge: [0.3, 0.2, 2.1], fauteuil: [0.4, 0.37, 1.0], commode: [0.56, 0.28, 1.0], lit: [0.58, 1.05, 1.0], tableau: [0.46, 0.15, 1.2], chaises: [0.26, 0.26, 1.8] };

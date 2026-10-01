@@ -451,7 +451,7 @@ function b1Bibliotheque(w, B) {
   for (const [x0, s] of [[-2.7, 1], [2.7, -1]]) {
     C.P('table', x0 - 0.7, 0.6, 0); C.P('table', x0 + 0.7, 0.6, 0);
     for (const dx of [-1.0, 0.0, 1.0]) { C.P('chaise', x0 + dx, -0.2, B1PI); C.P('chaise', x0 + dx, 1.4, 0); }
-    C.P('b1_lampe', x0 + 0.3 * s, 0.6, 0, null, 1, 0.79);
+    C.P('b1_quinquet', x0 + 0.3 * s, 0.6, 0, null, 1, 0.79);
     C.P('livre', x0 - 0.5, 0.5, 0.4, null, 1, 0.79);
   }
   C.P('b1_globe', -6.2, -5.4, 0.3); C.P('b1_globe', 6.6, -5.9, 1.1);
@@ -766,6 +766,17 @@ const b1 = {
     }
   },
 
+  // ------------------------------------------------------------------ le jour, par les fenêtres et les meurtrières : une lueur douce dans la pièce où l'on est
+  lumieresJour() {
+    const sk = game.sky, k = sk ? clamp(sk.day || 0, 0, 1) * (1 - 0.45 * (sk.cloudCover || 0)) : 0;
+    if (k < 0.05 || game.player.underground || this.anim) return [];
+    const E = this.etage(), w = game.world, B = E && w.bld[E.key];
+    if (!B || !B.f || (!B.tour && !E.niv)) return [];
+    const y = (E.niv ? E.N.y : B.y) + 1.9, c = (B.tour ? 0.55 : 0.5) * k, col = [c * 0.95, c, c * 1.08];
+    if (Math.max(B.W, B.D) > 14) return [-1 / 3, 0, 1 / 3].map((u) => { const [x, z] = b1W(B.f, u * B.W, 0); return { x, y, z, r: 9.5, c: col, d: 0.5 }; });
+    return [{ x: B.f.x, y, z: B.f.z, r: B.tour ? 5.5 : Math.max(B.W, B.D) * 0.85, c: col, d: 0.5 }];
+  },
+
   // ------------------------------------------------------------------ le garde-meuble de la commune (au grenier de la mairie)
   gardeMeuble() {
     const m = npcs.byId && npcs.byId.maire;
@@ -870,3 +881,4 @@ for (const k of ['b1_echelle', 'b1_voir', 'b1_garde_meuble', 'b1_sept']) fouille
 HOOKS.update.push((dt) => { if (farm.s && game.world) { b1.update(dt); const E = b1.etage(), k = E ? E.key + ':' + E.niv : ''; if (k !== b1.nivK) { b1.nivK = k; if (typeof meubles !== 'undefined') meubles.cacheP = null; } } });
 HOOKS.day.push(() => { if (farm.s && game.world) b1.chandelle(); });
 HOOKS.load.push(() => b1.charger());
+HOOKS.lights.push(() => (farm.s && game.world && game.world.b1 ? b1.lumieresJour() : []));
