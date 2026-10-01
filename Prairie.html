@@ -70598,7 +70598,8 @@ HOOKS.load.push(() => { try { if (game.world && game.world.b2) campagne.charger(
 
 const ADMIN_KEY = 'prairie.admin';
 
-const admin = {
+// (l’objet du panneau ne s’appelle pas « admin » : dans la console, admin(…) doit être la fonction ci-dessous, window.admin)
+const adminPanneau = {
   onglet: 'objets', filtre: '', dieu: false, meteo: null,
   actif() { return store.get(ADMIN_KEY, 0) === 1; },
   // devant le joueur, à d mètres
@@ -70758,34 +70759,34 @@ const admin = {
 
 // la console : admin('prairie') ouvre (et retient le mode) ; admin('off') le retire
 window.admin = function (mot) {
-  if (mot === 'off') { store.set(ADMIN_KEY, 0); admin.dieu = false; admin.meteo = null; if (ui.panel === '#admin') ui.close(); return 'Mode admin retiré.'; }
+  if (mot === 'off') { store.set(ADMIN_KEY, 0); adminPanneau.dieu = false; adminPanneau.meteo = null; if (ui.panel === '#admin') ui.close(); return 'Mode admin retiré.'; }
   if (mot !== 'prairie') return undefined;
   store.set(ADMIN_KEY, 1);
-  admin.ouvrir();
+  adminPanneau.ouvrir();
   return 'Mode admin : P ouvre et ferme le panneau.';
 };
 
 HOOKS.load.push(() => {
-  if (admin.branche) return;
-  admin.branche = true;
+  if (adminPanneau.branche) return;
+  adminPanneau.branche = true;
   // P : ouvrir, fermer (une fois le mode donné dans la console ; pas quand on écrit dans un champ, ni avec Ctrl/Alt)
   window.addEventListener('keydown', (e) => {
-    if (e.code !== 'KeyP' || e.repeat || e.ctrlKey || e.metaKey || e.altKey || !admin.actif()) return;
+    if (e.code !== 'KeyP' || e.repeat || e.ctrlKey || e.metaKey || e.altKey || !adminPanneau.actif()) return;
     const a = document.activeElement;
     if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || a.isContentEditable)) return;
     e.preventDefault();
-    if (ui.panel === '#admin') ui.close(); else admin.ouvrir();
+    if (ui.panel === '#admin') ui.close(); else adminPanneau.ouvrir();
   });
   // invincible : ni blessure, ni mort
   const _hurt = play.hurt.bind(play);
-  play.hurt = function (dmg, src, cause) { if (admin.dieu) return; return _hurt(dmg, src, cause); };
-  HOOKS.death.push(() => { if (!admin.dieu) return false; const p = game.player; p.hp = 100; return true; });
+  play.hurt = function (dmg, src, cause) { if (adminPanneau.dieu) return; return _hurt(dmg, src, cause); };
+  HOOKS.death.push(() => { if (!adminPanneau.dieu) return false; const p = game.player; p.hp = 100; return true; });
   // la météo choisie
   const _today = weather.today.bind(weather);
   weather.today = function () {
     const P = _today();
-    if (!admin.meteo || !P) return P;
-    return Object.assign({}, P, { plan: [[0, admin.meteo]], rain: admin.meteo === 'rain' || admin.meteo === 'storm', storm: admin.meteo === 'storm' });
+    if (!adminPanneau.meteo || !P) return P;
+    return Object.assign({}, P, { plan: [[0, adminPanneau.meteo]], rain: adminPanneau.meteo === 'rain' || adminPanneau.meteo === 'storm', storm: adminPanneau.meteo === 'storm' });
   };
 });
 
