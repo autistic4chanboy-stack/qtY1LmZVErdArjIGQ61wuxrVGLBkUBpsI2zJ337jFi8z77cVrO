@@ -2,7 +2,7 @@
 //  LA VILLE, ET TOUT CE QUI A UN ÉTAGE (agent B1)
 //  « Je veux qu'on puisse rentrer dans chaque bâtiment. »
 //  - Les ÉTAGES : la mairie (les archives, le garde-meuble de la commune),
-//    l'auberge (six chambres d'hôtes, et la sept), la boulangerie (la réserve de
+//    l'auberge (cinq chambres d'hôtes, et la sept), la boulangerie (la réserve de
 //    farine, le coin d'Émile), la poste (les lettres en souffrance), les maisons
 //    aux volets bleus, du tisserand, Rivière, aux lilas, Vernet, Delorme, du
 //    Rempart, l'échoppe de l'alchimiste, le ranch, et les deux niveaux de la
@@ -262,7 +262,7 @@ function b1Cloison(C, axe, pos, a0, a1, portes, h, m) {
 
 // ============================================================================
 //  CE QU'IL Y A LÀ-HAUT (repère de chaque bâtiment : x le long de la façade, z vers le fond ; la porte est en −z)
-//  (les maisons de 8 × 7 : la trappe au fond, à droite, entre l'armoire et la cheminée du rez-de-chaussée)
+//  (les maisons de 8 × 7 : la trappe au fond, côté +x — à gauche quand on entre par la porte de la rue)
 // ============================================================================
 const B1PI = Math.PI, B1PI2 = Math.PI / 2;
 const B1_MAISON = { mur: 'B', u: 1.85 };
@@ -368,7 +368,7 @@ const B1_ETAGES = {
     C.F('malle', 'malle', -1.5, -1.0, 0.2, { slot: 'succession', table: 'f2_malle', pool: 'b1_mairie', lab: 'Ouvrir une malle de succession' });
     C.I('b1_garde_meuble', 'b1:mairie:garde_meuble', 0.4, 1.0, -1.9, 'Les meubles des successions', {});
   } },
-  // ------------------------------------------------ l'auberge : six chambres d'hôtes (et la sept), un couloir
+  // ------------------------------------------------ l'auberge : cinq chambres d'hôtes (et la sept), un couloir
   auberge: { spec: { mur: 'B', u: -1.0 }, meubler(C, N) {
     const h = N.y1 - N.y + 0.22, M = M_TIMBER;
     b1Cloison(C, 'x', -0.8, -5.7, 5.7, [[-4.3, -3.4], [-0.45, 0.45], [3.4, 4.3]], h, M);
