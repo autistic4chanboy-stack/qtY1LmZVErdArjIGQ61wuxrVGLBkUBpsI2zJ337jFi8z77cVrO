@@ -789,12 +789,16 @@ const gardes = {
       case 'tueur_blesse': return `${quand} : un homme en long manteau, près des maisons. ${qui} l’a blessé. Il a fui. On ne l’a pas revu.`;
       case 'masque_blesse': return `${quand} : un homme masqué. ${qui} l’a touché. Il s’est sauvé, sans un cri.`;
       case 'garde_tue': return `${quand} : ${qui} est mort au guet. ${E.par === 'masque' ? 'L’homme au masque.' : 'L’homme au long manteau.'} Personne ne l’a vu partir.`;
-      case 'bete': return `${quand} : ${G1_BETE_NOMS[E.b] || 'une bête'} près des maisons, abattu${E.b === 'wolf' ? 's' : ''} par ${qui}.`;
+      // (des phrases entières, une par cas : l'accord se fait, et la traduction reconnaît chaque phrase)
+      case 'bete': return E.b === 'wolf' ? `${quand} : des loups près des maisons, abattus par ${qui}.` : G1_BETE_NOMS[E.b] ? `${quand} : ${G1_BETE_NOMS[E.b]} près des maisons, abattu par ${qui}.` : `${quand} : une bête près des maisons, abattue par ${qui}.`;
       case 'feu': return `${quand} : le feu, tout près. Éteint à la chaîne, avec les seaux.`;
-      case 'cri': { const v = E.v && npcs.byId[E.v]; return `${quand} : un cri. ${qui} est allé voir. ${v ? `${v.name} ${v.d.surname}, mort.` : ''} Trop tard.`; }
+      case 'cri': { const v = E.v && npcs.byId[E.v]; return !v ? `${quand} : un cri. ${qui} est allé voir. Trop tard.` : v.d.gender === 'f' ? `${quand} : un cri. ${qui} est allé voir. ${v.name} ${v.d.surname}, morte. Trop tard.` : `${quand} : un cri. ${qui} est allé voir. ${v.name} ${v.d.surname}, mort. Trop tard.`; }
       case 'rebellion': return `${quand} : ${prenom}, de la vieille ferme, a refusé de suivre ${qui}. Rébellion.`;
       case 'fuite': return `${quand} : ${prenom}, de la vieille ferme, a pris la fuite. Signalement transmis.`;
-      case 'arrestation': return E.m === 'assomme' ? `${quand} : ${prenom}, de la vieille ferme, ${fe ? 'mise' : 'mis'} au tapis par ${qui}, ${fe ? 'conduite' : 'conduit'} au cachot.` : `${quand} : ${prenom}, de la vieille ferme, ${E.m === 'rendu' ? (fe ? 's’est rendue' : 's’est rendu') : fe ? 'arrêtée' : 'arrêté'} à ${qui}. Au cachot.`;
+      case 'arrestation':
+        if (E.m === 'assomme') return fe ? `${quand} : ${prenom}, de la vieille ferme, mise au tapis par ${qui}, conduite au cachot.` : `${quand} : ${prenom}, de la vieille ferme, mis au tapis par ${qui}, conduit au cachot.`;
+        if (E.m === 'rendu') return fe ? `${quand} : ${prenom}, de la vieille ferme, s’est rendue à ${qui}. Au cachot.` : `${quand} : ${prenom}, de la vieille ferme, s’est rendu à ${qui}. Au cachot.`;
+        return fe ? `${quand} : ${prenom}, de la vieille ferme, arrêtée par ${qui}. Au cachot.` : `${quand} : ${prenom}, de la vieille ferme, arrêté par ${qui}. Au cachot.`;
       case 'paye': return `${quand} : ${prenom}, de la vieille ferme, a réglé sa prime à ${qui}, sur-le-champ. Quittance.`;
     }
     return '';
