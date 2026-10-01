@@ -16,7 +16,7 @@ Le jeu existe en **français** et en **anglais** (Options, ou le bouton de langu
 en onglets — toute la vallée (relief, eaux, forêts, chemins, milieux, lieux-dits, lieux perdus, villages, maisons des habitants, zones de
 pêche), le Dessous, les Enfers, le cauchemar, le pays des bonbons et les Ténèbres, dessinés depuis le jeu (zoom, recherche, repères qui
 mènent aux fiches) — et les fiches de tout le jeu (habitants et leur semaine, objets, recettes, cultures, plantes, arbres, bêtes, poissons, alchimie, livres, langues perdues,
-légendes…), avec une recherche plein texte. Les secrets restent masqués tant qu'on ne clique pas sur « révéler les secrets ». Il se
+légendes, ce qu'il y a dans chaque bâtiment et à chaque étage…), avec une recherche plein texte. Les secrets restent masqués tant qu'on ne clique pas sur « révéler les secrets ». Il se
 régénère depuis les sources du jeu (la vallée est générée, ≈ 1 minute) : `node tools/wiki-build.js`.
 
 **La bêta en ligne (GitHub Pages)** : la page d'accueil **`index.html`** a deux portes, chacune son code — celui de la
