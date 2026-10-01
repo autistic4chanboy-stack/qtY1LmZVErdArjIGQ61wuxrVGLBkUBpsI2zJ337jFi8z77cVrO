@@ -708,7 +708,7 @@ function c2Estive(G) {
   for (const [key, x, z, W, D, r] of CAB) {
     const y = hMoy(x, z, 3.2), f = { x, y, z, r };
     B.flattenRect(f, W / 2 + 1.4, D / 2 + 1.4, y, 3.5);
-    B.building(key, f, W, D, { wall: key === 'es_fromagerie' ? M_PLASTER : M_ROCK, win: key === 'es_fromagerie' ? M_PLASTER : M_ROCK, roof: M_SLATE, roofH: 1.5, found: M_MOSSY, floor: M_DIRT, dw: 1.0, dh: 1.85, chimney: key !== 'es_patre' },
+    B.building(key, f, W, D, { wall: key === 'es_fromagerie' ? M_PLASTER : M_ROCK, win: key === 'es_fromagerie' ? M_PLASTER : M_ROCK, roof: M_SLATE, roofH: 1.5, found: M_MOSSY, floor: M_DIRT, dw: 1.0, dh: 2.05, chimney: key !== 'es_patre' },
       function (bf, W2, D2, Bb) { c2MeublerEstive.call(this, key, bf, W2, D2, Bb); });
   }
   // ---- le feu, ses bancs
