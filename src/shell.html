@@ -8,7 +8,7 @@
 // (empreinte du code de la bêta : voir index.html et tools/beta-code.js)
 (function () { try { if (/^https?:$/.test(location.protocol) && localStorage.getItem('prairie.beta') !== '6e18eacb920bc9d7211e06284e51e47b69b4f8c32190173b02192397449d87a7') location.replace('index.html'); } catch (e) { /* rien */ } })();
 </script>
-<title>Prairie — La vieille ferme</title>
+<title>Newy and the Dark Forest</title>
 <style>
 :root {
   --amber: #ffc93c;
@@ -125,6 +125,8 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
 #menu .inner { margin-left: clamp(24px, 8vw, 120px); max-width: calc(100vw - 48px); }
 #menu h1 { margin: 0; font-size: clamp(48px, 9vw, 96px); letter-spacing: .16em; color: var(--amber); font-weight: 900;
   text-shadow: 0 0 22px rgba(255,180,30,.35), 3px 3px 0 #3a2400; }
+#menu .titre2 { margin: 0 0 6px 6px; font: italic clamp(18px, 2.4vw, 30px) Georgia, 'Times New Roman', serif; letter-spacing: .14em;
+  color: #e6d6ae; text-shadow: 0 0 14px rgba(255,180,30,.25), 2px 2px 0 #2a1a00; }
 #menu .sub { margin: 4px 0 34px 4px; color: var(--muted); letter-spacing: .08em; font-size: 15px; }
 #menu nav { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 #menu nav button { background: none; border: none; padding: 7px 4px; font-size: 21px; color: var(--text); text-align: left;
@@ -353,7 +355,8 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
 
 <div id="menu" class="screen">
   <div class="inner">
-    <h1>PRAIRIE</h1>
+    <h1>NEWY</h1>
+    <p class="titre2">and the Dark Forest</p>
     <p class="sub">La vieille ferme</p>
     <nav>
       <button id="m-play">Jouer</button>

@@ -1,4 +1,7 @@
-# Prairie — La vieille ferme
+# Newy and the Dark Forest
+
+*(Le jeu s'appelait d'abord « Prairie — La vieille ferme » : ses fichiers en gardent le nom — `Prairie.html`,
+`Prairie-Wiki.html` —, comme les clés des sauvegardes, pour que rien ne se perde.)*
 
 Jeu de ferme et d'horreur lente à la première personne, en 3D rétro (pixels façon Doom, personnages anguleux façon
 premier Tomb Raider, bêtes en boîtes), presque sans affichage à l'écran. Un mode Création (éditeur de monde) est inclus.
@@ -16,14 +19,16 @@ mènent aux fiches) — et les fiches de tout le jeu (habitants et leur semaine,
 légendes…), avec une recherche plein texte. Les secrets restent masqués tant qu'on ne clique pas sur « révéler les secrets ». Il se
 régénère depuis les sources du jeu (la vallée est générée, ≈ 1 minute) : `node tools/wiki-build.js`.
 
-**La bêta en ligne (GitHub Pages)** : la page d'accueil **`index.html`** demande le code de la bêta, puis ouvre le jeu
-et le wiki (le code est retenu par le navigateur ; la langue choisie là sera celle du jeu). Ouverts directement en ligne
-sans le code, `Prairie.html` et `Prairie-Wiki.html` renvoient à l'accueil ; ouverts en local (fichier), rien ne change.
+**La bêta en ligne (GitHub Pages)** : la page d'accueil **`index.html`** a deux portes, chacune son code — celui de la
+bêta ouvre le jeu, celui du wiki ouvre le wiki (chaque code donné est retenu par le navigateur ; la langue choisie là
+sera celle du jeu). Ouverts directement en ligne sans leur code, `Prairie.html` et `Prairie-Wiki.html` renvoient à
+l'accueil ; ouverts en local (fichier), rien ne change.
 Pour publier, une fois la branche fusionnée dans `main` : sur GitHub, *Settings → Pages → Build and deployment →
 Source : « Deploy from a branch », Branch : `main`, dossier `/ (root)` → Save*. Le site est servi tel quel (fichier
-`.nojekyll`) à l'adresse `https://<compte>.github.io/<dépôt>/`, une ou deux minutes après chaque fusion. Le code
-n'est écrit en clair nulle part (seulement son empreinte SHA-256) ; pour le changer : `node tools/beta-code.js <code>`,
-puis `node build.js && node tools/wiki-build.js`. C'est une barrière simple, pas un coffre : une page publique ne
+`.nojekyll`) à l'adresse `https://<compte>.github.io/<dépôt>/`, une ou deux minutes après chaque fusion.
+Les codes ne sont écrits en clair nulle part (seulement leur empreinte SHA-256) ; pour les changer :
+`node tools/beta-code.js jeu <code>` puis `node build.js`, ou `node tools/beta-code.js wiki <code>` puis
+`node tools/wiki-build.js`. C'est une barrière simple, pas un coffre : une page publique ne
 cache pas vraiment ce qu'elle contient, et sur un dépôt public, les fichiers du jeu se lisent sur GitHub même (un dépôt
 privé avec Pages demande un abonnement GitHub payant).
 
@@ -884,7 +889,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
 | `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus bas) |
 | `shell.html` | HTML + CSS |
-| `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et son code, le site servi tel quel par GitHub Pages, changer le code |
+| `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et ses deux codes (le jeu, le wiki), le site servi tel quel par GitHub Pages, changer un code |
 
 Le son, pour placer un bruit dans le monde : `sound.pan(p, dest)` accepte un panoramique −1..1 (comme avant) **ou une
 position** (`[x, y, z]`, `{x, y, z}`, une bête, un habitant) ; `sound.ici(pos, () => …, o)` place tous les sons joués
