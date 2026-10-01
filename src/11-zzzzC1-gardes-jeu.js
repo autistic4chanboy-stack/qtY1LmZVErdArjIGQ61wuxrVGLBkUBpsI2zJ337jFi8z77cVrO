@@ -280,7 +280,7 @@ const gardes = {
     const lent = this.progres(n, d);
     if (vu && (d < 2.2 || (d < 16 && lent > 4) || (d < 24 && lent > 8) || (n.sommeT && d < (n.sommeD || 0) + 1.5))) {
       face();
-      if (!n.sommeT) { n.sommeT = game.time; n.sommeD = d; this.sommer(n); }
+      if (!n.sommeT) { if (this.sommer(n)) { n.sommeT = game.time; n.sommeD = d; } } // (pas de choix à l'écran : il réessaiera)
       else if (Sm && Sm.n === n && Sm.ferme && game.time - Sm.fermeT > 5) this.arreter(n, 'sommation'); // (resté là sans répondre : il vous emmène)
       return;
     }
@@ -353,7 +353,7 @@ const gardes = {
   },
   sommer(n, mode) {
     const R = societe.recherche(), K = societe.crimesSus(n), s = farm.s;
-    if (!R || !K.length || cine.on || game.dying || game.sleeping || societe.arrestation) return;
+    if (!R || !K.length || cine.on || game.dying || game.sleeping || societe.arrestation) return false;
     ui.close(true);
     const ligne = mode === 'redemande' ? this.dit('redemande', n) : this.ligneSommation(n);
     gardes.parle(n, ligne, 3);
@@ -365,6 +365,7 @@ const gardes = {
     const desc = `« ${fmtLine(ligne, n)} » ${s.fem ? 'Vous êtes recherchée' : 'Vous êtes recherché'} pour ${lib}. Prime : ${prime} pièces.${petit ? ` Vous avez ${s.money} pièces.` : ''}`;
     ui.choice(this.titre(n), desc, opts);
     this.sommation = { n, t: game.time, ouvert: true, mode: mode || 'sommation' };
+    return true;
   },
   fermerChoix() {
     if (this.sommation && ui.panel === '#choice') ui.close(true);
@@ -421,9 +422,8 @@ const gardes = {
       societe.finPoursuite(n); n.attaque = false; n.fleeT = 6; return;
     }
     // il vous a mis à mal : il vous redemande de vous rendre (une fois de temps en temps)
-    if (p.hp < 35 && d < 4 && vu && game.time - this.redemandeT > 25 && !cine.on) {
+    if (p.hp < 35 && d < 4 && vu && game.time - this.redemandeT > 25 && !cine.on && this.sommer(n, 'redemande')) {
       this.redemandeT = game.time; n.attaque = false; n.sommeT = game.time; n.sommeD = d;
-      this.sommer(n, 'redemande');
       return;
     }
     // le fusil : de loin
