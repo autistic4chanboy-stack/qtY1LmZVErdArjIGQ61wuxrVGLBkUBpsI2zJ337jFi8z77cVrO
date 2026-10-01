@@ -22,7 +22,7 @@
 //  Génération : après tout le reste (emballage de generateValley, après 11-zzzzB2),
 //  tirage propre mulberry32(graine ^ 0xC6A2D1) ; on AJOUTE au bout des listes.
 // ============================================================================
-Object.assign(LIEU_NAMES, { g1_corps_garde: 'le corps de garde', g1_cabane_hameau: 'la cabane des gardes' });
+Object.assign(LIEU_NAMES, { g1_corps_garde: 'le corps de garde du pont nord', g1_cabane_hameau: 'la cabane des gardes' }); // (les tours d'angle ont aussi le leur : 11-zzzzB1-ville.js)
 
 // ---------------------------------------------------------------- la rébellion (refuser de se rendre à un garde)
 if (typeof CRIME_DEF !== 'undefined' && !CRIME_DEF.rebellion) CRIME_DEF.rebellion = { prime: 100, grav: 2, oubli: 6, violent: false };

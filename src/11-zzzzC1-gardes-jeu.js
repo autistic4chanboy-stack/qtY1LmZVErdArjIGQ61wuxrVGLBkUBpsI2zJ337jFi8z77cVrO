@@ -63,6 +63,7 @@ const G1_DIT = {
   feu: { garde: 'Au feu ! Au feu ! De l’eau !', chevalier_guet: 'Au feu. Des seaux, vite.', garde_champetre: 'Au feu ! Les seaux ! Les seaux de la cabane !', gendarme: 'Au feu ! Faites la chaîne !' },
   eteint: { garde: 'C’est éteint. C’est éteint, n’est-ce pas ?', chevalier_guet: 'Éteint.', garde_champetre: 'Éteint ! Procès-verbal d’incendie, contre la foudre !', gendarme: 'C’est éteint.' },
   cri: { garde: 'Qui a crié ? … Qui a crié ?', chevalier_guet: 'Un cri. Par là.', garde_champetre: 'Qui a crié ? Répondez !', gendarme: 'Quelqu’un a crié. Restez où vous êtes.' },
+  tir: { garde: 'Qui a tiré ? … Qui a tiré, ici ?', chevalier_guet: 'Un coup de feu. On ne tire pas près des maisons.', garde_champetre: 'Qui a tiré ? Port d’arme dans le hameau ! Ça, c’est un procès-verbal !', gendarme: 'Qui a tiré ? Rangez cette arme.' },
   tard: { garde: 'Trop tard… Encore trop tard.', chevalier_guet: 'Trop tard. Je l’écrirai.', garde_champetre: 'Trop tard… Mon Dieu.', gendarme: 'Trop tard.' },
 };
 // la relève : ce qu'ils se disent (le joueur à portée de voix)
@@ -518,7 +519,7 @@ const gardes = {
   },
 
   // ------------------------------------------------------------------ les « problèmes » : qui accourt, où
-  cri(x, z, n) { this.cris.push({ x, z, t: game.time, id: n ? n.id : null }); if (this.cris.length > 6) this.cris.shift(); },
+  cri(x, z, n, tir) { this.cris.push({ x, z, t: game.time, id: n ? n.id : null, tir: !!tir }); if (this.cris.length > 6) this.cris.shift(); },
   menaces(lieu, Z) {
     const out = [], dans = (x, z, m) => Math.hypot(x - Z.x, z - Z.z) < Z.r + (m || 0);
     const T = typeof tueur !== 'undefined' ? tueur.E : null;
@@ -531,7 +532,7 @@ const gardes = {
       break;
     }
     if (typeof vallee !== 'undefined' && vallee.burning && vallee.burning.size) for (const b of vallee.burning.values()) if (dans(b.x, b.z, 15)) { out.push({ type: 'feu', x: b.x, z: b.z, tous: true, bruit: true, duree: 150, portee: 170 }); break; }
-    for (const c of this.cris) if (game.time - c.t < 30 && !c.vu && dans(c.x, c.z, 20)) out.push({ type: 'cri', x: c.x, z: c.z, bruit: true, duree: 45, portee: 140, id: c.id, c });
+    for (const c of this.cris) if (game.time - c.t < 30 && !c.vu && dans(c.x, c.z, 20)) out.push({ type: 'cri', x: c.x, z: c.z, bruit: true, duree: 45, portee: 140, id: c.id, c, tir: c.tir });
     return out;
   },
   urgences() {
@@ -546,7 +547,7 @@ const gardes = {
           const d = Math.hypot(g.x - M.x, g.z - M.z), dort = this.dort(g);
           if (d > M.portee || (dort && !(M.bruit && d < 45))) continue;
           if (dort) this.reveiller(g);
-          g.urgence = { type: M.type, e: M.e || null, x: M.x, z: M.z, t0: game.time, fin: game.time + M.duree, lieu, id: M.id || null };
+          g.urgence = { type: M.type, e: M.e || null, x: M.x, z: M.z, t0: game.time, fin: game.time + M.duree, lieu, id: M.id || null, tir: !!M.tir };
           g.goal = null;
           if (M.c) M.c.vu = true;
           if (M.type === 'bete' || M.type === 'feu') this.direUneFois(g, M.type, 120); // (l'homme, on l'interpelle quand on le voit)
@@ -696,7 +697,7 @@ const gardes = {
     if (!U.arrive) {
       U.arrive = game.time;
       const mort = U.id && npcs.byId[U.id] && !npcs.byId[U.id].st.alive;
-      gardes.parle(n, this.dit(mort ? 'tard' : 'cri', n), 3);
+      gardes.parle(n, this.dit(mort ? 'tard' : U.tir ? 'tir' : 'cri', n), 3);
       if (mort) this.noter(U.lieu, 'cri', { g: n.id, v: U.id });
     }
     n.move = lerp(n.move, 0, Math.min(1, dt * 6)); n.run = false; n.heading += dt * 0.8 * Math.sin(game.time * 0.7);
@@ -913,6 +914,9 @@ if (typeof massGoer === 'function') {
   societe.arreter = function (par) { if (gardes.est(par)) return gardes.arreter(par, 'sommation'); return _arr(par); };
   const _vr = societe.vueRecherche.bind(societe);
   societe.vueRecherche = function (n, K) { if (gardes.est(n)) return gardes.vueRecherche(n, K); return _vr(n, K); };
+  // lever la main sur un garde coûte ce qu'il en coûte pour Grosjean (11-zzz50-societe.js : prixDe, garde, maire, curé)
+  const _px = societe.prixDe.bind(societe);
+  societe.prixDe = function (type, vic) { const p = _px(type, vic); return vic && gardes.nouveau(vic) ? p + (type === 'meurtre' ? 400 : 60) : p; };
   // les nouveaux gardes ne fuient pas l'assassin connu : ils viennent à lui
   const _host = npcs.hostile.bind(npcs);
   npcs.hostile = function (n) { if (gardes.nouveau(n)) return false; return _host(n); };
@@ -961,6 +965,19 @@ if (typeof massGoer === 'function') {
   fouilles.pris = function (it, own, vus, cri) { _fp(it, own, vus, cri); const p = game.player; gardes.temoinsCrime(vus || [], p.pos[0], p.pos[2]); };
   const _os = objets.surpris.bind(objets);
   objets.surpris = function (type, acte, own, vus, pos, L, prof) { _os(type, acte, own, vus, pos, L, prof); gardes.temoinsCrime(vus || [], pos[0], pos[2]); };
+}
+// ---------------------------------------------------------------- un coup de feu près des maisons (11-zzz30-chasse.js : bruitDeTir)
+if (typeof chasse !== 'undefined' && chasse.bruitDeTir) {
+  const _bt = chasse.bruitDeTir.bind(chasse);
+  chasse.bruitDeTir = function (pos) {
+    const avant = new Map(gardes.L.map((n) => [n, n.fleeT || 0]));
+    _bt(pos);
+    if (!farm.s) return;
+    for (const n of gardes.L) if (gardes.nouveau(n) && (n.fleeT || 0) > avant.get(n)) n.fleeT = avant.get(n); // (un garde ne fuit pas un coup de feu)
+    // (ils viennent voir ; sauf si Grosjean, tout près, a déjà crié son « On ne tire pas en ville »)
+    const g = npcs.byId.garde, gronde = g && g.st.alive && !g.vanished && !g.sleep && Math.hypot(g.x - pos[0], g.z - pos[2]) < 80;
+    if (!gronde && gardes.lieuDe(pos[0], pos[2], 30)) gardes.cri(pos[0], pos[2], null, true);
+  };
 }
 // ---------------------------------------------------------------- le registre, les avis
 HOOKS.inter.g1_registre = (it) => gardes.registre(it);
