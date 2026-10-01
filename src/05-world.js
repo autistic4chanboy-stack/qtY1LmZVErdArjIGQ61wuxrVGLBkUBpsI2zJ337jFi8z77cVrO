@@ -268,7 +268,8 @@ class World {
     cov.fill(-1e4); // -1e4 = pas de plafond (jamais « sous abri »)
     for (const b of this.blocks) {
       const hx = b.sx / 2 - 0.45, hz = b.sz / 2 - 0.45;
-      if (hx <= 0 || hz <= 0 || b.m === M_FROSTED || b.hidden || (b.ver && !(b.ver & this.curVer))) continue;
+      // (b.plafond : plancher d'un étage, sous un toit : l'abri, c'est le toit, au rez-de-chaussée comme à l'étage)
+      if (hx <= 0 || hz <= 0 || b.m === M_FROSTED || b.hidden || b.plafond || (b.ver && !(b.ver & this.curVer))) continue;
       if (b.under && !b.ceil) continue;
       const R = Math.hypot(hx, hz);
       if (b.x + R < ox || b.z + R < oz || b.x - R > ox + S || b.z - R > oz + S) continue;
