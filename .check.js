@@ -70060,14 +70060,15 @@ HOOKS.load.push(() => { try { if (game.world && game.world.b2) campagne.charger(
 // ---- 11-zzzzz-admin.js
 // ============================================================================
 //  Outils de mise au point (caché). Console du navigateur : admin('prairie')
-//  ouvre le panneau ; ensuite F9 l'ouvre et le ferme ; admin('off') le retire.
+//  ouvre le panneau ; ensuite P l'ouvre et le ferme ; admin('off') le retire.
 //  Objets (un, dix, cent, tout), bêtes, objets à poser, événements, argent,
 //  heure, météo, soins, invincibilité, lieux, habitants.
 // ============================================================================
 
 const ADMIN_KEY = 'prairie.admin';
 
-const admin = {
+// (l’objet du panneau ne s’appelle pas « admin » : dans la console, admin(…) doit être la fonction ci-dessous, window.admin)
+const adminPanneau = {
   onglet: 'objets', filtre: '', dieu: false, meteo: null,
   actif() { return store.get(ADMIN_KEY, 0) === 1; },
   // devant le joueur, à d mètres
@@ -70227,32 +70228,34 @@ const admin = {
 
 // la console : admin('prairie') ouvre (et retient le mode) ; admin('off') le retire
 window.admin = function (mot) {
-  if (mot === 'off') { store.set(ADMIN_KEY, 0); admin.dieu = false; admin.meteo = null; if (ui.panel === '#admin') ui.close(); return 'Mode admin retiré.'; }
+  if (mot === 'off') { store.set(ADMIN_KEY, 0); adminPanneau.dieu = false; adminPanneau.meteo = null; if (ui.panel === '#admin') ui.close(); return 'Mode admin retiré.'; }
   if (mot !== 'prairie') return undefined;
   store.set(ADMIN_KEY, 1);
-  admin.ouvrir();
-  return 'Mode admin : F9 ouvre et ferme le panneau.';
+  adminPanneau.ouvrir();
+  return 'Mode admin : P ouvre et ferme le panneau.';
 };
 
 HOOKS.load.push(() => {
-  if (admin.branche) return;
-  admin.branche = true;
-  // F9 : ouvrir, fermer (une fois le mode donné dans la console)
+  if (adminPanneau.branche) return;
+  adminPanneau.branche = true;
+  // P : ouvrir, fermer (une fois le mode donné dans la console ; pas quand on écrit dans un champ, ni avec Ctrl/Alt)
   window.addEventListener('keydown', (e) => {
-    if (e.code !== 'F9' || !admin.actif()) return;
+    if (e.code !== 'KeyP' || e.repeat || e.ctrlKey || e.metaKey || e.altKey || !adminPanneau.actif()) return;
+    const a = document.activeElement;
+    if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || a.isContentEditable)) return;
     e.preventDefault();
-    if (ui.panel === '#admin') ui.close(); else admin.ouvrir();
+    if (ui.panel === '#admin') ui.close(); else adminPanneau.ouvrir();
   });
   // invincible : ni blessure, ni mort
   const _hurt = play.hurt.bind(play);
-  play.hurt = function (dmg, src, cause) { if (admin.dieu) return; return _hurt(dmg, src, cause); };
-  HOOKS.death.push(() => { if (!admin.dieu) return false; const p = game.player; p.hp = 100; return true; });
+  play.hurt = function (dmg, src, cause) { if (adminPanneau.dieu) return; return _hurt(dmg, src, cause); };
+  HOOKS.death.push(() => { if (!adminPanneau.dieu) return false; const p = game.player; p.hp = 100; return true; });
   // la météo choisie
   const _today = weather.today.bind(weather);
   weather.today = function () {
     const P = _today();
-    if (!admin.meteo || !P) return P;
-    return Object.assign({}, P, { plan: [[0, admin.meteo]], rain: admin.meteo === 'rain' || admin.meteo === 'storm', storm: admin.meteo === 'storm' });
+    if (!adminPanneau.meteo || !P) return P;
+    return Object.assign({}, P, { plan: [[0, adminPanneau.meteo]], rain: adminPanneau.meteo === 'rain' || adminPanneau.meteo === 'storm', storm: adminPanneau.meteo === 'storm' });
   };
 });
 
@@ -81041,6 +81044,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Mmh… laissez-moi dormir…","Mmh… let me sleep…"],
 ["Mo dôr.","Mo dôr."],
 ["Mode admin : F9 ouvre et ferme le panneau.","Admin mode: F9 opens and closes the panel."],
+["Mode admin : P ouvre et ferme le panneau.","Admin mode: P opens and closes the panel."],
 ["Mode admin retiré.","Admin mode removed."],
 ["Mode création (éditeur)","Creative mode (editor)"],
 ["Mode création — un monde à bâtir","Creative mode — a world to build"],
@@ -83010,6 +83014,7 @@ const I18N_EN = {"v":1,"exact":[
 ["SCP-VAL-001 désigne un espace secondaire superposé à la vallée, accessible par le vieux puits lors des nuits rouges. Sa géographie reproduit celle de la vallée, inversée dans ses couleurs et dans une partie de ses lois : l’eau y est respirable, les reflets n’y reflètent rien, et les horloges y reculent. Les objets qui en reviennent restent froids pendant des jours.","SCP-VAL-001 designates a secondary space superimposed on the valley, accessible through the old well during red nights. Its geography reproduces that of the valley, inverted in its colours and in some of its laws: the water there is breathable, reflections reflect nothing, and clocks run backwards. Objects that come back from it stay cold for days."],
 ["SCP-VAL-001 ne peut pas être confiné à cette époque. Le puits qui y donne accès (lieu-dit « le vieux puits », hameau abandonné) est placé sous observation passive. Aucun membre du personnel ne descend dans le puits. En cas de nuit rouge (voir VAL-002), le personnel en surface regagne le site avant 19 h 30.","SCP-VAL-001 cannot be contained in this era. The well that gives access to it (locality “the old well”, abandoned hamlet) is under passive observation. No personnel are to go down the well. In the event of a red night (see VAL-002), surface personnel must return to the site before 19:30."],
 ["SCP-VAL-013 désigne l’occupant de la vieille ferme, arrivé dans la vallée à la suite d’une lettre de notaire. La même lettre a été reçue par toutes les personnes qui se sont succédé à la ferme. SCP-VAL-013 est à la fois le sujet et le point de convergence des anomalies : elles s’intensifient autour de lui.","SCP-VAL-013 designates the occupant of the old farm, who arrived in the valley following a letter from a notary. The same letter was received by every person who has occupied the farm in turn. SCP-VAL-013 is both the subject and the point of convergence of the anomalies: they intensify around it."],
+["SELECT","SELECT"],
 ["SEPT MULETIERS ET LEURS BÊTES\n1778\nLA NEIGE A TOUT GARDÉ","SEVEN MULETEERS AND THEIR BEASTS\n1778\nTHE SNOW KEPT EVERYTHING"],
 ["SIGNAL N° 7\nLES INGÉNIEURS NE SONT PAS REDESCENDUS PAR CE CÔTÉ","SIGNAL NO. 7\nTHE ENGINEERS DID NOT COME BACK DOWN THIS SIDE"],
 ["SOURCE SAINTE-AGATHE\nPOUR LE LAIT DES MÈRES","SAINTE-AGATHE SPRING\nFOR THE MILK OF MOTHERS"],
