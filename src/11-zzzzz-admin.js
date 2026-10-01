@@ -1,6 +1,6 @@
 // ============================================================================
 //  Outils de mise au point (caché). Console du navigateur : admin('prairie')
-//  ouvre le panneau ; ensuite F9 l'ouvre et le ferme ; admin('off') le retire.
+//  ouvre le panneau ; ensuite P l'ouvre et le ferme ; admin('off') le retire.
 //  Objets (un, dix, cent, tout), bêtes, objets à poser, événements, argent,
 //  heure, météo, soins, invincibilité, lieux, habitants.
 // ============================================================================
@@ -171,15 +171,17 @@ window.admin = function (mot) {
   if (mot !== 'prairie') return undefined;
   store.set(ADMIN_KEY, 1);
   admin.ouvrir();
-  return 'Mode admin : F9 ouvre et ferme le panneau.';
+  return 'Mode admin : P ouvre et ferme le panneau.';
 };
 
 HOOKS.load.push(() => {
   if (admin.branche) return;
   admin.branche = true;
-  // F9 : ouvrir, fermer (une fois le mode donné dans la console)
+  // P : ouvrir, fermer (une fois le mode donné dans la console ; pas quand on écrit dans un champ, ni avec Ctrl/Alt)
   window.addEventListener('keydown', (e) => {
-    if (e.code !== 'F9' || !admin.actif()) return;
+    if (e.code !== 'KeyP' || e.repeat || e.ctrlKey || e.metaKey || e.altKey || !admin.actif()) return;
+    const a = document.activeElement;
+    if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || a.isContentEditable)) return;
     e.preventDefault();
     if (ui.panel === '#admin') ui.close(); else admin.ouvrir();
   });
