@@ -10,7 +10,8 @@
 //  - la loge des charbonniers : perches et mottes, la couche de fougères, la
 //    marmite, les outils ;
 //  - le clocher englouti : le mouton, la corde, les abat-sons, la vase, les
-//    marches qui s'enfoncent, et la cloche (on ne la voit pas toujours).
+//    marches qui s'enfoncent, et la cloche (on ne la voit pas toujours) ;
+//  - la bergerie des Combes : la houlette du berger.
 //  (même manière que 07-models.js : des boîtes et les tuiles du jeu ; l'avant regarde +z)
 // ============================================================================
 const PB2 = {
@@ -252,6 +253,14 @@ Object.assign(PROP_MODELS, {
     E.box(-0.3, 0.9, 0, 0.05, 1.9, 0.05, PB2.wood, TL.wood, 0, 0.18); E.box(-0.3, 0.06, -0.18, 0.4, 0.12, 0.04, PB2.iron, TL.iron, 0, 0.18);
     E.box(0, 0.85, 0, 0.05, 1.7, 0.05, PB2.wood, TL.wood, 0, 0.16); E.box(0, 0.12, -0.14, 0.24, 0.3, 0.03, PB2.iron, TL.iron, 0, 0.16);
     E.box(0.4, 0.4, 0.05, 0.62, 0.62, 0.08, PB2.wood, TL.wood, 0, 0.2); E.box(0.4, 0.4, 0.07, 0.5, 0.5, 0.02, PB2.dark, TL.plain, 0, 0.2);
+  },
+  // ---------------------------------------------------------------- la bergerie des Combes
+  // la houlette du berger, appuyée au mur (du côté +z) : le bâton, la crosse en haut, la petite pelle de fer en bas
+  b2_houlette(E) {
+    E.box(0, 0.8, 0, 0.045, 1.62, 0.045, PB2.wood, TL.wood, 0, 0.14);
+    E.box(0, 1.63, 0.05, 0.04, 0.04, 0.15, PB2.dwood, TL.darkwood);
+    E.box(0, 1.57, -0.02, 0.04, 0.13, 0.04, PB2.dwood, TL.darkwood);
+    E.box(0, 0.04, -0.12, 0.09, 0.08, 0.02, PB2.iron, TL.iron, 0, 0.14);
   },
   // ---------------------------------------------------------------- le clocher englouti
   // le mouton (la poutre de la cloche) d'un mur à l'autre, ses ferrures, la corde qui pend jusqu'au fond (data.l : portée)

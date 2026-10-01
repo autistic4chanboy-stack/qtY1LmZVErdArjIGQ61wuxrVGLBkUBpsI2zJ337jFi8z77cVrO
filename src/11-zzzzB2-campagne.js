@@ -13,19 +13,23 @@
 //    l'on entre debout ; la couche de fougères, la marmite, les outils.
 //  - Le CLOCHER ENGLOUTI : creusé, une baie là où le rectangle sombre était
 //    peint ; le mouton, la corde, les abat-sons ; la cloche, les nuits d'orage.
+//  - Les ruines des lieux perdus où le butin était enfermé dans la pierre :
+//    MOULINS EN RUINE (creusés, porte et fenêtre ouvertes), BORIES (on entre
+//    accroupi, on se relève sous la voûte), GLACIÈRES (le portail percé).
 //  - On grimpe aux échelles pour de vrai (on voit les barreaux défiler, la
 //    trappe se soulever) ; on fouille (11-zzz98-fouilles.js : lieux abandonnés,
 //    leurs papiers) ; on dort dans les lits (11-zzz95-sommeil.js).
 //  - La carte des abris (05-world.js computeCover) ne garde qu'un plafond par
-//    case : sous un chapeau plus étroit que le pied de la tour, on serait
-//    « dehors » au bord des pièces. Chaque pièce dit donc sa hauteur d'abri
-//    (w.b2abris), que l'emballage de computeCover reporte sur la carte.
+//    case d'un mètre : sous un chapeau plus étroit que le pied de la tour, on
+//    serait « dehors » au bord des pièces. Chaque pièce dit donc sa hauteur
+//    d'abri (w.b2abris) ; l'emballage de computeCover choisit, case par case,
+//    celle qui éclaire le moins de surfaces de travers (b2Cellules).
 //  Génération : après tout le reste (emballage de generateValley, après la ville
 //  de 11-zzzzB1), tirage propre mulberry32(graine ^ 0xB2CA4E). On AJOUTE au bout
 //  des listes (objets posés, interactions, portes) ; les blocs pleins d'avant
 //  deviennent l'un de leurs murs, les autres morceaux s'ajoutent au bout.
 //  État : farm.s.campagne = { v, ech: {lieu: angle}, vus: {clé: jour} }.
-//  API : campagne (grimper(it), S(), dans(cle)).
+//  API : campagne (grimper(it), agir(it), S()) ; w.b2 (moulin, phare, clocher, pigeonniers, loges, ruines).
 // ============================================================================
 
 // ---------------------------------------------------------------- géométrie
@@ -147,7 +151,7 @@ function b2Percee(b, t, f, xc, demi, zmin, h0, h1) {
   return out;
 }
 // la hauteur d'abri d'une pièce (voir l'emballage de computeCover plus bas)
-function b2Abri(w, f, hx, hz, y) { (w.b2abris || (w.b2abris = [])).push({ x: f.x, z: f.z, r: f.r, hx, hz, y }); }
+function b2Abri(w, f, hx, hz, y, y0) { (w.b2abris || (w.b2abris = [])).push({ x: f.x, z: f.z, r: f.r, hx, hz, y, y0: y0 === undefined ? y - 4 : y0 }); }
 // les blocs proches d'un point (x, z), filtrés
 function b2Blocs(w, x, z, r, fn) { return w.blocks.filter((b) => Math.abs(b.x - x) < r && Math.abs(b.z - z) < r && (!fn || fn(b))); }
 const b2Pres = (a, b, e) => Math.abs(a - b) < (e || 0.02);
@@ -249,7 +253,7 @@ function b2Moulin(G) {
   const TR = [null, [1.3, 1.3], [-1.2, 1.2], [0.95, 1.0]];
   for (let k = 1; k < 4; k++) b2Plancher(w, f, S[k], 0.2, R[k - 1] + 0.12, R[k - 1] + 0.12, M_PLANKS, [TR[k][0], TR[k][1], 0.5]);
   // les hauteurs d'abri (chaque pièce : le dessous du plancher d'au-dessus ; la dernière : le chapeau)
-  for (let k = 0; k < 4; k++) b2Abri(w, f, A[k].sx / 2, A[k].sx / 2, k < 3 ? S[k + 1] - 0.2 : plafondHaut);
+  for (let k = 0; k < 4; k++) b2Abri(w, f, A[k].sx / 2, A[k].sx / 2, k < 3 ? S[k + 1] - 0.2 : plafondHaut, S[k] - (k ? 0.25 : 0.6));
   // le jour qui entre par la porte et les fenêtres (un point par baie, côté pièce)
   b2Jour(w, f, 0, S[0] + 1.2, -R[0] + 0.5, 1.3); b2Jour(w, f, -R[0] + 0.45, S[0] + 1.4, 0.8);
   b2Jour(w, f, R[1] - 0.45, S[1] + 1.3, -0.75);
@@ -394,8 +398,8 @@ function b2Phare(G) {
   for (const [lx, lz, sx, sz] of [[0, -2.07, 4.2, 0.06], [0, 2.07, 4.2, 0.06], [-2.07, 0, 0.06, 4.08], [2.07, 0, 0.06, 4.08]]) b2Bloc(w, f, lx, S[5], lz, sx, 1.12, sz, M_METAL);
   for (const [lx, lz] of [[-2.07, -2.07], [2.07, -2.07], [-2.07, 2.07], [2.07, 2.07]]) b2Bloc(w, f, lx, S[5], lz, 0.1, 1.18, 0.1, M_METAL);
   // les abris : chaque étage jusqu'au dessous du plancher suivant ; la chambre de la lanterne, jusqu'au toit
-  for (let k = 0; k < 5; k++) b2Abri(w, f, A[k].sx / 2, A[k].sx / 2, k < 4 ? S[k + 1] - 0.2 : plat.y);
-  b2Abri(w, f, 1.4, 1.4, toit.y);
+  for (let k = 0; k < 5; k++) b2Abri(w, f, A[k].sx / 2, A[k].sx / 2, k < 4 ? S[k + 1] - 0.2 : plat.y, S[k] - (k ? 0.25 : 0.6));
+  b2Abri(w, f, 1.4, 1.4, toit.y, S[5] - 0.1);
   // les échelles
   for (let k = 1; k <= 5; k++) b2Echelle(G, f, { id: 'b2:phare:' + k, trou: [TR[k][0], TR[k][1]], d: TR[k][2], th, yB: S[k - 1], yH: S[k], lieu: nom });
   // le jour aux baies
@@ -458,7 +462,7 @@ function b2Pigeonnier(G, L) {
   w.doors.push({ x: b2W(f, 0, 1.46)[0], y: y0 + 0.05, z: b2W(f, 0, 1.46)[1], r: f.r + Math.PI, w: 0.92, h: 1.94, a: 0, open: 0, locked: false, bld: null, m: M_PLANKS });
   G.nd++;
   // l'abri : sous la corniche (les deux carrés)
-  b2Abri(w, f, 1.6, 1.6, corn.y); b2Abri(w, { x: f.x, z: f.z, r: f.r + Math.PI / 4 }, 1.6, 1.6, corn.y);
+  b2Abri(w, f, 1.6, 1.6, corn.y, y0 - 0.4); b2Abri(w, { x: f.x, z: f.z, r: f.r + Math.PI / 4 }, 1.6, 1.6, corn.y, y0 - 0.4);
   b2Jour(w, f, 0, y0 + 1.2, ap - 0.4, 0.9);
   // les boulins sur les huit pans (au-dessus de la porte sur le pan de devant)
   for (let k = 0; k < 8; k++) {
@@ -504,7 +508,7 @@ function b2Loge(G, L) {
     b2Bloc(w, fL, s * (pw + 0.07 + (m + e / 2 - pw - 0.07) / 2), y0, m, m + e / 2 - pw - 0.07, H, e, M_LOGS, 0, X);
     b2Bloc(w, fL, s * (pw + 0.12), y0, (m + Bd) / 2, 0.1, H * 0.6, Bd - m + 0.1, M_LOGS, 0, X);
   }
-  b2Abri(w, fL, 1.62, 1.62, y0 + H);
+  b2Abri(w, fL, 1.62, 1.62, y0 + H, y0 - 0.4);
   b2Jour(w, fL, 0, y0 + 1.1, 1.0, 0.7);
   // dedans : la couche de fougères, la marmite, les outils, le coffre, une lanterne
   b2Prop(G, fL, 'paillasse', -1.3, y0, -0.25, 0);
@@ -549,6 +553,122 @@ function b2Clocher(G) {
   w.b2.clocher = { x: f.x, z: f.z, y: f.y, r: f.r, sol, cloche: w.props.indexOf(cl) };
 }
 
+// ---------------------------------------------------------------- les moulins en ruine (C2_TYPES.moulin_ruine)
+// deux boîtes de pierre moussue de 4,4 m (l'une tournée de 45° : une étoile), un tronçon tourné de 22,5° au-dessus, des
+// poutres ; une porte et une fenêtre peintes (sombres) dans les pointes : les sacs du meunier étaient enfermés dans la pierre
+function b2MoulinRuine(G, L) {
+  const w = G.w, f = { x: L.x, y: L.y, z: L.z, r: L.r };
+  const pres = b2Blocs(w, L.x, L.z, 4, (b) => !b.hidden && !b.under);
+  const ang = (b, a) => Math.abs(Math.atan2(Math.sin(b.r - a), Math.cos(b.r - a))) < 0.01;
+  const A = pres.find((b) => b.m === M_MOSSY && b2Pres(b.sx, 4.4) && b2Pres(b.sy, 5.6) && ang(b, f.r));
+  const Bb = pres.find((b) => b.m === M_MOSSY && b2Pres(b.sx, 4.4) && b2Pres(b.sy, 5.3) && ang(b, f.r + Math.PI / 4));
+  const porte = pres.find((b) => b.m === M_DARK && b2Pres(b.sx, 0.95) && b2Pres(b.sy, 1.9));
+  const fen = pres.find((b) => b.m === M_DARK && b2Pres(b.sx, 0.06) && b2Pres(b.sy, 0.7) && b2Pres(b.sz, 0.5));
+  if (!A || !Bb) return;
+  const t = 0.4, ap = 2.2 - t, y0 = f.y, fx = { x: f.x, z: f.z, r: f.r + Math.PI / 2 };
+  const ouvA = { '+z': [[-0.5, 0.5, 1.0, 3.0]], '+x': [[-0.25, 0.25, 3.6, 4.3]] };
+  const pB = b2Percee(Bb, t, f, 0, 0.5, 1.2, 1.0, 3.0), qB = b2Percee(Bb, t, fx, 0, 0.25, 1.2, 3.6, 4.3);
+  for (const k in qB) (pB[k] || (pB[k] = [])).push(...qB[k]);
+  b2Creuser(w, A, t, ouvA); b2Creuser(w, Bb, t, pB);
+  // la porte et la fenêtre peintes deviennent des seuils de pierre sombre
+  if (porte) { const [x, z] = b2W(f, 0, 2.0); Object.assign(porte, { x, z, y: y0 - 0.03, sx: 1.0, sy: 0.05, sz: 0.5 }); }
+  if (fen) { const [x, z] = b2W(f, 2.0, 0); Object.assign(fen, { x, z, y: y0 + 2.6 - 0.04, sx: 0.5, sy: 0.05, sz: 0.5 }); }
+  // dedans : des gravats, une poutre tombée, de la farine mêlée de terre
+  b2Bloc(w, f, -0.5, y0, -0.4, 0.24, 0.24, 2.9, M_LOGS, 0.7);
+  b2Prop(G, f, 'gravats', -1.0, y0, 0.7, 0.4);
+  b2Prop(G, f, 'gravats', 0.9, y0, -1.0, 2.1);
+  b2Prop(G, f, 'b2_poussiere', 0.6, y0 + 0.01, 1.0, 0.2, { n: 4, s: L.i });
+  b2Abri(w, f, 2.2, 2.2, y0 + 4.6, y0 - 1.2); b2Abri(w, { x: f.x, z: f.z, r: f.r + Math.PI / 4 }, 2.2, 2.2, y0 + 4.3, y0 - 1.2);
+  b2Jour(w, f, 0, y0 + 1.2, ap - 0.4, 0.8); b2Jour(w, f, ap - 0.4, y0 + 2.9, 0, 0.6);
+  (w.b2.ruines || (w.b2.ruines = [])).push({ i: L.i, t: 'moulin', x: f.x, z: f.z, y: y0, r: f.r, nom: L.nom });
+}
+
+// ---------------------------------------------------------------- les bories (C2_TYPES.borie) : la cabane de pierre sèche
+// cinq lits de pierres en encorbellement (3,8 ; 3,2 ; 2,5 ; 1,7 ; 0,9 m), chacun tourné de 0,4 rad ; une porte basse peinte
+// à l'avant (+z) ; on la creuse : on entre accroupi, on se tient debout au milieu
+function b2Borie(G, L) {
+  const w = G.w, f = { x: L.x, y: L.y, z: L.z, r: L.r };
+  const pres = b2Blocs(w, L.x, L.z, 3, (b) => !b.hidden && !b.under && b.m === M_MOSSY);
+  const lits = [[3.8, 1.4, 0.55], [3.2, 0.8, 0.5], [2.5, 0.7, 0.5], [1.7, 0.6, 0.45]].map(([s, h, t], k) => ({ b: pres.find((b) => b2Pres(b.sx, s) && b2Pres(b.sy, h) && Math.hypot(b.x - L.x, b.z - L.z) < 0.2), s, h, t, k }));
+  const chapeau = pres.find((b) => b2Pres(b.sx, 0.9) && b2Pres(b.sy, 0.5) && Math.hypot(b.x - L.x, b.z - L.z) < 0.2);
+  const porte = b2Blocs(w, L.x, L.z, 3, (b) => b.m === M_DARK && b2Pres(b.sx, 0.75) && b2Pres(b.sy, 1.1))[0];
+  if (lits.some((q) => !q.b)) return;
+  for (const q of lits) { q.y = q.b.y; q.r = q.b.r; }
+  const y0 = f.y, hp = 1.25; // (la porte : 1,25 m, on se baisse)
+  for (const { b, t, k } of lits) {
+    const h0 = y0 - b.y, ouv = k === 0 ? { '+z': [[-0.42, 0.42, h0, h0 + hp]] } : b2Percee(b, t, f, 0, 0.42, 0.6, 0, Math.max(0, y0 + hp - b.y));
+    b2Creuser(w, b, t, k === 0 || b.y < y0 + hp ? ouv : {});
+  }
+  // les coins : chaque lit tourne de 0,4 rad sur celui du dessous, et les angles de son vide dépassent du lit d'au-dessus
+  // (on y voyait le ciel) ; une pierre de coin, en haut du lit, les ferme
+  const dessus = lits.slice(1).map((q) => ({ s: q.s, r: q.r })).concat(chapeau ? [{ s: 0.9, r: chapeau.r }] : []);
+  lits.forEach((q, k) => {
+    const D = dessus[k];
+    if (!D) return;
+    const a = q.s / 2 - q.t, fk = { x: L.x, z: L.z, r: q.r }, fD = { x: L.x, z: L.z, r: D.r };
+    for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      let x0 = 9, x1 = -9, z0 = 9, z1 = -9;
+      for (let u = 0.025; u < a; u += 0.05) for (let v = 0.025; v < a; v += 0.05) {
+        const [x, z] = b2W(fk, sx * u, sz * v), [lx, lz] = b2L(fD, x, z);
+        if (Math.abs(lx) < D.s / 2 - 0.03 && Math.abs(lz) < D.s / 2 - 0.03) continue;
+        x0 = Math.min(x0, u); x1 = Math.max(x1, u); z0 = Math.min(z0, v); z1 = Math.max(z1, v);
+      }
+      if (x1 < x0) continue;
+      b2Bloc(w, fk, sx * (x0 + x1) / 2, q.y + q.h - 0.18, sz * (z0 + z1) / 2, x1 - x0 + 0.1, 0.18, z1 - z0 + 0.1, M_MOSSY);
+    }
+  });
+  if (porte) { const [x, z] = b2W(f, 0, 1.65); Object.assign(porte, { x, z, y: y0 - 0.03, sx: 0.85, sy: 0.05, sz: 0.5 }); }
+  b2Prop(G, f, 'gravats', -0.7, y0, -0.6, 1.3);
+  b2Abri(w, f, 1.9, 1.9, y0 + 3.15, y0 - 0.6); // (jusqu'au-dessus du dessous du chapeau)
+  b2Jour(w, f, 0, y0 + 0.8, 1.0, 0.6);
+  (w.b2.ruines || (w.b2.ruines = [])).push({ i: L.i, t: 'borie', x: f.x, z: f.z, y: y0, r: f.r, nom: L.nom });
+}
+
+// ---------------------------------------------------------------- les glacières (C2_TYPES.glaciere) : on ouvre l'entrée
+// un tertre de pierre et, devant, un portail plein (1,8 × 2,1 × 0,5) où la porte était peinte ; le butin (« Descendre les
+// marches, à tâtons ») était dans la pierre : on perce le portail, la porte peinte devient le noir de l'escalier, au fond
+function b2Glaciere(G, L) {
+  const w = G.w, f = { x: L.x, y: L.y, z: L.z, r: L.r };
+  const pres = b2Blocs(w, L.x, L.z, 4, (b) => !b.hidden && !b.under);
+  const portail = pres.find((b) => b.m === M_STONE && b2Pres(b.sx, 1.8) && b2Pres(b.sy, 2.1) && b2Pres(b.sz, 0.5));
+  const noir = pres.find((b) => b.m === M_DARK && b2Pres(b.sx, 0.9) && b2Pres(b.sy, 1.4));
+  if (!portail) return;
+  const fP = { x: portail.x, z: portail.z, r: portail.r }, P = b2Morceaux(1.8, 2.1, [[-0.47, 0.47, 0, 1.85]]);
+  P.forEach(([u0, u1, h0, h1], i) => {
+    const [x, z] = b2W(fP, (u0 + u1) / 2, 0), nb = { x, y: portail.y + h0, z, sx: u1 - u0, sy: h1 - h0, sz: 0.5, r: portail.r, m: M_STONE, sh: 0 };
+    if (i === 0) Object.assign(portail, nb); else w.blocks.push(nb);
+  });
+  if (noir) { const [x, z] = b2W(f, 0, 2.515); Object.assign(noir, { x, z, y: f.y - 0.42, sy: 1.82, sz: 0.03 }); }
+  // (le fond du seuil, une marche plus bas, dans le noir ; en haut, l'angle du deuxième lit du tertre, qui avance
+  // jusque dans la baie, disparaît dans l'ombre)
+  b2Bloc(w, f, 0, f.y - 0.46, 2.72, 0.94, 0.04, 0.46, M_DARK);
+  b2Bloc(w, f, 0, f.y + 0.88, 2.65, 0.94, 0.57, 0.4, M_DARK);
+  (w.b2.ruines || (w.b2.ruines = [])).push({ i: L.i, t: 'glaciere', x: f.x, z: f.z, y: f.y, r: f.r, nom: L.nom });
+}
+
+// ---------------------------------------------------------------- la bergerie des Combes (06-zzgen-wonders.js)
+// la cabane du berger, sur les hauteurs, n'avait qu'un vieux tonneau au milieu : on y met son coin (la paillasse, la
+// lanterne, le râtelier des sonnailles, le foin, la mangeoire, la houlette contre le mur, son coffre) ; dans l'enclos, la
+// pierre à sel. (La cabane : B.house 5 × 4, la porte à l'avant, -z ; on la retrouve par son toit de chaume.)
+function b2Bergerie(G) {
+  const w = G.w, L = w.lm && w.lm.bergerie;
+  if (!L) return;
+  const toit = b2Blocs(w, L.x, L.z, 14, (b) => b.m === M_THATCH && b.sh === 1 && b2Pres(b.sx, 5.9) && b2Pres(b.sz, 5.0) && !b.hidden)[0];
+  if (!toit) return;
+  const f = { x: toit.x, z: toit.z, r: toit.r, y: toit.y - 2.9 }, y = f.y + 0.15, nom = (typeof LIEU_NAMES !== 'undefined' && LIEU_NAMES.bergerie) || 'la bergerie des Combes';
+  b2Prop(G, f, 'paillasse', -1.65, y, 0.55, 0);
+  b2Prop(G, f, 'lanterne_sol', -0.95, y, 1.42, 0.3);
+  b2Prop(G, f, 'c2_sonnailles', 1.22, y, 1.5, Math.PI, { v: 0 });
+  b2Prop(G, f, 'botte_foin', 1.72, y, -0.25, Math.PI / 2);
+  b2Prop(G, f, 'botte_foin', 1.74, y + 0.6, -0.18, Math.PI / 2 + 0.12);
+  b2Prop(G, f, 'mangeoire', 1.38, y, -1.42, 0);
+  b2Prop(G, f, 'b2_houlette', -1.0, y, -1.5, Math.PI);
+  b2Fouille(G, f, 'coffre_vieux', 'malle', -1.55, y, -1.15, 0, { slot: 'bergerie:coffre', table: 'b2_berger', pool: 'b2_bergerie', lab: 'Ouvrir le coffre du berger', nomLieu: nom });
+  { const [x, z] = b2W(f, 9, 2.2); b2Prop(G, f, 'c2_pierre_sel', 9, w.heightAt(x, z), 2.2, 0.4); }
+  b2Jour(w, f, 0, y + 1.2, -1.2, 0.6);
+  w.b2.bergerie = { x: f.x, z: f.z, y, r: f.r, nom };
+}
+
 // les tonneaux, caisses et sacs posés ici se fouillent, comme tout le mobilier de la vallée (11-zzzz1-butin.js, butinGen,
 // qui passe avant nous) : abandonnés, ils mettent longtemps à se regarnir
 const B2_BU = { tonneau: ['bu_tonneau', 0.95, 'b2_reserve'], tonneau_vieux: ['bu_tonneau', 0.9, 'bu_vieux_tonneau'], caisse: ['bu_caisse', 0.85, 'bu_caisse'], sac: ['bu_sac', 0.6, 'bu_sac'], sacs: ['sacs_grain', 0.6, 'f2_farine'] };
@@ -573,10 +693,13 @@ function campagneGen(w) {
   const B = new Builder(w, rnd, new Uint8Array(4));
   const G = { w, B, rnd, nb0: w.blocks.length, np: 0, ni: 0, nd: 0 }, i0 = w.props.length;
   const L2 = (w.carte2 && w.carte2.lieux) || [];
-  const etapes = [['moulin', () => b2Moulin(G)], ['phare', () => b2Phare(G)], ['clocher', () => b2Clocher(G)]];
+  const etapes = [['moulin', () => b2Moulin(G)], ['phare', () => b2Phare(G)], ['clocher', () => b2Clocher(G)], ['bergerie', () => b2Bergerie(G)]];
   for (const L of L2) {
     if (L.t === 'pigeonnier') etapes.push(['pigeonnier ' + L.i, () => b2Pigeonnier(G, L)]);
     else if (L.t === 'loge_charbonnier') etapes.push(['loge ' + L.i, () => b2Loge(G, L)]);
+    else if (L.t === 'moulin_ruine') etapes.push(['moulin en ruine ' + L.i, () => b2MoulinRuine(G, L)]);
+    else if (L.t === 'borie') etapes.push(['borie ' + L.i, () => b2Borie(G, L)]);
+    else if (L.t === 'glaciere') etapes.push(['glacière ' + L.i, () => b2Glaciere(G, L)]);
   }
   for (const [k, fn] of etapes) { try { fn(); } catch (e) { console.error('campagne ' + k, e); } }
   try { b2Mobilier(G, i0); } catch (e) { console.error('campagne mobilier', e); }
@@ -591,27 +714,108 @@ function campagneGen(w) {
     return w;
   };
 }
-// la carte des abris : chaque pièce creusée porte sa hauteur d'abri (la plus haute des pièces qui couvrent la case)
+// la carte des abris : chaque pièce creusée porte sa hauteur d'abri (w.b2abris : un rectangle au nu extérieur des murs,
+// de y0 à y). La carte n'a qu'une hauteur par case d'un mètre, et l'éclairage la lit à 8 cm de chaque face
+// (07-shaders.js : coveredAt(vPos + n * 0.08)) : la même case touche souvent le parement intérieur d'un mur ET son
+// parement extérieur (un mur fait moins d'un mètre), ou, sous une voûte en encorbellement, le dedans de la voûte et le
+// dehors des lits du dessus. On recense donc, case par case, les surfaces qu'elle éclaire : faces tournées vers le
+// dedans (leur normale regarde l'axe du bâtiment) et sols des pièces, faces tournées vers le dehors et terrain autour ;
+// puis on choisit la hauteur d'abri qui en éclaire le moins de travers (le dedans compte triple : on le voit de près).
+// Sans cela le dehors des murs serait rayé de sombre en plein soleil, ou le dedans clair par plaques. Une fois par monde.
+const B2_CASE = 8192, B2_DEDANS = 3;
+function b2Cellules(w, K) {
+  const acc = new Map(), M = new Map(), KD = K || B2_DEDANS;
+  // (les rectangles et les blocs, avec leur cosinus et leur sinus : on les interroge des dizaines de milliers de fois)
+  const boite = (b, x, z, r, hx, hz) => ({ b, x, z, c: Math.cos(r), s: Math.sin(r), hx, hz, R: Math.hypot(hx, hz) });
+  const A = (w.b2abris || []).map((a) => Object.assign(boite(a, a.x, a.z, a.r, a.hx, a.hz), { y: a.y, y0: a.y0 }));
+  const dedans = (q, x, z) => {
+    const dx = x - q.x, dz = z - q.z;
+    if (Math.abs(dx) > q.R || Math.abs(dz) > q.R) return false;
+    return Math.abs(dx * q.c - dz * q.s) <= q.hx && Math.abs(dx * q.s + dz * q.c) <= q.hz;
+  };
+  const caseDe = (x, z) => {
+    const k = Math.floor(x) * B2_CASE + Math.floor(z);
+    let c = acc.get(k);
+    if (!c) acc.set(k, (c = { f: [], ys: [] }));
+    return c;
+  };
+  // f : [sorte, poids, bas, haut] ; sorte 1 face du dedans, 0 face du dehors, 2 sol d'une pièce, 3 terrain
+  const vus = new Set(), faits = new Set();
+  for (const a of A) {
+    const L = [], As = A.filter((o) => Math.hypot(o.x - a.x, o.z - a.z) < a.R + o.R + 4);
+    w.query(a.x, a.z, a.R + 2, null, (b) => { if (!b.hidden && !b.under && b.y < a.y + 0.5 && b.y + b.sy > a.y0 - 0.5) L.push(boite(b, b.x, b.z, b.r, b.sx / 2, b.sz / 2)); });
+    // les faces verticales (un échantillon tous les 20 cm, à 8 cm de la face, là où l'éclairage lit la carte)
+    for (const q of L) {
+      const b = q.b;
+      if (vus.has(b)) continue;
+      vus.add(b);
+      const y0 = b.y, y1 = b.y + b.sy;
+      const voisins = L.filter((o) => o !== q && Math.min(y1, o.b.y + o.b.sy) - Math.max(y0, o.b.y) >= 0.5 * (y1 - y0) && Math.hypot(o.x - q.x, o.z - q.z) < o.R + q.R + 0.2);
+      for (const [nx, nz, lg] of [[1, 0, b.sz], [-1, 0, b.sz], [0, 1, b.sx], [0, -1, b.sx]]) {
+        const n = Math.max(1, Math.round(lg / 0.2)), st = lg / n, wx = nx * q.c + nz * q.s, wz = -nx * q.s + nz * q.c;
+        for (let i = 0; i < n; i++) {
+          const u = -lg / 2 + (i + 0.5) * st, lx = nx ? nx * (q.hx + 0.08) : u, lz = nz ? nz * (q.hz + 0.08) : u;
+          const x = q.x + lx * q.c + lz * q.s, z = q.z - lx * q.s + lz * q.c;
+          if (voisins.some((o) => dedans(o, x, z))) continue; // (face cachée par un voisin)
+          const S = As.filter((o) => Math.min(y1, o.y) - Math.max(y0, o.y0) > Math.min(0.5, 0.5 * (y1 - y0)) && dedans(o, x, z));
+          const dd = S.length > 0 && wx * (S[0].x - x) + wz * (S[0].z - z) > 0, C = caseDe(x, z);
+          C.f.push(dd ? 1 : 0, st, y0, y1);
+          if (dd) for (const o of S) C.ys.push(o.y);
+        }
+      }
+    }
+    // le sol de chaque case (seize points) : la pièce (un sol par étage), ou le terrain autour ; pas ce qui est dans un mur
+    // (un mur : un bloc qui monte d'au moins un mètre au-dessus du bas de la pièce ; pas le socle ni le dallage)
+    const murs = L.filter((q) => q.b.sy >= 1 && q.b.y + q.b.sy > a.y0 + 1.6 && q.b.y < a.y - 0.5);
+    for (let X = Math.floor(a.x - a.R - 1); X <= Math.floor(a.x + a.R + 1); X++) {
+      for (let Z = Math.floor(a.z - a.R - 1); Z <= Math.floor(a.z + a.R + 1); Z++) {
+        const k = X * B2_CASE + Z;
+        if (faits.has(k)) continue;
+        faits.add(k);
+        for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+          const x = X + (i + 0.5) / 4, z = Z + (j + 0.5) / 4;
+          if (murs.some((o) => dedans(o, x, z))) continue;
+          const S = As.filter((o) => dedans(o, x, z)), C = caseDe(x, z);
+          if (!S.length) C.f.push(3, 1 / 16, w.heightAt(x, z), 0);
+          else for (const o of S) { C.f.push(2, 1 / 16, o.y0 + 0.3, 0); C.ys.push(o.y); }
+        }
+      }
+    }
+  }
+  // la hauteur d'abri de chaque case : celle qui éclaire de travers le moins de surface (ou rien, si c'est mieux)
+  const cout = (f, H) => {
+    const h = H - 0.05;
+    let e = 0;
+    for (let i = 0; i < f.length; i += 4) {
+      const t = f[i], p = f[i + 1], y0 = f[i + 2], y1 = f[i + 3];
+      if (t === 1) e += KD * p * Math.max(0, y1 - Math.max(y0, h));
+      else if (t === 0) e += p * Math.max(0, Math.min(y1, h) - y0);
+      else if (t === 2) { if (y0 + 0.08 >= h) e += KD * p; }
+      else if (y0 + 0.15 < h) e += p;
+    }
+    return e;
+  };
+  for (const [k, C] of acc) {
+    if (!C.ys.length) continue;
+    const yMax = Math.max(...C.ys), cands = new Set(C.ys);
+    for (let i = 0; i < C.f.length; i += 4) if (C.f[i] === 1 && C.f[i + 3] + 0.1 < yMax) cands.add(Math.round((C.f[i + 3] + 0.1) * 100) / 100);
+    let best = null, eb = cout(C.f, -1e4);
+    for (const H of cands) { const e = cout(C.f, H); if (e < eb - 1e-6) { eb = e; best = H; } }
+    if (best !== null) M.set(k, best);
+  }
+  return M;
+}
 {
   const _cc = World.prototype.computeCover;
   World.prototype.computeCover = function (cx, cz) {
     _cc.call(this, cx, cz);
-    const A = this.b2abris;
-    if (!A || !A.length || !this.cover) return;
-    const S = this.coverW, [ox, oz] = this.coverO, cov = this.cover, M = new Map();
-    for (const a of A) {
-      const R = Math.hypot(a.hx, a.hz);
-      if (a.x + R < ox || a.z + R < oz || a.x - R > ox + S || a.z - R > oz + S) continue;
-      const i0 = Math.max(0, Math.floor(a.x - R - ox)), i1 = Math.min(S - 1, Math.ceil(a.x + R - ox));
-      const j0 = Math.max(0, Math.floor(a.z - R - oz)), j1 = Math.min(S - 1, Math.ceil(a.z + R - oz));
-      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
-        const [lx, lz] = World.blockLocal(a, ox + i + 0.5, oz + j + 0.5);
-        if (Math.abs(lx) > a.hx || Math.abs(lz) > a.hz) continue;
-        const k = j * S + i, v = M.get(k);
-        if (v === undefined || a.y > v) M.set(k, a.y);
-      }
+    if (!this.b2abris || !this.b2abris.length || !this.cover) return;
+    const C = this.b2cellules || (this.b2cellules = b2Cellules(this));
+    const S = this.coverW, [ox, oz] = this.coverO, cov = this.cover;
+    for (const [k, y] of C) {
+      const X = Math.floor(k / B2_CASE), i = X - ox, j = k - X * B2_CASE - oz;
+      if (i >= 0 && j >= 0 && i < S && j < S) cov[j * S + i] = y;
     }
-    for (const [k, y] of M) cov[k] = y;
   };
 }
 
@@ -627,10 +831,12 @@ Object.assign(LOOT, {
   b2_reserve: { rolls: [1, 2], items: [['huile_lampe', 1, 2, 5], ['bougie', 1, 2, 2], ['corde', 1, 1, 1], ['toile', 1, 1, 1], ['clous', 1, 3, 1], ['argent', 1, 3, 0.5]] },
   b2_gardien: { rolls: [1, 2], items: [['tabac', 1, 1, 1], ['bougie', 1, 2, 2], ['argent', 2, 10, 2], ['besicles', 1, 1, 0.5], ['mouchoir_brode', 1, 1, 1], ['image_pieuse', 1, 1, 1], ['jeu_cartes', 1, 1, 0.5], ['boussole', 1, 1, 0.12]] },
   b2_bureau: { rolls: [1, 2], items: [['plume', 1, 2, 2], ['encrier', 1, 1, 1], ['cire', 1, 1, 1], ['argent', 1, 8, 1.5], ['timbres', 1, 1, 0.5], ['carte_vallee', 1, 1, 0.06]] },
+  b2_berger: { rolls: [1, 1], items: [['laine', 1, 1, 3], ['sel', 1, 2, 3], ['corde', 1, 1, 2], ['bougie', 1, 2, 2], ['pain', 1, 1, 1], ['argent', 1, 4, 1], ['couteau_poche', 1, 1, 0.25]] },
   b2_besace: { rolls: [1, 2], items: [['pain', 1, 1, 3], ['charbon', 1, 3, 3], ['tabac', 1, 1, 1], ['argent', 1, 5, 1], ['corde', 1, 1, 1], ['viande_fumee', 1, 1, 0.8], ['eau_de_vie_cidre', 1, 1, 0.4]] },
 });
 // les papiers qu'on y trouve (11-zzz98-fouilles.js : F2_PAPIERS, tirés d'une réserve par lieu)
 Object.assign(F2_PAPIERS, {
+  b2_berger_taille: { pool: 'b2_bergerie', t: 'Un bâton de compte', x: 'Une baguette de noisetier, entaillée au couteau : des encoches par cinq, une barre en travers. C’est ainsi qu’on comptait les bêtes à la porte, le soir, à la montée.\n\nLes premières rangées sont pleines. Puis il manque une encoche, puis deux.\n\nAu bout, gratté plus profond que le reste : une encoche de trop.' },
   b2_moulin_comptes: { pool: 'b2_moulin', t: 'Une page du livre du moulin', x: 'Des colonnes à l’encre brune : des noms, des sacs, des boisseaux. « Varenne, deux sacs de seigle. La veuve Morel, un sac, payé en œufs. Bastien, trois sacs, à crédit, comme toujours. »\n\nLa dernière ligne est d’une autre main, plus appuyée : « Moulu cette nuit pour personne. Un sac. Il était plein ce matin, ficelé, devant la porte. »' },
   b2_moulin_lettre: { pool: 'b2_moulin', t: 'Lettre pliée en quatre', x: 'Mon frère,\n\nje te rends le moulin, je n’en veux plus. Garde les meules, garde les ailes. Je ne dors plus depuis la Saint-Martin : la nuit, là-haut, on rhabille les meules. J’entends les marteaux, bien réguliers, comme le faisait notre père. Je suis monté avec la lanterne. Les meules étaient piquées de frais, et la farine était tiède.\n\nNe viens pas me chercher à la ville. J’y serai bien.' },
   b2_phare_inspection: { pool: 'b2_phare', t: 'Lettre de l’Inspection des phares', x: 'Monsieur le gardien,\n\nnous n’avons reçu de vous aucun état depuis le trimestre de printemps, ni la quittance des huiles. Nous vous rappelons que l’huile n’est livrée que contre état.\n\nFaute de nouvelles avant la fin de l’année, le feu du lac sera rayé des listes et la tour fermée.', s: 'Pour l’Inspecteur, le commis' },
