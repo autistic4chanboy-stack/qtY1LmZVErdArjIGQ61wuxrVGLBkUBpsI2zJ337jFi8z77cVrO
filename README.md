@@ -540,10 +540,15 @@ Les commandes sont dans le menu **Commandes** (Échap).
   au-dessus de vous, la lavandière au lavoir, et les choses qui ne devraient pas être là. L'écouteur suit la caméra à
   chaque image, cinématiques comprises ; au loin, les sons baissent, l'air en mange les aigus et la réverbération
   domine ; tout près, un peu plus de grave.
-- **Des ambiances tout autour, plus un fond plat** : le vent vient du côté de l'orage, et par rafales qui passent d'un
-  côté à l'autre (avec le feuillage, en forêt ; toujours sur les sommets) ; la pluie tombe tout autour de vous, et
-  sourdement sur le toit quand on est à l'abri ; la rivière coule là où elle coule, le lac clapote à la rive ; le feu
-  crépite à sa place (feux de camp, cheminées, fours, incendies ; un mur l'étouffe : la cheminée d'une maison ne s'entend pas de la rue) ; les oiseaux chantent dans les arbres — merle, mésange,
+- **Des ambiances tout autour, plus un fond plat** : **le vent suit le temps qu'il fait** — presque rien par beau temps
+  (de loin en loin, un souffle léger qui passe), une brise sous les nuages, du vent sous la pluie, la tempête dans
+  l'orage, un peu plus sur les hauteurs ; il souffle par bouffées, des deux côtés à la fois, plus clair quand il forcit,
+  avec le feuillage en forêt, et ne siffle que dans le grand vent (sur les hauteurs par beau temps, 14 dB de moins
+  qu'avant) ; la pluie tombe tout autour de vous, et sourdement sur le toit quand on est à l'abri ; la rivière coule là
+  où elle coule, le lac clapote à la rive — doucement, et de moins loin qu'avant (la rivière : 6 dB de moins à dix
+  mètres, 13 à cinquante) ; le feu crépite à sa place (feux de camp, cheminées, fours, incendies) et **un mur ou une
+  porte fermée l'étouffe** : la cheminée d'une maison ne s'entend pas de la rue, ni collé au mur derrière elle, seulement
+  par une porte ouverte, dans son axe ; les oiseaux chantent dans les arbres — merle, mésange,
   pinson, tourterelle, coucou, pic, moineaux au village, alouette haut dans le ciel au-dessus des prés —, **chacun son
   tour** : un chanteur reprend sa phrase deux ou trois fois de la même branche, puis un silence, plus court à l'aube et
   en forêt ; les oiseaux des bois et des cours attendent qu'aucun autre ne chante (en forêt, 44 chants par minute
