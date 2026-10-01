@@ -445,7 +445,7 @@ function g1Generer(w, seed) {
       const f = g1Choisir(w, cands, R);
       if (f) {
         const key = 'g1_corps_garde';
-        const Bk = g1Batir(w, B, key, f, W, D, { wall: M_STONE, win: M_STONEWIN, roof: M_SLATE, noLight: true, dw: 1.2, dh: 2.25, roofH: 1.9, chimney: true }, R, nObj0);
+        const Bk = g1Batir(w, B, key, f, W, D, { wall: M_STONE, win: M_STONEWIN, roof: M_SLATE, noLight: true, dw: 1.2, dh: 2.25, roofH: 1.9 }, R, nObj0);
         g1MeublerGuet(w, B, Bk, f, W, D);
         w.grid = null;
         // la guérite, au bout du pont (côté de la cabane), ouverte vers la route
@@ -536,6 +536,7 @@ function g1MeublerGuet(w, B, Bk, f, W, D) {
   P('b1_lampe', 1.75, 0.05, 0, null, 0.79);
   B.interRel(f, 'g1_registre', 'g1_registre_guet', 1.15, y + 1.0, -0.25, 'Lire le registre du guet', { lieu: 'valbrume' });
   P('cheminee', 1.6, 1.62, Math.PI, { lit: true });
+  B.block(f, 1.6, 2.7, 1.75, 0.7, 2.4, 0.7, M_BRICK); // (le conduit, juste au-dessus du foyer : celui de Builder.house tomberait au milieu de la pièce)
   P('g1_cuirasse_pose', 2.25, 0.55, -Math.PI / 2);
   P('b1_ratelier', 2.38, -1.05, -Math.PI / 2);
   P('g1_seaux', 0.95, -1.88, 0);

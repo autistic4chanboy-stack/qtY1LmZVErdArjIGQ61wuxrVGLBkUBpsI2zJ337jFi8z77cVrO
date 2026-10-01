@@ -210,8 +210,9 @@ Object.assign(PROP_LIGHTS, {
     // ---- le fusil : dans le dos, ou aux mains pour tirer
     if (look.fusil) {
       const bois = rgbf('#5a3a22'), acier = rgbf('#34363c');
-      add('g1fusD0', 'torso', [0.04, 0.3, -0.16], [0.05, 0.72, 0.035], acier, TL.iron, [0, 0.14, 0], { r0: [0.12, 0, 0.5] });
-      add('g1fusD1', 'torso', [0.04, 0.3, -0.16], [0.07, 0.34, 0.09], bois, TL.darkwood, [0, -0.34, 0], { r0: [0.12, 0, 0.5] });
+      const zd = -(td / 2 + 0.06); // (contre le dos, pas dedans)
+      add('g1fusD0', 'torso', [0.04, 0.3, zd], [0.05, 0.72, 0.035], acier, TL.iron, [0, 0.14, 0], { r0: [0.12, 0, 0.5] });
+      add('g1fusD1', 'torso', [0.04, 0.3, zd], [0.07, 0.34, 0.09], bois, TL.darkwood, [0, -0.34, 0], { r0: [0.12, 0, 0.5] });
       add('g1fusM0', 'handR', [0, -0.03, 0.04], [0.035, 0.035, 0.72], acier, TL.iron, [0, 0, 0.36], { r0: [0.9, 0, 0], hide: true });
       add('g1fusM1', 'handR', [0, -0.03, 0.04], [0.07, 0.1, 0.36], bois, TL.darkwood, [0, -0.02, -0.16], { r0: [0.9, 0, 0], hide: true });
     }

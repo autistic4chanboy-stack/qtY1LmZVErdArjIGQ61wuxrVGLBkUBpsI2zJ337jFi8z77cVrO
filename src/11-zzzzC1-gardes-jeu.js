@@ -429,17 +429,17 @@ const gardes = {
     if (G.tir && vu && d > 4 && d < G.tir.portee) {
       n.move = lerp(n.move, 0, Math.min(1, dt * 8)); n.run = false;
       n.heading = turnToward(n.heading, Math.atan2(p.pos[0] - n.x, p.pos[2] - n.z), dt * 6);
-      if (!n.g1vise) { if (n.g1tirT <= 0) n.g1vise = { t: 0.9, sommation: !n.tirSomme }; return; }
+      if (!n.g1vise) { if (n.g1tirT <= 0) { n.g1vise = { t: 0.9, sommation: !n.tirSomme }; this.epauler(n, true); } return; }
       n.g1vise.t -= dt;
       if (n.g1vise.t > 0) return;
-      const V = n.g1vise; n.g1vise = null; n.g1tirT = G.tir.cadence;
+      const V = n.g1vise; n.g1vise = null; n.g1tirT = G.tir.cadence; this.epauler(n, false);
       this.tirer(n);
       if (V.sommation) { n.tirSomme = true; gardes.parle(n, 'Halte, ou je tire pour de bon !', 2.5); return; } // (le premier coup, en l'air)
       const chance = G.tir.chance - (p.sprinting ? 0.2 : 0) - d / 120;
       if (Math.random() < chance) this.frapperJoueur(n, G.tir.degats[0] + Math.random() * (G.tir.degats[1] - G.tir.degats[0]), 'Abattu d’un coup de fusil par ' + this.nomCause(n));
       return;
     }
-    n.g1vise = null;
+    if (n.g1vise) { n.g1vise = null; this.epauler(n, false); }
     if (d > 1.7) { this.courir(n, p.pos[0], p.pos[2], dt, w, 4.7); return; }
     n.move = lerp(n.move, 0, Math.min(1, dt * 8)); n.run = false;
     n.heading = turnToward(n.heading, Math.atan2(p.pos[0] - n.x, p.pos[2] - n.z), dt * 7);
@@ -580,14 +580,19 @@ const gardes = {
       else this.versCri(n, U, dt, w);
     } catch (e) { console.error('G1 : urgence', e); this.finUrgence(n); }
   },
-  arret(n, dt, x, z) { n.move = lerp(n.move, 0, Math.min(1, dt * 8)); n.run = false; if (x !== undefined) n.heading = turnToward(n.heading, Math.atan2(x - n.x, z - n.z), dt * 6); },
+  arret(n, dt, x, z) { n.move = lerp(n.move, 0, Math.min(1, dt * 8)); n.run = false; n.state = 'idle'; if (x !== undefined) n.heading = turnToward(n.heading, Math.atan2(x - n.x, z - n.z), dt * 6); },
+  // épauler, comme les chasseurs qui visent (11-zzz30-chasse.js : viser) : les bras devant, le fusil aux mains
+  epauler(n, on) {
+    if (on) { n.state = 'idle'; if (!n.goal || !n.goal.g1) n.goal = { node: -1, x: n.x, z: n.z, pose: 'fish', g1: true }; }
+    else if (n.goal && n.goal.g1) n.goal = null;
+  },
   // viser, puis tirer (le garde champêtre) : onTouche() si la balle porte
   viserTirer(n, cx, cz, dt, chance, onTouche) {
     this.arret(n, dt, cx, cz);
-    if (!n.g1vise) { if (n.g1tirT <= 0) n.g1vise = { t: 0.9 }; return; }
+    if (!n.g1vise) { if (n.g1tirT <= 0) { n.g1vise = { t: 0.9 }; this.epauler(n, true); } return; }
     n.g1vise.t -= dt;
     if (n.g1vise.t > 0) return;
-    n.g1vise = null; n.g1tirT = (n.d.garde.tir && n.d.garde.tir.cadence) || 3;
+    n.g1vise = null; n.g1tirT = (n.d.garde.tir && n.d.garde.tir.cadence) || 3; this.epauler(n, false);
     this.tirer(n);
     if (Math.random() < chance) onTouche();
   },
@@ -603,6 +608,7 @@ const gardes = {
     if (G.courage < 0.5 && d < 14) { this.arret(n, dt, E.x, E.z); if (d < 6) { n.fleeT = 5; gardes.parle(n, this.dit('peur', n), 2.5); this.renfort(n, U); this.finUrgence(n); } return; }
     // le fusil
     if (G.tir && d > 4 && d < 20) { this.viserTirer(n, E.x, E.z, dt, 0.45, () => this.blesserTueur(n, E, masque)); return; }
+    if (n.g1vise) { n.g1vise = null; this.epauler(n, false); }
     if (d > 2.2) { this.courir(n, E.x, E.z, dt, w, 4.8); return; } // (la lame porte plus loin que le couperet)
     this.arret(n, dt, E.x, E.z);
     if (U.duel) return;
@@ -642,6 +648,7 @@ const gardes = {
     // blessé, on rompt (sauf le chevalier) : on appelle, on court
     if ((n.hp ?? 100) < 40 && G.courage < 0.95) { n.fleeT = 7; this.direUneFois(n, 'peur', 30); this.renfort(n, U); this.finUrgence(n); return; }
     if (G.tir && d > 3 && d < 26) { this.viserTirer(n, e.x, e.z, dt, clamp(0.85 - d / 60, 0.4, 0.85), () => this.toucherBete(n, e, 120 + Math.random() * 70)); return; }
+    if (n.g1vise) { n.g1vise = null; this.epauler(n, false); }
     if (d > 1.9) { this.courir(n, e.x, e.z, dt, w, 4.5); return; }
     this.arret(n, dt, e.x, e.z);
     if (n.atkT <= 0) {
