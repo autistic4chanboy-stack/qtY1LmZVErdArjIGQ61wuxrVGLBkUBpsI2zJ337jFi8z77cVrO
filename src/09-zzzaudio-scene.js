@@ -1,10 +1,14 @@
 // ============================================================================
 //  AMBIANCES EN 3D : des sources placées autour de l'écouteur plutôt qu'un fond
-//  plat. Le vent vient d'un côté (celui de l'orage), la pluie tombe tout autour
-//  (et sur le toit quand on est dedans), la rivière coule là où elle coule, le
-//  lac clapote à la rive, le feu crépite à sa place, les oiseaux chantent dans
-//  les arbres, les grillons dans l'herbe, la chouette au loin, les gouttes
-//  dans les grottes. Tout respire : fondus lents, rafales, jamais pareil.
+//  plat. Le vent suit le temps qu'il fait (presque rien par beau temps, une
+//  brise sous les nuages, du vent sous la pluie, la tempête dans l'orage, un
+//  peu plus sur les hauteurs) et souffle par bouffées, des deux côtés ; la
+//  pluie tombe tout autour (et sur le toit quand on est dedans), la rivière
+//  coule là où elle coule, le lac clapote à la rive (doucement, et pas de
+//  loin), le feu crépite à sa place — un mur ou une porte fermée l'étouffe —,
+//  les oiseaux chantent dans les arbres, les grillons dans l'herbe, la
+//  chouette au loin, les gouttes dans les grottes. Tout respire : fondus
+//  lents, bouffées, jamais pareil.
 //  Le lieu règle la réverbération (dehors, forêt, montagne, pièce, grande
 //  salle, grotte), en fondu.
 //  API : sound.source(clé, type, pos, k [, o]) — une boucle placée (types :
