@@ -843,7 +843,7 @@ Object.assign(SoundEngine.prototype, {
       T('chouette', 4); T('pic', 4);
       for (const k of ['eau', 'neige', 'sabot', 'croque', 'grenouille']) T(k, 6);
       T('plouf', 5); T('goutte', 8);
-      for (const k of ['grillon', 'feuilles', 'riviere', 'clapotis', 'feu', 'bourdon']) L.push(() => this.boucleTampon && this.boucleTampon(k));
+      for (const k of ['grillon', 'feuilles', 'riviere', 'clapotis', 'feu', 'bourdon', 'vent']) L.push(() => this.boucleTampon && this.boucleTampon(k));
       this._chauffe = L;
     }
     const f = this._chauffe.shift();

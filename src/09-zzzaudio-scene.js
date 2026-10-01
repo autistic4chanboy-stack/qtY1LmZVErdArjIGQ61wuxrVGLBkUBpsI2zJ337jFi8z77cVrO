@@ -1,10 +1,14 @@
 // ============================================================================
 //  AMBIANCES EN 3D : des sources placées autour de l'écouteur plutôt qu'un fond
-//  plat. Le vent vient d'un côté (celui de l'orage), la pluie tombe tout autour
-//  (et sur le toit quand on est dedans), la rivière coule là où elle coule, le
-//  lac clapote à la rive, le feu crépite à sa place, les oiseaux chantent dans
-//  les arbres, les grillons dans l'herbe, la chouette au loin, les gouttes
-//  dans les grottes. Tout respire : fondus lents, rafales, jamais pareil.
+//  plat. Le vent suit le temps qu'il fait (presque rien par beau temps, une
+//  brise sous les nuages, du vent sous la pluie, la tempête dans l'orage, un
+//  peu plus sur les hauteurs) et souffle par bouffées, des deux côtés ; la
+//  pluie tombe tout autour (et sur le toit quand on est dedans), la rivière
+//  coule là où elle coule, le lac clapote à la rive (doucement, et pas de
+//  loin), le feu crépite à sa place — un mur ou une porte fermée l'étouffe —,
+//  les oiseaux chantent dans les arbres, les grillons dans l'herbe, la
+//  chouette au loin, les gouttes dans les grottes. Tout respire : fondus
+//  lents, bouffées, jamais pareil.
 //  Le lieu règle la réverbération (dehors, forêt, montagne, pièce, grande
 //  salle, grotte), en fondu.
 //  API : sound.source(clé, type, pos, k [, o]) — une boucle placée (types :
@@ -14,16 +18,17 @@
 
 // boucles (sans raccord) : [durée, remplissage]
 SoundEngine.BOUCLES = {
-  // ruisseau : un gargouillis grave, des éclats, beaucoup de petites bulles qui montent
+  // ruisseau : un écoulement grave et doux, quelques éclats, des bulles çà et là (moins serrées : l'eau ne doit pas
+  // occuper tout l'espace)
   riviere: [6, (d, sr, D) => {
     const R = Math.random, S = SoundEngine.SYN, n = d.length, lo = S.bq('bp', 450, 0.7, sr), hi = S.bq('bp', 2200, 0.9, sr);
     let m1 = 0.5, m2 = 0.5, v1 = 0, v2 = 0;
     for (let i = 0; i < n; i++) {
       if (i % 64 === 0) { v1 += (R() - 0.5) * 0.08 - v1 * 0.02; v2 += (R() - 0.5) * 0.2 - v2 * 0.06; m1 = clamp(m1 + v1 * 0.1, 0.25, 1); m2 = clamp(m2 + v2 * 0.1, 0.1, 1); }
       const x = R() * 2 - 1;
-      d[i] += lo(x) * 0.5 * m1 + hi(x) * 0.12 * m2;
+      d[i] += lo(x) * 0.5 * m1 + hi(x) * 0.07 * m2;
     }
-    for (let k = 0, N = Math.floor(D * 45); k < N; k++) { const f = 300 + Math.pow(R(), 1.6) * 1400, t = R() * (D - 0.06); S.note(d, sr, t, 0.012 + R() * 0.03, f, f * (1.3 + R() * 0.8), 0.06 + R() * 0.12, { att: 0.15, dec: 2, c: 0.5 }); }
+    for (let k = 0, N = Math.floor(D * 24); k < N; k++) { const f = 300 + Math.pow(R(), 1.6) * 1200, t = R() * (D - 0.06); S.note(d, sr, t, 0.012 + R() * 0.03, f, f * (1.3 + R() * 0.6), 0.04 + R() * 0.08, { att: 0.2, dec: 2, c: 0.5 }); }
   }],
   // clapotis : de petites vagues qui s'enflent et viennent mourir à la rive, sans claquement (de loin, un choc sec
   // sonnait comme un coup de feu)
@@ -68,6 +73,25 @@ SoundEngine.BOUCLES = {
     const R = Math.random, S = SoundEngine.SYN, f = 3600 + R() * 500, per = 0.42 + R() * 0.3;
     for (let t = 0.03 + R() * 0.2; t < D - 0.12; t += per * (0.95 + R() * 0.1)) for (let p = 0, n = 3 + ((R() * 2) | 0); p < n; p++) S.note(d, sr, t + p * 0.027, 0.016, f, f * 0.99, 0.5, { att: 0.25, dec: 1.2 });
   }],
+  // le vent : un souffle qui tourbillonne — un fond grave et trois bandes qui enflent et retombent chacune à son rythme
+  // (la plus aiguë, la plus vive, ne monte qu'avec les autres) ; ni sifflement ni grondement fixe
+  vent: [14, (d, sr, D) => {
+    const R = Math.random, S = SoundEngine.SYN, n = d.length;
+    const lo = S.bq('lp', 210, 0.6, sr), b1 = S.bq('bp', 420, 0.8, sr), b2 = S.bq('bp', 950, 0.9, sr), b3 = S.bq('bp', 2100, 1.0, sr);
+    // une courbe lisse : un point au hasard toutes les T secondes, raccordés en cosinus
+    const courbe = (T, a, b) => {
+      const pts = Array.from({ length: Math.ceil(D / T) + 2 }, () => a + R() * (b - a));
+      return (t) => { const u = t / T, i = Math.floor(u), f = u - i, c = (1 - Math.cos(Math.PI * f)) / 2; return pts[i] * (1 - c) + pts[i + 1] * c; };
+    };
+    const m0 = courbe(3.1, 0.45, 1), m1 = courbe(1.7, 0.15, 1), m2 = courbe(0.9, 0.05, 1), m3 = courbe(0.45, 0, 1);
+    let p0 = 0, p1 = 0, p2 = 0, k0 = 1, k1 = 1, k2 = 1, k3 = 1;
+    for (let i = 0; i < n; i++) {
+      if (i % 32 === 0) { const t = i / sr; k0 = m0(t); k1 = m1(t) * k0; k2 = m2(t) * k1; k3 = m3(t) * k2; }
+      const x = R() * 2 - 1; p0 = 0.997 * p0 + x * 0.06; p1 = 0.96 * p1 + x * 0.3; p2 = 0.6 * p2 + x * 0.9;
+      const y = p0 * 0.35 + p1 + p2 * 0.7 + x * 0.25;
+      d[i] = lo(y) * 0.3 * k0 + b1(y) * 0.85 * k1 + b2(y) * 0.6 * k2 + b3(y) * 0.28 * k3;
+    }
+  }],
   // un long bruit doux (vent, lit de pluie) : assez long pour qu'on n'entende jamais la boucle
   bruit: [9, (d, sr) => {
     const R = Math.random, n = d.length;
@@ -83,7 +107,7 @@ SoundEngine.BOUCLES = {
   }, 8000],
 };
 // volume de chaque boucle (k = 1)
-SoundEngine.VOL_BOUCLES = { riviere: 0.2, clapotis: 0.12, feu: 0.22, gouttes: 0.07, feuilles: 0.06, grillon: 0.12, bourdon: 0.05, vent: 0.14 };
+SoundEngine.VOL_BOUCLES = { riviere: 0.1, clapotis: 0.07, feu: 0.22, gouttes: 0.07, feuilles: 0.06, grillon: 0.12, bourdon: 0.05, vent: 0.085 };
 // les oiseaux selon le milieu : [sorte, poids]
 SoundEngine.OISEAUX = {
   foret: [['merle', 3], ['mesange', 3], ['pinson', 3], ['pic', 0.6], ['tourterelle', 1], ['coucou', 0.15]],
@@ -115,7 +139,7 @@ Object.assign(SoundEngine.prototype, {
   },
   _boucleNew(type, pos, o) {
     const c = this.ctx, s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
-    if (type === 'vent') { s.buffer = this.boucleTampon('bruit'); f.type = 'lowpass'; f.frequency.value = 400; f.Q.value = 0.6; }
+    if (type === 'vent') { s.buffer = this.boucleTampon('vent'); f.type = 'lowpass'; f.frequency.value = 400; f.Q.value = 0.6; }
     else { s.buffer = this.boucleTampon(type); f.type = 'lowpass'; f.frequency.value = this.nyq(o.lp || 20000); f.Q.value = 0.5; }
     s.loop = true; s.playbackRate.value = o.rate || 1;
     g.gain.value = 0;
@@ -129,7 +153,7 @@ Object.assign(SoundEngine.prototype, {
   },
   // une boucle d'ambiance placée (clé unique), niveau k ; à rafraîchir, sinon elle s'éteint en fondu
   source(cle, type, pos, k, o) {
-    if (!this.ok || !SoundEngine.BOUCLES[type] && type !== 'vent') return null;
+    if (!this.ok || !SoundEngine.BOUCLES[type]) return null;
     o = o || {};
     const M = this.sources || (this.sources = new Map()), now = this.ctx.currentTime;
     let x = M.get(cle);
@@ -173,7 +197,7 @@ Object.assign(SoundEngine.prototype, {
       if (!(performance.now() - (this._rendT || 0) < 250) && typeof game !== 'undefined' && game.player && game.world) { const p = game.player; this.ecoute(p.eyePos(), p.yaw, p.pitch); }
     } catch (e) { /* rien */ }
     this.suivre();
-    const S = this.sc || (this.sc = { acc: 0, lieuT: 0, oiseauT: 2, nuitT: 4, chouetteT: 30, eauT: 0, feuT: 0, arbres: [], arbresT: 0, arbresP: null, rafale: 0, rafaleT: 20, rafaleA: 0, rafaleS: 1, grillons: [], gouttesT: 0, vieux: 0, bioT: 0, caveT: 3 });
+    const S = this.sc || (this.sc = { acc: 0, lieuT: 0, oiseauT: 2, nuitT: 4, chouetteT: 30, eauT: 0, feuT: 0, arbres: [], arbresT: 0, arbresP: null, vg: 0.3, vgC: 0.3, vgT: 0, brise: 0, briseT: 40, grillons: [], gouttesT: 0, vieux: 0, bioT: 0, caveT: 3 });
     S.acc += dt;
     if (S.acc < 0.1) return;
     const d = S.acc;
@@ -206,38 +230,44 @@ Object.assign(SoundEngine.prototype, {
     // ---- le lieu : la réverbération
     S.lieuT -= dt;
     if (S.lieuT <= 0) { S.lieuT = 0.3; this.setLieu(this._lieuAuto(w, p, under, inside, biome, mondeAPart)); }
-    // ---- le vent : seulement dans l'orage, sur les hauteurs, et par rafales ; il vient d'un côté
+    // ---- le vent : il suit le temps qu'il fait (presque rien par beau temps, une brise sous les nuages, du vent sous
+    //      la pluie, la tempête dans l'orage), un peu plus sur les hauteurs ; il souffle par bouffées, des deux côtés
+    //      (deux souffles qui ne se ressemblent pas), plus clair quand il forcit ; le sifflement, seulement dans le grand vent
     const haut = biome === 'hauteurs' || (E.height || 0) > 55;
-    S.rafaleT -= dt;
-    if (S.rafaleT <= 0 && S.rafale <= 0) {
-      S.rafaleT = 25 + R() * 50;
-      if (dehors && !quiet && R() < (haut ? 0.9 : biome === 'lande' || biome === 'plaine' ? 0.6 : 0.45)) { S.rafale = 4 + R() * 5; S.rafaleD = S.rafale; S.rafaleA = R() * TAU; S.rafaleS = R() < 0.5 ? -1 : 1; }
+    const M = typeof weather !== 'undefined' ? weather.cur : null, orage = mondeAPart ? 0 : clamp(E.storm || 0, 0, 1);
+    let base = mondeAPart || quiet ? 0 : M ? clamp(M.storm * 0.8 + M.rain * 0.22 + M.cloud * 0.1 - M.fog * 0.15, 0, 1) : orage;
+    if (haut && !mondeAPart && !quiet) base = Math.min(1, base + 0.08 + 0.12 * clamp(((E.height || 0) - 55) / 80, 0, 1));
+    // les bouffées : une valeur qui erre (une nouvelle cible toutes les deux à six secondes, parfois une rafale), monte
+    // plus vite qu'elle ne retombe
+    S.vgT -= dt;
+    if (S.vgT <= 0) { S.vgT = 2 + R() * 4; S.vgC = R() < 0.1 * (0.3 + base) ? 1 : R() * 0.75; }
+    S.vg += (S.vgC - S.vg) * Math.min(1, dt / (S.vgC > S.vg ? 1.2 : 2.6));
+    // par temps calme, de loin en loin, un souffle léger qui passe
+    S.briseT -= dt;
+    if (S.briseT <= 0 && S.brise <= 0) { S.briseT = 50 + R() * 110; if (dehors && !quiet && !mondeAPart && R() < 0.55) { S.brise = 5 + R() * 7; S.briseD = S.brise; } }
+    let brise = 0;
+    if (S.brise > 0) { S.brise -= dt; brise = 0.09 * Math.sin(Math.PI * clamp(1 - S.brise / S.briseD, 0, 1)); }
+    const v = under ? 0 : clamp(base * (0.5 + 0.75 * S.vg) + brise, 0, 1.2);
+    const niv = Math.pow(v, 1.4) * (inside ? 0.35 : 1);
+    const coupe = inside ? 160 + 350 * clamp(v, 0, 1) : 260 + 1900 * clamp(v, 0, 1) * (0.75 + 0.25 * S.vg);
+    const wa = typeof weather !== 'undefined' && weather.windAngle !== undefined ? weather.windAngle : 0;
+    for (const [cle, da, rate, kf] of [['vent', 1.25, 1, 1], ['ventB', -1.25, 0.93, 0.82]]) {
+      const a = wa + da, x = this.source(cle, 'vent', [L.x + Math.cos(a) * 12, L.y + 2.5, L.z + Math.sin(a) * 12], niv, { att: 'aucune', tau: 0.5, rate });
+      if (x) x.f.frequency.setTargetAtTime(coupe * kf, now, 0.5);
     }
-    let gust = 0;
-    if (S.rafale > 0) { S.rafale -= dt; const u = 1 - S.rafale / S.rafaleD; gust = Math.sin(Math.PI * clamp(u, 0, 1)); }
-    const tw = now * 0.9, souffle = clamp(0.5 + 0.32 * Math.sin(tw * 0.21) * Math.sin(tw * 0.067 + 1.3) + 0.18 * Math.sin(tw * 0.53 + 2.1), 0, 1);
-    const orage = mondeAPart ? 0 : clamp(E.storm || 0, 0, 1);
-    let vent = orage * (0.55 + 0.45 * souffle) + (haut ? 0.28 + 0.22 * souffle : 0) + gust * 0.38;
-    if (under) vent = 0;
-    if (inside) vent *= 0.35;
-    const wa = (typeof weather !== 'undefined' && weather.windAngle !== undefined ? weather.windAngle : 0) + (S.rafale > 0 ? S.rafaleA + S.rafaleS * (1 - S.rafale / S.rafaleD) * 1.6 : 0);
-    const vpos = [L.x + Math.cos(wa) * 14, L.y + 3, L.z + Math.sin(wa) * 14];
-    const vx = this.source('vent', 'vent', vpos, vent, { att: 'aucune', tau: 0.6 });
-    if (vx) vx.f.frequency.setTargetAtTime((inside ? 160 : 230) + 520 * clamp(souffle * orage + gust * 0.8 + (haut ? 0.3 : 0), 0, 1), now, 0.6);
-    // un second souffle, de l'autre côté, plus sifflant (orage, sommets)
-    const v2 = orage * 0.6 + (haut ? 0.35 : 0);
-    const vx2 = this.source('vent2', 'vent', [L.x - Math.cos(wa + 0.7) * 16, L.y + 6, L.z - Math.sin(wa + 0.7) * 16], under ? 0 : v2 * (0.4 + 0.6 * souffle) * (inside ? 0.3 : 1), { att: 'aucune', tau: 0.8, vol: 0.05 });
-    if (vx2) { vx2.f.type = 'bandpass'; vx2.f.Q.value = 5; vx2.f.frequency.setTargetAtTime(480 + 520 * souffle, now, 1.2); }
-    // le feuillage, pendant la rafale, dans les arbres
+    const sif = Math.pow(clamp((v - 0.55) / 0.5, 0, 1), 2) * (inside ? 0.3 : 1);
+    const vx2 = this.source('vent2', 'vent', [L.x - Math.cos(wa + 0.7) * 16, L.y + 6, L.z - Math.sin(wa + 0.7) * 16], sif, { att: 'aucune', tau: 0.8, vol: 0.035 });
+    if (vx2) { vx2.f.type = 'bandpass'; vx2.f.Q.value = 9; vx2.f.frequency.setTargetAtTime(520 + 600 * clamp(v, 0, 1.2) * (0.8 + 0.4 * S.vg), now, 0.9); }
+    // le feuillage, sous les bouffées, dans les arbres
     const bois = biome === 'foret' || biome === 'bouleaux';
-    this.source('feuilles', 'feuilles', [L.x + Math.cos(wa + 0.3) * 7, L.y + 5, L.z + Math.sin(wa + 0.3) * 7], dehors && bois ? gust * 0.9 + orage * 0.5 : 0, { att: 'aucune', tau: 0.7 });
+    this.source('feuilles', 'feuilles', [L.x + Math.cos(wa + 0.3) * 7, L.y + 5, L.z + Math.sin(wa + 0.3) * 7], dehors && bois ? clamp(v * (0.5 + 0.9 * S.vg) * 1.5, 0, 1.2) : 0, { att: 'aucune', tau: 0.7 });
     // ---- la pluie : un lit large, et des gouttes tout autour (sur le toit quand on est à l'abri)
     this._pluie(dt, E, S, under, inside, now);
     // ---- l'eau : la rivière qui coule, le lac qui clapote
     S.eauT -= dt;
     if (S.eauT <= 0) { S.eauT = 0.5; this._eau(w, p, S, under); }
     if (S.riv) this.source('riviere', 'riviere', S.riv.p, S.riv.k * (inside ? 0.35 : 1), { ref: 6, roll: 0.9, lp: inside ? 1200 : 20000 });
-    if (S.rive) this.source('clapotis', 'clapotis', S.rive.p, S.rive.k * (inside ? 0.3 : 1) * (E.storm > 0.5 ? 1.5 : 1), { ref: 4, roll: 0.9 });
+    if (S.rive) this.source('clapotis', 'clapotis', S.rive.p, S.rive.k * (inside ? 0.3 : 1) * (E.storm > 0.5 ? 1.3 : 1), { ref: 4, roll: 0.9 });
     // ---- le feu : le vrai foyer le plus proche
     S.feuT -= dt;
     if (S.feuT <= 0) { S.feuT = 0.4; S.feu = (E.fire || 0) > 0.02 || (typeof vallee !== 'undefined' && vallee.burning && vallee.burning.size) ? this._feu(w, p) : null; }
@@ -349,7 +379,7 @@ Object.assign(SoundEngine.prototype, {
     }
     if (best && best.d < 90) {
       // au milieu du lit, à la surface
-      const k = clamp(1.25 - best.d / 90, 0, 1) * (best.w > 5 ? 1 : 0.7);
+      const k = clamp(1.15 - best.d / 55, 0, 1) * (best.w > 5 ? 1 : 0.7);
       S.riv = { p: [best.x, WL + 0.3, best.z], k };
     }
     // rive d'un lac ou d'un étang : on cherche l'eau autour (16 directions, 5 distances)
@@ -364,7 +394,7 @@ Object.assign(SoundEngine.prototype, {
     if (near && !(S.riv && best.d < near.d + 8)) {
       // (les douves de la ville : une eau dormante entre deux murs, qui ne clapote presque pas)
       const T = w.townInfo, douves = T && Math.hypot(near.x - T.x, near.z - T.z) < 110;
-      S.rive = { p: [near.x, WL + 0.2, near.z], k: clamp(1.2 - near.d / 40, 0.15, 1) * (douves ? 0.25 : 1) };
+      S.rive = { p: [near.x, WL + 0.2, near.z], k: clamp(1.1 - near.d / 30, 0, 1) * (douves ? 0.25 : 1) };
     }
   },
   // le foyer le plus proche : feux de camp, cheminées, fours, grands feux ; arbres qui brûlent (pas les bougies)
@@ -387,13 +417,31 @@ Object.assign(SoundEngine.prototype, {
     }
     return best;
   },
-  // un mur entre l'écouteur et ce point ? (les blocs des bâtiments ; ce qui touche le point lui-même ne compte pas)
+  // un mur entre l'écouteur et ce point ? Les murs, les planchers, les toits (les blocs visibles : pas les collisions
+  // cachées des meubles, de la cheminée même) et les portes fermées ; on regarde jusqu'à 0,3 m du point. (Avant, on
+  // s'arrêtait à 1,2 m du feu et les portes ne comptaient pas : collé au mur derrière une cheminée, ou devant une porte
+  // fermée, on entendait le feu de la maison.)
   _mur(w, q) {
     const L = this.L;
-    if (!L || !w.raycastBlocks) return false;
-    const o = [L.x, L.y, L.z], dx = q[0] - o[0], dy = q[1] + 0.5 - o[1], dz = q[2] - o[2], d = Math.hypot(dx, dy, dz);
-    if (d < 1.8) return false;
-    return !!w.raycastBlocks(o, [dx / d, dy / d, dz / d], d - 1.2);
+    if (!L || !w.blocks || !w.raycastBlock) return false;
+    const o = [L.x, L.y, L.z], dx = q[0] - o[0], dy = q[1] + 0.35 - o[1], dz = q[2] - o[2], d = Math.hypot(dx, dy, dz);
+    if (d < 0.6) return false;
+    const u = [dx / d, dy / d, dz / d], max = d - 0.3, mx = (o[0] + q[0]) / 2, mz = (o[2] + q[2]) / 2;
+    for (const dr of w.doors || []) {
+      if (dr.a > 0.4 || Math.abs(dr.x - mx) > d / 2 + 1.5 || Math.abs(dr.z - mz) > d / 2 + 1.5) continue;
+      const h = w.raycastBlock(w.doorBox(dr), o, u);
+      if (h && h.t <= max) return true;
+    }
+    const cv = w.curVer;
+    for (const b of w.blocks) {
+      if (b.hidden || (b.ver && !(b.ver & cv))) continue;
+      const r = Math.hypot(b.sx, b.sy, b.sz) * 0.5 + 0.05, cx = b.x - o[0], cy = b.y + b.sy / 2 - o[1], cz = b.z - o[2];
+      const tc = cx * u[0] + cy * u[1] + cz * u[2];
+      if (tc < -r || tc > max + r || cx * cx + cy * cy + cz * cz - tc * tc > r * r) continue;
+      const h = w.raycastBlock(b, o, u);
+      if (h && h.t <= max) return true;
+    }
+    return false;
   },
   // les arbres autour (pour y percher les oiseaux et la chouette)
   _arbres(w, p, S) {

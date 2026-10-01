@@ -1,4 +1,7 @@
-# Prairie — La vieille ferme
+# Newy and the Dark Forest
+
+*(Le jeu s'appelait d'abord « Prairie — La vieille ferme » : ses fichiers en gardent le nom — `Prairie.html`,
+`Prairie-Wiki.html` —, comme les clés des sauvegardes, pour que rien ne se perde.)*
 
 Jeu de ferme et d'horreur lente à la première personne, en 3D rétro (pixels façon Doom, personnages anguleux façon
 premier Tomb Raider, bêtes en boîtes), presque sans affichage à l'écran. Un mode Création (éditeur de monde) est inclus.
@@ -13,17 +16,19 @@ Le jeu existe en **français** et en **anglais** (Options, ou le bouton de langu
 en onglets — toute la vallée (relief, eaux, forêts, chemins, milieux, lieux-dits, lieux perdus, villages, maisons des habitants, zones de
 pêche), le Dessous, les Enfers, le cauchemar, le pays des bonbons et les Ténèbres, dessinés depuis le jeu (zoom, recherche, repères qui
 mènent aux fiches) — et les fiches de tout le jeu (habitants et leur semaine, objets, recettes, cultures, plantes, arbres, bêtes, poissons, alchimie, livres, langues perdues,
-légendes…), avec une recherche plein texte. Les secrets restent masqués tant qu'on ne clique pas sur « révéler les secrets ». Il se
+légendes, ce qu'il y a dans chaque bâtiment et à chaque étage…), avec une recherche plein texte. Les secrets restent masqués tant qu'on ne clique pas sur « révéler les secrets ». Il se
 régénère depuis les sources du jeu (la vallée est générée, ≈ 1 minute) : `node tools/wiki-build.js`.
 
-**La bêta en ligne (GitHub Pages)** : la page d'accueil **`index.html`** demande le code de la bêta, puis ouvre le jeu
-et le wiki (le code est retenu par le navigateur ; la langue choisie là sera celle du jeu). Ouverts directement en ligne
-sans le code, `Prairie.html` et `Prairie-Wiki.html` renvoient à l'accueil ; ouverts en local (fichier), rien ne change.
+**La bêta en ligne (GitHub Pages)** : la page d'accueil **`index.html`** a deux portes, chacune son code — celui de la
+bêta ouvre le jeu, celui du wiki ouvre le wiki (chaque code donné est retenu par le navigateur ; la langue choisie là
+sera celle du jeu). Ouverts directement en ligne sans leur code, `Prairie.html` et `Prairie-Wiki.html` renvoient à
+l'accueil ; ouverts en local (fichier), rien ne change.
 Pour publier, une fois la branche fusionnée dans `main` : sur GitHub, *Settings → Pages → Build and deployment →
 Source : « Deploy from a branch », Branch : `main`, dossier `/ (root)` → Save*. Le site est servi tel quel (fichier
-`.nojekyll`) à l'adresse `https://<compte>.github.io/<dépôt>/`, une ou deux minutes après chaque fusion. Le code
-n'est écrit en clair nulle part (seulement son empreinte SHA-256) ; pour le changer : `node tools/beta-code.js <code>`,
-puis `node build.js && node tools/wiki-build.js`. C'est une barrière simple, pas un coffre : une page publique ne
+`.nojekyll`) à l'adresse `https://<compte>.github.io/<dépôt>/`, une ou deux minutes après chaque fusion.
+Les codes ne sont écrits en clair nulle part (seulement leur empreinte SHA-256) ; pour les changer :
+`node tools/beta-code.js jeu <code>` puis `node build.js`, ou `node tools/beta-code.js wiki <code>` puis
+`node tools/wiki-build.js`. C'est une barrière simple, pas un coffre : une page publique ne
 cache pas vraiment ce qu'elle contient, et sur un dépôt public, les fichiers du jeu se lisent sur GitHub même (un dépôt
 privé avec Pages demande un abonnement GitHub payant).
 
@@ -511,6 +516,30 @@ Les commandes sont dans le menu **Commandes** (Échap).
   https://scp-wiki.wikidot.com ; les textes du jeu sont originaux).
 - **Cinématiques** : l'arrivée dans la vallée, le temple, les Trois, la tornade, le tueur… (Espace pour passer).
 
+**On entre partout**
+- **Chaque bâtiment s'ouvre, à chaque étage** (`node tools/equilibrage.js batiments` le vérifie : chaque toit de la
+  vallée, chacun de ses niveaux, à hauteur d'homme, comme le joueur se cogne). Pour monter : une échelle de meunier
+  contre un mur et une trappe — **E au pied**, **E au bord du trou** pour redescendre ; on grimpe en voyant passer le
+  plafond. À l'étage, on est sous le toit (la pluie, le froid : à l'abri) et dans la maison (les règles suivent : chez
+  quelqu'un, fouiller reste un vol ; d'en bas on ne vous voit pas, on vous entend parfois).
+- **L'étage de chaque maison de Valbrume** — la mairie, l'auberge, la boulangerie, la poste, les maisons aux volets
+  bleus, du tisserand, Rivière, aux lilas, Vernet, Delorme, du Rempart, l'échoppe de l'alchimiste —, du ranch, et les
+  deux niveaux de la bibliothèque : une pièce qui dit qui vit là (chambres, atelier, fenil, archives, réserve de farine,
+  lettres en souffrance), des lampes pour la nuit, des endroits à fouiller, seize papiers nouveaux. Le **garde-meuble
+  de la commune** est au grenier de la mairie (le maire vend d'en bas) ; à l'auberge, **cinq chambres d'hôtes** (et la
+  sept, où l'on ne dort pas) ; l'étage d'une maison louée ou achetée se meuble.
+- **Les huit tours des remparts sont creuses** : une porte côté ville (fermée la nuit), le magasin ou le treuil du
+  pont-levis au pied, le corps de garde (paillasses, râtelier, le coffre des gardes), et en haut le **chemin de ronde** :
+  on fait le tour de la ville sur les remparts, par-dessus les portes. **Le clocher** a son beffroi, sous la cloche (on
+  y monte le jour, hors de la messe ; « Regarder la vallée » se fait là-haut) ; on entre sous **la tente de la diseuse**.
+- **Le vieux moulin** se visite jusque sous le chapeau (le coin du meunier, les farines, les meules, le rouet qui tourne
+  avec les ailes) ; **le phare** du pied à la lanterne (la chambre du gardien, la réserve d'huile, le bureau et son
+  **registre du feu**, la longue-vue, la galerie sur le lac) ; les **pigeonniers** (boulins, échelle tournante, pigeons
+  qui roucoulent), les **loges des charbonniers** (on y dort sur les fougères), les moulins en ruine, les bories (on
+  entre accroupi, on se relève sous la voûte), les glacières ; les cabanes de **l'estive** ont des portes d'homme ; la
+  bergerie des Combes a retrouvé les affaires de son berger. **Le clocher englouti** est creux : on plonge (C), on entre
+  par la baie ; la cloche n'y est que les nuits d'orage.
+
 **Le son**
 - **Tous les sons refaits, toujours synthétisés** : plus de bruit blanc cru ni de clics — bruits filtrés et adoucis, attaques
   douces, formes d'onde sans harmoniques perçantes, aigus un peu en retrait ; et jamais deux fois le même son (hauteur,
@@ -535,10 +564,15 @@ Les commandes sont dans le menu **Commandes** (Échap).
   au-dessus de vous, la lavandière au lavoir, et les choses qui ne devraient pas être là. L'écouteur suit la caméra à
   chaque image, cinématiques comprises ; au loin, les sons baissent, l'air en mange les aigus et la réverbération
   domine ; tout près, un peu plus de grave.
-- **Des ambiances tout autour, plus un fond plat** : le vent vient du côté de l'orage, et par rafales qui passent d'un
-  côté à l'autre (avec le feuillage, en forêt ; toujours sur les sommets) ; la pluie tombe tout autour de vous, et
-  sourdement sur le toit quand on est à l'abri ; la rivière coule là où elle coule, le lac clapote à la rive ; le feu
-  crépite à sa place (feux de camp, cheminées, fours, incendies ; un mur l'étouffe : la cheminée d'une maison ne s'entend pas de la rue) ; les oiseaux chantent dans les arbres — merle, mésange,
+- **Des ambiances tout autour, plus un fond plat** : **le vent suit le temps qu'il fait** — presque rien par beau temps
+  (de loin en loin, un souffle léger qui passe), une brise sous les nuages, du vent sous la pluie, la tempête dans
+  l'orage, un peu plus sur les hauteurs ; il souffle par bouffées, des deux côtés à la fois, plus clair quand il forcit,
+  avec le feuillage en forêt, et ne siffle que dans le grand vent (sur les hauteurs par beau temps, 14 dB de moins
+  qu'avant) ; la pluie tombe tout autour de vous, et sourdement sur le toit quand on est à l'abri ; la rivière coule là
+  où elle coule, le lac clapote à la rive — doucement, et de moins loin qu'avant (la rivière : 6 dB de moins à dix
+  mètres, 13 à cinquante) ; le feu crépite à sa place (feux de camp, cheminées, fours, incendies) et **un mur ou une
+  porte fermée l'étouffe** : la cheminée d'une maison ne s'entend pas de la rue, ni collé au mur derrière elle, seulement
+  par une porte ouverte, dans son axe ; les oiseaux chantent dans les arbres — merle, mésange,
   pinson, tourterelle, coucou, pic, moineaux au village, alouette haut dans le ciel au-dessus des prés —, **chacun son
   tour** : un chanteur reprend sa phrase deux ou trois fois de la même branche, puis un silence, plus court à l'aube et
   en forêt ; les oiseaux des bois et des cours attendent qu'aucun autre ne chante (en forêt, 44 chants par minute
@@ -555,14 +589,14 @@ Les commandes sont dans le menu **Commandes** (Échap).
 ## Équilibrage
 
 Le jeu a été équilibré d'un bloc, en mesurant d'abord : chaque système avait été écrit avec ses propres nombres, et
-la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Huit domaines, chacun avec sa mesure
+la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Neuf domaines, chacun avec sa mesure
 et ses vérifications dans `tools/equilibrage/` : le jeu entier est chargé dans une machine virtuelle node (sans
 navigateur, `tools/equilibrage/vm.js`), ses propres fonctions calculent les rendements, les espérances et les
 fréquences, et la commande échoue si l'on recasse un équilibre :
 
 ```bash
-node tools/equilibrage.js                 # les huit domaines (≈ 5 min)
-node tools/equilibrage.js commerce        # ou un seul : commerce, ferme, risques, survie, hasard, commandes, carte, nature
+node tools/equilibrage.js                 # les neuf domaines (≈ 10 min)
+node tools/equilibrage.js commerce        # ou un seul : commerce, ferme, risques, survie, hasard, commandes, carte, nature, batiments
 ```
 
 Aucun réglage ne touche à la génération de la vallée : les anciennes parties retrouvent leurs objets (l'empreinte des
@@ -825,6 +859,17 @@ complètes, et mesure la fréquence du papillon d'or sur le vrai programme mét�
 de jouer) : une fois tous les 39 jours pour le joueur typique, 22 pour qui le cherche, jamais avant le cinquième jour ;
 il rapporte au plus 2 % d'une journée de revenu du milieu de partie (5 % pour qui le chasse).
 
+### Les bâtiments
+
+`node tools/equilibrage.js batiments` (≈ 90 s) examine chaque toit de la vallée (un bloc à deux pans ou en flèche, ou
+une grande dalle haute sans toit au-dessus) et, dessous, chaque niveau — le sol, puis chaque plancher plus haut — sur
+une grille de 0,2 m, à hauteur d'homme, exactement comme le joueur se cogne (marche de 0,55 m, 1,75 m sous un linteau,
+0,33 m de rayon ; les portes comptent comme ouvertes). Un niveau est « ouvert » (on y entre à pied), « échelle » (une
+interaction qui transporte y dépose le joueur, à l'intérieur), « clos » ou « plein » : la commande échoue s'il en reste
+un seul clos, ou plein sous un toit en pente (les masses pleines à dessus plat, fours à chaux ou table des géants, ne
+sont pas des bâtiments). Avant la dixième vague : 47 niveaux sans accès ; après : aucun. Elle vérifie aussi les
+empreintes des objets d'avant (`BATIMENTS_DETAIL=1` liste tout, `BATIMENTS_GRAINES=1234,77` d'autres graines).
+
 ## Modifier le code
 
 Les sources sont dans `src/` (triées par nom = ordre de chargement) :
@@ -874,6 +919,8 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `07-zzzzzzz-portes.js` | les portes (modèles selon le bâtiment, trois niveaux de détail) |
 | `11-zzzz6-*.js` | la lanterne et son huile, les ruches, la mémoire des recettes d'une vie à l'autre |
 | `11-zzzzA-commandes.js` | le carnet de commandes, le voiturier et ses colis (`farm.s.commandes`) |
+| `11-zzzzB1-ville.js`, `07-zzzzzzzzzzzzB1-ville.js` | on entre partout, en ville : les étages (échelle de meunier et trappe, `b.plafond` pour que l'étage soit sous le toit), les huit tours et le chemin de ronde, le beffroi du clocher, la tente de la diseuse ; `game.insideBuilding` vaut à l'étage (API `b1`) |
+| `11-zzzzB2-campagne.js`, `07-zzzzzzzzzzzzB2-campagne.js` | on entre partout, à la campagne : le vieux moulin, le phare, les pigeonniers, les loges, le clocher englouti, les ruines où le butin était muré, la bergerie, les cabanes de l'estive (`farm.s.campagne`, API `campagne`) |
 | `11-zzz00b-pensees.js`, `tools/pensees.js` | dire peu : `penser.une` (une règle dite une fois par vie), `penser.pas` (un avertissement espacé), `farm.s.pensees` ; l'inventaire des pensées (`node tools/pensees.js`) |
 | `11-zzvallee0-gel.js` | le gel en altitude : la jauge `farm.s.gel`, le givre à l'écran, la mort de froid |
 | `11-zzzz7-carte*.js`, `07-zzzzzzzzzz-carte.js` | un lieu tous les 200 m (catalogue, textes, lettres, inscriptions, petits secrets), les deux peuples de surface et leurs parlers (`farm.s.carte2`, API `carte2`) |
@@ -884,7 +931,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
 | `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus bas) |
 | `shell.html` | HTML + CSS |
-| `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et son code, le site servi tel quel par GitHub Pages, changer le code |
+| `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et ses deux codes (le jeu, le wiki), le site servi tel quel par GitHub Pages, changer un code |
 
 Le son, pour placer un bruit dans le monde : `sound.pan(p, dest)` accepte un panoramique −1..1 (comme avant) **ou une
 position** (`[x, y, z]`, `{x, y, z}`, une bête, un habitant) ; `sound.ici(pos, () => …, o)` place tous les sons joués

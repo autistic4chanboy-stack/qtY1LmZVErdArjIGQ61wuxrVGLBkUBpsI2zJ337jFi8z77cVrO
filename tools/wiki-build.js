@@ -4337,6 +4337,34 @@ function buildWiki(DB) {
     SP(id, { t: HP.title || cap(humanKey(file.replace(/^\d\d-zzz\w?\d*-?|\.js$/g, ''))), s: HP.sub || '', c: [cat], g, i: '✦', h }, file);
     return id;
   };
+  // ==== LA DIXIÈME VAGUE : ON ENTRE PARTOUT (les étages de la ville, les tours et le chemin de ronde, le clocher, la tente ;
+  // le moulin, le phare, les pigeonniers, les loges, les ruines, le clocher englouti). Les textes : tools/wiki-batiments.js ;
+  // chaque lieu reçoit ce qu'il y a dedans (et, sous « révéler les secrets », ce qui s'y cache) ; la fiche « On entre
+  // partout » dit comment on monte et les règles.
+  {
+    let WB = null;
+    try { WB = require('./wiki-batiments.js'); } catch (e) { (DB.log || []).push('wiki-batiments.js : ' + e.message); }
+    const FB1 = fileHas(/^11-zzzzB1-ville/), FB2 = fileHas(/^11-zzzzB2-campagne/);
+    for (const k of ['B1_TOURS_NOMS', 'B1_PAPIERS', 'B1_MAISON', 'B1_ETAGES', 'B1_ORDRE', 'B1C', 'B1_CHIFFRES', 'B1_TOILE_COLL', 'B2_BU', 'B2_CASE', 'B2_DEDANS', 'B2_REGISTRE', 'PB2']) used.add(k);
+    if (WB && (FB1 || FB2)) {
+      const para2 = (t) => String(t).split(/\n\n+/).map((x) => `<p>${esc(x)}</p>`).join('');
+      const touches = [];
+      for (const D of WB.DEDANS) {
+        const id = D.pages.find((i) => pages.has(i));
+        if (!id) { (DB.log || []).push('wiki-batiments.js : aucune fiche pour ' + D.pages.join(', ')); continue; }
+        const p = pages.get(id);
+        p.h = (p.h || '') + `<h3>${esc(D.titre)}</h3>${para2(D.texte)}${D.secret ? SEC(`<h4>Ce qui s’y cache</h4>${para2(D.secret)}`) : ''}`;
+        addCat(id, 'batiments');
+        if (!touches.includes(id)) touches.push(id);
+      }
+      let h = '<p class="lead">Chaque bâtiment s’ouvre, à chaque étage : les maisons de Valbrume et leur étage, les huit tours des remparts et le chemin de ronde, le clocher, la tente de la diseuse ; le vieux moulin, le phare, les pigeonniers, les loges des charbonniers, les ruines, le clocher englouti.</p>';
+      h += WB.REGLES.map(([t, x]) => `<h3>${esc(t)}</h3>${para2(x)}`).join('');
+      if (FB1) h += `<h3>Les tours des remparts et le chemin de ronde</h3>${para2(WB.TOURS.texte)}${SEC(para2(WB.TOURS.secret))}<h3>La tente de la diseuse</h3>${para2(WB.TENTE.texte)}`;
+      h += `<h3>Ce qu’il y a dedans</h3><ul class="cards">${touches.map((i) => `<li>${link(i)}</li>`).join('')}</ul>`;
+      h += '<p class="note">La vérification : <code>node tools/equilibrage.js batiments</code> examine chaque toit de la vallée et chacun de ses niveaux, à hauteur d’homme, comme le joueur se cogne : aucun n’est fermé.</p>';
+      SP('sys:entrer', { t: 'On entre partout', s: 'Les étages, les tours, le clocher, le moulin, le phare…', c: ['batiments'], i: '⌂', h }, [FB1, FB2].filter(Boolean));
+    }
+  }
   for (const f of [FILE.vol, FILE.prison, FILE.sentiments]) if (f) genericPage(f, 'prison', 'Prison, vol et sentiments');
   for (const f of Object.keys(MF)) if (!MODPAGE[f] && !/^07-/.test(f)) genericPage(f, 'nouveautes-autres', 'Autres nouveautés');
   // ce qui reste des tables de chaque module : en bas de sa fiche principale
@@ -4379,7 +4407,7 @@ function buildWiki(DB) {
   const sysGroup = (cat, t) => { const ids = byCat(cat).filter(isSys); return ids.length ? [{ t, ids }] : []; };
   const sysFirst = (ids) => ids.sort((a, b) => b.startsWith('sys:') - a.startsWith('sys:'));
   const cats = [
-    { id: 'nouveautes', t: 'Nouveautés', d: 'Tout ce qui est arrivé dans la vallée : le corps et l’esprit, les maisons et les serrures, fouiller et casser, les activités des villes, la chasse, la société, les événements, les Trois, les autres mondes, les merveilles…', page: true, nouveau: true },
+    { id: 'nouveautes', t: 'Nouveautés', d: 'Tout ce qui est arrivé dans la vallée : on entre partout, le corps et l’esprit, les maisons et les serrures, fouiller et casser, les activités des villes, la chasse, la société, les événements, les Trois, les autres mondes, les merveilles…', page: true, nouveau: true },
     { id: 'commandes', t: 'Commandes et mécaniques', d: 'Les touches du jeu, et ce que les nouveautés y ajoutent.', page: true, nouveau: true },
     { id: 'habitants', t: 'Habitants', d: 'Les gens de la vallée : leurs journées, leurs boutiques, leurs quêtes, leurs histoires.', groups: groupBy(byCat('habitants'), (p) => p.g || 'Autres') },
     { id: 'lieux', t: 'Lieux', d: 'Villes, hameaux, lieux-dits, bâtiments, et ce qu’on y trouve.', groups: groupBy(byCat('lieux'), (p) => p.g) },
@@ -4404,6 +4432,7 @@ function buildWiki(DB) {
     { id: 'nature', t: 'La nature', d: 'Chaque plante son objet, les bois, les plantes et les bêtes nouvelles, les cris d’oiseaux, le papillon d’or.', nouveau: true, groups: [{ t: 'La nature', ids: sysFirst(byCat('nature').filter(isSys)) }, { t: 'Les plantes nouvelles', ids: sortT(byCat('nature').filter((i) => i.startsWith('pl:'))) }, { t: 'Les bêtes nouvelles', ids: sortT(byCat('nature').filter((i) => i.startsWith('an:'))) }] },
     { id: 'quotidien', t: 'Au quotidien', d: 'Le carnet de commandes et le voiturier, la lanterne et son huile, les ruches, les recettes qu’on n’oublie pas, le gel là-haut, le son.', nouveau: true, groups: [{ t: 'Au quotidien', ids: byCat('quotidien') }] },
     { id: 'corps', t: 'Corps et esprit', d:'Chutes, blessures, mentalité, le sommeil et la fatigue, ce qu’on mange, le chien, l’alcool.', nouveau: true, groups: groupBy(byCat('corps'), (p) => p.g || 'Le corps et l’esprit') },
+    { id: 'batiments', t: 'On entre partout', d: 'Les étages des maisons, les tours et le chemin de ronde, le clocher, la tente ; le moulin, le phare, les pigeonniers, les loges, le clocher englouti : comment on monte, ce qu’il y a dedans (et ce qui s’y cache).', nouveau: true, groups: [{ t: 'Monter, entrer', ids: byCat('batiments').filter(isSys) }, { t: 'Dedans', ids: sortT(byCat('batiments').filter((i) => !isSys(i))) }] },
     { id: 'maisons', t: 'Maisons, lits et serrures', d: 'Dormir et la fatigue, louer une maison, l’acheter et la meubler, les portes, crocheter une serrure, la poterne.', nouveau: true, groups: groupBy(byCat('maisons'), (p) => p.g || 'Se loger') },
     { id: 'fouilles', t: 'Fouiller, ramasser, casser', d: 'Les armoires et les tiroirs-caisses, le menu de butin, ce qui se casse et à qui c’était, les morts qui restent au sol.', nouveau: true, groups: groupBy(byCat('fouilles'), (p) => p.g || 'Fouiller') },
     { id: 'activites', t: 'Activités des villes et villages', d: 'Les dés, le vingt-et-un, la veillée, les petits travaux, le puits, la diseuse, les quilles, la tombola, les concours, les étals du Marchedi…', nouveau: true, groups: groupBy(byCat('activites'), (p) => p.g || 'Les activités') },
@@ -4732,7 +4761,7 @@ function CLIENT(D) {
     setMode('wiki'); activeNav('');
     const total = D.pages.filter(visible).length;
     main.innerHTML = `<article class="pg home">
-      <header class="hd"><div><h1>Prairie — le wiki de la vallée</h1><p class="sub">Tout ce que contient la vallée : ses gens, ses bêtes, ses plantes, ses objets, ses langues perdues et ses secrets. ${total} fiches.</p></div></header>
+      <header class="hd"><div><h1>Newy and the Dark Forest — le wiki de la vallée</h1><p class="sub">Tout ce que contient la vallée : ses gens, ses bêtes, ses plantes, ses objets, ses langues perdues et ses secrets. ${total} fiches.</p></div></header>
       <p class="lead">Ce compagnon se lit à côté du jeu. Il a été tiré du jeu lui-même, le ${new Date(D.meta.built).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}. Dans le jeu, il n’y a jamais de carte de toute la vallée : ici, si.</p>
       <p><a class="btn big" href="#/carte">🗺 Ouvrir la carte de la vallée</a> ${reveal ? '' : '<button class="btn" data-reveal>🔒 Révéler les secrets</button>'}</p>
       ${(D.plans || []).length ? `<p class="plans">Et les plans de ce qui n’est pas sur la carte : ${(D.plans || []).map((P) => `<a class="btn" href="#/plan/${P.id}">${esc(P.i || '')} ${esc(P.t)}</a>`).join(' ')}</p>` : ''}
@@ -5879,18 +5908,18 @@ function writeHTML(DB) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>
-// la bêta en ligne (GitHub Pages) : sans le code, retour à l'accueil (index.html) ; ouvert en local (file://), rien
-// (empreinte du code de la bêta : voir index.html et tools/beta-code.js)
-(function () { try { if (/^https?:$/.test(location.protocol) && localStorage.getItem('prairie.beta') !== '6e18eacb920bc9d7211e06284e51e47b69b4f8c32190173b02192397449d87a7') location.replace('index.html'); } catch (e) { /* rien */ } })();
+// le wiki en ligne (GitHub Pages) a son propre code : sans lui, retour à l'accueil (index.html#wiki) ; ouvert en
+// local (file://), rien (empreinte du code du wiki : voir index.html et tools/beta-code.js)
+(function () { try { if (/^https?:$/.test(location.protocol) && localStorage.getItem('prairie.wiki') !== '2fc4b782912e33c839c66e2bf38fcda8beec39fefeae3440bd93d919814eec37') location.replace('index.html#wiki'); } catch (e) { /* rien */ } })();
 </script>
-<title>Prairie — le wiki de la vallée</title>
-<meta name="description" content="Compagnon hors jeu de Prairie : carte interactive de la vallée et fiches de tout ce qu'elle contient.">
+<title>Newy and the Dark Forest — le wiki de la vallée</title>
+<meta name="description" content="Compagnon hors jeu de Newy and the Dark Forest : carte interactive de la vallée et fiches de tout ce qu'elle contient.">
 <style>${CSS}</style>
 </head>
 <body data-mode="wiki">
 <header id="top">
   <button id="menubtn" aria-label="Sections">☰</button>
-  <a class="title" href="#/">Prairie <small>— le wiki de la vallée</small></a>
+  <a class="title" href="#/">Newy and the Dark Forest <small>— le wiki de la vallée</small></a>
   <div class="search"><input id="q" type="search" placeholder="Chercher (touche /) : un nom, un mot, une réplique…" autocomplete="off" aria-label="Chercher"><div id="sug" hidden></div></div>
   <span class="sp"></span>
   <a class="btn" href="#/carte">🗺 Carte</a>
