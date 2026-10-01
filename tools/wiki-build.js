@@ -5878,6 +5878,11 @@ function writeHTML(DB) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+// la bêta en ligne (GitHub Pages) : sans le code, retour à l'accueil (index.html) ; ouvert en local (file://), rien
+// (empreinte du code de la bêta : voir index.html et tools/beta-code.js)
+(function () { try { if (/^https?:$/.test(location.protocol) && localStorage.getItem('prairie.beta') !== '6e18eacb920bc9d7211e06284e51e47b69b4f8c32190173b02192397449d87a7') location.replace('index.html'); } catch (e) { /* rien */ } })();
+</script>
 <title>Prairie — le wiki de la vallée</title>
 <meta name="description" content="Compagnon hors jeu de Prairie : carte interactive de la vallée et fiches de tout ce qu'elle contient.">
 <style>${CSS}</style>
