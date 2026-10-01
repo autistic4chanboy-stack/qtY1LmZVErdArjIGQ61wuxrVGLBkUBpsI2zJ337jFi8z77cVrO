@@ -478,7 +478,7 @@ function worldToJSON(w) {
 }
 
 function worldFromJSON(data) {
-  if (!data || data.format !== WORLD_FORMAT) throw new Error("Ce fichier n'est pas un monde Prairie.");
+  if (!data || data.format !== WORLD_FORMAT) throw new Error("Ce fichier n'est pas un monde de Newy and the Dark Forest.");
   const N = data.size | 0, cell = +data.cellSize || 2;
   if (N < 16 || N > 1024) throw new Error('Taille de monde invalide.');
   const w = new World(N, cell);

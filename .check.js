@@ -5733,7 +5733,7 @@ function worldToJSON(w) {
 }
 
 function worldFromJSON(data) {
-  if (!data || data.format !== WORLD_FORMAT) throw new Error("Ce fichier n'est pas un monde Prairie.");
+  if (!data || data.format !== WORLD_FORMAT) throw new Error("Ce fichier n'est pas un monde de Newy and the Dark Forest.");
   const N = data.size | 0, cell = +data.cellSize || 2;
   if (N < 16 || N > 1024) throw new Error('Taille de monde invalide.');
   const w = new World(N, cell);
@@ -73371,6 +73371,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Ce dernier jour de février 1791. Moi, Aimé Lacombe, sacristain de Saint-Aubin-des-Eaux. La paroisse est supprimée et réunie à la ville ; demain, ceux du district viennent descendre la cloche pour en faire des sous. Monsieur le curé a refusé le serment et il est parti par la montagne. J’ai mis dans ce coffre le calice, la patène et les registres, pour qu’on ne les fonde pas avec le reste. L’eau de l’étang monte depuis trois jours, sans une goutte de pluie. Les vieilles disent que la Dame ne veut pas qu’on lui prenne sa cloche. Ce soir, je sonnerai une dernière fois, pour saint Aubin. Que Dieu garde ceux d’ici, même ceux qui ne croient qu’en elle.","This last day of February 1791. I, Aimé Lacombe, sexton of Saint-Aubin-des-Eaux. The parish is abolished and joined to the town; tomorrow the district men are coming to take down the bell and melt it into coin. The priest refused the oath and has gone away over the mountain. I have put the chalice, the paten and the registers in this chest, so that they are not melted down with the rest. The water in the pond has been rising for three days, without a drop of rain. The old women say the Lady does not want her bell taken from her. Tonight I shall ring it one last time, for Saint Aubin. May God keep the people here, even those who believe only in her."],
 ["Ce faire-part de deuil est arrivé sans timbre, pour {npc:guerisseuse}. Le nom du défunt est resté en blanc. Portez-le-lui, voulez-vous ? Je ne veux plus y toucher.","This funeral notice came without a stamp, for {npc:guerisseuse}. The name of the deceased has been left blank. Take it to her, would you? I don’t want to touch it anymore."],
 ["Ce fichier n'est pas un monde Prairie.","This file is not a Prairie world."],
+["Ce fichier n'est pas un monde de Newy and the Dark Forest.","This file is not a Newy and the Dark Forest world."],
 ["Ce foin est trop humide. S’il chauffe dans la grange, c’est tout le hameau qui flambe. Allez, on retourne.","This hay’s too damp. If it heats up in the barn, the whole hamlet goes up in flames. Come on, we’re turning it."],
 ["Ce matin, il y avait des traces de pas autour de ma maison. Elles faisaient le tour, trois fois, et puis plus rien.","This morning there were footprints around my house. They went all the way round, three times, and then nothing."],
 ["Ce matin, il y avait des traces mouillées sur les planches. Des pieds nus. Elles sortaient de l’aigue, et elles y retournaient.","This morning there were wet tracks on the planks. Bare feet. They came out of the aigue, and went back into it."],
@@ -78412,6 +78413,7 @@ const I18N_EN = {"v":1,"exact":[
 ["M’accorderez-vous une danse ?","May I have this dance?"],
 ["N0","N0"],
 ["NE LE REGARDE PAS","DON’T LOOK AT HIM"],
+["NEWY","NEWY"],
 ["NFD","NFD"],
 ["NON OBSERVÉE. Cellule 8 vide. Qu’elle le reste.","NOT OBSERVED. Cell 8 empty. Keep it that way."],
 ["NOUVEAU MONDE","NEW WORLD"],
@@ -78492,6 +78494,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Neuf heures moins le quart ! Tout le monde rentre ! Allez, allez, les retardataires !","Quarter to nine! Everybody inside! Come on, come on, you stragglers!"],
 ["Neuf jours","Nine days"],
 ["Neuf mars","The ninth of March"],
+["Newy and the Dark Forest","Newy and the Dark Forest"],
 ["Ni les murmures ni les cris ne vous font plus rien.","Neither whispers nor screams can touch you any more."],
 ["Niche","Kennel"],
 ["Nichoir","Bird box"],
@@ -82253,6 +82256,7 @@ const I18N_EN = {"v":1,"exact":[
 ["air+vie","air+vie"],
 ["ami d’enfance","childhood friend"],
 ["amitié","friendship"],
+["and the Dark Forest","and the Dark Forest"],
 ["application/json","application/json"],
 ["appliquer / action inverse","apply / reverse action"],
 ["appliquer / inverse","apply / reverse"],

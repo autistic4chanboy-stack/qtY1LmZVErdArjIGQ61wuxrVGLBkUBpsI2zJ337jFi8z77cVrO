@@ -4732,7 +4732,7 @@ function CLIENT(D) {
     setMode('wiki'); activeNav('');
     const total = D.pages.filter(visible).length;
     main.innerHTML = `<article class="pg home">
-      <header class="hd"><div><h1>Prairie — le wiki de la vallée</h1><p class="sub">Tout ce que contient la vallée : ses gens, ses bêtes, ses plantes, ses objets, ses langues perdues et ses secrets. ${total} fiches.</p></div></header>
+      <header class="hd"><div><h1>Newy and the Dark Forest — le wiki de la vallée</h1><p class="sub">Tout ce que contient la vallée : ses gens, ses bêtes, ses plantes, ses objets, ses langues perdues et ses secrets. ${total} fiches.</p></div></header>
       <p class="lead">Ce compagnon se lit à côté du jeu. Il a été tiré du jeu lui-même, le ${new Date(D.meta.built).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}. Dans le jeu, il n’y a jamais de carte de toute la vallée : ici, si.</p>
       <p><a class="btn big" href="#/carte">🗺 Ouvrir la carte de la vallée</a> ${reveal ? '' : '<button class="btn" data-reveal>🔒 Révéler les secrets</button>'}</p>
       ${(D.plans || []).length ? `<p class="plans">Et les plans de ce qui n’est pas sur la carte : ${(D.plans || []).map((P) => `<a class="btn" href="#/plan/${P.id}">${esc(P.i || '')} ${esc(P.t)}</a>`).join(' ')}</p>` : ''}
@@ -5879,18 +5879,18 @@ function writeHTML(DB) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>
-// la bêta en ligne (GitHub Pages) : sans le code, retour à l'accueil (index.html) ; ouvert en local (file://), rien
-// (empreinte du code de la bêta : voir index.html et tools/beta-code.js)
-(function () { try { if (/^https?:$/.test(location.protocol) && localStorage.getItem('prairie.beta') !== '6e18eacb920bc9d7211e06284e51e47b69b4f8c32190173b02192397449d87a7') location.replace('index.html'); } catch (e) { /* rien */ } })();
+// le wiki en ligne (GitHub Pages) a son propre code : sans lui, retour à l'accueil (index.html#wiki) ; ouvert en
+// local (file://), rien (empreinte du code du wiki : voir index.html et tools/beta-code.js)
+(function () { try { if (/^https?:$/.test(location.protocol) && localStorage.getItem('prairie.wiki') !== '2fc4b782912e33c839c66e2bf38fcda8beec39fefeae3440bd93d919814eec37') location.replace('index.html#wiki'); } catch (e) { /* rien */ } })();
 </script>
-<title>Prairie — le wiki de la vallée</title>
-<meta name="description" content="Compagnon hors jeu de Prairie : carte interactive de la vallée et fiches de tout ce qu'elle contient.">
+<title>Newy and the Dark Forest — le wiki de la vallée</title>
+<meta name="description" content="Compagnon hors jeu de Newy and the Dark Forest : carte interactive de la vallée et fiches de tout ce qu'elle contient.">
 <style>${CSS}</style>
 </head>
 <body data-mode="wiki">
 <header id="top">
   <button id="menubtn" aria-label="Sections">☰</button>
-  <a class="title" href="#/">Prairie <small>— le wiki de la vallée</small></a>
+  <a class="title" href="#/">Newy and the Dark Forest <small>— le wiki de la vallée</small></a>
   <div class="search"><input id="q" type="search" placeholder="Chercher (touche /) : un nom, un mot, une réplique…" autocomplete="off" aria-label="Chercher"><div id="sug" hidden></div></div>
   <span class="sp"></span>
   <a class="btn" href="#/carte">🗺 Carte</a>
