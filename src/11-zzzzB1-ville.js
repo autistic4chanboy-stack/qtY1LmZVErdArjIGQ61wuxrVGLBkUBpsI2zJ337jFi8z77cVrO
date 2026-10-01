@@ -14,7 +14,11 @@
 //    ou le treuil du pont-levis au pied, une salle haute (le corps de garde :
 //    paillasses, râtelier, le coffre des gardes) aux tours d'angle, et en haut,
 //    au niveau du CHEMIN DE RONDE, des passages : on marche sur les remparts d'une
-//    tour à l'autre (pas de parapet côté ville).
+//    tour à l'autre (une main courante côté ville).
+//  - Le CLOCHER : un beffroi à 11,3 m (une baie et ses abat-sons sur chaque
+//    face, la cloche à sa poutre, sa corde jusqu'au porche) ; l'échelle ferme la
+//    nuit et pendant la messe ; « Regarder la vallée » se fait là-haut. La TENTE
+//    de la diseuse : on y entre, jusqu'à sa table (un rideau quand elle n'y est pas).
 //  - Ce qu'il y a là-haut : meubles, endroits à fouiller (11-zzz98-fouilles.js :
 //    chez quelqu'un, c'est voler ; chez les disparus, non), lits (11-zzz95), des
 //    lampes qui ne brillent que la nuit, des papiers (sacoche, onglet Lettres),
@@ -121,9 +125,9 @@ function b1Geo(IX, IZ, mur, u, larg, prof) {
 function b1Echelle(w, B, f, key, G, yA, yB, o) {
   o = o || {};
   const { pt, n, larg, prof } = G, ep = o.ep ?? 0.16;
-  // l'échelle, contre le mur (barreaux face à la pièce), un mètre au-dessus du plancher du haut
+  // l'échelle, contre le mur (barreaux face à la pièce), un mètre au-dessus du plancher du haut (o.echelle === false : elle y est déjà)
   const [ex, ez] = b1W(f, ...pt(0.07, 0));
-  B.prop('echelle', ex, f.y + yA, ez, f.r + G.rr, { h: yB - yA + 0.95 });
+  if (o.echelle !== false) B.prop('echelle', ex, f.y + yA, ez, f.r + G.rr, { h: yB - yA + 0.95 });
   // le battant relevé, debout au bord « −a » de la trappe (o.cote : 1 pour l'autre bord)
   const s = o.cote || -1, [q0, q1] = [pt(0, s * (larg / 2 + 0.04)), pt(prof, s * (larg / 2 + 0.04))];
   const RL = [Math.min(q0[0], q1[0]) - (G.a[0] ? 0.03 : 0), Math.max(q0[0], q1[0]) + (G.a[0] ? 0.03 : 0), Math.min(q0[1], q1[1]) - (G.a[1] ? 0.03 : 0), Math.max(q0[1], q1[1]) + (G.a[1] ? 0.03 : 0)];
@@ -140,6 +144,19 @@ function b1Echelle(w, B, f, key, G, yA, yB, o) {
   B.inter('b1_echelle', 'b1:' + key + ':' + (o.id || 'e') + ':haut', iu[0], iu[1], iu[2], o.labH || 'Monter à l’étage', Object.assign({ sens: 'haut', to: toH }, base));
   B.inter('b1_echelle', 'b1:' + key + ':' + (o.id || 'e') + ':bas', id[0], id[1], id[2], o.labB || 'Redescendre', Object.assign({ sens: 'bas', to: toB }, base));
   return { pied, haut, toH, toB };
+}
+// un garde-corps de bois au bord d'un trou (une lisse à 0,9 m, des poteaux) : rectangle local R, plancher à ly (relatif à f.y)
+function b1Garde(w, f, R, ly, poteaux) {
+  b1Bloc(w, f, R, ly + 0.86, ly + 0.94, M_LOGS, { plafond: true });
+  for (const [x, z] of poteaux) b1Bloc(w, f, [x - 0.04, x + 0.04, z - 0.04, z + 0.04], ly, ly + 0.86, M_LOGS, { plafond: true });
+}
+// un bloc généré, retrouvé par sa place dans le repère f (centre lx, lz ; bas à y au-dessus de f.y) et ses dimensions
+function b1Trouve(w, f, lx, lz, y, sx, sy, sz) {
+  return w.blocks.find((b) => {
+    if (b.hidden || b.under || Math.abs(b.sx - sx) > 0.03 || Math.abs(b.sy - sy) > 0.03 || Math.abs(b.sz - sz) > 0.03 || Math.abs(b.y - f.y - y) > 0.05 || Math.abs(Math.sin(b.r - f.r)) > 0.01) return false;
+    const [x, z] = b1L(f, b.x, b.z);
+    return Math.abs(x - lx) < 0.05 && Math.abs(z - lz) < 0.05;
+  });
 }
 
 // ---------------------------------------------------------------- un étage de maison : le plafond du rez-de-chaussée devient son plancher
@@ -594,6 +611,9 @@ function b1Tour(w, B, t, y0) {
     G.a = b1Geo(I, I, 'B', 0.5 * sg, 0.9, 0.85);
     plancher(6.25, G.a);
     b1Echelle(w, B, tf, t.key, G.a, 0.1, 6.25, { id: 'e1', niv: 1, ep: 0.2, cote: -sg, labH: 'Monter à l’échelle' });
+    // (le chemin de ronde passe au bord du trou : six mètres de chute ; un garde-corps de ce côté-là)
+    const R = G.a.R, xa = sg > 0 ? R[0] - 0.07 : R[1] + 0.07;
+    b1Garde(w, tf, [Math.min(xa, sg * I), Math.max(xa, sg * I), R[2] - 0.08, R[2]], 6.25, [[xa + 0.04 * sg, R[2] - 0.04], [sg > 0 ? R[1] : R[0], R[2] - 0.04]]);
   }
   // ---- le bâtiment (les règles des maisons : dedans, la porte, le crochetage, les fouilles)
   const ox = b1W(tf, porte.face === 'N' ? porte.a : -h - 1.3, porte.face === 'N' ? -h - 1.3 : porte.a), ix = b1W(tf, porte.face === 'N' ? porte.a : -I + 0.9, porte.face === 'N' ? -I + 0.9 : porte.a);
@@ -647,6 +667,79 @@ function b1MeublerTour(w, B, t, tf, y0, I) {
 }
 
 // ============================================================================
+//  LE CLOCHER : une échelle jusqu'au beffroi, sous la cloche
+//  (06-structures.js `church` : un puits de pierre de 16 m, ouvert au dos au-dessus du toit de la nef ; l'échelle de
+//  11-zzz99-activites.js y montait à 14,5 m, dans le vide. Ici : un plancher à 11,3 m et sa trappe, une baie et ses
+//  abat-sons sur chaque face, la cloche à sa poutre, sa corde jusqu'au porche. L'échelle d'avant s'arrête un mètre
+//  au-dessus du plancher ; « Monter au clocher », c'est elle ; « Regarder la vallée » se fait là-haut.)
+// ============================================================================
+function b1Clocher(w, B) {
+  const eg = w.bld.eglise, cf = eg && eg.f;
+  if (!cf) return;
+  const linteau = b1Trouve(w, cf, 0, -13.9, 3.2, 2.0, 12.8, 0.6), murs = [b1Trouve(w, cf, -2.3, -11.6, 0, 0.6, 16, 4.0), b1Trouve(w, cf, 2.3, -11.6, 0, 0.6, 16, 4.0)];
+  const ech = w.props.find((q) => q.id === 'echelle' && q.data && q.data.h > 14 && Math.hypot(...b1L(cf, q.x, q.z).map((v, i) => v - [1.9, -12.3][i])) < 0.15);
+  if (!linteau || !murs[0] || !murs[1] || !ech || !b1Trouve(w, cf, 0, -11.6, 16, 5.8, 0.4, 5.8)) return;
+  const [tx, tz] = b1W(cf, 0, -11.6), tf = { x: tx, y: cf.y, z: tz, r: cf.r };
+  const YP = 11.3, Y0 = 12.2, Y1 = 14.6, HT = 16.0;
+  // ---- une baie de 2 m sur 2,4 m sur chaque face, à 0,9 m au-dessus du plancher
+  b1Reposer(linteau, tf, [-1.0, 1.0, -2.6, -2.0], 3.2, Y0);
+  b1Bloc(w, tf, [-1.0, 1.0, -2.6, -2.0], Y1, HT, M_STONE);
+  for (const s of [-1, 1]) {
+    const X = s > 0 ? [2.0, 2.6] : [-2.6, -2.0];
+    b1Reposer(murs[s > 0 ? 1 : 0], tf, [X[0], X[1], -2.0, 2.0], 0, Y0);
+    b1Bloc(w, tf, [X[0], X[1], -2.0, -1.0], Y0, Y1, M_STONE); b1Bloc(w, tf, [X[0], X[1], 1.0, 2.0], Y0, Y1, M_STONE);
+    b1Bloc(w, tf, [X[0], X[1], -2.0, 2.0], Y1, HT, M_STONE);
+  }
+  b1Bloc(w, tf, [-2.6, 2.6, 2.0, 2.6], 7.0, Y0, M_STONE);
+  b1Bloc(w, tf, [-2.6, -1.0, 2.0, 2.6], Y0, Y1, M_STONE); b1Bloc(w, tf, [1.0, 2.6, 2.0, 2.6], Y0, Y1, M_STONE);
+  b1Bloc(w, tf, [-2.6, 2.6, 2.0, 2.6], Y1, HT, M_STONE);
+  // les abat-sons ; dans chaque baie, une grille qu'on ne voit pas (on ne tombe pas du clocher)
+  for (const [ax, az, rr] of [[0, -2.3, B1PI], [2.3, 0, B1PI2], [-2.3, 0, -B1PI2], [0, 2.3, 0]]) {
+    B.propRel(tf, 'b1_abatson', ax, Y0, az, rr, { w: 2.0, h: Y1 - Y0 });
+    b1Bloc(w, tf, Math.abs(ax) > 0.1 ? [ax - 0.08, ax + 0.08, -1.0, 1.0] : [-1.0, 1.0, az - 0.08, az + 0.08], Y0, Y1, 0, { hidden: true });
+  }
+  // ---- le plancher du beffroi, sa trappe contre le mur de l'échelle, un garde-corps autour du trou
+  const G = b1Geo(2.0, 2.0, 'R', -0.7, 1.0, 1.15);
+  const pl = b1Bloc(w, tf, [-2.0, 2.0, -2.0, 2.0], YP - 0.2, YP, M_PLANKS, { plafond: true });
+  b1Percer(w, tf, [pl], G.R);
+  ech.data = Object.assign({}, ech.data, { h: YP - (ech.y - cf.y) + 0.95 });
+  const e = b1Echelle(w, B, tf, 'eglise', G, 0.05, YP, { id: 'beffroi', ep: 0.2, echelle: false, labH: 'Monter au clocher' });
+  b1Garde(w, tf, [G.R[0] - 0.08, G.R[0], G.R[2] - 0.07, G.R[3] + 0.08], YP, [[G.R[0] - 0.04, G.R[2] - 0.02], [G.R[0] - 0.04, G.R[3] + 0.04]]);
+  b1Garde(w, tf, [G.R[0] - 0.08, 2.0, G.R[3], G.R[3] + 0.08], YP, []);
+  // ---- la cloche, sa corde (jusqu'au porche, où l'on tire), l'inscription, un nid
+  B.propRel(tf, 'b1_cloche', 0, 13.8, 0, 0, { L: 4.6 });
+  B.propRel(tf, 'b1_corde', -0.62, 0.95, -0.55, 0, { h: 15.05 - 0.95 });
+  const C = b1Ctx(w, B, { key: 'eglise', f: tf }, YP, { own: null });
+  C.I('lire', 'b1:eglise:cloche', 0.3, 2.3, 0.45, 'Lire l’inscription de la cloche', { text: ['L’inscription de la cloche', 'En lettres de bronze, tout autour de la robe :\n\n« J’APPELLE LES VIVANTS · JE PLEURE LES MORTS · JE BRISE LA FOUDRE »\n\nPlus bas : « Refondue l’an 1824. La première fut descendue en 1793 pour faire des sous. J’ai nom Marie-Jeanne. » Le nom du parrain, le vert-de-gris l’a mangé.\n\nSous la dernière ligne, quelqu’un a gravé au couteau treize petits traits.', ''] });
+  C.P('c2_nid', -1.55, 1.5, 0.6, null, 0.6);
+  C.I('b1_voir', 'b1:eglise:plumes', -1.3, 0.4, 1.2, 'Des plumes', { t: '(Des fientes, des plumes grises de pigeon. Et une plume blanche, longue comme la main, qui n’est pas d’un pigeon.)' });
+  // « Regarder la vallée » : l'interaction de 11-zzz99-activites.js monte au beffroi (mêmes x et z, l'empreinte ne bouge pas)
+  const vue = w.inter.find((i) => i.kind === 'f2a_clocher');
+  if (vue) { vue.y = tf.y + YP + 1.45; vue.name = 'Regarder la vallée'; }
+  w.b1.clocher = { tf, y: tf.y + YP, y1: tf.y + HT, trappe: G.R, toH: e.toH };
+}
+
+// ============================================================================
+//  LA TENTE DE LA DISEUSE : on y entre (11-zzz99-activites.js lui donnait une collision pleine de 2 × 2,2 m ; elle
+//  devient ses parois et la table) ; un rideau la ferme quand Mère Ysaure n'est pas là
+// ============================================================================
+function b1Tente(w, B) {
+  const q = w.props.find((p) => p.id === 'tente_diseuse');
+  if (!q || !q.blk) return;
+  const g = { x: q.x, y: q.y, z: q.z, r: q.r }, H = { hidden: true };
+  b1Reposer(q.blk, g, [-1.0, 1.0, -1.1, -0.95], 0, 2.2);
+  b1Bloc(w, g, [-1.0, -0.78, -0.95, 1.1], 0, 2.2, 0, H);
+  b1Bloc(w, g, [0.78, 1.0, -0.95, 1.1], 0, 2.2, 0, H);
+  b1Bloc(w, g, [-0.36, 0.36, 0.19, 0.58], 0, 2.2, 0, H);
+  const porte = b1Bloc(w, g, [-0.78, 0.78, 1.0, 1.1], 0, 2.2, 0, H);
+  const rideau = B.propRel(g, 'b1_rideau', 0, 0, 0, 0, { ferme: true });
+  B.paintRect(g, 0, 0.25, 1.0, 1.35, M_DIRT); // (la terre battue sous la tente et devant : l'herbe n'y pousse pas)
+  const [ix, iz] = b1W(g, 0, 0.45);
+  B.inter('b1_diseuse', 'b1:diseuse', ix, q.y + 0.95, iz, 'Se faire tirer les cartes', {});
+  w.b1.tente = { g, porte, rideau, y: porte.y, ouvert: false };
+}
+
+// ============================================================================
 //  LA GÉNÉRATION (après tout le reste, tirage propre)
 // ============================================================================
 function b1Generer(w, seed) {
@@ -680,6 +773,8 @@ function b1Generer(w, seed) {
       }
     } catch (e) { console.error('B1 : les chemins', e); }
   }
+  try { b1Clocher(w, B); } catch (e) { console.error('B1 : le clocher', e); }
+  try { b1Tente(w, B); } catch (e) { console.error('B1 : la tente de la diseuse', e); }
   w.objectsDirty = true; w.grid = null; w.blocksDirty = true; w.coverDirty = true; w.shadeDirty = true;
 }
 {
@@ -762,14 +857,74 @@ const b1 = {
         this.anim = null; game.sleeping = false; p.vel = [0, 0, 0]; this.nivT = 0;
         try { game.renderer.uploadCover(p.pos[0], p.pos[2]); } catch (e) { /* rien */ }
         if (typeof meubles !== 'undefined') meubles.cacheP = null;
+        if (A.fin) { try { A.fin(); } catch (e) { console.error('B1', e); } }
       }
     }
+  },
+
+  // ------------------------------------------------------------------ le clocher : dans le beffroi ? ouvert ? la vue
+  auClocher() {
+    const w = game.world, C = w && w.b1 && w.b1.clocher, p = game.player.pos;
+    if (!C) return false;
+    const [lx, lz] = b1L(C.tf, p[0], p[2]);
+    return Math.abs(lx) < 2.05 && Math.abs(lz) < 2.05 && p[1] > C.y - 0.6 && p[1] < C.y1;
+  },
+  // le curé ferme l'échelle la nuit, et pendant la messe (les heures de 11-zzz99-activites.js)
+  clocherOuvert(dire) {
+    const h = npcs.hour();
+    if (h < 7 || h >= 20) { if (dire) ui.subtitle('', '(Une chaîne cadenassée barre l’échelle du clocher. Le curé l’ôte au matin.)', 3.5); return false; }
+    if (typeof cal !== 'undefined' && cal.is('messe') && h >= 9.8 && h < 11.6) { if (dire) ui.subtitle('', '(Pas pendant la messe.)', 3); return false; }
+    return true;
+  },
+  // « Regarder la vallée », du beffroi : la vue de 11-zzz99-activites.js (une fois par jour), sans les cent douze marches
+  vueClocher(orig) {
+    const h = npcs.hour();
+    if (h < 7 || h >= 20) { ui.subtitle('', '(La nuit, on ne voit que les lanternes de la ville, et le noir tout autour.)', 4); return; }
+    if (typeof activites !== 'undefined' && activites.fait && activites.fait('clocher')) { ui.subtitle('', '(Les toits, la place, les champs. Vous les avez déjà regardés aujourd’hui.)', 3); return; }
+    if (typeof cine === 'undefined' || !cine.jouer) { orig(); return; }
+    const J = cine.jouer;
+    cine.jouer = function (seq, o) { cine.jouer = J; return J.call(this, (seq || []).filter((q) => !(q && /marches/.test(q.texte || ''))), o); };
+    try { orig(); } finally { cine.jouer = J; }
+  },
+
+  // ------------------------------------------------------------------ la tente de la diseuse
+  dansTente() {
+    const w = game.world, T = w && w.b1 && w.b1.tente, p = game.player.pos;
+    if (!T) return false;
+    const [lx, lz] = b1L(T.g, p[0], p[2]);
+    return Math.abs(lx) < 1.0 && lz > -1.1 && lz < 1.2 && Math.abs(p[1] - T.g.y) < 1.5;
+  },
+  // ouverte quand Mère Ysaure est là (et tant que le joueur est dedans : on ne ferme pas sur lui)
+  tente(force) {
+    const w = game.world, T = w && w.b1 && w.b1.tente;
+    if (!T || typeof activites === 'undefined' || !activites.diseusePresente) return;
+    const ouvert = !!activites.diseusePresente() || this.dansTente();
+    if (!force && ouvert === T.ouvert) return;
+    T.ouvert = ouvert;
+    T.porte.y = ouvert ? T.y - 40 : T.y;
+    T.rideau.data = Object.assign({}, T.rideau.data || {}, { ferme: !ouvert });
+    farm.dirtyProps = true;
+  },
+  // « Entrer sous la tente » : on fait les deux pas, on s'arrête devant la table, puis elle parle
+  entrerTente(fin) {
+    const T = game.world.b1.tente, p = game.player;
+    if (this.anim || game.sleeping || game.dying || p.riding || (typeof cine !== 'undefined' && cine.on)) { fin(); return; }
+    const [ax, az] = b1W(T.g, 0, 1.75), [x, z] = b1W(T.g, 0, 0.93), y = T.g.y + 0.02;
+    this.anim = {
+      t: 0, sonY: 0, i: 0, yaw0: p.yaw, pitch0: p.pitch, fin,
+      segs: [
+        { a: null, b: [ax, y, az], dur: clamp(Math.hypot(ax - p.pos[0], az - p.pos[2]) * 0.45, 0.15, 0.8), yaw: T.g.r, pitch: -0.05 },
+        { a: null, b: [x, y, z], dur: 0.7, yaw: T.g.r, pitch: -0.22 },
+      ],
+    };
+    game.sleeping = true; p.vel = [0, 0, 0];
   },
 
   // ------------------------------------------------------------------ le jour, par les fenêtres et les meurtrières : une lueur douce dans la pièce où l'on est
   lumieresJour() {
     const sk = game.sky, k = sk ? clamp(sk.day || 0, 0, 1) * (1 - 0.45 * (sk.cloudCover || 0)) : 0;
     if (k < 0.05 || game.player.underground || this.anim) return [];
+    if (this.auClocher()) { const C = game.world.b1.clocher, c = 0.5 * k; return [{ x: C.tf.x, y: C.y + 1.9, z: C.tf.z, r: 5.5, c: [c * 0.95, c, c * 1.08], d: 0.5 }]; }
     const E = this.etage(), w = game.world, B = E && w.bld[E.key];
     if (!B || !B.f || (!B.tour && !E.niv)) return [];
     const y = (E.niv ? E.N.y : B.y) + 1.9, c = (B.tour ? 0.55 : 0.5) * k, col = [c * 0.95, c, c * 1.08];
@@ -800,9 +955,12 @@ const b1 = {
   charger() {
     this.anim = null; this.nivJ = null; this.nivT = 0;
     if (!farm.s || !game.world) return;
-    this.S(); this.chandelle();
+    this.S(); this.chandelle(); this.tente(true);
     if (game._b1) return;
     game._b1 = true;
+    // (les étiquettes de 11-zzz99-activites.js sont posées à son chargement, juste avant)
+    const _et = fouilles.etiquettes.f2a_clocher;
+    fouilles.etiquettes.f2a_clocher = (it) => { const t = _et ? _et(it) : esc(it.name || ''); return t && this.auClocher() && typeof activites !== 'undefined' && activites.fait && activites.fait('clocher') ? t + ' <b>— déjà fait aujourd’hui</b>' : t; };
     // dedans, à l'étage aussi
     const _ib = game.insideBuilding.bind(game);
     game.insideBuilding = function (key) {
@@ -867,8 +1025,19 @@ const b1 = {
 }
 
 // ---------------------------------------------------------------- branchements
-HOOKS.inter.b1_echelle = (it) => b1.grimper(it);
+HOOKS.inter.b1_echelle = (it) => { const d = it.data; if (d && d.key === 'eglise' && d.sens === 'haut' && !b1.clocherOuvert(true)) return; b1.grimper(it); };
 HOOKS.interVis.b1_echelle = (it) => { const d = it.data, y = game.player.pos[1]; return d.sens === 'haut' ? y < d.haut[1] - 1.0 : y > d.haut[1] - 0.8; };
+// le clocher : la vue se prend là-haut ; la tente : on y entre, et l'on parle à la diseuse de l'intérieur
+{
+  const _cl = HOOKS.inter.f2a_clocher;
+  if (_cl) HOOKS.inter.f2a_clocher = (it) => (game.world && game.world.b1 && game.world.b1.clocher ? b1.vueClocher(() => _cl(it)) : _cl(it));
+  HOOKS.interVis.f2a_clocher = () => !(game.world && game.world.b1 && game.world.b1.clocher) || b1.auClocher();
+  const _ds = HOOKS.inter.f2a_diseuse;
+  if (_ds) HOOKS.inter.f2a_diseuse = (it) => { const T = game.world && game.world.b1 && game.world.b1.tente; if (!T || !T.ouvert || b1.dansTente()) _ds(it); else b1.entrerTente(() => _ds(it)); };
+  HOOKS.interVis.f2a_diseuse = () => !b1.dansTente();
+}
+HOOKS.inter.b1_diseuse = () => { if (typeof activites !== 'undefined' && activites.diseuse) activites.diseuse(); };
+HOOKS.interVis.b1_diseuse = () => b1.dansTente();
 HOOKS.inter.b1_voir = (it) => { if (it.data && it.data.t) ui.subtitle('', it.data.t, 4); };
 HOOKS.inter.b1_garde_meuble = () => b1.gardeMeuble();
 HOOKS.inter.b1_sept = () => {
@@ -877,8 +1046,17 @@ HOOKS.inter.b1_sept = () => {
 };
 LIT_INTERS.add('b1_sept');
 DYN_PROPS.add('b1_chandelle');
-for (const k of ['b1_echelle', 'b1_voir', 'b1_garde_meuble', 'b1_sept']) fouilles.etiquettes[k] = (it) => esc(it.name || '');
-HOOKS.update.push((dt) => { if (farm.s && game.world) { b1.update(dt); const E = b1.etage(), k = E ? E.key + ':' + E.niv : ''; if (k !== b1.nivK) { b1.nivK = k; if (typeof meubles !== 'undefined') meubles.cacheP = null; } } });
+for (const k of ['b1_voir', 'b1_garde_meuble', 'b1_sept']) fouilles.etiquettes[k] = (it) => esc(it.name || '');
+fouilles.etiquettes.b1_echelle = (it) => esc(it.name || '') + (it.data && it.data.key === 'eglise' && it.data.sens === 'haut' && !b1.clocherOuvert(false) ? ' <b>— fermé</b>' : '');
+fouilles.etiquettes.b1_diseuse = (it) => esc(it.name || '') + (typeof activites !== 'undefined' && activites.diseusePresente && !activites.diseusePresente() ? ' <b>— fermée</b>' : '');
+HOOKS.update.push((dt) => {
+  if (!farm.s || !game.world) return;
+  b1.update(dt);
+  const E = b1.etage(), k = E ? E.key + ':' + E.niv : '';
+  if (k !== b1.nivK) { b1.nivK = k; if (typeof meubles !== 'undefined') meubles.cacheP = null; }
+  b1.tenteT = (b1.tenteT || 0) - dt;
+  if (b1.tenteT <= 0) { b1.tenteT = 1; b1.tente(false); }
+});
 HOOKS.day.push(() => { if (farm.s && game.world) b1.chandelle(); });
 HOOKS.load.push(() => b1.charger());
 HOOKS.lights.push(() => (farm.s && game.world && game.world.b1 ? b1.lumieresJour() : []));

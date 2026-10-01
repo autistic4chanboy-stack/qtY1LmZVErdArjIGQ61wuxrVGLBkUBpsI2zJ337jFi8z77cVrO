@@ -7,12 +7,14 @@
 //  ne brille que la nuit), la patère et son manteau, un bol, un globe, une carte
 //  au mur, un lutrin et son registre, des rouleaux de drap, un rouet, un petit
 //  poêle et sa bouilloire, un vase de lilas secs, une paire de souliers, des
-//  jouets, un berceau.
+//  jouets, un berceau ; la cloche du clocher, sa corde, les abat-sons ; le
+//  rideau de la tente de la diseuse.
 //  L'avant de chaque modèle regarde +z ; l'origine est au sol, au centre.
 // ============================================================================
 const B1C = {
   fer: rgbf('#3e3f45'), laiton: rgbf('#b8933e'), drap: rgbf('#ddd8cc'), drapOmbre: rgbf('#c4beb0'), noir: [0.05, 0.045, 0.04],
   verre: rgbf('#9ab8b0'), lait: rgbf('#f2efe6'), soupe: rgbf('#a8783a'), lilas: rgbf('#9a80b0'), lilasSec: rgbf('#8a7a7a'),
+  bronze: rgbf('#8a7440'), bronzeClair: rgbf('#a08a50'),
 };
 // chiffres de 3 × 5 pixels (la plaque d'une chambre)
 const B1_CHIFFRES = {
@@ -221,11 +223,54 @@ Object.assign(PROP_MODELS, {
     E.bx(0, 0.3, 0, 0.44, 0.22, 0.8, rgbf('#e8e0d0'), TL.blanket);
     E.bx(0, 0.18, -0.42, 0.54, 0.62, 0.05, WHITE, TL.darkwood);
   },
+  // la cloche du clocher (l'origine : le bas de la robe) : la robe en huit pans, la frise de l'inscription, le battant,
+  // le joug et ses ferrures, la poutre du beffroi le long de x (data.L, encastrée dans les murs), la roue côté −x
+  b1_cloche(E, o) {
+    const L = (o.data && o.data.L) || 4.6, br = B1C.bronze;
+    // (un octogone en escalier : une croix et un carré, comme tout ici est fait de boîtes)
+    const oct = (y, sy, d, c, t) => { E.bx(0, y, 0, d, sy, d * 0.42, c, t); E.bx(0, y, 0, d * 0.42, sy, d, c, t); E.bx(0, y, 0, d * 0.8, sy, d * 0.8, c, t); };
+    for (const [y, sy, d] of [[0, 0.1, 0.98], [0.1, 0.16, 0.88], [0.26, 0.3, 0.74], [0.56, 0.3, 0.64], [0.86, 0.12, 0.56]]) oct(y, sy, d, br, TL.gold);
+    E.bx(0, 0.98, 0, 0.3, 0.12, 0.3, br, TL.gold);
+    oct(0.62, 0.05, 0.67, B1C.bronzeClair, TL.gold);
+    // le creux (vu d'en dessous), le battant
+    oct(-0.012, 0.01, 0.84, B1C.noir, TL.plain);
+    E.bx(0, -0.16, 0, 0.06, 0.4, 0.06, B1C.fer, TL.iron); E.bx(0, -0.26, 0, 0.15, 0.14, 0.15, B1C.fer, TL.iron);
+    E.bx(0, 1.06, 0, 0.92, 0.26, 0.34, WHITE, TL.darkwood);
+    for (const s of [-1, 1]) E.bx(s * 0.2, 0.88, 0, 0.05, 0.36, 0.36, B1C.fer, TL.iron);
+    E.bx(0, 1.32, 0, L, 0.3, 0.32, WHITE, TL.darkwood);
+    // la roue : huit jantes, deux rayons ; la corde descend de sa jante, devant (−z)
+    const rx = -0.62, cy = 1.25, R = 0.55;
+    for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; E.box(rx, cy + Math.sin(a) * R, Math.cos(a) * R, 0.05, 0.07, 0.46, WHITE, TL.wood, 0, -a - Math.PI / 2, 0); }
+    E.box(rx, cy, 0, 0.04, 2 * R, 0.05, WHITE, TL.wood); E.box(rx, cy, 0, 0.04, 0.05, 2 * R, WHITE, TL.wood);
+  },
+  // la corde de la cloche (data.h), et sa poignée de laine aux trois couleurs
+  b1_corde(E, o) {
+    const h = (o.data && o.data.h) || 10;
+    E.bx(0, 0, 0, 0.035, h, 0.035, rgbf('#b8a07a'), TL.rope);
+    E.bx(0, 0.12, 0, 0.07, 0.16, 0.07, rgbf('#a83228'), TL.wool); E.bx(0, 0.28, 0, 0.07, 0.16, 0.07, rgbf('#e8e2d4'), TL.wool); E.bx(0, 0.44, 0, 0.07, 0.16, 0.07, rgbf('#2a4a8a'), TL.wool);
+    E.bx(0, -0.04, 0, 0.06, 0.06, 0.06, rgbf('#a08a64'), TL.rope);
+  },
+  // les abat-sons d'une baie de clocher : des lames inclinées vers le dehors (+z, le bord extérieur plus bas), deux montants. data : { w, h }
+  b1_abatson(E, o) {
+    const D = o.data || {}, w = D.w || 2.0, h = D.h || 2.4, n = 6;
+    for (const s of [-1, 1]) E.bx(s * (w / 2 - 0.05), 0, 0, 0.1, h, 0.3, WHITE, TL.darkwood);
+    for (let k = 0; k < n; k++) E.box(0, 0.25 + k * (h - 0.45) / (n - 1), 0, w - 0.12, 0.035, 0.36, WHITE, TL.wood, 0, 0.6, 0);
+  },
+  // le rideau de la tente de la diseuse, tiré quand elle n'est pas là (data.ferme), et son écriteau ; les pans suivent les parois en pente
+  b1_rideau(E, o) {
+    if (!(o.data && o.data.ferme)) return;
+    const c = rgbf('#5a1a2a'), c2 = rgbf('#4e1724');
+    for (const [y0, y1, hx] of [[0, 0.8, 0.93], [0.8, 1.4, 0.68], [1.4, 2.04, 0.44]]) {
+      E.bx(-hx / 2, y0, 1.07, hx, y1 - y0, 0.03, c, TL.cloth2); E.bx(hx / 2, y0, 1.075, hx, y1 - y0, 0.03, c2, TL.cloth2);
+    }
+    E.bx(0, 1.0, 1.1, 0.38, 0.26, 0.02, rgbf('#e8dcc0'), TL.sign); E.bx(0, 1.26, 1.1, 0.02, 0.18, 0.01, rgbf('#3a2a1a'), TL.rope);
+  },
 });
 Object.assign(PROP_COLL, {
   b1_tremie: null, b1_ratelier: [0.7, 0.18, 1.6], b1_metier: [0.82, 0.62, 1.5], b1_rouet: [0.42, 0.18, 1.0], b1_plaque: null, b1_bocal: null, b1_lampe: null,
   b1_patere: null, b1_bol: null, b1_globe: [0.25, 0.25, 1.3], b1_carte_murale: null, b1_lutrin: [0.25, 0.25, 1.2], b1_rouleaux: [0.62, 0.32, 0.9],
   b1_poele: [0.27, 0.27, 0.9], b1_lilas: null, b1_souliers: null, b1_jouets: null, b1_berceau: [0.3, 0.46, 0.6], b1_chandelle: null, b1_toilette: [0.36, 0.23, 0.85], b1_dessin: null, b1_quinquet: null,
+  b1_cloche: null, b1_corde: null, b1_abatson: null, b1_rideau: null,
 });
 Object.assign(PROP_LIGHTS, { b1_lampe: { c: [1.0, 0.74, 0.42], r: 5.5, y: 0.3, night: true }, b1_quinquet: { c: [1.0, 0.78, 0.48], r: 7, y: 0.3 }, b1_chandelle: { c: [1.0, 0.7, 0.35], r: 4.5, y: 0.33, flicker: true, lit: true } });
 // (la chandelle vacille : elle est redessinée à chaque image, voir DYN_PROPS dans 11-zzzzB1-ville.js)
