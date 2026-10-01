@@ -450,8 +450,19 @@ function g1Generer(w, seed) {
         w.grid = null;
         // la guérite, au bout du pont (côté de la cabane), ouverte vers la route
         const s = Math.sign(g1L({ x: ox, z: oz, r: Math.atan2(ux, uz) }, f.x, f.z)[0]) || 1;
-        const gx = ox + ux * 1.6 + vx * s * 3.0, gz = oz + uz * 1.6 + vz * s * 3.0;
-        if (pointFree(w, gx, gz, 0.6) && w.heightAt(gx, gz) > w.waterLevel + 0.3) B.prop('g1_guerite', gx, w.heightAt(gx, gz), gz, Math.atan2(-vx * s, -vz * s));
+        // (le premier endroit sec et libre, au bout du tablier, du côté de la cabane d'abord)
+        // (hors du chemin, loin du poteau indicateur et des arbres)
+        guerite: for (const ss of [s, -s]) for (const av of [1.6, 2.6, 3.6, 4.6]) for (const lat of [3.6, 4.4, 5.2]) {
+          const gx = ox + ux * av + vx * ss * lat, gz = oz + uz * av + vz * ss * lat;
+          if (!pointFree(w, gx, gz, 0.7) || Math.abs(w.heightAt(gx, gz) - w.heightAt(ox, oz)) > 0.8) continue;
+          if (!g1Libre(w, g1Repere(gx, gz, 1, 0), [-0.7, 0.7, -0.7, 0.7])) continue;
+          if (w.props.some((q) => Math.abs(q.x - gx) < 3 && Math.abs(q.z - gz) < 3 && Math.hypot(q.x - gx, q.z - gz) < 2.6)) continue;
+          let gene = false;
+          w.query(gx, gz, 1.6, (o) => { if (!gene && o && !o.gone && Math.hypot(o.x - gx, o.z - gz) < 1.4 && OBJ_TYPES[o.t] && !OBJ_TYPES[o.t].animal) gene = true; }, null);
+          if (gene) continue;
+          B.prop('g1_guerite', gx, w.heightAt(gx, gz), gz, Math.atan2(-vx * ss, -vz * ss));
+          break guerite;
+        }
         const ext = (lx, lz) => g1W(f, lx, lz);
         const pont = [ox + ux * 2.2 - vx * s * 0.2, oz + uz * 2.2 - vz * s * 0.2];
         // la ronde de nuit : le long des douves, du côté du dehors (le nord), et sur la route
