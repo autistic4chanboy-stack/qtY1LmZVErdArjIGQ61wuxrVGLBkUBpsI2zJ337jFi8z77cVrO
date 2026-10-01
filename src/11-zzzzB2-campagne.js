@@ -990,15 +990,16 @@ const campagne = {
     const w = this.W(), J = w && w.b2jour, sky = game.sky;
     if (!J || !sky || !(sky.day > 0.05) || !w.covered(eye[0], eye[1], eye[2])) return [];
     const W = typeof weather !== 'undefined' && weather.cur ? weather.cur : {}, k0 = sky.day * (1 - 0.45 * (W.cloud || 0)) * (1 - 0.3 * (W.rain || 0));
+    // (les baies de l'étage où l'on est, les quatre plus proches : une lampe ne s'arrête pas aux planchers)
     const out = [];
     for (const q of J) {
-      if (Math.abs(q.x - eye[0]) > 12 || Math.abs(q.z - eye[2]) > 12) continue;
+      if (Math.abs(q.x - eye[0]) > 9 || Math.abs(q.z - eye[2]) > 9 || Math.abs(q.y - eye[1]) > 2.2) continue;
       const d = Math.hypot(q.x - eye[0], q.y - eye[1], q.z - eye[2]);
-      if (d > 12) continue;
+      if (d > 9) continue;
       const k = k0 * q.k;
       out.push({ x: q.x, y: q.y, z: q.z, r: 3.4, c: [0.34 * k, 0.36 * k, 0.4 * k], d });
     }
-    return out;
+    return out.length > 4 ? out.sort((a, b) => a.d - b.d).slice(0, 4) : out;
   },
   // ------------------------------------------------------------------ à chaque image : l'échelle tournante ; toutes les demi-secondes : le reste
   update(dt) {
