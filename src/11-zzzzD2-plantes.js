@@ -188,7 +188,7 @@ Object.assign(alchimie.REM, {
 }
 
 // ---------------------------------------------------------------- recettes
-defItem('lait_caille', 'Lait caillé', 'nourriture', 26, ['bol', '#f4f0e4'], { food: 16, heal: 4, desc: 'Du lait pris en une nuit, sans feu, par une feuille de grassette, comme dans le Nord. Ça se mange à la cuillère, avec un peu de miel.' });
+defItem('lait_caille', 'Lait caillé', 'nourriture', 23, ['bol', '#f4f0e4'], { food: 16, heal: 4, desc: 'Du lait pris en une nuit, sans feu, par une feuille de grassette, comme dans le Nord. Ça se mange à la cuillère, avec un peu de miel.' });
 RECIPES.push(
   { out: 'pate_guimauve', n: 2, need: { guimauve_off: 2, miel: 1, oeuf: 1 }, st: 'feu' },
   { out: 'bougie', n: 2, need: { jonc: 3, cire: 1 }, st: null },

@@ -157,7 +157,7 @@ const D2_PLANTES = [
     desc: 'L’œnanthe safranée, la pensacre, le persil des marais : la plus mortelle des herbes d’ici. Ses racines ressemblent à des navets ; les vaches en meurent, les enfants aussi. Ceux qui en mangent meurent le visage tordu, comme s’ils riaient.',
     note: 'Au bord des fossés et des mares, les pieds dans l’eau. Une seule racine suffit.', ess: { mort: 3, eau: 1, esprit: 1 } },
   { o: 'narthecie', nom: 'Narthécie des marais', it: 'narthecie', un: 'Narthécie', h: [0.2, 0.32], n: [1, 1], hab: ['marais'], r: 2, mil: 'marais', pl: 'sol',
-    fx: { heal: -2 }, ic: ['c2_lavande', '#f0c020', '#c06020'], cat: 'Fleurs',
+    fx: { heal: -2, poison: true }, ic: ['c2_lavande', '#f0c020', '#c06020'], cat: 'Fleurs',
     look: ['Épis d’étoiles jaunes sur des feuilles en éventail', 'Des feuilles en éventail comme un petit iris, et des épis de fleurs jaunes en étoile, aux étamines laineuses. Plus tard, toute la plante devient orange, couleur de rouille.'],
     desc: 'La narthécie, le brise-os, l’ossifrage : les bergers disent que les brebis qui en mangent ont les os qui cassent comme du verre. Dans le Nord, les femmes s’en teignaient les cheveux, faute de safran.',
     note: 'Dans les tourbières et les landes mouillées, sur la sphaigne.', ess: { lumiere: 2, mort: 1, froid: 1 } },
@@ -218,7 +218,7 @@ const D2_PLANTES = [
     note: 'Dans l’eau claire et peu profonde, sur le sable du bord, en de très rares endroits.', ess: { air: 2, eau: 1, esprit: 1 } },
 ];
 // les objets en plus : la pâte de guimauve (11-zzzzD2 : sa recette)
-defItem('pate_guimauve', 'Pâte de guimauve', 'nourriture', 9, ['d2_pate', '#f4ece0', '#e0c8b8'], { food: 6, heal: 4, desc: 'Une pâte blanche et tendre, au miel, poudrée d’amidon, comme en vendent les apothicaires. Elle adoucit la gorge.' });
+defItem('pate_guimauve', 'Pâte de guimauve', 'nourriture', 8, ['d2_pate', '#f4ece0', '#e0c8b8'], { food: 6, heal: 4, desc: 'Une pâte blanche et tendre, au miel, poudrée d’amidon, comme en vendent les apothicaires. Elle adoucit la gorge.' });
 {
   for (const P of D2_PLANTES) {
     if (!ITEMS[P.it]) defItem(P.it, P.un, 'cueillette', P.prix || D2_PRIX[P.r] || 1, P.ic, Object.assign({ desc: P.desc }, P.fx));
