@@ -10,14 +10,15 @@
 //    trouve en fouillant (bocaux, apothicaire, malles de curé, caves).
 //  - Quelques conduites : la sève de la berce brûle au soleil (des cloques,
 //    plus tard) ; la carline se ferme quand il pleut ; l'ail victorial endurcit
-//    un peu ; et la lunaire… (voir plus bas).
+//    un peu ; la racine d'auricule ôte le vertige (les chutes portent moins) ;
+//    la nuit, près d'un homme-pendu, un murmure ; et la lunaire… (plus bas).
 //  - LE PEUPLEMENT : une passe de génération après toutes les autres (son
 //    propre tirage), dans les cinq milieux : les prés (talus, prés humides,
 //    pelouses sèches, carrefours des calvaires), la ferme (autour des fermes, des
 //    hameaux, du moulin, de la bergerie ; les champs ; les décombres), la ville
 //    (au pied des murs, dans les jardins, contre l'église), la lande, les
 //    hauteurs (alpages, rochers, bord des neiges, crêtes, chalets d'estive).
-//  État : farm.s.d1 = { v, lunaires, brulures }
+//  État : farm.s.d1 = { v, lunaires, brulures, pendu (la dernière nuit du murmure) }
 //  API : d1plantes (peupler(w, seed), fermer(bool), S())
 // ============================================================================
 
@@ -35,6 +36,8 @@ Object.assign(EFFETS, {
   d1_armure: { dur: [150, 300], fx(A, fx, tint) { teinte(tint, [0.55, 0.5, 0.42], 0.025); } },
   // la sève de la berce, au soleil : les cloques viennent plus tard
   d1_brulure: { instant: true, debut: ['(Des cloques rouges sont venues sur vos mains, là où la sève de la berce a coulé au soleil.)'], start() { const p = game.player; p.hp = Math.max(1, p.hp - 3); } },
+  // la racine d'auricule, contre le vertige des chasseurs de chamois : les chutes portent un peu moins (corps.chute)
+  d1_piedsur: { dur: [150, 260] },
 });
 
 // ---------------------------------------------------------------- ce que fait chaque plante, crue ou cuite
@@ -91,7 +94,7 @@ Object.assign(ALIMENTS_EFFETS, {
   dryade: { r: [['calme', 0.4, 10, 40], ['chaleur', 0.2, 5, 20]] },
   carline: { r: [['vigueur', 0.15, 10, 40]] },
   trolle: { c: 'le trolle', r: [['pique', 0.9, 0, 0], ['nausee', 0.45, 20, 90], ['coliques', 0.25, 60, 180]] },
-  auricule: { r: [['sangfroid', 0.6, 5, 20, 1, 120, 240], ['calme', 0.3, 10, 40]] },
+  auricule: { r: [['sangfroid', 0.6, 5, 20, 1, 120, 240], ['d1_piedsur', 0.7, 5, 20, 1, 150, 260], ['calme', 0.3, 10, 40]] },
   renoncule_glaciers: { c: 'la renoncule des glaciers', r: [['pique', 0.85, 0, 0], ['nausee', 0.3, 20, 90], ['sangfroid', 0.3, 5, 20]] },
   ail_victorial: { r: [['d1_armure', 0.85, 0, 10, 1, 150, 300], ['chaleur', 0.2, 5, 20]] },
   nard_celtique: { r: [['calme', 0.8, 5, 20, 2], ['somnolence', 0.35, 30, 90], ['reve', 0.3, 30, 90, 1, 150, 300]] },
@@ -102,13 +105,18 @@ Object.assign(ALIMENTS_EFFETS, {
   eau_genievre: { c: 'un genièvre frelaté', r: [['chaleur', 0.4, 5, 20], ['vue_trouble', 0.04, 15, 40]] },
   liqueur_veratre: { c: 'une liqueur de vérâtre', r: [['ivresse', 1, 0, 5, 2], ['vomir', 0.9, 20, 90, 2], ['poison', 0.85, 30, 120, 2], ['vue_trouble', 0.5, 20, 60], ['paralysie', 0.2, 40, 120, 1, 5, 9]] },
 });
-// l'ail victorial endurcit : un coup sur cinq porte moins (les coups, les chutes, les morsures)
+// l'ail victorial endurcit : les coups portent un cinquième de moins (les coups, les chutes, les morsures)
 {
   const _hurt = play.hurt;
   play.hurt = function (dmg, src, cause) {
     if (dmg > 0 && typeof effets !== 'undefined' && effets.actif('d1_armure')) dmg *= 0.8;
     return _hurt.call(this, dmg, src, cause);
   };
+}
+// l'auricule : on tombe comme si l'on tombait d'un peu moins haut
+if (typeof corps !== 'undefined' && corps.chute) {
+  const _chute = corps.chute.bind(corps);
+  corps.chute = function (v) { return _chute(v > 0 && typeof effets !== 'undefined' && effets.actif('d1_piedsur') ? v * 0.9 : v); };
 }
 
 // ---------------------------------------------------------------- ce que dit l'alchimiste quand on les lui montre
@@ -171,6 +179,13 @@ Object.assign(alchimie.REM, {
   ajoute('maire', ['oeillet_superbe', 'adonis', 'auricule', 'renoncule_glaciers', 'nard_celtique']);
   ajoute('estive_baile', ['gentiane_jaune', 'dryade', 'carline']);
   ajoute('estive_fromagere', ['rumex_alpin', 'gaillet_jaune', 'bon_henri']);
+  // ce qu'ils aiment qu'on leur montre ou qu'on leur offre (l'amitié)
+  const aime = (id, cle, L) => { const d = NPC_DATA.find((x) => x.id === id); if (!d) return; d[cle] = d[cle] || []; for (const k of L) if (ITEMS[k] && !d[cle].includes(k)) d[cle].push(k); };
+  aime('alchimiste', 'loves', ['botryche', 'nard_celtique']);
+  aime('alchimiste', 'likes', ['homme_pendu', 'orobanche', 'renoncule_glaciers', 'adonis', 'ceterach']);
+  aime('guerisseuse', 'likes', ['melisse', 'bourrache', 'ophioglosse', 'eau_melisse']);
+  aime('estive_fromagere', 'likes', ['gaillet_jaune']);
+  aime('estive_baile', 'likes', ['gentiane_jaune']);
 }
 
 // ---------------------------------------------------------------- les groupes « au choix » ; recettes, alambic, tonneau
@@ -452,7 +467,7 @@ if (typeof crochetage !== 'undefined') {
         farm.take('botryche', 1);
         const D = d1plantes.S(); D.lunaires = (D.lunaires || 0) + 1;
         setTimeout(() => sound.lock && sound.lock(false), 400);
-        if (D.lunaires === 1) setTimeout(() => ui.subtitle('', '(La serrure a cédé d’elle-même. Dans votre main, la lunaire s’est fanée.)', 4), 900);
+        if (D.lunaires === 1) setTimeout(() => ui.subtitle('', '(La serrure a cédé d’elle-même. Dans votre main, la petite plante s’est fanée.)', 4), 900);
         return Promise.resolve(true);
       }
     }
@@ -470,6 +485,33 @@ HOOKS.update.push((dt, eye, basis, sky, playing) => {
   if (!w || !w.d1 || !w.d1.carl.length) return;
   const cur = weather.cur || {}, f = (cur.rain || 0) > 0.06 || (cur.fog || 0) > 0.55 || (cur.storm || 0) > 0.2;
   if (f !== d1plantes.ferme) d1plantes.fermer(f);
+});
+// la nuit, près d'un homme-pendu : une fois par nuit, un murmure (rien d'autre)
+HOOKS.update.push((dt, eye, basis, sky, playing) => {
+  if (!playing || !farm.s || game.dying) return;
+  d1plantes.penduT = (d1plantes.penduT || 0) - dt;
+  if (d1plantes.penduT > 0) return;
+  d1plantes.penduT = 0.9;
+  const w = game.world, p = game.player, ti = OBJ_INDEX.homme_pendu;
+  if (!w || !w.d1 || ti === undefined || p.underground || !w.objectsGrid || (typeof mondes !== 'undefined' && mondes.cur)) return;
+  const h = (w.time * 24) % 24;
+  if (h < 22 && h >= 4) return;
+  const D = d1plantes.S(), nuit = h >= 22 ? farm.s.day : farm.s.day - 1;
+  if (D.pendu === nuit) return;
+  const G = w.objectsGrid(), gx = clamp(Math.floor(p.pos[0] / G.C), 0, G.gw - 1), gz = clamp(Math.floor(p.pos[2] / G.C), 0, G.gw - 1);
+  for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+    const c = G.cells[clamp(gz + dz, 0, G.gw - 1) * G.gw + clamp(gx + dx, 0, G.gw - 1)];
+    if (c) for (const i of c) {
+      const o = w.objects[i];
+      if (!o || o.t !== ti || o.gone) continue;
+      const ddx = o.x - p.pos[0], ddz = o.z - p.pos[2], d = Math.hypot(ddx, ddz);
+      if (d > 4.5) continue;
+      D.pendu = nuit;
+      const pan = d > 0.1 ? clamp((ddx * Math.cos(p.yaw) - ddz * Math.sin(p.yaw)) / d, -1, 1) : 0;
+      setTimeout(() => sound.whisper && sound.whisper(pan, 0.13), 600 + Math.random() * 1500);
+      return;
+    }
+  }
 });
 // au chargement d'une partie : l'état, et les carlines ouvertes (le monde vient d'être régénéré)
 HOOKS.load.push(() => { d1plantes.S(); d1plantes.ferme = false; d1plantes.carlT = 1; });
