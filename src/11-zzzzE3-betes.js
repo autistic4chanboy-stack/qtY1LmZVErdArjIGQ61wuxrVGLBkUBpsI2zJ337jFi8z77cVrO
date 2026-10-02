@@ -444,12 +444,12 @@ const E3_COMPORTE = {
     if (male && e.fier === undefined) e.fier = Math.random() < 0.33;
     if (male && e.fier && !e.calmeT && c.alive && !c.inside && e.state !== 'flee') {
       const d = e.dist;
-      if (d < 16) {
+      if (d < e.cfg.flee) {
         e.state = 'idle'; e.timer = 2; e.move = lerp(e.move || 0, 0, Math.min(1, dt * 6));
         e.heading = turnToward(e.heading, Math.atan2(c.px - e.x, c.pz - e.z), dt * 2.5);
         e.grazeT = d < 9 ? 1.1 : 0; e.lookY = 0;
         e.raireT = (e.raireT ?? 0) - dt;
-        if (e.raireT <= 0) { e.raireT = 3 + Math.random() * 3; e3Cri(e, 'raire', c, 70, d < 9 ? 1.2 : 0.8); }
+        if (e.raireT <= 0 && d < 18) { e.raireT = 3 + Math.random() * 3; e3Cri(e, 'raire', c, 70, d < 9 ? 1.2 : 0.8); }
         e.proche = d < 6 ? (e.proche || 0) + dt * (c.crouch ? 0.5 : 1) : Math.max(0, (e.proche || 0) - dt);
         if (e.proche > 2.2 || (c.sprint && d < 7)) { e.proche = 0; if (Math.random() < 0.7) e.charge = { t: 0 }; else { e.calmeT = 60; entities.startFlee(e, c.px, c.pz); } }
         return true;

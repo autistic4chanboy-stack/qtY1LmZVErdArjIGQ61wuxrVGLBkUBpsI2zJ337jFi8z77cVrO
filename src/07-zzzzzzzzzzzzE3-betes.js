@@ -39,7 +39,7 @@ function e3LongBec(o) {
   // la tête rayée : deux bandes sombres sur le dessus
   for (const s of [-1, 1]) u.push(e3B('raie' + s, 'head', [s * h[0] * 0.22, h[1] * 0.98, h[2] * 0.2], [h[0] * 0.2, 0.008, h[2] * 0.9], o.raie || '#2a1e14'));
   // le dos barré
-  for (let k = 0; k < 3; k++) u.push(e3B('barre' + k, 'body', [0, b[1] / 2 + 0.002, b[2] * (0.25 - k * 0.22)], [b[0] * 0.9, 0.006, b[2] * 0.08], o.barre || '#3a2a1a'));
+  for (let k = 0; k < 3; k++) u.push(e3B('barre' + k, 'body', [0, b[1] / 2 - 0.001, b[2] * (0.25 - k * 0.22)], [b[0] * 1.01, 0.004, b[2] * 0.07], o.barre || '#3a2a1a'));
   for (const q of o.plus || []) u.push(q);
   return rigPlus(r, u);
 }
@@ -155,7 +155,7 @@ Object.assign(ANIMAL_RIGS, {
   ] }),
   // la bécasse : feuille morte, le bec long et droit
   e3_becasse: () => e3LongBec({ col: '#8a6a48', body: [0.14, 0.12, 0.2], head: [0.07, 0.07, 0.075], headCol: '#9a7a52', beak: [0.012, 0.012, 0.085], beakCol: '#8a7058', tail: [0.07, 0.014, 0.06],
-    wingCol: '#7a5a3a', leg: [0.015, 0.045], legCol: '#b8a090', raie: '#2e2016', barre: '#3a2a1a', plus: [e3B('dessous', 'body', [0, -0.03, 0.02], [0.13, 0.05, 0.15], '#c8aa80', TL.stripes)] }),
+    wingCol: '#7a5a3a', leg: [0.015, 0.045], legCol: '#b8a090', raie: '#2e2016', barre: '#5e4630', plus: [e3B('dessous', 'body', [0, -0.03, 0.02], [0.13, 0.05, 0.15], '#c8aa80', TL.stripes)] }),
   // la cigogne noire : la cigogne des clochers, en noir ; le ventre blanc
   e3_cigogne_noire: () => {
     const r = scaleRig(ANIMAL_RIGS.stork(), 0.92), N = rgbf('#1c2420');
