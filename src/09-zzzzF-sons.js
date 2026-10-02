@@ -116,12 +116,23 @@ Object.assign(SoundEngine.prototype, {
     o = o || {};
     const t0 = this.at(0.03 + (o.delai || 0)), spb = 60 / (o.bpm || 120), out = this._hfOut(o.bus === 'amb' ? this.amb : o.bus === 'voix' ? this.voix : this.sfx), v = o.vol || 0.05;
     const jeu = this['_hf_' + (o.timbre || 'violon')] || this._hf_violon;
+    // les notes, à leur heure ; on n'en programme que trois secondes d'avance (peu de nœuds vivants à la fois), le reste
+    // par une minuterie toutes les deux secondes (d'un coup, pour un rendu hors ligne)
+    const N = [];
     let t = t0;
     for (const [m, d] of notes) {
       const du = d * spb;
-      if (m !== null && m !== undefined) jeu.call(this, t, 440 * Math.pow(2, (m - 69) / 12), du, v, out, o);
+      if (m !== null && m !== undefined) N.push([t, 440 * Math.pow(2, (m - 69) / 12), du]);
       t += du;
     }
+    let i = 0;
+    const lot = () => {
+      if (!this.ctx) return;
+      const lim = this.offline ? Infinity : this.ctx.currentTime + 3;
+      for (; i < N.length && N[i][0] < lim; i++) jeu.call(this, N[i][0], N[i][1], N[i][2], v, out, o);
+      if (i < N.length) setTimeout(lot, 2000);
+    };
+    lot();
     // le bourdon de la vielle (deux cordes graves tenues), le chien qui grince en rythme
     if (o.bourdon) for (const m of o.bourdon) this.cri(t0, { type: 'sawtooth', dur: t - t0 + 0.2, f: [[0, 440 * Math.pow(2, (m - 69) / 12)], [1, 440 * Math.pow(2, (m - 69) / 12)]], form: [[600, 2, 1], [1500, 4, 0.5], [3000, 6, 0.2]], vol: v * 0.35, lp: 3500, a: 0.15, r: 0.25, sus: 1 }, out);
     if (o.chien) for (let tt = t0; tt < t; tt += spb) this.noiseHit(tt, 0.05, 'bandpass', 1800, 2, v * 0.25, out);
