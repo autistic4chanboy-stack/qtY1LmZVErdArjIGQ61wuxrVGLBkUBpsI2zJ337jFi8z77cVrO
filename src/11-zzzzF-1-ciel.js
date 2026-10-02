@@ -29,31 +29,58 @@ function hfCercle(A, th, n, fn, phi0, phi1) {
 }
 // une particule fixe du ciel (lumineuse, transparente) à R pas dans la direction d
 function hfEtoile(cam, d, R, col, size, life) { particles.spawn(cam[0] + d[0] * R, cam[1] + d[1] * R, cam[2] + d[2] * R, 0, 0, 0, col, size, life, 0, true); }
-// un arc-en-ciel autour du point antisolaire (k : intensité ; double : l'arc secondaire)
-const HF_ARC = [[42.3, [1.0, 0.25, 0.2]], [41.7, [1.0, 0.6, 0.18]], [41.1, [1.0, 0.95, 0.3]], [40.5, [0.35, 1.0, 0.35]], [39.9, [0.3, 0.55, 1.0]], [39.4, [0.55, 0.3, 0.95]]];
+// un arc-en-ciel autour du point antisolaire (k : intensité ; double : l'arc secondaire). Seule la partie au-dessus de
+// l'horizon est semée (une quarantaine de taches par bande, qui se recouvrent) ; quatre bandes, renouvelées par moitié
+const HF_ARC = [[42.1, [1.0, 0.28, 0.22]], [41.2, [1.0, 0.85, 0.3]], [40.3, [0.35, 1.0, 0.4]], [39.5, [0.4, 0.45, 1.0]]];
 function hfArc(cam, sunDir, k, double, dt, E) {
   E.arcT = (E.arcT || 0) - dt;
   if (E.arcT > 0 || k < 0.02) return;
-  E.arcT = 0.45;
+  E.arcT = 0.4;
   const A = v3.norm([-sunDir[0], -sunDir[1], -sunDir[2]]), R = 88;
-  for (const [deg, c] of HF_ARC) hfCercle(A, deg * Math.PI / 180, 30, (d) => { if (d[1] > 0.005) hfEtoile(cam, d, R, [c[0], c[1], c[2], 0.16 * k], 2.3, 1.35); });
-  if (double) for (const [deg, c] of HF_ARC) hfCercle(A, (93.5 - deg) * Math.PI / 180 + 0.0, 22, (d) => { if (d[1] > 0.005) hfEtoile(cam, d, R, [c[0], c[1], c[2], 0.06 * k], 2.6, 1.35); });
+  // la portion visible du cercle (hauteur > 0) : on la cherche une fois par tirage
+  const vis = [];
+  hfCercle(A, 41 * Math.PI / 180, 90, (d, ph) => { if (d[1] > 0.004) vis.push(ph); });
+  if (!vis.length) return;
+  const p0 = Math.min(...vis), p1 = Math.max(...vis), plein = p1 - p0 > 6;
+  const sem = (deg, n, col, a, sz) => hfCercle(A, deg * Math.PI / 180, n, (d) => { if (d[1] > 0.004) hfEtoile(cam, d, R, [col[0], col[1], col[2], a], sz, 1.0); }, plein ? 0 : p0, plein ? TAU : p1);
+  for (const [deg, c] of HF_ARC) sem(deg, 30, c, 0.18 * k, 3.4);
+  if (double) for (const [deg, c] of HF_ARC) sem(92 - deg, 22, c, 0.06 * k, 3.6);
+}
+// le ciel s'ouvre : le soleil perce, les nuages s'éclaircissent (k : 0..1)
+function hfEclaircie(sky, k) {
+  if (k <= 0.01) return;
+  const w = game.world, wc = weather.cur;
+  const R = computeSky(w.time, settings.viewDist, { cloud: 0.3, rain: wc.rain * 0.4, storm: 0, fog: 0, frost: 0, heat: 0 });
+  for (const f of ['sunCol', 'zen', 'hor', 'amb', 'haze', 'glow', 'cloudLit', 'cloudDark']) sky[f] = v3.lerp(sky[f], R[f], k);
+  for (const f of ['sunVis', 'shadowK', 'cloudCover']) sky[f] = lerp(sky[f], R[f], k);
+  sky.fog = [lerp(sky.fog[0], R.fog[0], k), lerp(sky.fog[1], R.fog[1], k)];
+  sky.sunCol = v3.scale(sky.sunCol, 1 + 0.15 * k);
 }
 const hfDehorsVrai = () => { const p = game.player; return !p.underground && !hfAilleurs() && !game.world.covered(...p.eyePos()); };
+// la fin d'une averse entre 15 h et 17 h 40 (ou entre 7 h et 8 h 30) : l'heure, ou null
+function hfFinAverse(P) {
+  const L = P.plan;
+  for (let i = 0; i + 1 < L.length; i++) {
+    const h = L[i + 1][0], mouille = (x) => x === 'rain' || x === 'storm';
+    if (mouille(L[i][1]) && !mouille(L[i + 1][1]) && L[i + 1][1] !== 'fog' && ((h >= 15 && h <= 17.6) || (h >= 7 && h <= 8.5))) return h;
+  }
+  return null;
+}
 
 // ---------------------------------------------------------------- 1. l'arc-en-ciel double, après l'averse
 hfDef('arc_en_ciel', {
-  cat: 'ciel', poids: 1.2, ecart: 6, public: true, duree: 1.1, fenetre: 1.2,
-  // une averse qui finit l'après-midi, le soleil encore haut (avant 17 h)
-  peut: (c) => { const L = c.P.plan; for (let i = 0; i + 1 < L.length; i++) if ((L[i][1] === 'rain' || L[i][1] === 'storm') && L[i + 1][0] >= 10 && L[i + 1][0] <= 16.6 && L[i + 1][1] !== 'rain' && L[i + 1][1] !== 'storm') return true; return false; },
-  heure: (c) => { const L = c.P.plan; for (let i = 0; i + 1 < L.length; i++) if ((L[i][1] === 'rain' || L[i][1] === 'storm') && L[i + 1][0] >= 10 && L[i + 1][0] <= 16.6 && L[i + 1][1] !== 'rain' && L[i + 1][1] !== 'storm') return L[i + 1][0] + 0.15; return null; },
-  pret: (X) => X.dehors && game.sky && game.sky.e > 0.12,
+  cat: 'ciel', poids: 1.6, ecart: 6, public: true, duree: 1.1, fenetre: 1,
+  // une averse qui finit en fin d'après-midi : le soleil assez bas (moins de 42°) pour que l'arc soit au-dessus de l'horizon
+  peut: (c) => hfFinAverse(c.P) !== null,
+  heure: (c) => { const h = hfFinAverse(c.P); return h === null ? null : h + 0.1; },
+  pret: (X) => X.dehors && game.sky && game.sky.e > 0.08 && game.sky.e < 0.62,
   sansNous: () => true,
   lancer(E) { E.double = Math.random() < 0.6; E.vuT = 0; },
+  ciel(E, sky) { hfEclaircie(sky, hfK(E, 0.1, 0.3) * 0.8); },
   maj(E, dt, eye) {
     const sky = game.sky;
     if (!sky || game.player.underground) return;
-    const k = hfK(E, 0.15, 0.35) * smoothstep(0.05, 0.15, sky.e) * (1 - weather.cur.rain * 0.8);
+    const k = hfK(E, 0.12, 0.35) * smoothstep(0.03, 0.1, sky.e) * (1 - weather.cur.rain * 0.8);
     hfArc(eye, sky.sunDir, k, E.double, dt, E);
     // le regarder : le sommet de l'arc, à l'opposé du soleil
     if (!E.note && k > 0.4 && hfDehorsVrai()) {
@@ -87,8 +114,8 @@ hfDef('halo_lune', {
     if (E.anT <= 0 && k > 0.02) {
       E.anT = 0.5;
       const M = sky.moonDir;
-      hfCercle(M, 22 * Math.PI / 180, 54, (d) => hfEtoile(eye, d, 86, [0.82, 0.86, 0.95, 0.09 * k], 2.1, 1.5));
-      hfCercle(M, 21.4 * Math.PI / 180, 30, (d) => hfEtoile(eye, d, 86, [0.95, 0.55, 0.45, 0.05 * k], 1.7, 1.5));
+      hfCercle(M, 22 * Math.PI / 180, 80, (d) => hfEtoile(eye, d, 86, [0.85, 0.88, 0.98, 0.12 * k], 2.8, 1.2));
+      hfCercle(M, 21.2 * Math.PI / 180, 40, (d) => hfEtoile(eye, d, 86, [0.95, 0.6, 0.5, 0.08 * k], 2.2, 1.2));
     }
     if (!E.note && k > 0.4 && hfDehorsVrai()) {
       const M = sky.moonDir;
@@ -121,11 +148,11 @@ hfDef('parhelie', {
         const c = Math.cos(el), d0 = (a, e) => [Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e)];
         void c;
         // le faux soleil : rouge du côté du vrai, blanc au-dehors, une traîne pâle
-        for (let i = 0; i < 4; i++) hfEtoile(eye, d0(az + s * (dA + i * 0.006), el + (Math.random() - 0.5) * 0.01), 86, i === 0 ? [1, 0.45, 0.3, 0.32 * k] : [1.1, 1.05, 0.95, 0.4 * k], 2.4 - i * 0.3, 1);
-        for (let i = 1; i < 6; i++) hfEtoile(eye, d0(az + s * (dA + 0.03 + i * 0.035), el), 86, [1, 1, 1, 0.05 * k * (1 - i / 7)], 1.6, 1);
+        for (let i = 0; i < 4; i++) hfEtoile(eye, d0(az + s * (dA + i * 0.006), el + (Math.random() - 0.5) * 0.01), 86, i === 0 ? [1, 0.5, 0.3, 0.55 * k] : [1.15, 1.1, 1.0, 0.7 * k], 3.2 - i * 0.4, 0.8);
+        for (let i = 1; i < 6; i++) hfEtoile(eye, d0(az + s * (dA + 0.03 + i * 0.035), el), 86, [1, 1, 1, 0.12 * k * (1 - i / 7)], 2.2, 0.8);
       }
       // l'anneau, à peine
-      hfCercle(S, 22 * Math.PI / 180, 26, (d) => { if (d[1] > 0) hfEtoile(eye, d, 86, [1, 0.95, 0.9, 0.04 * k], 1.6, 1); });
+      hfCercle(S, 22 * Math.PI / 180, 44, (d) => { if (d[1] > 0) hfEtoile(eye, d, 86, [1, 0.95, 0.9, 0.07 * k], 2.4, 0.8); });
     }
     if (!E.note && k > 0.4 && hfDehorsVrai() && hfRegarde(eye[0] + sky.sunDir[0] * 50, eye[1] + sky.sunDir[1] * 50, eye[2] + sky.sunDir[2] * 50, 0.82)) {
       E.vuT += dt;
@@ -155,14 +182,15 @@ hfDef('eclairs_chaleur', {
       E.fl = 0.6 + Math.random() * 0.4; E.n++;
       // la lueur, basse sur l'horizon, dans les nuages lointains
       const a = E.az + (Math.random() - 0.5) * 0.7;
-      for (let i = 0; i < 7; i++) { const d = [Math.sin(a + (Math.random() - 0.5) * 0.25), 0.03 + Math.random() * 0.1, Math.cos(a + (Math.random() - 0.5) * 0.25)]; hfEtoile(eye, v3.norm(d), 92, [0.85, 0.82, 1, 0.22 * E.fl], 9 + Math.random() * 7, 0.18); }
+      for (let i = 0; i < 26; i++) { const b = a + (Math.random() - 0.5) * 0.5, d = [Math.sin(b), 0.02 + Math.random() * 0.09, Math.cos(b)]; hfEtoile(eye, v3.norm(d), 92, [0.8, 0.78, 1, 0.1 * E.fl], 2.5 + Math.random() * 2.5, 0.16); }
       if (E.n === 2 && hfDehorsVrai()) { hasardF.noter(E); hfPense('(Des éclairs, au loin. Pas un bruit.)', 3.5); }
     }
   },
   ciel(E, sky) {
     if (E.fl <= 0) return;
-    const f = E.fl * 0.12 * sky.night;
-    sky.hor = v3.add(sky.hor, [f * 0.8, f * 0.75, f]); sky.haze = v3.add(sky.haze, [f * 0.5, f * 0.5, f * 0.6]); sky.amb = v3.add(sky.amb, [f * 0.15, f * 0.15, f * 0.2]);
+    const f = E.fl * 0.14 * sky.night;
+    sky.hor = v3.add(sky.hor, [f * 0.8, f * 0.75, f]); sky.haze = v3.add(sky.haze, [f * 0.5, f * 0.5, f * 0.6]); sky.amb = v3.add(sky.amb, [f * 0.1, f * 0.1, f * 0.14]);
+    sky.cloudLit = v3.add(sky.cloudLit, [f * 2.2, f * 2.1, f * 2.6]); sky.cloudDark = v3.add(sky.cloudDark, [f * 1.2, f * 1.1, f * 1.5]);
   },
   txt: {
     journal: 'Un soir lourd, des éclairs au loin, sans le moindre tonnerre.',
@@ -196,6 +224,7 @@ hfDef('foudre_boule', {
     const v = 0.9 + Math.sin(E.t0 * 0.5) * 0.4;
     E.x += Math.sin(E.dir) * v * dt; E.z += Math.cos(E.dir) * v * dt;
     E.y = lerp(E.y, w.groundAt(E.x, E.z, E.y, 1.5) + 1.3 + Math.sin(E.t0 * 1.3) * 0.25, Math.min(1, dt * 1.5));
+    if (Math.random() < dt * 10) particles.spawn(E.x, E.y, E.z, 0, 0, 0, [0.75, 0.8, 1.3, 0.3], 0.5 + Math.random() * 0.25, 0.2, 0, true);
     if (Math.random() < dt * 14) particles.spawn(E.x + (Math.random() - 0.5) * 0.2, E.y + (Math.random() - 0.5) * 0.2, E.z + (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.8, (Math.random() - 0.5) * 0.8, (Math.random() - 0.5) * 0.8, [0.8, 0.85, 1.4, 0.8], 0.04, 0.3, 0, true);
     E.sonT -= dt;
     if (E.sonT <= 0) { E.sonT = 0.9 + Math.random() * 0.5; hfSon([E.x, E.y, E.z], () => sound.hfGresille && sound.hfGresille(0.7)); }
@@ -239,11 +268,18 @@ hfDef('rayon_vert', {
     const sky = game.sky;
     if (!sky) return;
     // le dernier éclat du soleil, quand il touche l'horizon : vert, deux ou trois secondes
-    if (E.ph === 0 && sky.e < 0.011) { E.ph = 1; E.flashT = 2.6; }
+    E.voitT = (E.voitT || 0) - dt;
+    if (E.ph === 0 && E.voitT <= 0) {
+      E.voitT = 0.15;
+      // le haut du soleil touche ce qui borne la vue : la ligne de l'eau, ou la rive d'en face
+      const S = sky.sunDir, haut = v3.norm([S[0], S[1] + 0.012, S[2]]), w = game.world;
+      const h = w.raycastTerrain(eye, haut, 500);
+      if (sky.e < 0.006 || h) { E.ph = 1; E.flashT = 2.6; E.R = h ? Math.max(20, Math.min(88, h.t ? h.t * 0.92 : 88)) : 88; E.dirF = haut; }
+    }
     if (E.ph === 1) {
       E.flashT -= dt;
-      const S = sky.sunDir, az = hfAz(S);
-      if (Math.random() < dt * 30) hfEtoile(eye, v3.norm([Math.sin(az + (Math.random() - 0.5) * 0.02), 0.004 + Math.random() * 0.006, Math.cos(az + (Math.random() - 0.5) * 0.02)]), 88, [0.3, 1.4, 0.55, 0.7], 1.4, 0.5);
+      const S = E.dirF || sky.sunDir, az = hfAz(S), el = hfEl(S), R = E.R || 88, sz = R / 88;
+      if (Math.random() < dt * 40) for (let i = -2; i <= 2; i++) hfEtoile(eye, [Math.sin(az + i * 0.0045) * Math.cos(el), Math.sin(el - 0.004 + Math.random() * 0.002), Math.cos(az + i * 0.0045) * Math.cos(el)], R, [0.25, 1.5, 0.6, 0.55 - Math.abs(i) * 0.12], 0.55 * sz, 0.25);
       if (!E.note && hfRegarde(eye[0] + S[0] * 60, eye[1] + S[1] * 60, eye[2] + S[2] * 60, 0.9)) { hasardF.noter(E); hasardF.retenir('rayon_vert'); hfPense('(Vert. Un instant, le soleil a été vert.)', 3.5); }
       if (E.flashT <= 0) E.fini = 'fin';
     }
@@ -316,7 +352,7 @@ hfDef('linge_envole', {
     E.cx = cx; E.cz = cz;
     E.vent = Math.random() * TAU;
     E.draps = [];
-    for (let i = 0; i < 2 + (Math.random() < 0.5 ? 1 : 0); i++) E.draps.push({ x: cx + (Math.random() - 0.5) * 2, y: hfSol(cx, cz) + 1.7, z: cz + (Math.random() - 0.5) * 2, vy: 1.5 + Math.random() * 1.5, v: 4 + Math.random() * 2.5, a: E.vent + (Math.random() - 0.5) * 0.7, r: [0, Math.random() * TAU, 0], st: 'vol', t: 0, tvol: 7 + Math.random() * 7, col: pick([[0.95, 0.94, 0.9], [0.92, 0.9, 0.84], [0.8, 0.84, 0.92]]) });
+    for (let i = 0; i < 2 + (Math.random() < 0.5 ? 1 : 0); i++) E.draps.push({ x: cx + (Math.random() - 0.5) * 2, y: hfSol(cx, cz) + 1.7, z: cz + (Math.random() - 0.5) * 2, vy: 1.5 + Math.random() * 1.5, v: 4 + Math.random() * 2.5, a: E.vent + (Math.random() - 0.5) * 0.7, r: [0, Math.random() * TAU, 0], st: 'vol', t: 0, tvol: 7 + Math.random() * 7, col: pick([[1.35, 1.33, 1.28], [1.3, 1.27, 1.18], [1.15, 1.2, 1.3]]) });
     // la lavandière court après
     const P = hfPoint(cx, cz, 1.5, 3, { r: 0.4 }) || { x: cx + 1.5, z: cz };
     E.lav = hfPerso(hfLook('paysanne', { top: '#5a6a8a', hat: 'bonnet' }), P.x, P.z, { nom: 'La lavandière', voix: 1.3, vit: 2.6 });
@@ -388,16 +424,7 @@ hfDef('pluie_soleil', {
     hfArc(eye, sky.sunDir, k * 0.55, false, dt, E);
     if (!E.dit && k > 0.6 && hfDehorsVrai()) { E.dit = true; hasardF.noter(E); hasardF.reagir('pluie_soleil', 'pendant'); }
   },
-  ciel(E, sky) {
-    const k = hfK(E, 0.12, 0.25) * sky.day;
-    if (k <= 0.01) return;
-    sky.sunCol = v3.lerp(sky.sunCol, [1.05, 0.95, 0.78], 0.8 * k);
-    sky.sunVis = Math.max(sky.sunVis, 0.85 * k);
-    sky.shadowK = lerp(sky.shadowK, 0.6, k);
-    sky.amb = v3.lerp(sky.amb, v3.scale(sky.amb, 1.25), k);
-    sky.hor = v3.lerp(sky.hor, [0.95, 0.85, 0.62], 0.25 * k);
-    sky.cloudLit = v3.lerp(sky.cloudLit, [1.1, 1.0, 0.85], 0.5 * k);
-  },
+  ciel(E, sky) { hfEclaircie(sky, hfK(E, 0.12, 0.25) * sky.day); sky.hor = v3.lerp(sky.hor, [0.95, 0.85, 0.62], 0.2 * hfK(E, 0.12, 0.25) * sky.day); },
   txt: {
     journal: 'Il a plu en plein soleil : des gouttes dorées, et la lumière comme un soir d’été.',
     pendant: ['Le diable bat sa femme et marie sa fille !', 'De la pluie au soleil ! Regardez comme ça brille !'],
@@ -439,11 +466,11 @@ hfDef('comete', {
     if (E.anT <= 0 && k > 0.03) {
       E.anT = 0.3;
       const tete = [Math.sin(L.az) * Math.cos(L.el), Math.sin(L.el), Math.cos(L.az) * Math.cos(L.el)];
-      for (let j = 0; j < 3; j++) hfEtoile(eye, tete, 90, [1.1, 1.15, 1.25, 0.55 * k], 1.1 + j * 0.5, 0.75);
+      for (let j = 0; j < 4; j++) hfEtoile(eye, tete, 90, [1.1, 1.15, 1.25, (j ? 0.3 : 0.8) * k], 1.0 + j * 0.9, 0.75);
       // la queue : une longue traînée pâle, qui s'élargit
       for (let j = 1; j <= 22; j++) {
-        const f = j / 22, a = L.az + L.tail * f * 0.32 + (Math.random() - 0.5) * 0.02 * (1 + f * 3), e = L.el + f * 0.2 + (Math.random() - 0.5) * 0.02 * (1 + f * 3);
-        hfEtoile(eye, [Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e)], 90, [0.75, 0.85, 1.05, 0.2 * k * (1 - f * 0.8)], 1.2 + f * 2.4, 0.75);
+        const f = j / 22, a = L.az + L.tail * f * 0.42 + (Math.random() - 0.5) * 0.02 * (1 + f * 3), e = L.el + f * 0.26 + (Math.random() - 0.5) * 0.02 * (1 + f * 3);
+        hfEtoile(eye, [Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e)], 90, [0.75, 0.85, 1.05, 0.26 * k * (1 - f * 0.8)], 1.4 + f * 3, 0.75);
       }
     }
     if (k > 0.3 && !E.vuJ && hfDehorsVrai()) {
