@@ -219,6 +219,7 @@ const vgCite = {
     if (!opts.restaurer) { p.pos = this.depart.slice(); p.vel = [0, 0, 0]; p.yaw = Math.PI; p.pitch = 0.05; }
     if (game.renderer) game.renderer.uploadCover(p.pos[0], p.pos[2]);
     MSON.drone('vaisseau', [41.2, 61.8, 82.4], 0.035, 'sine', 160);
+    if (V.m && V.m.coeur) MSON.drone('vg_coeur', [36.7, 55.1, 73.4, 110.2], 0.045, 'sawtooth', 240); // (une partie rechargée : le Cœur brûlait)
     void M; void V;
   },
   sortir() {
@@ -321,6 +322,12 @@ MONDES.vaisseau = {
   },
 };
 HOOKS.sky.push((sky) => { if (mondes.cur === 'vaisseau') MONDES.vaisseau.ciel(sky); });
+// un voile bleu très léger tant que le Cœur dort
+HOOKS.fx.push((fx, tint) => {
+  if (mondes.cur !== 'vaisseau' || tint[3] > 0.06) return;
+  const a = 0.05 * (1 - (vgCite.lumK || 0));
+  if (a > 0.003) { tint[0] = 0.18; tint[1] = 0.32; tint[2] = 0.7; tint[3] = a; }
+});
 // pendant le voyage, aucun autre monde ne vous prend (on ne rêve pas, on ne glisse pas dans une vision) — sauf les Enfers
 {
   const _e = mondes.entrer.bind(mondes);
