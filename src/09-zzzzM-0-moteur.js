@@ -139,7 +139,8 @@ function MUS_DSP() {
     for (let i = 0; i < Math.min(d.length, sr * 0.03); i++) pic = Math.max(pic, Math.abs(d[i]));
     bruit(d, sr, R, pic * 0.025, 0.003, 2500);
     bords(d, sr, 0.0012, Math.min(0.8, dur * 0.2));
-    return niveau(d, sr, 0.005, 0.3, 0.1 * (m > 80 ? Math.pow(2, -(m - 80) / 30) : 1));
+    // (les cordes graves, qui sonnent longtemps sans étouffoir, un peu en retrait)
+    return niveau(d, sr, 0.005, 0.3, 0.1 * (m > 80 ? Math.pow(2, -(m - 80) / 30) : 1) * (m < 50 ? Math.pow(2, -(50 - m) / 18) : 1));
   }
 
   // ------------------------------------------------ le célesta (lame d'acier sur résonateur de bois)
@@ -252,12 +253,12 @@ const MUS_INST = {
   boite: { ech: true, pas: 4, bas: 64, haut: 108, sr: () => 32000, gain: 0.7, courbe: 1.4, etouffe: () => 0, pan: (m) => (m - 84) / 40 * 0.3 },
   cloche: { ech: true, pas: 5, bas: 36, haut: 96, sr: () => 22050, gain: 0.6, courbe: 1.4, filtre: (m, v) => 1500 + 4000 * v, etouffe: () => 0, pan: () => 0 },
   // tenus (boucle) : attaque et relâchement selon le rôle
-  cordes: { ech: true, boucle: true, pas: 5, bas: 28, haut: 98, sr: (m) => (m < 52 ? 16000 : 24000), gain: 0.8, courbe: 1.3, filtre: (m, v) => 900 + 5200 * v * v + MUS_hz(m) * 2, att: 0.35, rel: 0.9, pan: (m) => (m - 60) / 40 * 0.35 },
+  cordes: { ech: true, boucle: true, pas: 5, bas: 28, haut: 98, sr: (m) => (m < 52 ? 16000 : 24000), gain: 0.5, courbe: 1.3, filtre: (m, v) => 900 + 5200 * v * v + MUS_hz(m) * 2, att: 0.35, rel: 0.9, pan: (m) => (m - 60) / 40 * 0.35 },
   // en direct (oscillateurs)
-  flute: { direct: true, gain: 0.32, courbe: 1.2 },
-  verre: { direct: true, gain: 0.3, courbe: 1.3 },
-  nappe: { direct: true, gain: 0.18, courbe: 1.2 },
-  orgue: { direct: true, gain: 0.16, courbe: 1.2 },
+  flute: { direct: true, gain: 0.08, courbe: 1.2 },
+  verre: { direct: true, gain: 0.055, courbe: 1.3 },
+  nappe: { direct: true, gain: 0.032, courbe: 1.2 },
+  orgue: { direct: true, gain: 0.06, courbe: 1.2 },
 };
 const MUS_hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
