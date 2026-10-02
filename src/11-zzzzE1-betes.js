@@ -275,7 +275,8 @@ const e1 = {
       if (!this.convient(kind, E, ctx)) continue;
       const f0 = E.part ?? E1_PART[E1_ESPECES.find((x) => x[0] === kind)[3]], vie = (E.vie[0] + E.vie[1]) / 2;
       const r = f0 >= 0.99 ? 1 : f0 / (vie * (1 - f0)); // naissances par seconde, pour que l'espèce soit là f0 du temps
-      if (Math.random() < 1 - Math.exp(-r * 2.5 * (E.soir && this.soirAHannetons() ? 3 : 1))) cand.push(kind);
+      const k = (E.soir && this.soirAHannetons() ? 3 : 1) * (kind === 'cheveche' && game.player.hp < 35 && ctx.nuit > 0.5 ? 4 : 1);
+      if (Math.random() < 1 - Math.exp(-r * 2.5 * k)) cand.push(kind);
     }
     if (!cand.length) return;
     const kind = cand[(Math.random() * cand.length) | 0], E = E1_PEUPLE[kind];
@@ -290,6 +291,10 @@ const e1 = {
     if (E.chaud && ctx.froid) return false;
     if (E.calme && (weather.cur.storm > 0.3 || ctx.pluie > 0.4)) return false;
     return true;
+  },
+  // la pluie vient-elle dans les trois heures ? (le programme du jour)
+  pluieProche() {
+    try { const P = weather.today(), h = this.heure(); return !!P && P.plan.some(([hr, st]) => (st === 'rain' || st === 'storm') && hr > h && hr <= h + 3); } catch (err) { return false; }
   },
   // a-t-il plu ces deux dernières heures ? (les escargots sortent)
   pluieT: -1e9,
@@ -395,7 +400,9 @@ const E1_PEUPLE = {
   // ------------------------------------------------------------------ la ferme
   cheveche: { ou: E1_FERME, h: [17.5, 8], vie: [240, 480], nait(c, M) {
     const L = c.L.ferme; if (!L.perchoirs.length) return;
-    const pr = L.perchoirs[(Math.random() * L.perchoirs.length) | 0];
+    // (on dit qu'elle chante sur le toit de qui va mourir : le fermier mal en point, la nuit, l'entend sur sa maison)
+    const toit = game.player.hp < 35 && c.nuit > 0.5 ? L.perchoirs.find((q) => q.toit) : null;
+    const pr = toit || L.perchoirs[(Math.random() * L.perchoirs.length) | 0];
     const G = M.groupe('cheveche', { loin: 220 }); const e = M.ajouter(G, pr.x, pr.z, pr.y); e.mo = 'perche'; e.perche = pr; e.heading = pr.cap;
   } },
   putois: { ou: E1_FERME, h: [21.5, 4.5], vie: [120, 240], nait(c, M) {
@@ -456,8 +463,8 @@ const E1_PEUPLE = {
   // ------------------------------------------------------------------ la ville
   hirondelle_f: { ou: (c) => E1_VILLE(c) && c.L.ville.nids.length, h: [6.5, 20], chaud: true, vie: [300, 500], part: 0.8, nait(c, M) {
     const V = c.L.ville, N = V.nids, cx = N.reduce((a, n) => a + n.x, 0) / N.length, cz = N.reduce((a, n) => a + n.z, 0) / N.length;
-    const G = M.groupe('hirondelle_f', { cx, cz, cy: N[0].y, loin: 200 });
-    for (let k = 0; k < 6 + ((Math.random() * 4) | 0); k++) { const e = M.ajouter(G, cx + (Math.random() - 0.5) * 20, cz + (Math.random() - 0.5) * 20, N[0].y + 3 + Math.random() * 6); e.mo = 'boucle'; e.fly = 1; e.ang = Math.random() * TAU; e.rayon = 6 + Math.random() * 10; e.haut = 3 + Math.random() * 8; e.sens = Math.random() < 0.5 ? 1 : -1; }
+    const G = M.groupe('hirondelle_f', { cx, cz, cy: N[0].y, loin: 200, bas: M.pluieProche() }); // (hirondelles qui volent bas : la pluie vient)
+    for (let k = 0; k < 6 + ((Math.random() * 4) | 0); k++) { const e = M.ajouter(G, cx + (Math.random() - 0.5) * 20, cz + (Math.random() - 0.5) * 20, N[0].y + 3 + Math.random() * 6); e.mo = 'boucle'; e.fly = 1; e.ang = Math.random() * TAU; e.rayon = 6 + Math.random() * 10; e.haut = G.bas ? Math.random() * 2 : 3 + Math.random() * 8; e.sens = Math.random() < 0.5 ? 1 : -1; }
   } },
   choucas: { ou: (c) => E1_VILLE(c) && c.L.ville.clocher, h: [6, 20.5], vie: [300, 500], nait(c, M) {
     const C = c.L.ville.clocher, G = M.groupe('choucas', { cx: C.x, cz: C.z, loin: 220 });
@@ -842,7 +849,7 @@ const E1_CONDUITES = {
       if (e.serie > 0) { if (e.criT <= 0) { e.serie--; e.criT = 2.6 + Math.random() * 0.5; if (!e.mince) e1.cri(e, cri, 1, 80); } }
       else if (e.criT <= 0) { e.serie = 8 + ((Math.random() * 14) | 0); e.criT = 0.5; if (e.dist > 50) e.serie = 0; }
       if (e.serie <= 0 && e.criT <= 0) e.criT = 50 + Math.random() * 80;
-    } else if (e.criT <= 0) { e.criT = 35 + Math.random() * 60; if (c.night > 0.3 && e.dist > 6) e1.criOiseau(e, cri, 1, 90); }
+    } else if (e.criT <= 0) { e.criT = (P.toit && game.player.hp < 35 ? 12 : 35) + Math.random() * 60; if (c.night > 0.3 && e.dist > 6) e1.criOiseau(e, cri, 1, 90); }
     // la chevêche descend parfois au sol (un hanneton, un ver), puis revient
     if (!duc && e.mo === 'perche' && Math.random() < dt * 0.01 && e.dist > 15) { const t = Math.random() * TAU; e.perche0 = P; e.perche = { x: P.x + Math.sin(t) * 4, z: P.z + Math.cos(t) * 4, y: w.heightAt(P.x + Math.sin(t) * 4, P.z + Math.cos(t) * 4), cap: t, sol: true }; e.mo = 'vol'; e.retourT = 4; }
     if (P.sol) { e.retourT -= dt; e.peck = Math.sin(c.t * 4) > 0.6; if (e.retourT <= 0 && e.perche0) { e.perche = e.perche0; e.perche0 = null; e.mo = 'vol'; e.peck = false; } }
@@ -971,6 +978,9 @@ const E1_CONDUITES = {
     e.sortT = (e.sortT ?? 20 + Math.random() * 40) - dt;
     if (e.sortT <= 0) { e.sortT = 40 + Math.random() * 80; e.sort = 15 + Math.random() * 20; }
     if (e.sort > 0) { e.sort -= dt; if (e.dist < 1.2) e.sort = 0; }
+    // (quand il se tait d'un coup, dit-on, il faut regarder qui est à la porte)
+    const rode = (strange.killerActive && strange.killerActive()) || (strange.fear || 0) > 0.4 || (strange.redNight && strange.redNight());
+    if (rode) { e.serie = 0; e.criT = Math.max(e.criT, 20); }
     if (e.criT <= 0) {
       if (e.serie > 0) { e.serie--; e.criT = 2.1 + Math.random() * 0.4; if (e.dist > 1.6) e1.cri(e, 'e1_grillon', 1, 18); }
       else { e.serie = 5 + ((Math.random() * 6) | 0); e.criT = 25 + Math.random() * 50; }
@@ -1000,19 +1010,19 @@ const E1_CONDUITES = {
     e.fly = 1; e.volM = Math.sin(c.t * 3 + e.seed) > 0.2 ? 'bat' : 'glisse';
     e.ang += dt * (9 / e.rayon) * e.sens;
     const x = G.cx + Math.cos(e.ang) * e.rayon + Math.sin(c.t * 0.3 + e.seed) * 6, z = G.cz + Math.sin(e.ang) * e.rayon + Math.cos(c.t * 0.25 + e.seed) * 6;
-    const y = Math.max(G.cy - 2 + e.haut + Math.sin(c.t * 1.1 + e.seed) * 2.5, E1V.sol(w, x, z) + 2.5);
+    const y = G.bas ? E1V.sol(w, x, z) + 1.2 + e.haut + Math.sin(c.t * 1.1 + e.seed) * 0.5 : Math.max(G.cy - 2 + e.haut + Math.sin(c.t * 1.1 + e.seed) * 2.5, E1V.sol(w, x, z) + 2.5);
     E1V.vers(e, x, y, z, 10, dt, 6);
     e.criT = (e.criT ?? Math.random() * 8) - dt;
-    if (e.criT <= 0) { e.criT = 6 + Math.random() * 10; if (e.dist < 40) e1.cri(e, 'e1_hirondelle', 0.8, 45); }
+    if (e.criT <= 0) { e.criT = 15 + Math.random() * 25; if (e.dist < 40) e1.cri(e, 'e1_hirondelle', 0.8, 45); }
     if (V && V.nids.length && Math.random() < dt * 0.04) e.nid = V.nids[(Math.random() * V.nids.length) | 0];
-    if (Math.random() < dt * 0.05) { e.rayon = 5 + Math.random() * 12; e.haut = 2 + Math.random() * 9; }
+    if (Math.random() < dt * 0.05) { e.rayon = 5 + Math.random() * 12; e.haut = G.bas ? Math.random() * 2 : 2 + Math.random() * 9; }
     return true;
   },
   // ---------------------------------------------------------------- les choucas : sur le clocher ; des culbutes autour ; parfois sur la place
   choucas(e, dt, w, c) {
     const G = e.G, C = e1.lieux(w).ville.clocher, V = e1.lieux(w).ville;
     e.t1 -= dt; e.criT = (e.criT ?? 3 + Math.random() * 15) - dt;
-    if (e.criT <= 0) { e.criT = 8 + Math.random() * 18; if (e.dist < 80) e1.cri(e, 'e1_choucas', 0.85, 90); }
+    if (e.criT <= 0) { e.criT = 20 + Math.random() * 40; if (e.dist < 80) e1.cri(e, 'e1_choucas', 0.85, 90); }
     if (G.part && e.mo !== 'tour') { e.mo = 'tour'; e.t1 = 4; }
     switch (e.mo) {
       case 'clocher': e.fly = 0; e.x = e.perche.x; e.y = e.perche.y; e.z = e.perche.z; e.peck = false; e.lookY = Math.sin(c.t * 0.5 + e.seed) * 0.8;
@@ -1047,7 +1057,7 @@ const E1_CONDUITES = {
     const G = e.G;
     if (G.mo === 'corbeautiere') {
       e.criT = (e.criT ?? Math.random() * 6) - dt;
-      if (e.criT <= 0) { e.criT = 5 + Math.random() * 12; if (e1.heure() < 20.5) e1.cri(e, 'e1_freux', 0.8, 120); }
+      if (e.criT <= 0) { e.criT = 12 + Math.random() * 18; if (e1.heure() < 20.5) e1.cri(e, 'e1_freux', 0.8, 120); }
       e.fly = 0; e.x = e.perche.x; e.y = e.perche.y; e.z = e.perche.z;
       if (E1V.alerte(e, c, 12) || (G.part && e1.heure() >= 6 && e1.heure() < 17)) { G.mo = 'vol'; G.t = 10; G.ang = 0; G.r = 14; G.haut = [12, 22]; G.cri = 'e1_freux'; G.fuite = 30; }
       return true;
@@ -1089,7 +1099,7 @@ const E1_CONDUITES = {
     if (e.dist < (c.crouch ? 2.5 : 4.5)) { e.criT = Math.max(e.criT, 6); return true; }
     if (e.criT <= 0) {
       if (e.serie > 0) { e.serie--; e.criT = 1.8 + Math.random() * 0.6; e.chante = true; e1.cri(e, 'e1_alyte', 1, 45); }
-      else { e.serie = 6 + ((Math.random() * 12) | 0); e.criT = 20 + Math.random() * 50; }
+      else { e.serie = 4 + ((Math.random() * 7) | 0); e.criT = 40 + Math.random() * 60; }
     }
     return true;
   },
