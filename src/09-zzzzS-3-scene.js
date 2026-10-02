@@ -520,7 +520,7 @@ SoundEngine.BRUITS_MILIEU = {
         case 'canard': this.animal('duck', this._sLoin(30, 70, 0), 0.45); return;
         case 'coq': this._sJoue('s_coq', this._sLoin(50, 140, 2), 1, { ref: 14 }); return;
         case 'chien': this._sJoue('s_chien', this._sLoin(120, 300, 1), 1, { ref: 30, roll: 1 }); return;
-        case 'bourdon': this._sJoue('s_bourdons', this._sLoin(1.5, 3.5, 0.6), 1, { ref: 2 }); return;
+        case 'bourdon': this._sJoue('s_bourdons', this._sLoin(2.5, 5, 0.6), 1, { ref: 2 }); return;
         case 'charrette': this._sJoue('s_charrette', this._sLoin(25, 60, 0.5), 1, { ref: 10 }); return;
         case 'sonnailles': this._sJoue('s_sonnailles', this._sLoin(70, 200, 0.5), 1, { ref: 30, roll: 1 }); return;
         case 'caillou': this._sJoue('s_caillou', this._sLoin(60, 160, 8), 1, { ref: 25, roll: 1 }); return;

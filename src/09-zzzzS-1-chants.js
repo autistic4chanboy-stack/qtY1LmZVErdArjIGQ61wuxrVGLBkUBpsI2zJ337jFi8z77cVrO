@@ -598,7 +598,7 @@
     s_plastron: 0.055, s_spioncelle: 0.035, s_buse: 0.05, s_crecerelle: 0.04, s_rougequeue: 0.045, s_martinet: 0.045, s_serin: 0.035,
     s_hirondelle: 0.04, s_coq: 0.07, s_chien: 0.07, s_loriot: 0.07, s_turdoide: 0.055, s_effarvatte: 0.045, s_bruantroseaux: 0.04,
     s_rossignol: 0.06, s_cheveche: 0.07, s_moyenduc: 0.11, s_petitduc: 0.07, s_engoulevent: 0.045, s_rale: 0.04,
-    s_cloche: 0.1, s_sonnailles: 0.06, s_bourdons: 0.035, s_charrette: 0.06, s_brindille: 0.05, s_tronc: 0.035, s_gousse: 0.035, s_caillou: 0.05, s_poisson: 0.05,
+    s_cloche: 0.1, s_sonnailles: 0.06, s_bourdons: 0.018, s_charrette: 0.06, s_brindille: 0.05, s_tronc: 0.035, s_gousse: 0.035, s_caillou: 0.05, s_poisson: 0.05,
   });
   // combien de fois il reprend sa phrase (de…, à…), et le silence entre deux reprises (s, en plus du chant)
   Object.assign(SoundEngine.PHRASES, {
