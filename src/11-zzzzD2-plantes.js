@@ -388,7 +388,7 @@ function d2Peupler(w, seed) {
     }
     // les pieds dans l'eau du bord (le scirpe, le plantain d'eau, l'acore ; la lobélie, sous l'eau claire)
     if (P.pl === 'bord_eau') {
-      const prof = P.o === 'lobelie' ? [-0.4, -0.05] : P.o === 'scirpe' ? [-0.6, 0.1] : [-0.35, 0.25], L = bordLac.concat(eauLac).filter((q) => q[2] >= prof[0] && q[2] <= prof[1]);
+      const prof = P.o === 'lobelie' ? [-0.25, -0.04] : P.o === 'scirpe' ? [-0.6, 0.1] : [-0.35, 0.25], L = bordLac.concat(eauLac).filter((q) => q[2] >= prof[0] && q[2] <= prof[1]);
       for (let k = 0; k < touffes && L.length; k++) for (let e = 0; e < essais; e++) {
         const [cx, cz] = tir(L);
         if (!libre(cx, cz, { eau: prof, pres: grand ? 1.0 : 0.8 })) continue;

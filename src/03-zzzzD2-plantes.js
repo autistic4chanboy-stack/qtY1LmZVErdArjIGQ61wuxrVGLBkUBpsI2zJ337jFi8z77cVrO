@@ -93,8 +93,8 @@
 function spriteD2(kind, seed) {
   const rnd = mulberry32(seed);
   const TAILLE = {
-    lierre: [26, 34], oreille_judas: [24, 14], sanicle: [22, 20], gouet: [22, 22], fragon: [24, 26], langue_boeuf: [20, 18], martagon: [20, 40],
-    oronge: [20, 14], sabot_venus: [20, 24], gui_chene: [20, 16],
+    lierre: [24, 46], oreille_judas: [24, 14], sanicle: [22, 20], gouet: [22, 22], fragon: [24, 26], langue_boeuf: [20, 18], martagon: [20, 40],
+    oronge: [20, 14], sabot_venus: [20, 24], gui_chene: [22, 18],
     amadouvier: [16, 42], bolet_rude: [18, 16], paxille: [20, 12], tormentille: [22, 10], germandree: [22, 24], verge_or: [20, 30], lactaire: [18, 12],
     pyrole: [18, 16], trientale: [20, 12], linnee: [22, 8],
     jonc: [20, 30], lycope: [20, 28], lysimaque: [22, 34], pediculaire: [20, 14], gratiole: [20, 14], grassette: [16, 10], canneberge: [24, 8],
@@ -119,13 +119,15 @@ function spriteD2(kind, seed) {
   const ombelle = (x, y, r, col) => { for (let a = -r; a <= r; a++) { const yy = y + Math.abs(a) * 0.25; drawLine(pb, x, y + 3, x + a, yy, [90, 130, 70]); px(x + a, yy - 1, col); px(x + a, yy - 2, col.map((v) => v * 0.92)); if (rnd() < 0.5) px(x + a, yy - 3, col); } };
   switch (kind) {
     // ======================================================== la forêt
-    case 'lierre': { // des tiges qui grimpent, des feuilles luisantes à pointes, des baies noires en haut
-      for (let k = 0; k < 4; k++) { let x = 4 + k * 5 + rnd() * 3, y = H - 1; while (y > 3 + rnd() * 6) { const nx = x + (rnd() - 0.5) * 2.4; drawLine(pb, x, y, nx, y - 2, [96, 84, 62]); x = nx; y -= 2; } }
-      for (let i = 0; i < 46; i++) {
-        const y = 2 + Math.pow(rnd(), 0.7) * (H - 3), wy = 4 + (y / H) * (W - 8), x = W / 2 + (rnd() - 0.5) * wy * 1.6, c = sombre[(rnd() * 3) | 0];
-        px(x, y, c); px(x - 1, y + 1, c); px(x + 1, y + 1, c); px(x, y + 1, c.map((v) => v * 0.85)); if (rnd() < 0.5) px(x, y - 1, c); if (rnd() < 0.4) px(x - 1, y, sombre[3]);
+    case 'lierre': { // une colonne de lierre qui grimpe : tiges brunes, feuilles luisantes à pointes, plus serrées en bas ; des baies noires en haut
+      const lv = [[34, 76, 36], [46, 96, 46], [62, 118, 56], [92, 146, 78]];
+      for (let k = 0; k < 4; k++) { let x = 5 + k * 4.5 + rnd() * 2, y = H - 1; while (y > 2 + rnd() * 6) { const nx = clamp(x + (rnd() - 0.5) * 2.2, 3, W - 4); drawLine(pb, x, y, nx, y - 2, [104, 90, 66]); x = nx; y -= 2; } }
+      for (let i = 0; i < 70; i++) {
+        const y = 2 + Math.pow(rnd(), 0.75) * (H - 3), wy = 7 + (y / H) * (W - 10), x = W / 2 + (rnd() - 0.5) * wy, c = lv[(rnd() * 3) | 0];
+        px(x, y, c); px(x - 1, y + 1, c); px(x + 1, y + 1, c); px(x, y + 1, c.map((v) => v * 0.82)); if (rnd() < 0.6) px(x, y - 1, c); if (rnd() < 0.45) px(x + (rnd() < 0.5 ? -1 : 1), y, lv[3]);
       }
-      for (let i = 0; i < 3; i++) { const x = 5 + rnd() * (W - 10), y = 3 + rnd() * 6; for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 1]]) px(x + dx, y + dy, rnd() < 0.7 ? [24, 22, 34] : [50, 46, 70]); }
+      for (let x = 2; x < W - 2; x++) if (rnd() < 0.7) { px(x, H - 1, lv[(rnd() * 2) | 0]); if (rnd() < 0.5) px(x, H - 2, lv[1 + ((rnd() * 2) | 0)]); }
+      for (let i = 0; i < 3; i++) { const x = 6 + rnd() * (W - 12), y = 2 + rnd() * 7; for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 1], [0, -1]]) px(x + dx, y + dy, rnd() < 0.7 ? [24, 22, 34] : [56, 52, 78]); }
       break;
     }
     case 'oreille_judas': { // une branche morte, et dessus, des oreilles brunes
@@ -153,7 +155,7 @@ function spriteD2(kind, seed) {
     case 'fragon': { // petit buisson raide, vert sombre, piquant ; des baies rouges posées sur les rameaux
       for (let k = 0; k < 9; k++) { const x0 = W / 2 + (rnd() - 0.5) * 8; drawLine(pb, x0, H - 1, x0 + (rnd() - 0.5) * 16, 2 + rnd() * 10, [56, 90, 44]); }
       for (let i = 0; i < 40; i++) { const x = 2 + rnd() * (W - 4), y = 2 + rnd() * (H - 6), c = sombre[(rnd() * 3) | 0]; px(x, y, c); px(x + 1, y - 1, c); px(x + 2, y - 2, [180, 190, 140]); }
-      specks(pb, rnd, 7, [[200, 24, 24], [170, 16, 20]], 3, 3, W - 3, H - 6);
+      specks(pb, rnd, 15, [[214, 30, 28], [180, 18, 22], [236, 70, 60]], 3, 3, W - 3, H - 6); specks(pb, rnd, 10, [[120, 160, 96], [140, 176, 110]], 2, 2, W - 2, H - 4);
       break;
     }
     case 'langue_boeuf': { // une racine de chêne et un pan d'écorce ; dessus, la langue rouge qui avance, plate, le dessous crème
@@ -193,11 +195,15 @@ function spriteD2(kind, seed) {
       px(x, 8, [120, 80, 20]); px(x + 1, 8, [120, 80, 20]); px(x - 1, 10, [250, 240, 160]);
       break;
     }
-    case 'gui_chene': { // une touffe tombée : rameaux fourchus vert-jaune, feuilles par deux, baies blanches
-      const cx = W / 2, cy = H - 7;
-      for (let k = 0; k < 14; k++) { const a = rnd() * TAU, r = 3 + rnd() * 5; const x1 = cx + Math.cos(a) * r, y1 = cy + Math.sin(a) * r * 0.75; drawLine(pb, cx, cy, x1, y1, [120, 130, 60]); px(x1, y1, [160, 180, 70]); px(x1 + 1, y1, [140, 160, 60]); px(x1 - 1, y1 - 1, [176, 196, 90]); }
-      for (let i = 0; i < 9; i++) { const x = cx + (rnd() - 0.5) * 8, y = cy + (rnd() - 0.5) * 5; px(x, y, [244, 244, 236]); px(x + 1, y, [220, 222, 210]); }
-      for (let x = 2; x < W - 2; x++) if (rnd() < 0.5) px(x, H - 1, [70, 60, 40]);
+    case 'gui_chene': { // une touffe tombée, ronde comme un nid : rameaux fourchus vert-jaune, feuilles de cuir par deux, baies blanches
+      const cx = W / 2, cy = H - 8, jaune = [[118, 128, 52], [150, 166, 66], [178, 194, 88], [204, 214, 118]];
+      for (let k = 0; k < 26; k++) {
+        const a = rnd() * TAU, r = 2.5 + rnd() * 6.5, x1 = cx + Math.cos(a) * r, y1 = cy + Math.sin(a) * r * 0.7, xm = (cx + x1) / 2 + (rnd() - 0.5) * 2, ym = (cy + y1) / 2;
+        drawLine(pb, cx, cy, xm, ym, [128, 136, 64]); drawLine(pb, xm, ym, x1, y1, [140, 150, 70]);
+        const c = jaune[1 + ((rnd() * 3) | 0)]; px(x1, y1, c); px(x1 + 1, y1, c); px(x1, y1 - 1, jaune[3]); px(x1 - 1, y1 + 1, jaune[0]);
+      }
+      for (let i = 0; i < 14; i++) { const x = cx + (rnd() - 0.5) * 9, y = cy + (rnd() - 0.5) * 6; px(x, y, [248, 248, 240]); px(x + 1, y, [222, 224, 212]); px(x, y + 1, [200, 204, 190]); }
+      for (let x = 3; x < W - 3; x++) if (rnd() < 0.6) px(x, H - 1, [64, 56, 40]);
       break;
     }
     // ======================================================== le bois de bouleaux
@@ -238,7 +244,7 @@ function spriteD2(kind, seed) {
       for (let i = 0; i < 5; i++) {
         const x = 3 + i * 4 + rnd(), top = 2 + rnd() * 6; drawLine(pb, x, top, x, H - 1, [90, 110, 60]);
         for (let y = top + 9; y < H - 1; y += 3) { px(x - 1, y, [90, 130, 70]); px(x - 2, y, [80, 120, 62]); px(x + 1, y, [100, 140, 76]); px(x + 2, y + 1, [86, 124, 66]); }
-        for (let k = 0; k < 8; k++) px(x + 1, top + k, k % 2 ? [226, 222, 150] : [206, 204, 130]);
+        for (let k = 0; k < 9; k++) { px(x + 1, top + k, k % 2 ? [240, 238, 176] : [222, 222, 150]); if (k % 3 === 0) px(x + 2, top + k, [246, 244, 196]); }
       }
       break;
     }
@@ -279,7 +285,7 @@ function spriteD2(kind, seed) {
     }
     // ======================================================== le marais
     case 'jonc': { // une touffe serrée de tiges rondes ; des glomérules bruns sur le côté
-      for (let i = 0; i < 22; i++) { const x0 = W / 2 + (rnd() - 0.5) * 7; const x1 = x0 + (rnd() - 0.5) * 14, top = 1 + rnd() * 8; drawLine(pb, x1, top, x0, H - 1, vert(1 + (i % 3))); if (rnd() < 0.35) { const t = 0.25 + rnd() * 0.2, gx = x1 + (x0 - x1) * t, gy = top + (H - 1 - top) * t; px(gx + 1, gy, [150, 120, 70]); px(gx + 1, gy + 1, [130, 100, 60]); px(gx + 2, gy, [160, 130, 80]); } }
+      for (let i = 0; i < 22; i++) { const x0 = W / 2 + (rnd() - 0.5) * 7; const x1 = x0 + (rnd() - 0.5) * 14, top = 1 + rnd() * 8; drawLine(pb, x1, top, x0, H - 1, [[38, 80, 50], [48, 96, 58], [60, 112, 68]][i % 3]); if (rnd() < 0.35) { const t = 0.25 + rnd() * 0.2, gx = x1 + (x0 - x1) * t, gy = top + (H - 1 - top) * t; px(gx + 1, gy, [150, 120, 70]); px(gx + 1, gy + 1, [130, 100, 60]); px(gx + 2, gy, [160, 130, 80]); } }
       break;
     }
     case 'lycope': { // tiges carrées, feuilles très dentées, anneaux de fleurs blanches
@@ -370,7 +376,7 @@ function spriteD2(kind, seed) {
       for (let i = 0; i < 3; i++) {
         const x = 4 + i * 6 + rnd() * 2, top = 2 + rnd() * 5; drawLine(pb, x, top + 4, x, H - 1, [80, 100, 56]); drawLine(pb, x + 1, top + 12, x + 1, H - 1, [70, 90, 50]);
         for (let y = top + 13; y < H - 2; y += 5) for (const s of [-1, 1]) { drawLine(pb, x, y, x + s * 4, y - 2, vert(2)); px(x + s * 3, y - 1, vert(1)); }
-        for (let k = 0; k < 6; k++) { const fx = x + (rnd() - 0.5) * 6, fy = top + rnd() * 7; drawLine(pb, x, fy + 2, fx, fy, [90, 100, 60]); px(fx, fy, [140, 40, 30]); px(fx + 1, fy, [110, 30, 24]); }
+        for (let k = 0; k < 10; k++) { const fx = x + (rnd() - 0.5) * 7, fy = top + rnd() * 9; drawLine(pb, x, fy + 2, fx, fy, [90, 100, 60]); px(fx, fy, [184, 66, 44]); px(fx + 1, fy, [150, 48, 34]); px(fx, fy - 1, [206, 96, 64]); }
       }
       break;
     }
@@ -402,7 +408,7 @@ function spriteD2(kind, seed) {
       break;
     }
     case 'lobelie': { // des hampes nues sortant de l'eau, quelques clochettes lilas
-      for (let i = 0; i < 3; i++) { const x = 3 + i * 5 + rnd() * 2, top = 1 + rnd() * 4; drawLine(pb, x, top, x, H - 1, [110, 140, 100]); for (let k = 0; k < 3; k++) { const y = top + k * 3, s = k % 2 ? 1 : -1; px(x + s, y, [204, 190, 236]); px(x + s, y + 1, [180, 166, 220]); px(x + s * 2, y + 1, [214, 204, 244]); } }
+      for (let i = 0; i < 3; i++) { const x = 3 + i * 5 + rnd() * 2, top = 1 + rnd() * 4; drawLine(pb, x, top, x, H - 1, [110, 140, 100]); for (let k = 0; k < 3; k++) { const y = top + k * 3, s = k % 2 ? 1 : -1; px(x + s, y, [216, 204, 246]); px(x + s, y + 1, [190, 176, 232]); px(x + s * 2, y + 1, [226, 218, 250]); px(x + s * 2, y + 2, [200, 188, 238]); px(x + s, y + 2, [176, 160, 224]); } }
       break;
     }
     default: tige(W / 2, 4); px(W / 2, 4, [240, 240, 240]);
