@@ -22,7 +22,7 @@ function e1Oiseau(o) {
   const { P, add } = rigParts();
   const [bw, bh, bl] = o.body, dos = o.dos;
   add('body', null, [0, o.bodyY, 0], o.body, [0, 0, 0], dos, o.bodyTex ?? TL.fur);
-  if (o.ventre) { const k = o.ventreS || 0.62; add('ventre', 'body', [0, -bh * (1 - k) / 2 - 0.002, bl * 0.03], [bw * 1.06, bh * k, bl * 0.84], [0, 0, 0], o.ventre, o.ventreTex ?? TL.fur); }
+  if (o.ventre) { const k = o.ventreS || 0.62; add('ventre', 'body', [0, -bh * (1 - k) / 2 - 0.002, bl * 0.07], [bw * 1.06, bh * k, bl * 0.9], [0, 0, 0], o.ventre, o.ventreTex ?? TL.fur); }
   if (o.neck) add('neckB', 'body', [0, bh * 0.3, bl * 0.4], o.neck, [0, o.neck[1] / 2, 0], o.neckCol || dos, TL.fur, { r0: o.neckR || [0, 0, 0] });
   add('neck', o.neck ? 'neckB' : 'body', o.neck ? [0, o.neck[1], 0] : [0, bh * 0.34, bl * 0.44], null);
   const hd = o.head;
@@ -59,8 +59,9 @@ function e1Oiseau(o) {
 // des yeux (une boîte claire et une pupille), sur la tête
 const e1Yeux = (hd, col, k, y, z, sx) => {
   const u = [];
+  void z;
   for (const s of [-1, 1]) {
-    u.push({ name: 'oeil' + s, parent: 'head', p: [s * (sx ?? hd[0] * 0.3), hd[1] * (y ?? 0.55), hd[2] * (z ?? 0.62)], s: [hd[0] * 0.22 * (k || 1), hd[1] * 0.24 * (k || 1), 0.004], col, tex: TL.plain });
+    u.push({ name: 'oeil' + s, parent: 'head', p: [s * (sx ?? hd[0] * 0.3), hd[1] * (y ?? 0.55), hd[2] * 0.7 + 0.002], s: [hd[0] * 0.22 * (k || 1), hd[1] * 0.24 * (k || 1), 0.004], col, tex: TL.plain });
     u.push({ name: 'pupille' + s, parent: 'oeil' + s, p: [0, 0, 0.0025], s: [hd[0] * 0.1 * (k || 1), hd[1] * 0.12 * (k || 1), 0.003], col: [0.04, 0.03, 0.03], tex: TL.plain });
   }
   return u;
@@ -76,13 +77,14 @@ Object.assign(ANIMAL_RIGS, {
   // ---- les rapaces : crécerelle (mâle, femelle), buse (trois robes), pèlerin
   e1_crecerelle: (v) => {
     const male = (v | 0) % 2 === 0, roux = E1C('#b0603a'), gris = E1C('#7e8696');
-    const body = [0.085, 0.09, 0.16], head = [0.06, 0.06, 0.065];
+    const body = [0.085, 0.09, 0.16], head = [0.052, 0.052, 0.058];
     return e1Oiseau({
       body, bodyY: 0.125, dos: roux, ventre: E1C('#e4cca4'), ventreTex: TL.stripes, head, headCol: male ? gris : E1C('#a8643e'), beak: [0.014, 0.014, 0.018], beakCol: E1C('#4a5060'), crochet: true, cire: E1C('#e8c040'),
       tail: [0.05, 0.012, 0.15], tailCol: male ? gris : E1C('#a86a44'), bande: [0.1, 0.09, 0.1], wing: [0.3, 0.012, 0.095], wingCol: roux, wingTip: E1C('#2a2420'), dessous: E1C('#e8dcc4'),
       pliTip: E1C('#2a2420'), leg: [0.011, 0.05], legCol: E1C('#e8c040'), droit: -0.9, batF: 15, batA: 0.75,
       plus: [...e1Taches('body', 7, body[0], body[1], body[2], [0.15, 0.1, 0.08], 31), ...e1Yeux(head, [0.06, 0.05, 0.05], 1.3, 0.56, 0.6),
-        { name: 'moust', parent: 'head', p: [0, head[1] * 0.3, head[2] * 0.45], s: [head[0] * 1.04, head[1] * 0.35, 0.012], col: E1C('#3a3434'), tex: TL.plain }],
+        { name: 'moustL', parent: 'head', p: [-head[0] * 0.5 - 0.001, head[1] * 0.32, head[2] * 0.42], s: [0.003, head[1] * 0.42, head[2] * 0.16], col: E1C('#2e2a2a'), tex: TL.plain },
+        { name: 'moustR', parent: 'head', p: [head[0] * 0.5 + 0.001, head[1] * 0.32, head[2] * 0.42], s: [0.003, head[1] * 0.42, head[2] * 0.16], col: E1C('#2e2a2a'), tex: TL.plain }],
     });
   },
   e1_buse: (v) => {
@@ -114,8 +116,10 @@ Object.assign(ANIMAL_RIGS, {
       body, bodyY: 0.115, dos: brun, ventre: E1C('#d8c8a8'), ventreTex: TL.stripes, ventreS: 0.75, head, headCol: brun, face: TL.catF, beak: [0.016, 0.016, 0.012], beakCol: E1C('#d8d0a0'), beakY: 0.3,
       tail: [0.06, 0.012, 0.04], tailUp: 0.4, wing: [0.24, 0.012, 0.1], wingCol: brun, dessous: E1C('#d8c8a8'), leg: [0.014, 0.05], legCol: E1C('#e0d6c0'), chouette: true, batF: 12, batA: 0.8,
       plus: [...e1Taches('body', 8, body[0], body[1], body[2], [0.92, 0.88, 0.8], 41), ...e1Taches('head', 6, head[0], head[1], head[2], [0.92, 0.88, 0.8], 42),
+        { name: 'disque', parent: 'head', p: [0, head[1] * 0.42, head[2] * 0.7 + 0.001], s: [head[0] * 0.92, head[1] * 0.66, 0.003], col: E1C('#b09a7c'), tex: TL.fur },
         ...e1Yeux(head, [0.95, 0.82, 0.2], 1.6, 0.48, 0.55, head[0] * 0.24),
-        { name: 'sourcils', parent: 'head', p: [0, head[1] * 0.72, head[2] * 0.56], s: [head[0] * 0.86, head[1] * 0.12, 0.008], col: E1C('#f0ece0'), tex: TL.plain }],
+        { name: 'sourcils', parent: 'head', p: [0, head[1] * 0.72, head[2] * 0.7 + 0.004], s: [head[0] * 0.86, head[1] * 0.12, 0.006], col: E1C('#f0ece0'), tex: TL.plain },
+        { name: 'menton', parent: 'head', p: [0, head[1] * 0.12, head[2] * 0.7 + 0.004], s: [head[0] * 0.5, head[1] * 0.1, 0.006], col: E1C('#f0ece0'), tex: TL.plain }],
     });
   },
   e1_petit_duc: () => {
@@ -123,7 +127,8 @@ Object.assign(ANIMAL_RIGS, {
     return e1Oiseau({
       body, bodyY: 0.1, dos: gris, bodyTex: TL.bark, ventre: E1C('#9a9286'), ventreTex: TL.bark, ventreS: 0.8, head, headCol: gris, headTex: TL.bark, face: TL.catF, beak: [0.01, 0.012, 0.008], beakCol: E1C('#3a3634'), beakY: 0.32,
       tail: [0.045, 0.01, 0.035], tailUp: 0.3, wing: [0.2, 0.01, 0.075], wingCol: gris, dessous: E1C('#b0a898'), leg: [0.01, 0.03], legCol: E1C('#8a8070'), chouette: true, batF: 13, batA: 0.8,
-      plus: [...e1Yeux(head, [0.95, 0.78, 0.15], 1.5, 0.5, 0.55, head[0] * 0.24),
+      plus: [{ name: 'disque', parent: 'head', p: [0, head[1] * 0.45, head[2] * 0.7 + 0.001], s: [head[0] * 0.9, head[1] * 0.7, 0.003], col: E1C('#9a9082'), tex: TL.bark },
+        ...e1Yeux(head, [0.95, 0.78, 0.15], 1.5, 0.5, 0.55, head[0] * 0.24),
         { name: 'aigretteL', parent: 'head', p: [-head[0] * 0.32, head[1], -0.005], s: [0.012, 0.028, 0.012], o: [0, 0.012, 0], col: gris, tex: TL.bark, r0: [0.2, 0, 0.25] },
         { name: 'aigretteR', parent: 'head', p: [head[0] * 0.32, head[1], -0.005], s: [0.012, 0.028, 0.012], o: [0, 0.012, 0], col: gris, tex: TL.bark, r0: [0.2, 0, -0.25] }],
     });
@@ -134,7 +139,7 @@ Object.assign(ANIMAL_RIGS, {
     return e1Oiseau({
       body, bodyY: 0.12, dos: noir, head, headCol: noir, face: TL.crowF, beak: [0.018, 0.016, 0.03], beakCol: E1C('#121214'),
       tail: [0.07, 0.014, 0.11], wing: [0.25, 0.014, 0.11], wingCol: noir, leg: [0.012, 0.05], legCol: E1C('#121214'), batF: 11,
-      plus: [{ name: 'nuque', parent: 'head', p: [0, head[1] * 0.5, -head[2] * 0.16], s: [head[0] * 1.06, head[1] * 0.75, head[2] * 0.5], col: E1C('#7e8088'), tex: TL.fur },
+      plus: [{ name: 'nuque', parent: 'head', p: [0, head[1] * 0.5, -head[2] * 0.02], s: [head[0] * 1.08, head[1] * 0.8, head[2] * 0.62], col: E1C('#8a8c94'), tex: TL.fur },
         ...e1Yeux(head, [0.92, 0.92, 0.88], 1.1, 0.6, 0.6)],
     });
   },
@@ -143,7 +148,9 @@ Object.assign(ANIMAL_RIGS, {
     return e1Oiseau({
       body, bodyY: 0.17, dos: noir, head, headCol: noir, face: TL.crowF, beak: [0.026, 0.024, 0.07], beakCol: E1C('#8a8682'), tail: [0.09, 0.016, 0.15],
       wing: [0.36, 0.016, 0.16], wingCol: E1C('#221c2a'), wingTip: E1C('#141018'), leg: [0.016, 0.07], legCol: E1C('#141214'), cuisses: E1C('#1c1822'), batF: 8, batA: 0.65,
-      plus: [{ name: 'face', parent: 'head', p: [0, head[1] * 0.4, head[2] * 0.66], s: [head[0] * 0.7, head[1] * 0.4, 0.03], col: E1C('#c8c2b8'), tex: TL.skin }],
+      plus: [{ name: 'face', parent: 'head', p: [0, head[1] * 0.38, head[2] * 0.7 + 0.004], s: [head[0] * 0.78, head[1] * 0.42, 0.01], col: E1C('#c8c2b8'), tex: TL.skin },
+        { name: 'faceL', parent: 'head', p: [-head[0] * 0.5 - 0.001, head[1] * 0.38, head[2] * 0.56], s: [0.004, head[1] * 0.36, head[2] * 0.26], col: E1C('#c8c2b8'), tex: TL.skin },
+        { name: 'faceR', parent: 'head', p: [head[0] * 0.5 + 0.001, head[1] * 0.38, head[2] * 0.56], s: [0.004, head[1] * 0.36, head[2] * 0.26], col: E1C('#c8c2b8'), tex: TL.skin }],
     });
   },
   // ---- les passereaux : bergeronnette, étourneau, hirondelle de fenêtre
@@ -178,9 +185,10 @@ Object.assign(ANIMAL_RIGS, {
   e1_caille: () => {
     const body = [0.075, 0.068, 0.11], head = [0.042, 0.042, 0.048];
     return e1Oiseau({
-      body, bodyY: 0.05, dos: E1C('#8a6a44'), bodyTex: TL.stripes, ventre: E1C('#d8c098'), head, headCol: E1C('#6a5034'), headTex: TL.stripes, beak: [0.008, 0.008, 0.012], beakCol: E1C('#6a6258'),
+      body, bodyY: 0.05, dos: E1C('#8a6a44'), ventre: E1C('#d8c098'), head, headCol: E1C('#6a5034'), beak: [0.008, 0.008, 0.012], beakCol: E1C('#6a6258'),
       tail: [0.035, 0.01, 0.025], wing: [0.12, 0.01, 0.06], wingCol: E1C('#8a6a44'), leg: [0.007, 0.022], legCol: E1C('#d8a888'), batF: 22, batA: 0.9,
-      plus: [{ name: 'raie', parent: 'head', p: [0, head[1], 0], s: [head[0] * 0.25, 0.004, head[2] * 0.95], col: E1C('#e8d8b0'), tex: TL.plain },
+      plus: [...e1Taches('body', 10, body[0], body[1], body[2], [0.3, 0.22, 0.14], 61), ...e1Taches('body', 6, body[0], body[1], body[2], [0.86, 0.78, 0.6], 62),
+        { name: 'raie', parent: 'head', p: [0, head[1], 0], s: [head[0] * 0.25, 0.004, head[2] * 0.95], col: E1C('#e8d8b0'), tex: TL.plain },
         { name: 'sourcilL', parent: 'head', p: [-head[0] * 0.5, head[1] * 0.62, head[2] * 0.1], s: [0.003, head[1] * 0.14, head[2] * 0.8], col: E1C('#e8d8b0'), tex: TL.plain },
         { name: 'sourcilR', parent: 'head', p: [head[0] * 0.5, head[1] * 0.62, head[2] * 0.1], s: [0.003, head[1] * 0.14, head[2] * 0.8], col: E1C('#e8d8b0'), tex: TL.plain }],
     });
@@ -194,7 +202,7 @@ Object.assign(ANIMAL_RIGS, {
       plus: [{ name: 'calotte', parent: 'head', p: [0, head[1] * 0.85, 0], s: [head[0] * 1.05, head[1] * 0.36, head[2] * 1.02], col: E1C('#141414'), tex: TL.fur },
         { name: 'huppe', parent: 'head', p: [0, head[1] * 1.0, -head[2] * 0.3], s: [0.006, 0.006, 0.075], o: [0, 0, -0.035], col: E1C('#141414'), tex: TL.plain, r0: [-0.55, 0, 0] },
         { name: 'plastron', parent: 'body', p: [0, body[1] * 0.18, body[2] * 0.45], s: [body[0] * 0.95, body[1] * 0.5, 0.02], col: E1C('#141414'), tex: TL.fur },
-        { name: 'gorge', parent: 'head', p: [0, head[1] * 0.2, head[2] * 0.2], s: [head[0] * 0.9, head[1] * 0.35, head[2] * 0.7], col: E1C('#141414'), tex: TL.fur }],
+        { name: 'gorge', parent: 'head', p: [0, head[1] * 0.16, head[2] * 0.22], s: [head[0] * 1.04, head[1] * 0.3, head[2] * 0.98], col: E1C('#141414'), tex: TL.fur }],
     });
   },
   e1_outarde: (v) => {
@@ -248,7 +256,7 @@ Object.assign(ANIMAL_RIGS, {
 // ---------------------------------------------------------------- la couleuvre d'Esculape (une chaîne d'anneaux)
 ANIMAL_RIGS.e1_esculape = (v) => {
   const { P, add } = rigParts();
-  const c = E1C('#6a6040'), c2 = E1C('#5a5236'), ventre = E1C('#d8c890'), N = 12, L = 0.13;
+  const c = E1C('#857a50'), c2 = E1C('#766c46'), ventre = E1C('#d8c890'), N = 12, L = 0.13;
   add('body', null, [0, 0.022, 0], [0.034, 0.028, L], [0, 0, 0], c, TL.scales);
   add('head', 'body', [0, 0.003, L / 2], [0.034, 0.022, 0.05], [0, 0, 0.022], E1C('#5a5434'), TL.scales);
   if ((v | 0) % 3 === 0) for (const s of [-1, 1]) add('tache' + s, 'head', [s * 0.016, 0.002, -0.004], [0.004, 0.012, 0.016], [0, 0, 0], E1C('#e8d060'), TL.plain); // (les jeunes ont deux taches jaunes à la nuque)
@@ -412,7 +420,7 @@ function e1Pose(rig, st) {
       let a = 0, corps = 0;
       if (vol) {
         if (M === 'plane') a = (o.dievre || -0.06) + Math.sin(t * 0.9 + sd) * 0.03;
-        else if (M === 'surplace') { a = Math.sin(t * (o.batF || 14) * 1.3 + sd) * 0.7; corps = -0.55; }
+        else if (M === 'surplace') { a = Math.sin(t * (o.batF || 14) * 1.3 + sd) * 0.45 - 0.1; corps = -0.4; }
         else if (M === 'pique') a = 0.95;
         else if (M === 'glisse') a = Math.sin(t * 2 + sd) * 0.05 - 0.02;
         else a = Math.sin(t * (o.batF || 14) + sd) * (o.batA || 0.8);
@@ -439,7 +447,9 @@ function e1Pose(rig, st) {
     }
     case 'quad': {
       poseQuad0(rig, st);
-      const d = e.dresse || 0;
+      const d = e.dresse || 0, B = rig.parts[rig.idx.body], hl = o.body[2] / 2;
+      B.p = d ? [0, o.bodyY + hl * Math.sin(d) * 0.8, -hl * (1 - Math.cos(d))] : B.p0 || (B.p0 = B.p.slice());
+      if (!B.p0) B.p0 = [0, o.bodyY, 0];
       if (d) { rig.set('body', -d, 0, 0); rig.set('legBL', d, 0, 0); rig.set('legBR', d, 0, 0); rig.set('legFL', d * 0.6, 0, 0); rig.set('legFR', d * 0.6, 0, 0); rig.set('neck', d * 0.8, clamp(st.lookY || 0, -0.9, 0.9), 0); }
       else rig.set('body', e.grimpe ? -1.2 : 0, 0, 0);
       if (e.nage) { rig.set('body', -0.08, 0, 0); }
@@ -476,7 +486,7 @@ function e1Pose(rig, st) {
     case 'papillon': {
       const vol = st.fly > 0, M = e.volM;
       let bat = vol ? (M === 'plane' ? -0.15 + Math.sin(t * 3 + sd) * 0.1 : Math.sin(t * (o.batF || 16) + sd) * 0.95) : -0.55 - Math.sin(t * 2 + sd) * 0.3;
-      if (!vol && e.repos) bat = e.repos;
+      if (!vol && e.repos !== undefined && e.repos !== null) bat = e.repos;
       rig.set('wingL', 0, 0, bat); rig.set('wingR', 0, 0, -bat);
       rig.set('basL', 0, 0, bat * 0.85); rig.set('basR', 0, 0, -bat * 0.85);
       rig.set('body', e.pend ? -1.4 : 0, 0, 0);

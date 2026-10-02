@@ -31,6 +31,13 @@
 // la part du temps où une espèce est là quand tout lui convient, selon sa rareté (commune … introuvable)
 const E1_PART = [0.6, 0.35, 0.14, 0.05, 0.015];
 const E1_BUDGET = { groupes: 8, betes: 45 };
+// les bêtes qui se défendent (rarement, et on le voit venir) : les frelons de leur nid (on s'en approche trop longtemps,
+// on le touche : trois piqûres au plus), le surmulot acculé (une morsure), le putois acculé (une odeur, pas de mal)
+const E1_DANGER = {
+  frelon: { approche: 2.8, tout_pres: 1.6, patience: 4, colere: 12, piqures: 3, degats: [5, 9], cause: 'Piqué par les frelons' },
+  surmulot: { coince: 1.2, degats: [3, 5], cause: 'Mordu par un rat' },
+  putois: { accule: 1.8, nausee: 30 },
+};
 const E1_ARBRES = new Set(['oak', 'apple', 'hetre', 'chataignier', 'noyer', 'erable', 'tilleul', 'peuplier', 'poirier', 'cerisier', 'prunier', 'saule', 'aulne', 'birch', 'deadtree', 'if']);
 const E1_GRANDS = new Set(['oak', 'hetre', 'chataignier', 'noyer', 'erable', 'tilleul', 'peuplier']);
 const E1_BUISSONS = new Set(['bush', 'ronce', 'eglantier', 'sureau', 'houx', 'genet']);
@@ -348,7 +355,9 @@ const E1_PEUPLE = {
   } },
   vanneau: { ou: E1_PRES, h: [6, 19], vie: [200, 380], nait(c, M) {
     // des prés humides : près de l'eau, ou bas
-    const pt = M.autour(c.P, 60, 130, (x, z) => M.prePres(c.w, x, z) && (c.w.heightAt(x, z) < c.w.waterLevel + 3 || E1V.eauPres(c.w, x, z, 40)), c.f); if (!pt) return;
+    const pt = M.autour(c.P, 60, 130, (x, z) => M.prePres(c.w, x, z) && (c.w.heightAt(x, z) < c.w.waterLevel + 3 || E1V.eauPres(c.w, x, z, 40)), c.f)
+      || (Math.random() < 0.4 && M.autour(c.P, 70, 130, (x, z) => M.prePres(c.w, x, z) && c.w.normalAt(x, z)[1] > 0.95, c.f)); // (ou un grand pré plat, un labour)
+    if (!pt) return;
     const G = M.groupe('vanneau', { cx: pt[0], cz: pt[1], mo: 'sol', cri: 'e1_vanneau', fuite: 26, haut: [7, 16] });
     const n = 4 + ((Math.random() * 5) | 0); for (let k = 0; k < n; k++) M.ajouter(G, pt[0] + (Math.random() - 0.5) * 9, pt[1] + (Math.random() - 0.5) * 9);
   } },
@@ -785,8 +794,8 @@ const E1_CONDUITES = {
     if (e.G.part) { e.fly = 1; e.y += dt * 2; e.x += Math.sin(e.heading) * dt * 4; e.z += Math.cos(e.heading) * dt * 4; if (e.y > sol + 12) e.hidden = true; return true; }
     if (e.dist < (c.crouch ? 1.5 : c.sprint ? 7 : 3.4) && !(e.fuite > 0)) { e.fuite = 2.5; e.pose = 0; const a = Math.atan2(e.x - c.px, e.z - c.pz) + (Math.random() - 0.5); e.hx = e.x + Math.sin(a) * 9; e.hz = e.z + Math.cos(a) * 9; e.cible = null; if ((e.peurs = (e.peurs || 0) + 1) > 5) e.G.part = true; }
     e.fuite = Math.max(0, (e.fuite || 0) - dt);
-    if (e.pose > 0) { e.pose -= dt; e.fly = 0; e.y = sol + 0.32; e.repos = -1.45; return true; }
-    e.repos = 0; e.fly = 1; e.volM = Math.random() < 0.02 ? 'plane' : e.volM || 'bat';
+    if (e.pose > 0) { e.pose -= dt; e.fly = 0; e.y = sol + 0.32; e.repos = e.seed > 50 ? -0.08 : -1.45; return true; }
+    e.repos = null; e.fly = 1; e.volM = Math.random() < 0.02 ? 'plane' : e.volM || 'bat';
     e.cibleT = (e.cibleT || 0) - dt;
     if (!e.cible || e.cibleT <= 0) {
       const r = e.fuite > 0 ? 3 : 2.2;
@@ -847,7 +856,7 @@ const E1_CONDUITES = {
     if (e.cache > 0) { e.cache -= dt; e.hidden = true; if (e.cache <= 0) G.part = true; return true; }
     e.hidden = false;
     // acculé : le joueur sur lui plus de deux secondes
-    if (e.dist < 3.2) { e.acc = (e.acc || 0) + dt; if (e.acc > 1.8 && !e.pue) { e.pue = true; e1.empester(e); } } else e.acc = Math.max(0, (e.acc || 0) - dt);
+    if (e.dist < 3.2) { e.acc = (e.acc || 0) + dt; if (e.acc > E1_DANGER.putois.accule && !e.pue) { e.pue = true; e1.empester(e); } } else e.acc = Math.max(0, (e.acc || 0) - dt);
     if (e.dist < (c.crouch ? 6 : 12) || e.peurT > 0) { E1V.fuit(e, dt, w, c, e.cfg.run); if (e.dist > 22) e.cache = 3; return true; }
     // vers la ferme, longeant les murs ; le chien l'a senti
     const m = G.cible;
@@ -892,7 +901,7 @@ const E1_CONDUITES = {
     const B = e.berge;
     if (e.cache > 0) { e.cache -= dt; e.hidden = true; if (e.cache <= 0) e.hidden = false; return true; }
     // acculé : il saute aux jambes (une fois)
-    if (e.dist < 1.3 && e.file > 0 && !e.mordu) { e.coince = (e.coince || 0) + dt; if (e.coince > 1.2) { e.mordu = true; e1.cri(e, 'e1_couine', 1.2, 15); if (c.alive) play.hurt(3 + Math.random() * 2, e, 'Mordu par un rat'); e.cache = 15; return true; } }
+    if (e.dist < 1.3 && e.file > 0 && !e.mordu) { const D = E1_DANGER.surmulot; e.coince = (e.coince || 0) + dt; if (e.coince > D.coince) { e.mordu = true; e1.cri(e, 'e1_couine', 1.2, 15); if (c.alive) play.hurt(lerp(D.degats[0], D.degats[1], Math.random()), e, D.cause); e.cache = 15; return true; } }
     if (e.dist < (c.crouch ? 3 : 6) && !e.file) { e.file = 2.5; e1.cri(e, 'e1_rat', 0.8, 15); }
     if (e.file > 0) {
       e.file -= dt;
@@ -1088,14 +1097,14 @@ const E1_CONDUITES = {
   grand_paon(e, dt, w, c) {
     const G = e.G, R = G.lampe;
     if (G.part || !(game.sky && game.sky.night > 0.4)) { e.fly = 1; e.volM = 'bat'; e.y += dt * 1.5; e.x += Math.sin(e.heading) * dt * 2; e.z += Math.cos(e.heading) * dt * 2; if (e.dist > 30) e.hidden = true; return true; }
-    if (e.pose > 0) { e.pose -= dt; e.fly = 0; e.repos = -1.5; e.pend = true; if (e.dist < 1.1 && !c.crouch) e.pose = 0; return true; }
-    e.repos = 0; e.pend = false; e.fly = 1; e.volM = 'bat';
+    if (e.pose > 0) { e.pose -= dt; e.fly = 0; e.repos = -0.03; e.pend = true; if (e.dist < 1.1 && !c.crouch) e.pose = 0; return true; }
+    e.repos = null; e.pend = false; e.fly = 1; e.volM = 'bat';
     e.ang += dt * (2.2 + Math.sin(c.t * 0.6 + e.seed));
     const r = 0.45 + Math.sin(c.t * 0.9 + e.seed) * 0.25;
     E1V.vers(e, R.x + Math.cos(e.ang) * r, R.y + Math.sin(c.t * 1.7) * 0.25, R.z + Math.sin(e.ang) * r, 2.4, dt, 10);
     e.tocT = (e.tocT ?? 3) - dt;
     if (e.tocT <= 0) { e.tocT = 2 + Math.random() * 5; if (e.dist < 12) e1.cri(e, 'e1_toc', 1, 14); }
-    if (Math.random() < dt * 0.04) { e.pose = 15 + Math.random() * 30; const a = Math.random() * TAU; e.x = R.x + Math.sin(a) * 0.12; e.z = R.z + Math.cos(a) * 0.12; e.y = R.sol + 1.4 + Math.random() * 0.8; e.heading = a; }
+    if (Math.random() < dt * 0.04) { e.pose = 15 + Math.random() * 30; const a = Math.random() * TAU; e.x = R.x + Math.sin(a) * 0.12; e.z = R.z + Math.cos(a) * 0.12; e.y = R.sol + 1.4 + Math.random() * 0.8; e.heading = a + Math.PI; }
     return true;
   },
   // ---------------------------------------------------------------- l'escargot : il rampe, sur le sol ou au mur ; il rentre si on le touche
@@ -1124,18 +1133,19 @@ Object.assign(e1, {
     const G = e.G, N = G.nid, dN = Math.hypot(c.px - N.x, c.pz - N.z);
     e.fly = 1;
     // la colère : on s'est trop approché du nid (ou on l'a frappé)
+    const D = E1_DANGER.frelon;
     if (!G.colere && !G.part && c.alive) {
-      if (dN < 1.6) G.colere = 1;
-      else if (dN < 2.8) { G.trop = (G.trop || 0) + dt / G.ents.length; if (G.trop > 4) G.colere = 1; }
+      if (dN < D.tout_pres) G.colere = 1;
+      else if (dN < D.approche) { G.trop = (G.trop || 0) + dt / G.ents.length; if (G.trop > D.patience) G.colere = 1; }
       else G.trop = Math.max(0, (G.trop || 0) - dt / G.ents.length);
-      if (G.colere) { G.colereT = 12; G.piqures = 0; }
+      if (G.colere) { G.colereT = D.colere; G.piqures = 0; }
     }
     if (G.colere) {
       if (e === G.ents[0]) G.colereT -= dt;
       const p = game.player, cible = [p.pos[0], p.pos[1] + 1.5, p.pos[2]];
       const d = E1V.vers(e, cible[0] + Math.sin(c.t * 7 + e.seed) * 0.35, cible[1] + Math.cos(c.t * 5 + e.seed) * 0.3, cible[2] + Math.cos(c.t * 6 + e.seed) * 0.35, 6.5, dt, 12);
       e.piqT = (e.piqT ?? 0.5 + Math.random()) - dt;
-      if (d < 0.5 && e.piqT <= 0 && G.piqures < 3 && c.alive) { e.piqT = 1.5 + Math.random() * 2; G.piqures++; play.hurt(5 + Math.random() * 4, e, 'Piqué par les frelons'); play.nausea = Math.max(play.nausea || 0, 0.5); game.shakeT = Math.max(game.shakeT || 0, 0.15); }
+      if (d < 0.5 && e.piqT <= 0 && G.piqures < D.piqures && c.alive) { e.piqT = 1.5 + Math.random() * 2; G.piqures++; play.hurt(lerp(D.degats[0], D.degats[1], Math.random()), e, D.cause); play.nausea = Math.max(play.nausea || 0, 0.5); game.shakeT = Math.max(game.shakeT || 0, 0.15); }
       e.bzT = (e.bzT ?? 0) - dt;
       if (e.bzT <= 0) { e.bzT = 1 + Math.random(); e1.cri(e, 'e1_frelon', 1.3, 15); }
       if (G.colereT <= 0 || dN > 26 || !c.alive || c.inside) { G.colere = 0; G.trop = 0; }
@@ -1194,7 +1204,7 @@ Object.assign(e1, {
   empester(e) {
     for (let k = 0; k < 26; k++) particles.spawn(e.x + (Math.random() - 0.5) * 0.6, e.y + 0.2, e.z + (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.5, 0.1 + Math.random() * 0.25, (Math.random() - 0.5) * 0.5, [0.48, 0.46, 0.22, 0.25], 0.35, 4 + Math.random() * 3, 0, false);
     this.cri(e, 'e1_putois', 1.2, 25);
-    if (game.player && Math.hypot(game.player.pos[0] - e.x, game.player.pos[2] - e.z) < 4) { play.nausea = Math.max(play.nausea || 0, 1.0); this.pueT = 30; this.pense('putois', '(Une odeur à vous retourner l’estomac.)', 3.5); }
+    if (game.player && Math.hypot(game.player.pos[0] - e.x, game.player.pos[2] - e.z) < 4) { play.nausea = Math.max(play.nausea || 0, 1.0); this.pueT = E1_DANGER.putois.nausee; this.pense('putois', '(Une odeur à vous retourner l’estomac.)', 3.5); }
     e.cache = 0; e.state = 'flee';
   },
   pueT: 0,
@@ -1278,7 +1288,7 @@ Object.assign(e1, {
     // le bourdonnement du nid (placé ; il s'éteint seul quand on s'éloigne)
     if (F && F.nid && sound.source && sound.ok) {
       const d = Math.hypot(eye[0] - F.nid.x, eye[2] - F.nid.z), actif = this.nidActif() && this.dans(this.heure(), [7.5, 20.5]);
-      sound.source('e1_nid', 'e1_essaim', [F.nid.x, F.nid.y - 0.2, F.nid.z], actif && d < 25 ? clamp(1.4 - d / 18, 0, 1.2) : 0, { ref: 2, roll: 1.1, tau: 0.6 });
+      sound.source('e1_nid', 'e1_essaim', [F.nid.x, F.nid.y - 0.2, F.nid.z], actif && d < 18 ? clamp(1.15 - d / 15, 0, 1) : 0, { ref: 2, roll: 1.1, tau: 0.6 });
     }
     // les toiles : qui passe au travers les déchire (une pensée, la première fois)
     if (F) {
@@ -1373,8 +1383,8 @@ Object.assign(e1, {
     const E = this.S(), F = this.lieux(game.world).ferme;
     if (this.nidActif()) { // on ne prend pas un nid habité : ils sortent tous
       const G = this.actifs.find((q) => q.kind === 'frelon');
-      if (G) { G.colere = 1; G.colereT = 12; G.piqures = 0; }
-      else { play.hurt(6, null, 'Piqué par les frelons'); sound.hurt && sound.hurt(); }
+      if (G) { G.colere = 1; G.colereT = E1_DANGER.frelon.colere; G.piqures = 0; }
+      else { play.hurt(E1_DANGER.frelon.degats[0], null, E1_DANGER.frelon.cause); sound.hurt && sound.hurt(); }
       this.son([F.nid.x, F.nid.y, F.nid.z], 'e1_frelon', 1.4, 3);
       return;
     }
@@ -1395,7 +1405,7 @@ HOOKS.primary.push((eye, basis, held) => {
   const f = basis.f, cos = ((N.x - eye[0]) * f[0] + (N.y - 0.25 - eye[1]) * f[1] + (N.z - eye[2]) * f[2]) / d;
   if (cos < 0.85) return false;
   const G = e1.actifs.find((q) => q.kind === 'frelon');
-  if (G) { G.colere = 1; G.colereT = 14; G.piqures = 0; }
+  if (G) { G.colere = 1; G.colereT = E1_DANGER.frelon.colere; G.piqures = 0; }
   return false; // (le coup part quand même)
 });
 // les objets nouveaux se vendent là où l'on vend déjà leurs semblables
@@ -1404,4 +1414,8 @@ HOOKS.primary.push((eye, basis, held) => {
   ajoute('alchimiste', ['plume_faucon', 'plume_rapace', 'musc_putois', 'toile_epeire', 'nid_frelon', 'hanneton', 'sauterelle']);
   ajoute('chasseur', ['peau_putois', 'peau_fouine', 'peau_belette', 'plume_faucon', 'plume_rapace']);
   ajoute('colporteur', ['peau_fouine', 'peau_putois', 'machaon', 'grand_paon']);
+  ajoute('maire', ['hanneton', 'machaon', 'grand_paon']); // (le hannetonnage, et le maire collectionne)
+  ajoute('aubergiste', ['escargot', 'escargots_cuits']);
+  ajoute('pecheur', ['sauterelle', 'hanneton']); // (des appâts)
+  ajoute('guerisseuse', ['toile_epeire', 'escargot', 'plume_rapace']);
 }

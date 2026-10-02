@@ -178,5 +178,5 @@ SoundEngine.BOUCLES.e1_essaim = [3, (d, sr, dur) => {
   for (let k = 0; k < 7; k++) { const f = 120 + R() * 40, t0 = R() * dur * 0.7; S.note(d, sr, t0, 0.8 + R() * 1.2, f, f * (0.96 + R() * 0.08), 0.25, { h2: 0.8, vib: 3 + R() * 3, vd: 0.05, att: 0.3, dec: 1.2 }); }
   S.lp1(d, sr, 1800);
 }];
-SoundEngine.VOL_BOUCLES.e1_essaim = 0.05;
+SoundEngine.VOL_BOUCLES.e1_essaim = 0.032;
 Object.assign(SoundEngine.VOL_OISEAUX, E1_VOL);
