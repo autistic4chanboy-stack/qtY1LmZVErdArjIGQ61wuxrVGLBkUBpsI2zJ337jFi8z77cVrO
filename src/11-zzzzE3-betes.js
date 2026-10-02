@@ -26,7 +26,7 @@
 // ============================================================================
 const E3_MAX = 5;                                   // groupes à la fois, au plus
 const E3_ESSAI = 3.5;                               // un essai d'apparition toutes les 3,5 s
-const E3_POIDS = [0.3, 0.12, 0.045, 0.012, 0.003];  // chance par essai, selon la rareté (si tout le reste convient)
+const E3_POIDS = [0.3, 0.1, 0.025, 0.006, 0.002];  // chance par essai, selon la rareté (si tout le reste convient)
 // où et quand : mil (milieux), h (heures [[de, à]…]), n (taille du groupe), lieu (sol, arbre, chene, bouleau, rive,
 // eau, ciel, humide), soleil (beau temps, pas de neige), vie (secondes avant de s'en aller, hors de vue)
 const E3_VIE = {
@@ -61,6 +61,7 @@ const E3_VIE = {
   crossope: { mil: ['marais'], h: [[0, 24]], lieu: 'rive', vie: [200, 360] },
   cuivre_marais: { mil: ['marais'], h: [[9.5, 17]], lieu: 'sol', soleil: true, vie: [150, 280] },
 };
+const E3_SANS_OMBRE = new Set(['grand_mars', 'morio', 'cuivre_marais', 'capricorne', 'cicindele', 'sangsue']); // (trop petits : pas d'ombre)
 const E3_RARE = {};
 for (const [k, , , r] of E3_BETES) E3_RARE[k] = r;
 const E3_CHENES = new Set(['oak', 'chataignier', 'hetre']);
@@ -138,7 +139,7 @@ const e3 = {
   // de l'eau près d'un point : la rive (terre ferme au bord) et l'eau
   eauPres(w, x, z, R) {
     const WL = w.waterLevel;
-    for (let k = 0; k < 18; k++) {
+    for (let k = 0; k < 40; k++) {
       const a = Math.random() * TAU, d = 2 + Math.random() * R, ex = x + Math.cos(a) * d, ez = z + Math.sin(a) * d;
       if (!w.inside(ex, ez, 8) || w.heightAt(ex, ez) > WL - 0.08) continue;
       // de l'eau vers le point : la première terre ferme
@@ -438,7 +439,7 @@ const E3_COMPORTE = {
       if (P.coup || P.t > 4) { e.pique = null; e.bouge = true; e.e3Partir = true; }
       return true;
     }
-    const r = e3Perche(e, dt, w, c, { haut: [0.5, 0.72], R: 45, v: 11 });
+    const r = e3Perche(e, dt, w, c, { haut: [0.3, 0.42], R: 45, v: 11 });
     if (!r) return true;
     e.lookY = clamp(angDiff(e.heading, Math.atan2(c.px - e.x, c.pz - e.z)), -1.3, 1.3);
     const d = e.dist, alerte = e3Alerte(e, c, e.cfg.flee);
@@ -625,7 +626,7 @@ const E3_COMPORTE = {
   // la gélinotte : tapie, puis un grand fracas ; elle se pose dans un arbre, droite contre le tronc
   gelinotte(e, dt, w, c) {
     if (e.dansArbre) {
-      const r = e3Perche(e, dt, w, c, { haut: [0.3, 0.45], R: 25, v: 7 });
+      const r = e3Perche(e, dt, w, c, { haut: [0.22, 0.32], R: 25, v: 7 });
       if (!r) return true;
       if (e.dist < e3Alerte(e, c, 7)) { e.dansArbre = false; e.perch = null; e3Lever(e, c, { t: [3, 4], v: 9, h: 4, zig: 0.3 }); sound.flutter && sound.flutter(1, 0); e.e3Partir = true; }
       return true;
@@ -664,7 +665,7 @@ const E3_COMPORTE = {
   duc(e, dt, w, c) {
     if (c.night < 0.4) { e.hidden = true; return true; }
     e.hidden = false;
-    const r = e3Perche(e, dt, w, c, { haut: [0.45, 0.7], R: 30, v: 6 });
+    const r = e3Perche(e, dt, w, c, { haut: [0.3, 0.42], R: 30, v: 6 });
     if (!r) return true;
     e.lookY = clamp(angDiff(e.heading, Math.atan2(c.px - e.x, c.pz - e.z)), -1.5, 1.5);
     if (e.dist < e3Alerte(e, c, e.cfg.flee)) { e.bouge = true; e3Cri(e, 'claque', c, 30); return true; }
@@ -736,7 +737,7 @@ const E3_COMPORTE = {
     const h = e3Heure(), jour = h >= 7 && h < 19;
     if (e.envol) { const r = e3Envol(e, dt, w, c); if (!e.envol && jour) { e.bouge = true; e.perch = null; } return r; }
     if (jour) {
-      const r = e3Perche(e, dt, w, c, { haut: [0.35, 0.55], R: 30, v: 6 });
+      const r = e3Perche(e, dt, w, c, { haut: [0.26, 0.38], R: 30, v: 6 });
       if (e.rig) e.rig.set('neckB', r ? -0.9 : 0.4, 0, 0);
       if (!r) return true;
       if (e.dist < e3Alerte(e, c, e.cfg.flee)) { e.bouge = true; e3Cri(e, 'couac', c, 120); }
@@ -793,6 +794,7 @@ const E3_COMPORTE = {
   // la poule d'eau : elle nage en hochant la tête ; inquiète, elle court sur l'eau jusqu'aux roseaux, et s'y cache
   poule_eau(e, dt, w, c) {
     const WL = w.waterLevel;
+    if (w.heightAt(e.x, e.z) > WL - 0.05 && !(e.court > 0)) { e.y = entities.groundY(w, e, e.x, e.z); e.e3Partir = true; return false; } // (hors de l'eau : elle s'en va)
     if (e.cache > 0) { e.cache -= dt; e.hidden = true; if (e.cache <= 0) e.hidden = false; return true; }
     if (e.court > 0) {
       e.court -= dt; e.fly = 1; e.phase += dt * 9;
@@ -831,6 +833,7 @@ const E3_COMPORTE = {
   // la sangsue : elle nage en ondulant sous la surface ; elle vient à qui entre dans l'eau
   sangsue(e, dt, w, c) {
     const WL = w.waterLevel, p = game.player, pied = w.heightAt(c.px, c.pz) < WL - 0.18 && p.pos[1] < WL + 0.4;
+    if (w.heightAt(e.x, e.z) > WL - 0.05) { e.hidden = true; e.e3Partir = true; return true; } // (hors de l'eau)
     e.y = WL - 0.05;
     e.hidden = e.dist > 9;
     let tx, tz;
@@ -871,7 +874,7 @@ const E3_COMPORTE = {
 // en V (rig.e3V) ; les rapaces et les échassiers battent des ailes lentement et planent (rig.lent, 11-zzzz8-nature.js)
 {
   const MIENNES = [];
-  for (const [kind] of E3_BETES) { const C = CREATURES[kind]; if (C) { C.ombreE3 = C.radius <= 0.12 ? C.radius * 1.3 : Math.max(0.2, C.radius * 1.1); MIENNES.push(C); } }
+  for (const [kind] of E3_BETES) { const C = CREATURES[kind]; if (!C) continue; if (!E3_SANS_OMBRE.has(kind)) C.ombreE3 = C.radius <= 0.12 ? C.radius * 1.3 : Math.max(0.2, C.radius * 1.1); MIENNES.push(C); }
   const _draw = entities.draw.bind(entities);
   entities.draw = function (buf, sbuf, cam, maxD, t, flags) {
     const avant = MIENNES.map((C) => C.fly);
