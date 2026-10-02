@@ -391,7 +391,8 @@ const farm = {
 
   // ------------------------------------------------------------- sauvegarde
   save() {
-    if (!this.on || !this.s || this.s.over) return;
+    // (pas encore de monde : la page qu'on quitte pendant que la vallée se génère n'a rien à sauvegarder)
+    if (!this.on || !this.s || this.s.over || !this.w) return;
     const p = game.player;
     this.s.player = { pos: p.pos.map((v) => Math.round(v * 100) / 100), yaw: p.yaw, pitch: p.pitch, hp: p.hp, food: p.food };
     this.s.time = this.w.time;

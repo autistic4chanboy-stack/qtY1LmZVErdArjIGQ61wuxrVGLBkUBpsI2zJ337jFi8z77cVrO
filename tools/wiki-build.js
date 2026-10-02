@@ -4365,6 +4365,32 @@ function buildWiki(DB) {
       SP('sys:entrer', { t: 'On entre partout', s: 'Les étages, les tours, le clocher, le moulin, le phare…', c: ['batiments'], i: '⌂', h }, [FB1, FB2].filter(Boolean));
     }
   }
+  // ==== LA ONZIÈME VAGUE : LES GARDES ET LES CHEVALIERS (deux protecteurs par lieu, leurs cabanes, la sommation : se
+  // rendre, ou pas). Les textes : tools/wiki-gardes.js ; les gardes ont leur fiche d'habitant (NPC_DATA).
+  {
+    let WG = null;
+    try { WG = require('./wiki-gardes.js'); } catch (e) { (DB.log || []).push('wiki-gardes.js : ' + e.message); }
+    const FG0 = fileHas(/^11-zzzzC-gardes/), FG1 = fileHas(/^11-zzzzC1-gardes-jeu/);
+    for (const k of ['G1_HABITANTS', 'G1_IDS', 'G1_PAPIERS', 'G1_LIT_DECOUVERT', 'G1_PETITS', 'G1_BETES', 'G1_BETE_NOMS', 'G1_TOURNEE', 'G1_DIT', 'G1_RELEVE', 'G1C']) used.add(k);
+    if (WG && (FG0 || FG1)) {
+      const para3 = (t) => String(t).split(/\n\n+/).map((x) => `<p>${esc(x)}</p>`).join('');
+      const qui = ['garde', 'chevalier_guet', 'garde_champetre', 'gendarme'].filter((id) => pages.has('pnj:' + id));
+      let h = `<p class="lead">Deux protecteurs par lieu, pas un de plus : ${qui.map((id) => npcLink(id)).join(', ')}. Après un délit, quand un garde vous rattrape, vous choisissez : vous rendre, payer, ou refuser.</p>`;
+      h += WG.SECTIONS.map(([t, x]) => `<h3>${esc(t)}</h3>${para3(x)}`).join('');
+      h += SEC(`<h3>Ce qui se cache</h3>${para3(WG.SECRET)}`);
+      const cab = [];
+      for (const D of WG.CABANES) {
+        const id = D.pages.find((i) => pages.has(i));
+        if (!id) { (DB.log || []).push('wiki-gardes.js : aucune fiche pour ' + D.pages.join(', ')); continue; }
+        const p = pages.get(id);
+        p.h = (p.h || '') + `<h3>${esc(D.titre)}</h3>${para3(D.texte)}${D.secret ? SEC(`<h4>Ce qui s’y cache</h4>${para3(D.secret)}`) : ''}`;
+        addCat(id, 'batiments');
+        cab.push(id);
+      }
+      if (cab.length) h += `<h3>Leurs cabanes</h3><ul class="cards">${cab.map((i) => `<li>${link(i)}</li>`).join('')}</ul>`;
+      SP('sys:gardes', { t: 'Les gardes : se rendre, ou pas', s: 'Deux protecteurs par lieu, leurs cabanes, la sommation, la rébellion', c: ['societe', 'batiments'], g: 'Les gardes', i: '⚔', h }, [FG0, FG1].filter(Boolean));
+    }
+  }
   for (const f of [FILE.vol, FILE.prison, FILE.sentiments]) if (f) genericPage(f, 'prison', 'Prison, vol et sentiments');
   for (const f of Object.keys(MF)) if (!MODPAGE[f] && !/^07-/.test(f)) genericPage(f, 'nouveautes-autres', 'Autres nouveautés');
   // ce qui reste des tables de chaque module : en bas de sa fiche principale
@@ -4437,7 +4463,7 @@ function buildWiki(DB) {
     { id: 'fouilles', t: 'Fouiller, ramasser, casser', d: 'Les armoires et les tiroirs-caisses, le menu de butin, ce qui se casse et à qui c’était, les morts qui restent au sol.', nouveau: true, groups: groupBy(byCat('fouilles'), (p) => p.g || 'Fouiller') },
     { id: 'activites', t: 'Activités des villes et villages', d: 'Les dés, le vingt-et-un, la veillée, les petits travaux, le puits, la diseuse, les quilles, la tombola, les concours, les étals du Marchedi…', nouveau: true, groups: groupBy(byCat('activites'), (p) => p.g || 'Les activités') },
     { id: 'chasse', t: 'Chasse et attelage', d: 'Le fusil, les pièges, les bêtes dangereuses, les chasseurs, la charrette.', nouveau: true, groups: groupBy(byCat('chasse'), (p) => p.g || 'La chasse') },
-    { id: 'societe', t: 'Société', d: 'La mort des habitants, les crimes et les primes, les Sources, les nains, les géants, les colporteurs.', nouveau: true, groups: groupBy(byCat('societe'), (p) => p.g || 'La vie de la vallée') },
+    { id: 'societe', t: 'Société', d: 'Les gardes et la sommation (se rendre, ou pas), la mort des habitants, les crimes et les primes, les Sources, les nains, les géants, les colporteurs.', nouveau: true, groups: groupBy(byCat('societe'), (p) => p.g || 'La vie de la vallée') },
     { id: 'evenements', t: 'Événements et divinités', d: 'Nuits noires, neige, soleil, tornades, prodiges, les Trois, les malédictions, le temple, les cinématiques.', nouveau: true, groups: groupBy(byCat('evenements'), (p) => p.g || 'Ce qui arrive') },
     { id: 'mondes', t: 'Autres mondes', d: 'Le pays des bonbons, les Ténèbres, le cauchemar, les Enfers.', nouveau: true, groups: groupBy(byCat('mondes'), (p) => p.g || 'Les mondes') },
     { id: 'merveilles', t: 'Merveilles et mystères', d: 'Objets légendaires et mythiques, l’Homme long, la Fondation.', nouveau: true, groups: groupBy(byCat('merveilles'), (p) => p.g || 'Merveilles') },
@@ -5907,11 +5933,14 @@ function writeHTML(DB) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!--porte-->
 <script>
 // le wiki en ligne (GitHub Pages) a son propre code : sans lui, retour à l'accueil (index.html#wiki) ; ouvert en
-// local (file://), rien (empreinte du code du wiki : voir index.html et tools/beta-code.js)
+// local (file://), rien (empreinte du code du wiki : voir index.html et tools/beta-code.js). La copie sans code
+// (libre/Prairie-Wiki.html) est la même page, sans ce bloc « porte ».
 (function () { try { if (/^https?:$/.test(location.protocol) && localStorage.getItem('prairie.wiki') !== '2fc4b782912e33c839c66e2bf38fcda8beec39fefeae3440bd93d919814eec37') location.replace('index.html#wiki'); } catch (e) { /* rien */ } })();
 </script>
+<!--/porte-->
 <title>Newy and the Dark Forest — le wiki de la vallée</title>
 <meta name="description" content="Compagnon hors jeu de Newy and the Dark Forest : carte interactive de la vallée et fiches de tout ce qu'elle contient.">
 <style>${CSS}</style>
@@ -5948,6 +5977,14 @@ function writeHTML(DB) {
 `;
   if (/<\/script/i.test(json) || /<\/script/i.test(CLIENT.toString())) throw new Error('les données contiennent « </script » : le fichier serait cassé');
   fs.writeFileSync(OUT, html);
+  // la partie sans code (libre/) : le même wiki, sans la porte de son code ; seulement pour le wiki du dépôt (pas un --out=…)
+  if (OUT === path.join(ROOT, 'Prairie-Wiki.html')) {
+    const libre = html.replace(/<!--porte-->[\s\S]*?<!--\/porte-->\n?/, '');
+    if (libre === html || libre.includes("getItem('prairie.wiki')")) throw new Error('la porte du code du wiki (<!--porte--> … <!--/porte-->) est introuvable');
+    fs.mkdirSync(path.join(ROOT, 'libre'), { recursive: true });
+    fs.writeFileSync(path.join(ROOT, 'libre', 'Prairie-Wiki.html'), libre);
+    say('écrit aussi libre/Prairie-Wiki.html (le même wiki, sans code)');
+  }
   const kb = (s) => Math.round(Buffer.byteLength(s) / 1024);
   say(`écrit ${path.relative(process.cwd(), OUT) || OUT} : ${kb(html)} Ko (fiches ${kb(JSON.stringify(D.pages))} Ko, carte ${kb(JSON.stringify(map))} Ko, plans ${kb(JSON.stringify(plans))} Ko, icônes ${kb(D.icons.url)} Ko, figurines ${kb(D.figures.url)} Ko) — ${D.pages.length} fiches, ${wiki.cats.length} sections, ${wiki.other.length} « autres tables »`);
   return { D, wiki };

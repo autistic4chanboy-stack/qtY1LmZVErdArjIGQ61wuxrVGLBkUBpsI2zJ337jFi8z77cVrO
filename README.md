@@ -32,6 +32,14 @@ Les codes ne sont écrits en clair nulle part (seulement leur empreinte SHA-256)
 cache pas vraiment ce qu'elle contient, et sur un dépôt public, les fichiers du jeu se lisent sur GitHub même (un dépôt
 privé avec Pages demande un abonnement GitHub payant).
 
+**La partie sans code (`libre/`)** : le même jeu et le même wiki, ouverts à qui a l'adresse, sans demander de code —
+`libre/index.html` (une page d'accueil sans porte : « Jouer », « Le wiki de la vallée »), `libre/Prairie.html` et
+`libre/Prairie-Wiki.html`, en ligne à `https://<compte>.github.io/<dépôt>/libre/`. Rien à y faire à la main :
+`node build.js` écrit le jeu sans code en même temps que l'autre, `node tools/wiki-build.js` le wiki sans code ; ce
+sont les mêmes pages moins le bloc « porte » (balisé dans `src/shell.html` et dans `tools/wiki-build.js`). La bêta
+avec code ne change pas. Même site, même navigateur : les parties, les réglages et la langue sont les mêmes des deux
+côtés.
+
 ### La grande vallée
 
 Par défaut, la vallée est **dessinée à la main** (3 km de côté, la même à chaque partie ; « une vallée au hasard » de 2 km
@@ -540,6 +548,26 @@ Les commandes sont dans le menu **Commandes** (Échap).
   bergerie des Combes a retrouvé les affaires de son berger. **Le clocher englouti** est creux : on plonge (C), on entre
   par la baie ; la cloche n'y est que les nuits d'orage.
 
+**Les gardes et les chevaliers**
+- **Deux protecteurs par lieu, pas un de plus** : à Valbrume, Grosjean, le garde des ponts, le jour, et le **chevalier
+  du guet** (cuirasse, casque à crinière, sabre), la nuit, au **corps de garde du pont nord**, de l'autre côté des
+  douves (un lit de camp pour le passant, le registre du guet, le brasero allumé tant qu'on veille, une guérite au bout
+  du pont) ; à Clairpré, le **garde champêtre** (képi, plaque, fusil en bandoulière), le jour, et le **gendarme à
+  cheval**, la nuit, à la **cabane des gardes**, à l'entrée du hameau (son cheval, Mistral, à l'écurie) ; l'après-midi,
+  le gendarme fait la tournée des petits villages et porte les nouvelles. À deux, l'un dort pendant que l'autre veille ;
+  on les entend se passer la relève. Ils meurent pour de bon, comme les autres habitants.
+- **Se rendre, ou pas** : un garde qui vous rattrape pour un délit que son village connaît vous somme, et vous
+  choisissez : **vous rendre** (le cachot), **payer la prime sur-le-champ** pour un petit délit si vous avez de quoi, ou
+  **refuser**. Refuser, c'est la **rébellion** : une prime de plus, les coups (quel que soit le délit), l'autre garde qui
+  accourt. On peut fuir (semés, ils lâchent, la prime monte), se battre (un garde blessé, c'est une agression ; tué, un
+  meurtre) ou se rendre plus tard. Mis au tapis par un garde, on se réveille arrêté, pas mort — sauf quand on est
+  recherché pour un meurtre. On peut aussi aller **se rendre de soi-même** à n'importe quel garde.
+- **Ils sont là quand il y a un problème** dans leur village et un peu autour : l'homme au long manteau, l'homme au
+  masque, une bête dangereuse près des maisons (le garde champêtre tire : manquée, elle s'enfuit et il la chasse ;
+  touchée, elle charge), le feu (les seaux), un cri, un vol. Rien de surhumain : ils arrivent parfois trop tard,
+  Grosjean a peur, et ils peuvent y rester. Chez eux, on lit le registre du guet, celui des procès-verbaux et le
+  tableau des avis.
+
 **Le son**
 - **Tous les sons refaits, toujours synthétisés** : plus de bruit blanc cru ni de clics — bruits filtrés et adoucis, attaques
   douces, formes d'onde sans harmoniques perçantes, aigus un peu en retrait ; et jamais deux fois le même son (hauteur,
@@ -693,6 +721,8 @@ milieu, 2000-4000 ensuite ; une journée dure vingt minutes). Un objet trouvé v
 - Des peines proportionnées : l'amende d'un vol vaut une demi-journée des débuts, un meurtre trois jours ; la rançon
   est lourde mais payable (la prime, les jours rachetés, un dixième de la bourse) et baisse avec la peine qui reste ;
   la plus longue peine se fait en moins de trois minutes réelles en dormant sur la paille (la carrière compte double).
+- Refuser de suivre un garde (la rébellion) coûte plus cher que se rendre, sans doubler : le cachot d'un premier vol
+  passe de 315 à 565 pièces (`risques` le vérifie) ; semer les gardes ajoute 50 pièces à la prime.
 - Les trésors récompensent l'exploration une fois : un coffre de tombe, de temple, de crevasse ou du clocher englouti
   est plein à la première ouverture, puis il n'y revient que de la poussière ; les coffres que des vivants regarnissent
   (campements, charrettes, contrebandiers, mines) rapportent peu à la tournée.
@@ -921,6 +951,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzzzA-commandes.js` | le carnet de commandes, le voiturier et ses colis (`farm.s.commandes`) |
 | `11-zzzzB1-ville.js`, `07-zzzzzzzzzzzzB1-ville.js` | on entre partout, en ville : les étages (échelle de meunier et trappe, `b.plafond` pour que l'étage soit sous le toit), les huit tours et le chemin de ronde, le beffroi du clocher, la tente de la diseuse ; `game.insideBuilding` vaut à l'étage (API `b1`) |
 | `11-zzzzB2-campagne.js`, `07-zzzzzzzzzzzzB2-campagne.js` | on entre partout, à la campagne : le vieux moulin, le phare, les pigeonniers, les loges, le clocher englouti, les ruines où le butin était muré, la bergerie, les cabanes de l'estive (`farm.s.campagne`, API `campagne`) |
+| `11-zzzzC-gardes.js`, `11-zzzzC1-gardes-jeu.js`, `07-zzzzzzzzzzzzC-gardes.js` | les gardes et les chevaliers : les trois nouveaux protecteurs (le chevalier du guet, le garde champêtre, le gendarme), le corps de garde du pont nord et la cabane des gardes (générés après tout le reste), la sommation (se rendre, payer, refuser), la rébellion, les rondes et la relève, ce qu'ils font quand il y a un problème (`farm.s.gardes`, API `gardes`) |
 | `11-zzz00b-pensees.js`, `tools/pensees.js` | dire peu : `penser.une` (une règle dite une fois par vie), `penser.pas` (un avertissement espacé), `farm.s.pensees` ; l'inventaire des pensées (`node tools/pensees.js`) |
 | `11-zzvallee0-gel.js` | le gel en altitude : la jauge `farm.s.gel`, le givre à l'écran, la mort de froid |
 | `11-zzzz7-carte*.js`, `07-zzzzzzzzzz-carte.js` | un lieu tous les 200 m (catalogue, textes, lettres, inscriptions, petits secrets), les deux peuples de surface et leurs parlers (`farm.s.carte2`, API `carte2`) |
@@ -932,6 +963,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus bas) |
 | `shell.html` | HTML + CSS |
 | `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et ses deux codes (le jeu, le wiki), le site servi tel quel par GitHub Pages, changer un code |
+| `libre/` | la partie sans code : sa page d'accueil (`libre/index.html`), le jeu et le wiki sans leur porte (écrits par `node build.js` et `node tools/wiki-build.js`) |
 
 Le son, pour placer un bruit dans le monde : `sound.pan(p, dest)` accepte un panoramique −1..1 (comme avant) **ou une
 position** (`[x, y, z]`, `{x, y, z}`, une bête, un habitant) ; `sound.ici(pos, () => …, o)` place tous les sons joués

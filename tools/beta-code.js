@@ -5,7 +5,8 @@
 // puis il faut régénérer :
 //   node tools/beta-code.js jeu <nouveau code>    puis  node build.js
 //   node tools/beta-code.js wiki <nouveau code>   puis  node tools/wiki-build.js
-// Ceux qui étaient entrés avec l'ancien code devront donner le nouveau.
+// Ceux qui étaient entrés avec l'ancien code devront donner le nouveau. (La partie sans code, libre/, n'a pas de
+// porte : les mêmes commandes la régénèrent, sans code.)
 // (Une barrière simple : le code ne figure en clair nulle part, mais une page web publique ne protège pas vraiment
 // ce qu'elle contient — qui lit les fichiers du dépôt y a accès.)
 const fs = require('fs');

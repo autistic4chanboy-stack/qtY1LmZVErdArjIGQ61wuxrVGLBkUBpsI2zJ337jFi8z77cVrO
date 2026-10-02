@@ -22273,6 +22273,246 @@ Object.assign(PROP_COLL, {
   b2_echelle_tournante: [0.09, 0.09, 4.2], b2_marmite: [0.3, 0.3, 0.5],
 });
 
+// ---- 07-zzzzzzzzzzzzC-gardes.js
+// ============================================================================
+//  LES GARDES ET LEURS CABANES — les modèles (11-zzzzC-gardes.js)
+//  Les objets des postes de garde : le brasero de la nuit (il ne brûle que
+//  quand on veille), le poêle de fonte et son tuyau, les lits de camp, le
+//  tableau des avis, la guérite du pont, la cuirasse et le casque du chevalier
+//  sur leur chevalet, le tambour du garde champêtre, les seaux à incendie.
+//  Et ce que portent les gardes : le képi, le casque à crinière, le bicorne, la
+//  cuirasse, les buffleteries, la plaque, le sabre au fourreau (tiré quand on
+//  se bat), la lanterne de ronde, le fusil en bandoulière.
+//  L'avant de chaque modèle regarde +z ; l'origine est au sol, au centre.
+// ============================================================================
+const G1C = {
+  fer: rgbf('#3a3b40'), fonte: rgbf('#2c2d31'), laiton: rgbf('#b8933e'), acier: rgbf('#b9bec8'), acierSombre: rgbf('#7c818a'),
+  toile: rgbf('#8a8470'), couverture: rgbf('#5a5e4e'), drapBleu: rgbf('#2c3450'), cuir: rgbf('#4a3020'), cuirNoir: rgbf('#1c1814'),
+  crin: rgbf('#14110f'), garance: rgbf('#9a2a22'), braise: [1.6, 0.62, 0.18], flamme: [1.9, 1.05, 0.32], papier: rgbf('#ece4cc'),
+};
+
+Object.assign(PROP_MODELS, {
+  // le brasero : un panier de fer sur trois pieds ; la nuit, des braises et de petites flammes (data.lit)
+  brasero(E, o, t) {
+    for (let k = 0; k < 3; k++) { const a = k * TAU / 3; E.box(Math.sin(a) * 0.22, 0.32, Math.cos(a) * 0.22, 0.04, 0.68, 0.04, G1C.fer, TL.iron, Math.cos(a) * 0.22, 0, -Math.sin(a) * 0.22); }
+    E.bx(0, 0.6, 0, 0.56, 0.05, 0.56, G1C.fer, TL.iron);
+    for (const [x, z, sx, sz] of [[0, 0.27, 0.56, 0.03], [0, -0.27, 0.56, 0.03], [0.27, 0, 0.03, 0.56], [-0.27, 0, 0.03, 0.56]]) E.bx(x, 0.65, z, sx, 0.3, sz, G1C.fer, TL.iron);
+    const lit = !!(o.data && o.data.lit), tt = t ? t.t || 0 : 0;
+    if (lit) {
+      E.fl = FX_EMIT;
+      E.bx(0, 0.65, 0, 0.48, 0.12, 0.48, G1C.braise, TL.ember);
+      for (let k = 0; k < 4; k++) {
+        const h = 0.16 + 0.12 * (0.5 + 0.5 * Math.sin(tt * (5 + k) + k * 1.9 + o.x));
+        E.box(Math.sin(k * 1.7) * 0.11, 0.8 + h / 2, Math.cos(k * 2.3) * 0.11, 0.1, h, 0.1, G1C.flamme, TL.flame, 0, tt * 0.7 + k);
+      }
+      E.fl = 0;
+    } else E.bx(0, 0.65, 0, 0.48, 0.08, 0.48, rgbf('#3a3634'), TL.coal);
+  },
+  // le poêle de fonte : sa porte rougeoie quand il chauffe (data.lit) ; le tuyau monte de data.h mètres
+  g1_poele(E, o, t) {
+    const h = (o.data && o.data.h) || 1.8, lit = !!(o.data && o.data.lit);
+    for (const [x, z] of [[-0.2, -0.17], [0.2, -0.17], [-0.2, 0.17], [0.2, 0.17]]) E.bx(x, 0, z, 0.06, 0.16, 0.06, G1C.fonte, TL.iron);
+    E.bx(0, 0.16, 0, 0.5, 0.56, 0.44, G1C.fonte, TL.iron);
+    E.bx(0, 0.72, 0, 0.56, 0.05, 0.5, G1C.fonte, TL.iron);
+    E.bx(0, 0.77, 0, 0.2, 0.04, 0.2, G1C.fer, TL.iron);
+    E.bx(0.12, 0.77, 0.1, 0.13, h - 0.77, 0.13, G1C.fonte, TL.iron);
+    E.bx(-0.1, 0.77, -0.08, 0.2, 0.16, 0.18, rgbf('#5c5e64'), TL.metal); // la bouilloire
+    E.fl = lit ? FX_EMIT : 0;
+    E.bx(0, 0.26, 0.225, 0.24, 0.18, 0.02, lit ? [1.4, 0.5, 0.15] : [0.06, 0.05, 0.05], lit ? TL.ember : TL.plain);
+    E.fl = 0;
+  },
+  // le lit de camp : deux croisillons, la toile tendue, une couverture grise (data.col), un traversin ; au pied, une capote pliée
+  g1_lit_camp(E, o) {
+    const c = rgbf((o.data && o.data.col) || '#5a5e4e');
+    for (const z of [-0.8, 0.8]) for (const s of [-1, 1]) E.box(0, 0.2, z, 0.72, 0.035, 0.035, WHITE, TL.wood, 0, 0, s * 0.5);
+    for (const x of [-0.36, 0.36]) E.bx(x, 0.36, 0, 0.04, 0.04, 1.86, WHITE, TL.wood);
+    E.bx(0, 0.39, 0, 0.7, 0.03, 1.8, G1C.toile, TL.cloth);
+    E.bx(0, 0.42, 0.1, 0.72, 0.06, 1.3, c, TL.blanket);
+    E.bx(0, 0.42, -0.72, 0.56, 0.1, 0.24, rgbf('#d8d0bc'), TL.pillow);
+    if (!(o.data && o.data.nu)) E.bx(0.04, 0.48, 0.66, 0.5, 0.08, 0.32, G1C.drapBleu, TL.coat);
+  },
+  // le tableau des avis, cloué au mur (+z regarde la rue) : des feuilles, un arrêté, et, quand on vous cherche, votre affiche
+  g1_tableau(E, o) {
+    E.bx(0, 0, 0, 1.2, 0.85, 0.05, WHITE, TL.darkwood);
+    E.bx(0, 0.05, 0.025, 1.1, 0.75, 0.02, rgbf('#9a7a52'), TL.wood);
+    E.box(0, 0.92, 0.04, 1.3, 0.06, 0.16, WHITE, TL.darkwood, -0.2);
+    const F = [[-0.36, 0.52, 0.3, 0.38, G1C.papier], [0.02, 0.56, 0.28, 0.3, rgbf('#e8d8a8')], [0.36, 0.5, 0.26, 0.4, rgbf('#f0e8d8')], [-0.2, 0.18, 0.4, 0.26, rgbf('#ddd0b4')], [0.28, 0.16, 0.3, 0.24, G1C.papier]];
+    for (const [x, y, w, h, c] of F) { E.box(x, y, 0.04, w, h, 0.01, c, TL.paper); E.box(x, y + h / 2 - 0.03, 0.046, 0.025, 0.025, 0.01, rgbf('#7a1a10'), TL.plain); }
+    E.box(-0.2, 0.22, 0.047, 0.3, 0.02, 0.006, rgbf('#3a2a1a'), TL.plain); E.box(-0.2, 0.17, 0.047, 0.26, 0.012, 0.006, rgbf('#3a2a1a'), TL.plain);
+  },
+  // la guérite du pont : planches peintes à chevrons, un petit toit de tôle, ouverte devant (+z : on s'y abrite debout)
+  g1_guerite(E) {
+    const v = rgbf('#3e4a3a'), b = rgbf('#e4dccb');
+    E.bx(0, 0, -0.42, 1.0, 2.25, 0.06, v, TL.wood);
+    for (const s of [-1, 1]) { E.bx(s * 0.47, 0, 0, 0.06, 2.25, 0.9, v, TL.wood); E.bx(s * 0.47, 0.9, 0.43, 0.08, 0.14, 0.06, b, TL.wood); }
+    for (const y of [0.3, 1.2]) for (const s of [-1, 1]) for (let k = 0; k < 3; k++) E.box(s * 0.502, y + 0.18 + k * 0.22, 0, 0.012, 0.08, 0.86, k % 2 ? v : b, TL.plain, 0.5, 0, 0);
+    E.bx(0, 0, 0, 0.94, 0.06, 0.86, WHITE, TL.darkwood);
+    E.box(0, 2.38, -0.04, 1.24, 0.08, 1.12, rgbf('#4a4c52'), TL.iron, -0.18);
+    E.box(0, 2.3, -0.04, 1.1, 0.1, 1.0, v, TL.wood);
+    E.bx(0, 1.0, -0.36, 0.42, 0.04, 0.12, WHITE, TL.darkwood); // la tablette
+  },
+  // la cuirasse et le casque du chevalier, sur leur chevalet (la tenue de rechange, astiquée)
+  g1_cuirasse_pose(E) {
+    E.bx(0, 0, 0, 0.36, 0.05, 0.36, WHITE, TL.darkwood);
+    E.bx(0, 0.05, 0, 0.06, 1.25, 0.06, WHITE, TL.darkwood);
+    E.bx(0, 1.15, 0, 0.5, 0.05, 0.06, WHITE, TL.darkwood);
+    E.box(0, 1.0, 0.06, 0.44, 0.5, 0.12, G1C.acier, TL.metal);
+    E.box(0, 1.0, -0.05, 0.42, 0.48, 0.08, G1C.acierSombre, TL.metal);
+    for (const s of [-1, 1]) E.bx(s * 0.17, 1.2, 0, 0.08, 0.025, 0.2, G1C.laiton, TL.gold);
+    E.bx(0, 1.3, 0, 0.26, 0.17, 0.28, G1C.acier, TL.metal);
+    E.bx(0, 1.47, 0, 0.05, 0.08, 0.26, G1C.laiton, TL.gold);
+    E.box(0, 1.33, -0.2, 0.06, 0.38, 0.06, G1C.crin, TL.hair, 0.35);
+  },
+  // le tambour du garde champêtre et ses baguettes (pour les avis à la population)
+  g1_tambour(E) {
+    E.bx(0, 0, 0, 0.42, 0.3, 0.42, rgbf('#2a3a6a'), TL.wood);
+    E.bx(0, 0.3, 0, 0.44, 0.02, 0.44, rgbf('#e0d8c0'), TL.paper);
+    E.bx(0, 0, 0, 0.44, 0.03, 0.44, G1C.garance, TL.wood);
+    for (let k = 0; k < 6; k++) E.box(Math.sin(k) * 0.21, 0.15, Math.cos(k) * 0.21, 0.01, 0.3, 0.01, rgbf('#e8e0c8'), TL.rope, 0, 0, 0.4);
+    E.box(0.05, 0.33, 0.04, 0.34, 0.025, 0.025, WHITE, TL.wood, 0, 0.4); E.box(-0.02, 0.34, -0.06, 0.34, 0.025, 0.025, WHITE, TL.wood, 0, -0.3);
+  },
+  // les seaux de cuir à incendie, pendus au mur (+z regarde la pièce)
+  g1_seaux(E) {
+    E.bx(0, 1.6, -0.03, 1.0, 0.06, 0.05, WHITE, TL.darkwood);
+    for (const x of [-0.32, 0, 0.32]) { E.bx(x, 1.12, 0.06, 0.2, 0.3, 0.2, G1C.cuir, TL.leather); E.bx(x, 1.42, 0.06, 0.18, 0.18, 0.012, G1C.cuirNoir, TL.leather); E.bx(x, 1.44, 0.06, 0.06, 0.16, 0.02, G1C.fer, TL.iron); }
+  },
+  // le registre (un grand livre ouvert, l'encrier, la plume)
+  g1_registre(E) {
+    E.box(0, 0.02, 0, 0.5, 0.03, 0.36, rgbf('#3a2420'), TL.leather);
+    E.box(-0.12, 0.04, 0, 0.23, 0.02, 0.33, G1C.papier, TL.paper, 0, 0, 0.04); E.box(0.12, 0.04, 0, 0.23, 0.02, 0.33, G1C.papier, TL.paper, 0, 0, -0.04);
+    for (let k = 0; k < 5; k++) E.box(-0.12, 0.052, -0.11 + k * 0.05, 0.18, 0.004, 0.008, rgbf('#4a3a2a'), TL.plain);
+    E.bx(0.32, 0, 0.08, 0.07, 0.07, 0.07, rgbf('#1c1a20'), TL.glass);
+    E.box(0.33, 0.12, 0.08, 0.015, 0.2, 0.015, rgbf('#e8e2d6'), TL.plain, 0.3);
+  },
+  // une selle sur son chevalet, la bride pendue (l'écurie du gendarme)
+  g1_selle(E) {
+    for (const z of [-0.3, 0.3]) for (const s of [-1, 1]) E.box(s * 0.16, 0.4, z, 0.05, 0.85, 0.05, WHITE, TL.wood, 0, 0, s * 0.35);
+    E.bx(0, 0.78, 0, 0.1, 0.08, 0.74, WHITE, TL.wood);
+    E.box(0, 0.9, 0, 0.5, 0.14, 0.58, rgbf('#5a3420'), TL.leather);
+    E.box(0, 1.0, -0.22, 0.2, 0.14, 0.12, rgbf('#4a2a18'), TL.leather);
+    E.box(0, 0.86, 0.04, 0.6, 0.06, 0.66, rgbf('#2a3a6a'), TL.cloth);
+    for (const s of [-1, 1]) { E.bx(s * 0.3, 0.45, 0.02, 0.02, 0.4, 0.02, G1C.cuir, TL.leather); E.bx(s * 0.3, 0.42, 0.02, 0.08, 0.05, 0.06, G1C.fer, TL.iron); }
+  },
+});
+Object.assign(PROP_COLL, {
+  brasero: [0.3, 0.3, 0.9], g1_poele: [0.3, 0.26, 0.9], g1_lit_camp: [0.4, 0.95, 0.5], g1_tableau: null, g1_guerite: [0.52, 0.48, 2.3],
+  g1_cuirasse_pose: [0.25, 0.22, 1.5], g1_tambour: [0.22, 0.22, 0.34], g1_seaux: null, g1_registre: null, g1_selle: [0.3, 0.4, 1.0],
+});
+Object.assign(PROP_LIGHTS, {
+  brasero: { c: [1.0, 0.56, 0.24], r: 9, y: 0.95, flicker: true, lit: true },
+  g1_poele: { c: [1.0, 0.5, 0.2], r: 4.5, y: 0.35, flicker: true, lit: true },
+});
+
+// ---------------------------------------------------------------- ce que portent les gardes
+// look.casque : 'kepi' | 'crin' (casque à crinière) | 'bicorne' ; look.cuirasse ; look.buffle (buffleteries blanches) ;
+// look.plaque (plaque de garde champêtre et son baudrier) ; look.epaulettes (couleur) ; look.sabre (fourreau à la hanche) ;
+// look.held === 'sabre' : la lame et la garde dans la main droite (it0, it1 : montrées quand on se bat) ;
+// look.ronde : une lanterne dans la main gauche (g1lant, montrée la nuit, de veille) ; look.fusil : en bandoulière (g1fusD*),
+// aux mains pour tirer (g1fusM*). rig.g1 = { sabre, lant, fusil } : réglé par 11-zzzzC1-gardes-jeu.js, appliqué au dessin.
+{
+  const _hr = humanRig;
+  humanRig = function (look) {
+    const r = _hr(look);
+    if (!look || !(look.casque || look.cuirasse || look.sabre || look.held === 'sabre' || look.ronde || look.fusil || look.plaque || look.buffle)) return r;
+    const P = [], hd = r.part('head'), to = r.part('torso');
+    if (!hd || !to) return r;
+    const H = hd.s[0], yTop = hd.o[1] + hd.s[1] / 2, zf = H / 2;
+    const tw = to.s[0], tH = to.s[1] + 0.02, td = to.s[2];
+    const add = (name, parent, p, s, col, tex, o, extra) => P.push(Object.assign({ name, parent, p, s, o: o || [0, 0, 0], col, tex }, extra || {}));
+    // ---- coiffures
+    if (look.casque === 'kepi') {
+      const c = rgbf(look.casqueCol || '#232c46'), bande = rgbf(look.bandeCol || '#1a1d28');
+      add('g1kepi', 'head', [0, yTop + 0.055, -0.012], [H + 0.012, 0.15, H + 0.01], c, TL.cloth, [0, 0, 0], { r0: [0.13, 0, 0], shp: TF.calotteH });
+      add('g1kepiB', 'head', [0, yTop - 0.004, -0.006], [H + 0.03, 0.045, H + 0.03], bande, TL.cloth);
+      add('g1kepiV', 'head', [0, yTop - 0.03, zf + 0.05], [H * 0.82, 0.015, 0.11], G1C.cuirNoir, TL.leather, [0, 0, 0], { r0: [0.28, 0, 0] });
+      add('g1kepiI', 'head', [0, yTop + 0.06, zf + 0.012], [0.05, 0.05, 0.012], G1C.laiton, TL.gold, [0, 0, 0], { r0: [0.13, 0, 0] });
+    } else if (look.casque === 'crin') {
+      add('g1bombe', 'head', [0, yTop + 0.055, -0.01], [H + 0.05, 0.16, H + 0.06], G1C.acier, TL.metal, [0, 0, 0], { shp: TF.calotte });
+      add('g1bandeau', 'head', [0, yTop - 0.012, -0.01], [H + 0.065, 0.05, H + 0.075], G1C.laiton, TL.gold);
+      add('g1cimier', 'head', [0, yTop + 0.16, -0.01], [0.045, 0.09, H * 0.98], G1C.laiton, TL.gold);
+      add('g1crin', 'head', [0, yTop + 0.17, -H / 2 - 0.01], [0.075, 0.5, 0.07], G1C.crin, TL.hair, [0, -0.24, -0.02], { r0: [0.22, 0, 0] });
+      add('g1visiere', 'head', [0, yTop - 0.03, zf + 0.04], [H * 0.86, 0.018, 0.09], G1C.acier, TL.metal, [0, 0, 0], { r0: [0.3, 0, 0] });
+      add('g1plumet', 'head', [-(H / 2 + 0.035), yTop + 0.1, 0.0], [0.04, 0.2, 0.04], G1C.garance, TL.wool);
+      for (const s of [-1, 1]) add(s < 0 ? 'g1jugL' : 'g1jugR', 'head', [s * (H / 2 + 0.014), yTop - 0.1, 0.02], [0.022, 0.15, 0.04], G1C.laiton, TL.gold);
+    } else if (look.casque === 'bicorne') {
+      const c = rgbf(look.casqueCol || '#141216'), g = rgbf('#c8c8c4');
+      for (const s of [-1, 1]) {
+        add(s < 0 ? 'g1bicL' : 'g1bicR', 'head', [s * 0.12, yTop + 0.07, -0.015], [0.27, 0.14, 0.13], c, TL.cloth, [0, 0, 0], { r0: [0, 0, -s * 0.24] });
+        add(s < 0 ? 'g1bicGL' : 'g1bicGR', 'head', [s * 0.12, yTop + 0.135, -0.015], [0.27, 0.02, 0.135], g, TL.metal, [0, 0, 0], { r0: [0, 0, -s * 0.24] });
+      }
+      add('g1bicC', 'head', [0, yTop + 0.01, -0.015], [H + 0.02, 0.06, H + 0.01], c, TL.cloth);
+      add('g1cocarde', 'head', [-0.06, yTop + 0.08, 0.06], [0.06, 0.06, 0.012], rgbf('#2a3c8a'), TL.plain);
+      add('g1cocarde2', 'head', [-0.06, yTop + 0.08, 0.067], [0.036, 0.036, 0.008], rgbf('#e8e4dc'), TL.plain);
+      add('g1cocarde3', 'head', [-0.06, yTop + 0.08, 0.072], [0.016, 0.016, 0.006], rgbf('#b02020'), TL.plain);
+    }
+    // ---- cuirasse (plastron d'acier, épaulières de laiton), buffleteries, plaque, épaulettes
+    if (look.cuirasse) {
+      add('g1cuir', 'torso', [0, 0, 0], [tw + 0.04, tH * 0.78, td + 0.06], G1C.acier, TL.metal, [0, tH * 0.56, 0.004], { shp: to.shp });
+      for (const s of [-1, 1]) add(s < 0 ? 'g1epL' : 'g1epR', 'torso', [s * (tw / 2 - 0.06), tH - 0.005, 0], [0.09, 0.025, td * 0.75], G1C.laiton, TL.gold);
+      add('g1clous', 'torso', [0, tH * 0.2, td / 2 + 0.035], [tw * 0.7, 0.02, 0.01], G1C.laiton, TL.gold);
+    }
+    if (look.buffle) {
+      const bl = rgbf('#e8e4d8');
+      add('g1bufA', 'torso', [0, tH * 0.52, td / 2 + 0.018], [0.05, tH * 1.05, 0.012], bl, TL.leather, [0, 0, 0], { r0: [0, 0, 0.55] });
+      add('g1bufB', 'torso', [0, tH * 0.52, -td / 2 - 0.018], [0.05, tH * 1.05, 0.012], bl, TL.leather, [0, 0, 0], { r0: [0, 0, -0.55] });
+      add('g1bufC', 'torso', [0, 0.06, 0], [tw + 0.04, 0.055, td + 0.04], bl, TL.leather);
+      add('g1bufP', 'torso', [0, 0.06, td / 2 + 0.024], [0.07, 0.06, 0.01], G1C.laiton, TL.gold);
+    }
+    if (look.plaque) {
+      const cu = rgbf('#5a3a22');
+      add('g1bau', 'torso', [0, tH * 0.52, td / 2 + 0.016], [0.06, tH * 1.05, 0.012], cu, TL.leather, [0, 0, 0], { r0: [0, 0, -0.55] });
+      add('g1bauD', 'torso', [0, tH * 0.52, -td / 2 - 0.016], [0.06, tH * 1.05, 0.012], cu, TL.leather, [0, 0, 0], { r0: [0, 0, 0.55] });
+      add('g1plaque', 'torso', [-0.07, tH * 0.66, td / 2 + 0.026], [0.085, 0.1, 0.012], G1C.laiton, TL.gold, [0, 0, 0], { r0: [0, 0, -0.55] });
+    }
+    if (look.epaulettes) {
+      const ec = rgbf(look.epaulettes);
+      for (const s of [-1, 1]) add(s < 0 ? 'g1epaL' : 'g1epaR', 'torso', [s * (tw / 2 - 0.02), tH + 0.004, 0], [0.13, 0.03, 0.15], ec, TL.gold, [0, 0, 0], { r0: [0, 0, s * 0.2] });
+    }
+    // ---- le sabre au fourreau, à la hanche gauche (la garde disparaît quand la lame est tirée)
+    if (look.sabre) {
+      add('g1fourreau', 'hips', [-0.22, -0.02, 0.02], [0.035, 0.86, 0.065], G1C.fer, TL.iron, [0, -0.42, 0], { r0: [0.42, 0, 0.1] });
+      add('g1garde', 'hips', [-0.22, -0.02, 0.02], [0.05, 0.15, 0.1], G1C.laiton, TL.gold, [0, 0.07, 0], { r0: [0.42, 0, 0.1] });
+    }
+    // ---- la lame tirée (main droite) : it0 la garde, it1 la lame
+    if (look.held === 'sabre') {
+      add('it0', 'handR', [0, -0.03, 0.02], [0.05, 0.13, 0.1], G1C.laiton, TL.gold, [0, 0.02, 0], { hide: true });
+      add('it1', 'handR', [0, 0.05, 0.03], [0.022, 0.88, 0.05], rgbf('#d8dce4'), TL.metal, [0, 0.46, 0], { r0: [0.25, 0, 0], hide: true });
+    }
+    // ---- la lanterne de ronde (main gauche)
+    if (look.ronde) {
+      add('g1lant', 'handL', [0, -0.16, 0.02], [0.13, 0.17, 0.13], [1.25, 1.0, 0.68], TL.glass, [0, 0, 0], { fl: FX_EMIT, hide: true });
+      add('g1lant2', 'handL', [0, -0.06, 0.02], [0.15, 0.03, 0.15], G1C.fer, TL.iron, [0, 0, 0], { hide: true });
+    }
+    // ---- le fusil : dans le dos, ou aux mains pour tirer
+    if (look.fusil) {
+      const bois = rgbf('#5a3a22'), acier = rgbf('#34363c');
+      const zd = -(td / 2 + 0.06); // (contre le dos, pas dedans)
+      add('g1fusD0', 'torso', [0.04, 0.3, zd], [0.05, 0.72, 0.035], acier, TL.iron, [0, 0.14, 0], { r0: [0.12, 0, 0.5] });
+      add('g1fusD1', 'torso', [0.04, 0.3, zd], [0.07, 0.34, 0.09], bois, TL.darkwood, [0, -0.34, 0], { r0: [0.12, 0, 0.5] });
+      add('g1fusM0', 'handR', [0, -0.03, 0.04], [0.035, 0.035, 0.72], acier, TL.iron, [0, 0, 0.36], { r0: [0.9, 0, 0], hide: true });
+      add('g1fusM1', 'handR', [0, -0.03, 0.04], [0.07, 0.1, 0.36], bois, TL.darkwood, [0, -0.02, -0.16], { r0: [0.9, 0, 0], hide: true });
+    }
+    if (!P.length) return r;
+    const rr = rigPlus(r, P);
+    rr.g1 = { sabre: false, lant: false, fusil: false };
+    return rr;
+  };
+}
+// au dessin, ce que le garde tient (npcs.draw cache it0/it1 de ceux qui ne sont pas « le garde » : on les remontre ici)
+{
+  const _dr = drawRig;
+  drawRig = function (buf, rig, x, y, z, heading, s, flags) {
+    const G = rig && rig.g1;
+    if (G) {
+      const I = rig.idx, P = rig.parts, set = (n, h) => { const i = I[n]; if (i !== undefined) P[i].hide = h; };
+      set('it0', !G.sabre); set('it1', !G.sabre); set('g1garde', !!G.sabre);
+      set('g1lant', !G.lant); set('g1lant2', !G.lant);
+      set('g1fusD0', !!G.fusil); set('g1fusD1', !!G.fusil); set('g1fusM0', !G.fusil); set('g1fusM1', !G.fusil);
+    }
+    return _dr(buf, rig, x, y, z, heading, s, flags);
+  };
+}
+
 // ---- 08-renderer.js
 // ============================================================================
 //  RENDU : cycle jour/nuit, terrain par morceaux, sprites, herbe, eau, blocs
@@ -27616,7 +27856,8 @@ const farm = {
 
   // ------------------------------------------------------------- sauvegarde
   save() {
-    if (!this.on || !this.s || this.s.over) return;
+    // (pas encore de monde : la page qu'on quitte pendant que la vallée se génère n'a rien à sauvegarder)
+    if (!this.on || !this.s || this.s.over || !this.w) return;
     const p = game.player;
     this.s.player = { pos: p.pos.map((v) => Math.round(v * 100) / 100), yaw: p.yaw, pitch: p.pitch, hp: p.hp, food: p.food };
     this.s.time = this.w.time;
@@ -70057,6 +70298,1735 @@ HOOKS.lights.push((eye) => { try { return campagne.lumieres(eye); } catch (e) { 
 HOOKS.update.push((dt) => { try { campagne.update(dt); } catch (e) { console.error('campagne', e); } });
 HOOKS.load.push(() => { try { if (game.world && game.world.b2) campagne.charger(); else { campagne.mont = null; campagne.zoom = null; } } catch (e) { console.error('campagne', e); } });
 
+// ---- 11-zzzzC-gardes.js
+// ============================================================================
+//  LES GARDES ET LES CHEVALIERS (agent G1, onzième vague) — les gens, les cabanes
+//  « Ajoute d'autres gardes et chevaliers qui protègent les gros villages et la
+//  ville ; pas plus de deux gardes pour une ville ou un village ; fais des
+//  cabanes de garde. »
+//  - VALBRUME (la ville) : le garde des ponts d'aujourd'hui (Grosjean), et le
+//    CHEVALIER DU GUET, le vieux titre du chef de la garde de nuit, porté par un
+//    ancien cuirassier (cuirasse, casque à crinière, sabre). Il loge au CORPS DE
+//    GARDE, de l'autre côté du pont nord : quand les ponts sont levés, c'est lui
+//    qui reste avec ceux qui restent dehors (un lit de camp pour le passant).
+//  - CLAIRPRÉ (le hameau) : le GARDE CHAMPÊTRE (képi, plaque, tambour, fusil),
+//    et le GENDARME À CHEVAL détaché de la préfecture (bicorne, buffleteries,
+//    sabre), qui fait aussi la tournée des petits villages qui n'ont personne
+//    (les Sources, les Planches, la route du lac, la bibliothèque) ; son cheval
+//    reste à l'écurie de la CABANE DE GARDE, à l'entrée du hameau. Le jour, le
+//    garde champêtre ; la nuit, le gendarme : l'un dort pendant que l'autre veille.
+//  - Pourquoi ces deux-là : Valbrume et Clairpré sont les seuls vrais villages
+//    (des rues, une foire, un marché). Les Sources, les Planches, l'estive ont
+//    trois foyers chacun et leurs propres coutumes (on n'y veut pas d'uniforme) ;
+//    les nains et le Dessous ont leurs lois. Le gendarme y passe, il n'y loge pas.
+//  Le jeu des gardes (rondes, interventions, sommation, rébellion) : 11-zzzzC1-gardes-jeu.js.
+//  Génération : après tout le reste (emballage de generateValley, après 11-zzzzB2),
+//  tirage propre mulberry32(graine ^ 0xC6A2D1) ; on AJOUTE au bout des listes.
+// ============================================================================
+Object.assign(LIEU_NAMES, { g1_corps_garde: 'le corps de garde du pont nord', g1_cabane_hameau: 'la cabane des gardes' }); // (les tours d'angle ont aussi le leur : 11-zzzzB1-ville.js)
+
+// ---------------------------------------------------------------- la rébellion (refuser de se rendre à un garde)
+if (typeof CRIME_DEF !== 'undefined' && !CRIME_DEF.rebellion) CRIME_DEF.rebellion = { prime: 100, grav: 2, oubli: 6, violent: false };
+if (typeof PRISON_PEINE !== 'undefined' && PRISON_PEINE.rebellion === undefined) PRISON_PEINE.rebellion = 1;
+{
+  const _lib = societe.libelle.bind(societe);
+  societe.libelle = function (C) { return C && C.type === 'rebellion' ? 'la rébellion contre la garde' : _lib(C); };
+}
+
+// ---------------------------------------------------------------- les trois nouveaux
+// (garde : le rôle ; lieu : le village qu'il protège ; veille : quand il est de garde ; courage : 0 (fuit tout) à 1 (rien) ;
+// coups : dégâts de son arme au corps à corps ; tir : son fusil, s'il en a un)
+const G1_HABITANTS = [
+  // ============================================================ le chevalier du guet (Valbrume)
+  {
+    id: 'chevalier_guet', role: 'Chevalier du guet', gender: 'm', names: ['Hector', 'Aristide', 'Barthélemy'], surname: 'Vauquelin', age: 57, area: 'ville',
+    home: 'g1_corps_garde', work: 'g1_corps_garde', traits: ['droit', 'taciturne'], liens: { garde: 'son second', maire: 'supérieur', gendarme: 'rival', aubergiste: 'pension' },
+    garde: { lieu: 'valbrume', veille: 'nuit', courage: 1, coups: [24, 32], arme: 'sabre', titre: 'chevalier du guet' },
+    look: { skin: '#cda584', hair: '#8c8782', hairStyle: 'court', beard: 'moustache', hat: null, top: '#1f2a46', bottom: '#d4cec0', shoe: '#121010', dress: false, apron: null, height: 1.07, build: 'normal', casque: 'crin', cuirasse: true, sabre: true, ronde: true, belt: '#e8e4d8' },
+    schedule: [[0, 'g1:poste'], [6, 'g1:pont'], [7, 'home'], [14, 'auberge'], [15, 'place'], [18.5, 'g1:poste']],
+    likes: ['vin', 'viande_grillee', 'pain'], loves: ['eau_de_vie_poire'], dislikes: ['fleur', 'confiture'],
+    shop: null,
+    lines: {
+      intro: '{nom} Vauquelin, chevalier du guet. Le titre est plus vieux que moi, et la ville plus vieille que le titre. La nuit, quand les ponts sont levés, je veille de ce côté-ci des douves. Si la nuit vous prend dehors, frappez au corps de garde : il y a un lit de camp pour qui reste dehors.',
+      greet: {
+        matin: ['Nuit close. Rien qui se laisse écrire. Je vais dormir.', 'Bonjour, {fermier}. Le guet descend, le jour monte. Chacun son tour.', 'Les ponts sont baissés. Passez. Je vous ai vu venir de loin.'],
+        jour: ['On ne dort pas longtemps, à mon âge. On dort bien, c’est déjà ça.', 'La ville est calme. C’est son état ordinaire. C’est la nuit qu’elle ne l’est plus.', 'Je fais le tour de la place. Les gens aiment voir le guet de jour : ça les rassure pour la nuit.'],
+        soir: ['La nuit tombe. Je prends le guet. Rentrez, ou restez près de mon feu.', 'Les ponts se lèvent à neuf heures. Après, de ce côté, il n’y a plus que moi.'],
+        pluie: ['La pluie sur une cuirasse, ça fait le bruit d’un tambour. On s’y fait, en vingt ans.', 'Temps de chien. Les chiens restent dedans. Le guet, non.'],
+        orage: ['À Reichshoffen aussi, il tonnait. Ce n’était pas l’orage.'],
+        ami: ['{prenom}. Asseyez-vous près du feu. On n’est pas obligés de parler.', 'Vous avez l’œil, pour un fermier. Je vous prendrais au guet, si j’avais encore un guet.'],
+        froid: ['Circulez.', 'Je vous ai à l’œil. Je n’ai que ça à faire, la nuit.'],
+        peur: ['Restez où vous êtes. Les mains bien en vue.', 'Un pas de plus, et je tire le sabre. Je ne le rengaine jamais pour rien.'],
+      },
+      about: [
+        'Cuirassier, vingt-deux ans de service. J’ai chargé à Reichshoffen, un après-midi d’août. On était huit cents. On est revenus moins. Le reste de ma vie, je l’ai passé à la nuit.',
+        'Chevalier du guet : jadis, le chef de la garde de nuit des villes. La commune a gardé le titre, et l’homme qui va avec. Ça ne lui coûte qu’un lit de camp et du charbon.',
+        'Le corps de garde est de ce côté des douves exprès. Quand les ponts sont levés, il faut bien que quelqu’un reste avec ceux qui restent dehors.',
+        'On m’avait promis un second. Un sergent, Ferrand. Il est parti à l’heure, d’après le télégraphe. Il n’est jamais arrivé. Je lui garde son lit de camp.',
+        'J’écris tout dans le registre. L’heure, le temps, ce que j’ai vu. Quand on écrit, on n’invente pas. Quand on relit, parfois, on se le demande.',
+      ],
+      rumeurs: [
+        '{npc:garde} lève les ponts. Il a peur du noir, il le dit à qui veut l’entendre, et il le fait quand même, tous les soirs. Je n’ai pas connu de soldat plus brave.',
+        'Le gendarme du hameau m’a demandé de quel droit je portais un titre aboli. Je lui ai demandé si la nuit, elle, avait été abolie. Il l’a noté.',
+        'Les loups ne viennent pas jusqu’aux douves. Ils s’arrêtent à la lisière et ils regardent la ville. Je les regarde aussi. On se connaît.',
+        'Certaines nuits, un homme en long manteau passe sur la route du nord. Je ne l’ai jamais vu de face. Je n’y tiens pas.',
+        'On dit que la lanterne du phare s’allume toute seule. Je l’ai vue s’allumer. Je n’ai pas vu qui l’allumait. Je n’ai pas écrit « toute seule ».',
+      ],
+      etrange: [
+        'Cette nuit, quelqu’un a marché sur le pont levé. À la verticale. J’ai écrit l’heure : trois heures dix. Je n’ai rien écrit d’autre.',
+        'Mon feu s’est couché d’un coup, cette nuit, comme sous un grand vent. Il n’y avait pas de vent.',
+        'Il y avait onze lumières sur le lac, à minuit. Ceux des Planches en posent dix.',
+        'On a frappé au corps de garde, cette nuit. De l’intérieur. J’étais dehors. J’ai attendu le jour pour ouvrir.',
+      ],
+      cadeau: {
+        adore: 'De la poire… Merci. Je la boirai à la santé de ceux de Reichshoffen. Un doigt chacun : il y en a pour longtemps.',
+        aime: 'Merci. Le guet vous en sait gré.',
+        neutre: 'Merci. Posez-le sur la table.',
+        deteste: 'Gardez cela. Je n’en ai pas l’usage.',
+      },
+      nuit: 'Le guet ne dort pas. Qu’y a-t-il ?',
+      meurtre: 'Vous avez du sang sur vous. Tenez-vous à distance de mon feu, et de moi.',
+      disparu: '{victime}. Je l’ai inscrit dans la marge du registre. C’est là qu’on met ceux qu’on n’a pas su garder.',
+      nuitrouge: 'Cette nuit, le guet n’a rien vu. Pour la première fois en vingt ans, je n’ai rien écrit. Je ne me souviens pas de la nuit.',
+      adieu: ['Allez.', 'Rentrez avant les ponts.'],
+      tueur: ['…'], indice: '…',
+    },
+    quests: [],
+  },
+  // ============================================================ le garde champêtre (Clairpré)
+  {
+    id: 'garde_champetre', role: 'Garde champêtre', gender: 'm', names: ['Fulbert', 'Prosper', 'Célestin'], surname: 'Tissier', age: 48, area: 'hameau',
+    home: 'g1_cabane_hameau', work: 'g1_cabane_hameau', traits: ['bavard', 'pointilleux'], liens: { eleveuse: 'voisine', gendarme: 'collègue', postiere: 'commère' },
+    garde: { lieu: 'clairpre', veille: 'jour', courage: 0.6, coups: [12, 18], arme: 'fusil', tir: { degats: [20, 28], portee: 22, chance: 0.5, cadence: 3.2 }, titre: 'garde champêtre' },
+    look: { skin: '#d8a882', hair: '#5a4632', hairStyle: 'court', beard: 'moustache', hat: null, top: '#36456a', bottom: '#4a4034', shoe: '#2a2018', dress: false, apron: null, height: 1.0, build: 'rond', casque: 'kepi', casqueCol: '#26304c', bandeCol: '#8a2a24', plaque: true, fusil: true, ronde: true },
+    schedule: [[5.5, 'g1:poste'], [6.5, 'hameau'], [12, 'home'], [13, 'g1:ronde'], [17, 'hameau'], [20, 'g1:poste'], [21, 'home']],
+    likes: ['fromage', 'cidre', 'pain'], loves: ['tarte'], dislikes: ['champignon'],
+    shop: null,
+    lines: {
+      intro: 'Halte-là ! … Ah, non, rien, l’habitude. {nom} Tissier, garde champêtre de {hameau}, assermenté. Les chemins, les haies, les bornes, les chèvres qui vont où il ne faut pas : c’est moi. Vous êtes {fermier} ? Je vous ai déjà dans mon carnet. En bien, rassurez-vous. Pour l’instant.',
+      greet: {
+        matin: ['Bonjour ! Rosée sur les blés, pas de chèvre dans les choux : belle matinée.', 'Le gendarme rentre de sa nuit, je prends ma journée. On se croise, on ne se dit rien. C’est le service.', 'Déjà debout ? Moi aussi. Le procès-verbal se lève tôt.'],
+        jour: ['Une borne déplacée, chez Morel. Trois pouces ! Ça ne se fait pas, trois pouces.', 'Vous passez, vous saluez, vous ne marchez pas dans les semis. Parfait. Rien à verbaliser.', 'On a volé une poule à Bastien. Pas à moi, à Bastien. C’est pareil : c’est mon hameau.'],
+        soir: ['Le soir, je relis mes procès-verbaux. Il y en a de beaux.', 'Bientôt la relève. Le gendarme fait la nuit. Moi, la nuit, je ne verbalise pas : je dors.'],
+        pluie: ['La pluie, ça efface les traces. C’est mauvais pour l’enquête.', 'Mouillé comme une soupe. Le képi tient, c’est l’essentiel.'],
+        orage: ['Orage ! Tout le monde à l’abri, les bêtes comprises ! C’est un ordre !'],
+        ami: ['Ah, {prenom} ! Venez, je vous lis mon dernier procès-verbal. Une chèvre, un curé et un jardin. Vous allez rire.', 'Entre nous, {fermier}, vous êtes le seul ici qui m’écoute jusqu’au bout.'],
+        froid: ['Circulez. J’ai votre nom dans mon carnet, et pas à la bonne page.', 'Je vous ai à l’œil. Les deux, et le carnet.'],
+        peur: ['N’avancez pas ! J’ai un fusil ! Et un carnet ! Les deux sont chargés !', 'Reculez ! Au nom de la loi… et du hameau !'],
+      },
+      about: [
+        'Garde champêtre : l’assermentation, le képi, la plaque et le tambour. Le tambour, c’est pour les avis. Les gens n’aiment pas le tambour. Ils l’entendent quand même.',
+        'Vingt ans de procès-verbaux. Des chèvres, des haies, des chiens, des bornes. Un seul pour un homme qui marchait sur l’eau de la mare. Je l’ai classé. Je ne savais pas où le ranger.',
+        'Ma femme est partie à la ville il y a dix ans. Elle disait que je parlais trop. Depuis, je parle aux bornes. Elles, elles restent.',
+        'Le gendarme, c’est la loi de Paris. Moi, c’est la loi du hameau. On s’entend, à condition qu’il ne touche pas à mes chèvres.',
+      ],
+      rumeurs: [
+        '{npc:eleveuse} a de belles bêtes et une grande gueule. Je verbaliserais bien la gueule, mais il n’y a pas d’article.',
+        'Le gendarme écrit à la préfecture toutes les semaines. Il n’a jamais eu de réponse. Il continue. C’est un garçon têtu.',
+        'Un ours est descendu jusqu’au ranch, il y a deux hivers. J’ai tiré en l’air. Il est parti. Moi aussi. On était d’accord.',
+        'Au hameau abandonné, il y a encore une borne au nom du garde d’avant. Il s’appelait comme moi. Je n’aime pas ça.',
+        'La foire du Foiredi, c’est mon jour. Les ivrognes, les maquignons, les voleurs de poules : tout le monde se montre. Moi, je note.',
+      ],
+      etrange: [
+        'Cette nuit, une chèvre est entrée dans la cabane. Elle s’est assise sur mon lit, et elle m’a regardé dormir. Je n’ai pas de chèvre.',
+        'J’ai dressé procès-verbal contre inconnu, ce matin. Motif : a frappé à toutes les portes du hameau, à trois heures. Signalement : aucun. Pas de traces dans la boue.',
+        'Le tambour a résonné tout seul, cette nuit. Un roulement, comme pour un avis. Je n’ai pas entendu l’avis.',
+      ],
+      cadeau: {
+        adore: 'Une tarte ! Pour moi ? Je la consigne au registre, et puis je la mange. Dans cet ordre.',
+        aime: 'Ah, merci, merci ! Ça, c’est un cadeau réglementaire.',
+        neutre: 'Merci. Je le note.',
+        deteste: 'Hum. Je le note aussi. À une autre page.',
+      },
+      nuit: 'Hein ? Qui frappe ? … Le gendarme est de garde, il est dehors, allez le voir ! Moi, je dors. Procès-verbal de sommeil.',
+      meurtre: 'N’approchez pas ! Je dresse procès-verbal, et après je cours chercher le gendarme !',
+      disparu: '{victime}… Je l’avais encore dans mon carnet, la semaine dernière. Pour une haie mal taillée. Je raye. Ça me fait quelque chose, de rayer.',
+      nuitrouge: 'Je n’ai pas fait de procès-verbal, cette nuit. Il n’y a pas d’article pour ça.',
+      adieu: ['Circulez, et respectez les bornes !', 'À la revoyure ! Ne marchez pas dans les semis !'],
+      tueur: ['…'], indice: '…',
+    },
+    quests: [],
+  },
+  // ============================================================ le gendarme à cheval (Clairpré, et la tournée des petits villages)
+  {
+    id: 'gendarme', role: 'Gendarme à cheval', gender: 'm', names: ['Théophile', 'Léonce', 'Gaspard'], surname: 'Delcourt', age: 31, area: 'hameau',
+    home: 'g1_cabane_hameau', work: 'g1_cabane_hameau', traits: ['sérieux', 'courageux'], liens: { garde_champetre: 'collègue', chevalier_guet: 'rival', maire: 'rapports' },
+    garde: { lieu: 'clairpre', veille: 'nuit', courage: 0.9, coups: [22, 30], arme: 'sabre', titre: 'gendarme', tournee: true },
+    look: { skin: '#e0bc9a', hair: '#2a2018', hairStyle: 'court', beard: 'moustache', hat: null, top: '#1b2236', bottom: '#2c2e38', shoe: '#0e0c0a', dress: false, apron: null, height: 1.06, build: 'mince', casque: 'bicorne', buffle: true, epaulettes: '#d8d8d0', sabre: true, ronde: true, belt: '#e8e4d8' },
+    schedule: [[0, 'g1:poste'], [5.5, 'g1:poste'], [6, 'home'], [12, 'g1:ecurie'], [13, 'g1:tournee'], [18, 'g1:ecurie'], [20, 'hameau'], [21, 'g1:poste']],
+    likes: ['pain', 'fromage', 'biere'], loves: ['vin_chaud'], dislikes: ['gnole'],
+    shop: null,
+    lines: {
+      intro: 'Gendarme {nom} Delcourt, brigade de la préfecture, détaché à {hameau}. Je fais aussi la tournée des villages qui n’ont pas de garde : les Sources, les Planches, la route du lac. Si l’on vous vole, si l’on vous menace, venez me trouver. Je prends les plaintes par écrit.',
+      greet: {
+        matin: ['Nuit sans incident. Je dresse mon rapport et je me couche.', 'Bonjour. Mistral a mangé, moi pas. Dans cet ordre : c’est le règlement.'],
+        jour: ['Je rentre de tournée. Les Sources : rien. Les Planches : on ne m’a pas laissé monter sur les planches.', 'Mes respects. Rien à déclarer ?', 'Le pays est calme. Trop, pour un homme qui vient de la ville.'],
+        soir: ['Je prends la nuit. Le garde champêtre ronfle déjà, j’en suis sûr.', 'À la nuit, restez sur les chemins. Je ne peux pas être partout.'],
+        pluie: ['Le bicorne prend l’eau. Le règlement ne prévoit pas de parapluie.'],
+        orage: ['Mistral déteste l’orage. Moi aussi. Ni l’un ni l’autre ne le montre.'],
+        ami: ['Vous êtes la seule personne d’ici qui me réponde, {prenom}. Même la préfecture ne le fait pas.', 'Si j’avais un adjoint, je voudrais qu’il vous ressemble. Avec un uniforme.'],
+        froid: ['Circulez.', 'J’ai votre signalement. Ne m’obligez pas à m’en servir.'],
+        peur: ['Restez où vous êtes. Les mains en évidence.', 'Ne m’approchez pas. Je suis armé, et je sais m’en servir.'],
+      },
+      about: [
+        'On m’a envoyé ici parce que la vallée n’avait pas de gendarme. Le capitaine a dit : « Six mois. » Ça fait deux ans. Je n’ai jamais reçu d’ordre de relève.',
+        'J’écris un rapport chaque semaine à la préfecture. Je n’ai jamais eu de réponse. Le courrier part bien, la postière me l’assure. Je continue.',
+        'Mistral, c’est mon cheval. Il refuse de passer le gué du moulin, la nuit. De jour, il passe. J’ai cessé de discuter avec lui.',
+        'Avant moi, un sergent devait prendre le guet de la ville. Ferrand. À la préfecture, on en parle encore à voix basse. Il n’a jamais pris son poste.',
+      ],
+      rumeurs: [
+        'Le chevalier du guet porte un titre aboli depuis la Révolution. Je le lui ai fait remarquer. Il m’a demandé si la nuit, elle, avait été abolie.',
+        'Aux Sources, ils vivent comme au premier jour du monde. Je les salue, ils me saluent. Je garde mon bicorne.',
+        'Ceux des Planches ne veulent pas de loi sur l’eau. Ils disent qu’en dessous, il y en a déjà une.',
+        '{npc:garde_champetre} parle beaucoup. Mais il connaît chaque borne, chaque haie, chaque nom. Je n’aurais pas tenu deux ans sans lui.',
+      ],
+      etrange: [
+        'Cette nuit, j’ai entendu un cheval au galop sur la route du lac. Mistral était à l’écurie. Il tremblait.',
+        'J’ai trouvé dans mon rapport de la semaine une phrase que je n’ai pas écrite. De mon écriture. « Rien à signaler, sauf nous. »',
+        'Un homme m’a demandé le chemin de la vieille ferme, à minuit. Je le lui ai indiqué. Il est parti dans l’autre sens.',
+      ],
+      cadeau: {
+        adore: 'Du vin chaud… Comme à la caserne, les nuits de décembre. Merci. Je l’écrirai au rapport : moral relevé.',
+        aime: 'Merci. C’est aimable.',
+        neutre: 'Merci.',
+        deteste: 'Je ne peux pas accepter ceci. Le règlement.',
+      },
+      nuit: 'Gendarmerie ! Qui frappe ? … Je suis de garde dehors, moi. Si vous frappez à cette porte, c’est que vous ne m’avez pas vu. Ça m’inquiète.',
+      meurtre: 'Vous êtes en état d’arrestation. Ne faites pas un geste.',
+      disparu: 'J’ai envoyé un rapport pour {victime}. Il ne reviendra pas. Le rapport non plus.',
+      nuitrouge: 'Cette nuit, j’ai fait ma ronde, et il n’y avait personne. Ni au hameau, ni sur les routes. J’ai frappé à toutes les portes.',
+      adieu: ['Mes respects.', 'Bonne route. Restez sur les chemins.'],
+      tueur: ['…'], indice: '…',
+    },
+    quests: [],
+  },
+];
+for (const d of G1_HABITANTS) {
+  if (NPC_DATA.some((q) => q.id === d.id)) continue;
+  if (d.look && d.look.fem === undefined) d.look.fem = d.gender === 'f';
+  NPC_DATA.push(d);
+  NPC_BY_ID[d.id] = d;
+}
+Object.assign(NPC_HELD, { chevalier_guet: 'sabre', gendarme: 'sabre' });
+// le garde d'aujourd'hui est un garde comme les autres (ses répliques, ses quêtes, sa maison, son métier ne changent pas)
+if (NPC_BY_ID.garde && !NPC_BY_ID.garde.garde) NPC_BY_ID.garde.garde = { lieu: 'valbrume', veille: 'jour', courage: 0.35, coups: [18, 26], arme: 'pique', titre: 'garde', ancien: true };
+const G1_IDS = G1_HABITANTS.map((d) => d.id);
+
+// ---------------------------------------------------------------- leur vie (11-zzlife.js)
+Object.assign(NPC_LIFE, {
+  chevalier_guet: {
+    foi: 'eglise', devotion: 1, fete: 6, mythes: [],
+    histoire: [
+      { titre: 'Le six août', min: 0, texte: 'On dit Reichshoffen. C’était à Morsbronn, dans les houblons et les vignes. On nous a lancés à travers un village plein de fusils : des murs, des haies, des fossés. Les chevaux tombaient dans les houblons. J’avais vingt et un ans. Le soir, j’ai compté ceux qui restaient, comme on compte les heures la nuit, pour tenir.' },
+      { titre: 'Le registre', min: 1, texte: 'J’ai commencé le registre la première nuit, ici. L’heure, le temps, ce que j’ai vu. Un registre ne ment pas : si l’on écrit tout, on n’a pas besoin de se souvenir. Il y a des nuits que je relis pour être sûr qu’elles ont eu lieu.' },
+      { titre: 'Le lit de Ferrand', min: 3, texte: 'Le sergent Ferrand devait arriver un Primedi. J’ai fait le lit de camp, j’ai mis une seconde gamelle. Le télégraphe a dit qu’il était parti à l’heure. Depuis, certaines nuits, quelqu’un dort dans son lit. Pas lui. La couverture est tiède au matin, du côté du mur.' },
+      { titre: 'Ce que je garde', min: 5, texte: 'Les gens croient que je garde la ville. Je garde le dehors. Ce n’est pas la même chose, {prenom}. La ville se garde toute seule, avec ses ponts. Le dehors, il faut quelqu’un pour le regarder en face.' },
+    ],
+    humeurs: {
+      joyeux: ['Nuit claire. Pas une ombre de trop. Ça arrive.', 'L’aubergiste m’a gardé une part de ragoût. À mon âge, c’est une décoration.'],
+      triste: ['Le six août approche. Je ne dors pas, la semaine du six août.', 'J’ai relu les noms, cette nuit. Je les sais par cœur. Je les relis quand même.'],
+      fatigue: ['Deux nuits de pluie. La cuirasse a rouillé avant moi.', 'Je n’ai pas fermé l’œil. Le guet, c’est ça.'],
+      inquiet: ['Mon feu a mal pris, hier soir. Le bois était sec.', 'Les chiens de la ville ont aboyé toute la nuit vers le nord. Vers moi.'],
+      agace: ['Le gendarme est encore venu me parler de règlement. J’ai écouté. Ça m’a fait une veille.', 'On a renversé mon brasero. Pas le vent. Le vent ne renverse pas les choses en les reposant droites.'],
+    },
+    souvenirs: {
+      absence: ['Je ne vous voyais plus passer. Je l’ai écrit : « Le fermier ne passe plus. » Ça fait une ligne triste.'],
+      victime: ['J’ai écrit son nom dans la marge. C’est là qu’on met ceux qu’on n’a pas su garder.'],
+      coup: ['Vous avez levé la main sur le guet. Je ne l’oublierai pas. Je ne vous en veux pas : j’ai tout écrit.'],
+    },
+    foi_lignes: ['Je vais à la messe quand je ne dors pas. Ce n’est pas souvent. Le curé me pardonne : il sait ce que c’est, de veiller.'],
+    fete_lignes: ['Le six. Je ne fête rien, ce jour-là. Je bois un doigt de poire par homme. Ça fait beaucoup de doigts.'],
+    secret: 'Il y a une page du registre que je n’ai pas écrite. La nuit de la Saint-Jean, l’an dernier : « Trois heures. Le chevalier dort. Nous veillons. » C’est mon écriture. Je ne dormais pas.',
+  },
+  garde_champetre: {
+    foi: 'eglise', devotion: 2, fete: 14, mythes: [],
+    histoire: [
+      { titre: 'L’assermentation', min: 0, texte: 'J’ai prêté serment devant le juge de paix, la main levée, le képi sous le bras. Mon père était maréchal-ferrant ; il a pleuré. Il disait qu’un garde champêtre, c’est un homme qui marche toute sa vie pour les autres. Il avait raison : j’ai usé onze paires de souliers.' },
+      { titre: 'Le procès-verbal de la mare', min: 1, texte: 'Un soir d’octobre, un homme marchait sur la mare de Bastien. Sur l’eau. Il allait d’un bord à l’autre, les mains dans le dos, comme on fait les cent pas. J’ai dressé procès-verbal : « traversée de mare hors des passages prévus ». Je ne savais pas quoi écrire d’autre. Le lendemain, la mare était gelée. On était en octobre.' },
+      { titre: 'Le garde d’avant', min: 3, texte: 'Le garde d’avant s’appelait Tissier, comme moi. Pas de la famille. Il a disparu un hiver, en faisant sa tournée du hameau abandonné. On a retrouvé son tambour sur la borne, les baguettes posées en croix. Le tambour, c’est celui que j’ai. Il est meilleur que le mien.' },
+    ],
+    humeurs: {
+      joyeux: ['Trois procès-verbaux avant midi ! Une journée de grande activité.', 'La foire approche. J’ai ciré la plaque.'],
+      triste: ['Ma femme m’a écrit. Une ligne. « Tu parles encore trop ? » J’ai répondu quatre pages.'],
+      fatigue: ['La chèvre de Bastien m’a fait courir toute la matinée. Je l’ai verbalisée. Elle s’en fiche.'],
+      inquiet: ['Les bornes du hameau abandonné ont bougé. Toutes. Du même côté.', 'Le tambour sonne creux, ce matin. Comme s’il y avait quelque chose dedans.'],
+      agace: ['On a encore taillé la haie de Morel du mauvais côté. C’est de la provocation.'],
+    },
+    souvenirs: {
+      absence: ['Vous revoilà ! Je vous avais marqué « disparu » dans le carnet. Je raye. Avec plaisir.'],
+      victime: ['On l’a enterré. J’ai fait battre le tambour, un seul roulement. Ça se fait, chez nous.'],
+      coup: ['Coups et blessures sur agent assermenté. Je l’ai écrit en lettres capitales.'],
+    },
+    foi_lignes: ['Je vais à la messe de la ville, l’Orédi, quand la chèvre de Bastien me le permet.'],
+    fete_lignes: ['C’est la Saint-Fulbert, ou presque. Personne ne le sait. Je le dis à tout le monde.'],
+    secret: 'Dans le carnet, il y a une page à mon nom. Pas de mon écriture. « Tissier, garde champêtre. À verbaliser. » La date est en blanc.',
+  },
+  gendarme: {
+    foi: 'eglise', devotion: 1, fete: 19, mythes: [],
+    histoire: [
+      { titre: 'La brigade', min: 0, texte: 'J’ai fait l’école de la gendarmerie à Melun. On nous apprenait le Code, l’équitation, le pansage, et à ne jamais montrer qu’on a peur. On ne nous apprenait pas ce qu’il faut faire quand on a peur quand même. Je l’ai appris ici.' },
+      { titre: 'Les rapports', min: 1, texte: 'Chaque semaine, j’envoie un rapport. Chaque semaine, rien. Une fois, une seule, une enveloppe est revenue, avec le cachet de la préfecture. Dedans, mon propre rapport, plié, et dessous, d’une écriture que je ne connais pas : « Reçu. Restez. »' },
+      { titre: 'Le gué du moulin', min: 3, texte: 'Mistral refuse le gué du moulin, la nuit. Une fois, je l’ai forcé. Au milieu de l’eau, il s’est arrêté net, et j’ai vu pourquoi : il y avait une main, sous la surface, ouverte, posée à plat sur le fond. Une main propre. Je suis passé par le pont des Saules, depuis.' },
+    ],
+    humeurs: {
+      joyeux: ['Rapport terminé, cheval pansé, rien à signaler. Une bonne journée de gendarme.'],
+      triste: ['Ma mère m’écrit de la ville. Elle croit que je reviens au printemps. Je ne lui ai pas dit le contraire.'],
+      fatigue: ['La tournée des Sources, à pied, sous la pluie. Mistral regardait par la fenêtre de l’écurie.'],
+      inquiet: ['On a sellé Mistral, cette nuit. Pas moi. La selle était chaude.', 'Le garde champêtre ne parle plus depuis ce matin. C’est la première fois.'],
+      agace: ['Le chevalier du guet m’a salué à l’ancienne, la main sur la garde. Je crois qu’il se moque de moi.'],
+    },
+    souvenirs: {
+      absence: ['Je vous ai cherché sur ma tournée. Je l’ai écrit dans le rapport. Personne ne le lira.'],
+      victime: ['J’ai dressé le constat. Ce n’est pas la première fois. Je n’ai jamais eu de réponse.'],
+      coup: ['Outrage et violences à agent de la force publique. Je ne l’oublierai pas, et le Code non plus.'],
+    },
+    foi_lignes: ['Je crois en Dieu et au Code. Le Code, au moins, je l’ai lu en entier.'],
+    fete_lignes: ['Mon anniversaire. J’ai reçu une lettre de ma mère. Elle a deux mois de retard. Elle est datée d’aujourd’hui.'],
+    secret: 'Je n’ai jamais vu le capitaine qui m’a envoyé ici. Mon ordre de mission était déjà signé quand on me l’a donné. La signature, c’est la mienne.',
+  },
+});
+
+// ---------------------------------------------------------------- leurs poches, leurs cris (11-zzz90-vol.js), leurs papiers (11-zzz98-fouilles.js)
+Object.assign(VOL_POCHES, {
+  chevalier_guet: { b: [12, 34], m: ['bougie', 'pain'], p: ['tabatiere', 'montre'] },
+  garde_champetre: { b: [6, 20], m: ['plume', 'pain'], p: ['couteau_poche', 'tabatiere'] },
+  gendarme: { b: [10, 28], m: ['plume', 'bougie'], p: ['montre'] },
+});
+Object.assign(VOL_CRIS, {
+  chevalier_guet: 'La main dans la poche du guet. Vous avez du cœur, ou pas de tête.',
+  garde_champetre: 'Ah ! Tentative de vol sur agent assermenté ! Ça, c’est un procès-verbal de première classe !',
+  gendarme: 'Vous faites les poches d’un gendarme ? Vous êtes en état d’arrestation.',
+});
+const G1_PAPIERS = {
+  g1_reichshoffen: { pool: 'g1_guet', t: 'Une lettre jaunie', x: 'Mon fils,\n\nOn nous dit que le régiment a chargé et qu’il n’en reste presque rien. On ne nous dit pas qui. Ta mère allume une bougie chaque soir à la fenêtre. Écris-nous, même une ligne.\n\n(Au dos, au crayon, d’une main plus jeune : « Vivant. Le cheval, non. »)' },
+  g1_ferrand: { pool: 'g1_guet', t: 'Brouillon de rapport', x: 'Rapport du chevalier du guet au maire de {ville}. Objet : le sergent Ferrand.\n\nLe sergent n’a pas paru. Son lit de camp est fait. Sa gamelle est sur la table.\n\nNuit du Vorndi : on a frappé au corps de garde, trois coups, à l’heure où il devait arriver. J’ai demandé le nom. On m’a répondu « Ferrand ». J’ai demandé le mot du guet. On ne m’a pas répondu.\n\n(Le rapport n’a jamais été envoyé.)' },
+  g1_ordonnance: { pool: 'g1_guet', t: 'Ordonnance sur le guet', x: 'Article premier. Le guet veille de la levée des ponts à leur abaissement.\nArticle deux. Il ne répond à aucune voix venue des douves.\nArticle trois. Il tient registre.\nArticle quatre. Si le guet vient à manquer, le dernier qui l’a vu vivant prend la garde.\n\nSceau de la ville, cire noire. L’année est effacée.' },
+  g1_pv_chevre: { pool: 'g1_champetre', t: 'Procès-verbal', x: 'Le Lavedi, à six heures, nous, garde champêtre de {hameau}, assermenté, avons constaté qu’une chèvre appartenant au sieur Bastien se trouvait dans le potager du sieur Morel, où elle mangeait les choux. Interpellée, elle n’a rien voulu entendre.\n\nAmende : un franc. Payée en fromage.' },
+  g1_pv_inconnu: { pool: 'g1_champetre', t: 'Procès-verbal contre inconnu', x: 'Nuit du Vorndi, trois heures. Avons entendu frapper à toutes les portes du hameau, l’une après l’autre, en commençant par la nôtre. Sorti avec la lanterne. Personne. Pas de traces dans la boue.\n\nMotif retenu : tapage nocturne.\n\nEn marge, d’une autre encre : « Il a frappé aussi à la porte de la cabane. De l’intérieur. »' },
+  g1_rapport: { pool: 'g1_champetre', t: 'Rapport à la préfecture (copie)', x: 'Brigadier,\n\nJe vous rends compte que la tournée de la semaine s’est faite sans incident, sauf ce qui suit. Aux Planches, on m’a refusé l’accès. Aux Sources, on m’a offert un bain. Sur la route du lac, à minuit, un cavalier m’a croisé sans lanterne ; son cheval ne faisait aucun bruit.\n\nJe réitère ma demande de relève.\n\n(Au-dessous, d’une autre écriture : « Reçu. Restez. »)', s: 'Gendarme Delcourt' },
+};
+for (const id in G1_PAPIERS) { if (F2_PAPIERS[id]) continue; F2_PAPIERS[id] = G1_PAPIERS[id]; (F2_POOLS[G1_PAPIERS[id].pool] || (F2_POOLS[G1_PAPIERS[id].pool] = [])).push(id); }
+// les lits de camp (11-zzz95-sommeil.js : demi-largeur, demi-longueur, hauteur du dessus)
+LIT_TAILLE.g1_lit_camp = [0.4, 0.95, 0.45];
+// celui qui vous trouve dans son lit
+const G1_LIT_DECOUVERT = {
+  chevalier_guet: 'Mon lit de camp. Celui du passant est juste à côté, vous l’avez manqué. Debout. Et estimez-vous heureux que ce soit moi.',
+  garde_champetre: 'Dans mon lit ! Violation de domicile sur la personne d’un agent assermenté ! Dehors ! Je verbalise demain !',
+  gendarme: 'Vous êtes dans mon lit. Je vous prie d’en sortir. Je prendrai votre déposition dehors.',
+};
+
+// ============================================================================
+//  GÉNÉRATION : le corps de garde du pont nord, la cabane des gardes du hameau
+// ============================================================================
+const g1W = (f, lx, lz) => { const c = Math.cos(f.r), s = Math.sin(f.r); return [f.x + lx * c + lz * s, f.z - lx * s + lz * c]; };
+const g1L = (f, x, z) => { const c = Math.cos(f.r), s = Math.sin(f.r), dx = x - f.x, dz = z - f.z; return [dx * c - dz * s, dx * s + dz * c]; };
+// le repère d'une construction dont la porte (−z local) regarde dans la direction (dx, dz)
+const g1Repere = (x, z, dx, dz) => ({ x, y: 0, z, r: Math.atan2(-dx, -dz) });
+
+// un rectangle local R = [x0, x1, z0, z1] du repère f est-il libre ? → { hmin, hmax, hmoy } ou null
+function g1Libre(w, f, R) {
+  const World_ = World, N = w.nav, pts = [];
+  let hmin = 1e9, hmax = -1e9, hs = 0;
+  for (let lx = R[0]; lx <= R[1] + 1e-6; lx += 0.5) for (let lz = R[2]; lz <= R[3] + 1e-6; lz += 0.5) {
+    const [x, z] = g1W(f, lx, lz);
+    if (!w.inside(x, z, 30)) return null;
+    const h = w.heightAt(x, z);
+    if (h < w.waterLevel + 0.5) return null;
+    if (h < hmin) hmin = h;
+    if (h > hmax) hmax = h;
+    hs += h; pts.push([x, z]);
+  }
+  if (hmax - hmin > 1.5) return null;
+  const dedans = (x, z, m) => { const [lx, lz] = g1L(f, x, z); return lx > R[0] - m && lx < R[1] + m && lz > R[2] - m && lz < R[3] + m; };
+  // les blocs (murs, toits, collisions des objets posés), de la cave jusqu'à huit mètres au-dessus
+  for (const [x, z] of pts) {
+    let hit = false;
+    w.query(x, z, 0.6, null, (b) => {
+      if (hit || b.under || b.y > hmax + 8 || b.y + b.sy < hmin - 0.3) return;
+      const [bx, bz] = World_.blockLocal(b, x, z);
+      if (Math.abs(bx) < b.sx / 2 + 0.3 && Math.abs(bz) < b.sz / 2 + 0.3) hit = true;
+    });
+    if (hit) return null;
+  }
+  // les objets posés, les interactions, les portes, les lieux-dits secrets
+  for (const q of w.props) if (Math.abs(q.x - f.x) < 30 && Math.abs(q.z - f.z) < 30 && dedans(q.x, q.z, 0.6)) return null;
+  for (const it of w.inter || []) if (Math.abs(it.x - f.x) < 30 && Math.abs(it.z - f.z) < 30 && dedans(it.x, it.z, 0.6)) return null;
+  for (const d of w.doors) if (Math.abs(d.x - f.x) < 30 && Math.abs(d.z - f.z) < 30 && dedans(d.x, d.z, 1.0)) return null;
+  for (const k in w.lm) { const L = w.lm[k]; if (L && L.secret && Math.hypot(L.x - f.x, L.z - f.z) < 25) return null; }
+  // les chemins des habitants : aucun nœud dedans, aucune arête qui le traverse (à 2,5 m près)
+  for (const q of N.nodes) if (Math.abs(q.x - f.x) < 30 && Math.abs(q.z - f.z) < 30 && dedans(q.x, q.z, 1.2)) return null;
+  const rr = Math.hypot(R[1] - R[0], R[3] - R[2]) / 2 + 4, cx = (R[0] + R[1]) / 2, cz = (R[2] + R[3]) / 2, [wx, wz] = g1W(f, cx, cz);
+  for (const [a, b] of N.edges) {
+    const A = N.nodes[a], Bn = N.nodes[b];
+    if (!A || !Bn) continue;
+    const L = Math.hypot(Bn.x - A.x, Bn.z - A.z), dx = Bn.x - A.x, dz = Bn.z - A.z;
+    const t = clamp(((wx - A.x) * dx + (wz - A.z) * dz) / (L * L || 1), 0, 1);
+    if (Math.hypot(A.x + dx * t - wx, A.z + dz * t - wz) > rr) continue;
+    const n = Math.max(2, Math.ceil(L / 0.5));
+    for (let k = 0; k <= n; k++) if (dedans(A.x + dx * k / n, A.z + dz * k / n, 2.5)) return null;
+  }
+  return { hmin, hmax, hmoy: hs / pts.length };
+}
+
+// le chemin du réseau (A*, généré : pas de portes ni de ponts à juger) d'un nœud à un autre
+function g1Chemin(w, a, b) {
+  const N = w.nav;
+  if (a < 0 || b < 0 || !N.adj) return null;
+  const g = new Map([[a, 0]]), came = new Map(), open = new Set([a]), H = (i) => Math.hypot(N.nodes[i].x - N.nodes[b].x, N.nodes[i].z - N.nodes[b].z);
+  let it = 0;
+  while (open.size && it++ < 20000) {
+    let cur = -1, bf = 1e18;
+    for (const i of open) { const f = g.get(i) + H(i); if (f < bf) { bf = f; cur = i; } }
+    if (cur === b) { const P = [cur]; let c = cur; while (came.has(c)) { c = came.get(c); P.unshift(c); } return P; }
+    open.delete(cur);
+    for (const e of N.adj[cur] || []) {
+      const ng = g.get(cur) + e.d;
+      if (ng < (g.get(e.to) ?? 1e18)) { g.set(e.to, ng); came.set(e.to, cur); open.add(e.to); }
+    }
+  }
+  return null;
+}
+function g1Noeud(w, x, z, filtre) {
+  let best = -1, bd = 1e9;
+  w.nav.nodes.forEach((q, i) => { if (q.iso || /:(in|mid)$/.test(q.tag) || (filtre && !filtre(q, i))) return; const d = Math.hypot(q.x - x, q.z - z); if (d < bd) { bd = d; best = i; } });
+  return best;
+}
+
+// une construction : le bâtiment (Builder.building : maison, porte, nœuds, w.bld), sol aplani, broussailles ôtées
+function g1Batir(w, B, key, f, W, D, o, emprise, nObj0) {
+  // le sol : aplani sur toute l'emprise (et un peu autour)
+  const [ex, ez] = g1W(f, (emprise[0] + emprise[1]) / 2, (emprise[2] + emprise[3]) / 2);
+  const fe = { x: ex, z: ez, r: f.r }, hw = (emprise[1] - emprise[0]) / 2 + 0.4, hd = (emprise[3] - emprise[2]) / 2 + 0.4;
+  B.flattenRect(fe, hw, hd, f.y, 2.5);
+  f.y = w.heightAt(f.x, f.z);
+  // ce qui pousse là (arbres, buissons, herbes) s'en va ; les bêtes et les choses posées restent
+  const R = Math.hypot(hw, hd) + 3;
+  for (let i = 0; i < nObj0; i++) {
+    const ob = w.objects[i];
+    if (ob.gone || Math.abs(ob.x - ex) > R || Math.abs(ob.z - ez) > R) continue;
+    const T = OBJ_TYPES[ob.t];
+    if (!T || T.animal || (typeof C2_GARDE !== 'undefined' && C2_GARDE.has(T.id))) continue;
+    const [lx, lz] = g1L(fe, ob.x, ob.z);
+    if (Math.abs(lx) > hw + 2.5 || Math.abs(lz) > hd + 2.5) continue;
+    ob.gone = true; ob.cleared = true;
+  }
+  w.objectsDirty = true;
+  return B.building(key, f, W, D, o, null);
+}
+
+// le choix d'un emplacement : des candidats, le premier libre selon l'ordre de préférence
+function g1Choisir(w, cands, R) {
+  for (const c of cands) {
+    const L = g1Libre(w, c, R);
+    if (L) { c.y = L.hmoy; return c; }
+  }
+  return null;
+}
+
+function g1Generer(w, seed) {
+  if (!w || !w.designed || !w.townInfo || !w.nav || !w.nav.adj || !w.bld) return;
+  const rnd = mulberry32((((seed | 0) ^ 0xC6A2D1) >>> 0));
+  const B = new Builder(w, rnd, new Uint8Array(w.W * w.W));
+  const T = w.townInfo, nObj0 = w.objects.length;
+  w.g1 = { lieux: {} };
+  const ronde = (cx, cz, pts) => pts.filter(([x, z]) => w.inside(x, z, 30) && w.heightAt(x, z) > w.waterLevel + 0.4 && pointFree(w, x, z, 0.6)).map(([x, z]) => [Math.round(x * 10) / 10, Math.round(z * 10) / 10]);
+
+  // ============================================================ VALBRUME : le corps de garde, au bout du pont nord
+  try {
+    const br = (w.bridges || []).find((b) => b.key === 'pont_nord');
+    if (br) {
+      const ox = br.x + Math.sin(br.r) * (br.L + 1.5), oz = br.z + Math.cos(br.r) * (br.L + 1.5); // le bout du tablier, côté dehors
+      const ux = Math.sin(br.r), uz = Math.cos(br.r), vx = uz, vz = -ux;  // u : vers le dehors ; v : de côté
+      const W = 5.6, D = 4.4, R = [-W / 2 - 1.0, W / 2 + 2.6, -D / 2 - 2.6, D / 2 + 0.8];
+      const cands = [];
+      for (const av of [11, 13, 15, 17, 20]) for (const lat of [8.5, 10, 12]) for (const s of [1, -1]) {
+        const x = ox + ux * av + vx * s * lat, z = oz + uz * av + vz * s * lat;
+        cands.push(g1Repere(x, z, -vx * s, -vz * s)); // la porte regarde la route
+      }
+      const f = g1Choisir(w, cands, R);
+      if (f) {
+        const key = 'g1_corps_garde';
+        const Bk = g1Batir(w, B, key, f, W, D, { wall: M_STONE, win: M_STONEWIN, roof: M_SLATE, noLight: true, dw: 1.2, dh: 2.25, roofH: 1.9 }, R, nObj0);
+        g1MeublerGuet(w, B, Bk, f, W, D);
+        w.grid = null;
+        // la guérite, au bout du pont (côté de la cabane), ouverte vers la route
+        const s = Math.sign(g1L({ x: ox, z: oz, r: Math.atan2(ux, uz) }, f.x, f.z)[0]) || 1;
+        // (le premier endroit sec et libre, au bout du tablier, du côté de la cabane d'abord)
+        // (hors du chemin, loin du poteau indicateur et des arbres)
+        guerite: for (const ss of [s, -s]) for (const av of [1.6, 2.6, 3.6, 4.6]) for (const lat of [3.6, 4.4, 5.2]) {
+          const gx = ox + ux * av + vx * ss * lat, gz = oz + uz * av + vz * ss * lat;
+          if (!pointFree(w, gx, gz, 0.7) || Math.abs(w.heightAt(gx, gz) - w.heightAt(ox, oz)) > 0.8) continue;
+          if (!g1Libre(w, g1Repere(gx, gz, 1, 0), [-0.7, 0.7, -0.7, 0.7])) continue;
+          if (w.props.some((q) => Math.abs(q.x - gx) < 3 && Math.abs(q.z - gz) < 3 && Math.hypot(q.x - gx, q.z - gz) < 2.6)) continue;
+          let gene = false;
+          w.query(gx, gz, 1.6, (o) => { if (!gene && o && !o.gone && Math.hypot(o.x - gx, o.z - gz) < 1.4 && OBJ_TYPES[o.t] && !OBJ_TYPES[o.t].animal) gene = true; }, null);
+          if (gene) continue;
+          B.prop('g1_guerite', gx, w.heightAt(gx, gz), gz, Math.atan2(-vx * ss, -vz * ss));
+          break guerite;
+        }
+        const ext = (lx, lz) => g1W(f, lx, lz);
+        const pont = [ox + ux * 2.2 - vx * s * 0.2, oz + uz * 2.2 - vz * s * 0.2];
+        // la ronde de nuit : le long des douves, du côté du dehors (le nord), et sur la route
+        const pts = ronde(ox, oz, [[ox + ux * 6 + vx * 26, oz + uz * 6 + vz * 26], [ox + ux * 26, oz + uz * 26], [ox + ux * 6 - vx * 26, oz + uz * 6 - vz * 26], [ox + ux * 6 + vx * 44, oz + uz * 6 + vz * 44], [ox + ux * 6 - vx * 44, oz + uz * 6 - vz * 44]]);
+        w.g1.lieux.valbrume = { key, f: { x: f.x, y: f.y, z: f.z, r: f.r }, W, D, pont, ronde: pts, poste: Bk.spots.poste, ext: ext(0, -D / 2 - 3) };
+        B.landmark(key, Bk.out[0], Bk.out[1], 8);
+      }
+    }
+  } catch (e) { console.error('G1 : le corps de garde', e); }
+
+  // ============================================================ CLAIRPRÉ : la cabane des gardes, à l'entrée du hameau
+  try {
+    const Hm = w.lm.hameau;
+    if (Hm) {
+      // la route qui vient de la ville : le chemin du réseau, du hameau jusqu'au pont sud
+      const a0 = g1Noeud(w, Hm.x, Hm.z, (q) => q.tag === 'hameau'), a = a0 >= 0 ? a0 : g1Noeud(w, Hm.x, Hm.z);
+      const gS = T.gS || [T.x, T.z + 60];
+      const b = g1Noeud(w, gS[0], gS[1]);
+      const P = g1Chemin(w, a, b) || [];
+      const pts = P.map((i) => w.nav.nodes[i]);
+      const cands = [];
+      const W = 5.4, D = 4.2, R = [-W / 2 - 4.0, W / 2 + 2.6, -D / 2 - 2.6, D / 2 + 0.9];
+      for (let k = 1; k < pts.length; k++) {
+        const q = pts[k], q0 = pts[k - 1], d = Math.hypot(q.x - Hm.x, q.z - Hm.z);
+        if (d < 22) continue;
+        if (d > 70) break;
+        const L = Math.hypot(q.x - q0.x, q.z - q0.z) || 1, ux = (q.x - q0.x) / L, uz = (q.z - q0.z) / L, vx = uz, vz = -ux;
+        for (const t of [0, 0.35, 0.7]) for (const lat of [8, 9.5, 11]) for (const s of [1, -1]) {
+          const x = lerp(q0.x, q.x, t) + vx * s * lat, z = lerp(q0.z, q.z, t) + vz * s * lat;
+          if (Math.hypot(x - Hm.x, z - Hm.z) < 20) continue;
+          cands.push(g1Repere(x, z, -vx * s, -vz * s));
+        }
+      }
+      // (sans chemin trouvé : du côté de la ville, à trente mètres)
+      if (!cands.length) {
+        const dx = T.x - Hm.x, dz = T.z - Hm.z, L = Math.hypot(dx, dz) || 1, ux = dx / L, uz = dz / L;
+        for (const av of [30, 36, 42]) for (const lat of [8, 10]) for (const s of [1, -1]) cands.push(g1Repere(Hm.x + ux * av + uz * s * lat, Hm.z + uz * av - ux * s * lat, -uz * s, ux * s));
+      }
+      const f = g1Choisir(w, cands, R);
+      if (f) {
+        const key = 'g1_cabane_hameau';
+        const Bk = g1Batir(w, B, key, f, W, D, { wall: M_LOGS, win: M_TIMBERWIN, roof: M_ROOF, noLight: true, dw: 1.2, dh: 2.25, roofH: 1.8 }, R, nObj0);
+        g1MeublerHameau(w, B, Bk, f, W, D);
+        w.grid = null;
+        const P2 = ronde(Hm.x, Hm.z, [0, 1, 2, 3, 4].map((k) => { const a2 = Math.atan2(f.x - Hm.x, f.z - Hm.z) + 0.6 + k * TAU / 5, r2 = 34 + (k % 2) * 8; return [Hm.x + Math.sin(a2) * r2, Hm.z + Math.cos(a2) * r2]; }));
+        w.g1.lieux.clairpre = { key, f: { x: f.x, y: f.y, z: f.z, r: f.r }, W, D, ronde: P2, poste: Bk.spots.poste, ecurie: Bk.spots.ecurie, cheval: Bk.spots.cheval };
+        B.landmark(key, Bk.out[0], Bk.out[1], 8);
+      }
+    }
+  } catch (e) { console.error('G1 : la cabane du hameau', e); }
+
+  // ============================================================ les chemins : les portes des cabanes rejoignent le réseau
+  try {
+    if (w.g1.lieux.valbrume || w.g1.lieux.clairpre) {
+      const N = w.nav;
+      for (const q of N.nodes) delete q.iso;
+      finalizeNav(w);
+      const seen = new Set();
+      for (let i = 0; i < N.nodes.length; i++) {
+        if (!/^village:/.test(N.nodes[i].tag)) continue;
+        const Q = [i]; seen.add(i);
+        while (Q.length) { const c = Q.shift(); N.nodes[c].iso = false; for (const e of N.adj[c]) if (!seen.has(e.to)) { seen.add(e.to); Q.push(e.to); } }
+      }
+    }
+  } catch (e) { console.error('G1 : les chemins', e); }
+  w.grid = null;
+}
+
+// ---------------------------------------------------------------- le corps de garde (repère du bâtiment : x le long de la façade, la porte en −z)
+function g1MeublerGuet(w, B, Bk, f, W, D) {
+  const y = 0.15, P = (id, lx, lz, rr, data, dy) => B.propRel(f, id, lx, y + (dy || 0), lz, rr || 0, data);
+  const spot = (name, lx, lz, rr, dy) => { const [x, z] = g1W(f, lx, lz); Bk.spots[name] = { x, y: f.y + (dy ?? y), z, r: f.r + (rr || 0) }; };
+  // les deux lits de camp, contre le mur du fond (le traversin vers le mur) : le sien, celui du passant
+  P('g1_lit_camp', -1.95, 0.85, Math.PI, { col: '#4a4e3e' });
+  P('g1_lit_camp', -1.05, 0.85, Math.PI, { col: '#6a5a46', passant: true, nu: true });
+  spot('bed', -1.95, 0.85, Math.PI, y + 0.45); spot('lit_chevalier_guet', -1.95, 0.85, Math.PI, y + 0.45); spot('lit_passant', -1.05, 0.85, Math.PI, y + 0.45);
+  // la table, le registre, la lampe ; la cheminée au fond à droite
+  P('table', 1.35, -0.25, 0);
+  P('chaise', 1.35, -1.0, Math.PI); P('chaise', 0.5, -0.25, Math.PI / 2);
+  spot('sit', 1.35, -1.0, 0); spot('assis_chevalier_guet', 1.35, -1.0, 0);
+  P('g1_registre', 1.15, -0.2, 0.2, null, 0.79);
+  P('b1_lampe', 1.75, 0.05, 0, null, 0.79);
+  B.interRel(f, 'g1_registre', 'g1_registre_guet', 1.15, y + 1.0, -0.25, 'Lire le registre du guet', { lieu: 'valbrume' });
+  P('cheminee', 1.6, 1.62, Math.PI, { lit: true });
+  B.block(f, 1.6, 2.7, 1.75, 0.7, 3.0, 0.7, M_BRICK); // (le conduit, juste au-dessus du foyer — celui de Builder.house tomberait au milieu de la pièce — et assez haut pour dépasser le faîte)
+  P('g1_cuirasse_pose', 2.25, 0.55, -Math.PI / 2);
+  P('b1_ratelier', 2.38, -1.05, -Math.PI / 2);
+  P('g1_seaux', 0.95, -1.88, 0);
+  P('b1_patere', -2.43, -0.9, Math.PI / 2, { col: '#1f2a46' });
+  // le coffre du guet (on le fouille : c'est voler le guet)
+  const mal = P('malle', -1.75, -1.55, 0, { vide: false });
+  const idF = 'f2:g1:guet:coffre', [ix, iz] = g1W(f, -1.75, -1.0);
+  mal.f2 = idF;
+  B.inter('f2', idF, ix, f.y + y + 0.55, iz, 'Ouvrir le coffre du guet', { t: 'malle', own: 'chevalier_guet', bld: Bk.key, lieu: 'maison', table: 'f2_coffre_garde', lock: 2, pool: 'g1_guet' });
+  // dehors : le brasero, le banc, le tableau des avis, la lanterne
+  P('brasero', 1.85, -3.5, 0, { lit: false }, -0.15);
+  P('banc', -1.3, -2.72, Math.PI, null, -0.15);
+  P('g1_tableau', 1.55, -2.24, Math.PI, null, 1.05);
+  P('lanterne_suspendue', -2.95, -2.95, 0, null, -0.15);
+  B.interRel(f, 'g1_avis', 'g1_avis_guet', 1.55, y + 1.5, -2.7, 'Lire les avis', { lieu: 'valbrume' });
+  spot('poste', 1.0, -3.95, Math.PI, 0); // debout près du feu, face à la route
+}
+
+// ---------------------------------------------------------------- la cabane des gardes du hameau (et son écurie, à gauche)
+function g1MeublerHameau(w, B, Bk, f, W, D) {
+  const y = 0.15, P = (id, lx, lz, rr, data, dy) => B.propRel(f, id, lx, y + (dy || 0), lz, rr || 0, data);
+  const spot = (name, lx, lz, rr, dy) => { const [x, z] = g1W(f, lx, lz); Bk.spots[name] = { x, y: f.y + (dy ?? y), z, r: f.r + (rr || 0) }; };
+  P('g1_lit_camp', -1.85, 0.75, Math.PI, { col: '#5a5e4e' });
+  P('g1_lit_camp', -0.95, 0.75, Math.PI, { col: '#2c3450' });
+  spot('bed', -1.85, 0.75, Math.PI, y + 0.45); spot('lit_garde_champetre', -1.85, 0.75, Math.PI, y + 0.45); spot('lit_gendarme', -0.95, 0.75, Math.PI, y + 0.45);
+  P('table', 1.25, -0.3, 0);
+  P('chaise', 1.25, -1.05, Math.PI); P('chaise', 0.4, -0.3, Math.PI / 2);
+  spot('sit', 1.25, -1.05, 0); spot('assis_garde_champetre', 1.25, -1.05, 0); spot('assis_gendarme', 0.4, -0.3, -Math.PI / 2);
+  P('g1_registre', 1.05, -0.25, -0.15, null, 0.79);
+  P('b1_lampe', 1.7, 0.0, 0, null, 0.79);
+  B.interRel(f, 'g1_registre', 'g1_registre_hameau', 1.05, y + 1.0, -0.3, 'Lire le registre des procès-verbaux', { lieu: 'clairpre' });
+  P('g1_poele', 1.95, 1.35, Math.PI, { h: 4.4, lit: true });
+  P('b1_ratelier', 0.35, 1.68, Math.PI);
+  P('g1_tambour', 2.1, 0.35, 0.4);
+  P('g1_seaux', 0.95, -1.78, 0);
+  P('b1_patere', -2.33, -0.85, Math.PI / 2, { col: '#1b2236', chapeau: true });
+  const mal = P('malle', -1.65, -1.45, 0, { vide: false });
+  const idF = 'f2:g1:hameau:coffre';
+  mal.f2 = idF;
+  B.inter('f2', idF, g1W(f, -1.65, -0.9)[0], f.y + y + 0.55, g1W(f, -1.65, -0.9)[1], 'Ouvrir le coffre des gardes', { t: 'malle', own: 'garde_champetre', bld: Bk.key, lieu: 'maison', table: 'f2_coffre_garde', lock: 2, pool: 'g1_champetre' });
+  // dehors : le brasero du gendarme, le banc, le tableau des avis, la lanterne
+  P('brasero', 1.8, -3.4, 0, { lit: false }, -0.15);
+  P('banc', -0.6, -2.62, Math.PI, null, -0.15);
+  P('g1_tableau', 1.45, -2.14, Math.PI, null, 1.05);
+  P('lanterne_suspendue', 2.85, -2.7, Math.PI, null, -0.15);
+  B.interRel(f, 'g1_avis', 'g1_avis_hameau', 1.45, y + 1.5, -2.6, 'Lire les avis', { lieu: 'clairpre' });
+  spot('poste', 1.0, -3.85, Math.PI, 0);
+  // l'écurie : un appentis contre le mur de gauche (−x), un toit qui descend vers le dehors, quatre poteaux
+  const X0 = -W / 2 - 3.2, X1 = -W / 2 - 0.05, Z0 = -1.7, Z1 = 1.7, yb = f.y;
+  for (const [lx, lz] of [[X0 + 0.1, Z0 + 0.1], [X0 + 0.1, Z1 - 0.1]]) B.block(f, lx, 0, lz, 0.16, 2.25, 0.16, M_LOGS);
+  B.block(f, (X0 + X1) / 2, 2.25, 0, Z1 - Z0 + 0.5, 0.65, X1 - X0 + 0.3, M_ROOF, Math.PI / 2, 2);
+  B.block(f, (X0 + X1) / 2, -0.05, 0, X1 - X0, 0.1, Z1 - Z0, M_PLANKS);
+  P('mangeoire', X1 - 0.4, 0, Math.PI / 2, { fill: 1 }, -0.15);
+  P('botte_foin', X0 + 0.7, -1.05, 0.3, null, -0.15);
+  P('g1_selle', X0 + 0.65, 1.05, Math.PI / 2, null, -0.15);
+  P('poteau_attache', X0 - 0.9, 0, Math.PI / 2, null, -0.15);
+  spot('ecurie', X0 - 0.4, -0.6, Math.PI / 2, 0); // devant l'écurie, à panser le cheval
+  spot('cheval', (X0 + X1) / 2 - 0.2, 0, Math.PI / 2, 0);
+  void yb;
+}
+
+// ---------------------------------------------------------------- la passe de génération, après tout le reste
+{
+  const _gv = generateValley;
+  generateValley = async function (seed, progress, gen) {
+    const w = await _gv(seed, progress, gen);
+    if (w && w.designed) { try { g1Generer(w, w.seed || seed); } catch (e) { console.error('G1 : les cabanes de garde', e); } }
+    return w;
+  };
+}
+
+// ---- 11-zzzzC1-gardes-jeu.js
+// ============================================================================
+//  LES GARDES ET LES CHEVALIERS — le jeu (agent G1) ; les gens et les cabanes : 11-zzzzC-gardes.js
+//  - Un rôle, d.garde ({ lieu, veille, courage, coups, tir }) : Grosjean, le chevalier du guet, le garde
+//    champêtre, le gendarme ; deux au plus par lieu (Valbrume : Grosjean et le chevalier ; Clairpré : le
+//    garde champêtre et le gendarme). Ce qui valait pour « le garde » vaut pour les gardes : l'alerte,
+//    la poursuite, les témoins d'un vol ou d'une fouille, la prime qu'on leur règle, l'arrestation.
+//  - Leur semaine : rondes de jour, guet de nuit ; à deux, l'un dort pendant que l'autre veille ; la
+//    relève (6 h au pont nord, 21 h à la cabane du hameau) ; le gendarme fait la tournée des petits
+//    villages l'après-midi ; le brasero du poste brûle tant qu'on veille.
+//  - Les « problèmes » de leur lieu (et un peu autour) : l'homme au long manteau, le tueur masqué, une
+//    bête dangereuse près des maisons, un incendie, un cri, un crime : ils accourent. Rien de surhumain :
+//    ils arrivent parfois trop tard, ils ont peur, ils meurent (pour de bon).
+//  - La SOMMATION : un garde vous rattrape pour un crime que son village connaît, et vous choisissez.
+//    Vous rendre (le cachot) ; pour un petit délit, payer la prime sur-le-champ ; refuser : les gardes
+//    attaquent, quel que soit le délit, l'autre garde du lieu vient prêter main-forte, et la RÉBELLION
+//    s'ajoute à la prime. On fuit (ils lâchent quand on les sème : la prime monte), on se bat (un garde
+//    blessé, c'est une agression ; tué, un meurtre), ou l'on se rend plus tard : un garde qui vous a mis
+//    à mal vous le redemande. Mis au tapis par un garde, on est arrêté, pas tué — sauf quand on est
+//    recherché pour un meurtre (on ne ménage pas un assassin qui se défend).
+//  - Se rendre de soi-même : à n'importe quel garde, quand on est recherché (« Je viens me rendre »).
+//  État : farm.s.gardes = { v, rebelle, fuites, rendus, payes, assommes, arrets, journal }.
+//  API : gardes (liste(), du(lieu), est(n), alerter(x, z, k), sommer(n), refus(n), arreter(n, mode),
+//        payerSurLeChamp(n), seRendre(n), journee(n), petitDelit(), zone(lieu)).
+// ============================================================================
+const G1_PETITS = new Set(['vol', 'braconnage', 'effraction', 'intrusion', 'rebellion']);
+const G1_BETES = new Set(['bear', 'boar', 'wolf']);
+const G1_BETE_NOMS = { bear: 'un ours', boar: 'un sanglier', wolf: 'des loups' };
+// la tournée du gendarme, selon le jour (l'après-midi)
+const G1_TOURNEE = { semailles: 'lieu:sources', fer: 'lieu:planches_greve', marche: 'lieu:ponton', lessive: 'lieu:bibliotheque', mere: 'lieu:sources', chasse: 'lieu:relais_chasse', peche: 'lieu:planches_greve', messe: 'hameau', foire: 'hameau', veillee: 'lieu:sources', chome: 'lieu:ferme', morts: 'lieu:calvaire4' };
+// ce qu'ils disent (le garde des ponts garde ses mots d'avant pour la sommation)
+const G1_DIT = {
+  sommation: {
+    chevalier_guet: 'Halte. Le guet. Vous me suivez, ou vous me forcez la main.',
+    garde_champetre: 'Halte-là ! Garde champêtre ! On ne bouge plus, je dresse procès-verbal !',
+    gendarme: 'Gendarmerie. Au nom de la loi, vous êtes en état d’arrestation. Les mains, je vous prie.',
+  },
+  redemande: {
+    garde: 'Rendez-vous, bon sang ! Vous allez y rester, et moi aussi !',
+    chevalier_guet: 'Assez. Rendez-vous. Je ne frappe pas un homme à terre.',
+    garde_champetre: 'Rendez-vous, nom d’un chien ! Je ne veux pas vous verbaliser mort !',
+    gendarme: 'Rendez-vous. C’est la dernière fois que je vous le demande.',
+  },
+  refus: { garde: 'Vous l’aurez voulu !', chevalier_guet: 'Soit.', garde_champetre: 'Rébellion ! Ça, c’est un autre procès-verbal !', gendarme: 'Comme vous voudrez. Je vous préviens : je sais m’en servir.' },
+  repete: { garde: 'Je… je ne le répéterai pas !', chevalier_guet: 'Je ne le répéterai pas.', garde_champetre: 'Je ne le répéterai pas, hein !', gendarme: 'Je ne le répéterai pas.' },
+  perdu: {
+    garde: ['Je vous retrouverai.', 'Vous ne quitterez pas la vallée.'],
+    chevalier_guet: ['Le guet a la mémoire longue.', 'Courez. La nuit, je vous attendrai.'],
+    garde_champetre: ['Je connais tous les sentiers ! Tous !', 'Votre signalement sera au tableau ce soir !'],
+    gendarme: ['Votre signalement partira ce soir.', 'On se reverra.'],
+  },
+  paye: { garde: 'C’est réglé. On retire les affiches. Que je ne vous y reprenne pas.', chevalier_guet: 'C’est réglé. Le guet n’a plus rien contre vous. Pour cette fois.', garde_champetre: 'Réglé, et quittancé ! Je raye. Ne marchez plus dans mes semis.', gendarme: 'C’est en règle. Je vous fais un reçu. Ne recommencez pas.' },
+  pauvre: { garde: 'Vous n’avez pas de quoi. Alors ce sera le cachot, ou la route. Choisissez.', chevalier_guet: 'Vous n’avez pas de quoi. Alors suivez-moi.', garde_champetre: 'Pas de quoi payer ? Alors c’est le cachot, mon ami. Ou la route, et je vous cours après.', gendarme: 'La somme n’y est pas. Il ne reste que le cachot.' },
+  arrete: { garde: 'Au nom de la loi, je vous arrête.', chevalier_guet: 'Le guet vous arrête. Tendez les mains.', garde_champetre: 'Je vous arrête ! Au nom de la loi, et du hameau !', gendarme: 'Je vous arrête. Vous avez le droit de vous taire, et je vous le conseille.' },
+  assomme: { garde: 'Il respire. Mon Dieu, il respire. Aidez-moi à le porter.', chevalier_guet: 'Il vivra. Au cachot.', garde_champetre: 'À terre ! Il respire ! Le procès-verbal, ce sera pour après.', gendarme: 'Il respire. Je l’emmène.' },
+  assommeF: { garde: 'Elle respire. Mon Dieu, elle respire. Aidez-moi à la porter.', chevalier_guet: 'Elle vivra. Au cachot.', garde_champetre: 'À terre ! Elle respire ! Le procès-verbal, ce sera pour après.', gendarme: 'Elle respire. Je l’emmène.' },
+  peur: { garde: 'À l’aide ! Au guet ! Au guet !', garde_champetre: 'Au secours ! Gendarme ! Gendarme !', _: 'À l’aide !' },
+  reveil: { garde: 'Hein ? … Quoi ? J’arrive ! J’arrive !', chevalier_guet: 'Le guet est debout.', garde_champetre: 'Hein ? Qu’est-ce que… J’arrive, j’arrive !', gendarme: 'J’arrive.' },
+  inconnu: { garde: 'Vous rendre ? Vous ? Pour quoi ? … Ah. Oui. Je vois. Bon. Suivez-moi. Doucement.', chevalier_guet: 'Vous rendre. … Je vois. C’est plus courageux que de courir. Suivez-moi.', garde_champetre: 'Vous rendre ? À moi ? Personne ne s’est jamais rendu à moi ! … Bon. Bon, bon. Suivez-moi.', gendarme: 'Vous venez vous rendre. Je prends note. Suivez-moi, je vous prie.' },
+  tueur: { garde: 'Qui va là ? … Halte ! Halte, j’ai dit ! Au guet !', chevalier_guet: 'Halte. Montrez-vous.', garde_champetre: 'Halte-là ! Qui va là ? Je tire !', gendarme: 'Gendarmerie ! Arrêtez-vous !' },
+  blesse: { garde: 'Je… je l’ai touché ! Il s’en va ! Il s’en va…', chevalier_guet: 'Touché. Il ne reviendra pas cette nuit.', garde_champetre: 'Touché ! Il file ! Il saigne !', gendarme: 'Il est blessé. Il fuit vers les bois.' },
+  bete: { garde: 'Une bête ! Rentrez chez vous ! Rentrez !', chevalier_guet: 'Une bête près des maisons. Rentrez.', garde_champetre: 'Une bête ! Tout le monde dedans ! Je m’en occupe !', gendarme: 'Écartez-vous. Je m’en charge.' },
+  abattue: { garde: 'Elle… elle ne bouge plus. C’est fini ?', chevalier_guet: 'C’est fini.', garde_champetre: 'Abattue ! Je le note : une bête nuisible, abattue par le garde champêtre !', gendarme: 'Abattue. Je ferai mon rapport.' },
+  feu: { garde: 'Au feu ! Au feu ! De l’eau !', chevalier_guet: 'Au feu. Des seaux, vite.', garde_champetre: 'Au feu ! Les seaux ! Les seaux de la cabane !', gendarme: 'Au feu ! Faites la chaîne !' },
+  eteint: { garde: 'C’est éteint. C’est éteint, n’est-ce pas ?', chevalier_guet: 'Éteint.', garde_champetre: 'Éteint ! Procès-verbal d’incendie, contre la foudre !', gendarme: 'C’est éteint.' },
+  cri: { garde: 'Qui a crié ? … Qui a crié ?', chevalier_guet: 'Un cri. Par là.', garde_champetre: 'Qui a crié ? Répondez !', gendarme: 'Quelqu’un a crié. Restez où vous êtes.' },
+  tir: { garde: 'Qui a tiré ? … Qui a tiré, ici ?', chevalier_guet: 'Un coup de feu. On ne tire pas près des maisons.', garde_champetre: 'Qui a tiré ? Port d’arme dans le hameau ! Ça, c’est un procès-verbal !', gendarme: 'Qui a tiré ? Rangez cette arme.' },
+  tard: { garde: 'Trop tard… Encore trop tard.', chevalier_guet: 'Trop tard. Je l’écrirai.', garde_champetre: 'Trop tard… Mon Dieu.', gendarme: 'Trop tard.' },
+};
+// la relève : ce qu'ils se disent (le joueur à portée de voix)
+const G1_RELEVE = {
+  valbrume: [
+    [['chevalier_guet', 'Ohé, {npc:garde} ! Rien cette nuit.'], ['garde', 'Rien ? Vraiment rien ?'], ['chevalier_guet', 'Rien qui se laisse écrire. Le jour est à vous.']],
+    [['garde', 'Monsieur le chevalier ! Vous avez entendu, vers trois heures ?'], ['chevalier_guet', 'J’ai entendu. Je l’ai écrit. Baissez votre pont, {npc:garde}.']],
+  ],
+  clairpre: [
+    [['garde_champetre', 'Rien à signaler, sauf la chèvre de Bastien. Je vous laisse la nuit.'], ['gendarme', 'Je la prends. Dormez.']],
+    [['gendarme', 'Vous avez verbalisé qui, aujourd’hui ?'], ['garde_champetre', 'Une borne, une haie, et une chèvre. La même que d’habitude.'], ['gendarme', 'Bonne nuit, Tissier.']],
+  ],
+};
+
+const gardes = {
+  t: 0, tU: 0, tB: 0, L: [], sommation: null, cris: [], coup: null, braseros: [], hooked: false, jcache: new Map(), releve: {}, redemandeT: -1e9,
+
+  // ------------------------------------------------------------------ l'état
+  S() {
+    const s = farm.s;
+    if (!s) return null;
+    const S = s.gardes || (s.gardes = {});
+    if (!S.v) Object.assign(S, { v: 1, rebelle: null, fuites: 0, rendus: 0, payes: 0, assommes: 0, arrets: 0, journal: [], cheval: null });
+    if (!Array.isArray(S.journal)) S.journal = [];
+    return S;
+  },
+  noter(lieu, k, o) {
+    const S = this.S();
+    if (!S) return;
+    S.journal.push(Object.assign({ j: farm.s.day, h: Math.round(npcs.hour() * 10) / 10, lieu, k }, o || {}));
+    while (S.journal.length > 40) S.journal.shift();
+  },
+
+  // ------------------------------------------------------------------ qui, où
+  est(n) { return !!(n && n.d && n.d.garde); },
+  nouveau(n) { return !!(n && n.d && n.d.garde && !n.d.garde.ancien); },
+  liste() { return this.L; },
+  du(lieu) { return this.L.filter((n) => n.d.garde.lieu === lieu); },
+  vivant(n) { return !!(n && n.st.alive && !n.vanished && n.state !== 'gone' && n.state !== 'dead'); },
+  dort(n) { return !!(n.sleep || n.state === 'sleep'); },
+  eveille(n) { return this.vivant(n) && !this.dort(n) && !n.st.malade; },
+  nuit() { const h = npcs.hour(); return h >= 20.5 || h < 6; },
+  zone(lieu) {
+    const w = game.world;
+    if (!w) return null;
+    if (lieu === 'valbrume') return w.townInfo ? { x: w.townInfo.x, z: w.townInfo.z, r: 80 } : null;
+    if (lieu === 'clairpre') return w.lm.hameau ? { x: w.lm.hameau.x, z: w.lm.hameau.z, r: 62 } : null;
+    return null;
+  },
+  lieuDe(x, z, marge) {
+    for (const v of ['valbrume', 'clairpre']) { const Z = this.zone(v); if (Z && Math.hypot(x - Z.x, z - Z.z) < Z.r + (marge || 0)) return v; }
+    return null;
+  },
+  lieuW(n) { const w = game.world; return w && w.g1 && w.g1.lieux ? w.g1.lieux[n.d.garde.lieu] : null; },
+  nomComplet(n) { return `${n.name} ${n.d.surname}`; },
+  titre(n) { return n.st.met ? `${n.name} ${n.d.surname}, ${n.d.role.toLowerCase()}` : n.d.role; },
+  dit(k, n) { const T = G1_DIT[k] || {}; const v = T[n.id] ?? T._; return Array.isArray(v) ? pick(v) : v || ''; },
+  meurtreConnu() { const R = societe.recherche(); return !!(R && R.meurtre); },
+  // un petit délit : rien que du vol, du braconnage, une effraction, une intrusion, une rébellion — et pas trop
+  petitDelit() {
+    const R = societe.recherche();
+    if (!R) return false;
+    const A = societe.actifs().filter((C) => societe.connuQuelquePart(C));
+    return A.length > 0 && A.every((C) => G1_PETITS.has(C.type)) && R.prime <= 450;
+  },
+  // ce qu'ils disent ne s'entend que de près (les sous-titres ne disent pas ce qui se crie à l'autre bout du village)
+  parle(n, t, dur) {
+    if (!n || !t || !game.player) return;
+    const p = game.player;
+    if (Math.hypot(n.x - p.pos[0], n.z - p.pos[2]) > 40 || !!p.underground !== !!(n.d && n.d.area === 'nains')) return;
+    npcs.say(n, t, dur);
+  },
+  direUneFois(n, k, delai) {
+    const D = n.g1dit || (n.g1dit = {});
+    if (game.time - (D[k] ?? -1e9) < (delai || 60)) return;
+    D[k] = game.time;
+    this.parle(n, this.dit(k, n), 2.5);
+  },
+  // le son d'un geste vient de celui qui le fait (13-zz-son3d.js)
+  son(n, fn) {
+    let k = null;
+    try { if (sound.entrer) k = sound.entrer(n, { att: 'phys', ref: 8, roll: 0.6 }); } catch (e) { k = null; }
+    try { fn(); } finally { try { if (k !== null && sound.sortir) sound.sortir(k); } catch (e) { /* rien */ } }
+  },
+
+  // ------------------------------------------------------------------ la semaine (11-zzsemaine.js : routineDuJour)
+  journee(n) {
+    const day = farm.s.day, key = n.id + ':' + day;
+    if (this.jcache.has(key)) return this.jcache.get(key);
+    const J = cal.jour(day).cle, w = game.world;
+    let S;
+    if (n.id === 'chevalier_guet') {
+      S = [[0, 'g1:ronde'], [1, 'g1:poste'], [2, 'g1:ronde'], [3, 'g1:poste'], [4, 'g1:ronde'], [5, 'g1:pont'], [6.2, 'g1:poste'], [7, 'home'],
+        [14, 'auberge'], [15, J === 'marche' ? 'marche' : J === 'morts' ? 'cimetiere' : 'place'], [16.5, J === 'fer' ? 'bld:forge' : 'puits_ville'], [17.5, 'bld:garde'], [18.5, 'place'],
+        [19.1, 'g1:pont'], [19.8, 'g1:poste'], [21, 'g1:ronde'], [22, 'g1:poste'], [23, 'g1:ronde']];
+    } else if (n.id === 'garde_champetre') {
+      S = J === 'foire'
+        ? [[5.5, 'g1:poste'], [6.3, 'hameau'], [7.5, 'g1:ronde'], [8.5, 'hameau'], [12, 'home'], [13, 'hameau'], [17, 'g1:ronde'], [18, 'hameau'], [19, 'g1:poste'], [21.5, 'home']]
+        : [[5.5, 'g1:poste'], [6.3, 'hameau'], [7.5, 'g1:ronde'], [8.5, 'hameau'], [10, 'bld:ranch'], [11, 'g1:ronde'], [12, 'home'], [13, 'g1:ronde'], [14, 'hameau'], [15, J === 'morts' ? 'cimetiere' : 'g1:ronde'], [17, 'hameau'], [19, 'g1:poste'], [21.5, 'home']];
+    } else if (n.id === 'gendarme') {
+      let tour = G1_TOURNEE[J] || 'hameau';
+      if (tour.startsWith('lieu:') && !(w && w.lm[tour.slice(5)])) tour = 'hameau';
+      S = [[0, 'g1:ronde'], [1, 'g1:poste'], [2, 'g1:ronde'], [3, 'g1:poste'], [4, 'g1:ronde'], [5, 'g1:poste'], [6, 'home'], [12, 'g1:ecurie'], [13, tour], [17.5, 'g1:ecurie'], [18.5, 'home'], [20, 'hameau'], [20.6, 'g1:poste'], [22, 'g1:ronde'], [23, 'g1:poste']];
+    } else S = (n.d.schedule || [[6, 'home']]).map((e) => e.slice());
+    this.jcache.set(key, S);
+    if (this.jcache.size > 60) this.jcache.clear();
+    return S;
+  },
+  // les heures de sommeil (de jour pour ceux qui veillent la nuit)
+  dortA(n, h) {
+    if (n.id === 'chevalier_guet') return h >= 7 && h < 14;
+    if (n.id === 'garde_champetre') return h >= 21.5 || h < 5.5;
+    if (n.id === 'gendarme') return h >= 6 && h < 12;
+    return false;
+  },
+  // leurs lieux à eux : le poste (devant la cabane), le bout du pont, la ronde, l'écurie ; leur lit, leur chaise
+  dest(n, pl, sleep) {
+    const w = game.world, B = w.bld[n.d.home], L = this.lieuW(n);
+    if (!B) return null;
+    if (pl === 'home') {
+      const sp = sleep ? B.spots['lit_' + n.id] || B.spots.bed : B.spots['assis_' + n.id] || B.spots.sit;
+      return sp ? { node: B.nMid, x: sp.x, z: sp.z, r: sp.r, pose: sleep ? 'lie' : 'sit', bld: B.key, y: sp.y } : null;
+    }
+    if (typeof pl !== 'string' || !pl.startsWith('g1:')) return null;
+    const k = pl.slice(3);
+    let P = null, r = null, pose = null;
+    if (k === 'poste' && B.spots.poste) { P = B.spots.poste; r = P.r; }
+    else if (k === 'ecurie' && B.spots.ecurie) { P = B.spots.ecurie; r = P.r; pose = 'work'; }
+    else if (k === 'pont' && L && L.pont) P = { x: L.pont[0], z: L.pont[1] };
+    else if (k === 'ronde' && L && L.ronde && L.ronde.length) { const i = (Math.floor(npcs.hour()) + farm.s.day + G1_IDS.indexOf(n.id)) % L.ronde.length; P = { x: L.ronde[i][0] + (Math.random() - 0.5), z: L.ronde[i][1] + (Math.random() - 0.5) }; }
+    if (!P) return null;
+    const node = k === 'poste' || k === 'ecurie' ? B.nOut : npcs.nearestReach(P.x, P.z, (q) => !/:(in|mid)$/.test(q.tag));
+    if (node < 0) return null;
+    return { node, x: P.x, z: P.z, r, pose };
+  },
+
+  // ------------------------------------------------------------------ voir le recherché, l'alerte
+  // (un garde éveillé, qui connaît un crime du fermier, le voit : il vient à lui)
+  surveiller() {
+    const p = game.player, w = game.world;
+    if (p.underground || game.sleeping || societe.arrestation || (typeof prison !== 'undefined' && prison.enPrison())) return;
+    for (const n of this.L) {
+      if (!this.eveille(n) || n.hunting || n.talking || n.urgence || n.fleeT > 0) continue;
+      if ((n.poursuite || 0) > game.time || n.alerte || n.sommeT) continue;
+      const dx = p.pos[0] - n.x, dz = p.pos[2] - n.z, d = Math.hypot(dx, dz);
+      if (d > 22) continue;
+      if (this.nuit() && !game.lantern && d > 12) continue;
+      if (d > 4 && !segClear(w, n.x, n.z, p.pos[0], p.pos[2])) continue;
+      const face = (dx * Math.sin(n.heading) + dz * Math.cos(n.heading)) / (d || 1);
+      if (face < -0.2 && d > 6) continue;
+      if (!societe.crimesSus(n).length) continue;
+      n.poursuite = game.time + 18; n.vuT = game.time; n.fleeT = 0;
+    }
+  },
+  // l'alerte (un crime, un cri « au voleur », quelqu'un qui vous reconnaît) : les gardes du lieu d'abord, deux au plus
+  alerter(x, z, k) {
+    if (!farm.s || Math.random() > (k ?? 1)) return false;
+    const lieu = this.lieuDe(x, z, 60);
+    const C = this.L.filter((g) => this.vivant(g) && !g.st.malade && !g.hunting && !g.talking && !g.urgence && Math.hypot(g.x - x, g.z - z) < 170);
+    C.sort((a, b) => ((a.d.garde.lieu === lieu ? 0 : 1) - (b.d.garde.lieu === lieu ? 0 : 1)) || (Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z)));
+    let nb = 0;
+    for (const g of C) {
+      if (nb >= 2) break;
+      if (this.dort(g)) { if (Math.hypot(g.x - x, g.z - z) > 35 || Math.random() > 0.5) continue; this.reveiller(g); }
+      g.alerte = { x, z, t: game.time + 40 }; g.fleeT = 0; nb++;
+    }
+    return nb > 0;
+  },
+  reveiller(g) {
+    g.sleep = false; g.state = 'idle'; g.reveilT = game.time + 90; g.goal = null;
+    gardes.parle(g, this.dit('reveil', g), 2.5);
+  },
+  // ceux qui ont vu (ou qui sont à quarante mètres) accourent
+  temoinsCrime(vus, x, z) {
+    for (const g of this.L) {
+      if (!this.eveille(g) || g.talking || g.urgence) continue;
+      if (!(vus || []).includes(g) && Math.hypot(g.x - x, g.z - z) > 40) continue;
+      g.fleeT = 0; g.poursuite = game.time + 18; g.vuT = game.time;
+    }
+  },
+  // l'autre garde du lieu vient prêter main-forte
+  appeler(n) {
+    const p = game.player;
+    for (const m of this.du(n.d.garde.lieu)) {
+      if (m === n || !this.vivant(m) || m.st.malade || m.talking || m.urgence) continue;
+      const d = Math.hypot(m.x - p.pos[0], m.z - p.pos[2]);
+      if (this.dort(m)) { if (d > 90) continue; this.reveiller(m); }
+      else if (d > 200) continue;
+      m.alerte = { x: p.pos[0], z: p.pos[2], t: game.time + 45 }; m.attaque = true; m.fleeT = 0; m.atkT = Math.max(m.atkT || 0, 1 + Math.random() * 0.6);
+    }
+  },
+
+  // ------------------------------------------------------------------ la poursuite (remplace societe.poursuivre pour les gardes)
+  poursuivre(n, dt, w, c) {
+    const p = game.player, dx = p.pos[0] - n.x, dz = p.pos[2] - n.z, d = Math.hypot(dx, dz);
+    n.dist = d; n.hurtT = Math.max(0, n.hurtT - dt); n.bubbleT = Math.max(0, n.bubbleT - dt);
+    // (un dormeur qu'on a réveillé reste debout le temps de l'affaire)
+    if (this.dort(n)) { if ((n.reveilT || 0) > game.time) { n.sleep = false; n.state = 'idle'; } else { this.fin(n); return; } }
+    const sus = societe.crimesSus(n);
+    if (!sus.length || societe.arrestation || p.underground || game.sleeping || game.dying || (typeof prison !== 'undefined' && prison.enPrison())) { this.fin(n); return; }
+    const vu = d < 26 && (d < 5 || segClear(w, n.x, n.z, p.pos[0], p.pos[2]));
+    if (vu) { n.poursuite = game.time + 18; n.vuT = game.time; n.alerte = null; }
+    // (un autre garde vous voit, tout près : on suit sa voix)
+    else if (this.L.some((m) => m !== n && m.st.alive && game.time - (m.vuT || -1e9) < 1.5 && ((m.poursuite || 0) > game.time) && Math.hypot(m.x - n.x, m.z - n.z) < 70)) n.poursuite = Math.max(n.poursuite || 0, game.time + 3);
+    let tx, tz;
+    if (vu || n.poursuite > game.time) { tx = p.pos[0]; tz = p.pos[2]; }
+    else if (n.alerte && n.alerte.t > game.time) { tx = n.alerte.x; tz = n.alerte.z; if (Math.hypot(tx - n.x, tz - n.z) < 3) n.alerte = null; }
+    else { this.perdu(n); return; }
+    const Sm = this.sommation, face = () => { n.move = lerp(n.move, 0, Math.min(1, dt * 8)); n.run = false; n.heading = turnToward(n.heading, Math.atan2(dx, dz), dt * 6); };
+    // le choix est à l'écran : il attend ; un autre garde s'approche et attend aussi
+    if (Sm && Sm.ouvert) { if (Sm.n === n || d < 3.2) { face(); return; } this.courir(n, tx, tz, dt, w, 3.2); return; }
+    if (n.attaque) { this.combat(n, dt, w, c, d, vu); return; }
+    // (il ne passe pas — une clôture, un fossé : il somme de là où il est, à pleine voix)
+    const lent = this.progres(n, d);
+    if (vu && (d < 2.2 || (d < 16 && lent > 4) || (d < 24 && lent > 8) || (n.sommeT && d < (n.sommeD || 0) + 1.5))) {
+      face();
+      if (!n.sommeT) { if (this.sommer(n)) { n.sommeT = game.time; n.sommeD = d; } } // (pas de choix à l'écran : il réessaiera)
+      else if (Sm && Sm.n === n && Sm.ferme && game.time - Sm.fermeT > 5) this.arreter(n, 'sommation'); // (resté là sans répondre : il vous emmène)
+      return;
+    }
+    // on s'en va après la sommation : c'est un refus
+    if (n.sommeT && d > Math.max(5.5, (n.sommeD || 0) + 4)) { this.refus(n, 'fuite'); return; }
+    this.courir(n, tx, tz, dt, w, n.sommeT ? 4.6 : 4.1);
+    if (!vu && n.poursuite && n.poursuite <= game.time && game.time - (n.vuT || 0) > 12) this.perdu(n);
+  },
+  // courir vers un point (comme societe.courir, mais un garde qui bute contre une clôture cherche le chemin
+  // au lieu de pousser, et garde son chemin quelques secondes au lieu de le recalculer sans cesse)
+  courir(n, tx, tz, dt, w, sp) {
+    const C = n.g1c || (n.g1c = { t: 0, x: n.x, z: n.z, bloque: 0, tx: 1e9, tz: 1e9, recalc: 0, direct: 0 });
+    C.t += dt;
+    if (C.t > 0.8) { C.bloque = Math.hypot(n.x - C.x, n.z - C.z) < sp * C.t * 0.3 ? C.bloque + 1 : 0; C.x = n.x; C.z = n.z; C.t = 0; }
+    if (C.bloque >= 2 && !n.course) C.direct = game.time + 6; // (tout droit, ça bute : par le chemin, un moment)
+    const pres = Math.hypot(tx - n.x, tz - n.z) < 3.5;
+    if (pres || (game.time > C.direct && segClear(w, n.x, n.z, tx, tz))) n.course = null;
+    else if (!n.course || n.courseI >= n.course.length || Math.hypot(tx - C.tx, tz - C.tz) > 6 || game.time > C.recalc || C.bloque >= 4) {
+      const a = societe.noeud(n.x, n.z, n.inside), b = societe.noeud(tx, tz, null), P = a >= 0 && b >= 0 ? npcs.findPath(n, a, b) : null;
+      n.course = P && P.length ? P.slice() : null; n.courseI = 0; C.tx = tx; C.tz = tz; C.recalc = game.time + 5;
+      if (C.bloque >= 4) C.bloque = 2;
+      // (le premier nœud est derrière soi, le second plus près du but : on coupe)
+      if (n.course && n.course.length > 1) { const q0 = w.nav.nodes[n.course[0]], q1 = w.nav.nodes[n.course[1]]; if (Math.hypot(q1.x - n.x, q1.z - n.z) < Math.hypot(q1.x - q0.x, q1.z - q0.z) && segClear(w, n.x, n.z, q1.x, q1.z)) n.courseI = 1; }
+    }
+    let gx = tx, gz = tz;
+    if (n.course && n.courseI < n.course.length) {
+      const q = w.nav.nodes[n.course[n.courseI]]; gx = q.x; gz = q.z;
+      if (Math.hypot(gx - n.x, gz - n.z) < 1.3) n.courseI++;
+      if (n.courseI >= n.course.length) n.course = null;
+    }
+    for (const dr of w.doors) if (Math.abs(dr.x - n.x) < 2 && Math.abs(dr.z - n.z) < 2 && !dr.locked) dr.open = 1;
+    n.heading = turnToward(n.heading, Math.atan2(gx - n.x, gz - n.z), dt * 6);
+    let nx = n.x + Math.sin(n.heading) * sp * dt, nz = n.z + Math.cos(n.heading) * sp * dt;
+    [nx, nz] = w.collideCircle(nx, nz, n.y, n.y + 1.7, 0.28, 0.5, true);
+    const g = w.groundAt(nx, nz, n.y + 0.6, 0.6);
+    if (g < w.waterLevel - 0.25 && !n.inside) { n.move = lerp(n.move, 0, dt * 6); return; }
+    n.x = nx; n.z = nz; n.y = g; n.inside = null; n.state = 'walk';
+    n.move = 1; n.run = sp > 3; n.phase += dt * sp * 2.2;
+  },
+  // s'approche-t-il encore ? (sinon, au bout de quelques secondes, il somme de là où il est, à pleine voix)
+  progres(n, d) {
+    const P = n.g1p || (n.g1p = { dmin: d, t: game.time });
+    if (d < P.dmin - 0.4) { P.dmin = d; P.t = game.time; }
+    return game.time - P.t;
+  },
+  fin(n) {
+    societe.finPoursuite(n);
+    n.attaque = false; n.g1vise = null; n.peurDite = false; n.g1p = null; n.g1c = null; n.sommeD = 0;
+    if (this.sommation && this.sommation.n === n) this.fermerChoix();
+  },
+  // on l'a semé : la prime monte, une fois par fuite
+  perdu(n) {
+    const S = this.S(), lieu = n.d.garde.lieu;
+    const encore = this.L.some((m) => m !== n && m.attaque && (m.poursuite || 0) > game.time);
+    if (n.attaque && S.rebelle && S.rebelle.actif && !S.rebelle.fuite && !encore) {
+      S.rebelle.fuite = true; S.fuites = (S.fuites || 0) + 1;
+      const C = societe.S().crimes.find((k) => k.id === S.rebelle.C);
+      if (C && !C.leve) { C.prime += 50; societe.majAffiches(true); }
+      this.noter(lieu, 'fuite', { g: n.id });
+    }
+    if (n.st.alive && (n.attaque || n.sommeT)) gardes.parle(n, this.dit('perdu', n), 2.5);
+    this.fin(n);
+    if (S.rebelle && !this.L.some((m) => m.attaque && m.d.garde.lieu === S.rebelle.lieu)) S.rebelle.actif = false;
+  },
+
+  // ------------------------------------------------------------------ la sommation : le choix
+  ligneSommation(n) {
+    if (n.id === 'garde') return farm.s.fem ? 'Au nom de la loi ! Ne bougez plus, madame.' : 'Au nom de la loi ! Ne bougez plus, monsieur.';
+    return G1_DIT.sommation[n.id] || 'Au nom de la loi ! Ne bougez plus.';
+  },
+  sommer(n, mode) {
+    const R = societe.recherche(), K = societe.crimesSus(n), s = farm.s;
+    if (!R || !K.length || cine.on || game.dying || game.sleeping || societe.arrestation) return false;
+    ui.close(true);
+    const ligne = mode === 'redemande' ? this.dit('redemande', n) : this.ligneSommation(n);
+    gardes.parle(n, ligne, 3);
+    const petit = mode !== 'redemande' && this.petitDelit(), prime = R.prime;
+    const opts = [{ label: 'Me rendre', fn: () => this.choix(n, 'rendre') }];
+    if (petit && s.money >= prime) opts.push({ label: `Payer la prime sur-le-champ (${prime} pièces)`, fn: () => this.choix(n, 'payer') });
+    opts.push({ label: 'Refuser', fn: () => this.choix(n, 'refus') });
+    const lib = K.map((C) => societe.libelle(C)).join(', ');
+    const desc = `« ${fmtLine(ligne, n)} » ${s.fem ? 'Vous êtes recherchée' : 'Vous êtes recherché'} pour ${lib}. Prime : ${prime} pièces.${petit ? ` Vous avez ${s.money} pièces.` : ''}`;
+    ui.choice(this.titre(n), desc, opts);
+    this.sommation = { n, t: game.time, ouvert: true, mode: mode || 'sommation' };
+    return true;
+  },
+  fermerChoix() {
+    if (this.sommation && ui.panel === '#choice') ui.close(true);
+    this.sommation = null;
+  },
+  choix(n, a) {
+    this.sommation = null;
+    ui.close(a === 'rendre'); // (refuser, payer : on reprend la main)
+    if (a === 'rendre') { this.arreter(n, 'rendu'); return; }
+    if (a === 'payer') { this.payerSurLeChamp(n); return; }
+    this.refus(n, 'choix');
+  },
+  payerSurLeChamp(n) {
+    const r = societe.payer(this.nomComplet(n));
+    if (r !== 'ok') { gardes.parle(n, 'Vous n’avez pas de quoi. Alors ce sera le cachot.', 3); setTimeout(() => this.arreter(n, 'rendu'), 1800); return false; }
+    const S = this.S();
+    S.payes = (S.payes || 0) + 1;
+    gardes.parle(n, this.dit('paye', n), 3.5);
+    npcs.addAmitie(n, 10);
+    this.calme();
+    this.noter(n.d.garde.lieu, 'paye', { g: n.id });
+    return true;
+  },
+  calme() {
+    const S = this.S();
+    for (const m of npcs.list) { societe.finPoursuite(m); m.attaque = false; }
+    if (S) S.rebelle = null;
+    this.fermerChoix();
+  },
+  // refuser : la rébellion (une petite prime, une fois par affaire), les coups, la main-forte
+  refus(n, comment) {
+    const S = this.S(), lieu = n.d.garde.lieu, p = game.player;
+    if (this.sommation) this.fermerChoix();
+    n.attaque = true; n.sommeT = n.sommeT || game.time; n.poursuite = game.time + 18; n.vuT = game.time; n.fleeT = 0;
+    n.atkT = Math.max(n.atkT || 0, 0.5 + Math.random() * 0.5); // (le temps de tirer le sabre)
+    gardes.parle(n, this.dit('refus', n), 2.5);
+    if (!S.rebelle || !S.rebelle.actif) {
+      const tem = [n].concat(this.du(lieu).filter((m) => m !== n && this.eveille(m) && Math.hypot(m.x - p.pos[0], m.z - p.pos[2]) < 30));
+      let C = null;
+      try { C = societe.crime({ type: 'rebellion', victime: null, x: p.pos[0], z: p.pos[2], temoins: tem, preuve: lieu }); } catch (e) { console.error(e); }
+      S.rebelle = { actif: true, lieu, day: farm.s.day, C: C ? C.id : null, fuite: false, comment: comment || '' };
+      this.noter(lieu, 'rebellion', { g: n.id });
+    }
+    this.appeler(n);
+  },
+
+  // ------------------------------------------------------------------ les coups
+  combat(n, dt, w, c, d, vu) {
+    const G = n.d.garde, p = game.player, S = this.S();
+    n.atkT = Math.max(0, (n.atkT || 0) - dt); n.g1tirT = Math.max(0, (n.g1tirT || 0) - dt);
+    // la peur : un garde peureux, blessé, rompt et appelle
+    if (G.courage < 0.5 && (n.hp ?? 100) < 55) {
+      if (!n.peurDite) { n.peurDite = true; gardes.parle(n, this.dit('peur', n), 2.5); this.appeler(n); }
+      societe.finPoursuite(n); n.attaque = false; n.fleeT = 6; return;
+    }
+    // il vous a mis à mal : il vous redemande de vous rendre (une fois de temps en temps)
+    if (p.hp < 35 && d < 4 && vu && game.time - this.redemandeT > 25 && !cine.on && this.sommer(n, 'redemande')) {
+      this.redemandeT = game.time; n.attaque = false; n.sommeT = game.time; n.sommeD = d;
+      return;
+    }
+    // le fusil : de loin
+    if (G.tir && vu && d > 4 && d < G.tir.portee) {
+      n.move = lerp(n.move, 0, Math.min(1, dt * 8)); n.run = false;
+      n.heading = turnToward(n.heading, Math.atan2(p.pos[0] - n.x, p.pos[2] - n.z), dt * 6);
+      if (!n.g1vise) { if (n.g1tirT <= 0) { n.g1vise = { t: 0.9, sommation: !n.tirSomme }; this.epauler(n, true); } return; }
+      n.g1vise.t -= dt;
+      if (n.g1vise.t > 0) return;
+      const V = n.g1vise; n.g1vise = null; n.g1tirT = G.tir.cadence; this.epauler(n, false);
+      this.tirer(n);
+      if (V.sommation) { n.tirSomme = true; gardes.parle(n, 'Halte, ou je tire pour de bon !', 2.5); return; } // (le premier coup, en l'air)
+      const chance = G.tir.chance - (p.sprinting ? 0.2 : 0) - d / 120;
+      if (Math.random() < chance) this.frapperJoueur(n, G.tir.degats[0] + Math.random() * (G.tir.degats[1] - G.tir.degats[0]), 'Abattu d’un coup de fusil par ' + this.nomCause(n));
+      return;
+    }
+    if (n.g1vise) { n.g1vise = null; this.epauler(n, false); }
+    if (d > 1.7) { this.courir(n, p.pos[0], p.pos[2], dt, w, 4.7); return; }
+    n.move = lerp(n.move, 0, Math.min(1, dt * 8)); n.run = false;
+    n.heading = turnToward(n.heading, Math.atan2(p.pos[0] - n.x, p.pos[2] - n.z), dt * 7);
+    if (n.atkT <= 0) {
+      n.atkT = 1.35 + Math.random() * 0.5; n.attackAnim = 0.5;
+      this.son(n, () => { sound.swish && sound.swish(1.1); });
+      this.frapperJoueur(n, G.coups[0] + Math.random() * (G.coups[1] - G.coups[0]), 'Abattu par ' + this.nomCause(n));
+    }
+  },
+  nomCause(n) { return `${n.name} ${n.d.surname}, ${n.d.garde.titre || n.d.role.toLowerCase()}`; },
+  // (pendant le coup, gardes.coup dit qui frappe : un coup mortel devient un coup qui assomme, sauf pour un meurtre)
+  frapperJoueur(n, dmg, cause) {
+    this.coup = n;
+    try { play.hurt(Math.round(dmg), n, cause); } finally { this.coup = null; }
+  },
+  tirer(n) {
+    try { if (typeof chasse !== 'undefined' && chasse.sonTir) chasse.sonTir([n.x, n.y + 1.5, n.z]); else sound.shot && sound.shot(); } catch (e) { /* rien */ }
+    n.g1flashT = 0.09;
+    try { entities.scare(n.x, n.z, 70); } catch (e) { /* rien */ }
+  },
+  // un garde qu'on frappe : il se défend (ou, peureux et blessé, il fuit et appelle)
+  frappe(n) {
+    if (!n.st.alive) return;
+    n.fleeT = 0;
+    const G = n.d.garde;
+    if (G.courage < 0.5 && (n.hp ?? 100) < 55) { n.fleeT = 6; n.attaque = false; gardes.parle(n, this.dit('peur', n), 2.5); this.appeler(n); return; }
+    if (this.dort(n)) this.reveiller(n);
+    n.attaque = true; n.poursuite = game.time + 18; n.vuT = game.time;
+    const S = this.S();
+    if (!S.rebelle || !S.rebelle.actif) S.rebelle = { actif: true, lieu: G.lieu, day: farm.s.day, C: null, fuite: false, comment: 'coups' };
+    this.appeler(n);
+  },
+
+  // ------------------------------------------------------------------ l'arrestation
+  async arreter(par, mode) {
+    if (societe.arrestation || game.dying || game.sleeping) return;
+    societe.arrestation = true;
+    this.fermerChoix();
+    const p = game.player, R = societe.recherche(), S = this.S(), s = farm.s;
+    ui.close(true);
+    for (const m of npcs.list) { societe.finPoursuite(m); m.attaque = false; }
+    for (const e of societe.chasseurs) e.fin = true;
+    if (S.rebelle) S.rebelle.actif = false;
+    const nom = par.st.met ? par.name : par.d.role;
+    try {
+      if (mode === 'assomme') {
+        S.assommes = (S.assommes || 0) + 1;
+        await cine.jouer([
+          { dur: 2.2, fondu: 'noir', texte: '(Un coup, et le sol vient à vous.)', debut() { sound.hurt && sound.hurt(20); } },
+          { dur: 2.8, fondu: 'noir', texte: this.dit(s.fem ? 'assommeF' : 'assomme', par), qui: nom, debut() { sound.chain && sound.chain(); } },
+        ], { passer: false });
+      } else {
+        // (de loin, il vient à vous : la scène les montre côte à côte)
+        const dd = Math.hypot(par.x - p.pos[0], par.z - p.pos[2]);
+        if (dd > 2.6 && !par.inside) { const k = 1.4 / dd, x = p.pos[0] + (par.x - p.pos[0]) * k, z = p.pos[2] + (par.z - p.pos[2]) * k; par.x = x; par.z = z; par.y = game.world.groundAt(x, z, p.pos[1] + 0.6, 0.8); par.course = null; }
+        par.heading = Math.atan2(p.pos[0] - par.x, p.pos[2] - par.z); par.move = 0; par.run = false;
+        const e = p.eyePos(), ax = par.x, az = par.z, a = Math.atan2(ax - p.pos[0], az - p.pos[2]) + 1.5;
+        const mid = [(p.pos[0] + ax) / 2, e[1] - 0.25, (p.pos[2] + az) / 2];
+        await cine.jouer([
+          { dur: 3.2, de: { pos: [mid[0] + Math.sin(a) * 3.4, e[1] + 0.3, mid[2] + Math.cos(a) * 3.4], look: mid }, a: { pos: [mid[0] + Math.sin(a + 0.35) * 2.8, e[1] + 0.15, mid[2] + Math.cos(a + 0.35) * 2.8], look: mid }, texte: this.dit('arrete', par), qui: nom, joueur: true, debut() { sound.chain && sound.chain(); } },
+          { dur: 2.4, fondu: 'noir', texte: '(Les fers se referment sur vos poignets.)', debut() { sound.lock && sound.lock(true); } },
+        ], { passer: false });
+      }
+      if (mode === 'rendu') S.rendus = (S.rendus || 0) + 1;
+      S.arrets = (S.arrets || 0) + 1;
+      this.noter(par.d.garde.lieu, 'arrestation', { g: par.id, m: mode });
+      await societe.cachot(R);
+    } catch (err) { console.error(err); }
+    societe.arrestation = false;
+  },
+  // se rendre de soi-même à un garde qui ne savait rien : il apprend ce que la vallée sait, et il vous emmène
+  seRendre(n) {
+    const v = societe.villageDe(n.id);
+    for (const C of societe.actifs()) if (societe.connuQuelquePart(C) && v) societe.apprendre(C, v, farm.s.day);
+    societe.majAffiches(true);
+  },
+
+  // ------------------------------------------------------------------ les « problèmes » : qui accourt, où
+  cri(x, z, n, tir) { this.cris.push({ x, z, t: game.time, id: n ? n.id : null, tir: !!tir }); if (this.cris.length > 6) this.cris.shift(); },
+  menaces(lieu, Z) {
+    const out = [], dans = (x, z, m) => Math.hypot(x - Z.x, z - Z.z) < Z.r + (m || 0);
+    const T = typeof tueur !== 'undefined' ? tueur.E : null;
+    if (T && T.etat !== 'fuite' && T.etat !== 'tue' && dans(T.x, T.z, 25)) out.push({ type: 'tueur', e: T, x: T.x, z: T.z, tous: true, bruit: true, duree: 90, portee: 150 });
+    const K = strange.killerE;
+    if (K && K.kind === 'killer' && strange.ents.includes(K) && dans(K.x, K.z, 20)) out.push({ type: 'masque', e: K, x: K.x, z: K.z, tous: true, bruit: true, duree: 60, portee: 140 });
+    for (const e of entities.list) {
+      if (e.dead || e.hidden || e.far || e.owner || e.removed || !G1_BETES.has(e.kind) || !dans(e.x, e.z, -Z.r * 0.35)) continue;
+      out.push({ type: 'bete', e, x: e.x, z: e.z, tous: e.kind === 'bear', duree: 70, portee: 120 });
+      break;
+    }
+    if (typeof vallee !== 'undefined' && vallee.burning && vallee.burning.size) for (const b of vallee.burning.values()) if (dans(b.x, b.z, 15)) { out.push({ type: 'feu', x: b.x, z: b.z, tous: true, bruit: true, duree: 150, portee: 170 }); break; }
+    for (const c of this.cris) if (game.time - c.t < 30 && !c.vu && dans(c.x, c.z, 20)) out.push({ type: 'cri', x: c.x, z: c.z, bruit: true, duree: 45, portee: 140, id: c.id, c, tir: c.tir });
+    return out;
+  },
+  urgences() {
+    for (const lieu of ['valbrume', 'clairpre']) {
+      const Z = this.zone(lieu);
+      if (!Z) continue;
+      const G = this.du(lieu).filter((g) => this.vivant(g) && !g.st.malade && !g.urgence && !g.talking && !((g.poursuite || 0) > game.time) && !g.sommeT && !g.attaque && !(g.fleeT > 0));
+      if (!G.length) continue;
+      for (const M of this.menaces(lieu, Z)) {
+        for (const g of G) {
+          if (g.urgence) continue;
+          const d = Math.hypot(g.x - M.x, g.z - M.z), dort = this.dort(g);
+          if (d > M.portee || (dort && !(M.bruit && d < 45))) continue;
+          if (dort) this.reveiller(g);
+          g.urgence = { type: M.type, e: M.e || null, x: M.x, z: M.z, t0: game.time, fin: game.time + M.duree, lieu, id: M.id || null, tir: !!M.tir };
+          g.goal = null;
+          if (M.c) M.c.vu = true;
+          if (M.type === 'bete' || M.type === 'feu') this.direUneFois(g, M.type, 120); // (l'homme, on l'interpelle quand on le voit)
+          if (!M.tous) break;
+        }
+      }
+    }
+  },
+  // l'autre garde du lieu, appelé à l'aide contre la même menace
+  renfort(n, U) {
+    for (const m of this.du(n.d.garde.lieu)) {
+      if (m === n || !this.vivant(m) || m.st.malade || m.urgence || m.talking || m.attaque) continue;
+      const d = Math.hypot(m.x - n.x, m.z - n.z);
+      if (this.dort(m)) { if (d > 60) continue; this.reveiller(m); } else if (d > 160) continue;
+      m.urgence = { type: U.type, e: U.e, x: U.x, z: U.z, t0: game.time, fin: game.time + 60, lieu: U.lieu, id: U.id || null };
+      m.goal = null; m.fleeT = 0;
+    }
+  },
+  finUrgence(n) { n.urgence = null; n.run = false; n.goal = null; n.course = null; n.g1vise = null; },
+  // (chaque image, pour ceux qui ont une urgence : c'est nous qui les menons)
+  agir(n, dt, w, c) {
+    const U = n.urgence;
+    n.dist = Math.hypot(n.x - c.px, n.z - c.pz); n.hurtT = Math.max(0, n.hurtT - dt); n.bubbleT = Math.max(0, n.bubbleT - dt);
+    n.atkT = Math.max(0, (n.atkT || 0) - dt); n.g1tirT = Math.max(0, (n.g1tirT || 0) - dt);
+    if (!U || game.time > U.fin || !n.st.alive) { this.finUrgence(n); return; }
+    if (this.dort(n)) { n.sleep = false; n.state = 'idle'; }
+    try {
+      if (U.type === 'tueur' || U.type === 'masque') this.contreTueur(n, U, dt, w);
+      else if (U.type === 'bete') this.contreBete(n, U, dt, w);
+      else if (U.type === 'feu') this.contreFeu(n, U, dt, w);
+      else this.versCri(n, U, dt, w);
+    } catch (e) { console.error('G1 : urgence', e); this.finUrgence(n); }
+  },
+  arret(n, dt, x, z) { n.move = lerp(n.move, 0, Math.min(1, dt * 8)); n.run = false; n.state = 'idle'; if (x !== undefined) n.heading = turnToward(n.heading, Math.atan2(x - n.x, z - n.z), dt * 6); },
+  // épauler, comme les chasseurs qui visent (11-zzz30-chasse.js : viser) : les bras devant, le fusil aux mains
+  epauler(n, on) {
+    if (on) { n.state = 'idle'; if (!n.goal || !n.goal.g1) n.goal = { node: -1, x: n.x, z: n.z, pose: 'fish', g1: true }; }
+    else if (n.goal && n.goal.g1) n.goal = null;
+  },
+  // viser, puis tirer (le garde champêtre) : onTouche() si la balle porte
+  viserTirer(n, cx, cz, dt, chance, onTouche) {
+    this.arret(n, dt, cx, cz);
+    if (!n.g1vise) { if (n.g1tirT <= 0) { n.g1vise = { t: 0.9 }; this.epauler(n, true); } return; }
+    n.g1vise.t -= dt;
+    if (n.g1vise.t > 0) return;
+    n.g1vise = null; n.g1tirT = (n.d.garde.tir && n.d.garde.tir.cadence) || 3; this.epauler(n, false);
+    this.tirer(n);
+    if (Math.random() < chance) onTouche();
+  },
+  contreTueur(n, U, dt, w) {
+    const masque = U.type === 'masque', E = masque ? strange.killerE : typeof tueur !== 'undefined' ? tueur.E : null;
+    if (!E || E !== U.e || (masque && !strange.ents.includes(E))) { this.finUrgence(n); return; }
+    if (!masque && E.etat === 'fuite') { if (!U.fini) { U.fini = true; gardes.parle(n, this.dit('blesse', n), 3); } this.finUrgence(n); return; }
+    const Z = this.zone(U.lieu);
+    if (Z && Math.hypot(E.x - Z.x, E.z - Z.z) > Z.r + 60) { this.finUrgence(n); return; } // (il s'éloigne : on ne quitte pas les maisons)
+    const G = n.d.garde, d = Math.hypot(E.x - n.x, E.z - n.z);
+    if (!U.dit && d < 30) { U.dit = true; this.direUneFois(n, 'tueur', 120); }
+    // la peur : le garde des ponts s'arrête à distance, appelle, et rompt s'il approche
+    if (G.courage < 0.5 && d < 14) { this.arret(n, dt, E.x, E.z); if (d < 6) { n.fleeT = 5; gardes.parle(n, this.dit('peur', n), 2.5); this.renfort(n, U); this.finUrgence(n); } return; }
+    // le fusil
+    if (G.tir && d > 4 && d < 20) { this.viserTirer(n, E.x, E.z, dt, 0.45, () => this.blesserTueur(n, E, masque)); return; }
+    if (n.g1vise) { n.g1vise = null; this.epauler(n, false); }
+    if (d > 2.2) { this.courir(n, E.x, E.z, dt, w, 4.8); return; } // (la lame porte plus loin que le couperet)
+    this.arret(n, dt, E.x, E.z);
+    if (U.duel) return;
+    U.duel = true; n.attackAnim = 0.5;
+    this.son(n, () => { sound.swish && sound.swish(1.2); });
+    if (Math.random() < (G.courage >= 0.9 ? 0.7 : 0.5)) this.blesserTueur(n, E, masque);
+    else this.tueParTueur(n, E, masque);
+  },
+  blesserTueur(n, E, masque) {
+    if (masque) {
+      E.hp = Math.max(10, (E.hp || 120) - 45); E.stagger = 0.8; E.state = 'search';
+      E.tgt = [E.x + (E.x - n.x) * 8, E.z + (E.z - n.z) * 8];
+      sound.hurtHuman && sound.hurtHuman(0.8);
+      puffAt(E.x, E.y + 1.2, E.z, [140, 20, 20], 8, 1.5, false);
+    } else tueur.blesser(E, 60);
+    gardes.parle(n, this.dit('blesse', n), 3);
+    this.noter(n.d.garde.lieu, masque ? 'masque_blesse' : 'tueur_blesse', { g: n.id });
+    if (n.urgence) n.urgence.fin = Math.min(n.urgence.fin, game.time + 4);
+  },
+  tueParTueur(n, E, masque) {
+    const w = game.world;
+    E.attackAnim = 0.5;
+    this.noter(n.d.garde.lieu, 'garde_tue', { g: n.id, par: masque ? 'masque' : 'errant' });
+    npcs.kill(n, masque ? 'tueur' : 'errant', []);
+    farm.addProp({ id: 'sang', x: n.x + 0.4, y: w.heightAt(n.x, n.z) + 0.01, z: n.z, r: Math.random() * TAU });
+    if (masque) { if (strange.s && Array.isArray(strange.s.victims)) strange.s.victims.push(n.id); }
+    else { tueur.S().victime = n.id; tueur.partir('meurtre'); }
+    const p = game.player;
+    if (Math.hypot(n.x - p.pos[0], n.z - p.pos[2]) < 140) setTimeout(() => ui.subtitle('', '(Un cri, dans la nuit. Un seul.)', 4), 600);
+  },
+  contreBete(n, U, dt, w) {
+    const e = U.e, Z = this.zone(U.lieu);
+    if (!e || e.removed || e.hidden || e.dead) { if (e && e.dead && !U.fini) { U.fini = true; gardes.parle(n, this.dit('abattue', n), 3); } this.finUrgence(n); return; }
+    if (!Z || Math.hypot(e.x - Z.x, e.z - Z.z) > Z.r + 45) { this.finUrgence(n); return; }
+    const G = n.d.garde, d = Math.hypot(e.x - n.x, e.z - n.z);
+    if (G.courage < 0.5 && e.kind === 'bear' && d < 18) { this.arret(n, dt, e.x, e.z); return; }
+    // blessé, on rompt (sauf le chevalier) : on appelle, on court
+    if ((n.hp ?? 100) < 40 && G.courage < 0.95) { n.fleeT = 7; this.direUneFois(n, 'peur', 30); this.renfort(n, U); this.finUrgence(n); return; }
+    if (G.tir && d > 3 && d < 26) { this.viserTirer(n, e.x, e.z, dt, clamp(0.85 - d / 60, 0.4, 0.85), () => this.toucherBete(n, e, 120 + Math.random() * 70)); return; }
+    if (n.g1vise) { n.g1vise = null; this.epauler(n, false); }
+    if (d > 1.9) { this.courir(n, e.x, e.z, dt, w, 4.5); return; }
+    this.arret(n, dt, e.x, e.z);
+    if (n.atkT <= 0) {
+      n.atkT = 1.3 + Math.random() * 0.4; n.attackAnim = 0.5;
+      this.son(n, () => { sound.swish && sound.swish(1.1); });
+      this.toucherBete(n, e, (G.coups[0] + Math.random() * (G.coups[1] - G.coups[0])) * 1.6);
+    }
+    // les loups mordent qui est à portée (ils ne chassent que le fermier, d'ordinaire)
+    if (e.kind === 'wolf' && d < 1.5 && Math.random() < dt * 0.35) npcs.hurt(n, 9 + Math.random() * 6, 'loup');
+  },
+  toucherBete(n, e, dmg) {
+    if (e.dead) return;
+    const ch = typeof chasse !== 'undefined' ? chasse : null;
+    if (e.kind === 'wolf') { // (un loup touché fuit le garde ; s'il tombe, il tombe)
+      e.hp -= dmg; e.hurtT = 0.3;
+      if (e.hp <= 0) { e.dead = true; e.hidden = false; if (ch && ch.abattre) ch.abattre(e, n); }
+      else entities.startFlee(e, n.x, n.z);
+    } else {
+      if (ch) ch._src = n;
+      const mort = entities.damage(e, dmg, n.x, n.z);
+      if (ch) ch._src = null;
+      if (mort) { if (ch && ch.abattre) ch.abattre(e, n); }
+      else if (ch && typeof CHASSE_DANGER !== 'undefined' && CHASSE_DANGER[e.kind] && !e.furie) ch.furie(e, n);
+    }
+    puffAt(e.x, e.y + 0.8, e.z, [140, 20, 20], 6, 1.2, false);
+    if (e.dead) { this.noter(n.d.garde.lieu, 'bete', { g: n.id, b: e.kind }); if (n.urgence && !n.urgence.fini) { n.urgence.fini = true; gardes.parle(n, this.dit('abattue', n), 3); n.urgence.fin = game.time + 2; } }
+  },
+  contreFeu(n, U, dt, w) {
+    const Z = this.zone(U.lieu);
+    let best = null, bd = 1e9;
+    if (typeof vallee !== 'undefined' && vallee.burning) for (const b of vallee.burning.values()) { if (Z && Math.hypot(b.x - Z.x, b.z - Z.z) > Z.r + 30) continue; const d = Math.hypot(b.x - n.x, b.z - n.z); if (d < bd) { bd = d; best = b; } }
+    if (!best) { if (U.eteints) { gardes.parle(n, this.dit('eteint', n), 3); this.noter(U.lieu, 'feu', { g: n.id }); } this.finUrgence(n); return; }
+    if (bd > 2.6) { this.courir(n, best.x, best.z, dt, w, 4.3); return; }
+    this.arret(n, dt, best.x, best.z);
+    if (n.atkT <= 0) {
+      n.atkT = 2.3; n.attackAnim = 0.4;
+      for (let k = 0; k < 12; k++) particles.spawn(best.x + (Math.random() - 0.5), best.y + 0.8 + Math.random() * 1.5, best.z + (Math.random() - 0.5), (Math.random() - 0.5), 1.2 + Math.random(), (Math.random() - 0.5), [0.8, 0.82, 0.85, 0.5], 0.25, 1.1, -0.3, false);
+      best.water = (best.water || 0) + 1;
+      if (best.water >= (best.tree ? 2 : 1)) { vallee.burnOut(best, true); U.eteints = (U.eteints || 0) + 1; }
+    }
+  },
+  versCri(n, U, dt, w) {
+    const d = Math.hypot(U.x - n.x, U.z - n.z);
+    if (d > 3 && !U.arrive) { this.courir(n, U.x, U.z, dt, w, 4.2); return; }
+    if (!U.arrive) {
+      U.arrive = game.time;
+      const mort = U.id && npcs.byId[U.id] && !npcs.byId[U.id].st.alive;
+      gardes.parle(n, this.dit(mort ? 'tard' : U.tir ? 'tir' : 'cri', n), 3);
+      if (mort) this.noter(U.lieu, 'cri', { g: n.id, v: U.id });
+    }
+    n.move = lerp(n.move, 0, Math.min(1, dt * 6)); n.run = false; n.heading += dt * 0.8 * Math.sin(game.time * 0.7);
+    if (game.time - U.arrive > 7) this.finUrgence(n);
+  },
+
+  // ------------------------------------------------------------------ chaque image
+  update(dt, playing) {
+    if (!farm.s || !game.world || !this.L.length) return;
+    const w = game.world, cam = game.player.pos, nuit = this.nuit();
+    // ce qu'ils tiennent : le sabre tiré pour se battre, le fusil aux mains pour tirer, la lanterne la nuit
+    for (const n of this.L) {
+      const G = n.rig && n.rig.g1;
+      n.g1flashT = Math.max(0, (n.g1flashT || 0) - dt);
+      if (!G || Math.abs(n.x - cam[0]) > 170 || Math.abs(n.z - cam[2]) > 170) continue;
+      const U = n.urgence, lutte = n.attaque || (U && (U.type === 'tueur' || U.type === 'masque' || U.type === 'bete'));
+      G.sabre = !!(lutte && n.d.garde.arme === 'sabre');
+      G.fusil = !!n.g1vise;
+      G.lant = nuit && this.eveille(n) && !n.inside && !G.fusil;
+    }
+    // le choix refermé sans réponse
+    const Sm = this.sommation;
+    if (Sm && Sm.ouvert && ui.panel !== '#choice') {
+      Sm.ouvert = false; Sm.ferme = true; Sm.fermeT = game.time;
+      if (Sm.n && Sm.n.st.alive) gardes.parle(Sm.n, this.dit('repete', Sm.n), 2.5);
+    }
+    if (Sm && !Sm.ouvert && (!Sm.n || !Sm.n.sommeT || game.time - Sm.fermeT > 30)) this.sommation = null;
+    this.t -= dt;
+    if (this.t <= 0) { this.t = 0.25; if (playing) this.surveiller(); }
+    this.tU -= dt;
+    if (this.tU <= 0) { this.tU = 1; this.chaqueSeconde(); }
+  },
+  chaqueSeconde() {
+    const w = game.world, h = npcs.hour();
+    for (const n of this.L) {
+      n.recoT = game.time + 60; // (un garde ne crie pas « au garde » : il vient)
+      if (n.st.alive && !n.attaque && !n.urgence) n.hp = Math.min(100, (n.hp ?? 100) + 0.6);
+      const enCours = (n.poursuite || 0) > game.time || (n.alerte && n.alerte.t > game.time) || n.sommeT;
+      if (!enCours && n.attaque) this.perdu(n);
+      else if (!enCours && n.alerte) n.alerte = null;
+      if (enCours || n.attaque || n.urgence) n.murT = Math.max(n.murT || 0, game.time + 20); // (11-zzlife.js : on ne marmonne pas en courant après quelqu'un)
+    }
+    try { this.urgences(); } catch (e) { console.error('G1 : urgences', e); }
+    this.majBraseros(h);
+    this.relever(h);
+    // le gendarme porte les nouvelles d'un village à l'autre, comme les colporteurs
+    const g = npcs.byId.gendarme;
+    if (g && g.st.alive && g.state === 'idle' && !g.sleep) {
+      const v = societe.villageAt(g.x, g.z, 95);
+      if (v && v !== g._village) { g._village = v; try { societe.echanger(g, v); } catch (e) { console.error(e); } }
+      else if (!v) g._village = null;
+    }
+    void w;
+  },
+  // le brasero du poste brûle tant qu'on veille (de la tombée de la nuit au petit jour)
+  majBraseros(h) {
+    if (!this.braseros.length) return;
+    const w = game.world;
+    let change = false;
+    for (const B of this.braseros) {
+      const veille = this.du(B.lieu).some((n) => this.vivant(n) && n.d.garde.veille === 'nuit');
+      const lit = veille && (h >= 19.5 || h < 6.5) && !strange.redNight();
+      if (!!(B.q.data && B.q.data.lit) !== lit) { B.q.data = Object.assign({}, B.q.data || {}, { lit }); change = true; }
+    }
+    if (change) { w.collectLights(); farm.dirtyProps = true; }
+  },
+  // la relève : deux mots, quand on est là pour les entendre
+  relever(h) {
+    const s = farm.s, p = game.player;
+    const essai = (lieu, h0, h1, a, b, rayon) => {
+      if (h < h0 || h >= h1 || s.hours - (this.releve[lieu] ?? -99) < 3) return; // (une fois par relève : la fenêtre du matin enjambe l'aube)
+      const A = npcs.byId[a], B2 = npcs.byId[b];
+      if (!A || !B2 || !this.eveille(A) || !this.eveille(B2) || A.hunting || B2.hunting || A.urgence || B2.urgence) return;
+      if (Math.hypot(A.x - B2.x, A.z - B2.z) > rayon || Math.hypot(A.x - p.pos[0], A.z - p.pos[2]) > 30) return;
+      this.releve[lieu] = s.hours;
+      const L = G1_RELEVE[lieu][Math.floor(s.hours / 24) % G1_RELEVE[lieu].length];
+      L.forEach(([id, t], i) => setTimeout(() => { const m = npcs.byId[id]; if (m && m.st.alive && !game.dying) gardes.parle(m, t, 3.2); }, i * 3300));
+    };
+    essai('valbrume', 5.6, 6.3, 'chevalier_guet', 'garde', 30);
+    essai('clairpre', 20.9, 21.6, 'garde_champetre', 'gendarme', 12);
+  },
+
+  // ------------------------------------------------------------------ ce qu'on lit : le registre, les avis
+  nomJour(d) { return `${cal.nom(d)} ${d}`; },
+  ligneJournal(E) {
+    const g = E.g && npcs.byId[E.g], qui = g ? `${g.name} ${g.d.surname}` : 'le garde', s = farm.s, prenom = s.prenom || (s.fem ? 'la fermière' : 'le fermier');
+    const fe = s.fem, nuit = E.h >= 20 || E.h < 6, quand = `${nuit ? 'Nuit du' : 'Le'} ${this.nomJour(E.j)}`; // (le jour de la ferme change à l'aube)
+    switch (E.k) {
+      case 'tueur_blesse': return `${quand} : un homme en long manteau, près des maisons. ${qui} l’a blessé. Il a fui. On ne l’a pas revu.`;
+      case 'masque_blesse': return `${quand} : un homme masqué. ${qui} l’a touché. Il s’est sauvé, sans un cri.`;
+      case 'garde_tue': return `${quand} : ${qui} est mort au guet. ${E.par === 'masque' ? 'L’homme au masque.' : 'L’homme au long manteau.'} Personne ne l’a vu partir.`;
+      // (des phrases entières, une par cas : l'accord se fait, et la traduction reconnaît chaque phrase)
+      case 'bete': return E.b === 'wolf' ? `${quand} : des loups près des maisons, abattus par ${qui}.` : G1_BETE_NOMS[E.b] ? `${quand} : ${G1_BETE_NOMS[E.b]} près des maisons, abattu par ${qui}.` : `${quand} : une bête près des maisons, abattue par ${qui}.`;
+      case 'feu': return `${quand} : le feu, tout près. Éteint à la chaîne, avec les seaux.`;
+      case 'cri': { const v = E.v && npcs.byId[E.v]; return !v ? `${quand} : un cri. ${qui} est allé voir. Trop tard.` : v.d.gender === 'f' ? `${quand} : un cri. ${qui} est allé voir. ${v.name} ${v.d.surname}, morte. Trop tard.` : `${quand} : un cri. ${qui} est allé voir. ${v.name} ${v.d.surname}, mort. Trop tard.`; }
+      case 'rebellion': return `${quand} : ${prenom}, de la vieille ferme, a refusé de suivre ${qui}. Rébellion.`;
+      case 'fuite': return `${quand} : ${prenom}, de la vieille ferme, a pris la fuite. Signalement transmis.`;
+      case 'arrestation':
+        if (E.m === 'assomme') return fe ? `${quand} : ${prenom}, de la vieille ferme, mise au tapis par ${qui}, conduite au cachot.` : `${quand} : ${prenom}, de la vieille ferme, mis au tapis par ${qui}, conduit au cachot.`;
+        if (E.m === 'rendu') return fe ? `${quand} : ${prenom}, de la vieille ferme, s’est rendue à ${qui}. Au cachot.` : `${quand} : ${prenom}, de la vieille ferme, s’est rendu à ${qui}. Au cachot.`;
+        return fe ? `${quand} : ${prenom}, de la vieille ferme, arrêtée par ${qui}. Au cachot.` : `${quand} : ${prenom}, de la vieille ferme, arrêté par ${qui}. Au cachot.`;
+      case 'paye': return `${quand} : ${prenom}, de la vieille ferme, a réglé sa prime à ${qui}, sur-le-champ. Quittance.`;
+    }
+    return '';
+  },
+  registre(it) {
+    const lieu = (it && it.data && it.data.lieu) || 'valbrume', s = farm.s, S = this.S(), out = [];
+    const ev = S.journal.filter((E) => E.lieu === lieu);
+    const RIEN = lieu === 'valbrume'
+      ? ['Ponts levés à neuf heures. Rien à signaler.', 'Brouillard sur les douves. Rien.', 'Les chiens ont aboyé vers une heure. Rien vu.', 'Pluie fine. Rien.', 'Vent d’ouest. Une lumière sur la route du nord, à deux heures, qui ne s’est pas approchée.', 'Rien. Trois heures dix : des pas sur le pont levé. Rien vu.', 'Nuit claire. Rien.']
+      : ['Rien à signaler. Une chèvre dans le chemin, rentrée.', 'Ronde de nuit : rien. Le chien de Morel a hurlé à minuit.', 'Haie de Bastien taillée du mauvais côté. Avertissement.', 'Rien. Le tambour a sonné une fois, tout seul. Non consigné.', 'Rien à signaler, sauf la pluie.', 'Borne du chemin du lac : déplacée de trois pouces. Remise.'];
+    for (let d = s.day; d > Math.max(0, s.day - 8); d--) {
+      const L = ev.filter((E) => E.j === d).map((E) => this.ligneJournal(E)).filter(Boolean);
+      if (L.length) out.push(...L);
+      else if (d < s.day) out.push(`${lieu === 'valbrume' ? 'Nuit du' : 'Le'} ${this.nomJour(d)} : ${RIEN[hashString(lieu + d) % RIEN.length]}`);
+    }
+    if (lieu === 'valbrume') out.push('(Plus haut, d’une encre plus ancienne : « Nuit de la levée. Le sergent Ferrand n’a pas paru. Son lit est fait. »)');
+    else out.push('(Plus haut, d’une autre main : « Procès-verbal contre inconnu. A marché sur l’eau de la mare. Classé. »)');
+    ui.read(lieu === 'valbrume' ? 'Le registre du guet' : 'Le registre des procès-verbaux', out.join('\n\n'));
+  },
+  avis(it) {
+    const lieu = (it && it.data && it.data.lieu) || 'valbrume', s = farm.s, S = this.S(), R = societe.recherche(), paras = [];
+    const v = lieu;
+    if (R && R.villages.includes(v)) {
+      const quoi = societe.actifs().filter((C) => societe.connait(C, v)).map((C) => societe.libelle(C)).join(', ');
+      paras.push(s.fem ? `RECHERCHÉE — ${s.prenom || 'la fermière'}, fermière de la vieille ferme, pour ${quoi}. Prime : ${R.prime} pièces. S’adresser aux gardes.` : `RECHERCHÉ — ${s.prenom || 'le fermier'}, fermier de la vieille ferme, pour ${quoi}. Prime : ${R.prime} pièces. S’adresser aux gardes.`);
+    }
+    const recent = (k, j) => S.journal.some((E) => E.lieu === lieu && E.k === k && s.day - E.j <= j);
+    if (recent('tueur_blesse', 6) || recent('garde_tue', 8)) paras.push('AVIS — Un homme en long manteau a été vu, la nuit, près des maisons. Fermez vos portes. Ne sortez pas seul après le coucher du soleil.');
+    if (recent('bete', 4)) paras.push('AVIS — Une bête dangereuse a été abattue près des maisons. D’autres peuvent suivre. Tenez les enfants près de vous.');
+    const perdus = npcs.list.filter((n) => n.vanished && n.st.alive), SO = societe.S(), morts = npcs.list.filter((n) => !n.st.alive && SO.morts[n.id] && s.day - SO.morts[n.id].day <= 12);
+    if (perdus.length) paras.push('AVIS DE RECHERCHE — ' + perdus.map((n) => n.name + ' ' + n.d.surname).join(', ') + '. Toute personne ayant des nouvelles est priée de se présenter aux gardes.');
+    if (morts.length) paras.push('AVIS DE DÉCÈS — ' + morts.map((n) => `${n.name} ${n.d.surname} († ${cal.nom(SO.morts[n.id].day)} ${SO.morts[n.id].day})`).join(', ') + '.');
+    paras.push(lieu === 'valbrume'
+      ? `ARRÊTÉ — Les ponts de ${farm.names.ville} sont levés à neuf heures du soir et baissés à six heures du matin. Qui reste dehors s’adresse au corps de garde. — Le maire.`
+      : `AVIS — Les chiens seront tenus à l’attache la nuit. Les chèvres aussi. Il est interdit de déplacer les bornes. — Le garde champêtre de ${farm.names.hameau}.`);
+    ui.read('Le tableau des avis', paras.join('\n\n'));
+  },
+
+  // ------------------------------------------------------------------ le dialogue avec un garde quand on est recherché
+  vueRecherche(n, K) {
+    talk.n = n; n.talking = true; n.speakT = 2;
+    const R = societe.recherche(), s = farm.s, lib = K.map((C) => societe.libelle(C)).join(', ');
+    const prime = R ? R.prime : K.reduce((a, C) => a + C.prime, 0);
+    const t = n.id === 'garde'
+      ? (s.fem ? `Vous êtes recherchée pour ${lib}. La prime est de ${prime} pièces. Réglez-la, ou suivez-moi.` : `Vous êtes recherché pour ${lib}. La prime est de ${prime} pièces. Réglez-la, ou suivez-moi.`)
+      : n.id === 'chevalier_guet' ? `On vous cherche pour ${lib}. ${prime} pièces. Vous les avez, ou vous me suivez.`
+        : n.id === 'garde_champetre' ? `Ah ! Vous êtes au tableau, vous ! Pour ${lib}. ${prime} pièces de prime. On règle, ou on me suit, et sans histoires !`
+          : `${s.fem ? 'Vous êtes recherchée' : 'Vous êtes recherché'} pour ${lib}. La prime s’élève à ${prime} pièces. Vous pouvez la régler entre mes mains, ou me suivre.`;
+    const opts = [{ label: s.money >= prime ? `Payer la prime (${prime} pièces)` : `Payer la prime (${prime} pièces — vous n’en avez que ${s.money})`, act: 'g1:payer', quest: true }];
+    opts.push({ label: 'Me rendre', act: 'g1:rendre' });
+    opts.push({ label: 'Refuser de le suivre', act: 'g1:refus' });
+    return talk.view(t, opts);
+  },
+  choisir(n, a) {
+    const s = farm.s;
+    if (a === 'payer') {
+      const r = societe.payer(this.nomComplet(n));
+      if (r === 'pauvre') return talk.view(this.dit('pauvre', n), [{ label: 'Me rendre', act: 'g1:rendre' }, { label: 'Refuser de le suivre', act: 'g1:refus' }]);
+      if (r === 'ok') {
+        const S = this.S(); S.payes = (S.payes || 0) + 1;
+        npcs.addAmitie(n, 10); this.calme();
+        this.noter(n.d.garde.lieu, 'paye', { g: n.id });
+      }
+      return talk.view(this.dit('paye', n), talk.options());
+    }
+    if (a === 'rendre') { talk.close(); ui.close(true); setTimeout(() => this.arreter(n, 'rendu'), 200); return null; }
+    if (a === 'inconnu') {
+      this.seRendre(n);
+      talk.close(); ui.close(true);
+      gardes.parle(n, this.dit('inconnu', n), 4);
+      setTimeout(() => this.arreter(n, 'rendu'), 2400);
+      return null;
+    }
+    if (a === 'refus') { talk.close(); this.refus(n, 'dialogue'); return null; } // (le panneau se ferme : on reprend la main)
+    void s;
+    return talk.view('…', talk.options());
+  },
+};
+
+// ============================================================================
+//  BRANCHEMENTS (au chargement du module : ces objets existent déjà)
+// ============================================================================
+// ---------------------------------------------------------------- la semaine de chacun (par-dessus 11-zzz52-routines.js)
+{
+  const _rdj = routineDuJour;
+  routineDuJour = function (n) {
+    if (n && n.d && G1_IDS.includes(n.d.id) && farm.s && game.world) return gardes.journee(n);
+    return _rdj(n);
+  };
+}
+if (typeof massGoer === 'function') {
+  const _mg = massGoer;
+  massGoer = function (n) { return n && G1_IDS.includes(n.id) ? false : _mg(n); };
+}
+// ---------------------------------------------------------------- sans leur cabane (une vallée d'avant la vallée dessinée), ils ne sont pas là
+{
+  const _init = npcs.init.bind(npcs);
+  npcs.init = function (w, s) {
+    const sans = G1_HABITANTS.filter((d) => !(w && w.bld && w.bld[d.home]));
+    if (!sans.length) return _init(w, s);
+    const retires = [];
+    for (const d of sans) { const i = NPC_DATA.indexOf(d); if (i >= 0) retires.push([i, NPC_DATA.splice(i, 1)[0]]); }
+    try { return _init(w, s); } finally { for (const [i, d] of retires.reverse()) NPC_DATA.splice(i, 0, d); }
+  };
+}
+// ---------------------------------------------------------------- la société : l'alerte, la panique, la poursuite, l'arrestation, la prime
+{
+  societe.alerterGarde = function (x, z, k) { return gardes.alerter(x, z, k); };
+  const _pan = societe.panique.bind(societe);
+  societe.panique = function (x, z, tem) {
+    _pan(x, z, (tem || []).filter((m) => !gardes.est(m))); // (un garde ne crie pas « au secours » : il vient)
+    for (const m of tem || []) if (gardes.est(m) && m.st.alive) { m.fleeT = 0; if (gardes.eveille(m)) { m.poursuite = game.time + 18; m.vuT = game.time; } }
+  };
+  const _pours = societe.poursuivre.bind(societe);
+  societe.poursuivre = function (n, dt, w, c) { if (gardes.est(n)) return gardes.poursuivre(n, dt, w, c); return _pours(n, dt, w, c); };
+  const _arr = societe.arreter.bind(societe);
+  societe.arreter = function (par) { if (gardes.est(par)) return gardes.arreter(par, 'sommation'); return _arr(par); };
+  const _vr = societe.vueRecherche.bind(societe);
+  societe.vueRecherche = function (n, K) { if (gardes.est(n)) return gardes.vueRecherche(n, K); return _vr(n, K); };
+  // lever la main sur un garde coûte ce qu'il en coûte pour Grosjean (11-zzz50-societe.js : prixDe, garde, maire, curé)
+  const _px = societe.prixDe.bind(societe);
+  societe.prixDe = function (type, vic) { const p = _px(type, vic); return vic && gardes.nouveau(vic) ? p + (type === 'meurtre' ? 400 : 60) : p; };
+  // les nouveaux gardes ne fuient pas l'assassin connu : ils viennent à lui
+  const _host = npcs.hostile.bind(npcs);
+  npcs.hostile = function (n) { if (gardes.nouveau(n)) return false; return _host(n); };
+}
+// ---------------------------------------------------------------- les urgences : c'est nous qui menons les gardes qui accourent
+{
+  const _upd = npcs.update.bind(npcs);
+  npcs.update = function (dt, w, c) {
+    const U = [];
+    for (const n of gardes.L) if (n.urgence && !n.hunting && n.st.alive && !n.vanished && !n.talking) { n.hunting = true; U.push(n); }
+    try { _upd(dt, w, c); } finally { for (const n of U) n.hunting = false; }
+    for (const n of U) gardes.agir(n, dt, w, c);
+  };
+}
+// ---------------------------------------------------------------- les coups, les cris, les morts
+{
+  const _hurt = npcs.hurt.bind(npcs);
+  npcs.hurt = function (n, dmg, by) {
+    const avant = !!(n && n.st && n.st.alive);
+    _hurt(n, dmg, by);
+    if (!farm.s || !avant || !game.world) return;
+    if (by !== 'joueur') { gardes.cri(n.x, n.z, n); return; }
+    if (gardes.est(n) && n.st.alive) gardes.frappe(n);
+    gardes.temoinsCrime(npcs.witnesses(n.x, n.z, n).concat([n]), n.x, n.z);
+  };
+  const _kill = npcs.kill.bind(npcs);
+  npcs.kill = function (n, by, wit) {
+    const avant = !!(n && n.st && n.st.alive);
+    _kill(n, by, wit);
+    if (!farm.s || !avant || !game.world || (n.st && n.st.alive)) return;
+    if (by !== 'joueur') gardes.cri(n.x, n.z, n);
+    if (gardes.est(n)) { n.urgence = null; n.attaque = false; if (gardes.sommation && gardes.sommation.n === n) gardes.fermerChoix(); }
+  };
+}
+// ---------------------------------------------------------------- vols, fouilles, objets pris : les gardes témoins (ou tout près) accourent
+{
+  const _vp = vol.pris.bind(vol);
+  vol.pris = function (n, tem) {
+    _vp(n, tem);
+    if (gardes.est(n) && n.st.alive) { n.fleeT = 0; n.poursuite = game.time + 18; n.vuT = game.time; }
+    gardes.temoinsCrime(tem || [n], n.x, n.z);
+  };
+  const _vc = vol.chance.bind(vol);
+  vol.chance = function (n) { const k = _vc(n); return gardes.nouveau(n) ? clamp(k - 0.2, 0.03, 0.9) : k; };
+  const _fp = fouilles.pris.bind(fouilles);
+  fouilles.pris = function (it, own, vus, cri) { _fp(it, own, vus, cri); const p = game.player; gardes.temoinsCrime(vus || [], p.pos[0], p.pos[2]); };
+  const _os = objets.surpris.bind(objets);
+  objets.surpris = function (type, acte, own, vus, pos, L, prof) { _os(type, acte, own, vus, pos, L, prof); gardes.temoinsCrime(vus || [], pos[0], pos[2]); };
+}
+// ---------------------------------------------------------------- un coup de feu près des maisons (11-zzz30-chasse.js : bruitDeTir)
+if (typeof chasse !== 'undefined' && chasse.bruitDeTir) {
+  const _bt = chasse.bruitDeTir.bind(chasse);
+  chasse.bruitDeTir = function (pos) {
+    const avant = new Map(gardes.L.map((n) => [n, n.fleeT || 0]));
+    _bt(pos);
+    if (!farm.s) return;
+    for (const n of gardes.L) if (gardes.nouveau(n) && (n.fleeT || 0) > avant.get(n)) n.fleeT = avant.get(n); // (un garde ne fuit pas un coup de feu)
+    // (ils viennent voir ; sauf si Grosjean, tout près, a déjà crié son « On ne tire pas en ville »)
+    const g = npcs.byId.garde, gronde = g && g.st.alive && !g.vanished && !g.sleep && Math.hypot(g.x - pos[0], g.z - pos[2]) < 80;
+    if (!gronde && gardes.lieuDe(pos[0], pos[2], 30)) gardes.cri(pos[0], pos[2], null, true);
+  };
+}
+// ---------------------------------------------------------------- le registre, les avis
+HOOKS.inter.g1_registre = (it) => gardes.registre(it);
+HOOKS.inter.g1_avis = (it) => gardes.avis(it);
+// ---------------------------------------------------------------- chaque image, chaque matin, la lumière des lanternes et des coups de feu
+HOOKS.update.push((dt, eye, basis, sky, playing) => { if (farm.s) gardes.update(dt, playing); });
+HOOKS.day.push(() => {
+  if (!farm.s) return;
+  gardes.jcache.clear();
+  for (const n of gardes.L) { n.hp = 100; n.peurDite = false; n.tirSomme = false; }
+  const S = gardes.S();
+  if (S.rebelle && !S.rebelle.actif && farm.s.day - S.rebelle.day > 2) S.rebelle = null;
+});
+HOOKS.lights.push((eye) => {
+  const L = [];
+  for (const n of gardes.L) {
+    const d = Math.hypot(n.x - eye[0], n.z - eye[2]);
+    if (d > 110 || n.state === 'gone') continue;
+    if (n.g1flashT > 0) L.push({ x: n.x, y: n.y + 1.5, z: n.z, r: 12, c: [1.6, 1.2, 0.7], d });
+    else if (n.rig && n.rig.g1 && n.rig.g1.lant && n.state !== 'dead') L.push({ x: n.x + Math.sin(n.heading + 1.4) * 0.3, y: n.y + 0.75, z: n.z + Math.cos(n.heading + 1.4) * 0.3, r: 7.5, c: [1.05, 0.8, 0.48], d });
+  }
+  return L;
+});
+
+// ============================================================================
+//  AU CHARGEMENT : les gardes, les braseros, le cheval ; les branchements qui demandent game
+// ============================================================================
+HOOKS.load.push(() => {
+  const w = game.world, S = gardes.S();
+  gardes.L = npcs.list.filter((n) => gardes.est(n));
+  gardes.sommation = null; gardes.cris = []; gardes.coup = null; gardes.jcache.clear(); gardes.releve = {}; gardes.redemandeT = -1e9;
+  for (const n of gardes.L) { n.urgence = null; n.attaque = false; n.g1vise = null; n.hp = 100; n.reveilT = 0; n.peurDite = false; n.tirSomme = false; }
+  if (S.rebelle) S.rebelle.actif = false;
+  // les braseros des postes
+  gardes.braseros = [];
+  if (w && w.g1 && w.g1.lieux) for (const lieu in w.g1.lieux) {
+    const P = w.g1.lieux[lieu].poste;
+    if (!P) continue;
+    const q = w.props.find((x) => x.id === 'brasero' && Math.hypot(x.x - P.x, x.z - P.z) < 3);
+    if (q) gardes.braseros.push({ q, lieu });
+  }
+  if (typeof DYN_PROPS !== 'undefined') DYN_PROPS.add('brasero');
+  if (typeof SoundEngine !== 'undefined' && SoundEngine.FEUX && SoundEngine.FEUX.g1_poele === undefined) SoundEngine.FEUX.g1_poele = 0.6;
+  // Mistral, le cheval du gendarme, à l'écurie
+  const Lc = w && w.g1 && w.g1.lieux && w.g1.lieux.clairpre;
+  if (Lc && Lc.cheval && S.cheval !== 'mort' && !entities.extra.some((e) => e.g1Cheval)) {
+    const C = Lc.cheval;
+    try { entities.add(w, 'horse', C.x, C.z, { v: 3, g1Cheval: true, hx: C.x, hz: C.z, heading: C.r, cfg: Object.assign({}, CREATURES.horse, { range: 1.0, idle: [6, 16], flee: 0 }) }); } catch (e) { console.error('G1 : le cheval', e); }
+  }
+  if (gardes.hooked) return;
+  gardes.hooked = true;
+  // ---- leurs lieux (le poste, le pont, la ronde, l'écurie), leur lit, leur chaise
+  const _dest = npcs.dest.bind(npcs);
+  npcs.dest = function (n, pl, sleep) {
+    if (gardes.nouveau(n) && farm.s) { try { const D = gardes.dest(n, pl, sleep); if (D && D.node >= 0) return D; } catch (e) { console.error('G1 : dest', e); } }
+    if (typeof pl === 'string' && pl.startsWith('g1:')) pl = 'home';
+    return _dest(n, pl, sleep);
+  };
+  // ---- ceux qui veillent la nuit dorment le jour
+  const _sp = npcs.schedulePlace.bind(npcs);
+  npcs.schedulePlace = function (n, h) {
+    const r = _sp(n, h);
+    if (!farm.s || !gardes.nouveau(n) || !r || r.place !== 'home') return r;
+    const dort = gardes.dortA(n, h) || !!n.st.malade && (h < 8 || h >= 20.5);
+    return dort === !!r.sleep ? r : { place: 'home', sleep: dort };
+  };
+  // ---- un coup de garde qui serait mortel assomme (sauf pour un meurtre)
+  const _die = game.die.bind(game);
+  game.die = function (cause) {
+    const g = gardes.coup;
+    if (g && farm.s && !game.dying && !gardes.meurtreConnu()) {
+      gardes.coup = null;
+      game.player.hp = 6;
+      gardes.arreter(g, 'assomme');
+      return Promise.resolve();
+    }
+    return _die(cause);
+  };
+  // ---- le cheval du gendarme : on le flatte, on ne le monte pas
+  const _use = game.useAnimal.bind(game);
+  game.useAnimal = function (e) {
+    if (e && e.g1Cheval) { sound.animal && sound.animal('horse', 0, 0.5); ui.subtitle('', '(Le cheval du gendarme. Il se laisse flatter l’encolure, pas plus.)', 3); return; }
+    return _use(e);
+  };
+  const _hc = play.hurtCreature.bind(play);
+  play.hurtCreature = function (e, dmg, eye) { const r = _hc(e, dmg, eye); if (e && e.g1Cheval && e.dead && farm.s) gardes.S().cheval = 'mort'; return r; };
+  // ---- les lits : celui du passant est à qui le prend ; celui qui vous trouve dans le sien
+  const _info = sommeil.infoLit.bind(sommeil);
+  sommeil.infoLit = function (q) { const I = _info(q); if (q && q.data && q.data.passant) return { cat: 'public', bld: I.bld }; return I; };
+  const _dec = sommeil.decouvert.bind(sommeil);
+  sommeil.decouvert = function (n, I, quand) {
+    const t = n && G1_LIT_DECOUVERT[n.id];
+    if (!t) return _dec(n, I, quand);
+    const A = LIT_DECOUVERT.autre, M = LIT_DECOUVERT.matin;
+    LIT_DECOUVERT.autre = [t]; LIT_DECOUVERT.matin = [t];
+    try { return _dec(n, I, quand); } finally { LIT_DECOUVERT.autre = A; LIT_DECOUVERT.matin = M; }
+  };
+  // ---- le dialogue : recherché, on parle prime ; se rendre de soi-même ; l'assassin ; les nouvelles du gendarme
+  const _open = talk.open.bind(talk);
+  talk.open = function (n) {
+    if (farm.s && gardes.est(n)) { const K = societe.crimesSus(n); if (K.length) return gardes.vueRecherche(n, K); }
+    return _open(n);
+  };
+  const _options = talk.options.bind(talk);
+  talk.options = function () {
+    const n = this.n, opts = _options();
+    if (!n || !farm.s || !gardes.est(n)) return opts;
+    const i = opts.findIndex((o) => o.act === 'bye'), extra = [];
+    if (societe.recherche() && !societe.crimesSus(n).length) extra.push({ label: 'Je viens me rendre', act: 'g1:inconnu', quest: true });
+    if (gardes.nouveau(n) && strange.killerActive() && !opts.some((o) => o.act === 'accuse')) extra.push({ label: 'Je sais qui est l’assassin…', act: 'accuse' });
+    if (n.id === 'gendarme' && !opts.some((o) => o.act === 'soc:nouvelles')) extra.push({ label: 'Quelles nouvelles ?', act: 'soc:nouvelles' });
+    opts.splice(i >= 0 ? i : opts.length, 0, ...extra);
+    return opts;
+  };
+  const _choose = talk.choose.bind(talk);
+  talk.choose = function (act) {
+    const n = this.n;
+    if (n && typeof act === 'string' && act.startsWith('g1:')) return gardes.choisir(n, act.slice(3));
+    return _choose(act);
+  };
+});
+
 // ---- 11-zzzzz-admin.js
 // ============================================================================
 //  Outils de mise au point (caché). Console du navigateur : admin('prairie')
@@ -74318,6 +76288,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Le cadenas cède. Le coffre est vide : on ne laisse rien dans une maison à louer.)","(The padlock gives. The chest is empty: nobody leaves anything in a house to let.)"],
 ["(Le cadenas cède. Le coffre est vide.)","(The padlock gives way. The chest is empty.)"],
 ["(Le cadenas est rouillé, et fermé.)","(The padlock is rusty, and locked.)"],
+["(Le cheval du gendarme. Il se laisse flatter l’encolure, pas plus.)","(The gendarme’s horse. He lets you pat his neck, but no more.)"],
 ["(Le cheval refuse de vous porter.)","(The horse refuses to carry you.)"],
 ["(Le cheval se cabre, roule des yeux, et refuse de vous porter.)","(The horse rears, rolls its eyes, and refuses to carry you.)"],
 ["(Le chien s’effondre en cendre. Un peu plus loin, la cendre se relève.)","(The hound collapses into ash. A little further off, the ash gets back up.)"],
@@ -74614,6 +76585,8 @@ const I18N_EN = {"v":1,"exact":[
 ["(Plus de pas derrière vous.)","(No more footsteps behind you.)"],
 ["(Plus d’huile, ni de bougie. La forge et le colporteur vendent de l’huile à lampe.)","(No more oil, and no candle. The forge and the pedlar sell lamp oil.)"],
 ["(Plus d’huile, ni de bougie.)","(No more oil, and no candle.)"],
+["(Plus haut, d’une autre main : « Procès-verbal contre inconnu. A marché sur l’eau de la mare. Classé. »)","(Further up, in another hand: “Report against persons unknown. Walked on the water of the pond. Filed.”)"],
+["(Plus haut, d’une encre plus ancienne : « Nuit de la levée. Le sergent Ferrand n’a pas paru. Son lit est fait. »)","(Further up, in older ink: “Night of the raising. Sergeant Ferrand did not appear. His bed is made.”)"],
 ["(Plus haut, la terre s’éboule.)","(Any higher, and the earth slides away.)"],
 ["(Plus profond, la terre s’effondre à mesure.)","(Any deeper, and the earth caves in as fast as you dig.)"],
 ["(Plus rien. Juste votre cœur, trop fort.)","(Nothing now. Just your heart, too loud.)"],
@@ -74744,6 +76717,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Un choc, puis la brûlure. On vous a tiré dessus.)","(An impact, then the burning. Someone has shot you.)"],
 ["(Un cierge pour soi. Le curé dit que ce n’est pas interdit. Il ne dit pas que c’est permis.)","(A candle for yourself. The priest says it isn’t forbidden. He doesn’t say it’s allowed.)"],
 ["(Un coup de fouet : la fatigue recule.)","(A crack of the whip: your tiredness falls back.)"],
+["(Un coup, et le sol vient à vous.)","(One blow, and the ground comes up to meet you.)"],
 ["(Un courant d’air froid passe entre les livres.)","(A cold draught passes between the books.)"],
 ["(Un courant d’air froid passe entre les pierres.)","(A cold draught blows between the stones.)"],
 ["(Un courant d’air froid sort des pierres. Il faudrait une pelle.)","(A cold draught comes out of the stones. You would need a shovel.)"],
@@ -75189,6 +77163,7 @@ const I18N_EN = {"v":1,"exact":[
 [". Qui saura les approcher ? On dit qu’ils ne résistent pas aux pommes.",". Who can get near them? They say they can’t resist apples."],
 [". Tous sont les bienvenus, même ceux qui ne croient plus. Surtout eux.\n\nLe curé.",". All are welcome, even those who no longer believe. Them most of all.\n\nThe priest."],
 [". Toute personne ayant des nouvelles est priée de se présenter au garde.",". Anyone with news is asked to report to the warden."],
+[". Toute personne ayant des nouvelles est priée de se présenter aux gardes.",". Anyone with news is asked to report to the wardens."],
 [". Un colis chacun, remis en main propre avant six heures. On paie à la livraison.",". One parcel each, handed over in person before six. Payment on delivery."],
 ["/ molette (blocs)","/ wheel (blocks)"],
 ["1 pièce","1 coin"],
@@ -75241,13 +77216,18 @@ const I18N_EN = {"v":1,"exact":[
 ["AVIS DE LA MAIRIE — Les ponts-levis sont relevés à 21 h et abaissés à 6 h. Nul ne sort, nul n’entre entre ces heures.","TOWN HALL NOTICE — The drawbridges are raised at 9 p.m. and lowered at 6 a.m. No one leaves, no one enters between those hours."],
 ["AVIS DE RECHERCHE","MISSING PERSON"],
 ["AVIS DE RECHERCHE —","MISSING PERSON —"],
+["AVIS — Un homme en long manteau a été vu, la nuit, près des maisons. Fermez vos portes. Ne sortez pas seul après le coucher du soleil.","NOTICE — A man in a long coat has been seen, at night, near the houses. Bolt your doors. Do not go out alone after sunset."],
+["AVIS — Une bête dangereuse a été abattue près des maisons. D’autres peuvent suivre. Tenez les enfants près de vous.","NOTICE — A dangerous beast has been killed near the houses. Others may follow. Keep the children close."],
 ["Aaah ! Ma jambe ! Un piège !","Aaah! My leg! A trap!"],
 ["Aaah ! À l’aide !","Aaah! Help me!"],
 ["Aaah… pardon. Maman m’a levée à cinq heures pour peser la farine, et les enfants, ça devrait dormir jusqu’à midi.","Aaah… sorry. Mama got me up at five to weigh the flour, and children ought to sleep till noon."],
 ["Abat les arbres et fend les souches. Plus le métal est bon, plus elle mord.","Fells trees and splits stumps. The better the metal, the deeper it bites."],
 ["Abat n’importe quel arbre d’un seul coup — le chêne millénaire en trois — et fend les souches. Le bois tombe en plus grand nombre.","Fells any tree in a single blow — the thousand-year oak in three — and splits stumps. More wood comes down."],
+["Abattu d’un coup de fusil par","Shot down by"],
 ["Abattu par","Struck down by"],
 ["Abattu par un chasseur de primes","Struck down by a bounty hunter"],
+["Abattue ! Je le note : une bête nuisible, abattue par le garde champêtre !","Shot! I’m noting it: a harmful beast, shot by the rural constable!"],
+["Abattue. Je ferai mon rapport.","Shot. I’ll make my report."],
 ["Abbaye de Montrevel","Montrevel Abbey"],
 ["Ablette","Bleak"],
 ["Abreuvoir","Water trough"],
@@ -75269,6 +77249,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Affût du soir : rien. Affût du matin : rien. La forêt se tait depuis trois jours, même les merles.\n\nQuand la forêt se tait, c’est qu’elle regarde autre chose que vous. Mon père disait ça. Il est mort à l’affût, les yeux ouverts.","Evening watch: nothing. Morning watch: nothing. The forest has been silent for three days, even the blackbirds.\n\nWhen the forest falls silent, it is because it is looking at something other than you. My father used to say that. He died on watch, his eyes open."],
 ["Ah ! Ceci est digne d’un ancien. Merci, grand.","Ah! This is worthy of an elder. Thank you, big one."],
 ["Ah ! Enfin quelqu’un qui cueille au lieu de piétiner.","Ah! At last, someone who picks instead of trampling."],
+["Ah ! Tentative de vol sur agent assermenté ! Ça, c’est un procès-verbal de première classe !","Ah! Attempted theft from a sworn officer! Now that’s a first-class report!"],
 ["Ah ! Un joueur ! Je joue dans toutes les auberges de la vallée, mon ami. Toutes.","Ah! A gambler! I play in every inn in the valley, my friend. All of them."],
 ["Ah ! Voilà qu’il y a des secrets de forge, maintenant. Très bien : vous ne saurez jamais ce que je mets dans ma brioche.","Ah! So now there are forge secrets, are there? Very well: you’ll never know what I put in my brioche."],
 ["Ah bon ? On dit ça ? Non, ne me dites pas qui : je veux le garder comme ça, sans nom dessus, comme une lettre anonyme gentille.","Really? They say that? No, don’t tell me who: I want to keep it just like that, with no name on it, like a kind anonymous letter."],
@@ -75286,6 +77267,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Ah, le meilleur moment de la journée : quand le cuisinier mange. C’est toujours lui qui a le plus faim.","Ah, the best moment of the day: when the cook eats. He’s always the hungriest."],
 ["Ah, l’odeur des champignons après la pluie ! Si je n’étais pas aubergiste, je serais cochon truffier.","Ah, the smell of mushrooms after the rain! If I weren’t an innkeeper, I’d be a truffle pig."],
 ["Ah, ma pauvre mère… Dis, tu reviens jouer aux cartes, un jeudi ? Depuis le soir de Jules, tu ne viens plus. Ce soir-là, tu étais arrivé trempé jusqu’aux os, je m’en souviens, et il ne pleuvait même pas encore.","Ah, my poor mother… Say, will you come back for cards one Thursday? Since the night Jules went, you don’t come anymore. That night, you turned up soaked to the skin, I remember, and it wasn’t even raining yet."],
+["Ah, merci, merci ! Ça, c’est un cadeau réglementaire.","Ah, thank you, thank you! Now that’s a regulation gift."],
 ["Ah, mon chou ! Voilà qui me fait plus plaisir qu’un compliment sur ma robe. Tenez, je vous ajoute un croûton, pour finir le fromage.","Ah, dearie! That pleases me more than a compliment on my dress. Here, I’ll throw in a crust, to finish off the cheese."],
 ["Ah, voilà de la belle viande ! Et le sang sur le plancher, ça part à l’eau froide et au vinaigre : je suis bien placé pour le savoir.","Ah, now that’s fine meat! And blood on the floorboards comes out with cold water and vinegar: I should know."],
 ["Ah, voilà mon plus fidèle client ! Et mon plus fidèle débiteur ! Trois mois d’ardoise, mon vieux, parole de Bonnefoy.","Ah, here’s my most faithful customer! And my most faithful debtor! Three months on the slate, old fellow, as sure as my name’s Bonnefoy."],
@@ -75300,6 +77282,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Ah, {fermier} ! Vous revenez souvent, ça nous fait plaisir.","Ah, {fermier}! You come back so often. It makes us happy."],
 ["Ah, {fermier}, belle journée pour la République ! Le conseil a adopté mon budget sans une objection : ils dormaient, mais une adoption est une adoption.","Ah, {fermier}, a fine day for the Republic! The council passed my budget without a single objection: they were asleep, but passed is passed."],
 ["Ah, {npc:forgeron} ! Justement, je pensais à toi. Enfin, à ton ardoise : elle fait bientôt le tour du comptoir.","Ah, {npc:forgeron}! I was just thinking about you. Well, about your slate: it’s nearly gone all the way round the counter."],
+["Ah, {prenom} ! Venez, je vous lis mon dernier procès-verbal. Une chèvre, un curé et un jardin. Vous allez rire.","Ah, {prenom}! Come, I’ll read you my latest report. A goat, a priest and a garden. You’ll laugh."],
 ["Ah, « {forme} » ! {Sens}, voilà. En bas, on se moquerait de vous.","Ah, “{forme}”! {Sens}, there you are. Down below, they’d laugh at you."],
 ["Ah. Bon. Ce n’est rien, mon chou. Une bêtise de boulangère. On oublie, et vous reprenez du pain demain, d’accord ?","Ah. Right. It’s nothing, dearie. Just a baker’s silly notion. We’ll forget it, and you’ll come for your bread tomorrow, all right?"],
 ["Ah. C’est toi, grand.","Ah. It’s you, tall one."],
@@ -75348,6 +77331,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Allez-vous-en, qui que vous soyez. Les chiens grognent. Ils ne grognent jamais pour rien.","Go away, whoever you are. The dogs are growling. They never growl for nothing."],
 ["Allez-vous-en. Tout de suite.","Go away. Right now."],
 ["Allez-vous-en. Tout le monde sait.","Go away. Everyone knows."],
+["Allez.","Go on."],
 ["Allez. Et fermez bien le rideau en sortant : le vent écoute.","Off you go. And close the curtain tight on your way out: the wind is listening."],
 ["Allez. Et ne regardez pas l’eau trop longtemps.","Go on. And don’t look at the water too long."],
 ["Allez. Et ne vous retournez pas sur le sentier.","Go on. And don’t look back on the path."],
@@ -75493,6 +77477,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Arrêté municipal du 3 mars 1854, toujours en vigueur. Article premier : les ponts de la ville seront levés chaque soir au coucher du soleil et abaissés à l’aube. Article deux : il est interdit de sortir de chez soi les nuits où la lune paraît rouge, sous quelque prétexte que ce soit. Article trois : nul ne répondra à qui frappe après minuit, fût-ce un parent. Article quatre : le lendemain d’une telle nuit, le recensement sera refait, et toute personne en surnombre signalée au maire. Signé d’un nom que l’humidité a effacé.","Municipal decree of 3 March 1854, still in force. Article One: the bridges of the town shall be raised every evening at sunset and lowered at dawn. Article Two: it is forbidden to leave one’s home on nights when the moon appears red, on any pretext whatsoever. Article Three: no one shall answer whoever knocks after midnight, be it one’s own kin. Article Four: on the day after such a night, the census shall be taken anew, and any person surplus to the count reported to the mayor. Signed with a name the damp has erased."],
 ["Artichaut","Artichoke"],
 ["Article premier : tout doit être en ordre. Article deux… c’était quoi, l’article deux ? Ah. Oui. Oh.","Article one: everything must be in order. Article two… what was article two again? Ah. Yes. Oh."],
+["Article premier. Le guet veille de la levée des ponts à leur abaissement.\nArticle deux. Il ne répond à aucune voix venue des douves.\nArticle trois. Il tient registre.\nArticle quatre. Si le guet vient à manquer, le dernier qui l’a vu vivant prend la garde.\n\nSceau de la ville, cire noire. L’année est effacée.","Article One. The watch keeps vigil from the raising of the bridges to their lowering.\nArticle Two. It answers no voice from the moat.\nArticle Three. It keeps a register.\nArticle Four. If the watch should fail, the last person to see it alive takes up the watch.\n\nSeal of the town, black wax. The year has been erased."],
 ["Asperges","Asparagus"],
 ["Asphodèle","Asphodel"],
 ["Aspérule","Woodruff"],
@@ -75521,6 +77506,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Assez pour aujourd’hui. Priez un peu, maintenant.","Enough for today. Pray a little, now."],
 ["Assez pour aujourd’hui. Une pierre à la fois, grand. Les géants mettent cent ans à dire une phrase.","Enough for today. One stone at a time, big one. The giants take a hundred years to say one sentence."],
 ["Assez. La forge dort. Reviens demain.","Enough. The forge sleeps. Come back tomorrow."],
+["Assez. Rendez-vous. Je ne frappe pas un homme à terre.","Enough. Give yourself up. I don’t strike a man who’s down."],
 ["Assieds-toi par terre, comme au catéchisme. Et tu ris pas, sinon je m’arrête.","Sit on the floor, like at catechism. And no laughing, or I’ll stop."],
 ["Assieds-toi près du feu. Plus près. Voilà.","Sit by the fire. Closer. There."],
 ["Assieds-toi sur la lauza. Elle est chaude, à cette heure.","Sit on the lauza. It’s warm at this hour."],
@@ -75556,6 +77542,10 @@ const I18N_EN = {"v":1,"exact":[
 ["Au dos de la couverture","On the back of the cover"],
 ["Au dos de la feuille de route","On the back of the waybill"],
 ["Au dos, un cercle, et trois flèches qui pointent vers le centre.","On the back, a circle, and three arrows pointing to the centre."],
+["Au feu ! Au feu ! De l’eau !","Fire! Fire! Water!"],
+["Au feu ! Faites la chaîne !","Fire! Form a chain!"],
+["Au feu ! Les seaux ! Les seaux de la cabane !","Fire! The buckets! The buckets from the hut!"],
+["Au feu. Des seaux, vite.","Fire. Buckets, quickly."],
 ["Au fond de la crevasse","At the bottom of the crevasse"],
 ["Au fond de la fosse","At the bottom of the pit"],
 ["Au fond de la glacière","At the bottom of the icehouse"],
@@ -75578,6 +77568,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Au garde ! On force la porte de {victime} !","Fetch the warden! They’re forcing {victime}’s door!"],
 ["Au garde ! On saccage tout chez {victime} !","Fetch the warden! They’re wrecking everything at {victime}’s place!"],
 ["Au glacier, dans une crevasse où personne n’est mort, quelque chose sonne quand le vent souffle.","On the glacier, in a crevasse where no one has died, something sounds when the wind blows."],
+["Au hameau abandonné, il y a encore une borne au nom du garde d’avant. Il s’appelait comme moi. Je n’aime pas ça.","At the abandoned hamlet, there’s still a boundary stone with the previous constable’s name on it. He had the same name as me. I don’t like it."],
 ["Au lac ? Avant la levée des ponts, alors. Je ferai vite. Je courrai. Je cours bien, quand j’ai peur.","The lake? Before the bridges go up, then. I’ll be quick. I’ll run. I run well when I’m scared."],
 ["Au lac ? J’y suis toujours. Mais ce soir, je n’apporterai pas la canne.","The lake? I’m always there. But this evening, I won’t bring the rod."],
 ["Au lac, ce soir ? Doux Jésus, il faudra que je me recoiffe. Oui. Je demanderai à {npc:grainetiere} de garder la petite.","The lake, tonight? Sweet Jesus, I’ll have to do my hair. Yes. I’ll ask {npc:grainetiere} to mind the little one."],
@@ -75591,6 +77582,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Au moins, c’est franc. L’usage, voyez-vous, n’a jamais trait une vache à cinq heures du matin par un froid de loup ; le jour où il le fera, je remettrai mes jupes.","At least that’s honest. Custom, you see, has never milked a cow at five in the morning in bitter cold; the day it does, I’ll put my skirts back on."],
 ["Au nom de la loi ! Ne bougez plus, madame.","In the name of the law! Don’t move, madame."],
 ["Au nom de la loi ! Ne bougez plus, monsieur.","In the name of the law! Don’t move, monsieur."],
+["Au nom de la loi ! Ne bougez plus.","In the name of the law! Don’t move."],
 ["Au nom de la loi, au nom de {ville}, je devrais vous faire arrêter. Mais le garde a peur de vous. Et moi aussi.","In the name of the law, in the name of {ville}, I ought to have you arrested. But the warden is afraid of you. And so am I."],
 ["Au nom de la loi, et puisque notre curé n’est plus là pour le faire, je vais vous marier moi-même. {a}, {b}, approchez.","In the name of the law, and since our priest is no longer with us to do it, I shall marry you myself. {a}, {b}, step forward."],
 ["Au nom de la loi, je devrais vous arrêter. Au nom de mes jambes, je préfère que vous partiez. Loin.","In the name of the law, I ought to arrest you. In the name of my legs, I’d rather you left. Far away."],
@@ -75620,6 +77612,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Au secours !","Help!"],
 ["Au secours ! Au garde !","Help! Fetch the warden!"],
 ["Au secours ! C’est l’assassin !","Help! It’s the murderer!"],
+["Au secours ! Gendarme ! Gendarme !","Help! Gendarme! Gendarme!"],
 ["Au secours ! Il tire !","Help! Someone’s shooting!"],
 ["Au secours ! Le vent !","Help! The wind!"],
 ["Au secours ! Octave ! Octave !","Help! Octave! Octave!"],
@@ -75690,6 +77683,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Automatique","Automatic"],
 ["Autour de la meule, il faut veiller. Le feu doit couver sans flamber. Si la meule s’éventre, c’est que quelqu’un a marché dessus.\n\nCette nuit, la meule s’est éventrée. Il n’y avait personne. Il y avait des traces.","You must keep watch around the mound. The fire must smoulder without flaring. If the mound bursts open, someone has walked on it.\n\nLast night, the mound burst open. There was nobody. There were tracks."],
 ["Aux Sources, au sud-est. Ils vous prêteront même une serviette.","At the Springs, to the south-east. They’ll even lend you a towel."],
+["Aux Sources, ils vivent comme au premier jour du monde. Je les salue, ils me saluent. Je garde mon bicorne.","At the Springs, they live as on the first day of the world. I greet them, they greet me. I keep my bicorne on."],
 ["Aux Sources, j’ai appris à ne plus rougir. Ce sont des gens simples : ils disent que les vêtements cachent surtout ce qu’on pense.","At the Springs, I learned to stop blushing. They’re simple folk: they say clothes mostly hide what you’re thinking."],
 ["Aux Sources, l’eau a encore fumé toute la nuit. Le docteur dit que c’est bon signe.","At the Springs, the water steamed all night again. The doctor says it’s a good sign."],
 ["Aux gens qu’on aime… Moi, je pense à ma mère, à mon cousin, et à vous, maintenant, un peu. Ça fait une petite garnison, mais c’est mieux que rien.","The people you love… I think of my mother, my cousin, and of you too now, a little. It makes for a small garrison, but it’s better than nothing."],
@@ -75701,6 +77695,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Avant les villages, les Gorr dressaient les pierres de la vallée, et ils abattaient des chênes que dix hommes n’auraient pas embrassés. Le fer de leur cognée dormait sous la couche d’un géant, qui s’en servait d’oreiller. Il a fallu une forgeronne naine pour l’emmancher à la mesure d’une main d’homme. Le bois se souvient de lui : il se couche avant qu’on frappe.","Before the villages, the Gorr raised the stones of the valley, and they felled oaks that ten men could not have got their arms around. The head of their axe slept under a giant’s bed, and he used it as a pillow. It took a dwarf blacksmith to haft it to the measure of a man’s hand. The wood remembers it: it lies down before the blow falls."],
 ["Avant les villes","Before the Towns"],
 ["Avant les villes, il y avait les Gorr, qui dressaient des pierres, et avant les Gorr il y avait les Aëlim, qui en taillaient. Les moines n’en savent rien de plus que ce que disent les pierres elles-mêmes, et les pierres parlent peu.","Before the towns, there were the Gorr, who raised stones, and before the Gorr there were the Aëlim, who carved them. The monks know nothing more of it than what the stones themselves say, and the stones say little."],
+["Avant moi, un sergent devait prendre le guet de la ville. Ferrand. À la préfecture, on en parle encore à voix basse. Il n’a jamais pris son poste.","Before me, a sergeant was supposed to take the town watch. Ferrand. At the prefecture, they still speak of it in whispers. He never took up his post."],
 ["Avec ce temps, les chemins sont des ruisseaux. Regardez où vous mettez les pieds.","In this weather, the lanes turn into streams. Watch where you put your feet."],
 ["Avec cette humidité, la pâte lève toute seule. Au moins quelqu’un est content !","With all this damp, the dough rises on its own. At least somebody’s happy!"],
 ["Avec la lime, et quelques nuits…","With the file, and a few nights…"],
@@ -75780,6 +77775,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Barnabé","Barnabé"],
 ["Barnabé Toquet, tambour de ville","Barnabé Toquet, town crier"],
 ["Barre d’outils","Toolbar"],
+["Barthélemy","Barthélemy"],
 ["Barthélemy Roux, meunier","Barthélemy Roux, miller"],
 ["Barthélemy Roux, meunier, 1840. Monté voir d’où vient le vent. Il ne vient de nulle part.","Barthélemy Roux, miller, 1840. Climbed up to see where the wind comes from. It comes from nowhere."],
 ["Basilic","Basil"],
@@ -75836,6 +77832,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Bien. Tiens, garde ces trois-là, montés sur liège. Pose-les sur l’aigue un soir, pour qui tu veux. Elle comprendra.","Good. Here, keep these three, mounted on cork. Set them on the aigue one evening, for whoever you like. She will understand."],
 ["Bien. Très bien. … Je ne sais plus quoi faire de mes mains. Ça ne m’était pas arrivé depuis Augustin.","Good. Very good. … I don’t know what to do with my hands any more. That hasn’t happened to me since Augustin."],
 ["Bien. Un outil soigné, c’est une main de plus. Revenez me voir.","Good. A well-kept tool is an extra hand. Come and see me again."],
+["Bientôt la relève. Le gendarme fait la nuit. Moi, la nuit, je ne verbalise pas : je dors.","Shift change soon. The gendarme takes the night. Me, at night, I don’t write anyone up: I sleep."],
 ["Bienvenue à la grande bibliothèque. {nom} Morand, bibliothécaire. On peut consulter, acheter certains ouvrages, en emprunter d’autres. Les emprunts sont payants, et à rendre à la date dite. Toujours à la date dite.","Welcome to the great library. {nom} Morand, librarian. You may consult, buy certain works, and borrow others. Borrowing costs a fee, and books must be returned by the date given. Always by the date given."],
 ["Bienvenue, bienvenue. Ici, rien ne meurt, rien ne pourrit, rien ne fait mal.","Welcome, welcome. Here, nothing dies, nothing rots, nothing hurts."],
 ["Bijou ancien","Antique jewel"],
@@ -75932,6 +77929,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Bonjour ! Le courrier est arrivé, trié, classé. Il n’y a rien pour vous. Encore.","Morning! The post has arrived, been sorted and filed. There’s nothing for you. Again."],
 ["Bonjour ! L’eau est à la bonne température, ce matin. Elle l’est tous les matins.","Good morning! The water’s just the right temperature this morning. It is every morning."],
 ["Bonjour ! Qu’est-ce qui vous ferait plaisir ? Un bestiaire ? Une carte ? Des nouvelles ?","Hello! What takes your fancy? A bestiary? A map? Some news?"],
+["Bonjour ! Rosée sur les blés, pas de chèvre dans les choux : belle matinée.","Good day! Dew on the wheat, no goat in the cabbages: a fine morning."],
 ["Bonjour ! Un bain, une infusion, et la journée commence bien.","Good morning! A bath, an infusion, and the day gets off to a good start."],
 ["Bonjour ! Vous êtes nouveau par ici, non ? On ne s’est jamais vus, je crois.","Good day! You’re new around here, aren’t you? I don’t believe we’ve ever met."],
 ["Bonjour la compagnie ! Enfin, bonjour vous : la compagnie dort encore.","Good morning, one and all! Well, good morning to you: the others are still asleep."],
@@ -75953,6 +77951,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Bonjour, mon enfant. J’ai sonné matines à l’heure, je crois. Mes genoux sont écorchés comme si j’avais prié toute la nuit sur la pierre.","Good morning, my child. I rang matins on time, I believe. My knees are scraped raw, as if I had prayed all night on the stone."],
 ["Bonjour, mon enfant. Si je bâille, que Dieu me pardonne : la nuit a été longue, et je ne suis pas certain de l’avoir passée dans mon lit.","Good day, my child. If I yawn, may God forgive me: it was a long night, and I am not certain I spent it in my bed."],
 ["Bonjour, {fermier} ! Une commune qui se lève tôt est une commune qui prospère. Je le dis dans tous mes discours.","Good morning, {fermier}! A municipality that rises early is a municipality that prospers. I say so in all my speeches."],
+["Bonjour, {fermier}. Le guet descend, le jour monte. Chacun son tour.","Good day, {fermier}. The watch stands down, the day comes up. Each in turn."],
 ["Bonjour, {fermier}. Pardonnez ma mine : c’était l’anniversaire de mon mariage, hier… enfin, ç’aurait été l’anniversaire.","Good day, {fermier}. Forgive the long face: yesterday was my wedding anniversary… well, it would have been."],
 ["Bonjour.","Good day."],
 ["Bonjour. Attention où vous mettez les pieds, le jonc sèche par terre.","Good day. Mind where you put your feet; the rushes are drying on the ground."],
@@ -75963,6 +77962,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Bonjour. Les graines de saison sont arrivées. Premier levé, premier servi.","Morning. The season’s seeds are in. First up, first served."],
 ["Bonjour. L’eau est calme. Trop calme. Mais bon.","Morning. The water’s calm. Too calm. Ah well."],
 ["Bonjour. L’eau est claire, ce matin.","Good morning. The water’s clear this morning."],
+["Bonjour. Mistral a mangé, moi pas. Dans cet ordre : c’est le règlement.","Good day. Mistral has eaten, I haven’t. In that order: it’s regulations."],
 ["Bonjour. Nuit calme. Rien à signaler. Rien du tout. Absolument rien.","Morning. Quiet night. Nothing to report. Nothing at all. Absolutely nothing."],
 ["Bonjour. Parlez bas, les livres dorment encore.","Hello. Speak softly, the books are still asleep."],
 ["Bonjour. Pas envie de parler, moins que d’habitude.","Morning. Don’t feel like talking. Even less than usual."],
@@ -75979,6 +77979,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Bonne lecture.","Happy reading."],
 ["Bonne nouvelle, {fermier} ! Pas pour vous, pour quelqu’un d’autre, et je ne peux pas dire qui : réjouissez-vous sans savoir, ça marche aussi.","Ah, {fermier}! Good news! Not for you, for someone else, and I can’t say who: be happy without knowing, it works just as well."],
 ["Bonne nuit, Tempête. Pas de bêtises. Et si quelqu’un vient, tu me réveilles.","Good night, Tempête. No nonsense. And if anyone comes, you wake me."],
+["Bonne nuit, Tissier.","Good night, Tissier."],
 ["Bonne nuit, la lune. T’es blanche, ce soir ? Reste blanche, s’il te plaît.","Goodnight, moon. Are you white tonight? Stay white, please."],
 ["Bonne nuit, la salle. Bonne nuit, l’oncle. Bonne nuit, la sept. … Personne ne répond. Parfait.","Good night, common room. Good night, Uncle. Good night, room seven. … Nobody answers. Perfect."],
 ["Bonne nuit, le lac. Ne prends personne, cette nuit. Pas cette nuit.","Good night, lake. Don’t take anyone tonight. Not tonight."],
@@ -75990,6 +77991,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Bonne route !","Safe travels!"],
 ["Bonne route. Et ne tournez pas le dos à vos champs, la nuit.","Mind how you go. And don’t turn your back on your fields at night."],
 ["Bonne route. Restez sur la grève.","Safe journey. Stay on the shore."],
+["Bonne route. Restez sur les chemins.","Safe travels. Keep to the paths."],
 ["Bonnefoy","Bonnefoy"],
 ["Bonnefoy me vendrait bien un ragoût. Mais le ragoût, ça ne se mange pas seul.","Bonnefoy would happily sell me a stew. But stew isn’t something you eat alone."],
 ["Bonnefoy m’a fait rire, hier soir. Je ne sais plus de quoi, je sais seulement que j’ai ri.","Bonnefoy made me laugh last night. I don’t remember what about, I only know I laughed."],
@@ -76002,6 +78004,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Bonsoir, monsieur le curé. Par la porte de derrière, comme toujours. Votre Bon Dieu ne voit donc pas les portes de derrière ?","Good evening, Father. By the back door, as always. So your Good Lord doesn’t see back doors?"],
 ["Bonsoir, {fermier}. Rentrez donc avant la nuit, voulez-vous ? C’est… plus convenable.","Good evening, {fermier}. Do head home before dark, won’t you? It’s… more proper."],
 ["Bonsoir. Vos emprunts sont-ils à jour ? Je demande cela à tout le monde.","Good evening. Are your loans up to date? I ask everyone that."],
+["Borne du chemin du lac : déplacée de trois pouces. Remise.","Boundary stone on the lake path: moved three inches. Put back."],
 ["Borne moussue, gravée « II · 1791 » et d’une flèche que la pluie a usée, mais qu’on suit encore du doigt. Au-dessous, une main maladroite a ajouté au couteau : « J’ai compté les pas. Il en manque. »","A mossy boundary stone, carved with “II · 1791” and an arrow the rain has worn down, though you can still follow it with a finger. Below, a clumsy hand has added with a knife: “I counted the paces. Some are missing.”"],
 ["Borne penchée, fendue par le gel : « IV · 1791 ». La flèche est percée d’un petit trou à sa pointe, comme pour y attacher une ficelle et la tendre jusqu’au bout de la vallée.","A leaning boundary stone, split by frost: “IV · 1791”. The arrow has a small hole bored through its tip, as if to tie a string to it and stretch it all the way to the far end of the valley."],
 ["Botte de foin","Hay bale"],
@@ -76038,6 +78041,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Bras de fer","Arm wrestling"],
 ["Brassard rouge","Red armband"],
 ["Brigade des douanes, rapport du 12 novembre 1886. Avons suivi de nuit une bande de passeurs de tabac et d’allumettes jusqu’aux hauteurs, où ils ont disparu contre un éboulis. Au jour, l’éboulis était intact, les pierres couvertes de mousse, comme si personne n’y avait touché depuis cent ans. Un berger affirme qu’il y a une grotte derrière, et qu’il faut une pelle pour y entrer. Les passeurs, selon lui, rentrent par le marais, la nuit, sans lanterne : ils ne suivent pas les feux qui courent sur l’eau, ils attendent de voir où ces feux se posent. Le douanier Rivière, qui a voulu couper par le marais derrière eux, n’est pas rentré. Demande qu’on nous envoie des chiens. Et un prêtre. Brigadier Lemasson.","Customs brigade, report of 12 November 1886. Followed a band of tobacco and match smugglers by night up to the heights, where they vanished against a rockfall. By daylight the rockfall was intact, the stones covered in moss, as if no one had touched them for a hundred years. A shepherd claims there is a cave behind it, and that you need a shovel to get in. According to him, the smugglers come home through the marsh at night, without a lantern: they do not follow the lights that run over the water, they wait to see where those lights settle. Customs officer Rivière, who tried to cut through the marsh after them, has not come back. Request that dogs be sent to us. And a priest. Sergeant Lemasson."],
+["Brigadier,\n\nJe vous rends compte que la tournée de la semaine s’est faite sans incident, sauf ce qui suit. Aux Planches, on m’a refusé l’accès. Aux Sources, on m’a offert un bain. Sur la route du lac, à minuit, un cavalier m’a croisé sans lanterne ; son cheval ne faisait aucun bruit.\n\nJe réitère ma demande de relève.\n\n(Au-dessous, d’une autre écriture : « Reçu. Restez. »)","Sergeant,\n\nI report that this week’s round passed without incident, save for what follows. At the Planches, I was refused entry. At the Springs, I was offered a bath. On the lake road, at midnight, a rider passed me without a lantern; his horse made no sound.\n\nI repeat my request to be relieved.\n\n(Below, in a different hand: “Received. Stay.”)"],
 ["Brigand, dedans. Tout de suite. Je n’aime pas ta façon de regarder le chemin.","Brigand, inside. Right now. I don’t like the way you’re looking at the road."],
 ["Brigand, ôte ton nez de mon assiette. Tu as eu ta part. Tu as eu la mienne, hier.","Brigand, get your nose out of my plate. You’ve had your share. You had mine yesterday."],
 ["Brin de muguet","Sprig of lily of the valley"],
@@ -76053,7 +78057,9 @@ const I18N_EN = {"v":1,"exact":[
 ["Brossard","Brossard"],
 ["Brouette","Wheelbarrow"],
 ["Brouillard","Fog"],
+["Brouillard sur les douves. Rien.","Fog on the moat. Nothing."],
 ["Brouillon de plainte","Draft complaint"],
+["Brouillon de rapport","Draft report"],
 ["Brouillon du docteur","Doctor’s draft"],
 ["Brouillon d’une ligne de registre","Draft of a register entry"],
 ["Brouillon sur papier mauve","Draft on mauve paper"],
@@ -76196,6 +78202,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Ce que disent les pâles d’en bas, noté comme vous l’avez entendu, avec ce qui se passait à ce moment-là. Personne ne vous en a donné la clé.","What the pale ones below say, noted as you heard it, along with what was happening at the time. No one has given you the key."],
 ["Ce que gardent les archives","What the archives keep"],
 ["Ce que je faisais dans {lieu:tour}, la nuit où j’ai perdu ma chevalière ? Je regardais le lac, où certaines nuits une seconde ville s’allume : la nôtre, à l’envers, toutes fenêtres éclairées. Au premier étage de la mairie d’en bas, une femme coud près d’une lampe, sans jamais lever les yeux. Je lui fais signe quand même, chaque fois.","What was I doing in {lieu:tour} the night I lost my signet ring? I was looking at the lake, where on certain nights a second town lights up: ours, upside down, every window lit. On the first floor of the town hall below, a woman sews by a lamp, never once looking up. I wave to her anyway, every time."],
+["Ce que je garde","What I Guard"],
 ["Ce que je mange ne regarde que moi.","What I eat is my own business."],
 ["Ce que je tresse la nuit","What I weave at night"],
 ["Ce que j’ai vu","What I Saw"],
@@ -76264,6 +78271,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Certaines nuits sont noires : ni lune, ni étoiles, et les lanternes semblent éclairer moins loin. Les anciens disaient qu’on y entend murmurer. Restez chez vous.\n\nCertains jours, le soleil brille trop fort. Ne le regardez pas en face : l’œil se brûle, et une tache noire y reste longtemps. La potion de soleil protège et soigne.\n\nLes étoiles filantes laissent parfois une poussière qui brille encore au matin.","Some nights are black: no moon, no stars, and lanterns seem to reach less far. The old folk used to say you could hear whispering on those nights. Stay at home.\n\nSome days, the sun shines too bright. Do not look straight at it: the eye burns, and a black spot stays there a long while. The potion of sunlight protects and heals.\n\nShooting stars sometimes leave a dust that still glows in the morning."],
 ["Certaines nuits, je me réveille dans l’église, en chasuble, devant l’autel. La nef est pleine. Je célèbre une messe dont je ne connais pas les mots. Et tous me répondent.","Some nights, I wake up in the church, in my chasuble, before the altar. The nave is full. I am saying a Mass whose words I do not know. And every one of them answers."],
 ["Certaines nuits, toutes mes bêtes se tournent vers {lieu:hameau_abandonne}. Toutes ensemble. Et elles restent comme ça jusqu’à l’aube. Allez voir ce qu’elles regardent.","Some nights, all my animals turn towards {lieu:hameau_abandonne}. All together. And they stay like that until dawn. Go and see what they’re looking at."],
+["Certaines nuits, un homme en long manteau passe sur la route du nord. Je ne l’ai jamais vu de face. Je n’y tiens pas.","Some nights, a man in a long coat passes on the north road. I’ve never seen him face to face. I’d rather not."],
 ["Certaines nuits, un visage de femme trempé vous hurle au visage. Il sent l’eau froide et le savon. Les gens d’ici savent peut-être qui c’est.","Some nights, a drenched woman’s face screams right in your face. It smells of cold water and soap. The people here may know who she is."],
 ["Certains noms ne disent plus rien à personne.","Some of the names mean nothing to anyone any more."],
 ["Cervidé blanc et translucide, observé à l’aube à la lisière des bois de bouleaux. Il guide certaines personnes jusqu’à une clairière. Ne se montre pas à qui a tué un cervidé récemment.","White, translucent cervid, observed at dawn at the edge of the birch woods. It guides certain people to a clearing. Does not appear to anyone who has recently killed a cervid."],
@@ -76279,9 +78287,12 @@ const I18N_EN = {"v":1,"exact":[
 ["Cette nuit ? Rien de spécial. Il ne se passe jamais rien, la nuit, ici.","Last night? Nothing special. Nothing ever happens here at night."],
 ["Cette nuit sera rouge. Tu l’as achetée.","Tonight will be red. You bought it."],
 ["Cette nuit, il est tombé des étoiles par dizaines. Au matin, il paraît qu’on en trouve la poussière dans l’herbe.","Last night, stars fell by the dozen. Come morning, they say you can find their dust in the grass."],
+["Cette nuit, j’ai entendu un cheval au galop sur la route du lac. Mistral était à l’écurie. Il tremblait.","Last night, I heard a horse galloping on the lake road. Mistral was in the stable. He was trembling."],
+["Cette nuit, j’ai fait ma ronde, et il n’y avait personne. Ni au hameau, ni sur les routes. J’ai frappé à toutes les portes.","Last night, I made my round, and there was no one. Not in the hamlet, not on the roads. I knocked at every door."],
 ["Cette nuit, j’ai rêvé d’Émile. Il me montrait son alliance, posée sur une pierre, dans {lieu:ruines}. Ce n’est qu’un rêve, je le sais bien. Mais vous voudriez aller voir ?","Last night I dreamt of Émile. He was showing me his wedding ring, lying on a stone in {lieu:ruines}. It’s only a dream, I know that. But would you go and look?"],
 ["Cette nuit, la lune saignera. Dormez chez vous, les volets clos, et si l’on vous appelle par votre nom, ne répondez pas.","Tonight, the moon will bleed. Sleep at home with the shutters closed, and if anyone calls you by your name, do not answer."],
 ["Cette nuit, la route était pleine de gens. Tous marchaient dans l’autre sens. Aucun n’avait de visage.","Last night the road was full of people. All of them walking the other way. Not one of them had a face."],
+["Cette nuit, le guet n’a rien vu. Pour la première fois en vingt ans, je n’ai rien écrit. Je ne me souviens pas de la nuit.","Last night, the watch saw nothing. For the first time in twenty years, I wrote nothing. I don’t remember the night."],
 ["Cette nuit, les bêtes marchaient toutes dans le même sens. Vers le puits. Je ne les ai pas suivies.","Last night, the beasts were all walking the same way. Towards the well. I didn’t follow them."],
 ["Cette nuit, les calèus ont fait le tour du village, contre le vent. Personne n’en a parlé au matin.","Last night, the calèus went round the village, against the wind. Nobody spoke of it in the morning."],
 ["Cette nuit, les fea se sont toutes tournées vers la crête, en même temps. Pas un bruit. Au matin, il en manquait une, et il y avait un aret de trop.","Last night, the fea all turned towards the ridge at the same time. Not a sound. In the morning, one was missing, and there was one aret too many."],
@@ -76289,10 +78300,13 @@ const I18N_EN = {"v":1,"exact":[
 ["Cette nuit, l’aigue était rouge jusqu’au fond. On voyait le clocher. Il était éclairé de dedans.","Last night, the aigue was red to the bottom. You could see the bell tower. It was lit from inside."],
 ["Cette nuit, l’eau a clapoté, et j’ai crié par la fenêtre : « Repassez en plein jour ! » Ça s’est tu. Je ne sais pas si c’est vous qui avez raison, ou le hasard.","Last night the water lapped, and I shouted out of the window: “Come back in broad daylight!” It went quiet. I don’t know if it’s you who’s right, or just chance."],
 ["Cette nuit, quelqu’un a appelé depuis la crête, comme nous, le soir. Mais personne n’habite de ce côté-là.","Last night someone called from the ridge, like we do in the evening. But nobody lives on that side."],
+["Cette nuit, quelqu’un a marché sur le pont levé. À la verticale. J’ai écrit l’heure : trois heures dix. Je n’ai rien écrit d’autre.","Last night, someone walked on the raised bridge. Vertically. I wrote down the time: ten past three. I wrote nothing else."],
+["Cette nuit, une chèvre est entrée dans la cabane. Elle s’est assise sur mon lit, et elle m’a regardé dormir. Je n’ai pas de chèvre.","Last night, a goat came into the hut. It sat on my bed and watched me sleep. I don’t have a goat."],
 ["Cette nuit, vous ne dormirez pas. Ni les suivantes. C’était le prix.","Tonight, you will not sleep. Nor the nights after. That was the price."],
 ["Cette nuit, ça a frappé. J’ai pensé : chez vous aussi. Je me suis rendormi.","Last night, it knocked. I thought: at your place too. I went back to sleep."],
 ["Cette nuit… vous l’avez vue ? Pas une étoile. On aurait dit que le ciel s’était retiré.","Last night… did you see it? Not a single star. It was as if the sky had drawn back."],
 ["Ceux de la ville disent « les Planches ». Nous, on dit Saint-Aubin. On est polis : on ne les reprend pas.","The townsfolk say “the Planches”. We say Saint-Aubin. We’re polite: we don’t correct them."],
+["Ceux des Planches ne veulent pas de loi sur l’eau. Ils disent qu’en dessous, il y en a déjà une.","The Planches folk want no law on the water. They say there’s already one below."],
 ["Ceux du lac, en bas, fument les anguilles. Nous, on fume la tomme. Chacun son malheur.","The lake people, down below, smoke eels. We smoke tomme. Each to their own misfortune."],
 ["Ceux d’En-Dessous","Those Below"],
 ["Ceux d’en bas ? Il n’existe aucune délibération du conseil à leur sujet, aucune. Mon grand-père en a pourtant brûlé une, en 1854, dans ce poêle-là, et je me suis toujours demandé ce qu’elle disait.","Those Below? There is no council resolution concerning them, none whatsoever. And yet my grandfather burned one, in 1854, in that very stove, and I have always wondered what it said."],
@@ -76358,6 +78372,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Chaque sac arrive avec sa feuille de route, signée par le receveur de la gare d’en bas. Il y a six ans, j’ai trouvé au dos, au crayon, tout petit : « Il fait beau, chez vous ? » J’ai répondu en dessous, et depuis, on s’écrit là, dans la marge, où le règlement ne regarde pas. Il s’appelle Octave, il a une écriture penchée, il aime les poires et il déteste le dimanche. Un jour, j’ai écrit : « Venez. » Le lendemain, la feuille disait : « Je ne trouve pas la route. »","Every bag comes with its waybill, signed by the postmaster at the station down below. Six years ago I found on the back, in pencil, very small: “Is the weather fine up your way?” I answered underneath, and ever since, we’ve written to each other there, in the margin, where the regulations don’t look. His name is Octave, his handwriting slants, he loves pears and he hates Sundays. One day I wrote: “Come.” The next day, the waybill said: “I can’t find the road.”"],
 ["Chaque semaine, je fais porter du pain à {npc:guerisseuse}, dans sa hutte au fond des bois. Avant, c’était Émile qui… enfin. Vous voudriez bien y aller ?","Every week I send bread to {npc:guerisseuse}, in her hut deep in the woods. It used to be Émile who… well. Would you be willing to go?"],
 ["Chaque semaine, je pose deux pains sur la tombe sans date, au fond du cimetière, celle qui porte le nom du vieil Anselme. Si c’est une vraie tombe, il faut du pain aux morts ; si ce n’en est pas une, ça ne lui fera pas de mal.","Every week, I lay two loaves on the undated grave at the back of the cemetery, the one with old Anselme’s name on it. If it’s a real grave, the dead need bread; if it isn’t, it won’t do him any harm."],
+["Chaque semaine, j’envoie un rapport. Chaque semaine, rien. Une fois, une seule, une enveloppe est revenue, avec le cachet de la préfecture. Dedans, mon propre rapport, plié, et dessous, d’une écriture que je ne connais pas : « Reçu. Restez. »","Every week, I send a report. Every week, nothing. Once, just once, an envelope came back, bearing the prefecture’s stamp. Inside, my own report, folded, and beneath it, in handwriting I don’t know: “Received. Stay.”"],
 ["Chaque semaine… Alors écrivez-lui, même quand vous n’avez rien à dire, surtout quand vous n’avez rien à dire. Ce sont les lettres qu’on n’a pas écrites qu’on relit le plus.","Every week… Then write to them, even when you have nothing to say, especially when you have nothing to say. It is the letters one never wrote that one rereads the most."],
 ["Chaque soir, je compte les fea. Deux cent six. Une fois, j’en ai compté deux cent sept. J’ai recompté trois fois. Deux cent sept. Le matin, deux cent six. Je n’ai rien dit à grand-père.","Every evening, I count the fea. Two hundred and six. Once, I counted two hundred and seven. I counted again, three times. Two hundred and seven. In the morning, two hundred and six. I didn’t tell Grandfather."],
 ["Chaque été, la dernière nuit avant la descente, on laisse une tomme sur la lauza de la crête. Pour le drac. Le matin, elle n’y est plus. Les jeunes disent que c’est le renard. Les renards ne défont pas les nœuds de la ficelle.","Every summer, on the last night before the descent, we leave a tomme on the lauza up on the ridge. For the drac. In the morning, it’s gone. The young ones say it’s the fox. Foxes don’t undo the knots in the string."],
@@ -76397,6 +78412,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Cherchez un autre passeur. Il n’y en a pas d’autre.","Find another ferryman. There isn’t another."],
 ["Cheval","Horse"],
 ["Cheval sauvage","Wild horse"],
+["Chevalier du guet","Knight of the Watch"],
+["Chevalier du guet : jadis, le chef de la garde de nuit des villes. La commune a gardé le titre, et l’homme qui va avec. Ça ne lui coûte qu’un lit de camp et du charbon.","Knight of the Watch: once the head of a town’s night watch. The town kept the title, and the man who goes with it. It costs the town only a camp bed and some coal."],
 ["Chevalière du maire","Mayor’s signet ring"],
 ["Chevesne","Chub"],
 ["Chevreuil","Roe deer"],
@@ -76449,9 +78466,12 @@ const I18N_EN = {"v":1,"exact":[
 ["Cincle plongeur","Dipper"],
 ["Cinq heures. Le cimetière, les fleurs, et à la maison. Comme hier. Comme demain.","Five o’clock. The cemetery, the flowers, then home. Like yesterday. Like tomorrow."],
 ["Circulaire préfectorale","Circular from the prefecture"],
+["Circulez, et respectez les bornes !","Move along, and respect the boundary stones!"],
+["Circulez.","Move along."],
 ["Circulez. Et dites à ceux qui ont gravé « POLTRON » sur ma guérite que je les ai vus… enfin, que je les verrai.","Move along. And tell whoever carved “COWARD” on my sentry box that I saw them… well, that I will see them."],
 ["Circulez. Et soyez chez vous avant la nuit.","Move along. And be home before dark."],
 ["Circulez. Il n’y a rien à voir, ni à dire.","Move along. Nothing to see here, and nothing to say."],
+["Circulez. J’ai votre nom dans mon carnet, et pas à la bonne page.","Move along. I have your name in my notebook, and not on the right page."],
 ["Cisailles","Shears"],
 ["Cistude","Pond turtle"],
 ["Cistude d’Europe","European pond turtle"],
@@ -76554,6 +78574,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Comme moi ? Hi hi, alors on aime la même chose ! Je vais te faire un dessin tout jaune, avec un soleil qui a des yeux.","Like me? Hee hee, so we like the same thing! I’m going to draw you a picture all in yellow, with a sun that’s got eyes."],
 ["Comme tout le monde… Merci, vous ne savez pas le bien que ça fait. Moi, c’est beaucoup, mais c’est rassurant de ne pas être le seul.","Like everyone… Thank you, you don’t know how much good that does me. With me it’s a lot, but it’s reassuring not to be the only one."],
 ["Comme un poisson.","Like a fish."],
+["Comme vous voudrez. Je vous préviens : je sais m’en servir.","As you wish. I warn you: I know how to use it."],
 ["Commencer","Start"],
 ["Commencer une nouvelle partie ? La partie en cours sera perdue (la vallée s’en souviendra).","Start a new game? The current game will be lost (the valley will remember it)."],
 ["Comment l’oublier, mon oncle ? Vous me le rappelez chaque dimanche, entre le pâté et le fromage.","How could I forget, Uncle? You remind me every Sunday, between the pâté and the cheese."],
@@ -76624,9 +78645,11 @@ const I18N_EN = {"v":1,"exact":[
 ["Couleuvre","Grass snake"],
 ["Couleuvre à collier","Grass snake"],
 ["Coupes permises : bois des Aulnes, bois du Sud. Coupes défendues : le vieux bois, et la parcelle autour de la pierre.\n\nDélits : quatre. Le quatrième : des arbres abattus de nuit, dans la parcelle de la pierre. Pas de souches. Pas de copeaux. Des troncs couchés, comme endormis.","Felling permitted: Alder Wood, South Wood. Felling forbidden: the old wood, and the plot around the stone.\n\nOffences: four. The fourth: trees felled at night, in the plot of the stone. No stumps. No wood chips. Trunks lying down, as if asleep."],
+["Coups et blessures sur agent assermenté. Je l’ai écrit en lettres capitales.","Assault and battery on a sworn officer. I wrote it in capital letters."],
 ["Coupure de journal","Newspaper cutting"],
 ["Coupé, il rougit en quelques minutes, comme s’il saignait. Sous l’eau, il dure toujours.","Cut, it turns red within minutes, as if it were bleeding. Under water, it lasts forever."],
 ["Courageux. Il a peur, et il reste quand même.","Brave. He’s afraid, and he stays anyway."],
+["Courez. La nuit, je vous attendrai.","Run. At night, I’ll be waiting for you."],
 ["Courge musquée","Squash"],
 ["Courge spaghetti","Spaghetti squash"],
 ["Courgette","Courgette"],
@@ -76678,6 +78701,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Cueillir le champignon lumineux","Pick the glowing mushroom"],
 ["Cuillère d’argent","Silver spoon"],
 ["Cuir","Leather"],
+["Cuirassier, vingt-deux ans de service. J’ai chargé à Reichshoffen, un après-midi d’août. On était huit cents. On est revenus moins. Le reste de ma vie, je l’ai passé à la nuit.","Cuirassier, twenty-two years of service. I charged at Reichshoffen, one August afternoon. There were eight hundred of us. We came back fewer. The rest of my life, I’ve given to the night."],
 ["Cuisiner / allumer le feu","Cook / light the fire"],
 ["Cuisiner / se réchauffer","Cook / warm up"],
 ["Cupules","Cup-marks"],
@@ -76716,10 +78740,13 @@ const I18N_EN = {"v":1,"exact":[
 ["C’est elle. Couverte de vase, et… de marques de dents. Tenez, les plans d’une bonne clôture. Ça n’arrête pas tout. Mais ça ralentit.","That’s the one. Covered in muck, and… in tooth marks. Here, the plans for a good fence. It won’t stop everything. But it slows them down."],
 ["C’est elle. Nos initiales, gravées dedans. Et elle est tiède, comme si on venait de l’ôter… Prenez ces tartes, et les plans de sa table. Il aurait voulu.","That’s the one. Our initials, engraved inside. And it’s warm, as if someone had only just taken it off… Take these tarts, and the plans for his table. He’d have wanted that."],
 ["C’est elle. Écoute : pas une autre ne sonne comme ça. Tiens, une des miennes. Accroche-la où tu veux : on saura que tu es passé.","That’s the one. Listen: no other rings like that. Here, one of mine. Hang it wherever you like: we’ll know you passed by."],
+["C’est en règle. Je vous fais un reçu. Ne recommencez pas.","That’s in order. I’ll give you a receipt. Don’t do it again."],
 ["C’est faux ! Je cours exactement à la même vitesse. Je pars juste un peu avant.","That’s not true! I run at exactly the same speed. I just set off a little earlier."],
 ["C’est fermé. Et je ne réponds pas aux voix, la nuit. Surtout pas à celles que je connais.","We’re closed. And I don’t answer voices at night. Least of all the ones I know."],
 ["C’est fini pour vous. Vos affaires sont là. Ce qui n’était pas à vous est retourné à qui de droit.","You’re done here. Your things are over there. Whatever wasn’t yours has gone back to its rightful owner."],
+["C’est fini.","That’s over."],
 ["C’est joli. Merci.","That’s pretty. Thank you."],
+["C’est la Saint-Fulbert, ou presque. Personne ne le sait. Je le dis à tout le monde.","It’s St Fulbert’s Day, or nearly. Nobody knows it. I tell everyone."],
 ["C’est la nuit qu’il faut y aller. Le jour, le pont ne fait que des bruits de pont.","You have to go at night. By day, the bridge only makes bridge noises."],
 ["C’est la nuit. On ne frappe pas chez un chasseur la nuit. Il a un fusil près de la porte.","It’s night. You don’t knock on a hunter’s door at night. He keeps a rifle by the door."],
 ["C’est la première fois que je mange assis depuis des mois. En service, on mange debout.","It’s the first time in months I’ve eaten sitting down. On duty, you eat standing up."],
@@ -76749,6 +78776,7 @@ const I18N_EN = {"v":1,"exact":[
 ["C’est nous qui changeons de côté ? … Oh. Ça, je le savais déjà un peu. Tiens, des fleurs. Merci d’avoir demandé pour moi.","We’re the ones who change sides? … Oh. I sort of knew that already. Here, some flowers. Thank you for asking for me."],
 ["C’est quoi, ta bouteille qui brille ? C’est comme le bonbon de la dame de la forêt ? Ça fait voir les choses en vrai ?","What’s that shiny bottle of yours? Is it like the forest lady’s sweet? Does it make you see things for real?"],
 ["C’est quoi, ta couleur préférée ? Moi, c’est le jaune tournesol. Lise, c’est le noir, mais c’est parce qu’elle a pas le choix.","What’s your favourite colour? Mine’s sunflower yellow. Lise’s is black, but that’s ’cause she hasn’t got a choice."],
+["C’est réglé. Le guet n’a plus rien contre vous. Pour cette fois.","That’s settled. The watch has nothing more against you. This once."],
 ["C’est réglé. On retire les affiches. Que je ne vous y reprenne pas.","That’s settled. The posters are coming down. Don’t let me catch you at it again."],
 ["C’est sage. C’est ce que dit le curé, avec plus de latin. Moi, je n’y arrive pas : je ne suis pas sage, je suis pêcheur.","That’s wise. It’s what the priest says, with more Latin. Me, I can’t manage it: I’m no wise man, I’m a fisherman."],
 ["C’est toi ? … Non. Non, ce n’est pas toi. Va-t’en.","Is that you? … No. No, it’s not you. Go away."],
@@ -76765,6 +78793,8 @@ const I18N_EN = {"v":1,"exact":[
 ["C’est vrai. À neuf heures.","It’s true. At nine o’clock."],
 ["C’est Émile qui vous l’apportait, avant. Alors je continue. Dites… il n’a toujours pas froid ? Vous me l’aviez fait dire, une fois.","It was Émile who used to bring it to you. So I carry on. Tell me… he’s still not cold? You sent me word of it, once."],
 ["C’est à l’aube qu’il faut y aller. Quand la brume se lève et que tout se tait.","Dawn is when you have to go. When the mist rises and everything goes quiet."],
+["C’est éteint.","It’s out."],
+["C’est éteint. C’est éteint, n’est-ce pas ?","It’s out. It’s out, isn’t it?"],
 ["C’était toi qui toquais, l’autre nuit ? J’ai pas ouvert. J’ai demandé si tu connaissais la chanson, et personne a répondu, alors c’était peut-être pas toi.","Was that you knocking the other night? I didn’t open. I asked if you knew the song, and nobody answered, so maybe it wasn’t you."],
 ["C’était un mardi, il faisait déjà nuit. Pataud, notre chien, aboyait dans la cour, tourné vers les champs, et rien ne le faisait taire. Émile a pris la lanterne et son gilet, et il m’a dit : « Garde-moi la pâte au chaud, j’en ai pour une minute. » Au matin, la pâte avait débordé du pétrin : c’est la seule fournée que j’aie jamais ratée. On a retrouvé la lanterne de l’autre côté des douves, posée bien droite dans l’herbe, encore allumée. Le pont était resté levé toute la nuit.","It was a Tuesday, and already dark. Pataud, our dog, was barking in the yard, facing the fields, and nothing would quiet him. Émile took the lantern and his waistcoat, and said to me, “Keep the dough warm for me, I’ll only be a minute.” By morning, the dough had spilled over the kneading trough: it’s the only batch I’ve ever ruined. They found the lantern on the far side of the moat, standing upright in the grass, still lit. The bridge had stayed raised all night."],
 ["C’était vous, l’autre nuit, qui frappiez ? J’ai cru… Peu importe ce que j’ai cru. Ne frappez plus la nuit, et surtout jamais deux coups.","Was that you knocking, the other night? I thought… Never mind what I thought. Don’t knock at night again, and above all, never twice."],
@@ -76797,6 +78827,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Dans la terre noire","In the black earth"],
 ["Dans la terre retournée","In the turned earth"],
 ["Dans le brouillard, hier, j’ai entendu marcher à côté de moi. Il n’y avait personne.","In the fog yesterday, I heard footsteps beside me. There was nobody there."],
+["Dans le carnet, il y a une page à mon nom. Pas de mon écriture. « Tissier, garde champêtre. À verbaliser. » La date est en blanc.","In the notebook, there’s a page with my name on it. Not in my handwriting. “Tissier, rural constable. To be written up.” The date is blank."],
 ["Dans le coffre","In the chest"],
 ["Dans le coffre des archives secrètes, sous la bibliothèque.","In the chest in the secret archives, beneath the library."],
 ["Dans le confessionnal, sous le banc : un masque de toile blanche plié dans une étole, et une corde de cloche coupée net.","In the confessional, under the bench: a white canvas mask folded inside a stole, and a bell rope cut clean through."],
@@ -76826,6 +78857,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Dans les tourbières et les eaux froides.","In peat bogs and cold waters."],
 ["Dans l’Envers : le lever vous ramène chez vous.","In the Underside: hold it up and it takes you home."],
 ["Dans l’Envers, sous le vieux puits, traîne une bourse que personne n’a perdue.","In the Underside, beneath the old well, lies a purse that no one has lost."],
+["Dans mon lit ! Violation de domicile sur la personne d’un agent assermenté ! Dehors ! Je verbalise demain !","In my bed! Trespass upon the person of a sworn officer! Out! I’ll write you up tomorrow!"],
 ["Dans quelques prairies des hauteurs, nulle part ailleurs. On en a compté les pieds.","In a few meadows on the heights, nowhere else. Every plant has been counted."],
 ["Dans sa besace","In the bag"],
 ["Dans ses poches","In the pockets"],
@@ -76880,6 +78912,7 @@ const I18N_EN = {"v":1,"exact":[
 ["De la mousse des nains. Elle brille dans le noir, voyez. D’où la tenez-vous ? … Alors ils existent.","Dwarves’ moss. It glows in the dark, see. Where did you get it? … So they do exist."],
 ["De la neige ! En bas ! Ça n’était pas arrivé depuis que j’étais gamin.","Snow! Down here! That hasn’t happened since I was knee-high."],
 ["De la pervenche. Toujours verte, même sous la neige. On en couronnait les pendus. Je ne sais pas si c’était pour les consoler.","Periwinkle. Always green, even under the snow. They used to crown the hanged with it. I don’t know if it was to console them."],
+["De la poire… Merci. Je la boirai à la santé de ceux de Reichshoffen. Un doigt chacun : il y en a pour longtemps.","Pear brandy… Thank you. I’ll drink it to the health of the men of Reichshoffen. A finger each: that’ll take a long while."],
 ["De la prêle. Pleine de silice : on en récure les casseroles. Et on en fait des tisanes pour les os.","Horsetail. Full of silica: people scour their pans with it. And make teas from it for the bones."],
 ["De la reine-des-prés. Contre la fièvre et les douleurs. Elle sent l’amande, le miel, et un peu l’été.","Meadowsweet. For fever and aches. It smells of almond, of honey, and a little of summer."],
 ["De la rue ! Où l’avez-vous trouvée ? Dans un vieux jardin de curé, je parie. On la disait contre le mauvais œil. Elle est surtout contre les enfants à naître.","Rue! Where did you find it? In an old priest’s garden, I’d wager. People said it was good against the evil eye. Mostly it’s good against children yet to be born."],
@@ -76926,6 +78959,7 @@ const I18N_EN = {"v":1,"exact":[
 ["De quoi tenir quelques heures.","Enough to keep you going for a few hours."],
 ["De toutes petites fleurs blanches, rayées de violet, avec une tache jaune au milieu, comme un œil.","Very small white flowers, striped with purple, with a yellow spot in the middle, like an eye."],
 ["Dehors, l’air a un goût de neuf.","Outside, the air tastes new."],
+["Delcourt","Delcourt"],
 ["Demain","Tomorrow"],
 ["Demain matin, du brouillard : ne vous écartez pas des chemins.","Tomorrow morning, fog: don’t stray from the paths."],
 ["Demain matin, on ne verra pas plus loin que sa main. Ceux qui marchent dans le blanc ne sont pas tous d’ici.","Tomorrow morning, you will not see further than your own hand. Not all who walk in the white are from here."],
@@ -77188,6 +79222,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Deux jours de plus. Et la prochaine fois, je vous mets aux fers.","Two more days. And next time, I’ll put you in irons."],
 ["Deux lentilles dans un tube de cuivre. Tout paraît plus près, et plus seul.","Two lenses in a copper tube. Everything looks closer, and lonelier."],
 ["Deux malheureux au lieu d’un, vous disiez. J’ai refait le calcul toute la nuit : ça tombe juste, et ça ne console pas.","Two unhappy people instead of one, you said. I went over the sums all night: they add up, and it’s no comfort."],
+["Deux nuits de pluie. La cuirasse a rouillé avant moi.","Two nights of rain. The cuirass has rusted before I have."],
 ["Deux ou trois ingrédients, et une fiole vide.","Two or three ingredients, and an empty vial."],
 ["Deux pains contre une pierre qui luit","Two loaves of bread for a glowing stone"],
 ["Deux petites filles se tiennent la main près d’un puits. L’une a des cheveux jaunes et une robe rose. L’autre est coloriée tout en bleu, les cheveux en traits d’eau.\n\nEn grosses lettres : « MOI ET LISE ».\n\nAu dos : « Lise dit que tu peux venir aussi. »","Two little girls holding hands by a well. One has yellow hair and a pink dress. The other is coloured in all blue, her hair drawn in streaks of water.\n\nIn big letters: “ME AND LISE”.\n\nOn the back: “Lise says you can come too.”"],
@@ -77344,6 +79379,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Du travail, toujours du travail. Mais du bon, celui qui sent le foin.","Work, always work. But the good kind, the kind that smells of hay."],
 ["Du trèfle d’eau. Amer à pleurer. La fièvre déteste ça, et c’est ce qu’on lui demande.","Bogbean. Bitter enough to make you weep. Fever hates it, and that’s exactly what we ask of it."],
 ["Du tussilage, le pas-d’âne. Les fleurs d’abord, les feuilles après : il fait tout à l’envers. Contre la toux.","Coltsfoot, or ass’s foot. Flowers first, leaves after: it does everything back to front. Good for coughs."],
+["Du vin chaud… Comme à la caserne, les nuits de décembre. Merci. Je l’écrirai au rapport : moral relevé.","Mulled wine… Like at the barracks, on December nights. Thank you. I’ll put it in the report: morale raised."],
 ["Du vin passé à l’alambic. Les messieurs de la ville en boivent dans de petits verres.","Wine run through the still. The gentlemen in town drink it from little glasses."],
 ["Du vin, du miel, et le feu. Rien de tel pour les soirs de neige.","Wine, honey, and the fire. Nothing like it on snowy evenings."],
 ["Dumas","Dumas"],
@@ -77372,6 +79408,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Défourner le pain","Take out the bread"],
 ["Déjà debout ? Laudate Dominum. Il y a de l’espoir pour cette paroisse.","Up already? Laudate Dominum. There is hope for this parish yet."],
 ["Déjà debout ? Les livres aussi. Ils ne dorment jamais vraiment.","Up already? So are the books. They never truly sleep."],
+["Déjà debout ? Moi aussi. Le procès-verbal se lève tôt.","Up already? So am I. The report rises early."],
 ["Déjà en route ? Moi aussi ! La tournée n’attend ni la pluie, ni le vent, ni les retardataires.","On your way already? Me too! The round waits for neither rain, nor wind, nor latecomers."],
 ["Déjà là ? Bien. La terre aime qu’on se lève tôt pour elle.","Here already? Good. The soil likes folk who get up early for it."],
 ["Déjà sur la route ? Moi aussi. On se croise, on se recroise, c’est la vie des chemins.","On the road already? Me too. We cross paths, and cross them again: that’s life on the road."],
@@ -77465,16 +79502,20 @@ const I18N_EN = {"v":1,"exact":[
 ["Elle pond presque chaque jour si elle est bien nourrie et à l’abri la nuit. Le renard le sait aussi.","She lays almost every day if she is well fed and sheltered at night. The fox knows that too."],
 ["Elle pousse au bord de l’eau et sent frais. Bonne contre les maux de ventre.","It grows by the water and smells fresh. Good for stomach aches."],
 ["Elle pousse sur les toits et les pierres. On dit qu’elle protège de la foudre.","It grows on roofs and stones. They say it protects against lightning."],
+["Elle respire. Je l’emmène.","She’s breathing. I’m taking her in."],
+["Elle respire. Mon Dieu, elle respire. Aidez-moi à la porter.","She’s breathing. Good Lord, she’s breathing. Help me carry her."],
 ["Elle se tient immobile dans l’herbe, les pattes jointes comme pour prier. Elle tourne la tête pour vous suivre des yeux. Aucune autre bête ne fait ça.","It stands motionless in the grass, its forelegs joined as if in prayer. It turns its head to follow you with its eyes. No other beast does that."],
 ["Elle siffle pour prévenir les autres et plonge dans son terrier. Elle dort six mois de l’année, dit-on.","It whistles to warn the others and dives into its burrow. It sleeps six months of the year, they say."],
 ["Elle sort la nuit et peut ramper sur l’herbe mouillée d’une mare à l’autre.","It comes out at night and can slither over wet grass from one pond to the next."],
 ["Elle s’appelle Hélène. C’était la fille du pharmacien du bourg voisin, et elle était venue à la Saint-Aubin de 1877 voir à quoi ressemblait un village qui lève ses ponts à neuf heures. J’ai fait un discours sur l’estrade, et elle a ri, pas aux bons endroits : aux vrais. Nous nous sommes mariés au printemps suivant. Chaque premier dimanche de septembre, elle faisait une tarte aux mirabelles qu’elle m’interdisait de partager avec le conseil municipal.","Her name is Hélène. She was the daughter of the chemist in the neighbouring market town, and she had come to the Saint-Aubin fête of 1877 to see what a village that raises its bridges at nine o’clock looked like. I made a speech from the platform, and she laughed, not in the right places: in the true ones. We were married the following spring. Every first Sunday in September, she baked a mirabelle plum tart that she forbade me to share with the municipal council."],
 ["Elle vit en compagnies dans les chaumes et part à tire-d’aile toutes ensemble.","It lives in coveys in the stubble fields, and the whole covey takes wing at once."],
+["Elle vivra. Au cachot.","She’ll live. To the lock-up."],
 ["Elles bleuissent le sous-bois au printemps.","They turn the woodland floor blue in spring."],
 ["Elles passent haut dans le ciel, en grands V, et crient comme des trompettes. On lève la tête sans les trouver. Elles se posent rarement dans la vallée.","They pass high in the sky, in great Vs, and cry like trumpets. You look up without finding them. They rarely land in the valley."],
 ["Elles remuent un peu dans le sachet. Ne poussent que la nuit.","They squirm a little in the packet. They only grow at night."],
 ["Elles reviennent sans règle, une ou deux fois par mois. On les sent venir : les chiens se taisent au crépuscule, les chandelles fument. Il faut fermer les volets, garder une lumière, et ne pas écouter.\n\nCe qui murmure ne peut pas entrer. Ce qui murmure peut appeler. Si vous répondez, vous lui avez ouvert.","They return without rule, once or twice a month. You can feel them coming: the dogs fall silent at dusk, the candles smoke. Close the shutters, keep a light burning, and do not listen.\n\nWhat whispers cannot come in. What whispers can call. If you answer, you have let it in."],
 ["Elles sortent au crépuscule et tournent autour des arbres. Dans les grottes, elles vivent par centaines.","They come out at dusk and flit around the trees. In caves, they live in their hundreds."],
+["Elle… elle ne bouge plus. C’est fini ?","It… it’s not moving any more. Is it over?"],
 ["Empoisonné","Poisoned"],
 ["Empoisonné par","Poisoned by"],
 ["Empoisonné par une vipère","Poisoned by a viper"],
@@ -77563,6 +79604,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Entre nous, et que cela reste entre nous : je suis heureux de vous avoir ici. Très heureux.","Between ourselves, and let it stay between ourselves: I am glad to have you here. Very glad."],
 ["Entre nous, et sans rire, pour une fois : vous croyez aux revenants, vous ?","Between us, and no joking, for once: do you believe in ghosts?"],
 ["Entre nous, qu’est-ce qu’on dit de moi, en ville ? Vous pouvez tout me dire : de toute façon, je le sais déjà. Enfin, presque.","Between you and me, what do people say about me in town? You can tell me anything: I already know it anyway. Well, almost."],
+["Entre nous, {fermier}, vous êtes le seul ici qui m’écoute jusqu’au bout.","Between us, {fermier}, you’re the only one here who hears me out."],
 ["Entre nous, {npc:aubergiste} met de l’eau dans son vin. Beaucoup d’eau. Je ne peux rien prouver, mais j’ai un palais de maire.","Between ourselves, {npc:aubergiste} puts water in his wine. A lot of water. I can prove nothing, but I have a mayor’s palate."],
 ["Entre nous, {npc:eleveuse} reçoit des lettres parfumées, sans signature. Tous les mois. Je ne les ouvre pas ! Mais elles sentent la violette.","Between you and me, {npc:eleveuse} gets scented letters, unsigned. Every month. I don’t open them! But they smell of violets."],
 ["Entrer dans la grotte","Enter the cave"],
@@ -77874,11 +79916,20 @@ const I18N_EN = {"v":1,"exact":[
 ["Frère,\n\nLe marchand de bois de la ville paie moins que l’an passé. Il dit que tout le monde vend. Moi je dis qu’il ment.\n\nJ’ai marqué les chênes du fond, ceux près de la pierre. Personne ne veut les abattre. On dit qu’ils sont à quelqu’un.","Brother,\n\nThe timber merchant from the town pays less than last year. He says everybody is selling. I say he is lying.\n\nI have marked the oaks at the back, the ones near the stone. Nobody wants to fell them. They say they belong to someone."],
 ["Frère, je t’écris parce que tu ne me croirais pas si je te le disais en face. Cette nuit, j’ai vu le clocher du village noyé sortir de l’eau. Pas un autre clocher : le nôtre, celui de la ville, avec son coq tordu. Il y avait de la lumière dans les maisons, sous le lac, et des gens à leurs fenêtres. L’un d’eux te ressemblait. Je vais aller voir de plus près, avec la barque. Ne m’attends pas pour souper. — Jules","Brother, I am writing because you would not believe me if I told you to your face. Last night I saw the steeple of the drowned village rise out of the water. Not some other steeple: ours, the town’s, with its crooked weathercock. There were lights in the houses, under the lake, and people at their windows. One of them looked like you. I am going to take the boat and have a closer look. Don’t wait supper for me. — Jules"],
 ["Fuchsia","Fuchsia"],
+["Fulbert","Fulbert"],
 ["Fumoir","Smokehouse"],
 ["Fusil de chasse","Hunting rifle"],
 ["Fusil de chasse à lunette","Scoped hunting rifle"],
 ["Félicien","Félicien"],
 ["Fûts de cidre : six. Vin de la côte : onze bouteilles. Eau-de-vie de poire : trois.\n\nLe fût du fond : ne pas compter. Il se remplit tout seul.","Casks of cider: six. Hillside wine: eleven bottles. Pear brandy: three.\n\nThe cask at the back: do not count. It fills itself."],
+["G1 : dest","G1: dest"],
+["G1 : la cabane du hameau","G1: the hamlet hut"],
+["G1 : le cheval","G1: the horse"],
+["G1 : le corps de garde","G1: the guardhouse"],
+["G1 : les cabanes de garde","G1: the guard huts"],
+["G1 : les chemins","G1: the paths"],
+["G1 : urgence","G1: emergency"],
+["G1 : urgences","G1: emergencies"],
 ["GLACIÈRE DES MOINES DE MONTREVEL\n1734","ICEHOUSE OF THE MONKS OF MONTREVEL\n1734"],
 ["GLACIÈRE DU CHÂTEAU\nLA GLACE SE COUPE AU LAC NOIR EN JANVIER","CASTLE ICEHOUSE\nTHE ICE IS CUT AT BLACK LAKE IN JANUARY"],
 ["GRAINETERIE — Arrivés ce matin :","SEED SHOP — Arrived this morning:"],
@@ -77893,6 +79944,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Galène","Galena"],
 ["Gamelle du chien","Dog bowl"],
 ["Gamins, quand Jules voulait que je sorte, il tapait deux coups sur la coque de la barque, sous ma fenêtre : tac-tac. Certaines nuits, l’eau clapote contre le ponton exactement comme ça. Alors je reste assis sur mon lit, les bottes aux pieds, jusqu’à l’aube, parce que j’ai peur de sortir, et peur de ne pas sortir. Quand je n’en peux plus, je marche le long de la rive, loin, sans lanterne, jusqu’à ce que le bruit se taise. Il y a des matins où je ne me rappelle pas le chemin du retour. Je me réveille dans la cabane, mouillé jusqu’aux genoux.","When we were boys, if Jules wanted me to come out, he’d rap twice on the hull of the boat under my window: tap-tap. Some nights, the water laps against the jetty exactly like that. So I sit on my bed with my boots on until dawn, because I’m afraid to go out, and afraid not to. When I can’t bear it any longer, I walk along the shore, far, without a lantern, until the sound stops. There are mornings when I can’t remember the way back. I wake up in the cabin, wet to the knees."],
+["Garde champêtre","Rural constable"],
+["Garde champêtre : l’assermentation, le képi, la plaque et le tambour. Le tambour, c’est pour les avis. Les gens n’aiment pas le tambour. Ils l’entendent quand même.","Rural constable: the swearing-in, the képi, the plaque and the drum. The drum is for announcements. People don’t like the drum. They hear it all the same."],
 ["Garde des ponts","Bridge warden"],
 ["Garde par tous les temps, c’est le métier. Personne n’a dit qu’il fallait aimer ça.","On guard in all weathers, that’s the job. Nobody said you had to like it."],
 ["Garde-la. Et ne l’ouvre pas. Pour une fois dans ta vie, {npc:postiere}, n’ouvre pas.","Keep it. And don’t open it. For once in your life, {npc:postiere}, don’t open it."],
@@ -77902,6 +79955,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Garder mon monde","Keep my world"],
 ["Garder sa pièce","Keep your coin"],
 ["Garder toujours une entité dans son champ de vision. Travailler par deux, dos à dos. Les cellules du site ne sont pas conçues pour SCP-VAL-007 : la cellule 2 a été vidée après l’incident 007-4.","Always keep any entity within your field of view. Work in pairs, back to back. The site’s cells are not designed for SCP-VAL-007: cell 2 was emptied after incident 007-4."],
+["Gardez cela. Je n’en ai pas l’usage.","Keep that. I’ve no use for it."],
 ["Gardez votre argent : entre amis, la botanique est gratuite.","Keep your money: between friends, botany is free."],
 ["Gardez ça, je n’ai plus les mains qu’il faut. Vous tenez un morceau de la paix de la vallée ; il en faut onze, et il faudra tous les garder loin du puits.","Keep that, I haven’t the hands for it any more. You’re holding a piece of the valley’s peace; it takes eleven, and they’ll all have to be kept far from the well."],
 ["Gardez-vous d’autres livres, ailleurs ?","Do you keep other books, somewhere else?"],
@@ -77915,6 +79969,12 @@ const I18N_EN = {"v":1,"exact":[
 ["Geai des chênes","Jay"],
 ["Gel","Frost"],
 ["Gemme","Gem"],
+["Gendarme Delcourt","Gendarme Delcourt"],
+["Gendarme {nom} Delcourt, brigade de la préfecture, détaché à {hameau}. Je fais aussi la tournée des villages qui n’ont pas de garde : les Sources, les Planches, la route du lac. Si l’on vous vole, si l’on vous menace, venez me trouver. Je prends les plaintes par écrit.","Gendarme {nom} Delcourt, prefecture brigade, posted to {hameau}. I also make the rounds of the villages that have no guard: the Springs, the Planches, the lake road. If you are robbed, if you are threatened, come and find me. I take complaints in writing."],
+["Gendarme à cheval","Mounted gendarme"],
+["Gendarmerie ! Arrêtez-vous !","Gendarmerie! Halt!"],
+["Gendarmerie ! Qui frappe ? … Je suis de garde dehors, moi. Si vous frappez à cette porte, c’est que vous ne m’avez pas vu. Ça m’inquiète.","Gendarmerie! Who’s knocking? … I’m on guard outside, myself. If you’re knocking at this door, you haven’t seen me. That worries me."],
+["Gendarmerie. Au nom de la loi, vous êtes en état d’arrestation. Les mains, je vous prie.","Gendarmerie. In the name of the law, you are under arrest. Your hands, please."],
 ["Gens rencontrés","People met"],
 ["Gentiane","Gentian"],
 ["Gentianes","Gentians"],
@@ -78078,6 +80138,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Hache","Axe"],
 ["Hache (la meilleure)","Axe (best)"],
 ["Haie","Hedge"],
+["Haie de Bastien taillée du mauvais côté. Avertissement.","Bastien’s hedge trimmed on the wrong side. Warning."],
 ["Halte ! Ah, c’est vous. Vous êtes chez le garde, {fermier}, et il n’y a rien à voir : un lit de camp, une cafetière et le règlement. Ne touchez pas au règlement, il est rangé par articles.","Halt! Ah, it’s you. This is the warden’s quarters, {fermier}, and there’s nothing to see: a camp bed, a coffee pot and the regulations. Don’t touch the regulations, they’re filed by article."],
 ["Halte ! Ah, pardon. Garde {nom} Grosjean, préposé aux ponts de {ville}. Vous êtes {fermier} ? Retenez ceci : les ponts se lèvent à la nuit tombée. Qui reste dehors, reste dehors.","Halt! Ah, beg pardon. Warden {nom} Grosjean, keeper of the bridges of {ville}. You’re {fermier}? Remember this: the bridges go up at nightfall. Whoever stays out, stays out."],
 ["Halte ! Ah… c’est vous. Une arme en ville, {fermier}, c’est contraire au règlement, et à mes nerfs. Baissez-la. Doucement.","Halt! Ah… it’s you. A weapon in town, {fermier}, is against regulations, and against my nerves. Lower it. Gently."],
@@ -78086,6 +80147,12 @@ const I18N_EN = {"v":1,"exact":[
 ["Halte ! Pas un pas de plus ou j’appelle… j’appelle… Restez où vous êtes !","Halt! Not one step further or I’ll call… I’ll call… Stay where you are!"],
 ["Halte ! Qu’est-ce que vous tenez là ? Ça ne vient pas d’ici, ça vient d’avant. Rangez-le, s’il vous plaît : je n’aime pas la façon dont il me regarde.","Halt! What’s that you’re holding? That isn’t from here, it’s from before. Put it away, please: I don’t like the way it’s looking at me."],
 ["Halte ! Vous me prenez pour un imbécile ?","Halt! Do you take me for a fool?"],
+["Halte, ou je tire pour de bon !","Halt, or I’ll shoot for real!"],
+["Halte-là ! Garde champêtre ! On ne bouge plus, je dresse procès-verbal !","Halt there! Rural constable! Nobody move, I’m drawing up a report!"],
+["Halte-là ! Qui va là ? Je tire !","Halt there! Who goes there? I’ll shoot!"],
+["Halte-là ! … Ah, non, rien, l’habitude. {nom} Tissier, garde champêtre de {hameau}, assermenté. Les chemins, les haies, les bornes, les chèvres qui vont où il ne faut pas : c’est moi. Vous êtes {fermier} ? Je vous ai déjà dans mon carnet. En bien, rassurez-vous. Pour l’instant.","Halt there! … Ah, no, nothing, force of habit. {nom} Tissier, rural constable of {hameau}, duly sworn. The paths, the hedges, the boundary stones, the goats that wander where they shouldn’t: that’s me. You’re {fermier}? I already have you in my notebook. In a good way, don’t worry. For now."],
+["Halte. Le guet. Vous me suivez, ou vous me forcez la main.","Halt. The watch. You come with me, or you force my hand."],
+["Halte. Montrez-vous.","Halt. Show yourself."],
 ["Halte. Restez là. Vous avez le même froid que les voix de l’autre côté des douves, {fermier}. Qu’est-ce que vous leur avez donné ? Et qu’est-ce qu’ils vous ont donné en échange ?","Halt. Stay there. You carry the same cold as the voices across the moat, {fermier}. What did you give them? And what did they give you in return?"],
 ["Haricot vert","Green bean"],
 ["Haricots","Beans"],
@@ -78102,7 +80169,11 @@ const I18N_EN = {"v":1,"exact":[
 ["Hauteur","Height"],
 ["Hauteur prélevée :","Height sampled:"],
 ["Hauts épis pourpres des berges","Tall purple spikes of the riverbanks"],
+["Hector","Hector"],
+["Hein ? Qui frappe ? … Le gendarme est de garde, il est dehors, allez le voir ! Moi, je dors. Procès-verbal de sommeil.","Eh? Who’s knocking? … The gendarme is on duty, he’s outside, go and see him! I’m asleep. Report of sleep."],
 ["Hein ? Qu’est-ce que c’est ? Je n’en veux pas.","Huh? What’s this? I don’t want it."],
+["Hein ? Qu’est-ce que… J’arrive, j’arrive !","Eh? What the… I’m coming, I’m coming!"],
+["Hein ? … Quoi ? J’arrive ! J’arrive !","Eh? … What? I’m coming! I’m coming!"],
 ["Hein ? … Qu’est-ce que vous fabriquez ? Dormez, ou je vous fais dormir.","Eh? … What are you playing at? Go to sleep, or I’ll put you to sleep."],
 ["Hein ?! … Qui est là ?! Au voleur !","Eh?! … Who’s there?! Thief!"],
 ["Henri","Henri"],
@@ -78172,6 +80243,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Hum. Chacun porte sa croix, mon enfant. Celle-ci, gardez-la.","Hm. We all have our cross to bear, my child. This one, you may keep."],
 ["Hum. Et cette nuit… vous avez entendu, vous aussi ? Vers trois heures et demie ?","Hmm. And last night… did you hear it too? Around half past three?"],
 ["Hum. Il a comme un goût de lac, votre vin, cette année.","Hm. Your wine has a taste of the lake about it this year."],
+["Hum. Je le note aussi. À une autre page.","Hmm. I’ll note that too. On another page."],
 ["Hum. Vous avez peut-être raison. Oublions ces dix minutes. Votre rapport de la nuit ?","Hmm. Perhaps you are right. Let us forget those ten minutes. Your report on the night?"],
 ["Humanoïdes de neuf à douze mètres, descendants probables du peuple qui dressa les pierres de la vallée (les « Gorr »). Ils parlent une langue ancienne (le gorrain) et ne prêtent aucune attention aux êtres de petite taille. Aucun comportement hostile relevé.","Humanoids nine to twelve metres tall, probable descendants of the people who raised the stones of the valley (the “Gorr”). They speak an ancient language (Gorrain) and pay no attention whatsoever to beings of small size. No hostile behaviour recorded."],
 ["Hutte de la guérisseuse","Healer’s Hut"],
@@ -78299,6 +80371,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Il dort par terre, le monsieur… Pourquoi il se réveille pas ?","He’s sleeping on the ground, the man… Why won’t he wake up?"],
 ["Il dort sept mois de l’année et vit la nuit le reste du temps, dans les arbres creux. On l’entend grogner dans les greniers. Les Romains l’engraissaient pour le manger.","It sleeps seven months of the year and lives by night the rest of the time, in hollow trees. You hear it grunting in the attics. The Romans fattened it up to eat it."],
 ["Il en reste… presque tout. Mes dessins d’étudiant. J’étais si sûr de moi. Merci. Prenez ceci : ce que je fais de mieux.","There’s… almost all of it left. My student drawings. I was so sure of myself. Thank you. Take this: the best thing I make."],
+["Il est blessé. Il fuit vers les bois.","He’s wounded. He’s fleeing towards the woods."],
 ["Il est couché et ne se relève pas. Son souffle est court.","He is lying down and won’t get up. His breathing is shallow."],
 ["Il est des nuits où la charité commande de fermer sa porte. N’ouvrez à aucune voix après minuit, fût-ce la plus aimée ; ce péché-là, je le prends sur moi.","There are nights when charity demands that we shut our doors. Open to no voice after midnight, be it the one you love most; that sin I take upon myself."],
 ["Il est rappelé que les ponts-levis de la ville sont relevés chaque soir à neuf heures et abaissés à six heures. Nul ne pourra entrer ni sortir entre ces heures.\n\nLe maire.","Residents are reminded that the town’s drawbridges are raised every evening at nine o’clock and lowered at six o’clock. No one may enter or leave between those hours.\n\nThe mayor."],
@@ -78402,6 +80475,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Il prend le soleil sur les pierres chaudes, immobile, et disparaît dans une fente avant qu’on ait fini de le voir. Pas de soleil, pas de lézard.","It basks in the sun on warm stones, motionless, and vanishes into a crack before you have finished seeing it. No sun, no lizard."],
 ["Il remonte la rivière pour mourir là où il est né.","It swims up the river to die where it was born."],
 ["Il remue la queue et vous regarde, la tête penchée.","He wags his tail and looks at you, head cocked."],
+["Il respire. Je l’emmène.","He’s breathing. I’m taking him in."],
+["Il respire. Mon Dieu, il respire. Aidez-moi à le porter.","He’s breathing. Good Lord, he’s breathing. Help me carry him."],
 ["Il reviendra, comme les autres.","He will come back, like the others."],
 ["Il rougit en automne.","It turns red in autumn."],
 ["Il saute d’un rocher à l’autre comme s’il n’avait pas de poids. Deux petites cornes en crochet, une bande noire sur le visage.","It leaps from rock to rock as if it weighed nothing. Two small hooked horns, a black stripe across the face."],
@@ -78420,6 +80495,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Il vit dans le noir complet et n’a plus d’yeux.","It lives in total darkness and no longer has eyes."],
 ["Il vit dans l’eau tiède des sources chaudes, et nulle part ailleurs.","It lives in the warm water of the hot springs, and nowhere else."],
 ["Il vit sur les toits de la ville et dans le clocher. Il roucoule du matin au soir.","It lives on the town rooftops and in the bell tower. It coos from morning till night."],
+["Il vivra. Au cachot.","He’ll live. To the lock-up."],
 ["Il voit tout, madame. Il a seulement la bonté de ne pas tout dire. … N’auriez-vous pas quelque chose de plus fort ? Je ne dors plus.","He sees everything, madame. He merely has the kindness not to tell everything. … Would you not have something stronger? I no longer sleep."],
 ["Il vous faudrait de la viande.","You would need some meat."],
 ["Il vous manque de l’argent. La commune ne fait pas crédit aux gens comme vous.","You’re short of money. The municipality gives no credit to people like you."],
@@ -78464,6 +80540,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Il y a une fente dans la roche, plus haut, où les contrebandiers cachaient le tabac. Ils cachent peut-être encore.","There’s a crack in the rock, higher up, where the smugglers used to hide tobacco. Maybe they’re still hiding it."],
 ["Il y a une fourmi sur votre pain. Elle doit être de la poste : elle est pressée.","There’s an ant on your bread. She must work for the post: she’s in a hurry."],
 ["Il y a une lettre dans le sac qui ne pèse rien : la balance dit zéro. Vous trouvez ça normal, vous ?","There’s a letter in the bag that weighs nothing: the scales say zero. Does that seem normal to you?"],
+["Il y a une page du registre que je n’ai pas écrite. La nuit de la Saint-Jean, l’an dernier : « Trois heures. Le chevalier dort. Nous veillons. » C’est mon écriture. Je ne dormais pas.","There is a page of the register that I didn’t write. St John’s Eve, last year: “Three o’clock. The Knight sleeps. We keep watch.” It’s my handwriting. I wasn’t asleep."],
 ["Il y a une pierre gravée au bord du bassin du haut. Les lettres ressemblent à celles de la bibliothèque. Personne ne sait les lire.","There’s a carved stone at the edge of the upper pool. The letters look like the ones in the library. No one can read them."],
 ["Il y a une vitrine au fond. Une fleur de pierre y repose. Si un jour vous en trouvez une autre, apportez-la-moi. Je vous dirai d’où elle vient. Et ce que cela signifie.","There is a display case at the back. A stone flower rests in it. If one day you find another, bring it to me. I will tell you where it comes from. And what that means."],
 ["Il y aurait une figurine de bois cachée dans {lieu:chapelle}, derrière l’autel. Celui qui la trouve ne rêve plus jamais.","There’s said to be a wooden figurine hidden in {lieu:chapelle}, behind the altar. Whoever finds it never dreams again."],
@@ -78473,6 +80550,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Il y avait des traces de pas dans mon potager. Elles partaient de l’épouvantail. Seulement dans ce sens-là.","There were footprints in my vegetable patch. They led away from the scarecrow. Only in that direction."],
 ["Il y avait deux miches de trop sur l’étagère, ce matin. Je ne sais plus pour qui je les garde, mon chou.","There were two loaves too many on the shelf this morning. I don’t know who I’m keeping them for any more, dearie."],
 ["Il y avait ici un lecteur qui ne rendait jamais ses livres. Il ne vient plus. Personne ne sait où il est. Moi, si.","There was a reader here who never returned his books. He no longer comes. Nobody knows where he is. I do."],
+["Il y avait onze lumières sur le lac, à minuit. Ceux des Planches en posent dix.","There were eleven lights on the lake at midnight. The Planches folk set out ten."],
 ["Il y avait plus de monde dans la vallée, autrefois. Le hameau du puits, la mine, la chapelle… Les gens partent. Ou disparaissent. Ici, ça revient au même.","There used to be more people in the valley. The hamlet by the well, the mine, the chapel… People leave. Or disappear. Here, it comes to the same thing."],
 ["Il y avait quelqu’un debout dans un champ, hier soir. Immobile. Ce matin, personne. Pas même une trace dans la rosée.","There was somebody standing in a field last night. Not moving. This morning, no one. Not even a mark in the dew."],
 ["Il y avait quelqu’un devant la vitrine, cette nuit, qui regardait dedans. Il n’avait pas de reflet dans la vitre. C’est l’âge, il me faut des lunettes.","There was someone outside the shop window last night, looking in. He had no reflection in the glass. It’s my age, I need spectacles."],
@@ -78547,9 +80625,11 @@ const I18N_EN = {"v":1,"exact":[
 ["Je chante faux. Ça fait fuir les monstres.","I sing off-key. It scares the monsters away."],
 ["Je compte. Un, deux, trois. Ne me parlez pas, je compte.","I’m counting. One, two, three. Don’t talk to me, I’m counting."],
 ["Je connais cette odeur : terre froide, fer mouillé, cave fermée depuis cent ans. Je l’ai portée, moi aussi, une fois. Qu’est-ce qu’ils vous ont demandé ? … Non, ne me le dites pas, ne le dites à personne. Et n’y retournez jamais.","I know that smell: cold earth, wet iron, a cellar shut up for a hundred years. I wore it too, once. What did they ask of you? … No, don’t tell me, don’t tell anyone. And never go back."],
+["Je connais tous les sentiers ! Tous !","I know every path! Every one!"],
 ["Je connais toutes les portes de la ville. Et celles qui ferment mal. C’est le métier.","I know every door in town. And the ones that don’t shut properly. It’s the job."],
 ["Je corresponds avec la guérisseuse de la forêt. Nos lettres sont très longues et très savantes. Nous sommes probablement amoureux. Nous ne l’avouerons jamais.","I correspond with the healer in the forest. Our letters are very long and very learned. We are probably in love. We shall never admit it."],
 ["Je crois ce que j’ai vu ici. Et j’en ai vu.","I believe what I’ve seen here. And I’ve seen plenty."],
+["Je crois en Dieu et au Code. Le Code, au moins, je l’ai lu en entier.","I believe in God and in the Code. The Code, at least, I have read in full."],
 ["Je crois que je vais garder ce soir-là. Comme une miche qu’on ne vend pas.","I think I’ll keep this evening. Like a loaf that’s not for sale."],
 ["Je crois surtout aux ivrognes qui en voient.","Mostly I believe in the drunks who see them."],
 ["Je crois surtout en votre tisane.","Mostly I believe in your tisane."],
@@ -78572,6 +80652,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Je dors mieux, ici. Je n’ai plus besoin de laisser la lampe allumée.","I sleep better here. I don’t need to leave the lamp lit any more."],
 ["Je dors. Revenez quand le soleil sera levé, et moi aussi.","I’m asleep. Come back when the sun is up, and so am I."],
 ["Je fais le pain de toute la ville depuis vingt ans. Ma mère le faisait avant moi, dans ce même four. Il chauffe mieux que moi, maintenant !","I’ve made the whole town’s bread for twenty years. My mother made it before me, in this very oven. It heats up better than I do these days!"],
+["Je fais le tour de la place. Les gens aiment voir le guet de jour : ça les rassure pour la nuit.","I’m going round the square. People like to see the watch by day: it reassures them for the night."],
 ["Je fais le tour des villages : la ville, le hameau, les Sources, la bibliothèque, l’abbaye. Chaque jour de la semaine a sa route.","I do the rounds of the villages: the town, the hamlet, the Springs, the library, the abbey. Each day of the week has its own road."],
 ["Je fais le tour par le pont. C’est plus long, mais ça ne passe pas par le lac.","I go round by the bridge. It’s longer, but it doesn’t go past the lake."],
 ["Je fais ma prière parce que maman regarde. Après, quand elle est partie, je parle à Lise. Lise, au moins, elle répond.","I say my prayers because Mama’s watching. Afterwards, when she’s gone, I talk to Lise. Lise answers, at least."],
@@ -78588,6 +80669,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Je la garde","I’ll keep it"],
 ["Je la lirais d’abord, vous aviez dit. Vous avez une âme de postière, vous savez. C’est un compliment. À peu près.","I’d read it first, you said. You have the soul of a postmistress, you know. That’s a compliment. More or less."],
 ["Je la lirais d’abord. Par curiosité.","I’d read it first. Out of curiosity."],
+["Je la prends. Dormez.","I’ll take it. Get some sleep."],
 ["Je laisse le pont levé. Le règlement nous protège.","I leave the bridge up. The regulations protect us."],
 ["Je le garderais. C’est moi qui aurais creusé.","I’d keep it. I’m the one who’d have done the digging."],
 ["Je le goûterai de nouveau demain, pour en avoir le cœur net. La prudence est une vertu cardinale.","I shall taste it again tomorrow, to be quite certain. Prudence is a cardinal virtue."],
@@ -78623,6 +80705,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Je ne fais que porter. Les commandes, c’est au carnet.","I only carry. Orders go in the notebook."],
 ["Je ne guette rien, je vérifie l’adresse, c’est le règlement ! … Il y avait autre chose, ce matin. Une lettre pour Augustin.","I’m not watching anything, I’m checking the address, it’s regulations! … There was something else this morning. A letter for Augustin."],
 ["Je ne le dis pas souvent, alors écoutez bien : je suis fière de ce que vous faites de la ferme.","I don’t say it often, so listen well: I’m proud of what you’re making of the farm."],
+["Je ne le répéterai pas, hein !","I won’t say it again, you hear!"],
+["Je ne le répéterai pas.","I will not say it again."],
 ["Je ne les compte pas.","I don’t count them."],
 ["Je ne lis pas les lettres, je lis les enveloppes. C’est une nuance qui a coûté très cher à ma réputation, et vous venez d’en rajouter une couche.","I don’t read the letters, I read the envelopes. It’s a distinction that has cost my reputation dearly, and you’ve just laid it on thicker."],
 ["Je ne lis pas à votre place. Récitez-moi les traits d’une pierre : je vous en donnerai un mot, un seul. Vingt pièces.","I don’t read for you. Recite to me the strokes of a stone: I will give you one word of it, just one. Twenty coins."],
@@ -78631,6 +80715,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Je ne m’en souviens pas. Va jouer.","I don’t remember. Go and play."],
 ["Je ne passe plus après la brune. Personne ne passe l’aigue la nuit.","I don’t cross after dusk any more. Nobody crosses the aigue at night."],
 ["Je ne perds pas souvent. Tu es prévenu.","I don’t often lose. You’ve been warned."],
+["Je ne peux pas accepter ceci. Le règlement.","I can’t accept this. Regulations."],
 ["Je ne peux pas vous parler. Vraiment pas. Mais vous avez l’air… vous avez l’air comme dans les dossiers.","I can’t talk to you. I really can’t. But you look… you look just like in the files."],
 ["Je ne peux rien pour vous aujourd’hui.","I can do nothing for you today."],
 ["Je ne prie pas à genoux. Je prie assis, les pieds au-dessus de l’eau, et je parle doucement : elle n’aime pas qu’on crie.","I don’t pray on my knees. I pray sitting down, feet over the water, and I speak softly: she doesn’t like shouting."],
@@ -78655,12 +80740,16 @@ const I18N_EN = {"v":1,"exact":[
 ["Je ne vous demande plus ce que vous mangez, hein. Je regarde, c’est tout. Et je trouve que vous avez maigri.","I don’t ask what you eat any more, mind. I just look, that’s all. And I think you’ve got thinner."],
 ["Je ne vous demande plus de me faire comprendre cette vallée, Seigneur. Seulement de la garder.","I no longer ask you to make me understand this valley, Lord. Only to keep it safe."],
 ["Je ne vous en dirai pas plus. Il faut garder quelque chose pour soi.","I won’t tell you any more. You have to keep something for yourself."],
+["Je ne vous voyais plus passer. Je l’ai écrit : « Le fermier ne passe plus. » Ça fait une ligne triste.","I no longer saw you go by. I wrote it down: “The farmer no longer passes by.” That makes a sad line."],
 ["Je note ce qui revient. Lum. Tsi. Pan. Je ne suis sûr de rien. Pan revient chaque fois qu’on me regarde les mains.","I note what keeps coming back. Lum. Tsi. Pan. I am sure of nothing. Pan comes back every time someone looks at my hands."],
 ["Je n’ai jamais regardé un coucher de soleil jusqu’au bout. C’est long. C’est bien.","Never watched a sunset right to the end before. It’s long. It’s good."],
+["Je n’ai jamais vu le capitaine qui m’a envoyé ici. Mon ordre de mission était déjà signé quand on me l’a donné. La signature, c’est la mienne.","I never saw the captain who sent me here. My orders were already signed when they were handed to me. The signature is mine."],
 ["Je n’ai pas de tomme pour vous.","I have no tomme for you."],
 ["Je n’ai pas dormi : j’ai trié des lettres, des idées, un peu de tout. Ne me demandez pas quoi.","I didn’t sleep: I sorted letters, thoughts, a bit of everything. Don’t ask me what."],
 ["Je n’ai pas envie de rire, aujourd’hui. D’habitude, ça m’arrive une fois par an. Cette année, ça m’arrive trop souvent.","I don’t feel like laughing today. Usually that happens to me once a year. This year it happens too often."],
+["Je n’ai pas fait de procès-verbal, cette nuit. Il n’y a pas d’article pour ça.","I didn’t write a report last night. There’s no article for that."],
 ["Je n’ai pas fermé l’œil : le vent faisait battre la grille du potager. Enfin, j’espère que c’était le vent.","I didn’t sleep a wink: the wind kept banging the kitchen-garden gate. Well, I hope it was the wind."],
+["Je n’ai pas fermé l’œil. Le guet, c’est ça.","I didn’t sleep a wink. That’s the watch for you."],
 ["Je n’ai pas le cœur à causer. Les bêtes l’ont senti : elles sont toutes venues s’appuyer contre la barrière.","I’ve no heart for talking. The animals felt it: they all came and leaned against the fence."],
 ["Je n’ai pas le droit d’être ici. Je suis là quand même. Mange. Et ne fais pas de bêtise : c’est moi qui monte la garde, cette nuit.","I’m not allowed to be here. I’m here anyway. Eat. And don’t do anything foolish: I’m the one on guard tonight."],
 ["Je n’ai pas le temps pour ces bêtises.","I haven’t got time for this nonsense."],
@@ -78702,12 +80791,14 @@ const I18N_EN = {"v":1,"exact":[
 ["Je porte ses pantalons. Oui, une femme en pantalon. Au ranch, les jupes se prennent partout. En ville, ça jase. Qu’ils jasent.","I wear his trousers. Yes, a woman in trousers. On the ranch, skirts snag on everything. In town, tongues wag. Let them wag."],
 ["Je pose encore le bol de lait, le dimanche. Au bout du chemin, maintenant. On ne sait jamais.","I still put out the bowl of milk on Sundays. At the end of the lane, now. You never know."],
 ["Je pourrais rester là jusqu’à la dernière levée. Et même après.","I could stay here till the last collection. And even after."],
+["Je prends la nuit. Le garde champêtre ronfle déjà, j’en suis sûr.","I’m taking the night. The rural constable is already snoring, I’m sure of it."],
 ["Je prie beaucoup, oui. Pas par sainteté, {fermier} : par précaution. Un Ave avant de lever les ponts, un autre après, et entre les deux, autant que j’ai de peur.","I pray a lot, yes. Not out of holiness, {fermier}: out of caution. A Hail Mary before raising the bridges, another after, and in between, as many as my fear calls for."],
 ["Je prie pour vous chaque soir. Non que vous en ayez besoin. J’aime simplement y penser.","I pray for you every evening. Not that you need it. I simply like to think of you."],
 ["Je prie pour vous quand même, chaque soir. Pas beaucoup : une dizaine. Vous ne sentirez rien, c’est promis.","I pray for you anyway, every evening. Not much: one decade of the rosary. You won’t feel a thing, I promise."],
 ["Je prie vite, comme je fais tout. Le bon Dieu a toute la paroisse à écouter : les prières courtes, il doit les apprécier.","I pray fast, the way I do everything. The good Lord has the whole parish to listen to: he must appreciate short prayers."],
 ["Je prierai pour vous. Mais de loin, mon enfant. De loin.","I shall pray for you. But from afar, my child. From afar."],
 ["Je rentre avant la nuit, maintenant. Pour toi.","I come home before dark now. For you."],
+["Je rentre de tournée. Les Sources : rien. Les Planches : on ne m’a pas laissé monter sur les planches.","I’m back from my round. The Springs: nothing. The Planches: they wouldn’t let me up onto the planks."],
 ["Je rentre les bêtes. Faites comme elles : rentrez.","I’m bringing the animals in. Do as they do: go home."],
 ["Je rentre tard, les jours de fer. Garde-moi une assiette.","I’ll be home late on iron days. Keep a plate for me."],
 ["Je rentre. Une femme seule sur les routes, la nuit, c’est une femme qui a oublié sa sœur.","I’m heading in. A woman alone on the roads at night is a woman who’s forgotten her sister."],
@@ -78780,7 +80871,9 @@ const I18N_EN = {"v":1,"exact":[
 ["Je vais vous poser la question que je me pose toutes les nuits. Vous savez, vous, pourquoi la ferme d’Anselme vous est revenue ?","I’m going to ask you the question I ask myself every night. Do you know why Anselme’s farm came to you?"],
 ["Je vais vous poser la question que je n’ose poser à personne. Si on vous confiait une lettre qui pourrait briser le cœur de celui qui l’attend… vous la lui donneriez ?","I’m going to ask you the question I don’t dare ask anyone. If you were entrusted with a letter that could break the heart of the person waiting for it… would you give it to them?"],
 ["Je vais vous raconter une histoire, mais pas trop fort, et pas après le coucher du soleil. C’est ma grand-mère qui me l’a apprise, pour que je rentre avant la nuit : ça a marché, et ça marche encore.","I’ll tell you a story, but not too loud, and not after sundown. My grandmother taught it to me so I’d come home before dark: it worked, and it still does."],
+["Je vais à la messe de la ville, l’Orédi, quand la chèvre de Bastien me le permet.","I go to Mass in town, on Orédi, when Bastien’s goat allows it."],
 ["Je vais à la messe le dimanche, au deuxième rang, derrière mon oncle. C’est la meilleure place : on voit tout le monde, et le bon Dieu ne voit que mon oncle.","I go to Mass on Sundays, in the second row, behind my uncle. It’s the best seat: you can see everyone, and the good Lord can only see my uncle."],
+["Je vais à la messe quand je ne dors pas. Ce n’est pas souvent. Le curé me pardonne : il sait ce que c’est, de veiller.","I go to Mass when I’m not sleeping. That isn’t often. The priest forgives me: he knows what it is to keep vigil."],
 ["Je vais à la messe tous les dimanches, et c’est moi qui fais le pain bénit. Le père {npc:cure} dit que c’est le plus beau du diocèse ; il le dit peut-être à tout le monde, mais moi, je le crois.","I go to Mass every Sunday, and I’m the one who makes the blessed bread. Father {npc:cure} says it’s the finest in the diocese; he may say that to everyone, but I believe him."],
 ["Je vais à la messe à Pâques et à Noël, pour que le curé ne m’enterre pas de travers. Le reste de l’année, je remercie qui il faut, là où il faut, avec du lait.","I go to Mass at Easter and Christmas, so the priest won’t bury me crooked. The rest of the year, I thank whoever needs thanking, wherever they need it, with milk."],
 ["Je vais à la messe, oui, au dernier rang, en simple particulier. La République est laïque ; la commune, elle, a une grand-mère dans chaque maison.","I go to Mass, yes, in the back row, as a private citizen. The Republic is secular; the municipality, however, has a grandmother in every house."],
@@ -78792,6 +80885,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Je veux voir la ville. Pas pour y rester. Juste pour savoir. Grand-père dit que ceux qui descendent ne remontent pas pareils. Je voudrais savoir comment on remonte.","I want to see the town. Not to stay there. Just to know. Grandfather says that those who go down don’t come back up the same. I’d like to know how you come back up."],
 ["Je viendrai, mon père, si vous bénissez aussi la pierre plate, au bout du champ de la vieille ferme.","I’ll come, Father, if you also bless the flat stone at the far end of the old farm’s field."],
 ["Je viens de loin, de l’autre côté des Monts. J’ai franchi le col des Treize à dix-sept ans, avec une mule et un ballot de toile. La mule est morte. La toile, je l’ai vendue.","I come from far away, from the other side of the Peaks. I crossed the Pass of the Thirteen at seventeen, with a mule and a bundle of linen. The mule died. The linen, I sold."],
+["Je viens me rendre","I’ve come to turn myself in"],
 ["Je vis au bord du lac depuis toujours. Mon père était pêcheur, et son père aussi. Chez nous, on naît avec de l’eau dans les bottes.","I’ve lived by the lake all my life. My father was a fisherman, and his father too. In our family, we’re born with water in our boots."],
 ["Je voudrais me confesser","I would like to make my confession"],
 ["Je voudrais un chien, {prenom}. Un gros, qui aboie pour un rien : comme ça, la nuit, c’est lui qui aurait peur à ma place, et moi, je n’aurais plus qu’à le rassurer. Je crois que je saurais très bien faire ça ; j’ai de l’expérience. Le maire dit que les chiens sont interdits à la guérite, mais j’ai relu le règlement douze fois, et il n’en parle nulle part. Je l’appellerai Courage : comme ça, j’en aurai toujours un peu à côté de moi.","I’d like a dog, {prenom}. A big one that barks at nothing: that way, at night, he’d be the one who was scared instead of me, and all I’d have to do is comfort him. I think I’d be very good at that; I’ve had plenty of practice. The mayor says dogs aren’t allowed in the sentry box, but I’ve reread the regulations twelve times, and they don’t mention it anywhere. I’ll call him Courage: that way, I’ll always have a bit of it beside me."],
@@ -78805,6 +80899,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Je vous ai attendu{e}. J’ai déballé mon châle pour rien. Je l’ai remballé. Je sais remballer.","I waited for you, mon ami{e}. I unpacked my shawl for nothing. Packed it up again. I’m good at packing up."],
 ["Je vous ai attendu{e}. Longtemps. J’ai compté les vagues. Il y en a beaucoup.","I waited for you, ey{e}ing the path. A long time. I counted the waves. There are a lot of them."],
 ["Je vous ai attendu{e}. À l’affût. Je sais attendre. Mais pas pour rien.","I waited for you, mon ami{e}. Lying in wait. I know how to wait. But not for nothing."],
+["Je vous ai cherché sur ma tournée. Je l’ai écrit dans le rapport. Personne ne le lira.","I looked for you on my round. I wrote it in the report. No one will read it."],
 ["Je vous ai dit que j’étais chez Bonnefoy, à perdre aux cartes, quand Jules est parti. C’est faux, {prenom} : j’y suis arrivé après. Au crépuscule, je l’ai vu pousser sa barque, et je l’ai suivi avec la vieille, pour le ramener par le col s’il le fallait. J’étais à trente brasses quand l’eau s’est allumée sous lui, comme une ville entière, et que des mains pâles sont montées le long de sa coque ; il ne se débattait pas, il se penchait vers elles, et il souriait. Moi, j’ai viré de bord, j’ai ramé jusqu’ici sans me retourner, et j’ai couru jusqu’en ville avant qu’on lève les ponts, pour m’asseoir chez Bonnefoy, trempé, et qu’on puisse dire que j’y étais. Dix ans que tout le monde me plaint, et je n’ai jamais eu le courage de dire que j’ai eu peur.","I told you I was at Bonnefoy’s, losing at cards, when Jules went out. It’s not true, {prenom}: I got there afterwards. At dusk, I saw him push off in his boat, and I followed him in my old one, to haul him back by the collar if I had to. I was thirty fathoms off when the water lit up beneath him, like a whole town, and pale hands came up along his hull; he wasn’t struggling, he was leaning down towards them, and he was smiling. And me, I came about, rowed back here without once looking behind me, and ran all the way into town before they raised the bridges, to sit down at Bonnefoy’s, soaking wet, so people could say I’d been there. Ten years everyone’s pitied me, and I’ve never had the courage to say I was afraid."],
 ["Je vous ai dit qu’Anselme n’avait pas de famille ; sur les papiers du notaire, c’est vrai. L’été de mes dix-huit ans, avant qu’il parte à la guerre, nous nous sommes aimés dans les foins, et j’ai caché mon ventre tout l’hiver dans l’arrière-boutique. Le petit est né la nuit du 9 mars 1871, sous une lune rouge ; au matin, on refaisait le recensement, et mon père a dit qu’un enfant né cette nuit-là serait compté « en surnombre ». Il l’a donné à des charbonniers qui descendaient vers la plaine, et je ne l’ai tenu qu’une nuit. Anselme est rentré en avril ; je ne lui ai jamais rien dit, pas une fois en quarante citrouilles. Alors ne me demandez plus pourquoi je regarde vos mains quand vous payez, {prenom} : j’y cherche les siennes.","I told you Anselme had no family; on the notary’s papers, that’s true. The summer I turned eighteen, before he went off to the war, we loved each other in the hay, and I hid my belly all winter in the back of the shop. The little one was born on the night of 9 March 1871, under a red moon; in the morning, the census was being taken again, and my father said a child born that night would be counted as “one too many”. He gave him to some charcoal burners going down to the plain, and I only held him for one night. Anselme came home in April; I never told him a thing, not once in forty pumpkins. So don’t ask me any more why I look at your hands when you pay, {prenom}: I’m looking for his."],
 ["Je vous ai déjà reçu aujourd’hui, mon enfant. Priez, et revenez demain.","I have already seen you today, my child. Pray, and come back tomorrow."],
@@ -78822,6 +80917,10 @@ const I18N_EN = {"v":1,"exact":[
 ["Je vous ai tout montré. Le reste, c’est le lac. Il vous apprendra, ou il vous prendra.","I’ve shown you everything. The rest is the lake. It will teach you, or it will take you."],
 ["Je vous ai vu{e} passer, ce matin. Je n’espionne pas ! Je regarde le courrier. Par la fenêtre.","I saw you go by this morning. I’m not being nos{e}y! I’m watching the post. Through the window."],
 ["Je vous ai à l’œil, {fermier}. Les deux, même.","I’ve got my eye on you. Yes, you, {fermier}. Both eyes, in fact."],
+["Je vous ai à l’œil. Je n’ai que ça à faire, la nuit.","I’ve got my eye on you. It’s all I have to do, at night."],
+["Je vous ai à l’œil. Les deux, et le carnet.","I have my eye on you. Both eyes, and the notebook."],
+["Je vous arrête ! Au nom de la loi, et du hameau !","I’m arresting you! In the name of the law, and of the hamlet!"],
+["Je vous arrête. Vous avez le droit de vous taire, et je vous le conseille.","I’m arresting you. You have the right to remain silent, and I advise you to."],
 ["Je vous attendais. Je dis ça à tout le monde. Avec vous, c’est vrai.","I was expecting you. I say that to everyone. With you, it is true."],
 ["Je vous attendais. … Non, c’est faux : j’attendais quelqu’un d’autre. Asseyez-vous près du feu, ne regardez pas la fenêtre du fond, et quoi que vous entendiez frapper, ne répondez pas.","I was expecting you. … No, that’s not true: I was expecting someone else. Sit by the fire, don’t look at the back window, and whatever you hear knocking, don’t answer."],
 ["Je vous déclare unis. Allez. Aimez-vous. Et fermez bien vos portes, la nuit.","I declare you wed. Go. Love one another. And lock your doors well at night."],
@@ -78858,7 +80957,9 @@ const I18N_EN = {"v":1,"exact":[
 ["Jeune pommier","Apple sapling"],
 ["Je… Il faut que je réfléchisse. Réglementairement. Et autrement aussi.","I… I have to think it over. According to regulations. And otherwise, too."],
 ["Je… Qui vous a dit cela ? Pour mes rhumatismes uniquement, et un peu pour dormir ; puisque nous voilà complices, méfiez-vous de la tisane verte, elle fait rêver en latin.","I… Who told you that? For my rheumatism only, and a little to help me sleep; since we are accomplices now, beware of the green tisane: it makes you dream in Latin."],
+["Je… je l’ai touché ! Il s’en va ! Il s’en va…","I… I hit him! He’s leaving! He’s leaving…"],
 ["Je… je ne fais pas crédit aux… Non. Partez. S’il vous plaît.","I… I don’t give credit to… No. Go. Please."],
+["Je… je ne le répéterai pas !","I… I won’t say it again!"],
 ["Jolies, et toxiques. Les oiseaux, eux, les mangent.","Pretty, and poisonous. The birds eat them, though."],
 ["Jonquilles","Daffodils"],
 ["Joseph","Joseph"],
@@ -78916,6 +81017,7 @@ const I18N_EN = {"v":1,"exact":[
 ["J’ai chanté toute la matinée, et personne ne s’est plaint.","I sang all morning, and nobody complained."],
 ["J’ai chanté toute la nuit, comme vous me l’aviez conseillé. Rien n’est venu, pas même le maire, mais trois chiens ont hurlé avec moi, et il n’y a pas de chiens en ville.","I sang all night, as you advised. Nothing came, not even the mayor, but three dogs howled along with me, and there are no dogs in town."],
 ["J’ai cherché votre couteau sous le ponton, hier. Rien. Le Notaire l’a gardé ; il garde tout, comme le lac.","I looked for your knife under the jetty yesterday. Nothing. The Notary’s kept it; he keeps everything, like the lake."],
+["J’ai commencé le registre la première nuit, ici. L’heure, le temps, ce que j’ai vu. Un registre ne ment pas : si l’on écrit tout, on n’a pas besoin de se souvenir. Il y a des nuits que je relis pour être sûr qu’elles ont eu lieu.","I started the register on my first night here. The time, the weather, what I saw. A register doesn’t lie: if you write everything down, you don’t need to remember. There are nights I reread to be sure they took place."],
 ["J’ai commencé à chasser à huit ans, avec mon père. Il est mort à la chasse. Un sanglier. Moi, les sangliers, je ne les rate plus.","I started hunting at eight, with my father. He died on a hunt. A boar. Boars, I don’t miss any more."],
 ["J’ai compté les nau au soir : quatre. Au matin : cinq. La cinquième était pleine d’eau, et d’herbes du fond.","I counted the nau in the evening: four. In the morning: five. The fifth was full of water, and of weeds from the bottom."],
 ["J’ai compté mes moutons, hier soir. Un de trop. Il était au fond de l’enclos, et il me regardait. Au matin, le compte était juste.","I counted my sheep last night. One too many. It was at the back of the pen, and it was looking at me. By morning, the count was right."],
@@ -78933,6 +81035,8 @@ const I18N_EN = {"v":1,"exact":[
 ["J’ai dormi comme une pierre. Mes draps sont pleins de terre, c’est curieux. Le vent, sans doute.","I slept like a stone. My sheets are full of earth, which is odd. The wind, I expect."],
 ["J’ai dormi dans mon fauteuil, avec l’écharpe, et je me suis réveillé en plein discours. Il n’y avait que le chat, qui n’a pas applaudi.","I slept in my armchair with my sash on, and woke up in the middle of a speech. There was only the cat, and he did not applaud."],
 ["J’ai dormi sans rêver de personne, pour une fois. À mon âge, c’est un luxe.","I slept without dreaming of anyone, for once. At my age, that’s a luxury."],
+["J’ai dressé le constat. Ce n’est pas la première fois. Je n’ai jamais eu de réponse.","I wrote up my findings. It’s not the first time. I’ve never had a reply."],
+["J’ai dressé procès-verbal contre inconnu, ce matin. Motif : a frappé à toutes les portes du hameau, à trois heures. Signalement : aucun. Pas de traces dans la boue.","I drew up a report against persons unknown this morning. Offence: knocked on every door in the hamlet at three o’clock. Description: none. No tracks in the mud."],
 ["J’ai dû gagner à la loterie des ennuis.","I must have won the trouble lottery."],
 ["J’ai encore la marque. Je dis aux clients que je me suis cogné à une poutre ; une poutre qui vous ressemble drôlement.","I’ve still got the mark. I tell the customers I walked into a beam; a beam that looks an awful lot like you."],
 ["J’ai encore la marque. {npc:fillette} m’a demandé ce que c’était, j’ai dit que je m’étais cognée au pétrin : je mens mal, et elle voit tout.","I still have the mark. {npc:fillette} asked me what it was, and I said I’d bumped into the kneading trough: I’m a bad liar, and she sees everything."],
@@ -78943,6 +81047,9 @@ const I18N_EN = {"v":1,"exact":[
 ["J’ai entendu chanter, sous la pierre du plan d’en haut.","I heard singing, under the stone on the upper Plan."],
 ["J’ai entendu murmurer sous ma fenêtre toute la nuit. Je n’ai pas ouvert.","I heard whispering under my window all night long. I didn’t open up."],
 ["J’ai entendu une cloche sonner, sous le lac. Le clocher noyé, sûrement. Sauf qu’il n’a plus de cloche depuis cent ans.","I heard a bell ringing, under the lake. The drowned bell tower, surely. Except it hasn’t had a bell for a hundred years."],
+["J’ai entendu. Je l’ai écrit. Baissez votre pont, {npc:garde}.","I heard it. I wrote it down. Lower your bridge, {npc:garde}."],
+["J’ai envoyé un rapport pour {victime}. Il ne reviendra pas. Le rapport non plus.","I sent a report about {victime}. They won’t be coming back. Neither will the report."],
+["J’ai fait l’école de la gendarmerie à Melun. On nous apprenait le Code, l’équitation, le pansage, et à ne jamais montrer qu’on a peur. On ne nous apprenait pas ce qu’il faut faire quand on a peur quand même. Je l’ai appris ici.","I trained at the gendarmerie school in Melun. They taught us the Code, riding, grooming, and never to show that we’re afraid. They didn’t teach us what to do when you’re afraid anyway. I learned that here."],
 ["J’ai fait mettre les drapeaux en berne. Le vent les a relevés dans la nuit, tous, et je les ai fait redescendre. Je ne sais pas lequel de nous deux gagnera.","I had the flags lowered to half-mast. The wind raised them again in the night, every one, and I had them lowered once more. I do not know which of us will win."],
 ["J’ai fait mon service aux colonies. Du soleil, des fièvres, des moustiques. Ici, c’est plus calme. On me l’avait promis, du moins.","I did my service in the colonies. Sun, fevers, mosquitoes. It’s quieter here. So I was promised, anyway."],
 ["J’ai fait un drôle de rêve : la ville était vide, et la lune saignait. C’était un rêve, hein ? … Alors pourquoi t’as de la terre rouge sur tes chaussures ?","I had a funny dream: the town was empty, and the moon was bleeding. It was a dream, wasn’t it? … Then why have you got red earth on your shoes?"],
@@ -78982,6 +81089,7 @@ const I18N_EN = {"v":1,"exact":[
 ["J’ai porté des sacs toute la matinée. Mon dos a cinquante-huit ans, lui aussi, et il tient à me le rappeler.","I’ve been lugging sacks all morning. My back is fifty-eight as well, and it’s bent on reminding me."],
 ["J’ai posé des collets autour de la ferme. Pour les renards. Pas pour les gens.","I’ve set snares around the farm. For the foxes. Not for people."],
 ["J’ai pris une carpe, ce matin. Elle est dans le seau. Pour ce soir.","I caught a carp this morning. It’s in the bucket. For tonight."],
+["J’ai prêté serment devant le juge de paix, la main levée, le képi sous le bras. Mon père était maréchal-ferrant ; il a pleuré. Il disait qu’un garde champêtre, c’est un homme qui marche toute sa vie pour les autres. Il avait raison : j’ai usé onze paires de souliers.","I took the oath before the justice of the peace, hand raised, képi under my arm. My father was a farrier; he wept. He used to say that a rural constable is a man who walks his whole life for others. He was right: I’ve worn out eleven pairs of shoes."],
 ["J’ai pétri toute la nuit, je n’ai pas fermé l’œil. Demandez à… non, personne ne peut le dire. J’étais seule.","I was kneading all night, didn’t sleep a wink. Ask… no, nobody can vouch for it. I was alone."],
 ["J’ai raconté votre dragon à {npc:fillette}. Elle a dit que Lise, au moins, elle ne crache pas de feu : elle goutte.","I told {npc:fillette} about your dragon. She said at least Lise doesn’t breathe fire: she drips."],
 ["J’ai raconté votre poisson rouge à ma tante. Sa bouche n’a pas ri. Ses yeux, si.","I told my aunt about your goldfish. Her mouth didn’t laugh. Her eyes did."],
@@ -78992,6 +81100,7 @@ const I18N_EN = {"v":1,"exact":[
 ["J’ai redressé votre houe. Elle était tordue. Non, pas besoin de payer.","I straightened your hoe. It was bent. No, no need to pay."],
 ["J’ai refait le recensement : un habitant de plus que l’an dernier. Et personne n’est né. J’ai recompté trois fois.","I redid the census: one more inhabitant than last year. And nobody has been born. I counted three times."],
 ["J’ai relevé vos traces, ce matin. Je ne vous suivais pas. Enfin… si.","I picked up your tracks this morning. I wasn’t following you. Well… I was."],
+["J’ai relu les noms, cette nuit. Je les sais par cœur. Je les relis quand même.","I reread the names last night. I know them by heart. I reread them anyway."],
 ["J’ai rencontré Lise devant {lieu:puits_ville}, l’été de mes six ans. Elle était assise sur la margelle, toute mouillée, et elle a dit : « Tu sens le pain chaud. Ça fait longtemps. » Elle habite au vieux puits, mais elle dit que les puits sont tous reliés en dessous, comme les rues. Elle a neuf ans, comme moi, mais elle a neuf ans depuis très, très longtemps. Des fois, elle me fait peur exprès, pour rire : elle rit pas, mais c’est pour rire.","I met Lise by {lieu:puits_ville}, the summer I was six. She was sitting on the edge of the well, all wet, and she said, “You smell of warm bread. It’s been a long time.” She lives in the old well, but she says the wells are all joined up underneath, like streets. She’s nine, like me, but she’s been nine for a very, very long time. Sometimes she scares me on purpose, for a laugh: she doesn’t laugh, but it’s for a laugh."],
 ["J’ai repensé à Anselme et à sa cave. Il m’a dit un jour que certaines portes se murent de l’intérieur ; si vous obtenez votre heure, demandez-lui de quel côté il était.","I have been thinking about Anselme and his cellar again. He told me once that some doors are bricked up from the inside; if you get your hour, ask him which side he was on."],
 ["J’ai repensé à ce que vous m’avez dit, sur le courage de tout avouer. J’ai essayé, dimanche. J’ai servi la soupe à la place.","I’ve been thinking over what you told me, about having the courage to own up to everything. I tried, on Sunday. I served the soup instead."],
@@ -79015,6 +81124,7 @@ const I18N_EN = {"v":1,"exact":[
 ["J’ai sonné le glas ce matin. La corde était tiède, comme si quelqu’un l’avait tenue avant moi. Requiescat in pace.","I tolled the knell this morning. The rope was warm, as though someone had held it before me. Requiescat in pace."],
 ["J’ai surveillé Préfet toute la semaine, comme vous me l’avez suggéré. Il sait des choses, c’est certain, et il n’en dit rien : il ferait un excellent garde.","I’ve kept an eye on Préfet all week, as you suggested. He knows things, that’s certain, and he says nothing: he’d make an excellent warden."],
 ["J’ai tressé jusqu’au matin.","I wove until morning."],
+["J’ai trouvé dans mon rapport de la semaine une phrase que je n’ai pas écrite. De mon écriture. « Rien à signaler, sauf nous. »","I found a sentence in this week’s report that I didn’t write. In my handwriting. “Nothing to report, except us.”"],
 ["J’ai trouvé des grenouilles dans ma soupière. Vivantes.","I found frogs in my soup tureen. Alive."],
 ["J’ai trouvé un bouton jaune sur la place. Je l’ai gardé pour toi, puisque t’aimes le jaune.","I found a yellow button in the square. I kept it for you, since you like yellow."],
 ["J’ai trouvé une lettre sans adresse, ce matin. Je l’ai reniflée : ce n’était pas vous. Dommage.","I found a letter with no address this morning. I sniffed it: it wasn’t you. Pity."],
@@ -79029,6 +81139,7 @@ const I18N_EN = {"v":1,"exact":[
 ["J’ai veillé une accouchée toute la nuit, au hameau : des jumeaux, et une mère têtue. Parlez doucement, mes oreilles dorment encore.","I sat up all night with a woman in labour, down in the hamlet: twins, and a stubborn mother. Speak softly, my ears are still asleep."],
 ["J’ai vendu trois paniers en ville. Trois !","I sold three baskets in town. Three!"],
 ["J’ai visé un cerf blanc, une fois. Mon fusil s’est enrayé. Je ne vise plus les cerfs blancs.","I aimed at a white stag, once. My rifle jammed. I don’t aim at white stags any more."],
+["J’ai votre signalement. Ne m’obligez pas à m’en servir.","I have your description. Don’t make me use it."],
 ["J’ai vu Anselme, hier au soir, sur le chemin de la ferme. Enfin, quelqu’un avec sa démarche. Il ne s’est pas retourné. Il a juste… cessé d’être là.","I saw Anselme yesterday evening, on the road to the farm. Well, someone with his walk. He didn’t turn round. He just… stopped being there."],
 ["J’ai vu des traces de pieds nus dans la neige, au col. Grandes comme des barques.","I saw bare footprints in the snow, up at the pass. As big as rowing boats."],
 ["J’ai vu un aigle attraper un lièvre ! Là, juste là !","I saw an eagle catch a hare! There, right there!"],
@@ -79036,6 +81147,7 @@ const I18N_EN = {"v":1,"exact":[
 ["J’ai vu un crapaud vert avec des points, au lavoir ! Je l’ai appelé {prenom}. Il a l’air content.","I saw a green toad with spots at the wash-house! I named him {prenom}. He looks happy."],
 ["J’ai vu un jour une fleur de pierre, dans une vitrine de la bibliothèque. Morand dit qu’elle vient d’un temple. Je donnerais tous mes carnets pour en tenir une.","I once saw a stone flower, in a display case at the library. Morand says it came from a temple. I would give all my notebooks to hold one."],
 ["J’ai vu un ours près du ruisseau. Fais attention. Pour moi.","I saw a bear by the stream. Be careful. For my sake."],
+["J’ai écrit son nom dans la marge. C’est là qu’on met ceux qu’on n’a pas su garder.","I wrote their name in the margin. That’s where we put the ones we couldn’t keep safe."],
 ["J’ai écrit sur l’ardoise de la salle : « Grâce à {prenom} : {objet} ! » Les clients ont cru que c’était le plat du jour ; je n’en ai donné à personne.","I wrote on the board in the common room: “Thanks to {prenom}: {objet}!” The customers thought it was the dish of the day; I didn’t give anyone a bite."],
 ["J’ai écrit à la préfecture que quelqu’un envisageait de l’acheter. Toujours pas de réponse. Ils délibèrent, sans doute.","I wrote to the prefecture that someone was considering buying it. Still no reply. No doubt they are deliberating."],
 ["J’ai égaré ma chevalière, le sceau même de la commune. Je crois l’avoir perdue dans {lieu:tour}. Ce que j’y faisais, de nuit ? Cela relève du secret administratif.","I have mislaid my signet ring, the very seal of the municipality. I believe I lost it in {lieu:tour}. What was I doing there, at night? That is a matter of administrative confidentiality."],
@@ -79044,6 +81156,7 @@ const I18N_EN = {"v":1,"exact":[
 ["J’aime la pluie sur l’eau chaude. Ça fait des milliers de petites fumées.","I like rain on hot water. It makes thousands of little wisps of smoke."],
 ["J’appelle, j’appelle, toi qui es de la nuit.","I call, I call, you who are of the night."],
 ["J’arrive des Sources. Ils vous saluent. Ils saluent tout le monde, là-bas.","I’ve just come from the Springs. They say hello. They say hello to everyone, over there."],
+["J’arrive.","On my way."],
 ["J’avais dix-neuf ans quand les charbonniers sont venus dresser leurs meules dans la forêt, là où il ne reste plus que {lieu:charbonniere} et des orties. L’un d’eux, Étienne Garnier, est venu me faire soigner une brûlure à la main ; il est revenu la semaine suivante avec une autre brûlure, puis une autre, et à la quatrième, j’ai compris qu’il se brûlait exprès. Il avait de la suie dans les plis des paupières, même le dimanche, et il sentait le bois qui fume. Ma grand-mère ne m’a rien défendu : elle m’a seulement montré la page du grimoire où il est écrit que la servante ne prend pas d’homme, parce qu’elle est déjà promise. Et elle m’a laissée choisir. C’est bien pire.","I was nineteen when the charcoal burners came to build their kilns in the forest, where there’s nothing left now but {lieu:charbonniere} and nettles. One of them, Étienne Garnier, came to have me tend a burn on his hand; he came back the next week with another burn, then another, and by the fourth, I understood he was burning himself on purpose. He had soot in the creases of his eyelids, even on Sundays, and he smelled of smouldering wood. My grandmother forbade me nothing: she only showed me the page of the grimoire where it is written that the handmaid takes no man, because she is already promised. And she let me choose. That’s far worse."],
 ["J’avais encore du pain au four, le jour {jour}. Il a dû brûler.","I still had bread in the oven, on day {jour}. It must have burnt."],
 ["J’avais neuf ans. Un soir de novembre, dans un brouillard à couper au couteau, la voiture jaune est rentrée au pas, les chevaux fumants, les sacs bien ficelés : il ne manquait pas une lettre. Il manquait papa. On l’a cherché trois jours le long de la grand-route et au bord du marais ; on n’a retrouvé que sa trompe, pendue à une branche, bien droite, comme accrochée exprès. Maman a pleuré tout un hiver. Moi, j’ai commencé à guetter le courrier, et je guette encore.","I was nine. One November evening, in a fog you could cut with a knife, the yellow coach came home at a walk, the horses steaming, the bags neatly tied: not one letter was missing. Papa was. We searched for him for three days along the high road and by the marsh; all we found was his horn, hanging from a branch, perfectly straight, as if someone had put it there on purpose. Mama cried a whole winter long. Me, I started watching for the post, and I’m watching still."],
@@ -79053,6 +81166,8 @@ const I18N_EN = {"v":1,"exact":[
 ["J’en garde un, pour le dessiner. Et pour comparer. Et pour moi.","I’ll keep one, to draw it. And to compare. And for me."],
 ["J’exerçais en ville, autrefois. J’ai soigné beaucoup de gens malades de leurs habits trop serrés, de leurs soucis trop serrés, de leur vie trop serrée. Alors j’ai tout desserré.","I used to practise in town. I treated a great many people made ill by clothes too tight, worries too tight, lives too tight. So I loosened everything."],
 ["J’écris les adresses au charbon, en attendant. Les gens croient recevoir des faire-part de deuil.","I’m writing the addresses in charcoal in the meantime. People think they’re getting funeral notices."],
+["J’écris tout dans le registre. L’heure, le temps, ce que j’ai vu. Quand on écrit, on n’invente pas. Quand on relit, parfois, on se le demande.","I write everything in the register. The time, the weather, what I saw. When you write, you don’t make things up. When you read it back, sometimes, you wonder."],
+["J’écris un rapport chaque semaine à la préfecture. Je n’ai jamais eu de réponse. Le courrier part bien, la postière me l’assure. Je continue.","I write a report to the prefecture every week. I’ve never had a reply. The post does go out, the postmistress assures me. I keep on."],
 ["J’étais de passage. Je le suis toujours.","I was only passing through. I still am."],
 ["Katr","Katr"],
 ["Kel, la clé des Aëlim","Kel, the key of the Aëlim"],
@@ -79116,6 +81231,7 @@ const I18N_EN = {"v":1,"exact":[
 ["La boîte du chasseur","The hunter’s box"],
 ["La boîte en fer-blanc","The tin box"],
 ["La boîte à trésors","The treasure box"],
+["La brigade","The Brigade"],
 ["La brûler, devant une receveuse des Postes ! Pardon… c’est juste que je n’ai jamais eu le courage de la brûler, moi non plus, ni de la donner.","Burn it, in front of a sworn postmistress! Sorry… it’s just that I’ve never had the courage to burn it either. Or to hand it over."],
 ["La cabane à fromages","The cheese hut"],
 ["La cachette","The hiding place"],
@@ -79138,6 +81254,7 @@ const I18N_EN = {"v":1,"exact":[
 ["La chevalière","The signet ring"],
 ["La chouette a crié trois fois avant minuit. Rentrez tôt, cette semaine, et ne sortez pas pour voir.","The owl screeched three times before midnight. Get home early this week, and don’t go out to look."],
 ["La chouette hulotte appelle la nuit depuis les grands arbres. Son vol ne fait aucun bruit.","The tawny owl calls at night from the tall trees. Its flight makes no sound."],
+["La chèvre de Bastien m’a fait courir toute la matinée. Je l’ai verbalisée. Elle s’en fiche.","Bastien’s goat had me running all morning. I wrote her up. She couldn’t care less."],
 ["La cloche a sonné cette nuit. Trois heures trente-trois. Personne n’était dans le clocher : je dormais contre la porte.","The bell rang last night. At three thirty-three. There was no one in the bell tower: I was asleep against the door."],
 ["La cloche de Blanchette","Blanchette’s bell"],
 ["La cloche sonne seule à trois heures trente-trois. J’ai attaché la corde, cloué la porte du clocher. Elle sonne quand même. Veillez devant l’église cette nuit. Moi, je n’en ai plus la force.","The bell rings on its own at three thirty-three. I have tied up the rope and nailed the bell-tower door shut. It rings all the same. Keep watch outside the church tonight. I no longer have the strength."],
@@ -79189,6 +81306,8 @@ const I18N_EN = {"v":1,"exact":[
 ["La fleur des prés par excellence. On l’effeuille pour savoir si l’on est aimé.","The meadow flower above all others. You pluck its petals to find out if you are loved."],
 ["La foi, ce n’est pas de ne pas avoir peur, mon enfant. C’est d’avoir peur à genoux plutôt que debout.","Faith is not being unafraid, my child. It is being afraid on your knees rather than on your feet."],
 ["La foire approche, et notre place a la mine d’un jour de deuil. Il me faudrait douze fleurs pour les jardinières de la mairie. Le préfet passera peut-être ! Il ne passe jamais, mais sait-on.","The fair is coming, and our square looks like a day of mourning. I need twelve flowers for the town hall’s window boxes. The prefect may come by! He never does, but one never knows."],
+["La foire approche. J’ai ciré la plaque.","The fair is coming. I’ve polished the plaque."],
+["La foire du Foiredi, c’est mon jour. Les ivrognes, les maquignons, les voleurs de poules : tout le monde se montre. Moi, je note.","The Foiredi fair, that’s my day. Drunks, horse-traders, hen thieves: everyone turns up. Me, I take notes."],
 ["La forge chauffe. Faites vite.","The forge is heating. Make it quick."],
 ["La forge dort. Pas longtemps.","The forge sleeps. Not for long."],
 ["La forge d’en bas","The forge below"],
@@ -79240,6 +81359,7 @@ const I18N_EN = {"v":1,"exact":[
 ["La lunette, c’est deux lentilles et du cuivre. Avec des lentilles d’en haut, tu verras flou. Avec les nôtres, tu verras les poux d’un loup.","A scope is two lenses and some copper. With lenses from above, you’ll see a blur. With ours, you’ll see the lice on a wolf."],
 ["La lépiote élevée, la grisette, la coulemelle : grande, bonne, et facile. Ses petites cousines, elles, sont mortelles.","The tall lepiota, the grisette, the parasol: big, good, and easy. Its little cousins, though, are deadly."],
 ["La main dans la poche du garde ? Vous êtes fou, ou vous avez envie de voir le cachot ?","Your hand in the warden’s pocket? Are you mad, or just keen to see the lock-up?"],
+["La main dans la poche du guet. Vous avez du cœur, ou pas de tête.","Your hand in the watch’s pocket. You’ve either got nerve or no brains."],
 ["La main ouverte","The open hand"],
 ["La mairie de","Town Hall of"],
 ["La mairie est fermée ! Revenez aux heures ouvrables. Et qui que vous soyez… éloignez-vous de ma porte.","The town hall is closed! Come back during office hours. And whoever you are… get away from my door."],
@@ -79291,6 +81411,7 @@ const I18N_EN = {"v":1,"exact":[
 ["La nuit où vous avez frappé chez moi, j’ai cru que c’était Émile. J’ai mis une heure à me remettre à respirer.","The night you knocked at my door, I thought it was Émile. It took me an hour to start breathing again."],
 ["La nuit suivante, le rêve montre quelque chose de vrai.","The next night, the dream shows something true."],
 ["La nuit tombe. Bonsoir, la nuit. Je vous ai à l’œil, vous aussi.","Night is falling. Good evening, night. I’ve got my eye on you too."],
+["La nuit tombe. Je prends le guet. Rentrez, ou restez près de mon feu.","Night is falling. I’m taking the watch. Go home, or stay by my fire."],
 ["La nuit tombe. Rentrez chez vous. Fermez à clé.","Night’s falling. Go home. Lock your door."],
 ["La nuit tombe. Tant pis pour ceux qui sont encore dehors, et que la lune leur soit blanche.","Night is falling. Too bad for those still out, and may the moon be white for them."],
 ["La nuit tombe. Ça va frapper. Dors, Marchal. Dors avant que ça frappe.","Night’s falling. It’ll start knocking. Sleep, Marchal. Sleep before it knocks."],
@@ -79359,12 +81480,14 @@ const I18N_EN = {"v":1,"exact":[
 ["La pluie sur le lac, c’est beau. Les poissons remontent. Les souvenirs aussi.","Rain on the lake, it’s beautiful. The fish come up. So do the memories."],
 ["La pluie sur le lac, ça fait comme des milliers de doigts qui frappent. Surtout, ne pas compter.","Rain on the lake sounds like thousands of fingers knocking. Whatever you do, don’t count."],
 ["La pluie sur les toits, ça endort. Méfiez-vous des siestes, par ici. On se réveille parfois trop tard.","Rain on the roof sends you off to sleep. Beware of naps round here. Sometimes people wake up too late."],
+["La pluie sur une cuirasse, ça fait le bruit d’un tambour. On s’y fait, en vingt ans.","Rain on a cuirass sounds like a drum. You get used to it, after twenty years."],
 ["La pluie tape sur le toit comme des doigts. Je n’aime pas quand elle tape en rythme.","The rain is tapping on the roof like fingers. I don’t like it when it taps in time."],
 ["La pluie tape sur le toit comme des doigts. Je sais compter jusqu’à trois, et je m’arrête toujours avant.","The rain taps on the roof like fingers. I can count to three, and I always stop short."],
 ["La pluie écrit des choses sur la vitre. Je sais pas encore lire l’écriture de la pluie. Lise, elle sait.","The rain writes things on the window. I can’t read the rain’s handwriting yet. Lise can."],
 ["La pluie, c’est la Dauna qui remplit sa maison. On ne s’en plaint pas.","Rain is the Dauna filling her house. We don’t complain about it."],
 ["La pluie, c’est l’humidité, et l’humidité, c’est la mort du papier. Essuyez vos pieds.","Rain means damp, and damp is the death of paper. Wipe your feet."],
 ["La pluie, les vaches s’en moquent. Moi, un peu moins.","The cows don’t mind the rain. I mind it a bit more."],
+["La pluie, ça efface les traces. C’est mauvais pour l’enquête.","Rain washes away the tracks. That’s bad for the investigation."],
 ["La plus dangereuse des plantes de la montagne. La toucher suffit à engourdir les doigts.","The most dangerous plant of the mountains. Touching it is enough to numb your fingers."],
 ["La plus maigre","The Scrawniest"],
 ["La pomme épineuse, l’herbe du diable. Arrivée on ne sait d’où, elle pousse sur les fumiers et les décombres. Qui en mange ne sait plus où il est.","The thorn apple, the devil’s herb. Come from who knows where, it grows on dunghills and rubble. Whoever eats it no longer knows where they are."],
@@ -79412,6 +81535,7 @@ const I18N_EN = {"v":1,"exact":[
 ["La serrure cède.","The lock gives way."],
 ["La seule mer qui ne ment pas","The only sea that never lies"],
 ["La soldanelle des Alpes : elle fond la neige de sa propre chaleur pour fleurir. Les bergers disent qu’elle annonce la fin de l’hiver.","The Alpine snowbell: it melts the snow with its own warmth to flower. The shepherds say it announces the end of winter."],
+["La somme n’y est pas. Il ne reste que le cachot.","The sum isn’t there. Only the lock-up is left."],
 ["La sonnaille ? La Noire tourne en rond depuis.","The bell? The Black One has been going round in circles ever since."],
 ["La sonnaille de la Noire","The Black One’s herd bell"],
 ["La source aux rubans","The ribbon spring"],
@@ -79429,6 +81553,7 @@ const I18N_EN = {"v":1,"exact":[
 ["La tombola de la foire","The fair raffle"],
 ["La tomme, il lui faut du sel, du temps, et une cave qui ne gèle pas. La nôtre est sous la lauza. Elle n’a jamais gelé, même l’hiver où les bêtes sont mortes debout.","A tomme needs salt, time, and a cellar that doesn’t freeze. Ours is under the lauza. It has never frozen, not even the winter the beasts died standing up."],
 ["La tour de guet","The watchtower"],
+["La tournée des Sources, à pied, sous la pluie. Mistral regardait par la fenêtre de l’écurie.","The Springs round, on foot, in the rain. Mistral looked on from the stable window."],
 ["La tournée jusqu’à {hameau} en une heure douze, record battu ! Le chien du ranch n’a même pas eu le temps d’aboyer.","The round to {hameau} in one hour and twelve minutes, a new record! The ranch dog didn’t even have time to bark."],
 ["La tournée n’attend pas.","The round doesn’t wait."],
 ["La traite est finie, le lait chauffe. Vous tombez bien, ou mal : je n’ai pas le temps de parler.","The milking’s done, the milk is heating. You’ve come at a good time, or a bad one: I’ve no time to talk."],
@@ -79464,6 +81589,7 @@ const I18N_EN = {"v":1,"exact":[
 ["La vieille ferme…","The old farm…"],
 ["La vieille {npc:guerisseuse}, dans les bois… Je ne dis pas que c’est une sorcière. La République ne croit pas aux sorcières. Mais je fais un détour.","Old {npc:guerisseuse}, out in the woods… I’m not saying she’s a witch. The Republic does not believe in witches. But I do take the long way round."],
 ["La ville","The town"],
+["La ville est calme. C’est son état ordinaire. C’est la nuit qu’elle ne l’est plus.","The town is calm. That’s its usual state. It’s at night that it stops being so."],
 ["La ville et ses ponts-levis…","The town and its drawbridges…"],
 ["La ville, dessinée deux fois : en haut, avec le soleil ; en bas, à l’envers, avec une lune rouge. Les gens d’en bas ont les yeux fermés.\n\nIl y en a un, en bas, qui a les yeux ouverts, et qui regarde en haut. Il porte vos habits.","The town, drawn twice: at the top, with the sun; at the bottom, upside down, with a red moon. The people down below have their eyes closed.\n\nOne of them, down below, has its eyes open, and is looking up. It is wearing your clothes."],
 ["La ville, la ferme, le hameau, le grand lac. Dessinée à main levée par un clerc de la mairie.","The town, the farm, the hamlet, the great lake. Drawn freehand by a clerk at the town hall."],
@@ -79542,6 +81668,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le Fermier","The Farmer"],
 ["Le Four","The Furnace"],
 ["Le Givre","The Frost"],
+["Le Lavedi, à six heures, nous, garde champêtre de {hameau}, assermenté, avons constaté qu’une chèvre appartenant au sieur Bastien se trouvait dans le potager du sieur Morel, où elle mangeait les choux. Interpellée, elle n’a rien voulu entendre.\n\nAmende : un franc. Payée en fromage.","On Lavedi, at six o’clock, we, rural constable of {hameau}, duly sworn, found that a goat belonging to Mr Bastien was in the vegetable garden of Mr Morel, where it was eating the cabbages. Challenged, the goat would hear none of it.\n\nFine: one franc. Paid in cheese."],
 ["Le Libraire","The Librarian"],
 ["Le Livre sans fin","The Endless Book"],
 ["Le Livre sans fin — page du jour","The Endless Book — page for day"],
@@ -79577,6 +81704,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le bibliothécaire","The Librarian"],
 ["Le bibliothécaire vous cherche","The librarian is looking for you"],
 ["Le bibliothécaire, {npc:libraire}, est un homme charmant. Rendez-lui ses livres à l’heure. Je ne plaisante pas.","The librarian, {npc:libraire}, is a charming man. Return his books on time. I am not joking."],
+["Le bicorne prend l’eau. Le règlement ne prévoit pas de parapluie.","The bicorne is taking on water. Regulations make no provision for an umbrella."],
 ["Le blaireau creuse des terriers immenses, qu’il nettoie avec soin. Il sort la nuit. Acculé, il mord fort.","The badger digs huge burrows, which it cleans with care. It comes out at night. Cornered, it bites hard."],
 ["Le blé a poussé d’un pouce en une nuit, puis il a noirci. Tout un carré. Un carré parfait.","The wheat grew an inch in one night, then it turned black. A whole square of it. A perfect square."],
 ["Le blé est beau cette année. Il pousse mieux quand on l’arrose avec ce qu’il faut.","The wheat is fine this year. It grows better when you water it with what it needs."],
@@ -79628,6 +81756,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Le chemin du cimetière glisse, la nuit. Faites attention si vous y passez. Je dis ça comme ça.","The cemetery path gets slippery at night. Watch your step if you go that way. Just saying."],
 ["Le cheval n’a pas voulu passer le calvaire avant l’aube. Il sait des choses, cette bête.","The horse wouldn’t go past the wayside cross before dawn. That beast knows things."],
 ["Le cheval porte son cavalier bien plus vite qu’à pied, et il peut tirer une charrette. Sifflez : il vient.","The horse carries its rider far faster than walking, and it can pull a cart. Whistle, and it comes."],
+["Le chevalier du guet m’a salué à l’ancienne, la main sur la garde. Je crois qu’il se moque de moi.","The Knight of the Watch greeted me in the old style, hand on his hilt. I think he’s mocking me."],
+["Le chevalier du guet porte un titre aboli depuis la Révolution. Je le lui ai fait remarquer. Il m’a demandé si la nuit, elle, avait été abolie.","The Knight of the Watch bears a title abolished since the Revolution. I pointed that out to him. He asked me whether the night had been abolished, too."],
 ["Le chien","The dog"],
 ["Le chien a aboyé toute la nuit contre le mur de l’étable. Contre le mur. Pas contre la porte.","The dog barked all night at the barn wall. At the wall. Not at the door."],
 ["Le chêne des Ancêtres","The Ancestors’ Oak"],
@@ -79687,6 +81817,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le coprin, l’encrier : jeune, il se mange ; vieux, il fond en une encre noire dont on écrivait autrefois.","The ink cap, the inkwell: young, it can be eaten; old, it melts into a black ink that people once wrote with."],
 ["Le coq n’a pas fini de chanter que vous voilà ! Parole de Bonnefoy, vous irez loin.","The rooster hasn’t even finished crowing and here you are! Bonnefoy’s word on it, you’ll go far."],
 ["Le coq porte une longue queue et une tête verte. Il s’envole dans un grand bruit quand on marche presque dessus.","The cock has a long tail and a green head. It bursts into flight with a great clatter when you all but step on it."],
+["Le corps de garde est de ce côté des douves exprès. Quand les ponts sont levés, il faut bien que quelqu’un reste avec ceux qui restent dehors.","The guardhouse is on this side of the moat on purpose. When the bridges are raised, someone has to stay with those who stay outside."],
 ["Le courrier passe, pluie ou pas. Mais les timbres, eux, se décollent. Quelle misère.","The post gets through, rain or shine. But the stamps come unstuck. What a nuisance."],
 ["Le couvercle est gravé d’un cerf. Elle sent encore le tabac de quelqu’un.","The lid is engraved with a stag. It still smells of someone’s tobacco."],
 ["Le crochet casse net.","The pick snaps clean off."],
@@ -79742,9 +81873,17 @@ const I18N_EN = {"v":1,"exact":[
 ["Le fumoir attend du poisson ou de la viande.","The smokehouse is waiting for fish or meat."],
 ["Le galop passe au-dessus de vous, si bas que l’herbe se couche et que l’air sent le poil mouillé et la poudre. Vous gardez le front contre la terre jusqu’à ce que les chiens se taisent, jusqu’au dernier écho de cor. Quand vous vous relevez, il y a dans l’herbe, à un pas de votre main, un fer énorme qui fume sous la pluie.","The galloping passes over you, so low that the grass flattens and the air smells of wet fur and gunpowder. You keep your forehead to the earth until the hounds fall silent, until the last echo of the horn. When you get up, there in the grass, a step from your hand, lies an enormous horseshoe, steaming in the rain."],
 ["Le garde","The warden"],
+["Le garde champêtre ne parle plus depuis ce matin. C’est la première fois.","The rural constable hasn’t spoken since this morning. It’s the first time."],
+["Le garde d’avant","The Previous Constable"],
+["Le garde d’avant s’appelait Tissier, comme moi. Pas de la famille. Il a disparu un hiver, en faisant sa tournée du hameau abandonné. On a retrouvé son tambour sur la borne, les baguettes posées en croix. Le tambour, c’est celui que j’ai. Il est meilleur que le mien.","The constable before me was called Tissier, like me. No relation. He disappeared one winter, while doing his rounds of the abandoned hamlet. They found his drum on a boundary stone, the drumsticks laid in a cross. That drum is the one I have now. It’s better than my own."],
 ["Le garde vous cherche, vous savez.","The warden is looking for you, you know."],
 ["Le garde-meuble de la commune","The municipality’s furniture store"],
 ["Le gardien de la forêt se montre à l’aube à ceux que les Anciens aiment, et les mène jusqu’à sa clairière cachée.","The guardian of the forest shows himself at dawn to those the Ancients love, and leads them to his hidden clearing."],
+["Le gendarme du hameau m’a demandé de quel droit je portais un titre aboli. Je lui ai demandé si la nuit, elle, avait été abolie. Il l’a noté.","The hamlet’s gendarme asked me by what right I bore an abolished title. I asked him whether the night had been abolished, too. He made a note of it."],
+["Le gendarme est encore venu me parler de règlement. J’ai écouté. Ça m’a fait une veille.","The gendarme came by again to talk to me about regulations. I listened. That was a vigil in itself."],
+["Le gendarme rentre de sa nuit, je prends ma journée. On se croise, on ne se dit rien. C’est le service.","The gendarme is coming off his night, I’m taking the day. We pass each other, we say nothing. That’s the job."],
+["Le gendarme écrit à la préfecture toutes les semaines. Il n’a jamais eu de réponse. Il continue. C’est un garçon têtu.","The gendarme writes to the prefecture every week. He’s never had a reply. He keeps at it. He’s a stubborn lad."],
+["Le gendarme, c’est la loi de Paris. Moi, c’est la loi du hameau. On s’entend, à condition qu’il ne touche pas à mes chèvres.","The gendarme is the law from Paris. I’m the law of the hamlet. We get along, so long as he keeps his hands off my goats."],
 ["Le geôlier compte vos pièces une deuxième fois.","The jailer counts your coins a second time."],
 ["Le geôlier dort sur son tabouret.","The jailer is asleep on his stool."],
 ["Le geôlier grogne, se retourne. Vous arrêtez tout.","The jailer grunts, turns over. You freeze."],
@@ -79765,10 +81904,15 @@ const I18N_EN = {"v":1,"exact":[
 ["Le grenier de la mairie. Des lits, des armoires, une horloge… Des successions que personne n’a réclamées. On ne sait pas toujours à qui c’était. On ne demande pas.","The town hall attic. Beds, wardrobes, a clock… Estates that nobody has claimed. We don’t always know who they belonged to. We don’t ask."],
 ["Le grimoire du frère Anselme","Brother Anselme’s grimoire"],
 ["Le gros lot, même : une ferme qui grince, un épouvantail qui tourne, et une vieille grainetière qui vous surveille du coin de l’œil. Profitez-en bien.","The jackpot, no less: a farm that creaks, a scarecrow that turns, and an old seed merchant watching you out of the corner of her eye. Make the most of it."],
+["Le guet a la mémoire longue.","The watch has a long memory."],
+["Le guet est debout.","The watch is on its feet."],
+["Le guet ne dort pas. Qu’y a-t-il ?","The watch doesn’t sleep. What is it?"],
+["Le guet vous arrête. Tendez les mains.","The watch is arresting you. Hold out your hands."],
 ["Le guichet de la mairie","The town hall counter"],
 ["Le guichet est fermé. Pour vous, il est toujours fermé.","The counter is closed. For you, it’s always closed."],
 ["Le guichet, c’est devant ! Ici, c’est chez moi, et chez maman. Elle ne dit rien, mais elle vous regarde. Ressortez, s’il vous plaît.","The counter’s out front! This is my home, and Mama’s. She doesn’t say anything, but she’s watching you. Out you go, please."],
 ["Le guidon danse sur la cible. Tirez quand il passe au centre (clic, E ou Espace). Trois coups.","The sight dances over the target. Fire when it crosses the centre (click, E or Space). Three shots."],
+["Le gué du moulin","The Mill Ford"],
 ["Le hameau","The hamlet"],
 ["Le hameau abandonné","The abandoned hamlet"],
 ["Le hameau du Puits","Well Hamlet"],
@@ -79811,6 +81955,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le linteau","The lintel"],
 ["Le lis des étangs. Les moines, dit-on, en buvaient pour rester sages.","The lily of the ponds. The monks, they say, drank it to stay chaste."],
 ["Le lit","The bed"],
+["Le lit de Ferrand","Ferrand’s Bed"],
 ["Le lit du fond est à vous. Les draps sont propres, je le jure sur la tête de ma mère.","The bed at the back is yours. The sheets are clean, I swear on my mother’s life."],
 ["Le locataire peut rendre les clés quand il le veut. La commune ne rembourse pas la semaine commencée.","The tenant may return the keys at any time. The municipality does not refund a week once begun."],
 ["Le long des chemins et des murs. Les anciens la tenaient pour sacrée ; les sorciers aussi.","Along paths and walls. The ancients held it sacred; so did the sorcerers."],
@@ -79885,6 +82030,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le passe-dix","Passe-dix"],
 ["Le passeur","The ferryman"],
 ["Le passeur est mon petit-fils. Il fait payer les gens de la ville. Nous, jamais.","The ferryman is my grandson. He makes the townsfolk pay. Never us."],
+["Le pays est calme. Trop, pour un homme qui vient de la ville.","The countryside is calm. Too calm, for a man from the city."],
 ["Le perce-pierre : elle pousse dans les fentes et, dit-on, fend le roc. On la donnait contre la pierre, celle des reins.","The stone-piercer: it grows in the cracks and, they say, splits the rock. It was given against the stone, the one in the kidneys."],
 ["Le personnel ne pêche pas dans le grand lac. Tout objet remonté du lac est rendu à l’eau, sauf autorisation.","Personnel do not fish in the great lake. Any object brought up from the lake is to be returned to the water, unless authorised."],
 ["Le petit","Little"],
@@ -79918,6 +82064,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le premier poisson est pour toi, comme toujours. Pas le plus beau, je sais. Mais le premier.","The first fish is yours, as always. Not the finest, I know. But the first."],
 ["Le presbytère","The presbytery"],
 ["Le prix d’un pacte.","The price of a pact."],
+["Le procès-verbal de la mare","The Pond Report"],
 ["Le prénom","The name"],
 ["Le puits","The well"],
 ["Le puits de la place","The well in the square"],
@@ -79946,12 +82093,15 @@ const I18N_EN = {"v":1,"exact":[
 ["Le ramasser","Pick it up"],
 ["Le rayonnage pivote sur un escalier de pierre qui descend, longtemps, dans le froid.","The bookcase pivots onto a stone staircase that goes down, a long way, into the cold."],
 ["Le recensement","The census"],
+["Le registre","The Register"],
 ["Le registre de l’abbé Mauduit","Father Mauduit’s register"],
 ["Le registre de l’état civil","The civil register"],
+["Le registre des procès-verbaux","The register of reports"],
 ["Le registre des prêts, les vieilles années","The loan register, the old years"],
 ["Le registre du Recenseur","The Census-Taker’s register"],
 ["Le registre du feu","The light register"],
 ["Le registre du garde des bois","The forest warden’s register"],
+["Le registre du guet","The watch register"],
 ["Le registre du refuge","The refuge register"],
 ["Le registre est ouvert à une page que personne ne tournera plus. La plume a séché dans l’encrier.\n\nLes livres attendent, en rang, dans la poussière qui commence.","The register lies open at a page no one will turn again. The pen has dried in the inkwell.\n\nThe books wait, in rows, in the dust that is starting to settle."],
 ["Le relais de chasse","The hunting lodge"],
@@ -79982,6 +82132,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le sel des bêtes","The beasts’ salt"],
 ["Le sel sur le seuil. La chandelle à la fenêtre. Le couteau sous l’oreiller, lame vers le mur. Voilà, on peut dormir.","Salt on the threshold. The candle in the window. The knife under the pillow, blade to the wall. There, now we can sleep."],
 ["Le semeur de pierres","The Stone Sower"],
+["Le sergent Ferrand devait arriver un Primedi. J’ai fait le lit de camp, j’ai mis une seconde gamelle. Le télégraphe a dit qu’il était parti à l’heure. Depuis, certaines nuits, quelqu’un dort dans son lit. Pas lui. La couverture est tiède au matin, du côté du mur.","Sergeant Ferrand was due to arrive on a Primedi. I made up the camp bed, I set out a second mess tin. The telegraph said he had left on time. Since then, some nights, someone sleeps in his bed. Not him. The blanket is warm in the morning, on the wall side."],
 ["Le sergent Lucien Ferrand rejoindra son poste à {ville}, au guet des remparts, le premier Primedi du mois. Un logement lui sera fourni par la commune.\n\nAgrafé dessous, un télégramme : « FERRAND PARTI À L’HEURE. ARRIVÉE ? »\n\nPuis un autre : « RÉPONDEZ. »","Sergeant Lucien Ferrand will report to his post in {ville}, for the rampart watch, on the first Primedi of the month. Lodging will be provided for him by the commune.\n\nStapled beneath, a telegram: “FERRAND DEPARTED ON TIME. ARRIVAL?”\n\nThen another: “REPLY.”"],
 ["Le service que vous m’avez rendu, je l’ai mis dans mes prières du soir, entre ma mère et le toit de l’église. Vous êtes en bonne compagnie.","The service you did me, I have put into my evening prayers, between my mother and the church roof. You are in good company."],
 ["Le seul conifère qui perd ses aiguilles en hiver.","The only conifer that loses its needles in winter."],
@@ -79989,6 +82140,9 @@ const I18N_EN = {"v":1,"exact":[
 ["Le signe de ceux d’en dessous","The sign of Those Below"],
 ["Le signe de la Mère","The sign of the Mother"],
 ["Le silence ne vous fait pas peur, vous m’aviez dit. Alors venez vous asseoir : il y en a pour deux, ce matin.","Silence doesn’t frighten you, you told me. Then come and sit down: there’s enough for two this morning."],
+["Le six août","The Sixth of August"],
+["Le six août approche. Je ne dors pas, la semaine du six août.","The sixth of August is approaching. I don’t sleep, the week of the sixth of August."],
+["Le six. Je ne fête rien, ce jour-là. Je bois un doigt de poire par homme. Ça fait beaucoup de doigts.","The sixth. I celebrate nothing, that day. I drink a finger of pear brandy for each man. That makes a lot of fingers."],
 ["Le siège","The Siege"],
 ["Le soir de l’orage, il y a dix ans, Jules est entré trempé à l’auberge en jurant qu’il avait vu des fenêtres allumées sous le lac. Toute la salle a ri, et moi le premier, le plus fort, comme toujours. J’ai tapé sur le comptoir : « Chiche que tu n’y retournes pas ce soir : rapporte-moi une tuile du clocher, et je te paie un tonneau ! » Il a vidé son verre, il m’a regardé comme on regarde un ami, et il est sorti sous la pluie. On a retrouvé la barque, pas lui. {npc:pecheur} croit que son frère est parti tout seul, et depuis dix ans, chaque dimanche, je lui sers sa soupe sans oser le regarder dans les yeux.","The night of the storm, ten years ago, Jules came into the inn soaked to the skin, swearing he’d seen lit windows under the lake. The whole room laughed, and me first and loudest, as always. I slapped the counter: “I dare you to go back out there tonight: bring me a tile from the steeple, and I’ll stand you a barrel!” He emptied his glass, looked at me the way you look at a friend, and went out into the rain. They found the boat, not him. {npc:pecheur} thinks his brother went off on his own, and for ten years, every Sunday, I’ve served him his soup without daring to look him in the eye."],
 ["Le soir de sa disparition, il est passé acheter une corde et une lanterne. Il m’a dit : « Si quelqu’un vient à la ferme après moi, sois gentille avec. »","The evening he disappeared, he came by to buy a rope and a lantern. He said to me: “If someone comes to the farm after me, be kind to them.”"],
@@ -80001,6 +82155,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le soir, certaines fleurs s’ouvrent. D’autres se referment sur ce qui passe.","In the evening, some flowers open. Others close over whatever passes by."],
 ["Le soir, je chante aux tommes. Ne riez pas : elles sont meilleures.","In the evening, I sing to the tommes. Don’t laugh: they’re better for it."],
 ["Le soir, je note l’état de chaque bassin. La montagne respire, et je l’écoute.","In the evening, I note the state of each pool. The mountain breathes, and I listen to it."],
+["Le soir, je relis mes procès-verbaux. Il y en a de beaux.","In the evening, I reread my reports. Some of them are beauties."],
 ["Le soir, je relève les lignes et je rentre. Ce qui mord après le coucher, je n’en veux pas.","Evenings, I pull in my lines and go home. Whatever bites after sundown, I don’t want it."],
 ["Le soir, je relève les nasses. Les sègues sortent avec l’escur.","In the evening, I haul up the fish traps. The sègues come out with the escur."],
 ["Le soir, je rentre à la roulotte. Les chemins, la nuit, ce n’est pas pour les honnêtes gens. Ni pour les autres.","In the evening, I head back to the caravan. The roads at night are no place for honest folk. Nor for the other sort."],
@@ -80045,8 +82200,11 @@ const I18N_EN = {"v":1,"exact":[
 ["Le soupirail","The cellar window"],
 ["Le suivre","Follow him"],
 ["Le tableau de la mairie. Trois papiers punaisés, de la main du secrétaire : « Travaux du jour — payés par la commune. »","The town hall board. Three papers pinned up, in the clerk’s hand: “Today’s jobs — paid for by the municipality.”"],
+["Le tableau des avis","The notice board"],
 ["Le tablier du pont","The bridge deck"],
 ["Le tablier du pont nord a des planches pourries. Quelque chose les a grignotées par en dessous. Il me faudrait vingt brassées de bois et deux lingots de fer pour les ferrures.","The north bridge deck has rotten planks. Something’s gnawed them from underneath. I’d need twenty armfuls of wood and two iron ingots for the fittings."],
+["Le tambour a résonné tout seul, cette nuit. Un roulement, comme pour un avis. Je n’ai pas entendu l’avis.","The drum sounded all by itself last night. A roll, as for an announcement. I didn’t hear the announcement."],
+["Le tambour sonne creux, ce matin. Comme s’il y avait quelque chose dedans.","The drum sounds hollow this morning. As if there were something inside."],
 ["Le tarif","The fare"],
 ["Le tas de bois","The woodpile"],
 ["Le temple est sous la montagne. Durn dort.","The temple is under the mountain. Durn sleeps."],
@@ -80158,6 +82316,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Les blocs ne se cassent pas en les regardant.","Blocks don’t break from being looked at."],
 ["Les bocaux","The jars"],
 ["Les bois du Cerf","The Stag’s antlers"],
+["Les bornes du hameau abandonné ont bougé. Toutes. Du même côté.","The boundary stones of the abandoned hamlet have moved. All of them. The same way."],
 ["Les bougies, petit. Le Vorndi n’attend pas.","The candles, child. Vorndi won’t wait."],
 ["Les bouleaux se referment derrière vous comme une porte qu’on tire sans bruit. Au centre de la clairière, la pierre porte des bois sculptés, adoucis par des siècles de pluie, et sur la mousse, là où le Cerf se tenait, l’herbe est restée couchée, encore tiède. Vous n’avez pas couru. Pour la première fois depuis votre arrivée, vous avez le sentiment d’avoir été attendu.","The birches close behind you like a door pulled shut without a sound. In the middle of the clearing, the stone bears carved antlers, worn smooth by centuries of rain, and on the moss, where the Stag was standing, the grass is still flattened, still warm. You didn’t run. For the first time since you arrived, you feel you were expected."],
 ["Les boulins","The pigeonholes"],
@@ -80189,8 +82348,10 @@ const I18N_EN = {"v":1,"exact":[
 ["Les chevaux ruent dans leurs stalles. L’orage, ils le sentent venir de loin. Et autre chose aussi.","The horses are kicking in their stalls. They can feel a storm coming from miles off. And something else, too."],
 ["Les chevaux sont rentrés seuls","The horses came home alone"],
 ["Les chiens ! Où sont passés les chiens ? … Restez loin de moi.","The dogs! Where have the dogs got to? … Keep away from me."],
+["Les chiens de la ville ont aboyé toute la nuit vers le nord. Vers moi.","The town’s dogs barked all night towards the north. Towards me."],
 ["Les chiens ne mangent pas.","The dogs aren’t eating."],
 ["Les chiens n’ont pas voulu sortir de la cuisine, ce matin. Vous avez vu quelque chose, sur le chemin ?","The dogs wouldn’t come out of the kitchen this morning. Did you see anything on the road?"],
+["Les chiens ont aboyé vers une heure. Rien vu.","The dogs barked around one o’clock. Nothing seen."],
 ["Les chiens ont grogné vers la cave. Il n’y avait rien.","The dogs growled towards the cellar. There was nothing there."],
 ["Les chiens restent collés à moi, aujourd’hui.","The dogs are sticking close to me today."],
 ["Les chiens se sont tus au crépuscule. Ce soir, fermez vos volets.","The dogs went quiet at dusk. Tonight, close your shutters."],
@@ -80230,6 +82391,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Les fougères ont changé de sens. Le sentier aussi, peut-être. Allons, vieille bête, compte tes pas.","The ferns have turned the other way. The path too, maybe. Come on, you silly old thing, count your steps."],
 ["Les fraises se vendent le mieux, au marché. Mais il leur faut de l’eau chaque jour. Rien n’est gratuit, surtout pas ce qui est bon.","Strawberries sell best at market. But they need water every day. Nothing’s free, least of all what’s good."],
 ["Les fraises, plantez-les au soleil et arrosez-les chaque jour. Et les baies des bois, ne les mangez jamais quand elles sont blanches.","Plant strawberries in the sun and water them every day. And wild berries: never eat them when they’re white."],
+["Les gens croient que je garde la ville. Je garde le dehors. Ce n’est pas la même chose, {prenom}. La ville se garde toute seule, avec ses ponts. Le dehors, il faut quelqu’un pour le regarder en face.","People think I guard the town. I guard the outside. It’s not the same thing, {prenom}. The town guards itself, with its bridges. The outside needs someone to look it in the face."],
 ["Les gens croient que {lieu:chapelle} est vide. Elle ne l’est pas. Elle attend. Ce n’est pas du tout la même chose.","People think {lieu:chapelle} is empty. It isn’t. It’s waiting. That’s not the same thing at all."],
 ["Les gens de la ville ne savent pas nager. Nous, on apprend avant de marcher. Ça ne sert à rien : ceux qui tombent dans le gourg ne remontent pas, qu’ils sachent nager ou non.","The townsfolk can’t swim. We learn before we walk. It’s no use: those who fall into the gourg don’t come back up, whether they can swim or not."],
 ["Les gens de la ville nous trouvent étranges. Nous, on trouve étrange de se cacher tout le temps.","Townsfolk find us strange. We find it strange to hide all the time."],
@@ -80269,6 +82431,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Les lieux perdus…","The lost places…"],
 ["Les livres des Aëlim sous la pierre gardent les secrets.","The books of the Aëlim beneath the stone keep the secrets."],
 ["Les livres ont saigné cette nuit. Pas tous. Les vieux. Je les ai séchés un à un.","The books bled last night. Not all of them. The old ones. I dried them one by one."],
+["Les loups ne viennent pas jusqu’aux douves. Ils s’arrêtent à la lisière et ils regardent la ville. Je les regarde aussi. On se connaît.","The wolves don’t come as far as the moat. They stop at the edge of the woods and watch the town. I watch them too. We know each other."],
 ["Les légendes, c’est mon fonds de commerce : un verre, une histoire de revenants, et les gens restent jusqu’à la fermeture. Si j’y croyais, je fermerais plus tôt.","Legends are my stock-in-trade: a drink, a ghost story, and folk stay until closing time. If I believed in them, I’d close earlier."],
 ["Les mains dans mes affaires ! Et moi qui vous servais du cidre ! Au voleur ! Au garde !","Your hands in my things! And me pouring you cider! Thief! Fetch the warden!"],
 ["Les mains noires","Black Hands"],
@@ -80362,6 +82525,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Les poissons ne mordent plus depuis deux jours. Ils se tiennent au fond, tous du même côté, comme s’ils attendaient quelque chose.","The fish haven’t bitten for two days. They keep to the bottom, all on the same side, as if they were waiting for something."],
 ["Les poissons sautent. Ils fuient quelque chose.","The fish are jumping. They’re fleeing something."],
 ["Les ponts de la nuit","The bridges at night"],
+["Les ponts se lèvent à neuf heures. Après, de ce côté, il n’y a plus que moi.","The bridges go up at nine o’clock. After that, on this side, there’s only me."],
+["Les ponts sont baissés. Passez. Je vous ai vu venir de loin.","The bridges are down. Go through. I saw you coming from a long way off."],
 ["Les ponts sont levés ! Qui va là ? Identifiez-vous ! … Votre voix. Dites encore quelque chose. Non, taisez-vous. Allez-vous-en.","The bridges are up! Who goes there? Identify yourself! … Your voice. Say something else. No, be quiet. Go away."],
 ["Les ponts, les douves, les portes à clé… Nos anciens n’avaient pas peur des loups. Alors de quoi avaient-ils peur ?","The bridges, the moat, the locked doors… Our forebears weren’t afraid of wolves. So what were they afraid of?"],
 ["Les ponts, à neuf heures… J’y pense le soir, en appelant.","The bridges, at nine o’clock… I think about it in the evening, when I call."],
@@ -80372,6 +82537,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Les quilles","Skittles"],
 ["Les racines","The roots"],
 ["Les racines, la terre, et l’herbe.","The roots, the earth, and the grass."],
+["Les rapports","The Reports"],
 ["Les rayonnages","The shelves"],
 ["Les recettes de la grand-mère Morel","Grandmother Morel’s remedies"],
 ["Les recettes de la mère Aubert","Mother Aubert’s Recipes"],
@@ -80491,13 +82657,16 @@ const I18N_EN = {"v":1,"exact":[
 ["Lire le poteau","Read the signpost"],
 ["Lire le registre","Read the register"],
 ["Lire le registre des lecteurs perdus","Read the register of lost readers"],
+["Lire le registre des procès-verbaux","Read the register of reports"],
 ["Lire le registre du feu","Read the light register"],
+["Lire le registre du guet","Read the watch register"],
 ["Lire le registre du refuge","Read the refuge register"],
 ["Lire le registre ouvert","Read the open register"],
 ["Lire le socle","Read the plinth"],
 ["Lire le tableau des petits travaux","Read the odd-jobs board"],
 ["Lire le tombeau","Read the tomb"],
 ["Lire les affiches","Read the notices"],
+["Lire les avis","Read the notices"],
 ["Lire les billets noués aux branches","Read the notes tied to the branches"],
 ["Lire les cupules","Read the cup-marks"],
 ["Lire les ex-voto cloués au socle","Read the ex-votos nailed to the plinth"],
@@ -80587,6 +82756,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Léger et droit : des planches, des poutres, des cercueils.","Light and straight: planks, beams, coffins."],
 ["Légèreté","Lightness"],
 ["Léon","Léon"],
+["Léonce","Léonce"],
 ["Lézard des murailles","Wall lizard"],
 ["L’Affiche","The Poster"],
 ["L’Envers","The Underside"],
@@ -80638,9 +82808,11 @@ const I18N_EN = {"v":1,"exact":[
 ["L’arrêté sans date","The undated decree"],
 ["L’arrêté, c’est mon grand-père qui l’a signé. Je peux bien lui ajouter dix minutes.","It was my grandfather who signed that by-law. I can surely add ten minutes to it."],
 ["L’art du forgeron","The Blacksmith’s Art"],
+["L’assermentation","The Swearing-In"],
 ["L’aube, c’est l’heure. Pour eux comme pour moi.","Dawn’s the hour. For them, and for me."],
 ["L’auberge est dans la famille depuis que mon arrière-grand-père a perdu un pari. Ou gagné, selon le point de vue. Moi, je dis gagné !","The inn’s been in the family since my great-grandfather lost a bet. Or won it, depending how you look at it. Me, I say won!"],
 ["L’auberge s’appelle le Coq Tordu à cause du coq du clocher, que la foudre a plié en deux l’été quarante-trois : mon arrière-grand-père a trouvé que c’était un beau nom pour une maison où l’on penche un peu. Je me lève à cinq heures, je rallume le feu, je prends le pain chez {npc:boulangere}, je pèle, je goûte, je sers, je regoûte. J’ai huit chambres et presque jamais de voyageurs : personne ne passe par ici, et ceux qui passent ne vont jamais bien loin. Alors je fais auberge pour les gens de la vallée : le curé qui goûte, le forgeron qui doit, le garde qui mange en surveillant la porte. Un aubergiste, ce n’est pas un marchand de vin, c’est un marchand de soirées.","The inn is called the Crooked Rooster after the rooster on the church steeple, which lightning bent double in the summer of forty-three: my great-grandfather thought it a fine name for a house where folk lean a little. I get up at five, light the fire again, fetch the bread from {npc:boulangere}, peel, taste, serve, taste again. I have eight rooms and hardly ever a traveller: nobody comes through here, and those who do never get very far. So I keep the inn for the people of the valley: the priest who tastes, the blacksmith who owes, the warden who eats with one eye on the door. An innkeeper isn’t a wine merchant; he’s a merchant of evenings."],
+["L’aubergiste m’a gardé une part de ragoût. À mon âge, c’est une décoration.","The innkeeper saved me a helping of stew. At my age, that’s a medal."],
 ["L’aura sent le fer. Il va se passer quelque chose.","The aura smells of iron. Something is going to happen."],
 ["L’aura tourne. Il fera beau jusqu’à midi, pas après.","The aura is turning. It’ll be fine until midday, not after."],
 ["L’aurore du nord, disait mon père. On ne la voit jamais si bas. Jamais.","The northern dawn, my father called it. You never see it this far down. Never."],
@@ -80701,7 +82873,9 @@ const I18N_EN = {"v":1,"exact":[
 ["L’hiver quatre-vingt-quinze, par une nuit de gel à fendre les pierres, on a frappé à la porte de l’auberge : trois coups. C’était le rémouleur qui passait chaque année aiguiser mes couteaux ; j’ai reconnu le grincement de sa meule, et il a crié : « Bonnefoy, ouvre, je gèle ! » L’arrêté dit qu’on ne répond pas à qui frappe après minuit, et surtout, j’avais peur ; alors je suis resté derrière la porte, la louche à la main, à compter mes tonneaux à voix haute. Au matin, il était assis contre le seuil, blanc de givre, le poing encore levé. Depuis, les nuits de gel, je laisse une soupe chaude sur le rebord de la fenêtre, et je ne sais toujours pas pour qui.","In the winter of ninety-five, on a night of frost fit to split stones, someone knocked at the inn door: three knocks. It was the knife-grinder who came by every year to sharpen my knives; I recognised the squeal of his grindstone, and he shouted: “Bonnefoy, open up, I’m freezing!” The by-law says you don’t answer anyone who knocks after midnight, and above all, I was afraid; so I stayed behind the door, ladle in hand, counting my barrels out loud. In the morning, he was sitting against the doorstep, white with frost, his fist still raised. Since then, on frosty nights, I leave a bowl of hot soup on the windowsill, and I still don’t know who for."],
 ["L’hiver sera long. Je le sais, les écureuils le savent. Il me faut huit bottes d’herbes et cinq champignons pour mes remèdes. Des fermes, pas des ramollis.","The winter will be long. I know it, the squirrels know it. I need eight bundles of herbs and five mushrooms for my remedies. Firm ones, not mushy ones."],
 ["L’homme au long manteau","The man in the long coat"],
+["L’homme au long manteau.","The man in the long coat."],
 ["L’homme au manteau","The Man in the Coat"],
+["L’homme au masque.","The masked man."],
 ["L’homme casse ! Non !","The man breaks! No!"],
 ["L’homme long","The Long Man"],
 ["L’homme ne casse pas les pierres.","The man does not break the stones."],
@@ -80773,6 +82947,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Ma chère {npc:postiere},\n\nTu ouvres les lettres des autres, je le sais, tout le monde le sait. Alors ouvre celle-ci : ne va pas au puits.\n\nJe ne sais pas pourquoi je t’écris cela. Je me suis réveillé avec la phrase dans la bouche, comme un goût de fer.","My dear {npc:postiere},\n\nYou open other people’s letters, I know it, everyone knows it. So open this one: don’t go to the well.\n\nI do not know why I am writing this to you. I woke with the sentence in my mouth, like a taste of iron."],
 ["Ma concurrente, {npc:colporteuse}, vend des épices et des tissus. Je vends des livres et des cartes. On ne se marche pas dessus. Enfin, pas souvent.","My rival, {npc:colporteuse}, sells spices and fabrics. I sell books and maps. We don’t tread on each other’s toes. Well, not often."],
 ["Ma femme est partie une nuit d’octobre. Pas avec un autre, non. Partie. Le registre dit « départ volontaire ». C’est moi qui l’ai écrit.","My wife left one October night. Not with another man, no. Gone. The register says “voluntary departure”. I wrote it myself."],
+["Ma femme est partie à la ville il y a dix ans. Elle disait que je parlais trop. Depuis, je parle aux bornes. Elles, elles restent.","My wife left for town ten years ago. She said I talked too much. Since then, I talk to the boundary stones. They, at least, stay put."],
+["Ma femme m’a écrit. Une ligne. « Tu parles encore trop ? » J’ai répondu quatre pages.","My wife wrote to me. One line. “Do you still talk too much?” I replied with four pages."],
 ["Ma fille,\n\nJe te rejoins avant l’hiver. Je laisse la maison au maire, avec ce qu’il y a dedans. Ne me demande pas de revenir chercher le reste.\n\nLe petit cahier, je l’ai laissé exprès. Qu’il reste là où il a été écrit.","My daughter,\n\nI will join you before winter. I am leaving the house to the mayor, with everything in it. Do not ask me to come back for the rest.\n\nThe little notebook, I left it on purpose. Let it stay where it was written."],
 ["Ma forge s’est éteinte toute seule cette nuit. Le feu ne s’éteint jamais. Jamais.","My forge went out by itself last night. The fire never goes out. Never."],
 ["Ma fête. Oui. Comment vous savez ? … Mon cousin, évidemment. Merci. On n’en parle plus.","My name day. Yes. How do you know? … My cousin, of course. Thank you. Let’s say no more about it."],
@@ -80786,6 +82962,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Ma jument Tempête boude sa mangeoire depuis trois jours. Il n’y a que les carottes et les pommes pour la décider. Huit carottes, six pommes, et elle sera remise d’aplomb.","My mare Tempête has been sulking at her trough for three days. Only carrots and apples will win her round. Eight carrots, six apples, and she’ll be right as rain."],
 ["Ma lampe est vide. Ils n’aiment pas que j’en parle. On m’a donné une pierre qui luit, quand on l’a portée au jour. Il n’y a pas de jour.","My lamp is empty. They do not like me to talk about it. They gave me a stone that glows, once it has been carried into the daylight. There is no daylight."],
 ["Ma mère est morte en février quatre-vingt-seize, pendant que je grelottais à Majunga. Sa dernière lettre m’a couru après pendant des mois, de navire en caserne, puis elle est revenue ici avec un tampon : « retour à l’envoyeur ». L’envoyeur était au cimetière depuis des mois. C’est moi qui l’ai ouverte, dans sa cuisine, sur sa table. Trois lignes sur les poules et le prix du sel, et à la fin, comme toujours : « Rentre avant la nuit, mon grand. »","My mother died in February of ninety-six, while I lay shivering in Majunga. Her last letter chased after me for months, from ship to barracks, and then it came back here with a stamp: “return to sender”. The sender had been in the cemetery for months. I was the one who opened it, in her kitchen, at her table. Three lines about the hens and the price of salt, and at the end, as always: “Come home before dark, my lad.”"],
+["Ma mère m’écrit de la ville. Elle croit que je reviens au printemps. Je ne lui ai pas dit le contraire.","My mother writes to me from the city. She thinks I’m coming back in the spring. I haven’t told her otherwise."],
 ["Ma mère posait déjà du lait pour la Dame, au bout du ponton, les soirs où mon père s’attardait trop loin sur l’eau. Moi, j’ai repris l’hiver d’après Jules, sans trop savoir pourquoi, avec le lait de {npc:eleveuse}. On dit que la Dame garde ce que le lac a pris : pas comme on garde un prisonnier, comme on garde des pommes au grenier, au frais, pour plus tard. Alors je me dis que Jules est quelque part au frais, et qu’un jour, elle me le rendra, ou qu’elle me mènera jusqu’à lui. Depuis que vous venez vous asseoir sur ce ponton, j’y crois un peu plus, allez savoir pourquoi.","My mother used to set out milk for the Lady at the end of the jetty, on evenings when my father stayed out too far on the water. I took it up again the winter after Jules, without really knowing why, with milk from {npc:eleveuse}. They say the Lady keeps what the lake has taken: not the way you keep a prisoner, the way you keep apples in the loft, somewhere cool, for later. So I tell myself Jules is somewhere cool, and that one day she’ll give him back to me, or lead me to him. Since you started coming to sit on this jetty, I believe it a little more, heaven knows why."],
 ["Ma mère. Je ne lui ai jamais dit merci.","My mother. I never said thank you to her."],
 ["Ma nièce raconte à toute la vallée que je dors avec une chandelle. C’est une veilleuse, {fermier}, une veilleuse municipale.","My niece is telling the whole valley that I sleep with a candle lit. It is a night light, {fermier}, a municipal night light."],
@@ -80953,6 +83130,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Merci, mon enfant. Le Seigneur aime ceux qui donnent. Moi aussi, d’ailleurs.","Thank you, my child. The Lord loves those who give. As do I, for that matter."],
 ["Merci, {fermier}. Ça fera passer la nuit plus vite.","Ah, {fermier}, thank you. That’ll make the night go faster."],
 ["Merci.","Thank you."],
+["Merci. C’est aimable.","Thank you. That’s kind."],
 ["Merci. C’est délicat.","Thank you. How thoughtful."],
 ["Merci. C’est gentil. Le lac vous le rendra.","Thanks. That’s kind. The lake will repay you."],
 ["Merci. Elle vous le rendra. Enfin, elle vous mordra moins.","Thank you. She’ll pay you back. Well, she’ll bite you less."],
@@ -80961,14 +83139,17 @@ const I18N_EN = {"v":1,"exact":[
 ["Merci. Et toi, tu dors bien, en ce moment ?","Thanks. And you, are you sleeping well these days?"],
 ["Merci. Faites vite. Je n’aime pas penser à ce qui grignote.","Thank you. Be quick. I don’t like to think about what’s doing the gnawing."],
 ["Merci. Il est propre, maintenant. Je peux le lui porter.","Thank you. It’s clean, now. I can take it to him."],
+["Merci. Je le note.","Thank you. I’ll make a note of it."],
 ["Merci. Je le rangerai.","Thank you. I shall put it away."],
 ["Merci. Je trouverai bien de quoi en extraire une essence.","Thank you. I’m sure I’ll find some essence to extract from it."],
 ["Merci. Je vais couper par le lac, c’est plus court.","Thank you. I’ll cut across the lake, it’s shorter."],
 ["Merci. Je vais le ranger avec les colis sans adresse.","Thank you. I’ll put it with the parcels that have no address."],
+["Merci. Le guet vous en sait gré.","Thank you. The watch is grateful."],
 ["Merci. Moi, je ne vais plus au lac. Pas depuis que l’eau m’a appelée par mon nom.","Thank you. I don’t go to the lake anymore. Not since the water called me by my name."],
 ["Merci. Montez l’escalier doucement. Il manque des marches. Et il en apparaît d’autres.","Thanks. Take the stairs slowly. Some steps are missing. And others appear."],
 ["Merci. Ne restez pas là-bas quand le brouillard se lève. Il se lève vite, là-bas.","Thank you. Don’t stay out there when the fog rises. It rises fast, out there."],
 ["Merci. N’en reprends pas, des pilules. Là où elles mènent, il y a pire que moi.","Thank you. Don’t take any more of them, the pills. Where they lead, there are worse things than me."],
+["Merci. Posez-le sur la table.","Thank you. Put it on the table."],
 ["Merci. Prenez votre temps. Le lac n’est pas pressé. Moi, un peu.","Thanks. Take your time. The lake’s in no hurry. I am, a bit."],
 ["Merci. Surtout, pas un mot à {npc:fillette}. Elle se ferait des idées.","Thank you. Above all, not a word to {npc:fillette}. She’d get ideas."],
 ["Merci. Tout se revend.","Thanks. Everything finds a buyer."],
@@ -81005,6 +83186,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Mes plumes d’acier sont arrivées tordues. Toutes ! Il me faudrait six belles plumes à tailler. De poule, d’oie, je ne suis pas difficile.","My steel nibs arrived bent. Every single one! I’d need six good feathers to cut into quills. Hen, goose, I’m not fussy."],
 ["Mes poches ! Vous osez ? Au garde ! AU GARDE !","My pockets! How dare you? Warden! WARDEN!"],
 ["Mes pots ont changé de place sur l’étagère. Rangés de droite à gauche. Quelqu’un est passé par l’autre côté de ma maison.","My jars have moved on the shelf. Arranged from right to left. Someone came through the other side of my house."],
+["Mes respects.","My respects."],
+["Mes respects. Rien à déclarer ?","My respects. Anything to report?"],
 ["Mes rhumatismes ont chanté matines avant moi, ce matin, et laudes, et tout l’office.","My rheumatism sang matins before I did this morning, and lauds, and the whole office."],
 ["Mes sachets de graines étaient rangés à l’envers, ce matin. Tous. L’étiquette contre le mur. C’est moi, sans doute. La fatigue.","My seed packets were all put away back to front this morning. Every one. Labels to the wall. It’s me, no doubt. Tiredness."],
 ["Mes secrets, c’est pour les habitués. Revenez boire un coup, on verra.","My secrets are for the regulars. Come back for a drink, and we’ll see."],
@@ -81039,6 +83222,9 @@ const I18N_EN = {"v":1,"exact":[
 ["Mirza","Mirza"],
 ["Mise au point","Debug"],
 ["Mission de 1823 : « O Crux, ave, spes unica. » Passant, salue la croix et continue ta route.","Mission of 1823: “O Crux, ave, spes unica.” Passer-by, salute the cross and go on your way."],
+["Mistral déteste l’orage. Moi aussi. Ni l’un ni l’autre ne le montre.","Mistral hates storms. So do I. Neither of us shows it."],
+["Mistral refuse le gué du moulin, la nuit. Une fois, je l’ai forcé. Au milieu de l’eau, il s’est arrêté net, et j’ai vu pourquoi : il y avait une main, sous la surface, ouverte, posée à plat sur le fond. Une main propre. Je suis passé par le pont des Saules, depuis.","Mistral refuses the mill ford at night. Once, I forced him. In the middle of the water, he stopped dead, and I saw why: there was a hand, beneath the surface, open, lying flat on the bottom. A clean hand. I’ve gone round by the Willow Bridge ever since."],
+["Mistral, c’est mon cheval. Il refuse de passer le gué du moulin, la nuit. De jour, il passe. J’ai cessé de discuter avec lui.","Mistral is my horse. He refuses to cross the mill ford at night. By day, he crosses. I’ve stopped arguing with him."],
 ["Mixture douteuse","Dubious mixture"],
 ["Mme Perrine, curiosités","Madame Perrine, curiosities"],
 ["Mmh… laissez-moi dormir…","Mmh… let me sleep…"],
@@ -81076,6 +83262,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Mon Dieu… un piège à loup… en plein passage…","Good Lord… a wolf trap… right in the way…"],
 ["Mon ami ! J’ai une théorie nouvelle sur la Fortune. Elle est probablement fausse. Voulez-vous l’entendre ?","My friend! I have a new theory about Fortune. It is probably wrong. Would you like to hear it?"],
 ["Mon ami. J’ai mis de côté un ouvrage pour vous. Il est dangereux. Vous l’aimerez.","My friend. I have put a book aside for you. It is dangerous. You will love it."],
+["Mon anniversaire. J’ai reçu une lettre de ma mère. Elle a deux mois de retard. Elle est datée d’aujourd’hui.","My birthday. I received a letter from my mother. It is two months late. It is dated today."],
 ["Mon associé est parti avec les mulets et la poudre. Il me reste le pic, la lampe, et le chant.\n\nLe chant vient du fond de la galerie, à la tombée de la nuit. C’est l’eau, sûrement. C’est l’eau.","My partner has left with the mules and the powder. I’m left with the pick, the lamp, and the song.\n\nThe song comes from the far end of the gallery, at nightfall. It’s the water, surely. It’s the water."],
 ["Mon ballot de toile était mouillé ce matin. Pas de pluie. Il sentait le lac.","My bundle of linen was wet this morning. No rain. It smelled of the lake."],
 ["Mon bureau a été fouillé. Mes papiers ne sont plus dans l’ordre. Si c’est vous… non. Ce ne peut pas être vous. Si ?","My office has been searched. My papers are no longer in order. If it was you… no. It cannot have been you. Could it?"],
@@ -81096,6 +83283,9 @@ const I18N_EN = {"v":1,"exact":[
 ["Mon enclume était chaude, ce matin, et le feu était éteint depuis la veille. Bonjour.","My anvil was warm this morning, and the fire had been out since the night before. Morning."],
 ["Mon enfant, ce ne sont pas des péchés, ce sont des soucis. Mais on peut aussi les poser ici. Allez en paix.","My child, those aren’t sins, they’re worries. But they can be laid down here too. Go in peace."],
 ["Mon enfant… dans la poche d’un prêtre ? Dieu vous voit. Moi aussi.","My child… in a priest’s pocket? God sees you. So do I."],
+["Mon feu a mal pris, hier soir. Le bois était sec.","My fire caught badly last night. The wood was dry."],
+["Mon feu s’est couché d’un coup, cette nuit, comme sous un grand vent. Il n’y avait pas de vent.","My fire flattened all at once last night, as if in a great wind. There was no wind."],
+["Mon fils,\n\nOn nous dit que le régiment a chargé et qu’il n’en reste presque rien. On ne nous dit pas qui. Ta mère allume une bougie chaque soir à la fenêtre. Écris-nous, même une ligne.\n\n(Au dos, au crayon, d’une main plus jeune : « Vivant. Le cheval, non. »)","My son,\n\nWe are told that the regiment charged and that almost nothing is left of it. We are not told who. Your mother lights a candle at the window every evening. Write to us, even a single line.\n\n(On the back, in pencil, in a younger hand: “Alive. The horse isn’t.”)"],
 ["Mon frère Jules s’est noyé il y a dix ans. On n’a jamais retrouvé le corps. Le lac ne rend jamais ce qu’il garde.","My brother Jules drowned ten years ago. They never found the body. The lake never gives back what it keeps."],
 ["Mon frère aurait aimé ce poisson-là. Il est à vous, le prix.","My brother would have liked that fish. The prize is yours."],
 ["Mon frère est resté là-haut, en 1831. Le drac l’a pris, disent les vieux. Moi, je dis la lauza qui a glissé. On ne l’a pas retrouvé. On lui a fait un cairn quand même, avec sa sonnaille dessus.","My brother stayed up there, in 1831. The drac took him, the old folk say. Me, I say it was a lauza that slipped. We never found him. We made him a cairn all the same, with his bell on top."],
@@ -81112,6 +83302,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Mon herbier a perdu ses planches de montagne. Il me faudrait une gentiane et un edelweiss, frais. Faites-les-moi identifier d’abord, bien sûr : je ne veux pas d’un pissenlit peint en bleu.","My herbarium has lost its mountain plates. I need a gentian and an edelweiss, fresh. Have them identified first, of course: I don’t want a dandelion painted blue."],
 ["Mon herbier a été rongé par les rats et l’humidité. Il me manque des planches. Les plus rares, bien sûr.","My herbarium has been gnawed by rats and rotted by damp. I’m missing some plates. The rarest ones, of course."],
 ["Mon homme,\n\nLe petit tousse depuis la Saint-Jean. La guérisseuse dit que c’est le froid des bois. Reviens avant l’hiver, ou fais-nous monter, que je voie au moins où tu dors.\n\nOn dit en ville que les charbonniers ne sont pas chrétiens. J’ai dit que tu fais ta prière comme tout le monde. C’est vrai, dis ?","My man,\n\nThe little one has been coughing since Saint John’s Day. The healer says it is the cold of the woods. Come back before winter, or have us come up, so that I can at least see where you sleep.\n\nThey say in town that the charcoal burners are not Christians. I said you say your prayers like everyone else. It’s true, isn’t it?"],
+["Mon lit de camp. Celui du passant est juste à côté, vous l’avez manqué. Debout. Et estimez-vous heureux que ce soit moi.","My camp bed. The traveller’s is right beside it, you missed it. Up. And count yourself lucky it’s me."],
 ["Mon mari m’attend de l’autre côté. Il m’écrit une lettre par été, que le colporteur monte jusqu’au col. Il écrit mal. Je relis tout l’hiver.","My husband is waiting for me on the other side. He writes me one letter a summer, which the pedlar brings up as far as the pass. He writes badly. I reread it all winter."],
 ["Mon mari s’appelait Jacques. Il est parti relever les nasses un soir de nèble. La nau est revenue toute seule, bien rangée contre le quai, les rames croisées.","My husband was called Jacques. He went out to haul the fish traps on a nèble evening. The nau came back on its own, neatly tied up against the quay, the oars crossed."],
 ["Mon mari élevait des chevaux. Depuis qu’il est mort, je les élève pour deux. Ils me le rendent bien.","My husband bred horses. Since he died, I raise them for the two of us. They repay me well."],
@@ -81157,6 +83348,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Monsieur le Maire,\n\nJe me plains de mon voisin qui chante la nuit. Il chante sous ma fenêtre, à trois heures.\n\nJe me plains aussi de n’avoir pas de voisin.","Dear Mr Mayor,\n\nI wish to complain about my neighbour, who sings at night. He sings under my window, at three o’clock.\n\nI also wish to complain that I have no neighbour."],
 ["Monsieur le Maire,\n\nLe moulin ne tourne plus depuis que les ailes ont brûlé. On a dit que c’était la foudre. Il n’y avait pas d’orage.\n\nJe vous demande la permission de ne pas le rebâtir.","Mr. Mayor,\n\nThe mill hasn’t turned since the sails burned. They said it was lightning. There was no storm.\n\nI ask your permission not to rebuild it."],
 ["Monsieur le Maire,\n\nNous accusons réception de votre dix-septième demande d’abrogation de l’ordonnance dite « des ponts ». Nous regrettons de vous informer que ladite ordonnance ne figure dans aucun de nos registres.\n\nNous vous saurions gré de ne plus nous écrire à ce sujet, ni à aucun autre.","Mr Mayor,\n\nWe acknowledge receipt of your seventeenth request for the repeal of the so-called “bridges” ordinance. We regret to inform you that the said ordinance appears in none of our registers.\n\nWe should be obliged if you would not write to us again on this subject, or on any other."],
+["Monsieur le chevalier ! Vous avez entendu, vers trois heures ?","Sir Knight! Did you hear it, around three o’clock?"],
 ["Monsieur le curé, est-ce que les cloches, elles ont peur quand on les sonne ?","Father, do bells get scared when you ring them?"],
 ["Monsieur le curé, vos cloches ont encore sonné pendant mon discours, dimanche. Pile sur « chers administrés ».","Father, your bells rang during my speech again on Sunday. Right on “dear constituents”."],
 ["Monsieur le garde ! Pourquoi vous levez les ponts, le soir ?","Mister Warden! Why do you raise the bridges in the evening?"],
@@ -81216,6 +83408,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Mot griffonné","Scribbled note"],
 ["Mot plié sous le lit","Note folded under the bed"],
 ["Mouchoir brodé","Embroidered handkerchief"],
+["Mouillé comme une soupe. Le képi tient, c’est l’essentiel.","Soaked to the skin. The képi is holding, that’s what matters."],
 ["Moulin : ailes enchaînées depuis des années (voir délibération). Farine retrouvée sur le seuil trois matins de suite.\n\nQui moud ? Pour quoi faire ?\n\nNe rien dire au conseil. Le conseil, c’est moi.","Mill: sails chained up for years (see council resolution). Flour found on the doorstep three mornings running.\n\nWho is grinding? And what for?\n\nSay nothing to the council. I am the council."],
 ["Moulin à bras","Hand mill"],
 ["Mouron rouge","Scarlet pimpernel"],
@@ -81310,6 +83503,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Ne m’approchez pas ! J’ai des lettres à distribuer. Des gens m’attendent. Ils sauront, si je ne viens pas.","Don’t come near me! I’ve got letters to deliver. People are waiting for me. They’ll know, if I don’t come."],
 ["Ne m’approchez pas.","Don’t come near me."],
 ["Ne m’approchez pas. Je crie, et tout le village descend de ses planches.","Don’t come near me. I shout, and the whole village comes down off its planks."],
+["Ne m’approchez pas. Je suis armé, et je sais m’en servir.","Don’t come near me. I am armed, and I know how to use it."],
 ["Ne m’oubliez pas.","Forget me not."],
 ["Ne pas le regarder plus de quelques secondes. Ne jamais courir. Le feu semble le tenir à distance.","Do not look at it for more than a few seconds. Never run. Fire seems to keep it at bay."],
 ["Ne pas vider la pipe de l’oncle. Ne pas ouvrir la fenêtre de la sept. Ne pas descendre à la cave après minuit, même si on entend rouler un tonneau. Surtout si on entend rouler un tonneau.\n\n— Règles de la maison, recopiées pour la dixième fois, parce que l’encre s’efface toujours de la même ligne.","Do not empty Uncle’s pipe. Do not open the window of room seven. Do not go down to the cellar after midnight, even if you hear a barrel rolling. Especially if you hear a barrel rolling.\n\n— House rules, copied out for the tenth time, because the ink always fades from the same line."],
@@ -81483,9 +83677,15 @@ const I18N_EN = {"v":1,"exact":[
 ["Noyé dans","Drowned in"],
 ["Nuage","Nuage"],
 ["Nuageux","Cloudy"],
+["Nuit claire. Pas une ombre de trop. Ça arrive.","A clear night. Not one shadow too many. It happens."],
+["Nuit claire. Rien.","Clear night. Nothing."],
+["Nuit close. Rien qui se laisse écrire. Je vais dormir.","Night’s done. Nothing that can be written down. I’m going to sleep."],
+["Nuit du","Night of"],
 ["Nuit du 14 au 15. Brume épaisse sur tout le fond de la vallée. Vers trois heures, elle s’est déchirée, et j’ai vu la ville. Deux fois. L’une à sa place, derrière ses douves ; l’autre à l’endroit du lac, toutes fenêtres allumées, comme un reflet tourné vers le haut. Dans la seconde, quelqu’un montait la garde sur une tour pareille à la mienne. Il m’a fait signe. J’ai répondu avant d’avoir voulu le faire.","Night of the 14th to the 15th. Thick mist over the whole valley floor. Around three o’clock it tore open, and I saw the town. Twice. One in its proper place, behind its moat; the other where the lake is, every window lit, like a reflection turned upwards. In the second, someone was keeping watch on a tower just like mine. He waved to me. I waved back before I had meant to."],
+["Nuit du Vorndi, trois heures. Avons entendu frapper à toutes les portes du hameau, l’une après l’autre, en commençant par la nôtre. Sorti avec la lanterne. Personne. Pas de traces dans la boue.\n\nMotif retenu : tapage nocturne.\n\nEn marge, d’une autre encre : « Il a frappé aussi à la porte de la cabane. De l’intérieur. »","Night of Vorndi, three o’clock. Heard knocking at every door in the hamlet, one after the other, beginning with our own. Went out with the lantern. No one. No tracks in the mud.\n\nOffence recorded: disturbing the peace at night.\n\nIn the margin, in a different ink: “He also knocked at the door of the hut. From the inside.”"],
 ["Nuit noire","Black night"],
 ["Nuit noire : ni lune ni étoiles. Fermer les volets, garder une lumière, ne pas répondre.","Black night: no moon, no stars. Close the shutters, keep a light burning, do not answer."],
+["Nuit sans incident. Je dresse mon rapport et je me couche.","A night without incident. I write my report and go to bed."],
 ["NumpadAdd","NumpadAdd"],
 ["NumpadEnter","NumpadEnter"],
 ["NumpadSubtract","NumpadSubtract"],
@@ -81498,9 +83698,11 @@ const I18N_EN = {"v":1,"exact":[
 ["N’allez pas au fond. Juste l’entrée. Promettez.","Don’t go deep. Just the entrance. Promise."],
 ["N’approchez pas !","Stay back!"],
 ["N’approchez pas ! Au secours !","Stay back! Help!"],
+["N’approchez pas ! Je dresse procès-verbal, et après je cours chercher le gendarme !","Stay back! I’m drawing up a report, and then I’m running for the gendarme!"],
 ["N’approchez pas ! Je suis le maire, j’ai des responsabilités, une famille… enfin, un chat !","Stay back! I am the mayor, I have responsibilities, a family… well, a cat!"],
 ["N’approchez pas ! J’ai… j’ai de l’aconit ! Beaucoup ! Je ne sais pas le lancer, mais j’en ai !","Stay back! I’ve… I’ve got aconite! Lots of it! I don’t know how to throw it, but I’ve got it!"],
 ["N’approchez pas. Je connais des herbes qui arrêtent un cœur. Et je sais où est le vôtre.","Don’t come any closer. I know herbs that stop a heart. And I know where yours is."],
+["N’avancez pas ! J’ai un fusil ! Et un carnet ! Les deux sont chargés !","Don’t come any closer! I have a rifle! And a notebook! Both are loaded!"],
 ["N’y touchez pas ! Ici, on ne touche pas aux morts.","Don’t touch it! Here, we don’t touch the dead."],
 ["OBSERVÉE, puis plus rien depuis le jour","OBSERVED, then nothing further since day"],
 ["OBSERVÉE. Des pages griffonnées ont été signalées dans les bois. NE LES RAMASSEZ PAS. Si c’est déjà fait : restez près du feu.","OBSERVED. Scribbled pages have been reported in the woods. DO NOT PICK THEM UP. If you already have: stay near the fire."],
@@ -81555,6 +83757,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Oh. Oh ! Ceci… ceci va dans la vitrine. Vous êtes un ami de cette maison. Pour toujours.","Oh. Oh! This… this goes in the display case. You are a friend of this house. Forever."],
 ["Oh. Oh ! Ça, je ne l’avais jamais réussi. Montrez-moi ce que vous avez mis. Non, ne me montrez pas. Si, montrez.","Oh. Oh! I’ve never managed that one. Show me what you put in. No, don’t show me. Yes, show me."],
 ["Oh. Pardon, c’est le métier : je nourris toute la ville, alors je me mêle de tout. Je me tais, enfin, j’essaie.","Oh. Sorry, it’s the trade: I feed the whole town, so I poke my nose into everything. I’ll hold my tongue. Well, I’ll try."],
+["Ohé, {npc:garde} ! Rien cette nuit.","Ho, {npc:garde}! Nothing last night."],
 ["Oh… Alors c’est la Poste qui vous écrira. Enfin, moi : des avis de passage, des petits mots… c’est mieux que rien, non ?","Oh… Then the Post Office will write to you. Well, I will: delivery slips, little notes… it’s better than nothing, isn’t it?"],
 ["Oh… Celui-là, je le garde pour moi.","Oh… This one I’m keeping for myself."],
 ["Oh… Elle est belle. Et la confiture… Tenez, deux plumes d’aigle. Je les ai ramassées sous le rocher de l’Aigle. Ne le dites pas au baïle : il dit que ça porte malheur de les garder.","Oh… It’s beautiful. And the jam… Here, two eagle feathers. I picked them up under Eagle Rock. Don’t tell the baïle (head shepherd): he says it’s bad luck to keep them."],
@@ -81574,20 +83777,25 @@ const I18N_EN = {"v":1,"exact":[
 ["Omelette aux champignons","Mushroom omelette"],
 ["On a déjà rendez-vous, vous vous souvenez ?","We already have a rendezvous, remember?"],
 ["On a déposé un pot de confiture devant ma porte, hier, sans un mot. Était-ce vous ? Je me suis senti pardonné pour toute la semaine.","Someone left a jar of jam outside my door yesterday, without a word. Was it you? I felt forgiven for the whole week."],
+["On a encore taillé la haie de Morel du mauvais côté. C’est de la provocation.","Somebody has trimmed Morel’s hedge on the wrong side again. That’s provocation."],
 ["On a enfoncé ma porte, cette nuit. À la hache. Qui fait des choses pareilles ?","Someone broke down my door last night. With an axe. Who does a thing like that?"],
 ["On a entendu frapper dans la falaise, du côté de la Combe. Trois coups, un coup, trois coups.","Knocking was heard in the cliff, over by the Combe. Three knocks, one knock, three knocks."],
 ["On a enterré l’oncle Anatole avec sa pipe. Hier matin, son étui traînait vide sur mon comptoir. Allez voir sur sa tombe, dans {lieu:cimetiere}, voulez-vous ? Moi, je n’ai pas le cœur.","We buried Uncle Anatole with his pipe. Yesterday morning, its case was lying empty on my bar. Go and have a look at his grave, in {lieu:cimetiere}, would you? I haven’t the heart."],
 ["On a enterré {victime}. Il y avait du monde. Il n’y avait pas assez de monde.","We buried {victime}. There were plenty of people. There weren’t enough."],
 ["On a fouillé ma forge. … Si je trouve qui, je lui forge une serrure. Autour du cou.","Someone went through my forge. … If I find out who, I’ll forge them a lock. Round the neck."],
+["On a frappé au corps de garde, cette nuit. De l’intérieur. J’étais dehors. J’ai attendu le jour pour ouvrir.","Someone knocked at the guardhouse last night. From the inside. I was outside. I waited for daylight to open the door."],
 ["On a frappé sous les planches, cette nuit. Trois coups. Personne n’était en bas. Personne de vivant.","Someone knocked under the planks last night. Three knocks. There was no one down there. No one living."],
 ["On a gravé une croix sur la pierre, au burin, sans soin. Dessous, plus anciens, des creux ronds à demi effacés.","A cross has been carved on the stone with a chisel, carelessly. Beneath it, older, round hollows, half worn away."],
 ["On a mis une pierre au cairn, pour {victime}.","We put a stone on the cairn for {victime}."],
 ["On a perdu quelqu’un. Encore. Je connais ce silence : c’était le même en quatre-vingt.","We’ve lost someone. Again. I know this silence: it was the same in ’80."],
 ["On a posé un calèu pour {victime}, cette nuit.","We set a calèu down for {victime} last night."],
 ["On a recompté les bancs de la place, ce matin : il y en a treize, et nous en avons voté douze. Qui paie le treizième, et surtout, qui s’y assoit ?","The benches on the square were recounted this morning: there are thirteen, and we voted for twelve. Who pays for the thirteenth, and more to the point, who sits on it?"],
+["On a renversé mon brasero. Pas le vent. Le vent ne renverse pas les choses en les reposant droites.","My brazier was knocked over. Not by the wind. The wind doesn’t knock things over and then stand them back up."],
 ["On a saccagé chez moi. Rien volé, ou presque : cassé. C’est pire, je trouve.","My house has been wrecked. Nothing stolen, or next to nothing: just broken. That’s worse, I find."],
+["On a sellé Mistral, cette nuit. Pas moi. La selle était chaude.","Someone saddled Mistral last night. Not me. The saddle was warm."],
 ["On a sonné au guichet avant l’ouverture. J’ai ouvert : personne. Juste des traces de pieds mouillés qui entraient, et qui ne ressortaient pas.","Someone rang at the counter before opening time. I opened up: nobody. Just wet footprints going in, and none coming out."],
 ["On a trouvé un corps. Personne ne veut le relever : ça porte malheur, de relever les morts.","A body’s been found. Nobody wants to move it: it’s bad luck to move the dead."],
+["On a volé une poule à Bastien. Pas à moi, à Bastien. C’est pareil : c’est mon hameau.","Someone stole one of Bastien’s hens. Not mine, Bastien’s. It’s all the same: it’s my hamlet."],
 ["On a vu des empreintes de pieds nus dans la neige, qui menaient vers {lieu:vieux_puits}. Aucune ne revenait.","Someone saw bare footprints in the snow, leading towards {lieu:vieux_puits}. None came back."],
 ["On abat une bête malade. C’est la loi de la ferme. Il y a des gens malades aussi, vous savez.","You put down a sick animal. That’s the law of the farm. There are sick people too, you know."],
 ["On annonce de la neige. De la neige jusque dans les prés du bas, vous vous rendez compte ?","They’re saying snow. Snow right down to the low meadows, can you imagine?"],
@@ -81597,10 +83805,12 @@ const I18N_EN = {"v":1,"exact":[
 ["On devrait faire ça sur toutes les routes. S’arrêter. Manger. Regarder quelqu’un.","We ought to do this on every road. Stop. Eat. Look at someone."],
 ["On devrait vous faire un bassin à vous, tiens.","We ought to make you a pool of your own, you know."],
 ["On distille ce qui reste du raisin une fois pressé. Rien ne se perd.","They distil what’s left of the grapes once they’re pressed. Nothing goes to waste."],
+["On dit Reichshoffen. C’était à Morsbronn, dans les houblons et les vignes. On nous a lancés à travers un village plein de fusils : des murs, des haies, des fossés. Les chevaux tombaient dans les houblons. J’avais vingt et un ans. Le soir, j’ai compté ceux qui restaient, comme on compte les heures la nuit, pour tenir.","They call it Reichshoffen. It was at Morsbronn, among the hops and the vines. We were hurled through a village full of rifles: walls, hedges, ditches. The horses fell in the hops. I was twenty-one. That evening, I counted those who were left, the way you count the hours at night, to hold on."],
 ["On dit que certains ne méritent pas la vallée. Personne ne mérite ça. Même pas ceux que je n’aimais pas.","They say some people don’t deserve the valley. Nobody deserves that. Not even the ones I didn’t like."],
 ["On dit que la Dauna rend ce qu’on lui a donné, si on lui donne plus beau. Je lui ai donné mon anneau. Si vous trouvez une perle, une vraie, je la lui porterai à la place. Peut-être qu’elle me le rendra.","They say the Dauna gives back what you’ve given her, if you give her something finer. I gave her my ring. If you find a pearl, a real one, I’ll take it to her instead. Maybe she’ll give it back to me."],
 ["On dit que la bonne humeur ne se vend pas. Moi, je la sers avec la soupe !","They say good cheer can’t be bought. Well, I serve it with the soup!"],
 ["On dit que la guérisseuse sait ces choses. Et le curé, à sa façon.","They say the healer knows about such things. And the priest, in his own way."],
+["On dit que la lanterne du phare s’allume toute seule. Je l’ai vue s’allumer. Je n’ai pas vu qui l’allumait. Je n’ai pas écrit « toute seule ».","They say the lighthouse lantern lights itself. I saw it come on. I didn’t see who lit it. I didn’t write “by itself”."],
 ["On dit que la vallée compte ses habitants chaque nuit. Et que le compte doit toujours tomber juste.","They say the valley counts its people every night. And that the count must always come out right."],
 ["On dit que la vallée existait avant les cartes. Et qu’aucune carte n’a jamais réussi à la dessiner juste.","They say the valley existed before maps. And that no map has ever managed to draw it right."],
 ["On dit que tu vois {autre}. Hm. Je ne suis pas homme à partager. Ni le feu, ni le reste.","They say you’re seeing {autre}. Hm. I’m not a man who shares. Not the fire, not the rest."],
@@ -81631,6 +83841,7 @@ const I18N_EN = {"v":1,"exact":[
 ["On le dit vieux de cent ans. Il vit dans les douves depuis le siège.","They say it is a hundred years old. It has lived in the moat since the siege."],
 ["On le prend pour un serpent : c’est un lézard sans pattes, lent, doux, couleur de cuivre. Il ne mord pas. Il perd sa queue si on la lui tient.","People take it for a snake: it’s a legless lizard, slow, gentle, copper-coloured. It doesn’t bite. It sheds its tail if you take hold of it."],
 ["On le sait jusqu’aux Sources, ce que vous avez fait. Je ne vous vends plus rien.","They know what you did, all the way to the Springs. I won’t sell you anything any more."],
+["On l’a enterré. J’ai fait battre le tambour, un seul roulement. Ça se fait, chez nous.","The burial is done. I had the drum beaten, a single roll. That’s how it’s done here."],
 ["On l’a vu partir à l’aube, le manteau trempé jusqu’aux genoux. Il ne reviendra pas, qu’ils disent. Ils n’en savent rien.","He was seen leaving at dawn, his coat soaked to the knees. He won’t be back, so they say. They know nothing about it."],
 ["On l’appelle aussi « ferme-à-midi ». La racine se mange, cuite.","It’s also called “close-at-noon”. The root is eaten cooked."],
 ["On l’entend avant de le voir : il rit dans les bois, et il frappe les troncs. Vert, avec une calotte rouge. On dit qu’il annonce la pluie.","You hear it before you see it: it laughs in the woods, and drums on the trunks. Green, with a red cap. They say it announces rain."],
@@ -81650,12 +83861,15 @@ const I18N_EN = {"v":1,"exact":[
 ["On m’a enterré(e) sous le mauvais nom. Ici, au moins, on m’appelle par le mien.","They buried me under the wrong name. Here, at least, they call me by mine."],
 ["On m’a envoyé dans cette paroisse il y a trente ans. Pour six mois. Je ne suis jamais reparti. La vallée rend mal ce qu’elle prend.","I was sent to this parish thirty years ago. For six months. I never left. The valley is loath to give back what it takes."],
 ["On m’a envoyé ici en novembre 1880, pour six mois, au lendemain de l’éboulement de la mine. Ma première messe, dans cette église, a été pour quatorze hommes qu’on n’avait pas pu remonter. Les veuves avaient voulu des cercueils quand même, si légers que les porteurs trébuchaient d’avoir trop forcé. Au premier rang, un garçon de quinze ans ne pleurait pas : c’était {npc:forgeron}, et il ne pleure toujours pas. J’avais trente-trois ans, l’âge du Christ, et je ne savais pas quoi dire ; alors j’ai tout dit en latin, pour ne pas avoir à trouver mes propres mots.","I was sent here in November 1880, for six months, the day after the mine collapse. My first Mass in this church was for fourteen men who could not be brought back up. The widows wanted coffins all the same, so light that the bearers stumbled from straining too hard. In the front row, a boy of fifteen was not crying: it was {npc:forgeron}, and he still does not cry. I was thirty-three, the age of Christ, and I did not know what to say; so I said it all in Latin, so as not to have to find my own words."],
+["On m’a envoyé ici parce que la vallée n’avait pas de gendarme. Le capitaine a dit : « Six mois. » Ça fait deux ans. Je n’ai jamais reçu d’ordre de relève.","I was sent here because the valley had no gendarme. The captain said: “Six months.” It’s been two years. I have never received orders to be relieved."],
 ["On m’a fait les poches, hier. Si je tenais le voleur… Enfin. Je ne le tiens pas.","Someone picked my pocket yesterday. If I had my hands on that thief… Well. I don’t."],
 ["On m’a fait un rapport. Toi, avec {autre}. Je n’ai pas voulu le croire. Je l’ai relu douze fois.","I’ve had a report. You, with {autre}. I didn’t want to believe it. I reread it twelve times."],
 ["On m’a pris des choses devant chez moi. On ne peut même plus laisser un seau dehors.","Things were taken from in front of my house. You can’t even leave a bucket out any more."],
 ["On m’a pris des choses. De petites choses. Mais on me les a prises.","Things have been taken from me. Small things. But taken all the same."],
+["On m’avait promis un second. Un sergent, Ferrand. Il est parti à l’heure, d’après le télégraphe. Il n’est jamais arrivé. Je lui garde son lit de camp.","I was promised a deputy. A sergeant, Ferrand. He left on time, according to the telegraph. He never arrived. I’m keeping his camp bed for him."],
 ["On ne célèbre plus rien dans {lieu:chapelle} depuis un demi-siècle. Mais certains soirs, on y voit de la lumière. Les fidèles d’avant, peut-être, qui n’ont pas compris.","No Mass has been said in {lieu:chapelle} for half a century. But some evenings, there is light inside. The faithful of old, perhaps, who have not realised."],
 ["On ne descend pas ici pour une vie. On descend pour la dixième.\n\nLes neuf premières, la vallée les pardonne, ou les oublie, ce qui revient au même. La dixième, elle la compte. Le Recenseur l’inscrit, et le nom qu’il écrit ne s’efface plus.","No one comes down here for one life. They come down for the tenth.\n\nThe first nine, the valley forgives, or forgets, which comes to the same thing. The tenth, it counts. The Census-Taker writes it down, and the name he writes can never be rubbed out."],
+["On ne dort pas longtemps, à mon âge. On dort bien, c’est déjà ça.","You don’t sleep long, at my age. You sleep well, though, and that’s something."],
 ["On ne fait pas affaire avec les gens de votre espèce.","We don’t do business with your sort."],
 ["On ne fouille pas chez les gens.","You don’t go rummaging in people’s houses."],
 ["On ne frappe pas un forgeron. On frappe le fer. Rappelez-vous ça.","You don’t strike a blacksmith. You strike iron. Remember that."],
@@ -81699,6 +83913,7 @@ const I18N_EN = {"v":1,"exact":[
 ["On récure les chaudrons avec ses tiges. Elle fortifie les os, dit-on.","Its stems are used to scour cauldrons. It strengthens the bones, they say."],
 ["On sait ce que vous avez fait. Partez. L’eau ne lave pas tout.","We know what you did. Leave. Water doesn’t wash everything away."],
 ["On se connaît à peine. Revenez m’acheter de la toile, on verra.","We hardly know each other. Come back and buy some cloth from me, and we’ll see."],
+["On se reverra.","We’ll meet again."],
 ["On se souvient de mots qu’on n’a jamais appris.","You remember words you never learned."],
 ["On surveille, {fermier}, on surveille. Même quand on a l’air de dormir.","Ah, {fermier}. Keeping watch, always keeping watch. Even when I look asleep."],
 ["On tient toute la nuit sans s’effondrer.","You can last the whole night without collapsing."],
@@ -81727,10 +83942,12 @@ const I18N_EN = {"v":1,"exact":[
 ["Ooooh ! C’est pour moi ? Pour de vrai ? Je vais le montrer à Lise ! Merci, merci, merci !","Ooooh! Is it for me? Really and truly? I’m going to show Lise! Thank you, thank you, thank you!"],
 ["Options","Options"],
 ["Orage","Storm"],
+["Orage ! Tout le monde à l’abri, les bêtes comprises ! C’est un ordre !","Storm! Everyone under cover, animals included! That’s an order!"],
 ["Orage sec","Dry storm"],
 ["Orange","Orange"],
 ["Orchidée sauvage","Wild orchid"],
 ["Ordonnance de la guérisseuse","Healer’s prescription"],
+["Ordonnance sur le guet","Ordinance on the watch"],
 ["Ordre d’affectation","Posting order"],
 ["Orge","Barley"],
 ["Orties","Nettles"],
@@ -81789,6 +84006,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Oursons en gomme","Gummy bears"],
 ["Outils","Tools"],
 ["Outils, ferrures, réparations.\nChantiers d’atelier et de puits pour les fermes.","Tools, ironwork, repairs.\nWorkshop and well building sites for farms."],
+["Outrage et violences à agent de la force publique. Je ne l’oublierai pas, et le Code non plus.","Insult and violence against an officer of the law. I won’t forget it, and neither will the Code."],
 ["Ouvert à la dernière page. Naissances : aucune depuis deux ans. Décès : une colonne.\n\nUne troisième colonne, tracée à la règle, n’a pas d’en-tête. Elle est pleine.","Open at the last page. Births: none in two years. Deaths: a column.\n\nA third column, ruled with a straightedge, has no heading. It is full."],
 ["Ouvre toutes les portes fermées à clé. Clic, en la tournant dans le vide : ouvrir le seuil du temple sous la montagne (une fois par jour) ; tournée dans le temple, elle ramène à la cascade.","Opens every locked door. Click, turning it in thin air: open the threshold of the temple beneath the mountain (once a day); turned inside the temple, it brings you back to the waterfall."],
 ["Ouvrir","Open"],
@@ -81814,6 +84032,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Ouvrir le coffre du berger","Open the shepherd’s chest"],
 ["Ouvrir le coffre du chasseur","Open the hunter’s chest"],
 ["Ouvrir le coffre du garde","Open the warden’s chest"],
+["Ouvrir le coffre du guet","Open the watch chest"],
 ["Ouvrir le coffre à outils","Open the toolbox"],
 ["Ouvrir le coffre-fort","Open the safe"],
 ["Ouvrir le colis","Open the parcel"],
@@ -81937,6 +84156,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Pas de pain, pas de mot.","No bread, no word."],
 ["Pas de pièces, pas de secret. Va.","No coins, no secret. Go."],
 ["Pas de pièces. Alors pas de savoir.","No coins. Then no lore."],
+["Pas de quoi payer ? Alors c’est le cachot, mon ami. Ou la route, et je vous cours après.","Can’t pay? Then it’s the lock-up, my friend. Or the road, and I’ll run after you."],
 ["Pas de timbre, pas d’adresse, et ça me donne la chair de poule. Où avez-vous trouvé ça ?","No stamp, no address, and it gives me gooseflesh. Where did you find that?"],
 ["Pas de tonnerre.","No thunder."],
 ["Pas de ça chez moi. Plus jamais. Il n’y a plus de chaise pour vous, à l’auberge. Plus aucune.","Not under my roof. Never again. There’s no chair for you at this inn anymore. Not a single one."],
@@ -82197,6 +84417,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Pluie d’automne, champignons demain. La forêt a toujours faim de pluie, et moi de champignons.","Autumn rain, mushrooms tomorrow. The forest is always hungry for rain, and I for mushrooms."],
 ["Pluie fine, le brochet se réveille. Le Notaire va sortir, je le sens.","Fine rain: the pike are waking up. The Notary will come out, I can feel it."],
 ["Pluie fine, pêche fine. Les brochets aiment ce temps-là.","Fine rain, fine fishing. Pike like this sort of weather."],
+["Pluie fine. Rien.","Fine rain. Nothing."],
 ["Pluie. Le fer rouille. Moi aussi.","Rain. Iron rusts. So do I."],
 ["Pluie. Les outils rouillent. Tout graisser.","Rain. Tools rust. Grease everything."],
 ["Plume","Feather"],
@@ -82250,6 +84471,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Pont nord, rien. Pont sud, rien. Douves… un peu plus hautes qu’hier. À noter. Non. À ne pas noter.","North bridge, nothing. South bridge, nothing. Moat… a little higher than yesterday. To be noted. No. Not to be noted."],
 ["Pont sud, levé à 21 h. Pas sur le tablier : 3 h 10. 3 h 40. 4 h 02. Le pont était vertical.\n\nPont nord : rien.\n\nNote : demander au forgeron si le bois peut grincer tout seul. Ne pas demander au maire.","South bridge, raised at 9 p.m. Footsteps on the deck: 3:10. 3:40. 4:02. The bridge was standing upright.\n\nNorth bridge: nothing.\n\nNote: ask the blacksmith whether wood can creak on its own. Do not ask the mayor."],
 ["Ponts abaissés à l’aube, comme le veut le règlement. Circulez, {fermier}.","Bridges lowered at dawn, as regulations require. Cleared to pass: {fermier}."],
+["Ponts levés à neuf heures. Rien à signaler.","Bridges raised at nine o’clock. Nothing to report."],
 ["Populage","Marsh marigold"],
 ["Populages des marais","Marsh marigolds"],
 ["Porte-bonheur de mai. Toute la plante est un poison pour le cœur.","May’s good-luck charm. The whole plant is a poison to the heart."],
@@ -82446,6 +84668,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Pris par le Hoûm, dans le noir","Taken by the Hoûm, in the dark"],
 ["Prix de reprise, à l’unité","Buy-back price, each"],
 ["Prix à l’unité","Price each"],
+["Procès-verbal","Report"],
+["Procès-verbal contre inconnu","Report against persons unknown"],
 ["Procès-verbal dressé le 14 avril 1791 par nous, commissaire du district, en l’abbaye de Montrevel, désormais bien national. Trouvé : quatre religieux, un tonneau de vin aigre, une bibliothèque mangée par les rats, et un alambic de cuivre que personne n’a su nous expliquer. Un cinquième religieux s’est présenté à nous à la tombée du jour, capuchon baissé : le frère Anselme, porté au registre des profès de l’an 1641. Nous l’avons pris pour un petit-neveu du même nom. Il a refusé qu’on touche à l’autel ; quand notre maçon a frappé le mur derrière, une pierre a sonné creux. Nous avons remis l’examen au lendemain. Au matin, le frère n’était plus là, et aucun de nous n’a su décrire son visage.","Report drawn up on 14 April 1791 by us, commissioner of the district, at the abbey of Montrevel, henceforth national property. Found: four monks, a barrel of sour wine, a library eaten by rats, and a copper still that no one could explain to us. A fifth monk presented himself to us at nightfall, his hood drawn low: Brother Anselme, entered in the register of professed monks for the year 1641. We took him for a great-nephew of the same name. He would not let anyone touch the altar; when our mason struck the wall behind it, a stone rang hollow. We put off the examination until the next day. In the morning the brother was gone, and none of us could describe his face."],
 ["Procès-verbal du district","District report"],
 ["Procédures de confinement spéciales","Special Containment Procedures"],
@@ -82568,6 +84792,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Quelques-unes. Tu dis ça comme si ce n’était rien. Une bête, c’est quelqu’un.","A few. You say that as if it were nothing. A beast is someone."],
 ["Quelqu’un","Someone"],
 ["Quelqu’un a ajouté au couteau, dans le bois du trépied : « 213 ».","Someone has added, with a knife, in the wood of the tripod: “213”."],
+["Quelqu’un a crié. Restez où vous êtes.","Someone cried out. Stay where you are."],
 ["Quelqu’un a déplacé les bancs de la place pendant la nuit. Tous tournés vers le nord. Une farce de jeunes gens, sans doute. Nous n’avons pas de jeunes gens.","Someone moved the benches in the square during the night. All turned to face north. A prank by the young folk, no doubt. We have no young folk."],
 ["Quelqu’un a dû fermer ma porte, après. J’espère qu’on a pensé aux bêtes.","Someone must have shut my door, afterwards. I hope somebody thought of the animals."],
 ["Quelqu’un a encore noué des rubans sur {lieu:calvaire}. Des rubans, sur la croix du Christ, et je sais très bien qui leur a appris cela !","Someone has tied ribbons on {lieu:calvaire} again. Ribbons, on the cross of Christ, and I know very well who taught them that!"],
@@ -82601,9 +84826,14 @@ const I18N_EN = {"v":1,"exact":[
 ["Question de service, {fermier}, pour mon rapport : avez-vous peur du noir ?","Official question, {fermier}, for my report: are you afraid of the dark?"],
 ["Question hypothétique, {fermier}, purement hypothétique : si vous trouviez l’or des Valmont, qu’en feriez-vous ?","A hypothetical question, {fermier}, purely hypothetical: if you found the Valmont gold, what would you do with it?"],
 ["Question sérieuse, {fermier}, la plus sérieuse de toutes, et je vous regarde dans les yeux : qu’est-ce que vous aimez manger, vous ?","Serious question for {fermier}, the most serious of all, and I’m looking you in the eye: what do you like to eat?"],
+["Qui a crié ? Répondez !","Who cried out? Answer me!"],
+["Qui a crié ? … Qui a crié ?","Who cried out? … Who cried out?"],
 ["Qui a de la sauge dans son jardin n’a pas besoin de médecin, dit le proverbe.","He who has sage in his garden needs no doctor, so the proverb goes."],
 ["Qui a encore emprunté le parapluie municipal ? Le curé, je parie. Il appelle cela la charité.","Who has borrowed the municipal umbrella again? The priest, I wager. He calls it charity."],
 ["Qui a posé ça ici ?! Qui ?!","Who put that here?! Who?!"],
+["Qui a tiré ? Port d’arme dans le hameau ! Ça, c’est un procès-verbal !","Who fired? Carrying a weapon in the hamlet! That means a report!"],
+["Qui a tiré ? Rangez cette arme.","Who fired? Put that weapon away."],
+["Qui a tiré ? … Qui a tiré, ici ?","Who fired? … Who fired a shot here?"],
 ["Qui a vu le Cerf Blanc, qui lui a laissé des offrandes et n’a pas tué de cerf depuis une semaine : qu’il aille à sa pierre, à l’aube.","Whoever has seen the White Stag, left him offerings and killed no stag for a week: let them go to his stone, at dawn."],
 ["Qui accusez-vous ? Réfléchissez bien : on ne revient pas sur de telles paroles.","Who are you accusing? Think carefully: words like that cannot be taken back."],
 ["Qui creuse garde, c’est cela ? C’est ce qu’ont dû se dire ceux qui ont racheté les terres des Valmont à la Révolution, et mon arrière-grand-père en était… Oubliez ce que je viens de dire.","Diggers keepers, is that it? No doubt that is what they told themselves, the ones who bought up the Valmont lands during the Revolution, and my great-grandfather was among… Forget what I just said."],
@@ -82624,6 +84854,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Qui t’a parlé de mon tiroir ? Ce sont des lettres pour des gens qui n’existent pas, c’est tout.","Who told you about my drawer? Those are letters for people who don’t exist, that’s all."],
 ["Qui t’a raconté ça ?","Who told you that?"],
 ["Qui va là ? Parlez, bon sang !","Who goes there? Speak up, blast you!"],
+["Qui va là ? … Halte ! Halte, j’ai dit ! Au guet !","Who goes there? … Halt! Halt, I said! The watch!"],
 ["Qui vive","Who goes there"],
 ["Qui vous a dit ça ? … Prenez les graines du tiroir du bas, ce sont les meilleures. Et ne me regardez pas comme ça, j’ai de la poussière dans l’œil.","Who told you that? … Take the seeds from the bottom drawer, they’re the best. And don’t look at me like that, I’ve got dust in my eye."],
 ["Qui êtes-vous ?","Who are you?"],
@@ -82707,8 +84938,11 @@ const I18N_EN = {"v":1,"exact":[
 ["Rapport : passé à la ferme au petit jour. Semis arrosés. Chien nourri. Aucune anomalie. Tu me manques. (Ce dernier point est hors rapport.)","Report: called at the farm at first light. Seedlings watered. Dog fed. No irregularities. I miss you. (That last item is off the record.)"],
 ["Rapport de l’ingénieur Delorme","Engineer Delorme’s report"],
 ["Rapport du brigadier Lemasson","Sergeant Lemasson’s report"],
+["Rapport du chevalier du guet au maire de {ville}. Objet : le sergent Ferrand.\n\nLe sergent n’a pas paru. Son lit de camp est fait. Sa gamelle est sur la table.\n\nNuit du Vorndi : on a frappé au corps de garde, trois coups, à l’heure où il devait arriver. J’ai demandé le nom. On m’a répondu « Ferrand ». J’ai demandé le mot du guet. On ne m’a pas répondu.\n\n(Le rapport n’a jamais été envoyé.)","Report from the Knight of the Watch to the mayor of {ville}. Subject: Sergeant Ferrand.\n\nThe sergeant has not appeared. His camp bed is made up. His mess tin is on the table.\n\nNight of Vorndi: there was a knock at the guardhouse, three knocks, at the hour he was due to arrive. I asked the name. Someone answered “Ferrand”. I asked for the watchword. No one answered.\n\n(The report was never sent.)"],
 ["Rapport sur les remparts","Report on the ramparts"],
+["Rapport terminé, cheval pansé, rien à signaler. Une bonne journée de gendarme.","Report finished, horse groomed, nothing to report. A good gendarme’s day."],
 ["Rapport à la Compagnie des mines, 6 juin 1878. Au cours d’une prospection des hauteurs, nous avons dégagé un éboulis qui masquait une cavité naturelle, tapissée de cristaux de quartz d’une pureté remarquable. Phénomènes à signaler : les cristaux émettent une vibration audible dès que l’on se tait ; des champignons à lueur verdâtre poussent dans les fissures, et continuent de luire une fois cueillis. Les ouvriers refusent d’y travailler, invoquant « les petits » qui frapperaient dans la roche pour les chasser, et tiennent à déposer chaque soir du pain et du lait dans une niche, au fond de la mine. J’ai interdit cette pratique, par principe. Je recommande en outre de ne pas pousser plus loin la galerie nord. Elle sonne creux. Et elle sonne en retard. A. Delorme, ingénieur.","Report to the Mining Company, 6 June 1878. While prospecting the heights, we cleared a rockfall that concealed a natural cavity, lined with quartz crystals of remarkable purity. Phenomena to be noted: the crystals give off an audible vibration as soon as one falls silent; mushrooms with a greenish glow grow in the cracks, and go on glowing once picked. The workmen refuse to work there, citing “the little ones”, who supposedly knock in the rock to drive them out, and insist on leaving bread and milk every evening in a niche at the bottom of the mine. I have forbidden this practice, on principle. I further recommend that the north gallery be taken no further. It rings hollow. And it rings late. A. Delorme, engineer."],
+["Rapport à la préfecture (copie)","Report to the prefecture (copy)"],
 ["Rapportez-moi quelque chose d’en bas ! Une image, avec des couleurs. Et de la confiture ! Je n’en ai mangé qu’une fois.","Bring me something from down below! A picture, with colours. And jam! I’ve only eaten it once."],
 ["Rare, dans les prés. Porte-bonheur, dit-on.","Rare, in the meadows. A lucky charm, they say."],
 ["Rare, printanière, alvéolée. Jamais crue.","Rare, springtime, honeycombed. Never eaten raw."],
@@ -82734,6 +84968,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Recueillie à l’aube, sur l’herbe.","Gathered from the grass at dawn."],
 ["Recule ! Recule, sale bête !","Get back! Get back, you filthy brute!"],
 ["Recule, grand. Ici, le plafond peut tomber sur qui on veut.","Back away, big one. Down here, the ceiling can fall on whoever we like."],
+["Reculez ! Au nom de la loi… et du hameau !","Stand back! In the name of the law… and of the hamlet!"],
 ["Reculez ! J’ai une fourche, et je sais m’en servir.","Stand back! I’ve got a pitchfork, and I know how to use it."],
 ["Reculez. J’ai un marteau. Je m’en servirai.","Back off. I’ve got a hammer. I’ll use it."],
 ["Reculez. J’ai une gaffe, et je sais m’en servir.","Step back. I’ve got a boat hook, and I know how to use it."],
@@ -82743,6 +84978,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Refermer","Close"],
 ["Refermez ça. Tout de suite.","Close that. Right now."],
 ["Refuser","Refuse"],
+["Refuser de le suivre","Refuse to follow him"],
 ["Regarde la lune, va dans la nuit.","Look at the moon, go into the night."],
 ["Regarde, un caillou tout rond ! Lise dit que c’est un œil de pierre. C’est pour rire. Je crois.","Look, a perfectly round pebble! Lise says it’s a stone eye. She’s only joking. I think."],
 ["Regarde-moi. Non, ne détourne pas les yeux. Tu l’as déjà fait une fois.","Look at me. No, don’t look away. You did that once already."],
@@ -82820,6 +85056,9 @@ const I18N_EN = {"v":1,"exact":[
 ["Rendez grâce pour le pain. Il vient de la terre, de la pluie et de vos bras ; pour le reste, ne cherchez pas à savoir d’où il vient.","Give thanks for the bread. It comes from the earth, from the rain and from your own arms; as for the rest, do not try to find out where it comes from."],
 ["Rendez-moi un service : ce paquet doit aller à l’aubergiste, en main propre, et moi je dois aller ailleurs. Ne l’ouvrez pas. Ne le secouez pas trop non plus.","Do me a favour: this parcel has to go to the innkeeper, in person, and I have to be somewhere else. Don’t open it. Don’t shake it too much, either."],
 ["Rendez-vous, assassin !","Give yourself up, murderer!"],
+["Rendez-vous, bon sang ! Vous allez y rester, et moi aussi !","Give yourself up, for heaven’s sake! You’ll die here, and so will I!"],
+["Rendez-vous, nom d’un chien ! Je ne veux pas vous verbaliser mort !","Give yourself up, confound it! I don’t want to write you up dead!"],
+["Rendez-vous. C’est la dernière fois que je vous le demande.","Give yourself up. This is the last time I’ll ask you."],
 ["Rendre","Return"],
 ["Rendre au temple ce qui a été pris.","Return to the temple what was taken."],
 ["Rendre au tombeau le diadème des Aëlim.","Return the diadem of the Aëlim to the tomb."],
@@ -82838,6 +85077,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Rentre chez ta mère. Tout de suite. S’il te plaît. S’il te plaît.","Go home to your mother. Right now. Please. Please."],
 ["Rentre vite chez toi ! Le monsieur du champ sort quand il fait noir. Il bouge pas, mais il avance.","Hurry home! The man in the field comes out when it’s dark. He doesn’t move, but he gets closer."],
 ["Rentrez avant la nuit. Surtout les nuits noires. Surtout.","Get home before dark. Especially on black nights. Especially."],
+["Rentrez avant les ponts.","Be home before the bridges go up."],
 ["Rentrez donc. La nuit, les champs ne vous appartiennent plus.","Get along home. At night, the fields aren’t yours any more."],
 ["Rentrez les bêtes, et gardez le feu allumé cette nuit.","Bring the animals in, and keep the fire going tonight."],
 ["Rentrez les enfants ! Le soleil se fait manger !","Get the children inside! The sun’s being eaten!"],
@@ -82872,6 +85112,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Restez là-bas ! Je crie très fort, vous savez. Toute la ville m’entendra.","Stay over there! I scream very loudly, you know. The whole town will hear me."],
 ["Restez où vous êtes ! Je suis médecin, pas soldat !","Stay where you are! I’m a doctor, not a soldier!"],
 ["Restez où vous êtes. Le garde n’est pas loin, je vous préviens. Il est… il est tout près. Quelque part.","Stay where you are. The warden isn’t far, I warn you. He’s… he’s very close. Somewhere."],
+["Restez où vous êtes. Les mains bien en vue.","Stay where you are. Hands where I can see them."],
+["Restez où vous êtes. Les mains en évidence.","Stay where you are. Keep your hands in plain sight."],
 ["Restez sur la rive. N’approchez pas du ponton, ou je vous pousse à l’eau. Je le jure.","Stay on the bank. Don’t come near the jetty, or I’ll push you in. I swear it."],
 ["Restez tant que vous voulez. L’eau ne se fatigue jamais.","Stay as long as you like. The water never tires."],
 ["Retour à la ferme","Back to the farm"],
@@ -82901,6 +85143,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Ridicule. Un garde qui a peur du noir.","Ridiculous. A warden who’s afraid of the dark."],
 ["Rien","Nothing"],
 ["Rien ? Tu es sûre ? Tu as bien regardé au fond du sac ?","Nothing? Are you sure? Did you look properly at the bottom of the bag?"],
+["Rien ? Vraiment rien ?","Nothing? Really nothing?"],
 ["Rien de bon : une bouillie grise, sans goût ni couleur.","Nothing good: a grey sludge, with no taste and no colour."],
 ["Rien de bon n’en est sorti. Clic : vider la fiole. Clic droit : la boire, si vous y tenez.","Nothing good came of it. Click: empty the vial. Right click: drink it, if you insist."],
 ["Rien en cours.","Nothing under way."],
@@ -82914,13 +85157,17 @@ const I18N_EN = {"v":1,"exact":[
 ["Rien qui ne soit à moi. Il y a des marchés à refuser.","Nothing that isn’t mine. Some bargains must be refused."],
 ["Rien qui puisse aller dans l’alambic. Herbes, miel, champignons, plumes, fleurs…","Nothing that can go in the still. Herbs, honey, mushrooms, feathers, flowers…"],
 ["Rien qui puisse aller sur la table. Des plantes, des champignons, des plumes, des os, des pierres, des poissons… presque tout porte quelque chose.","Nothing that could go on the table. Plants, mushrooms, feathers, bones, stones, fish… almost everything carries something."],
+["Rien qui se laisse écrire. Le jour est à vous.","Nothing that can be written down. The day is yours."],
 ["Rien à annuler","Nothing to undo"],
 ["Rien à commander aujourd’hui.","Nothing to order today."],
 ["Rien à poster ? Tant mieux, j’ai déjà trop de travail.","Nothing to post? Just as well, I’ve got too much work already."],
 ["Rien à se dire. Partez.","Nothing to say. Go."],
 ["Rien à signaler cette nuit. Ponts levés à l’heure. Ah, si : ma pique était plantée dans la porte de la guérite. Côté intérieur. Rien à signaler.","Nothing to report last night. Bridges raised on time. Ah, one thing: my pike was stuck in the sentry-box door. On the inside. Nothing to report."],
 ["Rien à signaler, monsieur le maire. Rien du tout. Comme d’habitude.","Nothing to report, Mr Mayor. Nothing at all. As usual."],
+["Rien à signaler, sauf la chèvre de Bastien. Je vous laisse la nuit.","Nothing to report, except Bastien’s goat. I leave the night to you."],
+["Rien à signaler, sauf la pluie.","Nothing to report, except the rain."],
 ["Rien à signaler, {fermier} ! Vraiment rien, cette fois : pas un pas, pas une voix, et j’en ai presque pleuré de joie.","Nothing to report, {fermier}! Really nothing, this time: not a footstep, not a voice, and I nearly wept for joy."],
+["Rien à signaler. Une chèvre dans le chemin, rentrée.","Nothing to report. A goat in the lane, taken home."],
 ["Rien à vendre pour vous. Pas même un œuf.","Nothing for sale to you. Not even an egg."],
 ["Rien, dites-vous ? Alors d’où vient cette farine sur vos souliers ? On n’a rien moulu là-bas depuis trente ans… Prenez ces plans de réverbères. Je veux de la lumière partout.","Nothing, you say? Then where does this flour on your shoes come from? Nothing has been ground there in thirty years… Take these plans for street lamps. I want light everywhere."],
 ["Rien, mon oncle. Rien du tout.","Nothing, Uncle. Nothing at all."],
@@ -82930,9 +85177,11 @@ const I18N_EN = {"v":1,"exact":[
 ["Rien. Il y a des places qu’on ne prend pas.","Nothing. There are places you don’t take."],
 ["Rien. J’attends que ça passe.","Nothing. I wait for it to pass."],
 ["Rien. Le néant en fiole. J’en ai une étagère pleine.","Nothing. Nothingness in a vial. I have a whole shelf of it."],
+["Rien. Le tambour a sonné une fois, tout seul. Non consigné.","Nothing. The drum sounded once, all by itself. Not recorded."],
 ["Rien. Le tambour ne vous aime pas, cette année.","Nothing. The drum doesn’t like you this year."],
 ["Rien. Pardon.","Nothing. Sorry."],
 ["Rien. Partir.","Nothing. Leave."],
+["Rien. Trois heures dix : des pas sur le pont levé. Rien vu.","Nothing. Ten past three: footsteps on the raised bridge. Nothing seen."],
 ["Roche","Rock"],
 ["Roche d’en bas","Rock from below"],
 ["Roche soufrée","Sulphurous rock"],
@@ -82944,6 +85193,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Ronces","Brambles"],
 ["Rond écarlate","Scarlet Globe"],
 ["Ronde de Nice","Round of Nice"],
+["Ronde de nuit : rien. Le chien de Morel a hurlé à minuit.","Night patrol: nothing. Morel’s dog howled at midnight."],
 ["Rondins","Logs"],
 ["Rosa","Rosa"],
 ["Rosalie","Rosalie"],
@@ -82987,12 +85237,14 @@ const I18N_EN = {"v":1,"exact":[
 ["Ruines de l’abbaye de Montrevel. Il est déconseillé de s’y attarder au crépuscule.","Ruins of Montrevel Abbey. It is inadvisable to linger here at dusk."],
 ["Russules","Russulas"],
 ["Règles de la grotte, pour les nouveaux. Un : on entre à la nuit, on ressort à la nuit, et on rebouche l’éboulis derrière soi. Deux : le tabac en haut, sur les planches, les allumettes au sec dans les caisses de fer ; l’eau suinte au fond. Trois : on ne rentre jamais par le marais, sauf avec le Rouquin, et on ne suit pas les lumières. Quatre : si les gabelous vous tiennent, vous ne connaissez ni la grotte, ni le Rouquin, ni votre mère. Cinq : on laisse une chique de tabac sur la pierre du fond. Ne demandez pas pour qui. Le Rouquin dit que depuis qu’on la laisse, on n’a jamais été pris.","Rules of the cave, for the new lads. One: in by night, out by night, and put the rubble back behind you. Two: tobacco up top, on the planks, matches kept dry in the iron boxes; water seeps in at the back. Three: never come home through the marsh, except with Red, and never follow the lights. Four: if the revenue men get hold of you, you don’t know the cave, or Red, or your own mother. Five: leave a quid of tobacco on the stone at the back. Don’t ask who for. Red says that since we started leaving it, we’ve never been caught."],
+["Rébellion ! Ça, c’est un autre procès-verbal !","Rebellion! Now that’s another report!"],
 ["Récite-moi ton Pater Noster. Tout de suite, en entier, et ne t’arrête pas, quoi que tu entendes.","Recite your Pater Noster for me. Right now, all of it, and don’t stop, whatever you hear."],
 ["Réclamer vos lots","Claim your prizes"],
 ["Récoltes","Crops"],
 ["Récupéré. Confiné en cellule 5 (vitrine, verrou de niveau 2).","Recovered. Contained in Cell 5 (display case, Level 2 lock)."],
 ["Rédaction de Célestin","Célestin’s composition"],
 ["Rédaction. Sujet : racontez une promenade. Un matin, j’étais levé avant tout le monde parce que la vache avait vêlé, et je suis allé au bois de bouleaux voir si le brouillard était encore dedans. Il y avait un cerf tout blanc, blanc comme le givre sur les carreaux. Maman dit qu’il ne faut jamais courir derrière, alors j’ai marché. Il m’attendait à chaque arbre. On est arrivés dans un rond de bouleaux, avec une pierre au milieu où il y a des cornes sculptées. Il n’était plus là. J’ai dit la prière pour les Anciens, comme grand-mère. Après, j’ai trouvé un bout de corne blanche dans l’herbe, mais je l’ai laissé sur la pierre, parce que ce n’était pas à moi. Célestin, 10 ans, 1894. En rouge, de la main du maître : « Hors sujet. Mais bien écrit. Ne va pas seul au bois. »","Composition. Subject: describe a walk. One morning I was up before everybody because the cow had calved, and I went to the birch wood to see if the fog was still in it. There was a stag, all white, white like the frost on the windowpanes. Mama says you must never run after it, so I walked. He waited for me at every tree. We came to a ring of birches, with a stone in the middle that has antlers carved on it. He wasn’t there any more. I said the prayer for the Ancients, like Grandma does. Afterwards I found a bit of white antler in the grass, but I left it on the stone, because it wasn’t mine. Célestin, aged 10, 1894. In red, in the schoolmaster’s hand: “Off topic. But well written. Do not go into the woods alone.”"],
+["Réglé, et quittancé ! Je raye. Ne marchez plus dans mes semis.","Settled, and receipted! I’m crossing it out. Stay off my seedbeds from now on."],
 ["Régénération","Regeneration"],
 ["Réinitialiser","Reset"],
 ["Réparer le banc","Repair the bench"],
@@ -83166,6 +85418,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Si je m’assois, je ne me relève plus. Alors je reste debout et je vous souris, c’est tout ce qui me reste en rayon.","If I sit down, I’ll never get back up. So I stay on my feet and smile at you; that’s all I’ve got left on the shelves."],
 ["Si je sais ? Mon grand-père était bouilleur de cru, avec le privilège et tout ! Le cidre, ça se fait tout seul dans un tonneau : des pommes, de la patience. La bière, il faut de l’orge et du houblon ; sans houblon, c’est de la cervoise, comme au temps des moines. L’hydromel, du miel, et oublier le tonneau à la cave. Pour la gnôle, il vous faut un alambic : des prunes, des poires, du cidre ou du vin dans la cuve, et du bois dessous. Tenez, je vous dessine l’engin, et le tonneau avec. Et si vous en faites de la bonne, je vous l’achète. De la mauvaise aussi, remarquez : passé le troisième verre, mes clients ne font plus la différence.","Do I know? My grandfather was a home distiller, privilege and all! Cider makes itself in a barrel: apples, and patience. Beer needs barley and hops; without hops, it’s ale, like in the days of the monks. Mead: honey, and forget the barrel in the cellar. For hooch, you’ll want a still: plums, pears, cider or wine in the pot, and wood underneath. Here, I’ll draw you the contraption, and the barrel while I’m at it. And if you make some of the good stuff, I’ll buy it off you. The bad stuff too, mind you: after the third glass, my customers can’t tell the difference."],
 ["Si je vous parle un peu fort, ce n’est pas contre vous, {fermier} : c’est contre le sommeil.","If I’m talking a bit loudly, it’s nothing against you, {fermier}: it’s against sleep."],
+["Si j’avais un adjoint, je voudrais qu’il vous ressemble. Avec un uniforme.","If I had a deputy, I’d want him to be like you. With a uniform."],
 ["Si le lac vous rendait une chose, une seule, parmi tout ce que vous avez perdu… vous lui demanderiez quoi ?","If the lake gave you back one thing, just one, out of everything you’ve lost… what would you ask it for?"],
 ["Si le maire passe, vous direz que je surveille le pré. Je surveille : vous.","If the mayor comes by, tell him I’m keeping watch on the meadow. I am keeping watch: on you."],
 ["Si on me trouve : je suis Louis Varenne, le frère d’Anselme. Je suis monté chercher ce qu’il a caché, puisqu’il ne voulait pas le dire. Il fait très froid. Je vais m’asseoir un moment.\n\nDites à Anselme que je ne lui en veux pas.","If anyone finds me: I am Louis Varenne, Anselme’s brother. I climbed up to look for what he hid, since he wouldn’t say. It is very cold. I’m going to sit down for a moment.\n\nTell Anselme I don’t blame him."],
@@ -83218,6 +85471,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Six recettes sont désormais au grimoire (onglet Grimoire de la sacoche).","Six recipes are now in the grimoire (Grimoire tab of the satchel)."],
 ["Soigne bien les plaies et la fatigue.","Heals wounds and weariness well."],
 ["Soigne un peu.","Heals a little."],
+["Soit.","So be it."],
 ["Solange","Solange"],
 ["Soldanelle","Snowbell"],
 ["Soldanelles","Snowbells"],
@@ -83411,6 +85665,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Te voilà. Je t’ai entendu{e} arriver. Je t’entends toujours.","There you are, mon ami{e}. I heard you coming. I always hear you."],
 ["Te voilà. Je t’attendais depuis le dixième.","There you are. I’ve been expecting you since the tenth."],
 ["Technicien en combinaison","Technician in a protective suit"],
+["Temps de chien. Les chiens restent dedans. Le guet, non.","Weather not fit for a dog. The dogs stay indoors. The watch doesn’t."],
 ["Tempête","Tempête"],
 ["Tempête attend ses carottes. Et quand Tempête attend, tout le ranch attend.","Tempête is waiting for her carrots. And when Tempête waits, the whole ranch waits."],
 ["Tempête se laisse approcher par vous. Elle ne laisse personne. Ça veut dire que vous êtes quelqu’un de bien.","Tempête lets you come near her. She doesn’t let anyone. That means you’re a good sort."],
@@ -83436,6 +85691,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Thym","Thyme"],
 ["Thym serpolet","Creeping thyme"],
 ["Théodore","Théodore"],
+["Théophile","Théophile"],
 ["Tiens, c’est vous… J’ai de la farine sur le nez, pas vrai ? Ne dites rien. Si, dites quelque chose.","Oh, it’s you… I’ve got flour on my nose, haven’t I? Don’t say anything. No, do say something."],
 ["Tiens, de la visite ! Blanchette, dis bonjour. Elle dit bonjour.","Well now, a visitor! Blanchette, say hello. She says hello."],
 ["Tiens, des traces de pas. Pieds nus. Qui marche pieds nus en ville ? … Pas moi. Non. J’ai mes bottes.","Hang on, footprints. Bare feet. Who walks barefoot in town? … Not me. No. I’ve got my boots on."],
@@ -83476,6 +85732,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Tirer le ballot de la fente","Pull the bundle out of the crevice"],
 ["Tirer une carte","Draw a card"],
 ["Tisane au miel","Honey tisane"],
+["Tissier","Tissier"],
 ["Toi","You"],
 ["Toi ! Il y avait une lettre pour toi. Non, je mens. Je voulais juste te voir.","You! There was a letter for you. No, I’m lying. I just wanted to see you."],
 ["Toi ! J’ai fait trois lieues de détour. Ne dis rien.","You! I came three leagues out of my way. Don’t say a word."],
@@ -83519,6 +85776,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Total","Total"],
 ["Toucher la pierre","Touch the stone"],
 ["Toucher l’écran","Touch the screen"],
+["Touché ! Il file ! Il saigne !","Hit! He’s bolting! He’s bleeding!"],
+["Touché. Il ne reviendra pas cette nuit.","Hit. He won’t be back tonight."],
 ["Touffe argentée des rochers","Silvery rock tuft"],
 ["Touffe argentée très amère","Very bitter silvery clump"],
 ["Touffe bleutée à l’odeur forte","Bluish clump with a strong smell"],
@@ -83649,6 +85908,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Trois pièces. Pas deux.","Three coins. Not two."],
 ["Trois pièces. Pour où ?","Three coins. Where to?"],
 ["Trois pots ! Du miel de fleurs, pas de sapin, s’il vous plaît.","Three pots! Flower honey, not fir honey, please."],
+["Trois procès-verbaux avant midi ! Une journée de grande activité.","Three reports before noon! A day of great activity."],
 ["Trois reines-des-prés, deux achillées, un miel. Merci.","Three meadowsweet, two yarrow, one honey. Thank you."],
 ["Trois semaines avant de disparaître, le vieil Anselme est venu à la mairie, sa casquette à la main. Il voulait qu’on scelle {lieu:vieux_puits} sous une dalle, aux frais de la commune, avec une croix dessus. J’ai souri, je lui ai parlé de budget, de priorités, de préfecture. Le conseil venait de voter douze bancs pour la place, après trois heures de débat sur la couleur ; nous avons choisi le vert. Certains matins, je trouve ces bancs tournés tous du même côté, et je n’ai jamais osé regarder ce qu’ils regardent.","Three weeks before he disappeared, old Anselme came to the town hall, cap in hand. He wanted {lieu:vieux_puits} sealed under a slab, at the commune’s expense, with a cross on top. I smiled, and spoke to him of budgets, of priorities, of the prefecture. The council had just voted for twelve benches for the square, after three hours of debate on the colour; we chose green. Some mornings I find those benches all turned the same way, and I have never dared look at what they are looking at."],
 ["Trois sègues dans la nasse. La grand-mère sera contente.","Three sègues in the fish trap. Grandmother will be pleased."],
@@ -83667,6 +85927,9 @@ const I18N_EN = {"v":1,"exact":[
 ["Trop de choses à la fois. Les essences se disputent. Comme les gens.","Too many things at once. The essences are quarrelling. Like people."],
 ["Trop de sel. Ma mère aurait dit : trop de sel. Et ma mère avait raison, c’est le pire.","Too much salt. My mother would have said: too much salt. And my mother was right, that’s the worst of it."],
 ["Trop tard.","Too late."],
+["Trop tard. Je l’écrirai.","Too late. I’ll write it down."],
+["Trop tard… Encore trop tard.","Too late… Too late again."],
+["Trop tard… Mon Dieu.","Too late… My God."],
 ["Trop tôt.","Too soon."],
 ["Trophée de cerf","Stag trophy"],
 ["Trousse de soins","First-aid kit"],
@@ -83915,7 +86178,9 @@ const I18N_EN = {"v":1,"exact":[
 ["Un coprin. Mangez-le aujourd’hui, pas demain : demain, ce sera de l’encre. Et pas de vin avec. Croyez-moi sur parole.","An ink cap. Eat it today, not tomorrow: tomorrow, it’ll be ink. And no wine with it. Take my word for it."],
 ["Un cornet noir et mince, qui se confond avec les feuilles mortes.","A thin black cone that blends in with the dead leaves."],
 ["Un coup de feu ! Mon Dieu !","A gunshot! Good Lord!"],
+["Un coup de feu. On ne tire pas près des maisons.","A gunshot. One doesn’t fire near the houses."],
 ["Un coussin vert et spongieux. Elle pousse du côté du nord, dit-on ; ce n’est pas toujours vrai.","A green, spongy cushion. It grows on the north side, they say; that isn’t always true."],
+["Un cri. Par là.","A cry. That way."],
 ["Un crin aux sept couleurs, arraché à une bête qui n’existe pas. Il est là, pourtant.","A seven-coloured hair, torn from a beast that does not exist. And yet here it is."],
 ["Un cristal de roche taillé en galet, serti d’argent. Posée devant la flamme de la lanterne, elle porte la lumière plus loin sous la terre. Il suffit de l’avoir sur soi.","A rock crystal cut like a pebble and set in silver. Placed before the lantern flame, it carries the light farther under the earth. Just having it on you is enough."],
 ["Un cristal orangé, chaud au creux de la main, pris dans sa gangue de roche. Les nains disent que la montagne en a un, et que c’est un morceau de lui.","An orange crystal, warm in the hollow of your hand, encased in its shell of rock. The dwarves say the mountain has one, and that this is a piece of it."],
@@ -83973,6 +86238,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Un homme attendait devant la forge, à l’aube. Il portait mes habits. Je n’ai pas vu son visage. Tant mieux.","A man was waiting outside the forge at dawn. He was wearing my clothes. I didn’t see his face. Just as well."],
 ["Un homme en long manteau, cette nuit, près des maisons. Personne ne le connaît. Personne ne l’a revu.","A man in a long coat, last night, near the houses. Nobody knows him. Nobody’s seen him since."],
 ["Un homme est resté debout toute la nuit dans le champ, derrière les douves, à regarder la ville. À l’aube, il n’y avait plus qu’un épouvantail. Il n’y a jamais eu d’épouvantail là.","A man stood all night in the field beyond the moat, watching the town. At dawn, there was nothing there but a scarecrow. There’s never been a scarecrow there."],
+["Un homme m’a demandé le chemin de la vieille ferme, à minuit. Je le lui ai indiqué. Il est parti dans l’autre sens.","A man asked me the way to the old farm, at midnight. I told him. He went off the other way."],
 ["Un homme sans visage est venu me demander un remède contre l’oubli. Je lui ai dit que ce n’était pas lui qui oubliait. C’étaient les autres qui l’oubliaient, lui.","A man with no face came to ask me for a remedy against forgetting. I told him it wasn’t he who was forgetting. It was the others who were forgetting him."],
 ["Un homme très grand, en redingote, les yeux blancs, tient un registre ouvert sur un pupitre de pierre noire. Il ne lève pas la tête. « Te voilà. Je t’ai inscrit au dixième. Assieds-toi, si tu veux. Il n’y a pas de chaises. »","A very tall man in a frock coat, with white eyes, holds a register open on a lectern of black stone. He does not look up. “There you are. I entered you at the tenth. Sit down, if you like. There are no chairs.”"],
 ["Un inconnu","An unknown man"],
@@ -84029,6 +86295,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Un objet.","An item."],
 ["Un oiseau des lacs qui plonge au lieu de s’envoler. Il disparaît sous l’eau et ressort beaucoup plus loin, là où on ne l’attendait pas.","A bird of the lakes that dives instead of taking flight. It disappears under the water and comes up much further off, where you weren’t expecting it."],
 ["Un orage pareil, ça couche le blé. Priez pour vos épis, ça ne coûte rien.","A storm like this lays the wheat flat. Say a prayer for your crop, it costs nothing."],
+["Un ours est descendu jusqu’au ranch, il y a deux hivers. J’ai tiré en l’air. Il est parti. Moi aussi. On était d’accord.","A bear came down as far as the ranch two winters ago. I fired into the air. It left. So did I. We were agreed."],
 ["Un ours… Les ours, ça grogne, mais ça ne mord pas les gens qu’ils connaissent. Ne dites pas de mal de lui dans ma boutique, s’il vous plaît.","A bear… Bears growl, but they don’t bite the people they know. Please don’t speak ill of him in my shop."],
 ["Un outil oublié","A forgotten tool"],
 ["Un outil.","A tool."],
@@ -84051,6 +86318,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Un paquet ficelé qui sent la vase et goutte un peu. Pas de nom d’expéditeur.","A parcel tied with string, which smells of silt and drips a little. No sender’s name."],
 ["Un paquet lourd, ficelé serré, qui tinte quand on le secoue. « Pour l’auberge, en main propre. »","A heavy parcel, tied up tight, that clinks when you shake it. “For the inn, to be delivered by hand.”"],
 ["Un pas de plus et je tire. Je ne rate jamais.","One more step and I shoot. I never miss."],
+["Un pas de plus, et je tire le sabre. Je ne le rengaine jamais pour rien.","One more step, and I draw my sabre. I never sheathe it for nothing."],
 ["Un pas à gauche, un pas à droite… On m’a appris à marcher au pas, pas à danser.","A step to the left, a step to the right… They taught me to march in step, not to dance."],
 ["Un pas, un Ave. Un pas, un Ave. À ce train-là, j’arriverai au cimetière avec un chapelet complet.","One step, one Ave. One step, one Ave. At this rate, I shall reach the cemetery with a whole rosary said."],
 ["Un perce-neige. Il sort avant tout le monde, par défi. On en tire, dit-on, un remède contre l’oubli.","A snowdrop. It comes up before everyone else, out of defiance. They say a remedy against forgetting can be drawn from it."],
@@ -84116,6 +86384,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Un soir de juin, Anselme est venu jusqu’à la boutique, le chapeau à la main, ce qu’il ne faisait jamais, et il m’a dit : « Viens voir mon épouvantail, s’il te plaît, viens juste le regarder. » Je lui ai ri au nez : je lui ai dit qu’à son âge, on ne fait plus peur aux filles avec des histoires de chiffons, et que j’avais ma caisse à faire. Il a remis son chapeau et il est reparti seul par la grand-route, sans se retourner. J’ai fait ma caisse ; elle était juste, au centime près. C’est la seule chose juste que j’ai faite, ce soir-là.","One June evening, Anselme came all the way to the shop, hat in hand, which he never did, and he said to me: “Come and see my scarecrow, please, just come and look at it.” I laughed in his face: I told him that at his age, you don’t frighten girls with stories about rags any more, and that I had to cash up. He put his hat back on and went off alone down the high road, without looking back. I cashed up; it came out right, to the centime. It was the only thing I got right that evening."],
 ["Un soir de nèble, un homme en long manteau m’a demandé de le passer. J’ai dit non, qu’il était tard. Il a souri, et il a marché sur l’aigue jusqu’à l’autre rive. Je ne le raconte pas en ville.","One evening of nèble, a man in a long coat asked me to take him across. I said no, that it was late. He smiled, and he walked on the aigue to the other shore. I don’t tell that one in town."],
 ["Un soir de septembre","One September evening"],
+["Un soir d’octobre, un homme marchait sur la mare de Bastien. Sur l’eau. Il allait d’un bord à l’autre, les mains dans le dos, comme on fait les cent pas. J’ai dressé procès-verbal : « traversée de mare hors des passages prévus ». Je ne savais pas quoi écrire d’autre. Le lendemain, la mare était gelée. On était en octobre.","One October evening, a man was walking on Bastien’s pond. On the water. He went from one bank to the other, hands behind his back, the way you pace up and down. I drew up a report: “crossing of a pond outside the designated crossing points”. I didn’t know what else to write. The next day, the pond was frozen. It was October."],
 ["Un soir, au col, une voix m’a appelée par mon nom. Je n’ai pas répondu. C’est pour ça que je suis encore là pour vous vendre de la toile.","One evening, up at the pass, a voice called me by name. I didn’t answer. That’s why I’m still here to sell you linen."],
 ["Un soleil de plomb demain. Buvez, et restez à l’ombre à midi.","A scorching sun tomorrow. Drink, and stay in the shade at noon."],
 ["Un soleil pareil, ce n’est pas naturel. Restez à l’ombre.","A sun like that isn’t natural. Stay in the shade."],
@@ -84171,7 +86440,9 @@ const I18N_EN = {"v":1,"exact":[
 ["Une bande de timbres rouges, à l’effigie d’une République qui regarde ailleurs.","A strip of red stamps, bearing the head of a Republic who is looking the other way."],
 ["Une bière d’orge sans houblon, trouble et douce, comme on en brassait avant.","A barley beer without hops, cloudy and sweet, the way they brewed it long ago."],
 ["Une borne de granit gris, haute comme un enfant, gravée : « VALMONT · I · 1791 ». Sous le chiffre, une flèche taillée profond, qui ne suit ni le chemin ni la pente.","A grey granite boundary stone, as tall as a child, carved: “VALMONT · I · 1791”. Beneath the numeral, a deeply cut arrow that follows neither the path nor the slope."],
+["Une borne déplacée, chez Morel. Trois pouces ! Ça ne se fait pas, trois pouces.","A boundary stone moved, at Morel’s. Three inches! That’s not done, three inches."],
 ["Une borne gravée","An engraved boundary stone"],
+["Une borne, une haie, et une chèvre. La même que d’habitude.","A boundary stone, a hedge, and a goat. The same one as always."],
 ["Une boule blanche, sans chapeau ni lamelles, couverte de petites verrues. Vieille, elle crève et crache une fumée brune.","A white ball, with no cap or gills, covered in little warts. Old, it bursts and spits out a brown smoke."],
 ["Une boule de feu ! Elle est tombée derrière les bois !","A fireball! It came down behind the woods!"],
 ["Une boussole de marin dont l’aiguille ne montre pas le nord, mais toujours le lac.","A sailor’s compass whose needle points not north, but always towards the lake."],
@@ -84179,8 +86450,11 @@ const I18N_EN = {"v":1,"exact":[
 ["Une brioche. … Ça se remarquerait, tout le monde saurait. Vous croyez ?","A brioche. … People would notice, everyone would know. You think so?"],
 ["Une brique grise dans un papier qui brille. Elle a le goût de rien, et elle nourrit comme trois repas.","A grey brick in shiny paper. It tastes of nothing, and it fills you like three meals."],
 ["Une béquille clouée à la croix, un ruban fané. Une plaque : « Monté avec. Redescendu sans. 1851. »","A crutch nailed to the cross, a faded ribbon. A plaque: “Went up with. Came down without. 1851.”"],
+["Une bête ! Rentrez chez vous ! Rentrez !","A beast! Go home! Get inside!"],
+["Une bête ! Tout le monde dedans ! Je m’en occupe !","A beast! Everyone indoors! I’ll deal with it!"],
 ["Une bête morte. Tuée proprement ? Bien. Il faut que ça meure proprement.","A dead animal. Killed cleanly? Good. Things should die cleanly."],
 ["Une bête pour une poignée d’or. Le compte est juste.","One beast for a handful of gold. The tally is fair."],
+["Une bête près des maisons. Rentrez.","A beast near the houses. Get inside."],
 ["Une bête, livrée à la ferme le lendemain matin.","An animal, delivered to the farm the next morning."],
 ["Une caisse","A crate"],
 ["Une carpe aux grandes écailles éparses, comme des miroirs. Les douves en sont pleines.","A carp with large, scattered scales, like mirrors. The moat is full of them."],
@@ -84335,6 +86609,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Une lettre d’enfant","A child’s letter"],
 ["Une lettre gelée","A frozen letter"],
 ["Une lettre jamais envoyée","A letter never sent"],
+["Une lettre jaunie","A yellowed letter"],
 ["Une lettre pour toi ! Violette. Encore. Tu ne l’ouvres pas ?","A letter for you! Violets. Again. Aren’t you going to open it?"],
 ["Une lettre revenue, tamponnée « Destinataire inconnu à l’adresse indiquée ».\n\nL’adresse indiquée : « La vieille ferme, {ville} ». L’envoyeur : Anselme.\n\nLa date d’envoi est dans quatre jours.","A returned letter, stamped “Addressee unknown at the address given”.\n\nThe address given: “The old farm, {ville}”. The sender: Anselme.\n\nThe date of posting is four days from now."],
 ["Une lettre sans timbre","A letter with no stamp"],
@@ -84524,6 +86799,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Une tablette","A tablet"],
 ["Une tablette de pierre fine couverte de Hautes Lettres, trouvée dans le tombeau de la Ville engloutie. Clic : la lire.","A tablet of fine stone covered in High Letters, found in the tomb of the Sunken City. Click: read it."],
 ["Une tablette de pierre noire gravée de treize points disposés en cercle, dont un plus profond que les autres. Elle est froide, et plus lourde la nuit que le jour.","A tablet of black stone engraved with thirteen dots arranged in a circle, one of them deeper than the rest. It is cold, and heavier by night than by day."],
+["Une tarte ! Pour moi ? Je la consigne au registre, et puis je la mange. Dans cet ordre.","A tart! For me? I’ll log it in the register, and then I’ll eat it. In that order."],
 ["Une tarte qui s’enfuit ! Ma grand-mère aurait dit que c’est un rêve d’argent ; moi, je dis que vous avez faim. Tenez, une noix.","A runaway tart! My grandmother would have said it’s a dream of money; I say you’re hungry. Here, have a walnut."],
 ["Une tartine de confiture, une tartine de confiture, et une tartine de… confiture.","A slice of bread and jam, a slice of bread and jam, and a slice of bread and… jam."],
 ["Une tartine debout, comme d’habitude. Assise, je m’endormirais dans la soupe.","A slice of bread and butter, standing up, as usual. If I sat down, I’d fall asleep in my soup."],
@@ -84614,6 +86890,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Varenne","Varenne"],
 ["Vasseur","Vasseur"],
 ["Vasseur, fils","Vasseur, the son"],
+["Vauquelin","Vauquelin"],
 ["Vautrin","Vautrin"],
 ["Veilledi","Veilledi"],
 ["Veilleurs d’en bas, j’ai posé ma part sur la pierre et je ne regarderai pas qui la prend. Ouvrez-moi ce qui est fermé. Je n’ai pas demandé le prix, et je ne le demanderai pas.","Watchers below, I have laid my share on the stone and I will not look to see who takes it. Open for me what is shut. I have not asked the price, and I will not ask it."],
@@ -84633,6 +86910,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Venez, j’ai un vin de messe qui n’a pas encore été béni. Nous serons les seuls à le savoir.","Come, I have some communion wine that has not yet been blessed. We shall be the only ones who know."],
 ["Venin de crapaud","Toad venom"],
 ["Venin de vipère. Attention.","Viper venom. Careful."],
+["Vent d’ouest. Une lumière sur la route du nord, à deux heures, qui ne s’est pas approchée.","West wind. A light on the north road, at two o’clock, that did not come nearer."],
 ["Verre dépoli","Frosted glass"],
 ["Vers de terre","Earthworms"],
 ["Version en cours","Current version"],
@@ -84687,6 +86965,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Vin chaud","Mulled wine"],
 ["Vin de fruits","Fruit wine"],
 ["Vin de noix","Walnut wine"],
+["Vingt ans de procès-verbaux. Des chèvres, des haies, des chiens, des bornes. Un seul pour un homme qui marchait sur l’eau de la mare. Je l’ai classé. Je ne savais pas où le ranger.","Twenty years of reports. Goats, hedges, dogs, boundary stones. Only one for a man who walked on the water of the pond. I filed it away. I had no idea where to put it."],
 ["Vingt ans de retard ? La Poste n’est jamais en retard, {fermier}. Ce sont les gens qui ne sont pas prêts. Tenez, pour la course.","Twenty years late? Oh, {fermier}… The Post Office is never late. It’s people who aren’t ready. Here, for the errand."],
 ["Vingt pièces la nuit, c’est le prix. Et je ne fais pas crédit.","Twenty coins a night, that’s the price. And I don’t give credit."],
 ["Vingt pièces, même en plein jour. Et je ne fais pas crédit.","Twenty coins, even in broad daylight. And I don’t give credit."],
@@ -84781,6 +87060,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Votre pioche. Rouillée. Je le savais.","Your pickaxe. Rusty. I knew it."],
 ["Votre plus belle prise :","Your finest catch:"],
 ["Votre prénom (les habitants l’emploieront quand ils vous connaîtront)","Your first name (the locals will use it once they know you)"],
+["Votre signalement partira ce soir.","Your description goes out tonight."],
+["Votre signalement sera au tableau ce soir !","Your description will be on the notice board tonight!"],
 ["Votre tiroir fermé, vous l’avez toujours ? Gardez-le. Mais le jour où il déborde, ma boutique est au coin de la place.","That closed drawer of yours, do you still have it? Keep it. But the day it overflows, my shop is on the corner of the square."],
 ["Votre tisane de l’autre fois… Elle m’a fait rêver en latin. Un latin d’avant le latin.","That tisane you gave me last time… It made me dream in Latin. A Latin from before Latin."],
 ["Votre visage est cloué sur des portes. Les gens le regardent plus que vous ne le faites.","Your face is nailed to doors. People look at it more than you do."],
@@ -84808,6 +87089,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Vous avez dormi en bas ? Il fait chaud, en bas ?","Did you sleep down below? Is it warm down below?"],
 ["Vous avez dormi ici ? Chez moi ? Toute la nuit ? … Sortez. Sortez avant que je crie.","You slept here? In my house? All night? … Get out. Get out before I scream."],
 ["Vous avez du sang sur les mains. Pas sur la peau : dessous.","You have blood on your hands. Not on the skin: beneath it."],
+["Vous avez du sang sur vous. Tenez-vous à distance de mon feu, et de moi.","There’s blood on you. Keep away from my fire, and from me."],
 ["Vous avez décroché ce que d’autres avaient noué à l’arbre aux vœux.","You took down what others had tied to the wishing tree."],
 ["Vous avez déjà cassé vos cailloux pour aujourd’hui. Dormez.","You’ve already broken your stones for today. Sleep."],
 ["Vous avez entendu frapper, cette nuit ? Trois coups à chaque porte de la rue. Tout le monde a cru rêver. Tout le monde.","Did you hear knocking last night? Three knocks at every door in the street. Everyone thought they’d dreamt it. Everyone."],
@@ -84821,10 +87103,12 @@ const I18N_EN = {"v":1,"exact":[
 ["Vous avez frappé chez moi en pleine nuit. Je ne suis pas sorti : je suis resté assis sur mon lit jusqu’au jour, les bottes aux pieds.","You knocked at my door in the middle of the night. I didn’t come out: I sat on my bed till daybreak, with my boots on."],
 ["Vous avez frappé chez moi en pleine nuit. J’ai regardé par la fente du volet et j’ai vu votre visage ; ce n’est pas ce qui m’a rassurée : les visages, ça se prête.","You knocked at my door in the dead of night. I looked through the crack in the shutter and saw your face; that’s not what put my mind at rest: faces can be borrowed."],
 ["Vous avez levé la main sur le Cerf blanc.","You raised a hand against the White Stag."],
+["Vous avez levé la main sur le guet. Je ne l’oublierai pas. Je ne vous en veux pas : j’ai tout écrit.","You raised your hand against the watch. I won’t forget it. I hold nothing against you: I wrote it all down."],
 ["Vous avez levé la main sur le premier magistrat de la commune. Ma joue s’en souvient, et le registre aussi.","You raised your hand against the chief magistrate of the municipality. My cheek remembers it, and so does the register."],
 ["Vous avez levé la main sur moi. J’ai vu des orages coucher le blé, je sais me relever. Mais je sais aussi me souvenir.","You raised your hand to me. I’ve seen storms flatten the wheat; I know how to get back up. But I also know how to remember."],
 ["Vous avez levé la main sur une vieille femme. La forêt l’a vu, et elle est patiente, la forêt.","You raised your hand to an old woman. The forest saw it, and it is patient, the forest."],
 ["Vous avez l’air d’avoir besoin de toile. Ou de bandages. Vous avez une tête à bandages.","You look like you need linen. Or bandages. You’ve got a bandage sort of face."],
+["Vous avez l’œil, pour un fermier. Je vous prendrais au guet, si j’avais encore un guet.","You’ve a keen eye, for a farmer. I’d take you on for the watch, if I still had a watch."],
 ["Vous avez l’œil, {fermier}. Vous feriez un bon alchimiste, si vous étiez un peu moins raisonnable.","Ah, {fermier}! You have a good eye. You’d make a fine alchemist, if you were a little less sensible."],
 ["Vous avez marché sur mon châle. Ce n’est rien. Je vous le vends quand même.","You trod on my shawl. It’s nothing. I’m still selling it to you."],
 ["Vous avez ouvert le tombeau sous la montagne.","You opened the tomb beneath the mountain."],
@@ -84847,6 +87131,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Vous avez tué. Mes bêtes l’ont senti avant moi. Sortez de ma cour.","You’ve killed. My animals sensed it before I did. Get out of my yard."],
 ["Vous avez tué… Mon Dieu. Ne revenez plus ici. Et ne regardez plus jamais ma fille.","You killed… Dear God. Never come back here. And never look at my daughter again."],
 ["Vous avez un frère, vous ? Ou une sœur ? Quelqu’un qui connaît toutes vos bêtises d’enfant ?","Have you got a brother? Or a sister? Someone who knows all the silly things you did as a child?"],
+["Vous avez verbalisé qui, aujourd’hui ?","Who did you book today?"],
 ["Vous avez vu ? Il y a un mort, là-bas. Personne n’ose y toucher.","Did you see? There’s a dead body over there. Nobody dares touch it."],
 ["Vous avez vu cette neige ? Il y en avait jusque sur le lavoir.","Did you see that snow? There was even some on the wash-house."],
 ["Vous avez vu l’épouvantail de la grand-route, ce matin ? … Non, rien, je radote.","Did you see the scarecrow on the high road this morning? … No, never mind, I’m rambling."],
@@ -84882,6 +87167,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Vous en avez revu, des revenants ? Racontez-moi. Non, ne me racontez pas. Si, racontez.","Seen any more ghosts? Tell me. No, don’t tell me. Yes, tell me."],
 ["Vous en savez déjà autant que moi. C’est inquiétant.","You already know as much as I do. That is worrying."],
 ["Vous encore ! Vous finirez par croire que je fais exprès de passer par ici. Vous auriez raison.","You again! You’ll end up thinking I come this way on purpose. You’d be right."],
+["Vous faites les poches d’un gendarme ? Vous êtes en état d’arrestation.","You’re going through a gendarme’s pockets? You are under arrest."],
 ["Vous faites peur aux bêtes !","You’re frightening the beasts!"],
 ["Vous fouillez","Searching"],
 ["Vous fouillez les ordures, maintenant ?","Rummaging through the rubbish now, are you?"],
@@ -84953,6 +87239,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Vous n’auriez pas vu {npc:fillette} ? Elle devait m’aider à pétrir, et hop, envolée, comme d’habitude.","You wouldn’t have seen {npc:fillette}, would you? She was meant to help me knead, and whoosh, off she flew, as usual."],
 ["Vous n’avez jamais essayé ce mélange.","You have never tried this mixture."],
 ["Vous n’avez pas de quoi. Alors ce sera le cachot, ou la route. Choisissez.","You haven’t the means. Then it will be the cell, or the road. Choose."],
+["Vous n’avez pas de quoi. Alors ce sera le cachot.","You haven’t the means. Then it will be the lock-up."],
+["Vous n’avez pas de quoi. Alors suivez-moi.","You haven’t the means. Then follow me."],
 ["Vous n’avez pas entendu une cloche, cette nuit, sous le lac ? Tant mieux pour vous.","You didn’t hear a bell last night, under the lake? Good for you."],
 ["Vous n’avez pas le compte. Ici, on ne fait pas crédit : on fait des jours.","That’s not the full amount. We don’t give credit in here: we give days."],
 ["Vous n’avez pas passé l’aigue depuis longtemps. Vous avez trouvé un autre passeur ? Il n’y en a pas.","You haven’t crossed the aigue in a long time. Have you found another ferryman? There isn’t one."],
@@ -84981,6 +87269,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Vous passez ? Passez. Vous restez ? Restez. Mais pas au milieu du pont, ça gêne.","Crossing? Cross. Staying? Stay. But not in the middle of the bridge, you’re in the way."],
 ["Vous passez derrière la cascade, et vous descendez.","You go behind the waterfall, and down."],
 ["Vous passez plus de temps à genoux qu’à table, ces temps-ci ! Attention : le curé va vous proposer de goûter le vin de messe avec lui, et ça, c’est un sacerdoce.","You spend more time on your knees than at table these days! Careful: the priest will invite you to taste the altar wine with him, and that’s a full-time ministry."],
+["Vous passez, vous saluez, vous ne marchez pas dans les semis. Parfait. Rien à verbaliser.","You walk by, you say hello, you keep out of the seedbeds. Perfect. Nothing to write up."],
 ["Vous pesez moins qu’une plume noire.","You weigh less than a black feather."],
 ["Vous plaisantez ? Allez dormir chez vous.","You’re joking? Go and sleep at home."],
 ["Vous posez les fleurs au pied de la croix. Le vent tombe, les oiseaux se taisent, et pendant un long moment il ne se passe rien ; puis, tout près, quelqu’un pousse un soupir d’enfant, un soupir de fin de journée, content, et la mousse de la croix sèche d’un coup, comme au soleil. Ce soir, à l’une des tables de la vallée, il y aura une chaise de moins.","You lay the flowers at the foot of the cross. The wind drops, the birds fall silent, and for a long moment nothing happens; then, very close, someone gives a child’s sigh, an end-of-the-day sigh, contented, and the moss on the cross dries all at once, as if in the sun. Tonight, at one of the tables in the valley, there will be one less chair."],
@@ -85002,10 +87291,14 @@ const I18N_EN = {"v":1,"exact":[
 ["Vous redescendez sous les pierres.","You go back down beneath the stones."],
 ["Vous regardez l’eau comme Jules. Non. Comme personne d’autre.","You look at the water like Jules did. No. Like nobody else."],
 ["Vous rendez à l’heure. Toujours. C’est plus rare que vous ne croyez. Alors… Au fond, le dernier rayonnage : tirez le registre noir. Les archives sont en dessous. Ne dérangez rien, et remontez avant la nuit.","You return on time. Always. That is rarer than you think. So… At the back, the last shelf: pull out the black register. The archives are beneath it. Disturb nothing, and come back up before nightfall."],
+["Vous rendre ? Vous ? Pour quoi ? … Ah. Oui. Je vois. Bon. Suivez-moi. Doucement.","Turn yourself in? You? For what? … Ah. Yes. I see. Right. Follow me. Gently."],
+["Vous rendre ? À moi ? Personne ne s’est jamais rendu à moi ! … Bon. Bon, bon. Suivez-moi.","Turn yourself in? To me? Nobody has ever turned themselves in to me! … Good. Good, good. Follow me."],
+["Vous rendre. … Je vois. C’est plus courageux que de courir. Suivez-moi.","Turn yourself in. … I see. That’s braver than running. Follow me."],
 ["Vous reprendrez ce qu’il y a dans le coffre.","You will take back whatever is in the chest."],
 ["Vous restez dîner ? Non, oubliez. Si, restez.","Will you stay for supper? No, forget it. Yes, do stay."],
 ["Vous revenez souvent. Les gens d’ici commencent à dire votre nom.","You come back often. People here are starting to say your name."],
 ["Vous revenez toujours. C’est bien. Ceux qui reviennent sont ceux qui restent.","You always come back. That’s good. Those who come back are those who stay."],
+["Vous revoilà ! Je vous avais marqué « disparu » dans le carnet. Je raye. Avec plaisir.","Here you are again! I had you marked “missing” in the notebook. I’m crossing it out. With pleasure."],
 ["Vous revoilà ! J’ai failli ouvrir le mauvais registre. Ne me refaites jamais cela.","There you are again! I very nearly opened the wrong register. Never do that to me again."],
 ["Vous revoilà ! J’avais gardé votre tomme. Elle a vieilli. Elle est meilleure.","You’re back! I kept your tomme. It has aged. It’s better."],
 ["Vous revoilà. J’ai cru que vous étiez parti comme Jacques.","You’re back. I thought you’d gone off like Jacques."],
@@ -85054,6 +87347,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Vous trouvez","You find"],
 ["Vous trouvez toujours que le silence, c’est du temps perdu ? J’en ai perdu beaucoup, de ce temps-là, et je ne le regrette pas.","Do you still think silence is time wasted? I’ve wasted a great deal of that sort of time, and I don’t regret it."],
 ["Vous tâchez d’être digne de votre baptême, disiez-vous. Cela se voit, mon enfant. Le Seigneur l’a remarqué aussi, j’imagine : il a plus de temps que moi.","You try to be worthy of your baptism, you said. It shows, my child. The Lord has noticed too, I imagine: He has more time than I do."],
+["Vous venez vous rendre. Je prends note. Suivez-moi, je vous prie.","You’ve come to turn yourself in. Noted. Follow me, please."],
 ["Vous verrez : c’est beau, là-bas.","You’ll see: it’s beautiful, over there."],
 ["Vous versez le poison sur la viande. Elle noircit, lentement.","You pour the poison over the meat. It blackens, slowly."],
 ["Vous videz la bouillie dans l’herbe. L’herbe n’en veut pas non plus.","You empty the sludge into the grass. The grass doesn’t want it either."],
@@ -85095,11 +87389,16 @@ const I18N_EN = {"v":1,"exact":[
 ["Vous êtes chez moi. Pas à la forge : chez moi. Il y a une différence. Dehors.","You’re in my house. Not the forge: my house. There’s a difference. Out."],
 ["Vous êtes comme le bon vin, vous : on vous apprécie de plus en plus.","You’re like a good wine, you are: you grow on people."],
 ["Vous êtes dans les appartements privés du maire, {fermier}. La mairie, c’est en bas ; ici, il n’y a que mon chat, mes pantoufles et mes regrets. Redescendez, je vous prie.","You are in the mayor’s private apartments, {fermier}. The town hall is downstairs; up here there is nothing but my cat, my slippers and my regrets. Kindly go back down."],
+["Vous êtes dans mon lit. Je vous prie d’en sortir. Je prendrai votre déposition dehors.","You are in my bed. Kindly get out of it. I’ll take your statement outside."],
+["Vous êtes en état d’arrestation. Ne faites pas un geste.","You are under arrest. Don’t make a move."],
 ["Vous êtes fou ?! Laissez mes affaires tranquilles !","Are you mad?! Leave my things alone!"],
 ["Vous êtes ici","You are here"],
+["Vous êtes la seule personne d’ici qui me réponde, {prenom}. Même la préfecture ne le fait pas.","You’re the only person around here who answers me, {prenom}. Even the prefecture doesn’t."],
 ["Vous êtes matinal. L’eau aussi.","You’re up early. So is the water."],
 ["Vous êtes pareil que ma tante, vous : des réponses qui posent trois questions. … Tenez, j’ai mis un fromage dans le panier. Celui-là, il est pour vous, pas pour la personne qui a soif.","You’re just like my aunt, you are: answers that raise three questions. … Here, I’ve put a cheese in the basket. That one’s for you, not for the thirsty one."],
 ["Vous êtes quelqu’un de bien, {fermier}. Ça se voit aux mains.","You’re a good sort, {fermier}. It shows in your hands."],
+["Vous êtes recherché","You are wanted"],
+["Vous êtes recherchée","You are wanted"],
 ["Vous êtes sûr ? Il y avait un village, par ici. Il y avait une église, et des noces…","Are you sure? There was a village around here. There was a church, and a wedding…"],
 ["Vous êtes toujours le bienvenu ici. Avec ou sans vos vêtements.","You’re always welcome here. With or without your clothes."],
 ["Vous êtes toujours là, vous qui vouliez partir sans vous retourner ? Tant mieux. Enfin… tant mieux pour moi.","Still here, you who wanted to leave without looking back? Good. Well… good for me."],
@@ -85218,6 +87517,7 @@ const I18N_EN = {"v":1,"exact":[
 ["chant sous la pierre","song under the stone"],
 ["chanté tout bas, comme une berceuse","sung very softly, like a lullaby"],
 ["chat tué","cat killed"],
+["chevalier du guet","Knight of the Watch"],
 ["chez les nains","among the dwarves"],
 ["chez quelqu’un","at someone’s place"],
 ["chien mort","dead dog"],
@@ -85231,6 +87531,7 @@ const I18N_EN = {"v":1,"exact":[
 ["clé","key"],
 ["colis à porter :","parcel(s) to deliver:"],
 ["collègue","colleague"],
+["commère","gossip"],
 ["contes recueillis à Clairpré","tales collected in Clairpré"],
 ["craché par le guetteur, avant qu’il vous tourne le dos","spat by the lookout, before he turned his back on you"],
 ["crime :","crime:"],
@@ -85285,6 +87586,7 @@ const I18N_EN = {"v":1,"exact":[
 ["des herbes qui ne soignent pas","herbs that do not heal"],
 ["des heures","for hours"],
 ["des lettres qui ne sont pas les siennes","letters that belong to someone else"],
+["des loups","wolves"],
 ["des morilles crues","raw morels"],
 ["des morts dans la vallée","deaths in the valley"],
 ["des piquets montrent l'emprise : clic pour bâtir, clic droit pour tourner","stakes mark out the footprint: click to build, right-click to turn"],
@@ -85413,6 +87715,30 @@ const I18N_EN = {"v":1,"exact":[
 ["froid+vie","froid+vie"],
 ["fruits (au choix)","fruit (any)"],
 ["frè","frè"],
+["g1bauD","g1bauD"],
+["g1bicC","g1bicC"],
+["g1bicGL","g1bicGL"],
+["g1bicGR","g1bicGR"],
+["g1bicL","g1bicL"],
+["g1bicR","g1bicR"],
+["g1bufA","g1bufA"],
+["g1bufB","g1bufB"],
+["g1bufC","g1bufC"],
+["g1bufP","g1bufP"],
+["g1epL","g1epL"],
+["g1epR","g1epR"],
+["g1epaL","g1epaL"],
+["g1epaR","g1epaR"],
+["g1fusD0","g1fusD0"],
+["g1fusD1","g1fusD1"],
+["g1fusM0","g1fusM0"],
+["g1fusM1","g1fusM1"],
+["g1jugL","g1jugL"],
+["g1jugR","g1jugR"],
+["g1kepiB","g1kepiB"],
+["g1kepiI","g1kepiI"],
+["g1kepiV","g1kepiV"],
+["garde champêtre","rural constable"],
 ["garim rimen na-thalen","garim rimen na-thalen"],
 ["garim rimen na-thalen , vor ma teh","garim rimen na-thalen , vor ma teh"],
 ["glacière","icehouse"],
@@ -85495,6 +87821,7 @@ const I18N_EN = {"v":1,"exact":[
 ["la cabane de pierres sèches","the dry-stone hut"],
 ["la cabane des Marcheurs","the Walkers’ Hut"],
 ["la cabane des Scieurs","the Sawyers’ Hut"],
+["la cabane des gardes","the guards’ hut"],
 ["la cabane du Berger","the Shepherd’s Hut"],
 ["la cabane du Fendeur","the Woodsplitter’s Hut"],
 ["la cabane du baïle","the baïle’s hut"],
@@ -85651,6 +87978,7 @@ const I18N_EN = {"v":1,"exact":[
 ["la roulotte de Jouvet","Jouvet’s caravan"],
 ["la route","the road"],
 ["la rue","the street"],
+["la rébellion contre la garde","rebellion against the guard"],
 ["la salle des archives","the archive room"],
 ["la source aux Ex-voto","the Ex-voto Spring"],
 ["la source aux rubans","the ribbon spring"],
@@ -85742,6 +88070,7 @@ const I18N_EN = {"v":1,"exact":[
 ["le commis","the clerk"],
 ["le concours","the contest"],
 ["le corbeau","the raven"],
+["le corps de garde du pont nord","the north bridge guardhouse"],
 ["le corps du chien","the dog’s body"],
 ["le coucou","the cuckoo"],
 ["le crapaud","the toad"],
@@ -85757,6 +88086,7 @@ const I18N_EN = {"v":1,"exact":[
 ["le four Barraud","the Barraud Kiln"],
 ["le four à chaux","the lime kiln"],
 ["le fumoir des Planches","the Planches smokehouse"],
+["le garde","the warden"],
 ["le geai","the jay"],
 ["le genêt","the broom"],
 ["le gibet","the gibbet"],
@@ -86168,6 +88498,7 @@ const I18N_EN = {"v":1,"exact":[
 ["sommeil : génération","sleep: generation"],
 ["son (scène)","son (scène)"],
 ["son propriétaire","its owner"],
+["son second","his deputy"],
 ["son · menu","sound · menu"],
 ["son3d option","son3d option"],
 ["sort+terre","sort+terre"],
@@ -86178,12 +88509,14 @@ const I18N_EN = {"v":1,"exact":[
 ["span small","span small"],
 ["spécimen géant !","giant specimen!"],
 ["sue d’une autre vie","known from another life"],
+["supérieur","superior"],
 ["sur votre droite","on your right"],
 ["sur votre gauche","on your left"],
 ["sè","sè"],
 ["sègue","sègue"],
 ["sègues","sègues"],
 ["sèl","sèl"],
+["sérieux","serious"],
 ["ta kala mi","ta kala mi"],
 ["ta kala … ta rhua","ta kala … ta rhua"],
 ["ta ne tin rhu nai","ta ne tin rhu nai"],
@@ -86251,9 +88584,11 @@ const I18N_EN = {"v":1,"exact":[
 ["un moment","for a while"],
 ["un mot","one word"],
 ["un mot entendu","one word heard"],
+["un ours","a bear"],
 ["un peu","a little"],
 ["un poulailler","a henhouse"],
 ["un protée cru","a raw olm"],
+["un sanglier","a wild boar"],
 ["un tablier raide, et du vin qui ne tourne pas","a stiff apron, and wine that never turns"],
 ["un vol","a theft"],
 ["un vœu","a wish"],
@@ -86264,6 +88599,7 @@ const I18N_EN = {"v":1,"exact":[
 ["une agression","an assault"],
 ["une amanite phalloïde","a death cap"],
 ["une bonne serrure","a good lock"],
+["une bête","a beast"],
 ["une eau-de-vie frelatée","some adulterated brandy"],
 ["une effraction","a break-in"],
 ["une femme","a woman"],
@@ -86320,6 +88656,7 @@ const I18N_EN = {"v":1,"exact":[
 ["{nom} Marchal. Forgeron. Si c’est cassé, je répare. Si ce n’est pas cassé, revenez quand ça le sera.","{nom} Marchal. Blacksmith. If it’s broken, I fix it. If it isn’t broken, come back when it is."],
 ["{nom} Martelfer. Je forge. Tu achètes, ou tu regardes ? Ici, regarder coûte aussi.","{nom} Martelfer. I forge. You buying, or looking? Here, looking costs too."],
 ["{nom} Pichon, receveuse des Postes ! Vous êtes {fermier}, je sais : j’ai trié votre courrier avant votre arrivée. Enfin… je veux dire : bienvenue à {ville} !","{nom} Pichon, postmistress! You’re {fermier}, I know: I sorted your post before you arrived. Well… I mean: welcome to {ville}!"],
+["{nom} Vauquelin, chevalier du guet. Le titre est plus vieux que moi, et la ville plus vieille que le titre. La nuit, quand les ponts sont levés, je veille de ce côté-ci des douves. Si la nuit vous prend dehors, frappez au corps de garde : il y a un lit de camp pour qui reste dehors.","{nom} Vauquelin, Knight of the Watch. The title is older than I am, and the town older than the title. At night, when the bridges are raised, I keep watch on this side of the moat. If night catches you outside, knock at the guardhouse: there’s a camp bed for anyone left outside."],
 ["{npc:aubergiste} ? Un cœur d’or. Mais s’il vous propose son « ragoût du jour », demandez-lui de quel jour.","{npc:aubergiste}? A heart of gold. But if he offers you his “stew of the day”, ask him which day."],
 ["{npc:aubergiste} dit que je lui dois de l’argent. Il met de l’eau dans son vin. On est quittes.","{npc:aubergiste} says I owe him money. He puts water in his wine. We’re even."],
 ["{npc:aubergiste} est un brave homme. Mais il m’a demandé de bénir sa cave deux fois cette année. Deux fois. Je n’ai pas posé de questions.","{npc:aubergiste} is a good man. But he has asked me to bless his cellar twice this year. Twice. I asked no questions."],
@@ -86328,6 +88665,7 @@ const I18N_EN = {"v":1,"exact":[
 ["{npc:boulangere} m’a fait une tarte aux pommes, comme chaque année depuis qu’elle sait tenir un rouleau. Anselme, lui, faisait semblant d’oublier, et passait trois fois devant la boutique.","{npc:boulangere} made me an apple tart, same as every year since she was old enough to hold a rolling pin. Anselme, now, used to pretend he’d forgotten, and walk past the shop three times."],
 ["{npc:boulangere}… Elle fait le meilleur pain de la vallée. Voilà. Je n’ai rien dit d’autre. Vous n’avez rien entendu.","{npc:boulangere}… She makes the best bread in the valley. That’s all. I said nothing else. You heard nothing."],
 ["{npc:colporteuse},\n\nIci, l’auberge marche. Les clients sont des gens normaux, qui rentrent chez eux à la nuit et qui dorment. Reviens.\n\nTu m’as écrit que ta vallée a douze jours à la semaine : ce n’est pas possible, et tu le sais. Reviens avant qu’elle en ait treize.","{npc:colporteuse},\n\nThe inn is doing well here. The customers are normal people, who go home at nightfall and sleep. Come back.\n\nYou wrote to me that your valley has twelve days in the week: that isn’t possible, and you know it. Come back before it has thirteen."],
+["{npc:eleveuse} a de belles bêtes et une grande gueule. Je verbaliserais bien la gueule, mais il n’y a pas d’article.","{npc:eleveuse} has fine animals and a big mouth. I’d gladly write up the mouth, but there’s no article for it."],
 ["{npc:eleveuse} a encore tout mis sur son ardoise. Son ardoise fait la taille d’une porte de grange, maintenant.","{npc:eleveuse} has put the whole lot on her slate again. Her slate’s the size of a barn door by now."],
 ["{npc:eleveuse} m’a commandé un sac d’avoine pour ses chevaux, et mon dos refuse d’aller jusqu’à {hameau}. Vous le lui porteriez ?","{npc:eleveuse} ordered a sack of oats from me for her horses, and my back refuses to go all the way to {hameau}. Would you take it to her?"],
 ["{npc:eleveuse} vend des chevaux, à {hameau}. C’est cher, mais une bonne bête vous épargne des lieues de marche.","{npc:eleveuse} sells horses, over in {hameau}. They’re dear, but a good beast saves you leagues of walking."],
@@ -86346,9 +88684,11 @@ const I18N_EN = {"v":1,"exact":[
 ["{npc:forgeron} passe chaque matin acheter un pain. Un seul. Il reste un quart d’heure devant le comptoir sans rien dire. Il doit vraiment aimer le pain.","{npc:forgeron} comes by every morning to buy a loaf. Just the one. He stands at the counter for a quarter of an hour without a word. He must really love bread."],
 ["{npc:forgeron}, c’est mon cousin. Il ne parle pas, mais il entend tout. S’il vous dit trois mots d’affilée, c’est qu’il vous aime bien.","{npc:forgeron} is my cousin. He doesn’t talk, but he hears everything. If he says three words to you in a row, it means he likes you."],
 ["{npc:forgeron}, il regarde maman comme moi je regarde les brioches. Mais il achète que du pain.","{npc:forgeron} looks at Mama the way I look at brioches. But he only buys bread."],
+["{npc:garde_champetre} parle beaucoup. Mais il connaît chaque borne, chaque haie, chaque nom. Je n’aurais pas tenu deux ans sans lui.","{npc:garde_champetre} talks a great deal. But he knows every boundary stone, every hedge, every name. I wouldn’t have lasted two years without him."],
 ["{npc:garde}","{npc:garde}"],
 ["{npc:garde} a levé le pont sud avec un quart d’heure d’avance, et j’étais encore dessus ! « Le règlement », qu’il dit : quel règlement, le sien ?","{npc:garde} raised the south bridge a quarter of an hour early, and I was still on it! “Regulations,” he says: whose regulations, his?"],
 ["{npc:garde} lève les ponts chaque soir, sans faute. Un homme de devoir. L’hiver dernier, il a laissé dehors le conseil municipal au complet.","{npc:garde} raises the bridges every evening, without fail. A man of duty. Last winter, he left the entire municipal council shut outside."],
+["{npc:garde} lève les ponts. Il a peur du noir, il le dit à qui veut l’entendre, et il le fait quand même, tous les soirs. Je n’ai pas connu de soldat plus brave.","{npc:garde} raises the bridges. He’s afraid of the dark, he tells anyone who’ll listen, and he does it anyway, every evening. I’ve never known a braver soldier."],
 ["{npc:garde}, c’est mon cousin. Il a peur du noir. Garde de nuit. Allez comprendre.","{npc:garde} is my cousin. Scared of the dark. Night warden. Go figure."],
 ["{npc:grainetiere} m’a appris à lire les saisons, quand j’étais petite. Déjà têtue comme une mule. Mais ses graines sont les meilleures de la vallée.","{npc:grainetiere} taught me to read the seasons when I was little. Stubborn as a mule even then. But her seeds are the best in the valley."],
 ["{npc:grainetiere},\n\nJe passe demain prendre une corde et une lanterne. Si tu me vois partir vers le bois, ne m’appelle pas.\n\nSi quelqu’un vient à la ferme après moi, sois gentille avec. Il ne saura rien. On ne sait jamais rien, en arrivant.\n\nTu avais raison de dire non, à seize ans. Tu as toujours eu raison.","{npc:grainetiere},\n\nI’ll come by tomorrow for a rope and a lantern. If you see me heading off towards the woods, don’t call after me.\n\nIf someone comes to the farm after me, be kind to them. They won’t know a thing. Nobody ever knows anything, when they first arrive.\n\nYou were right to say no, at sixteen. You were always right."],
@@ -86374,14 +88714,17 @@ const I18N_EN = {"v":1,"exact":[
 ["{objet}… Je n’ai pas oublié. Je l’ai raconté à la Dame, dimanche, en posant le bol : il fallait que quelqu’un d’autre le sache.","{objet}… I haven’t forgotten. I told the Lady about it on Sunday, when I set out the bowl: someone else had to know."],
 ["{objet}… J’y repense encore, le soir. Personne ne m’avait fait un cadeau pareil depuis Augustin ; voilà, c’est dit, n’en parlons plus.","{objet}… I still think about it, of an evening. Nobody had given me a present like that since Augustin; there, I’ve said it, let’s say no more."],
 ["{objet}… Votre présent a sa place sur l’étagère, près de la tresse de ma grand-mère. Elle l’aurait aimé, ma grand-mère ; moi aussi, même si je le dis moins souvent qu’elle.","{objet}… Your gift has its place on the shelf, next to my grandmother’s braid. She’d have loved it, my grandmother; so do I, even if I say so less often than she did."],
+["{prenom}. Asseyez-vous près du feu. On n’est pas obligés de parler.","{prenom}. Sit by the fire. We don’t have to talk."],
 ["{t}","{t}"],
 ["{victime} avait emprunté un livre, le mois dernier. Il était à l’heure. Il était toujours à l’heure. Je l’inscris au registre des lecteurs perdus.","{victime} borrowed a book last month. Returned it on time. Always on time. I am entering the name in the register of lost readers."],
 ["{victime} m’avait acheté des graines de courge, la semaine dernière. Qui va les semer, maintenant ? Qui va les semer ?","{victime} bought squash seeds from me last week. Who’s going to sow them now? Who’s going to sow them?"],
 ["{victime}. Je devais lui réparer sa grille. Je la réparerai quand même.","{victime}. I was meant to mend their gate. I’ll mend it anyway."],
+["{victime}. Je l’ai inscrit dans la marge du registre. C’est là qu’on met ceux qu’on n’a pas su garder.","{victime}. I’ve written the name in the margin of the register. That’s where we put the ones we couldn’t keep safe."],
 ["{victime}. J’ai tressé la couronne. Elle flotte encore, près du quai.","{victime}. I wove the wreath. It’s still floating, near the quay."],
 ["{victime}. On posera un calèu pour lui aussi, même s’il n’était pas d’ici.","{victime}. We’ll set a calèu for him too, even though he wasn’t from here."],
 ["{victime}… Il y a des poisons qui s’en vont avec le temps. Le chagrin n’en fait pas partie.","{victime}… Some poisons fade with time. Grief is not one of them."],
 ["{victime}… Je lui gardais un pain chaque matin. Il est encore sur l’étagère, ce pain. Je n’arrive pas à le ranger.","{victime}… Every morning I set a loaf aside for them. It’s still on the shelf, that loaf. I can’t bring myself to put it away."],
+["{victime}… Je l’avais encore dans mon carnet, la semaine dernière. Pour une haie mal taillée. Je raye. Ça me fait quelque chose, de rayer.","{victime}… I still had that name in my notebook last week. For a badly trimmed hedge. I’m crossing it out. It does something to me, crossing a name out."],
 ["{victime}… Je l’avais soigné, une fois, d’une mauvaise toux. On devrait pouvoir soigner tout le reste aussi.","{victime}… I treated them once, for a nasty cough. We ought to be able to cure everything else as well."],
 ["{victime}… Je ne le connaissais pas. J’appellerai quand même, ce soir, pour lui.","{victime}… I didn’t know them. I’ll call tonight anyway. For them."],
 ["{victime}… Je relève les pistes autour. Il y a des choses dans cette vallée que je ne sais pas pister.","{victime}… I’ve been reading the tracks round about. There are things in this valley I don’t know how to track."],
@@ -86496,6 +88839,7 @@ const I18N_EN = {"v":1,"exact":[
 ["À L’ENFANT\nQU’ON N’A PAS PU BAPTISER\nIL A VU LE JOUR UNE HEURE","TO THE CHILD\nWHO COULD NOT BE BAPTISED\nHE SAW THE LIGHT OF DAY FOR ONE HOUR"],
 ["À Madagascar, une nuit de faction, j’ai vu bouger les hautes herbes devant le poste. J’ai crié « Qui vive ? » une fois, pas deux, parce que j’avais trop peur pour attendre la réponse, et j’ai tiré. C’était Yves Le Goff, un petit Breton de dix-neuf ans, qui était sorti vomir sa fièvre en silence pour ne réveiller personne. Le rapport a dit « mort de fièvre » : le sergent l’a écrit pour moi, et je l’ai laissé faire. Depuis, je ne porte plus qu’une pique, pour voir qui je touche, et je garde les ponts la nuit, {prenom}, parce que c’est là que la peur habite. Je me suis dit que si je restais avec elle, elle ne ferait de mal à personne d’autre.","In Madagascar, one night on sentry duty, I saw the tall grass moving in front of the post. I shouted “Who goes there?” once, not twice, because I was too frightened to wait for an answer, and I fired. It was Yves Le Goff, a young Breton lad of nineteen, who had slipped out to retch up his fever in silence so as not to wake anyone. The report said “died of fever”: the sergeant wrote it for me, and I let him. Since then, I carry nothing but a pike, so I can see who I’m striking, and I guard the bridges at night, {prenom}, because that’s where fear lives. I told myself that if I stayed with it, it wouldn’t hurt anyone else."],
 ["À PAPA, SOUS LE FOUR.\n\nPapa, maman chante aussi maintenant. Est-ce que tu as froid ? Lise dit qu’il fait chaud en dessous. Je t’embrasse.\n\nTa fille.","TO PAPA, UNDER THE OVEN.\n\nPapa, Mama sings too now. Are you cold? Lise says it’s warm down below. Love and kisses.\n\nYour daughter."],
+["À Reichshoffen aussi, il tonnait. Ce n’était pas l’orage.","At Reichshoffen, too, it thundered. It wasn’t the storm."],
 ["À VENDRE — Une charrette, bon état, une roue à revoir.","FOR SALE — A cart, good condition, one wheel needs seeing to."],
 ["À bientôt !","See you soon!"],
 ["À bientôt ! Attention à la pente, par là.","See you soon! Mind the slope, over that way."],
@@ -86517,12 +88861,15 @@ const I18N_EN = {"v":1,"exact":[
 ["À la mémoire de messire Enguerrand de Valmont et de ses gens, partis en chasse la nuit de la Saint-Martin 1767 et jamais rentrés. Priez pour eux, et ne levez pas les yeux les nuits d’orage.","In memory of Lord Enguerrand de Valmont and his people, who rode out to hunt on Saint Martin’s night, 1767, and never came home. Pray for them, and do not raise your eyes on stormy nights."],
 ["À la niche !","To your kennel!"],
 ["À la niche ! (il y est déjà)","To your kennel! (he’s already there)"],
+["À la nuit, restez sur les chemins. Je ne peux pas être partout.","After dark, keep to the paths. I can’t be everywhere."],
 ["À la prochaine. Ne rentrez pas trop tard.","Till next time. Don’t get home too late."],
+["À la revoyure ! Ne marchez pas dans les semis !","Be seeing you! Don’t trample the seedbeds!"],
 ["À la semaine prochaine, sur un chemin ou un autre !","See you next week, on one road or another!"],
 ["À la vôtre ! Et à la ferme !","Your health! And to the farm!"],
 ["À la vôtre ! Et à la vallée !","Here’s to you! And to the valley!"],
 ["À l’abri ! Des grêlons gros comme des noix !","Take cover! Hailstones as big as walnuts!"],
 ["À l’aide !","Help me!"],
+["À l’aide ! Au guet ! Au guet !","Help me! The watch! The watch!"],
 ["À l’alambic :","At the still:"],
 ["À l’aube, j’ai dit. Pas à midi, pas au soir. À l’aube.","At dawn, I said. Not at noon, not in the evening. At dawn."],
 ["À l’aube, par temps calme, on voit le clocher du village noyé, au fond du lac. Jules disait qu’on l’entendait sonner. Allez regarder, demain à l’aube. Moi, je ne peux plus.","At dawn, when it’s calm, you can see the bell tower of the drowned village at the bottom of the lake. Jules used to say you could hear it ring. Go and look, tomorrow at dawn. I can’t any more."],
@@ -86551,6 +88898,8 @@ const I18N_EN = {"v":1,"exact":[
 ["À quatorze ans, j’aidais déjà le vieux receveur Fromentin, qui tremblait tant qu’il datait les lettres de travers ; à vingt-deux, j’ai repris son bureau et son tampon. Le sac du courrier est déposé à l’aube sur la borne du pont sud : en douze ans, je n’ai jamais croisé celui qui l’apporte, et pourtant j’ai essayé d’arriver plus tôt. Je trie à sept heures et demie, je cours au hameau à dix, je reviens à midi et demi, et je ne fais jamais de tournée après le coucher du soleil. Je ne lis pas les lettres, je lis les enveloppes : on y apprend déjà tout. Une écriture qui appuie, c’est une colère ; une adresse recopiée trois fois, c’est un amour qui n’ose pas.","At fourteen I was already helping old Fromentin, the postmaster, who shook so badly he dated the letters crooked; at twenty-two I took over his office and his stamp. The mailbag is left at dawn on the milestone by the south bridge: in twelve years I have never once met whoever brings it, and not for want of trying to get there earlier. I sort at half past seven, I run to the hamlet at ten, I’m back at half past twelve, and I never do a round after sunset. I don’t read the letters, I read the envelopes: they tell you everything already. Handwriting that presses hard is anger; an address copied out three times is a love that doesn’t dare."],
 ["À rien. Vos herbes, c’est de la chimie.","Nothing. Your herbs are just chemistry."],
 ["À six ans, je tirais le soufflet. Mon père frappait, moi je tirais, et on ne se parlait pas : pas besoin. Ma mère était une Grosjean, la tante de mon cousin {npc:garde}. Lui, à cinq ans, il avait déjà peur du noir. Le soir, je le raccompagnais jusqu’à sa porte, et je rentrais en sifflant, pour qu’il croie que je n’avais pas peur, moi.","At six, I worked the bellows. My father struck, I pulled, and we didn’t talk: no need. My mother was a Grosjean, aunt to my cousin {npc:garde}. At five, he was already afraid of the dark. In the evenings, I walked him to his door, and I went home whistling, so he’d think that I, at least, wasn’t afraid."],
+["À terre ! Elle respire ! Le procès-verbal, ce sera pour après.","She’s down! She’s breathing! The report can wait till after."],
+["À terre ! Il respire ! Le procès-verbal, ce sera pour après.","He’s down! He’s breathing! The report can wait till after."],
 ["À toi qui reprends la ferme. Tu ne me connais pas, mais moi, j’attends ta venue depuis longtemps. Ferme ta porte à clé chaque soir, sans exception. Si l’on frappe trois fois, n’ouvre pas, même si c’est ma voix. Surtout si c’est ma voix. Le blé pousse bien dans le champ du bas, et le pommier devant la maison donne encore. — Anselme","To you, who are taking over the farm. You don’t know me, but I have been waiting for you to come for a long time. Lock your door every evening, without exception. If someone knocks three times, do not open, even if it is my voice. Especially if it is my voice. The wheat grows well in the bottom field, and the apple tree in front of the house still bears fruit. — Anselme"],
 ["À tout le personnel du poste avancé VAL-7, et surtout à ceux de la dernière rotation.\n\nNous ne sommes pas ici chez nous. Nous ne sommes même pas ici à notre époque. Dans notre temps, la vallée n’existe plus : il reste un lac froid, trois sommets, et un nombre d’anomalies actives qui ne cesse pas d’augmenter. Toutes, sans exception, ont leur origine ici, entre la vieille ferme et la montagne, au cours des années que vous allez vivre.\n\nLa Division chronologique a obtenu l’autorisation d’établir ce poste pour observer ces anomalies à leur source. Observer. Pas corriger.\n\nTrois règles, sans exception :\n1. Aucune interaction avec la population de cette époque.\n2. Aucune modification de la chronologie : pas un outil, pas une pile, pas un mot laissé en surface.\n3. Toute personne de l’époque découverte dans le site est reconduite en surface, poliment. Au troisième incident, amnésiques de classe A.\n\nEt si vous croisez l’occupant de la vieille ferme : ne lui parlez pas. Relisez plutôt le dossier VAL-013.","To all personnel of Outpost VAL-7, and above all to those on the last rotation.\n\nWe are not at home here. We are not even in our own era here. In our time, the valley no longer exists: what remains is a cold lake, three peaks, and a number of active anomalies that never stops growing. All of them, without exception, originate here, between the old farm and the mountain, in the years you are about to live through.\n\nThe Chronological Division obtained authorisation to establish this post in order to observe these anomalies at their source. Observe. Not correct.\n\nThree rules, no exceptions:\n1. No interaction with the population of this era.\n2. No alteration of the timeline: not one tool, not one battery, not one word left on the surface.\n3. Any person of the period discovered on site is escorted back to the surface, politely. At the third incident, Class-A amnestics.\n\nAnd if you come across the occupant of the old farm: do not speak to them. Reread file VAL-013 instead."],
 ["À une autre fois.","Another time."],
@@ -86608,6 +88957,7 @@ const I18N_EN = {"v":1,"exact":[
 ["ÉTIENNE LAFARGE\nGRENADIER\nRENTRÉ DE RUSSIE À PIED\nMORT À UNE LIEUE DE CHEZ LUI\n1813","ÉTIENNE LAFARGE\nGRENADIER\nRETURNED FROM RUSSIA ON FOOT\nDIED A LEAGUE FROM HIS HOME\n1813"],
 ["ÉVACUATION TEMPORELLE EFFECTUÉE.\n\nTout le personnel a quitté cette époque. La machine ne répond plus qu’en clignotant : une lumière verte, une rouge, une verte.","TEMPORAL EVACUATION COMPLETE.\n\nAll personnel have left this era. The machine now answers only by blinking: a green light, a red one, a green one."],
 ["Écaille de tortue","Turtle shell"],
+["Écartez-vous. Je m’en charge.","Stand aside. I’ll take care of it."],
 ["Échalote","Shallot"],
 ["Échap","Esc"],
 ["Échap : menu","Esc: menu"],
@@ -86677,6 +89027,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Éteindre","Put out"],
 ["Éteindre la lampe","Put out the lamp"],
 ["Éteindre le chandelier","Put out the candlestick"],
+["Éteint ! Procès-verbal d’incendie, contre la foudre !","Put out! Fire report, against the lightning!"],
+["Éteint.","Put out."],
 ["Étienne","Étienne"],
 ["Étienne Lefèvre, 1802 – 1861.\n« Il a indiqué le chemin. »","Étienne Lefèvre, 1802 – 1861.\n“He pointed the way.”"],
 ["Étienne est parti avec les autres, à l’automne, en me promettant le printemps ; le printemps est venu, lui non. L’hiver suivant, ma grand-mère est descendue dans {lieu:vieux_puits}, une nuit où la lune saignait, et elle en est remontée au matin, les ongles cassés, souriante comme une étrangère. Elle est morte trois jours plus tard, dans le lit où je dors. Quand je l’ai lavée pour la mettre en terre, j’ai posé la main sur sa poitrine, par habitude, pour écouter ; il n’y avait plus rien à entendre, mais je sais de quel côté j’ai posé la main. Depuis ce jour-là, chaque matin, avant même d’ouvrir les volets, je vérifie le mien.","Étienne left with the others in the autumn, promising me the spring; the spring came, he didn’t. The following winter, my grandmother went down into {lieu:vieux_puits}, on a night when the moon was bleeding, and she came back up in the morning with her nails broken, smiling like a stranger. She died three days later, in the bed I sleep in. When I washed her to lay her in the ground, I put my hand on her chest, out of habit, to listen; there was nothing left to hear, but I know which side I put my hand on. Since that day, every morning, before I even open the shutters, I check mine."],
@@ -87024,8 +89376,14 @@ const I18N_EN = {"v":1,"exact":[
 [", pas loin de {0}",", not far from {0}"],
 [", réglée jusqu’au {0}",", paid up until {0}"],
 [", {0} pièces dues",", {0} coins owing"],
+["ARRÊTÉ — Les ponts de {0} sont levés à neuf heures du soir et baissés à six heures du matin. Qui reste dehors s’adresse au corps de garde. — Le maire.","DECREE — The bridges of {0} are raised at nine in the evening and lowered at six in the morning. Whoever remains outside is to apply at the guardhouse. — The mayor."],
+["AVIS DE DÉCÈS — {0}.","DEATH NOTICE — {0}."],
 ["AVIS DE DÉCÈS — {0}. Priez pour eux.","DEATH NOTICE — {0}. Pray for them."],
 ["AVIS DE RECHERCHE — {0}. Toute personne ayant des nouvelles est priée de se présenter au garde.","MISSING PERSON — {0}. Anyone with news is asked to report to the warden."],
+["AVIS DE RECHERCHE — {0}. Toute personne ayant des nouvelles est priée de se présenter aux gardes.","MISSING PERSON — {0}. Anyone with news is asked to report to the wardens."],
+["AVIS — Les chiens seront tenus à l’attache la nuit. Les chèvres aussi. Il est interdit de déplacer les bornes. — Le garde champêtre de {0}.","NOTICE — Dogs are to be kept tied up at night. Goats too. It is forbidden to move the boundary stones. — The rural constable of {0}."],
+["Abattu d’un coup de fusil par {0}","Shot down by {0}"],
+["Abattu par {0}","Struck down by {0}"],
 ["Abattu par {0}, le garde","Struck down by {0}, the warden"],
 ["Acheter : {0} — {1} pièces","Buy: {0} — {1} coins"],
 ["Acheter la maison ({0} pièces)","Buy the house ({0} coins)"],
@@ -87036,6 +89394,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Acte de vente — {0}","Deed of sale — {0}"],
 ["Ah ! Un secret de route : « {0} ». Mon père le tenait de son père, qui le tenait d’un charron de passage, qui le tenait d’on ne sait qui !","Ah! A secret of the road: “{0}”. My father had it from his father, who had it from a passing wheelwright, who had it from heaven knows who!"],
 ["Ah ! Un élève ! « {0} » : le secret, c’est le beurre. Et le temps. Et encore du beurre.","Ah! A pupil! “{0}”: the secret is butter. And time. And more butter."],
+["Ah ! Vous êtes au tableau, vous ! Pour {0}. {1} pièces de prime. On règle, ou on me suit, et sans histoires !","Ah! You’re on the notice board, you are! For {0}. A bounty of {1} coins. Settle up, or follow me, and no fuss!"],
 ["Apporter {0} à {1}.","Bring {0} to {1}."],
 ["Arrivages du jour :\n{0}","Today’s arrivals:\n{0}"],
 ["Aspect : {0}","Appearance: {0}"],
@@ -87198,6 +89557,12 @@ const I18N_EN = {"v":1,"exact":[
 ["Le maire : {0}.","The mayor: {0}."],
 ["Le poing de {0} touche la table. Gagné.","{0}’s fist hits the table. You win."],
 ["Le {0}","On {0}"],
+["Le {0} : Borne du chemin du lac : déplacée de trois pouces. Remise.","On {0}: Boundary stone on the lake path: moved three inches. Put back."],
+["Le {0} : Haie de Bastien taillée du mauvais côté. Avertissement.","On {0}: Bastien’s hedge trimmed on the wrong side. Warning."],
+["Le {0} : Rien à signaler, sauf la pluie.","On {0}: Nothing to report, except the rain."],
+["Le {0} : Rien à signaler. Une chèvre dans le chemin, rentrée.","On {0}: Nothing to report. A goat in the lane, taken home."],
+["Le {0} : Rien. Le tambour a sonné une fois, tout seul. Non consigné.","On {0}: Nothing. The drum sounded once, all by itself. Not recorded."],
+["Le {0} : Ronde de nuit : rien. Le chien de Morel a hurlé à minuit.","On {0}: Night patrol: nothing. Morel’s dog howled at midnight."],
 ["Le {0}, au matin.","On {0}, in the morning."],
 ["Les bêtes sont rangées d’après le lieu où on les rencontre le plus souvent. Beaucoup vivent aussi ailleurs : la notice le dit.\n\nUne coche marque celles que vous avez vues de vos yeux. Vous en avez vu {0} sur {1}.","The beasts are arranged by the place where you meet them most often. Many live elsewhere too: the entry says so.\n\nA tick marks those you have seen with your own eyes. You have seen {0} out of {1}."],
 ["Les lavandières de nuit… Ma grand-mère disait qu’il ne faut pas leur refuser son aide. On prend le drap, et on tord {0}, comme elles. Dans l’autre sens, elles vous tordent les bras.","The night washerwomen… My grandmother used to say you must never refuse them your help. You take the sheet, and you wring it {0}, as they do. Wring it the other way, and they wring your arms."],
@@ -87243,6 +89608,14 @@ const I18N_EN = {"v":1,"exact":[
 ["Nous vous avons ramené. Vous étiez tout près du chemin. La prochaine fois, nous vous laisserons peut-être où vous êtes.{0}","We brought you back. You were very close to the road. Next time, we may leave you where you are.{0}"],
 ["Nouvelle recette : {0}. Vous fabriquez : {1}.","New recipe: {0}. You craft: {1}."],
 ["Noyé dans {0}","Drowned in {0}"],
+["Nuit du {0}","Night of {0}"],
+["Nuit du {0} : Brouillard sur les douves. Rien.","Night of {0}: Fog on the moat. Nothing."],
+["Nuit du {0} : Les chiens ont aboyé vers une heure. Rien vu.","Night of {0}: The dogs barked around one o’clock. Nothing seen."],
+["Nuit du {0} : Nuit claire. Rien.","Night of {0}: Clear night. Nothing."],
+["Nuit du {0} : Pluie fine. Rien.","Night of {0}: Fine rain. Nothing."],
+["Nuit du {0} : Ponts levés à neuf heures. Rien à signaler.","Night of {0}: Bridges raised at nine o’clock. Nothing to report."],
+["Nuit du {0} : Rien. Trois heures dix : des pas sur le pont levé. Rien vu.","Night of {0}: Nothing. Ten past three: footsteps on the raised bridge. Nothing seen."],
+["Nuit du {0} : Vent d’ouest. Une lumière sur la route du nord, à deux heures, qui ne s’est pas approchée.","Night of {0}: West wind. A light on the north road, at two o’clock, that did not come nearer."],
 ["OBSERVÉE, puis plus rien depuis le jour {0}. Des cendres ont été relevées près de la ferme. Dossier maintenu ouvert.","OBSERVED, then nothing since day {0}. Ashes were found near the farm. File kept open."],
 ["ON RECHERCHE — {0}, de la vieille ferme. Vu pour la dernière fois chez lui.\n(L’affiche est jaunie. Elle date d’avant votre arrivée.)","MISSING — {0}, of the old farm. Last seen at home.\n(The poster has yellowed. It dates from before you arrived.)"],
 ["Objet n° : SCP-{0}","Item #: SCP-{0}"],
@@ -87253,6 +89626,7 @@ const I18N_EN = {"v":1,"exact":[
 ["On a relevé des traces de pas autour du corps de {0}. Elles mènent à la vieille ferme.\n\nJe viendrai vous voir.","Footprints were found around the body of {0}. They lead to the old farm.\n\nI’ll be paying you a visit."],
 ["On a retrouvé ce matin {0} {1}, mort, dehors. Un homme en long manteau a été vu rôder cette nuit ; personne ne le connaît.\n\nIl est demandé à chacun de fermer sa porte à clé, et de ne pas sortir seul la nuit.\n\nLe maire.","This morning {0} {1} was found dead, out of doors. A man in a long coat was seen prowling last night; nobody knows him.\n\nAll residents are requested to lock their doors, and not to go out alone at night.\n\nThe Mayor."],
 ["On placarde votre portrait {0}. {1} pièces. Moi, je vends des cartes, je ne vends personne.","Your portrait’s going up {0}. {1} coins. Me, I sell maps. I don’t sell people."],
+["On vous cherche pour {0}. {1} pièces. Vous les avez, ou vous me suivez.","You’re wanted for {0}. {1} coins. You have them, or you follow me."],
 ["On vous enferme au cachot, sous la maison du garde de {0}.","They throw you in the lock-up, beneath the warden’s house in {0}."],
 ["On vous fouille. On vous prend : {0}.","They search you. They confiscate: {0}."],
 ["On vous mène au cachot, sous la maison du garde de {0}.","They take you to the lock-up, beneath the warden’s house in {0}."],
@@ -87269,6 +89643,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Pas d’ombre sur la table. Il faut du soleil pour qu’il parle.\n\n{0}","No shadow on the dial. It needs sunlight to speak.\n\n{0}"],
 ["Payer la prime ({0} pièces — vous n’en avez que {1})","Pay the bounty ({0} coins — you only have {1})"],
 ["Payer la prime ({0} pièces)","Pay the bounty ({0} coins)"],
+["Payer la prime sur-le-champ ({0} pièces)","Pay the bounty on the spot ({0} coins)"],
 ["Payer la rançon ({0} pièces)","Pay the ransom ({0} coins)"],
 ["Payer le loyer de {0} ({1} pièces)","Pay the rent on {0} ({1} coins)"],
 ["Payer le loyer dû ({0} pièces)","Pay the rent owed ({0} coins)"],
@@ -87295,7 +89670,9 @@ const I18N_EN = {"v":1,"exact":[
 ["Quiconque {0} est prié d’avertir le garde. La prime peut être réglée à la mairie de {1}.","Anyone who {0} is asked to alert the warden. The bounty may be paid at the town hall in {1}."],
 ["Quittance — {0}","Receipt — {0}"],
 ["RECHERCHÉ — {0}, fermier de la vieille ferme, pour {1}. Prime : {2} pièces. S’adresser au garde.","WANTED — {0}, farmer of the old farm, for {1}. Bounty: {2} coins. Enquiries to the warden."],
+["RECHERCHÉ — {0}, fermier de la vieille ferme, pour {1}. Prime : {2} pièces. S’adresser aux gardes.","WANTED — {0}, farmer of the old farm, for {1}. Bounty: {2} coins. Enquiries to the wardens."],
 ["RECHERCHÉE — {0}, fermière de la vieille ferme, pour {1}. Prime : {2} pièces. S’adresser au garde.","WANTED — {0}, farmer of the old farm, for {1}. Bounty: {2} coins. Enquiries to the warden."],
+["RECHERCHÉE — {0}, fermière de la vieille ferme, pour {1}. Prime : {2} pièces. S’adresser aux gardes.","WANTED — {0}, farmer of the old farm, for {1}. Bounty: {2} coins. Enquiries to the wardens."],
 ["RECHERCHÉ{0}","WANTED{0}"],
 ["RECHERCHÉ{0} — {1}, {2} de la vieille ferme, pour {3}. Prime : {4} pièces. S’adresser au garde.","WANTED{0} — {1}, {2} of the old farm, for {3}. Bounty: {4} coins. Enquiries to the warden."],
 ["Raconté par {0}","Told by {0}"],
@@ -87464,11 +89841,30 @@ const I18N_EN = {"v":1,"exact":[
 ["{0} (version n° {1}, {2} jour{3})","{0} (version No. {1}, {2} day{3})"],
 ["{0} (volé)","{0} (stolen)"],
 ["{0} : apparu(e)","{0}: spawned"],
+["{0} : des loups près des maisons, abattus par {1}.","{0}: wolves near the houses, killed by {1}."],
 ["{0} : impossible ({1})","{0}: impossible ({1})"],
 ["{0} : lancé","{0}: started"],
+["{0} : le feu, tout près. Éteint à la chaîne, avec les seaux.","{0}: fire, very close. Put out by a bucket chain."],
 ["{0} : louée par vous{1} ; à vendre, {2} pièces.","{0}: rented by you{1}; for sale, {2} coins."],
 ["{0} : pas maintenant","{0}: not now"],
 ["{0} : posé","{0}: placed"],
+["{0} : un cri. {1} est allé voir. Trop tard.","{0}: a cry. {1} went to look. Too late."],
+["{0} : un cri. {1} est allé voir. {2} {3}, mort. Trop tard.","{0}: a cry. {1} went to look. {2} {3}, dead. Too late."],
+["{0} : un cri. {1} est allé voir. {2} {3}, morte. Trop tard.","{0}: a cry. {1} went to look. {2} {3}, dead. Too late."],
+["{0} : un homme en long manteau, près des maisons. {1} l’a blessé. Il a fui. On ne l’a pas revu.","{0}: a man in a long coat, near the houses. {1} wounded him. He fled. He was not seen again."],
+["{0} : un homme masqué. {1} l’a touché. Il s’est sauvé, sans un cri.","{0}: a masked man. {1} hit him. He ran off, without a cry."],
+["{0} : une bête près des maisons, abattue par {1}.","{0}: a beast near the houses, killed by {1}."],
+["{0} : {1} est mort au guet. {2} Personne ne l’a vu partir.","{0}: {1} died on watch. {2} No one saw him leave."],
+["{0} : {1} près des maisons, abattu par {2}.","{0}: {1} near the houses, killed by {2}."],
+["{0} : {1}, de la vieille ferme, a pris la fuite. Signalement transmis.","{0}: {1}, of the old farm, fled. Description forwarded."],
+["{0} : {1}, de la vieille ferme, a refusé de suivre {2}. Rébellion.","{0}: {1}, of the old farm, refused to follow {2}. Rebellion."],
+["{0} : {1}, de la vieille ferme, a réglé sa prime à {2}, sur-le-champ. Quittance.","{0}: {1}, of the old farm, paid the bounty to {2}, on the spot. Receipt."],
+["{0} : {1}, de la vieille ferme, arrêté par {2}. Au cachot.","{0}: {1}, of the old farm, arrested by {2}. To the lock-up."],
+["{0} : {1}, de la vieille ferme, arrêtée par {2}. Au cachot.","{0}: {1}, of the old farm, arrested by {2}. To the lock-up."],
+["{0} : {1}, de la vieille ferme, mis au tapis par {2}, conduit au cachot.","{0}: {1}, of the old farm, knocked down by {2}, taken to the lock-up."],
+["{0} : {1}, de la vieille ferme, mise au tapis par {2}, conduite au cachot.","{0}: {1}, of the old farm, knocked down by {2}, taken to the lock-up."],
+["{0} : {1}, de la vieille ferme, s’est rendu à {2}. Au cachot.","{0}: {1}, of the old farm, surrendered to {2}. To the lock-up."],
+["{0} : {1}, de la vieille ferme, s’est rendue à {2}. Au cachot.","{0}: {1}, of the old farm, surrendered to {2}. To the lock-up."],
 ["{0} : à vous, depuis le {1}.","{0}: yours, since {1}."],
 ["{0} : à vous{1}.","{0}: yours{1}."],
 ["{0} ? {1} pièces, comptant. C’est le prix que le conseil a voté, et le conseil, c’est moi. Les murs, la clé, le coffre : tout sera à vous, pour toujours. Enfin, pour aussi longtemps que durent les choses, ici.{2}","{0}? {1} coins, cash down. That is the price the council voted, and the council is me. The walls, the key, the chest: all of it will be yours, for ever. Well, for as long as things last, here.{2}"],
@@ -87511,6 +89907,7 @@ const I18N_EN = {"v":1,"exact":[
 ["{0} pièces, et vous ne les avez pas. Revenez. La plante ne s’enfuira pas. Enfin, celle-là, non.","{0} coins, and you don’t have them. Come back. The plant won’t run away. Well, not that one."],
 ["{0} pièces, s’il vous plaît. Mes fioles ne se remplissent pas toutes seules.","{0} coins, if you please. My vials don’t fill themselves."],
 ["{0} plan(s) restent à découvrir auprès des habitants.","{0} plan(s) still to be learned from the locals."],
+["{0} pour {1}. La prime s’élève à {2} pièces. Vous pouvez la régler entre mes mains, ou me suivre.","{0} for {1}. The bounty amounts to {2} coins. You may pay it into my hands, or follow me."],
 ["{0} rame vers l’est, par le bord. Une fois, il lève les rames et attend, sans rien dire, puis reprend. Au ponton, il vous laisse descendre.","{0} rows east, hugging the shore. Once, he lifts the oars and waits, saying nothing, then carries on. At the jetty, he lets you off."],
 ["{0} rame vers l’ouest, le long de la rive. Il ne regarde pas le milieu du lac. Au pied du phare, il vous laisse descendre et repart aussitôt.","{0} rows west, along the shore. He doesn’t look at the middle of the lake. At the foot of the lighthouse, he lets you off and heads straight back."],
 ["{0} réclame à manger.","{0} is begging for food."],
@@ -87522,6 +89919,7 @@ const I18N_EN = {"v":1,"exact":[
 ["{0} {1} pièces, port compris.{2}","{0} {1} coins, carriage included.{2}"],
 ["{0} {1} — {2} (vers {3})","{0} {1} — {2} (towards {3})"],
 ["{0} {1}, garde","{0} {1}, warden"],
+["{0} {1}, mort.","{0} {1}, dead."],
 ["{0} {1}, {2}, {3} le {4} {5}.\n\nL’inhumation a eu lieu ce matin, au cimetière de {6}.\n\n« Il n’y a pas de retour, dans cette vallée. On le sait tous. »","{0} {1}, {2}, {3} on {4} {5}.\n\nThe burial took place this morning, in the cemetery of {6}.\n\n“There is no coming back, in this valley. We all know it.”"],
 ["{0} {1}×{2}×{3} m","{0} {1}×{2}×{3} m"],
 ["{0} étals","{0} stalls"],
@@ -87535,10 +89933,16 @@ const I18N_EN = {"v":1,"exact":[
 ["{0} — {1} vous regarde un peu plus longtemps qu’avant.","{0} — {1} looks at you a little longer than before."],
 ["{0} — à vous","{0} — yours"],
 ["{0} — † {1}. Vous ne l’oubliez pas.","{0} — † {1}. You have not forgotten."],
+["{0}, chevalier du guet","{0}, knight of the watch"],
 ["{0}, de la vieille ferme, a été {1} ce jour contre une rançon de {2} pièces, versée à la commune.\n\nLa prime est levée. L’affaire est close. Elle ne sera pas oubliée.","{0}, of the old farm, was {1} this day for a ransom of {2} coins, paid to the municipality.\n\nThe bounty is lifted. The matter is closed. It will not be forgotten."],
 ["{0}, de la vieille ferme, a été {1} ce matin après {2} de cachot.\n\nLa prime est levée. Qu’on ne vous y reprenne pas.","{0}, of the old farm, was {1} this morning after {2} in the lock-up.\n\nThe bounty is lifted. Don’t let us catch you at it again."],
 ["{0}, de la vieille ferme, a été {1} ce matin après {2} {3} de cachot.{4}\n\nLa prime est levée. Qu’on ne vous y reprenne pas.","{0}, of the old farm, was {1} this morning after {2} {3} in the lock-up.{4}\n\nThe bounty is lifted. Don’t let us catch you at it again."],
+["{0}, garde","{0}, warden"],
+["{0}, garde champêtre","{0}, rural constable"],
+["{0}, garde des ponts","{0}, bridge warden"],
 ["{0}, garde des ponts.","{0}, bridge warden."],
+["{0}, gendarme","{0}, gendarme"],
+["{0}, gendarme à cheval","{0}, mounted gendarme"],
 ["{0}, le ciel se retirera. Pas une étoile. Gardez une lumière, et ne répondez pas aux voix.","{0}, the sky will draw back. Not a single star. Keep a light burning, and do not answer the voices."],
 ["{0}, le froid descendra des Monts jusque dans les prés. Rentrez du bois. Beaucoup de bois.","{0}, the cold will come down from the Peaks into the meadows. Bring in wood. A lot of wood."],
 ["{0}, le vent tournera sur lui-même, et il emportera ce qui n’est pas attaché. Vous compris.","{0}, the wind will spin round on itself, and carry off whatever isn’t tied down. You included."],
@@ -87573,6 +89977,7 @@ const I18N_EN = {"v":1,"exact":[
 ["« {0} » ? Ça demande une offrande. {1} pièces, pour les herbes que je n’irai pas cueillir.","“{0}”? That calls for an offering. {1} coins, for the herbs I won’t be going out to pick."],
 ["« {0} » ? Ça vous coûtera {1} pièces. Les conseils gratuits, c’est le curé qui les donne.","“{0}”? That’ll cost you {1} coins. Free advice is what the priest hands out."],
 ["« {0} » ? Ça, c’est ma fierté. {1} pièces, et je vous donne un croûton en plus.","“{0}”? Now that’s my pride and joy. {1} coins, and I’ll throw in a crust."],
+["« {0} » {1} pour {2}. Prime : {3} pièces.{4}","“{0}” {1} for {2}. Bounty: {3} coins.{4}"],
 ["« {0} » — Classe :","“{0}” — Object Class:"],
 ["« {0} », je peux vous le montrer. {1} pièces. Le savoir, ça use l’enclume.","“{0}”, I can show you that. {1} coins. Know-how wears down the anvil."],
 ["« {0} », je vous montre. {1} pièces, et je vous offre le café.","“{0}”, I’ll show you. {1} coins, and the coffee’s on me."],
@@ -87730,7 +90135,8 @@ const i18n = (() => {
       }
     }
     pats.sort((p, q) => q.litLen - p.litLen); // les plus précis d'abord
-    for (const [fr, en] of map) if (fr.length <= 80 && fr.indexOf('{') < 0) { const k = fr.toLowerCase(); if (!lower.has(k)) lower.set(k, en); }
+    // (une entrée qui reste la même dans les deux langues, « NEWY », n'impose pas sa casse : « Newy » reste « Newy »)
+    for (const [fr, en] of map) if (fr.length <= 80 && fr.indexOf('{') < 0 && fr !== en) { const k = fr.toLowerCase(); if (!lower.has(k)) lower.set(k, en); }
   }
 
   // ------------------------------------------------------------------ recherche

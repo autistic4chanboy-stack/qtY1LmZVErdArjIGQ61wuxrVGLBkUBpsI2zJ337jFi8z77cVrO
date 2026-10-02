@@ -88,7 +88,8 @@ const i18n = (() => {
       }
     }
     pats.sort((p, q) => q.litLen - p.litLen); // les plus précis d'abord
-    for (const [fr, en] of map) if (fr.length <= 80 && fr.indexOf('{') < 0) { const k = fr.toLowerCase(); if (!lower.has(k)) lower.set(k, en); }
+    // (une entrée qui reste la même dans les deux langues, « NEWY », n'impose pas sa casse : « Newy » reste « Newy »)
+    for (const [fr, en] of map) if (fr.length <= 80 && fr.indexOf('{') < 0 && fr !== en) { const k = fr.toLowerCase(); if (!lower.has(k)) lower.set(k, en); }
   }
 
   // ------------------------------------------------------------------ recherche

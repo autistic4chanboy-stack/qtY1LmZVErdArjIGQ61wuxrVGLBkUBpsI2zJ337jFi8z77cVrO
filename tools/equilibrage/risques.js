@@ -191,7 +191,7 @@ module.exports = {
     log(`Récidive : la prime d'un vol passe de ${prime('vol', 0)} à ${prime('vol', 2)} (2 crimes avant) et ${prime('vol', 4)} (4 et plus).`);
     // prison : scénarios
     const peine = (crimes, fois) => J.avec({ crimes, fois }, `(function () { const P = prison.S(); P.fois = __v.fois; const A = __v.crimes.map((t) => ({ type: t })); const pr = __v.crimes.reduce((a, t) => a + CRIME_DEF[t].prime, 0); const j = prison.peine(A, pr); return [pr, j, prison.prixRancon(pr, j)]; })()`);
-    const SCP = [['un vol (première fois)', ['vol'], 0], ['un vol (troisième séjour)', ['vol'], 2], ['vol et effraction', ['vol', 'effraction'], 0], ['une agression', ['agression'], 0], ['une profanation', ['profanation'], 0], ['un meurtre', ['meurtre'], 0], ['deux meurtres', ['meurtre', 'meurtre'], 1], ['trois meurtres, récidive', ['meurtre', 'meurtre', 'meurtre'], 3]];
+    const SCP = [['un vol (première fois)', ['vol'], 0], ['un vol (troisième séjour)', ['vol'], 2], ['vol et effraction', ['vol', 'effraction'], 0], ['vol, puis refus (rébellion)', ['vol', 'rebellion'], 0], ['une agression', ['agression'], 0], ['une profanation', ['profanation'], 0], ['un meurtre', ['meurtre'], 0], ['deux meurtres', ['meurtre', 'meurtre'], 1], ['trois meurtres, récidive', ['meurtre', 'meurtre', 'meurtre'], 3]];
     log('\n--- Prison : peine et rançon (prime additionnée des crimes connus)');
     log(`${pad('cas', 26)}${lpad('prime', 6)}${lpad('peine', 7)}${lpad('rançon', 8)}${lpad('début', 8)}${lpad('milieu', 8)}${lpad('dormir', 8)}${lpad('vivre', 8)}${lpad('carrière', 10)}`);
     const prisonLignes = [];
@@ -393,9 +393,12 @@ module.exports = {
     // les primes, la prison
     verif(CD.vol.prime >= 0.3 * E.debut && CD.vol.prime <= 0.7 * E.debut, `l'amende d'un vol : une demi-journée des débuts (${CD.vol.prime})`);
     verif(CD.meurtre.prime >= 2 * E.debut && CD.meurtre.prime <= 5 * E.debut, `la prime d'un meurtre : quelques jours de travail (${CD.meurtre.prime})`);
-    const ordre = ['meurtre', 'profanation', 'evasion', 'agression', 'vol', 'braconnage', 'intrusion'];
+    const ordre = ['meurtre', 'profanation', 'evasion', 'agression', 'vol', 'rebellion', 'braconnage', 'intrusion'];
     verif(ordre.every((k, i) => !i || CD[ordre[i - 1]].prime > CD[k].prime) && CD.effraction.prime <= CD.agression.prime && CD.effraction.prime >= CD.braconnage.prime, `les primes suivent la gravité (${ordre.map((k) => k + ' ' + CD[k].prime).join(' > ')})`);
     verif(CD.vol.oubli * JOUR_REEL_MIN / 60 <= 3, `un vol impayé s'oublie en moins de trois heures de jeu (${CD.vol.oubli} jours)`);
+    // les gardes (11-zzzzC1-gardes-jeu.js) : refuser de les suivre ajoute la rébellion ; se rendre tout de suite coûte moins cher
+    const pvr = prisonLignes.find((q) => q.nom === 'vol, puis refus (rébellion)');
+    verif(pvr && pvr.ra > prisonLignes[0].ra && pvr.ra <= 2 * prisonLignes[0].ra, `refuser de suivre le garde : le cachot coûte plus cher que se rendre, sans doubler (${prisonLignes[0].ra} → ${pvr && pvr.ra})`);
     const pv = prisonLignes[0], pm = prisonLignes.find((q) => q.nom === 'un meurtre'), maxJ = Math.max(...prisonLignes.map((q) => q.j));
     verif(pv.j <= 2 && pv.ra >= 0.7 * E.debut && pv.ra <= 2 * E.debut, `un premier vol : ${pv.j} jour de cachot, rançon ${pv.ra} (lourde mais payable)`);
     verif(pm.ra >= 3 * E.debut && pm.ra <= 3 * E.milieu, `un meurtre : ${pm.j} jours, rançon ${pm.ra} (plusieurs jours de travail)`);

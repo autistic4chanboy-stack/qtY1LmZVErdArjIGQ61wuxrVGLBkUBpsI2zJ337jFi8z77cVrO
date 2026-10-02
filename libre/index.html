@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Newy and the Dark Forest</title>
+<meta name="description" content="Newy and the Dark Forest : le jeu et le wiki de la vallée, sans code.">
+<meta name="robots" content="noindex">
+<style>
+/* la partie sans code : la même page d'accueil que la bêta (../index.html), sans la porte. Le jeu et le wiki d'ici
+   (Prairie.html, Prairie-Wiki.html) sont écrits par node build.js et node tools/wiki-build.js. */
+:root {
+  --amber: #ffc93c;
+  --amber-soft: rgba(255, 201, 60, .7);
+  --line: rgba(255, 201, 60, .22);
+  --panel: rgba(14, 13, 10, .82);
+  --text: #f1e8d2;
+  --muted: #a9a08b;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: #07070a; color: var(--text); overflow-x: hidden;
+  font-family: 'Trebuchet MS', 'Segoe UI', Verdana, sans-serif; }
+body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+
+/* le ciel du soir, la ligne des collines, la ferme */
+.ciel { position: fixed; inset: 0; z-index: 0;
+  background: linear-gradient(180deg, #05060c 0%, #0b0d1a 38%, #2a1d22 66%, #6a3a1e 82%, #a85a22 90%, #2a1a10 100%); }
+.etoiles { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.etoiles i { position: absolute; width: 2px; height: 2px; background: #fff; border-radius: 50%; opacity: .5;
+  animation: scintille 4s ease-in-out infinite; }
+@keyframes scintille { 50% { opacity: .12; } }
+.paysage { position: fixed; left: 0; right: 0; bottom: 0; width: 100%; height: 34vh; z-index: 0; }
+.lucioles { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.lucioles i { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #ffe37a;
+  box-shadow: 0 0 8px 2px rgba(255, 220, 110, .55); opacity: 0; animation: luciole 7s ease-in-out infinite; }
+@keyframes luciole { 0%, 100% { opacity: 0; transform: translate(0, 0); } 30%, 60% { opacity: .85; } 50% { transform: translate(14px, -10px); } }
+
+/* la carte */
+main { position: relative; z-index: 1; width: 100%; max-width: 420px; text-align: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 34px 26px 26px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, .55); backdrop-filter: blur(2px); }
+h1 { margin: 0; font-family: Georgia, 'Times New Roman', serif; font-weight: normal; font-size: 46px; letter-spacing: .14em;
+  color: var(--amber); text-shadow: 0 0 18px rgba(255, 201, 60, .25); }
+.sous { margin: 6px 0 0; color: var(--muted); font-style: italic; letter-spacing: .04em; }
+.badge { display: inline-block; margin-top: 14px; padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px;
+  color: var(--amber-soft); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; }
+p.texte { margin: 22px 0 14px; line-height: 1.5; }
+button, a.bouton { font: inherit; cursor: pointer; color: #1a1408; background: var(--amber); border: 0; border-radius: 6px;
+  padding: 10px 18px; font-weight: bold; text-decoration: none; display: inline-block; }
+button:hover, a.bouton:hover { filter: brightness(1.08); }
+a.bouton.second { background: transparent; color: var(--amber); border: 1px solid var(--line); font-weight: normal; }
+.liens { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+.note { margin: 16px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.pied { margin-top: 22px; display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
+.pied button { background: none; color: var(--muted); border: 1px solid var(--line); padding: 3px 10px; font-weight: normal; }
+.pied button:hover { color: var(--amber); }
+@media (max-width: 420px) { h1 { font-size: 38px; } main { padding: 28px 18px 20px; } }
+</style>
+</head>
+<body>
+<div class="ciel"></div>
+<div class="etoiles" id="etoiles"></div>
+<svg class="paysage" viewBox="0 0 1200 300" preserveAspectRatio="none" aria-hidden="true">
+  <path d="M0 170 C 160 120 300 150 460 132 C 620 114 760 160 920 140 C 1040 126 1120 138 1200 130 L1200 300 L0 300 Z" fill="#120d0b"/>
+  <path d="M0 215 C 200 190 380 220 560 205 C 760 188 940 222 1200 200 L1200 300 L0 300 Z" fill="#0a0807"/>
+  <!-- la vieille ferme : la maison, le toit, la cheminée, une fenêtre allumée -->
+  <g transform="translate(820 150)">
+    <rect x="0" y="22" width="70" height="40" fill="#070605"/>
+    <path d="M-6 24 L35 -6 L76 24 Z" fill="#070605"/>
+    <rect x="48" y="-4" width="8" height="18" fill="#070605"/>
+    <rect x="14" y="34" width="10" height="10" fill="#ffb44a" opacity=".85"/>
+  </g>
+  <!-- un arbre, une clôture -->
+  <g fill="#070605">
+    <rect x="300" y="150" width="6" height="40"/>
+    <circle cx="303" cy="140" r="26"/>
+    <circle cx="288" cy="152" r="16"/>
+    <circle cx="318" cy="154" r="16"/>
+    <rect x="560" y="196" width="220" height="3"/>
+    <rect x="560" y="206" width="220" height="3"/>
+    <rect x="566" y="190" width="4" height="24"/><rect x="616" y="190" width="4" height="24"/><rect x="666" y="190" width="4" height="24"/><rect x="716" y="190" width="4" height="24"/><rect x="766" y="190" width="4" height="24"/>
+  </g>
+</svg>
+<div class="lucioles" id="lucioles"></div>
+
+<main>
+  <h1>Newy</h1>
+  <p class="sous" data-fr="and the Dark Forest" data-en="and the Dark Forest">and the Dark Forest</p>
+  <span class="badge" data-fr="bêta" data-en="beta">bêta</span>
+
+  <p class="texte" data-fr="Bienvenue dans la vallée." data-en="Welcome to the valley.">Bienvenue dans la vallée.</p>
+  <div class="liens">
+    <a class="bouton" id="jouer" href="Prairie.html" data-fr="Jouer" data-en="Play">Jouer</a>
+    <a class="bouton second" id="wiki" href="Prairie-Wiki.html" data-fr="Le wiki de la vallée (cartes et fiches)" data-en="The valley wiki (maps and notes)">Le wiki de la vallée (cartes et fiches)</a>
+  </div>
+  <p class="note" data-fr="Le jeu tient dans une seule page d’environ 7 Mo : le premier chargement prend quelques secondes. Une souris et un clavier, un casque pour le son 3D. Les parties sont gardées dans ce navigateur." data-en="The whole game is a single page of about 7 MB: the first load takes a few seconds. Mouse and keyboard; headphones for the 3D sound. Saves are kept in this browser.">Le jeu tient dans une seule page d’environ 7 Mo : le premier chargement prend quelques secondes. Une souris et un clavier, un casque pour le son 3D. Les parties sont gardées dans ce navigateur.</p>
+
+  <div class="pied">
+    <span data-fr="Ce qui est ici peut changer, casser, disparaître." data-en="Things here may change, break or vanish.">Ce qui est ici peut changer, casser, disparaître.</span>
+    <button type="button" id="langue">English</button>
+  </div>
+</main>
+
+<script>
+(function () {
+  // ------------------------------------------------------------ la langue (la même que celle du jeu)
+  var lire = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  var ecrire = function (k, v) { try { localStorage.setItem(k, v); } catch (e) { /* navigation privée */ } };
+  var reglages = {};
+  try { reglages = JSON.parse(lire('prairie.settings') || '{}') || {}; } catch (e) { reglages = {}; }
+  var langue = reglages.lang === 'en' ? 'en' : 'fr';
+  var traduire = function () {
+    document.documentElement.lang = langue;
+    var L = document.querySelectorAll('[data-fr]');
+    for (var i = 0; i < L.length; i++) L[i].textContent = L[i].getAttribute('data-' + langue);
+    document.getElementById('langue').textContent = langue === 'fr' ? 'English' : 'Français';
+  };
+  document.getElementById('langue').onclick = function () {
+    langue = langue === 'fr' ? 'en' : 'fr';
+    reglages.lang = langue; ecrire('prairie.settings', JSON.stringify(reglages)); // le jeu démarrera dans cette langue
+    traduire();
+  };
+  traduire();
+
+  // ------------------------------------------------------------ le décor : étoiles et lucioles
+  var E = document.getElementById('etoiles');
+  for (var k = 0; k < 70; k++) { var s = document.createElement('i'); s.style.left = (Math.random() * 100) + '%'; s.style.top = (Math.random() * 55) + '%'; s.style.animationDelay = (Math.random() * 4) + 's'; s.style.opacity = (0.2 + Math.random() * 0.5).toFixed(2); E.appendChild(s); }
+  var F = document.getElementById('lucioles');
+  for (var q = 0; q < 14; q++) { var l = document.createElement('i'); l.style.left = (Math.random() * 100) + '%'; l.style.top = (70 + Math.random() * 25) + '%'; l.style.animationDelay = (Math.random() * 7) + 's'; l.style.animationDuration = (5 + Math.random() * 5) + 's'; F.appendChild(l); }
+})();
+</script>
+</body>
+</html>
