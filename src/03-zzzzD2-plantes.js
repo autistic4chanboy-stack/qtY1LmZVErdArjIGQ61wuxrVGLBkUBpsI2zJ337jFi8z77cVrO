@@ -96,7 +96,7 @@ function spriteD2(kind, seed) {
     lierre: [24, 46], oreille_judas: [24, 14], sanicle: [22, 20], gouet: [22, 22], fragon: [24, 26], langue_boeuf: [20, 18], martagon: [20, 40],
     oronge: [20, 14], sabot_venus: [20, 24], gui_chene: [22, 18],
     amadouvier: [16, 42], bolet_rude: [18, 16], paxille: [20, 12], tormentille: [22, 10], germandree: [22, 24], verge_or: [20, 30], lactaire: [18, 12],
-    pyrole: [18, 16], trientale: [20, 12], linnee: [22, 8],
+    pyrole: [18, 16], trientale: [20, 12], linnee: [20, 9],
     jonc: [20, 30], lycope: [20, 28], lysimaque: [22, 34], pediculaire: [20, 14], gratiole: [20, 14], grassette: [16, 10], canneberge: [24, 8],
     oenanthe: [24, 34], narthecie: [18, 14], oeil_bouc: [18, 10],
     scirpe: [18, 52], plantain_eau: [22, 28], eupatoire: [24, 38], nuphar: [24, 10], scrofulaire: [20, 36], guimauve_off: [22, 34], macre: [22, 8],
@@ -267,7 +267,7 @@ function spriteD2(kind, seed) {
     case 'pyrole': { // rosette de feuilles rondes luisantes ; une hampe de clochettes blanches
       for (let i = 0; i < 5; i++) drawSphere(pb, 3 + i * 3.2 + rnd(), H - 2.5, 2.2, ramp(['#1e4a20', '#2a6228', '#3c7a34', '#6aa060']), seed + i, { sq: 0.6 });
       const x = W / 2; drawLine(pb, x, 3, x, H - 3, [110, 120, 80]);
-      for (let k = 0; k < 4; k++) { const y = 3 + k * 2.4, s = k % 2 ? 1 : -1; cloche(x + s * 2 - (s < 0 ? 1 : 0), y, [246, 244, 236], 2); px(x + s * 2, y + 3, [210, 160, 160]); }
+      for (let k = 0; k < 4; k++) { const y = 2 + k * 2.6, s = k % 2 ? 1 : -1, bx = x + s * 2 - (s < 0 ? 1 : 0); cloche(bx, y, [250, 250, 244], 2); px(bx, y - 1, [236, 236, 228]); px(bx + 1, y - 1, [222, 222, 214]); px(x + s * 2, y + 3, [214, 150, 150]); }
       break;
     }
     case 'trientale': { // trois tiges grêles, une collerette de feuilles, une étoile blanche au-dessus
@@ -280,7 +280,7 @@ function spriteD2(kind, seed) {
     }
     case 'linnee': { // la mousse, des fils, des paires de clochettes roses
       tapis(H - 2, (x, y) => (rnd() < 0.7 ? vert(1 + ((x * 3 + y) % 2)) : null));
-      for (let i = 0; i < 4; i++) { const x = 3 + i * 5 + rnd() * 2; drawLine(pb, x, 2, x, H - 2, [110, 100, 70]); for (const s of [-1, 1]) { px(x + s, 2, [110, 100, 70]); px(x + s * 2, 3, [240, 170, 196]); px(x + s * 2, 4, [220, 140, 170]); } }
+      for (let i = 0; i < 3; i++) { const x = 4 + i * 6 + rnd() * 2; drawLine(pb, x, 2, x, H - 2, [120, 104, 74]); for (const s of [-1, 1]) { px(x + s, 1, [120, 104, 74]); const bx = x + s * 2; px(bx, 2, [250, 196, 216]); px(bx, 3, [244, 170, 198]); px(bx + s, 3, [226, 140, 176]); px(bx, 4, [220, 130, 168]); px(bx + s, 4, [200, 110, 150]); } }
       break;
     }
     // ======================================================== le marais
