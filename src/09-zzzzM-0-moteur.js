@@ -619,6 +619,7 @@ class MusJeu {
     nd.connect(g); g.connect(X.g);
     const amp = I.gain * Math.pow(e.v, I.courbe || 1.6);
     const longueur = I.boucle ? Infinity : buf.duration / rate;
+    const off = this.t0 + e.off; // (e.off est compté depuis le début du morceau)
     let stop = t + longueur;
     if (I.boucle) {
       // tenue : attaque et relâchement doux (une boucle sans fin)
@@ -626,14 +627,14 @@ class MusJeu {
       const a = e.role === 'tenue' ? I.att * 2.2 : I.att, r = e.role === 'tenue' ? I.rel * 1.6 : I.rel;
       g.gain.setValueAtTime(0.0001, t);
       g.gain.linearRampToValueAtTime(amp, t + a);
-      g.gain.setValueAtTime(amp, Math.max(t + a, e.off));
-      g.gain.setTargetAtTime(0, Math.max(t + a, e.off), r / 3);
-      stop = Math.max(t + a, e.off) + r * 2.5;
+      g.gain.setValueAtTime(amp, Math.max(t + a, off));
+      g.gain.setTargetAtTime(0, Math.max(t + a, off), r / 3);
+      stop = Math.max(t + a, off) + r * 2.5;
     } else {
       g.gain.setValueAtTime(amp, t);
       const tau = I.etouffe ? I.etouffe(e.m) : 0;
-      if (tau > 0 && e.off < stop) { g.gain.setTargetAtTime(0, e.off, tau); stop = Math.min(stop, e.off + tau * 8); }
-      else if (I.laisser && e.off + I.laisser < stop) { g.gain.setTargetAtTime(0, e.off + I.laisser * 0.5, I.laisser / 3); stop = e.off + I.laisser * 1.6; }
+      if (tau > 0 && off < stop) { g.gain.setTargetAtTime(0, off, tau); stop = Math.min(stop, off + tau * 8); }
+      else if (I.laisser && off + I.laisser < stop) { g.gain.setTargetAtTime(0, off + I.laisser * 0.5, I.laisser / 3); stop = off + I.laisser * 1.6; }
     }
     // la même corde refrappée : l'ancienne vibration s'efface
     const k = e.inst + e.m, A = this.sonne.get(k);
