@@ -487,7 +487,12 @@ Object.assign(vgCite, {
     } else if ((this.coeurRepos || 0) > 0) this.coeurRepos -= dt;
     this.etoilesK = 1 - 0.55 * clamp((V.m.coeur ? V.coeurT || 0 : 0) / VG_COEUR_MAX, 0, 1);
     // la faim vient, lentement (le temps de la vallée est suspendu, pas votre ventre)
-    if (playing && !cine.on) p.food = Math.max(0, p.food - dt * 0.012);
+    if (playing && !cine.on) {
+      p.food = Math.max(0, p.food - dt * 0.012);
+      if (p.food < 15 && !this.ditFaim) { this.ditFaim = true; ui.subtitle('', '(Vous avez faim. Ici, rien ne passe, sauf la faim.)', 4.5); }
+      if (p.food > 25) this.ditFaim = false;
+      if (p.food <= 0) { p.hp -= dt * 0.08; if (p.hp <= 0) game.die('Mort de faim, dans la cité'); }
+    }
     // les bruits des machines
     this.sonT = (this.sonT || 2) - dt;
     if (this.sonT <= 0) {
