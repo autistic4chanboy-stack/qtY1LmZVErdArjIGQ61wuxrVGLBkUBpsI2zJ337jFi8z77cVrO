@@ -302,16 +302,21 @@ Object.assign(ANIMAL_RIGS, {
   e2_campagnol_amphibie: () => e2Campagnol({ col: '#5a4232', ventre: '#8a7a68', corps: [0.08, 0.075, 0.18], tete: [0.065, 0.06, 0.068], queue: 0.12, oreille: '#4a3426' }),
   // la couleuvre vipérine : brune, le zigzag sombre, le ventre jaunâtre
   e2_viperine: () => e2Serpent({ k: 0.85, clair: '#7a6a44', sombre: '#2a2214', tete: '#6a5a3a', ventre: '#c8a850' }),
-  // l'oie cendrée : grise, rayée, le bec orange, les pattes roses
+  // l'oie cendrée : grise, rayée, le bec orange, les pattes roses ; de grandes ailes en vol, repliées au sol
   e2_oie: () => {
-    const r = ANIMAL_RIGS.goose();
-    for (const q of r.parts) if (q.s) {
-      if (q.name === 'beak') q.col = rgbf('#f08a30');
-      else if (q.name.startsWith('leg')) q.col = rgbf('#e8a0a0');
-      else if (q.name === 'tail') q.col = rgbf('#5a5650');
-      else { q.col = q.name === 'head' || q.name === 'neckB' ? rgbf('#8a8478') : rgbf('#9a9488'); if (q.name === 'body' || q.name.startsWith('wing')) q.tex = TL.stripes; }
-    }
-    return rigPlus(r, [{ name: 'ventre', parent: 'body', p: [0, -0.07, -0.05], s: [0.22, 0.08, 0.26], col: rgbf('#d8d4cc'), tex: TL.fur }]);
+    const gris = rgbf('#9a9488'), aile = rgbf('#7e786e');
+    const r = birdParts({ col: gris, body: [0.26, 0.24, 0.46], bodyY: 0.28, neck: [0.07, 0.3, 0.07], neckR: [0.15, 0, 0], neckCol: rgbf('#8a8478'), head: [0.1, 0.1, 0.13], headCol: rgbf('#8a8478'),
+      beak: [0.055, 0.04, 0.09], beakCol: rgbf('#f08a30'), tail: [0.14, 0.06, 0.1], tailCol: rgbf('#5a5650'), wing: [0.72, 0.02, 0.26], wingCol: aile, leg: [0.035, 0.16], legCol: rgbf('#e8a0a0') });
+    for (const q of r.parts) if (q.name === 'body') q.tex = TL.stripes;
+    const rr = rigPlus(r, [
+      { name: 'ventre', parent: 'body', p: [0, -0.07, -0.05], s: [0.22, 0.08, 0.26], col: rgbf('#d8d4cc'), tex: TL.fur },
+      { name: 'boutL', parent: 'wingL', p: [-0.6, 0.001, -0.01], s: [0.24, 0.022, 0.24], col: rgbf('#4a4640'), tex: TL.fur },
+      { name: 'boutR', parent: 'wingR', p: [0.6, 0.001, -0.01], s: [0.24, 0.022, 0.24], col: rgbf('#4a4640'), tex: TL.fur },
+      { name: 'replie-1', parent: 'body', p: [-0.14, 0.04, -0.04], s: [0.025, 0.16, 0.42], o: [0, 0, -0.02], col: aile, tex: TL.stripes, hide: true },
+      { name: 'replie1', parent: 'body', p: [0.14, 0.04, -0.04], s: [0.025, 0.16, 0.42], o: [0, 0, -0.02], col: aile, tex: TL.stripes, hide: true },
+    ]);
+    rr.e2Replie = true; rr.e2lent = [6, 0.55];
+    return rr;
   },
   // le harle bièvre : le mâle blanc à tête vert sombre (v pair), la femelle grise à tête rousse huppée ; le bec fin et rouge
   e2_harle: (v) => (v | 0) % 2 === 0
