@@ -151,6 +151,9 @@ SoundEngine.BRUITS_MILIEU = {
   const BRUIT_TAMPON = { coq: 's_coq', chien: 's_chien', bourdon: 's_bourdons', charrette: 's_charrette', sonnailles: 's_sonnailles', caillou: 's_caillou', brindille: 's_brindille', tronc: 's_tronc', gousse: 's_gousse', poisson: 's_poisson', pigeons: 'tourterelle' };
   const _scene0 = SoundEngine.prototype._scene, _chanteur0 = SoundEngine.prototype._chanteur, _pluie0 = SoundEngine.prototype._pluie;
   const _source0 = SoundEngine.prototype.source, _oiseau0 = SoundEngine.prototype.oiseau, _tb0 = SoundEngine.prototype.tb;
+  const _grillons0 = SoundEngine.prototype._grillons, _frog0 = SoundEngine.prototype.frog;
+  // une nuit noire (le calendrier : ni lune ni étoiles) : la nature se tait
+  const nuitNoire = (eng) => { const Q = eng._sZ && eng._sZ.Q; return !!(Q && Q.noire > 0.3 && Q.nuit > 0.3); };
   // un tampon à sa fréquence d'échantillonnage (SoundEngine.SR_TAMPON : les sons graves se contentent de moins)
   const tbS = (eng, nom, n, iv) => {
     const arr = eng._bufs[nom], neuf = iv === undefined || !arr || !arr[iv];
@@ -219,7 +222,7 @@ SoundEngine.BRUITS_MILIEU = {
       Z.nuitT -= dt;
       if (Z.nuitT <= 0) {
         const avantJour = Q.h >= 4.3 && Q.h < 6.5 && Q.jour <= 0.25;
-        const peut = actif && dehors && (Q.nuit > 0.35 || avantJour) && Q.pluie < 0.35 && Q.neige < 0.3 && Q.orage < 0.3, C = Z.nchant;
+        const peut = actif && dehors && (Q.nuit > 0.35 || avantJour) && Q.pluie < 0.35 && Q.neige < 0.3 && Q.orage < 0.3 && Q.noire < 0.3, C = Z.nchant;
         if (peut && C && C.reste > 0) { C.reste--; this.oiseau(C.sorte, C.pos, C.k); Z.nuitT = C.pause * rf(0.85, 1.3); }
         else {
           Z.nchant = null;
@@ -243,7 +246,7 @@ SoundEngine.BRUITS_MILIEU = {
       Z.evT -= dt;
       if (Z.evT <= 0) {
         Z.evT = rf(18, 50) * (Q.nuit > 0.5 ? 1.4 : 1) * (Q.brouillard > 0.5 ? 1.5 : 1);
-        if (actif && dehors && Q.orage < 0.5 && Q.neige < 0.5) {
+        if (actif && dehors && Q.orage < 0.5 && Q.neige < 0.5 && !(Q.noire > 0.3 && Q.nuit > 0.3)) {
           const m = tirerMilieu(P), T = SoundEngine.BRUITS_MILIEU[m];
           if (T) { const nom = tirer(T.map(([k, f]) => [k, f(Q)])); if (nom) { this._sBruit(nom, m, Q); this._sNote(nom, m); } }
         }
@@ -309,19 +312,22 @@ SoundEngine.BRUITS_MILIEU = {
       const neige = typeof vallee !== 'undefined' ? clamp((vallee.snowK || 0) * 1.6, 0, 1) : 0;
       const brouillard = clamp(M.fog || 0, 0, 1), gel = clamp(M.frost || 0, 0, 1), chaud = clamp(M.heat || 0, 0, 1), orage = clamp(M.storm || 0, 0, 1), nuages = clamp(M.cloud || 0, 0, 1);
       const vent = clamp((M.storm || 0) * 0.8 + (M.rain || 0) * 0.22 + nuages * 0.1 - brouillard * 0.15, 0, 1);
-      const sec = 1 - lisse(0.1, 0.45, pluie), froid = Math.max(gel, neige), raf = clamp(this.sc && this.sc.vg !== undefined ? this.sc.vg : 0.4, 0, 1);
+      // la neige restée au sol (les jours de grand froid) garde les insectes muets ; les nuits noires, la nature se tait
+      const fs = typeof farm !== 'undefined' && farm.s, sol = fs && fs.ev && typeof fs.ev.neigeSol === 'number' ? fs.ev.neigeSol : 0;
+      const noire = typeof evenements !== 'undefined' ? clamp(evenements.noirK || 0, 0, 1) : 0;
+      const sec = 1 - lisse(0.1, 0.45, pluie), froid = Math.max(gel, neige, 0.8 * sol), raf = clamp(this.sc && this.sc.vg !== undefined ? this.sc.vg : 0.4, 0, 1);
       // (la pluie qui vient de finir : les grenouilles chantent plus, les arbres s'égouttent)
       if (pluie > 0.3) Z.pluieVue = 1; else Z.pluieVue = Math.max(0, Z.pluieVue - dt / 240);
       const hs = h < 12 ? h + 24 : h; // les heures du soir et de la nuit, d'un seul tenant
       Object.assign(Q, {
-        h, jour, nuit, pluie, neige, brouillard, gel, chaud, orage, vent, sec,
+        h, jour, nuit, pluie, neige, brouillard, gel, chaud, orage, vent, sec, noire,
         aube: bosse(h, 4.5, 5.3, 7.2, 8.5), soir: bosse(h, 17.2, 18.2, 20.3, 21.5),
         insJour: jour * sec * (1 - froid) * (1 - 0.6 * nuages) * (0.75 + 0.5 * chaud) * bosse(h, 8.3, 10.5, 17.5, 19.6),
-        insNuit: nuit * sec * (1 - froid) * (1 - orage) * bosse(hs, 20, 21.5, 27.5, 29.3),
-        insSoir: sec * (1 - froid) * bosse(hs, 18.6, 20, 23.5, 25.5),
+        insNuit: nuit * sec * (1 - froid) * (1 - orage) * (1 - noire) * bosse(hs, 20, 21.5, 27.5, 29.3),
+        insSoir: sec * (1 - froid) * (1 - noire) * bosse(hs, 18.6, 20, 23.5, 25.5),
         grenJour: (0.35 * jour + 0.65 * bosse(h, 16.5, 18.5, 20.5, 21.5)) * (1 - froid) * (1 - lisse(0.6, 0.9, pluie)) * (1 + 0.3 * Z.pluieVue),
-        grenNuit: nuit * (1 - froid) * (1 - lisse(0.6, 0.9, pluie)) * (1 + 0.3 * Z.pluieVue),
-        batNuit: nuit * (1 - froid) * (1 - lisse(0.5, 0.85, pluie)),
+        grenNuit: nuit * (1 - froid) * (1 - noire) * (1 - lisse(0.6, 0.9, pluie)) * (1 + 0.3 * Z.pluieVue),
+        batNuit: nuit * (1 - froid) * (1 - noire) * (1 - lisse(0.5, 0.85, pluie)),
         // (le vent dans les arbres, les roseaux, la bruyère suit les bouffées du vent : sc.vg, 0..1)
         ventBois: (0.35 + 0.9 * vent) * (1 - 0.5 * neige) * (0.75 + 0.4 * raf), ventBas: (0.3 + 0.8 * vent) * (0.75 + 0.4 * raf), ventHaut: (0.35 + 0.8 * vent) * (0.8 + 0.3 * raf), ressac: (0.45 + 0.8 * vent) * clamp(this._sGL === undefined ? 1 : this._sGL * 1.5, 0, 1),
         egout: Z.pluieVue * (1 - lisse(0.05, 0.3, pluie)),
@@ -460,6 +466,7 @@ SoundEngine.BRUITS_MILIEU = {
     },
     // un tampon : de préférence une variante déjà calculée (rien à calculer pendant le jeu)
     oiseau(sorte, pos, k, n) {
+      if (sorte === 'chouette' && nuitNoire(this)) return; // (la hulotte aussi, les nuits noires)
       n = n || (SoundEngine.VARIANTES && SoundEngine.VARIANTES[sorte]) || undefined;
       this._sChoix = [sorte, this._sVariante(sorte, n || 5)];
       try { return _oiseau0.call(this, sorte, pos, k, n); } finally { this._sChoix = null; }
@@ -621,6 +628,9 @@ SoundEngine.BRUITS_MILIEU = {
       const k = this._sPluieGen === undefined ? 1 : this._sPluieGen;
       if (Math.abs(pl.sK - k) > 0.02) { pl.sK = k; pl.sG.gain.setTargetAtTime(k, now, 1.2); }
     },
+    // les grillons et les grenouilles d'origine se taisent aussi les nuits noires
+    _grillons(S, k, p) { return _grillons0.call(this, S, nuitNoire(this) ? 0 : k, p); },
+    frog(k) { if (nuitNoire(this)) return; return _frog0.call(this, k); },
     source(cle, type, pos, k, o) {
       if (type === 'gouttes' && this._sGouttes !== undefined) k *= this._sGouttes;
       else if (type === 'clapotis' && this._sClapotis !== undefined) k *= this._sClapotis;
