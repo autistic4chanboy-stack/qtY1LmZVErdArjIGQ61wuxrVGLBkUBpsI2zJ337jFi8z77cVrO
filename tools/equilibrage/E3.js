@@ -3,18 +3,20 @@
 // 1. trente bêtes (dix par milieu : la forêt, le bois de bouleaux, le marais), chacune sa notice, sa rareté, sa
 //    conduite, son modèle, ses heures et son lieu, et ce qu'elle laisse (des objets qui existent) ;
 // 2. les objets nouveaux : un prix raisonnable, une essence (alchimie), quelqu'un qui les achète ;
-// 3. la fréquence des apparitions (E3_POIDS, E3_ESSAI) : l'attente, quand tout convient (milieu, heure, temps, une
-//    place libre), croît avec la rareté — commune en moins d'une minute, très rare en plusieurs minutes — et peu de
-//    bêtes à la fois (E3_MAX) ;
+// 3. les TERRITOIRES, sur la vallée dessinée (graine 12345, celle des parties neuves) : chaque bête en a au moins un,
+//    d'autant moins qu'elle est rare ; ceux du marais sont bien dans le marais (que la carte des biomes ignore) ; la
+//    chance qu'un territoire soit habité un jour donné baisse avec la rareté, la place d'une bête tuée reste vide
+//    plus longtemps ; peu de bêtes à la fois (E3_MAX) ;
 // 4. ce que rapportent les bêtes, comparé au revenu d'une journée (commerce.js : début ≈ 375 pièces).
 'use strict';
+const { vallee } = require('./vm.js');
 module.exports = {
-  titre: 'Les bêtes des bois et du marais (E3) : espèces, objets, apparitions',
+  titre: 'Les bêtes des bois et du marais (E3) : espèces, objets, territoires',
   async verifier(J, log) {
     let echecs = 0;
     const verif = (ok, txt) => { log((ok ? '  ok   ' : '  ÉCHEC ') + txt); if (!ok) echecs++; };
     const R = J.ev(`(() => {
-      const out = { n: E3_BETES.length, parMilieu: {}, manques: [], objets: [], sansAcheteur: [], prix: [], attente: [], max: E3_MAX, essai: E3_ESSAI };
+      const out = { n: E3_BETES.length, parMilieu: {}, manques: [], objets: [], sansAcheteur: [], prix: [], max: E3_MAX, presence: E3_PRESENCE, vide: E3_VIDE };
       const ACH = {};
       for (const d of NPC_DATA) if (d.shop && d.shop.buys) for (const k of d.shop.buys) (ACH[k] || (ACH[k] = [])).push(d.id);
       for (const [k, nom, hab, rar, dang] of E3_BETES) {
@@ -22,7 +24,7 @@ module.exports = {
         const m = V && V.mil[0];
         out.parMilieu[m] = (out.parMilieu[m] || 0) + 1;
         const pb = [];
-        if (!V) pb.push('heures et lieu'); else { if (!V.h.length || V.h.some(([a, b]) => !(a >= 0 && b <= 24 && a < b))) pb.push('heures'); if (!['sol', 'ciel', 'arbre', 'chene', 'bouleau', 'rive', 'eau', 'humide'].includes(V.lieu)) pb.push('lieu'); }
+        if (!V) pb.push('heures et lieu'); else { if (!V.h.length || V.h.some(([a, b]) => !(a >= 0 && b <= 24 && a < b))) pb.push('heures'); if (!E3_PORTEE[V.lieu]) pb.push('lieu'); }
         if (!C || !C.e3 || !E3_COMPORTE[C.e3]) pb.push('conduite');
         if (!C || !ANIMAL_RIGS[C.rig] || !/^e3_/.test(C.rig)) pb.push('modèle');
         else { try { const r = ANIMAL_RIGS[C.rig](0); if (!r || !r.parts.length) pb.push('modèle vide'); } catch (e) { pb.push('modèle : ' + e.message); } }
@@ -32,8 +34,6 @@ module.exports = {
         if (!P) pb.push('butin'); else for (const d of P.drop) if (!ITEMS[d[0]]) pb.push('objet ' + d[0]);
         if (!CHASSE_NOMS[k]) pb.push('nom de chasse');
         if (pb.length) out.manques.push(k + ' (' + pb.join(', ') + ')');
-        // l'attente moyenne avant qu'elle paraisse, quand tout convient (une place libre, le bon milieu, la bonne heure)
-        out.attente.push([k, rar, E3_ESSAI / E3_POIDS[rar]]);
       }
       for (const id of ['bois_daim', 'plume_peintre', 'plume_aigrette', 'sangsue', 'capricorne', 'cicindele', 'grand_mars', 'morio', 'cuivre_marais']) {
         const I = ITEMS[id];
@@ -52,11 +52,32 @@ module.exports = {
     log('\n2. Les objets');
     verif(E.prix.every(([, p]) => p >= 2 && p <= 30), 'prix entre 2 et 30 pièces : ' + E.prix.map(([i, p]) => `${i} ${p}`).join(', '));
     verif(!E.sansAcheteur.length, 'chacun trouve preneur' + (E.sansAcheteur.length ? ' — sans acheteur : ' + E.sansAcheteur.join(', ') : ''));
-    log('\n3. Les apparitions');
-    const moy = [0, 1, 2, 3].map((r) => { const L = E.attente.filter((a) => a[1] === r).map((a) => a[2]); return L.length ? L.reduce((s, v) => s + v, 0) / L.length : null; });
-    log(`  attente moyenne, quand tout convient : ${moy.map((v, r) => v === null ? '' : ['commune', 'peu commune', 'rare', 'très rare'][r] + ' ' + (v / 60).toFixed(1) + ' min').filter(Boolean).join(' ; ')}`);
-    verif(moy[0] < 60 && moy[1] < 120 && moy[2] >= 60 && moy[2] < 600 && moy[3] >= 240, 'l’attente croît avec la rareté (commune < 1 min, peu commune < 2 min, rare de 1 à 10 min, très rare ≥ 4 min)');
+
+    log('\n3. Les territoires (vallée dessinée, graine 12345)');
+    const t0 = Date.now(), w = await vallee(J, 12345);
+    J.ctx.__w = w;
+    const T = JSON.parse(J.ev(`(() => {
+      const w = __w, T = e3.territoires(w), M = e3.marais(w), par = {}, horsMilieu = [], marais = [];
+      for (const t of T) {
+        par[t.k] = (par[t.k] || 0) + 1;
+        const m = e3.milieu(w, t.x, t.z);
+        if (!E3_VIE[t.k].mil.includes(m)) horsMilieu.push(t.id + '@' + m);
+        if (E3_VIE[t.k].mil[0] === 'marais' && M && Math.hypot(t.x - M.x, t.z - M.z) > M.r) marais.push(t.id);
+      }
+      const rar = {}; for (const [k, , , r] of E3_BETES) rar[k] = r;
+      return JSON.stringify({ n: T.length, par, rar, horsMilieu, marais, M });
+    })()`));
+    log(`  (vallée en ${((Date.now() - t0) / 1000).toFixed(0)} s) ${T.n} territoires ; le marais : centre ${T.M ? Math.round(T.M.x) + ', ' + Math.round(T.M.z) + ', rayon ' + Math.round(T.M.r) + ' m' : 'introuvable'}`);
+    const sans = Object.keys(T.rar).filter((k) => !T.par[k]);
+    verif(!sans.length, 'chaque bête a au moins un territoire' + (sans.length ? ' — sans territoire : ' + sans.join(', ') : ''));
+    const parRar = [0, 1, 2, 3].map((r) => { const L = Object.keys(T.rar).filter((k) => T.rar[k] === r).map((k) => T.par[k] || 0); return L.length ? L.reduce((a, b) => a + b, 0) / L.length : null; });
+    log('  territoires par bête, en moyenne : ' + parRar.map((v, r) => v === null ? '' : ['commune', 'peu commune', 'rare', 'très rare'][r] + ' ' + v.toFixed(1)).filter(Boolean).join(' ; '));
+    log('  ' + Object.entries(T.par).map(([k, n]) => `${k} ${n}`).join(', '));
+    verif(parRar[0] > parRar[1] && parRar[1] > parRar[2] && parRar[2] >= parRar[3], 'les bêtes rares ont moins de territoires que les communes');
+    verif(!T.horsMilieu.length && !T.marais.length, 'chaque territoire est dans son milieu, ceux du marais dans le marais' + (T.horsMilieu.length || T.marais.length ? ' — ' + T.horsMilieu.concat(T.marais).join(', ') : ''));
+    verif(E.presence.every((p, i) => !i || p < E.presence[i - 1]) && E.vide.every((v, i) => !i || v > E.vide[i - 1]), `habité un jour donné : ${E.presence.map((p) => Math.round(p * 100) + ' %').join(', ')} ; vide après une mort : ${E.vide.join(', ')} jour(s) (de commune à très rare)`);
     verif(E.max <= 6, `peu de bêtes à la fois : ${E.max} groupes au plus (une harde de daims compte pour un)`);
+
     log('\n4. Ce qu’elles rapportent');
     const P = Object.fromEntries(E.prix);
     const aigrette = P.plume_aigrette * 1.5, daim = 2.5 * 5 + 6 + 0.85 * 0.5 * P.bois_daim;

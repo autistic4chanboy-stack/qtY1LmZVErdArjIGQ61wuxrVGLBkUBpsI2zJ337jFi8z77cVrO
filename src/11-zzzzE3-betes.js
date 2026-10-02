@@ -3,11 +3,16 @@
 //  (données : 05-zzzzzE3-betes.js ; créatures : 10-zzzzE3-betes.js ; modèles :
 //  07-zzzzzzzzzzzzE3-betes.js ; cris : 09-zzzzE3-cris.js ; icônes :
 //  03-zzzzzE3-icones.js)
-//  - OÙ ET QUAND (E3_VIE) : aucune passe de génération. Les bêtes naissent
-//    autour du joueur, hors de sa vue (de 25 à 90 m), dans leur milieu (la
-//    forêt, le bois de bouleaux, le marais), à leur heure, selon leur rareté ;
-//    peu à la fois (E3_MAX groupes), et elles s'en vont quand on s'éloigne ou
-//    quand leur temps est passé (jamais sous les yeux du joueur).
+//  - OÙ ET QUAND (E3_VIE, e3.territoires) : aucune passe de génération, aucun
+//    objet du monde (les parties anciennes se chargent telles quelles). Chaque
+//    espèce a ses TERRITOIRES, tirés de la graine dans son milieu (la forêt, le
+//    bois de bouleaux, le marais) et son lieu (un arbre, une rive, l'eau, le
+//    ciel…), d'autant moins nombreux qu'elle est rare. La bête d'un territoire
+//    paraît quand on en approche, à son heure et par son temps, si elle est là
+//    ce jour-là (une chance par jour, selon la rareté) ; elle s'en va quand on
+//    s'éloigne, quand l'heure passe, ou dérangée (jusqu'au lendemain) — jamais
+//    sous les yeux du joueur. Tuée ou prise, sa place reste vide (E3_VIDE
+//    jours). Peu de bêtes à la fois (E3_MAX groupes, les plus proches).
 //  - LE MARAIS : dans la vallée dessinée, la carte des biomes n'a pas de marais
 //    (game.biomeAt y répond « plaine ») ; le marais, ce sont les mares du marais
 //    (w.fishZones « marais ») et le bas-fond qui les entoure (e3.marais).
@@ -21,45 +26,52 @@
 //    main (E : le capricorne, la cicindèle, la sangsue ; la coronelle et la
 //    crossope mordent), les sangsues qui se collent aux jambes de qui entre dans
 //    l'eau du marais, le bois du daim mâle, la chasse (noms, pièges).
-//  État : farm.s.e3 = { v, sangsues (prises aux jambes), morsures }
-//  API : e3 (milieu(w, x, z), marais(w), apparaitre(kind, x, z), liste(), oter(e))
+//  État : farm.s.e3 = { v, vides: { territoire: jour où une autre bête y revient }, sangsues (prises aux jambes),
+//    morsures }
+//  API : e3 (milieu(w, x, z), marais(w), territoires(w), apparaitre(kind, x, z, force, territoire), liste(), oter(e))
 // ============================================================================
-const E3_MAX = 5;                                   // groupes à la fois, au plus
-const E3_ESSAI = 3.5;                               // un essai d'apparition toutes les 3,5 s
-const E3_POIDS = [0.3, 0.1, 0.025, 0.006, 0.002];  // chance par essai, selon la rareté (si tout le reste convient)
-// où et quand : mil (milieux), h (heures [[de, à]…]), n (taille du groupe), lieu (sol, arbre, chene, bouleau, rive,
-// eau, ciel, humide), soleil (beau temps, pas de neige), vie (secondes avant de s'en aller, hors de vue)
+const E3_MAX = 6;                                   // groupes à la fois, au plus (les territoires les plus proches)
+const E3_ESSAI = 2;                                 // on regarde les territoires toutes les deux secondes
+// les territoires : combien par espèce, selon son milieu et sa rareté (commune, peu commune, rare, très rare)
+const E3_TERR = { foret: [14, 8, 4, 1], bouleaux: [8, 5, 3, 1], marais: [5, 4, 2, 1] };
+const E3_PRESENCE = [0.9, 0.75, 0.6, 0.5];          // chance qu'un territoire soit habité ce jour-là
+const E3_VIDE = [1, 3, 6, 12];                      // tuée ou prise : jours avant qu'une autre ne prenne sa place
+// d'où l'on voit une bête : elle paraît quand on approche à cette distance de son territoire (selon son lieu)
+const E3_PORTEE = { sol: 80, arbre: 90, chene: 45, bouleau: 50, rive: 100, eau: 80, ciel: 170, humide: 60 };
+// où et quand : mil (milieux, le premier d'abord), h (heures [[de, à]…]), n (taille du groupe), lieu (sol, arbre, chene,
+// bouleau, rive, eau, ciel, humide), soleil (beau temps, pas de neige), froid (pas sous la neige), pluie (plus souvent
+// dehors quand il pleut), portee (distance d'apparition, si elle diffère de celle de son lieu)
 const E3_VIE = {
-  daim: { mil: ['foret', 'bouleaux'], h: [[5, 21.5]], n: [2, 4], lieu: 'sol', vie: [240, 420] },
-  autour: { mil: ['foret'], h: [[6.5, 19]], lieu: 'arbre', vie: [200, 360] },
-  pic_noir: { mil: ['foret'], h: [[6, 19.5]], lieu: 'arbre', vie: [200, 360] },
-  becasse: { mil: ['foret', 'bouleaux'], h: [[0, 24]], lieu: 'sol', vie: [200, 400] },
-  cigogne_noire: { mil: ['foret'], h: [[7, 19]], lieu: 'rive', vie: [180, 300] },
-  sonneur: { mil: ['foret'], h: [[0, 24]], lieu: 'humide', n: [1, 3], froid: true, vie: [200, 400] },
-  coronelle: { mil: ['foret'], h: [[9, 18]], lieu: 'sol', soleil: true, vie: [160, 300] },
-  capricorne: { mil: ['foret'], h: [[18.5, 24], [0, 1.5]], lieu: 'chene', froid: true, vie: [240, 420] },
-  grand_mars: { mil: ['foret'], h: [[8, 13.5]], lieu: 'sol', soleil: true, vie: [150, 280] },
-  oreillard: { mil: ['foret', 'bouleaux'], h: [[20.5, 24], [0, 5]], lieu: 'arbre', froid: true, vie: [200, 360] },
-  gelinotte: { mil: ['bouleaux'], h: [[6, 19.5]], lieu: 'sol', n: [1, 2], vie: [200, 360] },
-  pic_epeiche: { mil: ['bouleaux', 'foret'], h: [[6, 19.5]], lieu: 'arbre', vie: [200, 360] },
-  bondree: { mil: ['bouleaux'], h: [[9, 17]], lieu: 'ciel', froid: true, vie: [200, 360] },
-  moyen_duc: { mil: ['bouleaux'], h: [[19.5, 24], [0, 6]], lieu: 'arbre', vie: [240, 420] },
-  musaraigne: { mil: ['bouleaux', 'foret'], h: [[0, 24]], lieu: 'sol', vie: [120, 240] },
-  muscardin: { mil: ['bouleaux'], h: [[20, 24], [0, 5]], lieu: 'arbre', froid: true, vie: [200, 360] },
-  lezard_vivipare: { mil: ['bouleaux'], h: [[9, 18]], lieu: 'sol', soleil: true, vie: [160, 300] },
-  grenouille_rousse: { mil: ['bouleaux', 'foret'], h: [[0, 24]], lieu: 'sol', froid: true, pluie: 3, vie: [160, 300] },
-  morio: { mil: ['bouleaux'], h: [[9.5, 16.5]], lieu: 'bouleau', soleil: true, vie: [150, 280] },
-  cicindele: { mil: ['bouleaux'], h: [[9, 17]], lieu: 'sol', soleil: true, vie: [150, 280] },
-  busard_roseaux: { mil: ['marais'], h: [[7, 19]], lieu: 'ciel', vie: [200, 360] },
-  bihoreau: { mil: ['marais'], h: [[0, 24]], lieu: 'rive', vie: [240, 420] },
-  aigrette: { mil: ['marais'], h: [[7, 19.5]], lieu: 'rive', vie: [200, 360] },
-  rale_eau: { mil: ['marais'], h: [[0, 24]], lieu: 'rive', vie: [240, 420] },
-  becassine: { mil: ['marais'], h: [[5, 21.5]], lieu: 'rive', vie: [200, 360] },
-  poule_eau: { mil: ['marais'], h: [[5.5, 20.5]], lieu: 'eau', n: [1, 2], vie: [240, 420] },
-  rainette: { mil: ['marais'], h: [[0, 24]], lieu: 'rive', n: [1, 3], froid: true, vie: [240, 420] },
-  sangsue: { mil: ['marais'], h: [[0, 24]], lieu: 'eau', n: [2, 4], froid: true, vie: [240, 420] },
-  crossope: { mil: ['marais'], h: [[0, 24]], lieu: 'rive', vie: [200, 360] },
-  cuivre_marais: { mil: ['marais'], h: [[9.5, 17]], lieu: 'sol', soleil: true, vie: [150, 280] },
+  daim: { mil: ['foret', 'bouleaux'], h: [[5, 21.5]], n: [2, 4], lieu: 'sol' },
+  autour: { mil: ['foret'], h: [[6.5, 19]], lieu: 'arbre' },
+  pic_noir: { mil: ['foret'], h: [[6, 19.5]], lieu: 'arbre' },
+  becasse: { mil: ['foret', 'bouleaux'], h: [[0, 24]], lieu: 'sol' },
+  cigogne_noire: { mil: ['foret'], h: [[7, 19]], lieu: 'rive' },
+  sonneur: { mil: ['foret'], h: [[0, 24]], lieu: 'humide', n: [1, 3], froid: true },
+  coronelle: { mil: ['foret'], h: [[9, 18]], lieu: 'sol', soleil: true, portee: 45 },
+  capricorne: { mil: ['foret'], h: [[18.5, 24], [0, 1.5]], lieu: 'chene', froid: true },
+  grand_mars: { mil: ['foret'], h: [[8, 13.5]], lieu: 'sol', soleil: true, portee: 60 },
+  oreillard: { mil: ['foret', 'bouleaux'], h: [[20.5, 24], [0, 5]], lieu: 'arbre', froid: true },
+  gelinotte: { mil: ['bouleaux'], h: [[6, 19.5]], lieu: 'sol', n: [1, 2] },
+  pic_epeiche: { mil: ['bouleaux', 'foret'], h: [[6, 19.5]], lieu: 'arbre' },
+  bondree: { mil: ['bouleaux'], h: [[9, 17]], lieu: 'ciel', froid: true },
+  moyen_duc: { mil: ['bouleaux'], h: [[19.5, 24], [0, 6]], lieu: 'arbre' },
+  musaraigne: { mil: ['bouleaux', 'foret'], h: [[0, 24]], lieu: 'sol', portee: 45 },
+  muscardin: { mil: ['bouleaux'], h: [[20, 24], [0, 5]], lieu: 'arbre', froid: true },
+  lezard_vivipare: { mil: ['bouleaux'], h: [[9, 18]], lieu: 'sol', soleil: true, portee: 45 },
+  grenouille_rousse: { mil: ['bouleaux', 'foret'], h: [[0, 24]], lieu: 'sol', froid: true, pluie: 3 },
+  morio: { mil: ['bouleaux'], h: [[9.5, 16.5]], lieu: 'bouleau', soleil: true },
+  cicindele: { mil: ['bouleaux'], h: [[9, 17]], lieu: 'sol', soleil: true, portee: 45 },
+  busard_roseaux: { mil: ['marais'], h: [[7, 19]], lieu: 'ciel' },
+  bihoreau: { mil: ['marais'], h: [[0, 24]], lieu: 'rive' },
+  aigrette: { mil: ['marais'], h: [[7, 19.5]], lieu: 'rive' },
+  rale_eau: { mil: ['marais'], h: [[0, 24]], lieu: 'rive' },
+  becassine: { mil: ['marais'], h: [[5, 21.5]], lieu: 'rive' },
+  poule_eau: { mil: ['marais'], h: [[5.5, 20.5]], lieu: 'eau', n: [1, 2] },
+  rainette: { mil: ['marais'], h: [[0, 24]], lieu: 'rive', n: [1, 3], froid: true, portee: 50 },
+  sangsue: { mil: ['marais'], h: [[0, 24]], lieu: 'eau', n: [2, 4], froid: true, portee: 40 },
+  crossope: { mil: ['marais'], h: [[0, 24]], lieu: 'rive' },
+  cuivre_marais: { mil: ['marais'], h: [[9.5, 17]], lieu: 'sol', soleil: true, portee: 50 },
 };
 const E3_SANS_OMBRE = new Set(['grand_mars', 'morio', 'cuivre_marais', 'capricorne', 'cicindele', 'sangsue']); // (trop petits : pas d'ombre)
 const E3_RARE = {};
@@ -79,7 +91,7 @@ const e3Cri = (e, kind, c, portee, k) => {
 const e3Tronc = (T) => (OBJ_TYPES[T.t] && OBJ_TYPES[T.t].col) || 0.3; // (le rayon du tronc)
 const e3Alerte = (e, c, base) => base * (c.crouch ? 0.5 : 1) * (c.sprint ? 1.5 : 1);
 // un arbre près d'un point (pour se percher), loin d'un autre si l'on change d'arbre
-const e3Arbre = (w, x, z, R, loin, ids) => {
+const e3Arbre = (w, x, z, R, loin, ids, rnd) => {
   const L = [];
   w.query(x, z, R, (o) => {
     if (!o || o.gone) return;
@@ -88,7 +100,7 @@ const e3Arbre = (w, x, z, R, loin, ids) => {
     if (loin && Math.hypot(o.x - loin.x, o.z - loin.z) < 6) return;
     L.push(o);
   }, null);
-  return L.length ? L[(Math.random() * L.length) | 0] : null;
+  return L.length ? L[((rnd || Math.random)() * L.length) | 0] : null;
 };
 // les ailes des rapaces : déployées en vol, repliées au repos
 const e3Ailes = (e, vol) => {
@@ -103,7 +115,7 @@ const e3Ailes = (e, vol) => {
 const e3Elytres = (e, vol) => { const r = e.rig; if (!r || r._vol === vol) return; r._vol = vol; for (const n of ['wingL', 'wingR']) { const q = r.part(n); if (q) q.hide = !vol; } };
 
 const e3 = {
-  vivantes: [], t: 2, mar: null, marW: null, sangT: 0, collees: 0, mouille: false, dejaDit: 0,
+  vivantes: [], t: 2, mar: null, marW: null, ter: null, terW: null, sangT: 0, collees: 0, mouille: false, dejaDit: 0,
   // ------------------------------------------------------------ état sauvegardé
   S() {
     const s = farm.s;
@@ -112,6 +124,7 @@ const e3 = {
     if (!E.v) E.v = 1;
     if (typeof E.sangsues !== 'number') E.sangsues = 0;
     if (typeof E.morsures !== 'number') E.morsures = 0;
+    if (!E.vides || typeof E.vides !== 'object') E.vides = {};
     return E;
   },
   liste() { return this.vivantes.slice(); },
@@ -138,10 +151,10 @@ const e3 = {
     return null;
   },
   // de l'eau près d'un point : la rive (terre ferme au bord) et l'eau
-  eauPres(w, x, z, R) {
-    const WL = w.waterLevel;
+  eauPres(w, x, z, R, rnd) {
+    const WL = w.waterLevel, r = rnd || Math.random;
     for (let k = 0; k < 40; k++) {
-      const a = Math.random() * TAU, d = 2 + Math.random() * R, ex = x + Math.cos(a) * d, ez = z + Math.sin(a) * d;
+      const a = r() * TAU, d = 2 + r() * R, ex = x + Math.cos(a) * d, ez = z + Math.sin(a) * d;
       if (!w.inside(ex, ez, 8) || w.heightAt(ex, ez) > WL - 0.08) continue;
       // de l'eau vers le point : la première terre ferme
       for (let s = 0.5; s < d + 0.5; s += 0.5) {
@@ -158,77 +171,99 @@ const e3 = {
     if (V.froid && neige > 0.3) return false;
     return true;
   },
-  // ------------------------------------------------------------ apparitions
+  // ------------------------------------------------------------ les territoires (une fois par monde, tirés de la graine)
+  territoires(w) {
+    if (this.terW === w && this.ter) return this.ter;
+    this.terW = w;
+    const rnd = mulberry32(((w.seed | 0) ^ 0x5e3b0e3) >>> 0), pts = { foret: [], bouleaux: [], marais: [] };
+    for (let z = 30; z < w.size - 30; z += 12) for (let x = 30; x < w.size - 30; x += 12) {
+      const m = this.milieu(w, x, z);
+      if (m && (m === 'marais' || w.heightAt(x, z) > w.waterLevel + 0.1)) pts[m].push([x, z]);
+    }
+    const T = [];
+    for (const [k, , , rar] of E3_BETES) {
+      const V = E3_VIE[k], mils = V.mil.filter((m) => pts[m] && pts[m].length);
+      if (!mils.length) continue;
+      const n = E3_TERR[V.mil[0]][Math.min(3, rar)];
+      for (let i = 0, essais = 0; i < n && essais < n * 40; essais++) {
+        const m = mils.length > 1 && rnd() < 0.3 ? mils[1] : mils[0], L = pts[m];
+        const [x0, z0] = L[(rnd() * L.length) | 0], P = this.place(k, w, x0 + (rnd() - 0.5) * 10, z0 + (rnd() - 0.5) * 10, rnd);
+        if (!P || this.milieu(w, P.x, P.z) !== m) continue;
+        if (T.some((t) => t.k === k && Math.hypot(t.x - P.x, t.z - P.z) < (m === 'marais' ? 25 : 70))) continue;
+        T.push({ id: k + ':' + i, k, x: P.x, z: P.z, o: P.o || null, eau: P.eau || null, R: V.portee || E3_PORTEE[V.lieu] || 80, rar });
+        i++;
+      }
+    }
+    this.ter = T;
+    return T;
+  },
+  // le territoire est-il habité aujourd'hui ? (une chance par jour, selon la rareté ; vide après une mort)
+  habite(t, jour) {
+    const E = this.S();
+    if (E.vides[t.id] !== undefined && E.vides[t.id] > jour) return false;
+    let h = 2166136261;
+    for (const ch of t.id + '/' + jour) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+    return ((h >>> 0) % 1000) / 1000 < E3_PRESENCE[Math.min(3, t.rar)];
+  },
+  vider(t, jours) { const E = this.S(); if (t && E) E.vides[t.id] = Math.max(E.vides[t.id] || 0, farm.s.day + jours); },
+  // ------------------------------------------------------------ toutes les deux secondes : qui paraît, qui s'en va
   maj(dt, eye, basis, sky) {
-    const w = game.world, p = game.player;
-    if (!w || !farm.s || game.kind !== 'farm' || game.mode !== 'play') return;
+    const w = game.world, p = game.player, s = farm.s;
+    if (!w || !s || game.kind !== 'farm' || game.mode !== 'play') return;
     this.t -= dt;
     if (this.t > 0) return;
     this.t = E3_ESSAI;
-    // le ménage : les mortes, les ôtées, les lointaines, celles dont le temps est passé (hors de vue)
-    const h = e3Heure();
+    const h = e3Heure(), T = this.territoires(w);
+    const vue = (x, z, d) => d < 70 && ((x - eye[0]) * basis.f[0] + (z - eye[2]) * basis.f[2]) / (d || 1) > 0.35;
+    // le ménage : les mortes (leur territoire reste vide), les lointaines, celles dont l'heure est passée, les dérangées
     this.vivantes = this.vivantes.filter((e) => {
       if (e.removed) return false;
-      if (e.dead || e.corpse || e.piege) { if (e.dead && !e.corpse && !e.piege) entities.remove(e); return false; }
-      e.e3vie -= E3_ESSAI;
-      const d = Math.hypot(e.x - p.pos[0], e.z - p.pos[2]), V = E3_VIE[e.kind];
-      const vu = !e.hidden && d < 70 && ((e.x - eye[0]) * basis.f[0] + (e.z - eye[2]) * basis.f[2]) / (d || 1) > 0.35;
-      const partir = d > 200 || ((e.e3vie <= 0 || !e3Dans(h, V.h) || e.e3Partir) && !vu && d > 30);
-      if (partir) { entities.remove(e); return false; }
+      if (e.dead || e.corpse || e.piege) {
+        if (e.e3t && (e.dead || e.corpse)) { this.vider(e.e3t, E3_VIDE[Math.min(3, e.e3t.rar)]); for (const q of this.vivantes) if (q !== e && q.e3g === e.e3g) q.e3Partir = true; }
+        if (e.dead && !e.corpse && !e.piege) entities.remove(e);
+        return false;
+      }
+      const d = Math.hypot(e.x - p.pos[0], e.z - p.pos[2]), V = E3_VIE[e.kind], t = e.e3t;
+      const loin = t ? Math.hypot(t.x - p.pos[0], t.z - p.pos[2]) > t.R + 70 : d > 160;
+      const partir = d > 220 || ((loin || !e3Dans(h, V.h) || !this.tempsOk(V, sky) || e.e3Partir) && !(!e.hidden && vue(e.x, e.z, d)) && d > 30);
+      if (partir) { if (e.e3Partir && t) this.vider(t, 1); entities.remove(e); return false; }
       return true;
     });
     if (p.underground || p.riding || strange.inEnvers() || (typeof mondes !== 'undefined' && mondes.cur) || (strange.redNight && strange.redNight())) return;
-    if (w.covered(p.pos[0], p.pos[1] + 1.5, p.pos[2])) return;
-    const groupes = new Set(this.vivantes.map((e) => e.e3g));
+    const actifs = new Set(this.vivantes.map((e) => e.e3t).filter(Boolean)), groupes = new Set(this.vivantes.map((e) => e.e3g));
     if (groupes.size >= E3_MAX) return;
-    this.essai(w, p, basis, h, sky);
-  },
-  essai(w, p, basis, h, sky) {
-    // un point au hasard, plutôt derrière ou sur les côtés (on ne voit pas naître une bête)
-    for (let k = 0; k < 4; k++) {
-      const dos = Math.random() < 0.75, yaw = Math.atan2(basis.f[0], basis.f[2]);
-      const a = dos ? yaw + Math.PI + (Math.random() - 0.5) * 2.8 : Math.random() * TAU, d = 25 + Math.random() * 60;
-      const x = p.pos[0] + Math.sin(a) * d, z = p.pos[2] + Math.cos(a) * d;
-      if (!w.inside(x, z, 20)) continue;
-      const m = this.milieu(w, x, z);
-      if (!m) continue;
-      const presentes = new Set(this.vivantes.map((e) => e.kind));
-      const cand = [];
-      for (const kind in E3_VIE) {
-        const V = E3_VIE[kind];
-        if (!V.mil.includes(m) || presentes.has(kind) || !e3Dans(h, V.h) || !this.tempsOk(V, sky)) continue;
-        let pr = E3_POIDS[E3_RARE[kind] || 0];
-        if (V.pluie && (weather.cur.rain || 0) > 0.2) pr *= V.pluie;
-        cand.push([kind, pr]);
-      }
-      // chacune tente sa chance (dans le désordre) ; la première qui la saisit paraît
-      for (let i = cand.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [cand[i], cand[j]] = [cand[j], cand[i]]; }
-      for (const [kind, pr] of cand) {
-        if (Math.random() >= pr) continue;
-        if (this.apparaitre(kind, x, z)) return true;
-      }
-      return false;
+    // le territoire le plus proche qui s'éveille (un seul à la fois)
+    let best = null, bd = 1e9;
+    for (const t of T) {
+      if (actifs.has(t)) continue;
+      const d = Math.hypot(t.x - p.pos[0], t.z - p.pos[2]);
+      if (d > t.R || d >= bd) continue;
+      const V = E3_VIE[t.k];
+      if (!e3Dans(h, V.h) || !this.tempsOk(V, sky) || !this.habite(t, s.day)) continue;
+      if (V.lieu === 'humide' && !t.eau && !((weather.cur.rain || 0) > 0.15)) continue; // (les ornières : quand il pleut)
+      if (d < 40 && vue(t.x, t.z, d) && V.lieu !== 'ciel') continue; // (pas sous les yeux : on attend)
+      best = t; bd = d;
     }
-    return false;
+    if (best) this.apparaitre(best.k, best.x, best.z, true, best);
   },
-  // la place d'une bête près d'un point (selon son lieu) : { x, z, o (arbre), eau } ou null
-  place(kind, w, x, z) {
+  // la place d'une bête près d'un point (selon son lieu) : { x, z, o (arbre), eau } ou null ; rnd : le tirage
+  place(kind, w, x, z, rnd) {
     const V = E3_VIE[kind], WL = w.waterLevel;
     const solOk = (tx, tz) => { const hh = w.heightAt(tx, tz); return hh > WL + 0.08 && w.normalAt(tx, tz)[1] > 0.72 && !w.covered(tx, hh + 1, tz) && !interditDeBatir(tx, tz, 0); };
     switch (V.lieu) {
       case 'sol': case 'ciel': return solOk(x, z) ? { x, z } : null;
       case 'arbre': case 'chene': case 'bouleau': {
-        const o = e3Arbre(w, x, z, 22, null, V.lieu === 'chene' ? E3_CHENES : V.lieu === 'bouleau' ? E3_BOULEAUX : null) || (V.lieu !== 'arbre' ? e3Arbre(w, x, z, 22) : null);
+        const o = e3Arbre(w, x, z, 22, null, V.lieu === 'chene' ? E3_CHENES : V.lieu === 'bouleau' ? E3_BOULEAUX : null, rnd) || (V.lieu !== 'arbre' ? e3Arbre(w, x, z, 22, null, null, rnd) : null);
         return o ? { x: o.x + 1.2, z: o.z + 1.2, o } : null;
       }
       case 'rive': case 'humide': {
-        const R = this.eauPres(w, x, z, 26);
+        const R = this.eauPres(w, x, z, 26, rnd);
         if (R) return { x: R.bx, z: R.bz, eau: R };
-        if (V.lieu === 'humide' && (weather.cur.rain || 0) > 0.15 && solOk(x, z)) return { x, z }; // les ornières, quand il pleut
+        if (V.lieu === 'humide' && solOk(x, z)) return { x, z }; // (les ornières : la bête n'y paraît que quand il pleut)
         return null;
       }
       case 'eau': {
-        const R = this.eauPres(w, x, z, 26);
+        const R = this.eauPres(w, x, z, 26, rnd);
         if (!R) return null;
         // un peu au large, là où l'eau n'est pas trop profonde pour une sangsue
         const dx = R.wx - R.bx, dz = R.wz - R.bz, L = Math.hypot(dx, dz) || 1;
@@ -238,10 +273,11 @@ const e3 = {
     }
     return null;
   },
-  apparaitre(kind, x, z, force) {
+  // une bête (ou une harde) à un endroit ; t : son territoire (les essais et les tests : sans territoire)
+  apparaitre(kind, x, z, force, t) {
     const w = game.world, V = E3_VIE[kind];
     if (!w || !V || !CREATURES[kind]) return null;
-    const P = this.place(kind, w, x, z) || (force ? { x, z } : null);
+    const P = (t ? { x: t.x, z: t.z, o: t.o && !t.o.gone ? t.o : null, eau: t.eau } : this.place(kind, w, x, z)) || (force ? { x, z } : null);
     if (!P) return null;
     const n = V.n ? V.n[0] + ((Math.random() * (V.n[1] - V.n[0] + 1)) | 0) : 1, g = kind + ':' + Math.random().toString(36).slice(2, 7), out = [];
     for (let k = 0; k < n; k++) {
@@ -249,10 +285,10 @@ const e3 = {
       // (le daim : un mâle une fois sur deux, en tête ; les autres sont des biches)
       const v = kind === 'daim' ? (k === 0 && Math.random() < 0.5 ? 0 : 1) : (Math.random() * 4) | 0;
       const e = entities.add(w, kind, P.x + jx, P.z + jz, { v });
-      e.e3g = g; e.e3vie = lerp(V.vie[0], V.vie[1], Math.random()); e.hx = e.x; e.hz = e.z;
+      e.e3g = g; e.e3t = t || null; e.hx = e.x; e.hz = e.z;
       if (P.o) e.arbre0 = P.o;
-      if (V.lieu === 'ciel') e.y = Math.max(w.heightAt(e.x, e.z), w.waterLevel) + (kind === 'busard_roseaux' ? 6 : 26 + Math.random() * 8);
       if (P.eau) e.eau = P.eau;
+      if (V.lieu === 'ciel') e.y = Math.max(w.heightAt(e.x, e.z), w.waterLevel) + (kind === 'busard_roseaux' ? 6 : 26 + Math.random() * 8);
       out.push(e); this.vivantes.push(e);
     }
     return out;
@@ -947,6 +983,7 @@ e3.toucher = function (e) {
   if (e.kind === 'cicindele' && Math.random() < 0.5) { e.volT = 1.3; e.heading = Math.random() * TAU; return; }
   farm.give(id, 1); play.flyer(id, [e.x, e.y + 0.1, e.z], 1);
   sound.pop && sound.pop();
+  if (e.e3t) this.vider(e.e3t, E3_VIDE[Math.min(3, e.e3t.rar)]);
   if (e.kind === 'capricorne') sound.e3Cri && sound.e3Cri('grince', e, 1);
   this.oter(e);
 };
@@ -973,7 +1010,7 @@ if (typeof nature2 !== 'undefined' && nature2.PRISES) Object.assign(nature2.PRIS
     }
     const avant = e && e3.vivantes.includes(e);
     _cf(eye, basis);
-    if (avant && e.removed) e3.vivantes = e3.vivantes.filter((q) => q !== e);
+    if (avant && e.removed) { e3.vivantes = e3.vivantes.filter((q) => q !== e); if (e.e3t) e3.vider(e.e3t, E3_VIDE[Math.min(3, e.e3t.rar)]); }
   };
 }
 // la chasse : leurs noms, le bois du daim mâle, le daim pris au piège
@@ -1012,4 +1049,4 @@ HOOKS.update.push((dt, eye, basis, sky, playing) => {
   if (!playing) return;
   try { e3.maj(dt, eye, basis, sky); e3.majSangsues(dt); } catch (err) { console.error(err); }
 });
-HOOKS.load.push(() => { e3.vivantes = []; e3.t = 3; e3.collees = 0; e3.mouille = false; e3.marW = null; e3.S(); });
+HOOKS.load.push(() => { e3.vivantes = []; e3.t = 3; e3.collees = 0; e3.mouille = false; e3.marW = null; e3.terW = null; e3.ter = null; e3.S(); try { if (game.world && game.kind === 'farm') e3.territoires(game.world); } catch (err) { console.error(err); } });
