@@ -63,7 +63,20 @@ const E2C = {
     if (!sound.e2Cri || e.hidden || (c && c.silent)) return false;
     const d = e.dist !== undefined ? e.dist : Math.hypot(e.x - c.px, e.z - c.pz);
     if (d > portee) return false;
+    // un autre oiseau chante : on réessaiera dans quelques secondes (sans attendre tout un tour)
+    if (!alarme && typeof E2_CRI_OISEAU !== 'undefined' && E2_CRI_OISEAU[sorte] !== undefined && sound.ctx && (sound.oiseauxFin || 0) > sound.ctx.currentTime + 0.3) {
+      if (!e.e2redit) e.e2redit = { sorte, portee, t: 2 + Math.random() * 4, n: 0 };
+      return false;
+    }
     return sound.e2Cri(sorte, 1 - d / portee, e, alarme);
+  },
+  // le cri remis à plus tard (voir cri) : on le redit, trois fois au plus
+  redire(e, dt, c) {
+    const R = e.e2redit;
+    R.t -= dt;
+    if (R.t > 0) return;
+    e.e2redit = null;
+    if (!E2C.cri(e, R.sorte, c, R.portee) && e.e2redit) { e.e2redit.n = R.n + 1; if (e.e2redit.n > 3) e.e2redit = null; }
   },
   haut(w, x, z) { return w.heightAt(x, z) - w.waterLevel; },
   // le joueur regarde-t-il de ce côté ?
@@ -78,16 +91,24 @@ const E2C = {
     return null;
   },
   // l'objet du décor le plus proche, d'une sorte (sauf « sauf »)
+  // (la grille de tous les objets : la bruyère et les genêts n'ont pas de collision, la grille de w.query les ignore)
   objet(w, x, z, R, ids, sauf) {
+    const G = w.objectsGrid(), C = G.C, n = G.gw - 1;
+    const gx0 = clamp(Math.floor((x - R) / C), 0, n), gx1 = clamp(Math.floor((x + R) / C), 0, n), gz0 = clamp(Math.floor((z - R) / C), 0, n), gz1 = clamp(Math.floor((z + R) / C), 0, n);
     let best = null, bd = 1e9;
-    w.query(x, z, R, (o) => {
-      if (!o || o.gone || !w.live(o)) return;
-      const T = OBJ_TYPES[o.t];
-      if (!T || !ids.has(T.id)) return;
-      if (sauf && Math.hypot(o.x - sauf.x, o.z - sauf.z) < 3) return;
-      const d = Math.hypot(o.x - x, o.z - z);
-      if (d < bd && d <= R) { bd = d; best = o; }
-    }, null);
+    for (let gz = gz0; gz <= gz1; gz++) for (let gx = gx0; gx <= gx1; gx++) {
+      const cell = G.cells[gz * G.gw + gx];
+      if (!cell) continue;
+      for (const i of cell) {
+        const o = w.objects[i];
+        if (!o || o.gone || !w.live(o)) continue;
+        const T = OBJ_TYPES[o.t];
+        if (!T || !ids.has(T.id)) continue;
+        if (sauf && Math.hypot(o.x - sauf.x, o.z - sauf.z) < 3) continue;
+        const d = Math.hypot(o.x - x, o.z - z);
+        if (d < bd && d <= R) { bd = d; best = o; }
+      }
+    }
     return best;
   },
   // la pente : vers le haut (gradient), vers le bas (le plus bas de huit directions)
@@ -972,6 +993,7 @@ const E2_VOL = {
     const k = e.cfg.e2, f = k && !e.owner && !e.piege ? E2_COMPORTE[k] : null;
     if (f) {
       try {
+        if (e.e2redit) E2C.redire(e, dt, c);
         if (e.e2part && E2C.partirSol(e, dt, w, c)) return;
         if (f.call(E2_COMPORTE, e, dt, w, c)) return;
       } catch (err) { console.error(err); }
@@ -981,7 +1003,7 @@ const E2_VOL = {
   const _ub = entities.updateBird.bind(entities);
   entities.updateBird = function (e, dt, w, c) {
     const k = e.cfg.e2, f = k ? E2_VOL[k] : null;
-    if (f) { try { f(e, dt, w, c); } catch (err) { console.error(err); } return; }
+    if (f) { try { if (e.e2redit) E2C.redire(e, dt, c); f(e, dt, w, c); } catch (err) { console.error(err); } return; }
     _ub(e, dt, w, c);
   };
 }
