@@ -230,7 +230,7 @@ SoundEngine.BRUITS_MILIEU = {
           if (peut) {
             if ((this.oiseauxFin || 0) > now + 0.3) Z.nuitT = rf(2, 5);
             else {
-              const m = tirerMilieu(P), T = (SoundEngine.CHANTEURS[m] || {})[avantJour ? 'aube' : 'nuit'], sorte = T && T.length ? tirer(T) : null;
+              const m = tirerMilieu(P), T = this._sPrets((SoundEngine.CHANTEURS[m] || {})[avantJour ? 'aube' : 'nuit']), sorte = T.length ? tirer(T) : null;
               if (sorte) {
                 const pos = this._sPerche(sorte, m), Ph = SoundEngine.PHRASES[sorte] || [1, 2, 3];
                 this.oiseau(sorte, pos, 1);
@@ -429,8 +429,11 @@ SoundEngine.BRUITS_MILIEU = {
       // (les chanteurs qu'un autre module aurait ajoutés à SoundEngine.OISEAUX[milieu] chantent aussi)
       const X = (SoundEngine.OISEAUX[m] || []).filter(([s]) => !OISEAUX_ORIGINE.has(s) && !T.some(([t]) => t === s));
       if (X.length) T = T.concat(X);
+      // (seulement ceux dont un chant est déjà calculé : rien à calculer pendant le jeu ; les autres se préparent)
+      T = this._sPrets(T);
+      if (!T.length) return null;
       const sorte = tirer(T);
-      if (!sorte || !SoundEngine.TAMPONS[sorte]) return _chanteur0.call(this, biome, S, k);
+      if (!sorte || !SoundEngine.TAMPONS[sorte]) return null;
       const pos = this._sPerche(sorte, m);
       this.oiseau(sorte, pos, k);
       this._sNote(sorte, m);
@@ -475,6 +478,15 @@ SoundEngine.BRUITS_MILIEU = {
       if (iv === undefined && this._sChoix && this._sChoix[0] === nom && this._sChoix[1] !== undefined) iv = this._sChoix[1];
       return tbS(this, nom, n, iv);
     },
+    // les chanteurs d'une liste dont au moins un chant est calculé (les autres sont demandés à la tâche de fond)
+    _sPrets(T) {
+      const out = [];
+      for (const e of T || []) {
+        const arr = this._bufs[e[0]];
+        if (arr && arr.some(Boolean)) out.push(e); else if (SoundEngine.TAMPONS[e[0]]) this._sDemander('T:' + e[0]);
+      }
+      return out;
+    },
     _sVariante(nom, n) {
       const arr = this._bufs[nom];
       if (!arr) { this._sDemander('T:' + nom); return undefined; }
@@ -488,6 +500,7 @@ SoundEngine.BRUITS_MILIEU = {
       if (!this.ok || !SoundEngine.TAMPONS[sorte]) return;
       o = o || {};
       const n = (SoundEngine.VARIANTES && SoundEngine.VARIANTES[sorte]) || 4, iv = this._sVariante(sorte, n);
+      if (iv === undefined) return; // (pas encore calculé : il le sera en tâche de fond ; on ne calcule rien pendant le jeu)
       const b = this.tb(sorte, n, iv), out = pos ? this.en3d(pos, this.B.amb.inp, { ref: o.ref || 7, roll: o.roll === undefined ? 0.9 : o.roll, dur: b.duration + 0.2 }) : this.amb;
       this.jouer(b, this.at(o.delai || 0.01), (SoundEngine.VOL_OISEAUX[sorte] || 0.05) * (k === undefined ? 1 : k) * (0.85 + R() * 0.3), out, o.rate || (0.95 + R() * 0.1));
     },
@@ -522,6 +535,8 @@ SoundEngine.BRUITS_MILIEU = {
     _sAngelus(inside) {
       const P = this.clocher && this.clocher(), L = this.L;
       if (!P || !this.ok || !SoundEngine.TAMPONS.s_cloche) return;
+      const cl = this._bufs.s_cloche;
+      if (!cl || !cl[0] || !cl[1]) { this._sDemander('T:s_cloche'); return; }
       const d = Math.hypot(P[0] - L.x, P[2] - L.z);
       if (d > 1100) return;
       const out = this.emit(P, this.B.amb.inp, { att: 'phys', ref: 45, roll: 1, dur: 48 }), t0 = this.at(0.05), v = 0.1 * (inside ? 0.4 : 1);
@@ -598,10 +613,12 @@ SoundEngine.BRUITS_MILIEU = {
       const ric = typeof requestIdleCallback === 'function' ? (f) => requestIdleCallback(f, { timeout: 1200 }) : (f) => setTimeout(() => f(null), 60);
       const tour = (dl) => {
         let k = null;
+        // (le temps de ce tour : ce que le navigateur dit avoir devant lui, jamais plus de 12 ms ; au moins 3)
+        const fin = performance.now() + (dl ? clamp(dl.timeRemaining() - 1, 3, 12) : 6);
         try {
           let n = 0;
-          // (une chose au moins à chaque tour ; d'autres tant que le navigateur a du temps devant lui)
-          while ((k = this._sProchain()) && (n === 0 || (dl && dl.timeRemaining() > 12))) { this._sFaire(k); n++; if (!dl) break; }
+          // (un pas au moins à chaque tour ; d'autres tant qu'il reste du temps)
+          while ((k = this._sProchain()) && (n === 0 || performance.now() < fin)) { this._sFaire(k, fin); n++; }
         } catch (e) {
           (this._sRate || (this._sRate = new Set())).add(k);
           if (!this._sErrP) { this._sErrP = true; console.error('son (tampons)', k, e); }
@@ -610,13 +627,36 @@ SoundEngine.BRUITS_MILIEU = {
       };
       ric(tour);
     },
-    // calcule une boucle, ou la prochaine variante manquante d'un tampon
-    _sFaire(k) {
+    // calcule une boucle (par tranches jusqu'à « fin », si elle le permet : elle reprend au tour suivant là où elle
+    // s'était arrêtée), ou la prochaine variante manquante d'un tampon (d'un trait : quelques millisecondes)
+    _sFaire(k, fin) {
       const nom = k.slice(2);
-      if (k[0] === 'B') { if (SoundEngine.BOUCLES[nom]) this.boucleTampon(nom); return; }
+      if (k[0] === 'B') {
+        if (!SoundEngine.BOUCLES[nom]) return;
+        const gen = SoundEngine.BOUCLES_PAS && SoundEngine.BOUCLES_PAS[nom];
+        if (!gen || fin === undefined) { this.boucleTampon(nom); return; }
+        const J = this._sJobs || (this._sJobs = new Map());
+        let job = J.get(nom);
+        if (!job) {
+          const [dur, , srB] = SoundEngine.BOUCLES[nom], sr = Math.min(this.ctx.sampleRate, srB || SoundEngine.SR_SYNTH), n = Math.floor(dur * sr), X = Math.floor(0.25 * sr), tmp = new Float32Array(n + X);
+          job = { sr, n, X, tmp, it: gen(tmp, sr, dur + 0.25) };
+          J.set(nom, job);
+        }
+        do { if (job.it.next().done) { J.delete(nom); this._sFinBoucle(nom, job); return; } } while (performance.now() < fin);
+        return;
+      }
       if (!SoundEngine.TAMPONS[nom]) return;
       const n = (SoundEngine.VARIANTES && SoundEngine.VARIANTES[nom]) || 5, arr = this._bufs[nom] || [];
       for (let i = 0; i < n; i++) if (!arr[i]) { tbS(this, nom, n, i); break; }
+    },
+
+    // une boucle calculée par tranches devient un tampon (comme boucleTampon : le raccord en fondu enchaîné, la crête à 1)
+    _sFinBoucle(nom, job) {
+      const { sr, n, X, tmp } = job, b = this.ctx.createBuffer(1, n, sr), d = b.getChannelData(0);
+      d.set(tmp.subarray(0, n));
+      for (let i = 0; i < X; i++) { const a = i / X; d[i] = tmp[i] * Math.sqrt(a) + tmp[n + i] * Math.sqrt(1 - a); }
+      SoundEngine.SYN.norm(d, 1);
+      this._bufs['B_' + nom] = b;
     },
 
     // ---------------------------------------------------------------- la pluie d'origine, les gouttes, le clapotis : réglés d'ici
