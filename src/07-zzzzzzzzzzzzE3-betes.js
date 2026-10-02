@@ -39,7 +39,8 @@ function e3LongBec(o) {
   // la tête rayée : deux bandes sombres sur le dessus
   for (const s of [-1, 1]) u.push(e3B('raie' + s, 'head', [s * h[0] * 0.22, h[1] * 0.98, h[2] * 0.2], [h[0] * 0.2, 0.008, h[2] * 0.9], o.raie || '#2a1e14'));
   // le dos barré
-  for (let k = 0; k < 3; k++) u.push(e3B('barre' + k, 'body', [0, b[1] / 2 - 0.001, b[2] * (0.25 - k * 0.22)], [b[0] * 1.01, 0.004, b[2] * 0.07], o.barre || '#3a2a1a'));
+  if (o.long) for (const sx of [-1, 1]) u.push(e3B('barre' + sx, 'body', [sx * b[0] * 0.26, b[1] / 2 - 0.001, 0], [b[0] * 0.13, 0.004, b[2] * 0.86], o.barre || '#3a2a1a')); // (la bécassine : rayée en long)
+  else for (let k = 0; k < 3; k++) u.push(e3B('barre' + k, 'body', [0, b[1] / 2 - 0.001, b[2] * (0.25 - k * 0.22)], [b[0] * 1.01, 0.004, b[2] * 0.07], o.barre || '#3a2a1a'));
   for (const q of o.plus || []) u.push(q);
   return rigPlus(r, u);
 }
@@ -143,7 +144,7 @@ Object.assign(ANIMAL_RIGS, {
     return rigPlus(r, u);
   },
   // l'autour : gris dessus, barré dessous, un sourcil blanc, l'œil orange
-  e3_autour: () => e3Rapace({ col: '#6c747e', body: [0.15, 0.16, 0.3], head: [0.08, 0.08, 0.09], headCol: '#4a5058', beak: [0.018, 0.022, 0.03], beakCol: '#2a2a30', tail: [0.09, 0.015, 0.2],
+  e3_autour: () => e3Rapace({ col: '#6c747e', body: [0.15, 0.16, 0.3], head: [0.08, 0.08, 0.09], headCol: '#565c64', beak: [0.018, 0.022, 0.03], beakCol: '#2a2a30', tail: [0.09, 0.015, 0.2],
     wing: [0.5, 0.02, 0.2], leg: [0.02, 0.09], legCol: '#e0c030', ventre: '#e4e0d6', plus: [
       e3B('sourcilL', 'head', [-0.041, 0.055, 0.02], [0.004, 0.012, 0.05], '#f2f0ea', TL.plain), e3B('sourcilR', 'head', [0.041, 0.055, 0.02], [0.004, 0.012, 0.05], '#f2f0ea', TL.plain),
       e3B('oeilL', 'head', [-0.041, 0.04, 0.03], [0.004, 0.014, 0.014], '#f08a20', TL.plain), e3B('oeilR', 'head', [0.041, 0.04, 0.03], [0.004, 0.014, 0.014], '#f08a20', TL.plain),
@@ -264,7 +265,7 @@ Object.assign(ANIMAL_RIGS, {
   ]),
   // la bécassine : rayée de crème, le bec très long
   e3_becassine: () => e3LongBec({ col: '#5e4630', body: [0.09, 0.08, 0.15], head: [0.05, 0.05, 0.055], headCol: '#7a6044', beak: [0.008, 0.008, 0.07], beakCol: '#6a5a48', tail: [0.05, 0.01, 0.04],
-    wingCol: '#4e3a28', leg: [0.01, 0.05], legCol: '#8a9a60', raie: '#1e140c', barre: '#e0c890', plus: [e3B('ventre', 'body', [0, -0.025, 0.01], [0.085, 0.03, 0.11], '#f0ece0')] }),
+    wingCol: '#4e3a28', leg: [0.01, 0.05], legCol: '#8a9a60', raie: '#1e140c', barre: '#d8c088', long: true, plus: [e3B('ventre', 'body', [0, -0.025, 0.01], [0.085, 0.03, 0.11], '#f0ece0')] }),
   // la poule d'eau : ardoise, l'écusson rouge, le bec rouge à pointe jaune, la ligne blanche au flanc
   e3_poule_eau: () => rigPlus(birdParts({ col: rgbf('#2a2e34'), body: [0.13, 0.12, 0.22], bodyY: 0.06 + 0.09, head: [0.06, 0.06, 0.065], beak: [0.016, 0.016, 0.03], beakCol: rgbf('#d02a1e'),
     tail: [0.06, 0.02, 0.05], tailUp: 0.5, wingCol: rgbf('#3a3428'), leg: [0.016, 0.09], legCol: rgbf('#a8b840') }), [
