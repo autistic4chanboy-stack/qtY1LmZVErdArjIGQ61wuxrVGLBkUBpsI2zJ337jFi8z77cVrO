@@ -1028,9 +1028,14 @@ function e2Pose(rig, st) {
       rig.e2iA = []; rig.e2iR = [];
       rig.parts.forEach((q, i) => { let p = q, ok = false; while (p) { if (p.name === 'wingL' || p.name === 'wingR') { ok = true; break; } p = p.pi >= 0 ? rig.parts[p.pi] : null; } if (ok) rig.e2iA.push(i); if (/^replie/.test(q.name)) rig.e2iR.push(i); });
     }
-    const ouvert = vol || e.seche;
+    const ouvert = vol || e.seche || e.ailesT > 0;
     for (const i of rig.e2iA) rig.parts[i].hide = !ouvert;
-    for (const i of rig.e2iR) rig.parts[i].hide = ouvert;
+    for (const i of rig.e2iR) {
+      rig.parts[i].hide = ouvert;
+      // (les enfants d'une aile repliée la suivent)
+      const n = rig.parts[i].name;
+      for (const q of rig.parts) if (q.parent === n) q.hide = ouvert;
+    }
   }
   // le vol des grands oiseaux : battements lents, vol plané ; le busard porte ses ailes en V
   if (vol && rig.e2lent) {
@@ -1066,6 +1071,7 @@ function e2Pose(rig, st) {
     case 'guignette': if (!vol) rig.set('body', Math.sin(t * 9 + (st.seed || 0)) * 0.22, 0, 0); else rig.set('body', 0, 0, 0); break;
     case 'campagnol_neiges': case 'campagnol_amphibie': rig.set('body', e.assis ? -0.55 : 0, 0, 0); break;
     case 'balbuzard': { const p = rig.part('poisson'); if (p) p.hide = !e.poisson; break; }
+    case 'sphinx_tete_mort': if (!vol) { rig.set('wingL', 0, -1.15, 0.12); rig.set('wingR', 0, 1.15, -0.12); rig.set('basL', 0, -1.3, 0.05); rig.set('basR', 0, 1.3, -0.05); } else { const a = rig.parts[rig.idx.wingL].r[2]; rig.set('basL', 0, 0, a * 0.85); rig.set('basR', 0, 0, -a * 0.85); } break;
     case 'apollon': if (vol) { const a = Math.sin(t * 7 + (st.seed || 0)) * 0.55 * (Math.sin(t * 0.9 + (st.seed || 0)) > 0.3 ? 0.25 : 1); rig.set('wingL', 0, 0, a); rig.set('wingR', 0, 0, -a); } break;
     case 'oie_cendree': if (e.groupe && e.groupe[0] === e && !vol && !e.nage) rig.set('neck', -0.25, 0, 0); break;
   }

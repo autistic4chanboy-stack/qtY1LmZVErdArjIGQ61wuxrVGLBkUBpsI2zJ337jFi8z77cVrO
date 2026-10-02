@@ -37,7 +37,7 @@ function e2Perdrix(o) {
   return rigPlus(r, [
     { name: 'gorge', parent: 'head', p: [0, -0.012, 0.03], s: [0.068, 0.035, 0.03], col: rgbf('#f2efe6'), tex: TL.fur },
     { name: 'collier', parent: 'head', p: [0, -0.03, 0.02], s: [0.072, 0.018, 0.045], col: E2_NOIR, tex: o.grive ? TL.spots : TL.fur },
-    { name: 'oeil', parent: 'head', p: [0, 0.042, 0.02], s: [0.07, 0.012, 0.02], col: rgbf('#f2efe6'), tex: TL.plain },
+    { name: 'oeil', parent: 'head', p: [0, 0.042, 0.02], s: [0.068, 0.008, 0.016], col: rgbf('#f2efe6'), tex: TL.plain },
     { name: 'poitrine', parent: 'body', p: [0, 0.01, 0.07], s: [0.12, 0.08, 0.06], col: rgbf(o.poitrine), tex: TL.fur },
     { name: 'flancL', parent: 'body', p: [-0.064, -0.01, -0.005], s: [0.012, 0.07, 0.12], col: rgbf(o.flanc), tex: TL.stripes },
     { name: 'flancR', parent: 'body', p: [0.064, -0.01, -0.005], s: [0.012, 0.07, 0.12], col: rgbf(o.flanc), tex: TL.stripes },
@@ -46,8 +46,9 @@ function e2Perdrix(o) {
 // ---------------------------------------------------------------- les campagnols
 function e2Campagnol(o) {
   const r = quadRig({ col: rgbf(o.col), body: o.corps, bodyY: o.corps[1] * 0.85, leg: [o.corps[0] * 0.3, o.corps[1] * 0.45], neck: [0, o.corps[1] * 0.25],
-    head: o.tete, face: TL.rabbitF, ears: [o.tete[0] * 0.35, o.tete[1] * 0.3, 0.008], earCol: rgbf(o.oreille || o.col), tail: [0.01, 0.01, o.queue], tailCol: rgbf(o.col) });
-  const u = [{ name: 'ventre', parent: 'body', p: [0, -o.corps[1] * 0.3, 0.005], s: [o.corps[0] * 0.9, o.corps[1] * 0.4, o.corps[2] * 0.85], col: rgbf(o.ventre), tex: TL.fur }];
+    head: o.tete, face: TL.rabbitF, ears: [o.tete[0] * 0.35, o.tete[1] * 0.3, 0.008], earCol: rgbf(o.oreille || o.col) });
+  const u = [{ name: 'ventre', parent: 'body', p: [0, -o.corps[1] * 0.3, 0.005], s: [o.corps[0] * 0.9, o.corps[1] * 0.4, o.corps[2] * 0.85], col: rgbf(o.ventre), tex: TL.fur },
+    { name: 'tail', parent: 'body', p: [0, -o.corps[1] * 0.15, -o.corps[2] / 2], s: [0.012, 0.012, o.queue], o: [0, 0, -o.queue / 2], col: v3.scale(rgbf(o.col), 0.85), tex: TL.fur, r0: [0.25, 0, 0] }];
   if (o.moustaches) for (const s of [-1, 1]) u.push({ name: 'moust' + s, parent: 'head', p: [s * o.tete[0] * 0.45, -0.004, o.tete[2] * 0.9], s: [0.05, 0.002, 0.002], o: [s * 0.022, 0, 0], col: [0.92, 0.92, 0.9], tex: TL.plain, r0: [0, s * -0.4, 0] });
   return rigPlus(r, u);
 }
@@ -102,7 +103,7 @@ Object.assign(ANIMAL_RIGS, {
     const { P, add } = rigParts();
     const c = rgbf('#7a7a4a'), raie = rgbf('#e0d040');
     add('body', null, [0, 0.03, 0], [0.056, 0.03, 0.066], [0, 0, 0], c, TL.spots);
-    add('raie', 'body', [0, 0.0155, 0], [0.008, 0.002, 0.064], [0, 0, 0], raie, TL.plain);
+    add('raie', 'body', [0, 0.016, 0], [0.011, 0.003, 0.064], [0, 0, 0], raie, TL.plain);
     add('neck', 'body', [0, 0.004, 0.033], null);
     add('head', 'neck', [0, 0, 0], [0.05, 0.022, 0.032], [0, 0, 0.014], c, TL.spots);
     for (const s of [-1, 1]) add('oeil' + s, 'head', [s * 0.016, 0.012, 0.012], [0.012, 0.01, 0.012], [0, 0, 0], rgbf('#b8c050'), TL.plain);
@@ -185,7 +186,7 @@ Object.assign(ANIMAL_RIGS, {
     add('wingR', 'body', [0.007, 0.004, 0.012], [0.06, 0.003, 0.026], [0.03, 0, -0.006], brun, TL.stripes);
     add('basL', 'body', [-0.006, 0.002, -0.004], [0.036, 0.003, 0.022], [-0.018, 0, -0.008], jaune, TL.stripes);
     add('basR', 'body', [0.006, 0.002, -0.004], [0.036, 0.003, 0.022], [0.018, 0, -0.008], jaune, TL.stripes);
-    const r = new Rig(P); r.kind = 'bird'; r.papillon = true; r.e2Nuit = true; return r;
+    const r = new Rig(P); r.kind = 'bird'; r.e2Sphinx = true; return r;
   },
   // ================================================================ les hauteurs
   e2_campagnol_neiges: () => e2Campagnol({ col: '#8a8a88', ventre: '#c8c4bc', corps: [0.045, 0.04, 0.09], tete: [0.036, 0.034, 0.04], queue: 0.06, moustaches: true }),
@@ -245,12 +246,18 @@ Object.assign(ANIMAL_RIGS, {
   // le tichodrome : gris, des ailes rouge carmin tachées de blanc, le bec fin et courbe
   e2_tichodrome: () => {
     const r = birdParts({ col: rgbf('#8a8e94'), body: [0.055, 0.055, 0.1], bodyY: 0.07, head: [0.042, 0.042, 0.048], face: TL.henF, beak: [0.006, 0.006, 0.035], beakCol: E2_NOIR,
-      tail: [0.03, 0.01, 0.045], tailCol: rgbf('#2a2a2e'), wing: [0.09, 0.008, 0.06], wingCol: rgbf('#c42838'), leg: [0.008, 0.02], legCol: E2_NOIR });
-    return rigPlus(r, [
+      tail: [0.03, 0.01, 0.045], tailCol: rgbf('#2a2a2e'), wing: [0.11, 0.008, 0.06], wingCol: rgbf('#c42838'), leg: [0.008, 0.02], legCol: E2_NOIR });
+    const rr = rigPlus(r, [
       { name: 'gorge', parent: 'head', p: [0, 0.008, 0.02], s: [0.036, 0.02, 0.02], col: rgbf('#2a2a2e'), tex: TL.fur },
-      { name: 'boutL', parent: 'wingL', p: [-0.07, 0.001, 0], s: [0.04, 0.009, 0.056], col: E2_NOIR, tex: TL.spots },
-      { name: 'boutR', parent: 'wingR', p: [0.07, 0.001, 0], s: [0.04, 0.009, 0.056], col: E2_NOIR, tex: TL.spots },
+      { name: 'boutL', parent: 'wingL', p: [-0.085, 0.001, 0], s: [0.05, 0.009, 0.056], col: E2_NOIR, tex: TL.spots },
+      { name: 'boutR', parent: 'wingR', p: [0.085, 0.001, 0], s: [0.05, 0.009, 0.056], col: E2_NOIR, tex: TL.spots },
+      { name: 'replie-1', parent: 'body', p: [-0.03, 0.008, -0.01], s: [0.008, 0.032, 0.085], o: [0, 0, -0.01], col: rgbf('#6a6e74'), tex: TL.fur, hide: true },
+      { name: 'replie1', parent: 'body', p: [0.03, 0.008, -0.01], s: [0.008, 0.032, 0.085], o: [0, 0, -0.01], col: rgbf('#6a6e74'), tex: TL.fur, hide: true },
+      { name: 'liseré-1', parent: 'replie-1', p: [-0.002, -0.012, 0.01], s: [0.008, 0.01, 0.06], col: rgbf('#c42838'), tex: TL.plain },
+      { name: 'liseré1', parent: 'replie1', p: [0.002, -0.012, 0.01], s: [0.008, 0.01, 0.06], col: rgbf('#c42838'), tex: TL.plain },
     ]);
+    rr.e2Replie = true;
+    return rr;
   },
   // le grand-duc : le hibou d'avant, bien plus gros ; aigrettes, yeux orange
   e2_grand_duc: () => {
@@ -341,7 +348,10 @@ Object.assign(ANIMAL_RIGS, {
   // le vison d'Europe : brun sombre, le menton et les lèvres blancs
   e2_vison: () => {
     const r = quadRig({ col: rgbf('#3a2418'), body: [0.08, 0.08, 0.32], bodyY: 0.1, leg: [0.03, 0.07], neck: [0, 0.03], head: [0.07, 0.065, 0.08], face: TL.foxF,
-      snout: [0.035, 0.03, 0.03, -0.015], snoutCol: rgbf('#2a1a12'), ears: [0.02, 0.015, 0.01], tail: [0.035, 0.035, 0.15] });
-    return rigPlus(r, [{ name: 'menton', parent: 'snout', p: [0, -0.016, 0.006], s: [0.034, 0.012, 0.032], col: [0.95, 0.94, 0.9], tex: TL.fur }]);
+      snout: [0.035, 0.03, 0.03, -0.015], snoutCol: rgbf('#2a1a12'), ears: [0.02, 0.015, 0.01] });
+    return rigPlus(r, [
+      { name: 'menton', parent: 'snout', p: [0, -0.016, 0.006], s: [0.034, 0.012, 0.032], col: [0.95, 0.94, 0.9], tex: TL.fur },
+      { name: 'tail', parent: 'body', p: [0, 0.01, -0.16], s: [0.035, 0.035, 0.15], o: [0, 0, -0.075], col: rgbf('#2e1c12'), tex: TL.fur, r0: [0.35, 0, 0] },
+    ]);
   },
 });
