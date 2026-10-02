@@ -24,7 +24,7 @@
 
 // ---------------------------------------------------------------- les types du décor
 for (const P of D1_PLANTES) {
-  const grand = P.h[1] > 1.1, ras = P.h[1] < 0.2;
+  const grand = P.h[1] > 1.1, ras = P.h[1] <= 0.24;
   OBJ_TYPES.push({ id: P.o, name: P.nom, cat: P.cat, spr: P.o === 'carline' ? ['d1_carline', 'd1_carline_f'] : ['d1_' + P.o], h: P.h, col: 0, sway: ras ? 0.05 : grand ? 0.08 : 0.14, spacing: grand ? 1.6 : 0.9, sink: 0.04 });
 }
 OBJ_TYPES.forEach((t, i) => { OBJ_INDEX[t.id] = i; });
