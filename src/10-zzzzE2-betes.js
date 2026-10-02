@@ -744,6 +744,7 @@ const E2_VOL = {
     if (e.pique) {
       const P = e.pique;
       P.t += dt;
+      if (e.e2effroi && P.t < 4.8) P.t = 4.8;
       if (P.t < 1.6) { e.fly = 1; E2C.vers(e, P.x, P.z, 4, dt, 3); e.y = lerp(e.y, w.heightAt(P.x, P.z) + 0.1, Math.min(1, dt * 2.5)); }
       else if (P.t < 4.8) { e.fly = 0; e.y = w.heightAt(e.x, e.z); }
       else { e.fly = 1; e.x += Math.sin(e.heading) * dt * 4; e.z += Math.cos(e.heading) * dt * 4; e.y += dt * 2.5; if (e.y > sol + 3.5) e.pique = null; }
@@ -794,7 +795,7 @@ const E2_VOL = {
     const sol = w.heightAt(e.x, e.z);
     if (c.rain > 0.15 || c.night > 0.45) e.e2part = true;
     const alerte = c.crouch ? 1.6 : c.sprint ? 6 : 3.2;
-    if (e.dist < alerte && !(e.fuite > 0)) {
+    if ((e.dist < alerte || e.e2effroi) && !(e.fuite > 0)) {
       e.fuite = 3; e.peur = (e.peur || 0) + 1; e.pose = 0;
       const a = Math.atan2(e.x - c.px, e.z - c.pz) + (Math.random() - 0.5) * 1.2, d = 6 + Math.random() * 6;
       e.hx = e.x + Math.sin(a) * d; e.hz = e.z + Math.cos(a) * d; e.cible = null;
@@ -828,7 +829,7 @@ const E2_VOL = {
     if (cur) {
       const dh = Math.hypot(c.px - cur.x, c.pz - cur.z), solC = w.heightAt(cur.x, cur.z);
       if (e.sol) {
-        if (dh < 18 * (c.crouch ? 0.6 : 1)) { e.sol = false; e.decolle = 6; E2C.cri(e, 'ailes', c, 80, true); }
+        if (dh < 18 * (c.crouch ? 0.6 : 1) || e.e2effroi) { for (const q of G) if (q.sol) { q.sol = false; q.decolle = 8; } E2C.cri(e, 'ailes', c, 80, true); }
         else {
           e.fly = 0; e.y = w.heightAt(e.x, e.z); e.peck = Math.sin(c.t * 1.6 + e.seed) > -0.2;
           e.heading = turnToward(e.heading, Math.atan2(cur.x - e.x, cur.z - e.z), dt * 2);
@@ -905,7 +906,7 @@ const E2_VOL = {
     if (e.ph === 'mange') {
       e.fly = 0; e.y = w.heightAt(e.x, e.z); e.peck = Math.sin(c.t * 1.2 + e.seed) > 0.2;
       e.mangeT -= dt;
-      if (e.mangeT <= 0 || e.dist < 35 * (c.crouch ? 0.6 : 1)) { e.ph = null; e.peck = false; E2C.cri(e, 'ailes', c, 80, true); }
+      if (e.mangeT <= 0 || e.dist < 35 * (c.crouch ? 0.6 : 1) || e.e2effroi) { e.ph = null; e.peck = false; E2C.cri(e, 'ailes', c, 80, true); }
       return;
     }
     e.ph = null; e.fly = 1; e.peck = false;
@@ -929,7 +930,7 @@ const E2_VOL = {
     if (e.flotte > 0) {
       e.flotte -= dt; e.fly = 0; e.y = WL - 0.04;
       e.x += Math.sin(c.t * 0.07 + e.seed) * dt * 0.15; e.z += Math.cos(c.t * 0.05 + e.seed) * dt * 0.15;
-      if (e.dist < 12 || !E2C.eau(w, e.x, e.z)) { e.flotte = 0; E2C.cri(e, 'mouette', c, 80, true); }
+      if (e.dist < 12 || e.e2effroi || !E2C.eau(w, e.x, e.z)) { e.flotte = 0; E2C.cri(e, 'mouette', c, 80, true); }
       return;
     }
     e.fly = 1;
@@ -991,7 +992,7 @@ const E2_VOL = {
       case 'mange': {
         e.fly = 0; e.y = e.perche.y; e.peck = Math.sin(c.t * 2 + e.seed) > 0.3;
         e.phT -= dt;
-        if (e.phT <= 0 || e.dist < 22 * (c.crouch ? 0.6 : 1)) { e.ph = 'tour'; e.poisson = false; e.peck = false; if (e.dist < 22) E2C.cri(e, 'balbuzard', c, 100, true); }
+        if (e.phT <= 0 || e.dist < 22 * (c.crouch ? 0.6 : 1) || e.e2effroi) { e.ph = 'tour'; e.poisson = false; e.peck = false; if (e.dist < 22 || e.e2effroi) E2C.cri(e, 'balbuzard', c, 100, true); }
         return;
       }
     }
@@ -1017,7 +1018,15 @@ const E2_VOL = {
       try {
         if (e.e2redit) E2C.redire(e, dt, c);
         if (e.e2part && E2C.partirSol(e, dt, w, c)) return;
-        if (f.call(E2_COMPORTE, e, dt, w, c)) return;
+        // un coup de feu tout près (entities.scare), une blessure : l'effroi — pour la conduite, l'homme est tout près
+        if ((e.scared || e.hurtT > 0) && !(e.effroiT > 0)) {
+          e.effroiT = 2.5;
+          if (k === 'grand_duc' && !e.vol) { e.attaque = null; e.menace = 0; e.repos = 90; E2C.envol(e, w, c.px, c.pz, { duree: 6, haut: 5, v: 7 }); }
+        }
+        if (e.effroiT > 0) { e.effroiT -= dt; e.dist = Math.min(e.dist, 4.5); }
+        // (la lueur d'une blessure s'éteint, même en vol ou quand la conduite est toute ici)
+        e.hurtT = Math.max(0, (e.hurtT || 0) - dt);
+        if (f.call(E2_COMPORTE, e, dt, w, c)) { e.scared = false; return; }
       } catch (err) { console.error(err); }
     }
     _uw(e, dt, w, c);
@@ -1025,7 +1034,16 @@ const E2_VOL = {
   const _ub = entities.updateBird.bind(entities);
   entities.updateBird = function (e, dt, w, c) {
     const k = e.cfg.e2, f = k ? E2_VOL[k] : null;
-    if (f) { try { if (e.e2redit) E2C.redire(e, dt, c); f(e, dt, w, c); } catch (err) { console.error(err); } return; }
+    if (f) {
+      try {
+        if (e.e2redit) E2C.redire(e, dt, c);
+        // effrayé (un coup de feu) ou touché : ce qui est posé s'envole
+        e.e2effroi = e.scaredT > 0 || e.hurtT > 0;
+        e.scaredT = Math.max(0, (e.scaredT || 0) - dt); e.hurtT = Math.max(0, (e.hurtT || 0) - dt);
+        f(e, dt, w, c);
+      } catch (err) { console.error(err); }
+      return;
+    }
     _ub(e, dt, w, c);
   };
 }

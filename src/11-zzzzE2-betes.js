@@ -351,4 +351,6 @@ HOOKS.load.push(() => {
   e2betes.S();
   e2betes.T = null; e2betes.actifs = new Set(); e2betes.t = 1.5;
   E2C.os.length = 0; E2C.osSol.length = 0; E2C.pluie.t = -1e9;
+  // (les territoires se calculent ici, derrière l'écran de chargement : un dixième de seconde, une fois)
+  try { if (game.world && game.kind === 'farm') e2betes.calculer(game.world); } catch (err) { console.error(err); }
 });
