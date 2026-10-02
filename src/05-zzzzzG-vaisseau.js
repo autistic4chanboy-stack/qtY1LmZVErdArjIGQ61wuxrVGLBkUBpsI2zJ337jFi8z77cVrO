@@ -70,6 +70,28 @@ function vgCoutSuivant(n, id) {
   return { coeurs: VG_CORPS_COUT[cur], vie: VG_CORPS_VIE[cur], degre: cur + 1 };
 }
 
+const VG_CORPS_TEXTES = {
+  froid: 'Le fauteuil est froid. Au-dessus, les bras pendent, immobiles, comme ceux d’un pantin qu’on a rangé. Sous la main, la nacre ne tiédit pas : il n’y a pas de courant.',
+  intro: 'Le fauteuil s’incline à votre approche. Au-dessus, les bras articulés se déplient sans bruit et attendent. Sur l’écran du mur, une silhouette de corps, et quatre mots qui clignotent.',
+  max: '(Les bras se replient. Pas une fois de plus sur ce muscle-là.)',
+  total: '(Les bras se replient tous ensemble. L’écran affiche un seul signe, que vous comprenez sans le lire : assez.)',
+  faible: '(Les bras s’approchent, hésitent, se retirent. Vous êtes trop faible pour ce qu’ils vous prendraient.)',
+  prix: 'Cela coûte des cœurs de verre, qui disparaissent dans la machine, et un peu de vous-même : du sang, des courbatures, longtemps.',
+  avant: {
+    jambes: 'Les bras descendent vers vos jambes. Courir un peu plus vite, sur la terre d’en bas : c’est ce qu’on demandait le plus.',
+    jarret: 'Les bras descendent vers vos chevilles et vos genoux. Sauter un peu plus haut. Pas de quoi voler.',
+    souffle: 'Un bras se pose, très doucement, sur votre poitrine. Le souffle : plus long, plus calme. Le meilleur des quatre, disait Mirelle, et le moins demandé.',
+    os: 'Les bras se placent partout à la fois, sans vous toucher. Les os : un peu plus durs. Une chute reste une chute.',
+  },
+  pendant: 'Ça fait mal, et puis ça passe.',
+  apres: {
+    jambes: '(Vos jambes brûlent. Quand ça passera, elles seront un peu plus à vous, ou un peu moins.)',
+    jarret: '(Vos chevilles sont lourdes et chaudes. Vous sautillez sur place, malgré vous.)',
+    souffle: '(Vous respirez. Longtemps. L’air va plus loin, au fond de vous, qu’il n’allait avant.)',
+    os: '(Vous avez mal jusque dans les dents. Vos mains vous semblent plus lourdes.)',
+  },
+};
+
 // ---------------------------------------------------------------- les Hautes Lettres de la cité (non traduites)
 // Les mots sont tous ceux du lexique aëlin : qui en sait assez lira ; les autres verront des traits.
 for (const I of [
@@ -112,6 +134,24 @@ const VG_VOIX = {
   cristal: 'Ça, c’est la voix de Seriane. Gardez-la. Moi, je la sais par cœur.',
   gravite: 'La Nef est légère, maintenant. Les enfants adoraient. Les vieux, beaucoup moins.',
   depart: 'Au revoir. Dites-leur, en bas… Non. Ne leur dites rien. Ils ont fini par oublier ; c’est ce qu’ils voulaient.',
+  couloir: 'Les hublots. Les enfants y collaient le nez. On voyait les traces le matin.',
+  galerie: 'Là-haut, on travaillait. En bas, on vivait. Thalvor disait que c’était l’inverse.',
+  berceaux2: 'Ne la réveillez pas.',
+  lampes_on: 'La Nef. Je l’avais oubliée comme ça.',
+  fontaine_on: 'Elle chantait mieux, avant. L’eau, je veux dire. Seriane aussi.',
+  holo_on: 'La cité, en petit. Les enfants la faisaient tourner avec le doigt, pour voir où ils habitaient.',
+  holo_ciel_on: 'Notre route. Regardez le côté noir. Non : ne le regardez pas trop.',
+  ilaeth_on: 'Ilaeth. La capitaine. Elle regardait souvent par là, les mains dans le dos.',
+  rideau_on: 'Le rideau tient l’air. Ne restez pas trop près du bord : il n’a pas été fait pour durer.',
+  breche_sans_air: 'Il n’y a plus d’air, là. Revenez.',
+  toupie: 'Elle était à Iorin. Prenez-la, si vous voulez. Je n’ai pas de mains pour jouer.',
+  porte_close: 'Les portes ne s’ouvrent qu’avec le Cœur. Je n’ai plus assez de lumière pour elles.',
+  courant_non: 'Il n’y a pas de courant. Le Cœur dort, en bas, sous la Nef.',
+  nuit1: 'Le Cœur brûle depuis longtemps. Éteignez-le bientôt. S’il vous plaît.',
+  nuit2: 'Pardon. Je l’ai éteint moi-même. Elle regardait.',
+  atelier_on: 'Mirelle vous aurait dit de vous asseoir, de respirer, et de ne pas regarder les bras.',
+  ascenseur: 'Tenez-vous au milieu.',
+  graine: 'Iorin l’avait plantée là. Elle l’arrosait tous les soirs. Elle luit encore.',
 };
 
 // ---------------------------------------------------------------- le Registre de la cité (journal de bord)
@@ -219,4 +259,41 @@ const VG_TEXTES = {
   pierreMorte: 'La pierre est froide. L’anneau est vide : à travers, on ne voit plus que l’herbe et le ciel.',
   seuil: 'L’anneau de nacre est plein d’une lumière qui coule vers le haut, plus pâle qu’à votre arrivée, comme une lampe qu’on a gardée pour le retour. De l’autre côté, à peine, l’herbe, le vent, une odeur de foin.',
   registre: 'Des lignes de signes défilent, puis se figent. La voix, tout près : « Le registre de la cité. Je vous le lis. La traduction est approximative. »',
+  veilleuse: 'Sur un socle de nacre, une petite lumière bleue, pas plus grosse qu’une flamme de bougie, tient toute seule dans l’air. Elle se penche un peu vers vous quand vous parlez.',
+  ecranNuit: '(L’écran ne répond pas.)',
+  lunette: 'Dans l’oculaire, très net, un monde bleu et vert, avec une seule lune. Des nuages lents. Une vallée entre des montagnes, si petite qu’on la cache avec un cil.\n\nVous déplacez la lunette. À côté du monde, sur une grande part du ciel, il n’y a plus d’étoiles. Pas de nuage, pas de poussière : rien. Le bord du rien est net, comme découpé aux ciseaux.',
+  lunetteTard: '\n\nVous regardez longtemps le bord. Il vous semble qu’il a bougé depuis tout à l’heure. C’est sûrement vos yeux.',
+  iorin: 'Sous le verre givré, une petite forme couchée, les genoux ramenés. On devine des cheveux, une main contre la joue. Le berceau est tiède. Un voyant vert bat lentement, au pied, comme un cœur qui dort.',
+  iorinTouche: '(Vous posez la main sur le verre. De l’autre côté, la petite main ne bouge pas.)',
+  berceauVide: 'Un berceau vide. Le verre est relevé ; dedans, l’empreinte d’un petit corps dans la mousse grise, et rien d’autre.',
+  coffreVide: '(Vide.)',
+  trappeDescendre: 'Descendre l’échelle',
+  trappeMonter: 'Monter l’échelle',
 };
+
+// ---------------------------------------------------------------- parler à la veilleuse (questions)
+const VG_QUESTIONS = [
+  ['Qui êtes-vous ?', 'La veilleuse. Une lampe qu’on laisse allumée dans une chambre d’enfant. Thalvor m’a faite avec ce qui restait du Cœur, pour qu’il y ait quelqu’un, ici, qui se souvienne. Je me souviens. C’est à peu près tout ce que je fais.'],
+  ['Où suis-je ?', 'Dans la cité. Dans les Maisons-d’Étoile, si vous voulez le vieux nom. Très haut au-dessus de votre vallée, plus haut que les nuages, plus haut que le froid. Vous êtes passé par le seuil. Le seuil, c’est une porte qui ne regarde pas la distance.'],
+  ['Où sont-ils tous ?', 'En bas. Chez vous. Depuis si longtemps qu’ils ne s’en souviennent plus. Vous les appelez autrement, je crois. Vos livres parlent d’un peuple de la lumière, qui taillait des pierres et qui écrivait de haut en bas. C’étaient eux. C’étaient nous.'],
+  ['Pourquoi êtes-vous partis de chez vous ?', 'Notre soleil s’est tu. Pas éteint : tu. Quelque chose l’a pris, sans bruit, et nous avons fui avec tout ce qui tenait dans la cité. Nous avons voyagé sept cents ans. Ce qui l’avait pris nous a suivis. Il a pris son temps. Il a le temps.'],
+  ['Qu’est-ce qui vous a suivis ?', 'Je ne dis pas son nom. Ils ne le disaient pas non plus, en bas, à la fin. Ils disaient « la Nuit ». Elle voit la lumière comme vous voyez une fenêtre allumée dans la campagne. C’est pour ça que nous avons tout éteint. C’est pour ça que je suis si petite.'],
+  ['Qui est Iorin ?', 'La fille de Seriane. Sept ans. Elle dort dans les Berceaux, en haut. Son berceau n’a pas voulu s’ouvrir le jour du départ. Thalvor a essayé trois jours. Il a dit : quelqu’un reviendra. Personne n’est revenu. Sauf vous. Mais le seuil n’a de place que pour un.'],
+  ['Pourquoi le seuil ne sert-il qu’une fois ?', 'Il boit de la lumière. Beaucoup. Il en reste juste assez pour un retour, et je l’ai gardée. Quand vous repasserez, il n’y aura plus rien dans la pierre, ni de ce côté-ci, ni du vôtre. Ce n’est pas une punition. C’est une lampe qui finit sa mèche.'],
+  ['Et vous, que deviendrez-vous ?', 'Je m’éteindrai un peu après. Ne faites pas cette tête. J’ai attendu longtemps quelqu’un à qui dire au revoir. C’est fait, presque.'],
+  ['Les Trois ?', 'Quand nous sommes arrivés, il y avait déjà quelqu’un en bas. Une lumière qui se tient à l’aube sur les hauteurs, et qui nous a regardés sans rien dire. Une montagne qui dort et qui rêve. Et la troisième… la troisième, c’est nous qui l’avons amenée. Ils ont prié les trois ensemble, pour ne pas en offenser une. Ils ont bien fait.'],
+];
+
+// ---------------------------------------------------------------- les maisons de l'équipage (Nef) : qui y vivait, ce qu'on y trouve
+// clé → [nom de la maison, mot laissé (titre, texte, signature) ou null, contenu du coffre [[objet, n], …]]
+const VG_MAISONS = {
+  o0: ['La maison de Thalvor', ['Un mot sur la table', '« Je ne ferme pas à clé. À quoi bon. S’il y a quelqu’un pour lire ceci, la cité est à vous. Mangez ce qu’il y a, prenez ce qui brille, et ne touchez pas au Cœur plus longtemps qu’il ne faut.\n\n« Le lit est fait. Je ne dormirai plus ici. »', 'T.'], [['vg_ration', 2], ['vg_alliage', 1]]],
+  o1: ['La maison de Seriane et d’Iorin', ['Un dessin d’enfant, punaisé au mur', 'Au crayon : une maison sous un grand soleil jaune, des arbres verts « qui poussent tout seuls », et une petite fille qui court les bras écartés. En dessous, d’une écriture qui penche : « EN BAS ». Dans un coin, une grosse tache noire, coloriée si fort que le papier est troué.', 'Iorin'], [['vg_boite', 1], ['vg_etoffe', 1], ['vg_coeur', 1]]],
+  o2: ['La maison d’Ilaeth', ['Une lettre jamais envoyée', '« Mère,\n\nNous avons trouvé un monde. Je n’ose pas encore l’écrire en entier, alors je l’écris en petit : un monde. Il y a de l’eau qui tombe du ciel. Les enfants ne me croient pas.\n\nJe sais que vous ne lirez pas ceci. Je l’écris quand même. Une capitaine doit tenir un registre ; une fille, elle, peut écrire à sa mère.\n\nIl y a aussi, en bas, quelque chose qui nous regarde. Plusieurs choses. Nous verrons. »', 'Ilaeth'], [['vg_insigne', 1], ['vg_seve', 1], ['vg_cristal', 1]]],
+  o3: ['La maison des jumeaux Aren et Isse', ['Deux écritures sur le même papier', '« Aren : je descends le premier. Je te garde une place au bord de l’eau.\n« Isse : tu ne gardes jamais rien. Garde-moi au moins la place.\n« Aren : promis.\n« Isse : je descends demain. Si tu n’es pas au bord de l’eau, je reste en haut, et tant pis pour toi. »', ''], [['vg_ration', 1], ['vg_insigne', 1]]],
+  e0: ['La maison de Mirelle', ['Une page de cahier, pliée en quatre', '« Ce soir, j’ai refait les jambes de Dasso pour la troisième fois. Il voulait une quatrième. J’ai dit non. Il a pleuré comme un enfant. Il a cinquante ans.\n\n« Ils veulent tous arriver en bas plus forts qu’ils ne sont. Je leur dis : le monde d’en bas n’est pas une course. Ils ne m’écoutent pas. Moi non plus, à leur âge. »', 'Mirelle'], [['vg_seve', 1], ['vg_coeur', 1]]],
+  e1: ['La maison du vieux Dasso', ['Une liste, gravée au couteau dans le bois de la table', 'Courir. Sauter. Respirer. Tomber sans se casser. Courir. Courir. — Le dernier mot a été gratté jusqu’à faire un trou.', ''], [['vg_eclat', 2], ['vg_ration', 1]]],
+  e2: ['Une maison sans nom', null, [['vg_etoffe', 1], ['vg_oeil', 1]]],
+};
+// les messages enregistrés : qui, où (la clé de la « chose »)
+const VG_GALETS = { ilaeth: 'observatoire', thalvor: 'machinerie', seriane: 'berceaux', mirelle: 'atelier' };

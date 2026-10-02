@@ -79,13 +79,13 @@ const vgCite = {
   // une salle : sol, murs (ouvertures par côté : n (z1), s (z0), e (x1), o (x0)), plafond (o.plafond : false pour rien)
   salle(x0, x1, z0, z1, y0, H, o) {
     o = o || {};
-    if (o.sol !== false) this.boite(x0, x1, y0 - 0.5, y0, z0, z1, o.sol || M_VG_DALLE);
+    if (o.sol !== false) { if (o.trousSol) this.solTroue(x0, x1, z0, z1, y0, o.trousSol, o.sol || M_VG_DALLE); else this.boite(x0, x1, y0 - 0.5, y0, z0, z1, o.sol || M_VG_DALLE); }
     const ouv = o.ouv || {};
     if (!o.sans || !o.sans.includes('s')) this.mur('x', z0, x0 - 0.2, x1 + 0.2, y0, H, ouv.s, o.mur);
     if (!o.sans || !o.sans.includes('n')) this.mur('x', z1, x0 - 0.2, x1 + 0.2, y0, H, ouv.n, o.mur);
     if (!o.sans || !o.sans.includes('o')) this.mur('z', x0, z0 + 0.2, z1 - 0.2, y0, H, ouv.o, o.mur);
     if (!o.sans || !o.sans.includes('e')) this.mur('z', x1, z0 + 0.2, z1 - 0.2, y0, H, ouv.e, o.mur);
-    if (o.plafond !== false) this.boite(x0 - 0.2, x1 + 0.2, y0 + H, y0 + H + 0.4, z0 - 0.2, z1 + 0.2, o.plafond || M_VG_COQUE);
+    if (o.plafond !== false) { if (o.trousPlafond) this.solTroue(x0 - 0.2, x1 + 0.2, z0 - 0.2, z1 + 0.2, y0 + H + 0.4, o.trousPlafond, o.plafond || M_VG_COQUE, 0.4); else this.boite(x0 - 0.2, x1 + 0.2, y0 + H, y0 + H + 0.4, z0 - 0.2, z1 + 0.2, o.plafond || M_VG_COQUE); }
     // la frise de nacre, à hauteur d'épaule, tout autour (le style des Aëlim)
     if (o.frise !== false) {
       const fy = y0 + (o.friseY || 1.3), e = 0.12;
@@ -111,9 +111,8 @@ const vgCite = {
     // ============ la Nef ============
     {
       const H = 26, x0 = -30, x1 = 30, z0 = 20, z1 = 100;
-      // le sol, percé d'un puits pour l'ascenseur (en 14, 26) et d'une trappe (en −14, 26)
-      const trous = [[14, 26, 1.8], [-14, 26, 0.7]];
-      this.solTroue(x0, x1, z0, z1, 0, trous, M_VG_DALLE);
+      // le sol, percé du puits de l'ascenseur de la Machinerie (en 14, 26)
+      this.solTroue(x0, x1, z0, z1, 0, [[14, 26, 1.8]], M_VG_DALLE);
       this.boite(-2, 2, -0.02, 0.01, z0 + 1, z1 - 1, M_VG_NACRE); // l'allée de nacre
       const baies = (de, a) => { const L = []; for (let z = de; z < a; z += 14) L.push(V(z, 8, 7, 21)); return L; };
       this.mur('x', z0, x0 - 0.2, x1 + 0.2, 0, H, [P(0, 5.2, 4.2)]);
@@ -140,7 +139,10 @@ const vgCite = {
     // ============ l'aile haute (y = 12) ============
     {
       const y = 12;
-      this.salle(-6, 6, 100, 134, y, 5, { sans: ['s'], ouv: { o: [P(110, 2.8), P(126, 2.8)], e: [P(110, 2.8), P(126, 2.8)], n: [V(0, 6, 1.0, 4.2)] } });
+      this.salle(-6, 6, 100, 134, y, 5, { sans: ['s'], ouv: { o: [P(110, 2.8), P(126, 2.8)], e: [P(110, 2.8), P(126, 2.8)], n: [V(0, 6, 1.0, 4.2)] }, trousPlafond: [[3, 129, 1.8]] });
+      // le puits de l'ascenseur, entre le plafond de la galerie et le sol de l'Observatoire
+      this.boite(1.0, 5.0, y + 5.4, 23.5, 126.8, 127.2, M_VG_COQUE); this.boite(1.0, 5.0, y + 5.4, 23.5, 130.8, 131.2, M_VG_COQUE);
+      this.boite(0.8, 1.2, y + 5.4, 23.5, 126.8, 131.2, M_VG_COQUE); this.boite(4.8, 5.2, y + 5.4, 23.5, 126.8, 131.2, M_VG_COQUE);
       this.boite(-6.2, 6.2, y, y + 5, 99.8, 100.2, M_VG_COQUE);
       // le palier de l'escalier, et le couloir qui y mène (de x = 6 à x = 30, en z 100..103)
       this.salle(6, 30, 99.8, 104, y, 3.6, { sans: ['o'], ouv: { s: [{ a: 24.5, b: 28.5, bas: 0, haut: 3.2 }], n: [P(16, 2.6)] }, frise: false });
@@ -154,14 +156,17 @@ const vgCite = {
       // le puits de l'ascenseur vers l'Observatoire (au bout de la galerie : x 0, z 131)
     }
     // ============ l'Observatoire (y = 24) ============
-    this.salle(-12, 12, 112, 134, 24, 9, { ouv: { n: [V(0, 20, 1.2, 8.2)], e: [V(123, 8, 2.5, 7)], o: [V(123, 8, 2.5, 7)] }, plafond: M_VG_COQUE });
+    this.salle(-12, 12, 112, 134, 24, 9, { ouv: { n: [V(0, 20, 1.2, 8.2)], e: [V(123, 8, 2.5, 7)], o: [V(123, 8, 2.5, 7)] }, plafond: M_VG_COQUE, trousSol: [[3, 129, 1.8]] });
     // ============ sous la Nef : la Machinerie et la Brèche (y = −16) ============
     this.salle(-24, 24, 22, 58, -16, 15.5, { plafond: false, ouv: { e: [P(40, 3.2, 3.2)] } });
-    this.salle(24, 48, 30, 50, -16, 6, { sans: ['o'], ouv: { e: [{ a: 36, b: 43, bas: 0.8, haut: 5 }] }, frise: false });
+    // (la Brèche : la coque est ouverte à l'est, au-dessus d'un rebord trop haut pour qu'on l'enjambe)
+    this.salle(24, 48, 30, 50, -16, 6, { sans: ['o'], ouv: { e: [{ a: 36, b: 43, bas: 1.25, haut: 5 }] }, frise: false });
+    // les bords déchirés de la brèche (des plaques tordues)
+    for (const [z, y, a] of [[35.6, 1.6, 0.4], [43.4, 2.2, -0.5], [37.5, 5.2, 0.9], [41.6, 0.9, -0.3]]) this.B(48.3, -16 + y, z, 0.25, 1.6, 1.1, M_VG_COQUE).r = a;
     mondes.finConstruction();
   },
   // un sol percé de trous carrés [x, z, demi-côté]
-  solTroue(x0, x1, z0, z1, y, trous, m) {
+  solTroue(x0, x1, z0, z1, y, trous, m, ep) {
     // découpe en bandes le long de z autour de chaque trou
     let parts = [[x0, x1, z0, z1]];
     for (const [tx, tz, r] of trous) {
@@ -175,7 +180,7 @@ const vgCite = {
       }
       parts = out;
     }
-    for (const [a0, a1, b0, b1] of parts) this.boite(a0, a1, y - 0.5, y, b0, b1, m);
+    for (const [a0, a1, b0, b1] of parts) this.boite(a0, a1, y - (ep || 0.5), y, b0, b1, m);
   },
   // une maison de l'équipage (dans la Nef) : quatre murs, un toit plat, une porte du côté de l'allée
   maison(x0, x1, z0, z1, cote, cle) {
@@ -314,56 +319,4 @@ HOOKS.death.push((cause) => {
   if (mondes.cur !== 'vaisseau') return false;
   vgCite.revenir(true, cause);
   return true;
-});
-
-// ---------------------------------------------------------------- les choses de la cité (décors, machines, objets)
-Object.assign(vgCite, {
-  // une chose posée en coordonnées locales (ly : hauteur au-dessus du niveau 0 de la cité)
-  ch(lx, ly, lz, o) {
-    const [x, z] = this.at(lx, lz), y = this.f().y + ly;
-    return mondes.chose(Object.assign({ x, z, y, yRef: y }, o));
-  },
-  peupler() {
-    // ---- le Seuil : l'anneau de retour, l'écran du registre, les veilleuses
-    this.seuilC = this.ch(0, 0.3, -15.6, { r: 0, modele: VGM.seuil, loin: 90, rayon: 1.8, h: 3, reste: true, lumiere: { c: [0.35, 0.6, 1.1], r: 12, y: 2.3 }, prendre: () => this.seuil() });
-    this.ch(9.75, 1.3, -6, { r: -Math.PI / 2, modele: VGM.ecran, on: true, rayon: 0.8, h: 1, reste: true, prendre: () => this.journal() });
-    for (const [x, z] of [[-6, -14], [6, -14], [-6, 0], [6, 0]]) this.ch(x, 2.6, z, { r: 0, modele: VGM.veilleuse, lumiere: { c: [0.18, 0.3, 0.6], r: 7, y: 0 } });
-  },
-  // le seuil de retour
-  seuil() {
-    const V = VG.S();
-    if (V.etat !== 1) return;
-    const deja = V.vuSeuil;
-    V.vuSeuil = 1;
-    ui.choice('Le seuil', VG_TEXTES.seuil, [
-      { label: 'Passer le seuil', fn: () => { ui.close(); this.revenir(false); } },
-      { label: 'Lire les traits gravés au pied de l’anneau', fn: () => langues.lireInscription('a_vg_retour') },
-      { label: 'Pas encore', fn: () => { ui.close(); if (!deja) this.dire(VG_VOIX.longtemps); } },
-    ]);
-  },
-  // l'écran du Seuil : le registre de la cité (la veilleuse traduit)
-  journal() {
-    VGSON.clic(null, 0.8);
-    const V = VG.S();
-    const opts = VG_JOURNAL.map(([t, x], i) => ({ label: t, fn: () => { V.lus['j' + i] = 1; ui.read(t, x, 'Registre de la cité — lu par la veilleuse'); } }));
-    opts.push({ label: 'Laisser l’écran', fn: () => ui.close() });
-    ui.choice('L’écran du Seuil', VG_TEXTES.registre, opts);
-  },
-  // ------------------------------------------------------------- chaque image
-  update(dt, playing) {
-    const V = VG.S();
-    this.lumK = (this.lumK || 0) + ((this.courant() ? 1 : 0) - (this.lumK || 0)) * Math.min(1, dt * 0.8);
-    // la voix parle, la première fois, dans chaque lieu
-    if (playing && !cine.on) {
-      this.zoneT = (this.zoneT || 0) - dt;
-      if (this.zoneT <= 0) {
-        this.zoneT = 0.5;
-        const z = this.zone();
-        if (z && z !== this.zoneCur) {
-          this.zoneCur = z;
-          if (!V.dits[z] && V.nommee && VG_VOIX[z]) { V.dits[z] = 1; setTimeout(() => { if (mondes.cur === 'vaisseau' && this.zone() === z) this.dire(VG_VOIX[z]); }, 900); }
-        }
-      }
-    }
-  },
 });
