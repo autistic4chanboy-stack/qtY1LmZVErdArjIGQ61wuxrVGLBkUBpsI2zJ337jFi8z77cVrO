@@ -273,7 +273,7 @@ hfDef('cheval_echappe', {
     const F = E.ch, p = game.player, d = hfDistJ(F.x, F.z);
     E.hennT -= dt;
     if (E.hennT <= 0) { E.hennT = 9 + Math.random() * 9; if (d < 80 && E.etat !== 'mene') hfSon([F.x, F.y + 1.6, F.z], () => sound.animal && sound.animal('horse', 0, 0.9)); }
-    if (E.etat === 'court') { F.run = true; if (hfMarche(F, dt)) { E.etat = 'broute'; F.pose = { graze: 1 }; } if (!E.note && d < 60) { hasardF.noter(E, `Un cheval échappé du ranch, ${E.nom}, courait les prés, sellé, la longe traînant.`); hfPense('(Un cheval sellé, sans cavalier. Il traîne sa longe.)', 3.5); } }
+    if (E.etat === 'court') { F.run = true; if (hfMarche(F, dt)) { E.etat = 'broute'; F.pose = { graze: 1 }; } if (!E.note && d < 60) { hasardF.noter(E, `Un cheval échappé du ranch, ${E.nom}, courait les prés, sellé, la longe traînant.`); } }
     else if (E.etat === 'broute') {
       F.pose = { graze: 0.8 + Math.sin(game.time * 0.7) * 0.2 }; F.move = 0;
       // on court vers lui : il repart

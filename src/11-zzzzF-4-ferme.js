@@ -79,7 +79,7 @@ hfDef('renard_poulailler', {
     const F = E.renard, d = hfDistJ(F.x, F.z);
     E.caqT -= dt;
     if (E.caqT <= 0 && E.etat !== 'fuite') { E.caqT = E.etat === 'poule' ? 0.7 : 1.6 + Math.random(); if (hfDistJ(E.cx, E.cz) < 70) hfSon([E.cx, hfSol(E.cx, E.cz) + 0.8, E.cz], () => sound.animal && sound.animal('hen', 0, E.etat === 'approche' ? 0.6 : 1)); }
-    if (!E.note && hfDistJ(E.cx, E.cz) < 40) { hasardF.noter(E, 'Une nuit, les poules ont crié : le renard rôdait autour du poulailler.'); hfPense('(Les poules s’affolent. Quelque chose rôde.)', 3); }
+    if (!E.note && hfDistJ(E.cx, E.cz) < 40) { hasardF.noter(E, 'Une nuit, les poules ont crié : le renard rôdait autour du poulailler.'); hfPense('(Quelque chose rôde.)', 2.5); }
     // le chien l'a senti
     E.chienT -= dt;
     if (E.chienT <= 0 && E.etat !== 'fuite') { E.chienT = 1e9; hfSon([F.x, F.y + 0.5, F.z], () => sound.bark && sound.bark(1)); E.etat = 'fuite'; E.par = 'chien'; }
@@ -130,7 +130,6 @@ hfDef('panier_porte', {
       setTimeout(() => { if (hasardF.actifs.panier_porte === E) E.fini = 'fin'; }, 500);
     } });
   },
-  maj(E) { if (!E.vu0 && hfDistJ(E.x, E.z) < 12 && hfRegarde(E.x, E.y + 0.2, E.z, 0.7)) { E.vu0 = true; hfPense('(Un panier sur le seuil, sous un torchon à carreaux.)', 3); } },
   dessin(E, buf) {
     if (E.pris) return;
     PE.buf = buf; PE.fl = 0; PE.frame(E.x, E.y, E.z, E.r, 1);
@@ -222,7 +221,7 @@ hfDef('vagabond_grange', {
       E.ronfleT -= dt;
       if (E.ronfleT <= 0) { E.ronfleT = 3 + Math.random(); if (d < 20) hfSon([V.x, V.y + 0.8, V.z], () => sound.noiseHit && sound.noiseHit(sound.at(), 1.1, 'bandpass', 220, 2, 0.02, sound.voix, 160, 0.4)); }
       if (d < 3.2) { E.etat = 'eveille'; V.pose = { sit: 1, lookP: 0 }; hfFace(V, game.player.pos[0], game.player.pos[2], 1); hfDit(V, 'Pardon, pardon… J’ai juste dormi. Il pleuvait sur la route. Vous n’auriez pas un bout de pain ?', 5); if (!E.note) hasardF.noter(E, 'Au matin, un vagabond dormait dans la grange, sur le foin.'); }
-      if (!E.note && d < 12 && hfRegarde(V.x, V.y + 0.6, V.z, 0.75)) { hasardF.noter(E, 'Au matin, un vagabond dormait dans la grange, sur le foin.'); hfPense('(Quelqu’un dort dans le foin. Un homme, vieux, avec un bâton.)', 3); }
+      if (!E.note && d < 12 && hfRegarde(V.x, V.y + 0.6, V.z, 0.75)) { hasardF.noter(E, 'Au matin, un vagabond dormait dans la grange, sur le foin.'); }
       if (E.age > 2.5) hfVagabondPart(E);
     } else if (E.etat === 'part') { if (hfMarche(V, dt)) E.fini = 'fin'; }
     else if (E.etat === 'eveille') { hfFace(V, game.player.pos[0], game.player.pos[2], dt); if (E.age > 2.8) hfVagabondPart(E); }
@@ -274,7 +273,7 @@ hfDef('poussins', {
       E.petits.push(F2);
     }
     E.suit = false; E.pioT = 1;
-    hasardF.cible(E, { pos: () => [E.mere.x, E.mere.y + 0.3, E.mere.z], r: 2.2, cos: 0.5, lab: 'Ramener la poule et ses poussins', vis: () => !E.suit, use() { E.suit = true; hfPense('(Elle hésite, gonfle ses plumes, puis vous suit en caquetant. Les petits suivent la poule.)', 3.5); } });
+    hasardF.cible(E, { pos: () => [E.mere.x, E.mere.y + 0.3, E.mere.z], r: 2.2, cos: 0.5, lab: 'Ramener la poule et ses poussins', vis: () => !E.suit, use() { E.suit = true; hfPense('(Elle hésite, puis vous suit en caquetant.)', 2.5); } });
   },
   maj(E, dt) {
     const M = E.mere, w = game.world, C = w.farm.coop || w.farm.yard;
@@ -283,7 +282,7 @@ hfDef('poussins', {
     for (const [i, F] of E.petits.entries()) { const a = game.time * 0.7 + i * 1.3, tx = M.x + Math.sin(a) * 0.5, tz = M.z + Math.cos(a) * 0.5; F.x = lerp(F.x, tx, Math.min(1, dt * 2.5)); F.z = lerp(F.z, tz, Math.min(1, dt * 2.5)); F.y = hfY(F.x, F.z); F.h = Math.atan2(tx - F.x, tz - F.z); F.move = 0.6; F.phase += dt * 6; F.pose = { peck: (i + Math.floor(game.time)) % 3 === 0 ? 1 : 0 }; }
     E.pioT -= dt;
     if (E.pioT <= 0) { E.pioT = 1.8 + Math.random() * 2; if (hfDistJ(M.x, M.z) < 25) hfSon([M.x, M.y + 0.2, M.z], () => sound.hfPiou && sound.hfPiou(1)); }
-    if (!E.note && hfDistJ(M.x, M.z) < 14) { hasardF.noter(E, 'Une poule avait couvé en cachette dans les hautes herbes : cinq poussins jaunes la suivaient.'); hfPense('(Des piaulements dans l’herbe. Une poule, et toute une couvée.)', 3); }
+    if (!E.note && hfDistJ(M.x, M.z) < 14) { hasardF.noter(E, 'Une poule avait couvé en cachette dans les hautes herbes : cinq poussins jaunes la suivaient.'); }
     if (E.suit && C && Math.hypot(M.x - C.x, M.z - C.z) < 8) {
       const a = farm.newAnimal('hen'); a.name = pick(['Poulette', 'Biscotte', 'Pâquerette', 'Noisette', 'Brindille']); farm.s.animals.push(a); game.syncAnimals && game.syncAnimals();
       hasardF.noter('poussins', 'Une poule avait couvé en cachette. J’ai ramené la couvée au poulailler ; une des poulettes est restée.');
@@ -373,7 +372,7 @@ hfDef('corbeaux_semis', {
     }
     E.crT -= dt;
     if (E.crT <= 0) { E.crT = 2.5 + Math.random() * 3; if (hfDistJ(E.cx, E.cz) < 70) hfSon([E.cx, hfSol(E.cx, E.cz) + 1, E.cz], () => sound.crow && sound.crow(0.8)); }
-    if (!E.note && hfDistJ(E.cx, E.cz) < 35) { hasardF.noter(E, 'Des corbeaux sur les semis. L’épouvantail ne leur faisait plus peur.'); hfPense('(Des corbeaux sur le champ. L’épouvantail ne leur fait plus peur.)', 3); }
+    if (!E.note && hfDistJ(E.cx, E.cz) < 35) { hasardF.noter(E, 'Des corbeaux sur les semis. L’épouvantail ne leur faisait plus peur.'); hfPense('(L’épouvantail ne leur fait plus peur.)', 2.5); }
     if (E.chasse >= 3 && E.vol < 30) E.fini = 'fin';
     if (E.age > 0.85 && E.chasse < 3 && !E.mange) {
       E.mange = true;
@@ -503,7 +502,7 @@ hfDef('comice', {
     const J = E.juge, C = E.clerc;
     if (E.etat === 'vient') {
       const a = hfMarche(J, dt), b = hfMarche(C, dt);
-      if (!E.note && hfDistJ(J.x, J.z) < 30) { hasardF.noter(E); hfPense('(Deux messieurs en noir, à la barrière. Un carnet, un chapeau.)', 3); }
+      if (!E.note && hfDistJ(J.x, J.z) < 30) hasardF.noter(E);
       if (a && b) { E.etat = 'juge'; E.t1 = 0; const fd = game.world.farm.field; if (fd) { hfFace(J, (fd.x0 + fd.x1) / 2, (fd.z0 + fd.z1) / 2, 2); } }
     } else if (E.etat === 'juge') {
       E.t1 += dt;

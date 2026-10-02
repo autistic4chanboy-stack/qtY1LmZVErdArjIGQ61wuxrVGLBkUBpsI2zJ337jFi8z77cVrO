@@ -119,7 +119,7 @@ hfDef('halo_lune', {
     }
     if (!E.note && k > 0.4 && hfDehorsVrai()) {
       const M = sky.moonDir;
-      if (hfRegarde(eye[0] + M[0] * 50, eye[1] + M[1] * 50, eye[2] + M[2] * 50, 0.8)) { E.vuT += dt; if (E.vuT > 2) { hasardF.noter(E); hfPense('(La lune a un cerne, ce soir.)', 3); } }
+      if (hfRegarde(eye[0] + M[0] * 50, eye[1] + M[1] * 50, eye[2] + M[2] * 50, 0.8)) { E.vuT += dt; if (E.vuT > 2) { hasardF.noter(E); } }
     }
   },
   txt: {
@@ -156,7 +156,7 @@ hfDef('parhelie', {
     }
     if (!E.note && k > 0.4 && hfDehorsVrai() && hfRegarde(eye[0] + sky.sunDir[0] * 50, eye[1] + sky.sunDir[1] * 50, eye[2] + sky.sunDir[2] * 50, 0.82)) {
       E.vuT += dt;
-      if (E.vuT > 1.5) { hasardF.noter(E); hfPense('(Trois soleils.)', 2.5); }
+      if (E.vuT > 1.5) { hasardF.noter(E); }
     }
   },
   txt: {
@@ -183,7 +183,7 @@ hfDef('eclairs_chaleur', {
       // la lueur, basse sur l'horizon, dans les nuages lointains
       const a = E.az + (Math.random() - 0.5) * 0.7;
       for (let i = 0; i < 26; i++) { const b = a + (Math.random() - 0.5) * 0.5, d = [Math.sin(b), 0.02 + Math.random() * 0.09, Math.cos(b)]; hfEtoile(eye, v3.norm(d), 92, [0.8, 0.78, 1, 0.1 * E.fl], 2.5 + Math.random() * 2.5, 0.16); }
-      if (E.n === 2 && hfDehorsVrai()) { hasardF.noter(E); hfPense('(Des éclairs, au loin. Pas un bruit.)', 3.5); }
+      if (E.n === 2 && hfDehorsVrai()) { hasardF.noter(E); hfPense('(Pas un bruit.)', 2.5); }
     }
   },
   ciel(E, sky) {
@@ -229,7 +229,7 @@ hfDef('foudre_boule', {
     E.sonT -= dt;
     if (E.sonT <= 0) { E.sonT = 0.9 + Math.random() * 0.5; hfSon([E.x, E.y, E.z], () => sound.hfGresille && sound.hfGresille(0.7)); }
     const d = Math.hypot(E.x - eye[0], E.y - eye[1], E.z - eye[2]);
-    if (!E.vu && d < 30 && hfRegarde(E.x, E.y, E.z, 0.8)) { E.vu = true; hasardF.noter(E); hfPense('(Une boule de lumière flotte dans l’air. Elle grésille.)', 3.5); }
+    if (!E.vu && d < 30 && hfRegarde(E.x, E.y, E.z, 0.8)) { E.vu = true; hasardF.noter(E); }
     if (E.t0 >= E.vie) {
       E.fin0 = true;
       if (E.eclate) {
@@ -238,8 +238,8 @@ hfDef('foudre_boule', {
         for (let k = 0; k < 36; k++) particles.spawn(E.x, E.y, E.z, (Math.random() - 0.5) * 9, (Math.random() - 0.5) * 9, (Math.random() - 0.5) * 9, [1.3, 1.2, 1.5, 1], 0.06, 0.4 + Math.random() * 0.4, 4, true);
         entities.scare(E.x, E.z, 40);
         if (d < 2.2 && !game.sleeping) { play.hurt(8, null, 'Brûlé par la foudre en boule'); hfPense('(Une odeur de soufre. Vos cils ont roussi.)', 3.5); }
-        else if (E.vu) hfPense('(Elle a éclaté. L’air sent le soufre.)', 3);
-      } else if (E.vu) hfPense('(Elle s’est éteinte, comme une chandelle.)', 3);
+        else if (E.vu) hfPense('(L’air sent le soufre.)', 3);
+      }
     }
   },
   dessin(E, buf) {
@@ -280,7 +280,7 @@ hfDef('rayon_vert', {
       E.flashT -= dt;
       const S = E.dirF || sky.sunDir, az = hfAz(S), el = hfEl(S), R = E.R || 88, sz = R / 88;
       if (Math.random() < dt * 40) for (let i = -2; i <= 2; i++) hfEtoile(eye, [Math.sin(az + i * 0.0045) * Math.cos(el), Math.sin(el - 0.004 + Math.random() * 0.002), Math.cos(az + i * 0.0045) * Math.cos(el)], R, [0.25, 1.5, 0.6, 0.55 - Math.abs(i) * 0.12], 0.55 * sz, 0.25);
-      if (!E.note && hfRegarde(eye[0] + S[0] * 60, eye[1] + S[1] * 60, eye[2] + S[2] * 60, 0.9)) { hasardF.noter(E); hasardF.retenir('rayon_vert'); hfPense('(Vert. Un instant, le soleil a été vert.)', 3.5); }
+      if (!E.note && hfRegarde(eye[0] + S[0] * 60, eye[1] + S[1] * 60, eye[2] + S[2] * 60, 0.9)) { hasardF.noter(E); hasardF.retenir('rayon_vert'); hfPense('(Vert. Un instant.)', 2.5); }
       if (E.flashT <= 0) E.fini = 'fin';
     }
     if (sky.e < -0.03) E.fini = 'fin';
@@ -308,7 +308,7 @@ hfDef('saint_elme', {
     E.pts = hfProps(HF_POINTES, p[0], p[2], 26).slice(0, 5).map((q) => ({ x: q.x, y: q.y + (HF_POINTE_H[q.id] || 2) * (q.s || 1), z: q.z }));
     E.tete = !E.pts.length || Math.random() < 0.4;
     E.sonT = 0.5;
-    hfPense(E.tete ? '(Vos cheveux se dressent sur votre tête. L’air grésille.)' : '(Des flammes bleues, sans chaleur, au bout des choses.)', 4);
+    if (E.tete) hfPense('(Vos cheveux se dressent sur votre tête.)', 3.5);
   },
   maj(E, dt, eye) {
     const k = hfK(E, 0.05, 0.12), p = game.player;
@@ -360,7 +360,7 @@ hfDef('linge_envole', {
     hfSon([cx, hfSol(cx, cz) + 1.7, cz], () => sound.hfDrap && sound.hfDrap(1));
     setTimeout(() => { if (hasardF.actifs.linge_envole === E) hfDit(E.lav, pick(['Mes draps ! Rattrapez-les, pour l’amour du ciel !', 'Oh non, non, non… mes draps !']), 3); }, 900);
     E.porte = -1; E.rendus = 0;
-    hasardF.cible(E, { pos: () => { const D = E.draps.find((d) => d.st === 'sol'); return D ? [D.x, D.y + 0.2, D.z] : null; }, r: 2.8, lab: 'Ramasser le drap', vis: () => E.porte < 0 && E.draps.some((d) => d.st === 'sol' && hfDistJ(d.x, d.z) < 3.2), use() { const i = E.draps.findIndex((d) => d.st === 'sol' && hfDistJ(d.x, d.z) < 3.2); if (i >= 0) { E.draps[i].st = 'porte'; E.porte = i; sound.hfDrap && sound.hfDrap(0.5); hfPense('(Le drap, roulé sous le bras, trempé d’herbe.)', 2.5); } } });
+    hasardF.cible(E, { pos: () => { const D = E.draps.find((d) => d.st === 'sol'); return D ? [D.x, D.y + 0.2, D.z] : null; }, r: 2.8, lab: 'Ramasser le drap', vis: () => E.porte < 0 && E.draps.some((d) => d.st === 'sol' && hfDistJ(d.x, d.z) < 3.2), use() { const i = E.draps.findIndex((d) => d.st === 'sol' && hfDistJ(d.x, d.z) < 3.2); if (i >= 0) { E.draps[i].st = 'porte'; E.porte = i; sound.hfDrap && sound.hfDrap(0.5); } } });
     hasardF.cible(E, { pos: () => [E.lav.x, E.lav.y + 1.2, E.lav.z], r: 3, lab: 'Rendre le drap', vis: () => E.porte >= 0, use() { const D = E.draps[E.porte]; if (D) D.st = 'rendu'; E.porte = -1; E.rendus++; farm.earn(2); sound.coin && sound.coin(); hfDit(E.lav, pick(['Merci ! Sans vous, il finissait dans la rivière.', 'Que Dieu vous le rende. Tenez, pour la peine.', 'Il est tout vert, mais il est là. Merci.']), 3.5); if (E.rendus === 1) hasardF.bienfait('lavandiere'); } });
   },
   maj(E, dt) {
@@ -401,7 +401,6 @@ hfDef('linge_envole', {
     }
     if (E.lav) hfDessine(E.lav, buf, sbuf, cam, t);
   },
-  fin(E) { if (E.porte >= 0) hfPense('(Le drap, vous le déposerez au lavoir.)', 2.5); },
   txt: {
     journal: 'Un Lavedi de grand vent, les draps d’une lavandière se sont envolés à travers les prés.',
     pendant: ['Au voleur ! C’est le vent, le voleur !', 'Courez, courez, il va jusqu’à la rivière !'],
@@ -475,7 +474,7 @@ hfDef('comete', {
     }
     if (k > 0.3 && !E.vuJ && hfDehorsVrai()) {
       const d = [Math.sin(L.az), Math.sin(L.el), Math.cos(L.az)];
-      if (hfRegarde(eye[0] + d[0] * 50, eye[1] + d[1] * 50, eye[2] + d[2] * 50, 0.85)) { E.vuJ = farm.s.day; if (!E.note) { hasardF.noter(E); hfPense('(Une étoile chevelue, au-dessus des collines.)', 3.5); } }
+      if (hfRegarde(eye[0] + d[0] * 50, eye[1] + d[1] * 50, eye[2] + d[2] * 50, 0.85)) { E.vuJ = farm.s.day; if (!E.note) hasardF.noter(E); }
     }
   },
   txt: {

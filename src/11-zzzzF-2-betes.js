@@ -85,7 +85,7 @@ hfDef('cigognes', {
       E.sonT = 18 + Math.random() * 25;
       if (d < 90) { hfSon([L.x, L.y + 0.6, L.z], () => sound.hfClaquement && sound.hfClaquement(1)); A.pose = { lookP: -0.6 }; setTimeout(() => { A.pose = {}; }, 2200); }
     }
-    if (!E.note && d < 80 && hfRegarde(L.x, L.y + 1, L.z, 0.85)) { hasardF.noter(E); if (L.ou !== 'ferme') hfPense('(Des cigognes, sur le clocher.)', 3); }
+    if (!E.note && d < 80 && hfRegarde(L.x, L.y + 1, L.z, 0.85)) hasardF.noter(E);
   },
   dessin(E, buf, sbuf, cam, t) {
     const L = E.L;
@@ -400,7 +400,7 @@ hfDef('chevreuil_pris', {
       E.criT -= dt;
       const d = Math.hypot(E.x - eye[0], E.z - eye[2]);
       if (E.criT <= 0) { E.criT = 4 + Math.random() * 4; if (d < 80) hfSon([F.x, F.y + 0.6, F.z], () => sound.hfChevreuil && sound.hfChevreuil(1)); }
-      if (!E.note && d < 30 && hfRegarde(F.x, F.y + 0.5, F.z, 0.75)) { hasardF.noter(E); hfPense('(Un chevreuil, couché. Une patte prise dans un fil de laiton.)', 3.5); }
+      if (!E.note && d < 30 && hfRegarde(F.x, F.y + 0.5, F.z, 0.75)) { hasardF.noter(E); hfPense('(Une patte prise dans un fil de laiton.)', 3); }
     } else if (E.etat === 'libre') {
       F.dy = 0; F.run = true;
       if (hfMarche(F, dt)) E.fini = 'fin';
@@ -467,7 +467,7 @@ hfDef('essaim', {
       if (Math.random() < dt * 25) particles.spawn(E.x + (Math.random() - 0.5) * 1.4, E.y - 0.3 + (Math.random() - 0.5) * 1.2, E.z + (Math.random() - 0.5) * 1.4, (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1, (Math.random() - 0.5) * 1.5, [0.25, 0.18, 0.05, 1], 0.03, 0.6, 0, false);
       E.sonT -= dt;
       if (E.sonT <= 0 && d < 35) { E.sonT = 2.3; hfSon([E.x, E.y, E.z], () => sound.hfEssaim && sound.hfEssaim(clamp(1.2 - d / 30, 0.2, 1))); }
-      if (!E.note && d < 25 && hfRegarde(E.x, E.y - 0.3, E.z, 0.8)) { hasardF.noter(E); hfPense('(Une grappe d’abeilles, grosse comme un pain de quatre livres, pend à la branche.)', 4); }
+      if (!E.note && d < 25 && hfRegarde(E.x, E.y - 0.3, E.z, 0.8)) hasardF.noter(E);
       // trop près, sans fumée : elles piquent
       E.pique -= dt;
       if (d < 1.8 && E.pique <= 0 && !farm.count('enfumoir')) { E.pique = 3; play.hurt(2, null, 'Piqué par un essaim'); if (!E.dit) { E.dit = true; hfPense('(Elles n’aiment pas qu’on les approche sans fumée.)', 3); } }

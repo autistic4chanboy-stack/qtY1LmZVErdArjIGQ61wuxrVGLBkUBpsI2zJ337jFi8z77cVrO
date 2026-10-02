@@ -65,7 +65,7 @@ hfDef('pas_neige', {
   },
   maj(E) {
     const d = hfDistJ(E.fx, E.fz);
-    if (!E.note && hfRegarde(E.pas[20].x, E.pas[20].y, E.pas[20].z, 0.85) && hfDistJ(E.pas[20].x, E.pas[20].z) < 30) { hasardF.noter(E, 'Dans la neige fraîche, une trace de pas venait de loin et s’arrêtait net au milieu du pré. Pas de retour.'); hfPense('(Des pas dans la neige.)', 2.5); }
+    if (!E.note && hfRegarde(E.pas[20].x, E.pas[20].y, E.pas[20].z, 0.85) && hfDistJ(E.pas[20].x, E.pas[20].z) < 30) { hasardF.noter(E, 'Dans la neige fraîche, une trace de pas venait de loin et s’arrêtait net au milieu du pré. Pas de retour.'); }
     if (!E.fin1 && d < 1.6) {
       E.fin1 = true;
       hfPense('(Les pas s’arrêtent là. Ni retour, ni rien autour. Au-dessus, le ciel blanc.)', 5);
@@ -159,7 +159,7 @@ hfDef('table_mise', {
     if (!E.eteint) {
       E.vapT -= dt;
       if (E.vapT <= 0) { E.vapT = 0.3; for (let i = 0; i < 4; i++) { const a = E.r + i * Math.PI / 2; particles.spawn(E.x + Math.sin(a) * 0.45, E.y + 0.85, E.z + Math.cos(a) * 0.45, 0, 0.35, 0, [0.85, 0.85, 0.85, 0.18], 0.12, 1.4, -0.05, false); } }
-      if (!E.note && d < 18 && hfRegarde(E.x, E.y + 0.8, E.z, 0.75)) { hasardF.noter(E, 'Au hameau abandonné, une table était mise pour quatre, au milieu des ruines. Les chandelles brûlaient, la soupe fumait. Personne.'); hfPense('(Une table mise, au milieu des ruines. Quatre bols. La soupe fume.)', 4); }
+      if (!E.note && d < 18 && hfRegarde(E.x, E.y + 0.8, E.z, 0.75)) { hasardF.noter(E, 'Au hameau abandonné, une table était mise pour quatre, au milieu des ruines. Les chandelles brûlaient, la soupe fumait. Personne.'); }
       // on s'en va sans s'asseoir : en se retournant, plus rien
       if (E.note && d > 30 && !hfRegarde(E.x, E.y + 0.8, E.z, 0.3)) E.fini = 'fin';
     } else if (d > 10 && !hfRegarde(E.x, E.y + 0.8, E.z, 0.3)) E.fini = 'fin';
@@ -196,7 +196,7 @@ hfDef('chien_noir', {
     if (E.etat === 'suit') {
       // il garde ses distances : quinze pas derrière ; si on le regarde, il s'assoit
       const vu = hfRegarde(C.x, C.y + 0.5, C.z, 0.85);
-      if (vu) { C.move = lerp(C.move, 0, Math.min(1, dt * 6)); C.pose = { lie: 0.5, lookP: -0.2 }; hfFace(C, p.pos[0], p.pos[2], dt); if (!E.note && d < 40) { hasardF.noter(E, 'La nuit, sur la route, un grand chien noir m’a suivi, à quinze pas. Quand je me retournais, il s’asseyait.'); hfPense('(Un grand chien noir, assis au milieu du chemin. Il vous regarde.)', 3.5); } }
+      if (vu) { C.move = lerp(C.move, 0, Math.min(1, dt * 6)); C.pose = { lie: 0.5, lookP: -0.2 }; hfFace(C, p.pos[0], p.pos[2], dt); if (!E.note && d < 40) { hasardF.noter(E, 'La nuit, sur la route, un grand chien noir m’a suivi, à quinze pas. Quand je me retournais, il s’asseyait.'); } }
       else { C.pose = {}; if (d > 14) { hfAller(C, [[p.pos[0], p.pos[2]]], clamp(d * 0.25, 1, 4.5)); hfMarche(C, dt); } else C.move = lerp(C.move, 0, Math.min(1, dt * 4)); }
       E.haleT -= dt;
       if (E.haleT <= 0) { E.haleT = 5 + Math.random() * 5; if (d < 25) hfSon([C.x, C.y + 0.6, C.z], () => sound.hfHalete && sound.hfHalete(1)); }
@@ -287,7 +287,7 @@ hfDef('messe_morts', {
       let du = 0;
       if (d < 120) hfSon([E.x, E.y + 3, E.z], () => { if (!sound.hfAir) return; du = sound.hfAir(HF_REQUIEM, { bpm: 54, timbre: 'voix', voyelle: 'o', vol: 0.028, bus: 'voix' }); sound.hfAir(HF_REQUIEM.map(([m, x]) => [m === null ? null : m - 12, x]), { bpm: 54, timbre: 'voix', voyelle: 'ou', vol: 0.024, bus: 'voix' }); sound.hfAir(HF_REQUIEM.map(([m, x]) => [m === null ? null : m - 5, x]), { bpm: 54, timbre: 'voix', voyelle: 'a', vol: 0.014, bus: 'voix' }); });
       E.chantT = (du || 16) + 2;
-      if (!E.note && d < 70) { hasardF.noter(E, 'La nuit du Vorndi, à minuit, on chantait dans l’église fermée. Les fenêtres étaient éclairées. Le curé, lui, dormait.'); hfPense('(On chante, dans l’église. À minuit. Les portes sont fermées.)', 4); }
+      if (!E.note && d < 70) { hasardF.noter(E, 'La nuit du Vorndi, à minuit, on chantait dans l’église fermée. Les fenêtres étaient éclairées. Le curé, lui, dormait.'); hfPense('(On chante, dans l’église fermée.)', 3); }
     }
     if (d < 4 && !E.tait && !E.frappe) { E.tait = true; hfPense('(Le chant s’est arrêté. Comme si on vous avait entendu arriver.)', 4); }
   },
@@ -325,7 +325,7 @@ hfDef('chasse_volante', {
     if (!E.vu && u > 0.15 && hfRegarde(E.cx, E.cy, E.cz, 0.8)) {
       E.vu = true;
       strange.fear = Math.max(strange.fear || 0, 0.5);
-      hfPense('(Des chiens et des cavaliers, dans le ciel. Ils courent sur les nuages. Ne les regardez pas.)', 4.5);
+      hfPense('(Ne les regardez pas.)', 3);
       hasardF.noter(E, 'La nuit, la chasse volante est passée au-dessus de moi : des chiens qui aboyaient dans les nuages, une trompe, des cavaliers noirs. Je les ai regardés.');
     }
     if (u > 1.05) { if (!E.note) hasardF.noter(E, 'La nuit, la chasse volante est passée au-dessus de moi : des aboiements dans le ciel, une trompe, le vent. Je n’ai pas levé les yeux.'); E.fini = 'fin'; }
@@ -381,7 +381,7 @@ hfDef('meneur_loups', {
     if (E.arret > 0) for (const L of E.loups) { L.move = 0; L.pose = { lookY: 0 }; hfFace(L, game.player.pos[0], game.player.pos[2], dt); }
     else for (const L of E.loups) L.pose = {};
     hfCortegeMaj(E.C, dt, E.arret > 0);
-    if (!E.note && d < 70 && hfRegarde(M.x, M.y + 1, M.z, 0.85)) { hasardF.noter(E, 'Au crépuscule, un homme en cape noire passait au loin, suivi de loups qui marchaient à son pas.'); hfPense('(Un homme en cape, un bâton. Derrière lui, des loups. Ils marchent à son pas.)', 4); }
+    if (!E.note && d < 70 && hfRegarde(M.x, M.y + 1, M.z, 0.85)) { hasardF.noter(E, 'Au crépuscule, un homme en cape noire passait au loin, suivi de loups qui marchaient à son pas.'); }
     if (E.C.fini) E.fini = 'fin';
   },
   dessin(E, buf, sbuf, cam, t) { for (const F of E.C.membres) hfDessine(F, buf, sbuf, cam, t); },

@@ -47,7 +47,7 @@ hfDef('colporteur_blesse', {
     if (E.etat === 'assis') {
       E.geintT -= dt;
       if (E.geintT <= 0) { E.geintT = 8 + Math.random() * 6; if (d < 25) hfDit(C, pick(['Aïe… Saleté de pierre.', 'Hé, l’ami ! Vous n’auriez pas une minute ?', 'Ma cheville… elle a doublé de volume.']), 3); }
-      if (!E.note && d < 20) { hasardF.noter(E, 'Un colporteur était assis au bord du chemin, la cheville tordue, sa balle renversée dans l’herbe.'); hfPense('(Un colporteur, assis dans le fossé, sa balle éventrée à côté de lui.)', 3.5); }
+      if (!E.note && d < 20) { hasardF.noter(E, 'Un colporteur était assis au bord du chemin, la cheville tordue, sa balle renversée dans l’herbe.'); }
       if (npcs.hour() > 20) E.fini = 'nuit';
     } else if (E.etat === 'part') { C.pose = {}; if (hfMarche(C, dt)) E.fini = 'fin'; }
   },
@@ -119,7 +119,7 @@ hfDef('diligence_renversee', {
       E.criT -= dt;
       if (E.criT <= 0) { E.criT = 7 + Math.random() * 5; if (d < 30) hfDit(pick([E.cocher, E.monsieur, E.dame]), pick(['Une ornière ! Une ornière grande comme une tombe !', 'Mon chapeau… où est mon chapeau ?', 'Nous allions à Valmont. Nous n’irons nulle part.', 'Vous, là ! Aidez-nous, par pitié !']), 3); }
       E.cocher.pose = { lean: 0.2, reach: 0.4 };
-      if (!E.note && d < 35) { hasardF.noter(E, 'Une voiture de voyageurs versée dans le fossé, roues en l’air, les chevaux dételés qui tremblaient.'); hfPense('(Une voiture renversée, les roues en l’air. Des malles dans l’herbe.)', 3.5); }
+      if (!E.note && d < 35) { hasardF.noter(E, 'Une voiture de voyageurs versée dans le fossé, roues en l’air, les chevaux dételés qui tremblaient.'); }
       if (npcs.hour() > 19.5) E.fini = 'fin';
     } else {
       E.t1 += dt;
@@ -224,7 +224,7 @@ hfDef('roulottes_nuit', {
     if (E.feuT <= 0) { E.feuT = 2.5; if (d < 40) hfSon([E.x, E.y + 0.4, E.z], () => sound.hfFeu && sound.hfFeu(0.35)); }
     if (Math.random() < dt * 8) particles.spawn(E.x + (Math.random() - 0.5) * 0.5, E.y + 0.4, E.z + (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.4, 1.4 + Math.random(), (Math.random() - 0.5) * 0.4, [1.2, 0.6, 0.2, 1], 0.06, 0.7, -0.4, true);
     E.gens[0].pose = { sit: 1, reach: 0.4 + Math.sin(game.time * 5) * 0.08 };
-    if (!E.note && d < 60) { hasardF.noter(E, 'Une nuit, au bord de la route, un feu, une roulotte, et une vielle qui jouait un air ancien.'); hfPense('(Un feu au bord de la route. Une vielle, des voix.)', 3); }
+    if (!E.note && d < 60) { hasardF.noter(E, 'Une nuit, au bord de la route, un feu, une roulotte, et une vielle qui jouait un air ancien.'); }
     if (npcs.hour() > 5 && npcs.hour() < 18) E.fini = 'fin';
   },
   dessin(E, buf, sbuf, cam, t) {
@@ -428,7 +428,7 @@ hfDef('petit_savoyard', {
     const M = E.marmotte;
     M.dy = E.danse > 0 ? Math.abs(Math.sin(game.time * 7)) * 0.25 : 0; M.h += E.danse > 0 ? dt * 3 : 0;
     E.g.pose = { reach: 0.3 + Math.sin(game.time * 4) * 0.05 };
-    if (!E.note && d < 20) { hasardF.noter(E, 'Un petit Savoyard jouait de la vielle, une marmotte au bout d’une ficelle.'); hfPense('(Un enfant, une vielle trop grande pour lui, une marmotte qui dort à moitié.)', 3.5); }
+    if (!E.note && d < 20) { hasardF.noter(E, 'Un petit Savoyard jouait de la vielle, une marmotte au bout d’une ficelle.'); }
   },
   dessin(E, buf, sbuf, cam, t) { hfDessine(E.g, buf, sbuf, cam, t); hfDessine(E.marmotte, buf, sbuf, cam, t); },
   txt: {
@@ -469,7 +469,7 @@ hfDef('transhumance', {
     if (E.beeT <= 0) { E.beeT = 1.5 + Math.random() * 2; const F = C.membres[1 + ((Math.random() * 20) | 0)]; if (F && hfDistJ(F.x, F.z) < 60) hfSon([F.x, F.y + 0.8, F.z], () => sound.animal && sound.animal(Math.random() < 0.85 ? 'sheep' : 'goat', 0, 0.7)); }
     E.sifT -= dt;
     if (E.sifT <= 0) { E.sifT = 8 + Math.random() * 7; if (d < 60) hfSon([B.x, B.y + 1.6, B.z], () => { sound.whistle && sound.whistle(); setTimeout(() => sound.bark && sound.bark(0.8, 0), 600); }); }
-    if (!E.note && d < 60) { hasardF.noter(E, 'Un grand troupeau est passé sur le chemin, en montant vers l’estive : des sonnailles, des chiens, un berger qui ne disait rien.'); hfPense('(Des sonnailles, des centaines. Le chemin disparaît sous les moutons.)', 3.5); }
+    if (!E.note && d < 60) { hasardF.noter(E, 'Un grand troupeau est passé sur le chemin, en montant vers l’estive : des sonnailles, des chiens, un berger qui ne disait rien.'); }
     if (C.fini) E.fini = 'fin';
   },
   dessin(E, buf, sbuf, cam, t) { for (const F of E.C.membres) hfDessine(F, buf, sbuf, cam, t); },
@@ -508,7 +508,7 @@ hfDef('peintre', {
   },
   maj(E) {
     E.p.pose = { reach: 0.3 + Math.sin(game.time * 1.5) * 0.15 };
-    if (!E.note && hfDistJ(E.x, E.z) < 22) { hasardF.noter(E, 'Un peintre étranger avait planté son chevalet au bord du chemin, un chapeau de paille sur la tête.'); hfPense('(Un homme en chapeau de paille, devant un chevalet. Il peint le paysage, et un peu vous.)', 3.5); }
+    if (!E.note && hfDistJ(E.x, E.z) < 22) { hasardF.noter(E, 'Un peintre étranger avait planté son chevalet au bord du chemin, un chapeau de paille sur la tête.'); }
   },
   dessin(E, buf, sbuf, cam, t) {
     hfDessine(E.p, buf, sbuf, cam, t);
