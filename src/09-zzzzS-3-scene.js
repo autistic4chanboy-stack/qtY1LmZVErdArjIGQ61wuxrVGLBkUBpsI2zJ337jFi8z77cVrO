@@ -413,6 +413,11 @@ SoundEngine.BRUITS_MILIEU = {
       if ((M.fog > 0.5 && R() < 0.5) || (M.heat > 0.5 && h > 12.5 && h < 16.5 && R() < 0.5)) return null;
       // (sous la neige, les oiseaux se taisent)
       if (this._sZ && this._sZ.Q && this._sZ.Q.neige > 0.3) return null;
+      // un silence avant le suivant : le moteur d'origine enchaîne les chanteurs dès que l'un a fini ses reprises ; ici,
+      // six fois sur dix (trois à l'aube) on se tait, et le moteur attend son long silence (13 à 33 s) — un ou deux
+      // chanteurs par minute, pas un concert
+      if (this._sVientDeChanter && R() < (moment === 'aube' ? 0.3 : 0.6)) { this._sVientDeChanter = false; return null; }
+      this._sVientDeChanter = true;
       const m = tirerMilieu(P), C = SoundEngine.CHANTEURS[m] || SoundEngine.CHANTEURS.plaine;
       let T = C[moment] && C[moment].length ? C[moment] : C.jour;
       // (les chanteurs qu'un autre module aurait ajoutés à SoundEngine.OISEAUX[milieu] chantent aussi)

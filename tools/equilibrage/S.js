@@ -96,19 +96,22 @@ module.exports = {
     verif(Mo(trois) <= MEMOIRE_MAX, `mémoire d'une promenade (les trois milieux les plus gourmands ; ce qui n'a pas servi depuis cinq minutes est libéré) : ${Mo(trois).toFixed(1)} Mo ≤ ${MEMOIRE_MAX} Mo (tout calculé : ${tout.toFixed(1)} Mo)`);
     log(`  (temps de calcul de tout, dans la machine virtuelle de node, bien plus lente que le navigateur pour ces calculs : ${(ms / 1000).toFixed(1)} s ; en jeu, un par un, en tâche de fond)`);
     // ---------------------------------------------------------------- la rareté (d'après les cadences du moteur)
-    // le jour : un chanteur reprend sa phrase (PHRASES), puis un silence de base × (0,6 … 1,5) / jour (09-zzzaudio-scene.js) ;
-    // la nuit : 16 à 45 s entre deux chanteurs ; les bruits rares : 18 à 50 s (× 1,4 la nuit). Au plus, par minute :
+    // le jour (09-zzzaudio-scene.js et _chanteur) : un chanteur chante, puis reprend sa phrase (PHRASES : de… à… fois),
+    // chaque reprise après une pause de (silence + durée du chant) × 0,8 … 1,3 ; quand il a fini, six fois sur dix (trois à
+    // l'aube) on se tait le temps du long silence du moteur, base × 0,6 … 1,5 (base : 13 s au bois, 18 à la ferme, 28 en
+    // ville, 22 ailleurs), sinon le suivant chante aussitôt. La nuit : 16 à 45 s entre deux chanteurs. Les bruits rares :
+    // 18 à 50 s (× 1,4 la nuit). En moyenne, par minute :
     const base = { foret: 13, bouleaux: 13, ville: 28, ferme: 18 };
-    let pire = 0;
+    let pire = 0, pireAube = 0;
     for (const b of BIOMES) {
       const L = SE.CHANTEURS[b].jour, moy = (f) => L.reduce((a, [s, p]) => a + p * f(s), 0) / L.reduce((a, [, p]) => a + p, 0);
-      const occupe = moy((s) => { const P = SE.PHRASES[s] || [1, 2, 3], n = 1 + (P[0] + P[1]) / 2; return n * T[s][0] + (n - 1) * P[2] * 1.05; });
-      const silence = (base[b] || 22) * 1.05;
-      const parMin = 60 / (occupe + silence);
-      pire = Math.max(pire, parMin);
-      log(`    ${b.padEnd(9)} jour : un chanteur occupe ${occupe.toFixed(1)} s, puis ${silence.toFixed(1)} s de silence en moyenne → ${parMin.toFixed(1)} chanteur(s) par minute`);
+      const occupe = moy((s) => { const P = SE.PHRASES[s] || [1, 2, 3], n = 1 + (P[0] + P[1]) / 2; return n * (P[2] + T[s][0]) * 1.05; });
+      const silence = 0.6 * (base[b] || 22) * 1.05, silenceAube = 0.3 * (base[b] || 22) * 1.05 * 0.55;
+      const parMin = 60 / (occupe + silence), parMinAube = 60 / (occupe + silenceAube);
+      pire = Math.max(pire, parMin); pireAube = Math.max(pireAube, parMinAube);
+      log(`    ${b.padEnd(9)} jour : un chanteur et ses reprises ${occupe.toFixed(1)} s, puis ${silence.toFixed(1)} s de silence en moyenne → ${parMin.toFixed(1)} chanteur(s) par minute (à l'aube : ${parMinAube.toFixed(1)})`);
     }
-    verif(pire <= 3.5, `rare : au plus ${pire.toFixed(1)} chanteurs par minute en plein jour (≤ 3,5) ; bruits rares : ${(60 / 34).toFixed(1)} par minute le jour, ${(60 / (34 * 1.4)).toFixed(1)} la nuit`);
+    verif(pire <= 2.5, `rare : au plus ${pire.toFixed(1)} chanteurs par minute en plein jour (≤ 2,5), ${pireAube.toFixed(1)} à l'aube ; bruits rares : ${(60 / 34).toFixed(1)} par minute le jour, ${(60 / (34 * 1.4)).toFixed(1)} la nuit`);
     return { echecs };
   },
 };
