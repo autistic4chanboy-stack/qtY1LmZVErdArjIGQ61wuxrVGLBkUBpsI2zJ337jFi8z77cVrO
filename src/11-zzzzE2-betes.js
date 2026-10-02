@@ -226,6 +226,7 @@ const e2betes = {
       if (vivants >= E2_BUDGET) break;
       // (deux territoires d'une même espèce à la fois, un seul pour les troupes : que la place reste aux autres)
       if ((parEsp[T.B.id] || 0) >= (T.B.g[1] > 2 ? 1 : 2)) continue;
+      if (vivants + T.B.g[0] > E2_BUDGET + 1) continue; // (une troupe entière, ou rien)
       if (this.vide(T) || !this.heureOk(T.B, h) || !this.tempsOk(T.B)) continue;
       // (les petites bêtes ne naissent pas sous les yeux : on attend de ne plus regarder, ou d'être plus loin)
       if (!CREATURES[T.B.id].fly && Math.hypot(T.x - px, T.z - pz) < 30 && E2C.vu({ x: T.x, z: T.z })) continue;
