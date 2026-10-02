@@ -114,7 +114,7 @@ Object.assign(SoundEngine.prototype, {
   hfAir(notes, o) {
     if (!this.ok) return 0;
     o = o || {};
-    const t0 = this.at(0.03), spb = 60 / (o.bpm || 120), out = this._hfOut(o.bus === 'amb' ? this.amb : this.sfx), v = o.vol || 0.05;
+    const t0 = this.at(0.03 + (o.delai || 0)), spb = 60 / (o.bpm || 120), out = this._hfOut(o.bus === 'amb' ? this.amb : o.bus === 'voix' ? this.voix : this.sfx), v = o.vol || 0.05;
     const jeu = this['_hf_' + (o.timbre || 'violon')] || this._hf_violon;
     let t = t0;
     for (const [m, d] of notes) {
@@ -227,6 +227,32 @@ Object.assign(SoundEngine.prototype, {
     if (!this.ok) return;
     const t = this.at(), R = Math.random, out = this._hfOut(this.amb), sp = 60 / bpm;
     for (let i = 0; i < n; i++) for (let j = 0; j < 3; j++) this.noiseHit(t + i * sp + R() * 0.03, 0.06, 'lowpass', 500, 0.7, 0.02 * k, out);
+  },
+  // ---------------------------------------------------------------- l'étrange
+  // la chasse volante : des chiens qui donnent de la voix dans le ciel, une trompe
+  hfMeute(k = 1) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, out = this._hfOut(this.amb);
+    for (let i = 0; i < 4; i++) { const tt = t + R() * 1.4, f = 480 + R() * 260; this.cri(tt, { dur: 0.45 + R() * 0.3, f: [[0, f], [0.25, f * 1.25], [1, f * 0.7]], vib: [6, 0.03], rug: [40, 0.3], form: [[800, 3, 1], [1600, 5, 0.4]], souffle: [0.25, 1300], vol: 0.05 * k, lp: 2600, a: 0.04 }, out); }
+    if (R() < 0.5) { const f = 233; this.cri(t + 0.6, { type: 'sawtooth', dur: 0.5, f: [[0, f], [1, f]], form: [[500, 3, 1], [1000, 4, 0.6], [1800, 6, 0.25]], vol: 0.035 * k, lp: 2200, a: 0.05 }, out); this.cri(t + 1.15, { type: 'sawtooth', dur: 0.9, f: [[0, f * 1.5], [1, f * 1.48]], form: [[700, 3, 1], [1400, 4, 0.6], [2400, 6, 0.25]], vol: 0.035 * k, lp: 2200, a: 0.06 }, out); }
+  },
+  // des sabots au galop, sourds
+  hfSabots(k = 1) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, out = this._hfOut(this.amb);
+    for (let i = 0; i < 6; i++) for (const o of [0, 0.09, 0.18]) { const tt = t + i * 0.36 + o + R() * 0.02; this.tone(tt, 'sine', 90, 50, 0.08, 0.05 * k, out, 0.002); this.noiseHit(tt, 0.05, 'lowpass', 600, 0.7, 0.03 * k, out); }
+  },
+  // un tambour très loin sous la terre (on le sent plus qu'on ne l'entend)
+  hfTambourSourd(k = 1) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, out = this._hfOut(this.amb);
+    for (let i = 0; i < 8; i++) { const tt = t + i * 0.62 + (i % 4 === 3 ? 0.31 : 0); this.tone(tt, 'sine', 52 + R() * 4, 40, 0.7, 0.12 * k * (i % 4 === 0 ? 1 : 0.7), out, 0.004); this.noiseHit(tt, 0.2, 'lowpass', 160, 0.6, 0.04 * k, out); }
+  },
+  // un chien qui halète, tout près
+  hfHalete(k = 1) {
+    if (!this.ok) return;
+    const t = this.at(), out = this._hfOut(this.amb);
+    for (let i = 0; i < 6; i++) this.noiseHit(t + i * 0.22, 0.12, 'bandpass', i % 2 ? 900 : 1300, 1.2, 0.025 * k, out, i % 2 ? 700 : 1600, 0.02);
   },
   // le feu qui ronfle et craque
   hfFeu(k = 1) {
