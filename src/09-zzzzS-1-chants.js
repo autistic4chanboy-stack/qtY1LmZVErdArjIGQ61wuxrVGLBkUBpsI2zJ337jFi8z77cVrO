@@ -520,6 +520,76 @@
     S.lp1(d, sr, 3000);
   }];
 
+  // ================================================================ LE CRÉPUSCULE, LA NUIT (suite)
+  // l'engoulevent : un ronronnement sec et continu (« rrrrrrr… »), comme un petit moteur dans la bruyère, qui change de
+  // ton toutes les deux ou trois secondes ; parfois, à la fin, un « kou-ik » et un claquement d'ailes
+  T.s_engoulevent = [7.0, (d, sr, iv) => {
+    let t = 0.05, haut = R() < 0.5;
+    const fin = rf(5.4, 6.4), fb = rf(1050, 1250);
+    while (t < fin) {
+      const du = Math.min(fin - t, rf(1.4, 2.8)), f = haut ? fb * 1.3 : fb;
+      S.trait(d, sr, t, du, [[0, f * 0.97], [0.5, f], [1, f * 1.01]], haut ? 0.8 : 1, { h: [0.45, 0.2, 0.08], am: haut ? rf(40, 44) : rf(31, 35), amd: 0.93, souffle: 0.22, att: 0.04, rel: 0.04 });
+      t += du; haut = !haut;
+    }
+    if (iv % 2) { t += 0.25; S.trait(d, sr, t, 0.08, [[0, 1500], [1, 1900]], 0.6, { h: [0.2] }); S.trait(d, sr, t + 0.12, 0.14, [[0, 2300], [0.4, 2600], [1, 2000]], 0.7, { h: [0.15], lisse: true }); S.clic(d, sr, t + 0.4, 900, 0.4); S.clic(d, sr, t + 0.47, 850, 0.35); }
+  }];
+  // le râle des genêts : « crex-crex… crex-crex », deux syllabes râpeuses (comme un peigne qu'on gratte), dans l'herbe haute
+  T.s_rale = [2.6, (d, sr) => {
+    let t = 0.05;
+    const f = rf(2200, 2800), bp = S.bq('bp', f, 0.9, sr);
+    for (let k = 0, n = ri(2, 3); k < n; k++) {
+      for (let s = 0; s < 2; s++) { S.rape(d, sr, t, 0.17, bp, 0.8, { att: 0.05, rel: 0.2, am: rf(70, 85), amd: 0.95 }); S.trait(d, sr, t, 0.17, [f * 0.55, f * 0.5], 0.12, { am: 78, amd: 0.9, h: [0.5, 0.3] }); t += 0.27; }
+      t += rf(0.42, 0.55);
+    }
+  }];
+  // une brindille qui casse dans le sous-bois (un pas de bête, une branche morte qui tombe), et un froissement de feuilles
+  T.s_brindille = [1.2, (d, sr) => {
+    let t = 0.04;
+    for (let k = 0, n = ri(1, 2); k < n; k++) {
+      const f = rf(1800, 3200);
+      S.bruit(d, sr, t, 0.0003, 0.0018, 0.8, S.bq('bp', f, 1, sr));
+      S.modeR(d, sr, t, f, 0.005, 0.35); S.modeR(d, sr, t, f * 1.7, 0.003, 0.2); S.modeR(d, sr, t, rf(280, 480), 0.014, 0.3);
+      t += rf(0.06, 0.2);
+    }
+    for (let k = 0, n = ri(8, 20); k < n; k++) S.bruit(d, sr, t + rf(0.05, 0.6), 0.002, rf(0.004, 0.012), rf(0.04, 0.12), S.bq('bp', rf(1800, 4200), 1, sr));
+    S.lp1(d, sr, 5000);
+  }];
+  // un tronc qui grince dans le vent (deux arbres qui se frottent), long et lent
+  T.s_tronc = [2.2, (d, sr) => {
+    const f = rf(130, 230), du = rf(0.9, 1.7);
+    S.trait(d, sr, 0.05, du, [[0, f], [0.4, f * rf(1.05, 1.25)], [1, f * rf(0.85, 1)]], 0.8, { h: [0.8, 0.7, 0.55, 0.45, 0.35, 0.25, 0.18, 0.12], am: rf(14, 24), amd: 0.75, souffle: 0.12, att: 0.3, rel: 0.3, lisse: true });
+    if (R() < 0.5) S.trait(d, sr, 0.15 + du, rf(0.25, 0.45), [f * 1.1, f * 0.95], 0.4, { h: [0.7, 0.6, 0.45, 0.3], am: 20, amd: 0.8, att: 0.3, rel: 0.4 });
+    S.lp1(d, sr, 1800);
+  }];
+  // les gousses d'ajonc et de genêt qui éclatent au soleil : de petits claquements secs, et les graines qui crépitent
+  T.s_gousse = [2.2, (d, sr) => {
+    let t = rf(0.03, 0.3);
+    for (let k = 0, n = ri(1, 4); k < n && t < 1.9; k++) {
+      S.clic(d, sr, t, rf(2600, 4200), rf(0.6, 1));
+      for (let g = 0, ng = ri(2, 5); g < ng; g++) S.bruit(d, sr, t + rf(0.03, 0.2), 0.0003, rf(0.001, 0.003), rf(0.05, 0.15), S.bq('bp', rf(2500, 5000), 1.2, sr));
+      t += rf(0.25, 0.7);
+    }
+  }];
+  // un caillou qui dévale la pente, loin : des chocs qui s'espacent, puis plus rien
+  T.s_caillou = [3.2, (d, sr) => {
+    let t = 0.05, per = rf(0.12, 0.2), a = 1;
+    for (let k = 0, n = ri(5, 11); k < n && t < 2.9; k++) {
+      const f = rf(700, 1900);
+      S.modeR(d, sr, t, f, rf(0.008, 0.018), 0.45 * a); S.modeR(d, sr, t, f * rf(1.4, 1.9), 0.006, 0.2 * a); S.bruit(d, sr, t, 0.0005, 0.004, 0.25 * a, S.bq('bp', f * 1.5, 0.8, sr));
+      for (let g = 0; g < 3; g++) S.bruit(d, sr, t + rf(0.01, 0.08), 0.0005, 0.002, 0.06 * a, S.bq('bp', rf(2000, 4000), 1, sr));
+      t += per * rf(0.8, 1.3); per *= rf(1.05, 1.25); a *= rf(0.75, 0.95);
+    }
+    S.lp1(d, sr, 3200);
+  }];
+  // un poisson qui saute (un « plop » léger, et l'eau qui retombe)
+  T.s_poisson = [1.0, (d, sr) => {
+    const t = 0.03;
+    S.bruit(d, sr, t, 0.002, 0.03, 0.35, S.bq('bp', rf(1200, 2200), 0.8, sr));
+    S.trait(d, sr, t + 0.005, 0.06, [[0, rf(380, 520)], [1, rf(700, 900)]], 0.6, { att: 0.1, rel: 0.6 });
+    for (let k = 0, n = ri(3, 7); k < n; k++) { const f = rf(900, 2400), tt = t + rf(0.08, 0.45); S.trait(d, sr, tt, rf(0.015, 0.03), [f, f * 1.4], rf(0.08, 0.2), { att: 0.1, rel: 0.6 }); }
+    S.lp1(d, sr, 5000);
+  }];
+
   // ---------------------------------------------------------------- volumes, phrasé, variantes
   // volume de chaque chanteur (crête du tampon) : les forts (troglodyte, rossignol) restent mesurés
   Object.assign(SoundEngine.VOL_OISEAUX, {
@@ -527,7 +597,8 @@
     s_mesbleue: 0.04, s_bouvreuil: 0.04, s_bruant: 0.045, s_proyer: 0.045, s_caille: 0.05, s_linotte: 0.04, s_lulu: 0.05, s_tarier: 0.045,
     s_plastron: 0.055, s_spioncelle: 0.035, s_buse: 0.05, s_crecerelle: 0.04, s_rougequeue: 0.045, s_martinet: 0.045, s_serin: 0.035,
     s_hirondelle: 0.04, s_coq: 0.07, s_chien: 0.07, s_loriot: 0.07, s_turdoide: 0.055, s_effarvatte: 0.045, s_bruantroseaux: 0.04,
-    s_rossignol: 0.06, s_cheveche: 0.07, s_moyenduc: 0.11, s_petitduc: 0.07,
+    s_rossignol: 0.06, s_cheveche: 0.07, s_moyenduc: 0.11, s_petitduc: 0.07, s_engoulevent: 0.045, s_rale: 0.04,
+    s_cloche: 0.1, s_sonnailles: 0.06, s_bourdons: 0.035, s_charrette: 0.06, s_brindille: 0.05, s_tronc: 0.035, s_gousse: 0.035, s_caillou: 0.05, s_poisson: 0.05,
   });
   // combien de fois il reprend sa phrase (de…, à…), et le silence entre deux reprises (s, en plus du chant)
   Object.assign(SoundEngine.PHRASES, {
@@ -536,8 +607,9 @@
     s_caille: [3, 6, 1.0], s_linotte: [1, 2, 2], s_lulu: [2, 5, 2.2], s_tarier: [2, 4, 1.8], s_plastron: [2, 4, 2.2], s_spioncelle: [0, 1, 4],
     s_buse: [0, 2, 3.5], s_crecerelle: [0, 1, 4], s_rougequeue: [1, 3, 3], s_martinet: [0, 1, 2], s_serin: [1, 3, 2], s_hirondelle: [1, 2, 2.5],
     s_loriot: [2, 4, 2.6], s_turdoide: [1, 2, 2], s_effarvatte: [1, 2, 1.5], s_bruantroseaux: [2, 4, 3.5], s_rossignol: [4, 9, 2.4],
-    s_cheveche: [2, 5, 3.4], s_moyenduc: [4, 9, 2.0], s_petitduc: [5, 12, 2.1],
+    s_cheveche: [2, 5, 3.4], s_moyenduc: [4, 9, 2.0], s_petitduc: [5, 12, 2.1], s_engoulevent: [1, 3, 0.8], s_rale: [3, 7, 0.4], s_coq: [0, 2, 9],
   });
   // nombre de variantes gardées (les chanteurs au grand répertoire en ont plus)
-  SoundEngine.VARIANTES = { s_rossignol: 8, s_grive: 6, s_rougegorge: 6, s_lulu: 6, s_loriot: 6, s_cloche: 3, s_coq: 3, s_chien: 4, s_moyenduc: 3, s_petitduc: 3, s_cheveche: 3, s_sonnailles: 4, s_bourdons: 3, s_charrette: 2, s_buse: 3, s_tarier: 3, s_bouvreuil: 3, s_sittelle: 3, s_caille: 3 };
+  SoundEngine.VARIANTES = { s_rossignol: 8, s_grive: 6, s_rougegorge: 6, s_lulu: 6, s_loriot: 6, s_cloche: 3, s_coq: 3, s_chien: 4, s_moyenduc: 3, s_petitduc: 3, s_cheveche: 3, s_sonnailles: 4, s_bourdons: 3, s_charrette: 2, s_buse: 3, s_tarier: 3, s_bouvreuil: 3, s_sittelle: 3, s_caille: 3,
+    s_engoulevent: 4, s_rale: 3, s_brindille: 4, s_tronc: 3, s_gousse: 3, s_caillou: 3, s_poisson: 4 };
 }
