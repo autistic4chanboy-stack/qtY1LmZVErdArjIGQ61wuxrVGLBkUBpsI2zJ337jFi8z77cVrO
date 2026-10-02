@@ -1,0 +1,369 @@
+// ============================================================================
+//  LA CITÉ DES MAISONS-D'ÉTOILE (agent G, douzième vague) — le monde 'vaisseau'
+//  Un monde « à part » (11-zzz70-mondes.js) : la cité est bâtie très bas sous
+//  la lisière est quand on y entre (par la pierre ronde, 11-zzzzG-portail.js),
+//  défaite quand on en sort. Le temps de la vallée y est suspendu.
+//  Plan (repère local, x à droite, z vers l'avant, y en haut ; niveaux 0, -16, +12, +24) :
+//   - le Seuil (on arrive, on repart) ; un couloir à hublots ; la Nef (une salle
+//     immense, ses arbres morts, sa fontaine, les huit maisons de l'équipage) ;
+//     les Jardins (serres) ; par l'escalier de service, l'aile haute : la
+//     galerie, les Archives, l'Atelier des corps, la Chapelle, les Berceaux ; par
+//     l'ascenseur de la galerie, l'Observatoire ; sous la Nef, par l'ascenseur
+//     ou l'échelle, la Machinerie (le Cœur) et la Brèche.
+//  Les machines (le Cœur, les lampes, les portes, les ascenseurs, la pesanteur,
+//  les serres, les hologrammes, la fontaine, le rideau de la Brèche, l'Atelier
+//  des corps) : une « chose » qu'on actionne avec E ; leur état : farm.s.vaisseau.m.
+//  UN SEUL VOYAGE : on revient par le seuil (vgCite.revenir) ; mourir là-haut
+//  y ramène aussi (la veilleuse dépense la dernière lumière du seuil) ; dans les
+//  deux cas, les deux portails s'éteignent pour toujours.
+//  Essais : vgCite.essai() (y aller tout de suite), vgCite.aller('nef'), vgCite.revenir().
+// ============================================================================
+MONDES_FOND.vaisseau = { x: 2860, z: 1500, y: -900 };
+
+// ---------------------------------------------------------------- les lieux de la cité (rectangles locaux) : la voix y parle la première fois
+const VG_ZONES = [
+  // clé, x0, x1, z0, z1, y0, y1
+  ['seuil', -10, 10, -18, 4, -1, 9],
+  ['couloir', -3, 3, 4, 20, -1, 5],
+  ['nef', -30, 30, 20, 100, -1, 26],
+  ['jardins', -64, -30, 40, 72, -1, 10],
+  ['galerie', -6, 6, 100, 134, 11, 18],
+  ['archives', -30, -6, 102, 134, 11, 18],
+  ['atelier', 6, 30, 102, 118, 11, 18],
+  ['chapelle', 6, 30, 118, 134, 11, 18],
+  ['berceaux', 30, 58, 100, 134, 11, 18],
+  ['observatoire', -12, 12, 112, 134, 23, 33],
+  ['machinerie', -24, 24, 22, 58, -17, -1],
+  ['breche', 24, 48, 30, 50, -17, -1],
+];
+const VG_ZONES_NOMS = { seuil: 'le Seuil', couloir: 'le couloir des hublots', nef: 'la Nef', jardins: 'les Jardins', galerie: 'la galerie haute', archives: 'les Archives', atelier: 'l’Atelier des corps', chapelle: 'la Chapelle', berceaux: 'les Berceaux', observatoire: 'l’Observatoire', machinerie: 'la Machinerie', breche: 'la Brèche' };
+
+// ---------------------------------------------------------------- la cité
+const vgCite = {
+  // ------------------------------------------------------------- repères
+  f() { const F = MONDES_FOND.vaisseau; return { x: F.x, y: F.y, z: F.z, r: 0 }; },
+  at(lx, lz) { return mondes.toWorld(this.f(), lx, lz); },
+  local(p) { const F = MONDES_FOND.vaisseau; return [p[0] - F.x, p[1] - F.y, p[2] - F.z]; },
+  zone(p) {
+    const [x, y, z] = this.local(p || game.player.pos);
+    for (const Z of VG_ZONES) if (x >= Z[1] && x <= Z[2] && z >= Z[3] && z <= Z[4] && y >= Z[5] && y <= Z[6]) return Z[0];
+    return null;
+  },
+  // le Cœur marche-t-il ?
+  courant() { return !!VG.S().m.coeur; },
+
+  // ------------------------------------------------------------- construction : blocs
+  B(lx, ly, lz, sx, sy, sz, m, o) { return mondes.bloc(this.f(), lx, ly, lz, sx, sy, sz, m, 0, 0, o); },
+  // une boîte donnée par ses bornes (x0..x1, y0..y1, z0..z1)
+  boite(x0, x1, y0, y1, z0, z1, m, o) { return this.B((x0 + x1) / 2, y0, (z0 + z1) / 2, x1 - x0, y1 - y0, z1 - z0, m, o); },
+  // un mur droit, le long de x (axe 'x', à z = c) ou de z (axe 'z', à x = c), de a à b, du sol y0 sur H, percé
+  // d'ouvertures [{ a, b, bas, haut, vitre }] (bas/haut : relatifs à y0 ; vitre : une collision invisible)
+  mur(axe, c, a, b, y0, H, ouv, m, ep) {
+    ep = ep || 0.4; m = m === undefined ? M_VG_COQUE : m;
+    const seg = (u0, u1, v0, v1, mm, o) => {
+      if (u1 - u0 < 0.02 || v1 - v0 < 0.02) return;
+      if (axe === 'x') this.boite(u0, u1, y0 + v0, y0 + v1, c - ep / 2, c + ep / 2, mm, o);
+      else this.boite(c - ep / 2, c + ep / 2, y0 + v0, y0 + v1, u0, u1, mm, o);
+    };
+    const O = (ouv || []).slice().sort((p, q) => p.a - q.a);
+    let u = a;
+    for (const o of O) {
+      seg(u, o.a, 0, H, m);
+      seg(o.a, o.b, 0, o.bas || 0, m);
+      seg(o.a, o.b, o.haut, H, m);
+      if (o.vitre) seg(o.a, o.b, o.bas || 0, o.haut, 0, { hidden: true });
+      u = o.b;
+    }
+    seg(u, b, 0, H, m);
+  },
+  // une salle : sol, murs (ouvertures par côté : n (z1), s (z0), e (x1), o (x0)), plafond (o.plafond : false pour rien)
+  salle(x0, x1, z0, z1, y0, H, o) {
+    o = o || {};
+    if (o.sol !== false) this.boite(x0, x1, y0 - 0.5, y0, z0, z1, o.sol || M_VG_DALLE);
+    const ouv = o.ouv || {};
+    if (!o.sans || !o.sans.includes('s')) this.mur('x', z0, x0 - 0.2, x1 + 0.2, y0, H, ouv.s, o.mur);
+    if (!o.sans || !o.sans.includes('n')) this.mur('x', z1, x0 - 0.2, x1 + 0.2, y0, H, ouv.n, o.mur);
+    if (!o.sans || !o.sans.includes('o')) this.mur('z', x0, z0 + 0.2, z1 - 0.2, y0, H, ouv.o, o.mur);
+    if (!o.sans || !o.sans.includes('e')) this.mur('z', x1, z0 + 0.2, z1 - 0.2, y0, H, ouv.e, o.mur);
+    if (o.plafond !== false) this.boite(x0 - 0.2, x1 + 0.2, y0 + H, y0 + H + 0.4, z0 - 0.2, z1 + 0.2, o.plafond || M_VG_COQUE);
+    // la frise de nacre, à hauteur d'épaule, tout autour (le style des Aëlim)
+    if (o.frise !== false) {
+      const fy = y0 + (o.friseY || 1.3), e = 0.12;
+      this.boite(x0 + 0.2, x1 - 0.2, fy, fy + 0.22, z0 + 0.2, z0 + 0.2 + e, M_VG_NACRE);
+      this.boite(x0 + 0.2, x1 - 0.2, fy, fy + 0.22, z1 - 0.2 - e, z1 - 0.2, M_VG_NACRE);
+      this.boite(x0 + 0.2, x0 + 0.2 + e, fy, fy + 0.22, z0 + 0.3, z1 - 0.3, M_VG_NACRE);
+      this.boite(x1 - 0.2 - e, x1 - 0.2, fy, fy + 0.22, z0 + 0.3, z1 - 0.3, M_VG_NACRE);
+    }
+  },
+  // une porte (ouverture d'au moins 2,05 m sous le linteau) : { a, b, bas: 0, haut }
+  P(centre, larg, haut) { return { a: centre - larg / 2, b: centre + larg / 2, bas: 0, haut: haut || 2.8 }; },
+  // une baie vitrée (on voit les étoiles ; une collision invisible empêche de sortir)
+  V(centre, larg, bas, haut) { return { a: centre - larg / 2, b: centre + larg / 2, bas, haut, vitre: true }; },
+
+  // ------------------------------------------------------------- construction : le plan
+  batir() {
+    const P = (c, l, h) => this.P(c, l, h), V = (c, l, b, h) => this.V(c, l, b, h);
+    // ============ le Seuil (on arrive ici) ============
+    this.salle(-10, 10, -18, 4, 0, 8, { ouv: { n: [P(0, 3.2, 3.2)], e: [V(-8, 4, 1.4, 5.6), V(0, 4, 1.4, 5.6)], o: [V(-8, 4, 1.4, 5.6), V(0, 4, 1.4, 5.6)] } });
+    this.boite(-3.5, 3.5, 0, 0.3, -17.6, -12.5, M_VG_NACRE); // l'estrade du seuil
+    // ============ le couloir des hublots ============
+    this.salle(-2.6, 2.6, 4, 20, 0, 4, { sans: ['s', 'n'], ouv: { e: [V(8, 1.6, 1.0, 2.8), V(12, 1.6, 1.0, 2.8), V(16, 1.6, 1.0, 2.8)], o: [V(8, 1.6, 1.0, 2.8), V(12, 1.6, 1.0, 2.8), V(16, 1.6, 1.0, 2.8)] } });
+    // ============ la Nef ============
+    {
+      const H = 26, x0 = -30, x1 = 30, z0 = 20, z1 = 100;
+      // le sol, percé d'un puits pour l'ascenseur (en 14, 26) et d'une trappe (en −14, 26)
+      const trous = [[14, 26, 1.8], [-14, 26, 0.7]];
+      this.solTroue(x0, x1, z0, z1, 0, trous, M_VG_DALLE);
+      this.boite(-2, 2, -0.02, 0.01, z0 + 1, z1 - 1, M_VG_NACRE); // l'allée de nacre
+      const baies = (de, a) => { const L = []; for (let z = de; z < a; z += 14) L.push(V(z, 8, 7, 21)); return L; };
+      this.mur('x', z0, x0 - 0.2, x1 + 0.2, 0, H, [P(0, 5.2, 4.2)]);
+      this.mur('x', z1, x0 - 0.2, x1 + 0.2, 0, H, [{ a: 24.5, b: 28.5, bas: 12, haut: 15.2 }, V(-12, 10, 15, 23), V(12, 10, 15, 23)]);
+      this.mur('z', x0, z0 + 0.2, z1 - 0.2, 0, H, [P(56, 3.2, 3.2)].concat(baies(30, 96)));
+      this.mur('z', x1, z0 + 0.2, z1 - 0.2, 0, H, baies(30, 96));
+      // la voûte : un cadre tout autour ; au milieu, le ciel (aucune verrière ne l'arrête plus)
+      this.boite(x0 - 0.2, x1 + 0.2, H, H + 0.6, z0 - 0.2, z0 + 8, M_VG_COQUE);
+      this.boite(x0 - 0.2, x1 + 0.2, H, H + 0.6, z1 - 8, z1 + 0.2, M_VG_COQUE);
+      this.boite(x0 - 0.2, x0 + 9, H, H + 0.6, z0 + 8, z1 - 8, M_VG_COQUE);
+      this.boite(x1 - 9, x1 + 0.2, H, H + 0.6, z0 + 8, z1 - 8, M_VG_COQUE);
+      for (let z = z0 + 16; z < z1 - 8; z += 16) this.boite(x0 + 9, x1 - 9, H, H + 0.5, z - 0.4, z + 0.4, M_VG_NACRE); // les nervures
+      // la frise et les piliers de nacre le long des murs
+      for (let z = z0 + 7; z < z1; z += 14) for (const x of [x0 + 0.5, x1 - 0.5]) this.boite(x - 0.5, x + 0.5, 0, H, z - 0.5, z + 0.5, M_VG_NACRE);
+      // l'escalier de service, le long du mur est, jusqu'à la galerie haute (y = 12)
+      this.B(26.5, 0, 82, 4, 12, 24, M_VG_DALLE).sh = 2;
+      this.boite(24.5, 28.5, 0, 12, 94, 99.8, M_VG_COQUE);
+      this.boite(24.4, 24.6, 12, 13.1, 70, 99.6, M_VG_NACRE); // la rampe (garde-corps)
+      // les huit maisons de l'équipage, quatre de chaque côté, la porte vers l'allée
+      for (const [i, z] of [30, 44, 58, 72].entries()) { this.maison(-29.6, -20.6, z - 4, z + 4, 'e', 'o' + i); if (z !== 72) this.maison(20.6, 29.6, z - 4, z + 4, 'o', 'e' + i); }
+    }
+    // ============ les Jardins (serres) ============
+    this.salle(-64, -30, 40, 72, 0, 9, { sans: ['e'], ouv: { n: [V(-56, 6, 2.5, 7.5), V(-40, 6, 2.5, 7.5)], s: [V(-56, 6, 2.5, 7.5), V(-40, 6, 2.5, 7.5)], o: [V(48, 8, 2.5, 7.5), V(64, 8, 2.5, 7.5)] }, plafond: M_VG_LUEUR });
+    // ============ l'aile haute (y = 12) ============
+    {
+      const y = 12;
+      this.salle(-6, 6, 100, 134, y, 5, { sans: ['s'], ouv: { o: [P(110, 2.8), P(126, 2.8)], e: [P(110, 2.8), P(126, 2.8)], n: [V(0, 6, 1.0, 4.2)] } });
+      this.boite(-6.2, 6.2, y, y + 5, 99.8, 100.2, M_VG_COQUE);
+      // le palier de l'escalier, et le couloir qui y mène (de x = 6 à x = 30, en z 100..103)
+      this.salle(6, 30, 99.8, 104, y, 3.6, { sans: ['o'], ouv: { s: [{ a: 24.5, b: 28.5, bas: 0, haut: 3.2 }], n: [P(16, 2.6)] }, frise: false });
+      this.salle(-30, -6, 102, 134, y, 6, { sans: ['e'], ouv: { o: [V(112, 6, 1.4, 4.6), V(124, 6, 1.4, 4.6)] } });
+      this.salle(6, 30, 104, 118, y, 6, { sans: ['o'], ouv: { e: [P(111, 2.8)] } });
+      this.salle(6, 30, 118, 134, y, 7, { sans: ['o', 's'], ouv: { n: [V(18, 8, 2.0, 6.2)] } });
+      this.salle(30, 58, 100, 134, y, 6, { sans: ['o'], ouv: { e: [V(110, 5, 1.6, 4.6), V(124, 5, 1.6, 4.6)] } });
+      this.mur('z', 30, 104, 117.8, y, 6, [P(111, 2.8)]);
+      this.mur('z', 30, 118.2, 134, y, 7, []);
+      this.mur('z', 30, 99.8, 104, y, 6, []);
+      // le puits de l'ascenseur vers l'Observatoire (au bout de la galerie : x 0, z 131)
+    }
+    // ============ l'Observatoire (y = 24) ============
+    this.salle(-12, 12, 112, 134, 24, 9, { ouv: { n: [V(0, 20, 1.2, 8.2)], e: [V(123, 8, 2.5, 7)], o: [V(123, 8, 2.5, 7)] }, plafond: M_VG_COQUE });
+    // ============ sous la Nef : la Machinerie et la Brèche (y = −16) ============
+    this.salle(-24, 24, 22, 58, -16, 15.5, { plafond: false, ouv: { e: [P(40, 3.2, 3.2)] } });
+    this.salle(24, 48, 30, 50, -16, 6, { sans: ['o'], ouv: { e: [{ a: 36, b: 43, bas: 0.8, haut: 5 }] }, frise: false });
+    mondes.finConstruction();
+  },
+  // un sol percé de trous carrés [x, z, demi-côté]
+  solTroue(x0, x1, z0, z1, y, trous, m) {
+    // découpe en bandes le long de z autour de chaque trou
+    let parts = [[x0, x1, z0, z1]];
+    for (const [tx, tz, r] of trous) {
+      const out = [];
+      for (const [a0, a1, b0, b1] of parts) {
+        if (tx + r <= a0 || tx - r >= a1 || tz + r <= b0 || tz - r >= b1) { out.push([a0, a1, b0, b1]); continue; }
+        if (tz - r > b0) out.push([a0, a1, b0, tz - r]);
+        if (tz + r < b1) out.push([a0, a1, tz + r, b1]);
+        if (tx - r > a0) out.push([a0, tx - r, Math.max(b0, tz - r), Math.min(b1, tz + r)]);
+        if (tx + r < a1) out.push([tx + r, a1, Math.max(b0, tz - r), Math.min(b1, tz + r)]);
+      }
+      parts = out;
+    }
+    for (const [a0, a1, b0, b1] of parts) this.boite(a0, a1, y - 0.5, y, b0, b1, m);
+  },
+  // une maison de l'équipage (dans la Nef) : quatre murs, un toit plat, une porte du côté de l'allée
+  maison(x0, x1, z0, z1, cote, cle) {
+    const H = 4, zc = (z0 + z1) / 2;
+    const ouv = { [cote]: [this.P(zc, 1.6, 2.4)] };
+    // une fenêtre de chaque côté de la porte
+    ouv[cote].push(this.V(zc - 2.6, 1.2, 1.1, 2.1), this.V(zc + 2.6, 1.2, 1.1, 2.1));
+    this.salle(x0, x1, z0, z1, 0, H, { sol: M_VG_NACRE, ouv, frise: false, plafond: M_VG_NACRE });
+    this.maisons.push({ cle, x0, x1, z0, z1, cote });
+  },
+
+  // ------------------------------------------------------------- entrer, sortir
+  entrer(opts) {
+    const V = VG.S(), p = game.player, M = mondes;
+    this.maisons = []; this.machines = {}; this.choses = {}; this.zonesVues = {}; this.voixFile = []; this.voixT = 0;
+    this.batir();
+    this.peupler();
+    const [ax, az] = this.at(0, -9.5);
+    this.depart = [ax, this.f().y + 0.02, az];
+    MONDES.vaisseau.depart = this.depart;
+    if (!opts.restaurer) { p.pos = this.depart.slice(); p.vel = [0, 0, 0]; p.yaw = Math.PI; p.pitch = 0.05; }
+    if (game.renderer) game.renderer.uploadCover(p.pos[0], p.pos[2]);
+    MSON.drone('vaisseau', [41.2, 61.8, 82.4], 0.035, 'sine', 160);
+    void M; void V;
+  },
+  sortir() {
+    MSON.stopTout();
+    const V = VG.S();
+    if (V.etat === 1) { V.etat = 2; if (!V.revenu) V.revenu = farm.s ? farm.s.day : 0; }
+    game.player.mods.grav = 1;
+  },
+  // partie rechargée là-haut : on y est toujours
+  reprendre() {
+    const V = VG.S(), p = game.player;
+    mondes.entrer('vaisseau', { restaurer: true });
+    if (V.pos && V.pos.length === 3) { p.pos = V.pos.slice(); p.yaw = V.yaw || 0; p.vel = [0, 0, 0]; } else { p.pos = this.depart.slice(); }
+    if (game.renderer) game.renderer.uploadCover(p.pos[0], p.pos[2]);
+    setTimeout(() => this.dire(VG_VOIX.reprise, 5), 1800);
+  },
+
+  // ------------------------------------------------------------- la voix (la veilleuse)
+  dire(texte, dur, qui) {
+    if (!texte) return;
+    const V = VG.S();
+    VGSON.voix();
+    ui.subtitle(qui || (V.nommee ? 'La veilleuse' : 'Une voix'), texte, dur || Math.min(9, 2.5 + texte.length * 0.045));
+  },
+  // une suite de répliques, espacées
+  suite(L, t0) { let t = t0 || 0; for (const x of L) { setTimeout(() => { if (mondes.cur === 'vaisseau') this.dire(x); }, t); t += 2200 + x.length * 52; } return t; },
+  arrivee() {
+    const V = VG.S();
+    const t = this.suite(VG_VOIX.arrivee, 1600);
+    setTimeout(() => { V.nommee = 1; }, t - 1000);
+  },
+
+  // ------------------------------------------------------------- le retour (un seul)
+  async revenir(mort, cause) {
+    if (this.retourEnCours || mondes.cur !== 'vaisseau') return;
+    this.retourEnCours = true;
+    const V = VG.S(), p = game.player;
+    try {
+      game.sleeping = true;
+      ui.close(true);
+      if (!mort) this.dire(VG_VOIX.depart, 6);
+      else { play.hurtFlash = 1; sound.heartbeat && sound.heartbeat(1); }
+      await new Promise((r) => setTimeout(r, mort ? 300 : 3800));
+      $('#fade').style.background = '#e4f2fb';
+      await ui.fade(true, mort ? 'Quelqu’un vous rattrape.' : '', mort ? 900 : 1800);
+      await new Promise((r) => setTimeout(r, mort ? 2400 : 1000));
+      V.etat = 2; V.revenu = farm.s.day; V.mort = mort ? 1 : 0; if (cause) V.cause = String(cause);
+      V.pos = null;
+      mondes.sortir();
+      p.vel = [0, 0, 0]; p.mods.grav = 1;
+      if (mort) { p.hp = Math.max(p.hp, 14); p.breath = 1; corps.panser && corps.panser(); }
+      $('#fade-text').textContent = '';
+      $('#fade').style.background = '';
+      await ui.fade(false, '', 2200);
+      game.sleeping = false;
+      if (game.mode === 'play' && game.lock) game.lock();
+      // la pierre s'éteint
+      const P = vgPierre.P();
+      if (P) {
+        VGSON.extinction([P.x, P.y + 1.8, P.z]);
+        for (let i = 0; i < 40; i++) { const a = Math.random() * TAU, r = Math.random() * 1.2; particles.spawn(P.x + Math.cos(a) * r * Math.cos(P.r), P.y + 1.85 + Math.sin(a) * r, P.z - Math.cos(a) * r * Math.sin(P.r), (Math.random() - 0.5) * 0.3, 0.4 + Math.random() * 0.8, (Math.random() - 0.5) * 0.3, [0.5, 0.8, 1.0, 1], 0.05, 1.5 + Math.random() * 1.5, -0.05, true); }
+        setTimeout(() => { game.shakeT = 0.35; }, 2200);
+      }
+      setTimeout(() => ui.subtitle('', mort ? '(Vous êtes couché contre la pierre ronde. Elle est froide.)' : '(Derrière vous, la lumière s’éteint.)', 5), mort ? 1500 : 2600);
+      farm.save();
+    } catch (e) { console.error(e); game.sleeping = false; $('#fade').style.background = ''; ui.fade(false, '', 300); }
+    this.retourEnCours = false;
+  },
+
+  // ------------------------------------------------------------- essais
+  essai() { if (mondes.cur) return false; VG.S().etat = 1; return mondes.entrer('vaisseau', {}); },
+  aller(cle) {
+    const C = { seuil: [0, 0, -9], nef: [0, 0, 40], jardins: [-45, 0, 56], galerie: [0, 12, 110], archives: [-18, 12, 118], atelier: [18, 12, 110], chapelle: [18, 12, 126], berceaux: [44, 12, 116], observatoire: [0, 24, 120], machinerie: [0, -16, 44], breche: [36, 0 - 16, 40] }[cle];
+    if (!C || mondes.cur !== 'vaisseau') return false;
+    const [x, z] = this.at(C[0], C[2]), p = game.player;
+    p.pos = [x, this.f().y + C[1] + 0.05, z]; p.vel = [0, 0, 0];
+    if (game.renderer) game.renderer.uploadCover(p.pos[0], p.pos[2]);
+    return true;
+  },
+};
+
+// ---------------------------------------------------------------- le monde (la mécanique commune : 11-zzz70-mondes.js)
+MONDES.vaisseau = {
+  nom: 'vaisseau', titre: 'la cité', aPart: true, lieu: 'la cité', plancher: 0, depart: null,
+  entrer(opts) { vgCite.entrer(opts || {}); },
+  sortir(opts) { vgCite.sortir(opts || {}); },
+  reprendre() { vgCite.reprendre(); },
+  posReelle() { return mondes.S().retour || null; },
+  avantSauvegarde() { const V = VG.S(), p = game.player; V.pos = p.pos.map((v) => Math.round(v * 100) / 100); V.yaw = Math.round(p.yaw * 1000) / 1000; },
+  update(dt, playing) { vgCite.update && vgCite.update(dt, playing); },
+  // le ciel de la cité : le noir, les étoiles ; la lumière dépend du Cœur
+  ciel(sky) {
+    const on = vgCite.lumK || 0;
+    mondes.melerCiel(sky, {
+      zen: [0.004, 0.006, 0.018], hor: [0.018, 0.024, 0.05], amb: [0.13 + on * 0.36, 0.15 + on * 0.36, 0.22 + on * 0.33], glow: [0, 0, 0], haze: [0.012, 0.016, 0.034],
+      cloudLit: [0, 0, 0], cloudDark: [0, 0, 0], cloudCover: 0, sunCol: [0, 0, 0], moonCol: [0.05, 0.07, 0.1], sunDisk: [0.8, 0.85, 1],
+      stars: vgCite.etoilesK === undefined ? 1 : vgCite.etoilesK, sunVis: 0, moonVis: 1, moonTint: [0.55, 0.85, 1.05], mist: 0, fog: [70, 260], nightLit: 1, shadowK: 0,
+    }, 1);
+    sky.moonDir = v3.norm([0.55, 0.42, 0.72]);
+  },
+};
+HOOKS.sky.push((sky) => { if (mondes.cur === 'vaisseau') MONDES.vaisseau.ciel(sky); });
+// pendant le voyage, aucun autre monde ne vous prend (on ne rêve pas, on ne glisse pas dans une vision) — sauf les Enfers
+{
+  const _e = mondes.entrer.bind(mondes);
+  mondes.entrer = function (nom, opts) {
+    if (this.cur === 'vaisseau' && nom !== 'vaisseau' && nom !== 'enfers') return false;
+    return _e(nom, opts);
+  };
+}
+// mourir là-haut : la veilleuse vous rend à la vallée ; le voyage finit comme par le seuil
+HOOKS.death.push((cause) => {
+  if (mondes.cur !== 'vaisseau') return false;
+  vgCite.revenir(true, cause);
+  return true;
+});
+
+// ---------------------------------------------------------------- les choses de la cité (décors, machines, objets)
+Object.assign(vgCite, {
+  // une chose posée en coordonnées locales (ly : hauteur au-dessus du niveau 0 de la cité)
+  ch(lx, ly, lz, o) {
+    const [x, z] = this.at(lx, lz), y = this.f().y + ly;
+    return mondes.chose(Object.assign({ x, z, y, yRef: y }, o));
+  },
+  peupler() {
+    // ---- le Seuil : l'anneau de retour, l'écran du registre, les veilleuses
+    this.seuilC = this.ch(0, 0.3, -15.6, { r: 0, modele: VGM.seuil, loin: 90, rayon: 1.8, h: 3, reste: true, lumiere: { c: [0.35, 0.6, 1.1], r: 12, y: 2.3 }, prendre: () => this.seuil() });
+    this.ch(9.75, 1.3, -6, { r: -Math.PI / 2, modele: VGM.ecran, on: true, rayon: 0.8, h: 1, reste: true, prendre: () => this.journal() });
+    for (const [x, z] of [[-6, -14], [6, -14], [-6, 0], [6, 0]]) this.ch(x, 2.6, z, { r: 0, modele: VGM.veilleuse, lumiere: { c: [0.18, 0.3, 0.6], r: 7, y: 0 } });
+  },
+  // le seuil de retour
+  seuil() {
+    const V = VG.S();
+    if (V.etat !== 1) return;
+    const deja = V.vuSeuil;
+    V.vuSeuil = 1;
+    ui.choice('Le seuil', VG_TEXTES.seuil, [
+      { label: 'Passer le seuil', fn: () => { ui.close(); this.revenir(false); } },
+      { label: 'Lire les traits gravés au pied de l’anneau', fn: () => langues.lireInscription('a_vg_retour') },
+      { label: 'Pas encore', fn: () => { ui.close(); if (!deja) this.dire(VG_VOIX.longtemps); } },
+    ]);
+  },
+  // l'écran du Seuil : le registre de la cité (la veilleuse traduit)
+  journal() {
+    VGSON.clic(null, 0.8);
+    const V = VG.S();
+    const opts = VG_JOURNAL.map(([t, x], i) => ({ label: t, fn: () => { V.lus['j' + i] = 1; ui.read(t, x, 'Registre de la cité — lu par la veilleuse'); } }));
+    opts.push({ label: 'Laisser l’écran', fn: () => ui.close() });
+    ui.choice('L’écran du Seuil', VG_TEXTES.registre, opts);
+  },
+  // ------------------------------------------------------------- chaque image
+  update(dt, playing) {
+    const V = VG.S();
+    this.lumK = (this.lumK || 0) + ((this.courant() ? 1 : 0) - (this.lumK || 0)) * Math.min(1, dt * 0.8);
+    // la voix parle, la première fois, dans chaque lieu
+    if (playing && !cine.on) {
+      this.zoneT = (this.zoneT || 0) - dt;
+      if (this.zoneT <= 0) {
+        this.zoneT = 0.5;
+        const z = this.zone();
+        if (z && z !== this.zoneCur) {
+          this.zoneCur = z;
+          if (!V.dits[z] && V.nommee && VG_VOIX[z]) { V.dits[z] = 1; setTimeout(() => { if (mondes.cur === 'vaisseau' && this.zone() === z) this.dire(VG_VOIX[z]); }, 900); }
+        }
+      }
+    }
+  },
+});
