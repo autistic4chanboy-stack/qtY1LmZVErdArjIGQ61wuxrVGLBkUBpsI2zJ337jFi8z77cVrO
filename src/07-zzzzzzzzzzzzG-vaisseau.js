@@ -57,8 +57,9 @@ function texVgNacre(seed) {
   const pb = new PixelBuf(TS, TS), tn = makeTileNoise(seed);
   for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) {
     const w = tileFbm(tn, x / 21.333, y / 21.333, 6, 3);
-    const band = Math.sin((y + w * 46) * 0.098 + x * 0.049) ; // veines qui ondulent
-    const ir = Math.sin((x * 0.05 + y * 0.03 + w * 5) * TAU / 4);
+    const k = TAU / TS; // (tout est périodique sur la tuile : pas de couture)
+    const band = Math.sin((y + w * 46) * k * 2 + x * k); // veines qui ondulent
+    const ir = Math.sin(x * k * 2 + y * k + w * 5);
     let L = 205 + band * 14 + (tn(x / 2, y / 2, 64) - 0.5) * 10;
     const c = [L - 6 + ir * 7, L + 2 - ir * 3, L - 4 - ir * 6];
     // traits gravés : une frise de Hautes Lettres tous les 64 px

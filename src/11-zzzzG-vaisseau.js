@@ -240,7 +240,7 @@ const vgCite = {
   dire(texte, dur, qui) {
     if (!texte) return;
     const V = VG.S();
-    VGSON.voix();
+    VGSON.voix(); if (sound.mumble && sound.ok) setTimeout(() => sound.mumble(1.55, Math.min(60, texte.length), 0, 0.4), 260);
     ui.subtitle(qui || (V.nommee ? 'La veilleuse' : 'Une voix'), texte, dur || Math.min(9, 2.5 + texte.length * 0.045));
   },
   // une suite de répliques, espacées

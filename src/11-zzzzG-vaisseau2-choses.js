@@ -390,7 +390,7 @@ Object.assign(vgCite, {
     VG.S().lus['msg_' + cle] = 1;
     VGSON.gresille(null, 0.8);
     let t = 600;
-    M.lignes.forEach((l) => { setTimeout(() => { if (mondes.cur === 'vaisseau') { VGSON.gresille(null, 0.4); ui.subtitle(M.qui, l, Math.min(9, 2.5 + l.length * 0.05)); } }, t); t += 2600 + l.length * 50; });
+    M.lignes.forEach((l) => { setTimeout(() => { if (mondes.cur === 'vaisseau') { VGSON.gresille(null, 0.4); if (sound.mumble && sound.ok) sound.mumble(({ ilaeth: 1.2, thalvor: 0.82, seriane: 1.32, mirelle: 1.12 })[cle] || 1, Math.min(60, l.length), 0, 0.35); ui.subtitle(M.qui, l, Math.min(9, 2.5 + l.length * 0.05)); } }, t); t += 2600 + l.length * 50; });
     setTimeout(() => { this.ecoute = false; }, t);
   },
   parler() {

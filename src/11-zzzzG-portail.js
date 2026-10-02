@@ -71,7 +71,7 @@ const VGSON = {
 function vgGenerer(w, seed) {
   if (!w || !w.designed || !w.nav || !w.lm) return;
   const rnd = mulberry32((((seed | 0) ^ 0x7A11C1E7) >>> 0));
-  const WL = w.waterLevel, C = 8, n = Math.floor(w.size / C);
+  const WL = w.waterLevel, C = 4, n = Math.floor(w.size / C);
   const H = new Float32Array(n * n);
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) H[j * n + i] = w.heightAt((i + 0.5) * C, (j + 0.5) * C);
   // où l'on peut aller à pied : parcours depuis la ferme (pentes douces, pas d'eau)
@@ -85,10 +85,10 @@ function vgGenerer(w, seed) {
     const k = Q[qh++], i = k % n, j = (k / n) | 0;
     for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const ii = i + di, jj = j + dj;
-      if (ii < 3 || jj < 3 || ii >= n - 3 || jj >= n - 3) continue;
+      if (ii < 6 || jj < 6 || ii >= n - 6 || jj >= n - 6) continue;
       const k2 = jj * n + ii;
       if (acc[k2] || H[k2] < WL + 0.6) continue;
-      if (Math.abs(H[k2] - H[k]) > C * 0.8) continue;
+      if (Math.abs(H[k2] - H[k]) > C * 0.85) continue;
       acc[k2] = 1; Q[qt++] = k2;
     }
   }
