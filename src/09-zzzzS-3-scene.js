@@ -120,8 +120,8 @@ SoundEngine.BRUITS_MILIEU = {
   plaine: [['bourdon', (Q) => 0.7 * Q.insJour], ['chien', (Q) => 0.2 * Q.sec], ['coq', (Q) => 0.25 * Q.aube]],
   ferme: [['poule', (Q) => 2 * Q.jour * Q.sec], ['oie', (Q) => 0.5 * Q.jour], ['vache', (Q) => 0.6 * Q.jour + 0.15 * Q.nuit], ['coq', (Q) => 1.5 * Q.aube + 0.2 * Q.jour], ['chien', (Q) => 0.35], ['bourdon', (Q) => 0.5 * Q.insJour]],
   ville: [['charrette', (Q) => 0.7 * Q.jour], ['chien', (Q) => 0.5], ['pigeons', (Q) => 0.8 * Q.jour * Q.sec]],
-  foret: [['brindille', (Q) => 0.6 + 0.4 * Q.nuit], ['tronc', (Q) => 0.6 * Q.vent]],
-  bouleaux: [['brindille', (Q) => 0.5], ['tronc', (Q) => 0.3 * Q.vent]],
+  foret: [['brindille', (Q) => 0.5 - 0.25 * Q.nuit], ['tronc', (Q) => 0.6 * Q.vent]],
+  bouleaux: [['brindille', (Q) => 0.4 - 0.2 * Q.nuit], ['tronc', (Q) => 0.3 * Q.vent]],
   lande: [['gousse', (Q) => 1.4 * Q.insJour * (0.3 + Q.chaud)], ['bourdon', (Q) => 0.8 * Q.insJour], ['sonnailles', (Q) => 0.35 * Q.jour]],
   hauteurs: [['sonnailles', (Q) => 1.2 * Q.jour], ['caillou', (Q) => 0.4]],
   lac: [['poisson', (Q) => 1 + 0.5 * Q.soir], ['canard', (Q) => 0.5 * Q.jour]],
@@ -245,8 +245,9 @@ SoundEngine.BRUITS_MILIEU = {
       // ---- les bruits rares
       Z.evT -= dt;
       if (Z.evT <= 0) {
-        Z.evT = rf(18, 50) * (Q.nuit > 0.5 ? 1.4 : 1) * (Q.brouillard > 0.5 ? 1.5 : 1);
-        if (actif && dehors && Q.orage < 0.5 && Q.neige < 0.5 && !(Q.noire > 0.3 && Q.nuit > 0.3)) {
+        Z.evT = rf(18, 50) * (Q.nuit > 0.5 ? 2 : 1) * (Q.brouillard > 0.5 ? 1.5 : 1);
+        // (sous l'averse, on n'entend presque plus rien d'autre que la pluie)
+        if (actif && dehors && Q.orage < 0.5 && Q.neige < 0.5 && !(Q.noire > 0.3 && Q.nuit > 0.3) && R() > 0.8 * lisse(0.2, 0.6, Q.pluie)) {
           const m = tirerMilieu(P), T = SoundEngine.BRUITS_MILIEU[m];
           if (T) { const nom = tirer(T.map(([k, f]) => [k, f(Q)])); if (nom) { this._sBruit(nom, m, Q); this._sNote(nom, m); } }
         }
