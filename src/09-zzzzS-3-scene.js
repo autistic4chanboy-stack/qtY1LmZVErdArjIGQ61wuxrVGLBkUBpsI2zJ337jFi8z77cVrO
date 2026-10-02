@@ -214,18 +214,20 @@ SoundEngine.BRUITS_MILIEU = {
       // ---- les nappes (quatre fois par seconde)
       Z.napT -= dt;
       if (Z.napT <= 0) { Z.napT = 0.25; this._sNappes(actif, P, Q, inside, dehors, now); }
-      // ---- la nuit : ses chanteurs, chacun reprenant sa phrase de la même place, puis un long silence
+      // ---- la nuit : ses chanteurs, chacun reprenant sa phrase de la même place, puis un long silence ; avant le lever
+      //      du soleil, le chœur de l'aube commence dans le noir (le jour d'origine ne chante qu'une fois le soleil levé)
       Z.nuitT -= dt;
       if (Z.nuitT <= 0) {
-        const peut = actif && dehors && Q.nuit > 0.35 && Q.pluie < 0.35 && Q.neige < 0.3 && Q.orage < 0.3, C = Z.nchant;
+        const avantJour = Q.h >= 4.3 && Q.h < 6.5 && Q.jour <= 0.25;
+        const peut = actif && dehors && (Q.nuit > 0.35 || avantJour) && Q.pluie < 0.35 && Q.neige < 0.3 && Q.orage < 0.3, C = Z.nchant;
         if (peut && C && C.reste > 0) { C.reste--; this.oiseau(C.sorte, C.pos, C.k); Z.nuitT = C.pause * rf(0.85, 1.3); }
         else {
           Z.nchant = null;
-          Z.nuitT = rf(16, 45) / Math.max(0.4, Q.nuit) * (Q.brouillard > 0.5 ? 1.6 : 1);
+          Z.nuitT = (avantJour ? rf(8, 22) : rf(16, 45) / Math.max(0.4, Q.nuit)) * (Q.brouillard > 0.5 ? 1.6 : 1);
           if (peut) {
             if ((this.oiseauxFin || 0) > now + 0.3) Z.nuitT = rf(2, 5);
             else {
-              const m = tirerMilieu(P), T = (SoundEngine.CHANTEURS[m] || {}).nuit, sorte = T && T.length ? tirer(T) : null;
+              const m = tirerMilieu(P), T = (SoundEngine.CHANTEURS[m] || {})[avantJour ? 'aube' : 'nuit'], sorte = T && T.length ? tirer(T) : null;
               if (sorte) {
                 const pos = this._sPerche(sorte, m), Ph = SoundEngine.PHRASES[sorte] || [1, 2, 3];
                 this.oiseau(sorte, pos, 1);

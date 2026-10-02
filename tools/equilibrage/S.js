@@ -7,7 +7,9 @@
 // fond) ; et la rareté : combien de chanteurs, de bruits rares par minute, au plus (d'après les cadences du moteur).
 'use strict';
 
-const MEMOIRE_MAX = 30; // Mo, pour trois milieux à la fois (ce qui n'a pas servi depuis cinq minutes est libéré)
+// Mo, pour trois milieux à la fois (ce qui n'a pas servi depuis cinq minutes est libéré) ; la mesure varie d'un tirage à
+// l'autre d'environ un Mo (le silence rogné à la fin des chants dépend du chant) : on est vers 30
+const MEMOIRE_MAX = 34;
 
 module.exports = {
   titre: 'Les voix de chaque milieu : chanteurs, nappes, pluies, bruits rares (tables, calcul, mémoire, rareté)',
