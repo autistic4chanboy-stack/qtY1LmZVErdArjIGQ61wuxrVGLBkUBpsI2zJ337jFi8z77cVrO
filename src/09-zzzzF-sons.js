@@ -198,6 +198,36 @@ Object.assign(SoundEngine.prototype, {
     }
     this.cri(t + 0.5, { type: 'sawtooth', dur: 1.1, f: [[0, 220], [0.3, 240], [1, 200]], form: [[600, 3, 1], [1300, 5, 0.5]], souffle: [0.3, 900], vol: 0.04 * k, lp: 2400, a: 0.05 }, out);
   },
+  // ---------------------------------------------------------------- les routes
+  // les sonnailles d'un troupeau : des cloches de tôle, désaccordées, qui se chevauchent
+  hfSonnailles(k = 1, n = 10) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, out = this._hfOut(this.amb);
+    for (let i = 0; i < n; i++) {
+      const tt = t + R() * 2.4, f = 900 + R() * 900;
+      for (const [m, a] of [[1, 1], [1.53, 0.5], [2.21, 0.3], [3.1, 0.15]]) this.tone(tt, 'sine', f * m, f * m * 0.995, 0.25 + R() * 0.3, 0.006 * k * a, out, 0.001);
+      this.noiseHit(tt, 0.02, 'bandpass', f * 2, 2, 0.008 * k, out);
+    }
+  },
+  // la clochette du rémouleur
+  hfClochette(k = 1) {
+    if (!this.ok) return;
+    const t = this.at(), out = this._hfOut(this.sfx);
+    for (let i = 0; i < 6; i++) { const tt = t + i * 0.16, f = 1900 + (i % 2) * 140; for (const [m, a] of [[1, 1], [2.4, 0.4], [3.9, 0.15]]) this.tone(tt, 'sine', f * m, f * m, 0.35, 0.012 * k * a, out, 0.001); }
+  },
+  // la meule qui crisse sur une lame
+  hfMeule(k = 1) {
+    if (!this.ok) return;
+    const t = this.at(), out = this._hfOut(this.sfx);
+    this.noiseHit(t, 1.6, 'bandpass', 3800, 3, 0.025 * k, out, 4600, 0.15);
+    this.noiseHit(t, 1.6, 'bandpass', 900, 1.2, 0.012 * k, out, 1100, 0.2);
+  },
+  // le pas cadencé d'une troupe
+  hfPas(k = 1, n = 8, bpm = 110) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, out = this._hfOut(this.amb), sp = 60 / bpm;
+    for (let i = 0; i < n; i++) for (let j = 0; j < 3; j++) this.noiseHit(t + i * sp + R() * 0.03, 0.06, 'lowpass', 500, 0.7, 0.02 * k, out);
+  },
   // le feu qui ronfle et craque
   hfFeu(k = 1) {
     if (!this.ok) return;

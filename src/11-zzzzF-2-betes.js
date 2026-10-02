@@ -33,7 +33,7 @@ function hfYeux(F, buf) {
   const sky = game.sky;
   if (!sky || sky.night < 0.5) return;
   PE.buf = buf; PE.fl = FX_EMIT; PE.frame(F.x, F.y, F.z, F.h, F.s || 1);
-  for (const s of [-0.07, 0.07]) PE.box(s, 0.72, 0.62, 0.035, 0.03, 0.02, [1.4, 1.25, 0.5], TL.plain);
+  for (const s of [-0.075, 0.075]) PE.box(s, 0.72, 0.62, 0.06, 0.045, 0.02, [1.6, 1.4, 0.55], TL.plain);
   PE.fl = 0;
 }
 
@@ -70,8 +70,8 @@ hfDef('cigognes', {
   maj(E, dt, eye) {
     const L = E.L, h = npcs.hour(), nuit = h < 6.5 || h > 20.5, [A, B] = E.oiseaux;
     // l'une couve, l'autre tourne au-dessus du village et revient
-    A.x = L.x + 0.15; A.z = L.z; A.y = L.y + 0.32; A.h += Math.sin(game.time * 0.3) * dt * 0.2;
-    if (nuit || E.retourT > 0) { B.vol = false; B.x = L.x - 0.35; B.z = L.z + 0.1; B.y = L.y + 0.32; B.pose = {}; if (!nuit) E.retourT -= dt; else E.retourT = 0; }
+    A.x = L.x + 0.25; A.z = L.z; A.y = L.y + 0.5; A.h += Math.sin(game.time * 0.3) * dt * 0.2;
+    if (nuit || E.retourT > 0) { B.vol = false; B.x = L.x - 0.55; B.z = L.z + 0.15; B.y = L.y + 0.5; B.pose = {}; if (!nuit) E.retourT -= dt; else E.retourT = 0; }
     else {
       B.vol = true; B.pose = { fly: 1, seed: 1 };
       hfTourne(B, L.x, L.y + 10, L.z, 18, 0.32, dt);
@@ -91,7 +91,7 @@ hfDef('cigognes', {
     const L = E.L;
     if (Math.hypot(L.x - cam[0], L.z - cam[2]) > 160) return;
     // le nid : une couronne de branchages
-    PE.buf = buf; PE.fl = 0; PE.frame(L.x, L.y, L.z, 0.3, 1.3);
+    PE.buf = buf; PE.fl = 0; PE.frame(L.x, L.y, L.z, 0.3, 1.8);
     for (let i = 0; i < 9; i++) { const a = i / 9 * TAU; PE.box(Math.cos(a) * 0.55, 0.14, Math.sin(a) * 0.55, 0.5, 0.16, 0.16, [0.36, 0.28, 0.2], TL.wood, -a + Math.PI / 2, (i % 2) * 0.2); }
     PE.box(0, 0.08, 0, 1.1, 0.12, 1.1, [0.3, 0.24, 0.17], TL.hay);
     for (const F of E.oiseaux) hfDessine(F, buf, null, cam, t);
@@ -103,8 +103,8 @@ hfDef('cigognes', {
 });
 function hfCigognesInit(E) {
   const L = E.L;
-  const A = hfBete('stork', L.x, L.z, { vol: true, y: L.y + 0.32, loin: 170, ombre0: true, s: 1.3 });
-  const B = hfBete('stork', L.x, L.z, { vol: true, y: L.y + 0.32, loin: 170, ombre0: true, s: 1.3 });
+  const A = hfBete('stork', L.x, L.z, { vol: true, y: L.y + 0.5, loin: 170, ombre0: true, s: 2.1 });
+  const B = hfBete('stork', L.x, L.z, { vol: true, y: L.y + 0.5, loin: 170, ombre0: true, s: 2.1 });
   A.h = Math.random() * TAU; B.h = A.h + 2;
   E.oiseaux = [A, B]; E.volT = 5 + Math.random() * 10; E.retourT = 0; E.sonT = 4;
 }
