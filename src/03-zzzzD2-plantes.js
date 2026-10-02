@@ -156,11 +156,12 @@ function spriteD2(kind, seed) {
       specks(pb, rnd, 7, [[200, 24, 24], [170, 16, 20]], 3, 3, W - 3, H - 6);
       break;
     }
-    case 'langue_boeuf': { // un morceau d'écorce et de racine, et la langue rouge
-      for (let x = 0; x < W; x++) { const h = 3 + Math.sin(x * 0.7) * 1.2 + (x < 4 || x > W - 5 ? 2 : 0); for (let y = H - h; y < H; y++) px(x, y, rampPick(PAL.bark, 0.55 + (hash2i(x, y, seed) - 0.5) * 0.4, x, y)); }
-      for (let y = 4; y < H - 3; y++) { const t = (y - 4) / (H - 7), w = 3.5 + Math.sin(t * Math.PI) * 3.5; for (let dx = -w; dx <= w; dx++) px(W / 2 + dx, y, rampPick(ramp(['#4a1010', '#6a1a1a', '#8a2a24', '#a8443a', '#c06050']), 0.85 - t * 0.35 - Math.abs(dx) * 0.04, dx, y)); }
-      specks(pb, rnd, 8, [[200, 120, 110], [190, 90, 80]], 5, 6, W - 5, H - 6);
-      px(W / 2, H - 3, [120, 20, 20]); px(W / 2 + 1, H - 2, [100, 16, 16]);
+    case 'langue_boeuf': { // une racine de chêne et un pan d'écorce ; dessus, la langue rouge qui avance, plate, le dessous crème
+      for (let x = 0; x < 7; x++) for (let y = 2 + x * 0.6; y < H; y++) px(x, y, rampPick(PAL.bark, 0.5 + (hash2i(x, y >> 1, seed) - 0.5) * 0.5 - x * 0.03, x, y));
+      for (let x = 0; x < W; x++) { const h = 2 + Math.max(0, 5 - x * 0.45) + Math.sin(x * 0.9) * 0.6; for (let y = H - h; y < H; y++) px(x, y, rampPick(PAL.bark, 0.45 + (hash2i(x, y, seed + 2) - 0.5) * 0.4, x, y)); }
+      const chair = ramp(['#4a0e0e', '#6a1818', '#8a2622', '#a63c34', '#c0584a']);
+      for (let x = 5; x < W - 1; x++) { const t = (x - 5) / (W - 6), yh = 7 + t * 1.5, e = 3.6 * Math.sqrt(Math.max(0, 1 - t * t * 0.85)); for (let y = Math.round(yh - e); y <= Math.round(yh + e * 0.7); y++) px(x, y, rampPick(chair, 0.9 - (y - yh + e) / (2 * e) * 0.55 - t * 0.12, x, y)); for (let k = 0; k < 2; k++) px(x, Math.round(yh + e * 0.7) + 1 + k, k ? [200, 170, 130] : [226, 200, 160]); }
+      specks(pb, rnd, 7, [[200, 110, 100], [176, 84, 74]], 7, 5, W - 3, 10);
       break;
     }
     case 'martagon': { // une tige raide, des feuilles en anneau, des turbans roses tachetés
@@ -218,12 +219,13 @@ function spriteD2(kind, seed) {
       }
       break;
     }
-    case 'paxille': { // des entonnoirs bruns au bord enroulé
-      for (const [x, y, r] of [[5, 6, 3.6], [12, 5, 4], [16, 8, 2.8]]) {
-        for (let yy = y + 1; yy < H; yy++) { px(x, yy, [150, 112, 70]); px(x + 1, yy, [128, 94, 60]); }
-        for (let dx = -r; dx <= r; dx++) { const dy = Math.abs(dx) * 0.55; px(x + dx + 0.5, y - dy + 1, [140, 98, 56]); px(x + dx + 0.5, y - dy, [164, 120, 74]); }
-        px(x - r + 0.5, y - r * 0.55 + 2, [96, 66, 40]); px(x + r + 0.5, y - r * 0.55 + 2, [96, 66, 40]);
-        for (let dx = -r + 1; dx <= r - 1; dx++) px(x + dx + 0.5, y - Math.abs(dx) * 0.55 - 1, [110, 76, 46]);
+    case 'paxille': { // des entonnoirs bruns, le creux sombre, le bord enroulé dessous
+      const brun = ramp(['#5a3a20', '#7a5232', '#98683e', '#b4824e']);
+      for (const [x, y, r] of [[5, 4, 4], [13, 3, 4.5], [17, 6, 3]]) {
+        for (let yy = y + 3; yy < H; yy++) { px(x, yy, [150, 112, 70]); px(x + 1, yy, [124, 92, 58]); }
+        for (let row = 0; row < 4; row++) { const hw = r * (1 - row * 0.2); for (let dx = -hw; dx <= hw; dx++) px(x + dx + 0.5, y + row, rampPick(brun, 0.85 - row * 0.18 - dx * 0.03, dx, row)); }
+        for (let dx = -r + 1; dx <= r - 1; dx++) px(x + dx + 0.5, y, Math.abs(dx) < r * 0.55 ? [70, 46, 26] : [176, 132, 84]);
+        px(x - r + 0.5, y + 1, [86, 58, 34]); px(x + r + 0.5, y + 1, [86, 58, 34]);
       }
       break;
     }
@@ -283,14 +285,14 @@ function spriteD2(kind, seed) {
     case 'lycope': { // tiges carrées, feuilles très dentées, anneaux de fleurs blanches
       for (let i = 0; i < 4; i++) {
         const x = 3 + i * 4.5 + rnd(), top = 2 + rnd() * 6; drawLine(pb, x, top, x, H - 1, [80, 100, 60]);
-        for (let y = top + 2; y < H - 2; y += 4) { for (const s of [-1, 1]) { drawLine(pb, x, y, x + s * 4, y - 1, vert(2)); px(x + s * 2, y - 2, vert(3)); px(x + s * 3, y, vert(1)); } px(x - 1, y + 1, [244, 244, 240]); px(x + 1, y + 1, [236, 230, 236]); }
+        for (let y = top + 2 + rnd() * 2; y < H - 2; y += 3 + rnd() * 3) { for (const s of [-1, 1]) { drawLine(pb, x, y, x + s * (3 + rnd() * 2), y - 1 - rnd(), vert(2)); px(x + s * 2, y - 2, vert(3)); px(x + s * 3, y, vert(1)); } px(x - 1, y + 1, [244, 244, 240]); px(x + 1, y + 1, [236, 230, 236]); }
       }
       break;
     }
     case 'lysimaque': { // haute touffe ; grappes de coupes jaunes au sommet
       for (let i = 0; i < 4; i++) {
         const x = 3 + i * 5 + rnd(), top = 2 + rnd() * 7; drawLine(pb, x, top + 4, x, H - 1, [70, 100, 50]);
-        for (let y = top + 9; y < H - 2; y += 4) { drawLine(pb, x, y, x - 3, y - 1, vert(2)); drawLine(pb, x, y, x + 3, y - 1, vert(2)); drawLine(pb, x, y + 1, x + 1, y + 3, vert(1)); }
+        for (let y = top + 8 + rnd() * 3; y < H - 2; y += 3 + rnd() * 3) { drawLine(pb, x, y, x - 3, y - 1, vert(2)); drawLine(pb, x, y, x + 3, y - 1, vert(2)); drawLine(pb, x, y + 1, x + 1, y + 3, vert(1)); }
         for (const [dx, dy] of [[0, 0], [-2, 2], [2, 1], [-1, 4], [1, 5], [-3, 5], [3, 4]]) { px(x + dx, top + dy, [250, 214, 30]); px(x + dx + 1, top + dy, [230, 180, 20]); }
       }
       break;
@@ -353,7 +355,7 @@ function spriteD2(kind, seed) {
     case 'eupatoire': { // hautes tiges rougeâtres, feuilles en trois ; bouquets plats rose sale au sommet
       for (let i = 0; i < 4; i++) {
         const x = 4 + i * 5 + rnd(), top = 3 + rnd() * 5; drawLine(pb, x, top + 2, x, H - 1, [120, 70, 60]);
-        for (let y = top + 7; y < H - 2; y += 5) for (const s of [-1, 1]) { drawLine(pb, x, y, x + s * 4, y - 2, vert(2)); drawLine(pb, x, y, x + s * 3, y + 1, vert(1)); }
+        for (let y = top + 6 + rnd() * 3; y < H - 2; y += 4 + rnd() * 3) for (const s of [-1, 1]) { drawLine(pb, x, y, x + s * (3 + rnd() * 2), y - 2, vert(2)); drawLine(pb, x, y, x + s * 3, y + 1, vert(1)); }
         for (let dx = -3; dx <= 3; dx++) { px(x + dx, top + Math.abs(dx) * 0.3, [212, 150, 166]); px(x + dx, top + 1 + Math.abs(dx) * 0.3, [190, 126, 146]); if (rnd() < 0.5) px(x + dx, top - 1, [226, 170, 184]); }
       }
       break;
