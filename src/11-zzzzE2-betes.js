@@ -156,6 +156,7 @@ const e2betes = {
         e.y = sol + ({ busard_sm: 4, sphinx_tete_mort: 1.2, apollon: 0.8, vautour_fauve: 60, gypaete: 40, mouette: 8, balbuzard: 25 }[B.id] || 5);
         e.fly = 1;
       } else if (B.id === 'grand_duc' || B.id === 'tichodrome') e.y = w.heightAt(x, z);
+      if (C.oiseau) e.baseY0 = w.waterLevel; // (l'envol commun ne passe pas sous l'eau)
       arr.push(e);
     }
     T.ents = arr; T.ne = n;
@@ -186,7 +187,7 @@ const e2betes = {
     this.t = 0.7;
     if (!this.T || this.T.w !== w) this.calculer(w);
     const ailleurs = p.underground || (typeof mondes !== 'undefined' && mondes.cur) || strange.inEnvers() || strange.redNight() || game.sleeping;
-    const h = E2C.heure(), px = p.pos[0], pz = p.pos[2];
+    const h = E2C.heure(), px = p.pos[0], pz = p.pos[2], parEsp = {};
     let vivants = 0;
     // les bêtes présentes : mortes, prises, parties, trop loin
     for (const T of [...this.actifs]) {
@@ -205,7 +206,7 @@ const e2betes = {
       }
       if (ailleurs || d > R + 45 || !restent) { this.retirer(T); T.vide1 = false; continue; }
       if (!this.heureOk(T.B, h) || !this.tempsOk(T.B)) for (const e of T.ents) if (!e.dead) e.e2part = true;
-      vivants += restent;
+      vivants += restent; parEsp[T.B.id] = (parEsp[T.B.id] || 0) + 1;
     }
     if (ailleurs) return;
     // les territoires proches : qu'ils s'éveillent (les plus proches d'abord, dans le budget)
@@ -223,10 +224,13 @@ const e2betes = {
     cand.sort((a, b) => a[0] - b[0]);
     for (const [, T] of cand) {
       if (vivants >= E2_BUDGET) break;
+      // (deux territoires d'une même espèce à la fois, un seul pour les troupes : que la place reste aux autres)
+      if ((parEsp[T.B.id] || 0) >= (T.B.g[1] > 2 ? 1 : 2)) continue;
       if (this.vide(T) || !this.heureOk(T.B, h) || !this.tempsOk(T.B)) continue;
       // (les petites bêtes ne naissent pas sous les yeux : on attend de ne plus regarder, ou d'être plus loin)
       if (!CREATURES[T.B.id].fly && Math.hypot(T.x - px, T.z - pz) < 30 && E2C.vu({ x: T.x, z: T.z })) continue;
       vivants += this.naitre(T, w).length;
+      parEsp[T.B.id] = (parEsp[T.B.id] || 0) + 1;
     }
   },
   // ------------------------------------------------------------ les os du gypaète

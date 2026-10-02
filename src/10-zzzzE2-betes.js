@@ -48,7 +48,8 @@ Object.assign(CREATURES, {
 });
 
 // ---------------------------------------------------------------- outils communs
-const E2_BUISSONS = new Set(['bush', 'genet', 'eglantier', 'ronce', 'berry', 'sureau', 'genevrier', 'd1_genevrier', 'heather']);
+const E2_BUISSONS_HAUTS = new Set(['bush', 'genet', 'eglantier', 'ronce', 'berry', 'sureau', 'genevrier', 'd1_genevrier']);
+const E2_BUISSONS = new Set([...E2_BUISSONS_HAUTS, 'heather']);
 const E2_ARBRES = new Set(['oak', 'pine', 'birch', 'apple', 'deadtree', 'hetre', 'chataignier', 'noyer', 'erable', 'tilleul', 'aulne', 'saule', 'peuplier', 'sapin', 'meleze']);
 const E2_REFUGES = new Set(['oak', 'pine', 'birch', 'deadtree', 'rock', 'stones', 'genet', 'bush', 'sapin', 'meleze']);
 const E2_PIERRES = new Set(['rock', 'stones', 'deadtree']);
@@ -154,6 +155,8 @@ const E2C = {
     // se poser là où il faut (l'eau pour les uns, la terre pour les autres) ; sinon, encore un peu
     const h = w.heightAt(e.x, e.z), ok = V.eau ? h < w.waterLevel - 0.35 : h > w.waterLevel + 0.05;
     if (!ok && V.prolonge < 6) { V.prolonge++; V.t = 0.8; V.T += 0.8; V.cible = null; return true; }
+    // (toujours pas : on rentre chez soi)
+    if (!ok && V.prolonge < 7) { V.prolonge++; V.cible = [e.hx, e.hz]; V.t = V.T = Math.max(1, Math.hypot(e.hx - e.x, e.hz - e.z) / V.v); return true; }
     e.vol = null; e.fly = 0; e.state = 'idle'; e.timer = 1.5;
     e.y = V.eau ? w.waterLevel - e.h * 0.25 : w.groundAt(e.x, e.z, h + 0.6, 0.6);
     return false;
@@ -171,8 +174,12 @@ const E2C = {
   // l'heure est passée, ou le temps a tourné : la bête s'en va (le module la retire hors de vue)
   partirVol(e, dt) {
     if (!e.e2part) return false;
-    e.hidden = false; e.fly = 1; e.peck = false;
+    if (e.hidden) return true;
+    e.fly = 1; e.peck = false;
     e.y += dt * 4; e.x += Math.sin(e.heading) * dt * 9; e.z += Math.cos(e.heading) * dt * 9;
+    // hors de vue (ou loin, ou au bout d'un moment) : elle n'est plus là (le module la retire)
+    e.e2partT = (e.e2partT || 0) + dt;
+    if ((e.e2partT > 6 && (e.dist > 50 || !E2C.vu(e))) || e.e2partT > 25) e.hidden = true;
     return true;
   },
   partirSol(e, dt, w, c) {
@@ -251,7 +258,8 @@ const E2_COMPORTE = {
   pie_grieche(e, dt, w, c) {
     e.hidden = false;
     if (!e.perch || e.bouge) {
-      const o = E2C.objet(w, e.bouge ? e.x : e.hx, e.bouge ? e.z : e.hz, 28, E2_BUISSONS, e.perch);
+      const cx = e.bouge ? e.x : e.hx, cz = e.bouge ? e.z : e.hz;
+      const o = E2C.objet(w, cx, cz, 28, E2_BUISSONS_HAUTS, e.perch) || E2C.objet(w, cx, cz, 28, E2_BUISSONS, e.perch);
       const P = o ? { x: o.x, z: o.z, y: w.objectY(o) + clamp((o.h || 1) * 0.92, 0.45, 1.8) } : { x: e.hx + (Math.random() - 0.5) * 6, z: e.hz + (Math.random() - 0.5) * 6, y: 0 };
       if (!o) P.y = w.heightAt(P.x, P.z) + 0.3;
       if (!e.perch) { e.x = P.x; e.z = P.z; e.y = P.y; e.lardoir = o ? { x: o.x, z: o.z, y: P.y - 0.18, s: e.seed } : null; }
@@ -751,7 +759,7 @@ const E2_VOL = {
     e.heading = turnToward(e.heading, Math.atan2(e.cible[0] - e.x, e.cible[1] - e.z), dt * 0.9);
     const v = 6.5;
     e.x += Math.sin(e.heading) * v * dt; e.z += Math.cos(e.heading) * v * dt;
-    e.y = lerp(e.y, sol + 4 + Math.sin(c.t * 0.35 + e.seed) * 1.6, Math.min(1, dt * 0.8));
+    e.y = Math.max(sol + 1.5, lerp(e.y, sol + 4 + Math.sin(c.t * 0.35 + e.seed) * 1.6, Math.min(1, dt * 0.8)));
     e.piqueT = (e.piqueT ?? 20 + Math.random() * 30) - dt;
     if (e.piqueT <= 0 && e.dist > 25) { e.piqueT = 30 + Math.random() * 40; e.pique = { t: 0, x: e.x + Math.sin(e.heading) * 6, z: e.z + Math.cos(e.heading) * 6 }; }
     if (e.dist < 30) { e.criT = (e.criT ?? 0) - dt; if (e.criT <= 0) { e.criT = 50 + Math.random() * 40; E2C.cri(e, 'busard', c, 80, true); } }
@@ -853,7 +861,7 @@ const E2_VOL = {
     e.heading = Math.atan2(nx - e.x, nz - e.z);
     e.x = lerp(e.x, nx, Math.min(1, dt * 0.8)); e.z = lerp(e.z, nz, Math.min(1, dt * 0.8));
     const base = w.heightAt(e.hx, e.hz);
-    e.y = lerp(e.y, Math.max(base, w.heightAt(e.x, e.z) + 25) + e.flyH + Math.sin(c.t * 0.1 + e.seed) * 4, Math.min(1, dt * 0.4));
+    e.y = Math.max(w.heightAt(e.x, e.z) + 8, lerp(e.y, Math.max(base, w.heightAt(e.x, e.z) + 25) + e.flyH + Math.sin(c.t * 0.1 + e.seed) * 4, Math.min(1, dt * 0.4)));
   },
   // le gypaète : il longe les falaises ; il monte avec un os et le laisse tomber sur les rochers, puis descend le manger
   gypaete(e, dt, w, c) {
@@ -875,7 +883,7 @@ const E2_VOL = {
     if (e.ph === 'descend') {
       e.fly = 1;
       const r = E2C.vers(e, O[0] + 1.5, O[1] + 1.5, 7, dt, 2);
-      e.y = lerp(e.y, solO + Math.min(20, r * 0.6), Math.min(1, dt * 0.9));
+      e.y = Math.max(w.heightAt(e.x, e.z) + 0.4, lerp(e.y, solO + Math.min(20, r * 0.6), Math.min(1, dt * 0.9)));
       if (r < 0.8 && e.y < solO + 1.5) { e.ph = 'mange'; e.mangeT = 18 + Math.random() * 20; e.fly = 0; e.y = w.heightAt(e.x, e.z); }
       if (e.dist < 30) e.ph = null;
       return;
@@ -892,7 +900,7 @@ const E2_VOL = {
     const nx = e.hx + Math.cos(e.flyA) * e.flyR, nz = e.hz + Math.sin(e.flyA) * e.flyR;
     e.heading = Math.atan2(nx - e.x, nz - e.z);
     e.x = lerp(e.x, nx, Math.min(1, dt * 0.8)); e.z = lerp(e.z, nz, Math.min(1, dt * 0.8));
-    e.y = lerp(e.y, w.heightAt(e.x, e.z) + e.flyH + Math.sin(c.t * 0.13 + e.seed) * 5, Math.min(1, dt * 0.5));
+    e.y = Math.max(w.heightAt(e.x, e.z) + 6, lerp(e.y, w.heightAt(e.x, e.z) + e.flyH + Math.sin(c.t * 0.13 + e.seed) * 5, Math.min(1, dt * 0.5)));
     e.osT = (e.osT ?? 25 + Math.random() * 40) - dt;
     if (e.osT <= 0) { e.osT = 120 + Math.random() * 150; if (e.dist < 220 && e.dist > 35 && E2C.osSol.length < 3) e.ph = 'monte'; }
     e.criT = (e.criT ?? 60 + Math.random() * 120) - dt;
@@ -978,7 +986,7 @@ const E2_VOL = {
     const nx = e.hx + Math.cos(e.flyA) * e.flyR, nz = e.hz + Math.sin(e.flyA) * e.flyR;
     e.heading = Math.atan2(nx - e.x, nz - e.z);
     e.x = lerp(e.x, nx, Math.min(1, dt * 0.9)); e.z = lerp(e.z, nz, Math.min(1, dt * 0.9));
-    e.y = lerp(e.y, Math.max(w.heightAt(e.x, e.z), WL) + e.flyH, Math.min(1, dt * 0.6));
+    e.y = Math.max(Math.max(w.heightAt(e.x, e.z), WL) + 3, lerp(e.y, Math.max(w.heightAt(e.x, e.z), WL) + e.flyH, Math.min(1, dt * 0.6)));
     e.chasseT = (e.chasseT ?? 20 + Math.random() * 30) - dt;
     if (e.chasseT <= 0) { e.chasseT = 35 + Math.random() * 50; if (E2C.eau(w, e.x, e.z)) { e.ph = 'surplace'; e.phT = 3 + Math.random() * 2.5; } }
     e.criT = (e.criT ?? 15 + Math.random() * 30) - dt;
