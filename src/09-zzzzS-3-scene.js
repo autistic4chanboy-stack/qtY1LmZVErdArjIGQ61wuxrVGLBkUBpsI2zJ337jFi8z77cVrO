@@ -139,6 +139,8 @@ SoundEngine.BRUITS_MILIEU = {
   // tirer un milieu d'après les poids (le milieu dominant un peu favorisé)
   const tirerMilieu = (P) => tirer(Object.keys(P).map((b) => [b, Math.pow(P[b], 1.5)]));
 
+  // les chanteurs d'origine de SoundEngine.OISEAUX (déjà répartis dans CHANTEURS)
+  const OISEAUX_ORIGINE = new Set(['merle', 'mesange', 'pinson', 'pic', 'tourterelle', 'coucou', 'alouette', 'moineau']);
   const _scene0 = SoundEngine.prototype._scene, _chanteur0 = SoundEngine.prototype._chanteur, _pluie0 = SoundEngine.prototype._pluie;
   const _source0 = SoundEngine.prototype.source, _oiseau0 = SoundEngine.prototype.oiseau, _tb0 = SoundEngine.prototype.tb;
 
@@ -265,7 +267,7 @@ SoundEngine.BRUITS_MILIEU = {
       const neige = typeof vallee !== 'undefined' ? clamp((vallee.snowK || 0) * 1.6, 0, 1) : 0;
       const brouillard = clamp(M.fog || 0, 0, 1), gel = clamp(M.frost || 0, 0, 1), chaud = clamp(M.heat || 0, 0, 1), orage = clamp(M.storm || 0, 0, 1), nuages = clamp(M.cloud || 0, 0, 1);
       const vent = clamp((M.storm || 0) * 0.8 + (M.rain || 0) * 0.22 + nuages * 0.1 - brouillard * 0.15, 0, 1);
-      const sec = 1 - lisse(0.1, 0.45, pluie), froid = Math.max(gel, neige);
+      const sec = 1 - lisse(0.1, 0.45, pluie), froid = Math.max(gel, neige), raf = clamp(this.sc && this.sc.vg !== undefined ? this.sc.vg : 0.4, 0, 1);
       // (la pluie qui vient de finir : les grenouilles chantent plus, les arbres s'égouttent)
       if (pluie > 0.3) Z.pluieVue = 1; else Z.pluieVue = Math.max(0, Z.pluieVue - dt / 240);
       const hs = h < 12 ? h + 24 : h; // les heures du soir et de la nuit, d'un seul tenant
@@ -278,7 +280,8 @@ SoundEngine.BRUITS_MILIEU = {
         grenJour: (0.35 * jour + 0.65 * bosse(h, 16.5, 18.5, 20.5, 21.5)) * (1 - froid) * (1 - lisse(0.6, 0.9, pluie)) * (1 + 0.3 * Z.pluieVue),
         grenNuit: nuit * (1 - froid) * (1 - lisse(0.6, 0.9, pluie)) * (1 + 0.3 * Z.pluieVue),
         batNuit: nuit * (1 - froid) * (1 - lisse(0.5, 0.85, pluie)),
-        ventBois: (0.35 + 0.9 * vent) * (1 - 0.5 * neige), ventBas: 0.3 + 0.8 * vent, ventHaut: 0.35 + 0.8 * vent, ressac: 0.45 + 0.8 * vent,
+        // (le vent dans les arbres, les roseaux, la bruyère suit les bouffées du vent : sc.vg, 0..1)
+        ventBois: (0.35 + 0.9 * vent) * (1 - 0.5 * neige) * (0.75 + 0.4 * raf), ventBas: (0.3 + 0.8 * vent) * (0.75 + 0.4 * raf), ventHaut: (0.35 + 0.8 * vent) * (0.8 + 0.3 * raf), ressac: 0.45 + 0.8 * vent,
         egout: Z.pluieVue * (1 - lisse(0.05, 0.3, pluie)),
       });
       return Q;
@@ -366,7 +369,13 @@ SoundEngine.BRUITS_MILIEU = {
       const M = typeof weather !== 'undefined' ? weather.cur : {};
       // (le brouillard : un chanteur sur deux se tait ; la canicule, l'après-midi : les oiseaux aussi)
       if ((M.fog > 0.5 && R() < 0.5) || (M.heat > 0.5 && h > 12.5 && h < 16.5 && R() < 0.5)) return null;
-      const m = tirerMilieu(P), C = SoundEngine.CHANTEURS[m] || SoundEngine.CHANTEURS.plaine, T = C[moment] && C[moment].length ? C[moment] : C.jour;
+      // (sous la neige, les oiseaux se taisent)
+      if (this._sZ && this._sZ.Q && this._sZ.Q.neige > 0.3) return null;
+      const m = tirerMilieu(P), C = SoundEngine.CHANTEURS[m] || SoundEngine.CHANTEURS.plaine;
+      let T = C[moment] && C[moment].length ? C[moment] : C.jour;
+      // (les chanteurs qu'un autre module aurait ajoutés à SoundEngine.OISEAUX[milieu] chantent aussi)
+      const X = (SoundEngine.OISEAUX[m] || []).filter(([s]) => !OISEAUX_ORIGINE.has(s) && !T.some(([t]) => t === s));
+      if (X.length) T = T.concat(X);
       const sorte = tirer(T);
       if (!sorte || !SoundEngine.TAMPONS[sorte]) return _chanteur0.call(this, biome, S, k);
       const pos = this._sPerche(sorte, m);

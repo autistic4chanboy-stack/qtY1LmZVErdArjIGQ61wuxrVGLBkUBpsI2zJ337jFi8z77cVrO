@@ -319,19 +319,22 @@
   }];
 
   // la fréquence d'échantillonnage de chaque fond : juste assez pour ce qu'il contient (moins de calcul, moins de
-  // mémoire) — 11 025 Hz pour les souffles, les grenouilles, les crapauds ; 16 000 pour les pluies et les feuillages ;
-  // 22 050 (par défaut) pour les criquets et la sauterelle, qui chantent haut
+  // mémoire). Le navigateur relit ces tampons par interpolation linéaire, qui renvoie en miroir ce qui approche de la
+  // moitié de la fréquence : on garde tout sous 0,3 × fs — 11 025 Hz pour ce qui reste sous 3 kHz, 16 000 sous 4,8 kHz,
+  // 22 050 (par défaut) pour le reste (criquets, sauterelle, feuillages, pluies)
   for (const [k, s] of Object.entries({
-    s_pins: 11025, s_bruyere: 11025, s_ressac: 11025, s_grenouilles: 11025, s_rainettes: 11025, s_accoucheur: 11025, s_roseaux: 11025,
-    s_oecanthe: 11025, s_pl_dedans: 11025, s_pl_paille: 11025,
-    s_feuillus: 16000, s_bouleaux: 16000, s_pl_feuilles: 16000, s_pl_herbe: 16000, s_pl_eau: 16000, s_pl_toits: 16000, s_pl_bruyere: 16000, s_egouttement: 16000,
+    s_cimes: 11025, s_accoucheur: 11025, s_pl_dedans: 11025, s_pl_paille: 11025,
+    s_pins: 16000, s_bruyere: 16000, s_ressac: 16000, s_grenouilles: 16000, s_rainettes: 16000, s_roseaux: 16000, s_oecanthe: 16000, s_egouttement: 16000,
   })) if (B[k]) B[k][2] = s;
 
-  // volume de chaque fond (k = 1), en nappe tout autour
+  // volume de chaque fond (k = 1), en nappe tout autour. Mesuré sur des rendus d'une minute au réglage par défaut
+  // (volume 0,6, ambiance 0,5) : un fond de jour vers −58 dBFS, un fond de nuit vers −52, la pluie vers −43 avec le
+  // lit d'origine baissé de moitié (avant : −40,6) ; les boucles sont normalisées à la crête, d'où des volumes
+  // inégaux (une boucle faite de grains a peu d'énergie pour sa crête)
   Object.assign(SoundEngine.VOL_BOUCLES, {
-    s_criquets: 0.018, s_oecanthe: 0.016, s_sauterelle: 0.012, s_rainettes: 0.03, s_accoucheur: 0.035, s_grenouilles: 0.03,
-    s_pins: 0.05, s_feuillus: 0.035, s_bouleaux: 0.03, s_roseaux: 0.035, s_bruyere: 0.04, s_cimes: 0.05, s_ressac: 0.05,
-    s_pl_herbe: 0.07, s_pl_feuilles: 0.07, s_pl_eau: 0.06, s_pl_toits: 0.07, s_pl_bruyere: 0.065, s_pl_paille: 0.07, s_pl_dedans: 0.08,
-    s_egouttement: 0.06,
+    s_criquets: 0.045, s_oecanthe: 0.025, s_sauterelle: 0.025, s_rainettes: 0.06, s_accoucheur: 0.04, s_grenouilles: 0.05,
+    s_pins: 0.05, s_feuillus: 0.06, s_bouleaux: 0.3, s_roseaux: 0.2, s_bruyere: 0.06, s_cimes: 0.04, s_ressac: 0.05,
+    s_pl_herbe: 0.12, s_pl_feuilles: 0.22, s_pl_eau: 0.155, s_pl_toits: 0.23, s_pl_bruyere: 0.12, s_pl_paille: 0.175, s_pl_dedans: 0.11,
+    s_egouttement: 0.04,
   });
 }
