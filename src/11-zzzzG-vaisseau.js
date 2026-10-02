@@ -269,7 +269,7 @@ const vgCite = {
       V.pos = null;
       mondes.sortir();
       p.vel = [0, 0, 0]; p.mods.grav = 1;
-      if (mort) { p.hp = Math.max(p.hp, 14); p.breath = 1; corps.panser && corps.panser(); }
+      if (mort) { p.hp = Math.max(p.hp, 14); p.breath = 1; p.food = Math.max(p.food, 18); corps.panser && corps.panser(); }
       $('#fade-text').textContent = '';
       $('#fade').style.background = '';
       await ui.fade(false, '', 2200);

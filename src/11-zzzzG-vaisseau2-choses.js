@@ -45,6 +45,8 @@ const VGM2 = {
   // une trappe au sol, ou une échelle contre un mur
   trappe(E) { E.bx(0, 0, 0, 1.2, 0.06, 1.2, VGC.coque, mt(M_VG_DALLE)); E.bx(0, 0.06, 0, 1.0, 0.03, 0.08, VGC.sombre, TL.metal); E.bx(0.35, 0.06, 0.4, 0.2, 0.05, 0.05, VGC.nacre, TL.metal); },
   echelle(E, c) { const H = c.hh || 6; for (const s of [-0.28, 0.28]) E.bx(s, 0, 0, 0.06, H, 0.06, VGC.nacre, TL.metal); for (let y = 0.3; y < H; y += 0.35) E.bx(0, y, 0, 0.56, 0.04, 0.05, VGC.coque, TL.metal); },
+  // une bande de lumière au pied d'un mur (c.l : longueur, le long de x local) : bleue sans courant, blanche avec
+  bande(E, c, on) { E.fl = FX_EMIT; E.bx(0, 0.02, 0, c.l || 6, 0.05, 0.06, on ? [0.85, 0.9, 1.0] : [0.12, 0.24, 0.6], TL.plain); E.fl = 0; },
   // le pot de la graine de lumière
   pot(E) { E.bx(0, 0, 0, 0.5, 0.4, 0.5, VGC.nacre, mt(M_VG_NACRE)); E.bx(0, 0.4, 0, 0.42, 0.03, 0.42, [0.24, 0.2, 0.15], TL.soil); },
   // les fenêtres des tours lointaines (c.w, c.d, c.y0, c.h : la tour) ; k : le Cœur (0..1)
@@ -95,6 +97,10 @@ Object.assign(vgCite, {
     this.lum(-8, 2.6, -2, [0.16, 0.26, 0.55], 9); this.lum(8, 2.6, -2, [0.16, 0.26, 0.55], 9);
     for (const z of [-12, -3]) for (const x of [-5, 5]) { this.ch(x, 8, z, { modele: (E) => VGM2.plafonnier(E, C()) }); }
     this.lum(0, 7, -6, [0.85, 0.9, 1.0], 16, C);
+    // les bandes de lumière au pied des murs (Seuil, couloir, galerie)
+    const bandes = (L) => { for (const [x, y, z, r, l] of L) this.ch(x, y, z, { r, l, modele: (E, c) => VGM2.bande(E, c, C()), loin: 90 }); };
+    bandes([[-9.7, 0, -7, Math.PI / 2, 21], [9.7, 0, -7, Math.PI / 2, 21], [-6, 0, 3.7, 0, 7], [6, 0, 3.7, 0, 7], [-2.3, 0, 12, Math.PI / 2, 15.5], [2.3, 0, 12, Math.PI / 2, 15.5],
+      [-5.7, 12, 117, Math.PI / 2, 33], [5.7, 12, 117, Math.PI / 2, 33], [-23.6, -16, 40, Math.PI / 2, 35], [23.6, -16, 30, Math.PI / 2, 15]]);
     // ================= le couloir des hublots =================
     for (const z of [8, 16]) { this.ch(0, 4, z, { modele: (E) => VGM2.plafonnier(E, C()) }); this.lum(0, 3.4, z, [0.8, 0.85, 0.95], 8, C); }
     for (const z of [6, 14]) this.ch(2.45, 0.3, z, { r: -Math.PI / 2, modele: VGM.veilleuse });
@@ -281,7 +287,7 @@ Object.assign(vgCite, {
     return D;
   },
   porteFermee(D) {
-    if (this.courant()) return;
+    if (this.courant() || D.ouvre) return;
     VGSON.clic(this.pos(D.lx, D.ly + 1.2, D.lz), 0.7);
     const V = VG.S();
     if (!V.dits.porte_close) { V.dits.porte_close = 1; this.dire(VG_VOIX.porte_close); } else ui.subtitle('', '(La porte ne bouge pas. Le voyant est rouge.)', 2.5);
@@ -414,11 +420,12 @@ Object.assign(vgCite, {
     // les portes : elles s'ouvrent devant vous s'il y a du courant
     for (const D of this.portes || []) {
       const [lx, ly, lz] = this.local(p.pos), d = Math.hypot(lx - D.lx, lz - D.lz), pres = d < 3.4 && Math.abs(ly - D.ly) < 3;
-      const veut = pres && this.courant();
+      // (sans courant, une porte reste comme elle est : ouverte, on ne s'y retrouve jamais enfermé)
+      const veut = this.courant() ? pres : D.ouvre;
       if (veut !== D.ouvre) { D.ouvre = veut; VGSON.souffle(this.pos(D.lx, D.ly + 1.5, D.lz), 0.6, 0.6); }
       D.k = clamp(D.k + (D.ouvre ? dt : -dt) * 1.8, 0, 1);
       D.bloc.y = D.k > 0.8 ? -1e4 : D.y0;
-      if (pres && !this.courant() && d < 1.9) { if (!D.cogne) { D.cogne = true; this.porteFermee(D); } } else if (d > 3) D.cogne = false;
+      if (pres && !this.courant() && !D.ouvre && d < 1.9) { if (!D.cogne) { D.cogne = true; this.porteFermee(D); } } else if (d > 3) D.cogne = false;
     }
     // les ascenseurs
     for (const A of this.ascs || []) {

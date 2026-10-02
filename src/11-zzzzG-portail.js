@@ -173,6 +173,16 @@ function vgGenerer(w, seed) {
   ajouter('eleveuse', VG_RUMEURS.eleveuse);
 }
 
+// après le voyage, la fillette a rêvé (une fois)
+{
+  const _cl = talk.chatLine.bind(talk);
+  talk.chatLine = function () {
+    const n = this.n, V = farm.s && farm.s.vaisseau;
+    if (n && n.d && n.d.id === 'fillette' && V && V.etat === 2 && !V.fillette) { V.fillette = 1; return VG_TEXTES.fillette; }
+    return _cl();
+  };
+}
+
 // ---------------------------------------------------------------- dans la vallée : la pierre
 const vgPierre = {
   // la pierre, telle que la génération l'a posée

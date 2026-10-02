@@ -25,7 +25,7 @@ defItem('vg_insigne', 'Insigne de la cité', 'tresor', 45, ['vg_insigne', '#d8dc
 defItem('vg_toupie', 'Toupie de verre', 'tresor', 30, ['vg_toupie', '#c8e0f8'], { desc: 'Une toupie d’enfant, en verre, qui tourne longtemps, très longtemps, et ne tombe jamais tout à fait.' });
 defItem('vg_boite', 'Boîte à musique d’étoiles', 'tresor', 90, ['vg_boite', '#e8e0d0'], { desc: 'Clic : l’ouvrir. Une petite boîte de nacre qui joue cinq notes, toujours les mêmes, dans un ordre qui change.' });
 defItem('vg_cristal', 'Cristal à souvenirs', 'tresor', 70, ['vg_cristal', '#a8e8f0'], { desc: 'Clic : le tenir contre la lumière. Une lame de cristal où quelqu’un a laissé un moment de sa vie.' });
-defItem('vg_graine', 'Graine de lumière', 'tresor', 55, ['vg_graine', '#f0e8a0'], { desc: 'Une graine grosse comme une noisette, qui luit doucement dans le noir. Rien, ici-bas, ne la fera germer. Ou peut-être que si.' });
+defItem('vg_graine', 'Graine de lumière', 'tresor', 55, ['vg_graine', '#f0e8a0'], { desc: 'Une graine grosse comme une noisette, qui luit doucement dans le noir. Rien, ici-bas, ne la fera germer.' });
 defItem('vg_oeil', 'Œil de verre', 'tresor', 75, ['vg_oeil', '#3a4a6a'], { desc: 'Une sphère de verre sombre où tourne quelque chose, tout au fond, comme une pupille qui cherche.' });
 defItem('vg_carnet_thalvor', 'Carnet de Thalvor', 'cite', 0, ['vg_carnet', '#5a6a7a'], { desc: 'Clic : le lire. Un carnet aux pages minces comme des pelures, couvert d’une écriture serrée qui change de forme à mesure qu’on la regarde.' });
 defItem('vg_carnet_seriane', 'Carnet de Seriane', 'cite', 0, ['vg_carnet', '#5a7a5a'], { desc: 'Clic : le lire. Un carnet taché de terre, plein de dessins de feuilles et de racines.' });
@@ -267,6 +267,7 @@ const VG_TEXTES = {
   iorinTouche: '(Vous posez la main sur le verre. De l’autre côté, la petite main ne bouge pas.)',
   berceauVide: 'Un berceau vide. Le verre est relevé ; dedans, l’empreinte d’un petit corps dans la mousse grise, et rien d’autre.',
   coffreVide: '(Vide.)',
+  fillette: 'Cette nuit, j’ai rêvé de la petite qui dort, là-haut. Elle souriait. Tu crois qu’on peut sourire, quand on dort depuis si longtemps ?',
   trappeDescendre: 'Descendre l’échelle',
   trappeMonter: 'Monter l’échelle',
 };
