@@ -57,42 +57,64 @@ function MUS_DSP() {
   }
 
   // ------------------------------------------------ le piano
-  // Cordes raides (partiels légèrement plus hauts que les harmoniques), deux cordes par note un rien
-  // désaccordées (battements lents, extinction en deux temps : vive puis longue), marteau frappé au
-  // huitième de la corde (creux vers le 8e partiel), feutre qui adoucit les aigus, bruit du marteau
-  // et choc sourd de la table. Joué « mezzo-forte » ; les nuances plus douces sont assombries au jeu.
+  // Réglé sur des notes de vrai piano (mezzo-forte) mesurées une à une : chaque note s'éteint en deux temps,
+  // d'abord vite (le son « prompt » : vingt décibels en moins d'une seconde au milieu du clavier), puis
+  // très lentement (le son rémanent, qui chante longtemps) ; les cordes d'une même note, un rien
+  // désaccordées, battent au passage d'un temps à l'autre. Cordes raides (partiels un peu plus hauts que
+  // les harmoniques), marteau frappé au huitième de la corde (creux vers le 8e partiel), feutre qui ôte les
+  // aigus (le haut du clavier est presque pur), table qui rayonne mal les fondamentaux graves (dans la
+  // basse, ce sont les partiels 3 à 7 qui portent le son), choc sourd du marteau et de la table.
+  // Joué « mezzo-forte » ; les nuances plus douces sont assombries au jeu (filtre du feutre).
+  // Repères : note MIDI, niveau du genou entre les deux extinctions (dB), extinction prompte et rémanente (T60, s)
+  // (et, en dernière colonne, la fréquence où le spectre commence à tomber : haute dans la basse, dont le son est riche
+  // jusqu'au kilohertz, basse au milieu du clavier, où le fondamental domine)
+  const PIANO_REP = [[21, -9, 9, 36, 1200], [36, -11, 7, 28, 1000], [48, -14, 4.6, 32, 700], [60, -16, 2.6, 18, 320], [72, -15, 1.6, 14, 300], [84, -17, 1.2, 10, 300], [96, -20, 0.8, 5, 300], [108, -24, 0.5, 2.8, 300]];
+  function repere(m, j) {
+    const T = PIANO_REP;
+    if (m <= T[0][0]) return T[0][j];
+    for (let i = 1; i < T.length; i++) if (m <= T[i][0]) { const u = (m - T[i - 1][0]) / (T[i][0] - T[i - 1][0]); return T[i - 1][j] + (T[i][j] - T[i - 1][j]) * u; }
+    return T[T.length - 1][j];
+  }
+  // l'accord « étiré » d'un vrai piano (courbe de Railsback) : les cordes raides rendent les octaves trop
+  // étroites ; on hausse un peu l'aigu et on baisse un peu le grave pour qu'elles sonnent justes
+  const etire = (m) => (m >= 69 ? 30 * Math.pow((m - 69) / 39, 2.2) : -25 * Math.pow((69 - m) / 48, 2.2));
   function* piano(m, sr) {
-    const R = alea(m * 7919 + 101), f0 = hz(m);
-    const dur = borne(10 - (m - 21) * 0.1, 2.4, 9);
+    const R = alea(m * 7919 + 101), f0 = hz(m) * Math.pow(2, etire(m) / 1200);
+    const dur = borne(12 - (m - 21) * 0.12, 2.6, 11);
     const d = new Float64Array(Math.floor(dur * sr));
-    const B = 0.00007 * Math.pow(2, (m - 21) / 13.5);              // inharmonicité
-    const t60 = 26 * Math.pow(2, -(m - 21) / 24);                   // extinction longue du fondamental
-    const fc = 650 + 2.7 * f0 + (m > 84 ? (m - 84) * 120 : 0);     // feutre du marteau
-    const x0 = 0.118 + 0.012 * R();                                  // point de frappe
-    const fmax = Math.min(sr * 0.46, 10500);
-    for (let k = 1; k <= 96; k++) {
+    const B = 0.00008 * Math.pow(2, (m - 21) / 14);                 // inharmonicité
+    const genou = repere(m, 1), Tv = repere(m, 2), Tl = repere(m, 3), fp = Math.max(repere(m, 4), f0), pente = borne(10 + (m - 62) * 0.375, 10, 13);
+    const x0 = 0.118 + 0.01 * R();                                   // point de frappe
+    const fmax = Math.min(sr * 0.45, 9000);
+    for (let k = 1; k <= 90; k++) {
       const fk = k * f0 * Math.sqrt(1 + B * k * k);
       if (fk > fmax) break;
-      let A = (0.22 + 0.78 * Math.abs(Math.sin(Math.PI * k * x0))) / Math.pow(k, 0.5) / (1 + Math.pow(fk / fc, 2.1));
-      if (fk < 130) A *= Math.pow(fk / 130, 1.25);                   // la table rayonne mal les fondamentaux graves
-      const perte = 1 + Math.pow(fk / 1600, 1.6) + 0.012 * k;
-      const tl = t60 / perte, tv = tl / (3 + 1.8 * R());
-      const ct = (0.35 + 1.25 * R()) * (R() < 0.5 ? -1 : 1);          // désaccord des cordes (cents)
+      // spectre : plat jusqu'à fp, puis −10 (basse et médium) à −13 dB (aigu) par octave, et le feutre qui mange tout au-dessus de 1,5 kHz ;
+      // la table rayonne mal sous 250 Hz (−6 dB par octave)
+      const rel = -pente * Math.max(0, Math.log2(fk / fp)) - 8 * Math.max(0, fk - 1500) / 1000 - 6 * Math.max(0, Math.log2(250 / fk));
+      if (rel < -75) break;
+      // (et la table d'harmonie, qui ne rend pas tous les partiels pareil : ±3 dB au hasard)
+      const A = Math.pow(10, (rel + (R() - 0.5) * 6) / 20) * (0.25 + 0.75 * Math.abs(Math.sin(Math.PI * k * x0)));
+      // les partiels aigus s'éteignent plus vite ; le genou varie un peu d'un partiel à l'autre
+      const g = 1 / (1 + Math.pow(fk / 2600, 1.4) + 0.004 * k);
+      const r = Math.pow(10, (genou + (R() - 0.5) * 6) / 20);
+      const ct = (0.4 + 1.2 * R()) * (R() < 0.5 ? -1 : 1);           // désaccord des cordes (cents)
       const ph = R() * TAU;
-      amortie(d, sr, fk, A * 0.68, tv, ph);
-      amortie(d, sr, fk * Math.pow(2, ct / 1200), A * 0.32, tl, ph + (R() - 0.5) * 0.6);
-      if (m >= 50 && k <= 12) amortie(d, sr, fk * Math.pow(2, -ct * (0.4 + 0.5 * R()) / 1200), A * 0.12, tl * 0.8, ph + (R() - 0.5) * 0.6);
+      amortie(d, sr, fk, A * (1 - r), Tv * g * (0.8 + 0.4 * R()), ph);
+      amortie(d, sr, fk * Math.pow(2, ct / 1200), A * r * (m >= 48 ? 0.75 : 1), Tl * g, ph + (R() - 0.5) * 0.8);
+      if (m >= 48 && k <= 10) amortie(d, sr, fk * Math.pow(2, -ct * (0.5 + 0.4 * R()) / 1200), A * r * 0.4, Tl * g * 0.85, ph + (R() - 0.5) * 0.8);
       if (k % 6 === 0) yield;
     }
-    // marteau : un souffle feutré très bref, et le choc sourd de la table (à peine)
+    // le marteau : le choc sourd de la table et du chevalet, un souffle de feutre à peine
     let pic = 0;
     for (let i = 0; i < Math.min(d.length, sr * 0.05); i++) pic = Math.max(pic, Math.abs(d[i]));
-    bruit(d, sr, R, pic * 0.05, 0.004 + 0.004 * (m < 48), 1200 + f0 * 1.5);
-    amortie(d, sr, 70 + R() * 30, pic * 0.05, 0.07, 0);
-    amortie(d, sr, 160 + R() * 60, pic * 0.025, 0.04, 0);
-    bords(d, sr, m < 45 ? 0.004 : m < 72 ? 0.0028 : 0.0018, Math.min(1.2, dur * 0.2));
-    // niveau : les graves ont plus d'énergie, les aigus percent davantage
-    const cible = 0.1 * (m < 40 ? 1.12 : 1) * (m > 76 ? Math.pow(2, -(m - 76) / 30) : 1);
+    amortie(d, sr, 62 + R() * 26, pic * 0.1, 0.1, 0);
+    amortie(d, sr, 140 + R() * 50, pic * 0.06, 0.06, 0.5);
+    amortie(d, sr, 380 + R() * 140, pic * 0.025, 0.035, 1);
+    bruit(d, sr, R, pic * 0.035, 0.003 + 0.004 * (m < 48), 1800 + f0);
+    bords(d, sr, m < 45 ? 0.004 : m < 72 ? 0.003 : 0.002, Math.min(1.4, dur * 0.18));
+    // niveau : les graves un peu plus pleins, l'aigu un peu retenu
+    const cible = 0.1 * (m < 40 ? 1.1 : 1) * (m > 76 ? Math.pow(2, -(m - 76) / 32) : 1);
     return niveau(d, sr, 0.01, 0.35, cible);
   }
 
@@ -217,9 +239,10 @@ function MUS_DSP() {
 // changeant la vitesse de lecture) ; « sr » : fréquence d'échantillonnage selon le registre.
 const MUS_INST = {
   piano: {
-    ech: true, pas: 3, bas: 21, haut: 108, sr: (m) => (m < 48 ? 22050 : m < 72 ? 24000 : 32000), gain: 1, courbe: 1.7,
-    // nuance douce : plus sombre (le feutre écrase moins la corde)
-    filtre: (m, v) => Math.max(1100 + 1500 * v, MUS_hz(m) * (3 + 14 * Math.pow(v, 1.5))),
+    ech: true, pas: 3, bas: 21, haut: 108, sr: (m) => (m < 48 ? 22050 : m < 84 ? 24000 : 32000), gain: 1, courbe: 1.7,
+    // nuance douce : plus sombre (le marteau, lancé moins fort, reste plus longtemps sur la corde) ; réglé sur un
+    // vrai do 4 pianissimo (2e partiel −19 dB, 3e −33 dB) ; neutre au-dessus de mezzo-forte
+    filtre: (m, v) => Math.max(MUS_hz(m), 220) * 1.6 * Math.pow(2, 8 * (v - 0.26)),
     // étouffoirs : plus lents dans les graves, aucun au-dessus du fa 6 (les cordes aiguës sonnent librement)
     etouffe: (m) => (m >= 89 ? 0 : m < 48 ? 0.22 : m < 60 ? 0.14 : 0.09),
     pan: (m) => (m - 64) / 52 * 0.42,
