@@ -362,9 +362,7 @@ const E2_COMPORTE = {
   peliade(e, dt, w, c) {
     if (c.rain > 0.3 || c.night > 0.55) { e.hidden = true; return true; }
     e.hidden = false;
-    if (e.dist < 4.5 && !e.sifle) { e.sifle = true; E2C.cri(e, 'siffle', c, 20, true); }
-    if (e.dist > 8) e.sifle = false;
-    return false;
+    return false; // (le sifflement et la morsure : beasts.snake, 10-zzcreatures-more.js)
   },
   // la salamandre noire : après la pluie, lente ; rien de plus
   salamandre_noire(e, dt, w, c) { e.move = Math.min(e.move, 0.6); return false; },
