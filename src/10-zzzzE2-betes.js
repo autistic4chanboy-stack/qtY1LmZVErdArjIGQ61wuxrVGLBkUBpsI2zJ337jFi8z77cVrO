@@ -229,7 +229,7 @@ const E2_COMPORTE = {
   // la nuit ; il court plus qu'il ne saute ; il chante, surtout après la pluie
   calamite(e, dt, w, c) {
     e.chantT = (e.chantT ?? 4 + Math.random() * 25) - dt;
-    if (e.chantT <= 0) { e.chantT = (E2C.pluieRecente() ? 16 : 35) + Math.random() * 40; if (c.night > 0.5 && e.dist > 3) E2C.cri(e, 'calamite', c, 150); }
+    if (e.chantT <= 0) { e.chantT = (E2C.pluieRecente() ? 25 : 50) + Math.random() * 50; if (c.night > 0.5 && e.dist > 3) E2C.cri(e, 'calamite', c, 150); }
     return false;
   },
   // en compagnie ; au crépuscule et au petit jour, le mâle chante
@@ -489,8 +489,11 @@ const E2_COMPORTE = {
       E2C.cri(e, 'eau_course', c, 60, true);
       return true;
     }
-    e.chantT = (e.chantT ?? 4 + Math.random() * 20) - dt;
-    if (e.chantT <= 0) { e.chantT = 12 + Math.random() * 30; E2C.cri(e, 'foulque', c, 110); }
+    // (la troupe ne crie que par la voix de l'une d'elles)
+    if (!e.groupe || e.groupe[0] === e || e.groupe[0].dead || e.groupe[0].removed) {
+      e.chantT = (e.chantT ?? 4 + Math.random() * 20) - dt;
+      if (e.chantT <= 0) { e.chantT = 15 + Math.random() * 35; E2C.cri(e, 'foulque', c, 110); }
+    }
     if (Math.random() < dt * 0.015) { e.plonge = 2 + Math.random() * 2.5; E2C.gerbe(w, e.x, e.z, 2, 0.4); e.hidden = true; return true; }
     E2C.nager(e, dt, w);
     return true;
