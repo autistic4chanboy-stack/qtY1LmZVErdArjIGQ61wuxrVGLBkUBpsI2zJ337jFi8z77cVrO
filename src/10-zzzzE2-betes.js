@@ -867,7 +867,21 @@ const E2_VOL = {
   gypaete(e, dt, w, c) {
     if (E2C.partirVol(e, dt)) return;
     e.hidden = false;
-    if (!e.ossuaire) e.ossuaire = [e.hx, e.hz];
+    // l'ossuaire : une dalle de pierre presque plate au pied de sa falaise (toujours la même : tirée de son territoire)
+    if (!e.ossuaire) {
+      const T = e.terr;
+      if (T && T.ossuaire) e.ossuaire = T.ossuaire;
+      else {
+        let h = 0x9E3779B9;
+        const cle = (T && T.cle) || 'gypaete';
+        for (let i = 0; i < cle.length; i++) h = Math.imul(h ^ cle.charCodeAt(i), 0x01000193);
+        const rnd = mulberry32(h >>> 0);
+        let P = null;
+        for (let k = 0; k < 40 && !P; k++) { const a = rnd() * TAU, d = 8 + rnd() * 45, x = e.hx + Math.sin(a) * d, z = e.hz + Math.cos(a) * d; if (w.inside(x, z, 10) && E2C.pente(w, x, z) < 0.22 && E2C.haut(w, x, z) > 2) P = [x, z]; }
+        e.ossuaire = P || [e.hx, e.hz];
+        if (T) T.ossuaire = e.ossuaire;
+      }
+    }
     const O = e.ossuaire, solO = w.heightAt(O[0], O[1]);
     if (e.ph === 'monte') {
       e.fly = 1;

@@ -41,7 +41,7 @@ Object.assign(SoundEngine.prototype, {
         for (let i = 0, n = 2 + (R() < 0.4 ? 1 : 0); i < n; i++) { this.noiseHit(t + i * 0.16, 0.07, 'bandpass', 3200, 1.6, 0.016 * v, p); this.tone(t + i * 0.16, 'square', 2300, 1900, 0.06, 0.006 * v, p, 0.003); }
         return true;
       case 'huppe': // « oup-oup-oup », bas, comme on souffle dans une bouteille
-        for (let i = 0; i < 3; i++) this.voice(t + i * 0.2, 'sine', 560, 520, 0.11, 0.04 * v, p, { lp: 1200 });
+        for (let i = 0; i < 3; i++) this.voice(t + i * 0.2, 'sine', 560, 520, 0.11, 0.03 * v, p, { lp: 1200 });
         return true;
       case 'oedicneme': // « cour-liii », plaintif, qui monte
         this.voice(t, 'triangle', 1500, 1700, 0.18, 0.02 * v, p, { lp: 3600 });
@@ -58,7 +58,7 @@ Object.assign(SoundEngine.prototype, {
         for (let i = 0, n = 3 + ((R() * 3) | 0); i < n; i++) this.tone(t + i * 0.085 + R() * 0.02, 'square', 4600 + R() * 600, 3900, 0.028, 0.01 * v, p, 0.002);
         return true;
       case 'squeak': // un petit campagnol
-        for (let i = 0; i < 2; i++) this.tone(t + i * 0.07, 'sine', 3600 + R() * 400, 3300, 0.03, 0.009 * v, p, 0.004);
+        for (let i = 0; i < 2; i++) this.tone(t + i * 0.07, 'sine', 3600 + R() * 400, 3300, 0.04, 0.016 * v, p, 0.004);
         return true;
       // ---------------------------------------------------------------- les hauteurs
       case 'tetras': { // la parade : un roucoulement bouillonnant, longtemps
@@ -67,15 +67,15 @@ Object.assign(SoundEngine.prototype, {
         return true;
       }
       case 'tetras_ch': // le « tchou-ich » soufflé du coq
-        this.noiseHit(t, 0.45, 'bandpass', 3400, 1.1, 0.022 * v, p, 4600, 0.05);
+        this.noiseHit(t, 0.5, 'bandpass', 3200, 1.1, 0.04 * v, p, 4400, 0.06);
         return true;
       case 'tichodrome': // des sifflets fins qui montent
-        for (let i = 0; i < 3; i++) this.voice(t + i * 0.26, 'sine', 3000 + i * 600, 3400 + i * 700, 0.18, 0.008 * v, p, { lp: 7000 });
+        for (let i = 0; i < 3; i++) this.voice(t + i * 0.26, 'sine', 3000 + i * 600, 3400 + i * 700, 0.18, 0.012 * v, p, { lp: 7000 });
         return true;
       case 'duc': { // « ou-hou », grave, qui porte
         const f = 300 + R() * 25;
-        this.voice(t, 'sine', f * 1.05, f, 0.32, 0.07 * v, p, { lp: 700 });
-        this.voice(t + 0.5, 'sine', f * 0.92, f * 0.85, 0.45, 0.05 * v, p, { lp: 650 });
+        this.voice(t, 'sine', f * 1.05, f, 0.32, 0.045 * v, p, { lp: 700 });
+        this.voice(t + 0.5, 'sine', f * 0.92, f * 0.85, 0.45, 0.034 * v, p, { lp: 650 });
         return true;
       }
       case 'bec': // le bec qui claque, et un souffle
@@ -94,10 +94,10 @@ Object.assign(SoundEngine.prototype, {
         for (let i = 0; i < 3; i++) this.noiseHit(t + 0.08 + i * (0.07 + R() * 0.05), 0.03, 'bandpass', 2400 + R() * 800, 1.4, 0.02 * v * (1 - i * 0.25), p);
         return true;
       // ---------------------------------------------------------------- le lac
-      case 'foulque': { // « kut », « pitt », sec, un peu métallique
-        const f = 1300 + R() * 300;
-        this.tone(t, 'square', f, f * 0.8, 0.06, 0.012 * v, p, 0.003);
-        if (R() < 0.4) this.tone(t + 0.12, 'square', f * 1.1, f * 0.85, 0.05, 0.01 * v, p, 0.003);
+      case 'foulque': { // « kout », « pitt », sec, un peu métallique
+        const f = 820 + R() * 160;
+        this.cri(t, { dur: 0.1, f: [[0, f * 1.1], [1, f * 0.8]], rug: [70, 0.3], form: [[1150, 3, 1], [2400, 5, 0.45]], souffle: [0.1, 2000], vol: 0.032 * v, lp: 4200, a: 0.006 }, p);
+        if (R() < 0.4) this.cri(t + 0.16, { dur: 0.07, f: [[0, f * 1.3], [1, f]], rug: [70, 0.3], form: [[1500, 3, 1], [2800, 5, 0.4]], vol: 0.026 * v, lp: 4500, a: 0.005 }, p);
         return true;
       }
       case 'eau_course': // une foulque qui court sur l'eau
@@ -109,7 +109,7 @@ Object.assign(SoundEngine.prototype, {
         return true;
       }
       case 'guignette': // « hi-dii-dii », fin et aigu
-        for (let i = 0; i < 3; i++) this.voice(t + i * 0.15, 'sine', i ? 4300 : 3800, i ? 3900 : 4200, 0.09, 0.008 * v, p, { lp: 8000 });
+        for (let i = 0; i < 3; i++) this.voice(t + i * 0.15, 'sine', i ? 4300 : 3800, i ? 3900 : 4200, 0.09, 0.012 * v, p, { lp: 8000 });
         return true;
       case 'oie': { // « aang-ang-ang », nasal
         const f = 330 + R() * 50;
@@ -117,7 +117,7 @@ Object.assign(SoundEngine.prototype, {
         return true;
       }
       case 'harle': // un « krrr » sourd
-        this.cri(t, { dur: 0.32, f: [[0, 300], [1, 260]], rug: [30, 0.7], form: [[700, 3, 1], [1500, 5, 0.3]], vol: 0.016 * v, lp: 1800, a: 0.02 }, p);
+        this.cri(t, { dur: 0.32, f: [[0, 300], [1, 260]], rug: [30, 0.7], form: [[700, 3, 1], [1500, 5, 0.3]], vol: 0.028 * v, lp: 1800, a: 0.02 }, p);
         return true;
       case 'cormoran': // des gargouillements graves
         for (let i = 0; i < 3; i++) this.cri(t + i * 0.22, { dur: 0.16, f: [[0, 200 + R() * 40], [1, 160]], rug: [22, 0.7], form: [[450, 3, 1], [1000, 4, 0.3]], souffle: [0.3, 700], vol: 0.02 * v, lp: 1200, a: 0.02 }, p);
@@ -130,11 +130,11 @@ Object.assign(SoundEngine.prototype, {
         this.tone(t + 0.02, 'sine', 300, 120, 0.2, 0.02 * v, p, 0.004);
         return true;
       case 'plouf': // un « bloup » (le rat d'eau, le vison qui plonge)
-        this.tone(t, 'sine', 600, 300, 0.09, 0.012 * v, p, 0.006); this.noiseHit(t + 0.01, 0.14, 'bandpass', 900, 0.8, 0.01 * v, p);
+        this.tone(t, 'sine', 600, 300, 0.09, 0.03 * v, p, 0.006); this.noiseHit(t + 0.01, 0.14, 'bandpass', 900, 0.8, 0.025 * v, p);
         return true;
       // ---------------------------------------------------------------- partout
-      case 'froissement': this.noiseHit(t, 0.16, 'bandpass', 2400, 1.2, 0.02 * v, p); return true;
-      case 'terre': this.noiseHit(t, 0.22, 'lowpass', 600, 0.7, 0.03 * v, p); return true;
+      case 'froissement': this.noiseHit(t, 0.16, 'bandpass', 2400, 1.2, 0.04 * v, p); return true;
+      case 'terre': this.noiseHit(t, 0.22, 'lowpass', 600, 0.7, 0.06 * v, p); return true;
       case 'siffle': this.noiseHit(t, 0.55, 'bandpass', 2700, 1, 0.035 * v, p, 3300, 0.05); return true;
       case 'ailes': // un envol lourd (grands oiseaux)
         for (let i = 0, tt = t, per = 0.16; i < 6; i++, tt += per, per *= 0.95) this.noiseHit(tt, 0.1, 'bandpass', 380 + R() * 120, 0.7, 0.04 * v * (1 - i * 0.1), p, 260, 0.03);
