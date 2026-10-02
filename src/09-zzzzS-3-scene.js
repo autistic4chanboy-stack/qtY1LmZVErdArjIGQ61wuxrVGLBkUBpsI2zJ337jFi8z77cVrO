@@ -529,13 +529,12 @@ SoundEngine.BRUITS_MILIEU = {
     _sPreparer(P) {
       const liste = [], ajoute = (k) => { if (!liste.includes(k)) liste.push(k); };
       const ordre = Object.keys(P).filter((b) => P[b] > 0.02).sort((a, b) => P[b] - P[a]);
-      for (const b of ordre) {
-        const f = SoundEngine.NAPPES_MILIEU[b];
-        if (f) for (const k in f({})) ajoute('B:' + k);
-        ajoute('B:' + SoundEngine.PLUIE_MILIEU[b]);
-        const C = SoundEngine.CHANTEURS[b] || {};
-        for (const mo of ['aube', 'jour', 'soir', 'nuit']) for (const [s] of C[mo] || []) if (SoundEngine.TAMPONS[s]) ajoute('T:' + s);
-      }
+      // d'abord les nappes de tous les milieux d'ici (on sent le lieu), puis leurs pluies, puis les chanteurs (ceux du
+      // moment d'abord)
+      for (const b of ordre) { const f = SoundEngine.NAPPES_MILIEU[b]; if (f) for (const k in f({})) ajoute('B:' + k); }
+      for (const b of ordre) ajoute('B:' + SoundEngine.PLUIE_MILIEU[b]);
+      const h = this._heure(), maint = h >= 4.3 && h < 8.5 ? 'aube' : h >= 17 && h < 22 ? 'soir' : h >= 22 || h < 4.3 ? 'nuit' : 'jour';
+      for (const mo of [maint, 'aube', 'jour', 'soir', 'nuit']) for (const b of ordre) for (const [s] of (SoundEngine.CHANTEURS[b] || {})[mo] || []) if (SoundEngine.TAMPONS[s]) ajoute('T:' + s);
       // les bruits rares des milieux d'ici, l'angélus
       for (const b of ordre) for (const [nom] of SoundEngine.BRUITS_MILIEU[b] || []) { const t = BRUIT_TAMPON[nom]; if (t) ajoute('T:' + t); }
       ajoute('T:s_cloche');

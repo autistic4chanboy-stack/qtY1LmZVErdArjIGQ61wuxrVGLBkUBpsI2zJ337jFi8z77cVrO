@@ -220,9 +220,12 @@
   // les hauteurs : l'air qui passe sur les crêtes, très loin, grave et lent (on le devine plus qu'on ne l'entend)
   B.s_cimes = [20, (d, sr, D) => {
     const dur = D - 0.25, n = d.length, g1 = courbe(dur, 7, 0.25, 1), g2 = courbe(dur, 3.3, 0.4, 1);
-    const lo = S.bq('bp', 320, 0.6, sr), mi = S.bq('bp', 750, 0.7, sr), hi = S.bq('bp', 1600, 0.9, sr);
+    const lo = S.bq('bp', 300, 0.6, sr), mi = S.bq('bp', 620, 0.8, sr), hi = S.bq('bp', 1150, 1.1, sr);
     let k0 = 0, k1 = 0;
     for (let i = 0; i < n; i++) { if ((i & 31) === 0) { const t = i / sr; k0 = g1(t); k1 = k0 * g2(t); } const x = R() * 2 - 1; d[i] = lo(x) * 0.6 * k0 + mi(x) * 0.35 * k1 + hi(x) * 0.1 * k1 * k1; }
+    // (rien au-dessus de 2 kHz : c'est loin, et le tampon est à 11 025 Hz)
+    const lp = S.bq('lp', 1700, 0.7, sr);
+    for (let i = 0; i < n; i++) d[i] = lp(d[i]);
   }, 11025];
   // le ressac du lac : une vague qui monte doucement, se couche sur la grève, et reflue en roulant les graviers
   B.s_ressac = [21, (d, sr, D) => {
