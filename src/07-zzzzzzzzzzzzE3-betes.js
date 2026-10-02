@@ -17,7 +17,7 @@ function e3Rapace(o) {
     e3B('plieL', 'body', [-b[0] / 2 - 0.006, b[1] * 0.12, -0.02], [0.02, b[1] * 0.7, b[2] * 0.95], o.wingCol || o.col),
     e3B('plieR', 'body', [b[0] / 2 + 0.006, b[1] * 0.12, -0.02], [0.02, b[1] * 0.7, b[2] * 0.95], o.wingCol || o.col),
   ];
-  if (o.ventre) u.push(e3B('ventre', 'body', [0, -b[1] * 0.12, b[2] * 0.12], [b[0] * 0.92, b[1] * 0.62, b[2] * 0.7], o.ventre, TL.stripes));
+  if (o.ventre) u.push(e3B('ventre', 'body', [0, -b[1] * 0.2, b[2] * 0.1], [b[0] * 1.06, b[1] * 0.64, b[2] * 0.74], o.ventre, TL.stripes));
   for (const q of o.plus || []) u.push(q);
   const rr = rigPlus(r, u);
   rr.lent = o.lent || [8, 0.55];
@@ -73,7 +73,7 @@ function e3Musaraigne(o) {
   const { P, add } = rigParts();
   const k = o.k || 1, c = rgbf(o.c), v = rgbf(o.v), m = rgbf(o.museau || '#c89080');
   add('body', null, [0, 0.022 * k, 0], [0.034 * k, 0.03 * k, 0.07 * k], [0, 0, 0], c, TL.fur);
-  add('ventre', 'body', [0, -0.012 * k, 0], [0.032 * k, 0.008 * k, 0.064 * k], [0, 0, 0], v, TL.fur);
+  add('ventre', 'body', [0, -0.012 * k, 0.002 * k], [0.037 * k, 0.012 * k, 0.062 * k], [0, 0, 0], v, TL.fur);
   add('neck', 'body', [0, 0.004 * k, 0.034 * k], null);
   add('head', 'neck', [0, 0, 0], [0.026 * k, 0.024 * k, 0.03 * k], [0, 0, 0.014 * k], c, TL.fur);
   if (o.oeil) for (const s of [-1, 1]) add('oeil' + s, 'head', [s * 0.012 * k, 0.006 * k, 0.018 * k], [0.008 * k, 0.008 * k, 0.008 * k], [0, 0, 0], [0.04, 0.03, 0.03], TL.plain);
@@ -143,7 +143,7 @@ Object.assign(ANIMAL_RIGS, {
     return rigPlus(r, u);
   },
   // l'autour : gris dessus, barré dessous, un sourcil blanc, l'œil orange
-  e3_autour: () => e3Rapace({ col: '#5a6068', body: [0.15, 0.16, 0.3], head: [0.08, 0.08, 0.09], headCol: '#3a3e44', beak: [0.018, 0.022, 0.03], beakCol: '#2a2a30', tail: [0.09, 0.015, 0.2],
+  e3_autour: () => e3Rapace({ col: '#6c747e', body: [0.15, 0.16, 0.3], head: [0.08, 0.08, 0.09], headCol: '#4a5058', beak: [0.018, 0.022, 0.03], beakCol: '#2a2a30', tail: [0.09, 0.015, 0.2],
     wing: [0.5, 0.02, 0.2], leg: [0.02, 0.09], legCol: '#e0c030', ventre: '#e4e0d6', plus: [
       e3B('sourcilL', 'head', [-0.041, 0.055, 0.02], [0.004, 0.012, 0.05], '#f2f0ea', TL.plain), e3B('sourcilR', 'head', [0.041, 0.055, 0.02], [0.004, 0.012, 0.05], '#f2f0ea', TL.plain),
       e3B('oeilL', 'head', [-0.041, 0.04, 0.03], [0.004, 0.014, 0.014], '#f08a20', TL.plain), e3B('oeilR', 'head', [0.041, 0.04, 0.03], [0.004, 0.014, 0.014], '#f08a20', TL.plain),
@@ -168,7 +168,7 @@ Object.assign(ANIMAL_RIGS, {
   e3_sonneur: () => e3Grenouille({ k: 0.5, c: '#5e5a46', tex: TL.scales, v: '#f0c020', vTex: TL.spots, oeil: '#c8a040' }),
   // la coronelle : grise ou rousse, tachée, un trait sombre à travers l'œil
   e3_coronelle: (v) => {
-    const r = scaleRig(ANIMAL_RIGS.snake(), 0.85), c1 = rgbf((v | 0) % 2 ? '#8a6a50' : '#7a7468'), c2 = rgbf('#4a3a30');
+    const r = scaleRig(ANIMAL_RIGS.snake(), 0.85), c1 = rgbf((v | 0) % 2 ? '#a8805c' : '#9a9282'), c2 = rgbf((v | 0) % 2 ? '#6a4a34' : '#5a5248');
     for (const q of r.parts) if (q.s) q.col = q.name === 'head' ? v3.scale(c1, 0.9) : /[1357]$/.test(q.name) ? c2 : c1;
     return rigPlus(r, [e3B('traitL', 'head', [-0.026, 0.01, 0.03], [0.004, 0.008, 0.05], '#2a2018', TL.plain), e3B('traitR', 'head', [0.026, 0.01, 0.03], [0.004, 0.008, 0.05], '#2a2018', TL.plain)]);
   },
@@ -178,7 +178,7 @@ Object.assign(ANIMAL_RIGS, {
   e3_grand_mars: () => e3Papillon({ aile: '#4a3222', bord: '#2a1c12', reflet: '#6a3aa0', W: 0.055, taches: [[0.45, 0.1, '#e8e0d0'], [0.62, -0.05, '#e8e0d0'], [0.3, 0.25, '#e8e0d0']] }),
   // l'oreillard : la chauve-souris aux oreilles plus longues que la tête
   e3_oreillard: () => {
-    const r = ANIMAL_RIGS.bat(), c = rgbf('#7a5a44');
+    const r = scaleRig(ANIMAL_RIGS.bat(), 0.62), c = rgbf('#7a5a44');
     for (const q of r.parts) if (q.s && !/^wing/.test(q.name)) q.col = c;
     return rigPlus(r, [
       e3B('oreilleL', 'head', [-0.018, 0.05, 0.0], [0.016, 0.07, 0.03], '#b08a70', TL.skin, { o: [0, 0.03, -0.01], r0: [-0.35, 0, -0.3] }),
@@ -210,7 +210,8 @@ Object.assign(ANIMAL_RIGS, {
     tail: [0.08, 0.08, 0.04], wingCol: rgbf('#8a6a40'), leg: [0.025, 0.06], legCol: rgbf('#c8a878') }), [
     e3B('aigretteL', 'head', [-0.04, 0.12, 0.0], [0.022, 0.07, 0.018], '#3a2a1a', TL.fur, { o: [0, 0.03, 0], r0: [-0.15, 0, -0.18] }),
     e3B('aigretteR', 'head', [0.04, 0.12, 0.0], [0.022, 0.07, 0.018], '#3a2a1a', TL.fur, { o: [0, 0.03, 0], r0: [-0.15, 0, 0.18] }),
-    e3B('oeilL', 'head', [-0.03, 0.07, 0.057], [0.026, 0.026, 0.004], '#f07818', TL.plain), e3B('oeilR', 'head', [0.03, 0.07, 0.057], [0.026, 0.026, 0.004], '#f07818', TL.plain),
+    e3B('oeilL', 'head', [-0.03, 0.07, 0.079], [0.026, 0.026, 0.004], '#f07818', TL.plain), e3B('oeilR', 'head', [0.03, 0.07, 0.079], [0.026, 0.026, 0.004], '#f07818', TL.plain),
+    e3B('pupilleL', 'head', [-0.03, 0.07, 0.082], [0.01, 0.012, 0.003], '#140c08', TL.plain), e3B('pupilleR', 'head', [0.03, 0.07, 0.082], [0.01, 0.012, 0.003], '#140c08', TL.plain),
     e3B('stries', 'body', [0, -0.01, 0.06], [0.12, 0.2, 0.024], '#d8b888', TL.stripes),
   ]),
   // la musaraigne carrelet : brune, les flancs clairs, le museau long

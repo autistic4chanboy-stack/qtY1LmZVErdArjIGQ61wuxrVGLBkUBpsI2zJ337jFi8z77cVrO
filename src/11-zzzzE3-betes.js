@@ -76,6 +76,7 @@ const e3Cri = (e, kind, c, portee, k) => {
   if (d > portee || !sound.e3Cri || (c.silent && kind !== 'plouf')) return;
   sound.e3Cri(kind, e, clamp(1 - d / portee, 0, 1) * (k || 1));
 };
+const e3Tronc = (T) => (OBJ_TYPES[T.t] && OBJ_TYPES[T.t].col) || 0.3; // (le rayon du tronc)
 const e3Alerte = (e, c, base) => base * (c.crouch ? 0.5 : 1) * (c.sprint ? 1.5 : 1);
 // un arbre près d'un point (pour se percher), loin d'un autre si l'on change d'arbre
 const e3Arbre = (w, x, z, R, loin, ids) => {
@@ -302,7 +303,7 @@ function e3Perche(e, dt, w, c, o) {
     let P;
     if (T) {
       const hT = T.h || 8, a = Math.random() * TAU;
-      if (o.tronc) { const rr = 0.3 + Math.min(0.4, hT * 0.025); P = { x: T.x + Math.sin(a) * rr, z: T.z + Math.cos(a) * rr, y: w.objectY(T) + lerp(o.tronc[0], o.tronc[1], Math.random()), cap: a + Math.PI, T }; }
+      if (o.tronc) { const rr = e3Tronc(T) + (o.ventre || 0.05); P = { x: T.x + Math.sin(a) * rr, z: T.z + Math.cos(a) * rr, y: w.objectY(T) + lerp(o.tronc[0], o.tronc[1], Math.random()), cap: a + Math.PI, T }; }
       else { const rr = 0.5 + Math.random() * 0.8; P = { x: T.x + Math.sin(a) * rr, z: T.z + Math.cos(a) * rr, y: w.objectY(T) + hT * lerp(o.haut[0], o.haut[1], Math.random()), cap: Math.random() * TAU, T }; }
     } else P = { x: e.hx + (Math.random() - 0.5) * 20, z: e.hz + (Math.random() - 0.5) * 20, y: 0, cap: Math.random() * TAU, sol: true };
     if (P.sol) P.y = w.heightAt(P.x, P.z);
@@ -458,7 +459,7 @@ const E3_COMPORTE = {
   // les pics : au tronc, le corps dressé ; ils tambourinent ; dérangés, ils filent vers un autre arbre en criant
   pic(e, dt, w, c) {
     const noir = e.kind === 'pic_noir';
-    const r = e3Perche(e, dt, w, c, { tronc: noir ? [2, 6] : [1.6, 4.5], R: 35, v: 8, onde: true });
+    const r = e3Perche(e, dt, w, c, { tronc: noir ? [2, 6] : [1.6, 4.5], ventre: noir ? 0.07 : 0.05, R: 35, v: 8, onde: true });
     if (!r) { e.volCri = (e.volCri ?? 0) - dt; if (e.volCri <= 0) { e.volCri = 2.5; e3Cri(e, noir ? 'pic_noir_vol' : 'kik', c, 90); } return true; }
     if (e.dist < e3Alerte(e, c, e.cfg.flee)) { e.bouge = true; sound.flutter && sound.flutter(0.4, 0); e3Cri(e, noir ? 'pic_noir_vol' : 'kik', c, 90); return true; }
     e.tamT = (e.tamT ?? 4 + Math.random() * 12) - dt;
@@ -548,7 +549,7 @@ const E3_COMPORTE = {
     if (!e.perch) {
       const T = e.arbre0 && !e.arbre0.gone ? e.arbre0 : e3Arbre(w, e.hx, e.hz, 20, null, E3_CHENES) || e3Arbre(w, e.hx, e.hz, 20);
       if (!T) { e.fly = 0; return false; }
-      const a = Math.random() * TAU, rr = 0.3 + Math.min(0.4, (T.h || 8) * 0.025);
+      const a = Math.random() * TAU, rr = e3Tronc(T) + 0.012;
       e.perch = { x: T.x + Math.sin(a) * rr, z: T.z + Math.cos(a) * rr, y: w.objectY(T) + 0.6 + Math.random() * 1.2, cap: a + Math.PI };
       e.x = e.perch.x; e.z = e.perch.z; e.y = e.perch.y;
     }
@@ -593,7 +594,7 @@ const E3_COMPORTE = {
       e.cibleT = 0.5 + Math.random() * 1.1;
       if (!(e.fuite > 0) && Math.random() < 0.14) {
         e.pose = 3 + Math.random() * 6; e.poseY = undefined;
-        if (e.kind === 'morio') { const T = e3Arbre(w, e.x, e.z, 6, null, E3_BOULEAUX); if (T) { const a = Math.random() * TAU; e.x = T.x + Math.sin(a) * 0.32; e.z = T.z + Math.cos(a) * 0.32; e.poseY = w.objectY(T) + 1 + Math.random() * 0.8; e.heading = a + Math.PI; } }
+        if (e.kind === 'morio') { const T = e3Arbre(w, e.x, e.z, 6, null, E3_BOULEAUX); if (T) { const a = Math.random() * TAU, rr = e3Tronc(T) + 0.01; e.x = T.x + Math.sin(a) * rr; e.z = T.z + Math.cos(a) * rr; e.poseY = w.objectY(T) + 1 + Math.random() * 0.8; e.heading = a + Math.PI; } }
         else if (e.kind === 'cuivre_marais') e.poseY = sol + 0.25;
       }
       if (!(e.fuite > 0)) { e.hx += (Math.random() - 0.5) * 2; e.hz += (Math.random() - 0.5) * 2; }
@@ -802,7 +803,7 @@ const E3_COMPORTE = {
       if (e.court <= 0) { e.fly = 0; e.cache = 15 + Math.random() * 25; }
       return true;
     }
-    e.fly = 0; e.y = WL - 0.06;
+    e.fly = 0; e.y = WL - 0.14;
     if (e.dist < e3Alerte(e, c, e.cfg.flee)) { e.court = 1.6 + Math.random() * 0.8; e.heading = Math.atan2(e.x - c.px, e.z - c.pz); sound.flutter && sound.flutter(0.6, 0); e3Cri(e, 'kurruk', c, 70); return true; }
     // nager : vers un point d'eau voisin
     e.nageT = (e.nageT || 0) - dt;
@@ -900,6 +901,30 @@ const E3_COMPORTE = {
   const _r = ANIMAL_RIGS.e3_busard_roseaux;
   ANIMAL_RIGS.e3_busard_roseaux = (v) => { const r = _r(v); r.e3V = true; return r; };
 }
+
+// au dessin : une branche morte sous l'oiseau perché (de l'arbre jusqu'à lui), un roseau sous la rainette
+HOOKS.draw.push((buf) => {
+  if (!e3.vivantes.length) return;
+  const w = game.world;
+  for (const e of e3.vivantes) {
+    if (e.hidden || e.far || e.removed || e.dead) continue;
+    const P = e.perch;
+    if (P && P.T && !P.sol && !e.vole && e.cfg.e3 !== 'pic' && e.kind !== 'capricorne') {
+      const dx = e.x - P.T.x, dz = e.z - P.T.z, L = Math.hypot(dx, dz);
+      if (L < 0.15) continue;
+      PE.buf = buf; PE.fl = 0;
+      PE.frame(P.T.x, P.y, P.T.z, Math.atan2(dx, dz), 1);
+      PE.box(0, -0.025, L / 2 + 0.12, 0.05, 0.045, L + 0.3, [0.46, 0.36, 0.26], TL.bark);
+      PE.box(0.06, -0.02, L + 0.18, 0.025, 0.025, 0.22, [0.46, 0.36, 0.26], TL.bark, 0.6);
+    } else if (e.kind === 'rainette' && e.roseauY !== undefined) {
+      const sol = w.heightAt(e.x, e.z), base = Math.min(sol, w.waterLevel - 0.3), H = e.y - base;
+      PE.buf = buf; PE.fl = 0;
+      PE.frame(e.x, base, e.z - 0.012, 0, 1);
+      PE.box(0, H / 2 + 0.25, 0, 0.012, H + 0.5, 0.012, [0.36, 0.5, 0.2], TL.plain);
+      PE.box(0.02, H * 0.6, 0.01, 0.01, H * 0.9, 0.01, [0.44, 0.56, 0.24], TL.plain, 0, 0, 0.12);
+    }
+  }
+});
 
 // ---------------------------------------------------------------- la main, le filet, la chasse
 // (E) le capricorne et la cicindèle se prennent à la main ; la sangsue aussi, dans l'eau ; la coronelle et la crossope
