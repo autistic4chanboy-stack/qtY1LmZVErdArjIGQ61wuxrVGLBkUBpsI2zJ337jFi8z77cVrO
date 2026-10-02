@@ -180,3 +180,17 @@ SoundEngine.BOUCLES.e1_essaim = [3, (d, sr, dur) => {
 }];
 SoundEngine.VOL_BOUCLES.e1_essaim = 0.032;
 Object.assign(SoundEngine.VOL_OISEAUX, E1_VOL);
+// les tampons se calculent avec les autres, en tâche de fond au début de la partie (jamais pendant le jeu)
+{
+  const _ch = SoundEngine.prototype.chauffer;
+  SoundEngine.prototype.chauffer = function () {
+    const n = _ch.call(this);
+    if (this._chauffe && !this._e1chaud) {
+      this._e1chaud = true;
+      for (const k of Object.keys(E1_VOL)) for (let i = 0; i < 3; i++) this._chauffe.push(() => this.tb(k, 3, i));
+      this._chauffe.push(() => this.boucleTampon && this.boucleTampon('e1_essaim'));
+      return this._chauffe.length;
+    }
+    return n;
+  };
+}

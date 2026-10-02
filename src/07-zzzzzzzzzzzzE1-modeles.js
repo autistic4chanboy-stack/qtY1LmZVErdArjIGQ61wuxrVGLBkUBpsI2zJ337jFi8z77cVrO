@@ -21,7 +21,7 @@ const E1C = (h) => rgbf(h);
 function e1Oiseau(o) {
   const { P, add } = rigParts();
   const [bw, bh, bl] = o.body, dos = o.dos;
-  add('body', null, [0, o.bodyY, 0], o.body, [0, 0, 0], dos, o.bodyTex ?? TL.fur);
+  add('body', null, [0, o.bodyY, 0], o.body.slice(), [0, 0, 0], dos, o.bodyTex ?? TL.fur);
   if (o.ventre) { const k = o.ventreS || 0.62; add('ventre', 'body', [0, -bh * (1 - k) / 2 - 0.002, bl * 0.07], [bw * 1.06, bh * k, bl * 0.9], [0, 0, 0], o.ventre, o.ventreTex ?? TL.fur); }
   if (o.neck) add('neckB', 'body', [0, bh * 0.3, bl * 0.4], o.neck, [0, o.neck[1] / 2, 0], o.neckCol || dos, TL.fur, { r0: o.neckR || [0, 0, 0] });
   add('neck', o.neck ? 'neckB' : 'body', o.neck ? [0, o.neck[1], 0] : [0, bh * 0.34, bl * 0.44], null);
@@ -430,14 +430,20 @@ function e1Pose(rig, st) {
         rig.set('tail', M === 'surplace' ? 0.45 : 0.05, 0, 0);
         rig.set('legFL', 1.3, 0, 0); rig.set('legFR', 1.3, 0, 0);
       } else {
-        corps = e.mince ? -1.25 : (o.droit && !st.move) ? o.droit : 0;
-        if (o.chouette) corps = e.mince ? -0.3 : -0.08;
+        corps = (o.droit && !st.move) ? o.droit : 0;
+        if (o.chouette) corps = e.mince ? -0.12 : -0.05;
         const s = Math.sin(st.phase || 0) * 0.6 * (st.move || 0);
         rig.set('legFL', -corps + s, 0, 0); rig.set('legFR', -corps - s, 0, 0);
         const remue = e.remue ? Math.sin(t * 16 + sd) * 0.45 : 0; // la bergeronnette hoche la queue
         rig.set('tail', (o.tailUp || 0) - corps * 0.6 + remue, 0, 0);
       }
       rig.set('body', corps, 0, 0);
+      if (o.chouette) { // le petit-duc qui se fait mince : le corps s'étire, plus étroit, les ailes serrées
+        const k = e.mince ? 0.7 : 1, bw = o.body[0] * k, B = rig.parts[rig.idx.body];
+        B.s[0] = bw; B.s[1] = o.body[1] * (e.mince ? 1.12 : 1);
+        for (const [n, sg] of [['pliL', -1], ['pliR', 1]]) rig.parts[rig.idx[n]].p[0] = sg * (bw / 2 + 0.003);
+        if (rig.has('ventre')) rig.parts[rig.idx.ventre].s[0] = bw * 1.06;
+      }
       const peck = st.peck ? Math.max(0, Math.sin(t * 9 + sd)) * 0.9 : 0;
       const hoche = e.hoche ? Math.sin(t * 7) * 0.25 : 0;
       rig.set('neck', (vol ? -corps : -corps * 0.85) + peck + hoche, clamp(st.lookY || 0, -1.5, 1.5), 0);

@@ -287,7 +287,7 @@ const e1 = {
     if (!this.dans(ctx.h, E.h)) return false;
     if (E.meteo === 'sec' && !ctx.sec) return false;
     if (E.meteo === 'beau' && !ctx.beau) return false;
-    if (E.meteo === 'humide' && !(ctx.pluie > 0.1 || this.aPlu())) return deja;
+    if (E.meteo === 'humide' && !(ctx.pluie > 0.1 || this.aPlu() || ctx.nuit > 0.5)) return deja; // (la rosée de la nuit suffit)
     if (E.chaud && ctx.froid) return false;
     if (E.calme && (weather.cur.storm > 0.3 || ctx.pluie > 0.4)) return false;
     return true;
