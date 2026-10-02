@@ -116,7 +116,7 @@ const vgCite = {
       this.boite(-2, 2, -0.02, 0.01, z0 + 1, z1 - 1, M_VG_NACRE); // l'allée de nacre
       const baies = (de, a) => { const L = []; for (let z = de; z < a; z += 14) L.push(V(z, 8, 7, 21)); return L; };
       this.mur('x', z0, x0 - 0.2, x1 + 0.2, 0, H, [P(0, 5.2, 4.2)]);
-      this.mur('x', z1, x0 - 0.2, x1 + 0.2, 0, H, [{ a: 24.5, b: 28.5, bas: 12, haut: 15.2 }, V(-12, 10, 15, 23), V(12, 10, 15, 23)]);
+      this.mur('x', z1, x0 - 0.2, x1 + 0.2, 0, H, [{ a: 24.5, b: 28.5, bas: 12, haut: 15.2 }]);
       this.mur('z', x0, z0 + 0.2, z1 - 0.2, 0, H, [P(56, 3.2, 3.2)].concat(baies(30, 96)));
       this.mur('z', x1, z0 + 0.2, z1 - 0.2, 0, H, baies(30, 96));
       // la voûte : un cadre tout autour ; au milieu, le ciel (aucune verrière ne l'arrête plus)
@@ -163,7 +163,22 @@ const vgCite = {
     this.salle(24, 48, 30, 50, -16, 6, { sans: ['o'], ouv: { e: [{ a: 36, b: 43, bas: 1.25, haut: 5 }] }, frise: false });
     // les bords déchirés de la brèche (des plaques tordues)
     for (const [z, y, a] of [[35.6, 1.6, 0.4], [43.4, 2.2, -0.5], [37.5, 5.2, 0.9], [41.6, 0.9, -0.3]]) this.B(48.3, -16 + y, z, 0.25, 1.6, 1.1, M_VG_COQUE).r = a;
+    this.dehors();
     mondes.finConstruction();
+  },
+  // le reste de la cité, qu'on voit par les baies : des tours éteintes, une échine de coque, des ponts dans le vide
+  dehors() {
+    const rnd = mulberry32(70707), L = this.lointains = [];
+    const tour = (x, z, w, d, y0, h) => { this.B(x, y0, z, w, h, d, M_VG_COQUE); this.B(x, y0 + h, z, w * 0.7, h * 0.08, d * 0.7, M_VG_NACRE); if (rnd() < 0.6) this.B(x, y0 + h * 1.08, z, w * 0.18, h * 0.35, d * 0.18, M_VG_COQUE); L.push([x, z, w, d, y0, h]); };
+    // à l'est et à l'ouest de la Nef, de l'Observatoire, au-delà des Jardins
+    for (let i = 0; i < 9; i++) tour(80 + rnd() * 110, -10 + i * 22 + rnd() * 10, 8 + rnd() * 14, 8 + rnd() * 14, -60 - rnd() * 30, 50 + rnd() * 90);
+    for (let i = 0; i < 9; i++) tour(-95 - rnd() * 110, -10 + i * 22 + rnd() * 10, 8 + rnd() * 14, 8 + rnd() * 14, -60 - rnd() * 30, 50 + rnd() * 90);
+    for (let i = 0; i < 6; i++) tour(-80 + i * 32 + rnd() * 12, 170 + rnd() * 70, 10 + rnd() * 16, 10 + rnd() * 16, -50 - rnd() * 30, 60 + rnd() * 80);
+    // l'échine : une longue coque sous la cité, des deux côtés
+    for (const s of [-1, 1]) this.B(s * 66, -48, 60, 20, 26, 230, M_VG_COQUE);
+    this.B(0, -70, 60, 120, 20, 260, M_VG_COQUE);
+    // des passerelles entre des tours, dans le vide
+    for (let i = 0; i < 4; i++) { const z = 10 + i * 40 + rnd() * 10, y = 10 + rnd() * 30; this.B(110, y, z, 70, 1.2, 3, M_VG_DALLE); this.B(-125, y, z + 12, 60, 1.2, 3, M_VG_DALLE); }
   },
   // un sol percé de trous carrés [x, z, demi-côté]
   solTroue(x0, x1, z0, z1, y, trous, m, ep) {

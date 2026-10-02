@@ -47,6 +47,21 @@ const VGM2 = {
   echelle(E, c) { const H = c.hh || 6; for (const s of [-0.28, 0.28]) E.bx(s, 0, 0, 0.06, H, 0.06, VGC.nacre, TL.metal); for (let y = 0.3; y < H; y += 0.35) E.bx(0, y, 0, 0.56, 0.04, 0.05, VGC.coque, TL.metal); },
   // le pot de la graine de lumière
   pot(E) { E.bx(0, 0, 0, 0.5, 0.4, 0.5, VGC.nacre, mt(M_VG_NACRE)); E.bx(0, 0.4, 0, 0.42, 0.03, 0.42, [0.24, 0.2, 0.15], TL.soil); },
+  // les fenêtres des tours lointaines (c.w, c.d, c.y0, c.h : la tour) ; k : le Cœur (0..1)
+  fenetres(E, c, t, k) {
+    const n = 5 + Math.round(k * 9), id = c.id || 1;
+    E.fl = FX_EMIT;
+    for (let i = 0; i < n; i++) {
+      const hsh = (a) => { const s = Math.sin(id * 12.9898 + i * 78.233 + a * 37.719) * 43758.5453; return s - Math.floor(s); };
+      if (i >= 5 && hsh(9) > k) continue;
+      const face = (hsh(1) * 4) | 0, u = (hsh(2) - 0.5) * 0.8, yy = c.y0 + c.h * (0.15 + hsh(3) * 0.8);
+      const b = (hsh(5) < 0.2 ? 0.55 + 0.45 * Math.sin(t * 0.3 + i) : 1) * (0.7 + k * 0.5);
+      const col = hsh(4) < 0.6 ? [0.9 * b, 0.68 * b, 0.36 * b] : [0.45 * b, 0.65 * b, 1.0 * b];
+      const lx = face === 0 ? -c.w / 2 - 0.05 : face === 1 ? c.w / 2 + 0.05 : u * c.w, lz = face === 2 ? -c.d / 2 - 0.05 : face === 3 ? c.d / 2 + 0.05 : u * c.d;
+      E.bx(lx, yy, lz, face < 2 ? 0.1 : 1.1, 0.7, face < 2 ? 1.1 : 0.1, col, TL.plain);
+    }
+    E.fl = 0;
+  },
   // un gant gelé, dans la Brèche
   gant(E) { E.bx(0, 0, 0, 0.16, 0.06, 0.24, [0.7, 0.72, 0.75], TL.cloth, 0.6); for (let k = 0; k < 4; k++) E.bx(-0.06 + k * 0.04, 0, 0.14, 0.03, 0.04, 0.08, [0.7, 0.72, 0.75], TL.cloth, 0.6); },
 };
@@ -109,7 +124,7 @@ Object.assign(vgCite, {
     // ================= les Jardins =================
     this.porte('jardins', -30, 0, 56, 'z', 3.2, 3.2);
     let nb = 0;
-    for (const x of [-58, -52, -46, -40]) for (const z of [49, 63]) { const i = nb++; this.ch(x, 0, z, { modele: (E, c, t) => VGM.bac(E, { k: this.anim.serre || 0, on: this.marche('serre'), vivant: true }, t), loin: 90, i }); }
+    for (const x of [-58, -52, -46, -40]) for (const z of [49, 63]) { const i = nb++; this.ch(x, 0, z, { modele: (E, c, t) => VGM.bac(E, { k: this.anim.serre || 0, on: this.marche('serre'), vivant: false }, t), loin: 90, i }); }
     this.machine('serre', this.ch(-33, 0, 44, { r: Math.PI / 2, modele: (E, c, t) => VGM.pupitre(E, { on: this.marche('serre'), id: 5 }, t), rayon: 0.6, h: 1.2, reste: true, prendre: () => this.basculer('serre', [-33, 1, 44]) }));
     this.lum(-49, 2.4, 56, [1.0, 0.45, 0.95], 14, () => this.marche('serre'));
     this.lum(-49, 7, 56, [0.7, 0.8, 0.85], 22, C);
@@ -127,7 +142,7 @@ Object.assign(vgCite, {
     for (const z of [104, 116, 128]) { this.ch(0, y1 + 5, z, { modele: (E) => VGM2.plafonnier(E, C()) }); }
     this.lum(0, y1 + 4, 112, [0.8, 0.85, 0.95], 14, C); this.lum(0, y1 + 4, 126, [0.8, 0.85, 0.95], 14, C);
     this.lum(0, y1 + 0.8, 118, [0.14, 0.22, 0.45], 9);
-    this.ascenseur('B', 3, 129, y1, 24, [[5.5, y1, 125.6, -Math.PI / 2], [5.5, 24, 125.8, -Math.PI / 2]]);
+    this.ascenseur('B', 3, 129, y1, 24, [[5.5, y1, 131.6, -Math.PI / 2], [5.5, 24, 131.6, -Math.PI / 2]]);
     this.echelle([-4.5, y1, 133.55], [-4.5, 24, 131.2, 0], 'echelle', VG_TEXTES.trappeMonter, 5);
     this.echelle([-4.5, 24, 132.6], [-4.5, y1, 131.8, 0], 'trappe', VG_TEXTES.trappeDescendre);
     // les Archives
@@ -211,6 +226,8 @@ Object.assign(vgCite, {
     this.objet(46.6, y3, 38, 'vg_coeur', 'boule', [0.5, 0.75, 0.95], { lueur: true, cle: 'vg_coeur_breche' });
     this.objet(41, y3, 48.5, 'vg_etoffe', 'boite', [0.78, 0.8, 0.84], { cle: 'vg_etoffe_b' });
     this.ch(37, y3, 44, { r: 1.2, modele: VGM2.gant });
+    // ================= le dehors : quelques fenêtres encore allumées dans les tours (plus, quand le Cœur marche) =================
+    for (const [x, z, w, d, y0, h] of this.lointains || []) this.ch(x, 0, z, { modele: (E, c, t) => VGM2.fenetres(E, c, t, this.lumK || 0), loin: 320, w, d, y0, h });
     void V;
   },
   // ------------------------------------------------------------- briques de la population
@@ -247,7 +264,7 @@ Object.assign(vgCite, {
     const fond = M.cote === 'e' ? M.x0 + 1.2 : M.x1 - 1.2, dir = M.cote === 'e' ? 1 : -1, zc = (M.z0 + M.z1) / 2;
     this.ch(fond, 0, M.z0 + 1.5, { r: M.cote === 'e' ? Math.PI / 2 : -Math.PI / 2, modele: VGM.lit, loin: 50 });
     this.ch(fond + dir * 3.2, 0, M.z1 - 1.2, { r: 0, modele: VGM.table, loin: 50 });
-    this.ch(fond - dir * 0.6, 0, M.z1 - 0.6, { r: Math.PI, modele: VGM.etagere, loin: 50 });
+    this.ch(fond + dir * 0.5, 0, M.z1 - 0.6, { r: Math.PI, modele: VGM.etagere, loin: 50 });
     this.lum(fond + dir * 2.5, 3, zc, [0.75, 0.78, 0.9], 6, () => this.courant());
     if (D) {
       if (D[2] && D[2].length) this.coffre('m_' + M.cle, fond + dir * 0.2, 0, M.z0 + 3.4, M.cote === 'e' ? Math.PI / 2 : -Math.PI / 2, D[2]);
@@ -378,8 +395,10 @@ Object.assign(vgCite, {
     ui.choice(V.nommee ? 'La veilleuse' : 'Une petite lumière', VG_TEXTES.veilleuse, opts);
   },
   lunette() {
+    const V = VG.S();
     sound.step && sound.step('hard', 0.4);
-    ui.read('La lunette', VG_TEXTES.lunette + ((VG.S().coeurTotal || 0) > 120 ? VG_TEXTES.lunetteTard : ''), 'l’Observatoire');
+    ui.read('La lunette', VG_TEXTES.lunette + ((V.coeurTotal || 0) > 120 ? VG_TEXTES.lunetteTard : ''), 'l’Observatoire');
+    if (!V.dits.volets) { V.dits.volets = 1; setTimeout(() => this.dire(VG_VOIX.volets), 3000); }
   },
   iorin() {
     const V = VG.S();
@@ -428,6 +447,11 @@ Object.assign(vgCite, {
         if (z !== this.zoneCur) {
           this.zoneCur = z;
           if (z && !V.dits[z] && V.nommee && VG_VOIX[z]) { V.dits[z] = 1; setTimeout(() => { if (mondes.cur === 'vaisseau' && this.zone() === z) this.dire(VG_VOIX[z]); }, 900); }
+        }
+        // la première maison de l'équipage où l'on entre
+        if (z === 'nef' && !V.dits.quartiers && V.nommee) {
+          const [lx, , lz] = this.local(p.pos);
+          if ((this.maisons || []).some((M) => lx > M.x0 + 0.3 && lx < M.x1 - 0.3 && lz > M.z0 + 0.3 && lz < M.z1 - 0.3)) { V.dits.quartiers = 1; setTimeout(() => this.dire(VG_VOIX.quartiers), 700); }
         }
       }
     }
