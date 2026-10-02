@@ -163,12 +163,12 @@ Object.assign(alchimie.REM, {
   oeil_bouc: 'Une saxifrage œil-de-bouc ! On n’en voit plus. Mon maître en avait une, séchée, dans un livre qu’il ne prêtait pas. Il disait qu’elle pousse là où le bouc a dansé. Je préfère ne pas savoir où vous étiez.',
   plantain_eau: 'Du plantain d’eau. On a cru qu’il guérissait la rage. Les chiens enragés ne sont pas venus le confirmer.',
   eupatoire: 'De l’eupatoire. Les papillons l’adorent ; les intestins aussi, mais pas de la même façon.',
-  nuphar: 'Un nénuphar jaune. Sentez la fleur : l’eau-de-vie. On l’appelle la chopine, au bord des étangs. C’est la seule chopine qui fasse dormir sans faire chanter.',
+  nuphar: 'Un nénuphar jaune. Sentez la fleur : l’eau-de-vie. C’est la seule eau-de-vie qui fasse dormir sans faire chanter.',
   scrofulaire: 'De la scrofulaire, l’herbe du siège. Les assiégés de La Rochelle en ont vécu. Elle sent mauvais : c’est le prix.',
   guimauve_off: 'De la guimauve, la vraie. La racine, cuite avec du miel et un blanc d’œuf, donne la pâte que les apothicaires vendent si cher. Faites-la vous-même.',
   macre: 'Une châtaigne d’eau. Regardez ces cornes : une petite tête de diable. Bouillie, elle se mange comme une châtaigne. Sèche, on la garde dans sa poche, pour la chance. Les deux se font.',
   acore: 'De l’acore. Sentez : la mandarine, la cannelle. Il vient d’Orient, et il a trouvé notre lac à son goût. Mâchez la racine si vous avez froid à l’estomac.',
-  fritillaire: 'Une fritillaire. Le damier, la fleur de deuil : elle baisse la tête. Le bulbe est un poison. La fleur, on la pose sur les tombes.',
+  fritillaire: 'Une fritillaire. Le damier. Elle baisse la tête, comme à un enterrement. Le bulbe est un poison. La fleur, on la pose sur les tombes.',
   lobelie: 'Une lobélie de Dortmann. Elle vit sous l’eau, et ne sort que la tête. Ses cousines d’Amérique ouvrent la poitrine des asthmatiques. Après les avoir fait vomir, bien sûr.',
 });
 
