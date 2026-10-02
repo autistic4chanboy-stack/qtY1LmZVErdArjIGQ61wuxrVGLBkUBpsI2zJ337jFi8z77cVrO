@@ -32,6 +32,14 @@ Les codes ne sont écrits en clair nulle part (seulement leur empreinte SHA-256)
 cache pas vraiment ce qu'elle contient, et sur un dépôt public, les fichiers du jeu se lisent sur GitHub même (un dépôt
 privé avec Pages demande un abonnement GitHub payant).
 
+**La partie sans code (`libre/`)** : le même jeu et le même wiki, ouverts à qui a l'adresse, sans demander de code —
+`libre/index.html` (une page d'accueil sans porte : « Jouer », « Le wiki de la vallée »), `libre/Prairie.html` et
+`libre/Prairie-Wiki.html`, en ligne à `https://<compte>.github.io/<dépôt>/libre/`. Rien à y faire à la main :
+`node build.js` écrit le jeu sans code en même temps que l'autre, `node tools/wiki-build.js` le wiki sans code ; ce
+sont les mêmes pages moins le bloc « porte » (balisé dans `src/shell.html` et dans `tools/wiki-build.js`). La bêta
+avec code ne change pas. Même site, même navigateur : les parties, les réglages et la langue sont les mêmes des deux
+côtés.
+
 ### La grande vallée
 
 Par défaut, la vallée est **dessinée à la main** (3 km de côté, la même à chaque partie ; « une vallée au hasard » de 2 km
@@ -955,6 +963,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus bas) |
 | `shell.html` | HTML + CSS |
 | `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et ses deux codes (le jeu, le wiki), le site servi tel quel par GitHub Pages, changer un code |
+| `libre/` | la partie sans code : sa page d'accueil (`libre/index.html`), le jeu et le wiki sans leur porte (écrits par `node build.js` et `node tools/wiki-build.js`) |
 
 Le son, pour placer un bruit dans le monde : `sound.pan(p, dest)` accepte un panoramique −1..1 (comme avant) **ou une
 position** (`[x, y, z]`, `{x, y, z}`, une bête, un habitant) ; `sound.ici(pos, () => …, o)` place tous les sons joués

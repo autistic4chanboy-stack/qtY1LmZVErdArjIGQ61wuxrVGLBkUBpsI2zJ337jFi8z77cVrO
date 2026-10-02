@@ -5933,11 +5933,14 @@ function writeHTML(DB) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!--porte-->
 <script>
 // le wiki en ligne (GitHub Pages) a son propre code : sans lui, retour à l'accueil (index.html#wiki) ; ouvert en
-// local (file://), rien (empreinte du code du wiki : voir index.html et tools/beta-code.js)
+// local (file://), rien (empreinte du code du wiki : voir index.html et tools/beta-code.js). La copie sans code
+// (libre/Prairie-Wiki.html) est la même page, sans ce bloc « porte ».
 (function () { try { if (/^https?:$/.test(location.protocol) && localStorage.getItem('prairie.wiki') !== '2fc4b782912e33c839c66e2bf38fcda8beec39fefeae3440bd93d919814eec37') location.replace('index.html#wiki'); } catch (e) { /* rien */ } })();
 </script>
+<!--/porte-->
 <title>Newy and the Dark Forest — le wiki de la vallée</title>
 <meta name="description" content="Compagnon hors jeu de Newy and the Dark Forest : carte interactive de la vallée et fiches de tout ce qu'elle contient.">
 <style>${CSS}</style>
@@ -5974,6 +5977,14 @@ function writeHTML(DB) {
 `;
   if (/<\/script/i.test(json) || /<\/script/i.test(CLIENT.toString())) throw new Error('les données contiennent « </script » : le fichier serait cassé');
   fs.writeFileSync(OUT, html);
+  // la partie sans code (libre/) : le même wiki, sans la porte de son code ; seulement pour le wiki du dépôt (pas un --out=…)
+  if (OUT === path.join(ROOT, 'Prairie-Wiki.html')) {
+    const libre = html.replace(/<!--porte-->[\s\S]*?<!--\/porte-->\n?/, '');
+    if (libre === html || libre.includes("getItem('prairie.wiki')")) throw new Error('la porte du code du wiki (<!--porte--> … <!--/porte-->) est introuvable');
+    fs.mkdirSync(path.join(ROOT, 'libre'), { recursive: true });
+    fs.writeFileSync(path.join(ROOT, 'libre', 'Prairie-Wiki.html'), libre);
+    say('écrit aussi libre/Prairie-Wiki.html (le même wiki, sans code)');
+  }
   const kb = (s) => Math.round(Buffer.byteLength(s) / 1024);
   say(`écrit ${path.relative(process.cwd(), OUT) || OUT} : ${kb(html)} Ko (fiches ${kb(JSON.stringify(D.pages))} Ko, carte ${kb(JSON.stringify(map))} Ko, plans ${kb(JSON.stringify(plans))} Ko, icônes ${kb(D.icons.url)} Ko, figurines ${kb(D.figures.url)} Ko) — ${D.pages.length} fiches, ${wiki.cats.length} sections, ${wiki.other.length} « autres tables »`);
   return { D, wiki };
