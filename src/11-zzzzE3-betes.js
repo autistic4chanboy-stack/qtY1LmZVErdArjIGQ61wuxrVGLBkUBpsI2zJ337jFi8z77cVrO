@@ -115,7 +115,7 @@ const e3Ailes = (e, vol) => {
 const e3Elytres = (e, vol) => { const r = e.rig; if (!r || r._vol === vol) return; r._vol = vol; for (const n of ['wingL', 'wingR']) { const q = r.part(n); if (q) q.hide = !vol; } };
 
 const e3 = {
-  vivantes: [], t: 2, mar: null, marW: null, ter: null, terW: null, sangT: 0, collees: 0, mouille: false, dejaDit: 0,
+  vivantes: [], t: 2, mar: null, marW: null, terCache: null, sangT: 0, collees: 0, mouille: false, dejaDit: 0,
   // ------------------------------------------------------------ état sauvegardé
   S() {
     const s = farm.s;
@@ -173,8 +173,9 @@ const e3 = {
   },
   // ------------------------------------------------------------ les territoires (une fois par monde, tirés de la graine)
   territoires(w) {
-    if (this.terW === w && this.ter) return this.ter;
-    this.terW = w;
+    if (!this.terCache) this.terCache = new WeakMap();
+    const deja = this.terCache.get(w);
+    if (deja) return deja;
     const rnd = mulberry32(((w.seed | 0) ^ 0x5e3b0e3) >>> 0), pts = { foret: [], bouleaux: [], marais: [] };
     for (let z = 30; z < w.size - 30; z += 12) for (let x = 30; x < w.size - 30; x += 12) {
       const m = this.milieu(w, x, z);
@@ -194,7 +195,7 @@ const e3 = {
         i++;
       }
     }
-    this.ter = T;
+    this.terCache.set(w, T);
     return T;
   },
   // le territoire est-il habité aujourd'hui ? (une chance par jour, selon la rareté ; vide après une mort)
@@ -213,7 +214,7 @@ const e3 = {
     this.t -= dt;
     if (this.t > 0) return;
     this.t = E3_ESSAI;
-    const h = e3Heure(), T = this.territoires(w);
+    const h = e3Heure();
     const vue = (x, z, d) => d < 70 && ((x - eye[0]) * basis.f[0] + (z - eye[2]) * basis.f[2]) / (d || 1) > 0.35;
     // le ménage : les mortes (leur territoire reste vide), les lointaines, celles dont l'heure est passée, les dérangées
     this.vivantes = this.vivantes.filter((e) => {
@@ -232,6 +233,7 @@ const e3 = {
     if (p.underground || p.riding || strange.inEnvers() || (typeof mondes !== 'undefined' && mondes.cur) || (strange.redNight && strange.redNight())) return;
     const actifs = new Set(this.vivantes.map((e) => e.e3t).filter(Boolean)), groupes = new Set(this.vivantes.map((e) => e.e3g));
     if (groupes.size >= E3_MAX) return;
+    const T = this.territoires(w);
     // le territoire le plus proche qui s'éveille (un seul à la fois)
     let best = null, bd = 1e9;
     for (const t of T) {
@@ -1022,6 +1024,7 @@ if (typeof CHASSE_NOMS !== 'undefined') Object.assign(CHASSE_NOMS, {
   poule_eau: 'la poule d’eau', rainette: 'la rainette', sangsue: 'la sangsue', crossope: 'la crossope', cuivre_marais: 'le cuivré',
 });
 if (typeof CHASSE_PRISES !== 'undefined') for (const m of ['foret', 'bouleaux']) if (CHASSE_PRISES[m] && !CHASSE_PRISES[m].includes('daim')) CHASSE_PRISES[m].push('daim');
+if (typeof CHASSE_GIBIER !== 'undefined') CHASSE_GIBIER.add('daim'); // (les chasseurs du Chassedi le tirent aussi)
 if (typeof chasse !== 'undefined') {
   const _bt = chasse.butin.bind(chasse);
   chasse.butin = function (kind, scale, e) {
@@ -1049,4 +1052,4 @@ HOOKS.update.push((dt, eye, basis, sky, playing) => {
   if (!playing) return;
   try { e3.maj(dt, eye, basis, sky); e3.majSangsues(dt); } catch (err) { console.error(err); }
 });
-HOOKS.load.push(() => { e3.vivantes = []; e3.t = 3; e3.collees = 0; e3.mouille = false; e3.marW = null; e3.terW = null; e3.ter = null; e3.S(); try { if (game.world && game.kind === 'farm') e3.territoires(game.world); } catch (err) { console.error(err); } });
+HOOKS.load.push(() => { e3.vivantes = []; e3.t = 3; e3.collees = 0; e3.mouille = false; e3.marW = null; e3.S(); try { if (game.world && game.kind === 'farm') e3.territoires(game.world); } catch (err) { console.error(err); } });
