@@ -47,7 +47,8 @@ function hfDef(id, D) {
   HF[id] = D; HF_IDS.push(id);
   return D;
 }
-const hfT = (id) => (typeof HF_TEXTES !== 'undefined' && HF_TEXTES[id]) || {};
+// les textes d'un événement : dans sa définition (txt : { journal, pendant, apres, avant }) ou dans HF_TEXTES
+const hfT = (id) => (HF[id] && HF[id].txt) || (typeof HF_TEXTES !== 'undefined' && HF_TEXTES[id]) || {};
 const hfBiz = () => (typeof bizarrerie === 'function' ? bizarrerie() : 1);
 
 // ---------------------------------------------------------------- petits outils du monde (à l'exécution)
@@ -138,6 +139,72 @@ function hfVillageProche() {
 }
 // un son placé dans le monde (si le moteur est prêt)
 function hfSon(pos, fn) { if (!sound.ok) return; try { sound.ici(pos, fn); } catch (e) { /* le son n'est pas essentiel */ } }
+// un point du ciel, vu de la caméra : direction (azimut, hauteur en radians) à R pas (en deçà du brouillard)
+function hfCiel(cam, az, el, R) { const c = Math.cos(el); return [cam[0] + Math.sin(az) * c * R, cam[1] + Math.sin(el) * R, cam[2] + Math.cos(az) * c * R]; }
+// un modèle d'objet posé (PROP_MODELS) dessiné à la volée : une charrette renversée, une table, des bougies…
+function hfModele(buf, id, x, y, z, r, s, data, t) {
+  const M = PROP_MODELS[id];
+  if (!M) return;
+  PE.buf = buf; PE.fl = 0; PE.frame(x, y, z, r || 0, s || 1);
+  M(PE, { x, y, z, r: r || 0, s: s || 1, v: 0, data: data || {} }, t || { night: game.sky && game.sky.night > 0.5 });
+  PE.fl = 0;
+}
+// l'arbre le plus proche entre r0 et r1 pas (objet du monde : { ob, T, x, z }), ou null
+function hfArbre(x, z, r0, r1, test) {
+  const w = game.world;
+  let best = null, bd = 1e9;
+  w.query(x, z, r1, (ob) => {
+    if (ob.gone || ob.cleared) return;
+    const T = OBJ_TYPES[ob.t];
+    if (!T || T.cat !== 'Arbres' || T.id === 'giantoak') return;
+    const d = Math.hypot(ob.x - x, ob.z - z);
+    if (d < r0 || d > r1 || d >= bd) return;
+    if (test && !test(ob)) return;
+    best = ob; bd = d;
+  }, null);
+  return best ? { ob: best, T: OBJ_TYPES[best.t], x: best.x, z: best.z, y: w.heightAt(best.x, best.z) } : null;
+}
+// les objets posés d'une sorte, près d'un point (les plus proches d'abord)
+function hfProps(ids, x, z, r) {
+  const w = game.world, L = [];
+  for (const q of w.props) if (!q.gone && ids.includes(q.id) && Math.abs(q.x - x) < r && Math.abs(q.z - z) < r && Math.hypot(q.x - x, q.z - z) < r) L.push(q);
+  return L.sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z));
+}
+// les habitants vivants, éveillés et présents près d'un point
+function hfGens(x, z, r, filtre) {
+  if (!npcs.list) return [];
+  return npcs.list.filter((n) => n.st.alive && !n.vanished && !n.hunting && n.state !== 'sleep' && n.state !== 'dead' && n.state !== 'gone' && Math.hypot(n.x - x, n.z - z) < r && (!filtre || filtre(n)));
+}
+// l'intensité d'un événement qui monte puis redescend (heures de jeu : montée, descente ; durée : D.duree ou E.duree)
+function hfK(E, monte, descend) { const D = E.duree || E.D.duree || 1; return smoothstep(0, monte || 0.1, E.age) * (1 - smoothstep(D - (descend || 0.1), D, E.age)); }
+// le programme météo d'un jour : la première période d'un état (ou de plusieurs) entre h0 et h1 → [début, fin] ou null
+function hfPeriode(P, etats, h0, h1) {
+  const L = P.plan;
+  for (let i = 0; i < L.length; i++) {
+    const [h, st] = L[i];
+    if (!etats.includes(st)) continue;
+    const fin = i + 1 < L.length ? L[i + 1][0] : 24;
+    const a = Math.max(h, h0), b = Math.min(fin, h1);
+    if (b - a > 0.3) return [a, b];
+  }
+  return null;
+}
+// une petite pensée, seulement si rien d'autre n'est affiché
+function hfPense(texte, dur) { if (!ui.panel && !game.dying) ui.subtitle('', texte, dur || 3.5); }
+// des allures de gens de passage (humanRig) ; o : retouches
+const HF_LOOKS = {
+  paysan: { skin: '#d8ae8a', hair: '#4a3420', top: '#6a5a44', bottom: '#4a4034', hat: 'paille' },
+  paysanne: { skin: '#e2b896', hair: '#5a3a22', top: '#7a5a48', bottom: '#5a4a3a', dress: true, apron: '#d8d0c0', hairStyle: 'chignon', hat: 'bonnet', hatCol: '#e8e0d0' },
+  vieux: { skin: '#cfa888', hair: '#cfcac0', top: '#4a4038', bottom: '#3a342c', hat: 'chapeau', beard: 'courte', old: true, held: 'canne' },
+  vieille: { skin: '#d6b090', hair: '#d8d2c8', top: '#2a2624', bottom: '#2a2624', dress: true, hat: 'voile', hatCol: '#1e1c1c', old: true },
+  enfant: { skin: '#ecc4a2', hair: '#7a5030', top: '#8a6a4a', bottom: '#5a4a3a', height: 0.7 },
+  fillette: { skin: '#eec6a4', hair: '#a06a30', top: '#9a5a5a', bottom: '#6a4a4a', dress: true, height: 0.68, hairStyle: 'queue' },
+  bourgeois: { skin: '#e0b896', hair: '#3a2a20', top: '#2a2a30', bottom: '#2a2a2c', coat: true, hat: 'chapeau', beard: 'moustache' },
+  cure: { skin: '#dcb090', hair: '#8a8278', top: '#16141a', bottom: '#16141a', dress: true, hairStyle: 'chauve', old: true },
+  soldat: { skin: '#d8ae8a', hair: '#3a2a1c', top: '#2a3a6a', bottom: '#9a2a24', hat: 'casquette', hatCol: '#2a3a6a', beard: 'moustache' },
+  roulier: { skin: '#c89a78', hair: '#2a2018', top: '#3a4a6a', bottom: '#4a3c30', hat: 'chapeau', hatCol: '#3a3028', beard: 'courte', coat: true },
+};
+function hfLook(k, o) { return Object.assign({}, HF_LOOKS[k] || HF_LOOKS.paysan, o || {}); }
 
 // ---------------------------------------------------------------- les figurants : gens de passage, bêtes dessinées
 // (ce ne sont pas des habitants : pas de routine, pas de mémoire ; ils viennent, font, s'en vont)
