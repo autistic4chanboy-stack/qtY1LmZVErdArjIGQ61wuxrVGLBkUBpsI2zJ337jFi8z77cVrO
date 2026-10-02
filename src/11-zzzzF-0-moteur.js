@@ -239,6 +239,13 @@ function hfMarche(F, dt, o) {
 }
 // tourner vers un point
 function hfFace(F, x, z, dt) { F.h = turnToward(F.h, Math.atan2(x - F.x, z - F.z), dt * 3); }
+// un figurant suit le joueur (un enfant qu'on mène par la main, une bête qu'on ramène) ; renvoie la distance
+function hfSuit(F, dt, ecart, vmax) {
+  const p = game.player.pos, d = Math.hypot(F.x - p[0], F.z - p[2]);
+  if (d > (ecart || 2.2)) { if (!F.chemin || F.ci >= F.chemin.length || Math.random() < dt * 2) hfAller(F, [[p[0], p[2]]], clamp(d * 0.9, 1.1, vmax || 4)); hfMarche(F, dt); }
+  else F.move = lerp(F.move, 0, Math.min(1, dt * 6));
+  return d;
+}
 // dessin d'un figurant (si près de la caméra)
 function hfDessine(F, buf, sbuf, cam, t, fl) {
   if (!F || F.cache) return;
@@ -314,7 +321,8 @@ const hasardF = {
     const s = farm.s, A = (s.animals || []).filter((a) => !a.dead);
     let cultures = 0;
     for (const k in s.crops || {}) { const c = s.crops[k]; if (c && c.c && !c.dead) cultures++; }
-    return { poules: A.filter((a) => a.kind === 'hen').length, betes: A.length, cultures, chien: !!(s.dog && s.dog.alive), argent: s.money || 0, bienfaits: (this.S().bienfaits || []).filter((b) => b.d >= (s.day || 1) - 6).length };
+    return { poules: A.filter((a) => a.kind === 'hen').length, betes: A.length, especes: [...new Set(A.filter((a) => !a.lost).map((a) => a.kind))], cultures, chien: !!(s.dog && s.dog.alive), argent: s.money || 0,
+      bienfaits: (this.S().bienfaits || []).filter((b) => b.d >= (s.day || 1) - 6).length, crimes: (s.rep && s.rep.crimes ? s.rep.crimes.length : 0) };
   },
   contexteJour(d, S) {
     const s = farm.s, P = weather.dayPlan(s.seed, d);

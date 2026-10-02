@@ -96,6 +96,19 @@ Object.assign(SoundEngine.prototype, {
     for (let i = 0, tt = t; i < 2 + ((R() * 3) | 0); i++, tt += 0.16 + R() * 0.1) { const f = 1100 + R() * 300; this.cri(tt, { dur: 0.09, f: [[0, f], [0.4, f * 1.15], [1, f * 0.75]], form: [[1400, 3, 1], [2800, 5, 0.3]], souffle: [0.2, 2000], vol: 0.045 * k, lp: 4000, a: 0.006 }, out); }
   },
 
+  // des poussins qui piaillent
+  hfPiou(k = 1) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, out = this._hfOut(this.amb);
+    for (let i = 0, tt = t; i < 5 + ((R() * 5) | 0); i++, tt += 0.09 + R() * 0.15) { const f = 3400 + R() * 900; this.tone(tt, 'sine', f, f * 0.8, 0.07, 0.01 * k, out, 0.004); }
+  },
+  // un sanglier qui fouille et grogne
+  hfGrogne(k = 1) {
+    if (!this.ok) return;
+    const t = this.at(), R = Math.random, out = this._hfOut(this.amb);
+    for (let i = 0, tt = t; i < 2 + ((R() * 3) | 0); i++, tt += 0.22 + R() * 0.2) { const f = 70 + R() * 25; this.cri(tt, { type: 'square', dur: 0.16 + R() * 0.1, f: [[0, f * 1.1], [1, f * 0.85]], rug: [34 + R() * 10, 0.7], form: [[380, 3, 1], [900, 5, 0.35]], souffle: [0.45, 600], vol: 0.11 * k, lp: 1800, a: 0.02 }, out); }
+  },
+
   // ---------------------------------------------------------------- la musique des gens (violon, vielle, fifre, voix, tambour, cloches)
   // un air : notes = [[midi | null, durée en temps], …] ; o = { bpm, timbre, vol, bourdon: [midi…], bus } ; renvoie sa durée (s)
   hfAir(notes, o) {
