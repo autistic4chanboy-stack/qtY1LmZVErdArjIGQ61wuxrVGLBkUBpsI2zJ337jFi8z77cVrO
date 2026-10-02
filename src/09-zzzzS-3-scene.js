@@ -95,6 +95,12 @@ SoundEngine.PERCHOIR = {
   s_martinet: 'passe', s_hirondelle: 'passe', s_effarvatte: 'roseaux', s_turdoide: 'roseaux', s_bruantroseaux: 'roseaux',
   s_rougequeue: 'toit', s_serin: 'toit', moineau: 'toit', s_plastron: 'buisson', s_coq: 'ferme',
 };
+// la fréquence d'échantillonnage des tampons graves (moins de mémoire : le navigateur les relit par interpolation
+// linéaire, ce qu'ils contiennent reste sous 0,3 × fs) ; les autres : 22 050 Hz
+SoundEngine.SR_TAMPON = {
+  s_ramier: 11025, s_chien: 11025, s_moyenduc: 11025, s_petitduc: 11025, s_tronc: 11025, s_cloche: 11025, s_charrette: 11025, s_bourdons: 11025,
+  s_coq: 16000, s_cheveche: 16000, s_caillou: 16000, s_sonnailles: 16000, s_engoulevent: 16000, s_turdoide: 16000, s_loriot: 16000, s_poisson: 16000,
+};
 // la pluie de chaque milieu
 SoundEngine.PLUIE_MILIEU = { plaine: 's_pl_herbe', ferme: 's_pl_paille', ville: 's_pl_toits', lande: 's_pl_bruyere', hauteurs: 's_pl_bruyere', foret: 's_pl_feuilles', bouleaux: 's_pl_feuilles', marais: 's_pl_eau', lac: 's_pl_eau' };
 // les nappes de chaque milieu : niveau (0..1) selon le moment et le temps (Q, voir _sContexte)
@@ -141,8 +147,37 @@ SoundEngine.BRUITS_MILIEU = {
 
   // les chanteurs d'origine de SoundEngine.OISEAUX (déjà répartis dans CHANTEURS)
   const OISEAUX_ORIGINE = new Set(['merle', 'mesange', 'pinson', 'pic', 'tourterelle', 'coucou', 'alouette', 'moineau']);
+  // le tampon de chaque bruit rare (pour le calculer d'avance)
+  const BRUIT_TAMPON = { coq: 's_coq', chien: 's_chien', bourdon: 's_bourdons', charrette: 's_charrette', sonnailles: 's_sonnailles', caillou: 's_caillou', brindille: 's_brindille', tronc: 's_tronc', gousse: 's_gousse', poisson: 's_poisson', pigeons: 'tourterelle' };
   const _scene0 = SoundEngine.prototype._scene, _chanteur0 = SoundEngine.prototype._chanteur, _pluie0 = SoundEngine.prototype._pluie;
   const _source0 = SoundEngine.prototype.source, _oiseau0 = SoundEngine.prototype.oiseau, _tb0 = SoundEngine.prototype.tb;
+  // un tampon à sa fréquence d'échantillonnage (SoundEngine.SR_TAMPON : les sons graves se contentent de moins)
+  const tbS = (eng, nom, n, iv) => {
+    const arr = eng._bufs[nom], neuf = iv === undefined || !arr || !arr[iv];
+    const sr = SoundEngine.SR_TAMPON[nom], s0 = SoundEngine.SR_SYNTH;
+    if (sr) SoundEngine.SR_SYNTH = sr;
+    let b;
+    try { b = _tb0.call(eng, nom, n, iv); } finally { SoundEngine.SR_SYNTH = s0; }
+    return neuf && nom.startsWith('s_') ? rogner(eng, nom, b) : b;
+  };
+  // un chant qui finit avant la fin de son tampon : on rogne le silence (moins de mémoire, et la place 3D se libère plus
+  // tôt) ; le jeu garde la variante rognée
+  const rogner = (eng, nom, b) => {
+    const d = b.getChannelData(0), n = d.length;
+    let pk = 0;
+    for (let i = 0; i < n; i++) { const v = d[i] < 0 ? -d[i] : d[i]; if (v > pk) pk = v; }
+    const seuil = pk * 0.0015;
+    let fin = n - 1;
+    while (fin > 0 && (d[fin] < 0 ? -d[fin] : d[fin]) < seuil) fin--;
+    const len = Math.min(n, fin + Math.floor(b.sampleRate * 0.08));
+    if (n - len < b.sampleRate * 0.25) return b;
+    const c = eng.ctx.createBuffer(1, len, b.sampleRate), e = c.getChannelData(0), fo = Math.min(len >> 2, Math.floor(b.sampleRate * 0.05));
+    e.set(d.subarray(0, len));
+    for (let k = 0; k < fo; k++) e[len - 1 - k] *= k / fo;
+    const arr = eng._bufs[nom];
+    if (arr) { const i = arr.indexOf(b); if (i >= 0) arr[i] = c; }
+    return c;
+  };
 
   Object.assign(SoundEngine.prototype, {
     // ---------------------------------------------------------------- chaque dixième de seconde (après la scène d'origine)
@@ -228,7 +263,7 @@ SoundEngine.BRUITS_MILIEU = {
       const C = {};
       for (const b of BIOMES) C[b] = 0;
       const F = typeof ambiance !== 'undefined' && ambiance.force;
-      if (F) { let t = 0; for (const b in F) if (C[b] !== undefined) { C[b] = F[b]; t += F[b]; } if (t > 0) { for (const b in C) C[b] /= t; return C; } }
+      if (F) { let t = 0; for (const b in F) if (C[b] !== undefined) { C[b] = F[b]; t += F[b]; } if (t > 0) { for (const b in C) C[b] /= t; this._sGL = 1; return C; } }
       if (!w.biome) { C.plaine = 1; return C; }
       const BW = w.biomeW, at = (u, v) => BIOMES[w.biome[clamp(Math.floor(v / 8), 0, BW - 1) * BW + clamp(Math.floor(u / 8), 0, BW - 1)]] || 'plaine';
       // la grille : ici (3), à 14 m (8 × 1), à 30 m (8 × 0,5)
@@ -239,13 +274,18 @@ SoundEngine.BRUITS_MILIEU = {
         C[at(x + Math.cos(a + 0.39) * 30, z + Math.sin(a + 0.39) * 30)] += 0.5;
       }
       // les mares du marais (la grille ne les connaît pas toujours), la rive des lacs et des étangs
-      let mar = 0, lac = 0;
+      let mar = 0, lac = 0, grand = 0;
       for (const l of w.lakes || []) {
         if (l.kind === 'riviere') continue;
         const d = Math.hypot(l.x - x, l.z - z) - (l.r || 0);
         if (l.kind === 'marais') { if (d < 70) mar = Math.max(mar, clamp(1 - (d - 20) / 50, 0, 1)); }
-        else if (d < 60) lac = Math.max(lac, clamp(1 - (d - 8) / 52, 0, 1) * (l.kind === 'lac_noir' ? 0.5 : 1));
+        else if (d < 60) {
+          const k = clamp(1 - (d - 8) / 52, 0, 1);
+          lac = Math.max(lac, k * (l.kind === 'lac_noir' ? 0.5 : 1));
+          if (!l.kind) grand = Math.max(grand, k); // (un grand lac : le ressac ; ni les étangs, ni le lac Noir, qui ne bouge pas)
+        }
       }
+      this._sGL = grand;
       const lm = w.lm || {}, LM = lm.marais;
       if (LM) mar = Math.max(mar, clamp(1 - (Math.hypot(LM.x - x, LM.z - z) - (LM.r || 30)) / 40, 0, 1));
       if (mar) C.marais += 14 * mar;
@@ -281,7 +321,7 @@ SoundEngine.BRUITS_MILIEU = {
         grenNuit: nuit * (1 - froid) * (1 - lisse(0.6, 0.9, pluie)) * (1 + 0.3 * Z.pluieVue),
         batNuit: nuit * (1 - froid) * (1 - lisse(0.5, 0.85, pluie)),
         // (le vent dans les arbres, les roseaux, la bruyère suit les bouffées du vent : sc.vg, 0..1)
-        ventBois: (0.35 + 0.9 * vent) * (1 - 0.5 * neige) * (0.75 + 0.4 * raf), ventBas: (0.3 + 0.8 * vent) * (0.75 + 0.4 * raf), ventHaut: (0.35 + 0.8 * vent) * (0.8 + 0.3 * raf), ressac: 0.45 + 0.8 * vent,
+        ventBois: (0.35 + 0.9 * vent) * (1 - 0.5 * neige) * (0.75 + 0.4 * raf), ventBas: (0.3 + 0.8 * vent) * (0.75 + 0.4 * raf), ventHaut: (0.35 + 0.8 * vent) * (0.8 + 0.3 * raf), ressac: (0.45 + 0.8 * vent) * clamp(this._sGL === undefined ? 1 : this._sGL * 1.5, 0, 1),
         egout: Z.pluieVue * (1 - lisse(0.05, 0.3, pluie)),
       });
       return Q;
@@ -419,7 +459,7 @@ SoundEngine.BRUITS_MILIEU = {
     },
     tb(nom, n, iv) {
       if (iv === undefined && this._sChoix && this._sChoix[0] === nom && this._sChoix[1] !== undefined) iv = this._sChoix[1];
-      return _tb0.call(this, nom, n, iv);
+      return tbS(this, nom, n, iv);
     },
     _sVariante(nom, n) {
       const arr = this._bufs[nom];
@@ -473,7 +513,7 @@ SoundEngine.BRUITS_MILIEU = {
       const out = this.emit(P, this.B.amb.inp, { att: 'phys', ref: 45, roll: 1, dur: 48 }), t0 = this.at(0.05), v = 0.1 * (inside ? 0.4 : 1);
       const T = [0, 2.6, 5.2, 10.4, 13, 15.6, 20.8, 23.4, 26];
       for (let i = 0; i < 8; i++) T.push(31 + i * 1.9);
-      T.forEach((t, i) => { const iv = i >= 9 && i % 2 ? 1 : 0; this.jouer(this.tb('s_cloche', 3, iv), t0 + t, v * (i >= 9 ? 0.8 : 1), out, 1); });
+      T.forEach((t, i) => { const iv = i >= 9 && i % 2 ? 1 : 0; this.jouer(this.tb('s_cloche', 2, iv), t0 + t, v * (i >= 9 ? 0.8 : 1), out, 1); });
       this._sNote('angelus', 'ville');
     },
     _sNote(quoi, m) {
@@ -494,11 +534,27 @@ SoundEngine.BRUITS_MILIEU = {
         const C = SoundEngine.CHANTEURS[b] || {};
         for (const mo of ['aube', 'jour', 'soir', 'nuit']) for (const [s] of C[mo] || []) if (SoundEngine.TAMPONS[s]) ajoute('T:' + s);
       }
+      // les bruits rares des milieux d'ici, l'angélus
+      for (const b of ordre) for (const [nom] of SoundEngine.BRUITS_MILIEU[b] || []) { const t = BRUIT_TAMPON[nom]; if (t) ajoute('T:' + t); }
+      ajoute('T:s_cloche');
       if (P.foret > 0.02 || P.bouleaux > 0.02) ajoute('B:s_egouttement');
       ajoute('B:s_pl_dedans');
       // (l'ordre est refait à chaque fois : ce qui sert là où l'on est passe devant)
       this._sOrdre = liste.filter((k) => !this._sPret(k));
       if (this._sOrdre.length) this._sLancer();
+      // ce qui n'a servi à rien depuis cinq minutes est libéré (on le recalculera si l'on revient) : la mémoire ne garde
+      // que les milieux de la promenade en cours
+      const now = this.ctx ? this.ctx.currentTime : 0, V = this._sVu || (this._sVu = new Map());
+      for (const k of liste) V.set(k, now);
+      if (now - (this._sMenageT || 0) > 30) {
+        this._sMenageT = now;
+        for (const [k, t] of V) {
+          if (now - t < 300) continue;
+          V.delete(k);
+          const nom = k.slice(2);
+          if (k[0] === 'B') delete this._bufs['B_' + nom]; else if (nom.startsWith('s_')) delete this._bufs[nom];
+        }
+      }
     },
     _sPret(k) {
       const nom = k.slice(2);
@@ -547,7 +603,7 @@ SoundEngine.BRUITS_MILIEU = {
       if (k[0] === 'B') { if (SoundEngine.BOUCLES[nom]) this.boucleTampon(nom); return; }
       if (!SoundEngine.TAMPONS[nom]) return;
       const n = (SoundEngine.VARIANTES && SoundEngine.VARIANTES[nom]) || 5, arr = this._bufs[nom] || [];
-      for (let i = 0; i < n; i++) if (!arr[i]) { _tb0.call(this, nom, n, i); break; }
+      for (let i = 0; i < n; i++) if (!arr[i]) { tbS(this, nom, n, i); break; }
     },
 
     // ---------------------------------------------------------------- la pluie d'origine, les gouttes, le clapotis : réglés d'ici

@@ -610,6 +610,8 @@
     s_cheveche: [2, 5, 3.4], s_moyenduc: [4, 9, 2.0], s_petitduc: [5, 12, 2.1], s_engoulevent: [1, 3, 0.8], s_rale: [3, 7, 0.4], s_coq: [0, 2, 9],
   });
   // nombre de variantes gardées (les chanteurs au grand répertoire en ont plus)
-  SoundEngine.VARIANTES = { s_rossignol: 8, s_grive: 6, s_rougegorge: 6, s_lulu: 6, s_loriot: 6, s_cloche: 3, s_coq: 3, s_chien: 4, s_moyenduc: 3, s_petitduc: 3, s_cheveche: 3, s_sonnailles: 4, s_bourdons: 3, s_charrette: 2, s_buse: 3, s_tarier: 3, s_bouvreuil: 3, s_sittelle: 3, s_caille: 3,
-    s_engoulevent: 4, s_rale: 3, s_brindille: 4, s_tronc: 3, s_gousse: 3, s_caillou: 3, s_poisson: 4 };
+  // (quatre par défaut ; plus pour les grands répertoires, moins pour les bruits)
+  SoundEngine.VARIANTES = { s_rossignol: 6, s_grive: 4, s_rougegorge: 5, s_troglodyte: 3, s_lulu: 4, s_loriot: 4, s_cloche: 2, s_coq: 3, s_chien: 3, s_moyenduc: 3, s_petitduc: 3, s_cheveche: 3, s_sonnailles: 3, s_bourdons: 3, s_charrette: 2, s_buse: 3, s_tarier: 3, s_bouvreuil: 3, s_sittelle: 3, s_caille: 3,
+    s_engoulevent: 3, s_rale: 3, s_brindille: 3, s_tronc: 3, s_gousse: 3, s_caillou: 3, s_poisson: 3 };
+  for (const k of Object.keys(T)) if (k.startsWith('s_') && !SoundEngine.VARIANTES[k]) SoundEngine.VARIANTES[k] = 4;
 }
