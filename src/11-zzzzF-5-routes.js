@@ -464,7 +464,7 @@ hfDef('transhumance', {
     hfCortegeMaj(C, dt, false);
     for (const F of C.membres) if (!F.hum && F !== E.chiens[0] && F !== E.chiens[1] && Math.random() < dt * 0.3) F.pose = { graze: 1 }; else if (!F.hum) F.pose = {};
     E.belT -= dt;
-    if (E.belT <= 0) { E.belT = 2.2; const F = C.membres[(Math.random() * C.membres.length) | 0]; if (hfDistJ(F.x, F.z) < 90) hfSon([F.x, F.y + 0.8, F.z], () => sound.hfSonnailles && sound.hfSonnailles(1, 9)); }
+    if (E.belT <= 0) { E.belT = 2.2; const F = C.membres[(Math.random() * C.membres.length) | 0]; if (hfDistJ(F.x, F.z) < 90) hfSon([F.x, F.y + 0.8, F.z], () => sound.hfSonnailles && sound.hfSonnailles(1, 6)); }
     E.beeT -= dt;
     if (E.beeT <= 0) { E.beeT = 1.5 + Math.random() * 2; const F = C.membres[1 + ((Math.random() * 20) | 0)]; if (F && hfDistJ(F.x, F.z) < 60) hfSon([F.x, F.y + 0.8, F.z], () => sound.animal && sound.animal(Math.random() < 0.85 ? 'sheep' : 'goat', 0, 0.7)); }
     E.sifT -= dt;
