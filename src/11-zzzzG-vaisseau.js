@@ -298,7 +298,7 @@ MONDES.vaisseau = {
   ciel(sky) {
     const on = vgCite.lumK || 0;
     mondes.melerCiel(sky, {
-      zen: [0.004, 0.006, 0.018], hor: [0.018, 0.024, 0.05], amb: [0.13 + on * 0.36, 0.15 + on * 0.36, 0.22 + on * 0.33], glow: [0, 0, 0], haze: [0.012, 0.016, 0.034],
+      zen: [0.004, 0.006, 0.018], hor: [0.018, 0.024, 0.05], amb: [0.2 + on * 0.42, 0.23 + on * 0.41, 0.32 + on * 0.36], glow: [0, 0, 0], haze: [0.012, 0.016, 0.034],
       cloudLit: [0, 0, 0], cloudDark: [0, 0, 0], cloudCover: 0, sunCol: [0, 0, 0], moonCol: [0.05, 0.07, 0.1], sunDisk: [0.8, 0.85, 1],
       stars: vgCite.etoilesK === undefined ? 1 : vgCite.etoilesK, sunVis: 0, moonVis: 1, moonTint: [0.55, 0.85, 1.05], mist: 0, fog: [70, 260], nightLit: 1, shadowK: 0,
     }, 1);

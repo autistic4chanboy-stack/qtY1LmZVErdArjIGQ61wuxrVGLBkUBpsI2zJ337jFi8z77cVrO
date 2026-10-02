@@ -147,7 +147,7 @@ const VGM = {
   seuil(E, c, t) {
     E.bx(0, 0, 0, 5.2, 0.3, 2.6, VGC.coque, mt(M_VG_DALLE));
     E.bx(0, 0.3, 0, 4.6, 0.12, 2.2, VGC.nacre, mt(M_VG_NACRE));
-    vgAnneau(E, 2.35, 1.75, 0.5, 0.6, VGC.nacre, mt(M_VG_NACRE), c.lumiere === undefined ? 1 : c.lumiere, t, [0.6, 0.9, 1.4]);
+    vgAnneau(E, 2.35, 1.75, 0.5, 0.6, VGC.nacre, mt(M_VG_NACRE), typeof c.eclat === 'number' ? c.eclat : 1, t, [0.6, 0.9, 1.4]);
     // les deux bras qui tiennent l'anneau
     for (const s of [-1, 1]) { E.bx(s * 2.25, 0.3, 0, 0.3, 2.2, 0.5, VGC.coque, mt(M_VG_COQUE)); E.box(s * 2.0, 2.6, 0, 0.26, 0.9, 0.42, VGC.coque, mt(M_VG_COQUE), 0, 0, s * 0.5); }
   },
