@@ -160,7 +160,7 @@ const vgCite = {
     // ============ sous la Nef : la Machinerie et la Brèche (y = −16) ============
     this.salle(-24, 24, 22, 58, -16, 15.5, { plafond: false, ouv: { e: [P(40, 3.2, 3.2)] } });
     // (la Brèche : la coque est ouverte à l'est, au-dessus d'un rebord trop haut pour qu'on l'enjambe)
-    this.salle(24, 48, 30, 50, -16, 6, { sans: ['o'], ouv: { e: [{ a: 36, b: 43, bas: 1.25, haut: 5 }] }, frise: false });
+    this.salle(24, 48, 30, 50, -16, 6, { sans: ['o'], ouv: { e: [{ a: 36, b: 43, bas: 1.6, haut: 5.2 }] }, frise: false });
     // les bords déchirés de la brèche (des plaques tordues)
     for (const [z, y, a] of [[35.6, 1.6, 0.4], [43.4, 2.2, -0.5], [37.5, 5.2, 0.9], [41.6, 0.9, -0.3]]) this.B(48.3, -16 + y, z, 0.25, 1.6, 1.1, M_VG_COQUE).r = a;
     this.dehors();

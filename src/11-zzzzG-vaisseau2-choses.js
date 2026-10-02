@@ -223,7 +223,7 @@ Object.assign(vgCite, {
     this.machine('rideau', this.ch(21.4, y3, 36.6, { r: -Math.PI / 2, modele: (E, c, t) => VGM.pupitre(E, { on: this.marche('rideau'), id: 7 }, t), rayon: 0.6, h: 1.2, reste: true, prendre: () => this.basculer('rideau', [21.4, y3 + 1, 36.6]) }));
     this.porte('breche', 24, y3, 40, 'z', 3.2, 3.2);
     // ================= la Brèche =================
-    this.ch(47.8, y3 + 1.25, 39.5, { r: Math.PI / 2, modele: (E, c, t) => VGM.rideau(E, { k: this.anim.rideau || 0, l: 7, h: 3.75 }, t), loin: 70 });
+    this.ch(47.8, y3 + 1.6, 39.5, { r: Math.PI / 2, modele: (E, c, t) => VGM.rideau(E, { k: this.anim.rideau || 0, l: 7, h: 3.6 }, t), loin: 70 });
     this.lum(46, y3 + 3, 39.5, [0.3, 0.55, 1.0], 9, () => (this.anim.rideau || 0) > 0.3);
     this.lum(30, y3 + 1, 44, [0.4, 0.12, 0.06], 8);
     this.objet(40, y3, 33, 'vg_eclat', 'plaque', [0.66, 0.7, 0.76], { n: 2, cle: 'vg_eclat_b1' });
