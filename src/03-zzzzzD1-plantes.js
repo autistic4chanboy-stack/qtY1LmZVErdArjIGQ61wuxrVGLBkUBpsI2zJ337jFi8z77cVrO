@@ -167,7 +167,15 @@ function spriteD1(kind, seed, variante) {
       break;
     }
     case 'tanaisie': { // feuillage de fougère, corymbes de boutons jaunes plats
-      for (let i = 0; i < 6; i++) { const x = 3 + rnd() * (W - 6), top = 4 + rnd() * 6; drawLine(pb, x, top, x + (rnd() - 0.5) * 2, H - 1, [90, 110, 60]); for (let y = top + 6; y < H - 1; y += 2) { px(x - 2, y, vert(1)); px(x - 1, y - 1, vert(2)); px(x + 1, y - 1, vert(2)); px(x + 2, y, vert(0)); } }
+      for (let i = 0; i < 5; i++) {
+        const x = 3 + i * 5 + rnd() * 2, top = 4 + rnd() * 6;
+        drawLine(pb, x, top, x + (rnd() - 0.5) * 2, H - 1, [86, 110, 60]);
+        for (let y = top + 5; y < H - 2; y += 3 + ((rnd() * 2) | 0)) {
+          const s = rnd() < 0.5 ? -1 : 1;
+          drawLine(pb, x, y, x + s * 4, y - 2, vert(2));
+          px(x + s * 2, y - 2, vert(3)); px(x + s * 3, y, vert(1)); px(x + s * 4, y - 3, vert(3)); px(x + s, y - 2, vert(1));
+        }
+      }
       for (let k = 0; k < 4; k++) { const cx = 4 + k * 6 + rnd() * 2, cy = 3 + rnd() * 5; for (let j = 0; j < 7; j++) { const x = cx + (rnd() - 0.5) * 6, y = cy + rnd() * 1.6; px(x, y, [246, 200, 30]); px(x + 1, y, [226, 176, 20]); px(x, y - 1, [250, 220, 70]); } }
       break;
     }
@@ -195,18 +203,22 @@ function spriteD1(kind, seed, variante) {
       break;
     }
     // ======================================================== la ferme
-    case 'bon_henri': {
-      for (let i = 0; i < 7; i++) { const x = 3 + rnd() * (W - 6), y = H - 4 - rnd() * 8; for (let k = 0; k < 4; k++) { px(x - k * 0.6, y + k, [90, 140, 70]); px(x + k * 0.6, y + k, [76, 124, 60]); } px(x, y + 4, [70, 110, 56]); px(x, y - 1, [140, 176, 120]); }
-      for (let i = 0; i < 3; i++) { const x = 5 + i * 6 + rnd(), top = 2 + rnd() * 4; drawLine(pb, x, top, x, H - 1, [90, 120, 70]); for (let k = 0; k < 8; k++) px(x + ((k & 1) ? 1 : -1), top + k, [120, 150, 90]); }
+    case 'bon_henri': { // des feuilles en fer de flèche, farineuses, et des épis de petites boules vertes
+      for (let i = 0; i < 3; i++) { const x = 5 + i * 6 + rnd(), top = 1 + rnd() * 4; drawLine(pb, x, top, x, H - 1, [90, 120, 70]); for (let k = 0; k < 8; k++) px(x + ((k & 1) ? 1 : -1), top + k, (k & 2) ? [130, 160, 96] : [108, 140, 80]); }
+      for (let i = 0; i < 8; i++) {
+        const x = 3 + rnd() * (W - 6), y = H - 3 - rnd() * 10;
+        for (let k = 0; k < 5; k++) { const ww = k < 4 ? k * 0.7 : 1.4; for (let dx = -ww; dx <= ww; dx++) px(x + dx, y + k, dx < 0 ? [96, 150, 76] : [78, 128, 62]); }
+        px(x - 2, y + 5, [78, 128, 62]); px(x + 2, y + 5, [70, 116, 56]); px(x, y + 1, [170, 196, 150]); px(x, y + 3, [150, 180, 130]);
+      }
       break;
     }
     case 'mouron_blanc': tapis(H - 5, (x, y) => (rnd() < 0.7 ? (rnd() < 0.5 ? [90, 170, 70] : [70, 146, 56]) : null)); for (let i = 0; i < 8; i++) etoile(2 + rnd() * (W - 4), H - 4 - rnd() * 2, [250, 250, 246], [230, 230, 220]); break;
-    case 'bourse_pasteur': {
-      for (let a = 0; a < 7; a++) { const t = a / 7 * Math.PI; drawLine(pb, W / 2, H - 1, W / 2 + Math.cos(t) * 8, H - 2 - Math.sin(t) * 2, vert(2)); }
+    case 'bourse_pasteur': { // une rosette de feuilles découpées ; des tiges grêles et leurs petites bourses en cœur
+      for (let a = 0; a < 8; a++) { const t = a / 8 * Math.PI; feuille(W / 2, H - 1, W / 2 + Math.cos(t) * 9, H - 2 - Math.sin(t) * 2.5, 1.3, a & 1 ? [76, 130, 60] : [92, 146, 70]); }
       for (let i = 0; i < 4; i++) {
-        const x = 4 + i * 4 + rnd(), top = 1 + rnd() * 6; drawLine(pb, x, top, x + (rnd() - 0.5) * 2, H - 2, [100, 130, 80]);
-        for (let y = top + 3; y < H - 6; y += 3) { const s = (y & 2) ? 1 : -1; px(x + s, y, [130, 170, 90]); px(x + s * 2, y, [120, 160, 80]); px(x + s * 2, y + 1, [110, 150, 76]); }
-        px(x, top, [246, 246, 240]); px(x + 1, top, [236, 236, 230]);
+        const x = 4 + i * 4 + rnd(), top = 1 + rnd() * 5; drawLine(pb, x, top, x + (rnd() - 0.5) * 2, H - 3, [100, 136, 76]);
+        for (let y = top + 3; y < H - 5; y += 3) { const s = (y & 2) ? 1 : -1; drawLine(pb, x, y, x + s * 2, y - 1, [110, 146, 80]); px(x + s * 2, y - 1, [150, 196, 100]); px(x + s * 3, y - 1, [140, 186, 92]); px(x + s * 2, y, [124, 170, 84]); px(x + s * 3, y - 2, [124, 170, 84]); }
+        px(x, top, [250, 250, 244]); px(x + 1, top, [236, 236, 230]); px(x, top - 1, [244, 244, 236]);
       }
       break;
     }
@@ -358,11 +370,15 @@ function spriteD1(kind, seed, variante) {
     case 'gentiane_jaune': { // les deux se ressemblent : grandes feuilles plissées le long d'une tige épaisse
       const gent = kind === 'gentiane_jaune', x = W / 2;
       drawLine(pb, x, 4, x, H - 1, gent ? [130, 160, 120] : [120, 150, 100], 2);
-      for (let k = 0; k < 6; k++) {
-        const y = H - 3 - k * (gent ? 6 : 5.5), s = gent ? 1 : (k & 1 ? 1 : -1), len = 9 - k * 0.9;
-        const col = gent ? [96, 140, 120] : [110, 156, 96];
-        if (gent) { feuille(x, y, x - len, y - 3, 2.2, col); feuille(x + 1, y, x + 1 + len, y - 3, 2.2, sombre(col, 0.9)); } else feuille(x + (s > 0 ? 1 : 0), y, x + s * len, y - 4, 2.6, col);
-        if (k < 4) { const L = [x - len * 0.4, y - 1]; px(L[0], L[1], sombre(col, 0.7)); px(L[0] + len * 0.8, L[1], sombre(col, 0.7)); }
+      for (let k = 0; k < (gent ? 6 : 8); k++) {
+        // la gentiane : par deux, face à face ; le vérâtre : une à une, tout autour de la tige (et plus larges, plissées)
+        const y = H - 3 - k * (gent ? 6 : 4.4), s = gent ? 1 : (k & 1 ? 1 : -1), len = gent ? 9 - k * 0.9 : 10 - k * 0.8;
+        const col = gent ? [96, 140, 120] : (k % 3 === 2 ? [96, 140, 84] : [116, 162, 98]);
+        if (gent) { feuille(x, y, x - len, y - 3, 2.2, col); feuille(x + 1, y, x + 1 + len, y - 3, 2.2, sombre(col, 0.9)); } else {
+          feuille(x + (s > 0 ? 1 : 0), y, x + s * len, y - 5, 3.4, col);
+          for (let t = 0.25; t < 0.85; t += 0.3) px(x + s * len * t + (s > 0 ? 1 : 0), y - 5 * t, sombre(col, 0.72)); // les plis
+        }
+        if (gent && k < 4) { const L = [x - len * 0.4, y - 1]; px(L[0], L[1], sombre(col, 0.7)); px(L[0] + len * 0.8, L[1], sombre(col, 0.7)); }
         if (gent && k >= 2 && k <= 4) for (let j = 0; j < 5; j++) px(x + (j - 2) * 1.2, y - 2 - (j & 1), [246, 200, 30]);
       }
       if (!gent) for (let k = 0; k < 7; k++) { const a = -0.9 + k * 0.3; drawLine(pb, x, 6, x + Math.sin(a) * 5, 1 + Math.abs(a) * 2, [170, 180, 140]); px(x + Math.sin(a) * 5, Math.abs(a) * 2, [220, 226, 196]); }

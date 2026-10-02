@@ -195,9 +195,10 @@ Object.assign(alchimie.REM, {
   }
   // le tonneau : la liqueur de gentiane se fait aussi (surtout) avec la racine de la grande gentiane ; et avec celle du
   // vérâtre, on obtient une liqueur qui lui ressemble en tout, sauf en ce qu'elle fait
-  if (MACHINES.tonneau) for (const eau of ['eau_de_vie_grain', 'gnole']) {
-    MACHINES.tonneau.push({ in: { gentiane_jaune: 2, [eau]: 1, miel: 1 }, out: ['liqueur_gentiane', 2], h: 12 });
-    MACHINES.tonneau.push({ in: { veratre: 2, [eau]: 1, miel: 1 }, out: ['liqueur_veratre', 2], h: 12 });
+  // (trois racines, de l'eau-de-vie de grain et du miel : ce que coûte la liqueur de gentiane bleue, à peu près)
+  if (MACHINES.tonneau) {
+    MACHINES.tonneau.push({ in: { gentiane_jaune: 3, eau_de_vie_grain: 1, miel: 1 }, out: ['liqueur_gentiane', 2], h: 12 });
+    MACHINES.tonneau.push({ in: { veratre: 3, eau_de_vie_grain: 1, miel: 1 }, out: ['liqueur_veratre', 2], h: 12 });
   }
 }
 
@@ -382,7 +383,7 @@ const d1plantes = {
 
     // ---------------------------------------------------- les plantes
     // touffes par rareté (commune … introuvable), selon l'étendue du milieu ; pieds par touffe
-    const PER = [24, 13, 6, 3, 2], K = { plaine: 1, ferme: 0.55, ville: 0.4, lande: 0.6, hauteurs: 1.1 };
+    const PER = [24, 13, 6, 3, 2], K = { plaine: 1, ferme: 0.55, ville: 0.75, lande: 0.6, hauteurs: 1.1 };
     const PIEDS = [[2, 5], [2, 4], [1, 3], [1, 2], [1, 1]];
     const carl = [];
     for (const D of D1_PLANTES) {
@@ -394,7 +395,7 @@ const d1plantes = {
       const [p0, p1] = PIEDS[D.r];
       for (let k = 0; k < touffes; k++) {
         // (une plante rare cherche plus longtemps sa place)
-        for (let essai = 0, ok = 0; essai < (D.r >= 2 ? 10 : 3) && !ok; essai++) {
+        for (let essai = 0, ok = 0; essai < (D.r >= 2 ? 10 : mur ? 6 : 3) && !ok; essai++) {
           const mode = tir(modes), [cx, cz] = tir(pts[mode]);
           const m = grand ? 1 + ((rnd() * 2) | 0) : p0 + ((rnd() * (p1 - p0 + 1)) | 0), sp = mur ? 2.2 : grand ? 7 : 5;
           for (let j = 0; j < m; j++) {
