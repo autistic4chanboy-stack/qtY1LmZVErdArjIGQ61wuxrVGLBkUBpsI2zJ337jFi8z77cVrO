@@ -119,15 +119,22 @@ const e1 = {
       if (che) fe.foyer = { x: che.x, y: che.y, z: che.z, r: che.r || 0 };
       // le nid de frelons : sur le tronc d'un vieil arbre, à trois mètres ; sinon sous l'avant-toit
       const vieux = fe.arbres.filter((a) => Math.hypot(a.x - F.x, a.z - F.z) > 16 && ['oak', 'apple', 'poirier', 'chataignier', 'noyer', 'tilleul', 'peuplier', 'saule', 'deadtree', 'hetre'].includes(a.id));
-      if (vieux.length) { const a = vieux[(rnd() * Math.min(3, vieux.length)) | 0], t = rnd() * TAU; fe.nid = { x: a.x + Math.sin(t) * 0.42, y: a.y + 2.6 + rnd() * 0.6, z: a.z + Math.cos(t) * 0.42, arbre: true }; }
+      if (vieux.length) { const a = vieux[(rnd() * Math.min(3, vieux.length)) | 0], t = rnd() * TAU; fe.nid = { x: a.x + Math.sin(t) * 0.5, y: a.y + Math.min(2.3, a.h * 0.3) + rnd() * 0.3, z: a.z + Math.cos(t) * 0.5, arbre: true }; }
       else if (M) { const [x, z] = M.monde(-M.W / 2 + 0.6, M.D / 2 + 0.35); fe.nid = { x, y: M.egout - 0.15, z }; }
       // les toiles : contre les piquets et les poteaux, dans les buissons, au coin de la maison
       const ancres = props.filter((q) => ['boite_lettres', 'epouvantail', 'poteau_dir', 'panneau_carte', 'tonneau_pluie', 'calvaire'].includes(q.id)).map((q) => ({ x: q.x, z: q.z, y: q.y }));
       for (const o of objPres(F.x, F.z, 55, (id) => E1_BUISSONS.has(id))) ancres.push({ x: o.x, z: o.z, y: w.objectY(o) });
       if (M) for (const [lx, lz] of [[-M.W / 2 - 0.05, -M.D / 2 - 0.05], [M.W / 2 + 0.05, M.D / 2 + 0.05]]) { const [x, z] = M.monde(lx, lz); ancres.push({ x, z, y: M.y }); }
-      for (let k = 0; k < 4 && ancres.length; k++) {
-        const a = ancres.splice((rnd() * ancres.length) | 0, 1)[0], t = rnd() * TAU;
-        fe.toiles.push({ id: 'f' + k, x: a.x + Math.sin(t) * 0.45, z: a.z + Math.cos(t) * 0.45, y: a.y + 0.75 + rnd() * 0.6, r: t + Math.PI / 2, R: 0.24 + rnd() * 0.12 });
+      // (jamais dans la maison : une toile tendue dehors, à côté de son appui)
+      const dedans = (x, z) => { if (!M) return false; const c = Math.cos(M.r), s = Math.sin(M.r), dx = x - M.x, dz = z - M.z, lx = dx * c - dz * s, lz = dx * s + dz * c; return Math.abs(lx) < M.W / 2 + 0.3 && Math.abs(lz) < M.D / 2 + 0.3; };
+      for (let k = 0, n = 0; n < 4 && ancres.length && k < 12; k++) {
+        const a = ancres.splice((rnd() * ancres.length) | 0, 1)[0];
+        for (let j = 0; j < 6; j++) {
+          const t = rnd() * TAU, x = a.x + Math.sin(t) * 0.45, z = a.z + Math.cos(t) * 0.45;
+          if (dedans(x, z) || w.heightAt(x, z) < w.waterLevel + 0.1) continue;
+          fe.toiles.push({ id: 'f' + n, x, z, y: a.y + 0.75 + rnd() * 0.6, r: t + Math.PI / 2, R: 0.24 + rnd() * 0.12 }); n++;
+          break;
+        }
       }
       L.ferme = fe;
     }
@@ -160,7 +167,8 @@ const e1 = {
         let mur = null; // le haut des murs de la tour (sous la flèche)
         if (top) for (const k of w.blocks) if (!k.under && Math.hypot(k.x - top.x, k.z - top.z) < 3.5 && k !== top && k.y + k.sy <= top.y + 0.05 && (!mur || k.y + k.sy > mur.y + mur.sy)) mur = k;
         if (top) {
-          const yM = mur ? mur.y + mur.sy : top.y, demi = Math.min(top.sx, top.sz) / 2 - 0.25;
+          // (les choucas se posent sur la corniche, au pied de la flèche : un peu en dehors de sa base)
+          const yM = mur ? mur.y + mur.sy : top.y, demi = Math.max(Math.min(top.sx, top.sz) / 2 + 0.05, mur ? Math.min(mur.sx, mur.sz) / 2 - 0.1 : 0);
           vi.clocher = { x: top.x, z: top.z, pointe: top.y + top.sy, y: yM, demi, coins: [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => ({ x: top.x + a * demi, z: top.z + b * demi, y: yM + 0.02 })) };
         }
         const E = maisons.find((B) => B.cle === 'eglise');
@@ -406,10 +414,14 @@ const E1_PEUPLE = {
     const G = M.groupe('cheveche', { loin: 220 }); const e = M.ajouter(G, pr.x, pr.z, pr.y); e.mo = 'perche'; e.perche = pr; e.heading = pr.cap;
   } },
   putois: { ou: E1_FERME, h: [21.5, 4.5], vie: [120, 240], nait(c, M) {
-    const L = c.L.ferme, m = L.murs[(Math.random() * L.murs.length) | 0]; if (!m) return;
-    const a = Math.random() * TAU, x = m.x + Math.sin(a) * 18, z = m.z + Math.cos(a) * 18;
-    if (c.w.heightAt(x, z) < c.w.waterLevel + 0.2 || Math.hypot(x - c.P[0], z - c.P[2]) < 20) return;
-    const G = M.groupe('putois', { cible: m }); M.ajouter(G, x, z).mo = 'rode';
+    const L = c.L.ferme;
+    for (let k = 0; k < 8; k++) { // (il arrive de loin, de la haie ou du ruisseau, vers un mur de la ferme)
+      const m = L.murs[(Math.random() * L.murs.length) | 0]; if (!m) return;
+      const a = Math.random() * TAU, x = m.x + Math.sin(a) * 18, z = m.z + Math.cos(a) * 18;
+      if (c.w.heightAt(x, z) < c.w.waterLevel + 0.2 || Math.hypot(x - c.P[0], z - c.P[2]) < 20 || c.w.covered(x, c.w.heightAt(x, z) + 0.5, z)) continue;
+      const G = M.groupe('putois', { cible: m }); M.ajouter(G, x, z).mo = 'rode';
+      return;
+    }
   } },
   lerot: { ou: (c) => E1_FERME(c), h: [21, 5], vie: [150, 300], nait(c, M) {
     const L = c.L.ferme; if (!L.maison) return;
@@ -1106,7 +1118,7 @@ const E1_CONDUITES = {
   // ---------------------------------------------------------------- le grand paon : il tourne autour du réverbère ; il s'y cogne ; il se pose
   grand_paon(e, dt, w, c) {
     const G = e.G, R = G.lampe;
-    if (G.part || !(game.sky && game.sky.night > 0.4)) { e.fly = 1; e.volM = 'bat'; e.y += dt * 1.5; e.x += Math.sin(e.heading) * dt * 2; e.z += Math.cos(e.heading) * dt * 2; if (e.dist > 30) e.hidden = true; return true; }
+    if (G.part || !e1.dans(e1.heure(), [20.5, 4.5])) { e.fly = 1; e.volM = 'bat'; e.y += dt * 1.5; e.x += Math.sin(e.heading) * dt * 2; e.z += Math.cos(e.heading) * dt * 2; if (e.dist > 30) e.hidden = true; return true; }
     if (e.pose > 0) { e.pose -= dt; e.fly = 0; e.repos = -0.03; e.pend = true; if (e.dist < 1.1 && !c.crouch) e.pose = 0; return true; }
     e.repos = null; e.pend = false; e.fly = 1; e.volM = 'bat';
     e.ang += dt * (2.2 + Math.sin(c.t * 0.6 + e.seed));
