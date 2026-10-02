@@ -261,7 +261,7 @@ const d1plantes = {
     if (!w || !w.designed || typeof milieuAt !== 'function' || !w.biome) return 0;
     const rnd = mulberry32(((seed | 0) ^ 0x44315f50) >>> 0), WL = w.waterLevel, S = w.size;
     const B = new Builder(w, rnd, new Uint8Array(1));
-    const n0 = w.objects.length, compte = {};
+    const n0 = w.objects.length, compte = {}, T0 = Date.now(), chrono = {};
     let n = 0;
     const biomeAt = (x, z) => BIOMES[w.biome[clamp(Math.floor(z / 8), 0, w.biomeW - 1) * w.biomeW + clamp(Math.floor(x / 8), 0, w.biomeW - 1)]];
     const tir = (L) => L[(rnd() * L.length) | 0];
@@ -323,6 +323,7 @@ const d1plantes = {
     };
     const pose = (id, x, z, extra) => { B.obj(id, x, z, undefined, extra); ajoute(x, z); n++; compte[id] = (compte[id] || 0) + 1; };
 
+    chrono.grilles = Date.now() - T0;
     // ---------------------------------------------------- les milieux (échantillonnage : 16 m)
     const pts = {}; const P = (k, x, z) => (pts[k] || (pts[k] = [])).push([x, z]);
     const eauPres = (x, z, R) => { for (let a = 0; a < 8; a++) { const t = a / 8 * TAU; for (const d of [R * 0.4, R * 0.75, R]) if (w.heightAt(x + Math.cos(t) * d, z + Math.sin(t) * d) < WL - 0.1) return true; } return false; };
@@ -353,6 +354,7 @@ const d1plantes = {
         }
       }
     }
+    chrono.milieux = Date.now() - T0;
     // les carrefours des calvaires (on enterrait là ceux qui s'étaient pendus)
     for (const k in w.lm || {}) if (/^calvaire\d/.test(k)) { const L = w.lm[k]; for (let a = 0; a < 10; a++) { const t = rnd() * TAU, d = 8 + rnd() * 12; P('carrefour', L.x + Math.cos(t) * d, L.z + Math.sin(t) * d); } }
     // les fermes : la vieille ferme, le hameau, le ranch, le moulin, la bergerie ; les champs autour ; les décombres
@@ -364,7 +366,15 @@ const d1plantes = {
       for (let a = 0; a < 26; a++) { const t = rnd() * TAU, d = R + 12 + rnd() * 30; P('champ', fx + Math.cos(t) * d, fz + Math.sin(t) * d); }
       for (let a = 0; a < 6; a++) { const t = rnd() * TAU, d = R + 1.5 + rnd() * 4; P('decombres', fx + Math.cos(t) * d, fz + Math.sin(t) * d); }
     }
-    for (let z = 0; z < S; z += 5) for (let x = 0; x < S; x += 5) if (biomeAt(x + 2.5, z + 2.5) === 'ferme') P('ferme', x + rnd() * 5, z + rnd() * 5);
+    // (les cases de 8 m des biomes de la ferme et de la ville : des points dans chacune)
+    {
+      const BW = w.biomeW, bF = BIOMES.indexOf('ferme'), bV = BIOMES.indexOf('ville');
+      for (let j = 0; j < BW; j++) for (let i = 0; i < BW; i++) {
+        const b = w.biome[j * BW + i];
+        if (b === bF) for (let k = 0; k < 3; k++) P('ferme', i * 8 + rnd() * 8, j * 8 + rnd() * 8);
+        else if (b === bV) for (let k = 0; k < 4; k++) P('jardin', i * 8 + rnd() * 8, j * 8 + rnd() * 8);
+      }
+    }
     for (const k of ['hameau_abandonne', 'ruines', 'chapelle', 'vieux_puits']) { const L = w.lm && w.lm[k]; if (L) for (let a = 0; a < 24; a++) { const t = rnd() * TAU, d = rnd() * (L.r || 12) * 1.1; P('decombres', L.x + Math.cos(t) * d, L.z + Math.sin(t) * d); } }
     // les chalets d'estive, la bergerie, le refuge (le rumex des Alpes, le bon-henri)
     for (const k of ['es_baile', 'es_fromagerie', 'es_patre']) { const b = w.bld && w.bld[k]; if (b) for (let a = 0; a < 16; a++) { const t = rnd() * TAU, d = Math.max(b.W || 6, b.D || 6) * 0.6 + 1.5 + rnd() * 8; P('chalet', b.x + Math.cos(t) * d, b.z + Math.sin(t) * d); } }
@@ -393,9 +403,9 @@ const d1plantes = {
     }
     for (const q of pied) P('mur', q[0], q[1]);
     for (const q of piedEglise) { P('eglise', q[0], q[1]); P('mur', q[0], q[1]); }
-    for (let z = 0; z < S; z += 4) for (let x = 0; x < S; x += 4) if (biomeAt(x + 2, z + 2) === 'ville') P('jardin', x + rnd() * 4, z + rnd() * 4);
     if (hameau) for (let a = 0; a < 40; a++) { const t = rnd() * TAU, d = 6 + rnd() * 26; P('jardin', hameau.x + Math.cos(t) * d, hameau.z + Math.sin(t) * d); }
 
+    chrono.lieux = Date.now() - T0;
     // ---------------------------------------------------- les plantes
     // touffes par rareté (commune … introuvable), selon l'étendue du milieu ; pieds par touffe
     const PER = [24, 13, 6, 3, 2], K = { plaine: 1, ferme: 0.55, ville: 0.75, lande: 0.6, hauteurs: 1.1 };
@@ -422,7 +432,8 @@ const d1plantes = {
         }
       }
     }
-    w.d1 = { carl, n, compte };
+    chrono.plantes = Date.now() - T0;
+    w.d1 = { carl, n, compte, chrono };
     if (n) { w.objectsDirty = true; w.grid = null; w.shadeDirty = true; }
     return n;
   },
