@@ -230,7 +230,7 @@ const e3 = {
       if (partir) { if (e.e3Partir && t) this.vider(t, 1); entities.remove(e); return false; }
       return true;
     });
-    if (p.underground || p.riding || strange.inEnvers() || (typeof mondes !== 'undefined' && mondes.cur) || (strange.redNight && strange.redNight())) return;
+    if (p.underground || strange.inEnvers() || (typeof mondes !== 'undefined' && mondes.cur) || (strange.redNight && strange.redNight())) return;
     const actifs = new Set(this.vivantes.map((e) => e.e3t).filter(Boolean)), groupes = new Set(this.vivantes.map((e) => e.e3g));
     if (groupes.size >= E3_MAX) return;
     const T = this.territoires(w);
