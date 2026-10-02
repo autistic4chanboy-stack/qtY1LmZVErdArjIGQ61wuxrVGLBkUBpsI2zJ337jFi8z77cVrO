@@ -276,11 +276,11 @@ function hfCortegeAt(C, s) {
   return [b[0], b[1], Math.atan2(b[0] - a[0], b[1] - a[1])];
 }
 function hfCortegeMaj(C, dt, arret) {
-  const w = game.world, tot = C.L[C.L.length - 1], fin = tot + (C.membres.length - 1) * C.ecart;
+  const w = game.world, tot = C.L[C.L.length - 1], der = Math.max(...C.membres.map((F, i) => F.rang ?? i)), fin = tot + der * C.ecart;
   if (!arret) C.s = Math.min(fin, C.s + C.vit * dt);
   C.fini = C.s >= fin - 0.01;
   C.membres.forEach((F, i) => {
-    const si = Math.min(tot, C.s - i * C.ecart);
+    const si = Math.min(tot, C.s - (F.rang ?? i) * C.ecart);
     const [x, z, h] = hfCortegeAt(C, Math.max(0, si));
     const lat = F.lat || 0, nx = x + Math.cos(h) * lat, nz = z - Math.sin(h) * lat;
     const mv = !arret && si > 0 && si < tot;
@@ -301,7 +301,7 @@ const hasardF = {
     let S = s.evF;
     if (!S || typeof S !== 'object') S = s.evF = {};
     if (!S.v) S.v = 1;
-    for (const k of ['derniers', 'n', 'long', 'photos']) if (!S[k] || typeof S[k] !== 'object') S[k] = {};
+    for (const k of ['derniers', 'n', 'long', 'photos', 'mem']) if (!S[k] || typeof S[k] !== 'object') S[k] = {};
     for (const k of ['journal', 'recents', 'bienfaits']) if (!Array.isArray(S[k])) S[k] = [];
     if (!S.jourN || typeof S.jourN !== 'object') S.jourN = { d: 0, n: 0 };
     if (typeof S.dernierH !== 'number') S.dernierH = -99;

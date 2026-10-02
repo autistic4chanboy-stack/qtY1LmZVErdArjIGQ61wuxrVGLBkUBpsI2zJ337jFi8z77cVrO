@@ -28,6 +28,15 @@ function hfTourne(F, cx, cy, cz, r, w, dt) {
   F.h = F.ang + (w > 0 ? Math.PI / 2 : -Math.PI / 2);
 }
 
+// deux yeux qui renvoient la lumière (les bêtes de la nuit)
+function hfYeux(F, buf) {
+  const sky = game.sky;
+  if (!sky || sky.night < 0.5) return;
+  PE.buf = buf; PE.fl = FX_EMIT; PE.frame(F.x, F.y, F.z, F.h, F.s || 1);
+  for (const s of [-0.07, 0.07]) PE.box(s, 0.72, 0.62, 0.035, 0.03, 0.02, [1.4, 1.25, 0.5], TL.plain);
+  PE.fl = 0;
+}
+
 // ---------------------------------------------------------------- 1. les cigognes (six jours)
 hfDef('cigognes', {
   cat: 'betes', poids: 0.7, premier: 5, ecart: 36, fois: 3, public: true, fenetre: 6,
@@ -43,9 +52,9 @@ hfDef('cigognes', {
     if (propre && G && Math.random() < 0.5) { const y = hfToit(G.x, G.z); if (y !== null) { P = { x: G.x, y, z: G.z }; ou = 'ferme'; } }
     if (!P) {
       const it = w.inter.find((i) => i.kind === 'bell'), B = w.bld.eglise;
-      const x = it ? it.x : B ? B.x : w.townInfo.x, z = it ? it.z : B ? B.z : w.townInfo.z;
+      const x = B ? B.x : it ? it.x : w.townInfo.x, z = B ? B.z : it ? it.z : w.townInfo.z;
       const y = hfToit(x, z);
-      P = { x, y: y !== null ? y : (it ? it.y + 10 : w.heightAt(x, z) + 12), z };
+      P = { x, y: y !== null ? y : (B ? B.y + (B.H || 7) + 3 : w.heightAt(x, z) + 12), z };
     }
     E.long = true;
     E.L = S.long.cigognes = { d0: s.day, ou, x: P.x, y: P.y, z: P.z };
@@ -82,7 +91,7 @@ hfDef('cigognes', {
     const L = E.L;
     if (Math.hypot(L.x - cam[0], L.z - cam[2]) > 160) return;
     // le nid : une couronne de branchages
-    PE.buf = buf; PE.fl = 0; PE.frame(L.x, L.y, L.z, 0.3, 1);
+    PE.buf = buf; PE.fl = 0; PE.frame(L.x, L.y, L.z, 0.3, 1.3);
     for (let i = 0; i < 9; i++) { const a = i / 9 * TAU; PE.box(Math.cos(a) * 0.55, 0.14, Math.sin(a) * 0.55, 0.5, 0.16, 0.16, [0.36, 0.28, 0.2], TL.wood, -a + Math.PI / 2, (i % 2) * 0.2); }
     PE.box(0, 0.08, 0, 1.1, 0.12, 1.1, [0.3, 0.24, 0.17], TL.hay);
     for (const F of E.oiseaux) hfDessine(F, buf, null, cam, t);
@@ -94,8 +103,8 @@ hfDef('cigognes', {
 });
 function hfCigognesInit(E) {
   const L = E.L;
-  const A = hfBete('stork', L.x, L.z, { vol: true, y: L.y + 0.32, loin: 170, ombre0: true });
-  const B = hfBete('stork', L.x, L.z, { vol: true, y: L.y + 0.32, loin: 170, ombre0: true });
+  const A = hfBete('stork', L.x, L.z, { vol: true, y: L.y + 0.32, loin: 170, ombre0: true, s: 1.3 });
+  const B = hfBete('stork', L.x, L.z, { vol: true, y: L.y + 0.32, loin: 170, ombre0: true, s: 1.3 });
   A.h = Math.random() * TAU; B.h = A.h + 2;
   E.oiseaux = [A, B]; E.volT = 5 + Math.random() * 10; E.retourT = 0; E.sonT = 4;
 }
@@ -112,7 +121,7 @@ hfDef('loups_choeur', {
     const a = E.az + (Math.random() < 0.5 ? 0.4 : -0.4), r = 55 + Math.random() * 25, cx = p[0] + Math.sin(a) * r, cz = p[2] + Math.cos(a) * r, perp = a + Math.PI / 2;
     E.meute = [];
     for (let i = 0; i < 4 + (Math.random() < 0.5 ? 1 : 0); i++) {
-      const F = hfBete('wolf', cx - Math.sin(perp) * (40 + i * 2.2), cz - Math.cos(perp) * (40 + i * 2.2), { loin: 120, vit: 5.5, cache: true });
+      const F = hfBete('wolf', cx - Math.sin(perp) * (40 + i * 2.2), cz - Math.cos(perp) * (40 + i * 2.2), { loin: 120, vit: 5.5, cache: true, acc: hfYeux });
       hfAller(F, [[cx + Math.sin(perp) * 60, cz + Math.cos(perp) * 60]], 5.5);
       E.meute.push(F);
     }
@@ -196,7 +205,7 @@ hfDef('crapauds', {
     for (let i = 0; i < 18 + ((Math.random() * 8) | 0); i++) {
       const along = (Math.random() - 0.5) * 22, s = (Math.random() - 0.5) * 9;
       const x = x0 + Math.sin(dir) * along + Math.sin(perp) * s, z = z0 + Math.cos(dir) * along + Math.cos(perp) * s;
-      const F = hfBete('crapaud', x, z, { loin: 40, vit: 0.12 + Math.random() * 0.12, s: 1 + Math.random() * 0.4 });
+      const F = hfBete('crapaud', x, z, { loin: 40, vit: 0.12 + Math.random() * 0.12, s: 1.5 + Math.random() * 0.6 });
       F.h = perp + (Math.random() - 0.5) * 0.4; F.att = Math.random() * 3; F.fin = [x + Math.sin(perp) * (6 - s), z + Math.cos(perp) * (6 - s)];
       hfAller(F, [F.fin], F.vit);
       E.crap.push(F);
@@ -248,9 +257,9 @@ hfDef('etourneaux', {
   cat: 'betes', tirage: 'heure', parHeure: 0.7, ecart: 7, duree: 0.6,
   ici: (X) => (X.lac || X.biome === 'marais' || X.biome === 'lac') && X.dehors && X.h >= 17.1 && X.h <= 18.7 && !X.pluie,
   lancer(E) {
-    const e = game.player.eyePos(), f = cameraBasis(game.player.yaw, 0).f, a = Math.atan2(f[0], f[2]) + (Math.random() - 0.5) * 1.2, r = 70 + Math.random() * 30;
+    const e = game.player.eyePos(), f = cameraBasis(game.player.yaw, 0).f, a = Math.atan2(f[0], f[2]) + (Math.random() - 0.5) * 1.2, r = 50 + Math.random() * 25;
     E.cx = e[0] + Math.sin(a) * r; E.cz = e[2] + Math.cos(a) * r; E.cy = Math.max(hfSol(E.cx, E.cz), e[1]) + 18 + Math.random() * 8;
-    E.n = 150;
+    E.n = 240;
     E.pts = [];
     for (let i = 0; i < E.n; i++) { let x, y, z; do { x = Math.random() * 2 - 1; y = Math.random() * 2 - 1; z = Math.random() * 2 - 1; } while (x * x + y * y + z * z > 1); E.pts.push([x, y, z, Math.random() * TAU]); }
     E.sonT = 0.5; E.t0 = 0;
@@ -274,7 +283,7 @@ hfDef('etourneaux', {
     for (const [x, y, z, ph] of E.pts) {
       const w = Math.sin(t * 1.3 + x * 3 + ph) * 0.15, X = x * sx * (1 + w), Z = z * sz, Y = y * sy + Math.sin(t * 0.9 + x * 2.5) * 2.2;
       PE.frame(cx + X * c - Z * s, cy + Y, cz + X * s + Z * c, ph + t, 1);
-      PE.box(0, 0, 0, 0.22, 0.05, 0.1, [0.06, 0.06, 0.07], TL.plain, 0, 0, Math.sin(t * 25 + ph) * 0.6);
+      PE.box(0, 0, 0, 0.42, 0.1, 0.2, [0.05, 0.05, 0.06], TL.plain, 0, 0, Math.sin(t * 25 + ph) * 0.6);
     }
   },
   txt: {
@@ -353,9 +362,9 @@ hfDef('chauves_souris', {
       const x = E.gx + Math.sin(a) * L + B.off[0] * (1 + u), z = E.gz + Math.cos(a) * L + B.off[1] * (1 + u), y = E.gy + u * 2.2 + Math.sin(u * 6 + B.ph) * 0.6;
       PE.frame(x, y, z, a, 1);
       const fl = Math.sin(t * 30 + B.ph) * 0.9;
-      PE.box(0, 0, 0, 0.07, 0.06, 0.12, [0.12, 0.09, 0.08], TL.fur);
-      PE.box(-0.12, 0.01, 0, 0.2, 0.01, 0.1, [0.1, 0.08, 0.08], TL.skin, 0, 0, fl);
-      PE.box(0.12, 0.01, 0, 0.2, 0.01, 0.1, [0.1, 0.08, 0.08], TL.skin, 0, 0, -fl);
+      PE.box(0, 0, 0, 0.11, 0.09, 0.18, [0.1, 0.08, 0.07], TL.fur);
+      PE.box(-0.19, 0.01, 0, 0.32, 0.015, 0.16, [0.08, 0.06, 0.06], TL.skin, 0, 0, fl);
+      PE.box(0.19, 0.01, 0, 0.32, 0.015, 0.16, [0.08, 0.06, 0.06], TL.skin, 0, 0, -fl);
     }
   },
   txt: {
@@ -502,9 +511,9 @@ hfDef('renardeaux', {
     const P = hfPoint(e[0], e[2], 22, 34, { a: Math.atan2(f[0], f[2]), ouv: 2, r: 2 });
     if (!P) return false;
     E.x = P.x; E.z = P.z; E.y = P.y;
-    E.mere = hfBete('fox', P.x + 1.2, P.z + 0.6, { loin: 80, vit: 3 });
+    E.mere = hfBete('fox', P.x + 1.2, P.z + 0.6, { loin: 80, vit: 3, s: 1.15 });
     E.mere.h = Math.atan2(e[0] - P.x, e[2] - P.z);
-    E.petits = [0, 1, 2].map((i) => { const F = hfBete('fox', P.x + (Math.random() - 0.5) * 3, P.z + (Math.random() - 0.5) * 3, { s: 0.5, loin: 70, vit: 2.2 }); F.jeu = Math.random() * 3; return F; });
+    E.petits = [0, 1, 2].map((i) => { const F = hfBete('fox', P.x + (Math.random() - 0.5) * 3, P.z + (Math.random() - 0.5) * 3, { s: 0.65, loin: 70, vit: 2.2 }); F.jeu = Math.random() * 3; return F; });
     E.sonT = 2; E.fuite = false;
   },
   maj(E, dt, eye) {
@@ -529,7 +538,7 @@ hfDef('renardeaux', {
   dessin(E, buf, sbuf, cam, t) {
     // le terrier : une bouche sombre dans le talus
     PE.buf = buf; PE.fl = 0; PE.frame(E.x, E.y, E.z, 0, 1);
-    PE.box(0, 0.12, 0, 0.75, 0.3, 0.75, [0.32, 0.25, 0.18], TL.soil); PE.box(0, 0.2, 0.3, 0.45, 0.3, 0.2, [0.04, 0.03, 0.03], TL.plain);
+    PE.box(0, 0.25, 0, 1.6, 0.55, 1.4, [0.36, 0.28, 0.2], TL.soil); PE.box(0, 0.3, 0.62, 0.5, 0.36, 0.2, [0.04, 0.03, 0.03], TL.plain);
     hfDessine(E.mere, buf, sbuf, cam, t);
     for (const F of E.petits) hfDessine(F, buf, sbuf, cam, t);
   },
