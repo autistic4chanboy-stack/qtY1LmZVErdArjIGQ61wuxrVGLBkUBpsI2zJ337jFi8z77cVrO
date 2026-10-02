@@ -280,10 +280,12 @@ const e2betes = {
       }
     }
     for (const O of E2C.os) boite(O.x, O.y, O.z, O.rot, 0, 0, 0, 0.05, 0.05, 0.3, [0.92, 0.9, 0.82], TL.bone);
+    const vise = game.target && game.target.e2os;
     for (const O of E2C.osSol) {
       if (Math.hypot(O.x - cam[0], O.z - cam[2]) > 60) continue;
-      boite(O.x, O.y, O.z, O.rot, 0, 0.02, 0, 0.04, 0.035, 0.22, [0.92, 0.9, 0.82], TL.bone);
-      boite(O.x, O.y, O.z, O.rot + 1.2, 0.08, 0.015, 0.05, 0.03, 0.025, 0.09, [0.86, 0.84, 0.76], TL.bone);
+      const code = O === vise ? withFlags(TL.bone, FX_HI) : TL.bone; // (visé : il s'éclaire, comme une dépouille)
+      boite(O.x, O.y, O.z, O.rot, 0, 0.02, 0, 0.04, 0.035, 0.22, [0.92, 0.9, 0.82], code);
+      boite(O.x, O.y, O.z, O.rot + 1.2, 0.08, 0.015, 0.05, 0.03, 0.025, 0.09, [0.86, 0.84, 0.76], code);
     }
   },
   // ------------------------------------------------------------ pour les essais (et la mise au point)
@@ -343,7 +345,7 @@ HOOKS.target.push((eye, f, cand) => {
   for (const O of E2C.osSol) {
     const dx = O.x - eye[0], dy = O.y - eye[1], dz = O.z - eye[2], d = Math.hypot(dx, dy, dz);
     if (d > 2.6 || (dx * f[0] + dy * f[1] + dz * f[2]) / (d || 1) < 0.7) continue;
-    cand({ kind: 'hook', use: () => e2betes.ramasserOs(O) }, d);
+    cand({ kind: 'hook', e2os: O, use: () => e2betes.ramasserOs(O) }, d);
   }
 });
 // une partie chargée ou commencée : les territoires de cette vallée, rien de vivant d'avant
