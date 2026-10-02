@@ -1,10 +1,10 @@
 // ============================================================================
-//  LE HASARD DE LA VALLÉE (agent F, douzième vague) : soixante-quatre
+//  LE HASARD DE LA VALLÉE (agent F, douzième vague) : soixante et un
 //  événements nouveaux, rares ou peu fréquents, qui s'ajoutent au calendrier,
 //  aux prodiges et à l'étrange (11-zzz40-evenements.js, 11-strange.js…) sans
 //  les refaire : le ciel et le temps, les bêtes, la vie des villages, la
 //  ferme, les routes, l'étrange (11-zzzzF-1-ciel.js … 11-zzzzF-6-etrange.js ;
-//  les textes : 05-zzzzzF-evenements.js ; les sons : 09-zzzzF-sons.js).
+//  les textes dans chaque définition, txt ; les sons : 09-zzzzF-sons.js).
 //  - Chacun a sa condition (le lieu, l'heure, le temps du jour, le jour de la
 //    semaine, ce que le joueur a ou a fait), quelque chose à voir, à entendre
 //    ou à faire, une fin propre, et une trace : les habitants en parlent deux
@@ -31,8 +31,8 @@ const HF_IDS = [];
 const HF_CATS = { ciel: 'Le ciel et le temps', betes: 'Les bêtes', village: 'La vie des villages', ferme: 'La ferme', routes: 'Les routes', etrange: 'L’étrange' };
 // les fréquences (mesurées par tools/equilibrage/F.js ; voir le README, « Le hasard »)
 const HF_FREQ = {
-  jour: 0.6,      // chance, chaque jour, qu'un événement soit tiré (parmi ceux que le jour permet)
-  second: 0.12,   // chance d'en tirer un second le même jour
+  jour: 0.5,      // chance, chaque jour, qu'un événement soit tiré (parmi ceux que le jour permet)
+  second: 0.1,    // chance d'en tirer un second le même jour
   maxJour: 2,     // jamais plus de deux le même jour, tirés au jour et au fil du temps confondus
   ecartH: 1.5,    // heures de jeu au moins entre deux débuts
   premier: 3,     // rien avant le troisième jour (la découverte de la ferme), sauf mention contraire

@@ -111,7 +111,7 @@ function hfCigognesInit(E) {
 
 // ---------------------------------------------------------------- 2. les loups chantent
 hfDef('loups_choeur', {
-  cat: 'betes', tirage: 'heure', parHeure: 0.28, ecart: 8, duree: 0.6,
+  cat: 'betes', tirage: 'heure', parHeure: 0.2, ecart: 10, duree: 0.6,
   ici: (X) => X.nuit && X.dehors && !X.ville && !X.hameau && !X.ferme && ['lande', 'hauteurs', 'foret', 'bouleaux'].includes(X.biome) && !X.pluie,
   lancer(E) {
     const p = game.player.pos;
@@ -146,7 +146,7 @@ hfDef('loups_choeur', {
 
 // ---------------------------------------------------------------- 3. le brame : deux cerfs s'affrontent
 hfDef('brame', {
-  cat: 'betes', tirage: 'heure', parHeure: 0.4, ecart: 8, duree: 0.7,
+  cat: 'betes', tirage: 'heure', parHeure: 0.25, ecart: 10, duree: 0.7,
   ici: (X) => X.foret && X.dehors && (X.soir || X.nuit || X.aube) && !X.pluie,
   lancer(E) {
     const e = game.player.eyePos(), f = cameraBasis(game.player.yaw, 0).f;
@@ -254,7 +254,7 @@ function hfCrapaudProche(E, r) {
 
 // ---------------------------------------------------------------- 5. le nuage d'étourneaux
 hfDef('etourneaux', {
-  cat: 'betes', tirage: 'heure', parHeure: 0.7, ecart: 7, duree: 0.6,
+  cat: 'betes', tirage: 'heure', parHeure: 0.5, ecart: 8, duree: 0.6,
   ici: (X) => (X.lac || X.biome === 'marais' || X.biome === 'lac') && X.dehors && X.h >= 17.1 && X.h <= 18.7 && !X.pluie,
   lancer(E) {
     const e = game.player.eyePos(), f = cameraBasis(game.player.yaw, 0).f, a = Math.atan2(f[0], f[2]) + (Math.random() - 0.5) * 1.2, r = 50 + Math.random() * 25;
@@ -504,7 +504,7 @@ function hfEssaimPrendre(E) {
 
 // ---------------------------------------------------------------- 10. les renardeaux, à l'aube
 hfDef('renardeaux', {
-  cat: 'betes', tirage: 'heure', parHeure: 0.5, ecart: 8, duree: 0.7,
+  cat: 'betes', tirage: 'heure', parHeure: 0.3, ecart: 10, duree: 0.7,
   ici: (X) => X.dehors && X.h >= 5.2 && X.h <= 7.6 && (X.foret || X.biome === 'plaine' || X.biome === 'lande') && !X.ville && !X.ferme && !X.pluie,
   lancer(E) {
     const e = game.player.eyePos(), f = cameraBasis(game.player.yaw, 0).f;

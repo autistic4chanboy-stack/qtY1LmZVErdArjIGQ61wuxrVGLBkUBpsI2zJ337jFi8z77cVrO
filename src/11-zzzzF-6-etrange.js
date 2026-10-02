@@ -98,7 +98,7 @@ function hfPuitsProche(x, z, r) {
   return best;
 }
 hfDef('chanson_puits', {
-  cat: 'etrange', etrange: true, tirage: 'heure', parHeure: 0.5, premier: 5, ecart: 10, duree: 0.8,
+  cat: 'etrange', etrange: true, tirage: 'heure', parHeure: 0.35, premier: 5, ecart: 12, duree: 0.8,
   ici: (X) => X.nuit && X.dehors && !!hfPuitsProche(X.pos[0], X.pos[2], 45),
   lancer(E) {
     const p = game.player.pos, P = hfPuitsProche(p[0], p[2], 45);
@@ -181,7 +181,7 @@ hfDef('table_mise', {
 
 // ---------------------------------------------------------------- 5. le chien noir
 hfDef('chien_noir', {
-  cat: 'etrange', etrange: true, tirage: 'heure', parHeure: 0.35, premier: 5, ecart: 12, duree: 1.4,
+  cat: 'etrange', etrange: true, tirage: 'heure', parHeure: 0.25, premier: 5, ecart: 12, duree: 1.4,
   ici: (X) => X.nuit && X.dehors && X.route && !X.ville && !X.hameau && !X.ferme,
   lancer(E) {
     const p = game.player, b = p.yaw;
@@ -216,7 +216,7 @@ function hfYeuxRouges(F, buf) { PE.buf = buf; PE.fl = FX_EMIT; PE.frame(F.x, F.y
 // ---------------------------------------------------------------- 6. la dame blanche
 const HF_PONTS = ['pont_riviere', 'pont_riviere1', 'pont_nord', 'pont_sud', 'cimetiere', 'calvaire0', 'calvaire1', 'calvaire2', 'calvaire3', 'calvaire4'];
 hfDef('dame_blanche', {
-  cat: 'etrange', etrange: true, tirage: 'heure', parHeure: 0.3, premier: 6, ecart: 14, duree: 2,
+  cat: 'etrange', etrange: true, tirage: 'heure', parHeure: 0.25, premier: 6, ecart: 14, duree: 2,
   ici: (X) => X.nuit && X.dehors && X.route && !X.ville && !X.hameau,
   lancer(E) {
     const p = game.player, w = game.world;
@@ -353,7 +353,7 @@ hfDef('chasse_volante', {
 
 // ---------------------------------------------------------------- 9. le meneur de loups
 hfDef('meneur_loups', {
-  cat: 'etrange', etrange: true, tirage: 'heure', parHeure: 0.3, premier: 7, ecart: 16, duree: 0.9,
+  cat: 'etrange', etrange: true, tirage: 'heure', parHeure: 0.22, premier: 7, ecart: 16, duree: 0.9,
   ici: (X) => (X.soir || X.nuit) && X.dehors && !X.ville && !X.hameau && !X.ferme && ['lande', 'hauteurs', 'foret', 'bouleaux'].includes(X.biome),
   lancer(E) {
     const p = game.player, f = cameraBasis(p.yaw, 0).f, a = Math.atan2(f[0], f[2]);
@@ -393,7 +393,7 @@ hfDef('meneur_loups', {
 
 // ---------------------------------------------------------------- 10. le tambour sous la terre
 hfDef('tambour_dessous', {
-  cat: 'etrange', etrange: true, tirage: 'heure', parHeure: 0.3, premier: 6, ecart: 12, duree: 0.6,
+  cat: 'etrange', etrange: true, tirage: 'heure', parHeure: 0.22, premier: 6, ecart: 12, duree: 0.6,
   ici: (X) => X.dehors && (X.nuit || X.soir) && (X.biome === 'hauteurs' || X.biome === 'lande' || hfPresDuDessous(X.pos)),
   lancer(E) { E.t0 = 0; E.tamT = 0.5; E.ecoute = false; const p = game.player.pos; E.x = p[0]; E.z = p[2];
     hasardF.cible(E, { pos: () => { const p2 = game.player.pos; return [p2[0], hfSol(p2[0], p2[2]) + 0.3, p2[2]]; }, r: 2.5, cos: -1, lab: 'Coller l’oreille contre la terre', vis: () => !E.ecoute && game.player.pitch < -0.7, use() { E.ecoute = true; hfPense('(On dirait des pas. Des milliers de pas, très loin dessous, qui marchent en cadence. Et qui s’arrêtent.)', 5.5); hasardF.noter('tambour_dessous', 'La nuit, un tambour battait sous la terre. J’ai collé l’oreille contre le sol : on aurait dit des milliers de pas, très loin dessous, qui marchaient en cadence.'); E.t0 = Math.max(E.t0, 22); } });
