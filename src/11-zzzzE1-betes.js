@@ -461,7 +461,7 @@ const E1_PEUPLE = {
     for (let k = 0; k < 4; k++) { const e = M.ajouter(G, N.x + (Math.random() - 0.5), N.z + (Math.random() - 0.5), N.y - 0.3); e.mo = 'ronde'; e.ang = Math.random() * TAU; e.rayon = 0.6 + Math.random() * 3; e.fly = 1; }
   } },
   grillon_foyer: { ou: (c) => (c.L.ferme && c.L.ferme.foyer && Math.hypot(c.P[0] - c.L.ferme.foyer.x, c.P[2] - c.L.ferme.foyer.z) < 14) || (c.L.ville && c.L.ville.four && Math.hypot(c.P[0] - c.L.ville.four.x, c.P[2] - c.L.ville.four.z) < 14),
-    h: [20, 5], part: 0.5, vie: [200, 400], nait(c, M) {
+    h: [20, 5], part: 0.5, vie: [150, 300], nait(c, M) {
       const L = c.L.ferme && c.L.ferme.foyer && Math.hypot(c.P[0] - c.L.ferme.foyer.x, c.P[2] - c.L.ferme.foyer.z) < 14 ? c.L.ferme.foyer : c.L.ville.four;
       if (L === (c.L.ferme && c.L.ferme.foyer) && !e1.grillonVit()) return;
       const a = L.r + (Math.random() - 0.5) * 1.2, x = L.x + Math.sin(a) * 0.75, z = L.z + Math.cos(a) * 0.75;
@@ -478,11 +478,11 @@ const E1_PEUPLE = {
     const G = M.groupe('hirondelle_f', { cx, cz, cy: N[0].y, loin: 200, bas: M.pluieProche() }); // (hirondelles qui volent bas : la pluie vient)
     for (let k = 0; k < 6 + ((Math.random() * 4) | 0); k++) { const e = M.ajouter(G, cx + (Math.random() - 0.5) * 20, cz + (Math.random() - 0.5) * 20, N[0].y + 3 + Math.random() * 6); e.mo = 'boucle'; e.fly = 1; e.ang = Math.random() * TAU; e.rayon = 6 + Math.random() * 10; e.haut = G.bas ? Math.random() * 2 : 3 + Math.random() * 8; e.sens = Math.random() < 0.5 ? 1 : -1; }
   } },
-  choucas: { ou: (c) => E1_VILLE(c) && c.L.ville.clocher, h: [6, 20.5], vie: [300, 500], nait(c, M) {
+  choucas: { ou: (c) => E1_VILLE(c) && c.L.ville.clocher, h: [6, 20.5], vie: [220, 400], nait(c, M) {
     const C = c.L.ville.clocher, G = M.groupe('choucas', { cx: C.x, cz: C.z, loin: 220 });
     for (let k = 0; k < 4 + ((Math.random() * 4) | 0); k++) { const pc = C.coins[k % 4]; const e = M.ajouter(G, pc.x + (Math.random() - 0.5) * 0.6, pc.z + (Math.random() - 0.5) * 0.6, pc.y, { v: k }); e.mo = 'clocher'; e.perche = pc; e.t1 = 4 + Math.random() * 30; }
   } },
-  freux: { ou: (c) => c.L.ville && c.L.ville.corbeautiere && (E1_VILLE(c) || Math.hypot(c.P[0] - c.L.ville.corbeautiere.x, c.P[2] - c.L.ville.corbeautiere.z) < 180), h: [6.5, 20], vie: [300, 500], nait(c, M) {
+  freux: { ou: (c) => c.L.ville && c.L.ville.corbeautiere && (E1_VILLE(c) || Math.hypot(c.P[0] - c.L.ville.corbeautiere.x, c.P[2] - c.L.ville.corbeautiere.z) < 180), h: [6.5, 20], vie: [220, 400], nait(c, M) {
     const C = c.L.ville.corbeautiere, h = c.h;
     if (h >= 17.5) { // le soir : à la corbeautière, sur les nids, en criant
       const G = M.groupe('freux', { cx: C.x, cz: C.z, mo: 'corbeautiere', loin: 220 });
