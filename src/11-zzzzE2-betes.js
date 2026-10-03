@@ -137,8 +137,11 @@ const e2betes = {
     return pluie < 0.45 && !orage;
   },
   // ------------------------------------------------------------ naître, partir
-  naitre(T, w) {
-    const B = T.B, R = Math.random, n = B.g[0] + ((R() * (B.g[1] - B.g[0] + 1)) | 0), arr = [];
+  // (place : ce qui reste du budget ; une troupe n'a jamais moins que son minimum)
+  naitre(T, w, place) {
+    const B = T.B, R = Math.random, arr = [];
+    let n = B.g[0] + ((R() * (B.g[1] - B.g[0] + 1)) | 0);
+    if (place >= B.g[0]) n = Math.min(n, place);
     const C = CREATURES[B.id];
     for (let k = 0; k < n; k++) {
       let x = T.x, z = T.z;
@@ -230,7 +233,7 @@ const e2betes = {
       if (this.vide(T) || !this.heureOk(T.B, h) || !this.tempsOk(T.B)) continue;
       // (les petites bêtes ne naissent pas sous les yeux : on attend de ne plus regarder, ou d'être plus loin)
       if (!CREATURES[T.B.id].fly && Math.hypot(T.x - px, T.z - pz) < 30 && E2C.vu({ x: T.x, z: T.z })) continue;
-      vivants += this.naitre(T, w).length;
+      vivants += this.naitre(T, w, E2_BUDGET + 1 - vivants).length;
       parEsp[T.B.id] = (parEsp[T.B.id] || 0) + 1;
     }
   },

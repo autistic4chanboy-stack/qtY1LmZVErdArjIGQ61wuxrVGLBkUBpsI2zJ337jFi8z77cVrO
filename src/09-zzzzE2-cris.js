@@ -74,8 +74,8 @@ Object.assign(SoundEngine.prototype, {
         return true;
       case 'duc': { // « ou-hou », grave, qui porte
         const f = 300 + R() * 25;
-        this.voice(t, 'sine', f * 1.05, f, 0.32, 0.045 * v, p, { lp: 700 });
-        this.voice(t + 0.5, 'sine', f * 0.92, f * 0.85, 0.45, 0.034 * v, p, { lp: 650 });
+        this.voice(t, 'sine', f * 1.05, f, 0.32, 0.032 * v, p, { lp: 700 });
+        this.voice(t + 0.5, 'sine', f * 0.92, f * 0.85, 0.45, 0.025 * v, p, { lp: 650 });
         return true;
       }
       case 'bec': // le bec qui claque, et un souffle
