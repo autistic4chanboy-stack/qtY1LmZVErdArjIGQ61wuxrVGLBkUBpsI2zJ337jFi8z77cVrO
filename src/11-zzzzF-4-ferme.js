@@ -157,7 +157,7 @@ hfDef('rats_grange', {
     hasardF.cible(E, { pos: () => { const F = hfRatProche(E, 1.8); return F ? [F.x, F.y + 0.1, F.z] : null; }, r: 1.8, cos: 0.4, lab: 'Écraser le rat', use() {
       const F = hfRatProche(E, 1.8);
       if (!F) return;
-      if (Math.random() < 0.35) { const a = Math.random() * TAU; hfAller(F, [[F.x + Math.sin(a) * 3, F.z + Math.cos(a) * 3]], 4); hfPense('(Raté. Il file entre vos pieds.)', 1.8); return; }
+      if (Math.random() < 0.35) { const a = Math.random() * TAU; hfAller(F, [[F.x + Math.sin(a) * 3, F.z + Math.cos(a) * 3]], 4); hfPense('(Raté.)', 1.5); return; }
       F.mort = true; E.tues++; sound.squeak && sound.squeak(); sound.shovelHit && sound.shovelHit();
     } });
   },
@@ -170,7 +170,7 @@ hfDef('rats_grange', {
     }
     E.sonT -= dt;
     if (E.sonT <= 0) { E.sonT = 0.8 + Math.random() * 1.5; if (hfDistJ(E.gx, E.gz) < 30) hfSon([E.gx + (Math.random() - 0.5) * 6, hfSol(E.gx, E.gz) + 0.3, E.gz + (Math.random() - 0.5) * 6], () => sound.squeak && sound.squeak()); }
-    if (!E.note && hfDistJ(E.gx, E.gz) < 15) { hasardF.noter(E, 'Des rats dans la grange, au crépuscule : des couinements, des ombres qui filent le long des murs.'); hfPense('(Des rats. Gros comme des chats, ou presque.)', 3); }
+    if (!E.note && hfDistJ(E.gx, E.gz) < 15) { hasardF.noter(E, 'Des rats dans la grange, au crépuscule : des couinements, des ombres qui filent le long des murs.'); }
     if (E.tues >= 4) E.fini = 'chasses';
   },
   dessin(E, buf, sbuf, cam, t) { for (const F of E.rats) if (!F.mort) hfDessine(F, buf, null, cam, t); else { PE.buf = buf; PE.fl = 0; PE.frame(F.x, F.y, F.z, F.h, 1); PE.box(0, 0.03, 0, 0.1, 0.05, 0.22, [0.3, 0.25, 0.22], TL.fur); } },
@@ -273,7 +273,7 @@ hfDef('poussins', {
       E.petits.push(F2);
     }
     E.suit = false; E.pioT = 1;
-    hasardF.cible(E, { pos: () => [E.mere.x, E.mere.y + 0.3, E.mere.z], r: 2.2, cos: 0.5, lab: 'Ramener la poule et ses poussins', vis: () => !E.suit, use() { E.suit = true; hfPense('(Elle hésite, puis vous suit en caquetant.)', 2.5); } });
+    hasardF.cible(E, { pos: () => [E.mere.x, E.mere.y + 0.3, E.mere.z], r: 2.2, cos: 0.5, lab: 'Ramener la poule et ses poussins', vis: () => !E.suit, use() { E.suit = true; } });
   },
   maj(E, dt) {
     const M = E.mere, w = game.world, C = w.farm.coop || w.farm.yard;
@@ -321,7 +321,7 @@ hfDef('sangliers_champ', {
       for (const F of E.porcs) { F.att -= dt; if (F.att <= 0) { F.att = 2 + Math.random() * 3; hfAller(F, [[lerp(fd.x0, fd.x1, Math.random()), lerp(fd.z0, fd.z1, Math.random())]], 0.5); } hfMarche(F, dt); F.pose = { graze: 1 }; }
       E.grT -= dt;
       if (E.grT <= 0) { E.grT = 2 + Math.random() * 2; const F = pick(E.porcs); if (hfDistJ(F.x, F.z) < 60) hfSon([F.x, F.y + 0.5, F.z], () => sound.hfGrogne && sound.hfGrogne(1)); }
-      if (!E.note && hfDistJ(E.cx, E.cz) < 40) { hasardF.noter(E, 'Une nuit, des sangliers sont venus fouiller le champ.'); hfPense('(Des grognements, dans le champ. Ça fouille la terre.)', 3); }
+      if (!E.note && hfDistJ(E.cx, E.cz) < 40) { hasardF.noter(E, 'Une nuit, des sangliers sont venus fouiller le champ.'); hfPense('(Ça fouille la terre, dans le champ.)', 3); }
       // on arrive dessus : ils détalent ; de trop près, l'un d'eux charge
       if (dmin < 11 || (p.sprinting && dmin < 18)) {
         // on leur court dessus : l'un d'eux charge avant de détaler
@@ -410,7 +410,7 @@ hfDef('bete_echappee', {
     E.suit = false; E.criT = 3;
     hfPense(`(Le portillon bat. ${a.name} n’est plus dans la cour.)`, 4);
     hasardF.noter(E, `${a.name} s’est échappée par le portillon.`);
-    hasardF.cible(E, { pos: () => [E.b.x, E.b.y + 0.8, E.b.z], r: 2.6, lab: `Ramener ${a.name}`, vis: () => !E.suit, use() { E.suit = true; hfPense('(Elle se laisse faire, en traînant les pieds.)', 2.5); } });
+    hasardF.cible(E, { pos: () => [E.b.x, E.b.y + 0.8, E.b.z], r: 2.6, lab: `Ramener ${a.name}`, vis: () => !E.suit, use() { E.suit = true; } });
   },
   maj(E, dt) {
     const F = E.b, w = game.world, Y = w.farm.yard || w.farm.f;

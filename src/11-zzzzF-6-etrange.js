@@ -68,7 +68,7 @@ hfDef('pas_neige', {
     if (!E.note && hfRegarde(E.pas[20].x, E.pas[20].y, E.pas[20].z, 0.85) && hfDistJ(E.pas[20].x, E.pas[20].z) < 30) { hasardF.noter(E, 'Dans la neige fraîche, une trace de pas venait de loin et s’arrêtait net au milieu du pré. Pas de retour.'); }
     if (!E.fin1 && d < 1.6) {
       E.fin1 = true;
-      hfPense('(Les pas s’arrêtent là. Ni retour, ni rien autour. Au-dessus, le ciel blanc.)', 5);
+      hfPense('(Ni retour, ni rien autour.)', 3.5);
       // derrière vous, deux pas de plus, tournés vers vous
       const p = game.player, b = p.yaw;
       for (let i = 0; i < 2; i++) { const x = p.pos[0] + Math.sin(b) * (1.4 + i * 0.7), z = p.pos[2] + Math.cos(b) * (1.4 + i * 0.7); E.pas.push({ x, z, r: b + Math.PI, y: hfSol(x, z) + 0.03, frais: true }); }
@@ -118,7 +118,7 @@ hfDef('chanson_puits', {
   maj(E, dt) {
     const d = hfDistJ(E.x, E.z);
     // on s'approche trop : elle se tait
-    if (!E.tait && d < 3) { E.tait = true; hfPense('(Le chant s’est arrêté au milieu d’une note. L’eau, tout en bas, est immobile.)', 4); }
+    if (!E.tait && d < 3) { E.tait = true; hfPense('(L’eau, tout en bas, est immobile.)', 3.5); }
     E.chantT -= dt;
     if (E.chantT <= 0 && !E.tait) {
       let du = 0;
@@ -150,7 +150,7 @@ hfDef('table_mise', {
         hfSon([E.x, E.y + 1.2, E.z], () => { sound.hfFoule && sound.hfFoule(0.7, 4); });
         setTimeout(() => { hfSon([E.x, E.y + 1.2, E.z], () => sound.hfFoule && sound.hfFoule(0.5, 3)); }, 1600);
         setTimeout(() => ui.fade(false, '', 900), 3600);
-        setTimeout(() => { E.eteint = true; sound.candle && sound.candle(); hfPense('(Les chandelles se sont éteintes toutes ensemble. Les bols sont vides. Ils l’ont toujours été.)', 5); hasardF.noter('table_mise', 'Au hameau abandonné, une table était mise pour quatre, la soupe fumait. Je me suis assis. On a parlé autour de moi, des voix que je ne voyais pas. Puis les chandelles se sont éteintes.'); }, 4200);
+        setTimeout(() => { E.eteint = true; sound.candle && sound.candle(); hfPense('(Les bols sont vides. Ils l’ont toujours été.)', 4); hasardF.noter('table_mise', 'Au hameau abandonné, une table était mise pour quatre, la soupe fumait. Je me suis assis. On a parlé autour de moi, des voix que je ne voyais pas. Puis les chandelles se sont éteintes.'); }, 4200);
       });
     } });
   },
@@ -201,7 +201,7 @@ hfDef('chien_noir', {
       E.haleT -= dt;
       if (E.haleT <= 0) { E.haleT = 5 + Math.random() * 5; if (d < 25) hfSon([C.x, C.y + 0.6, C.z], () => sound.hfHalete && sound.hfHalete(1)); }
       // on marche droit sur lui : il n'est plus là
-      if (d < 5 || (E.t0 > 70 && !vu)) { E.etat = 'parti'; for (let k = 0; k < 30; k++) particles.spawn(C.x + (Math.random() - 0.5), C.y + Math.random(), C.z + (Math.random() - 0.5), (Math.random() - 0.5) * 0.4, 0.3, (Math.random() - 0.5) * 0.4, [0.08, 0.08, 0.1, 0.5], 0.4, 2, -0.05, false); if (d < 5) hfPense('(Il n’y a plus de chien. Il n’y a que la brume, et une odeur de terre froide.)', 4); E.fini = 'fin'; }
+      if (d < 5 || (E.t0 > 70 && !vu)) { E.etat = 'parti'; for (let k = 0; k < 30; k++) particles.spawn(C.x + (Math.random() - 0.5), C.y + Math.random(), C.z + (Math.random() - 0.5), (Math.random() - 0.5) * 0.4, 0.3, (Math.random() - 0.5) * 0.4, [0.08, 0.08, 0.1, 0.5], 0.4, 2, -0.05, false); if (d < 5) hfPense('(De la brume, et une odeur de terre froide.)', 3.5); E.fini = 'fin'; }
     }
     void eye;
   },
@@ -234,7 +234,7 @@ hfDef('dame_blanche', {
     if (E.etat === 'attend') {
       hfFace(D, p.pos[0], p.pos[2], dt);
       if (!E.parle && d < 7) { E.parle = true; hfDit(D, `Monsieur… Madame… vous voulez bien m’accompagner jusqu’à ${E.nomBut} ? J’ai peur, seule, à cette heure.`, 5.5); hasardF.noter(E, `La nuit, sur la route, une femme en blanc m’a demandé de l’accompagner jusqu’à ${E.nomBut}.`); }
-      if (E.t0 > 60) { E.etat = 'fin'; hfFondre(E.d); hfPense('(Elle n’est plus là. Le chemin est vide, et froid.)', 3.5); E.fini = 'fin'; }
+      if (E.t0 > 60) { E.etat = 'fin'; hfFondre(E.d); hfPense('(Le chemin est vide, et froid.)', 3); E.fini = 'fin'; }
     } else if (E.etat === 'marche') {
       hfSuit(D, dt, 1.6, 1.8);
       // arrivés : elle remercie, et quand on la regarde de nouveau, elle n'y est plus
@@ -245,7 +245,7 @@ hfDef('dame_blanche', {
       }
     } else if (E.etat === 'arrive' && E.disp && !hfRegarde(D.x, D.y + 1.2, D.z, 0.7)) {
       E.etat = 'fin';
-      hfPense('(Vous vous retournez. Personne. Sur la pierre, une couronne de fleurs d’oranger, fanée depuis longtemps.)', 5);
+      hfPense('(Personne. Sur la pierre, une couronne de fleurs d’oranger, fanée depuis longtemps.)', 4.5);
       strange.fear = Math.max(strange.fear || 0, 0.3);
       hasardF.noter('dame_blanche', `J’ai accompagné une dame en blanc jusqu’à ${E.nomBut}. Elle attendait quelqu’un qui n’est jamais venu. Quand je me suis retourné, il n’y avait plus qu’une couronne de mariée, fanée.`);
       hasardF.retenir('dame_blanche');
@@ -289,7 +289,7 @@ hfDef('messe_morts', {
       E.chantT = (du || 16) + 2;
       if (!E.note && d < 70) { hasardF.noter(E, 'La nuit du Vorndi, à minuit, on chantait dans l’église fermée. Les fenêtres étaient éclairées. Le curé, lui, dormait.'); hfPense('(On chante, dans l’église fermée.)', 3); }
     }
-    if (d < 4 && !E.tait && !E.frappe) { E.tait = true; hfPense('(Le chant s’est arrêté. Comme si on vous avait entendu arriver.)', 4); }
+    if (d < 4 && !E.tait && !E.frappe) { E.tait = true; hfPense('(Comme si l’on vous avait entendu arriver.)', 3.5); }
   },
   lum(E, eye) {
     if (E.tait && E.age > 0.5) return [];
@@ -396,14 +396,14 @@ hfDef('tambour_dessous', {
   cat: 'etrange', etrange: true, tirage: 'heure', parHeure: 0.22, premier: 6, ecart: 12, duree: 0.6,
   ici: (X) => X.dehors && (X.nuit || X.soir) && (X.biome === 'hauteurs' || X.biome === 'lande' || hfPresDuDessous(X.pos)),
   lancer(E) { E.t0 = 0; E.tamT = 0.5; E.ecoute = false; const p = game.player.pos; E.x = p[0]; E.z = p[2];
-    hasardF.cible(E, { pos: () => { const p2 = game.player.pos; return [p2[0], hfSol(p2[0], p2[2]) + 0.3, p2[2]]; }, r: 2.5, cos: -1, lab: 'Coller l’oreille contre la terre', vis: () => !E.ecoute && game.player.pitch < -0.7, use() { E.ecoute = true; hfPense('(On dirait des pas. Des milliers de pas, très loin dessous, qui marchent en cadence. Et qui s’arrêtent.)', 5.5); hasardF.noter('tambour_dessous', 'La nuit, un tambour battait sous la terre. J’ai collé l’oreille contre le sol : on aurait dit des milliers de pas, très loin dessous, qui marchaient en cadence.'); E.t0 = Math.max(E.t0, 22); } });
+    hasardF.cible(E, { pos: () => { const p2 = game.player.pos; return [p2[0], hfSol(p2[0], p2[2]) + 0.3, p2[2]]; }, r: 2.5, cos: -1, lab: 'Coller l’oreille contre la terre', vis: () => !E.ecoute && game.player.pitch < -0.7, use() { E.ecoute = true; hfPense('(Des milliers de pas, très loin dessous, qui marchent en cadence. Et qui s’arrêtent.)', 5); hasardF.noter('tambour_dessous', 'La nuit, un tambour battait sous la terre. J’ai collé l’oreille contre le sol : on aurait dit des milliers de pas, très loin dessous, qui marchaient en cadence.'); E.t0 = Math.max(E.t0, 22); } });
   },
   maj(E, dt) {
     E.t0 += dt;
     E.tamT -= dt;
     if (E.tamT <= 0 && E.t0 < 24) { E.tamT = 5.4; const p = game.player.pos; hfSon([p[0], hfSol(p[0], p[2]) - 6, p[2]], () => sound.hfTambourSourd && sound.hfTambourSourd(1)); }
     game.shakeT = Math.max(game.shakeT || 0, E.t0 < 24 ? 0.08 + 0.06 * Math.abs(Math.sin(E.t0 * 5)) : 0);
-    if (!E.note && E.t0 > 3) { hasardF.noter(E, 'La nuit, un tambour battait sous la terre, très loin. Le sol vibrait sous mes pieds.'); hfPense('(Un battement, sous vos pieds. La terre bat comme un cœur, mais lentement.)', 4); }
+    if (!E.note && E.t0 > 3) { hasardF.noter(E, 'La nuit, un tambour battait sous la terre, très loin. Le sol vibrait sous mes pieds.'); hfPense('(La terre bat comme un cœur, mais lentement.)', 3.5); }
     if (E.t0 > 27) E.fini = 'fin';
   },
   txt: {
@@ -431,8 +431,8 @@ hfDef('fenetre_allumee', {
   },
   maj(E) {
     const d = hfDistJ(E.x, E.z);
-    if (E.allume && !E.note && d < 130 && hfRegarde(E.x, E.y, E.z, 0.9)) { hasardF.noter(E, 'La nuit, au hameau abandonné, une lumière brûlait à une fenêtre.'); hfPense('(Une lumière. Là-bas, au hameau où personne n’habite plus.)', 4); }
-    if (E.allume && d < 12) { E.allume = false; sound.candle && sound.candle(); hfPense('(Éteinte. Juste au moment où vous arriviez.)', 3); }
+    if (E.allume && !E.note && d < 130 && hfRegarde(E.x, E.y, E.z, 0.9)) { hasardF.noter(E, 'La nuit, au hameau abandonné, une lumière brûlait à une fenêtre.'); hfPense('(Au hameau, où personne n’habite plus.)', 3.5); }
+    if (E.allume && d < 12) { E.allume = false; sound.candle && sound.candle(); hfPense('(Juste au moment où vous arriviez.)', 3); }
   },
   dessin(E, buf) {
     PE.buf = buf; PE.fl = E.allume ? FX_EMIT : 0; PE.frame(E.x, E.y - 1.55, E.z, 0, 1);

@@ -59,7 +59,7 @@ hfDef('cigognes', {
     E.long = true;
     E.L = S.long.cigognes = { d0: s.day, ou, x: P.x, y: P.y, z: P.z };
     hfCigognesInit(E);
-    if (ou === 'ferme') setTimeout(() => hfPense('(Des cigognes, sur le toit de la grange. Les anciens disent que ça porte bonheur à la maison.)', 4.5), 2500);
+    if (ou === 'ferme') setTimeout(() => hfPense('(Les anciens disent que ça porte bonheur à la maison.)', 3.5), 2500);
   },
   restaurer(L) { const E = { L, long: true }; hfCigognesInit(E); return E; },
   chaqueJour(L, d, E) {
