@@ -87,12 +87,22 @@ const vgCite = {
     if (!o.sans || !o.sans.includes('e')) this.mur('z', x1, z0 + 0.2, z1 - 0.2, y0, H, ouv.e, o.mur);
     if (o.plafond !== false) { if (o.trousPlafond) this.solTroue(x0 - 0.2, x1 + 0.2, z0 - 0.2, z1 + 0.2, y0 + H + 0.4, o.trousPlafond, o.plafond || M_VG_COQUE, 0.4); else this.boite(x0 - 0.2, x1 + 0.2, y0 + H, y0 + H + 0.4, z0 - 0.2, z1 + 0.2, o.plafond || M_VG_COQUE); }
     // la frise de nacre, à hauteur d'épaule, tout autour (le style des Aëlim)
+    // (seulement sur les murs de la salle, et interrompue à chaque porte et à chaque baie : on passe dessous, pas au travers)
     if (o.frise !== false) {
-      const fy = y0 + (o.friseY || 1.3), e = 0.12;
-      this.boite(x0 + 0.2, x1 - 0.2, fy, fy + 0.22, z0 + 0.2, z0 + 0.2 + e, M_VG_NACRE);
-      this.boite(x0 + 0.2, x1 - 0.2, fy, fy + 0.22, z1 - 0.2 - e, z1 - 0.2, M_VG_NACRE);
-      this.boite(x0 + 0.2, x0 + 0.2 + e, fy, fy + 0.22, z0 + 0.3, z1 - 0.3, M_VG_NACRE);
-      this.boite(x1 - 0.2 - e, x1 - 0.2, fy, fy + 0.22, z0 + 0.3, z1 - 0.3, M_VG_NACRE);
+      const fh = o.friseY || 1.3, fy = y0 + fh, e = 0.12, hb = 0.22, sans = o.sans || [];
+      const bande = (cote, a, b, pose) => {
+        if (sans.includes(cote)) return;
+        const O = (ouv[cote] || []).filter((q) => (q.bas || 0) < fh + hb && q.haut > fh).sort((p, q) => p.a - q.a);
+        let u = a;
+        const segs = [];
+        for (const q of O) { if (q.a > u) segs.push([u, q.a]); u = Math.max(u, q.b); }
+        if (b > u) segs.push([u, b]);
+        for (const [s0, s1] of segs) if (s1 - s0 > 0.05) pose(s0, s1);
+      };
+      bande('s', x0 + 0.2, x1 - 0.2, (a, b) => this.boite(a, b, fy, fy + hb, z0 + 0.2, z0 + 0.2 + e, M_VG_NACRE));
+      bande('n', x0 + 0.2, x1 - 0.2, (a, b) => this.boite(a, b, fy, fy + hb, z1 - 0.2 - e, z1 - 0.2, M_VG_NACRE));
+      bande('o', z0 + 0.3, z1 - 0.3, (a, b) => this.boite(x0 + 0.2, x0 + 0.2 + e, fy, fy + hb, a, b, M_VG_NACRE));
+      bande('e', z0 + 0.3, z1 - 0.3, (a, b) => this.boite(x1 - 0.2 - e, x1 - 0.2, fy, fy + hb, a, b, M_VG_NACRE));
     }
   },
   // une porte (ouverture d'au moins 2,05 m sous le linteau) : { a, b, bas: 0, haut }
@@ -117,7 +127,7 @@ const vgCite = {
       const baies = (de, a) => { const L = []; for (let z = de; z < a; z += 14) L.push(V(z, 8, 7, 21)); return L; };
       this.mur('x', z0, x0 - 0.2, x1 + 0.2, 0, H, [P(0, 5.2, 4.2)]);
       this.mur('x', z1, x0 - 0.2, x1 + 0.2, 0, H, [{ a: 24.5, b: 28.5, bas: 12, haut: 15.2 }]);
-      this.mur('z', x0, z0 + 0.2, z1 - 0.2, 0, H, [P(56, 3.2, 3.2)].concat(baies(30, 96)));
+      this.mur('z', x0, z0 + 0.2, z1 - 0.2, 0, H, [P(51, 3.2, 3.2)].concat(baies(30, 96)));
       this.mur('z', x1, z0 + 0.2, z1 - 0.2, 0, H, baies(30, 96));
       // la voûte : un cadre tout autour ; au milieu, le ciel (aucune verrière ne l'arrête plus)
       this.boite(x0 - 0.2, x1 + 0.2, H, H + 0.6, z0 - 0.2, z0 + 8, M_VG_COQUE);
@@ -145,13 +155,11 @@ const vgCite = {
       this.boite(0.8, 1.2, y + 5.4, 23.5, 126.8, 131.2, M_VG_COQUE); this.boite(4.8, 5.2, y + 5.4, 23.5, 126.8, 131.2, M_VG_COQUE);
       this.boite(-6.2, 6.2, y, y + 5, 99.8, 100.2, M_VG_COQUE);
       // le palier de l'escalier, et le couloir qui y mène (de x = 6 à x = 30, en z 100..103)
-      this.salle(6, 30, 99.8, 104, y, 3.6, { sans: ['o'], ouv: { s: [{ a: 24.5, b: 28.5, bas: 0, haut: 3.2 }], n: [P(16, 2.6)] }, frise: false });
+      this.salle(6, 30, 99.8, 104, y, 3.6, { sans: ['o', 'n', 'e'], ouv: { s: [{ a: 24.5, b: 28.5, bas: 0, haut: 3.2 }] }, frise: false });
       this.salle(-30, -6, 102, 134, y, 6, { sans: ['e'], ouv: { o: [V(112, 6, 1.4, 4.6), V(124, 6, 1.4, 4.6)] } });
-      this.salle(6, 30, 104, 118, y, 6, { sans: ['o'], ouv: { e: [P(111, 2.8)] } });
+      this.salle(6, 30, 104, 118, y, 6, { sans: ['o'], ouv: { s: [P(16, 2.6)], e: [P(111, 2.8)] } });
       this.salle(6, 30, 118, 134, y, 7, { sans: ['o', 's'], ouv: { n: [V(18, 8, 2.0, 6.2)] } });
       this.salle(30, 58, 100, 134, y, 6, { sans: ['o'], ouv: { e: [V(110, 5, 1.6, 4.6), V(124, 5, 1.6, 4.6)] } });
-      this.mur('z', 30, 104, 117.8, y, 6, [P(111, 2.8)]);
-      this.mur('z', 30, 118.2, 134, y, 7, []);
       this.mur('z', 30, 99.8, 104, y, 6, []);
       // le puits de l'ascenseur vers l'Observatoire (au bout de la galerie : x 0, z 131)
     }

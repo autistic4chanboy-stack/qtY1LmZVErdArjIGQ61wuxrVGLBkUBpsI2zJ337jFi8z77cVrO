@@ -128,7 +128,7 @@ Object.assign(vgCite, {
     // les maisons de l'équipage
     for (const M of this.maisons) this.meubler(M);
     // ================= les Jardins =================
-    this.porte('jardins', -30, 0, 56, 'z', 3.2, 3.2);
+    this.porte('jardins', -30, 0, 51, 'z', 3.2, 3.2);
     let nb = 0;
     for (const x of [-58, -52, -46, -40]) for (const z of [49, 63]) { const i = nb++; this.ch(x, 0, z, { modele: (E, c, t) => VGM.bac(E, { k: this.anim.serre || 0, on: this.marche('serre'), vivant: false }, t), loin: 90, i }); }
     this.machine('serre', this.ch(-33, 0, 44, { r: Math.PI / 2, modele: (E, c, t) => VGM.pupitre(E, { on: this.marche('serre'), id: 5 }, t), rayon: 0.6, h: 1.2, reste: true, prendre: () => this.basculer('serre', [-33, 1, 44]) }));
@@ -177,7 +177,8 @@ Object.assign(vgCite, {
     for (const z of [122, 125, 128]) for (const x of [12.5, 23.5]) this.ch(x, y1, z, { r: 0, modele: VGM.banc });
     this.plaque('a_vg_trois', 8.5, y1, 133.55, Math.PI);
     this.lum(18, y1 + 1.6, 131, [0.9, 0.75, 0.45], 9); this.lum(18, y1 + 5, 124, [0.8, 0.85, 0.95], 12, C);
-    // les Berceaux
+    // les Berceaux (derrière une porte, à l'est de l'Atelier)
+    this.porte('berceaux', 30, y1, 111, 'z', 2.8, 2.8);
     for (const x of [36, 42, 48, 54]) for (const z of [104, 110, 116, 122, 128]) {
       if (x === 54 && z === 128) continue;
       this.ch(x, y1, z, { r: 0, modele: VGM.berceau, loin: 60 });
