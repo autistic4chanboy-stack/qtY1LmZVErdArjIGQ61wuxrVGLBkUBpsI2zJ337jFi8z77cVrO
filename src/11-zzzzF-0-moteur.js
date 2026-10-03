@@ -137,8 +137,15 @@ function hfVillageProche() {
   const dv = T ? Math.hypot(p[0] - T.x, p[2] - T.z) : 1e9, dh = H ? Math.hypot(p[0] - H.x, p[2] - H.z) : 1e9;
   return dv <= dh ? { k: 'ville', x: T.x, z: T.z, d: dv, nom: farm.names.ville } : { k: 'hameau', x: H.x, z: H.z, d: dh, nom: farm.names.hameau };
 }
-// un son placé dans le monde (si le moteur est prêt)
-function hfSon(pos, fn) { if (!sound.ok) return; try { sound.ici(pos, fn); } catch (e) { /* le son n'est pas essentiel */ } }
+// un son placé dans le monde (si le moteur est prêt) ; o : sa portée, comme les sons du jeu (les bêtes : distance de
+// référence 6, les voix 3, les cloches 8…) — HF_PRES par défaut ; hfSuivi(o, F) pour une source qui marche (un musicien
+// dans un cortège : le son le suit ; F.h est son cap, pas sa hauteur, d'où la fonction)
+const HF_PRES = { att: 'phys', ref: 6, roll: 0.7 };     // une bête, quelqu'un, un bruit ordinaire
+const HF_PETIT = { att: 'phys', ref: 2.5, roll: 1 };    // ce qu'on n'entend que de près (un enfant qui pleure, des rats)
+const HF_FORT = { att: 'phys', ref: 12, roll: 0.5 };    // ce qui porte : un cerf qui brame, un incendie, un tambour, un violon
+const HF_VASTE = { att: 'phys', ref: 25, roll: 0.45 };  // ce qui remplit la vallée : les cloches, une nuée, la chasse dans le ciel
+function hfSon(pos, fn, o) { if (!sound.ok) return; try { sound.ici(pos, fn, o || HF_PRES); } catch (e) { /* le son n'est pas essentiel */ } }
+function hfSuivi(o, F, dy) { return Object.assign({ suivre: () => [F.x, F.y + (dy ?? 1.4), F.z] }, o); }
 // un point du ciel, vu de la caméra : direction (azimut, hauteur en radians) à R pas (en deçà du brouillard)
 function hfCiel(cam, az, el, R) { const c = Math.cos(el); return [cam[0] + Math.sin(az) * c * R, cam[1] + Math.sin(el) * R, cam[2] + Math.cos(az) * c * R]; }
 // un modèle d'objet posé (PROP_MODELS) dessiné à la volée : une charrette renversée, une table, des bougies…

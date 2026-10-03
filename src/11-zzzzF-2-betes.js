@@ -31,7 +31,7 @@ function hfTourne(F, cx, cy, cz, r, w, dt) {
 // deux yeux qui renvoient la lumière (les bêtes de la nuit)
 function hfYeux(F, buf) {
   const sky = game.sky;
-  if (!sky || sky.night < 0.5) return;
+  if (!sky || sky.night < 0.3) return;
   PE.buf = buf; PE.fl = FX_EMIT; PE.frame(F.x, F.y, F.z, F.h, F.s || 1);
   for (const s of [-0.075, 0.075]) PE.box(s, 0.72, 0.62, 0.06, 0.045, 0.02, [1.6, 1.4, 0.55], TL.plain);
   PE.fl = 0;
@@ -83,7 +83,7 @@ hfDef('cigognes', {
     const d = Math.hypot(L.x - eye[0], L.z - eye[2]);
     if (E.sonT <= 0 && !nuit) {
       E.sonT = 18 + Math.random() * 25;
-      if (d < 90) { hfSon([L.x, L.y + 0.6, L.z], () => sound.hfClaquement && sound.hfClaquement(1)); A.pose = { lookP: -0.6 }; setTimeout(() => { A.pose = {}; }, 2200); }
+      if (d < 90) { hfSon([L.x, L.y + 0.6, L.z], () => sound.hfClaquement && sound.hfClaquement(1), HF_FORT); A.pose = { lookP: -0.6 }; setTimeout(() => { A.pose = {}; }, 2200); }
     }
     if (!E.note && d < 80 && hfRegarde(L.x, L.y + 1, L.z, 0.85)) hasardF.noter(E);
   },
@@ -170,7 +170,7 @@ hfDef('brame', {
       }
       if (E.choc <= 0) { E.choc = 2.5 + Math.random() * 4; if (d < 70) hfSon([E.cx, hfSol(E.cx, E.cz) + 1.4, E.cz], () => sound.hfBois && sound.hfBois(1)); }
       E.brameT -= dt;
-      if (E.brameT <= 0) { E.brameT = 5 + Math.random() * 6; const F = Math.random() < 0.5 ? A : B; if (d < 140) hfSon([F.x, F.y + 1.6, F.z], () => sound.hfBrame && sound.hfBrame(1)); F.pose.lookP = -0.4; if (!E.note && d < 120) { hasardF.noter(E); hasardF.retenir('brame'); } }
+      if (E.brameT <= 0) { E.brameT = 5 + Math.random() * 6; const F = Math.random() < 0.5 ? A : B; if (d < 140) hfSon([F.x, F.y + 1.6, F.z], () => sound.hfBrame && sound.hfBrame(1), HF_FORT); F.pose.lookP = -0.4; if (!E.note && d < 120) { hasardF.noter(E); hasardF.retenir('brame'); } }
       // trop près : ils s'enfuient chacun de son côté
       if (d < 16 || E.age > 0.55) {
         E.fuite = true;
@@ -234,7 +234,7 @@ hfDef('crapauds', {
       F.dy = Math.abs(Math.sin(F.att * 5)) * 0.06;
     }
     E.sonT -= dt;
-    if (E.sonT <= 0) { E.sonT = 1.5 + Math.random() * 2.5; const F = pick(E.crap); hfSon([F.x, F.y + 0.1, F.z], () => sound.animal && sound.animal('crapaud', 0, 0.8)); }
+    if (E.sonT <= 0) { E.sonT = 1.5 + Math.random() * 2.5; const F = pick(E.crap); hfSon([F.x, F.y + 0.1, F.z], () => sound.animal && sound.animal('crapaud', 0, 0.8), HF_PETIT); }
     if (!E.note && Math.hypot(E.x - eye[0], E.z - eye[2]) < 18) { hasardF.noter(E); hasardF.retenir('crapauds'); }
     if (E.crap.every((F) => F.passe) && E.age > 0.2) E.fini = 'fin';
   },
@@ -268,7 +268,7 @@ hfDef('etourneaux', {
     E.t0 += dt;
     E.sonT -= dt;
     const d = Math.hypot(E.cx - eye[0], E.cz - eye[2]);
-    if (E.sonT <= 0) { E.sonT = 2 + Math.random(); if (d < 140) hfSon([E.cx, E.cy, E.cz], () => sound.hfNuee && sound.hfNuee(clamp(1.3 - d / 120, 0.3, 1))); }
+    if (E.sonT <= 0) { E.sonT = 2 + Math.random(); if (d < 140) hfSon([E.cx, E.cy, E.cz], () => sound.hfNuee && sound.hfNuee(clamp(1.3 - d / 120, 0.3, 1)), HF_VASTE); }
     if (!E.note && hfRegarde(E.cx, E.cy, E.cz, 0.8)) { hasardF.noter(E); hasardF.retenir('etourneaux'); }
     if (E.t0 > 28) E.fini = 'fin';
   },

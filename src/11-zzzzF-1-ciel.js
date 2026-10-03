@@ -234,7 +234,7 @@ hfDef('foudre_boule', {
       E.fin0 = true;
       if (E.eclate) {
         weather.flash = Math.max(weather.flash, 0.9);
-        hfSon([E.x, E.y, E.z], () => sound.hfFoudre && sound.hfFoudre(clamp(1.2 - d / 60, 0.3, 1)));
+        hfSon([E.x, E.y, E.z], () => sound.hfFoudre && sound.hfFoudre(clamp(1.2 - d / 60, 0.3, 1)), HF_FORT);
         for (let k = 0; k < 36; k++) particles.spawn(E.x, E.y, E.z, (Math.random() - 0.5) * 9, (Math.random() - 0.5) * 9, (Math.random() - 0.5) * 9, [1.3, 1.2, 1.5, 1], 0.06, 0.4 + Math.random() * 0.4, 4, true);
         entities.scare(E.x, E.z, 40);
         if (d < 2.2 && !game.sleeping) { play.hurt(8, null, 'Brûlé par la foudre en boule'); hfPense('(Une odeur de soufre. Vos cils ont roussi.)', 3.5); }

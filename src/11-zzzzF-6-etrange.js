@@ -109,7 +109,7 @@ hfDef('chanson_puits', {
       if (!farm.pay(1)) { hfPense('(Vous n’avez pas une pièce sur vous.)', 2); return; }
       E.jete = true;
       setTimeout(() => { sound.drip && sound.drip(); }, 1400);
-      setTimeout(() => { hfSon([E.x, E.y, E.z], () => sound.whisper && sound.whisper(0, 0.35)); hfPense('(… merci …)', 2.5); }, 3200);
+      setTimeout(() => { hfSon([E.x, E.y, E.z], () => sound.whisper && sound.whisper(0, 0.35), HF_PETIT); hfPense('(… merci …)', 2.5); }, 3200);
       BUFF.add && BUFF.add('chance', 6);
       hasardF.noter('chanson_puits', `La nuit, une berceuse montait ${E.nom === 'le puits de la ferme' ? 'du puits de la ferme' : 'du fond de ' + E.nom}. J’y ai jeté une pièce ; quelqu’un, tout en bas, a dit merci.`);
       E.tait = true; setTimeout(() => { if (hasardF.actifs.chanson_puits === E) E.fini = 'fin'; }, 4500);
@@ -147,8 +147,8 @@ hfDef('table_mise', {
     hasardF.cible(E, { pos: () => [E.x, E.y + 0.9, E.z], r: 2.6, cos: 0.4, lab: 'S’asseoir à la table', vis: () => !E.eteint, use() {
       E.assis = true;
       ui.fade(true, '', 900).then(() => {
-        hfSon([E.x, E.y + 1.2, E.z], () => { sound.hfFoule && sound.hfFoule(0.7, 4); });
-        setTimeout(() => { hfSon([E.x, E.y + 1.2, E.z], () => sound.hfFoule && sound.hfFoule(0.5, 3)); }, 1600);
+        hfSon([E.x, E.y + 1.2, E.z], () => { sound.hfFoule && sound.hfFoule(0.7, 4); }, HF_PETIT);
+        setTimeout(() => { hfSon([E.x, E.y + 1.2, E.z], () => sound.hfFoule && sound.hfFoule(0.5, 3), HF_PETIT); }, 1600);
         setTimeout(() => ui.fade(false, '', 900), 3600);
         setTimeout(() => { E.eteint = true; sound.candle && sound.candle(); hfPense('(Les bols sont vides. Ils l’ont toujours été.)', 4); hasardF.noter('table_mise', 'Au hameau abandonné, une table était mise pour quatre, la soupe fumait. Je me suis assis. On a parlé autour de moi, des voix que je ne voyais pas. Puis les chandelles se sont éteintes.'); }, 4200);
       });
@@ -211,7 +211,7 @@ hfDef('chien_noir', {
     apres: ['Le chien noir des carrefours ? Il vous suit, il ne mord pas. Il vous raccompagne. Le jour où il vous précède, c’est autre chose.', 'Si un grand chien noir vous suit la nuit, ne le chassez pas. Ne le nourrissez pas non plus. Rentrez chez vous, c’est tout.'],
   },
 });
-function hfYeuxRouges(F, buf) { PE.buf = buf; PE.fl = FX_EMIT; PE.frame(F.x, F.y, F.z, F.h, F.s || 1); for (const s of [-0.06, 0.06]) PE.box(s, 0.62, 0.42, 0.045, 0.035, 0.02, [1.6, 0.25, 0.15], TL.plain); PE.fl = 0; }
+function hfYeuxRouges(F, buf) { PE.buf = buf; PE.fl = FX_EMIT; PE.frame(F.x, F.y, F.z, F.h, F.s || 1); for (const s of [-0.065, 0.065]) PE.box(s, 0.62, 0.42, 0.06, 0.045, 0.02, [1.9, 0.22, 0.12], TL.plain); PE.fl = 0; }
 
 // ---------------------------------------------------------------- 6. la dame blanche
 const HF_PONTS = ['pont_riviere', 'pont_riviere1', 'pont_nord', 'pont_sud', 'cimetiere', 'calvaire0', 'calvaire1', 'calvaire2', 'calvaire3', 'calvaire4'];
@@ -276,7 +276,7 @@ hfDef('messe_morts', {
     E.chantT = 0.5; E.tait = false; E.frappe = false;
     hasardF.cible(E, { pos: () => [E.o[0], hfSol(E.o[0], E.o[1]) + 1.4, E.o[1]], r: 3, cos: 0.4, lab: 'Frapper à la porte', vis: () => !E.frappe, use() {
       E.frappe = true; E.tait = true; sound.knock && sound.knock(3);
-      setTimeout(() => { hfSon([E.o[0], hfSol(E.o[0], E.o[1]) + 1.4, E.o[1]], () => sound.knock && sound.knock(1)); hfPense('(De l’autre côté, quelqu’un a frappé une fois. Une seule.)', 4); strange.fear = Math.max(strange.fear || 0, 0.4); }, 3500);
+      setTimeout(() => { hfSon([E.o[0], hfSol(E.o[0], E.o[1]) + 1.4, E.o[1]], () => sound.knock && sound.knock(1), HF_PETIT); hfPense('(De l’autre côté, quelqu’un a frappé une fois. Une seule.)', 4); strange.fear = Math.max(strange.fear || 0, 0.4); }, 3500);
       hasardF.noter('messe_morts', 'La nuit du Vorndi, à minuit, on chantait dans l’église fermée. J’ai frappé à la porte. Le chant s’est tu. De l’autre côté, quelqu’un a frappé une fois.');
     } });
   },
@@ -320,7 +320,7 @@ hfDef('chasse_volante', {
     const u = E.t0 / E.duree0, ax = Math.sin(E.a), az = Math.cos(E.a), px = Math.cos(E.a), pz = -Math.sin(E.a);
     E.cx = eye[0] + ax * lerp(-110, 110, u) + px * 20; E.cz = eye[2] + az * lerp(-110, 110, u) + pz * 20; E.cy = eye[1] + 38 + Math.sin(u * Math.PI) * 12;
     E.sonT -= dt;
-    if (E.sonT <= 0 && u < 1) { E.sonT = 1.1 + Math.random() * 0.5; hfSon([E.cx, E.cy, E.cz], () => { sound.hfMeute && sound.hfMeute(1.2); if (Math.random() < 0.6) sound.hfSabots && sound.hfSabots(0.8); }); }
+    if (E.sonT <= 0 && u < 1) { E.sonT = 1.1 + Math.random() * 0.5; hfSon([E.cx, E.cy, E.cz], () => { sound.hfMeute && sound.hfMeute(1.2); if (Math.random() < 0.6) sound.hfSabots && sound.hfSabots(0.8); }, HF_VASTE); }
     game.shakeT = Math.max(game.shakeT || 0, 0.05 + 0.1 * Math.sin(Math.PI * clamp(u, 0, 1)));
     if (!E.vu && u > 0.15 && hfRegarde(E.cx, E.cy, E.cz, 0.8)) {
       E.vu = true;
@@ -401,7 +401,7 @@ hfDef('tambour_dessous', {
   maj(E, dt) {
     E.t0 += dt;
     E.tamT -= dt;
-    if (E.tamT <= 0 && E.t0 < 24) { E.tamT = 5.4; const p = game.player.pos; hfSon([p[0], hfSol(p[0], p[2]) - 6, p[2]], () => sound.hfTambourSourd && sound.hfTambourSourd(1)); }
+    if (E.tamT <= 0 && E.t0 < 24) { E.tamT = 5.4; const p = game.player.pos; hfSon([p[0], hfSol(p[0], p[2]) - 6, p[2]], () => sound.hfTambourSourd && sound.hfTambourSourd(1), HF_FORT); }
     game.shakeT = Math.max(game.shakeT || 0, E.t0 < 24 ? 0.08 + 0.06 * Math.abs(Math.sin(E.t0 * 5)) : 0);
     if (!E.note && E.t0 > 3) { hasardF.noter(E, 'La nuit, un tambour battait sous la terre, très loin. Le sol vibrait sous mes pieds.'); hfPense('(La terre bat comme un cœur, mais lentement.)', 3.5); }
     if (E.t0 > 27) E.fini = 'fin';

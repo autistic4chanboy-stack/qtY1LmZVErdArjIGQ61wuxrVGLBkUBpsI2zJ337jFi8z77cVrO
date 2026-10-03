@@ -3,7 +3,8 @@
 //  pendant les événements nouveaux (11-zzzzF-*.js). Tout est synthétisé, court,
 //  DOUX, programmé d'un coup sur l'horloge WebAudio (rien à chaque image) ; placé
 //  dans le monde par sound.ici(pos, …) quand l'événement a une source.
-//  Les volumes restent sous ceux des sons du jeu (cloche 0,06, cris 0,1).
+//  Niveaux mesurés au centre (rendus hors ligne) : ceux des cris des bêtes du
+//  jeu (crête −24 à −45 dBFS) ; la portée dans le monde : HF_PRES, HF_FORT… (moteur).
 // ============================================================================
 Object.assign(SoundEngine.prototype, {
   // sortie d'un son d'événement : la source placée (portée « ici »), sinon le centre
@@ -14,23 +15,23 @@ Object.assign(SoundEngine.prototype, {
   hfGresille(k = 1) {
     if (!this.ok) return;
     const t = this.at(), R = Math.random, out = this._hfOut(this.amb);
-    for (let i = 0, tt = t; i < 26; i++, tt += 0.03 + R() * 0.07) this.noiseHit(tt, 0.012 + R() * 0.02, 'highpass', 3800 + R() * 2500, 0.7, 0.02 * k * (0.5 + R()), out);
-    this.noiseHit(t, 1.6, 'bandpass', 5200, 1.4, 0.006 * k, out, 4200, 0.3);
+    for (let i = 0, tt = t; i < 26; i++, tt += 0.03 + R() * 0.07) this.noiseHit(tt, 0.012 + R() * 0.02, 'highpass', 3800 + R() * 2500, 0.7, 0.045 * k * (0.5 + R()), out);
+    this.noiseHit(t, 1.6, 'bandpass', 5200, 1.4, 0.014 * k, out, 4200, 0.3);
   },
   // la foudre sur un arbre : le coup sec tout près, le bois qui éclate
   hfFoudre(k = 1) {
     if (!this.ok) return;
     const t = this.at(), R = Math.random, out = this._hfOut(this.sfx);
-    this.noiseHit(t, 0.09, 'highpass', 1800, 0.6, 0.16 * k, out);
+    this.noiseHit(t, 0.12, 'highpass', 1800, 0.6, 0.3 * k, out);
     this.noiseHit(t + 0.01, 0.5, 'lowpass', 900, 0.7, 0.12 * k, out, 200, 0.01);
-    for (let i = 0; i < 9; i++) this.noiseHit(t + 0.05 + i * 0.03 + R() * 0.03, 0.04, 'bandpass', 900 + R() * 1400, 1.5, 0.05 * k, out);
-    this.tone(t + 0.02, 'sine', 70, 34, 1.4, 0.09 * k, out, 0.01);
+    for (let i = 0; i < 9; i++) this.noiseHit(t + 0.05 + i * 0.03 + R() * 0.03, 0.04, 'bandpass', 900 + R() * 1400, 1.5, 0.09 * k, out);
+    this.tone(t + 0.02, 'sine', 70, 34, 1.0, 0.06 * k, out, 0.01);
   },
   // un drap qui claque au vent
   hfDrap(k = 1) {
     if (!this.ok) return;
     const t = this.at(), R = Math.random, out = this._hfOut(this.amb);
-    for (let i = 0, tt = t; i < 5; i++, tt += 0.11 + R() * 0.12) this.noiseHit(tt, 0.06 + R() * 0.04, 'bandpass', 500 + R() * 400, 0.9, 0.03 * k, out, 300, 0.008);
+    for (let i = 0, tt = t; i < 5; i++, tt += 0.11 + R() * 0.12) this.noiseHit(tt, 0.06 + R() * 0.04, 'bandpass', 500 + R() * 400, 0.9, 0.07 * k, out, 300, 0.008);
   },
 
   // ---------------------------------------------------------------- les bêtes
@@ -40,8 +41,8 @@ Object.assign(SoundEngine.prototype, {
     const t = this.at(), R = Math.random, out = this._hfOut(this.amb), n = 18 + ((R() * 10) | 0);
     for (let i = 0, tt = t; i < n; i++) {
       const u = i / n, per = 0.105 - 0.05 * Math.sin(u * Math.PI);
-      this.noiseHit(tt, 0.014, 'bandpass', 1500 + R() * 500, 4, 0.05 * k, out);
-      this.tone(tt, 'triangle', 720 + R() * 80, 640, 0.02, 0.012 * k, out, 0.001);
+      this.noiseHit(tt, 0.014, 'bandpass', 1500 + R() * 500, 4, 0.15 * k, out);
+      this.tone(tt, 'triangle', 720 + R() * 80, 640, 0.02, 0.035 * k, out, 0.001);
       tt += per;
     }
   },
@@ -62,14 +63,14 @@ Object.assign(SoundEngine.prototype, {
   hfNuee(k = 1) {
     if (!this.ok) return;
     const t = this.at(), R = Math.random, out = this._hfOut(this.amb);
-    this.noiseHit(t, 2.2, 'bandpass', 700, 0.7, 0.03 * k, out, 1300, 0.7);
-    for (let i = 0; i < 24; i++) { const tt = t + R() * 2.2, f = 2600 + R() * 2600; this.tone(tt, 'sine', f, f * (0.8 + R() * 0.4), 0.03 + R() * 0.04, 0.005 * k, out, 0.003); }
+    this.noiseHit(t, 2.2, 'bandpass', 700, 0.7, 0.08 * k, out, 1300, 0.7);
+    for (let i = 0; i < 24; i++) { const tt = t + R() * 2.2, f = 2600 + R() * 2600; this.tone(tt, 'sine', f, f * (0.8 + R() * 0.4), 0.03 + R() * 0.04, 0.013 * k, out, 0.003); }
   },
   // des hirondelles qui gazouillent en passant
   hfHirondelle(k = 1) {
     if (!this.ok) return;
     const t = this.at(), R = Math.random, out = this._hfOut(this.amb);
-    for (let i = 0, tt = t; i < 6 + ((R() * 6) | 0); i++, tt += 0.05 + R() * 0.07) { const f = 3200 + R() * 1800; this.tone(tt, 'sine', f, f * (R() < 0.5 ? 1.25 : 0.8), 0.04 + R() * 0.03, 0.012 * k, out, 0.004); }
+    for (let i = 0, tt = t; i < 6 + ((R() * 6) | 0); i++, tt += 0.05 + R() * 0.07) { const f = 3200 + R() * 1800; this.tone(tt, 'sine', f, f * (R() < 0.5 ? 1.25 : 0.8), 0.04 + R() * 0.03, 0.03 * k, out, 0.004); }
   },
   // le chevreuil pris : un cri bref, aigu, plaintif
   hfChevreuil(k = 1) {
@@ -84,7 +85,7 @@ Object.assign(SoundEngine.prototype, {
     for (const f of [205 + R() * 10, 232 + R() * 10, 248 + R() * 8]) {
       const o = c.createOscillator(); this.setWave(o, 'sawtooth'); o.frequency.setValueAtTime(f, t); o.frequency.linearRampToValueAtTime(f * (0.97 + R() * 0.06), t + du);
       const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 0.8;
-      const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.006 * k, t + 0.8); g.gain.linearRampToValueAtTime(0.0055 * k, t + du - 0.8); g.gain.linearRampToValueAtTime(0.0001, t + du);
+      const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.011 * k, t + 0.8); g.gain.linearRampToValueAtTime(0.0105 * k, t + du - 0.8); g.gain.linearRampToValueAtTime(0.0001, t + du);
       o.connect(bp).connect(g).connect(out); o.start(t); o.stop(t + du + 0.05);
     }
     this.mark(out, t + du + 0.05);
@@ -100,7 +101,7 @@ Object.assign(SoundEngine.prototype, {
   hfPiou(k = 1) {
     if (!this.ok) return;
     const t = this.at(), R = Math.random, out = this._hfOut(this.amb);
-    for (let i = 0, tt = t; i < 5 + ((R() * 5) | 0); i++, tt += 0.09 + R() * 0.15) { const f = 3400 + R() * 900; this.tone(tt, 'sine', f, f * 0.8, 0.07, 0.01 * k, out, 0.004); }
+    for (let i = 0, tt = t; i < 5 + ((R() * 5) | 0); i++, tt += 0.09 + R() * 0.15) { const f = 3400 + R() * 900; this.tone(tt, 'sine', f, f * 0.8, 0.07, 0.025 * k, out, 0.004); }
   },
   // un sanglier qui fouille et grogne
   hfGrogne(k = 1) {
@@ -157,9 +158,9 @@ Object.assign(SoundEngine.prototype, {
     const t0 = this.at(0.03), spb = 60 / (o.bpm || 120) / 2, out = this._hfOut(this.sfx), v = o.vol || 0.06;
     let t = t0;
     for (const ch of motif) {
-      if (ch === 'g') { this.tone(t, 'sine', 120, 60, 0.25, v, out, 0.003); this.noiseHit(t, 0.06, 'lowpass', 400, 0.7, v * 0.5, out); }
-      else if (ch === 'c') { this.noiseHit(t, 0.12, 'bandpass', 2200, 0.8, v * 0.7, out); this.tone(t, 'triangle', 220, 180, 0.06, v * 0.3, out, 0.002); }
-      else if (ch === 'r') { for (let i = 0; i < 4; i++) this.noiseHit(t + i * spb / 4, 0.05, 'bandpass', 2400, 0.8, v * 0.45, out); }
+      if (ch === 'g') { this.tone(t, 'sine', 120, 60, 0.22, v * 0.85, out, 0.003); this.noiseHit(t, 0.06, 'lowpass', 400, 0.7, v * 0.5, out); this.noiseHit(t, 0.03, 'bandpass', 900, 1, v * 0.25, out); }
+      else if (ch === 'c') { this.noiseHit(t, 0.12, 'bandpass', 2200, 0.8, v * 1.1, out); this.noiseHit(t, 0.1, 'highpass', 4500, 0.7, v * 0.4, out); this.tone(t, 'triangle', 220, 180, 0.06, v * 0.35, out, 0.002); }
+      else if (ch === 'r') { for (let i = 0; i < 4; i++) this.noiseHit(t + i * spb / 4, 0.05, 'bandpass', 2400, 0.8, v * 0.7, out); }
       t += spb;
     }
     this.mark(out, t + 0.3);
@@ -196,7 +197,7 @@ Object.assign(SoundEngine.prototype, {
   hfCoups(k = 1) {
     if (!this.ok) return;
     const t = this.at(), R = Math.random, out = this._hfOut(this.sfx);
-    for (let i = 0, tt = t; i < 2 + ((R() * 2) | 0); i++, tt += 0.25 + R() * 0.3) { this.tone(tt, 'sine', 110, 55, 0.12, 0.08 * k, out, 0.002); this.noiseHit(tt, 0.05, 'lowpass', 700, 0.7, 0.05 * k, out); }
+    for (let i = 0, tt = t; i < 2 + ((R() * 2) | 0); i++, tt += 0.25 + R() * 0.3) { this.tone(tt, 'sine', 110, 55, 0.12, 0.07 * k, out, 0.002); this.noiseHit(tt, 0.05, 'lowpass', 700, 0.7, 0.05 * k, out); this.noiseHit(tt, 0.035, 'bandpass', 1500 + R() * 700, 1.2, 0.06 * k, out); if (R() < 0.45) this.cri(tt + 0.06, { dur: 0.16 + R() * 0.08, f: [[0, 135], [1, 100]], rug: [30, 0.5], form: [[520, 3, 1], [1200, 5, 0.4]], souffle: [0.45, 900], vol: 0.04 * k, lp: 2400, a: 0.01 }, out); }
   },
   // le charivari : casseroles, chaudrons, une corne, des cris
   hfCharivari(k = 1) {
@@ -216,8 +217,8 @@ Object.assign(SoundEngine.prototype, {
     const t = this.at(), R = Math.random, out = this._hfOut(this.amb);
     for (let i = 0; i < n; i++) {
       const tt = t + R() * 2.4, f = 900 + R() * 900;
-      for (const [m, a] of [[1, 1], [1.53, 0.5], [2.21, 0.3]]) this.tone(tt, 'sine', f * m, f * m * 0.995, 0.25 + R() * 0.3, 0.007 * k * a, out, 0.001);
-      this.noiseHit(tt, 0.02, 'bandpass', f * 2, 2, 0.008 * k, out);
+      for (const [m, a] of [[1, 1], [1.53, 0.5], [2.21, 0.3]]) this.tone(tt, 'sine', f * m, f * m * 0.995, 0.25 + R() * 0.3, 0.016 * k * a, out, 0.001);
+      this.noiseHit(tt, 0.02, 'bandpass', f * 2, 2, 0.018 * k, out);
     }
   },
   // la clochette du rémouleur
@@ -257,19 +258,19 @@ Object.assign(SoundEngine.prototype, {
   hfTambourSourd(k = 1) {
     if (!this.ok) return;
     const t = this.at(), R = Math.random, out = this._hfOut(this.amb);
-    for (let i = 0; i < 8; i++) { const tt = t + i * 0.62 + (i % 4 === 3 ? 0.31 : 0); this.tone(tt, 'sine', 52 + R() * 4, 40, 0.7, 0.12 * k * (i % 4 === 0 ? 1 : 0.7), out, 0.004); this.noiseHit(tt, 0.2, 'lowpass', 160, 0.6, 0.04 * k, out); }
+    for (let i = 0; i < 8; i++) { const tt = t + i * 0.62 + (i % 4 === 3 ? 0.31 : 0); this.tone(tt, 'sine', 52 + R() * 4, 40, 0.7, 0.12 * k * (i % 4 === 0 ? 1 : 0.7), out, 0.004); this.noiseHit(tt, 0.2, 'lowpass', 160, 0.6, 0.04 * k, out); this.tone(tt, 'triangle', 100 + R() * 8, 76, 0.32, 0.035 * k * (i % 4 === 0 ? 1 : 0.7), out, 0.004); this.noiseHit(tt, 0.1, 'bandpass', 260, 1.1, 0.03 * k, out); }
   },
   // un chien qui halète, tout près
   hfHalete(k = 1) {
     if (!this.ok) return;
     const t = this.at(), out = this._hfOut(this.amb);
-    for (let i = 0; i < 6; i++) this.noiseHit(t + i * 0.22, 0.12, 'bandpass', i % 2 ? 900 : 1300, 1.2, 0.025 * k, out, i % 2 ? 700 : 1600, 0.02);
+    for (let i = 0; i < 6; i++) this.noiseHit(t + i * 0.22, 0.12, 'bandpass', i % 2 ? 900 : 1300, 1.2, 0.055 * k, out, i % 2 ? 700 : 1600, 0.02);
   },
   // le feu qui ronfle et craque
   hfFeu(k = 1) {
     if (!this.ok) return;
     const t = this.at(), R = Math.random, out = this._hfOut(this.amb);
-    this.noiseHit(t, 2.6, 'lowpass', 420, 0.6, 0.05 * k, out, 300, 0.6);
-    for (let i = 0; i < 14; i++) this.noiseHit(t + R() * 2.5, 0.02, 'bandpass', 1500 + R() * 2500, 1.5, 0.05 * k * R(), out);
+    this.noiseHit(t, 2.6, 'lowpass', 420, 0.6, 0.13 * k, out, 300, 0.6);
+    for (let i = 0; i < 14; i++) this.noiseHit(t + R() * 2.5, 0.02, 'bandpass', 1500 + R() * 2500, 1.5, 0.12 * k * R(), out);
   },
 });

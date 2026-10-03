@@ -23,11 +23,11 @@ const HF_AIR_NOCE = [[74, 1], [71, 0.5], [72, 0.5], [74, 1], [79, 1], [78, 0.5],
 const HF_AIR_FIFRE = [[74, 0.5], [76, 0.5], [78, 1], [74, 0.5], [76, 0.5], [78, 1], [79, 0.5], [78, 0.5], [76, 0.5], [74, 0.5], [73, 1], [69, 1],
   [74, 0.5], [76, 0.5], [78, 1], [81, 0.5], [79, 0.5], [78, 0.5], [76, 0.5], [74, 1], [76, 0.5], [73, 0.5], [74, 2]];
 const HF_LITANIE = [[62, 1], [64, 1], [65, 1.5], [64, 0.5], [62, 1], [64, 2], [null, 0.5], [60, 1], [62, 1], [64, 1], [65, 1], [64, 1], [62, 2.5]];
-// jouer un air depuis un figurant (si l'on est à portée d'oreille) ; renvoie la durée, ou 0
+// jouer un air depuis un figurant (si l'on est à portée d'oreille) ; renvoie la durée, ou 0 (le son le suit s'il marche)
 function hfJoue(F, air, o, portee) {
   if (!F || hfDistJ(F.x, F.z) > (portee || 90)) return 0;
   let d = 0;
-  hfSon([F.x, F.y + 1.4, F.z], () => { d = sound.hfAir ? sound.hfAir(air, o) : 0; });
+  hfSon([F.x, F.y + 1.4, F.z], () => { d = sound.hfAir ? sound.hfAir(air, o) : 0; }, hfSuivi(HF_FORT, F));
   return d;
 }
 // accessoires des figurants (dans le repère du corps : x à droite, y en haut, z devant)
@@ -68,8 +68,8 @@ hfDef('noce', {
     invites.forEach(([k, o], i) => mk(hfLook(k, o), { rang: 2.6 + Math.floor(i / 2) * 1.1, lat: i % 2 ? 0.5 : -0.5, voix: 0.9 + r() * 0.5 }));
     E.C = hfCortege(M, pts, 1.3, 0.75);
     E.airT = 0.5; E.fini0 = false; E.felicite = false; E.t1 = 0;
-    hfSon([B.out[0], hfSol(B.out[0], B.out[1]) + 1.5, B.out[1]], () => { sound.shot && sound.shot(); });
-    setTimeout(() => hfSon([B.out[0], hfSol(B.out[0], B.out[1]) + 1.5, B.out[1]], () => { sound.shot && sound.shot(); }), 700);
+    hfSon([B.out[0], hfSol(B.out[0], B.out[1]) + 1.5, B.out[1]], () => { sound.shot && sound.shot(); }, HF_PETIT);
+    setTimeout(() => hfSon([B.out[0], hfSol(B.out[0], B.out[1]) + 1.5, B.out[1]], () => { sound.shot && sound.shot(); }, HF_PETIT), 700);
     hasardF.cible(E, { pos: () => [E.elle.x, E.elle.y + 1.2, E.elle.z], r: 3, lab: 'Féliciter les mariés', vis: () => !E.felicite, use() {
       E.felicite = true;
       hfDit(E.elle, pick(['Merci ! Venez boire à notre santé, ce soir, à l’auberge.', 'Merci bien. Tenez, prenez des dragées, il y en a pour tout le monde.']), 3.5);
@@ -139,7 +139,7 @@ hfDef('enterrement', {
     hfCortegeMaj(C, dt, false);
     // le glas : un coup lent toutes les six secondes, tant que le cortège est en route
     E.glasT -= dt;
-    if (E.glasT <= 0 && E.glas < 14 && !C.fini) { E.glasT = 6.5; E.glas++; const P = sound.clocher ? sound.clocher() : null; if (P) hfSon(P, () => sound.hfCloche && sound.hfCloche(150, 0.9)); }
+    if (E.glasT <= 0 && E.glas < 14 && !C.fini) { E.glasT = 6.5; E.glas++; const P = sound.clocher ? sound.clocher() : null; if (P) hfSon(P, () => sound.hfCloche && sound.hfCloche(150, 0.9), HF_VASTE); }
     // le cercueil, entre les porteurs
     const P = E.porteurs;
     E.cx = (P[0].x + P[1].x + P[2].x + P[3].x) / 4; E.cz = (P[0].z + P[1].z + P[2].z + P[3].z) / 4; E.cy = (P[0].y + P[3].y) / 2 + 1.45; E.ch = Math.atan2(P[0].x - P[2].x, P[0].z - P[2].z);
@@ -215,12 +215,12 @@ hfDef('enfant_perdu', {
         if (!M.chemin || M.arrive) { const a = Math.random() * TAU; hfAller(M, [[E.v0[0] + Math.sin(a) * 25, E.v0[1] + Math.cos(a) * 25]], 1.3); }
         hfMarche(M, dt);
         E.appelT -= dt;
-        if (E.appelT <= 0) { E.appelT = 6 + Math.random() * 5; if (hfDistJ(M.x, M.z) < 90) { hfSon([M.x, M.y + 1.5, M.z], () => sound.hfAppel && sound.hfAppel(1)); if (hfDistJ(M.x, M.z) < 25 && !ui.panel) ui.subtitle('Une mère', `${E.prenom} ! ${E.prenom} !`, 2); } }
+        if (E.appelT <= 0) { E.appelT = 6 + Math.random() * 5; if (hfDistJ(M.x, M.z) < 90) { hfSon([M.x, M.y + 1.5, M.z], () => sound.hfAppel && sound.hfAppel(1), HF_FORT); if (hfDistJ(M.x, M.z) < 25 && !ui.panel) ui.subtitle('Une mère', `${E.prenom} ! ${E.prenom} !`, 2); } }
       }
       // l'enfant pleure ; s'il suit, il trottine derrière
       if (!E.suit) {
         E.pleurT -= dt;
-        if (E.pleurT <= 0) { E.pleurT = 5 + Math.random() * 4; if (hfDistJ(K.x, K.z) < 45) hfSon([K.x, K.y + 0.8, K.z], () => sound.hfSanglot && sound.hfSanglot(1)); }
+        if (E.pleurT <= 0) { E.pleurT = 5 + Math.random() * 4; if (hfDistJ(K.x, K.z) < 45) hfSon([K.x, K.y + 0.8, K.z], () => sound.hfSanglot && sound.hfSanglot(1), HF_PETIT); }
       } else {
         const d = Math.hypot(K.x - p[0], K.z - p[2]);
         if (d > 2.2) { if (!K.chemin || K.ci >= K.chemin.length || Math.random() < dt * 2) hfAller(K, [[p[0], p[2]]], d > 8 ? 3.4 : 2.2); hfMarche(K, dt); } else K.move = lerp(K.move, 0, Math.min(1, dt * 6));
@@ -337,7 +337,7 @@ hfDef('saltimbanques', {
     if (!E.depart) {
       // la musique : le fifre du tambour et sa caisse
       E.airT -= dt;
-      if (E.airT <= 0) { let du = 0; if (d < 100) hfSon([E.tambour.x, E.tambour.y + 1.3, E.tambour.z], () => { du = sound.hfAir ? sound.hfAir(HF_AIR_FIFRE, { bpm: 132, timbre: 'fifre', vol: 0.035 }) : 0; if (sound.hfTambour) sound.hfTambour('g.c.g.c.gcc.g.c.g.c.g.c.gcc.r...', { bpm: 132, vol: 0.05 }); }); E.airT = (du || 6) + 3; }
+      if (E.airT <= 0) { let du = 0; if (d < 100) hfSon([E.tambour.x, E.tambour.y + 1.3, E.tambour.z], () => { du = sound.hfAir ? sound.hfAir(HF_AIR_FIFRE, { bpm: 132, timbre: 'fifre', vol: 0.035 }) : 0; if (sound.hfTambour) sound.hfTambour('g.c.g.c.gcc.g.c.g.c.g.c.gcc.r...', { bpm: 132, vol: 0.05 }); }, HF_FORT); E.airT = (du || 6) + 3; }
       // le feu craché
       E.feuT -= dt; E.feu = Math.max(0, E.feu - dt);
       if (E.feuT <= 0) { E.feuT = 7 + Math.random() * 5; E.feu = 1.2; if (d < 60) hfSon([E.cracheur.x, E.cracheur.y + 1.6, E.cracheur.z], () => sound.noiseHit && sound.noiseHit(sound.at(), 0.9, 'bandpass', 500, 0.7, 0.05, sound.sfx, 1500, 0.08)); }
@@ -411,7 +411,7 @@ hfDef('procession', {
       // une litanie à trois voix : le chant, l'octave, la quinte
       let du = 0;
       const F = C.membres[3] || C.membres[0];
-      if (hfDistJ(F.x, F.z) < 110) hfSon([F.x, F.y + 1.5, F.z], () => { if (!sound.hfAir) return; du = sound.hfAir(HF_LITANIE, { bpm: 64, timbre: 'voix', voyelle: 'o', vol: 0.03 }); sound.hfAir(HF_LITANIE.map(([m, d]) => [m === null ? null : m - 12, d]), { bpm: 64, timbre: 'voix', voyelle: 'o', vol: 0.025 }); sound.hfAir(HF_LITANIE.map(([m, d]) => [m === null ? null : m - 5, d]), { bpm: 64, timbre: 'voix', voyelle: 'a', vol: 0.016 }); });
+      if (hfDistJ(F.x, F.z) < 110) hfSon([F.x, F.y + 1.5, F.z], () => { if (!sound.hfAir) return; du = sound.hfAir(HF_LITANIE, { bpm: 64, timbre: 'voix', voyelle: 'o', vol: 0.042 }); sound.hfAir(HF_LITANIE.map(([m, d]) => [m === null ? null : m - 12, d]), { bpm: 64, timbre: 'voix', voyelle: 'o', vol: 0.035 }); sound.hfAir(HF_LITANIE.map(([m, d]) => [m === null ? null : m - 5, d]), { bpm: 64, timbre: 'voix', voyelle: 'a', vol: 0.022 }); }, hfSuivi(HF_FORT, F, 1.5));
       E.chantT = (du || 8) + 2.5;
     }
     if (!E.note && hfDistJ(E.cure.x, E.cure.z) < 50) { hasardF.noter(E, 'Un Primedi, la procession des Rogations est passée par les champs, la croix et la bannière devant, en chantant.'); hasardF.reagir('procession', 'pendant', E.cure.x, E.cure.z); }
@@ -470,7 +470,7 @@ hfDef('bapteme', {
   maj(E, dt) {
     // les cloches à toute volée (trois cloches, en carillon)
     E.carT -= dt;
-    if (E.carT <= 0 && E.car < 28) { E.carT = 0.55; E.car++; const P = sound.clocher ? sound.clocher() : null; if (P && hfDistJ(P[0], P[2]) < 400) hfSon(P, () => sound.hfCloche && sound.hfCloche([262, 330, 392][E.car % 3], 0.7)); }
+    if (E.carT <= 0 && E.car < 28) { E.carT = 0.55; E.car++; const P = sound.clocher ? sound.clocher() : null; if (P && hfDistJ(P[0], P[2]) < 400) hfSon(P, () => sound.hfCloche && sound.hfCloche([262, 330, 392][E.car % 3], 0.7), HF_VASTE); }
     // le parrain jette des dragées
     E.jetT -= dt;
     if (E.jetT <= 0 && E.jets < 6) {
@@ -594,9 +594,9 @@ hfDef('incendie', {
     }
     // le tocsin, au début
     E.tocsinT -= dt;
-    if (E.tocsinT <= 0 && E.toc < 30 && E.t0 > 2) { E.tocsinT = 0.45; E.toc++; if (d < 500) hfSon([E.x, E.y + 3, E.z], () => sound.hfCloche && sound.hfCloche(440, clamp(1.2 - d / 400, 0.2, 1))); }
+    if (E.tocsinT <= 0 && E.toc < 30 && E.t0 > 2) { E.tocsinT = 0.45; E.toc++; if (d < 500) hfSon([E.x, E.y + 3, E.z], () => sound.hfCloche && sound.hfCloche(440, clamp(1.2 - d / 400, 0.2, 1)), HF_VASTE); }
     E.sonT -= dt;
-    if (E.sonT <= 0) { E.sonT = 2.4; if (d < 120) hfSon([E.x, E.y, E.z], () => { sound.hfFeu && sound.hfFeu(f); if (Math.random() < 0.5) sound.hfFoule && sound.hfFoule(1, 3); }); }
+    if (E.sonT <= 0) { E.sonT = 2.4; if (d < 120) hfSon([E.x, E.y, E.z], () => { sound.hfFeu && sound.hfFeu(f); if (Math.random() < 0.5) sound.hfFoule && sound.hfFoule(1, 3); }, HF_FORT); }
     for (const [i, F] of E.chaine.entries()) { F.pose = { reach: 0.4 + Math.sin(game.time * 3 + i * 1.2) * 0.3 }; F.phase = i * 1.2; }
     if (!E.note && d < 400 && f > 0.2) { hasardF.noter(E, 'Une nuit, une grange a brûlé au hameau. On voyait la lueur de loin ; on a fait la chaîne jusqu’à l’eau.'); hasardF.reagir('incendie', 'pendant', E.x, E.z); }
     if (E.t0 > 60 && E.feu <= 0.001) E.fini = 'fin';
@@ -637,7 +637,7 @@ hfDef('charivari', {
     const d = hfDistJ(E.x, E.z);
     if (!E.paye) {
       E.bruitT -= dt;
-      if (E.bruitT <= 0) { E.bruitT = 3.2; if (d < 120) hfSon([E.x, hfSol(E.x, E.z) + 1.4, E.z], () => sound.hfCharivari && sound.hfCharivari(E.joint ? 1.25 : 1)); }
+      if (E.bruitT <= 0) { E.bruitT = 3.2; if (d < 120) hfSon([E.x, hfSol(E.x, E.z) + 1.4, E.z], () => sound.hfCharivari && sound.hfCharivari(E.joint ? 1.25 : 1), HF_FORT); }
       E.criT -= dt;
       if (E.criT <= 0) { E.criT = 4 + Math.random() * 3; hfDit(pick(E.bande), pick([`Hou ! Hou ! ${E.veuf[0].toUpperCase() + E.veuf.slice(1)}, paie à boire !`, 'Une jeunesse de vingt ans ! À son âge !', 'On ne dormira pas, et toi non plus !', 'Paie, et on s’en va !']), 2.5); }
       if (!E.note && d < 40) { hasardF.noter(E, `Un charivari sous les fenêtres ${E.veuf.replace(/^le /, 'du ')}, remarié avec une jeunesse : des casseroles, une corne, des cris, jusqu’à ce qu’il paie à boire.`); hasardF.reagir('charivari', 'pendant', E.x, E.z); }

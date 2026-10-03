@@ -169,7 +169,7 @@ hfDef('rats_grange', {
       hfMarche(F, dt); F.run = true;
     }
     E.sonT -= dt;
-    if (E.sonT <= 0) { E.sonT = 0.8 + Math.random() * 1.5; if (hfDistJ(E.gx, E.gz) < 30) hfSon([E.gx + (Math.random() - 0.5) * 6, hfSol(E.gx, E.gz) + 0.3, E.gz + (Math.random() - 0.5) * 6], () => sound.squeak && sound.squeak()); }
+    if (E.sonT <= 0) { E.sonT = 0.8 + Math.random() * 1.5; if (hfDistJ(E.gx, E.gz) < 30) hfSon([E.gx + (Math.random() - 0.5) * 6, hfSol(E.gx, E.gz) + 0.3, E.gz + (Math.random() - 0.5) * 6], () => sound.squeak && sound.squeak(), HF_PETIT); }
     if (!E.note && hfDistJ(E.gx, E.gz) < 15) { hasardF.noter(E, 'Des rats dans la grange, au crépuscule : des couinements, des ombres qui filent le long des murs.'); }
     if (E.tues >= 4) E.fini = 'chasses';
   },
@@ -219,7 +219,7 @@ hfDef('vagabond_grange', {
     const V = E.v, d = hfDistJ(V.x, V.z);
     if (E.etat === 'dort') {
       E.ronfleT -= dt;
-      if (E.ronfleT <= 0) { E.ronfleT = 3 + Math.random(); if (d < 20) hfSon([V.x, V.y + 0.8, V.z], () => sound.noiseHit && sound.noiseHit(sound.at(), 1.1, 'bandpass', 220, 2, 0.02, sound.voix, 160, 0.4)); }
+      if (E.ronfleT <= 0) { E.ronfleT = 3 + Math.random(); if (d < 20) hfSon([V.x, V.y + 0.8, V.z], () => sound.noiseHit && sound.noiseHit(sound.at(), 1.1, 'bandpass', 220, 2, 0.02, sound.voix, 160, 0.4), HF_PETIT); }
       if (d < 3.2) { E.etat = 'eveille'; V.pose = { sit: 1, lookP: 0 }; hfFace(V, game.player.pos[0], game.player.pos[2], 1); hfDit(V, 'Pardon, pardon… J’ai juste dormi. Il pleuvait sur la route. Vous n’auriez pas un bout de pain ?', 5); if (!E.note) hasardF.noter(E, 'Au matin, un vagabond dormait dans la grange, sur le foin.'); }
       if (!E.note && d < 12 && hfRegarde(V.x, V.y + 0.6, V.z, 0.75)) { hasardF.noter(E, 'Au matin, un vagabond dormait dans la grange, sur le foin.'); }
       if (E.age > 2.5) hfVagabondPart(E);
@@ -281,7 +281,7 @@ hfDef('poussins', {
     else { M.pose = { peck: 1 }; if (!M.chemin || M.arrive) { const a = Math.random() * TAU; hfAller(M, [[E.x + Math.sin(a) * 1.5, E.z + Math.cos(a) * 1.5]], 0.5); } hfMarche(M, dt); }
     for (const [i, F] of E.petits.entries()) { const a = game.time * 0.7 + i * 1.3, tx = M.x + Math.sin(a) * 0.5, tz = M.z + Math.cos(a) * 0.5; F.x = lerp(F.x, tx, Math.min(1, dt * 2.5)); F.z = lerp(F.z, tz, Math.min(1, dt * 2.5)); F.y = hfY(F.x, F.z); F.h = Math.atan2(tx - F.x, tz - F.z); F.move = 0.6; F.phase += dt * 6; F.pose = { peck: (i + Math.floor(game.time)) % 3 === 0 ? 1 : 0 }; }
     E.pioT -= dt;
-    if (E.pioT <= 0) { E.pioT = 1.8 + Math.random() * 2; if (hfDistJ(M.x, M.z) < 25) hfSon([M.x, M.y + 0.2, M.z], () => sound.hfPiou && sound.hfPiou(1)); }
+    if (E.pioT <= 0) { E.pioT = 1.8 + Math.random() * 2; if (hfDistJ(M.x, M.z) < 25) hfSon([M.x, M.y + 0.2, M.z], () => sound.hfPiou && sound.hfPiou(1), HF_PETIT); }
     if (!E.note && hfDistJ(M.x, M.z) < 14) { hasardF.noter(E, 'Une poule avait couvé en cachette dans les hautes herbes : cinq poussins jaunes la suivaient.'); }
     if (E.suit && C && Math.hypot(M.x - C.x, M.z - C.z) < 8) {
       const a = farm.newAnimal('hen'); a.name = pick(['Poulette', 'Biscotte', 'Pâquerette', 'Noisette', 'Brindille']); farm.s.animals.push(a); game.syncAnimals && game.syncAnimals();

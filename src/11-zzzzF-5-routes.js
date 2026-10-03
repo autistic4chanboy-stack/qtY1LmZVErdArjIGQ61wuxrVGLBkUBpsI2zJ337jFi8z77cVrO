@@ -177,7 +177,7 @@ hfDef('pelerins', {
     hfCortegeMaj(C, dt, arret);
     if (arret) { E.parle = true; hfFace(F0, game.player.pos[0], game.player.pos[2], 2); hfDit(F0, `Bonjour à vous. C’est bien par ici, ${E.but} ? Nous marchons depuis la Saint-Jean.`, 5); hasardF.noter(E, `Des pèlerins, sur la route, en chemin vers ${E.but}, le bâton à la main et la coquille au chapeau.`); }
     E.chantT -= dt;
-    if (E.chantT <= 0) { let du = 0; if (d < 90) hfSon([F0.x, F0.y + 1.5, F0.z], () => { du = sound.hfAir ? sound.hfAir(HF_CANTIQUE, { bpm: 76, timbre: 'voix', voyelle: 'a', vol: 0.028 }) : 0; if (sound.hfAir) sound.hfAir(HF_CANTIQUE.map(([m, x]) => [m === null ? null : m - 12, x]), { bpm: 76, timbre: 'voix', voyelle: 'o', vol: 0.02 }); }); E.chantT = (du || 10) + 6; }
+    if (E.chantT <= 0) { let du = 0; if (d < 90) hfSon([F0.x, F0.y + 1.5, F0.z], () => { du = sound.hfAir ? sound.hfAir(HF_CANTIQUE, { bpm: 76, timbre: 'voix', voyelle: 'a', vol: 0.04 }) : 0; if (sound.hfAir) sound.hfAir(HF_CANTIQUE.map(([m, x]) => [m === null ? null : m - 12, x]), { bpm: 76, timbre: 'voix', voyelle: 'o', vol: 0.028 }); }, hfSuivi(HF_FORT, F0, 1.5)); E.chantT = (du || 10) + 6; }
     if (C.fini) E.fini = 'fin';
   },
   dessin(E, buf, sbuf, cam, t) { for (const F of E.C.membres) hfDessine(F, buf, sbuf, cam, t); },
@@ -219,9 +219,9 @@ hfDef('roulottes_nuit', {
   maj(E, dt) {
     const d = hfDistJ(E.x, E.z);
     E.airT -= dt;
-    if (E.airT <= 0) { let du = 0; if (d < 90) hfSon([E.gens[0].x, E.gens[0].y + 1.1, E.gens[0].z], () => { du = sound.hfAir ? sound.hfAir(HF_AIR_VIELLE, { bpm: 104, timbre: 'vielle', vol: 0.035, bourdon: [45, 52], chien: true }) : 0; }); E.airT = (du || 10) + 5 + Math.random() * 6; }
+    if (E.airT <= 0) { let du = 0; if (d < 90) hfSon([E.gens[0].x, E.gens[0].y + 1.1, E.gens[0].z], () => { du = sound.hfAir ? sound.hfAir(HF_AIR_VIELLE, { bpm: 104, timbre: 'vielle', vol: 0.035, bourdon: [45, 52], chien: true }) : 0; }, HF_FORT); E.airT = (du || 10) + 5 + Math.random() * 6; }
     E.feuT -= dt;
-    if (E.feuT <= 0) { E.feuT = 2.5; if (d < 40) hfSon([E.x, E.y + 0.4, E.z], () => sound.hfFeu && sound.hfFeu(0.35)); }
+    if (E.feuT <= 0) { E.feuT = 2.5; if (d < 40) hfSon([E.x, E.y + 0.4, E.z], () => sound.hfFeu && sound.hfFeu(0.35), HF_PETIT); }
     if (Math.random() < dt * 8) particles.spawn(E.x + (Math.random() - 0.5) * 0.5, E.y + 0.4, E.z + (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.4, 1.4 + Math.random(), (Math.random() - 0.5) * 0.4, [1.2, 0.6, 0.2, 1], 0.06, 0.7, -0.4, true);
     E.gens[0].pose = { sit: 1, reach: 0.4 + Math.sin(game.time * 5) * 0.08 };
     if (!E.note && d < 60) { hasardF.noter(E, 'Une nuit, au bord de la route, un feu, une roulotte, et une vielle qui jouait un air ancien.'); }
@@ -313,7 +313,7 @@ hfDef('soldats', {
     // le cavalier sur son cheval
     const K = E.cavalier; K.x = O.x; K.z = O.z; K.y = O.y + 0.95; K.h = O.h; K.pose = { sit: 1 }; K.move = 0;
     E.tamT -= dt;
-    if (E.tamT <= 0 && E.arret <= 0) { let du = 0; if (d < 120) hfSon([E.tambour.x, E.tambour.y + 1, E.tambour.z], () => { du = sound.hfTambour ? sound.hfTambour('g.c.g.c.g.c.gcc.', { bpm: 112, vol: 0.06 }) : 0; if (sound.hfPas) sound.hfPas(0.8, 8, 112); }); E.tamT = (du || 4) + 0.3; }
+    if (E.tamT <= 0 && E.arret <= 0) { let du = 0; if (d < 120) hfSon([E.tambour.x, E.tambour.y + 1, E.tambour.z], () => { du = sound.hfTambour ? sound.hfTambour('g.c.g.c.g.c.gcc.', { bpm: 112, vol: 0.06 }) : 0; if (sound.hfPas) sound.hfPas(0.8, 8, 112); }, hfSuivi(HF_FORT, E.tambour, 1)); E.tamT = (du || 4) + 0.3; }
     if (!E.note && d < 50) { hasardF.noter(E, 'Une compagnie de soldats est passée sur la route, tambour en tête, le capitaine à cheval.'); hasardF.reagir('soldats', 'pendant', O.x, O.z); }
     if (C.fini) E.fini = 'fin';
   },
@@ -423,7 +423,7 @@ hfDef('petit_savoyard', {
   maj(E, dt) {
     const d = hfDistJ(E.x, E.z);
     E.airT -= dt;
-    if (E.airT <= 0) { let du = 0; if (d < 60) hfSon([E.g.x, E.g.y + 0.9, E.g.z], () => { du = sound.hfAir ? sound.hfAir(HF_AIR_SAVOYARD, { bpm: 88, timbre: 'vielle', vol: 0.03, bourdon: [52], chien: false }) : 0; }); E.airT = (du || 9) + 4; }
+    if (E.airT <= 0) { let du = 0; if (d < 60) hfSon([E.g.x, E.g.y + 0.9, E.g.z], () => { du = sound.hfAir ? sound.hfAir(HF_AIR_SAVOYARD, { bpm: 88, timbre: 'vielle', vol: 0.03, bourdon: [52], chien: false }) : 0; }, HF_FORT); E.airT = (du || 9) + 4; }
     E.danse -= dt;
     const M = E.marmotte;
     M.dy = E.danse > 0 ? Math.abs(Math.sin(game.time * 7)) * 0.25 : 0; M.h += E.danse > 0 ? dt * 3 : 0;
