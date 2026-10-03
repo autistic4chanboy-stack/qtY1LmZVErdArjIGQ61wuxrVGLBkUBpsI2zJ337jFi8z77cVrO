@@ -40,3 +40,24 @@
     },
   });
 }
+
+// « Dimanche » — fa majeur, à trois temps, comme un cantique qu'on fredonne en rentrant de la messe ; la cloche,
+// au début et à la fin.
+{
+  const F = 'f2 a3 c4', CE = 'e2 g3 c4', Dm = 'd2 f3 a3', Gm7 = 'g2 f3 bb3', FC = 'c3 f3 a3', C7 = 'c3 g3 bb3', Bb = 'bb1 f3 bb3', FA = 'a2 f3 c4', Gm = 'g2 d3 bb3', C = 'c3 e3 g3', Am = 'a2 e3 c4';
+  const hA = [F, CE, Dm, Gm7, FC, C7, F, F], hA2 = [F, CE, Dm, Gm7, C7, F, C7, F], hB = [Bb, FA, Gm, C, Am, Dm, Gm7, C7];
+  const H = [F, F, ...hA, ...hA2, ...hB, ...hA2, Bb, FA, C7, F + ' @1'];
+  const a = ['( a4/4 c5/4 f5/4', 'e5/2 c5/4', 'd5/4 f5/4 a5/4', 'g5/2 f5/4 )', '( f5/4 e5/4 d5/4', 'c5/2 bb4/4', 'a4/2 c5/4', 'f4/2. )'];
+  const a2 = [...a.slice(0, 4), '( e5/4 g5/4 bb5/4', 'a5/2 g5/4', 'f5/2 e5/4', 'f5/2. )'];
+  const b = ['mp ( d5/4 f5/4 bb5/4', 'a5/2 f5/4', 'g5/4 bb5/4 d6/4', 'c6/2 g5/4 )', '( < a5/4 c6/4 e5/4', '> f5/2 d5/4', 'bb4/4 d5/4 g5/4', 'g5/2 e5/4 )'];
+  const m = ['r/2.', 'r/2.', 'p ' + a[0], ...a.slice(1), ...a2, ...b, 'p ' + a2[0], ...a2.slice(1), 'pp ( f5/2.', 'f5/2.', 'e5/2 g5/4', 'f5/2. )'];
+  const k = ['pp f3/2.', 'r/2.', ...Array(32).fill('r/2.'), 'r/2.', 'r/2.', 'r/2.', 'f3/2.'];
+  MUSIQUE.ajouter({
+    id: 'village_dimanche', titre: 'Dimanche', groupe: 'village', tempo: 84, mesure: '3/4', salle: 'salle', reverb: 0.32, gain: 1.0,
+    voix: {
+      m: { inst: 'piano', role: 'chant', notes: musMesures('village_dimanche', m, H) },
+      g: { inst: 'piano', role: 'accomp', dyn: 0.78, notes: 'pp ' + musMotif(H.join(' | '), ['0/4 12/4 12/4', '&012/2.']) },
+      k: { inst: 'cloche', role: 'accomp', vol: 0.45, notes: musMesures('village_dimanche/cloche', k, H) },
+    },
+  });
+}
