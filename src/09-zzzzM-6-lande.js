@@ -22,7 +22,7 @@
     'p ( r/4 d5/4 e5/4', 'g5/2 f#5/4', 'e5/2 d5/4', 'b4/2. )', '( r/4 c5/4 d5/4', 'e5/2 f#5/4', 'g5/2.', 'f#5/2. )',
     'r/2.', 'r/2.', 'r/2.', 'r/2.', 'r/2.', 'r/2.', 'r/2.', 'r/2.', 'r/2.', 'r/2.', 'r/2.', 'r/2.'];
   MUSIQUE.ajouter({
-    id: 'lande_bruyeres', titre: 'Les bruyères', groupe: 'lande', tempo: 60, mesure: '3/4', salle: 'salle', reverb: 0.38, gain: 1.0,
+    id: 'lande_bruyeres', titre: 'Les bruyères', groupe: 'lande', aussi: ['pres'], tempo: 60, mesure: '3/4', salle: 'salle', reverb: 0.38, gain: 1.0,
     voix: {
       fl: { inst: 'flute', role: 'chant', notes: musMesures('lande_bruyeres', fl, H) },
       m: { inst: 'piano', role: 'chant', notes: musMesures('lande_bruyeres', pi, H) },

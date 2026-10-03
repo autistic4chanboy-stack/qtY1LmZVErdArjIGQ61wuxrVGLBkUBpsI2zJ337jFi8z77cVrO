@@ -562,7 +562,16 @@ const MUS_BANQUE = {
   preparer(C, ctx) {
     const besoin = new Set();
     for (const e of C.ev) { const I = MUS_INST[e.inst]; if (I.ech) besoin.add(e.inst + '|' + this.point(e.inst, e.m)); }
+    this.menage(besoin);
     return Promise.all([...besoin].map((s) => { const [i, p] = s.split('|'); return this.obtenir(i, +p, ctx); }));
+  },
+  // la mémoire : le piano reste (presque tous les morceaux s'en servent) ; les autres instruments ne gardent que les
+  // notes des deux derniers morceaux
+  recents: [],
+  menage(besoin) {
+    this.recents.push(new Set([...besoin].map((s) => s.replace('|', ':'))));
+    if (this.recents.length > 2) this.recents.shift();
+    for (const k of Object.keys(this.bufs)) if (!k.startsWith('piano:') && !this.recents.some((S) => S.has(k))) delete this.bufs[k];
   },
 };
 

@@ -36,7 +36,7 @@
   const A1 = [Dm9, EmD, Dm9, EmD, Bm7, G7, Em7, A4], A2 = [Dm9, EmD, Dm9, EmD, Bm7, G7, A4, D], B = [G7, Fm7, Em7, DF, G7, Fm7, Em7, A7];
   const suite = ['pp ' + Dm9, EmD, 'p ' + A1.join(' | '), A2.join(' | '), B.join(' | '), A2.join(' | '), 'pp ' + Dm9, EmD, Dm9 + ' @1'];
   MUSIQUE.ajouter({
-    id: 'foret_bouleaux', titre: 'Le bois blanc', groupe: 'foret', tempo: 76, mesure: '3/4', salle: 'salle', reverb: 0.36, gain: 0.75, pedale: 'aucune',
+    id: 'foret_bouleaux', titre: 'Le bois blanc', groupe: 'foret', aussi: ['lande'], tempo: 76, mesure: '3/4', salle: 'salle', reverb: 0.36, gain: 0.75, pedale: 'aucune',
     voix: {
       fl: {
         inst: 'flute', role: 'chant',
@@ -61,7 +61,7 @@
   // la basse du piano : basse, quinte, dixième
   const basse = (ch) => ch.split(' | ').map((c) => c.replace(/^(\S+) (\S+) (\S+) (\S+)( @1)?$/, '$1 $2 $3')).join(' | ');
   MUSIQUE.ajouter({
-    id: 'foret_clairiere', titre: 'La clairière', groupe: 'foret', tempo: 60, mesure: '4/4', salle: 'salle', reverb: 0.3, gain: 0.9,
+    id: 'foret_clairiere', titre: 'La clairière', groupe: 'foret', aussi: ['pres'], tempo: 60, mesure: '4/4', salle: 'salle', reverb: 0.3, gain: 0.9,
     voix: {
       m: {
         inst: 'piano', role: 'chant',

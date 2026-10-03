@@ -11,7 +11,7 @@
   const A1 = [Db, Gb, Db, Gb, Bbm, Ebm, Ab11, Ab11], A2 = [Db, Gb, Db, Gb, Bbm, Ebm, Ab7, Db], B = [Bbm, Gb11, Bbm, Gb11, Ebm, Co, F4, Ab11];
   const suite = ['pp ' + Db, Gb, 'p ' + A1.join(' | '), A2.join(' | '), 'p ' + B.join(' | '), 'p ' + A2.join(' | '), 'pp ' + Db, Gb, Db, Db + ' @1'];
   MUSIQUE.ajouter({
-    id: 'eau_reflets', titre: 'Reflets', groupe: 'eau', tempo: 58, mesure: '3/4', salle: 'salle', reverb: 0.36, gain: 1.0,
+    id: 'eau_reflets', titre: 'Reflets', groupe: 'eau', aussi: ['nuit'], tempo: 58, mesure: '3/4', salle: 'salle', reverb: 0.36, gain: 1.0,
     voix: {
       m: {
         inst: 'piano', role: 'chant',

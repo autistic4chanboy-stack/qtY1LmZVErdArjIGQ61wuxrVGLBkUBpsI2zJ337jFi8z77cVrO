@@ -70,3 +70,22 @@ MUSIQUE.ajouter({
     },
   });
 }
+
+// « L'ombre du noyer » — sol majeur, à trois temps. Une romance pour cordes et piano : la voix grave des cordes,
+// comme quelqu'un qui chante en travaillant, le piano qui ondule dessous ; au milieu, la voix monte d'une octave.
+{
+  const G = 'g2 d3 g3 b3', Em = 'e2 b2 e3 g3', C = 'c2 g2 c3 e3', D7 = 'd2 a2 c3 f#3', GB = 'b1 g2 b2 d3', Am7 = 'a1 e2 g2 c3', Bm7 = 'b1 f#2 a2 d3', E7 = 'e2 b2 d3 g#3', D = 'd2 a2 d3 f#3';
+  const hA = [G, Em, C, D7, GB, C, Am7, D7], hA2 = [G, Em, C, D7, Bm7, E7, Am7, G], hB = [Em, C, Am7, D, C, GB, Am7, D7];
+  const H = [G, G, ...hA, ...hA2, ...hB, ...hA2, C, GB, Am7, G + ' @1'];
+  const a = ['( d4/2 g4/4', 'b4/2 a4/4', 'g4/2 e4/4', 'f#4/2. )', '( g4/4 a4/4 b4/4', 'c5/2 e5/4', 'e5/2 c5/4', 'a4/2. )'];
+  const a2 = [...a.slice(0, 4), '( b4/4 c#5/4 d5/4', 'e5/2 d5/4', 'c5/4 b4/4 a4/4', 'g4/2. )'];
+  const b = ['mp ( g5/2 f#5/4', 'e5/2 d5/4', 'c5/2 e5/4', 'd5/2. )', '( < e5/4 d5/4 c5/4', 'b4/2 a4/4', '> b4/2 c5/4', 'd5/2. )'];
+  const m = ['r/2.', 'r/2.', 'p ' + a[0], ...a.slice(1), ...a2, ...b, 'p ' + a2[0], ...a2.slice(1), 'pp ( e5/2.', 'd5/2.', 'c5/2 a4/4', 'g4/2. )'];
+  MUSIQUE.ajouter({
+    id: 'pres_noyer', titre: 'L’ombre du noyer', groupe: 'pres', aussi: ['village'], tempo: 63, mesure: '3/4', salle: 'salle', reverb: 0.3, gain: 1.0,
+    voix: {
+      s: { inst: 'cordes', role: 'chant', notes: musMesures('pres_noyer', m, H) },
+      g: { inst: 'piano', role: 'accomp', dyn: 0.8, notes: 'pp ' + musMotif(H.join(' | '), ['0/8 1 2 3 2 1', '&0123/2.']) },
+    },
+  });
+}
