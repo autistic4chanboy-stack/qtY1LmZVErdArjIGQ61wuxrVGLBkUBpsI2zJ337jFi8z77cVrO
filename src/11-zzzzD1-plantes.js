@@ -326,15 +326,17 @@ const d1plantes = {
     chrono.grilles = Date.now() - T0;
     // ---------------------------------------------------- les milieux (échantillonnage : 16 m)
     const pts = {}; const P = (k, x, z) => (pts[k] || (pts[k] = [])).push([x, z]);
-    const eauPres = (x, z, R) => { for (let a = 0; a < 8; a++) { const t = a / 8 * TAU; for (const d of [R * 0.4, R * 0.75, R]) if (w.heightAt(x + Math.cos(t) * d, z + Math.sin(t) * d) < WL - 0.1) return true; } return false; };
+    const eauPres = (x, z, R) => { for (let a = 0; a < 8; a++) { const t = a / 8 * TAU; for (const d of [R * 0.5, R]) if (w.heightAt(x + Math.cos(t) * d, z + Math.sin(t) * d) < WL - 0.1) return true; } return false; };
     const cheminPres = (x, z) => { for (let a = 0; a < 8; a++) { const t = a / 8 * TAU; for (const d of [2.5, 5]) { const mx = x + Math.cos(t) * d, mz = z + Math.sin(t) * d, i = Math.round(mx / w.cell), j = Math.round(mz / w.cell), m = w.mats[j * w.W + i]; if (m === M_DIRT || m === M_COBBLE) return [mx - Math.cos(t) * 1.6, mz - Math.sin(t) * 1.6]; } } return null; };
     const neigeL = (w.snowLine || 1e4) - WL;
     for (let z = 40; z < S - 40; z += 16) for (let x = 40; x < S - 40; x += 16) {
       const jx = x + (rnd() - 0.5) * 14, jz = z + (rnd() - 0.5) * 14;
-      const h = w.heightAt(jx, jz);
-      if (h < WL - 0.2) continue;
       const b = biomeAt(jx, jz);
       if (b !== 'plaine' && b !== 'lande' && b !== 'hauteurs') continue;
+      // (les hauteurs sont immenses : un point sur deux suffit)
+      if (b === 'hauteurs' && ((x + z) >> 4) & 1) continue;
+      const h = w.heightAt(jx, jz);
+      if (h < WL - 0.2) continue;
       const k = milieuAt(w, jx, jz), alt = h - WL;
       if (b === 'plaine') {
         if (k === 'pres') {
@@ -348,8 +350,8 @@ const d1plantes = {
       } else {
         if (k === 'alpage' || k === 'pres') { P('alpage', jx, jz); if (alt > neigeL - 30) P('crete', jx, jz); }
         else if (k === 'rochers') { P('rochers', jx, jz); if (alt > neigeL - 30) P('crete', jx, jz); }
-        else if (k === 'neiges') {
-          // au bord des neiges : un point voisin qui ne l'est pas
+        else if (k === 'neiges' && rnd() < 0.25) {
+          // au bord des neiges : un point voisin qui ne l'est pas (un point de neige sur quatre suffit à les trouver)
           for (let a = 0; a < 6; a++) { const t = a / 6 * TAU, tx = jx + Math.cos(t) * 9, tz = jz + Math.sin(t) * 9; if (w.heightAt(tx, tz) > WL && milieuAt(w, tx, tz) === 'rochers') { P('neiges', (jx + tx) / 2, (jz + tz) / 2); break; } }
         }
       }
