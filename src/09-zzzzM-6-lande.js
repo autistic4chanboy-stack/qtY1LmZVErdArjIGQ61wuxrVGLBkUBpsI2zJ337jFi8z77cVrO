@@ -52,3 +52,22 @@
     },
   });
 }
+
+// « Le refuge » — la majeur, à quatre temps. La cabane du col, quand dehors il neige : une chanson simple, une main
+// gauche qui tourne comme on tisonne le feu, et la chaleur qui revient dans les doigts.
+{
+  const A = 'a2 e3 c#4', EG = 'g#2 e3 b3', Fm = 'f#2 c#3 a3', CmE = 'e2 c#3 g#3', D = 'd2 a2 f#3', AC = 'c#3 e3 a3', Bm7 = 'b2 f#3 a3', E7 = 'e2 d3 g#3', E = 'e2 b2 g#3', Cm = 'c#3 e3 g#3', DA = 'a2 d3 f#3';
+  const hA = [A, EG, Fm, CmE, D, AC, Bm7, E7], hA2 = [A, EG, Fm, CmE, D, AC, E7, A], hB = [D, E, Cm, Fm, D, AC, Bm7, E7];
+  const H = [A, A, ...hA, ...hA2, ...hB, ...hA2, A, DA, A, A + ' @1'];
+  const a = ['( c#5/2 e5/4 a5/4', 'g#5/2 e5/2', 'f#5/4 a5/4 c#6/4 a5/4', 'g#5/2. e5/4 )', '( f#5/4 e5/4 d5/4 f#5/4', 'e5/2 c#5/2', 'd5/4 c#5/4 b4/4 a4/4', 'g#4/2 b4/2 )'];
+  const a2 = [...a.slice(0, 6), 'd5/4 b4/4 g#4/4 b4/4', 'a4/1 )'];
+  const b = ['mp ( f#5/2 a5/2', 'g#5/2 b5/2', 'e5/4 g#5/4 c#6/4 b5/4', 'a5/2 f#5/2 )', '( < f#5/4 a5/4 d6/4 c#6/4', '> c#6/2 e5/2', 'd5/4 f#5/4 b5/4 a5/4', 'g#5/2 b5/2 )'];
+  const m = ['r/1', 'r/1', 'p ' + a[0], ...a.slice(1), ...a2, ...b, 'p ' + a2[0], ...a2.slice(1), 'pp ( c#5/1', 'd5/2 f#5/2', 'e5/1~', 'e5/1 )'];
+  MUSIQUE.ajouter({
+    id: 'lande_refuge', titre: 'Le refuge', groupe: 'lande', tempo: 66, mesure: '4/4', salle: 'chambre', reverb: 0.3, gain: 1.0,
+    voix: {
+      m: { inst: 'piano', role: 'chant', notes: musMesures('lande_refuge', m, H) },
+      g: { inst: 'piano', role: 'accomp', dyn: 0.75, notes: 'pp ' + musMotif(H.join(' | '), ['0/8 2 1 2 0 2 1 2', '&012/1']) },
+    },
+  });
+}
