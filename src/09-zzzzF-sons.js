@@ -197,7 +197,7 @@ Object.assign(SoundEngine.prototype, {
   hfCoups(k = 1) {
     if (!this.ok) return;
     const t = this.at(), R = Math.random, out = this._hfOut(this.sfx);
-    for (let i = 0, tt = t; i < 2 + ((R() * 2) | 0); i++, tt += 0.25 + R() * 0.3) { this.tone(tt, 'sine', 110, 55, 0.12, 0.07 * k, out, 0.002); this.noiseHit(tt, 0.05, 'lowpass', 700, 0.7, 0.05 * k, out); this.noiseHit(tt, 0.035, 'bandpass', 1500 + R() * 700, 1.2, 0.06 * k, out); if (R() < 0.45) this.cri(tt + 0.06, { dur: 0.16 + R() * 0.08, f: [[0, 135], [1, 100]], rug: [30, 0.5], form: [[520, 3, 1], [1200, 5, 0.4]], souffle: [0.45, 900], vol: 0.04 * k, lp: 2400, a: 0.01 }, out); }
+    for (let i = 0, tt = t; i < 2 + ((R() * 2) | 0); i++, tt += 0.25 + R() * 0.3) { this.tone(tt, 'sine', 110, 55, 0.12, 0.06 * k, out, 0.002); this.noiseHit(tt, 0.05, 'lowpass', 700, 0.7, 0.05 * k, out); this.noiseHit(tt, 0.04, 'bandpass', 1500 + R() * 700, 1.2, 0.1 * k, out); if (R() < 0.45) this.cri(tt + 0.06, { dur: 0.16 + R() * 0.08, f: [[0, 135], [1, 100]], rug: [30, 0.5], form: [[520, 3, 1], [1200, 5, 0.4]], souffle: [0.45, 900], vol: 0.04 * k, lp: 2400, a: 0.01 }, out); }
   },
   // le charivari : casseroles, chaudrons, une corne, des cris
   hfCharivari(k = 1) {
@@ -258,7 +258,7 @@ Object.assign(SoundEngine.prototype, {
   hfTambourSourd(k = 1) {
     if (!this.ok) return;
     const t = this.at(), R = Math.random, out = this._hfOut(this.amb);
-    for (let i = 0; i < 8; i++) { const tt = t + i * 0.62 + (i % 4 === 3 ? 0.31 : 0); this.tone(tt, 'sine', 52 + R() * 4, 40, 0.7, 0.12 * k * (i % 4 === 0 ? 1 : 0.7), out, 0.004); this.noiseHit(tt, 0.2, 'lowpass', 160, 0.6, 0.04 * k, out); this.tone(tt, 'triangle', 100 + R() * 8, 76, 0.32, 0.035 * k * (i % 4 === 0 ? 1 : 0.7), out, 0.004); this.noiseHit(tt, 0.1, 'bandpass', 260, 1.1, 0.03 * k, out); }
+    for (let i = 0; i < 8; i++) { const tt = t + i * 0.62 + (i % 4 === 3 ? 0.31 : 0); this.tone(tt, 'sine', 52 + R() * 4, 40, 0.7, 0.12 * k * (i % 4 === 0 ? 1 : 0.7), out, 0.004); this.noiseHit(tt, 0.2, 'lowpass', 160, 0.6, 0.04 * k, out); this.tone(tt, 'triangle', 100 + R() * 8, 76, 0.32, 0.035 * k * (i % 4 === 0 ? 1 : 0.7), out, 0.004); this.tone(tt, 'sine', 175 + R() * 10, 120, 0.16, 0.05 * k * (i % 4 === 0 ? 1 : 0.7), out, 0.003); this.noiseHit(tt, 0.12, 'bandpass', 260, 1.1, 0.07 * k, out); }
   },
   // un chien qui halète, tout près
   hfHalete(k = 1) {
