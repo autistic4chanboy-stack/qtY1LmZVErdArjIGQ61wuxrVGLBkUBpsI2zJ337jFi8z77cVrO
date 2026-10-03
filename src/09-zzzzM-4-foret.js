@@ -6,7 +6,7 @@
 // « Sous les hêtres » — mi dorien, à six-huit. La main gauche coule en arpèges ; au-dessus, un air de pays, modal,
 // qui revient trois fois ; au milieu, une éclaircie en sol.
 {
-  const Em9 = 'e2 b2 g3 f#4', AE = 'e2 c#3 a3 e4', C7 = 'c2 g2 e3 b3', G = 'g2 d3 b3 d4', D = 'd2 a2 f#3 e4', Em = 'e2 b2 g3 b3', A = 'a2 e3 a3 c#4', Am7 = 'a1 e2 c3 g3', Bm7 = 'b1 f#2 d3 a3', B7 = 'b1 f#2 d#3 a3';
+  const Em9 = 'e2 b2 g3 d4', AE = 'e2 c#3 a3 e4', C7 = 'c2 g2 e3 b3', G = 'g2 d3 b3 d4', D = 'd2 a2 f#3 e4', Em = 'e2 b2 g3 b3', A = 'a2 e3 a3 c#4', Am7 = 'a1 e2 c3 g3', Bm7 = 'b1 f#2 d3 a3', B7 = 'b1 f#2 d#3 a3';
   const suite = [Em9, AE,
     Em9, AE, Em9, C7, G, D, Em, A, Em9, AE, Em9, A, C7, D, Em, Em,
     'mp ' + C7, D, Am7, Bm7, C7, D, A, B7,
@@ -55,7 +55,7 @@
 // « La clairière » — do majeur et la mineur, à quatre temps, piano et cordes. Un endroit où le bois s'ouvre :
 // les cordes tiennent l'accord, le piano chante peu, la basse marche doucement.
 {
-  const Am9 = 'a2 e3 c4 b3', F7 = 'f2 c3 a3 e4', CE = 'e2 g3 c4 e4', G = 'g2 d3 b3 d4', Dm7 = 'd2 a2 f3 c4', E4 = 'e2 b2 a3 e4', Em7 = 'e2 b2 g3 d4', C = 'c2 g2 e3 g3', F = 'f2 c3 a3 c4', Am = 'a2 e3 a3 c4', C7 = 'c2 g2 e3 b3', E7 = 'e2 b2 g#3 d4';
+  const Am9 = 'a2 e3 c4 b3', F7 = 'f2 c3 g3 a3', CE = 'e2 g3 c4 e4', G = 'g2 d3 b3 d4', Dm7 = 'd2 a2 f3 c4', E4 = 'e2 b2 a3 e4', Em7 = 'e2 b2 g3 d4', C = 'c2 g2 e3 g3', F = 'f2 c3 a3 c4', Am = 'a2 e3 a3 c4', C7 = 'c2 g2 e3 b3', E7 = 'e2 b2 g#3 d4';
   const A1 = [Am9, F7, CE, G, Am9, F7, Dm7, E4], A2 = [Am9, F7, CE, G, F7, Em7, Dm7 + ' @1', C], B = [F, G, Em7, Am, Dm7, G, C7, E7], coda = [F7, C, F7, C];
   const tenue = musMotif(['pp ' + Am9, F7, 'p ' + A1.join(' | '), A2.join(' | '), 'mp ' + B.join(' | '), 'p ' + A2.join(' | '), 'pp ' + coda.join(' | ')].join(' | '), ['0123/1', '0123/2 r/2']);
   // la basse du piano : basse, quinte, dixième

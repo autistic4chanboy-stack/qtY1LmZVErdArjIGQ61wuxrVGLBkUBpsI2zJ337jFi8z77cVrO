@@ -31,7 +31,7 @@
 // presque pas ; le piano dit peu de chose ; de loin en loin, trois notes de célesta, comme des feux follets.
 {
   // basse, quinte (main gauche) ; puis les quatre notes des cordes
-  const Am9 = 'a1 e2 e3 g3 b3 c4', F11 = 'f1 c2 e3 a3 b3 c4', Dm9 = 'd2 a2 f3 a3 c4 e4', E4 = 'e2 b2 a3 b3 d4 e4', E7 = 'e2 b2 g#3 b3 d4 e4', Bb11 = 'bb1 f2 d3 f3 a3 e4', C7 = 'c2 g2 e3 g3 b3 d4', GB = 'b1 g2 d3 g3 a3 d4', F7 = 'f1 c2 e3 a3 c4 g4', Am = 'a1 e2 e3 a3 b3 c4';
+  const Am9 = 'a1 e2 e3 g3 c4 e4', F11 = 'f1 c2 f3 a3 c4 e4', Dm9 = 'd2 a2 d3 f3 a3 c4', E4 = 'e2 b2 a3 b3 d4 e4', E7 = 'e2 b2 g#3 b3 d4 e4', Bb11 = 'bb1 f2 d3 f3 a3 c4', C7 = 'c2 g2 e3 g3 b3 d4', GB = 'b1 g2 d3 g3 a3 d4', F7 = 'f1 c2 e3 a3 c4 g4', Am = 'a1 e2 e3 a3 c4 e4';
   const A1 = [Am9, Am9, F11, F11, Dm9, Dm9, E4, E7], A2 = [Am9, Am9, F11, F11, Dm9, Bb11, E4, Am9], B = [C7, C7, GB, GB, F7, F7, E4, E7], A3 = [Am9, Am9, F11, F11, Dm9, Bb11, E4, Am];
   const tout = ['pp ' + Am9, Am9, A1.join(' | '), A2.join(' | '), B.join(' | '), A3.join(' | '), Am, Am].join(' | ');
   MUSIQUE.ajouter({

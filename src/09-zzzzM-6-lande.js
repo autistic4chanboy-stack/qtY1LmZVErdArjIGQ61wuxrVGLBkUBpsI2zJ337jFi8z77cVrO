@@ -35,7 +35,7 @@
 // passe par le sol dièse (la lumière d'en haut) ; une cloche, très loin, au début et à la fin.
 {
   const D7 = 'd2 a2 e3 f#3 c#4', ED = 'd2 a2 e3 g#3 b3', Bm7 = 'b1 f#2 d3 a3 d4', G7 = 'g1 d2 b2 f#3 a3', Em7 = 'e2 b2 d3 g3 b3', A4 = 'a1 e2 g3 b3 d4', Fm7 = 'f#2 c#3 e3 a3 c#4', DA = 'a1 a2 d3 f#3 a3', A7 = 'a1 e2 g3 c#4 e4';
-  const A1 = [D7, ED, D7, ED, Bm7, G7, Em7, A4], A2 = [D7, ED, D7, ED, Bm7, G7, A4, D7], B = [Fm7, Bm7, G7, DA, G7, Em7, A4, A7];
+  const A1 = [D7, ED, D7, ED, Bm7, G7, Em7, A4], A2 = [D7, ED, D7, ED, Bm7, G7, A4, 'd2 a2 e3 f#3 a3'], B = [Fm7, Bm7, G7, DA, G7, Em7, A4, A7];
   const H = [D7, ED, ...A1, ...A2, ...B, ...A2, D7, ED, D7, D7];
   const m = ['r/1', 'r/1',
     'p ( f#5/2. a5/4', 'g#5/1', 'f#5/2 e5/4 c#5/4', 'e5/1 )', '( d5/2. f#5/4', 'b5/2 a5/4 g5/4', 'f#5/2 e5/2', 'e5/1 )',

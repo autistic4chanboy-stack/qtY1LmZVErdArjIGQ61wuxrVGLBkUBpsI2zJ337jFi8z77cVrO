@@ -8,7 +8,7 @@
 // « Cité dormante » — des accords suspendus, empilés en quartes, que tient une nappe ; le célesta tourne en
 // boucle comme une machine qui veille encore ; le verre chante par-dessus, deux fois, la seconde plus haut.
 {
-  const Em = 'e2 b2 f#3 a3 d4', C = 'c2 g2 d3 f#3 b3', Am = 'a1 e2 b2 c3 g3', B4 = 'b1 f#2 e3 a3 c#4';
+  const Em = 'e2 b2 f#3 a3 d4', C = 'c2 g2 d3 e3 a3', Am = 'a1 e2 g2 c3 b3', B4 = 'b1 f#2 e3 a3 c#4';
   const cyc = [Em, Em, C, C, Am, Am, B4, B4];
   const H = [Em, Em, ...cyc, ...cyc, ...cyc, Em, C, Em, Em];
   const v1 = ['( b5/1', 'a5/2 f#5/2', 'g5/1', 'f#5/2 e5/2 )', '( e5/1', 'd5/2 c5/2', 'b4/1', 'a4/2 b4/2 )'];
@@ -29,7 +29,7 @@
 // « Hublots » — des accords majeurs à sept qui tournent par tierces (do, la bémol, mi, do) : à chaque fois, une
 // note reste et le reste du monde change autour d'elle, comme une étoile vue par des hublots successifs.
 {
-  const C = 'c2 g3 b3 e4', Ab = 'ab1 g3 c4 eb4', E = 'e2 g#3 b3 d#4', G4 = 'g2 f3 c4 d4', F = 'f2 a3 c4 e4', Db = 'db2 ab3 c4 f4', A = 'a1 g#3 c#4 e4', Bb = 'bb1 a3 d4 f4', Gb = 'gb1 f3 bb3 db4', D = 'd2 a3 c#4 f#4';
+  const C = 'c2 g3 b3 e4', Ab = 'ab1 g3 c4 eb4', E = 'e2 g#3 b3 e4', G4 = 'g2 f3 c4 d4', F = 'f2 a3 c4 e4', Db = 'db2 ab3 c4 f4', A = 'a1 g#3 c#4 e4', Bb = 'bb1 a3 d4 f4', Gb = 'gb1 f3 bb3 db4', D = 'd2 a3 c#4 f#4';
   const hA = [C, C, Ab, Ab, E, E, C, G4], hB = [F, Db, A, F, Bb, Gb, D, G4];
   const H = [C, C, ...hA, ...hA, ...hB, ...hA, C, Ab, E, C + ' @1'];
   const a1 = ['( g5/2.', 'e5/4 b5/4 g5/4', 'g5/2.', 'c6/4 eb5/4 g5/4 )', '( b5/2.', 'g#5/4 e5/4 d#5/4', 'e5/2.', 'd5/2 f5/4 )'];

@@ -6,7 +6,7 @@
 // « Veilleuse » — si bémol majeur, à quatre temps. Un nocturne : la main gauche s'ouvre en arpèges, la main droite
 // chante à mi-voix ; un détour par sol mineur, puis le chant revient et s'éteint comme une lampe qu'on baisse.
 {
-  const Bb7 = 'bb1 f2 d3 f3 a3', Gm7 = 'g1 d2 bb2 f3 bb3', Eb7 = 'eb2 bb2 g3 bb3 d4', F7 = 'f2 c3 eb3 a3 c4', F4 = 'f2 c3 eb3 f3 bb3', Cm7 = 'c2 g2 eb3 g3 bb3', Dm7 = 'd2 a2 f3 a3 c4', Gm = 'g2 d3 g3 bb3 d4', D7 = 'd2 a2 f#3 a3 c4', Bb = 'bb1 f2 bb2 d3 f3', EbB = 'bb1 bb2 eb3 g3 d4', Bb9 = 'bb1 f2 c3 d3 a3';
+  const Bb7 = 'bb1 f2 d3 f3 a3', Gm7 = 'g1 d2 bb2 f3 bb3', Eb7 = 'eb2 bb2 g3 bb3 eb4', F7 = 'f2 c3 eb3 a3 c4', F4 = 'f2 c3 eb3 f3 bb3', Cm7 = 'c2 g2 eb3 g3 bb3', Dm7 = 'd2 a2 f3 a3 c4', Gm = 'g2 d3 g3 bb3 d4', D7 = 'd2 a2 f#3 a3 c4', Bb = 'bb1 f2 bb2 d3 f3', EbB = 'bb1 bb2 eb3 g3 bb3', Bb9 = 'bb1 f2 c3 d3 a3';
   const A1 = [Bb7, Gm7, Eb7, F7, Bb7, Gm7, Cm7, F7], A2 = [Bb7, Gm7, Eb7, F7, Dm7, Gm7, F4, Bb], B = [Gm, Eb7, Cm7, D7, Gm, Eb7, Cm7, F4];
   const H = [Bb7, Bb7, ...A1, ...A2, ...B, ...A2, Eb7, Bb7, EbB, Bb9 + ' @1'];
   const a1 = ['( f5/2 d5/4 c5/4', 'd5/2. bb4/4', 'g4/4 bb4/4 eb5/4 g5/4', 'f5/2 eb5/2 )', '( d5/2 f5/4 bb5/4', 'a5/2 g5/2', 'g5/4 f5/4 eb5/4 d5/4', 'c5/1 )'];

@@ -21,11 +21,11 @@ MUSIQUE.ajouter({
       inst: 'piano', role: 'accomp',
       notes: musMotif(
         'pp f2 a3 c4 e4 | bb1 a3 d4 f4 |' +
-        ' p f2 a3 c4 e4 | bb1 a3 d4 f4 | f2 a3 c4 e4 | d2 a3 c4 f4 | bb1 a3 d4 f4 | g2 bb3 d4 f4 | a2 g3 c4 e4 | c2 bb3 c4 f4 |' +
-        ' f2 a3 c4 e4 | bb1 a3 d4 f4 | f2 a3 c4 e4 | g2 bb3 d4 f4 | bb1 a3 d4 f4 | c2 bb3 c4 e4 | f2 a3 c4 e4 | f2 bb3 d4 f4 |' +
+        ' p f2 a3 c4 g4 | bb1 a3 d4 f4 | f2 a3 c4 g4 | d2 a3 c4 f4 | bb1 a3 d4 f4 | g2 bb3 d4 f4 | a2 g3 c4 e4 | c2 bb3 c4 f4 |' +
+        ' f2 a3 c4 g4 | bb1 a3 d4 f4 | f2 a3 c4 g4 | g2 bb3 d4 f4 | bb1 a3 d4 f4 | c2 bb3 c4 e4 | f2 a3 c4 g4 | f2 bb3 d4 f4 |' +
         ' mp d2 a3 d4 f4 | c2 a3 d4 f4 | bb1 a3 d4 f4 | a1 g3 d4 e4 | d2 a3 d4 f4 | g2 bb3 d4 f4 | e2 g3 bb3 c4 | a1 g3 c#4 e4 |' +
-        ' p f2 a3 c4 e4 | bb1 a3 d4 f4 | f2 a3 c4 e4 | d2 a3 c4 f4 | bb1 a3 d4 f4 | c2 bb3 c4 e4 | f2 a3 c4 e4 | f2 a3 c4 e4 |' +
-        ' pp bb1 a3 d4 f4 | f2 a3 c4 e4 | f2 bb3 d4 g4 | f2 a3 c4 e4 | f2 a3 c4 f4', '0/4 123/2'),
+        ' p f2 a3 c4 g4 | bb1 a3 d4 f4 | f2 a3 c4 g4 | d2 a3 c4 f4 | bb1 a3 d4 f4 | c2 bb3 c4 e4 | f2 a3 c4 g4 | f2 a3 c4 g4 |' +
+        ' pp bb1 a3 d4 f4 | f2 a3 c4 g4 | f2 bb3 d4 g4 | f2 a3 c4 g4 | f2 a3 c4 f4', '0/4 123/2'),
     },
   },
 });
@@ -56,7 +56,7 @@ MUSIQUE.ajouter({
 // dans les ornières. Un air qui hésite, se reprend, et finit par s'asseoir au bord du chemin.
 {
   const Am = 'a2 e3 c4', F = 'f2 c3 a3', C = 'c3 g3 e4', G = 'g2 d3 b3', Dm7 = 'd3 a3 c4', E7 = 'e2 d3 g#3', Em = 'e2 b2 g3', E4 = 'e2 b2 a3';
-  const hA = [Am, F, C, G, Am, F, Dm7, E7], hA2 = [Am, F, C, G, Am, F, Dm7, Am], hB = [F, G, Em, Am, F, G, E4, E7];
+  const hA = [Am, F, C, G, Am, F, Dm7, E7], hA2 = [Am, F, C, G, Am, F, E7, Am], hB = [F, G, Em, Am, F, G, E4, E7];
   const H = [Am, Am, ...hA, ...hA2, ...hB, ...hA2, Am, F, E7, Am + ' @1'];
   const a = ['( e5/4 a5/4 g5/4 e5/2', 'f5/4 e5/4 c5/4 a4/2', 'g4/4 c5/4 e5/4 g5/2', 'f5/4 e5/4 d5/4 b4/2 )', '( e5/4 a5/4 b5/4 c6/2', 'a5/4 f5/4 e5/4 c5/2', 'd5/4 f5/4 a5/4 c6/4 b5/4', 'g#5/2. e5/2 )'];
   const a2 = [...a.slice(0, 6), 'd5/4 f5/4 b4/2 g#4/4', 'a4/2. r/2 )'];
