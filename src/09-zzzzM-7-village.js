@@ -33,7 +33,7 @@
     '( g5/4 a5/8 b5/4 c6/8', 'd6/4. b5/4.', 'c6/4 b5/8 a5/4 g5/8', 'a5/4. g5/4. )', '( e6/4 d6/8 c6/4 g5/8', 'a5/4 c6/8 g5/4 e5/8', 'f5/4 d5/8 e5/4 d5/8', 'c5/4. r/4. )'];
   const m = ['r/2.', 'r/2.', 'mp ' + air[0], ...air.slice(1), 'p ' + air[0], ...air.slice(1), 'pp ( g5/4. e5/4.', 'c5/2. )'];
   MUSIQUE.ajouter({
-    id: 'village_volets', titre: 'Les volets bleus', groupe: 'village', tempo: 66, mesure: '6/8', salle: 'chambre', reverb: 0.32, gain: 1.0,
+    id: 'village_volets', titre: 'Les volets bleus', groupe: 'village', aussi: ['bonbons'], tempo: 66, mesure: '6/8', salle: 'chambre', reverb: 0.32, gain: 1.0,
     voix: {
       b: { inst: 'boite', role: 'chant', notes: musMesures('village_volets', m, H) },
       g: { inst: 'piano', role: 'accomp', dyn: 0.75, notes: 'pp ' + musMotif(H.join(' | '), ['0/4. 12/4.', '&012/2.']) },

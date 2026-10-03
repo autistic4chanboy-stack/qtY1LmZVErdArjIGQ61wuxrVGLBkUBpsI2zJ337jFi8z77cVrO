@@ -16,7 +16,7 @@
   const m = ['r/1', 'r/1', 'pp ' + a1[0], ...a1.slice(1), ...a2, ...b, 'pp ' + a2[0], ...a2.slice(1), '( g#4/1', 'e4/1', 'c#4/1~', 'c#4/1 )'];
   const goutte = H.map((c, i) => (i % 4 === 3 && i > 2 ? c + ' @1' : '-/1'));
   MUSIQUE.ajouter({
-    id: 'dessous_eaux', titre: 'Les eaux sans soleil', groupe: 'dessous', tempo: 50, mesure: '4/4', salle: 'grotte', reverb: 0.42, gain: 1.0,
+    id: 'dessous_eaux', titre: 'Les eaux sans soleil', groupe: 'dessous', aussi: ['tenebres'], tempo: 50, mesure: '4/4', salle: 'grotte', reverb: 0.42, gain: 1.0,
     voix: {
       m: { inst: 'piano', role: 'chant', oct: 1, notes: musMesures('dessous_eaux', m, H) },
       b: { inst: 'piano', role: 'basse', dyn: 0.75, notes: 'pp ' + musMotif(H.join(' | '), '0/1') },
