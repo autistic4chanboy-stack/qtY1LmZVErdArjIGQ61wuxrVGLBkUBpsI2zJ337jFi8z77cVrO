@@ -37,7 +37,7 @@ function e3LongBec(o) {
     tail: o.tail, tailCol: rgbf(o.tailCol || o.col), wingCol: rgbf(o.wingCol || o.col), leg: o.leg, legCol: rgbf(o.legCol) });
   const b = o.body, h = o.head, u = [];
   // la tête rayée : deux bandes sombres sur le dessus
-  for (const s of [-1, 1]) u.push(e3B('raie' + s, 'head', [s * h[0] * 0.22, h[1] * 0.98, h[2] * 0.2], [h[0] * 0.2, 0.008, h[2] * 0.9], o.raie || '#2a1e14'));
+  for (const s of [-1, 1]) u.push(e3B('raie' + s, 'head', [s * h[0] * 0.22, h[1] - 0.0015, h[2] * 0.2], [h[0] * 0.2, 0.004, h[2] * 1.01], o.raie || '#2a1e14'));
   // le dos barré
   if (o.long) for (const sx of [-1, 1]) u.push(e3B('barre' + sx, 'body', [sx * b[0] * 0.26, b[1] / 2 - 0.001, 0], [b[0] * 0.13, 0.004, b[2] * 0.86], o.barre || '#3a2a1a')); // (la bécassine : rayée en long)
   else for (let k = 0; k < 3; k++) u.push(e3B('barre' + k, 'body', [0, b[1] / 2 - 0.001, b[2] * (0.25 - k * 0.22)], [b[0] * 1.01, 0.004, b[2] * 0.07], o.barre || '#3a2a1a'));
