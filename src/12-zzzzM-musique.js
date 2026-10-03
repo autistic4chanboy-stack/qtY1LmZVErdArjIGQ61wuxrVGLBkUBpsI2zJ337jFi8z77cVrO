@@ -125,7 +125,7 @@ const musique = {
   // ------------------------------------------------ toutes les 100 ms
   tic() {
     const c = sound.ctx;
-    if (!c || c.state !== 'running') return;
+    if (!c || c.state !== 'running' || sound.offline) return; // (pas dans un rendu hors ligne de l'ambiance)
     const now = c.currentTime;
     // le morceau en cours : programmer la suite, puis le laisser s'éteindre
     if (this.jeu) {
