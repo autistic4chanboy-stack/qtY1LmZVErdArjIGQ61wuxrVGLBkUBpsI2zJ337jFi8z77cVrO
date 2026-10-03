@@ -245,7 +245,8 @@ SoundEngine.BRUITS_MILIEU = {
       // ---- les bruits rares
       Z.evT -= dt;
       if (Z.evT <= 0) {
-        Z.evT = rf(18, 50) * (Q.nuit > 0.5 ? 2 : 1) * (Q.brouillard > 0.5 ? 1.5 : 1);
+        // (la ferme est plus vivante : sa basse-cour revient plus souvent)
+        Z.evT = rf(18, 50) * (Q.nuit > 0.5 ? 2 : 1) * (Q.brouillard > 0.5 ? 1.5 : 1) * (1 - 0.35 * (P.ferme || 0));
         // (sous l'averse, on n'entend presque plus rien d'autre que la pluie)
         if (actif && dehors && Q.orage < 0.5 && Q.neige < 0.5 && !(Q.noire > 0.3 && Q.nuit > 0.3) && R() > 0.8 * lisse(0.2, 0.6, Q.pluie)) {
           const m = tirerMilieu(P), T = SoundEngine.BRUITS_MILIEU[m];
@@ -540,7 +541,7 @@ SoundEngine.BRUITS_MILIEU = {
       if (!cl || !cl[0] || !cl[1]) { this._sDemander('T:s_cloche'); return; }
       const d = Math.hypot(P[0] - L.x, P[2] - L.z);
       if (d > 1100) return;
-      const out = this.emit(P, this.B.amb.inp, { att: 'phys', ref: 45, roll: 1, dur: 48 }), t0 = this.at(0.05), v = 0.1 * (inside ? 0.4 : 1);
+      const out = this.emit(P, this.B.amb.inp, { att: 'phys', ref: 45, roll: 1, dur: 48 }), t0 = this.at(0.05), v = 0.065 * (inside ? 0.4 : 1);
       const T = [0, 2.6, 5.2, 10.4, 13, 15.6, 20.8, 23.4, 26];
       for (let i = 0; i < 8; i++) T.push(31 + i * 1.9);
       T.forEach((t, i) => { const iv = i >= 9 && i % 2 ? 1 : 0; this.jouer(this.tb('s_cloche', 2, iv), t0 + t, v * (i >= 9 ? 0.8 : 1), out, 1); });
