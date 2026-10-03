@@ -125,7 +125,7 @@
   const cel = ['r/1', 'r/1', 'p ' + m1[0], ...m1.slice(1), ...m2, ...r16, 'r/1', 'r/1'];
   const ver = ['r/1', 'r/1', ...r16, 'p ' + m1[0], ...m1.slice(1), ...m2, 'r/1', 'r/1'];
   MUSIQUE.ajouter({
-    id: 'tenebres_yeux', titre: 'Les yeux fermés', groupe: 'tenebres', tempo: 58, mesure: '4/4', salle: 'cathedrale', reverb: 0.36, gain: 1.0, pedale: 'mesure',
+    id: 'tenebres_yeux', titre: 'Les yeux fermés', groupe: 'tenebres', aussi: ['dessous'], tempo: 58, mesure: '4/4', salle: 'cathedrale', reverb: 0.36, gain: 1.0, pedale: 'mesure',
     voix: {
       c: { inst: 'celesta', role: 'chant', notes: musMesures('tenebres_yeux', cel, H) },
       v: { inst: 'verre', role: 'chant', oct: -1, vol: 0.9, notes: musMesures('tenebres_yeux/verre', ver, H) },
@@ -185,7 +185,7 @@
   const c3 = ['( bb5/2.', 'a5/2 f#5/4', 'bb5/4 a5/4 f5/4', 'g5/2 e5/4', 'g5/2 bb5/4', 'a5/2. )'];
   const s = ['p ' + c1[0], ...c1.slice(1), 'mp ' + c2[0], ...c2.slice(1), '< ' + c3[0], ...c3.slice(1, 3), '> ' + c3[3], ...c3.slice(4), 'pp ' + c1[0], ...c1.slice(1), 'g4/2.~', 'g4/2.'];
   MUSIQUE.ajouter({
-    id: 'enfers_descente', titre: 'Descente', groupe: 'enfers', tempo: 50, mesure: '3/4', salle: 'cathedrale', reverb: 0.36, gain: 1.0, finRit: 2,
+    id: 'enfers_descente', titre: 'Descente', groupe: 'enfers', aussi: ['dessous'], tempo: 50, mesure: '3/4', salle: 'cathedrale', reverb: 0.36, gain: 1.0, finRit: 2,
     voix: {
       o: { inst: 'orgue', role: 'tenue', notes: 'pp ' + musMesures('enfers_descente', H, H) },
       s: { inst: 'cordes', role: 'chant', notes: musMesures('enfers_descente/cordes', s, H) },

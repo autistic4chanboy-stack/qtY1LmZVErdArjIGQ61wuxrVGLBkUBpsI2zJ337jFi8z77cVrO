@@ -46,3 +46,24 @@
     },
   });
 }
+
+// « Les jardins suspendus » — fa dièse majeur, à six-huit, sur les seules touches noires (pentatonique) : les
+// serres où quelque chose pousse encore sans personne. La harpe goutte, le célesta chante, les cordes respirent
+// la deuxième fois.
+{
+  const Fs = 'f#2 c#3 g#3 a#3', Dm7 = 'd#2 a#2 c#3 f#3', B = 'b2 f#3 a#3 d#4', C4 = 'c#2 g#2 f#3 b3', Gm7 = 'g#2 d#3 f#3 b3', FC = 'c#2 g#2 f#3 a#3';
+  const hA = [Fs, Dm7, B, FC, Fs, Dm7, B, Fs], hB = [Gm7, B, Dm7, C4, Gm7, B, Dm7, C4];
+  const H = [Fs, Fs, ...hA, ...hA, ...hB, ...hA, Fs, Fs + ' @1'];
+  const a = ['( a#5/4. c#6/4.', 'd#6/4. c#6/8 a#5/8 g#5/8', 'f#5/2.', 'g#5/4. a#5/4. )', '( c#6/4. d#6/4.', 'f#6/4. d#6/8 c#6/8 a#5/8', 'c#6/2.', 'a#5/2. )'];
+  const b = ['mp ( d#6/4. b5/4.', 'a#5/4. f#5/4.', 'g#5/4. a#5/8 c#6/8 d#6/8', 'c#6/2. )', '( d#6/4. f#6/4.', 'd#6/4. b5/4.', '< a#5/4. c#6/8 d#6/8 f#6/8', '> g#6/2. )'];
+  const m = ['r/2.', 'r/2.', 'p ' + a[0], ...a.slice(1), ...a, ...b, 'p ' + a[0], ...a.slice(1), 'pp ( a#5/2.~', 'a#5/2. )'];
+  const cordes = H.map((c, i) => (i >= 10 && i < 18) || (i >= 26 && i < 34) ? c : '-/2.');
+  MUSIQUE.ajouter({
+    id: 'vaisseau_jardins', titre: 'Les jardins suspendus', groupe: 'vaisseau', tempo: 72, mesure: '6/8', salle: 'cathedrale', reverb: 0.34, gain: 1.0, pedale: 'aucune',
+    voix: {
+      c: { inst: 'celesta', role: 'chant', notes: musMesures('vaisseau_jardins', m, H) },
+      h: { inst: 'harpe', role: 'accomp', vol: 0.6, notes: 'pp ' + musMotif(H.join(' | '), ['0/8 1 2 3 2 1', '&0123/2.']) },
+      s: { inst: 'cordes', role: 'tenue', oct: 1, vol: 0.5, notes: 'pp ' + musMotif(cordes.join(' | '), '123/2.') },
+    },
+  });
+}

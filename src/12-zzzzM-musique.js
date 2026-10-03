@@ -28,7 +28,7 @@ if (settings.musiqueVol === undefined) settings.musiqueVol = 0.5;
 const MUS_BIOME = { plaine: 'pres', ferme: 'pres', foret: 'foret', bouleaux: 'foret', marais: 'eau', lac: 'eau', lande: 'lande', hauteurs: 'lande', ville: 'village' };
 const MUS_MONDES = { bonbons: 'bonbons', tenebres: 'tenebres', enfers: 'enfers', vaisseau: 'vaisseau' }; // (pas le cauchemar)
 // niveau du bus quand le curseur est au maximum (la musique reste sous l'ambiance)
-const MUS_NIVEAU = 0.5;
+const MUS_NIVEAU = 0.55;
 // silences (secondes) : avant le premier morceau, entre deux morceaux, en arrivant dans un autre monde
 const MUS_SILENCE = { premier: [50, 130], entre: [270, 660], monde: [25, 75], reprise: [30, 90] };
 
