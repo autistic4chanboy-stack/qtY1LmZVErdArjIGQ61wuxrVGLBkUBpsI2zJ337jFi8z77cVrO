@@ -57,3 +57,27 @@
     },
   });
 }
+
+// « Le lac au matin » — sol majeur, une barcarolle à six-huit : la main gauche berce comme une barque, la main
+// droite chante en tierces et en sixtes, deux voix qui ne se quittent pas ; au milieu, un peu de vent (si mineur).
+{
+  const G = 'g2 d3 g3 b3', CG = 'g2 c3 e3 g3', Em = 'e2 b2 e3 g3', Am7 = 'a2 e3 g3 c4', D7 = 'd2 a2 c3 f#3', A7 = 'a2 e3 g3 c#4', D = 'd2 a2 d3 f#3', Bm = 'b1 f#2 b2 d3', Am = 'a2 e3 a3 c4', C = 'c2 g2 c3 e3';
+  const hA1 = [G, G, CG, G, Em, Am7, D7, G], hA2 = [G, G, CG, G, Em, A7, D, D7], hB = [Bm, Em, Am, D7, G, C, A7, D7];
+  const H = [G, G, ...hA1, ...hA2, ...hB, ...hA1, G, G + ' @1'];
+  const h1 = ['( b5/4. a5/8 g5/8 a5/8', 'b5/2.', 'c6/4. b5/8 a5/8 g5/8', 'b5/2. )', '( g5/4. f#5/8 e5/8 f#5/8', 'e5/4. a5/4.', 'f#5/4. e5/8 d5/8 e5/8', 'd5/2. )'];
+  const b1 = ['g5/4. f#5/8 e5/8 f#5/8', 'g5/2.', 'e5/4. d5/8 c5/8 b4/8', 'g5/2.', 'e5/4. d5/8 c5/8 d5/8', 'c5/4. e5/4.', 'd5/4. c5/8 b4/8 c5/8', 'b4/2.'];
+  const h2 = [...h1.slice(0, 4), '( g5/4. b5/8 e6/8 d6/8', 'c#6/2.', 'a5/4. b5/8 c6/8 a5/8', 'f#5/2. )'];
+  const b2 = [...b1.slice(0, 4), 'e5/4. g5/8 b5/8 b5/8', 'a5/2.', 'f#5/4. g5/8 a5/8 f#5/8', 'd5/2.'];
+  const mB = ['mp ( d6/4. c#6/8 b5/8 c#6/8', 'd6/4. g5/4.', 'c6/4. b5/8 a5/8 b5/8', 'c6/4. f#5/4. )', '( < b5/4. a5/8 g5/8 a5/8', 'e6/4. c6/4.', '> c#6/4. e6/8 d6/8 c#6/8', 'c6/2. )'];
+  const bB = ['b5/4. a5/8 g5/8 a5/8', 'b5/4. e5/4.', 'a5/4. g5/8 f#5/8 g5/8', 'a5/4. d5/4.', 'g5/4. f#5/8 e5/8 f#5/8', 'g5/4. e5/4.', 'a5/4. c#6/8 b5/8 a5/8', 'a5/2.'];
+  const haut = ['r/2.', 'r/2.', 'p ' + h1[0], ...h1.slice(1), ...h2, ...mB, 'p ' + h1[0], ...h1.slice(1), 'pp ( d6/2.~', 'd6/2. )'];
+  const bas = ['r/2.', 'r/2.', 'p ' + b1[0], ...b1.slice(1), ...b2, 'mp ' + bB[0], ...bB.slice(1), 'p ' + b1[0], ...b1.slice(1), 'pp b5/2.~', 'b5/2.'];
+  MUSIQUE.ajouter({
+    id: 'eau_lac', titre: 'Le lac au matin', groupe: 'eau', tempo: 66, mesure: '6/8', salle: 'salle', reverb: 0.32, gain: 1.0,
+    voix: {
+      m: { inst: 'piano', role: 'chant', notes: musMesures('eau_lac', haut, H) },
+      t: { inst: 'piano', role: 'accomp', dyn: 0.72, notes: musMesures('eau_lac/tierces', bas, H) },
+      g: { inst: 'piano', role: 'accomp', dyn: 0.78, notes: 'pp ' + musMotif(H.join(' | '), ['0/8 2 3 1 2 3', '&0123/2.']) },
+    },
+  });
+}
