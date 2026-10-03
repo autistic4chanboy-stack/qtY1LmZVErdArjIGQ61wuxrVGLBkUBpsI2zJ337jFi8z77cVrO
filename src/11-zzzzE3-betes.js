@@ -33,7 +33,7 @@
 const E3_MAX = 6;                                   // groupes à la fois, au plus (les territoires les plus proches)
 const E3_ESSAI = 2;                                 // on regarde les territoires toutes les deux secondes
 // les territoires : combien par espèce, selon son milieu et sa rareté (commune, peu commune, rare, très rare)
-const E3_TERR = { foret: [14, 8, 4, 1], bouleaux: [8, 5, 3, 1], marais: [5, 4, 2, 1] };
+const E3_TERR = { foret: [14, 10, 5, 1], bouleaux: [8, 5, 3, 1], marais: [5, 4, 2, 1] };
 const E3_PRESENCE = [0.9, 0.75, 0.6, 0.5];          // chance qu'un territoire soit habité ce jour-là
 const E3_VIDE = [1, 3, 6, 12];                      // tuée ou prise : jours avant qu'une autre ne prenne sa place
 // d'où l'on voit une bête : elle paraît quand on approche à cette distance de son territoire (selon son lieu)
