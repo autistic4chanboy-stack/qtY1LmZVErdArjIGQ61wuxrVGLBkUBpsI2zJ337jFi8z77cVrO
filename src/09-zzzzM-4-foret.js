@@ -9,8 +9,8 @@
   const Em9 = 'e2 b2 g3 d4', AE = 'e2 c#3 a3 e4', C7 = 'c2 g2 e3 b3', G = 'g2 d3 b3 d4', D = 'd2 a2 f#3 e4', Em = 'e2 b2 g3 b3', A = 'a2 e3 a3 c#4', Am7 = 'a1 e2 c3 g3', Bm7 = 'b1 f#2 d3 a3', B7 = 'b1 f#2 d#3 a3';
   const suite = [Em9, AE,
     Em9, AE, Em9, C7, G, D, Em, A, Em9, AE, Em9, A, C7, D, Em, Em,
-    'mp ' + C7, D, Am7, Bm7, C7, D, A, B7,
-    'p ' + Em9, AE, Em9, Am7, C7, D, Em, Em,
+    'p ' + C7, D, Am7, Bm7, C7, D, A, B7,
+    'pp ' + Em9, AE, Em9, Am7, C7, D, Em, Em,
     'pp ' + Em9, AE, Em9, Em9 + ' @1'];
   MUSIQUE.ajouter({
     id: 'foret_hetres', titre: 'Sous les hêtres', groupe: 'foret', tempo: 69, mesure: '6/8', salle: 'salle', reverb: 0.34, gain: 0.9,
