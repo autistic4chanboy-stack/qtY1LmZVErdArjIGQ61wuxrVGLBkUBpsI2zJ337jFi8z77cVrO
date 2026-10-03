@@ -77,3 +77,21 @@
     },
   });
 }
+
+// « Le vieux chêne » — ré mineur (dorien), un choral à quatre voix, comme on en chantait sous les grands arbres :
+// deux phrases, la seconde qui descend pas à pas jusqu'à un ré majeur ; la deuxième fois, les cordes chantent le
+// dessus avec le piano.
+{
+  const choral = ['d3+d4+f4+a4/2 e3+g3+c4+g4/2', 'f3+a3+c4+f4/2 d3+a3+d4+a4/2', 'g2+g3+d4+b4/2 f2+a3+d4+a4/2', 'a2+e3+d4+a4/2 a2+e3+c#4+a4/2',
+    'bb2+d4+f4+d5/2 a2+a3+f4+c5/2', 'g2+bb3+d4+bb4/2 f2+f3+d4+a4/2', 'c3+g3+e4+g4/2 d3+f3+d4+f4/2', 'a2+g3+c#4+e4/2 d2+f#3+a3+d4/2'];
+  const dessus = ['( a4/2 g4/2', 'f4/2 a4/2', 'b4/2 a4/2', 'a4/1 )', '( d5/2 c5/2', 'bb4/2 a4/2', 'g4/2 f4/2', 'e4/2 d4/2 )'];
+  const H = ['d2+a2/1', 'd2+a2/1', ...choral, ...choral, 'bb2+f3+d4+bb4/2 a2+e3+c#4+a4/2', 'd2+a2+f#3+d4/1'];
+  const s = ['r/1', 'r/1', ...Array(8).fill('r/1'), 'p ' + dessus[0], ...dessus.slice(1), 'r/1', 'r/1'];
+  MUSIQUE.ajouter({
+    id: 'foret_chene', titre: 'Le vieux chêne', groupe: 'foret', tempo: 50, mesure: '4/4', salle: 'salle', reverb: 0.36, gain: 1.0, pedale: 'demi', respire: 4, finRit: 2,
+    voix: {
+      p: { inst: 'piano', role: 'chant', notes: 'pp ' + musMesures('foret_chene', ['d2+a2/1', 'd2+a2/1', 'p ' + choral[0], ...choral.slice(1), 'pp ' + choral[0], ...choral.slice(1), 'bb2+f3+d4+bb4/2 a2+e3+c#4+a4/2', 'd2+a2+f#3+d4/1'], H) },
+      s: { inst: 'cordes', role: 'chant', vol: 0.75, notes: musMesures('foret_chene/cordes', s, H) },
+    },
+  });
+}
