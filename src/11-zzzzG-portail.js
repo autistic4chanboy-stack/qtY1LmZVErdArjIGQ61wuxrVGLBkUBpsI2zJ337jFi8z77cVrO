@@ -71,9 +71,13 @@ const VGSON = {
 function vgGenerer(w, seed) {
   if (!w || !w.designed || !w.nav || !w.lm) return;
   const rnd = mulberry32((((seed | 0) ^ 0x7A11C1E7) >>> 0));
+  const t0 = Date.now();
   const WL = w.waterLevel, C = 4, n = Math.floor(w.size / C);
   const H = new Float32Array(n * n);
-  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) H[j * n + i] = w.heightAt((i + 0.5) * C, (j + 0.5) * C);
+  // (le centre de chaque case tombe sur un sommet du relief quand la case fait deux mailles : on le lit directement)
+  const s2 = C / w.cell;
+  if (s2 === 2 && w.heights && w.W) { const Hs = w.heights, W = w.W; for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) H[j * n + i] = Hs[(2 * j + 1) * W + 2 * i + 1]; }
+  else for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) H[j * n + i] = w.heightAt((i + 0.5) * C, (j + 0.5) * C);
   // où l'on peut aller à pied : parcours depuis la ferme (pentes douces, pas d'eau)
   const F = w.lm.ferme || w.lm.place || { x: w.spawn.x, z: w.spawn.z };
   const T = w.townInfo || w.lm.place || F;
@@ -92,14 +96,13 @@ function vgGenerer(w, seed) {
       acc[k2] = 1; Q[qt++] = k2;
     }
   }
+  const t1 = Date.now();
   const nav = w.nav.nodes, lms = Object.values(w.lm).filter((L) => !L.under), blds = Object.values(w.bld || {}).filter((b) => !b.under);
   const inters = w.inter || [];
   const essai = (x, z, R) => {
     const h = w.heightAt(x, z);
     if (h < WL + R.haut || !w.inside(x, z, 80)) return null;
-    let mn = 1e9, mx = -1e9;
-    for (let a = 0; a < 12; a++) for (const r of [1.5, 3.5, 5]) { const hh = w.heightAt(x + Math.cos(a * 0.5236) * r, z + Math.sin(a * 0.5236) * r); mn = Math.min(mn, hh); mx = Math.max(mx, hh); }
-    if (mx - mn > R.plat) return null;
+    // (les épreuves les moins chères d'abord : le résultat ne dépend pas de leur ordre)
     if (Math.hypot(x - T.x, z - T.z) < R.ville || Math.hypot(x - F.x, z - F.z) < R.ferme) return null;
     let dn = 1e9;
     for (const q of nav) { const d = Math.abs(q.x - x) + Math.abs(q.z - z); if (d < dn * 1.42) dn = Math.min(dn, Math.hypot(q.x - x, q.z - z)); }
@@ -107,6 +110,9 @@ function vgGenerer(w, seed) {
     for (const L of lms) if (Math.hypot(L.x - x, L.z - z) < R.lieu) return null;
     for (const b of blds) if (Math.hypot(b.x - x, b.z - z) < R.lieu + 30) return null;
     for (const it of inters) if (Math.abs(it.x - x) < 50 && Math.abs(it.z - z) < 50) return null;
+    let mn = 1e9, mx = -1e9;
+    for (let a = 0; a < 12; a++) for (const r of [1.5, 3.5, 5]) { const hh = w.heightAt(x + Math.cos(a * 0.5236) * r, z + Math.sin(a * 0.5236) * r); mn = Math.min(mn, hh); mx = Math.max(mx, hh); }
+    if (mx - mn > R.plat) return null;
     for (const P of w.noBuild || []) if (Math.hypot(P.x - x, P.z - z) < P.r + 25) return null;
     for (const q of w.props) if (Math.abs(q.x - x) < 14 && Math.abs(q.z - z) < 14) return null;
     let gene = false;
@@ -153,7 +159,7 @@ function vgGenerer(w, seed) {
   const COTES = ['vers le nord', 'entre le nord et le levant', 'du côté du levant', 'entre le levant et le midi', 'du côté du midi', 'entre le midi et le couchant', 'du côté du couchant', 'entre le couchant et le nord'];
   const cote = COTES[o];
   LIEU_NAMES.vg_versant = (best.h - WL > 30 ? 'là-haut, ' : 'loin, ') + cote;
-  w.vg = { x: best.x, y, z: best.z, r, ix, iz, cote, dn: Math.round(best.dn), haut: Math.round(best.h - WL), nCand, regle };
+  w.vg = { x: best.x, y, z: best.z, r, ix, iz, cote, dn: Math.round(best.dn), haut: Math.round(best.h - WL), nCand, regle, ms: [t1 - t0, Date.now() - t1] };
   w.grid = null;
 }
 {
