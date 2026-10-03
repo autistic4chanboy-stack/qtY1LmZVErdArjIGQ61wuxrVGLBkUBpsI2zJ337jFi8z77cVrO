@@ -13,7 +13,7 @@
 //  la notation) ; l'exécution est « humaine » : phrases qui respirent,
 //  nuances, pédale, rubato, mélodie un rien en avance sur l'accompagnement.
 //  API : MUSIQUE.compiler(def), new MusJeu(ctx, sortie, def), MUSIQUE.rendre(id)
-//  (rendu hors ligne, pour les essais) ; le jeu s'en sert dans 09-zzzzM-3-jeu.js.
+//  (rendu hors ligne, pour les essais) ; le jeu s'en sert dans 12-zzzzM-musique.js.
 // ============================================================================
 
 // ---------------------------------------------------------------- la synthèse des échantillons
