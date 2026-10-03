@@ -196,7 +196,8 @@ SoundEngine.BRUITS_MILIEU = {
       const ferme = G.kind === 'farm', monde = typeof mondes !== 'undefined' && mondes.cur;
       const under = !!(p.underground || (ferme && Bi.under)), inside = !!E.inside && !under, dehors = !inside && !under;
       const quiet = !(E.day > 0) && !(E.night > 0);
-      const actif = typeof ambiance !== 'undefined' && ambiance.actif !== false && ferme && !monde && !quiet && !under && !Bi.envers && !Bi.red;
+      // (le curseur « Ambiance » à zéro : rien à préparer, rien à jouer)
+      const actif = typeof ambiance !== 'undefined' && ambiance.actif !== false && ferme && !monde && !quiet && !under && !Bi.envers && !Bi.red && this.ambVolume > 0;
       // ---- les milieux autour de soi : des poids qui glissent (fondu de quelques secondes)
       Z.poidsT -= dt;
       if (Z.poidsT <= 0) {
