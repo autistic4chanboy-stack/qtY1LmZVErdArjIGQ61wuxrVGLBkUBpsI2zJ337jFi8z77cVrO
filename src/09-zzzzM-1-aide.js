@@ -46,3 +46,8 @@ function musMotif(spec, motifs) {
 }
 // une voix répétée n fois (les barres sont gardées)
 function musRep(txt, n) { return Array(n).fill(String(txt).trim()).join(' '); }
+// Une voix écrite mesure par mesure (tableau) : vérifie qu'elle a autant de mesures que l'harmonie.
+function musMesures(nom, mel, harm) {
+  if (mel.length !== harm.length) console.warn(`musique : ${nom} — ${mel.length} mesures de chant pour ${harm.length} d'harmonie`);
+  return mel.join(' | ') + ' |';
+}
