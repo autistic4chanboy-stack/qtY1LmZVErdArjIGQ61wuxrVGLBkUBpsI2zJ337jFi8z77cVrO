@@ -43,6 +43,11 @@ sont les mêmes pages moins le bloc « porte » (balisé dans `src/shell.html` e
 avec code ne change pas. Même site, même navigateur : les parties, les réglages et la langue sont les mêmes des deux
 côtés.
 
+**La présentation (`vitrine/`)** : une page d'images et de musiques, ouverte à tous, en ligne à
+`https://<compte>.github.io/<dépôt>/vitrine/` (liée depuis les deux pages d'accueil) : la vallée, Valbrume, les cartes,
+les écrans de jeu, les événements, les bêtes et les plantes, la cité vaisseau, les autres mondes, les affiches, et les
+42 musiques à écouter (plus fortes que dans le jeu).
+
 ### La grande vallée
 
 Par défaut, la vallée est **dessinée à la main** (3 km de côté, la même à chaque partie ; « une vallée au hasard » de 2 km
@@ -1143,6 +1148,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `shell.html` | HTML + CSS |
 | `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et ses deux codes (le jeu, le wiki), le site servi tel quel par GitHub Pages, changer un code |
 | `libre/` | la partie sans code : sa page d'accueil (`libre/index.html`), le jeu et le wiki sans leur porte (écrits par `node build.js` et `node tools/wiki-build.js`) |
+| `vitrine/` | la présentation du jeu : une page (`vitrine/index.html`), 106 images (captures du jeu en 1920 × 1080, du wiki, affiches ; `img/` en grand, `min/` en vignettes) et les 42 musiques en MP3 (`audio/`) ; liée depuis les deux pages d'accueil |
 
 Le son, pour placer un bruit dans le monde : `sound.pan(p, dest)` accepte un panoramique −1..1 (comme avant) **ou une
 position** (`[x, y, z]`, `{x, y, z}`, une bête, un habitant) ; `sound.ici(pos, () => …, o)` place tous les sons joués
