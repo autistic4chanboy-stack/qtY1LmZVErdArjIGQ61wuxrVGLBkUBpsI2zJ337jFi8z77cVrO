@@ -223,6 +223,16 @@ Object.assign(ANIMAL_RIGS, {
 function e1Quad(o) {
   const r = quadRig(o), u = [];
   const [bw, bh, bl] = o.body;
+  // (quadRig est fait pour les grandes bêtes : ses pattes partent six centimètres au-dessus du bas du corps, ce qui,
+  //  pour une belette ou un rat, les met sur le dos ; on les accroche sous le corps, assez longues pour toucher le sol,
+  //  et les oreilles d'une très petite tête ne se confondent plus au milieu)
+  const [lw, lh] = o.leg, k = Math.min(lh * 0.3, bh * 0.25), L = Math.max(lh * 0.5, o.bodyY - bh / 2 + k);
+  for (const n of ['legFL', 'legFR', 'legBL', 'legBR']) {
+    const q = r.part(n); if (!q) continue;
+    q.p = [(n.endsWith('L') ? -1 : 1) * (bw / 2 - lw / 2 - bw * 0.06), -bh / 2 + k, q.p[2]];
+    q.s = [q.s[0], L, q.s[2]]; q.o = [0, -L / 2, 0];
+  }
+  for (const n of ['earL', 'earR']) { const q = r.part(n); if (q && Math.abs(q.p[0]) < o.head[0] * 0.25) q.p = [(n === 'earL' ? -1 : 1) * o.head[0] * 0.3, q.p[1], q.p[2]]; }
   if (o.ventre) u.push({ name: 'ventre', parent: 'body', p: [0, -bh * 0.32, 0.01], s: [bw * 0.9, bh * 0.4, bl * 0.82], col: o.ventre, tex: TL.fur });
   if (o.bavette) u.push({ name: 'bavette', parent: 'body', p: [0, -bh * 0.05, bl * 0.47], s: [bw * 0.62, bh * 0.62, 0.012], col: o.bavette, tex: TL.fur });
   if (o.masque) u.push({ name: 'masque', parent: 'head', p: [0, o.head[1] * 0.12, o.head[2] * 0.56], s: [o.head[0] * 1.04, o.head[1] * 0.34, o.head[2] * 0.4], col: o.masque, tex: TL.fur });
@@ -243,7 +253,7 @@ Object.assign(ANIMAL_RIGS, {
   e1_fouine: () => e1Quad({ col: E1C('#5a4232'), body: [0.08, 0.085, 0.3], bodyY: 0.09, leg: [0.028, 0.07], legIn: 0.02, legCol: E1C('#3a2a20'), neck: [0, 0.025], head: [0.064, 0.058, 0.07], face: TL.foxF,
     ears: [0.02, 0.022, 0.008], earCol: E1C('#d8ccc0'), tail: [0.05, 0.05, 0.24], tailCol: E1C('#3e2e24'), museau: E1C('#b8a898'), yeux: [0.03, 0.02, 0.02],
     plus: [{ name: 'bavL', parent: 'body', p: [-0.016, -0.008, 0.15], s: [0.03, 0.06, 0.012], col: E1C('#f2ece4'), tex: TL.fur, r0: [0, 0, 0.3] }, { name: 'bavR', parent: 'body', p: [0.016, -0.008, 0.15], s: [0.03, 0.06, 0.012], col: E1C('#f2ece4'), tex: TL.fur, r0: [0, 0, -0.3] }] }),
-  e1_campagnol_champs: () => e1Quad({ col: E1C('#7a6a50'), body: [0.034, 0.032, 0.07], bodyY: 0.028, leg: [0.01, 0.014], legIn: 0.01, neck: [0, 0.006], head: [0.03, 0.026, 0.03], face: TL.rabbitF,
+  e1_campagnol_champs: () => e1Quad({ col: E1C('#7a6a50'), body: [0.034, 0.032, 0.07], bodyY: 0.028, leg: [0.01, 0.014], legIn: 0.01, neck: [0, 0.006], headP: [0, 0.004, 0.046], head: [0.03, 0.026, 0.03], face: TL.rabbitF,
     ears: [0.01, 0.008, 0.004], tail: [0.005, 0.005, 0.026], ventre: E1C('#a89880') }),
   e1_lerot: () => e1Quad({ col: E1C('#8a7a6c'), body: [0.048, 0.046, 0.11], bodyY: 0.04, leg: [0.012, 0.022], legIn: 0.012, neck: [0, 0.01], head: [0.044, 0.04, 0.05], face: TL.rabbitF,
     ears: [0.02, 0.024, 0.006], earCol: E1C('#c8a8a0'), tail: [0.008, 0.008, 0.11], tailCol: E1C('#8a7a6c'), ventre: E1C('#f2eee6'), masque: E1C('#141210'), bout: E1C('#141210'), bout2: E1C('#f2eee6') }),

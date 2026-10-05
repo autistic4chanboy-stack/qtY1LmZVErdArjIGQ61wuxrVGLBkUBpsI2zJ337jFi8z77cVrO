@@ -1270,6 +1270,10 @@ if (typeof ALIMENTS_EFFETS !== 'undefined') Object.assign(ALIMENTS_EFFETS, { esc
   };
   // au dessin : l'ombre est à leur taille, et seulement quand elles touchent le sol (pas sous un faucon en vol)
   const MIENNES = Object.keys(CREATURES).filter((k) => CREATURES[k].e1).map((k) => CREATURES[k]);
+  // (l'ombre commune a deux centimètres d'épaisseur, trois au-dessus du sol : sous un grillon, elle flotterait au-dessus
+  //  de lui ; la nôtre est plate et basse, à la mesure de la bête)
+  const _M = new Float32Array(12);
+  const ombre = (sb, x, y, z, r) => { m34Root(_M, x, y + Math.min(0.03, r * 0.3), z, 0, 1); sb.box(_M, 0, 0, 0, r * 2, Math.min(0.02, r * 0.15), r * 2, [0, 0, 0], 0); };
   const _draw = entities.draw.bind(entities);
   entities.draw = function (buf, sbuf, cam, maxD, t, flags) {
     for (const C of MIENNES) C.fly = true; // (dans le dessin, « fly » ne sert qu'à taire l'ombre commune)
@@ -1280,7 +1284,7 @@ if (typeof ALIMENTS_EFFETS !== 'undefined') Object.assign(ALIMENTS_EFFETS, { esc
     for (const G of e1.actifs) for (const e of G.ents) {
       if (e.hidden || e.far || e.dead || e.removed || e.fly || e.grimpe || e.mur) continue;
       const dx = e.x - cam[0], dz = e.z - cam[2];
-      if (dx * dx + dz * dz < m2 && e.y < w.heightAt(e.x, e.z) + 0.25) drawShadow(sbuf, e.x, e.y, e.z, e.cfg.ombre * (e.scale || 1));
+      if (dx * dx + dz * dz < m2 && e.y < w.heightAt(e.x, e.z) + 0.25) ombre(sbuf, e.x, e.y, e.z, e.cfg.ombre * (e.scale || 1));
     }
   };
 }
