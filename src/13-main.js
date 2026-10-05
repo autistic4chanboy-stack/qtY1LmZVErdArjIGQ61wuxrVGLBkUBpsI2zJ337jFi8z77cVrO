@@ -161,6 +161,13 @@ const game = {
     if (this.kind === 'creative') ui.toast(this.lockErrors > 2 ? 'Souris non capturable : maintenez un clic et glissez pour regarder' : "Cliquez dans l'écran pour capturer la souris");
   },
   applySettings() { sound.setVolume(settings.volume); sound.setAmbient(settings.ambVolume); },
+  // le tapis d'herbe et de fleurs autour du joueur : son rayon (Options, « Distance de l'herbe et des fleurs »)
+  // et la grille qui le couvre (n × n touffes, une tous les 0,56 m)
+  grassGrid() {
+    const R = clamp(settings.grassDist || 40, 20, 80);
+    if (!this._grass || this._grass.radius !== R) this._grass = { n: Math.ceil(2 * R / 0.56) + 8, spacing: 0.56, radius: R };
+    return this._grass;
+  },
 
   save(silent) {
     if (!this.world) return;
@@ -982,7 +989,7 @@ const game = {
     const sky = this.sky = computeSky(w.time, settings.viewDist, {
       cloud: wc.cloud, rain: wc.rain, storm: wc.storm, flash: weather.flash, fog: Math.min(1, wc.fog + this.bFog), frost: wc.frost, heat: wc.heat,
       red: F ? strange.redK : 0, envers: F ? strange.enversK : 0,
-    });
+    }, clamp(settings.fogDist || 1, 0.5, 2));
     if (F && p.underground) { sky.wet = 0; }
     if (F) for (const fn of HOOKS.sky) fn(sky);
     const basis = cameraBasis(yaw, pitch);
@@ -1082,7 +1089,7 @@ const game = {
       cam: { pos: camPos, yaw, pitch, fovX: settings.fov * DEG * (this.fovK || 1) },
       sky, time: this.time, cloudT: this.cloudT, lights, flash: this.flashlight && !F ? 1 : 0,
       bands: settings.bands ? 14 : 0, levels: settings.dither ? 28 : 0, gamma: 1 / settings.gamma,
-      grass: strange.inEnvers() && F ? null : { n: 150, spacing: 0.56, radius: 40 },
+      grass: strange.inEnvers() && F ? null : this.grassGrid(),
       particles, brush: this.mode === 'edit' ? editor.brushUniform() : null, brushCol: editor.brushColor(), ghost, gun, gunL,
       underwater: camPos[1] < w.waterLevel && w.heightAt(camPos[0], camPos[2]) < w.waterLevel,
       ents, rain: p.underground ? 0 : F ? vallee.rainK : wc.rain, rainWind: weather.rainWind(), snow: F && !p.underground ? vallee.snowK : 0,

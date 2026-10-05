@@ -430,6 +430,8 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
         <option value="340">Normale</option>
         <option value="500">Lointaine</option>
       </select></label>
+      <label>Distance du brouillard <output id="o-fog-v"></output><input type="range" id="o-fog" min="0.5" max="2" step="0.1"></label>
+      <label>Distance de l’herbe et des fleurs <output id="o-grass-v"></output><input type="range" id="o-grass" min="20" max="80" step="5"></label>
       <label>Luminosité <output id="o-gamma-v"></output><input type="range" id="o-gamma" min="0.7" max="1.5" step="0.05"></label>
       <label>Volume général <output id="o-volume-v"></output><input type="range" id="o-volume" min="0" max="1" step="0.05"></label>
       <label>Ambiance (oiseaux, grillons, pluie…) <output id="o-amb-v"></output><input type="range" id="o-amb" min="0" max="1" step="0.05"></label>
@@ -26878,7 +26880,8 @@ function skyKey(e, field) {
 }
 
 // wx = météo courante {cloud, rain, storm, flash, fog, frost, heat, red, envers} (0..1)
-function computeSky(t, viewDist, wx) {
+// fogMul : le réglage « Distance du brouillard » des Options (1 = normal ; 0,5 = deux fois plus près ; 2 = deux fois plus loin)
+function computeSky(t, viewDist, wx, fogMul = 1) {
   wx = wx || {};
   const o = wx.cloud || 0, rain = wx.rain || 0, storm = wx.storm || 0, flash = wx.flash || 0;
   const fogK = wx.fog || 0, red = wx.red || 0, env = wx.envers || 0, heat = wx.heat || 0;
@@ -26911,7 +26914,9 @@ function computeSky(t, viewDist, wx) {
   let fogEnd = lerp(viewDist, viewDist * 0.55, night) * (1 - 0.5 * mist) * (1 - o * 0.2 - rain * 0.35);
   fogEnd = lerp(fogEnd, 46, fogK * 0.92);
   fogEnd = lerp(fogEnd, 85, env);
-  const fogStart = fogEnd * lerp(0.3, 0.12, Math.max(night, mist, rain));
+  let fogStart = fogEnd * lerp(0.3, 0.12, Math.max(night, mist, rain));
+  // le brouillard plus près ou plus loin, sans jamais dépasser la distance de vue (au-delà, le bord du monde se verrait)
+  if (fogMul !== 1) { fogEnd = Math.min(fogEnd * fogMul, viewDist); fogStart = Math.min(fogStart * fogMul, fogEnd * 0.92); }
   const light = e > -0.02 ? sunDir : moonDir;
   const k = 4 / Math.max(light[1], 0.22);
   const shadowOff = [light[0] * k, light[2] * k];
@@ -90930,7 +90935,7 @@ HOOKS.load.push(() => {
 //  INTERFACE : menus, options, panneau de l'éditeur, HUD, fichiers
 // ============================================================================
 
-const DEFAULT_SETTINGS = { sens: 1.0, fov: 90, pixel: 270, dither: true, bands: true, volume: 0.6, ambVolume: 0.5, invertY: false, viewDist: 340, showFps: false, gamma: 1.0, subs: true, aimDot: false };
+const DEFAULT_SETTINGS = { sens: 1.0, fov: 90, pixel: 270, dither: true, bands: true, volume: 0.6, ambVolume: 0.5, invertY: false, viewDist: 340, fogDist: 1, grassDist: 40, showFps: false, gamma: 1.0, subs: true, aimDot: false };
 const settings = Object.assign({}, DEFAULT_SETTINGS, store.get('prairie.settings', {}));
 
 function thumbFromCanvas(cv, crop) {
@@ -91013,6 +91018,8 @@ const ui = {
     bindOpt('#o-fov', 'fov', (v) => v + '°');
     bindOpt('#o-pixel', 'pixel', null, (v) => parseInt(v, 10));
     bindOpt('#o-view', 'viewDist', null, (v) => parseInt(v, 10));
+    bindOpt('#o-fog', 'fogDist', (v) => Math.round(v * 100) + ' %');
+    bindOpt('#o-grass', 'grassDist', (v) => v + ' m', (v) => parseInt(v, 10));
     bindOpt('#o-gamma', 'gamma', (v) => v.toFixed(2));
     bindOpt('#o-volume', 'volume', (v) => Math.round(v * 100) + ' %');
     bindOpt('#o-amb', 'ambVolume', (v) => Math.round(v * 100) + ' %');
@@ -93416,6 +93423,13 @@ const game = {
     if (this.kind === 'creative') ui.toast(this.lockErrors > 2 ? 'Souris non capturable : maintenez un clic et glissez pour regarder' : "Cliquez dans l'écran pour capturer la souris");
   },
   applySettings() { sound.setVolume(settings.volume); sound.setAmbient(settings.ambVolume); },
+  // le tapis d'herbe et de fleurs autour du joueur : son rayon (Options, « Distance de l'herbe et des fleurs »)
+  // et la grille qui le couvre (n × n touffes, une tous les 0,56 m)
+  grassGrid() {
+    const R = clamp(settings.grassDist || 40, 20, 80);
+    if (!this._grass || this._grass.radius !== R) this._grass = { n: Math.ceil(2 * R / 0.56) + 8, spacing: 0.56, radius: R };
+    return this._grass;
+  },
 
   save(silent) {
     if (!this.world) return;
@@ -94237,7 +94251,7 @@ const game = {
     const sky = this.sky = computeSky(w.time, settings.viewDist, {
       cloud: wc.cloud, rain: wc.rain, storm: wc.storm, flash: weather.flash, fog: Math.min(1, wc.fog + this.bFog), frost: wc.frost, heat: wc.heat,
       red: F ? strange.redK : 0, envers: F ? strange.enversK : 0,
-    });
+    }, clamp(settings.fogDist || 1, 0.5, 2));
     if (F && p.underground) { sky.wet = 0; }
     if (F) for (const fn of HOOKS.sky) fn(sky);
     const basis = cameraBasis(yaw, pitch);
@@ -94337,7 +94351,7 @@ const game = {
       cam: { pos: camPos, yaw, pitch, fovX: settings.fov * DEG * (this.fovK || 1) },
       sky, time: this.time, cloudT: this.cloudT, lights, flash: this.flashlight && !F ? 1 : 0,
       bands: settings.bands ? 14 : 0, levels: settings.dither ? 28 : 0, gamma: 1 / settings.gamma,
-      grass: strange.inEnvers() && F ? null : { n: 150, spacing: 0.56, radius: 40 },
+      grass: strange.inEnvers() && F ? null : this.grassGrid(),
       particles, brush: this.mode === 'edit' ? editor.brushUniform() : null, brushCol: editor.brushColor(), ghost, gun, gunL,
       underwater: camPos[1] < w.waterLevel && w.heightAt(camPos[0], camPos[2]) < w.waterLevel,
       ents, rain: p.underground ? 0 : F ? vallee.rainK : wc.rain, rainWind: weather.rainWind(), snow: F && !p.underground ? vallee.snowK : 0,
@@ -98660,6 +98674,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Discrètement, surtout. La discrétion est la politesse des administrations.","Discreetly, above all. Discretion is the politeness of administrations."],
 ["Discuter","Chat"],
 ["Distance de vue","View distance"],
+["Distance du brouillard","Fog distance"],
+["Distance de l’herbe et des fleurs","Grass and flower distance"],
 ["Distance minimale : cinquante mètres. Ne jamais se tenir sur leur chemin : ils ne vous voient pas, ils ne vous éviteront pas.","Minimum distance: fifty metres. Never stand in their path: they do not see you, they will not go around you."],
 ["Distiller","Distil"],
 ["Dites au maire que je lève les ponts à l’heure, chaque soir, et que la manivelle ne quitte pas ma ceinture. Si le pont s’abaisse la nuit, c’est qu’on le descend d’en face.","Tell the mayor I raise the bridges on time, every evening, and the crank never leaves my belt. If the bridge comes down at night, someone is lowering it from the other side."],

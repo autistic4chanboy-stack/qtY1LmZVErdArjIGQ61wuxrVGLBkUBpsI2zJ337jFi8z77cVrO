@@ -31,7 +31,8 @@ function skyKey(e, field) {
 }
 
 // wx = météo courante {cloud, rain, storm, flash, fog, frost, heat, red, envers} (0..1)
-function computeSky(t, viewDist, wx) {
+// fogMul : le réglage « Distance du brouillard » des Options (1 = normal ; 0,5 = deux fois plus près ; 2 = deux fois plus loin)
+function computeSky(t, viewDist, wx, fogMul = 1) {
   wx = wx || {};
   const o = wx.cloud || 0, rain = wx.rain || 0, storm = wx.storm || 0, flash = wx.flash || 0;
   const fogK = wx.fog || 0, red = wx.red || 0, env = wx.envers || 0, heat = wx.heat || 0;
@@ -64,7 +65,9 @@ function computeSky(t, viewDist, wx) {
   let fogEnd = lerp(viewDist, viewDist * 0.55, night) * (1 - 0.5 * mist) * (1 - o * 0.2 - rain * 0.35);
   fogEnd = lerp(fogEnd, 46, fogK * 0.92);
   fogEnd = lerp(fogEnd, 85, env);
-  const fogStart = fogEnd * lerp(0.3, 0.12, Math.max(night, mist, rain));
+  let fogStart = fogEnd * lerp(0.3, 0.12, Math.max(night, mist, rain));
+  // le brouillard plus près ou plus loin, sans jamais dépasser la distance de vue (au-delà, le bord du monde se verrait)
+  if (fogMul !== 1) { fogEnd = Math.min(fogEnd * fogMul, viewDist); fogStart = Math.min(fogStart * fogMul, fogEnd * 0.92); }
   const light = e > -0.02 ? sunDir : moonDir;
   const k = 4 / Math.max(light[1], 0.22);
   const shadowOff = [light[0] * k, light[2] * k];

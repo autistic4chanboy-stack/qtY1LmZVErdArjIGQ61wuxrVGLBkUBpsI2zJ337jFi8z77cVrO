@@ -3881,6 +3881,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Discrètement, surtout. La discrétion est la politesse des administrations.","Discreetly, above all. Discretion is the politeness of administrations."],
 ["Discuter","Chat"],
 ["Distance de vue","View distance"],
+["Distance du brouillard","Fog distance"],
+["Distance de l’herbe et des fleurs","Grass and flower distance"],
 ["Distance minimale : cinquante mètres. Ne jamais se tenir sur leur chemin : ils ne vous voient pas, ils ne vous éviteront pas.","Minimum distance: fifty metres. Never stand in their path: they do not see you, they will not go around you."],
 ["Distiller","Distil"],
 ["Dites au maire que je lève les ponts à l’heure, chaque soir, et que la manivelle ne quitte pas ma ceinture. Si le pont s’abaisse la nuit, c’est qu’on le descend d’en face.","Tell the mayor I raise the bridges on time, every evening, and the crank never leaves my belt. If the bridge comes down at night, someone is lowering it from the other side."],

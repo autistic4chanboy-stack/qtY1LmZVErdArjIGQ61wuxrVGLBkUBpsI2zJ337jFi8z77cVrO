@@ -11,6 +11,9 @@ premier Tomb Raider, bêtes en boîtes), presque sans affichage à l'écran. Un 
 Ouvrir **`Prairie.html`** dans un navigateur récent (Chrome, Edge ou Firefox, WebGL 2 requis).
 Aucune installation ni connexion : tout est dans ce seul fichier. La partie est sauvegardée automatiquement.
 Le jeu existe en **français** et en **anglais** (Options, ou le bouton de langue du menu ; bascule à chaud).
+Les **Options** règlent aussi l'image : champ de vision, pixelisation, distance de vue, **distance du brouillard** (de 50 à
+200 % : plus près pour l'ambiance, plus loin pour voir plus loin, sans jamais dépasser la distance de vue) et **distance de
+l'herbe et des fleurs** (le tapis d'herbe et de fleurs autour de soi, de 20 à 80 m ; plus court, le jeu est plus léger).
 
 **Le wiki de la vallée** : **`Prairie-Wiki.html`** (à ouvrir de même, hors du jeu) est un compagnon autonome : les cartes interactives,
 en onglets — toute la vallée (relief, eaux, forêts, chemins, milieux, lieux-dits, lieux perdus, villages, maisons des habitants, zones de
