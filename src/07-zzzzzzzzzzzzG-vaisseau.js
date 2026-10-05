@@ -183,8 +183,8 @@ const VGM = {
     E.bx(0, 0, 0, 5, 0.6, 5, VGC.sombre, mt(M_VG_DALLE)); E.bx(0, 0.6, 0, 4.2, 0.3, 4.2, VGC.coque, mt(M_VG_COQUE));
     E.bx(0, 13.2, 0, 4.6, 0.8, 4.6, VGC.coque, mt(M_VG_COQUE));
     for (let i = 0; i < 8; i++) { const a = i / 8 * TAU; E.box(Math.cos(a) * 1.75, 6.9, Math.sin(a) * 1.75, 0.18, 12.2, 0.18, VGC.coque, TL.metal, -a); }
-    // le verre (des lames claires, un peu bleutées)
-    for (let i = 0; i < 8; i++) { const a = (i + 0.5) / 8 * TAU; E.box(Math.cos(a) * 1.68, 6.9, Math.sin(a) * 1.68, 1.25, 12.2, 0.04, [0.55, 0.68, 0.78], TL.glass, -a + Math.PI / 2); }
+    // (pas de verre plein : la cage est ajourée, on voit la lumière pliée dedans) des cerclages de nacre
+    for (const y of [3.2, 6.9, 10.6]) for (let i = 0; i < 8; i++) { const a = (i + 0.5) / 8 * TAU; E.box(Math.cos(a) * 1.72, y, Math.sin(a) * 1.72, 1.4, 0.16, 0.1, VGC.nacre, TL.metal, -a + Math.PI / 2); }
     // la lumière pliée
     E.fl = FX_EMIT;
     if (on > 0.02) {

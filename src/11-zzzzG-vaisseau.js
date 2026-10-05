@@ -227,7 +227,7 @@ const vgCite = {
     if (!opts.restaurer) { p.pos = this.depart.slice(); p.vel = [0, 0, 0]; p.yaw = Math.PI; p.pitch = 0.05; }
     if (game.renderer) game.renderer.uploadCover(p.pos[0], p.pos[2]);
     MSON.drone('vaisseau', [41.2, 61.8, 82.4], 0.035, 'sine', 160);
-    if (V.m && V.m.coeur) MSON.drone('vg_coeur', [36.7, 55.1, 73.4, 110.2], 0.045, 'sawtooth', 240); // (une partie rechargée : le Cœur brûlait)
+    if (V.m && V.m.coeur) MSON.drone('vg_coeur', [36.7, 55.1, 73.4, 110.2], 0.028, 'sawtooth', 240); // (une partie rechargée : le Cœur brûlait)
     void M; void V;
   },
   sortir() {

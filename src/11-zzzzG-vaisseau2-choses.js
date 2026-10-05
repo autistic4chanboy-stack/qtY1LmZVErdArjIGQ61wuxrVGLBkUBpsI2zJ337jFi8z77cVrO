@@ -362,7 +362,7 @@ Object.assign(vgCite, {
   },
   coeurChange(on) {
     const V = VG.S();
-    if (on) { V.coeurT = 0; this.alerteDite = false; MSON.drone('vg_coeur', [36.7, 55.1, 73.4, 110.2], 0.045, 'sawtooth', 240); game.shakeT = Math.max(game.shakeT || 0, 0.4); }
+    if (on) { V.coeurT = 0; this.alerteDite = false; MSON.drone('vg_coeur', [36.7, 55.1, 73.4, 110.2], 0.028, 'sawtooth', 240); game.shakeT = Math.max(game.shakeT || 0, 0.4); }
     else { MSON.stopDrone('vg_coeur'); }
   },
   // ------------------------------------------------------------- lire, écouter, parler
