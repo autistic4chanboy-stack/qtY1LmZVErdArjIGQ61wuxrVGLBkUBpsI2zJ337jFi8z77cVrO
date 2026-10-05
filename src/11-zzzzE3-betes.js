@@ -186,7 +186,7 @@ const e3 = {
       const V = E3_VIE[k], mils = V.mil.filter((m) => pts[m] && pts[m].length);
       if (!mils.length) continue;
       const n = E3_TERR[V.mil[0]][Math.min(3, rar)];
-      for (let i = 0, essais = 0; i < n && essais < n * 40; essais++) {
+      for (let i = 0, essais = 0; (i < n && essais < n * 40) || (i === 0 && essais < 2000); essais++) { // (au moins un territoire, même pour la plus rare)
         const m = mils.length > 1 && rnd() < 0.3 ? mils[1] : mils[0], L = pts[m];
         const [x0, z0] = L[(rnd() * L.length) | 0], P = this.place(k, w, x0 + (rnd() - 0.5) * 10, z0 + (rnd() - 0.5) * 10, rnd);
         if (!P || this.milieu(w, P.x, P.z) !== m) continue;
