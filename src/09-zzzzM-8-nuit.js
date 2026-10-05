@@ -14,7 +14,7 @@
   const b = ['mp ( d5/2 g5/4 bb5/4', 'a5/2. g5/4', 'g5/4 f5/4 eb5/4 c5/4', 'd5/2 f#5/2 )', '( < g5/2 bb5/4 d6/4', '> c6/2 bb5/4 g5/4', 'eb5/2 g5/4 f5/4', 'f5/1 )'];
   const m = ['r/1', 'r/1', 'p ' + a1[0], ...a1.slice(1), ...a2, ...b, 'p ' + a2[0], ...a2.slice(1), 'pp ( g5/1', 'f5/1', 'g5/2 eb5/2', 'd5/1 )'];
   MUSIQUE.ajouter({
-    id: 'nuit_veilleuse', titre: 'Veilleuse', groupe: 'nuit', tempo: 56, mesure: '4/4', salle: 'salle', reverb: 0.32, gain: 1.0, rubato: 0.03,
+    id: 'nuit_veilleuse', titre: 'Veilleuse', groupe: 'nuit', tempo: 56, mesure: '4/4', salle: 'salle', reverb: 0.32, gain: 1.55, rubato: 0.03,
     voix: {
       m: { inst: 'piano', role: 'chant', notes: musMesures('nuit_veilleuse', m, H) },
       g: { inst: 'piano', role: 'accomp', dyn: 0.78, notes: 'pp ' + musMotif(H.join(' | '), ['0/8 1 2 3 4 3 2 1', '&01234/1']) },
@@ -34,7 +34,7 @@
   const m = ['r/2.', 'r/2.', 'p ' + a[0], ...a.slice(1), ...b, 'p ' + af[0], ...af.slice(1), 'pp ( c5/2.', 'bb4/2.', 'ab4/4. c5/4.', 'bb4/2. )'];
   const cel = [...Array(18).fill('r/2.'), 'pp ' + af[0], ...af.slice(1), 'r/2.', 'r/2.', 'r/2.', 'r/2.'];
   MUSIQUE.ajouter({
-    id: 'nuit_berceuse', titre: 'Berceuse des granges', groupe: 'nuit', tempo: 66, mesure: '6/8', salle: 'chambre', reverb: 0.34, gain: 1.0, rubato: 0.025,
+    id: 'nuit_berceuse', titre: 'Berceuse des granges', groupe: 'nuit', tempo: 66, mesure: '6/8', salle: 'chambre', reverb: 0.34, gain: 1.07, rubato: 0.025,
     voix: {
       m: { inst: 'piano', role: 'chant', notes: musMesures('nuit_berceuse', m, H) },
       g: { inst: 'piano', role: 'accomp', dyn: 0.78, notes: 'pp ' + musMotif(H.join(' | '), ['0/4. 12/4.', '&012/2.']) },
@@ -54,7 +54,7 @@
   const b = ['mp ( c5/4 f5/4 ab5/4', 'ab5/2 f5/4', 'f5/2 db5/4', 'e5/2. )', '( < f5/4 ab5/4 c6/4', '> c6/2 ab5/4', 'db5/2 f5/4', 'eb5/2. )'];
   const m = ['r/2.', 'r/2.', 'p ' + a[0], ...a.slice(1), ...a2, ...b, 'p ' + a2[0], ...a2.slice(1), 'pp ( f5/2.', 'eb5/2.', 'db5/2 bb4/4', 'c5/2.~', 'c5/2. )'];
   MUSIQUE.ajouter({
-    id: 'nuit_claire', titre: 'Nuit claire', groupe: 'nuit', tempo: 58, mesure: '3/4', salle: 'salle', reverb: 0.36, gain: 1.0, pedale: 'aucune',
+    id: 'nuit_claire', titre: 'Nuit claire', groupe: 'nuit', tempo: 58, mesure: '3/4', salle: 'salle', reverb: 0.36, gain: 0.91, pedale: 'aucune',
     voix: {
       s: { inst: 'cordes', role: 'chant', notes: musMesures('nuit_claire', m, H) },
       h: { inst: 'harpe', role: 'accomp', vol: 0.75, notes: 'pp ' + musMotif(H.join(' | '), ['0/8 1 2 3 2 1', '&0123/2.']) },

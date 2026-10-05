@@ -13,7 +13,7 @@
     'pp ' + Em9, AE, Em9, Am7, C7, D, Em, Em,
     'pp ' + Em9, AE, Em9, Em9 + ' @1'];
   MUSIQUE.ajouter({
-    id: 'foret_hetres', titre: 'Sous les hêtres', groupe: 'foret', tempo: 69, mesure: '6/8', salle: 'salle', reverb: 0.34, gain: 0.9,
+    id: 'foret_hetres', titre: 'Sous les hêtres', groupe: 'foret', tempo: 69, mesure: '6/8', salle: 'salle', reverb: 0.34, gain: 1.05,
     voix: {
       m: {
         inst: 'piano', role: 'chant',
@@ -36,7 +36,7 @@
   const A1 = [Dm9, EmD, Dm9, EmD, Bm7, G7, Em7, A4], A2 = [Dm9, EmD, Dm9, EmD, Bm7, G7, A4, D], B = [G7, Fm7, Em7, DF, G7, Fm7, Em7, A7];
   const suite = ['pp ' + Dm9, EmD, 'p ' + A1.join(' | '), A2.join(' | '), B.join(' | '), A2.join(' | '), 'pp ' + Dm9, EmD, Dm9 + ' @1'];
   MUSIQUE.ajouter({
-    id: 'foret_bouleaux', titre: 'Le bois blanc', groupe: 'foret', aussi: ['lande'], tempo: 76, mesure: '3/4', salle: 'salle', reverb: 0.36, gain: 0.75, pedale: 'aucune',
+    id: 'foret_bouleaux', titre: 'Le bois blanc', groupe: 'foret', aussi: ['lande'], tempo: 76, mesure: '3/4', salle: 'salle', reverb: 0.36, gain: 0.67, pedale: 'aucune',
     voix: {
       fl: {
         inst: 'flute', role: 'chant',
@@ -61,7 +61,7 @@
   // la basse du piano : basse, quinte, dixième
   const basse = (ch) => ch.split(' | ').map((c) => c.replace(/^(\S+) (\S+) (\S+) (\S+)( @1)?$/, '$1 $2 $3')).join(' | ');
   MUSIQUE.ajouter({
-    id: 'foret_clairiere', titre: 'La clairière', groupe: 'foret', aussi: ['pres'], tempo: 60, mesure: '4/4', salle: 'salle', reverb: 0.3, gain: 0.9,
+    id: 'foret_clairiere', titre: 'La clairière', groupe: 'foret', aussi: ['pres'], tempo: 60, mesure: '4/4', salle: 'salle', reverb: 0.3, gain: 0.68,
     voix: {
       m: {
         inst: 'piano', role: 'chant',
@@ -88,7 +88,7 @@
   const H = ['d2+a2/1', 'd2+a2/1', ...choral, ...choral, 'bb2+f3+d4+bb4/2 a2+e3+c#4+a4/2', 'd2+a2+f#3+d4/1'];
   const s = ['r/1', 'r/1', ...Array(8).fill('r/1'), 'p ' + dessus[0], ...dessus.slice(1), 'r/1', 'r/1'];
   MUSIQUE.ajouter({
-    id: 'foret_chene', titre: 'Le vieux chêne', groupe: 'foret', tempo: 50, mesure: '4/4', salle: 'salle', reverb: 0.36, gain: 1.0, pedale: 'demi', respire: 4, finRit: 2,
+    id: 'foret_chene', titre: 'Le vieux chêne', groupe: 'foret', tempo: 50, mesure: '4/4', salle: 'salle', reverb: 0.36, gain: 1.16, pedale: 'demi', respire: 4, finRit: 2,
     voix: {
       p: { inst: 'piano', role: 'chant', notes: 'pp ' + musMesures('foret_chene', ['d2+a2/1', 'd2+a2/1', 'p ' + choral[0], ...choral.slice(1), 'pp ' + choral[0], ...choral.slice(1), 'bb2+f3+d4+bb4/2 a2+e3+c#4+a4/2', 'd2+a2+f#3+d4/1'], H) },
       s: { inst: 'cordes', role: 'chant', vol: 0.75, notes: musMesures('foret_chene/cordes', s, H) },

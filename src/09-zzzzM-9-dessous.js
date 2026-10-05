@@ -16,7 +16,7 @@
   const m = ['r/1', 'r/1', 'pp ' + a1[0], ...a1.slice(1), ...a2, ...b, 'pp ' + a2[0], ...a2.slice(1), '( g#4/1', 'e4/1', 'c#4/1~', 'c#4/1 )'];
   const goutte = H.map((c, i) => (i % 4 === 3 && i > 2 ? c + ' @1' : '-/1'));
   MUSIQUE.ajouter({
-    id: 'dessous_eaux', titre: 'Les eaux sans soleil', groupe: 'dessous', aussi: ['tenebres'], tempo: 50, mesure: '4/4', salle: 'grotte', reverb: 0.42, gain: 1.0,
+    id: 'dessous_eaux', titre: 'Les eaux sans soleil', groupe: 'dessous', aussi: ['tenebres'], tempo: 50, mesure: '4/4', salle: 'grotte', reverb: 0.42, gain: 1.26,
     voix: {
       m: { inst: 'piano', role: 'chant', oct: 1, notes: musMesures('dessous_eaux', m, H) },
       b: { inst: 'piano', role: 'basse', dyn: 0.75, notes: 'pp ' + musMotif(H.join(' | '), '0/1') },
@@ -38,7 +38,7 @@
   const m = ['r/2.', 'r/2.', 'p ' + a1[0], ...a1.slice(1), ...a2, ...b, 'p ' + a2[0], ...a2.slice(1), 'pp ( g#5/2.', 'a#5/2.', 'b5/2.~', 'b5/2. )'];
   const verre = H.map((c, i) => (i % 2 === 0 && i >= 2 && i < 34 ? c : '-/2.'));
   MUSIQUE.ajouter({
-    id: 'dessous_cristaux', titre: 'Cristaux', groupe: 'dessous', tempo: 72, mesure: '3/4', salle: 'grotte', reverb: 0.4, gain: 1.0, pedale: 'aucune',
+    id: 'dessous_cristaux', titre: 'Cristaux', groupe: 'dessous', tempo: 72, mesure: '3/4', salle: 'grotte', reverb: 0.4, gain: 1.32, pedale: 'aucune',
     voix: {
       c: { inst: 'celesta', role: 'chant', notes: musMesures('dessous_cristaux', m, H) },
       h: { inst: 'harpe', role: 'accomp', vol: 0.6, notes: 'pp ' + musMotif(H.join(' | '), ['0/8 1 2 3 2 1', '&0123/2.']) },

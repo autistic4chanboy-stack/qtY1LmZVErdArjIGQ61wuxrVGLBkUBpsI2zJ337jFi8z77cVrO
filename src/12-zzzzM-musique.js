@@ -78,7 +78,24 @@ const musique = {
     let g = MUS_BIOME[G.biomeAt(p.pos)] || 'pres';
     const w = G.world, H = w.lm && w.lm.hameau;
     if (H && Math.hypot(p.pos[0] - H.x, p.pos[2] - H.z) < (H.r || 60) + 40) g = 'village';
+    // le marais : la vallée dessinée n'a aucune case de biome « marais » (biomeAt répond « plaine ») ; ce sont les
+    // mares « marais » et le bas-fond qui les entoure (moins de 5 m au-dessus de l'eau, dans le rayon des mares)
+    const Ma = this.marais(w);
+    if (Ma && Math.hypot(p.pos[0] - Ma.x, p.pos[2] - Ma.z) < Ma.r && p.pos[1] - (w.waterLevel || 0) < 5) g = 'eau';
     return { g, cle: 'vallee' };
+  },
+  // le centre et le rayon des mares « marais » (une fois par monde)
+  marais(w) {
+    if (this._maraisW === w) return this._marais;
+    this._maraisW = w; this._marais = null;
+    const Z = (w.fishZones || []).filter((f) => f && f.kind === 'marais' && Number.isFinite(f.x) && Number.isFinite(f.z));
+    if (Z.length) {
+      const x = Z.reduce((a, f) => a + f.x, 0) / Z.length, z = Z.reduce((a, f) => a + f.z, 0) / Z.length;
+      let r = 0;
+      for (const f of Z) r = Math.max(r, Math.hypot(f.x - x, f.z - z) + (f.r || 8));
+      this._marais = { x, z, r: clamp(r + 30, 60, 160) };
+    }
+    return this._marais;
   },
 
   // ------------------------------------------------ le choix : un sac par groupe (tous joués avant qu'un revienne)
@@ -198,7 +215,8 @@ const musique = {
   ui.init = function () {
     const r = _init();
     try {
-      const amb = $('#o-amb'), lab = amb && amb.closest('label');
+      // le curseur juste après « Volume général » (avec les autres volumes) ; la case avec les autres cases
+      const vg = $('#o-volume') || $('#o-amb'), lab = vg && vg.closest('label');
       if (lab && !$('#o-musique-vol')) {
         const l = document.createElement('label');
         l.innerHTML = 'Musique <output id="o-musique-vol-v"></output><input type="range" id="o-musique-vol" min="0" max="1" step="0.05">';

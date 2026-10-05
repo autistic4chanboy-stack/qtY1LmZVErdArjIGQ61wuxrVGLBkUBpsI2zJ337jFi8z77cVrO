@@ -22,7 +22,7 @@
     'p ( r/4 d5/4 e5/4', 'g5/2 f#5/4', 'e5/2 d5/4', 'b4/2. )', '( r/4 c5/4 d5/4', 'e5/2 f#5/4', 'g5/2.', 'f#5/2. )',
     'r/2.', 'r/2.', 'r/2.', 'r/2.', 'r/2.', 'r/2.', 'r/2.', 'r/2.', 'r/2.', 'r/2.', 'r/2.', 'r/2.'];
   MUSIQUE.ajouter({
-    id: 'lande_bruyeres', titre: 'Les bruyères', groupe: 'lande', aussi: ['pres'], tempo: 60, mesure: '3/4', salle: 'salle', reverb: 0.38, gain: 1.0,
+    id: 'lande_bruyeres', titre: 'Les bruyères', groupe: 'lande', aussi: ['pres'], tempo: 60, mesure: '3/4', salle: 'salle', reverb: 0.38, gain: 0.81,
     voix: {
       fl: { inst: 'flute', role: 'chant', notes: musMesures('lande_bruyeres', fl, H) },
       m: { inst: 'piano', role: 'chant', notes: musMesures('lande_bruyeres', pi, H) },
@@ -44,7 +44,7 @@
     'p ( f#5/2. a5/4', 'g#5/1', 'a5/2 b5/4 c#6/4', 'b5/1 )', '( d6/2. c#6/4', 'b5/2 a5/4 g5/4', 'f#5/2 e5/2', 'd5/1 )',
     'pp ( f#5/1', 'g#5/1', 'a5/1~', 'a5/1 )'];
   MUSIQUE.ajouter({
-    id: 'lande_crete', titre: 'La crête', groupe: 'lande', tempo: 56, mesure: '4/4', salle: 'cathedrale', reverb: 0.3, gain: 0.9,
+    id: 'lande_crete', titre: 'La crête', groupe: 'lande', tempo: 56, mesure: '4/4', salle: 'cathedrale', reverb: 0.3, gain: 1.53,
     voix: {
       m: { inst: 'piano', role: 'chant', notes: musMesures('lande_crete', m, H) },
       g: { inst: 'piano', role: 'accomp', dyn: 0.8, notes: 'pp ' + musMotif(H.join(' | '), '&01234/1') },
@@ -64,7 +64,7 @@
   const b = ['mp ( f#5/2 a5/2', 'g#5/2 b5/2', 'e5/4 g#5/4 c#6/4 b5/4', 'a5/2 f#5/2 )', '( < f#5/4 a5/4 d6/4 c#6/4', '> c#6/2 e5/2', 'd5/4 f#5/4 b5/4 a5/4', 'g#5/2 b5/2 )'];
   const m = ['r/1', 'r/1', 'p ' + a[0], ...a.slice(1), ...a2, ...b, 'p ' + a2[0], ...a2.slice(1), 'pp ( c#5/1', 'd5/2 f#5/2', 'e5/1~', 'e5/1 )'];
   MUSIQUE.ajouter({
-    id: 'lande_refuge', titre: 'Le refuge', groupe: 'lande', tempo: 66, mesure: '4/4', salle: 'chambre', reverb: 0.3, gain: 1.0,
+    id: 'lande_refuge', titre: 'Le refuge', groupe: 'lande', tempo: 66, mesure: '4/4', salle: 'chambre', reverb: 0.3, gain: 1.43,
     voix: {
       m: { inst: 'piano', role: 'chant', notes: musMesures('lande_refuge', m, H) },
       g: { inst: 'piano', role: 'accomp', dyn: 0.75, notes: 'pp ' + musMotif(H.join(' | '), ['0/8 2 1 2 0 2 1 2', '&012/1']) },

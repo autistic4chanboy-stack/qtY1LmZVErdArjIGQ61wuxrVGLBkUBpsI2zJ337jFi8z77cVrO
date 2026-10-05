@@ -15,7 +15,7 @@
     '( g5/2 f#5/4', 'f#5/2 e5/4', 'e5/2 b4/4', 'c5/2 e5/4', '< a5/2 g5/4', '> f#5/2 c5/4', 'b4/2.~', 'b4/2. )'];
   const m = ['r/2.', 'r/2.', 'p ' + mA[0], ...mA.slice(1), ...mB, 'p ' + mA[0], ...mA.slice(1), 'pp ( d5/2.', 'e5/2.', 'd5/2.~', 'd5/2. )'];
   MUSIQUE.ajouter({
-    id: 'village_marche', titre: 'La place du marché', groupe: 'village', tempo: 100, mesure: '3/4', salle: 'chambre', reverb: 0.3, gain: 1.0, respire: 4,
+    id: 'village_marche', titre: 'La place du marché', groupe: 'village', tempo: 100, mesure: '3/4', salle: 'chambre', reverb: 0.3, gain: 1.17, respire: 4,
     voix: {
       m: { inst: 'piano', role: 'chant', notes: musMesures('village_marche', m, H) },
       g: { inst: 'piano', role: 'accomp', dyn: 0.8, notes: 'pp ' + musMotif(H.join(' | '), ['0/4 123/4 123/4', '&0123/2.']) },
@@ -33,7 +33,7 @@
     '( g5/4 a5/8 b5/4 c6/8', 'd6/4. b5/4.', 'c6/4 b5/8 a5/4 g5/8', 'a5/4. g5/4. )', '( e6/4 d6/8 c6/4 g5/8', 'a5/4 c6/8 g5/4 e5/8', 'f5/4 d5/8 e5/4 d5/8', 'c5/4. r/4. )'];
   const m = ['r/2.', 'r/2.', 'mp ' + air[0], ...air.slice(1), 'p ' + air[0], ...air.slice(1), 'pp ( g5/4. e5/4.', 'c5/2. )'];
   MUSIQUE.ajouter({
-    id: 'village_volets', titre: 'Les volets bleus', groupe: 'village', aussi: ['bonbons'], tempo: 66, mesure: '6/8', salle: 'chambre', reverb: 0.32, gain: 1.0,
+    id: 'village_volets', titre: 'Les volets bleus', groupe: 'village', aussi: ['bonbons'], tempo: 66, mesure: '6/8', salle: 'chambre', reverb: 0.32, gain: 1.21,
     voix: {
       b: { inst: 'boite', role: 'chant', notes: musMesures('village_volets', m, H) },
       g: { inst: 'piano', role: 'accomp', dyn: 0.75, notes: 'pp ' + musMotif(H.join(' | '), ['0/4. 12/4.', '&012/2.']) },
@@ -53,7 +53,7 @@
   const m = ['r/2.', 'r/2.', 'p ' + a[0], ...a.slice(1), ...a2, ...b, 'p ' + a2[0], ...a2.slice(1), 'pp ( f5/2.', 'f5/2.', 'e5/2 g5/4', 'f5/2. )'];
   const k = ['pp f3/2.', 'r/2.', ...Array(32).fill('r/2.'), 'r/2.', 'r/2.', 'r/2.', 'f3/2.'];
   MUSIQUE.ajouter({
-    id: 'village_dimanche', titre: 'Dimanche', groupe: 'village', tempo: 84, mesure: '3/4', salle: 'salle', reverb: 0.32, gain: 1.0,
+    id: 'village_dimanche', titre: 'Dimanche', groupe: 'village', tempo: 84, mesure: '3/4', salle: 'salle', reverb: 0.32, gain: 1.16,
     voix: {
       m: { inst: 'piano', role: 'chant', notes: musMesures('village_dimanche', m, H) },
       g: { inst: 'piano', role: 'accomp', dyn: 0.78, notes: 'pp ' + musMotif(H.join(' | '), ['0/4 12/4 12/4', '&012/2.']) },

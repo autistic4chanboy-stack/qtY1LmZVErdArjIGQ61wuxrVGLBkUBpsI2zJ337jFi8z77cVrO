@@ -23,7 +23,7 @@
     'p ' + ph(air.A)[0], ...ph(air.A).slice(1), 'r/1'];
   const cel = ['r/1', 'r/1', ...r16, 'mp ' + ph(air.A)[0], ...ph(air.A).slice(1), ...ph(air.A), ...ph(air.B), ...ph(air.A), 'r/1', 'r/1', 'r/1', 'r/1', 'r/1'];
   MUSIQUE.ajouter({
-    id: 'bonbons_clair', titre: 'Au clair de la lune, au pays du sucre', groupe: 'bonbons', tempo: 92, mesure: '4/4', salle: 'salle', reverb: 0.3, gain: 1.0, pedale: 'aucune', respire: 4, finRit: 4,
+    id: 'bonbons_clair', titre: 'Au clair de la lune, au pays du sucre', groupe: 'bonbons', tempo: 92, mesure: '4/4', salle: 'salle', reverb: 0.3, gain: 0.93, pedale: 'aucune', respire: 4, finRit: 4,
     voix: {
       b: { inst: 'boite', role: 'chant', notes: musMesures('bonbons_clair', boite, H) },
       c: { inst: 'celesta', role: 'chant', oct: 1, vol: 0.85, notes: musMesures('bonbons_clair/célesta', cel, H) },
@@ -44,7 +44,7 @@
   const cel = ['r/2.', 'r/2.', 'mp ' + mA[0], ...mA.slice(1), ...mA2, ...mB, ...mA2, ...mB, ...mA2, 'p ( a6/2.', 'f#6/2.', 'e6/2.~', 'e6/2. )'];
   const boite = [...Array(34).fill('r/2.'), 'p ' + mB[0], ...mB.slice(1), ...Array(12).fill('r/2.')];
   MUSIQUE.ajouter({
-    id: 'bonbons_sucre', titre: 'Sucre filé', groupe: 'bonbons', tempo: 116, mesure: '3/4', salle: 'salle', reverb: 0.28, gain: 1.0, pedale: 'aucune',
+    id: 'bonbons_sucre', titre: 'Sucre filé', groupe: 'bonbons', tempo: 116, mesure: '3/4', salle: 'salle', reverb: 0.28, gain: 0.98, pedale: 'aucune',
     voix: {
       c: { inst: 'celesta', role: 'chant', notes: musMesures('bonbons_sucre', cel, H) },
       b: { inst: 'boite', role: 'chant', oct: -1, vol: 0.6, notes: musMesures('bonbons_sucre/boîte', boite, H) },
@@ -64,7 +64,7 @@
   const m2 = ['( a5/4 f#5/8 d6/4 a5/8', 'a#5/4. f#5/4. )', '( b5/4 g5/8 d6/4 b5/8', 'bb5/4. g5/4. )', '( a5/4 f#5/8 d5/4 f#5/8', 'a5/4 b5/8 d#5/4 f#5/8 )', '( g5/4 e5/8 c#5/4 a4/8', 'd5/4. r/4. )'];
   const m = ['r/2.', 'r/2.', 'mp ' + m1[0], ...m1.slice(1), ...m2, 'p ' + m1[0], ...m1.slice(1), ...m2, 'pp ( d6/4. a5/4.', 'd5/2. )'];
   MUSIQUE.ajouter({
-    id: 'bonbons_manege', titre: 'Le manège', groupe: 'bonbons', tempo: 72, mesure: '6/8', salle: 'salle', reverb: 0.28, gain: 1.0, finRit: 4,
+    id: 'bonbons_manege', titre: 'Le manège', groupe: 'bonbons', tempo: 72, mesure: '6/8', salle: 'salle', reverb: 0.28, gain: 1.19, finRit: 4,
     voix: {
       b: { inst: 'boite', role: 'chant', notes: musMesures('bonbons_manege', m, H) },
       g: { inst: 'piano', role: 'accomp', dyn: 0.7, notes: 'pp ' + musMotif(H.join(' | '), ['0/8 12 12 0 12 12', '&012/2.']) },
@@ -84,7 +84,7 @@
   const piano = ['r/1', 'r/1', 'p ' + A[0], ...A.slice(1), ...A, ...B, ...A, ...r16, 'r/1', 'r/1'];
   const verre = ['r/1', 'r/1', ...r16, 'p ' + A[0], ...A.slice(1), ...A, ...B, ...A, 'r/1', 'r/1'];
   MUSIQUE.ajouter({
-    id: 'tenebres_clair', titre: 'Clair de lune noir', groupe: 'tenebres', tempo: 54, mesure: '4/4', salle: 'grotte', reverb: 0.42, gain: 1.0, rubato: 0.03,
+    id: 'tenebres_clair', titre: 'Clair de lune noir', groupe: 'tenebres', tempo: 54, mesure: '4/4', salle: 'grotte', reverb: 0.42, gain: 1.56, rubato: 0.03,
     voix: {
       m: { inst: 'piano', role: 'chant', notes: musMesures('tenebres_clair', piano, H) },
       v: { inst: 'verre', role: 'chant', vol: 0.9, notes: musMesures('tenebres_clair/verre', verre, H) },
@@ -104,7 +104,7 @@
   const b = ['mp ( ab5/2 f5/4', 'eb5/2 c5/4', 'db5/2.', 'c5/2. )', '( < bb4/4 db5/4 gb5/4', 'f5/2 ab5/4', '> gb5/4 f5/4 eb5/4', 'c5/2. )'];
   const m = ['r/2.', 'r/2.', 'p ' + a[0], ...a.slice(1), ...a2, ...b, 'p ' + a2[0], ...a2.slice(1), 'pp ( gb5/2.', 'f5/2.', 'db5/2.~', 'db5/2. )'];
   MUSIQUE.ajouter({
-    id: 'tenebres_cendres', titre: 'Cendres', groupe: 'tenebres', tempo: 54, mesure: '3/4', salle: 'grotte', reverb: 0.38, gain: 1.0, rubato: 0.03,
+    id: 'tenebres_cendres', titre: 'Cendres', groupe: 'tenebres', tempo: 54, mesure: '3/4', salle: 'grotte', reverb: 0.38, gain: 1.51, rubato: 0.03,
     voix: {
       m: { inst: 'piano', role: 'chant', notes: musMesures('tenebres_cendres', m, H) },
       g: { inst: 'piano', role: 'accomp', dyn: 0.75, notes: 'pp ' + musMotif(H.join(' | '), ['0/4 12/2', '&012/2.']) },
@@ -125,7 +125,7 @@
   const cel = ['r/1', 'r/1', 'p ' + m1[0], ...m1.slice(1), ...m2, ...r16, 'r/1', 'r/1'];
   const ver = ['r/1', 'r/1', ...r16, 'p ' + m1[0], ...m1.slice(1), ...m2, 'r/1', 'r/1'];
   MUSIQUE.ajouter({
-    id: 'tenebres_yeux', titre: 'Les yeux fermés', groupe: 'tenebres', aussi: ['dessous'], tempo: 58, mesure: '4/4', salle: 'cathedrale', reverb: 0.36, gain: 1.0, pedale: 'mesure',
+    id: 'tenebres_yeux', titre: 'Les yeux fermés', groupe: 'tenebres', aussi: ['dessous'], tempo: 58, mesure: '4/4', salle: 'cathedrale', reverb: 0.36, gain: 1.5, pedale: 'mesure',
     voix: {
       c: { inst: 'celesta', role: 'chant', notes: musMesures('tenebres_yeux', cel, H) },
       v: { inst: 'verre', role: 'chant', oct: -1, vol: 0.9, notes: musMesures('tenebres_yeux/verre', ver, H) },
@@ -145,7 +145,7 @@
   const cordes = ['r/1', 'r/1', ...Array(8).fill('r/1'), 'p ( f5/2 e5/2', 'd5/1', 'c#5/1', 'd5/1 )', '( a5/2 g5/2', 'f5/2 e5/2', 'd5/2 c#5/2', 'd5/1 )', 'r/1', 'r/1'];
   const cloche = ['pp d3/1', 'r/1', 'd3/1', 'r/1', 'r/1', 'r/1', 'a2/1', 'r/1', 'r/1', 'r/1', 'd3/1', 'r/1', 'r/1', 'r/1', 'a2/1', 'r/1', 'r/1', 'r/1', 'd3/1', 'r/1'];
   MUSIQUE.ajouter({
-    id: 'enfers_portes', titre: 'Les portes', groupe: 'enfers', tempo: 44, mesure: '4/4', salle: 'cathedrale', reverb: 0.4, gain: 1.0, finRit: 2,
+    id: 'enfers_portes', titre: 'Les portes', groupe: 'enfers', tempo: 44, mesure: '4/4', salle: 'cathedrale', reverb: 0.4, gain: 0.98, finRit: 2,
     voix: {
       o: { inst: 'orgue', role: 'tenue', notes: 'pp ' + musMesures('enfers_portes', H, H) },
       s: { inst: 'cordes', role: 'chant', vol: 0.9, notes: musMesures('enfers_portes/cordes', cordes, H) },
@@ -185,7 +185,7 @@
   const c3 = ['( bb5/2.', 'a5/2 f#5/4', 'bb5/4 a5/4 f5/4', 'g5/2 e5/4', 'g5/2 bb5/4', 'a5/2. )'];
   const s = ['p ' + c1[0], ...c1.slice(1), 'mp ' + c2[0], ...c2.slice(1), '< ' + c3[0], ...c3.slice(1, 3), '> ' + c3[3], ...c3.slice(4), 'pp ' + c1[0], ...c1.slice(1), 'g4/2.~', 'g4/2.'];
   MUSIQUE.ajouter({
-    id: 'enfers_descente', titre: 'Descente', groupe: 'enfers', aussi: ['dessous'], tempo: 50, mesure: '3/4', salle: 'cathedrale', reverb: 0.36, gain: 1.0, finRit: 2,
+    id: 'enfers_descente', titre: 'Descente', groupe: 'enfers', aussi: ['dessous'], tempo: 50, mesure: '3/4', salle: 'cathedrale', reverb: 0.36, gain: 0.71, finRit: 2,
     voix: {
       o: { inst: 'orgue', role: 'tenue', notes: 'pp ' + musMesures('enfers_descente', H, H) },
       s: { inst: 'cordes', role: 'chant', notes: musMesures('enfers_descente/cordes', s, H) },

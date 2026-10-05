@@ -16,7 +16,7 @@
   const verre = ['r/1', 'r/1', ...Array(8).fill('r/1'), 'p ' + v1[0], ...v1.slice(1), 'p ' + v2[0], ...v2.slice(1), 'pp ( b5/1', 'g5/1', 'e5/1~', 'e5/1 )'];
   const cel = H.map((c, i) => (i < 2 || i >= 34 ? '-/1' : c));
   MUSIQUE.ajouter({
-    id: 'vaisseau_cite', titre: 'Cité dormante', groupe: 'vaisseau', tempo: 60, mesure: '4/4', salle: 'cathedrale', reverb: 0.4, gain: 1.0, pedale: 'aucune',
+    id: 'vaisseau_cite', titre: 'Cité dormante', groupe: 'vaisseau', tempo: 60, mesure: '4/4', salle: 'cathedrale', reverb: 0.4, gain: 1.39, pedale: 'aucune',
     voix: {
       v: { inst: 'verre', role: 'chant', notes: musMesures('vaisseau_cite', verre, H) },
       c: { inst: 'celesta', role: 'accomp', oct: 2, vol: 0.55, notes: 'pp ' + musMotif(cel.join(' | '), '1/8 2 3 4 3 2 3 2') },
@@ -38,7 +38,7 @@
   const m = ['r/2.', 'r/2.', 'p ' + a1[0], ...a1.slice(1), ...a2, ...b, 'p ' + a2[0], ...a2.slice(1), 'pp ( g5/2.', 'g5/2.', 'b5/2.~', 'b5/2. )'];
   const ver = [...Array(10).fill('r/2.'), 'pp ' + a2[0], ...a2.slice(1), ...Array(8).fill('r/2.'), 'pp ' + a2[0], ...a2.slice(1), ...Array(4).fill('r/2.')];
   MUSIQUE.ajouter({
-    id: 'vaisseau_hublots', titre: 'Hublots', groupe: 'vaisseau', tempo: 63, mesure: '3/4', salle: 'cathedrale', reverb: 0.34, gain: 1.0,
+    id: 'vaisseau_hublots', titre: 'Hublots', groupe: 'vaisseau', tempo: 63, mesure: '3/4', salle: 'cathedrale', reverb: 0.34, gain: 1.37,
     voix: {
       m: { inst: 'piano', role: 'chant', notes: musMesures('vaisseau_hublots', m, H) },
       v: { inst: 'verre', role: 'chant', oct: 1, vol: 0.55, notes: musMesures('vaisseau_hublots/verre', ver, H) },
@@ -59,7 +59,7 @@
   const m = ['r/2.', 'r/2.', 'p ' + a[0], ...a.slice(1), ...a, ...b, 'p ' + a[0], ...a.slice(1), 'pp ( a#5/2.~', 'a#5/2. )'];
   const cordes = H.map((c, i) => (i >= 10 && i < 18) || (i >= 26 && i < 34) ? c : '-/2.');
   MUSIQUE.ajouter({
-    id: 'vaisseau_jardins', titre: 'Les jardins suspendus', groupe: 'vaisseau', tempo: 72, mesure: '6/8', salle: 'cathedrale', reverb: 0.34, gain: 1.0, pedale: 'aucune',
+    id: 'vaisseau_jardins', titre: 'Les jardins suspendus', groupe: 'vaisseau', tempo: 72, mesure: '6/8', salle: 'cathedrale', reverb: 0.34, gain: 1.27, pedale: 'aucune',
     voix: {
       c: { inst: 'celesta', role: 'chant', notes: musMesures('vaisseau_jardins', m, H) },
       h: { inst: 'harpe', role: 'accomp', vol: 0.6, notes: 'pp ' + musMotif(H.join(' | '), ['0/8 1 2 3 2 1', '&0123/2.']) },

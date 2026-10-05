@@ -11,7 +11,7 @@
   const A1 = [Db, Gb, Db, Gb, Bbm, Ebm, Ab11, Ab11], A2 = [Db, Gb, Db, Gb, Bbm, Ebm, Ab7, Db], B = [Bbm, Gb11, Bbm, Gb11, Ebm, Co, F4, Ab11];
   const suite = ['pp ' + Db, Gb, 'p ' + A1.join(' | '), A2.join(' | '), 'p ' + B.join(' | '), 'p ' + A2.join(' | '), 'pp ' + Db, Gb, Db, Db + ' @1'];
   MUSIQUE.ajouter({
-    id: 'eau_reflets', titre: 'Reflets', groupe: 'eau', aussi: ['nuit'], tempo: 58, mesure: '3/4', salle: 'salle', reverb: 0.36, gain: 1.0,
+    id: 'eau_reflets', titre: 'Reflets', groupe: 'eau', aussi: ['nuit'], tempo: 58, mesure: '3/4', salle: 'salle', reverb: 0.36, gain: 1.1,
     voix: {
       m: {
         inst: 'piano', role: 'chant',
@@ -35,7 +35,7 @@
   const A1 = [Am9, Am9, F11, F11, Dm9, Dm9, E4, E7], A2 = [Am9, Am9, F11, F11, Dm9, Bb11, E4, Am9], B = [C7, C7, GB, GB, F7, F7, E4, E7], A3 = [Am9, Am9, F11, F11, Dm9, Bb11, E4, Am];
   const tout = ['pp ' + Am9, Am9, A1.join(' | '), A2.join(' | '), B.join(' | '), A3.join(' | '), Am, Am].join(' | ');
   MUSIQUE.ajouter({
-    id: 'eau_marais', titre: 'Le marais au soir', groupe: 'eau', tempo: 54, mesure: '4/4', salle: 'salle', reverb: 0.4, gain: 1.0,
+    id: 'eau_marais', titre: 'Le marais au soir', groupe: 'eau', tempo: 54, mesure: '4/4', salle: 'salle', reverb: 0.4, gain: 1.08,
     voix: {
       m: {
         inst: 'piano', role: 'chant',
@@ -73,7 +73,7 @@
   const haut = ['r/2.', 'r/2.', 'p ' + h1[0], ...h1.slice(1), ...h2, ...mB, 'p ' + h1[0], ...h1.slice(1), 'pp ( d6/2.~', 'd6/2. )'];
   const bas = ['r/2.', 'r/2.', 'p ' + b1[0], ...b1.slice(1), ...b2, 'mp ' + bB[0], ...bB.slice(1), 'p ' + b1[0], ...b1.slice(1), 'pp b5/2.~', 'b5/2.'];
   MUSIQUE.ajouter({
-    id: 'eau_lac', titre: 'Le lac au matin', groupe: 'eau', tempo: 66, mesure: '6/8', salle: 'salle', reverb: 0.32, gain: 1.0,
+    id: 'eau_lac', titre: 'Le lac au matin', groupe: 'eau', tempo: 66, mesure: '6/8', salle: 'salle', reverb: 0.32, gain: 1.08,
     voix: {
       m: { inst: 'piano', role: 'chant', notes: musMesures('eau_lac', haut, H) },
       t: { inst: 'piano', role: 'accomp', dyn: 0.72, notes: musMesures('eau_lac/tierces', bas, H) },

@@ -6,7 +6,7 @@
 // « Le pré du matin » — fa majeur, à trois temps, lent et clair. Une gymnopédie de plein air : la basse et
 // l'accord, et au-dessus une ligne qui s'étire ; un passage en ré mineur, puis le retour, plus bas, qui s'éteint.
 MUSIQUE.ajouter({
-  id: 'pres_matin', titre: 'Le pré du matin', groupe: 'pres', tempo: 66, mesure: '3/4', salle: 'salle', reverb: 0.3,
+  id: 'pres_matin', titre: 'Le pré du matin', groupe: 'pres', gain: 0.89, tempo: 66, mesure: '3/4', salle: 'salle', reverb: 0.3,
   voix: {
     m: {
       inst: 'piano', role: 'chant',
@@ -43,7 +43,7 @@ MUSIQUE.ajouter({
   const m = ['r/1', 'r/1', 'p ' + a[0], ...a.slice(1), ...a2, ...b, 'p ' + a2[0], ...a2.slice(1), 'pp ( b4/2 d5/2', 'a4/2 f#5/2', 'e5/2 c#5/2', 'd5/1 )'];
   const cordes = H.map((c, i) => (i >= 18 && i < 34 ? c.replace(' @1', '') : '-/1'));
   MUSIQUE.ajouter({
-    id: 'pres_foins', titre: 'Les foins', groupe: 'pres', tempo: 76, mesure: '4/4', salle: 'salle', reverb: 0.3, gain: 1.0,
+    id: 'pres_foins', titre: 'Les foins', groupe: 'pres', tempo: 76, mesure: '4/4', salle: 'salle', reverb: 0.3, gain: 1.17,
     voix: {
       m: { inst: 'piano', role: 'chant', notes: musMesures('pres_foins', m, H) },
       g: { inst: 'piano', role: 'accomp', dyn: 0.78, notes: 'pp ' + musMotif(H.join(' | '), ['0/8 1 2 1 3 1 2 1', '&0123/1']) },
@@ -63,7 +63,7 @@ MUSIQUE.ajouter({
   const b = ['mp ( c6/4 a5/4 f5/4 c5/2', 'd5/4 g5/4 b5/4 d6/2', 'b5/4 g5/4 e5/4 b4/2', 'c5/4 e5/4 a5/4 c6/2 )', '( < a5/4 c6/4 f6/4 e6/2', '> d6/4 b5/4 g5/4 d5/2', 'e5/4 a5/4 b5/4 e5/2', 'e5/2. d5/4 b4/4 )'];
   const m = ['r/1 r/4', 'r/1 r/4', 'p ' + a[0], ...a.slice(1), ...a2, ...b, 'p ' + a2[0], ...a2.slice(1), 'pp ( e5/4 a5/4 g5/4 e5/2', 'f5/4 e5/4 c5/4 a4/2', 'b4/4 e5/4 g#4/4 b4/2', 'a4/1 r/4 )'];
   MUSIQUE.ajouter({
-    id: 'pres_chemin', titre: 'Le chemin creux', groupe: 'pres', tempo: 84, mesure: '5/4', salle: 'salle', reverb: 0.3, gain: 1.0, temps: 1,
+    id: 'pres_chemin', titre: 'Le chemin creux', groupe: 'pres', tempo: 84, mesure: '5/4', salle: 'salle', reverb: 0.3, gain: 1.16, temps: 1,
     voix: {
       m: { inst: 'piano', role: 'chant', notes: musMesures('pres_chemin', m, H) },
       g: { inst: 'piano', role: 'accomp', dyn: 0.78, notes: 'pp ' + musMotif(H.join(' | '), ['0/4 12/4 12/4 0/4 12/4', '&012/1 r/4']) },
