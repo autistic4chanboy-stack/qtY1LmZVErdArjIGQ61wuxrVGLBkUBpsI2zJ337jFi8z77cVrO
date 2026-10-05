@@ -296,7 +296,16 @@ SoundEngine.BRUITS_MILIEU = {
       this._sGL = grand;
       const lm = w.lm || {}, LM = lm.marais;
       if (LM) mar = Math.max(mar, clamp(1 - (Math.hypot(LM.x - x, LM.z - z) - (LM.r || 30)) / 40, 0, 1));
-      if (mar) C.marais += 14 * mar;
+      // le bas-fond du marais : la vallée dessinée n'a AUCUNE case de biome « marais » (un vieux défaut de designFields,
+      // qu'on ne corrige pas : il changerait toute la génération) ; le marais, ce sont ses mares et le creux qui les
+      // entoure (rayon ≈ 105 m), tant qu'on reste à moins de 5 m au-dessus de l'eau
+      const hb = w.heightAt ? w.heightAt(x, z) - w.waterLevel : 0;
+      for (const Z of this._sMaraisZones(w)) {
+        const d = Math.hypot(x - Z.x, z - Z.z);
+        if (d < Z.r) mar = Math.max(mar, clamp((Z.r - d) / (Z.r * 0.3), 0, 1) * (1 - lisse(5, 9, hb)));
+      }
+      // (là, le marais l'emporte sur ce que dit la grille : les prés autour ne s'entendent plus qu'un peu)
+      if (mar) { for (const b in C) C[b] *= 1 - 0.8 * mar; C.marais += 15 * mar; }
       if (lac) C.lac += 10 * lac;
       // les abords de la ville (ses bruits passent les murs) ; les hameaux (une basse-cour)
       const T = w.townInfo;
@@ -306,6 +315,27 @@ SoundEngine.BRUITS_MILIEU = {
       for (const b in C) t += C[b];
       for (const b in C) C[b] /= t || 1;
       return C;
+    },
+
+    // les marais de la vallée : les mares « marais » regroupées (à moins de 90 m l'une de l'autre) ; centre, rayon
+    // (l'étendue des mares, plus 35 m de bas-fond) ; calculé une fois par monde
+    _sMaraisZones(w) {
+      if (this._sMZ && this._sMZ.w === w) return this._sMZ.z;
+      const G = [];
+      for (const l of w.lakes || []) {
+        if (l.kind !== 'marais') continue;
+        let g = G.find((q) => Math.hypot(q.sx / q.n - l.x, q.sz / q.n - l.z) < 90);
+        if (!g) G.push((g = { sx: 0, sz: 0, n: 0, L: [] }));
+        g.sx += l.x; g.sz += l.z; g.n++; g.L.push(l);
+      }
+      const Z = G.map((g) => {
+        const x = g.sx / g.n, z = g.sz / g.n;
+        let e = 0;
+        for (const l of g.L) e = Math.max(e, Math.hypot(l.x - x, l.z - z) + (l.r || 0));
+        return { x, z, r: clamp(e + 35, 50, 140) };
+      });
+      this._sMZ = { w, z: Z };
+      return Z;
     },
 
     // ---------------------------------------------------------------- le moment et le temps qu'il fait
