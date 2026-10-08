@@ -629,12 +629,13 @@ const V2_NAISSANCE = {
       else { e.x = P.x + N.lit[0]; e.z = P.z + N.lit[1]; e.y = zone.Z.heightAt(e.x, e.z); }
     }
   },
-  noye(N, L) { for (const e of L) { e.y = zone.Z.waterLevel - 1.3; } },
+  // (les noyés et le chien ne guettent pas le joueur : ni l'œil ni les cris des autres ne les concernent)
+  noye(N, L) { for (const e of L) { e.y = zone.Z.waterLevel - 1.3; furtif.oublier(e); } },
   ronde(N, L) { const ev = N.ev = { etat: 'danse', t: 0 }; void ev; L.forEach((e, k) => { e.ang = (k / L.length) * TAU; e.echelle = 0.62; e.danse = true; }); },
   cerf(N, L) { for (const e of L) e.echelle = 1; },
   chien(N, L) {
     const K = this.S().chien;
-    for (const e of L) { e.echelle = 1; if (K.suit && zone.dedans && game.player) { const p = game.player; const a = p.yaw + Math.PI; e.x = p.pos[0] + Math.sin(a) * 3; e.z = p.pos[2] + Math.cos(a) * 3; e.y = zone.Z.heightAt(e.x, e.z); } }
+    for (const e of L) { e.echelle = 1; furtif.oublier(e); if (K.suit && zone.dedans && game.player) { const p = game.player; const a = p.yaw + Math.PI; e.x = p.pos[0] + Math.sin(a) * 3; e.z = p.pos[2] + Math.cos(a) * 3; e.y = zone.Z.heightAt(e.x, e.z); } }
   },
 };
 // ---------------------------------------------------------------- présence (sinon : les heures)

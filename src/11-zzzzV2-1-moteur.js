@@ -38,9 +38,12 @@ const creaturesV2 = {
 
   // ------------------------------------------------------------- les nids
   listeNids(Z) { if (!Z) return []; if (!Z.v2) Z.v2 = { nids: [] }; if (!Z.v2.nids) Z.v2.nids = []; return Z.v2.nids; },
+  // les nids du monde en cours (celui où l'on marche, sinon le dernier généré) : l'API les lit même hors de la Zone
+  nidsCourants() { const Z = this.Zcur || this.Zgen || zone.Z; return Z ? this.listeNids(Z) : this.nids; },
   poser(esp, x, y, z, o) {
     o = o || {};
-    const D = V2_ESPECES[esp];
+    esp = this.espece(esp);
+    const D = esp && V2_ESPECES[esp];
     const Z = this.Zgen || zone.Z;
     if (!D || !Z || !isFinite(x) || !isFinite(z)) return null;
     const L = this.listeNids(Z);
@@ -55,18 +58,18 @@ const creaturesV2 = {
     return id;
   },
   retirer(id) {
-    const N = this.nids.find((n) => n.id === id);
+    const L = this.nidsCourants(), N = L.find((n) => n.id === id);
     if (!N) return false;
     this.effacer(N);
-    const L = this.listeNids(this.Zcur);
     const i = L.indexOf(N); if (i >= 0) L.splice(i, 1);
     return true;
   },
   liste(q) {
     let x, z, r;
-    if (typeof q === 'string') { const st = zone.site(q); if (!st) return this.nids.filter((n) => n.site === q).map((n) => this.resume(n)); x = st.x; z = st.z; r = st.r + 20; }
+    const L = this.nidsCourants();
+    if (typeof q === 'string') { const st = zone.site(q); if (!st) return L.filter((n) => n.site === q).map((n) => this.resume(n)); x = st.x; z = st.z; r = st.r + 20; }
     else if (q) { x = q.x; z = q.z; r = q.r || 30; }
-    return this.nids.filter((n) => !q || (typeof q === 'string' && n.site === q) || Math.hypot(n.x - x, n.z - z) <= r).map((n) => this.resume(n));
+    return L.filter((n) => !q || (typeof q === 'string' && n.site === q) || Math.hypot(n.x - x, n.z - z) <= r).map((n) => this.resume(n));
   },
   resume(n) {
     const S = this.S(), m = (S.morts[n.id] && S.morts[n.id].n) || 0, D = V2_ESPECES[n.esp];
@@ -132,6 +135,8 @@ const creaturesV2 = {
     if (!zone.dedans || !Z || !farm.s) return;
     if (Z !== this.Zcur) this.changerMonde(Z);
     if (!this.placesLues) { this.placesLues = true; this.lirePlaces(); }
+    // le feu du Ver (V3) : son fichier vient après le mien, on se branche à la première image
+    if (!this.feuBranche && zone.dragon && Array.isArray(zone.dragon.surFeu)) { this.feuBranche = true; zone.dragon.surFeu.push((x, y, z, r) => this.brulure(x, y, z, r)); }
     const p = game.player;
     this.h = farm.w.time * 24; this.nuit = sky ? sky.night : 0; this.t = game.time; this.basis = basis;
     this.feuxT -= dt;
@@ -241,10 +246,41 @@ const creaturesV2 = {
     }
     // au loin : trois fois par seconde
     if (e.dist > 130 && e.mode !== 'chasse') { e.lent = (e.lent || 0) - dt; if (e.lent > 0) return; dt = 0.33 - e.lent; e.lent = 0.33; }
+    if (zone.dragon && this.ver(e, dt)) { e.sonT -= dt; return; }
     const C = V2_CONDUITES[e.D.conduite];
     if (C) C.call(this, e, dt, p);
     if (e.D.coup && e.prep !== undefined) this.porterCoup(e, dt, p);
     e.sonT -= dt;
+  },
+
+  // ------------------------------------------------------------- le Ver (V3) : son ombre, son cri, son feu (liens gardés)
+  // à son ombre ou à son rugissement, les bêtes du dehors se terrent quelques secondes (elles ne chassent plus, ne mordent
+  // plus) ; les uniques, les bêtes des airs, de l'eau, de pierre, les pendus et celles d'en dessous n'en ont cure
+  ver(e, dt) {
+    const V = zone.dragon, D = e.D;
+    if (D.unique || D.vol || D.eau || D.pierre || e.nid.dessous || e.pendu) return false;
+    e.verT = (e.verT || 0) - dt;
+    if (e.verT <= 0) {
+      e.verT = 0.25;
+      let o = 0, c = null;
+      try { o = typeof V.ombre === 'function' ? +V.ombre(e.x, e.z) || 0 : 0; c = typeof V.cri === 'function' ? V.cri() : V.cri; } catch (err) { o = 0; c = null; }
+      if (o > 0.45 && !(e.terre > 0)) { e.terre = 3 + Math.random() * 2; if (e.dist < 40 && (V2_CRIS[e.esp] || {}).terre) this.crier(e, 'terre', 0.35); }
+      if (c && c.fort && c.t !== e.verCri && game.time - c.t < 2 && Math.hypot(c.x - e.x, c.z - e.z) < 320) { e.verCri = c.t; e.terre = Math.max(e.terre || 0, 5 + Math.random() * 3); }
+    }
+    if (e.terre > 0) { e.terre -= dt; this.arreter(e, dt); e.prep = undefined; e.att = 0; return true; }
+    return false;
+  },
+  // son feu touche le sol : ce qui s'y tient brûle (pas les grandes bêtes, ni la pierre) ; une bête brûlée ne laisse rien
+  brulure(x, y, z, r) {
+    if (!zone.dedans) return;
+    for (const e of this.vivantes) {
+      if (e.mort || e.removed || e.cache || e.D.eau || e.nid.dessous || e.D.unique || e.D.pierre) continue;
+      if (Math.abs(e.y - y) > 4 || Math.hypot(e.x - x, e.z - z) > (r || 3) + e.D.rayon + 0.5) continue;
+      if (e.brulT && this.t - e.brulT < 0.5) continue;
+      e.brulT = this.t; e.hp -= 12; e.hurtT = 0.3; e.terre = 0;
+      this.crier(e, 'mal', 1, true);
+      if (e.hp <= 0) this.mourir(e, true, true);
+    }
   },
 
   // ------------------------------------------------------------- percevoir : furtif, plus la laisse et le refuge des feux
@@ -456,7 +492,7 @@ const creaturesV2 = {
     if (H) try { H.call(this, e, dmg * k); } catch (err) { console.error(err); }
     if (e.hp <= 0) this.mourir(e);
   },
-  mourir(e, sansButin) {
+  mourir(e, sansButin, parAutre) {
     if (e.mort) return;
     const S = this.S(), D = e.D, N = e.nid;
     e.mort = true; e.mortT = 0; e.prep = undefined; e.att = 0; e.move = 0; e.vol = false;
@@ -467,7 +503,7 @@ const creaturesV2 = {
     if (!sansButin && D.butin) for (const [id, n] of rollLoot(D.butin)) { if (id === 'argent') { farm.earn(n); sound.coin && sound.coin(); } else { farm.give(id, n); play.flyer(id, [e.x, e.y + 0.6, e.z], n); } }
     const H = typeof V2_MORT !== 'undefined' && V2_MORT[D.conduite];
     if (H) try { H.call(this, e, sansButin); } catch (err) { console.error(err); }
-    this.noter(e.esp, 2);
+    if (!parAutre) this.noter(e.esp, 2);
     for (const fn of this.surMort) try { fn(e, N); } catch (err) { console.error(err); }
     farm.save();
   },
@@ -503,7 +539,7 @@ const creaturesV2 = {
 };
 // ---------------------------------------------------------------- les noms des cris par espèce (sinon le nom du cri lui-même)
 const V2_CRIS = {
-  v2_garou: { attaque: 'mord', mal: 'grogne', alerte: 'hurle' },
+  v2_garou: { attaque: 'mord', mal: 'grogne', alerte: 'hurle', terre: 'grogne' },
   v2_charognard: { attaque: 'mord', mal: 'meurt', alerte: 'ricane' },
   v2_pendu: { attaque: 'rale', mal: 'rale', meurt: 'rale' },
   v2_ecoutant: { attaque: 'cri', mal: 'cri', alerte: 'cri' },
@@ -517,7 +553,7 @@ const V2_CRIS = {
   v2_korrigan: { mal: 'cri', meurt: 'cri', alerte: 'rire' },
   v2_cerf: { mal: 'souffle', meurt: 'souffle', alerte: 'souffle' },
   v2_chien: { attaque: 'aboie', mal: 'gemit', meurt: 'gemit', alerte: 'grogne' },
-  v2_sans_visage: { mal: 'bele', meurt: 'bele', alerte: 'bele' },
+  v2_sans_visage: { mal: 'bele', meurt: 'bele', alerte: 'bele', terre: 'bele' },
 };
 // (les conduites, naissances, présences, morts… sont remplies par 11-zzzzV2-3-especes.js)
 const V2_CONDUITES = {};
@@ -531,8 +567,15 @@ zone.creatures = {
   pres(x, z, r) { return creaturesV2.vivantes.filter((e) => !e.mort && !e.cache && !e.removed && Math.hypot(e.x - x, e.z - z) < (r || 30)); },
   pour(type, dessous) { return creaturesV2.pour(type, dessous); },
   surMort: creaturesV2.surMort,
-  etat(id) { const n = creaturesV2.nids.find((q) => q.id === id); return n ? creaturesV2.resume(n) : null; },
-  tuer(id) { const n = creaturesV2.nids.find((q) => q.id === id); if (!n) return false; for (const e of n.ents) creaturesV2.mourir(e, true); return true; },
+  etat(id) { const n = creaturesV2.nidsCourants().find((q) => q.id === id); return n ? creaturesV2.resume(n) : null; },
+  tuer(id) {
+    const C = creaturesV2, n = C.nidsCourants().find((q) => q.id === id);
+    if (!n) return false;
+    for (const e of n.ents) C.mourir(e, true);
+    // (les bêtes absentes du nid comptent aussi : il reste vide jusqu'au prochain repos)
+    if (farm.s && !V2_ESPECES[n.esp].unique) C.S().morts[n.id] = { n: n.n, j: farm.s.day };
+    return true;
+  },
 };
 
 // ---------------------------------------------------------------- branchements

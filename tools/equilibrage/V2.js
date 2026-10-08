@@ -87,6 +87,14 @@ module.exports = {
     }
     const uniq = R.nids.filter((n) => n.unique && n.hostile).map((n) => `${n.esp.replace('v2_', '')} ${n.chem} m`);
     log(`les uniques, loin des chemins : ${uniq.join(', ')} ; les pendus des chemins : cordes à ${R.nids.filter((n) => n.cordes !== undefined).map((n) => n.cordes).join(', ')} m`);
+    // ---------------------------------------------------------------- l'API pour V3, V4, V5
+    const API = JSON.parse(J.ev(`(()=>{const Z=__Z,C=zone.creatures;const n0=Z.v2.nids.length;
+      const id=C.poser('gargouille',100,50,100,{id:'essai_v2',agent:'V4',perche:true});
+      const ok1=Z.v2.nids.length===n0+1&&Z.v2.nids[n0].esp==='v2_gargouille'&&Z.v2.nids[n0].perche;
+      const L=C.liste({x:100,z:100,r:5}),et=C.etat(id);const ret=C.retirer(id)&&Z.v2.nids.length===n0&&!C.etat(id);
+      return JSON.stringify({especes:C.especes().length,id,ok1,liste:L.length,etat:!!(et&&et.espece==='v2_gargouille'&&et.vivants===1),ret,site:C.liste('repaire_3').map(n=>n.espece).join(','),pour:[C.pour('gardien',false),C.pour('gardien',true),C.pour('rodeur',false),C.pour('rodeur',true),C.pour('paisible',false)].join(',')});})()`));
+    log(`API zone.creatures : ${API.especes} espèces ; poser (« gargouille » perchée) ${API.ok1 ? 'ok' : 'NON'} ; liste d'un disque ${API.liste} ; etat ${API.etat ? 'ok' : 'NON'} ; retirer ${API.ret ? 'ok' : 'NON'} ; le repaire 3 : ${API.site} ; pour : ${API.pour}`);
+    if (API.especes < 12 || !API.ok1 || API.liste !== 1 || !API.etat || !API.ret || !API.site.includes('v2_tarasque')) ko('l’API zone.creatures ne répond pas comme le contrat le dit');
     // ---------------------------------------------------------------- tout ce que la Zone rend une fois
     const once = JSON.parse(J.ev(`(()=>{const Z=__Z;const v=(id)=>ITEMS[id]?ITEMS[id].price||0:0;let caches=0;
       for(const it of Z.inter){if(!it.kind.startsWith('v2_'))continue;const t=it.data&&it.data.table;if(t&&LOOT[t]){const T=LOOT[t];const items=T.items.filter(e=>e[3]>0);const W=items.reduce((a,e)=>a+e[3],0),nr=(T.rolls[0]+T.rolls[1])/2;for(const e of items)caches+=nr*e[3]/W*(e[1]+e[2])/2*(e[0]==='argent'?1:v(e[0]));}}
