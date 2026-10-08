@@ -108,6 +108,8 @@ function bpLieux(w, seed) {
         // (assez de margelle sous lui : les points voisins aussi)
         let ok = true;
         for (const [ex, ez] of [[0.12, 0], [-0.12, 0], [0, 0.12], [0, -0.12]]) if (Math.abs(w.groundAt(x + ex, z + ez, g + 2, 0, 0) - g - top) > 0.05) ok = false;
+        // (pas dans un poteau : rien ne doit occuper la place de son corps)
+        w.query(x, z, 1.5, null, (b) => { if (!ok || b.under) return; const [lx, lz] = World.blockLocal(b, x, z); if (Math.abs(lx) < b.sx / 2 + 0.17 && Math.abs(lz) < b.sz / 2 + 0.17 && g + top + 0.04 < b.y + b.sy && g + top + 0.35 > b.y) ok = false; });
         if (!ok) continue;
         const sc = Math.min(4, loinInter(x, z, (it) => it.kind === 'oldwell')) + rnd() * 0.2;
         if (!best || sc > best.sc) best = { x, z, y: g + top, sc };
@@ -186,7 +188,7 @@ function bpLieux(w, seed) {
         const sc = db * 0.3 - av * 0.5 + rnd() * 0.1;
         if (!best || sc > best.sc) best = { x, z, sc };
       }
-      if (best) L.carpe = { x: best.x, y: WL - 0.17, z: best.z, cap: Math.atan2(tx - best.x, tz - best.z), r: 8, bout: [tx, tz], eau: WL };
+      if (best) L.carpe = { x: best.x, y: WL - 0.09, z: best.z, cap: Math.atan2(tx - best.x, tz - best.z), r: 8, bout: [tx, tz], eau: WL };
     }
   }
   // ---- Bayard : dans le pré de la ferme brûlée la plus proche de la ferme (celle des Chabert)
@@ -292,7 +294,7 @@ const betesParlantes = {
   apparaitre(id) {
     const w = game.world, P = this.lieu(id), D = BP_BETES[id];
     if (!w || !P || this.entite(id)) return null;
-    const e = entities.add(w, D.kind, P.x, P.z, { v: 0 });
+    const e = entities.add(w, D.kind, P.x, P.z, { v: 0, scale: D.echelle || 1 });
     e.bp = id; e.y = P.y; e.heading = P.cap || 0; e.hx = P.x; e.hz = P.z; e.hp = D.hp || 20; e.lookY = 0; e.move = 0;
     e.bpEtat = this.presence(id) || 'eveil';
     if (e.rig) e.rig.bpE = e;
@@ -379,7 +381,9 @@ const betesParlantes = {
     sound.bpFuite && sound.bpFuite(id, pos);
   },
   // un coup de feu, un bruit (entities.scare) : elle part, sans un mot
+  // (pas le cri d'alarme d'un geai ni les petits remous : un coup de feu, une flèche tout près, le tonnerre, une bête tuée)
   effrayer(x, z, r) {
+    if (r > 24 && r < 40) return;
     for (const e of this.vivantes) {
       if (e.removed || e.dead || e.bpFuite) continue;
       if (Math.hypot(e.x - x, e.z - z) < r) this.fuir(e, 'bruit');
@@ -522,7 +526,7 @@ const betesParlantes = {
       if (day >= (B.pj || day) + D.service.promesse) { B.sv = 2; B.conf += 3; this.donner('bijou', 1, this.entite(id)); B.note = BP_MOTS.donne; return { texte: T.service.merci }; }
     }
     // la question, le deuxième jour où l'on se parle
-    if (!B.q && B.jours >= 2) {
+    if (!B.q && B.jours >= 2 && B.qj !== day) {
       B.qj = day;
       return { texte: T.question.texte, opts: T.question.reponses.map((r, i) => ({ label: r.label, fn: () => { B.q = i + 1; B.qj = day; B.conf += 1; this.dire(id, r.reaction); } })) };
     }
@@ -760,7 +764,7 @@ const betesParlantes = {
     if (d > 20) { B.vh = 0; return; }
     if (d > 12) return;
     if (game.lantern) {
-      const nuit = this.heure() >= 12 ? s.day : s.day - 1;
+      const nuit = s.day; // (le jour change à six heures : une nuit tient dans un seul jour)
       if (B.lum !== nuit) { B.lum = nuit; sound.bpVoix && sound.bpVoix('hulotte', [e.x, e.y + 0.3, e.z], 0.7); ui.subtitle(this.titre('hulotte'), BP_TEXTES.hulotte.service.lumiere, 4); }
       return;
     }
@@ -790,7 +794,8 @@ const betesParlantes = {
   tuer(e) {
     const id = e.bp, D = BP_BETES[id], B = this.B(id), S = this.S(), s = farm.s;
     e.dead = true; e.corpse = true; e.hidden = false; e.bpFuite = null; e.move = 0; e.state = 'sheltered'; e.fly = 0;
-    if (D.fuite === 'vole' || id === 'crapaud') { const P = this.lieu(id); if (P) e.y = P.sol !== undefined ? P.sol : e.y; }
+    // la hulotte tombe de son chicot, à côté ; le corbeau reste sur la Table, le crapaud sur la margelle
+    if (id === 'hulotte') { const P = this.lieu(id); if (P && P.sol !== undefined) { e.x += Math.sin(P.cap || 0) * 0.5; e.z += Math.cos(P.cap || 0) * 0.5; e.y = P.sol; } }
     B.mort = s.day;
     S.morts.push({ id, j: s.day });
     S.tues++;
@@ -847,7 +852,7 @@ const betesParlantes = {
       const r = e.rig;
       const st = { move: e.move, phase: e.phase, run: e.run, t, graze: e.grazeT, lookY: e.lookY, wag: false, fly: e.fly || 0, peck: false, seed: e.seed, lie: !!e.dead };
       if (r.kind === 'bird') poseBird(r, st); else poseQuad(r, st);
-      const dy = bpPose(r, e, st, t);
+      const dy = bpPose(r, e, st, t) * (e.scale || 1);
       e.bpDy = dy;
       let fl = e.hurtT > 0 || e.highlight ? FX_HI : 0;
       drawRig(buf, r, e.x, e.y + dy, e.z, e.heading, e.scale || 1, fl | flags);
@@ -934,18 +939,22 @@ function bpPose(r, e, st, t) {
       // couchée, la tête haute, la patte blessée tendue devant elle
       r.set('legFR', -1.4, 0, 0); r.set('legFL', -1.55, 0.25, 0);
       r.set('legBL', 1.4, 0, 0); r.set('legBR', 1.4, 0, 0);
-      r.set('tail', 1.3, -0.9, 0);
+      r.set('tail', -0.2, -1.05, 0);
       r.set('neck', -0.1 + hoche, clamp(e.lookY || 0, -1, 1), 0);
       return -0.21;
     }
     case 'chevre': {
-      if (!F && !(st.graze > 0.3)) r.set('head', hoche - 0.1, 0, Math.sin(t * 0.5 + e.seed) * 0.1);
+      // l'encolure tendue en avant (une chèvre, pas un lama), la tête un peu basse ; elle broute quand on est loin
+      const g = F ? 0 : (st.graze || 0);
+      r.set('neck', 0.3 + g * 0.9, F ? 0 : clamp(e.lookY || 0, -0.9, 0.9), 0);
+      r.set('head', -0.15 + hoche - g * 0.2, 0, F ? 0 : Math.sin(t * 0.5 + e.seed) * 0.1);
       return 0;
     }
     case 'carpe': {
       const k = F ? 2.5 : 1;
       r.set('tail', 0, Math.sin(t * 1.6 * k + e.seed) * 0.35, 0);
-      r.set('body', parle ? Math.sin(t * 6) * 0.03 : -0.04, Math.sin(t * 0.8 * k + e.seed) * 0.05, Math.sin(t * 0.5 + e.seed) * 0.04);
+      // (le nez levé vers la surface ; quand elle parle, la bouche et l'anneau sortent de l'eau)
+      r.set('body', (parle ? -0.32 + Math.sin(t * 6) * 0.03 : -0.14) * (F ? 0 : 1), Math.sin(t * 0.8 * k + e.seed) * 0.05, Math.sin(t * 0.5 + e.seed) * 0.04);
       r.set('head', parle ? Math.sin(t * 9) * 0.06 : 0, 0, 0);
       for (const n of ['pectL', 'pectR']) { const q = r.part(n); if (q) q.r[0] = Math.sin(t * 3 + (n === 'pectL' ? 0 : 1.5)) * 0.4; }
       return 0;

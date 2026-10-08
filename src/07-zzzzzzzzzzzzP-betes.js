@@ -142,12 +142,13 @@ Object.assign(ANIMAL_RIGS, {
   p_chevre: () => {
     const c = rgbf('#2e2a26'), blanc = rgbf('#e8e2d6'), corne = rgbf('#8a7a5a');
     // (tête : de z 0 à 0,31, de y −0,105 à 0,105, x ±0,09)
-    const r = quadRig({ col: c, body: [0.38, 0.42, 0.82], bodyY: 0.76, bodyTex: TL.hair, leg: [0.085, 0.54], hoof: true, dark: [0.12, 0.1, 0.08], legCol: blanc,
+    const r = quadRig({ col: c, body: [0.38, 0.42, 0.8], bodyY: 0.64, bodyTex: TL.hair, leg: [0.085, 0.44], hoof: true, dark: [0.12, 0.1, 0.08], legCol: rgbf('#3a342e'),
       neck: [0, 0.15], neckS: [0.16, 0.38, 0.19], neckO: [0, 0.17, 0.04], headP: [0, 0.34, 0.04], head: [0.18, 0.21, 0.31], face: TL.deerF, headCol: c,
       ears: [0.1, 0.04, 0.05], tail: [0.06, 0.12, 0.05] });
     const rr = rigPlus(r, [
       // le poil long qui pend sous le ventre
-      pB('jupe', 'body', [0, -0.22, 0], [0.4, 0.12, 0.72], v3.scale(c, 0.85), TL.hair),
+      pB('jupe', 'body', [0, -0.2, -0.02], [0.41, 0.16, 0.74], rgbf('#4a4038'), TL.hair),
+      pB('ventreB', 'body', [0, -0.215, 0.08], [0.3, 0.02, 0.4], rgbf('#8a8070'), TL.hair),
       pB('raieG', 'head', [-0.045, 0.01, 0.313], [0.035, 0.19, 0.008], blanc, TL.fur),
       pB('raieD', 'head', [0.045, 0.01, 0.313], [0.035, 0.19, 0.008], blanc, TL.fur),
       pB('barbe', 'head', [0, -0.08, 0.27], [0.06, 0.18, 0.05], blanc, TL.hair, { o: [0, -0.06, 0] }),
@@ -210,8 +211,10 @@ Object.assign(ANIMAL_RIGS, {
 });
 // le chicot où se perche la hulotte, au pied du chêne (dessiné à part : il reste quand elle s'en va) ; h : sa hauteur
 function bpChicot(E, h) {
-  E.bx(0, 0, 0, 0.26, h, 0.26, rgbf('#5a4a3a'), TL.bark);
-  E.bx(0.02, h - 0.04, 0, 0.22, 0.1, 0.24, rgbf('#4a3a2c'), TL.bark, 0.3);
-  E.box(0.2, h - 0.03, 0.02, 0.4, 0.07, 0.07, rgbf('#5a4a3a'), TL.bark, 0, 0, 0.35);
-  E.box(-0.08, h * 0.55, -0.05, 0.05, 0.32, 0.05, rgbf('#4a3a2c'), TL.bark, 0.6, 0, -0.7);
+  const c = [0.86, 0.8, 0.74], c2 = [0.72, 0.66, 0.6];
+  E.bx(0, 0, 0, 0.28, h, 0.28, c, TL.bark);
+  E.bx(0, 0, 0, 0.4, 0.22, 0.4, c2, TL.bark, 0.5);
+  E.bx(0.02, h - 0.04, 0, 0.22, 0.1, 0.24, c2, TL.bark, 0.3);
+  E.box(0.2, h - 0.03, 0.02, 0.4, 0.07, 0.07, c, TL.bark, 0, 0, 0.35);
+  E.box(-0.08, h * 0.55, -0.05, 0.05, 0.32, 0.05, c2, TL.bark, 0.6, 0, -0.7);
 }

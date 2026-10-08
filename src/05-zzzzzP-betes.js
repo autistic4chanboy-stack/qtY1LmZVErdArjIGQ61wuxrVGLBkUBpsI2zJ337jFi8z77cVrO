@@ -26,43 +26,43 @@ defItem('plume_hulotte', 'Plume de la hulotte', 'tresor', 2, ['plume', '#b8a080'
 const BP_ORDRE = ['chat', 'hulotte', 'crapaud', 'corbeau', 'renarde', 'chevre', 'carpe', 'cheval'];
 const BP_BETES = {
   chat: {
-    kind: 'p_chat', nom: 'Tibert', titre0: 'Le chat gris', qui: 'le chat de l’auberge', ou: 'sur un tonneau, devant l’auberge, le soir',
-    lieu: 'auberge', heures: [[18, 24], [0, 2]], dort: [[9, 18]], pluie: 'fuit', fuite: 'court', voix: 'chat', tu: false, hp: 22,
+    kind: 'p_chat', milieu: 'la ville', biome: 'ville', nom: 'Tibert', titre0: 'Le chat gris', qui: 'le chat de l’auberge', ou: 'sur un tonneau, devant l’auberge, le soir',
+    lieu: 'auberge', heures: [[18, 24], [0, 2]], dort: [[9, 18]], pluie: 'fuit', fuite: 'court', voix: 'chat', tu: false, hp: 22, echelle: 1.15,
     service: { objets: [['poisson_frais', 1]], cadeau: 'poisson_frais' },
   },
   hulotte: {
-    kind: 'p_hulotte', nom: 'la hulotte', titre0: 'La hulotte', qui: 'la hulotte du vieux chêne', ou: 'au chêne millénaire, la nuit',
+    kind: 'p_hulotte', milieu: 'les prés, au chêne millénaire', nom: 'la hulotte', titre0: 'La hulotte', qui: 'la hulotte du vieux chêne', ou: 'au chêne millénaire, la nuit',
     lieu: 'chene', heures: [[20.5, 24], [0, 5]], orage: 'fuit', fuite: 'vole', voix: 'hulotte', tu: true, hp: 10, fem: true,
     service: { veille: 2 },
   },
   crapaud: {
-    kind: 'p_crapaud', nom: 'le Crapaud', titre0: 'Le crapaud', qui: 'le crapaud du vieux puits', ou: 'sur la margelle du vieux puits, au hameau abandonné, le soir et les jours de pluie',
+    kind: 'p_crapaud', milieu: 'le hameau abandonné', nom: 'le Crapaud', titre0: 'Le crapaud', qui: 'le crapaud du vieux puits', ou: 'sur la margelle du vieux puits, au hameau abandonné, le soir et les jours de pluie',
     lieu: 'vieux_puits', heures: [[19, 24], [0, 2]], pluie: 'aime', neige: 'fuit', fuite: 'puits', voix: 'crapaud', tu: true, hp: 8,
     service: { objets: [['vers', 3]], cadeau: 'vers' },
   },
   corbeau: {
-    kind: 'p_corbeau', nom: 'Tiécelin', titre0: 'Le corbeau', qui: 'le corbeau de la Table des Géants', ou: 'sur la Table des Géants, la lande, le jour',
+    kind: 'p_corbeau', milieu: 'la lande', biome: 'lande', nom: 'Tiécelin', titre0: 'Le corbeau', qui: 'le corbeau de la Table des Géants', ou: 'sur la Table des Géants, la lande, le jour',
     lieu: 'dolmen', heures: [[6.5, 19]], fuite: 'vole', voix: 'corbeau', tu: true, hp: 10,
     service: { objets: [['brillant', 1]], cadeau: 'brillant' },
   },
   renarde: {
-    kind: 'p_renarde', nom: 'Hermeline', titre0: 'La renarde', qui: 'la renarde du relais de chasse', ou: 'à la lisière, près du relais de chasse, à la brune et à l’aube',
+    kind: 'p_renarde', milieu: 'la forêt', biome: 'foret', nom: 'Hermeline', titre0: 'La renarde', qui: 'la renarde du relais de chasse', ou: 'à la lisière, près du relais de chasse, à la brune et à l’aube',
     lieu: 'relais', heures: [[18.5, 23.5], [4, 7]], fuite: 'court', voix: 'renarde', tu: true, hp: 18, fem: true,
     service: { objets: [['oeuf', 1]], cadeau: 'oeuf' },
   },
   chevre: {
-    kind: 'p_chevre', nom: 'l’Écornée', titre0: 'La vieille chèvre', qui: 'la vieille chèvre de l’estive', ou: 'près du cairn à la sonnaille, à l’estive, le jour',
+    kind: 'p_chevre', milieu: 'les hauteurs, l’estive', biome: 'hauteurs', nom: 'l’Écornée', titre0: 'La vieille chèvre', qui: 'la vieille chèvre de l’estive', ou: 'près du cairn à la sonnaille, à l’estive, le jour',
     lieu: 'estive', heures: [[7, 19.5]], neige: 'fuit', fuite: 'court', voix: 'chevre', tu: true, hp: 30, fem: true,
     service: { objets: [['sel', 2]], cadeau: 'sel' },
   },
   carpe: {
-    kind: 'p_carpe', nom: 'la Vieille', titre0: 'La grosse carpe', qui: 'la vieille carpe du ponton', ou: 'au bout du ponton du pêcheur, le matin et le soir',
+    kind: 'p_carpe', milieu: 'le lac', biome: 'lac', nom: 'la Vieille', titre0: 'La grosse carpe', qui: 'la vieille carpe du ponton', ou: 'au bout du ponton du pêcheur, le matin et le soir',
     lieu: 'ponton', heures: [[5, 9], [17, 21]], orage: 'fuit', fuite: 'plonge', voix: 'carpe', tu: false, hp: 24, fem: true,
     service: { promesse: 7, poissons: ['carpe', 'carpe_miroir'] },
   },
   cheval: {
-    kind: 'p_cheval', nom: 'Bayard', titre0: 'Le vieux cheval', qui: 'le vieux cheval de la ferme brûlée', ou: 'dans le pré de la ferme brûlée des Chabert, le jour',
-    lieu: 'chabert', heures: [[6, 20.5]], dort: [[20.5, 24], [0, 6]], fuite: 'court', voix: 'cheval', tu: true, hp: 70,
+    kind: 'p_cheval', milieu: 'la ferme brûlée', nom: 'Bayard', titre0: 'Le vieux cheval', qui: 'le vieux cheval de la ferme brûlée', ou: 'dans le pré de la ferme brûlée des Chabert, le jour',
+    lieu: 'chabert', heures: [[6, 20.5]], dort: [[20.5, 24], [0, 6]], fuite: 'court', voix: 'cheval', tu: true, hp: 70, echelle: 1.06,
     service: { objets: [['pomme', 3]], cadeau: 'pomme' },
   },
 };
@@ -160,7 +160,6 @@ const BP_TEXTES = {
       chienMort: 'Votre chien est mort, à ce qu’on dit. Je ne vais pas faire semblant d’être triste. Mais je ne dormirai pas sur sa tombe : c’est déjà ça.',
       recherche: 'Il y a une affiche, sur la place, avec un visage qui vous ressemble. Mal dessiné. Je l’ai griffée un peu, pour le principe.',
     },
-    nonos: 'Un os ? Mon bon, je ne m’intéresse pas aux affaires des chiens. … Mais si je cherchais un os, je chercherais là où personne ne m’attend. Les chiens cherchent toujours près de leur niche.',
     nonosFini: 'On dit que votre chien a retrouvé son os. Il le promène comme un évêque sa crosse. Grand bien lui fasse.',
   },
 
@@ -242,7 +241,6 @@ const BP_TEXTES = {
       vaisseau: 'Tu es allé très haut, et tu es revenu. Tu sens le verre et le froid. On ne revient jamais tout à fait de là-haut.',
       envers: 'Tu es passé de l’autre côté du puits. Je le vois à ton ombre : elle hésite, avant de te suivre.',
     },
-    nonos: 'Ce que le chien cherche n’est ni loin ni près. Il faut le voir avant de le trouver. Quand on te le montrera, regarde d’où vient la lumière.',
     nonosFini: 'Le chien de ta ferme dort mieux. Je l’entends d’ici. Il ronge quelque chose, la nuit, et il ne gémit plus.',
   },
 
@@ -740,7 +738,6 @@ const BP_TEXTES = {
       chienFaim: 'Ton chien a faim. Je l’entends gémir d’ici, le soir. Nourris-le. Les bêtes, on ne leur demande pas de nous pardonner.',
       cheval: 'Tu as un cheval, maintenant. Je l’ai senti sur toi. Brosse-lui l’encolure, il aimera ça. Moi, j’aimais.',
     },
-    nonos: 'Le chien de ta ferme est venu me voir. Il cherchait. Je lui ai dit que je n’avais rien vu, c’est vrai. Mais je lui ai dit aussi de te suivre. Les chiens trouvent mieux quand quelqu’un marche avec eux.',
     nonosFini: 'Ton chien est passé ce matin avec son os. Il me l’a montré. Je lui ai dit qu’il était beau. Il l’est.',
   },
 };
