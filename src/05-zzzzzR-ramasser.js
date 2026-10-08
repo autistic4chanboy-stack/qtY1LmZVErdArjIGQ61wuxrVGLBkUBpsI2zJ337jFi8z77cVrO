@@ -1,7 +1,7 @@
 // ============================================================================
 //  DES OBJETS À RAMASSER UN PEU PARTOUT (agent R, vague 13) — les données
 //  Des choses posées à la vue, qu'on trouve en se promenant, sans ouvrir de
-//  meuble : E, et c'est dans la sacoche. Ici : les objets nouveaux, trois
+//  meuble : E, et c'est dans la sacoche. Ici : les objets nouveaux, quatre
 //  recettes qui les rendent utiles, et le catalogue des « sortes » de
 //  trouvailles (ce qu'on ramasse, combien, où on les trouve, si elles
 //  reviennent, et leur saison pour les fruits tombés).
@@ -134,7 +134,7 @@ const RAM_SORTES = {
   epingle: { it: 'epingle_chapeau', n: [1, 1], lab: 'Ramasser l’épingle', mod: 'epingle', ou: { rue: 1.5, maison: 1, seuil: 0.5, chemin: 0.3 }, brille: 1 },
   ruban: { it: 'ruban', n: [1, 1], lab: 'Ramasser le ruban', mod: 'ruban', ou: { rue: 2, camp: 1, seuil: 0.5, pres: 0.2 } },
   peigne: { it: 'peigne_corne', n: [1, 1], lab: 'Ramasser le peigne', mod: 'peigne', ou: { maison: 1, rue: 0.8, sol: 0.6 } },
-  mouchoir: { it: 'mouchoir_brode', n: [1, 1], lab: 'Ramasser le mouchoir', mod: 'mouchoir', ou: { rue: 1.2, chemin: 0.5, seuil: 0.5, saint: 0.3 } },
+  mouchoir: { it: 'mouchoir_brode', n: [1, 1], lab: 'Ramasser le mouchoir', mod: 'mouchoir', ou: { rue: 0.8, chemin: 0.3, seuil: 0.4, saint: 0.2 } },
   tabac: { it: 'tabac', n: [1, 1], lab: 'Ramasser la blague à tabac', mod: 'blague', ou: { chemin: 0.8, rue: 0.5, camp: 0.6, pres: 0.3, grange: 0.3, tour: 0.3, maison: 0.3 } },
   couteau: { it: 'couteau_poche', n: [1, 1], lab: 'Ramasser le couteau', mod: 'couteau', ou: { chemin: 0.4, foret: 0.4, camp: 0.4, pres: 0.2 }, brille: 1 },
   besicles: { it: 'besicles', n: [1, 1], lab: 'Ramasser les besicles', mod: 'besicles', ou: { maison: 0.4, rue: 0.3, chemin: 0.1 }, brille: 1 },
@@ -150,7 +150,7 @@ const RAM_SORTES = {
   gant: { it: 'gant_laine', n: [1, 1], lab: 'Ramasser le gant', mod: 'gant', ou: { chemin: 0.8, rue: 0.6, lande: 0.3, hauteurs: 0.5, estive: 0.5 } },
   pipe: { it: 'pipe_terre', n: [1, 1], lab: 'Ramasser la pipe', mod: 'pipe', ou: { chemin: 0.6, camp: 0.8, rue: 0.4, grange: 0.5, cour: 0.4, tour: 0.6, maison: 0.4, sol: 0.2 } },
   chapelet: { it: 'chapelet_buis', n: [1, 1], lab: 'Ramasser le chapelet', mod: 'chapelet', ou: { saint: 1, chemin: 0.2 } },
-  image: { it: 'image_pieuse', n: [1, 1], lab: 'Ramasser l’image pieuse', mod: 'image', ou: { saint: 1.5, maison: 0.4, rue: 0.3, sol: 0.3 } },
+  image: { it: 'image_pieuse', n: [1, 1], lab: 'Ramasser l’image pieuse', mod: 'image', ou: { saint: 1, maison: 0.4, rue: 0.3, sol: 0.3 } },
   ex_voto: { it: 'ex_voto', n: [1, 1], lab: 'Ramasser l’ex-voto', mod: 'ex_voto', ou: { saint: 1.5 } },
   chandelle: { it: 'bougie', n: [1, 1], lab: 'Ramasser le bout de chandelle', mod: 'chandelle', ou: { saint: 1.2, maison: 0.6, grange: 0.4, ruine: 0.3, tour: 1.5 } },
   gourde: { it: 'gourde', n: [1, 1], lab: 'Ramasser la gourde', mod: 'gourde', ou: { chemin: 0.5, foret: 0.4, lande: 0.4, hauteurs: 0.6, camp: 0.5 }, brille: 1 },

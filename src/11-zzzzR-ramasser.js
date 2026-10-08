@@ -226,7 +226,7 @@ const ramGen = {
     for (let i = 0; i < N.nodes.length; i++) {
       const n = N.nodes[i], t = tag(n);
       let p = 0, m = 'rue';
-      if (t === 'rue') p = 0.18; else if (t === 'place') p = 1; else if (t === 'hameau') p = 1; else if (t === 'planches' || n.tag === 'village:planches') p = 0.6;
+      if (t === 'rue') p = 0.22; else if (t === 'place') p = 1; else if (t === 'hameau') p = 1; else if (t === 'planches' || n.tag === 'village:planches') p = 0.6;
       else if (t === 'estive' || n.tag === 'village:estive') { p = 0.6; m = 'estive'; }
       if (!p) continue;
       const fois = t === 'place' ? 4 : t === 'hameau' ? 3 : 1;
