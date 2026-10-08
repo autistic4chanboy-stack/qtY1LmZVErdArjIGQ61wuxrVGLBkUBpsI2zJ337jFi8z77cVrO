@@ -99,7 +99,7 @@ const gobelins = {
       if (typeof mondes !== 'undefined' && (mondes.cur || (mondes.actuel && mondes.actuel()))) return false;
       if (typeof souterrain !== 'undefined' && souterrain.actif) return false;
       if (typeof prison !== 'undefined' && prison.S && prison.S() && prison.S().actif) return false;
-      if (typeof zone !== 'undefined' && zone && typeof zone.dedans === 'function' && zone.dedans()) return false;
+      if (typeof zone !== 'undefined' && zone && (typeof zone.dedans === 'function' ? zone.dedans() : zone.dedans)) return false;
     } catch (e) { return false; }
     return true;
   },
@@ -128,7 +128,8 @@ const gobelins = {
     const parBld = new Map();
     if (typeof fouilles !== 'undefined' && fouilles.par) for (const it of fouilles.par.values()) {
       const d = it.data || {};
-      if (it.kind !== 'f2' || !d.bld || d.cache || d.t === 'cache' || d.lieu === 'rebut' || d.lieu === 'public' || d.lieu === 'libre') continue;
+      // (pas les cachettes, ni les doubles fonds du crochetage, `<meuble>:df` : ceux-là, ils ne les connaissent pas)
+      if (it.kind !== 'f2' || !d.bld || d.cache || d.t === 'cache' || d.lieu === 'rebut' || d.lieu === 'public' || d.lieu === 'libre' || String(it.id).endsWith(':df')) continue;
       const B = game.world.bld[d.bld];
       if (!B || B.under || d.bld === 'ferme') continue;
       try { if (fouilles.vide(it)) continue; } catch (e) { continue; }
@@ -528,7 +529,15 @@ const gobelins = {
         const C = g.cible;
         if (C) e.heading = turnToward(e.heading, Math.atan2((C.it ? C.it.x : C.x) - e.x, (C.it ? C.it.z : C.z) - e.z), dt * 4);
         g.sonT = (g.sonT || 0) - dt;
-        if (g.sonT <= 0) { g.sonT = gobRnd(1.2, 2.2); sound.gobFouille && sound.gobFouille([e.x, e.y + 0.4, e.z], dP < 12 ? 1 : 0.5); }
+        if (g.sonT <= 0) {
+          g.sonT = gobRnd(1.2, 2.2); sound.gobFouille && sound.gobFouille([e.x, e.y + 0.4, e.z], dP < 12 ? 1 : 0.5);
+          // (le cambriolage de U, s'il est là : un meuble qu'on fouille peut réveiller qui dort ; le réveillé fait le reste)
+          if (g.raid && g.raid.bld !== 'ferme' && typeof crochetage !== 'undefined' && crochetage && crochetage.cambriolage && typeof crochetage.cambriolage.bruit === 'function') {
+            let n = null;
+            try { n = crochetage.cambriolage.bruit(0.12, e.x, e.y + 0.4, e.z, 'gobelin'); } catch (err) { n = null; }
+            if (n && n.x !== undefined && !g.sait) { this.seSaitVu(e, n); return; }
+          }
+        }
         // le joueur entre dans la maison : il l'entend
         if (dP < 6 && !g.sait && Math.abs(p.pos[1] - e.y) < 3) { this.seSaitVu(e); return; }
         if (g.t > (g.fouilleT || 8)) {
@@ -849,10 +858,10 @@ const gobelins = {
     const S = this.S(), s = farm.s;
     const L = S.prises.filter((P) => P.bld === R.bld && P.j === S.nuit.n);
     for (const P of L.slice(0, 3)) {
-      S.lache.push({ x: e.x + gobRnd(-0.3, 0.3), y: e.y, z: e.z + gobRnd(-0.3, 0.3), k: P.k, n: P.n, de: P.de, j: s.day });
+      S.lache.push({ x: Math.round((e.x + gobRnd(-0.3, 0.3)) * 10) / 10, y: Math.round(e.y * 10) / 10, z: Math.round((e.z + gobRnd(-0.3, 0.3)) * 10) / 10, k: P.k, n: P.n, de: P.de, j: s.day });
       S.prises.splice(S.prises.indexOf(P), 1);
     }
-    while (S.lache.length > 12) S.lache.shift();
+    while (S.lache.length > 8) S.lache.shift();
     this.majEtal();
   },
 
@@ -880,7 +889,7 @@ const gobelins = {
       this.alerte(null);
       if (typeof malediction !== 'undefined' && malediction.frapper) { try { malediction.frapper('malchance', 'gob_aieule'); } catch (err) { console.error(err); } }
       if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-6, 'la vieille des gobelins, tuée', 10);
-      S.corps.push({ x: e.x, y: e.y, z: e.z, j: s.day, aieule: true, couronne: true });
+      S.corps.push({ x: Math.round(e.x * 10) / 10, y: Math.round(e.y * 10) / 10, z: Math.round(e.z * 10) / 10, j: s.day, aieule: true, couronne: true });
       return;
     }
     if (e.gid >= 0 && !S.morts.includes(e.gid)) S.morts.push(e.gid);
@@ -889,7 +898,7 @@ const gobelins = {
     if (S.pacte > 0 && !S.pacteRompu) S.pacteRompu = s.day;
     if (comment === 'arme') setTimeout(() => { if (!game.dying) ui.subtitle('', GOB_T.dit.tuerArme, 4.5); }, 600);
     if (typeof esprit !== 'undefined' && esprit.changer) esprit.changer(-2, 'un gobelin tué', 4);
-    S.corps.push({ x: e.x, y: e.y, z: e.z, j: s.day, dent: true });
+    S.corps.push({ x: Math.round(e.x * 10) / 10, y: Math.round(e.y * 10) / 10, z: Math.round(e.z * 10) / 10, j: s.day, dent: true });
     if (S.tues >= GOB_REGL.partir && !S.partis) S.partis = s.day + 1;
     if (e.gx && e.gx.village) this.alerte(null);
     entities.scare(e.x, e.z, 25);
@@ -1013,7 +1022,7 @@ const gobelins = {
       if (S.pacte > 0 && !S.pacteRompu) S.pacteRompu = s.day;
       sound.coin && sound.coin();
     }
-    while (S.rendre.length > 40) S.rendre.shift();
+    while (S.rendre.length > 24) S.rendre.shift();
     this.majEtal();
     return got;
   },
@@ -1042,7 +1051,8 @@ const gobelins = {
     // la rancune s'use ; les corps deviennent des chiffons ; les vieilles plaintes s'oublient
     if (!(S.volFerme === s.day)) S.rancune = Math.max(0, S.rancune - 0.34);
     for (const C of S.corps) if (C.j < s.day) C.chiffons = true;
-    while (S.corps.length > 10) S.corps.shift();
+    while (S.corps.length > 6) S.corps.shift();
+    for (const k in S.recents) if (S.nuit.n - S.recents[k] > 4) delete S.recents[k];
     for (const k in S.plaintes) if (s.day - S.plaintes[k] > 4) delete S.plaintes[k];
     S.meubles = S.meubles.filter((m) => s.day - m.j <= 5);
     S.lache = S.lache.filter((L) => s.day - L.j <= 6);
@@ -1158,7 +1168,7 @@ const gobelins = {
     }
     for (const L of S.lache) {
       if ((L.x - cam[0]) ** 2 + (L.z - cam[2]) ** 2 > 1600) continue;
-      const it = ITEMS[L.k], c = L.k === 'argent' ? GOB_C.or : it && Array.isArray(it.ic) && typeof it.ic[1] === 'string' ? rgbf(it.ic[1]) : GOB_C.argent;
+      const it = ITEMS[L.k], c = L.k === 'argent' ? GOB_C.laiton : it && Array.isArray(it.ic) && typeof it.ic[1] === 'string' ? rgbf(it.ic[1]) : GOB_C.argent;
       PE.frame(L.x, L.y, L.z, L.z * 3.1, 1);
       PE.bx(0, 0, 0, 0.11, 0.05, 0.08, c, TL.plain);
       if (L.cadeau) PE.bx(0, -0.01, 0, 0.3, 0.012, 0.25, rgbf('#5a7a3a'), TL.leaves);
@@ -1250,7 +1260,18 @@ HOOKS.inter.gob_remonter = async () => {
   await game.teleport(G.trappe.sortie, GOB_T.dit.remonter);
 };
 HOOKS.inter.gob_tas = (it) => gobelins.poignee(it.data.i | 0);
-HOOKS.inter.gob_grand = () => gobelins.poignee('grand');
+// (la vieille tuée : sa couronne, reposée sur le grand tas, lève la malédiction)
+const gobCouronneDue = () => typeof malediction !== 'undefined' && malediction.cause && malediction.cause('malchance') === 'gob_aieule' && farm.count('gob_couronne') > 0;
+HOOKS.inter.gob_grand = () => {
+  if (gobCouronneDue()) {
+    farm.take('gob_couronne', 1);
+    ui.subtitle('', GOB_T.dit.couronne, 5);
+    sound.gobFouille && sound.gobFouille(null, 0.6);
+    setTimeout(() => { if (!game.dying) malediction.lever('gob_aieule'); }, 2200);
+    return;
+  }
+  gobelins.poignee('grand');
+};
 HOOKS.inter.gob_etal = () => { if (typeof gobEtal !== 'undefined') gobEtal.ouvrir(); };
 HOOKS.inter.gob_lire = (it) => { const O = GOB_T.objets[it.data.cle]; if (O) { ui.read(O[0], O[1]); sound.page && sound.page(); } };
 HOOKS.inter.gob_raccourci = async () => {
@@ -1275,7 +1296,7 @@ HOOKS.inter.gob_marque = () => { ui.read(GOB_T.lab.marque, GOB_T.dit.marque); so
     gob_souche: () => { const id = farm.s && farm.s.hand; return esc(id && ['lait', 'pain', 'miel', 'fromage', 'oeuf', 'brioche', 'confiture'].includes(id) && farm.count(id) ? GOB_T.lab.offrande : GOB_T.lab.souche); },
     gob_racine: lab('racine'), gob_trappe: lab('trappe'), gob_remonter: lab('remonter'),
     gob_tas: (it) => { const S = gobelins.S(); return esc((S && (S.tas[it.data.i] | 0) >= GOB_REGL.poignees) ? GOB_T.lab.tasVide : GOB_T.lab.tas); },
-    gob_grand: () => { const S = gobelins.S(); return esc((S && (S.grand | 0) >= GOB_REGL.poignees) ? GOB_T.lab.tasVide : GOB_T.lab.grandTas); },
+    gob_grand: () => { const S = gobelins.S(); return esc(gobCouronneDue() ? GOB_T.lab.couronne : (S && (S.grand | 0) >= GOB_REGL.poignees) ? GOB_T.lab.tasVide : GOB_T.lab.grandTas); },
     gob_etal: lab('etal'), gob_lire: (it) => esc(it.name || ''), gob_raccourci: () => { const S = gobelins.S(); return esc(S && S.connu.raccourci ? 'Sortir par le boyau' : GOB_T.lab.barre); },
     gob_terrier: (it) => { const S = gobelins.S(), G = gobelins.G(), T = G && G.terriers.find((t) => t.cle === it.data.cle); return esc(T && T.raccourci && S && S.connu.raccourci ? GOB_T.lab.terrierOuvert : GOB_T.lab.terrier); },
     gob_marque: lab('marque'),
@@ -1318,7 +1339,7 @@ HOOKS.sky.push((sky) => {
   if (!gobelins.dans) return;
   const N = [0, 0, 0];
   sky.zen = [0.012, 0.009, 0.006]; sky.hor = [0.016, 0.012, 0.008]; sky.glow = N; sky.haze = [0.02, 0.014, 0.009];
-  sky.amb = [0.035, 0.028, 0.022]; sky.sunCol = N; sky.moonCol = N; sky.cloudLit = N; sky.cloudDark = N;
+  sky.amb = [0.11, 0.09, 0.07]; sky.sunCol = N; sky.moonCol = N; sky.cloudLit = N; sky.cloudDark = N;
   sky.stars = 0; sky.sunVis = 0; sky.moonVis = 0; sky.cloudCover = 0; sky.mist = 0; sky.shadowK = 0; sky.nightLit = 1; sky.wet = 0; sky.frost = 0;
   sky.fog = [4, 46];
 });
@@ -1390,4 +1411,4 @@ HOOKS.load.push(() => {
   for (const d of tous()) { const t = GOB_T.rumeurs[d.id]; if (t && d.lines && Array.isArray(d.lines.rumeurs) && !d.lines.rumeurs.includes(t)) d.lines.rumeurs.push(t); }
 }
 // la malédiction de la vieille (si on la tue)
-if (typeof MAL_CAUSES !== 'undefined') MAL_CAUSES.gob_aieule = { mal: 'malchance', faute: 'Vous avez tué la vieille des gobelins.', reparer: 'Rendre à la Gobelinière ce qui y a été pris.' };
+if (typeof MAL_CAUSES !== 'undefined') MAL_CAUSES.gob_aieule = { mal: 'malchance', faute: 'Vous avez tué la vieille des gobelins.', reparer: 'Reposer sa couronne sur le grand tas, dans la Gobelinière.' };

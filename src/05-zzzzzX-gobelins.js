@@ -24,7 +24,7 @@ defItem('gob_couronne', 'Couronne de cuillères', 'tresor', 64, ['couronne', '#c
 // (un petit tas : trois poignées d'une cinquantaine de pièces ; le grand tas : trois poignées d'environ cent trente :
 // tout le trésor de la Gobelinière vaut quatre journées de travail du début — voir tools/equilibrage/X.js)
 Object.assign(LOOT, {
-  gob_tas: { rolls: [2, 4], items: [['argent', 3, 14, 4], ['vieille_piece', 1, 2, 3], ['cuillere_argent', 1, 1, 2], ['de_coudre', 1, 1, 1.5], ['boutons_nacre', 1, 1, 1.5], ['ruban', 1, 1, 1], ['bougeoir', 1, 1, 0.8], ['besicles', 1, 1, 0.7], ['montre', 1, 1, 0.25], ['bijou', 1, 1, 0.35], ['tabatiere', 1, 1, 0.4], ['couteau_poche', 1, 1, 0.6], ['bobine_fil', 1, 2, 1], ['clous', 1, 3, 1], ['timbres', 1, 1, 0.6], ['image_pieuse', 1, 1, 0.6], ['jeu_cartes', 1, 1, 0.4], ['bille', 1, 3, 1], ['figurine', 1, 1, 0.4], ['mouchoir_brode', 1, 1, 1], ['gob_alliance', 1, 1, 0.12], ['gob_hochet', 1, 1, 0.1]] },
+  gob_tas: { rolls: [2, 4], items: [['argent', 3, 14, 4], ['vieille_piece', 1, 2, 3], ['cuillere_argent', 1, 1, 2], ['de_coudre', 1, 1, 1.5], ['boutons_nacre', 1, 1, 1.5], ['ruban', 1, 1, 1], ['bougeoir', 1, 1, 0.8], ['besicles', 1, 1, 0.7], ['montre', 1, 1, 0.25], ['bijou', 1, 1, 0.35], ['tabatiere', 1, 1, 0.4], ['couteau_poche', 1, 1, 0.6], ['bobine_fil', 1, 2, 1], ['clous', 1, 3, 1], ['timbres', 1, 1, 0.6], ['image_pieuse', 1, 1, 0.6], ['jeu_cartes', 1, 1, 0.4], ['bille', 1, 3, 1], ['figurine', 1, 1, 0.4], ['mouchoir_brode', 1, 1, 1], ['gob_alliance', 1, 1, 0.12], ['gob_hochet', 1, 1, 0.1], ['gob_trousseau', 1, 1, 0.2], ['gob_bonnet', 1, 1, 0.15]] },
   gob_grand_tas: { rolls: [3, 5], items: [['argent', 10, 30, 4], ['vieille_piece', 1, 3, 3], ['cuillere_argent', 1, 2, 2], ['bougeoir', 1, 1, 1.4], ['bijou', 1, 1, 1.2], ['montre', 1, 1, 0.8], ['medaillon_portrait', 1, 1, 0.8], ['tabatiere', 1, 1, 1], ['besicles', 1, 1, 0.6], ['eau_cologne', 1, 1, 0.5], ['calice_etain', 1, 1, 0.3], ['gob_alliance', 1, 1, 0.35], ['gob_hochet', 1, 1, 0.3]] },
 });
 
@@ -44,7 +44,7 @@ const GOB_REGL = {
   quitter: 175,                 // m : et redevient une idée au-delà
   rodeurs: { periode: 18, nuit: 0.16, brune: 0.05, jour: 0.01 }, // chance, toutes les « période » secondes, d'en croiser un
   poignees: 3,                  // poignées par tas
-  etal: 40,                     // objets gardés sur l'étal des prises (au-delà, les plus vieux vont aux tas)
+  etal: 30,                     // objets gardés sur l'étal des prises (au-delà, les plus vieux vont aux tas)
   rancuneMax: 12,
 };
 
@@ -106,7 +106,7 @@ const GOB_T = {
     tas: 'Fouiller le tas', grandTas: 'Fouiller le grand tas', tasVide: 'Un tas', etal: 'Ce qu’ils ont pris dans la vallée',
     barre: 'Lever la barre', terrier: 'Regarder dans le trou', terrierOuvert: 'Se glisser dans le terrier',
     marque: 'Examiner la pierre griffée', aieule: 'La vieille', nid: 'Un nid de chiffons', lache: 'Ramasser',
-    souche: 'La vieille souche', offrande: 'Déposer une offrande',
+    souche: 'La vieille souche', offrande: 'Déposer une offrande', couronne: 'Reposer la couronne sur le tas',
   },
   // ce qu'on voit, ce qu'on entend
   dit: {
@@ -146,6 +146,7 @@ const GOB_T = {
     ],
     offrande: '(Vous posez {objet} au creux de la souche. Rien ne bouge. Mais au matin, il n’y sera plus.)',
     offrandePrise: '(L’offrande a disparu. À sa place, un caillou blanc, bien rond.)',
+    couronne: '(Vous reposez la couronne de cuillères au sommet du tas, là où elle était assise. Très loin dans les parois, quelque chose cesse de gratter.)',
   },
   // l'Aïeule
   aieule: {

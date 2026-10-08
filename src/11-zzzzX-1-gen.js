@@ -302,7 +302,7 @@ function gobSalle(w, B, rnd, sx, sz) {
     const q = P('gob_cahute', lx, 0, lz, rr, null);
     q.v = v;
     const hf = { x: W2(lx, lz)[0], y: y0, z: W2(lx, lz)[1], r: rr };
-    const [nx, nz] = B.toWorld(hf, 0, 0.25);
+    const [nx, nz] = B.toWorld(hf, 0.1, -1.6); // (ils dorment devant leur cahute, en rond, comme des chiens)
     B.prop('gob_nid', nx, y0, nz, rr + rnd());
     nids.push({ x: nx, y: y0, z: nz, r: rr });
     cahutes.push({ x: hf.x, z: hf.z, r: rr, q });
@@ -313,8 +313,9 @@ function gobSalle(w, B, rnd, sx, sz) {
   // ---- les tas
   const tas = [];
   [[-13, -6], [-15, 6.5], [-3, -9], [5, -9.5], [16, -9], [15.5, 6.5]].forEach(([lx, lz], i) => {
-    const q = P('gob_tas', lx, 0, lz, rnd() * TAU, { n: 0 });
+    const q = P('gob_tas', lx, 0, lz, rnd() * TAU, { n: 0 }, 1.45);
     q.v = i;
+    for (let k = 0; k < 2; k++) { const a = rnd() * TAU; P('gob_eparpille', lx + Math.cos(a) * 1.9, 0, lz + Math.sin(a) * 1.9, rnd() * TAU); }
     const [x, z] = W2(lx, lz);
     I('gob_tas', 'gob_tas_' + i, lx, 0.6, lz, 'Un tas', { i });
     tas.push({ x, y: y0, z, q, i });
@@ -322,6 +323,7 @@ function gobSalle(w, B, rnd, sx, sz) {
   // ---- le grand tas, le siège de la vieille
   const GX = 8, GZ = 1;
   const qG = P('gob_grand_tas', GX, 0, GZ, 0, { n: 0 });
+  for (const [ex2, ez2] of [[-3.0, -1.5], [-3.2, 2.4], [0.4, -2.6], [2.8, 2.6], [3.3, -1.0]]) P('gob_eparpille', GX + ex2, 0, GZ + ez2, rnd() * TAU);
   const [gx, gz] = W2(GX, GZ);
   I('gob_grand', 'gob_grand_tas', GX - 2.6, 0.75, GZ - 0.6, 'Le grand tas', {});
   const qS = P('gob_siege', GX - 1.45, 0.98, GZ + 0.35, -Math.PI / 2);
@@ -333,7 +335,7 @@ function gobSalle(w, B, rnd, sx, sz) {
   I('gob_etal', 'gob_etal', -6, 0.9, -1.4, 'L’étal', {});
   const qM = P('gob_marmite', -1, 0, 3.5, 0);
   const chandelles = [];
-  for (const [lx, lz] of [[-18.5, 1.8], [-10.5, -4.8], [-12.6, 8.2], [-4.2, -11.2], [3.5, -11.4], [9.2, -2.2], [5.8, 3.8], [17.6, -6.4], [14.2, 9.6], [-7.6, -0.6], [0.6, 11.6], [17.2, -1.2]]) {
+  for (const [lx, lz] of [[-18.5, 1.8], [-10.5, -4.8], [-12.6, 8.2], [-4.2, -11.2], [3.5, -11.4], [9.2, -2.2], [5.8, 3.8], [17.6, -6.4], [14.2, 9.6], [-7.6, -0.6], [0.6, 11.6], [17.2, -1.2], [-13.4, -12.0], [-6.4, -12.0], [14.6, -12.0], [-9.4, 12.0], [7.6, 12.0]]) {
     const q = P('gob_chandelles', lx, 0, lz, rnd() * TAU, null); q.v = (rnd() * 4) | 0; chandelles.push(q);
   }
   // ---- ce qui raconte
@@ -351,7 +353,7 @@ function gobSalle(w, B, rnd, sx, sz) {
   I('gob_raccourci', 'gob_raccourci', kx0 + 2.1, 0.8, zs, 'Le panneau', {});
   // ---- où l'on arrive ; où ils vont ; les parois où ils entrent quand on les surprend
   const [ax, az] = W2(ccx + 0.6, 0.6), [rx2, rz2] = W2(kxc - 0.3, zs);
-  const lieux = [[-6, -0.6], [-1, 2.2], [-12, -4.6], [-13.4, 5], [-2.4, -7.6], [4.2, -8], [14.2, -7.6], [13.8, 5.2], [4.6, 1.2], [9.5, 9.5], [-9, 10]].map(([lx, lz]) => { const [x, z] = W2(lx, lz); return { x, z }; });
+  const lieux = [[-6, -0.6], [-1, 2.2], [-11, -3.4], [-12.4, 4.2], [-2, -7], [3.6, -7.6], [13.8, -7.2], [13.4, 4.8], [4.6, 1.2], [9.5, 9.5], [-9, 10]].map(([lx, lz]) => { const [x, z] = W2(lx, lz); return { x, z }; });
   const murs = [];
   for (let lx = -W / 2 + 2; lx <= W / 2 - 2; lx += 2.5) for (const s of [-1, 1]) { const [x, z] = W2(lx, s * (D / 2 + 0.6)); murs.push({ x, z, nx: 0, nz: s }); }
   for (let lz = -D / 2 + 2; lz <= D / 2 - 2; lz += 2.5) for (const s of [-1, 1]) { if (Math.abs(lz - (s < 0 ? 0 : zs)) < 1.5) continue; const [x, z] = W2(s * (W / 2 + 0.6), lz); murs.push({ x, z, nx: s, nz: 0 }); }
