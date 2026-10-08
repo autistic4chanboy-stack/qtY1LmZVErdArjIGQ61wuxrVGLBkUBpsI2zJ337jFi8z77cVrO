@@ -223,6 +223,9 @@ const dragonV3 = {
     else if (y < w.heightAt(x, z) - 2) return true;
     if (w.covered(x, y, z)) return true;
     for (const fn of zone.dragon.abris) { try { if (fn(x, y, z)) return true; } catch (e) { /* */ } }
+    // les intérieurs du château (V4), la ville sous la ville (V5) : ils le disent eux-mêmes
+    try { if (zone.chateau && zone.chateau.aCouvert && zone.chateau.aCouvert([x, y, z])) return true; } catch (e) { /* */ }
+    try { if (zone.catacombes && zone.catacombes.aCouvert && zone.catacombes.aCouvert([x, y, z])) return true; } catch (e) { /* */ }
     return false;
   },
   // les arbres serrés autour (de haut, on voit mal dessous) : 1 = rien, moins = caché
@@ -315,7 +318,7 @@ const dragonV3 = {
       if (D.mode === 'dort') { D.phase = 'oeil'; return; }
       if (D.mode === 'vol' && !this.enAttaque()) { D.phase = 'cercle'; D.cercle = { x: F.dernier.x, z: F.dernier.z, r: 95, a: Math.atan2(D.x - F.dernier.x, D.z - F.dernier.z), y: null }; }
     } else if (apres === 'alertee') {
-      if (avant !== 'cherche') { S.vu++; if (typeof sonV3 !== 'undefined') sonV3.rugit(pos, D.dist); }
+      if (avant !== 'cherche') { S.vu++; if (typeof sonV3 !== 'undefined') sonV3.rugit(pos, D.dist); zone.dragon.cri = { t: game.time, x: D.x, y: D.y, z: D.z, fort: true }; }
       if (this.enAttaque()) return;            // (déjà en chasse : il continue sa manœuvre)
       if (D.mode === 'dort') { D.phase = 'reveil'; D.timer = 1.6; return; }
       if (D.mode === 'pose') { this.attaquePosee(); return; }
@@ -350,16 +353,19 @@ const dragonV3 = {
       if (!tranquille) return;
       // la nuit tombe : il se couche (s'il est dans son aire) ou rentre
       if ((h >= H.coucher || h < H.reveil) && D.ou && D.ou.aire) { this.coucher(L.aire); return; }
+      // l'heure de rentrer, loin de son aire : il n'attend pas (il serait encore en route à la nuit)
+      if (rentrer && !(D.ou && D.ou.aire) && h >= H.envol) { this.envol('retour'); return; }
       D.timer -= dt;
       if (D.timer > 0) return;
       if (D.ou && D.ou.aire && rentrer) { D.timer = 15; return; }
       this.envol('ronde');
       return;
     }
-    // en vol
+    // en vol (le soir, il cesse de tourner : il rentre)
+    if (D.phase === 'cercle' && tranquille && rentrer && h >= H.envol) { D.phase = 'retour'; D.cercle = null; D.cible = L.aire; }
     if (D.phase === 'ronde' || D.phase === 'retour') {
       if (rentrer && D.phase !== 'retour') { D.phase = 'retour'; D.cible = L.aire; }
-      if (!D.cible) D.cible = this.prochain();
+      if (!D.cible) D.cible = D.phase === 'retour' ? L.aire : this.prochain();
       const c = D.cible, dd = Math.hypot(c.x - D.x, c.z - D.z);
       if (c.perche || c.aire) { if (dd < 260) { D.phase = 'atterrit'; D.timer = 0; } }
       else if (dd < (c.r || 140)) { D.phase = 'cercle'; D.cercle = { x: c.x, z: c.z, r: c.r || 140, a: Math.atan2(D.x - c.x, D.z - c.z), y: null, tours: c.porte ? 1.2 : 0.8, fait: 0 }; D.cible = null; }
@@ -829,7 +835,7 @@ const dragonV3 = {
     T.cri = (T.cri ?? 30 + Math.random() * 60) - dt;
     if (T.cri <= 0) {
       T.cri = 70 + Math.random() * 110;
-      if (D.mode === 'vol' && !this.enAttaque()) sonV3.cri([D.x, D.y, D.z], D.dist);
+      if (D.mode === 'vol' && !this.enAttaque()) { sonV3.cri([D.x, D.y, D.z], D.dist); zone.dragon.cri = { t: game.time, x: D.x, y: D.y, z: D.z, fort: false }; }
     }
     if ((D.mode === 'pose' || D.mode === 'dort') && D.dist < 70) {
       T.resp = (T.resp ?? 1) - dt;
@@ -929,6 +935,30 @@ zone.dragon = {
   mort() { return dragonV3.S().fin === 'tue'; },
   ici(x, z, r) { const D = dragonV3.D; return !!(D && D.mode !== 'mort' && !dragonV3.S().fin && Math.hypot(D.x - x, D.z - z) < r); },
   cacheDe(x, y, z) { return dragonV3.abrite(x, y, z); },
+  // son ombre (ou lui, en rase-mottes) au-dessus d'un point : 0..1 — les bêtes de V2 se terrent quand il passe
+  ombre(x, z) {
+    const D = dragonV3.D;
+    if (!D || D.mode !== 'vol' || dragonV3.S().fin) return 0;
+    const g = zone.Z ? zone.Z.heightAt(D.x, D.z) : 0, h = Math.max(0, D.y - g);
+    if (h > 220) return 0;
+    let sx = D.x, sz = D.z;
+    const L = game.sky && game.sky.day > 0.2 ? game.sky.sunDir : null;
+    if (L && L[1] > 0.12) { sx -= L[0] / L[1] * h; sz -= L[2] / L[1] * h; }
+    return clamp(1 - Math.min(Math.hypot(sx - x, sz - z), Math.hypot(D.x - x, D.z - z)) / 60, 0, 1) * clamp(1.4 - h / 160, 0, 1);
+  },
+  // le dernier cri (cri lointain, rugissement) : { t (game.time), x, y, z, fort (rugissement d'alerte) } ou null
+  cri: null,
+  // V4 : le Guet du château (le fanal du donjon) est rallumé : de jour, il vient voir la flamme ; il tourne au-dessus du
+  // château un moment, bas, puis reprend sa ronde (un leurre, qui coûte cher à qui se tient sur le donjon)
+  guet(allume, pos) {
+    const D = dragonV3.D, S = dragonV3.S();
+    S.guet = allume && pos ? { x: pos.x, y: pos.y, z: pos.z, h: farm.s.hours } : null;
+    if (!allume || !pos || !D || D.mode === 'dort' || D.mode === 'mort' || S.fin || dragonV3.enAttaque()) return false;
+    if (D.mode === 'pose') { dragonV3.envol('ronde'); }
+    D.cible = { id: 'guet', x: pos.x, z: pos.z, r: 90, porte: true };
+    if (D.phase !== 'envol') D.phase = 'ronde';
+    return true;
+  },
   // un leurre : il vient voir (force 0..1)
   appeler(x, z, force) {
     const D = dragonV3.D;

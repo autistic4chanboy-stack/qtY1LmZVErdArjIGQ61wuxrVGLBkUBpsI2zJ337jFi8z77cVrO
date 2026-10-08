@@ -1,8 +1,9 @@
 // Équilibrage — le Ver, le dragon qui surveille (agent V3, quatorzième vague)
 //  - l'aire et les perchoirs : posés au sec, à plat, sans rien là où il se pose ; l'aire, le tas, l'anneau et le dernier
 //    guetteur s'atteignent à pied depuis l'arrivée ; la loge du Guet aussi (le carnet, la cloche) ;
-//  - le vol : une journée simulée (de l'aube au soir) : jamais dans le relief ni dans les toits ; il se pose, il fait ses
-//    rondes, il passe sur les régions — souvent, mais pas sans cesse (passages à moins de 250 m d'un point, par jour) ;
+//  - le vol : six journées simulées (de l'aube au soir, hasard à graine fixe) : jamais dans le relief ni dans les toits ;
+//    il se pose, il fait ses rondes, il passe sur les régions — souvent, mais pas sans cesse (passages à moins de 250 m
+//    d'un point, par jour), et chaque jour au-dessus de la région du joueur ;
 //  - le regard : de jour, debout, à découvert, il voit de loin ; accroupi dans les herbes hautes, de près seulement ; la
 //    nuit, sans lanterne, à peine ; la lanterne se voit de loin ; sous un toit, rien ;
 //  - le feu : une passe ne tue pas d'un coup (on a le temps de se cacher), trois passes, oui ; on le vérifie en simulant
@@ -13,6 +14,10 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
+// le hasard des rondes, à graine fixe (Math est partagé avec node : on le rend toujours) : les mesures sont reproductibles
+function graine(a) { return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function avecGraine(seed, fn) { const r0 = Math.random; Math.random = graine(seed); try { return fn(); } finally { Math.random = r0; } }
+const JOURS = 6;
 module.exports = {
   titre: 'Le Ver, le dragon qui surveille (V3)',
   async verifier(J, log) {
@@ -73,9 +78,9 @@ module.exports = {
         eyePos() { return [this.pos[0], this.pos[1] + 1.6, this.pos[2]]; } };
       globalThis.__degats = 0; play.hurt = (d) => { __degats += d; };
     })()`);
-    // trois journées (le hasard des rondes) : le joueur est au Seuil, à l'abri sous terre (le Ver ne le voit pas, mais il
-    // surveille sa région) ; on compte ses passages à moins de 250 m de quelques points de la Zone
-    const J1 = JSON.parse(J.ev(`(() => {
+    // six journées (le hasard des rondes, à graine fixe) : le joueur est au Seuil, à l'abri sous terre (le Ver ne le voit
+    // pas, mais il surveille sa région) ; on compte ses passages à moins de 250 m de quelques points de la Zone
+    const ronde = (seed) => JSON.parse(avecGraine(seed, () => J.ev(`(() => {
       const Z = __Z, V = dragonV3, dt = 0.1, S = Z.size;
       game.player.underground = true;
       const obs = { seuil: V1_REGIONS.seuil, bois_mort: V1_REGIONS.bois_mort, ville_basse: V1_REGIONS.ville_basse, tertres: V1_REGIONS.tertres, cendrieres: V1_REGIONS.cendrieres, degres: V1_REGIONS.degres, ravines: V1_REGIONS.ravines };
@@ -83,7 +88,7 @@ module.exports = {
       for (const k in obs) { pas[k] = 0; dedans[k] = false; }
       let minClear = 1e9, minPh = '', poses = 0, prev = '', t = 0, vol = 0, ronde = 0, soirs = 0, fins = [];
       const sol = (x, z) => Math.max(Z.heightAt(x, z), Z.waterLevel, V.toitAt(x, z));
-      for (let jour = 0; jour < 3; jour++) {
+      for (let jour = 0; jour < ${JOURS}; jour++) {
         farm.w.time = 6.6 / 24; farm.s.hours = (2 + jour) * 24 + 6.6;
         V.D = null; V.placer('test'); V.grace = 0;
         let sommeil = false;
@@ -101,17 +106,20 @@ module.exports = {
         if (sommeil) soirs++;
         fins.push(V.D ? V.D.mode + '/' + V.D.phase : null);
       }
-      return JSON.stringify({ t: Math.round(t / 3), vol: Math.round(vol / 3), ronde: Math.round(ronde / 3), minClear: +minClear.toFixed(1), minPh, poses: +(poses / 3).toFixed(1), pas, soirs, fins });
-    })()`));
-    log(`trois journées (de 6 h 36 à 22 h 12, ${J1.t} s chacune) : en vol ${J1.vol} s par jour (en ronde ${J1.ronde} s), posé ${J1.poses} fois par jour ; au plus près du relief en ronde : ${J1.minClear} m (${J1.minPh}) ; le soir : ${J1.fins.join(', ')}`);
-    log(`passages à moins de 250 m, en trois jours (le joueur est au Seuil) : ${Object.entries(J1.pas).map(([k, v]) => k + ' ' + v).join(', ')}`);
+      return JSON.stringify({ t: Math.round(t / ${JOURS}), vol: Math.round(vol / ${JOURS}), ronde: Math.round(ronde / ${JOURS}), minClear: +minClear.toFixed(1), minPh, poses: +(poses / ${JOURS}).toFixed(1), pas, soirs, fins });
+    })()`)));
+    // (EQ_V3_GRAINES=1,2,3… : la même mesure pour plusieurs graines, pour voir ce que le hasard y change)
+    if (process.env.EQ_V3_GRAINES) for (const g of process.env.EQ_V3_GRAINES.split(',')) { const R = ronde(+g); log(`  graine ${g} : passages ${Object.values(R.pas).reduce((a, b) => a + b, 0)} (${Object.entries(R.pas).map(([k, v]) => k + ' ' + v).join(', ')}), posé ${R.poses} fois par jour, au plus près ${R.minClear} m, soirs ${R.soirs}`); }
+    const J1 = ronde(14);
+    log(`${JOURS} journées (de 6 h 36 à 22 h 12, ${J1.t} s chacune) : en vol ${J1.vol} s par jour (en ronde ${J1.ronde} s), posé ${J1.poses} fois par jour ; au plus près du relief en ronde : ${J1.minClear} m (${J1.minPh}) ; le soir : ${J1.fins.join(', ')}`);
+    log(`passages à moins de 250 m, en ${JOURS} jours (le joueur est au Seuil) : ${Object.entries(J1.pas).map(([k, v]) => k + ' ' + v).join(', ')}`);
     if (J1.minClear < 15) ko('en ronde, il passe trop près du relief');
     if (J1.poses < 1.5) ko('il ne se pose presque jamais');
-    if (J1.soirs < 3) ko('le soir, il ne rentre pas toujours dans son aire');
+    if (J1.soirs < JOURS) ko('le soir, il ne rentre pas toujours dans son aire');
     const total = Object.values(J1.pas).reduce((a, b) => a + b, 0);
-    if (total < 12) ko('il ne passe presque jamais sur les régions');
-    if (J1.pas.seuil < 2) ko('il ne vient pas voir là où est le joueur');
-    if (Math.max(...Object.values(J1.pas)) > 60) ko('il passe sans cesse au même endroit');
+    if (total < 4 * JOURS) ko('il ne passe presque jamais sur les régions');
+    if (J1.pas.seuil < JOURS) ko('il ne vient pas voir là où est le joueur');
+    if (Math.max(...Object.values(J1.pas)) > 20 * JOURS) ko('il passe sans cesse au même endroit');
     // ---------------------------------------------------------------- le regard (la formule)
     const P = JSON.parse(J.ev(`(() => { const V = dragonV3, e = (l, c, ca, im, ac, co, n, f) => V.expoPure(l, c, ca, im, ac, co, n, f);
       return JSON.stringify({
@@ -131,7 +139,7 @@ module.exports = {
     if (P.nuitLanterne < 120) ko('la lanterne devrait se voir de loin');
     if (P.brume > 110) ko('dans la brume, il voit plus loin que nous');
     // ---------------------------------------------------------------- l'attaque : un joueur debout, en plein champ, de jour
-    const AT = JSON.parse(J.ev(`(() => {
+    const AT = JSON.parse(avecGraine(7, () => J.ev(`(() => {
       const Z = __Z, V = dragonV3, dt = 0.05, p = game.player, S = Z.size;
       farm.w.time = 11 / 24; farm.s.hours = 2 * 24 + 11;
       // un champ dégagé des Tertres
@@ -151,7 +159,7 @@ module.exports = {
         avant = D.phase;
       }
       return JSON.stringify({ tAlerte, tFeu, dPasse1, total: __degats, passes, brule: V.flammes.size + Object.keys(V.S().brule).length });
-    })()`));
+    })()`)));
     log(`attaque (debout, en plein champ, midi) : alerté après ${AT.tAlerte === null ? 'jamais' : AT.tAlerte.toFixed(1) + ' s'}, premier jet après ${AT.tFeu === null ? 'jamais' : AT.tFeu.toFixed(1) + ' s'} ; ${AT.passes} passes ; dégâts de la première passe ${AT.dPasse1 === null ? '—' : Math.round(AT.dPasse1)}, en tout ${Math.round(AT.total)} ; herbe qui brûle ${AT.brule}`);
     if (AT.tAlerte === null || AT.tAlerte > 25) ko('debout en plein champ, de jour, il ne le voit pas');
     if (AT.tAlerte !== null && AT.tAlerte < 1.5) ko('il alerte trop vite (pas le temps de se cacher)');
@@ -159,9 +167,9 @@ module.exports = {
     if (AT.dPasse1 !== null && AT.dPasse1 >= 100) ko('une seule passe tue d’un coup');
     if (AT.total < 40) ko('le feu ne fait presque rien');
     // ---------------------------------------------------------------- ce qu'il garde
-    const T = JSON.parse(J.ev(`(() => { const val = (k, n) => k === 'argent' ? n : (ITEMS[k] ? ITEMS[k].price * n : 0); let tot = 0; const N = 600;
+    const T = JSON.parse(avecGraine(3, () => J.ev(`(() => { const val = (k, n) => k === 'argent' ? n : (ITEMS[k] ? ITEMS[k].price * n : 0); let tot = 0; const N = 600;
       for (let r = 0; r < N; r++) for (let f = 0; f < 6; f++) for (const [k, n] of rollLoot('v3_tas')) tot += val(k, n);
-      return JSON.stringify({ tas: Math.round(tot / N), ecaille: ITEMS.v3_ecaille.price, dent: ITEMS.v3_dent.price, coeur: ITEMS.v3_coeur.price }); })()`));
+      return JSON.stringify({ tas: Math.round(tot / N), ecaille: ITEMS.v3_ecaille.price, dent: ITEMS.v3_dent.price, coeur: ITEMS.v3_coeur.price }); })()`)));
     const ecailles = 3 * T.ecaille;
     log(`ce qu'il garde : le tas (six fouilles) ≈ ${T.tas} pièces ; les écailles des perchoirs ${ecailles} ; mort : le cœur ${T.coeur}, quatre écailles ${4 * T.ecaille}, trois dents ${3 * T.dent}`);
     if (T.tas > 1800) ko('le tas rapporte trop');

@@ -4,9 +4,9 @@
 //  - Une matière (M_V3_ECAILLES : des écailles en rangs, presque noires, aux
 //    bords de bronze), quatre tuiles de peau (membrane veinée, œil à pupille
 //    fendue, corne annelée, plaques du ventre).
-//  - Un seul grand modèle : une vouivre (deux pattes, deux ailes qui lui servent
-//    de bras), d'environ quarante-cinq mètres du museau à la pointe de la queue,
-//    cinquante d'envergure. Un squelette (Rig) d'à peu près deux cents boîtes ;
+//  - Un seul grand modèle : une wyverne (deux pattes, deux ailes qui lui servent
+//    de bras), d'environ cinquante mètres du museau à la pointe de la queue en
+//    vol (quarante-huit posé), cinquante-trois d'envergure. Un squelette (Rig) d'à peu près deux cents boîtes ;
 //    les membranes des ailes sont tendues à chaque image entre les doigts (des
 //    bandes, au bord découpé). Le collier de fer au cou, un bout de chaîne, la
 //    vieille plaie sous l'aile gauche avec le carreau planté dedans.
