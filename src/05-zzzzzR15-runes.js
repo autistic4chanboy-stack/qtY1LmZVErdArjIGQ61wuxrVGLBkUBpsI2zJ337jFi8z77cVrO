@@ -63,5 +63,5 @@ const R15_PORTES = {
 Object.assign(LOOT, {
   r15_caveau: { rolls: [3, 4], items: [['vieille_piece', 3, 6, 5], ['relique', 1, 1, 2], ['gemme', 1, 2, 2], ['perle', 1, 1, 1], ['lingot_or', 1, 2, 1.5], ['argent', 60, 140, 3]] },
   r15_niche: { rolls: [3, 4], items: [['minerai_or', 2, 4, 4], ['gemme', 1, 2, 3], ['fossile', 1, 2, 2], ['relique', 1, 1, 1.5], ['lingot_or', 1, 2, 2], ['argent', 50, 120, 3]] },
-  r15_tertre: { rolls: [3, 4], items: [['vieille_piece', 4, 8, 4], ['relique', 1, 2, 2.5], ['gemme', 1, 3, 2.5], ['perle', 1, 2, 1.5], ['lingot_or', 1, 2, 1.5], ['argent', 60, 140, 3]] },
+  r15_tertre: { rolls: [3, 4], items: [['vieille_piece', 4, 8, 4], ['relique', 1, 2, 2.5], ['gemme', 1, 2, 2.5], ['perle', 1, 2, 1.5], ['lingot_or', 1, 2, 1.5], ['argent', 50, 120, 3]] },
 });

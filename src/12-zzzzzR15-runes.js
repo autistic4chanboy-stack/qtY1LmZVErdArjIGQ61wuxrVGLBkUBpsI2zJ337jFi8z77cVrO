@@ -19,19 +19,19 @@ const runesUI = {
     const st = document.createElement('style');
     st.id = 'r15-css';
     st.textContent = `
-.r15 { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 6px 4px 10px; }
+.r15 { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 4px 4px 8px; }
 .r15 .r15g { width: 100%; height: 100%; stroke: #3a2e22; stroke-width: 7; stroke-linecap: round; fill: none; }
 .r15 .r15tabs { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-.r15 .r15tab { width: 54px; height: 72px; border-radius: 6px 6px 3px 3px; background: linear-gradient(#9c968a, #7f796e); box-shadow: inset 0 0 8px rgba(0,0,0,.35);
+.r15 .r15tab { width: 42px; height: 58px; border-radius: 6px 6px 3px 3px; background: linear-gradient(#9c968a, #7f796e); box-shadow: inset 0 0 8px rgba(0,0,0,.35);
   display: flex; flex-direction: column; justify-content: space-evenly; align-items: center; padding: 4px 0; }
 .r15 .r15tab.vide { background: none; border: 2px dashed rgba(90,70,40,.35); box-shadow: none; }
-.r15 .r15tab .r15g { width: 18px; height: 18px; stroke: #2c2620; stroke-width: 9; }
+.r15 .r15tab .r15g { width: 15px; height: 15px; stroke: #2c2620; stroke-width: 9; }
 .r15 .r15tab.neuve { animation: r15neuve 2.2s ease-out; }
 @keyframes r15neuve { 0% { box-shadow: 0 0 0 rgba(255,220,150,0), inset 0 0 8px rgba(0,0,0,.35); } 30% { box-shadow: 0 0 26px rgba(255,220,150,.95), inset 0 0 8px rgba(0,0,0,.35); } 100% { box-shadow: 0 0 0 rgba(255,220,150,0), inset 0 0 8px rgba(0,0,0,.35); } }
 .r15 .r15porte { display: flex; gap: 8px; padding: 8px 14px; border-radius: 4px; background: linear-gradient(#8f897e, #77716a); }
-.r15 .r15porte .r15g { width: 40px; height: 40px; stroke: #2a241e; stroke-width: 8; }
+.r15 .r15porte .r15g { width: 34px; height: 34px; stroke: #2a241e; stroke-width: 8; }
 .r15 .r15porte .r15g.efface { stroke: #5d574f; opacity: .7; }
-.r15 .r15cercle { position: relative; width: min(230px, 62vw); aspect-ratio: 1; border-radius: 50%; border: 3px solid #6f5a3e;
+.r15 .r15cercle { position: relative; width: min(210px, 60vw, 34vh); flex: none; aspect-ratio: 1; border-radius: 50%; border: 3px solid #6f5a3e;
   background: radial-gradient(circle, #efe6cf 0%, #ddd0b2 70%, #cdbd9a 100%); transition: box-shadow .5s, filter .5s; }
 .r15 .r15cercle.dort { filter: grayscale(1) opacity(.5); }
 .r15 .r15cercle.prend { animation: r15prend 1.8s ease-out; }
@@ -45,16 +45,16 @@ const runesUI = {
 .r15 .r15ok { position: absolute; left: 50%; top: 52%; transform: translate(-50%, -50%); font-size: 15px; padding: 6px 12px; border-radius: 3px;
   border: 1px solid #8a6a40; background: #f3ead2; color: #3d2e1c; cursor: pointer; }
 .r15 .r15ok:disabled { opacity: .45; cursor: default; }
-.r15 .r15runes { display: grid; grid-template-columns: repeat(6, 46px); gap: 8px; justify-content: center; }
-@media (max-width: 420px) { .r15 .r15runes { grid-template-columns: repeat(4, 46px); } }
-.r15 .r15rune { width: 46px; height: 46px; padding: 6px; border-radius: 4px; border: 1px solid rgba(90,70,40,.4); background: #f5eedb; cursor: pointer; }
+.r15 .r15runes { display: grid; grid-template-columns: repeat(6, 40px); gap: 8px; justify-content: center; }
+@media (max-width: 420px) { .r15 .r15runes { grid-template-columns: repeat(4, 40px); } }
+.r15 .r15rune { width: 40px; height: 40px; padding: 5px; border-radius: 4px; border: 1px solid rgba(90,70,40,.4); background: #f5eedb; cursor: pointer; }
 .r15 .r15rune.pris { opacity: .35; }
 .r15 .r15rune:disabled { cursor: default; }
 .r15 .r15actifs { display: flex; gap: 10px; min-height: 26px; }
 .r15 .r15actifs .r15g { width: 24px; height: 24px; stroke: #8a5a2a; filter: drop-shadow(0 0 4px rgba(255,200,120,.9)); }
 #r15-runes .r15-haut { display: flex; justify-content: flex-end; padding: 8px 10px 0; }
 #r15-runes .r15-haut button { background: none; border: none; font-size: 20px; color: #6a5436; cursor: pointer; }
-#r15-runes .r15-corps { overflow-y: auto; padding: 0 14px 12px; }
+#r15-runes .r15-corps { overflow-y: auto; min-height: 0; flex: 1 1 auto; padding: 0 14px 12px; }
 `;
     document.head.appendChild(st);
   },
