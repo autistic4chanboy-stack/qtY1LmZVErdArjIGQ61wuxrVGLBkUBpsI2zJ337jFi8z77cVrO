@@ -10,7 +10,7 @@ const camLibre = {
   demarrer() {
     if (this.on || !game.world || !game.player) return;
     const p = game.player;
-    this.on = true;
+    this.on = true; this.verrouT = 0;
     this.pos = p.eyePos().slice(); this.yaw = p.yaw; this.pitch = p.pitch;
     this.garde = { yaw: p.yaw, pitch: p.pitch, pos: p.pos.slice() };
     if (!this.etiquette) {
@@ -42,6 +42,7 @@ const camLibre = {
       this.pitch = clamp(this.pitch - (p.pitch - g.pitch), -1.55, 1.55);
     }
     p.yaw = g.yaw; p.pitch = g.pitch;
+    if (input.locked && !this.verrouT) this.verrouT = performance.now();
     if (!ui.panel && game.mode === 'play') {
       const K = (a, b) => (input.down(a) || (b && input.down(b)) ? 1 : 0);
       const av = K('KeyW', 'ArrowUp') - K('KeyS', 'ArrowDown'), dr = K('KeyD', 'ArrowRight') - K('KeyA', 'ArrowLeft'), ht = K('Space') - K('KeyC');
@@ -76,7 +77,8 @@ HOOKS.load.push(() => {
   game.interact = function () { if (camLibre.on) return; return _int(); };
   // Échap : on rend la caméra (le verrou de la souris saute avec ; un clic le reprend) sans ouvrir le menu
   const _pause = game.pause.bind(game);
-  game.pause = function () { if (camLibre.on) { camLibre.arreter(); return; } return _pause(); };
+  // (la souris tenue un moment puis lâchée : c'est Échap ; un verrou qui saute aussitôt ne compte pas)
+  game.pause = function () { if (camLibre.on) { if (camLibre.verrouT && performance.now() - camLibre.verrouT > 250) camLibre.arreter(); else camLibre.verrouT = 0; return; } return _pause(); };
   window.addEventListener('keydown', (e) => { if (camLibre.on && e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); camLibre.arreter(); } }, true);
 });
 

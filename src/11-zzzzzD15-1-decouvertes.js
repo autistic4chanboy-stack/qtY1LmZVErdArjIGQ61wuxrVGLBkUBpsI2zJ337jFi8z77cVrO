@@ -65,7 +65,7 @@ const decouvertes = {
     if (!P) { P = D.pages[id] = { j: farm.s.day || 1, champs: {} }; neuf = page = true; }
     if (!P.champs) P.champs = {};
     if (k && !P.champs[k]) { P.champs[k] = 1; neuf = true; }
-    if (neuf) { this.change(); for (const fn of this.ecoute) try { fn(id, k, page); } catch (e) { console.error(e); } }
+    if (neuf) { if (this._fc) this._fc.delete(id); this.change(); for (const fn of this.ecoute) try { fn(id, k, page); } catch (e) { console.error(e); } }
     return neuf;
   },
   // un compteur discret (revoir une bête ailleurs, parler plusieurs jours…)
@@ -121,7 +121,6 @@ const decouvertes = {
     return k === 'bete' ? 'La Bête' : d15Cap(k.replace(/_/g, ' '));
   },
   nomLieu(k) {
-    if (/^zone_/.test(k) && typeof V1_REGIONS !== 'undefined') { const R = V1_REGIONS[k.slice(5)]; if (R) return d15Cap(R.nom); }
     const w = this.monde(), L = (w && w.lm && w.lm[k]) || (w && w.bld && w.bld[k]);
     const n = (typeof LIEU_NAMES !== 'undefined' && LIEU_NAMES[k]) || (L && L.name) || k;
     return d15Cap(/^vide\d*$/.test(n) ? 'Maison vide' : n);
@@ -142,6 +141,7 @@ const decouvertes = {
       else if (pre === 'li') F = this.ficheLieu(k);
       else if (pre === 'pnj') F = this.fichePnj(k);
       else if (pre === 'lv') F = this.ficheLivre(k);
+      else if (pre === 'zone' && typeof V1_REGIONS !== 'undefined' && V1_REGIONS[k]) F = { titre: d15Cap(V1_REGIONS[k].nom), sous: 'Terres d’Avant', icone: '⛰', lead: '', groupe: 'lieux', champs: [] };
     } catch (e) { console.error('decouvertes', id, e); }
     if (!F) F = { titre: d15Cap(k.replace(/[_-]/g, ' ')), sous: '', icone: '✧', lead: '', groupe: 'autres', champs: [] };
     for (const A of this.ajouts) if (A.cle === id || A.cle === pre || A.cle === pre + ':') try { F.champs.push(...(A.fn(id) || [])); } catch (e) { /* */ }
@@ -220,7 +220,6 @@ const decouvertes = {
   },
   ficheLieu(k) {
     const w = this.monde(), ch = [];
-    if (/^zone_/.test(k)) return { titre: this.nomLieu(k), sous: 'Terres d’Avant', icone: '⛰', lead: '', groupe: 'lieux', champs: ch };
     const L = w && w.lm && w.lm[k], B = w && w.bld && w.bld[k];
     if (!L && !B) return null;
     const vit = NPC_DATA.filter((d) => d.home === k).map((d) => d.id), tra = NPC_DATA.filter((d) => d.work === k && d.home !== k).map((d) => d.id);
@@ -250,7 +249,7 @@ const decouvertes = {
     const fl = [...ESPECES_PLANTES.map((e) => e[0]), ...(typeof ESPECES_ARBRES !== 'undefined' ? ESPECES_ARBRES.map((e) => e[0]) : []), ...OBJ_TYPES.filter((t) => /^(Arbres|Fleurs|Champignons|Végétation)$/.test(t.cat || '') && !t.animal).map((t) => t.id)];
     for (const id of fl) if (this.ot(id)) add('pl:' + id);
     if (w) { for (const k of Object.keys(w.lm || {})) add('li:' + k); for (const k of Object.keys(w.bld || {})) add('li:' + k); }
-    if (typeof V1_REGIONS !== 'undefined') for (const k of Object.keys(V1_REGIONS)) add('li:zone_' + k);
+    if (typeof V1_REGIONS !== 'undefined') for (const k of Object.keys(V1_REGIONS)) add('zone:' + k);
     for (const d of NPC_DATA) add('pnj:' + d.id);
     if (typeof LIVRES !== 'undefined') for (const b of Object.keys(LIVRES)) if (!ITEMS['livre_' + b]) add('lv:' + b);
     for (const id of Object.keys(this.declares)) add(id);
@@ -291,7 +290,7 @@ const decouvertes = {
       }
     } else {
       // dans la Zone : les régions, et les bêtes de V2
-      try { const r = zone.region(p.pos[0], p.pos[2]); if (r) this.voir('li:zone_' + r); } catch (e) { /* */ }
+      try { const r = zone.region(p.pos[0], p.pos[2]); if (r) this.voir('zone:' + r); } catch (e) { /* */ }
     }
     if (typeof creaturesV2 !== 'undefined' && creaturesV2.vivantes) for (const e of creaturesV2.vivantes) {
       if (e.mort || e.cache || e.removed) continue;

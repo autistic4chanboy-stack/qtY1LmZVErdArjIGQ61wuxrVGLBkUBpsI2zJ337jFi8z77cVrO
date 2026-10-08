@@ -37,6 +37,7 @@ Object.assign(decouvertes, {
   rendre(el) {
     if (!el) return;
     this.style();
+    if (this.nouveaux) { this.nouveaux = 0; if (typeof menus !== 'undefined' && menus.marque) try { menus.marque('wiki', 0); } catch (e) { /* */ } }
     this.cible = el;
     const D = this.S(), G = this.connues(), T = this.totaux(), f = d15Norme(this.vue.filtre);
     const n = Object.values(G).reduce((a, L) => a + L.length, 0);
@@ -132,14 +133,14 @@ Object.assign(decouvertes, {
   caseOptions(hote) {
     const box = hote || $('#dlg-options .cols') || $('#dlg-options .box');
     if (!box) return;
-    let c = $('#o-wiki15');
+    let c = $('#o-wiki');
     if (!c) {
       const lab = document.createElement('label');
       lab.className = 'row';
-      lab.innerHTML = '<input type="checkbox" id="o-wiki15"> Wiki interactif';
+      lab.innerHTML = '<input type="checkbox" id="o-wiki"> Wiki interactif';
       const apres = $('#o-fps') && $('#o-fps').closest('label');
       if (apres && apres.parentNode && !hote) apres.parentNode.insertBefore(lab, apres.nextSibling); else box.appendChild(lab);
-      c = $('#o-wiki15');
+      c = $('#o-wiki');
       c.onchange = () => { const m = c.checked ? 'interactif' : 'exact'; store.set(D15_MODE, m); if (farm.s) this.reglerMode(m); };
     }
     c.checked = (farm.s ? this.mode() : store.get(D15_MODE, 'interactif')) !== 'exact';
@@ -212,9 +213,18 @@ Object.assign(decouvertes, {
 // la notice : quelques textes ont des {mots} à remplir (le nom d'un lieu…)
 function fmtLineSur(t) { try { return typeof fmtLine === 'function' ? fmtLine(String(t), null) : String(t); } catch (e) { return String(t).replace(/\{[^}]*\}/g, '…'); } }
 
-decouvertes.ecoute.push((id, k, page) => { if (page && !decouvertes.S().tout && game.mode === 'play' && !ui.panel) decouvertes.plume(); });
+decouvertes.ecoute.push((id, k, page) => {
+  if (!page || decouvertes.S().tout) return;
+  if (game.mode === 'play' && !ui.panel) decouvertes.plume();
+  decouvertes.nouveaux = (decouvertes.nouveaux || 0) + 1;
+  if (typeof menus !== 'undefined' && menus.marque) try { menus.marque('wiki', decouvertes.nouveaux); } catch (e) { /* */ }
+});
 
-// ---------------------------------------------------------------- l'onglet de secours dans la sacoche (tant que M15 ne l'accueille pas)
+// ---------------------------------------------------------------- l'onglet « Wiki » du menu (M15), ou, sans lui, un onglet de secours dans la sacoche
+if (typeof menus !== 'undefined' && menus.page) {
+  decouvertes.accueilli = true;
+  menus.page({ id: 'wiki', onglet: 'wiki', titre: 'Wiki', ordre: 10, rendre: (body) => { decouvertes.rendre(body); } });
+}
 {
   const _rs = ui.renderSatchel.bind(ui);
   ui.renderSatchel = function () {
