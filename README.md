@@ -636,6 +636,11 @@ Les commandes sont dans le menu **Commandes** (Échap).
   qu'avant.
 - **Doux et rare** : un chanteur à la fois, de longs silences ; tout se règle avec le curseur « Ambiance » des Options.
   Synthétisé, calculé en tâche de fond : rien de plus à chaque image.
+- **Les insectes, discrets** : dans les prés, trois ou quatre criquets qui chantent par reprises, avec de longs silences
+  (plus de nappe aiguë presque continue qui sifflait, ni de « zrrr » à quinze coups par seconde qui battait comme des
+  ailes) ; le soir, une grande sauterelle de loin en loin ; la nuit, deux ou trois grillons d'Italie qui se taisent
+  entre deux trilles, et deux grillons dans l'herbe. Des boucles longues (une demi-minute et plus) qu'on n'entend plus
+  revenir ; environ moitié moins fort qu'avant.
 
 **La musique**
 - **De temps en temps, un morceau doux** (piano surtout, parfois harpe, flûte, célesta, cordes, verre, boîte à musique,

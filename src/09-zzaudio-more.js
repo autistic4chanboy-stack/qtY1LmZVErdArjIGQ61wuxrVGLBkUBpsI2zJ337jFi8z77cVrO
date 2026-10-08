@@ -31,9 +31,12 @@ Object.assign(SoundEngine.prototype, {
     }
     return _animalCall.call(this, kind, pan, k);
   },
-  // battements d'ailes : un envol (de plus en plus vite)
+  // battements d'ailes : un envol (de plus en plus vite) ; jamais deux à moins d'une demi-seconde (une bande qui se lève,
+  // des oiseaux qui se lèvent ensemble : un seul envol)
   flutter(k = 1, pan = 0) {
     if (!this.ok) return;
+    if (this.ctx.currentTime - (this._flutterT ?? -9) < 0.5) return;
+    this._flutterT = this.ctx.currentTime;
     const t = this.at(), R = Math.random, p = this._scope ? this.sfx : this.pan(clamp(pan / 10, -0.9, 0.9));
     for (let i = 0, tt = t, per = 0.075; i < 8; i++, tt += per, per *= 0.93) this.noiseHit(tt, 0.05, 'bandpass', 650 + R() * 250, 0.8, 0.035 * k * (1 - i * 0.07), p, 450, 0.012);
   },

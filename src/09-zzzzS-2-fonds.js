@@ -100,53 +100,56 @@
   }
 
   // ================================================================ LES INSECTES
-  // les criquets des prés, au soleil : chacun sa chanson — l'un par strophes de trois couplets qui enflent, l'autre en
-  // « zrrr » serrés, le troisième en petits « sst » brefs et réguliers —, à des distances différentes
-  fond('s_criquets', 16, function* (d, sr, D) {
+  // les criquets des prés, au soleil : trois ou quatre chanteurs, chacun sa chanson — l'un par strophes de trois
+  // couplets qui enflent, l'autre en petits « sst » brefs —, à des distances différentes, et de longs silences entre deux
+  // reprises. (Plus de « zrrr » serré à quinze coups par seconde, qui battait comme des ailes ; moins d'aigu, qui
+  // sifflait ; une boucle de 36 s, qu'on n'entend plus revenir.)
+  fond('s_criquets', 36, function* (d, sr, D) {
     const dur = D - 0.25;
-    for (let k = 0, n = ri(6, 8); k < n; k++) {
-      const type = k % 3, f = rf(6200, 8600), a = (k < 2 ? 1 : rf(0.25, 0.6)), filt = S.bq('bp', f, 1.4, sr);
-      let t = rf(0, 5);
+    for (let k = 0, n = ri(3, 4); k < n; k++) {
+      const type = k % 2, f = rf(4800, 6600), a = (k < 2 ? 1 : rf(0.3, 0.55)), filt = S.bq('bp', f, 2.2, sr);
+      let t = rf(0, 9);
       while (t < dur) {
         if (type === 0) { // trois couplets de plus en plus forts
-          for (let c = 0; c < 3 && t < dur; c++) { const du = rf(1.1, 1.6); S.rape(d, sr, t, du, filt, a * (0.5 + 0.25 * c), { att: 0.3, rel: 0.12, am: rf(32, 44), amd: 0.85 }); t += du + rf(0.25, 0.4); yield; }
-          t += rf(5, 11);
-        } else if (type === 1) { const du = rf(1.2, 2.2); S.rape(d, sr, t, du, filt, a * 0.8, { att: 0.15, rel: 0.2, am: rf(12, 18), amd: 0.9 }); t += du + rf(3, 7); yield; }
-        else { for (let c = 0, nc = ri(4, 8); c < nc && t < dur; c++) { S.rape(d, sr, t, rf(0.14, 0.22), filt, a * 0.7, { att: 0.2, rel: 0.4, am: rf(55, 70), amd: 0.8 }); t += rf(1.6, 2.6); } t += rf(5, 10); yield; }
+          for (let c = 0; c < 3; c++) { const du = rf(0.9, 1.3); if (t + du >= dur) break; S.rape(d, sr, t, du, filt, a * (0.45 + 0.2 * c), { att: 0.35, rel: 0.2, am: rf(34, 44), amd: 0.6 }); t += du + rf(0.3, 0.5); yield; }
+          t += rf(11, 22);
+        } else { for (let c = 0, nc = ri(3, 6); c < nc; c++) { const du = rf(0.14, 0.2); if (t + du >= dur) break; S.rape(d, sr, t, du, filt, a * 0.6, { att: 0.25, rel: 0.45, am: rf(55, 70), amd: 0.6 }); t += rf(1.6, 2.6); } t += rf(10, 20); yield; }
       }
     }
-    S.lp1(d, sr, 8500);
+    S.lp1(d, sr, 7000);
   });
-  // le grillon d'Italie, les nuits douces : un trille doux et pur, presque une note tenue (« trrrüüü »), repris sans fin ;
-  // quatre ou cinq chanteurs, chacun sur sa note
-  fond('s_oecanthe', 16, function* (d, sr, D) {
+  // le grillon d'Italie, les nuits douces : un trille doux et pur, presque une note tenue (« trrrüüü »), puis un silence ;
+  // deux ou trois chanteurs, chacun sur sa note (plus quatre ou cinq sans répit : cela faisait un sifflement tenu), sur
+  // une boucle de 32 s
+  fond('s_oecanthe', 32, function* (d, sr, D) {
     const dur = D - 0.25;
-    for (let k = 0, n = ri(4, 5); k < n; k++) {
-      const f = rf(2450, 3050), pr = rf(34, 48), a = k === 0 ? 1 : rf(0.3, 0.75);
-      for (let t = rf(0, 2); t < dur; ) {
-        const du = rf(1.2, 2.6);
-        S.trait(d, sr, t, du, [[0, f * 0.995], [0.5, f], [1, f * 0.99]], a, { am: pr, amd: 0.7, att: 0.25, rel: 0.2, h: [0.04] });
-        t += du + rf(0.5, 1.6);
+    for (let k = 0, n = ri(2, 3); k < n; k++) {
+      const f = rf(2450, 3050), pr = rf(34, 48), a = k === 0 ? 1 : rf(0.3, 0.6);
+      for (let t = rf(0, 4); t < dur; ) {
+        const du = rf(1.2, 2.4);
+        if (t + du < dur) S.trait(d, sr, t, du, [[0, f * 0.995], [0.5, f], [1, f * 0.99]], a, { am: pr, amd: 0.7, att: 0.3, rel: 0.3, h: [0.04] });
+        t += du + rf(2.5, 6);
         yield;
       }
     }
   });
-  // la grande sauterelle verte, le soir : de longues séries de doubles « dzi-dzi » secs et aigus, un ou deux chanteurs, loin
-  fond('s_sauterelle', 16, function* (d, sr, D) {
+  // la grande sauterelle verte, le soir : des séries de doubles « dzi-dzi » secs, un chanteur (parfois deux), loin, avec
+  // de longs silences entre deux séries (plus une crécelle sans fin : elle battait comme des ailes), sur 30 s
+  fond('s_sauterelle', 30, function* (d, sr, D) {
     const dur = D - 0.25;
-    for (let k = 0, n = ri(1, 2); k < n; k++) {
-      const f = rf(7600, 8800), a = k ? 0.5 : 1, per = rf(0.055, 0.07);
-      for (let t = rf(0, 3); t < dur; ) {
-        const fin = t + rf(4, 9);
+    for (let k = 0, n = R() < 0.3 ? 2 : 1; k < n; k++) {
+      const f = rf(6400, 7400), a = k ? 0.5 : 1, per = rf(0.055, 0.07);
+      for (let t = rf(0, 6); t < dur; ) {
+        const fin = Math.min(dur - 0.1, t + rf(2.5, 5));
         for (let q = 0; t < fin; q++, t += per * rf(0.97, 1.03)) {
-          const m = Math.min(1, (q + 1) / 8);
+          const m = Math.min(1, (q + 1) / 8) * Math.min(1, (fin - t) / 0.6);
           S.grain(d, sr, t, 0.012, f, a * m, 2.2); S.grain(d, sr, t + per * 0.42, 0.01, f * 1.04, a * 0.8 * m, 2.2);
           if ((q & 31) === 31) yield;
         }
-        t += rf(1.2, 3);
+        t += rf(6, 14);
       }
     }
-    S.lp1(d, sr, 9000);
+    S.lp1(d, sr, 8000);
   });
 
   // ================================================================ LES GRENOUILLES, LES CRAPAUDS
@@ -372,7 +375,7 @@
   // lit d'origine baissé de moitié (avant : −40,6) ; les boucles sont normalisées à la crête, d'où des volumes
   // inégaux (une boucle faite de grains a peu d'énergie pour sa crête)
   Object.assign(SoundEngine.VOL_BOUCLES, {
-    s_criquets: 0.045, s_oecanthe: 0.025, s_sauterelle: 0.025, s_rainettes: 0.06, s_accoucheur: 0.04, s_grenouilles: 0.05,
+    s_criquets: 0.04, s_oecanthe: 0.018, s_sauterelle: 0.022, s_rainettes: 0.06, s_accoucheur: 0.04, s_grenouilles: 0.05,
     s_pins: 0.05, s_feuillus: 0.06, s_bouleaux: 0.3, s_roseaux: 0.2, s_bruyere: 0.06, s_cimes: 0.04, s_ressac: 0.05,
     s_pl_herbe: 0.12, s_pl_feuilles: 0.22, s_pl_eau: 0.155, s_pl_toits: 0.23, s_pl_bruyere: 0.12, s_pl_paille: 0.175, s_pl_dedans: 0.11,
     s_egouttement: 0.04,

@@ -82,7 +82,12 @@ const farm2 = {
     if (e.cfg.oiseau && !(e.flyT > 0) && farm.on && (e.scareCk = (e.scareCk || 0) - dt) <= 0) {
       e.scareCk = 0.6;
       const q = farm2.scaredAt(e.x, e.z);
-      if (q) { e.flyT = 3 + Math.random() * 2; e.flyH0 = 0.2; e.heading = Math.atan2(e.x - q.x, e.z - q.z); sound.flutter && sound.flutter(0.5, 0); }
+      if (q) {
+        e.flyT = 3 + Math.random() * 2; e.flyH0 = 0.2; e.heading = Math.atan2(e.x - q.x, e.z - q.z);
+        // (l'envol ne s'entend que de près : avant, tout oiseau chassé par un épouvantail battait des ailes à l'oreille)
+        const d = Math.hypot(e.x - c.px, e.z - c.pz);
+        if (d < 30) sound.flutter && sound.flutter(0.5 * (1 - d / 30) * (1 - d / 30), 0);
+      }
     }
     return _uw(e, dt, w, c);
   };
