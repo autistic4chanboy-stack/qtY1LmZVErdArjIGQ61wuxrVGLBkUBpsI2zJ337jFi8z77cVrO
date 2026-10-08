@@ -22,6 +22,8 @@ const CHAMPS = {
   pnj: ['vu', 'metier', 'demeure'],
   lv: ['lu'],
 };
+// leurs noms (la boîte « Mes notes »)
+const NOMS = { vue: 'Ce qu’on en voit', vu: 'Ce qu’on en voit', jour: 'Le jour', nuit: 'La nuit', milieux: 'Où', danger: 'Danger', depouille: 'Ce qu’elle laisse', sorte: 'Sorte', prix: 'Prix', effet: 'Effet', recolte: 'Récolte', dedans: 'Dedans', metier: 'Métier', demeure: 'Demeure', lu: 'Lu' };
 
 // le jour, la nuit : ce qu’on en voit (d’après les heures de V2_ESPECES et les notes de V2)
 const JN = {
@@ -206,4 +208,4 @@ function sections(cats, X) {
   if (h && h.groups) { const i = h.groups.findIndex((q) => q.t === 'Ce qu’ils disent'); if (i >= 0) h.groups.push(h.groups.splice(i, 1)[0]); }
 }
 
-module.exports = { figures, build, sections, CHAMPS, GROUPE };
+module.exports = { figures, build, sections, CHAMPS, NOMS, GROUPE };
