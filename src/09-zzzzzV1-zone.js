@@ -52,8 +52,10 @@ const sonV1 = {
   // un caillou qui tombe et roule (la diversion)
   caillou(pos, dur) {
     this.la(pos, () => {
-      const t = sound.at(0.01), o = sound.sfx, k = dur ? 1 : 0.7;
+      // (un claquement sec qu'on doit repérer : deux fois plus fort qu'avant, avec un corps plus grave)
+      const t = sound.at(0.01), o = sound.sfx, k = dur ? 2 : 1.4;
       sound.noiseHit(t, 0.05, 'bandpass', 2600, 2, 0.06 * k, o);
+      sound.noiseHit(t, 0.07, 'bandpass', 900, 1.5, 0.04 * k, o);
       sound.tone(t, 'sine', 1900, 1500, 0.05, 0.02 * k, o);
       for (let i = 1; i < 4; i++) sound.noiseHit(t + i * 0.11 + Math.random() * 0.04, 0.03, 'bandpass', 2200 + i * 300, 2, 0.03 * k / i, o);
     });

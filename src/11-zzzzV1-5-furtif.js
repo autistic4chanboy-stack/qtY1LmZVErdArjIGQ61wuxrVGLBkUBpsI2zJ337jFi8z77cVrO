@@ -54,7 +54,7 @@ const furtif = {
     J.accroupi = acc;
     J.mouvement = J.immobile ? 0 : acc ? 0.25 : p.sprinting ? 1 : 0.55;
     const sol = p.swimming || p.wading ? 1.6 : 1;
-    J.bruit = J.immobile ? 0 : (acc ? 2.5 : p.sprinting ? 18 : 8) * sol * (p.onGround || p.swimming ? 1 : 0.3);
+    J.bruit = J.immobile ? 0 : (acc ? 2.5 : p.sprinting ? 18 : 8) * sol * (p.onGround || p.swimming ? 1 : 0.3) * this.pas();
     // le couvert : herbes hautes, roseaux, buissons (accroupi, on s'y cache vraiment)
     let cv = 0;
     if (w) w.forObjectsNearRay([J.x - 1.2, J.y, J.z], [1, 0, 0], 2.4, (o) => {
@@ -130,7 +130,13 @@ const furtif = {
     if (por > 0 && d < por) { best = (1 - d / por) * 0.8; ou = [J.x, J.y, J.z]; }
     for (const b of this.bruits) {
       const db = Math.hypot(b.x - e.x, b.z - e.z), pb = b.portee * F.ouie;
-      if (db < pb) { const k = 1 - db / pb; if (k > best) { best = k; ou = [b.x, b.y, b.z]; } }
+      if (db < pb) {
+        const k = 1 - db / pb;
+        if (k > best) { best = k; ou = [b.x, b.y, b.z]; }
+        // un bruit soudain fait sursauter, une fois (un caillou tout près suffit à intriguer)
+        if (!b.ont) b.ont = new Set();
+        if (!b.ont.has(e)) { b.ont.add(e); F.sursaut = Math.max(F.sursaut || 0, k); }
+      }
     }
     F.ouLeBruit = ou;
     return best;
@@ -144,6 +150,7 @@ const furtif = {
     F.tVue -= dt;
     if (F.tVue <= 0) { F.tVue = 0.15 + Math.random() * 0.1; F.vu = this.voit(e); F.entendu = this.entend(e); }
     const J = this.joueur(), avant = F.etat;
+    if (F.sursaut) { F.soupcon = Math.min(2, F.soupcon + 0.12 + F.sursaut * 0.5); F.sursaut = 0; }
     const gain = F.vu * 1.6 + F.entendu * 0.9;
     if (gain > 0.02) {
       F.soupcon = Math.min(2, F.soupcon + gain * dt * F.vitesse * (F.etat === 'cherche' ? 1.6 : 1));
@@ -221,11 +228,27 @@ const furtif = {
 // ce qui cache (accroupi, au milieu) : herbes hautes, roseaux, buissons, fougères
 const FURTIF_COUVERT = { tallgrass: 0.85, reeds: 0.9, bush: 0.8, berry: 0.75, fern: 0.55, heather: 0.4, wheat: 0.7, sunflower: 0.5 };
 
-// les bruits de pas dans la Zone : un saut, une chute s'entendent loin
+// les bruits du joueur dans la Zone : une chute, un coup de fusil, un coup d'outil, une porte, s'entendent
 {
-  const _land = sound.land.bind(sound);
-  sound.land = function (k) { if (zone.dedans && game.player) furtif.bruit(game.player.pos[0], game.player.pos[1], game.player.pos[2], 8 + (k || 0.5) * 14, 'chute'); return _land(k); };
+  const ici = (portee, nature) => { if (zone.dedans && game.player) { const P = game.player.pos; furtif.bruit(P[0], P[1], P[2], portee, nature); } };
+  const emballer = (nom, fn) => { if (typeof sound[nom] !== 'function') return; const f = sound[nom].bind(sound); sound[nom] = function (...a) { try { fn(...a); } catch (e) { /* */ } return f(...a); }; };
+  emballer('land', (k) => ici(8 + (k || 0.5) * 14, 'chute'));
+  emballer('shot', () => ici(90, 'coup de feu'));
+  emballer('impact', (k) => ici(k === 'soft' ? 5 : 9, 'coup'));
+  emballer('door', () => ici(10, 'porte'));
+  emballer('splash', () => ici(12, 'eau'));
 }
+// les pas : plus sourds avec des chaussons de lisière (agent U), plus lourds avec des bottes
+furtif.pas = function () {
+  const inv = farm.s && farm.s.inv;
+  if (!inv) return 1;
+  let k = 1;
+  if (typeof ITEMS !== 'undefined' && ITEMS.chaussons_lisiere && inv.chaussons_lisiere) k *= 0.6;
+  else if (inv.bottes) k *= 1.15;
+  for (const fn of this.pasEnPlus) try { k *= fn() || 1; } catch (e) { /* */ }
+  return k;
+};
+furtif.pasEnPlus = []; // fn() → multiplicateur du bruit des pas (un autre agent)
 HOOKS.update.push(Object.assign((dt) => { if (zone.dedans) furtif.update(dt); else if (furtif.max) { furtif.max = 0; if (typeof oeilV1 !== 'undefined') oeilV1.montrer(0, 'tranquille'); } }, { zone: true }));
 // les mains nues (ou la pierre en main), clic droit, dans la Zone : on jette une pierre, si l'on en a
 HOOKS.secondary.push((eye, basis, it, id) => { if (!zone.dedans || (id !== 'pierre' && id !== 'main') || !farm.count('pierre')) return false; furtif.lancer(eye, basis.f); return true; });
