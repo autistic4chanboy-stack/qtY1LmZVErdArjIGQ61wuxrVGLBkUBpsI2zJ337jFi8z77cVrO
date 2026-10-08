@@ -93,9 +93,11 @@ const zoneGen = {
       }
     }
     // ravines : entailles à pic (on les creuse après les chemins : là où un chemin passe, il faut un pont)
-    const ravines = V1_RAVINES.map((R) => ({ R, pts: R.pts.map(([u, v]) => [u * S, v * S]) }));
-    for (const { R, pts } of ravines) {
-      const marge = R.w * 1.25;
+    const ravines = V1_RAVINES.map((R) => { const pts = R.pts.map(([u, v]) => [u * S, v * S]), cum = [0]; for (let k = 1; k < pts.length; k++) cum.push(cum[k - 1] + Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1])); return { R, pts, cum, L: cum[cum.length - 1] }; });
+    // la profondeur le long de l'entaille : nulle aux deux bouts, pleine passé 140 m
+    const bout = (Rv, s, q) => { const d = Rv.cum[s - 1] + (Rv.cum[s] - Rv.cum[s - 1]) * q; return smoothstep(0, 140, Math.min(d, Rv.L - d)); };
+    for (const Rv of ravines) {
+      const { R, pts } = Rv, marge = R.w * 1.25;
       for (let s = 1; s < pts.length; s++) {
         const [x0, z0] = pts[s - 1], [x1, z1] = pts[s], dx = x1 - x0, dz = z1 - z0, L2 = dx * dx + dz * dz;
         const i0 = Math.max(0, Math.floor((Math.min(x0, x1) - marge) / C)), i1 = Math.min(n - 1, Math.ceil((Math.max(x0, x1) + marge) / C));
@@ -105,7 +107,7 @@ const zoneGen = {
           const ww = R.w * (0.8 + 0.4 * (fbm(nC, x / 90, z / 90, 2) + 0.5));
           if (d > ww * 1.2) continue;
           const id = j * n + i, fond = WL + 1.5 + fbm(nD, x / 60, z / 60, 2) * 2;
-          const k = 1 - smoothstep(ww * 0.45, ww * 1.05, d);
+          const k = (1 - smoothstep(ww * 0.45, ww * 1.05, d)) * bout(Rv, s, q);
           G[id] = Math.min(G[id], lerp(G[id], fond, k));
           RG[id] = Math.max(RG[id], 2.5);
         }
@@ -117,8 +119,10 @@ const zoneGen = {
     for (const Ch of chemins) for (let s = 1; s < Ch.smp.length; s++) for (const Rv of ravines) for (let k = 1; k < Rv.pts.length; k++) {
       const X = inter2(Ch.smp[s - 1], Ch.smp[s], Rv.pts[k - 1], Rv.pts[k]);
       if (!X) continue;
+      const qR = Math.hypot(X.x - Rv.pts[k - 1][0], X.z - Rv.pts[k - 1][1]) / (Math.hypot(Rv.pts[k][0] - Rv.pts[k - 1][0], Rv.pts[k][1] - Rv.pts[k - 1][1]) || 1);
+      if (bout(Rv, k, qR) * Rv.R.p < 5) continue; // (près d'un bout, l'entaille est peu profonde : pas de pont)
       const y = lerp(Ch.h[s - 1], Ch.h[s], X.t), dir = Math.atan2(Ch.smp[s][0] - Ch.smp[s - 1][0], Ch.smp[s][1] - Ch.smp[s - 1][1]);
-      if (!ponts.some((p) => Math.hypot(p.x - X.x, p.z - X.z) < 30)) ponts.push({ x: X.x, z: X.z, y, r: dir, L: Rv.R.w * 2.5, w: Math.max(3.2, Ch.w * 1.6) });
+      if (!ponts.some((p) => Math.hypot(p.x - X.x, p.z - X.z) < 30)) ponts.push({ x: X.x, z: X.z, y, r: dir, L: Rv.R.w * 2.5, w: Math.max(3.2, Ch.w * 1.6), levis: !!Ch.P.levis });
     }
     t = lap('chemins', t);
 
@@ -144,6 +148,25 @@ const zoneGen = {
         H[j * W + i] = g + nf * r;
       }
       if (j % 400 === 399) await tick('Derrière la Porte… les pentes');
+    }
+    // le masque des chemins (cases de 4 m) : on n'y pose rien ; et, plus large, là où l'on ne taille pas de falaise
+    const masque = new Uint8Array(Math.ceil(S / 4) * Math.ceil(S / 4)), mW = Math.ceil(S / 4), pres = new Uint8Array(mW * mW);
+    for (const Ch of chemins) for (let s = 1; s < Ch.smp.length; s++) {
+      const [x0, z0] = Ch.smp[s - 1], [x1, z1] = Ch.smp[s];
+      for (let q = 0; q <= 4; q++) { const x = lerp(x0, x1, q / 4), z = lerp(z0, z1, q / 4); for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) { const a = clamp(Math.floor(x / 4) + di, 0, mW - 1), b = clamp(Math.floor(z / 4) + dj, 0, mW - 1); masque[b * mW + a] = 1; } }
+    }
+    for (let b = 0; b < mW; b++) for (let a = 0; a < mW; a++) if (masque[b * mW + a]) for (let dj = -4; dj <= 4; dj++) for (let di = -4; di <= 4; di++) { const aa = a + di, bb = b + dj; if (aa >= 0 && bb >= 0 && aa < mW && bb < mW) pres[bb * mW + aa] = 1; }
+    // les Degrés : les marches entre les paliers deviennent de vraies falaises (sauf là où passe un chemin : la rampe reste)
+    for (let j = Math.floor(0.22 * N); j <= Math.ceil(0.6 * N); j++) {
+      const v = j / N;
+      for (let i = Math.floor(0.28 * N); i <= Math.ceil(0.72 * N); i++) {
+        const u = i / N, t = smoothstep(0.58, 0.27, v) * smoothstep(0.30, 0.42, u) * (1 - smoothstep(0.62, 0.70, u));
+        if (t <= 0.01) continue;
+        if (pres[Math.min(mW - 1, (j * cell / 4) | 0) * mW + Math.min(mW - 1, (i * cell / 4) | 0)]) continue;
+        const raw = smoothstep(0.56, 0.24, v + V1Relief.ondule(u)), sN = raw * 6, f = sN - Math.floor(sN);
+        const d = (smoothstep(0.86, 0.9, f) - smoothstep(0.8, 0.93, f)) / 6 * 96 * t;
+        if (d) H[j * W + i] += d;
+      }
     }
     // les sites réservés : aplanis à la hauteur annoncée (zone.site(id).y), sauf ceux qui sont sous terre
     for (const id in V1_SITES) {
@@ -194,14 +217,9 @@ const zoneGen = {
       if (j % 500 === 499) await tick('Derrière la Porte… la cendre');
     }
     // les chemins se voient : terre battue, et les vieux pavés de la Voie
-    const masque = new Uint8Array(Math.ceil(S / 4) * Math.ceil(S / 4)), mW = Math.ceil(S / 4);
     for (const Ch of chemins) {
       const mat = Ch.P.nom === 'la Voie' ? M_COBBLE : M_DIRT;
-      for (let s = 1; s < Ch.smp.length; s++) {
-        const [x0, z0] = Ch.smp[s - 1], [x1, z1] = Ch.smp[s];
-        B.paintLine(x0, z0, x1, z1, Ch.w, mat);
-        for (let q = 0; q <= 4; q++) { const x = lerp(x0, x1, q / 4), z = lerp(z0, z1, q / 4); for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) { const a = clamp(Math.floor(x / 4) + di, 0, mW - 1), b = clamp(Math.floor(z / 4) + dj, 0, mW - 1); masque[b * mW + a] = 1; } }
-      }
+      for (let s = 1; s < Ch.smp.length; s++) { const [x0, z0] = Ch.smp[s - 1], [x1, z1] = Ch.smp[s]; B.paintLine(x0, z0, x1, z1, Ch.w, mat); }
     }
     t = lap('matieres', t);
 
@@ -238,14 +256,15 @@ const zoneGen = {
       nRuines++;
     }
     // les tertres : des tumulus et des pierres dressées
-    const TT = V1_REGIONS.tertres;
+    const TT = V1_REGIONS.tertres, tertres = [];
     for (let k = 0; k < 9; k++) {
       const a = rnd() * TAU, d = Math.sqrt(rnd()) * TT.r * S * 0.8, x = TT.x * S + Math.cos(a) * d, z = TT.z * S + Math.sin(a) * d;
       if (zoneGen.surChemin(masque, mW, x, z, 6) || !zoneGen.horsSites(x, z, 10)) continue;
-      const R0 = 7 + rnd() * 6;
+      const R0 = 7 + rnd() * 6, base = Z.heightAt(x, z);
       B.forVerts(x, z, R0 * 1.4, (i, j, kk, px, pz) => { const q = 1 - Math.hypot(px - x, pz - z) / (R0 * 1.4); if (q > 0) H[kk] += Math.sin(q * Math.PI / 2) * R0 * 0.45; });
-      const yy = Z.heightAt(x, z) + R0 * 0.45;
+      const yy = Z.heightAt(x, z);
       B.block({ x, y: yy - 2.2, z, r: rnd() * TAU }, 0, 0, 0, 0.9, 3.2 + rnd() * 1.5, 0.6, M_V1_PIERRE);
+      tertres.push({ x, z, R0, base, haut: yy });
     }
     t = lap('constructions', t);
 
@@ -299,7 +318,7 @@ const zoneGen = {
     // ------------------------------------------------------------- repères (savoir.connaitreLieu, cartes)
     for (const k of regKeys) { const R = V1_REGIONS[k]; B.landmark('zone_' + k, R.x * S, R.z * S, R.r * S * 0.7, { zone: true, name: R.nom }); }
     Z.spawn = { x: arrivee.x, y: arrivee.y, z: arrivee.z, yaw: 0 };
-    Z.v1 = { arrivee, porte: { x: fP.x, y: fP.y, z: fP.z, r: 0 }, ponts, masque, mW, REG, regKeys, C, n, ruines: nRuines, genProps: 0 };
+    Z.v1 = { arrivee, porte: { x: fP.x, y: fP.y, z: fP.z, r: 0 }, ponts, masque, mW, REG, regKeys, C, n, ruines: nRuines, tertres, genProps: 0 };
     // ------------------------------------------------------------- 4. les passes des autres (V2…V5)
     for (const P of zone.passes) {
       await tick('Derrière la Porte… ' + (P.nom || ''));
@@ -415,9 +434,17 @@ const zoneGen = {
   },
   // un pont de pierre et de bois au-dessus d'une ravine
   pont(B, p, Z) {
-    const f = { x: p.x, y: p.y, z: p.z, r: p.r }, L = p.L, w = p.w;
-    B.block(f, 0, -0.5, 0, w, 0.5, L, M_PLANKS);                        // le tablier (le long de z local)
-    for (const c of [-1, 1]) B.block(f, c * (w / 2 + 0.15), 0, 0, 0.3, 1.0, L, M_V1_PIERRE); // les parapets
+    const f = { x: p.x, y: p.y, z: p.z, r: p.r }, L = p.L, w = p.w, tablier = [];
+    // le tablier (le long de z local) et ses garde-corps ; au pont-levis, seule la travée du milieu (entre les deux
+    // piles du milieu, au-dessus du fond) se lève, en deux volées
+    const travees = p.levis ? [[-L / 2, -L / 6, false], [-L / 6, L / 6, true], [L / 6, L / 2, false]] : [[-L / 2, L / 2, false]];
+    for (const [a, b, mobile] of travees) {
+      const n0 = Z.blocks.length, lz = (a + b) / 2, l = b - a;
+      B.block(f, 0, -0.5, lz, w, 0.5, l, M_PLANKS);
+      for (const c of [-1, 1]) B.block(f, c * (w / 2 + 0.15), 0, lz, 0.3, 1.0, l, M_PLANKS);
+      if (mobile) for (const bl of Z.blocks.slice(n0)) { bl.y0 = bl.y; tablier.push(bl); }
+    }
+    p.blocs = { tablier };
     // les piles, jusqu'au fond
     for (const lz of [-L / 2 + 1, -L / 6, L / 6, L / 2 - 1]) {
       const [x, z] = B.toWorld(f, 0, lz), fond = Z.heightAt(x, z);

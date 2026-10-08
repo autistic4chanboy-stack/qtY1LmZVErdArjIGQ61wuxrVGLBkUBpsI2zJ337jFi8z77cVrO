@@ -66,7 +66,7 @@ module.exports = {
       const feux=Z.props.filter(q=>q.id==='v1_feu').map(q=>({id:q.data.id,ok:atteint(q.x,q.z,3),eau:Z.heightAt(q.x,q.z)<WL+0.3}));
       let n=0;for(let k=0;k<acc.length;k++)n+=acc[k];
       return JSON.stringify({reg,sites,feux,part:n/(N*N),arrivee:+(Z.heightAt(A.x,A.z)-WL).toFixed(1)});})()`));
-    log(`à pied depuis l'arrivée (${R.arrivee} m au-dessus de l'eau) : ${(R.part * 100).toFixed(0)} % de la Zone ; régions : ${Object.entries(R.reg).map(([k, v]) => k + (v ? '' : ' NON')).join(', ')}`);
+    log(`à pied depuis l'arrivée (${R.arrivee} m au-dessus de l'eau) : ${(R.part * 100).toFixed(0)} % de la Zone ; régions : ${Object.entries(R.reg).map(([k, v]) => k + (v ? '' : k === 'etang' ? ' (au milieu, de l’eau : on en fait le tour)' : ' NON')).join(', ')}`);
     for (const k in R.reg) if (!R.reg[k] && k !== 'etang') ko(`la région ${k} n’est pas atteinte à pied`);
     for (const s of R.sites) {
       if (!s.sous && s.eau) ko(`le site ${s.id} est dans l’eau`);
