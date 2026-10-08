@@ -86,16 +86,19 @@ Object.assign(crochetage, {
     }
     return pts;
   },
-  // les livres inscrits, lus jusqu'au bout (livres.S().fini)
+  // les livres inscrits, lus jusqu'au bout (livres.S().fini) ; ceux de la bibliothèque qui parlent de serrures (agent Y :
+  // bibliotheque2.serrures()) comptent deux
   lectures() {
     const S = this.U();
     if (!S || typeof livres === 'undefined' || !livres.S) return;
     let F = null;
     try { F = livres.S().fini || {}; } catch (e) { return; }
-    for (const id in this.livres) {
+    const L = Object.assign({}, this.livres);
+    try { if (typeof bibliotheque2 !== 'undefined' && bibliotheque2 && typeof bibliotheque2.serrures === 'function') for (const id of bibliotheque2.serrures() || []) if (!(id in L)) L[id] = 2; } catch (e) { /* rien */ }
+    for (const id in L) {
       if (!F[id] || S.lus[id]) continue;
       S.lus[id] = farm.s.day;
-      this.gagner(clamp(+this.livres[id] || 1, 1, 3) * 6, 'livre');
+      this.gagner(clamp(+L[id] || 1, 1, 3) * 6, 'livre');
     }
   },
   // la même serrure le même jour n'apprend presque plus rien
@@ -204,7 +207,7 @@ Object.assign(crochetage, {
         return;
       }
     }
-    if (b < 0.3 || J.o.exercice) return;
+    if (b < 0.3 || J.o.exercice || uDansZone()) return; // (dans la Zone, les habitants de la vallée n'entendent rien)
     for (const m of npcs.list) {
       if (!m.st.alive || m.vanished || m.hunting || m.state === 'gone') continue;
       if (m.state === 'sleep' || m.sleep) continue; // (le modèle ci-dessus)
@@ -260,6 +263,9 @@ HOOKS.primary.push((eye, basis, held, it, id) => {
   return true;
 });
 
+// ---------------------------------------------------------------- le petit jeu tourne aussi dans la Zone (agent V1 : un crochet
+// HOOKS.update marqué .zone n'y est pas suspendu ; les serrures du château, des caveaux…)
+for (const f of HOOKS.update) if (typeof f === 'function' && /crochetage\.update\(dt\)/.test(String(f))) f.zone = true;
 // ---------------------------------------------------------------- au chargement : les papiers, les poches des dormeurs, les crochets fins
 HOOKS.load.push(() => {
   if (!farm.s) return;
@@ -269,6 +275,20 @@ HOOKS.load.push(() => {
   try { uVendre('colporteur', 'crochets_fins', 240, crochetage.niveau() >= 3); } catch (e) { console.error('U : crochets fins', e); }
   if (game._u1) return;
   game._u1 = true;
+  // le carnet (sacoche) : une ligne vague sur la main, sous celles du corps et de l'esprit (12-zzzH-carnet.js)
+  const _rs = ui.renderSatchel.bind(ui);
+  ui.renderSatchel = function () {
+    _rs();
+    try {
+      if (this.satTab !== 'carnet' || !farm.s) return;
+      const t = U_PALIER_CARNET[crochetage.niveau()];
+      const body = document.querySelector('#satchel .body');
+      if (!t || !body || body.querySelector('.u-main')) return;
+      const box = body.querySelector('.h-carnet');
+      if (box) box.insertAdjacentHTML('beforeend', `<p class="u-main">${esc(t)}</p>`);
+      else body.insertAdjacentHTML('afterbegin', `<div class="h-carnet"><p class="u-main">${esc(t)}</p></div>`);
+    } catch (e) { console.error('U : carnet', e); }
+  };
   // les papiers des doubles fonds : ce qu'ils apprennent, à la première lecture
   if (typeof fouilles !== 'undefined' && fouilles.lirePapier) {
     const _lp = fouilles.lirePapier.bind(fouilles);

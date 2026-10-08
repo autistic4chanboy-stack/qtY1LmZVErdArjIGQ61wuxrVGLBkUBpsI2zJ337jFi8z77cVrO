@@ -37,6 +37,15 @@ const U_PALIER_PENSEE = [
   '(Vos mains savent des choses que vous préféreriez ne pas savoir.)',
   '(Il n’y a plus guère de serrure, dans la vallée, qui vous tienne tête.)',
 ];
+// une ligne vague en tête du carnet (sacoche), à partir du premier palier (jamais de chiffre)
+const U_PALIER_CARNET = [
+  null,
+  'Vos doigts commencent à comprendre les serrures.',
+  'Devant une serrure, vous avez la main sûre.',
+  'Une serrure ordinaire ne vous résiste plus guère.',
+  'À vous voir devant une porte, on vous croirait du métier.',
+  'Vos mains ne font plus de bruit.',
+];
 // ce qu'on apprend : par goupille calée (× la difficulté), par serrure ouverte (× la difficulté), par échec
 const U_GAINS = { goupille: 0.06, ouverte: 1.0, echec: 0.3, nuit: 3, exercice: 0.5, exerciceMax: 35, memeSerrure: 0.25 };
 

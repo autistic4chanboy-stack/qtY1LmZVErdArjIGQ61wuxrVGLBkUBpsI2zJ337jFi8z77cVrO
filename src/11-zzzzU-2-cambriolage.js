@@ -21,16 +21,21 @@
 //    fouilles.temoins / fouiller / resoudre / etiquette, HOOKS.inter.f2, game.useDoor, npcs.update (comme les
 //    gardes : on mène nous-mêmes les réveillés), npcs.schedulePlace (le réveillé reste debout), npcs.snap,
 //    talk.open (les plaintes), vol.echec / vol.reussite, HOOKS.lights (la chandelle), HOOKS.update.
-//    Si l'agent Z expose trajets.dort(n) / trajets.reveiller(n, o), ils sont préférés (voir le contrat).
+//    Si l'agent Z expose trajets (auLit, reveiller, allerA, dormir, liberer), c'est lui qui fait marcher les réveillés
+//    (voir le contrat) ; sans lui, on les mène nous-mêmes.
 //  API : crochetage.cambriolage (bruit(force, x, y, z, nature), dormeurs(), reveiller(n, src), ici, forcee(bld),
 //        maisonGardee(bld), stats()).
 // ============================================================================
 
-// un habitant dort-il dans son lit ? (Z, s'il l'expose ; sinon l'état de 11-npc.js : couché, « sleep » — celui dont la
+// les trajets de l'agent Z (trajets.auLit, reveiller, allerA, dormir), s'ils sont là
+function uZ() { try { return typeof trajets !== 'undefined' && trajets && typeof trajets.reveiller === 'function' ? trajets : null; } catch (e) { return null; } }
+// sommes-nous dans la Zone (agent V1) ? Les habitants de la vallée n'y entendent rien.
+function uDansZone() { try { return typeof zone !== 'undefined' && !!zone && !!zone.dedans; } catch (e) { return false; } }
+// un habitant dort-il dans son lit ? (Z : trajets.auLit ; sinon l'état de 11-npc.js : couché, « sleep » — celui dont la
 // routine dit qu'il dort mais qui marche encore vers son lit est éveillé)
 function uDort(n) {
   if (!n || !n.st || !n.st.alive || n.vanished || n.state === 'gone' || n.state === 'dead') return false;
-  try { if (typeof trajets !== 'undefined' && trajets && typeof trajets.dort === 'function') return !!trajets.dort(n); } catch (e) { /* l'état ci-dessous */ }
+  try { if (typeof trajets !== 'undefined' && trajets && typeof trajets.auLit === 'function') return !!trajets.auLit(n); } catch (e) { /* l'état ci-dessous */ }
   return n.state === 'sleep';
 }
 // une ligne s'accorde au genre de qui parle ([féminin, masculin])
@@ -73,11 +78,21 @@ const cambriolage = {
   maisonGardee(k) { const S = this.S(), M = S && S.maisons[k]; return !!(M && farm.s.day - M.j <= 3); },
   // ------------------------------------------------------------------ l'état d'un dormeur (pour la partie en cours seulement)
   etat(n) { return n.uS || (n.uS = { agit: 0, remueT: 0, souffleT: 1 + Math.random() * 3, ronfle: U_MODELE.sens(n.d) < 0.95 || (n.d.gender !== 'f' && (n.d.age || 30) >= 40 && Math.random() < 0.6), nuit: 0, sx: 1e9, sz: 1e9, sol: 0 }); },
-  // le plancher sous le dormeur (il est couché sur son lit, un peu plus haut)
+  // le plancher sous le dormeur (il est couché sur son lit, plus haut) : le pied de son lit, sinon le sol sous lui
   sol(n) {
     const u = this.etat(n);
-    if (Math.abs(u.sx - n.x) + Math.abs(u.sz - n.z) > 0.3) { u.sx = n.x; u.sz = n.z; u.sol = game.world.groundAt(n.x, n.z, n.y + 0.1, 0.4); }
+    if (Math.abs(u.sx - n.x) + Math.abs(u.sz - n.z) > 0.3) {
+      u.sx = n.x; u.sz = n.z;
+      const lit = this.litPres(n);
+      u.sol = lit ? lit.y : game.world.groundAt(n.x, n.z, n.y + 0.1, 0.4);
+    }
     return u.sol;
+  },
+  // le lit (objet posé) sous un dormeur, ou tout près
+  litPres(n) {
+    let lit = null, bd = 1.6;
+    for (const L of (typeof sommeil !== 'undefined' && sommeil.lits) || []) { const q = L.q, d = Math.hypot(q.x - n.x, q.z - n.z); if (d < bd && n.y - q.y > -0.6 && n.y - q.y < 1.6) { bd = d; lit = q; } }
+    return lit;
   },
   sens(n) { let k = U_MODELE.sens(n.d); if (n.st.malade) k *= 1.3; return k; },
   heure(n, h) {
@@ -89,9 +104,17 @@ const cambriolage = {
   garde(n) { const u = this.etat(n); return this.maisonGardee(n.d.home) || u.nuit === farm.s.day; },
 
   // ------------------------------------------------------------------ un bruit : qui l'entend ? (renvoie le premier réveillé, ou null)
-  // nature : 'serrure', 'porte', 'pas', 'grince', 'saut', 'fouille', 'chute', 'prendre', 'poche', 'autre'
+  // bruit(force, x, y, z, nature) ou bruit(force, { x, y?, z, quoi? }) ; force : 1 = un crochet qui ripe ;
+  // nature : 'serrure', 'porte', 'pas', 'grince', 'saut', 'fouille', 'chute', 'prendre', 'poche', 'autre'…
   bruit(force, x, y, z, nature) {
-    if (!(force > 0) || !farm.s || !game.world || game.sleeping) return null;
+    if (x && typeof x === 'object') { const o = x; nature = o.quoi || o.nature || 'autre'; x = o.x; z = o.z; y = o.y ?? (game.player ? game.player.pos[1] : 0); }
+    if (!(force > 0) || !farm.s || !game.world || game.sleeping || !(isFinite(x) && isFinite(z))) return null;
+    if (!isFinite(y)) y = game.player.pos[1];
+    // dans la Zone : les guetteurs de V1 entendent (portée en mètres) ; les dormeurs de la vallée, non
+    if (uDansZone()) {
+      try { if (typeof furtif !== 'undefined' && furtif && typeof furtif.bruit === 'function') furtif.bruit(x, y, z, Math.round((3 + force * 11) * 10) / 10, nature); } catch (e) { /* rien */ }
+      return null;
+    }
     const h = npcs.hour(), kJ = this.ici ? this.ici.k : this.ou();
     let premier = null;
     for (const n of npcs.list) {
@@ -110,8 +133,6 @@ const cambriolage = {
       if (r < c.remue) this.remuer(n);
     }
     if (this.ici && premier) this.ici.reveil = true;
-    // (dans la Zone et ailleurs, les guetteurs de l'agent V1 entendent aussi, s'ils existent)
-    try { if (typeof furtif !== 'undefined' && furtif && typeof furtif.bruit === 'function') furtif.bruit(x, z, force, nature); } catch (e) { /* rien */ }
     return premier;
   },
   dormeursAutour(x, z, R) { return npcs.list.filter((n) => Math.abs(n.x - x) < R && Math.abs(n.z - z) < R && uDort(n) && !n.uEveil && Math.hypot(n.x - x, n.z - z) < R); },
@@ -136,18 +157,23 @@ const cambriolage = {
   // ------------------------------------------------------------------ il se réveille
   reveiller(n, src) {
     if (!n || n.uEveil || !n.st.alive) return;
-    const S = this.S(), w = game.world, u = this.etat(n), B = w.bld[n.d.home];
+    const S = this.S(), w = game.world, u = this.etat(n), B = w.bld[n.d.home], Z = uZ(), k = n.inside || n.d.home;
     S.reveils = (S.reveils || 0) + 1;
     u.nuit = farm.s.day; u.agit = 1;
-    // Z peut le lever à sa façon ; on le mène ensuite nous-mêmes le temps de l'affaire
-    try { if (typeof trajets !== 'undefined' && trajets && typeof trajets.reveiller === 'function') trajets.reveiller(n, { duree: 120, par: 'U', x: src.x, z: src.z }); } catch (e) { console.error('U : trajets.reveiller', e); }
-    n.sleep = false; n.state = 'idle'; n.move = 0; n.path = []; n.pi = 0; n.run = false;
-    this.debout(n, B);
+    n.uEveil = { phase: 'reveil', t: game.time, x: src.x, z: src.z, k, cherche: 10 + Math.random() * 10, regT: 0, dit: false, z: !!Z };
+    n.uEveilT = game.time + 120;
+    if (Z) {
+      // Z le lève au pied de son lit, et le fera marcher (trajets.allerA) ; nous, on regarde ce qu'il voit
+      let ok = false;
+      try { ok = Z.reveiller(n, { duree: 4, par: 'U' }) !== false; } catch (e) { console.error('U : trajets.reveiller', e); }
+      if (!ok) { n.uEveil = null; n.uEveilT = 0; return; }
+    } else {
+      n.sleep = false; n.state = 'idle'; n.move = 0; n.path = []; n.pi = 0; n.run = false;
+      this.debout(n, B);
+      n.goal = { node: B ? B.nMid : -1, x: n.x, z: n.z, pose: null, bld: n.inside || null };
+    }
     n.heading = Math.atan2(src.x - n.x, src.z - n.z);
     if (!this.ici && !S.plaintes[n.id]) S.plaintes[n.id] = { j: farm.s.day, k: 'bruit' };
-    n.uEveilT = game.time + 120;
-    n.uEveil = { phase: 'reveil', t: game.time, x: src.x, z: src.z, k: n.inside || n.d.home, cherche: 10 + Math.random() * 10, regT: 0, dit: false, fini: false };
-    n.goal = { node: B ? B.nMid : -1, x: n.x, z: n.z, pose: null, bld: n.inside || null };
     this.suivis.add(n);
     sound.uDraps && sound.uDraps(n, 1.3);
     // un garde : debout tout de suite (11-zzzzC1 : il reste éveillé le temps de l'affaire)
@@ -156,9 +182,7 @@ const cambriolage = {
 
   // debout, à côté de son lit (du côté de la pièce), sur le plancher
   debout(n, B) {
-    const w = game.world, y0 = this.sol(n);
-    let lit = null, bd = 1.6;
-    for (const L of (typeof sommeil !== 'undefined' && sommeil.lits) || []) { const q = L.q, d = Math.hypot(q.x - n.x, q.z - n.z); if (d < bd && Math.abs(q.y - y0) < 1.2) { bd = d; lit = q; } }
+    const w = game.world, y0 = this.sol(n), lit = this.litPres(n);
     const cx = B && B.f ? B.f.x : n.x, cz = B && B.f ? B.f.z : n.z, cand = [];
     if (lit) {
       const T = (typeof LIT_TAILLE !== 'undefined' && LIT_TAILLE[lit.id]) || [0.53, 1.03], c = Math.cos(lit.r || 0), s = Math.sin(lit.r || 0), e = T[0] + 0.42;
@@ -227,30 +251,42 @@ const cambriolage = {
     const c = Math.cos(B.f.r), s = Math.sin(B.f.r);
     return [B.f.x + cx * c + cz * s, B.f.z - cx * s + cz * c];
   },
+  // (chaque image, pour ceux qu'on a réveillés) ; E.z : c'est Z (trajets) qui les fait marcher, nous ne faisons que regarder
   piloter(n, dt, w) {
-    const E = n.uEveil, p = game.player, now = game.time;
+    const E = n.uEveil, p = game.player, now = game.time, Z = E && E.z ? uZ() : null;
     if (!E || !n.st.alive || n.vanished) { this.lacher(n); return; }
-    n.dist = Math.hypot(n.x - p.pos[0], n.z - p.pos[2]);
-    n.bubbleT = Math.max(0, (n.bubbleT || 0) - dt); n.hurtT = Math.max(0, (n.hurtT || 0) - dt);
+    if (!Z) { n.dist = Math.hypot(n.x - p.pos[0], n.z - p.pos[2]); n.bubbleT = Math.max(0, (n.bubbleT || 0) - dt); n.hurtT = Math.max(0, (n.hurtT || 0) - dt); }
     // le regard, quatre fois par seconde
     E.regT -= dt;
     if (E.phase !== 'face' && E.regT <= 0) { E.regT = 0.25; if (this.voit(n)) { this.vu(n); return; } }
     if (E.phase === 'reveil') {
-      n.move = lerp(n.move, 0, Math.min(1, dt * 6)); n.state = 'idle';
-      n.heading = turnToward(n.heading, Math.atan2(E.x - n.x, E.z - n.z), dt * 2);
+      if (!Z) {
+        n.move = lerp(n.move, 0, Math.min(1, dt * 6)); n.state = 'idle';
+        n.heading = turnToward(n.heading, Math.atan2(E.x - n.x, E.z - n.z), dt * 2);
+      }
       if (!E.dit && now - E.t > 0.7) { E.dit = true; npcs.say(n, pick(U_REVEIL_DOUTE), 2.6); }
-      if (now - E.t > 1.8) { E.phase = 'cherche'; E.t1 = now; [E.cx, E.cz] = this.dansMaison(n, E.x, E.z); }
+      if (now - E.t > 1.8) {
+        E.phase = 'cherche'; E.t1 = now; [E.cx, E.cz] = this.dansMaison(n, E.x, E.z);
+        if (Z) { try { Z.allerA(n, E.cx, E.cz, { duree: E.cherche, bld: E.k, raison: 'U : un bruit' }); } catch (e) { console.error('U : trajets.allerA', e); } }
+      }
       return;
     }
     if (E.phase === 'cherche') {
-      const la = this.mener(n, E.cx, E.cz, dt, w, 1.05);
-      if (la) n.heading += dt * 0.9 * Math.sin(now * 0.8 + n.id.length); // il regarde autour de lui
-      if (now - E.t1 > E.cherche) { E.phase = 'retour'; npcs.say(n, uGenre(pick(U_RECOUCHE), n), 2.6); this.lacher(n, 0); }
+      if (!Z) {
+        const la = this.mener(n, E.cx, E.cz, dt, w, 1.05);
+        if (la) n.heading += dt * 0.9 * Math.sin(now * 0.8 + n.id.length); // il regarde autour de lui
+      }
+      if (now - E.t1 > E.cherche) {
+        E.phase = 'retour'; npcs.say(n, uGenre(pick(U_RECOUCHE), n), 2.6);
+        if (Z) { try { Z.dormir(n); } catch (e) { console.error('U : trajets.dormir', e); } }
+        this.lacher(n, 0);
+      }
       return;
     }
     if (E.phase === 'face') {
       // il se jette sur vous (une fois), puis il vous laisse fuir en criant
-      const d = n.dist;
+      const d = Math.hypot(n.x - p.pos[0], n.z - p.pos[2]);
+      n.dist = d;
       if (now - E.t2 > 9 || d > 16) { this.lacher(n, 90); return; }
       if (d > 1.3) { this.mener(n, p.pos[0], p.pos[2], dt, w, 3.2); return; }
       n.move = 0; n.state = 'idle'; n.heading = Math.atan2(p.pos[0] - n.x, p.pos[2] - n.z);
@@ -268,12 +304,15 @@ const cambriolage = {
     }
     this.lacher(n);
   },
-  // on cesse de le mener : il reste debout (sec) ou se recouche (0)
+  // on cesse de le suivre : il reste debout (sec) ou se recouche (0)
   lacher(n, sec) {
+    const zMene = !!(n.uEveil && n.uEveil.z && uZ());
     this.suivis.delete(n);
     if (n.uEveil) n.uEveil = null;
     n.uEveilT = sec ? game.time + sec : 0;
-    n.goal = null; n.path = []; n.pi = 0; n.run = false; n.attackAnim = 0;
+    n.run = false; n.attackAnim = 0;
+    if (zMene) return; // (Z le mène : trajets.dormir, ou sa routine)
+    n.goal = null; n.path = []; n.pi = 0;
     if (!n.inside && this.dans(n.d.home, n.x, n.z)) n.inside = n.d.home;
     this.retours.set(n, game.time + (sec || 0));
   },
@@ -282,7 +321,7 @@ const cambriolage = {
   recoucher() {
     const now = game.time;
     for (const [n, t0] of this.retours) {
-      if (!n.st.alive || n.vanished || n.uEveil || uDort(n)) { this.retours.delete(n); continue; }
+      if (!n.st.alive || n.vanished || n.uEveil || uDort(n) || uZ()) { this.retours.delete(n); continue; } // (Z couche les siens)
       if (now < t0 + 3) continue;
       const G = n.goal;
       if (!G || G.pose !== 'lie') { if (now > t0 + 240) this.retours.delete(n); continue; }
@@ -344,8 +383,11 @@ const cambriolage = {
     // et lui : un garde vous poursuit (s'il vous a reconnu, le crime est su : 11-zzzzC1 mène la suite) ; un costaud
     // se jette sur vous ; les autres fuient en criant
     if (uEstGarde(n)) { this.lacher(n, 120); if (reconnu) { n.poursuite = now + 18; n.vuT = now; n.fleeT = 0; } }
-    else if (brave) { E.phase = 'face'; E.t2 = now; }
-    else { this.lacher(n, 100); n.fleeT = 5 + Math.random() * 2; n.run = true; }
+    else if (brave) {
+      // (c'est nous qui le menons, ces quelques secondes : Z le lâche)
+      if (E.z) { const Z = uZ(); try { if (Z && Z.liberer) Z.liberer(n); } catch (e) { /* rien */ } E.z = false; n.sleep = false; n.state = 'idle'; n.path = []; n.pi = 0; }
+      E.phase = 'face'; E.t2 = now;
+    } else { this.lacher(n, 100); n.fleeT = 5 + Math.random() * 2; n.run = true; }
   },
   // pris sur le fait, près de la maison, par un garde (ou par celui qu'on a réveillé, revenu voir)
   flagrantDelit() {
@@ -499,6 +541,7 @@ const cambriolage = {
   },
   // la porte (game.useDoor) : l'ouvrir, la refermer
   bruitPorte(dr, ouverte) {
+    if (uDansZone()) return; // (dans la Zone, V1 fait déjà entendre les portes)
     const P = crochetage.palier(), p = game.player;
     const f = (ouverte ? U_BRUITS.porte : U_BRUITS.claque) * (0.6 + 0.4 * P.bruit) * (p.crouch > 0.5 ? 0.8 : 1);
     this.bruit(f, dr.x, dr.y ?? p.pos[1], dr.z, 'porte');
@@ -543,10 +586,11 @@ crochetage.cambriolage = cambriolage;
 {
   const _upd = npcs.update.bind(npcs);
   npcs.update = function (dt, w, c) {
-    const U = [];
-    for (const n of cambriolage.suivis) if (n.uEveil && !n.hunting && n.st.alive) { n.hunting = true; U.push(n); }
+    const U = [], tous = [...cambriolage.suivis];
+    // (ceux que Z fait marcher restent dans sa mise à jour ; les autres, c'est nous qui les menons)
+    for (const n of tous) if (n.uEveil && !n.uEveil.z && !n.hunting && n.st.alive) { n.hunting = true; U.push(n); }
     try { _upd(dt, w, c); } finally { for (const n of U) n.hunting = false; }
-    for (const n of U) { try { cambriolage.piloter(n, dt, w); } catch (e) { console.error('U : piloter', e); cambriolage.lacher(n, 30); } }
+    for (const n of tous) { if (!n.uEveil || (n.uEveil.z ? false : !U.includes(n))) continue; try { cambriolage.piloter(n, dt, w); } catch (e) { console.error('U : piloter', e); cambriolage.lacher(n, 30); } }
   };
   const _sp = npcs.schedulePlace.bind(npcs);
   npcs.schedulePlace = function (n, h) {
@@ -557,7 +601,11 @@ crochetage.cambriolage = cambriolage;
   // (tout le monde à sa place : chargement, réveil du joueur, nuit rouge) : on ne mène plus personne
   const _snap = npcs.snap.bind(npcs);
   npcs.snap = function (w, first) {
-    for (const n of cambriolage.suivis) { n.uEveil = null; n.uEveilT = 0; }
+    const Z = uZ();
+    for (const n of cambriolage.suivis) {
+      if (Z && n.uEveil && n.uEveil.z) { try { Z.liberer(n); } catch (e) { /* rien */ } } // (l'ordre « va voir » de Z)
+      n.uEveil = null; n.uEveilT = 0;
+    }
     cambriolage.suivis.clear(); cambriolage.retours.clear();
     for (const n of npcs.list) if (n.uEveilT) n.uEveilT = 0;
     return _snap(w, first);
