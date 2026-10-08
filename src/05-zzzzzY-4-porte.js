@@ -1,0 +1,99 @@
+// ============================================================================
+//  LA BIBLIOTHÈQUE, SECONDE PARTIE (agent Y) — les livres : la Porte et les
+//  Terres d'Avant (de biais : la Zone de V1), et le reste des rayons.
+//  Voir 05-zzzzzY-0-cle.js. (Les réponses à la question du bibliothécaire sont
+//  dans « Le portier qui ne dormait jamais », « Ce qu’on a écrit de la Grande
+//  Porte » et le « Journal d’un bibliothécaire » : Y2_QUESTIONS.)
+// ============================================================================
+y2Livres({
+  // ------------------------------------------------------------------ contes et légendes
+  y_portier: {
+    rayon: 'contes', titre: 'Le portier qui ne dormait jamais', auteur: 'conte de la Porte, tel qu’on le dit à Clairpré', col: '#3a3a4a',
+    desc: 'Le conte du temps où la Grande Porte n’avait pas de clé, mais un portier, et de ce qui arriva quand il s’endormit.',
+    pages: [
+      { titre: 'Le portier', texte: 'Au temps où la Porte n’avait pas encore de clé, elle avait un portier. C’était un grand homme maigre, qui se tenait devant elle jour et nuit et ne laissait passer que ceux qui revenaient. Ceux qui voulaient seulement partir, il les renvoyait chez eux avec une tape sur l’épaule.\n\nIl ne dormait jamais. Pour cela, disent les vieux, sa mère lui avait mis dans la poche, quand il était petit, un caillou de la Porte : tant qu’il l’avait sur lui, le sommeil glissait dessus comme la pluie sur une tuile.' },
+      { titre: 'Le voyageur', texte: 'Un soir vint un voyageur qui voulait passer. Il n’avait rien à faire de l’autre côté ; il voulait voir, c’est tout. Le portier refusa. Le voyageur revint le lendemain avec du vin, le surlendemain avec une fille, et le jour d’après avec de l’or. Le portier refusa tout.\n\nAlors le voyageur, qui était malin, lui vola le caillou dans sa poche pendant qu’il regardait le ciel. Le portier s’endormit debout, pour la première fois de sa vie, et le voyageur passa.' },
+      { titre: 'La clé', texte: 'Le portier dormit sept ans. Quand il se réveilla, la Porte était fermée, et il ne savait plus comment l’ouvrir. On fit venir les forgerons de toute la vallée ; ils ne purent rien. On fit venir un vieux des Aëlim, ou des nains, selon qui raconte, et il forgea une clé avec le caillou, que le voyageur avait laissé tomber en passant.\n\nLa clé ouvrit. Le voyageur, lui, ne revint jamais. On dit que c’est pour cela que la clé revient toujours : elle cherche encore celui qui a pris son caillou, et elle rentre bredouille.' },
+      { titre: 'Ce qu’on en dit', texte: 'Les vieux de Clairpré disent aux enfants : on ne passe pas une porte pour voir.\n\nEt ils disent aussi, plus bas, quand les enfants sont couchés : le portier n’est pas mort. Il s’est seulement mis à dormir ailleurs, quelque part dans un livre, et c’est pour cela que les bibliothécaires ont le sommeil si léger.' },
+    ] },
+  y_ver_pic: {
+    rayon: 'contes', titre: 'Le Ver du Pic', auteur: 'conte des bergers de l’estive', col: '#4a2a1a',
+    desc: 'Ce que les bergers racontent de la bête qui veille sur les Terres d’Avant, et du seul d’entre eux qui l’ait trompée.',
+    pages: [
+      { titre: 'Le Ver', texte: 'De l’autre côté de la Porte, dans les Terres d’Avant, il y a une montagne plus haute que les autres, et sur la montagne, un Ver. Pas un serpent : un Ver, c’est-à-dire une bête si vieille qu’elle a eu le temps de devenir autre chose.\n\nIl a des ailes comme les toiles d’un moulin, une peau comme de l’ardoise mouillée, et des yeux qui ne clignent jamais. Il ne dort pas sur son or, comme dans les contes des villes. Il veille dessus, et son or, c’est le pays tout entier.' },
+      { titre: 'Ce qu’il fait', texte: 'Le jour, il se tient sur sa montagne et tourne la tête, lentement, d’un bout du pays à l’autre, comme un berger qui compte. Parfois il s’envole, fait le tour de ses terres, et se pose ailleurs, sur un rocher, une tour, une falaise, pour regarder d’un autre côté.\n\nQuand il passe, son ombre couche l’herbe. Ce qui bouge sous son regard, il le voit. Ce qui court, il le prend. Ce qui reste immobile sous une pierre, il ne le voit pas, ou il fait semblant.' },
+      { titre: 'Le berger qui le trompa', texte: 'Un berger de chez nous passa la Porte pour chercher une brebis perdue. Il entendit le Ver venir, un bruit de grand vent, et il se coucha dans un fossé, sous une touffe d’herbe, sans respirer. L’ombre passa sur lui, revint, passa encore. Le Ver se posa tout près, sur un vieux mur, et regarda longtemps. Puis il cracha son feu sur un buisson qui avait bougé dans le vent, et s’en retourna.\n\nLe berger revint sans la brebis, mais avec ses deux jambes. Il disait : « Il voit tout ce qui se montre. Ne te montre pas. »' },
+      { titre: 'Pourquoi il veille', texte: 'Les vieux ne sont pas d’accord. Les uns disent qu’il garde les Terres d’Avant contre nous. Les autres, qu’il garde la vallée contre ce qui est là-bas, et qu’il est le dernier gardien d’une porte plus grande que la nôtre.\n\nUne seule chose est sûre : il ne passe jamais la Grande Porte. On ne sait pas s’il ne le peut pas, ou s’il ne le veut pas.' },
+    ] },
+  y_comptines: {
+    rayon: 'contes', titre: 'Comptines, rondes et formulettes', auteur: 'recueillies dans la cour de l’école de Valbrume', col: '#8a6a3a',
+    desc: 'Ce que chantent les enfants de la vallée en sautant à la corde, et qu’ils tiennent de leurs grands-mères.',
+    pages: [
+      { titre: 'Pour compter', texte: 'Un, deux, trois, le loup n’est pas là ;\nQuatre, cinq, six, il est chez la nourrice ;\nSept, huit, neuf, il mange un œuf ;\nDix, onze, douze, il dort dans la bouse ;\nTreize…\n\n(Les enfants ne disent jamais treize. Ils se taisent, se regardent, et celui qui a ouvert la bouche le premier est le loup. On m’a dit que la règle était très ancienne. On ne m’a pas dit pourquoi l’on se tait.)' },
+      { titre: 'Pour sauter à la corde', texte: 'Petit voleur, passe-muraille,\nQu’as-tu pris dans ma paille ?\nUn dé d’argent, une cuillère,\nLe bonnet de ma grand-mère.\nPetit voleur, ne te retourne pas :\nSi je te vois, tu t’en iras.\n\n(Celle qui manque la corde ferme les yeux et compte jusqu’à douze pendant que les autres se cachent. Les petites disent que c’est ainsi qu’on garde ses affaires : en les regardant.)' },
+      { titre: 'Pour la Porte', texte: 'Grande Porte, grande Porte,\nQui te ferme et qui t’emporte ?\nFermée le jour des morts,\nFermée quand la brume dort,\nFermée quand tes feux sont morts.\nTa clé dort au fond d’un livre :\nQui la prend devra la suivre.\n\n(Une ronde. À la fin, tout le monde s’accroupit sans un mot ; la dernière debout est « prise ». Les mères n’aiment pas qu’on la chante après le coucher du soleil.)' },
+      { titre: 'Pour s’endormir', texte: 'Dors, petit, la nuit est noire,\nLe loup est parti boire,\nLa Dame est dans son lac,\nLe Dormeur est dans son sac.\nDors, petit, et ne réponds pas\nÀ la voix qui dit ton nom tout bas.\n\n(Une berceuse. On la chante à voix très basse. Le dernier vers est le seul que toutes les mères de la vallée chantent pareil.)' },
+    ] },
+  // ------------------------------------------------------------------ chroniques de la vallée
+  y_porte_chronique: {
+    rayon: 'chroniques', titre: 'Ce qu’on a écrit de la Grande Porte', auteur: 'extraits des registres, réunis par Hilaire Bosc, bibliothécaire', col: '#3a3830',
+    desc: 'Tout ce que les registres de la ville, de l’abbaye et de la bibliothèque ont dit de la Porte en sept siècles. Ce n’est pas beaucoup.',
+    pages: [
+      { titre: 'Préface du compilateur', texte: 'J’ai réuni ici tout ce que j’ai trouvé d’écrit sur la Grande Porte, dans les registres de la ville, de l’abbaye et de cette maison. Ce n’est pas beaucoup.\n\nLes gens d’ici parlent volontiers de la Porte ; ils l’écrivent peu. On dirait qu’ils craignent qu’elle ne les lise.' },
+      { titre: 'Extraits, 1121–1704', texte: '1121, chronique de Montrevel : « Les frères sont allés jusqu’à la porte de l’est, que ceux du pays disent plus vieille que leurs pères. Ils ont prié devant. Elle ne s’est pas ouverte. »\n\n1387, acte de la seigneurie : « La porte des monts n’est à personne ; le seigneur n’y lève pas de droit. »\n\n1561, registre des baptêmes : « Baptisé un enfant trouvé sur le seuil de la Grande Porte, côté vallée, emmailloté dans un linge qu’aucune femme d’ici n’a su tisser. »\n\n1704, délibération du conseil : « La clé restera à la bibliothèque, puisqu’elle y revient. »' },
+      { titre: 'Le retour', texte: 'De tous les usages de la Porte, un seul est constant dans les textes. Quand quelqu’un revient de l’autre côté, celui qui l’attend lui dit, avant toute autre parole : « Rien n’est entré avec toi. »\n\nAinsi le note en 1650 le bibliothécaire Fabre l’aîné ; ainsi le répète un voyageur de 1782 ; ainsi le disait encore, en 1839, le garde qui attendait M. de Sorbiers, et qui l’attendit en vain. Personne n’explique la formule. Tout le monde la dit.' },
+      { titre: 'Les jours', texte: 'Elle n’est pas toujours fermée, et pas toujours ouverte. Les registres s’accordent sur trois choses. Le jour des morts, elle reste close du matin au soir. Les matins de brume, elle ne s’ouvre qu’une fois la brume levée. Et certaines nuits, sans qu’on sache lesquelles d’avance, ses feux s’éteignent et sa barre retombe : alors il faut la clé, ou attendre le jour.\n\nDe l’autre côté, disent ceux qui sont revenus, elle s’ouvre toujours. On sort des Terres d’Avant quand on veut. C’est d’y entrer qui se mérite.' },
+    ] },
+  y_noms_lieux: {
+    rayon: 'chroniques', titre: 'Les noms de lieux de la vallée', auteur: 'par l’abbé Cabrol, curé de Clairpré', col: '#6a5040',
+    desc: 'D’où viennent les noms de la vallée, et pourquoi certains lieux n’en ont pas.',
+    pages: [
+      { titre: 'Valbrume', texte: 'Valbrume est, dit-on, le val des brumes, et il suffit d’un matin d’octobre au bord du lac pour s’en convaincre. Les plus vieux actes écrivent pourtant « Vaubrun », puis « Valbrun », qui serait le val du brun, c’est-à-dire de l’ours, ou d’un homme qu’on appelait ainsi.\n\nLes gens de la ville préfèrent la brume. Elle leur ressemble davantage : elle vient tous les matins, ne dit rien, et s’en va quand on la regarde.' },
+      { titre: 'Clairpré, la Combe, les Planches', texte: 'Clairpré est le pré clair, défriché par les moines de Montrevel au milieu d’une forêt qui n’existe plus. La Combe Perdue s’appelait la Combe tout court ; elle a été « perdue » deux fois, disent les vieux : une fois au jeu, par un seigneur qui l’avait misée aux dés, et une fois sous la neige, l’hiver où personne n’en est redescendu.\n\nLes Planches tirent leur nom des planches qu’on posait sur la vase pour aller d’une maison à l’autre, avant qu’on bâtisse le quai.' },
+      { titre: 'Ce qui n’a pas de nom', texte: 'Certains lieux de la vallée n’ont jamais eu de nom, ou l’ont perdu. On dit « la Porte », comme on dit « la mer » au bord de la mer : il n’y en a pas d’autre.\n\nCe qu’il y a derrière, les gens l’appellent les Terres d’Avant, et quand on leur demande avant quoi, ils haussent les épaules. Un vieux de la Combe m’a répondu : « Avant nous, pardi. » Puis, après un temps : « Et peut-être après. »' },
+    ] },
+  y_proces_fileuse: {
+    rayon: 'chroniques', titre: 'Le procès de la Fileuse (1609)', auteur: 'extraits du greffe du bailliage', col: '#4a4048',
+    desc: 'Une veuve de la Combe accusée d’avoir fait geler les blés à la Saint-Jean : l’accusation, l’interrogatoire, et ce qu’on trouva le lendemain.',
+    pages: [
+      { titre: 'L’accusation', texte: 'L’an 1609, le dix-septième jour de juin, par-devant nous, juge du bailliage, a comparu Anne Vigier, veuve, demeurant au bout de la Combe, accusée par trois voisins d’avoir fait geler les blés à la Saint-Jean.\n\nLes témoins déclarent l’avoir vue filer la nuit, à sa fenêtre ouverte, quelque chose de blanc qui n’était ni laine ni lin, et que le froid est tombé sur la Combe la nuit même où la fille d’une voisine a cassé le fil.' },
+      { titre: 'L’interrogatoire', texte: 'Interrogée sur ce qu’elle filait, a répondu : « L’hiver, monseigneur. Il faut bien que quelqu’un le couse. »\n\nInterrogée sur la mort des blés, a répondu qu’elle n’y était pour rien, et que c’était la petite qui avait voulu essayer.\n\nInterrogée sur ses complices, a répondu qu’elles étaient nombreuses, et vieilles, et qu’on les trouverait dans toutes les vallées, à la fenêtre, les nuits de neige.' },
+      { titre: 'Le jugement', texte: 'Ordonné qu’elle sera conduite le lendemain au siège du bailliage pour y être jugée plus avant.\n\nLe lendemain, les sergents ont trouvé la maison vide, la fenêtre ouverte, et sur le rouet un fil blanc, très fin, qui ne fondait pas au soleil. On l’a porté au greffe. Il est toujours dans le dossier, enroulé sur un bout de bois. Il fait froid dans la pièce où on le garde.' },
+    ] },
+  // ------------------------------------------------------------------ mémoires
+  y_institutrice: {
+    rayon: 'memoires', titre: 'Mémoires d’une institutrice de campagne', auteur: 'Augustine Perrin, trente et un ans à l’école de Clairpré', col: '#6a4a5a',
+    desc: 'Les enfants de la vallée, leurs dessins, leurs jeux, et ce qu’une institutrice a préféré ne pas leur demander.',
+    pages: [
+      { titre: 'L’école de Clairpré', texte: 'J’ai fait la classe à Clairpré pendant trente et un ans, dans une salle qui sentait le poêle, l’encre et la laine mouillée. J’ai eu des enfants doués, des enfants paresseux, des enfants qui venaient pieds nus et repartaient avant la moisson.\n\nJ’ai appris plus d’eux qu’ils n’ont appris de moi, et je ne le dis pas par modestie.' },
+      { titre: 'Les dessins', texte: 'Les enfants de la vallée dessinent tous la même chose quand on les laisse faire : des maisons, des bêtes, le lac, et une grande porte au bord de la feuille, toujours au bord, à droite, à l’est. Je ne leur ai jamais demandé de la dessiner.\n\nUn petit garçon, une année, ne dessinait que des fenêtres, des dizaines de fenêtres, avec quelqu’un derrière chacune. Je l’ai montré au médecin. Le médecin a gardé les dessins.' },
+      { titre: 'Le jeu de la clé', texte: 'Ils ont un jeu, dans la cour, que je n’ai vu nulle part ailleurs. L’un d’eux cache un caillou blanc dans un livre de la classe ; les autres doivent le trouver sans ouvrir plus de trois livres, et sans que le maître les voie. Ils appellent cela « jouer à la clé ».\n\nCelui qui le trouve dit : « Je l’ai, je la rendrai. » Celui qui ne la rend pas avant la cloche doit rester seul dans la classe pendant que les autres sortent. Les petits ont très peur de rester seuls dans la classe. Je ne leur ai jamais demandé pourquoi.' },
+    ] },
+  // ------------------------------------------------------------------ histoire naturelle
+  y_simples: {
+    rayon: 'nature', titre: 'Les simples', auteur: 'propos de la mère Josèphe, guérisseuse, recueillis par sa nièce', col: '#4a6a3a',
+    desc: 'Les herbes qui soignent, celles qui tuent, et une qu’on ne trouve jamais.',
+    pages: [
+      { titre: 'Ce qui soigne', texte: 'La camomille pour le ventre et pour dormir. Le tilleul pour les nerfs. Le sureau : les fleurs pour la fièvre, l’écorce pour rien de bon. L’ortie pour le sang, la sauge pour la gorge, la menthe pour l’haleine et pour l’oubli.\n\nLe millepertuis se cueille la veille de la Saint-Jean, avant le lever du soleil. Il chasse la tristesse et les mauvais rêves, et il saigne rouge quand on écrase sa fleur.' },
+      { titre: 'Ce qui tue', texte: 'La belladone aux fruits noirs et luisants, que les enfants prennent pour des cerises. La ciguë, qui sent la souris. La digitale, qui soigne le cœur à une goutte et l’arrête à deux. L’if, dont tout est poison, sauf la chair rouge du fruit.\n\nJe ne dirai pas les doses. Ceux qui ont besoin de les savoir les savent déjà, et ceux qui veulent les savoir ne devraient pas.' },
+      { titre: 'L’herbe qui égare', texte: 'Il y a dans les prés une herbe qu’on ne voit pas : on marche dessus, et l’on se perd. On ne reconnaît plus le chemin qu’on fait depuis l’enfance ; on tourne jusqu’à la nuit.\n\nPour s’en défaire, il faut retourner sa veste, ou s’asseoir et attendre qu’une bête passe, et la suivre. Je n’ai jamais trouvé cette herbe. Je me suis perdue trois fois.' },
+    ] },
+  // ------------------------------------------------------------------ almanachs
+  y_etoiles: {
+    rayon: 'almanachs', titre: 'Les étoiles des bergers', auteur: 'ce que les bergers de l’estive appellent le ciel, noté par un abonné de l’Observatoire', col: '#22304a',
+    desc: 'Les noms que les bergers donnent aux étoiles, et une figure du ciel qu’aucune carte ne connaît.',
+    pages: [
+      { titre: 'Les noms d’ici', texte: 'Les bergers de l’estive ne connaissent pas les noms des savants. Ils ont les leurs. Le Chariot, ils l’appellent la Charrue ; les trois étoiles en ligne d’Orion, le Râteau ; les Pléiades, la Poussinière, comme partout.\n\nL’étoile du soir, qui est une planète, ils l’appellent la Bergère, parce qu’elle rentre les étoiles comme on rentre les bêtes.' },
+      { titre: 'La Clé', texte: 'Il y a en hiver, au-dessus des monts de l’est, une petite figure qu’aucun livre ne nomme : un anneau de trois étoiles et une ligne qui descend, comme une clé posée de travers. Les bergers l’appellent la Clé. Ils disent que, lorsqu’elle se couche droit derrière la Grande Porte, il vaut mieux ne pas être dehors.\n\nJe l’ai cherchée sur les cartes du ciel de l’Observatoire. Elle n’y est pas. Elle est pourtant au-dessus de ma tête en ce moment même.' },
+      { titre: 'Les étoiles qui tombent', texte: 'Quand une étoile tombe, on fait un vœu, en ville. Dans la vallée, on se tait, et l’on compte jusqu’à ce qu’elle touche la terre. Si l’on arrive à treize, on va voir le lendemain matin, et l’on trouve parfois dans l’herbe une poussière qui brille encore.\n\nLes bergers la ramassent dans un mouchoir et la portent à l’alchimiste de la ville. Il les remercie, et ne dit pas ce qu’il en fait.' },
+    ] },
+  y_almanach_veillees: {
+    rayon: 'almanachs', titre: 'Almanach des veillées', auteur: 'devinettes, énigmes et charades, imprimé chez la veuve Granger', col: '#7a4a2a',
+    desc: 'De quoi occuper les longues soirées d’hiver, avec les réponses à la fin, pour ceux qui n’ont pas la patience.',
+    pages: [
+      { titre: 'Devinettes', texte: 'Plus je sèche, plus je mouille. (Le torchon.)\n\nJ’ai des dents et je ne mords pas. (Le peigne, la scie, et la clé.)\n\nJe monte et je descends sans bouger. (L’escalier.)\n\nJe cours sans pieds, je murmure sans bouche, je dors dans un lit sans jamais m’y coucher. (La rivière.)\n\nPlus on m’ôte, plus je deviens grand. (Le trou.)' },
+      { titre: 'Énigmes pour les longues soirées', texte: 'On me consulte sans me parler ; je garde ce qu’on me confie sans avoir de serrure ; on me lit sans me comprendre ; et qui me creuse me trahit. Qui suis-je ?\n\nJe n’ai ni toit ni fenêtre, et pourtant on entre en moi, et l’on n’en ressort pas toujours. Qui suis-je ?\n\nOn me perd sans cesse, et je reviens toujours. Qui suis-je ?' },
+      { titre: 'Charades et questions', texte: 'Mon premier est un métal précieux, mon second un habitant des cieux, mon tout un fruit délicieux. (L’orange.)\n\nMon premier est une bête de la maison, mon second enveloppe le corps, mon tout se met sur la tête. (Le chapeau.)\n\nPourquoi les poules ferment-elles les yeux quand elles chantent ? (Pour montrer qu’elles savent leur chanson par cœur.)\n\nQu’est-ce qui est plus grand que la Porte et passe dessous sans se baisser ? (Son ombre, à midi.)' },
+      { titre: 'Réponses', texte: 'Le livre.\n\nLe sommeil, ou la Porte, selon qu’on vit en ville ou dans la vallée.\n\nLe temps, disent les savants. La clé, disent les vieux de la Combe, qui ont l’air de savoir de quelle clé ils parlent.' },
+    ] },
+});

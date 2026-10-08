@@ -40,7 +40,7 @@ const Y2_QUESTIONS = [
   { q: '« Que dit le gardien, quand il referme la Porte derrière celui qui revient ? »', livre: 'y_porte_chronique',
     rep: ['« Rien n’est entré avec toi. »', '« Que la nuit te garde. »', '« Je t’attendais. »', '« Va, et ne te retourne pas. »'] },
   { q: '« Combien de fois la clé est-elle revenue seule à la bibliothèque, d’après le registre ? »', livre: 'y_journal_bibliothecaire',
-    rep: ['« Toutes les fois qu’on l’a perdue. »', '« Une seule fois, en 1704. »', '« Jamais : elle ne se perd pas. »', '« Trois fois, puis plus jamais. »'] },
+    rep: ['« Onze fois : toutes les fois qu’on l’a perdue. »', '« Une seule fois, en 1704. »', '« Jamais : elle ne se perd pas. »', '« Trois fois, puis plus jamais. »'] },
   { q: '« Qu’a-t-on mis, au conte, dans la poche du portier pour qu’il ne dorme jamais ? »', livre: 'y_portier',
     rep: ['« Un caillou de la Porte. »', '« Une clé de trop. »', '« Une chandelle éteinte. »', '« Le nom de sa mère. »'] },
 ];
@@ -64,13 +64,15 @@ const bibliotheque2 = {
   // les livres de serrurerie (pour la compétence de U) : combien en a-t-on lu jusqu'au bout ?
   serrures() { return Y2_LIVRES.filter((id) => LIVRES[id].serrures); },
   lecturesSerrures() { if (!farm.s) return 0; const F = livres.S().fini; return this.serrures().filter((id) => F[id]).length; },
-  enZone() { try { return typeof zone !== 'undefined' && typeof zone.dedans === 'function' && !!zone.dedans(); } catch (e) { return false; } },
+  // dans la Zone de V1 (« les Terres d'Avant ») : zone.dedans est un booléen ; la vallée reste farm.w
+  enZone() { try { if (typeof zone === 'undefined' || !zone) return false; return typeof zone.dedans === 'function' ? !!zone.dedans() : !!zone.dedans; } catch (e) { return false; } },
+  vallee() { return farm.w || game.world; },
 
   // ================================================================== LES RAYONS
   // quelle étagère : 'bas' (la salle de lecture), 'galerie' (B1), ou 'tout' (pas de galerie dans ce monde)
   etagere(it) {
     if (it && it.id === 'b1:biblio:rayon_haut') return 'galerie';
-    const w = game.world;
+    const w = this.vallee();
     const galerie = w && w.inter && w.inter.some((i) => i.id === 'b1:biblio:rayon_haut');
     return galerie ? 'bas' : 'tout';
   },
@@ -149,8 +151,8 @@ const bibliotheque2 = {
     if (M && M.maisons) for (const k in M.maisons) if (M.maisons[k] && dans(M.maisons[k].coffre)) return 'coffre';
     for (const p of s.props || []) if (p && p.data && dans(p.data.items)) return 'coffre';
     for (const k in s.propData || {}) if (s.propData[k] && dans(s.propData[k].items)) return 'coffre';
-    const w = game.world;
-    if (w && w.props && !this.enZone()) for (let i = farm.genProps || 0; i < w.props.length; i++) { const q = w.props[i]; if (q && q.data && dans(q.data.items)) return 'coffre'; }
+    const w = this.vallee();
+    if (w && w.props) for (let i = farm.genProps || 0; i < w.props.length; i++) { const q = w.props[i]; if (q && q.data && dans(q.data.items)) return 'coffre'; }
     if (s.prison && dans(s.prison.saisie)) return 'saisie';
     for (const f of this.ailleurs) { try { if (f(id)) return 'ailleurs'; } catch (e) { console.error(e); } }
     return null;
@@ -166,7 +168,7 @@ const bibliotheque2 = {
     if (M && M.maisons) for (const k in M.maisons) if (M.maisons[k]) ote(M.maisons[k].coffre);
     for (const p of s.props || []) if (p && p.data) ote(p.data.items);
     for (const k in s.propData || {}) if (s.propData[k]) ote(s.propData[k].items);
-    const w = game.world;
+    const w = this.vallee();
     if (w && w.props) for (const q of w.props) if (q && q.data) ote(q.data.items);
     if (s.prison) ote(s.prison.saisie);
     if (s.ship) ote(s.ship);
@@ -182,7 +184,7 @@ const bibliotheque2 = {
     const C = this.C(), s = farm.s, Bb = biblio.S();
     farm.give(Y2_CLE, 1);
     const libre = mode === 'libre' || !this.vivant();
-    const due = libre ? 0 : mode === 'pret' ? biblio.echeance(o.jours || 3) : biblio.echeance(o.pris ? 2 : 4);
+    const due = libre ? 0 : mode === 'pret' ? biblio.echeance(o.jours || 3) : biblio.echeance(o.pris ? 1 : 3);
     Object.assign(C, { ou: 'dehors', mode: libre ? null : mode, jour: s.day, due, caution: mode === 'pret' ? o.caution || 0 : 0, pris: !!o.pris, perdueH: 0, avoue: false, lettre: 0, rappel: 0, n: (C.n || 0) + 1 });
     Bb.prets = Bb.prets.filter((p) => p.id !== Y2_CLE);
     // (le registre : un emprunt comme les autres ; nos propres rappels, nos propres alertes)
@@ -279,7 +281,7 @@ const bibliotheque2 = {
     if (d < 3.5) return true;
     if (d > 16) return false;
     if ((dx * Math.sin(n.heading || 0) + dz * Math.cos(n.heading || 0)) / d < -0.1) return false;
-    try { return segClear(game.world, n.x, n.z, p.pos[0], p.pos[2]); } catch (e) { return true; }
+    try { return segClear(this.vallee(), n.x, n.z, p.pos[0], p.pos[2]); } catch (e) { return true; }
   },
   empeche() {
     const n = this.n();
@@ -413,7 +415,7 @@ const bibliotheque2 = {
     }
   },
   update(dt, playing) {
-    if (!farm.s || !game.world || game.kind !== 'farm') return;
+    if (!farm.s || !game.world || game.kind !== 'farm' || this.enZone()) return;
     this.chkT -= dt;
     if (this.chkT > 0) return;
     this.chkT = 2;
