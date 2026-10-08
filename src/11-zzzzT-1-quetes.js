@@ -125,8 +125,10 @@ const QT_LIEUX = {
     const it = qtInter(w, 'b1:auberge:sept');
     if (!q && !it) return null;
     const p = q ? [q.x, q.y + 0.12, q.z] : [it.x, it.y - 0.4, it.z];
-    const lit = it ? [it.x, it.y - 0.5, it.z] : p;
-    return { p, prop: q || null, r: 2.2, lieu: { dedans: true, bld: 'auberge', sol: q ? q.y : it.y - 0.75, c: [(p[0] + lit[0]) / 2, (q ? q.y : p[1]) + 0.5, (p[2] + lit[2]) / 2] } };
+    const lit = it ? [it.x, it.y - 0.5, it.z] : p, sol = q ? q.y : it.y - 0.75, B = w.bld.auberge;
+    // (le plan large : du couloir, la dernière porte et sa plaque d'émail)
+    const [vx, vz] = qtW(B.f, 2.6, -0.1), [lx, lz] = qtW(B.f, 4.6, 0.55);
+    return { p, prop: q || null, r: 2.2, lieu: { dedans: true, bld: 'auberge', sol, c: [(p[0] + lit[0]) / 2, sol + 0.5, (p[2] + lit[2]) / 2], vue: { pos: [vx, sol + 1.62, vz], look: [lx, sol + 1.3, lz] } } };
   },
   't1:1'(w) {
     const L = w.lm.pont_riviere;
@@ -166,7 +168,7 @@ const QT_LIEUX = {
     if (!q) return null;
     const lx = 0.24, ly = 1.47, lz = 0.16, c = Math.cos(q.r || 0), s = Math.sin(q.r || 0);
     const p = [q.x + lx * c + lz * s, q.y + ly, q.z - lx * s + lz * c];
-    return { p, prop: q, dessin: 'enveloppe', r: 2.4, lieu: { dedans: true, bld: 'poste', sol: q.y, c: [q.x + s * 0.2, q.y + 1.2, q.z + c * 0.2] } };
+    return { p, prop: q, dessin: 'enveloppe', r: 2.4, lieu: { dedans: true, bld: 'poste', sol: q.y, c: [q.x + s * 0.2, q.y + 1.2, q.z + c * 0.2], face: q.r || 0 } };
   },
   't1:3'(w) {
     const C = w.lm.cimetiere;
@@ -186,13 +188,14 @@ const QT_LIEUX = {
     }
     if (!best) return null;
     const h = w.heightAt(best.x, best.z);
-    return { p: [best.x, h + 0.35, best.z], dessin: 'croix', rot: best.a, r: 2.4, lieu: { dedans: false, c: [C.x, (C.y || h) + 1.0, C.z], hc: 1.0 } };
+    return { p: [best.x, h + 0.4, best.z], dessin: 'croix', rot: best.a, r: 2.4, lieu: { dedans: false, c: [C.x, (C.y || h) + 1.0, C.z], hc: 1.0, pres: 2.4 } };
   },
   't1:4'(w) {
     const it = qtInter(w, 'b1:auberge:sept');
     if (!it) return null;
-    const S0 = QT_LIEUX['t1:0'](w);
-    return { p: [it.x, it.y, it.z], inter: it.id, r: 2.6, lieu: { dedans: true, bld: 'auberge', sol: S0 ? S0.lieu.sol : it.y - 0.75, c: [it.x, it.y - 0.3, it.z] } };
+    const S0 = QT_LIEUX['t1:0'](w), sol = S0 ? S0.lieu.sol : it.y - 0.75;
+    const tb = qtPropsDans(w, 'auberge', (q, lx, lz, h) => q.id === 'table' && h > 2.5).sort((a, b) => Math.hypot(a.x - it.x, a.z - it.z) - Math.hypot(b.x - it.x, b.z - it.z))[0];
+    return { p: [it.x, it.y - 0.2, it.z], inter: it.id, r: 2.6, lieu: { dedans: true, nuit: true, bld: 'auberge', sol, c: tb ? [tb.x, tb.y + 0.75, tb.z] : [it.x, it.y - 0.3, it.z] } };
   },
   // ------------------------------------------------------------ 2. le feu du lac
   't2:0'(w) {
@@ -211,7 +214,10 @@ const QT_LIEUX = {
       if (!best || sc > best.sc) best = { x, z, h, sc, eau };
     }
     if (!best) return null;
-    return { p: [best.x, best.h + 0.4, best.z], dessin: 'barque', rot: best.eau + Math.PI / 2, r: 2.9, cos: 0.6, lieu: { dedans: false, c: [P.x, (P.y || best.h) + 14, P.z], hc: 14, loin: true } };
+    // (là-haut, le feu « déjà allumé » de la scène : la lampe de la chambre de verre)
+    const B2 = w.b2 && w.b2.phare, lp = B2 && B2.lampe >= 0 ? w.props[B2.lampe] : null;
+    const lampe = lp ? [lp.x, lp.y + 0.6, lp.z] : B2 && B2.S ? [B2.x, B2.S[5] + 1.0, B2.z] : null;
+    return { p: [best.x, best.h + 0.4, best.z], dessin: 'barque', rot: best.eau + Math.PI / 2, r: 2.9, cos: 0.6, lieu: { dedans: false, c: [P.x, (P.y || best.h) + 14, P.z], hc: 14, loin: true, lampe, pres: 4.2 } };
   },
   't2:1'(w) {
     const it = qtInter(w, 'b2:phare:registre'), P = w.b2 && w.b2.phare;
@@ -255,7 +261,7 @@ const QT_LIEUX = {
       if (!qtSol(w, x, z, 0.5, { props, ecart: 1.2 })) continue;
       const h = w.heightAt(x, z), o = [x, h + 1.5, z], v = [c[0] - x, y0 + 1.2 - o[1], c[1] - z], d = Math.hypot(...v);
       if (qtRayon(w, L, o, v.map((k) => k / d), d - 2.5)) continue;           // il voyait le lavoir
-      return { p: [x, h + 0.05, z], dessin: 'chevalet', rot: Math.atan2(c[0] - x, c[1] - z), r: 2.4, cos: 0.6, lieu: { dedans: false, c: [c[0], y0 + 1.4, c[1]], hc: 1.4 } };
+      return { p: [x, h + 0.95, z], dessin: 'chevalet', rot: Math.atan2(c[0] - x, c[1] - z), r: 2.6, cos: 0.6, lieu: { dedans: false, c: [c[0], y0 + 1.4, c[1]], hc: 1.4 } };
     }
     return null;
   },
@@ -287,7 +293,8 @@ const QT_LIEUX = {
       const [x, z] = qtW(f, lx, lz);
       if (!qtSolDedans(w, x, y, z, 0.25, props)) continue;
       const [cx, cz] = qtW(f, 0, -1.5);
-      return { p: [x, y + 0.45, z], dessin: 'toile_dos', rot: f.r + (lx < 0 ? Math.PI / 2 : -Math.PI / 2), r: 2.4, lieu: { dedans: true, bld: 'eglise', sol: y, c: [(x + cx) / 2, y + 1.0, (z + cz) / 2] } };
+      const rot = f.r + (lx < 0 ? Math.PI / 2 : -Math.PI / 2);
+      return { p: [x, y + 0.45, z], dessin: 'toile_dos', rot, r: 2.4, lieu: { dedans: true, bld: 'eglise', sol: y, c: [(x + cx) / 2, y + 1.0, (z + cz) / 2], face: rot } };
     }
     return null;
   },
@@ -310,26 +317,30 @@ const QT_LIEUX = {
     return { p: [q.x, q.y + 0.8, q.z], dessin: 'registre', rot: q.r || 0, r: 2.4, lieu: { dedans: true, bld: 'relais_chasse', sol: q.y, c: [q.x, q.y + 0.8, q.z] } };
   },
   't4:1'(w) {
-    const C = w.lm.cascade;
-    if (!C) return null;
-    const props = qtProps(w, C.x, C.z, 20), sec = qtInter(w, 'temple_entree');
+    // la cascade tombe du haut d'une paroi ; la pierre est en bas, au pied de la paroi, sous la chute (on y arrive à pied)
+    const K = w.props.find((q) => q.id === 'cascade'), C = w.lm.cascade;
+    if (!K && !C) return null;
+    const f = K ? { x: K.x, y: K.y, z: K.z, r: K.r || 0 } : { x: C.x, y: C.y || w.heightAt(C.x, C.z), z: C.z, r: 0 };
+    const props = qtProps(w, f.x, f.z, 24), sec = qtInter(w, 'temple_entree');
     let best = null;
-    for (const [x, z] of qtAnneaux(C.x, C.z, 5, 14, 0, 24)) {
-      if (sec && Math.hypot(sec.x - x, sec.z - z) < 4.5) continue;
-      if (!qtSol(w, x, z, 0.5, { props, eau: true, pente: 0.6 })) continue;
-      const h = w.heightAt(x, z);
-      const sc = -h * 0.6 - Math.abs(Math.hypot(x - C.x, z - C.z) - 8) * 0.3;  // le bas : le bassin
+    for (let lz = 1.5; lz <= 10; lz += 0.5) for (let lx = -4; lx <= 4; lx += 0.5) {
+      const [x, z] = qtW(f, lx, lz);
+      if (sec && Math.hypot(sec.x - x, sec.z - z) < 3) continue;
+      if (!qtSol(w, x, z, 0.6, { props, pente: 0.6 })) continue;
+      const h = w.heightAt(x, z), sc = -lz - Math.abs(lx) * 0.4 + (h < f.y - 4 ? 0 : -3);
       if (!best || sc > best.sc) best = { x, z, h, sc };
     }
     if (!best) return null;
-    const haut = C.y || best.h;   // (on regarde la chute à mi-hauteur, entre le haut et le bassin)
-    return { p: [best.x, best.h + 0.1, best.z], dessin: 'pierre_traits', rot: Math.atan2(C.x - best.x, C.z - best.z), r: 2.4, lieu: { dedans: false, c: [C.x, (haut + best.h) / 2 + 1, C.z], hc: Math.max(2.5, (haut - best.h) / 2) } };
+    // le plan large : en face de la chute, à sa hauteur, un peu de côté (l'eau, la bouche noire, la paroi dessous)
+    const haut = [f.x + Math.sin(f.r) * 1.0, f.y + 2.8, f.z + Math.cos(f.r) * 1.0];
+    const vues = [[3, 13], [-3, 13], [4.5, 16], [-4.5, 16], [0, 11], [2, 19]].map(([lx, lz]) => { const [x, z] = qtW(f, lx, lz); return { pos: [x, f.y + 2.2, z], look: haut }; });
+    return { p: [best.x, best.h + 0.4, best.z], dessin: 'pierre_traits', rot: Math.atan2(f.x - best.x, f.z - best.z), r: 2.4, lieu: { dedans: false, c: haut, hc: 3, vues, pres: 3.0 } };
   },
   't4:2'(w) {
     const q = qtPropsDans(w, 'hutte_ermite', (q) => q.id === 'etagere')[0];
     if (!q) return null;
     const c = Math.cos(q.r || 0), s = Math.sin(q.r || 0), lx = 0.45, ly = 1.3, lz = 0.32;
-    return { p: [q.x + lx * c + lz * s, q.y + ly, q.z - lx * s + lz * c], prop: q, dessin: 'bocal', r: 2.4, lieu: { dedans: true, bld: 'hutte_ermite', sol: q.y, c: [q.x + s * 0.3, q.y + 1.1, q.z + c * 0.3] } };
+    return { p: [q.x + lx * c + lz * s, q.y + ly, q.z - lx * s + lz * c], prop: q, dessin: 'bocal', r: 2.4, lieu: { dedans: true, bld: 'hutte_ermite', sol: q.y, c: [q.x + s * 0.3, q.y + 1.1, q.z + c * 0.3], face: q.r || 0 } };
   },
   't4:3'(w) {
     const C = w.lm.chapelle;
@@ -339,7 +350,9 @@ const QT_LIEUX = {
     const autel = qtProps(w, C.x, C.z, 10, (q) => q.id === 'autel')[0];
     const a0 = autel ? Math.atan2(autel.x - C.x, autel.z - C.z) : 0;
     let best = null;
+    const meuble = (x, z) => { const m = w.matAt ? w.matAt(x, z) : M_GRASS; return m === M_GRASS || m === M_LUSH || m === M_FLOWERS || m === M_DRY || m === M_DIRT; };
     for (const [x, z, a] of qtAnneaux(C.x, C.z, 8, 14, a0, 24)) {
+      if (!meuble(x, z) || !meuble(x + 0.7, z) || !meuble(x - 0.7, z) || !meuble(x, z + 0.7) || !meuble(x, z - 0.7)) continue;   // (de la terre, pas un dallage)
       if (!qtSol(w, x, z, 0.6, { props: autres, ecart: 1.0 })) continue;
       let pt = 1e9;
       for (const t of tombes) pt = Math.min(pt, Math.hypot(t.x - x, t.z - z));
@@ -349,14 +362,14 @@ const QT_LIEUX = {
     }
     if (!best) return null;
     const h = w.heightAt(best.x, best.z);
-    return { p: [best.x, h + 0.25, best.z], dessin: 'tertre', rot: Math.atan2(C.x - best.x, C.z - best.z), r: 2.5, cos: 0.6, lieu: { dedans: false, c: [C.x, (C.y || h) + 2.5, C.z], hc: 2.5 } };
+    return { p: [best.x, h + 0.25, best.z], dessin: 'tertre', rot: Math.atan2(C.x - best.x, C.z - best.z), r: 2.5, cos: 0.6, lieu: { dedans: false, c: [C.x, (C.y || h) + 2.5, C.z], hc: 2.5, pres: 3.0 } };
   },
   // ------------------------------------------------------------ 5. la source froide
   't5:0'(w) {
     const B = w.bld.source_b, q = qtPropsDans(w, 'source_b', (q) => q.id === 'lit')[0];
     if (!B || !q) return null;
-    // au pied du lit, côté pièce
-    const [bx, bz] = qtL(B.f, q.x, q.z), [x, z] = qtW(B.f, bx + (bx < 0 ? 1.05 : -1.05), bz - 0.55);
+    // à moitié sous le lit, côté pièce (on la voit dépasser)
+    const [bx, bz] = qtL(B.f, q.x, q.z), [x, z] = qtW(B.f, bx + (bx < 0 ? 0.62 : -0.62), bz - 0.55);
     const y = q.y;
     return { p: [x, y + 0.3, z], dessin: 'caisse', rot: B.f.r, r: 2.3, lieu: { dedans: true, bld: 'source_b', sol: y, c: [x, y + 0.4, z] } };
   },
@@ -373,14 +386,24 @@ const QT_LIEUX = {
     const pri = qtInter(w, 'pri_chene');
     const x0 = tr ? tr.x : C.x, z0 = tr ? tr.z : C.z, rad = tr ? (objRadius(OBJ_TYPES[tr.t], tr) || 1.2) : 1.2;
     const vers = pri ? Math.atan2(pri.x - x0, pri.z - z0) + 0.9 : 0;
-    const x = x0 + Math.sin(vers) * (rad + 0.05), z = z0 + Math.cos(vers) * (rad + 0.05), h = w.heightAt(x, z);
-    return { p: [x, h + 1.45, z], dessin: 'gobelet', rot: vers, r: 2.6, cos: 0.6, lieu: { dedans: false, c: [x0, h + 4, z0], hc: 4 } };
+    // (l'arbre est une image toujours tournée vers qui le regarde : le gobelet, tout contre l'axe du tronc, se voit sur
+    // l'écorce du côté où il pend, et disparaît derrière le tronc de l'autre côté)
+    const x = x0 + Math.sin(vers) * 0.3, z = z0 + Math.cos(vers) * 0.3, h = w.heightAt(x0 + Math.sin(vers) * (rad + 0.3), z0 + Math.cos(vers) * (rad + 0.3));
+    return { p: [x, h + 1.45, z], dessin: 'gobelet', rot: vers, r: 2.8, cos: 0.6, lieu: { dedans: false, c: [x0, h + 4, z0], hc: 4, face: vers, pres: 2.2, arbre: [x0, z0] } };
   },
   't5:2'(w) {
     const q = qtPropsDans(w, 'maison_hameau_b', (q) => q.id === 'table')[0];
     if (!q) return null;
-    const c = Math.cos(q.r || 0), s = Math.sin(q.r || 0), lx = 0.3, lz = 0.44;
-    return { p: [q.x + lx * c + lz * s, q.y + 0.66, q.z - lx * s + lz * c], dessin: 'papier', rot: q.r || 0, prop: q, r: 2.4, lieu: { dedans: true, bld: 'maison_hameau_b', sol: q.y, c: [q.x, q.y + 0.7, q.z] } };
+    const c = Math.cos(q.r || 0), s = Math.sin(q.r || 0), props = qtPropsDans(w, 'maison_hameau_b', (o) => o !== q);
+    // le tiroir est au bout de la table : le bout le plus dégagé
+    let sx = 1, bl = -1;
+    for (const k of [1, -1]) {
+      let n = 0;
+      for (const d of [1.2, 1.7, 2.2]) if (qtSolDedans(w, q.x + k * d * c, q.y, q.z - k * d * s, 0.3, props)) n++;
+      if (n > bl) { bl = n; sx = k; }
+    }
+    const lx = sx * 0.7, lz = 0.12, rot = (q.r || 0) + sx * Math.PI / 2;
+    return { p: [q.x + lx * c + lz * s, q.y + 0.64, q.z - lx * s + lz * c], dessin: 'papier', rot, prop: q, r: 2.4, lieu: { dedans: true, bld: 'maison_hameau_b', sol: q.y, c: [q.x, q.y + 0.7, q.z], face: rot } };
   },
   't5:3'(w) {
     const C = w.lm.source;
@@ -695,6 +718,8 @@ const quetes = {
       if (d > (L.r || QT_REACH)) continue;
       const cos = (dx * f[0] + dy * f[1] + dz * f[2]) / (d || 1);
       if (cos < (L.cos || 0.72)) continue;
+      const T = L.lieu && L.lieu.arbre;                       // (le gobelet : du côté du tronc où il pend)
+      if (T && (eye[0] - T[0]) * (L.p[0] - T[0]) + (eye[2] - T[1]) * (L.p[2] - T[1]) <= 0) continue;
       // (bien visé, il passe devant les meubles et les interactions d'à côté ; de biais, non)
       cand({ kind: 'hook', tq: A.cle, prop: L.prop || null, use: () => (A.propose ? this.trouverCrecelle() : this.trouver(A.id)) }, Math.max(0.01, cos > 0.92 ? d * 0.45 : d - 0.3));
     }
@@ -739,7 +764,9 @@ const quetes = {
     const w = qtMonde();
     if (!farm.s || !w || (typeof strange !== 'undefined' && strange.inEnvers && strange.inEnvers())) return;
     PE.buf = buf; PE.fl = 0;
-    for (const A of this.actifs()) {
+    const liste = this.actifs(), M = cine.on && qtScenes.montre;
+    if (M && !liste.some((A) => A.cle === M)) { const L = this.spec(M); if (L) liste.push({ cle: M, id: M.slice(0, 2), i: +M.slice(3), L, scene: true }); }
+    for (const A of liste) {
       const L = A.L;
       if (!L.dessin || Math.hypot(L.p[0] - cam[0], L.p[2] - cam[2]) > 70) continue;
       PE.fl = A.reste || cine.on ? 0 : this.lueur(L, A.cle, t);
@@ -820,9 +847,9 @@ function qtDessiner(w, L, A) {
         const lz = -1.6 + k * 0.62, lx = (k % 2 ? 0.13 : -0.13);
         const x = p[0] + lx * c + lz * s, z = p[2] - lx * s + lz * c;
         PE.frame(x, sol(x, z, p[1]), z, r + (k % 2 ? 0.08 : -0.08), 1);
-        PE.box(0, 0.006, 0, 0.16, 0.012, 0.3, boue, TL.soilWet);
-        PE.box(0, 0.013, 0.05, 0.11, 0.006, 0.12, trace, TL.plain);
-        PE.box(0, 0.013, -0.09, 0.09, 0.006, 0.08, trace, TL.plain);
+        PE.box(0, 0.008, 0, 0.19, 0.016, 0.34, boue, TL.soilWet);
+        PE.box(0, 0.017, 0.06, 0.13, 0.008, 0.14, trace, TL.plain);
+        PE.box(0, 0.017, -0.1, 0.1, 0.008, 0.09, trace, TL.plain);
         for (let d = 0; d < 3; d++) PE.box((d - 1) * 0.035, 0.016, 0.115, 0.018, 0.006, 0.018, gris, TL.metal);
       }
       if (!farm.count('t_plaque_roulier') && !(quetes.q('t1').tr[1])) {
@@ -831,29 +858,38 @@ function qtDessiner(w, L, A) {
       }
       break;
     }
-    case 'enveloppe': // une enveloppe qui dépasse d'une case du casier
+    case 'enveloppe': // une enveloppe jaunie qui dépasse d'une case du casier, penchée vers nous, son cachet rouge
       PE.frame(p[0], p[1], p[2], (A.L.prop && A.L.prop.r) || 0, 1);
-      PE.box(0, 0, 0.02, 0.15, 0.1, 0.012, rgbf('#e6dcc4'), TL.paper, 0.06, 0, 0.12);
-      PE.box(0.01, -0.01, 0.03, 0.025, 0.025, 0.006, rgbf('#8a1a14'), TL.plain);
+      PE.box(0, 0.0, 0.07, 0.19, 0.13, 0.014, rgbf('#efe4c8'), TL.paper, 0.08, -0.5, 0.06);
+      PE.box(0.012, -0.012, 0.085, 0.034, 0.034, 0.008, rgbf('#9a1c14'), TL.plain, 0.08, -0.5, 0.06);
       break;
-    case 'croix': { // une petite croix de bois contre le mur, sans tombe ; un bol retourné à ses pieds
-      const y = sol(p[0], p[2], p[1]);
+    case 'croix': { // une petite croix de bois gris contre le mur, sans tombe ; un bol retourné à ses pieds
+      const y = sol(p[0], p[2], p[1]), bois = [1.25, 1.22, 1.2];   // (TL.wood est sombre : la couleur l'éclaircit, un bois gris)
       PE.frame(p[0], y, p[2], r, 1);
-      PE.box(0, 0.36, 0, 0.05, 0.72, 0.05, rgbf('#6a5a44'), TL.darkwood, 0, 0, 0.05);
-      PE.box(0, 0.5, 0, 0.36, 0.05, 0.05, rgbf('#6a5a44'), TL.darkwood, 0, 0, 0.05);
-      PE.box(0.08, 0.04, 0.22, 0.13, 0.07, 0.13, rgbf('#c8bca4'), TL.plain);
-      PE.box(0.08, 0.075, 0.22, 0.06, 0.012, 0.06, rgbf('#b0a48c'), TL.plain);
+      PE.box(0, 0.5, 0, 0.075, 1.0, 0.07, bois, TL.wood, 0, 0, 0.05);
+      PE.box(0.02, 0.72, 0, 0.48, 0.07, 0.07, bois, TL.wood, 0, 0, 0.05);
+      PE.box(0.1, 0.045, 0.24, 0.15, 0.08, 0.15, rgbf('#d8ccb2'), TL.plain);
+      PE.box(0.1, 0.087, 0.24, 0.07, 0.014, 0.07, rgbf('#c0b49a'), TL.plain);
       break;
     }
-    case 'barque': { // une barque retournée sur la grève, le nom presque effacé
-      const y = sol(p[0], p[2], p[1]);
+    case 'barque': { // une barque retournée sur la grève, le ventre au ciel, le nom presque effacé
+      const y = sol(p[0], p[2], p[1]), coque = [1.2, 1.16, 1.12], quille = [1.0, 0.95, 0.9];
       PE.frame(p[0], y, p[2], r, 1);
-      PE.box(0, 0.2, 0, 1.0, 0.4, 3.0, rgbf('#5a4a3a'), TL.darkwood);
-      PE.box(0, 0.44, 0, 0.6, 0.1, 2.8, rgbf('#4a3e30'), TL.darkwood);
-      PE.box(0, 0.25, 1.52, 0.6, 0.3, 0.08, rgbf('#5a4a3a'), TL.darkwood);
-      PE.box(0.51, 0.24, 0.4, 0.01, 0.1, 0.6, rgbf('#c8c0b0'), TL.plain);
+      PE.box(0, 0.2, 0, 1.0, 0.4, 2.3, coque, TL.wood);
+      for (const s of [-1, 1]) PE.box(0, 0.19, s * 1.28, 0.72, 0.38, 0.5, coque, TL.wood);
+      for (const s of [-1, 1]) PE.box(0, 0.18, s * 1.6, 0.42, 0.34, 0.3, coque, TL.wood);
+      PE.box(0, 0.42, 0, 0.12, 0.06, 3.3, quille, TL.darkwood);
+      PE.box(0, 0.41, 0, 0.7, 0.03, 2.1, [1.1, 1.06, 1.02], TL.wood);
+      PE.box(0.505, 0.26, 0.4, 0.012, 0.1, 0.6, rgbf('#d8d0c0'), TL.plain);
       PE.box(-0.3, 0.05, -1.4, 0.05, 0.05, 0.6, rgbf('#6a3a24'), TL.metal);
-      PE.box(0.7, 0.04, 0.3, 0.08, 0.06, 2.4, rgbf('#7a6a52'), TL.wood, 0.05);
+      PE.box(0.72, 0.04, 0.3, 0.08, 0.06, 2.4, [1.2, 1.15, 1.1], TL.wood, 0.05);
+      // (pendant la scène : là-haut, la lampe du phare brûle déjà)
+      const lp = A.L.lieu && A.L.lieu.lampe;
+      if (lp && cine.on && qtScenes.montre === A.cle) {
+        PE.fl = FX_EMIT; PE.frame(lp[0], lp[1], lp[2], 0, 1);
+        PE.box(0, 0, 0, 0.42, 0.5, 0.42, [1.7, 1.25, 0.6], TL.plain); PE.box(0, 0, 0, 0.42, 0.5, 0.42, [1.7, 1.25, 0.6], TL.plain, Math.PI / 4);
+        PE.fl = 0;
+      }
       break;
     }
     case 'bottes': { // une paire de bottes au bout du quai, la pointe vers le lac
@@ -867,43 +903,44 @@ function qtDessiner(w, L, A) {
       PE.box(0, 0.006, 0.02, 0.5, 0.008, 0.45, rgbf('#1e2428'), TL.plain);
       break;
     }
-    case 'chevalet': { // trois trous en triangle, un tube écrasé
-      const c = Math.cos(r), s = Math.sin(r);
-      for (const [lx, lz] of [[-0.35, -0.25], [0.35, -0.25], [0, 0.35]]) {
-        const x = p[0] + lx * c + lz * s, z = p[2] - lx * s + lz * c;
-        PE.frame(x, sol(x, z, p[1]), z, r, 1);
-        PE.box(0, 0.006, 0, 0.07, 0.012, 0.07, noir, TL.plain);
-        PE.box(0, 0.012, 0, 0.11, 0.008, 0.11, brun, TL.soil);
-      }
-      PE.frame(p[0] + s * 0.15, sol(p[0], p[2], p[1]) + 0.01, p[2] + c * 0.15, r + 0.5, 1);
-      PE.box(0, 0.012, 0, 0.1, 0.018, 0.035, rgbf('#d8dce0'), TL.metal, 0, 0, 0.1);
-      PE.box(0.065, 0.012, 0, 0.03, 0.016, 0.02, rgbf('#f2f2ee'), TL.plain);
+    case 'chevalet': { // un chevalet de peintre, debout dans l'herbe, face au lavoir ; pas de toile ; un tube écrasé au pied
+      const y = sol(p[0], p[2], p[1] - 0.9), bois = [1.35, 1.3, 1.25];
+      PE.frame(p[0], y, p[2], r, 1);
+      PE.box(-0.32, 0.8, 0.1, 0.045, 1.66, 0.045, bois, TL.wood, 0, -0.12, 0.17);
+      PE.box(0.32, 0.8, 0.1, 0.045, 1.66, 0.045, bois, TL.wood, 0, -0.12, -0.17);
+      PE.box(0, 0.78, -0.32, 0.045, 1.62, 0.045, bois, TL.wood, 0, 0.36, 0);
+      PE.box(0, 0.86, 0.17, 0.62, 0.05, 0.08, bois, TL.wood);
+      PE.box(0, 1.52, 0.04, 0.2, 0.05, 0.06, bois, TL.wood);
+      PE.box(0.18, 0.012, 0.32, 0.12, 0.022, 0.04, rgbf('#d8dce0'), TL.metal, 0.5);
+      PE.box(0.25, 0.014, 0.35, 0.04, 0.02, 0.03, rgbf('#f2f2ee'), TL.plain, 0.5);
       break;
     }
     case 'pierre': { // une pierre déplacée au pied du mur, un coin de carnet dessous
       PE.frame(p[0], p[1] - 0.2, p[2], r, 1);
-      PE.box(0, 0.12, 0, 0.5, 0.24, 0.36, rgbf('#7a7a6c'), TL.stone, 0.3, 0, 0.18);
+      PE.box(0, 0.12, 0, 0.5, 0.24, 0.36, [1.3, 1.28, 1.2], TL.stone, 0.3, 0, 0.18);
       PE.box(0.3, 0.02, 0.12, 0.2, 0.03, 0.26, rgbf('#5a4a36'), TL.leather, -0.4);
       PE.box(0.3, 0.038, 0.12, 0.18, 0.006, 0.24, rgbf('#d8cfb8'), TL.paper, -0.4);
       PE.box(-0.1, 0.004, -0.32, 0.5, 0.008, 0.32, rgbf('#3e3a30'), TL.soil);
       break;
     }
-    case 'toile_dos': { // une toile retournée contre le mur : le châssis, la toile grise
+    case 'toile_dos': { // une toile retournée contre le mur, posée au sol, le haut appuyé au mur : le châssis, la toile grise
       PE.frame(p[0], p[1] - 0.45, p[2], r, 1);
-      PE.box(0, 0.45, -0.04, 0.95, 0.75, 0.02, rgbf('#a89e8a'), TL.cloth, 0, 0.12);
-      for (const sx of [-0.45, 0.45]) PE.box(sx, 0.45, 0.0, 0.05, 0.78, 0.04, rgbf('#7a6044'), TL.wood, 0, 0.12);
-      for (const sy of [0.1, 0.8]) PE.box(0, sy, 0.02 - (sy - 0.45) * 0.12, 0.95, 0.05, 0.04, rgbf('#7a6044'), TL.wood, 0, 0.12);
-      PE.box(0, 0.45, 0.01, 0.04, 0.72, 0.03, rgbf('#7a6044'), TL.wood, 0, 0.12);
+      const th = 0.2, H = 0.78, ct = Math.cos(th), st = Math.sin(th), zb = -0.33 + H * st, bois = rgbf('#8a6c4c');
+      const at = (h, d) => [0.01 + h * ct + d * st, zb - h * st + d * ct];          // (hauteur le long de la toile, avancée vers la pièce)
+      let [y, z] = at(H / 2, 0); PE.box(0, y, z, 0.95, H, 0.02, rgbf('#b0a690'), TL.cloth, 0, -th);
+      [y, z] = at(H / 2, 0.025); for (const sx of [-0.46, 0.46]) PE.box(sx, y, z, 0.05, H + 0.02, 0.04, bois, TL.wood, 0, -th);
+      for (const h of [0.03, H - 0.03]) { [y, z] = at(h, 0.025); PE.box(0, y, z, 0.97, 0.05, 0.04, bois, TL.wood, 0, -th); }
+      [y, z] = at(H / 2, 0.03); PE.box(0, y, z, 0.04, H - 0.06, 0.03, bois, TL.wood, 0, -th); PE.box(0, y, z, 0.9, 0.04, 0.03, bois, TL.wood, 0, -th);
       break;
     }
     case 'souche': { // une souche devant le relais ; la crécelle posée dessus
       const y = sol(p[0], p[2], p[1]);
       PE.frame(p[0], y, p[2], r, 1);
-      PE.box(0, 0.2, 0, 0.42, 0.4, 0.42, rgbf('#6a5440'), TL.bark);
-      PE.box(0, 0.4, 0, 0.36, 0.02, 0.36, rgbf('#b49a74'), TL.wood);
-      PE.box(0.02, 0.45, 0.02, 0.05, 0.06, 0.22, rgbf('#7a7266'), TL.wood, 0.4);
-      PE.box(-0.04, 0.47, -0.08, 0.13, 0.11, 0.05, rgbf('#8a8274'), TL.wood, 0.4);
-      PE.box(-0.04, 0.47, -0.08, 0.1, 0.1, 0.07, rgbf('#6a6256'), TL.wood, 0.4 + Math.PI / 4);
+      PE.box(0, 0.2, 0, 0.42, 0.4, 0.42, [1.3, 1.2, 1.1], TL.bark);
+      PE.box(0, 0.4, 0, 0.36, 0.02, 0.36, [1.55, 1.42, 1.2], TL.wood);
+      PE.box(0.02, 0.45, 0.02, 0.05, 0.06, 0.22, [1.2, 1.18, 1.15], TL.wood, 0.4);
+      PE.box(-0.04, 0.47, -0.08, 0.13, 0.11, 0.05, [1.3, 1.28, 1.25], TL.wood, 0.4);
+      PE.box(-0.04, 0.47, -0.08, 0.1, 0.1, 0.07, [1.05, 1.02, 1.0], TL.wood, 0.4 + Math.PI / 4);
       break;
     }
     case 'registre': // un registre ouvert sur la table
@@ -912,12 +949,13 @@ function qtDessiner(w, L, A) {
       PE.box(-0.11, 0.026, 0, 0.21, 0.012, 0.29, rgbf('#e0d6be'), TL.paper, 0, 0, 0.04);
       PE.box(0.11, 0.026, 0, 0.21, 0.012, 0.29, rgbf('#e0d6be'), TL.paper, 0, 0, -0.04);
       break;
-    case 'pierre_traits': { // une pierre plate au bord du bassin, neuf traits, le dernier barré
-      const y = sol(p[0], p[2], p[1]);
+    case 'pierre_traits': { // une grosse pierre plate au bord du bassin, neuf traits, le dernier barré
+      const y = sol(p[0], p[2], p[1] - 0.4);
       PE.frame(p[0], y, p[2], r, 1);
-      PE.box(0, 0.06, 0, 0.8, 0.12, 0.5, rgbf('#8a8a80'), TL.stone);
-      for (let k = 0; k < 9; k++) PE.box(-0.28 + k * 0.07, 0.122, 0, 0.012, 0.004, 0.22, noir, TL.plain);
-      PE.box(0.28, 0.124, 0, 0.012, 0.004, 0.3, noir, TL.plain, 0.9);
+      PE.box(0, 0.19, 0, 1.15, 0.4, 0.75, [1.15, 1.15, 1.1], TL.stone, 0, 0, 0.04);
+      PE.box(0.1, 0.05, 0.05, 1.3, 0.1, 0.85, [0.95, 0.95, 0.9], TL.stone, 0.2);
+      for (let k = 0; k < 9; k++) PE.box(-0.36 + k * 0.09, 0.405, 0, 0.018, 0.006, 0.3, noir, TL.plain);
+      PE.box(0.36, 0.408, 0, 0.018, 0.006, 0.42, noir, TL.plain, 0.9);
       break;
     }
     case 'bocal': // un petit bocal, tout au fond de l'étagère, fermé à la cire
@@ -929,11 +967,11 @@ function qtDessiner(w, L, A) {
     case 'tertre': { // un tertre bas, un bâton de noisetier planté ; la crécelle à côté, si on l'y a laissée
       const y = sol(p[0], p[2], p[1]);
       PE.frame(p[0], y, p[2], r, 1);
-      PE.box(0, 0.06, 0, 0.7, 0.14, 1.3, rgbf('#6a5438'), TL.soil);
-      PE.box(0, 0.14, 0, 0.5, 0.08, 1.0, rgbf('#5e4a32'), TL.soil);
-      PE.box(0, 0.55, -0.6, 0.035, 1.0, 0.035, rgbf('#8a7a5e'), TL.wood, 0, 0.05);
+      PE.box(0, 0.08, 0, 0.72, 0.18, 1.32, [1.9, 1.75, 1.6], TL.soil);
+      PE.box(0, 0.19, 0, 0.52, 0.08, 1.02, [1.7, 1.55, 1.4], TL.soil);
+      PE.box(0, 0.6, -0.6, 0.04, 1.05, 0.04, [1.25, 1.2, 1.15], TL.wood, 0, 0.05);
       const q4 = quetes.q('t4');
-      if (q4 && q4.st === 'fini' && q4.fin === 'b') { PE.box(0.18, 0.3, -0.52, 0.04, 0.5, 0.04, rgbf('#7a7266'), TL.wood, 0, -0.1); PE.box(0.18, 0.58, -0.52, 0.13, 0.11, 0.05, rgbf('#8a8274'), TL.wood, 0.3); }
+      if (q4 && q4.st === 'fini' && q4.fin === 'b') { PE.box(0.18, 0.3, -0.52, 0.04, 0.5, 0.04, [1.2, 1.18, 1.15], TL.wood, 0, -0.1); PE.box(0.18, 0.58, -0.52, 0.13, 0.11, 0.05, [1.3, 1.28, 1.25], TL.wood, 0.3); }
       break;
     }
     case 'caisse': // une caisse de bois clouée, sous le pied du lit
@@ -944,14 +982,16 @@ function qtDessiner(w, L, A) {
       break;
     case 'gobelet': { // un clou dans l'écorce, un gobelet d'étain pendu au clou
       PE.frame(p[0], p[1], p[2], r, 1);
-      PE.box(0, 0.06, 0.02, 0.012, 0.012, 0.09, rgbf('#4a4a4e'), TL.iron);
-      PE.box(0, -0.02, 0.07, 0.085, 0.11, 0.085, rgbf('#a0a4a8'), TL.metal);
-      PE.box(0, 0.03, 0.035, 0.012, 0.05, 0.02, rgbf('#a0a4a8'), TL.metal);
+      PE.box(0, 0.08, 0.03, 0.014, 0.014, 0.12, rgbf('#5a5a5e'), TL.iron);
+      PE.box(0, -0.02, 0.1, 0.11, 0.14, 0.11, rgbf('#c4c8cc'), TL.metal);
+      PE.box(0, 0.045, 0.1, 0.12, 0.016, 0.12, rgbf('#d8dce0'), TL.metal);
+      PE.box(0, 0.04, 0.05, 0.014, 0.06, 0.02, rgbf('#c4c8cc'), TL.metal);
       break;
     }
-    case 'papier': // un papier plié qui dépasse du tiroir de la table
+    case 'papier': // un papier plié qui dépasse du tiroir, au bout de la table
       PE.frame(p[0], p[1], p[2], r, 1);
-      PE.box(0, 0, 0.03, 0.14, 0.012, 0.1, rgbf('#e4dac4'), TL.paper, 0.2);
+      PE.box(0, 0, 0.06, 0.16, 0.014, 0.13, rgbf('#efe6d0'), TL.paper, 0.2);
+      PE.box(0, -0.035, 0.0, 0.42, 0.06, 0.03, rgbf('#7a5634'), TL.wood);
       break;
     case 'reflet': { // au fond de l'eau, entre deux pierres, quelque chose qui brille (la montre de Ménard)
       const q5 = quetes.q('t5');
@@ -960,7 +1000,9 @@ function qtDessiner(w, L, A) {
       PE.frame(p[0], y, p[2], r, 1);
       PE.box(-0.12, 0.05, 0, 0.18, 0.1, 0.14, rgbf('#6a6a62'), TL.stone, 0.3);
       PE.box(0.12, 0.05, 0.02, 0.16, 0.1, 0.12, rgbf('#6a6a62'), TL.stone, -0.4);
-      PE.box(0, 0.03, 0, 0.07, 0.015, 0.07, rgbf('#d8c070'), TL.gold);
+      PE.fl = FX_EMIT;                                    // (quelque chose brille, au fond)
+      PE.box(0, 0.035, 0, 0.08, 0.016, 0.08, [1.25, 1.05, 0.55], TL.gold);
+      PE.fl = 0;
       break;
     }
   }

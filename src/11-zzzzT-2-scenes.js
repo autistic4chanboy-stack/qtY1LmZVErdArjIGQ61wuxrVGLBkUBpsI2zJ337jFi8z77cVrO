@@ -14,11 +14,12 @@
 // ============================================================================
 const qtScenes = {
   mem: null,             // la scène en cours : { sky, lum: [lumières] }
+  montre: null,          // l'étape montrée ('t1:0'…) : son objet est dessiné pendant la scène, même hors quête
   cadres: {},            // cadrages déjà calculés : { 'id:i': { w, … } }
   // ---------------------------------------------------------------- la lumière de la scène
   lumiere(o) {
     if (!o) {
-      this.mem = null;
+      this.mem = null; this.montre = null;
       if (typeof document !== 'undefined' && document.body) document.body.classList.remove('t-scene');
       return;
     }
@@ -52,13 +53,15 @@ body.t-scene #t-voile{opacity:1}`;
     if (qtRayon(w, L, A, dir, Lm)) return false;
     return !this.arbre(w, A, dir, Lm);
   },
+  ign: null,             // un arbre qu'on montre (le chêne) : il ne cache pas ce qui pend à son tronc
   arbre(w, A, dir, Lm) {
     let hit = false;
-    const dh2 = dir[0] * dir[0] + dir[2] * dir[2] || 1e-9;
+    const dh2 = dir[0] * dir[0] + dir[2] * dir[2] || 1e-9, I = this.ign;
     w.forObjectsNearRay(A, dir, Lm, (ob) => {
       if (hit || !ob) return;
       const T = OBJ_TYPES[ob.t];
       if (!T || T.animal || !w.live(ob) || ob.h < 0.9 || T.cat === 'Fleurs' || T.cat === 'Champignons') return;
+      if (I && Math.hypot(ob.x - I[0], ob.z - I[1]) < 0.6) return;
       const cx = ob.x - A[0], cz = ob.z - A[2], tc = (cx * dir[0] + cz * dir[2]) / dh2;
       if (tc < 0 || tc > Lm) return;
       const y = A[1] + dir[1] * tc, oy = w.objectY(ob);
@@ -82,41 +85,105 @@ body.t-scene #t-voile{opacity:1}`;
     return true;
   },
   cadrerDehors(w, S, h) {
+    this.ign = S.lieu.arbre || null;
+    try { return this.cadrerDehors0(w, S, h); } finally { this.ign = null; }
+  },
+  // devant l'objectif, sur les trois premiers mètres, rien de massif : ni bloc (un pan de mur, une poutre), ni objet posé
+  // à moins de 2,6 m dans le champ (un poteau, une charrette)
+  degage(w, L, P, T, props) {
+    const dx = T[0] - P[0], dz = T[2] - P[2], D = Math.hypot(dx, dz) || 1, yaw = Math.atan2(dx, dz), pente = (T[1] - P[1]) / D;
+    const Lc = L.filter((b) => Math.hypot(b.x - P[0], b.z - P[2]) < 4.6 + Math.hypot(b.sx, b.sz) / 2);
+    if (Lc.length) for (const d of [1.0, 2.0, 3.0, 4.0]) for (const da of [-0.7, -0.45, -0.22, 0, 0.22, 0.45, 0.7]) {
+      const x = P[0] + Math.sin(yaw + da) * d, z = P[2] + Math.cos(yaw + da) * d;
+      for (const e of [-1.1, -0.5, 0, 0.6]) if (qtDansBloc(Lc, [x, P[1] + pente * d + e, z], 0.05)) return false;
+    }
+    const devant = (x, z, y, loin) => {
+      const qx = x - P[0], qz = z - P[2], d = Math.hypot(qx, qz);
+      return d < loin && d > 0.01 && Math.abs(y - P[1]) < 3 && Math.abs(angDiff(Math.atan2(qx, qz), yaw)) < (d < 3 ? 0.8 : 0.6);
+    };
+    // (un objet posé, un panneau, une borne : jusqu'à 8 m, il prend encore un bord de l'image)
+    for (const q of props) if (devant(q.x, q.z, q.y, 8)) return false;
+    // (et les choses du monde : un buisson, une charrette, un tronc)
+    const G = w.objectsGrid(), K = G.C;
+    for (let gz = Math.floor((P[2] - 5) / K); gz <= Math.floor((P[2] + 5) / K); gz++) for (let gx = Math.floor((P[0] - 5) / K); gx <= Math.floor((P[0] + 5) / K); gx++) {
+      const c = gx >= 0 && gz >= 0 && gx < G.gw && gz < G.gw ? G.cells[gz * G.gw + gx] : null;
+      if (c) for (const i of c) {
+        const o = w.objects[i], Tt = o && OBJ_TYPES[o.t];
+        if (!Tt || Tt.animal || !w.live(o) || o.h < 0.9 || Tt.cat === 'Fleurs' || Tt.cat === 'Champignons') continue;
+        if (this.ign && Math.hypot(o.x - this.ign[0], o.z - this.ign[1]) < 0.6) continue;
+        if (devant(o.x, o.z, w.objectY ? w.objectY(o) : P[1], 5)) return false;
+      }
+    }
+    return true;
+  },
+  // le segment A→B (au sol) passe-t-il contre un objet posé (un poteau, une stèle) ? (hors de ceux qui portent l'endroit)
+  bute(props, A, B) {
+    const dx = B[0] - A[0], dz = B[2] - A[2], L2 = dx * dx + dz * dz || 1e-9;
+    for (const q of props) {
+      if (Math.hypot(q.x - B[0], q.z - B[2]) < 0.7) continue;
+      const t = ((q.x - A[0]) * dx + (q.z - A[2]) * dz) / L2;
+      if (t < 0.02 || t > 0.98) continue;
+      if (Math.hypot(A[0] + dx * t - q.x, A[2] + dz * t - q.z) < 0.4) return true;
+    }
+    return false;
+  },
+  cadrerDehors0(w, S, h) {
     const lieu = S.lieu, C = lieu.c, H = S.p;
     const L = qtBlocs(w, (C[0] + H[0]) / 2, (C[2] + H[2]) / 2, (lieu.loin ? 60 : 40) + Math.hypot(C[0] - H[0], C[2] - H[2]) / 2);
     const sky = computeSky(h / 24, 300, {}), sun = [sky.sunDir[0], sky.sunDir[2]], sn = Math.hypot(sun[0], sun[1]) || 1;
     const DS = lieu.loin ? [30, 36, 24, 42] : lieu.hc > 2 ? [17, 21, 14, 25] : [11, 14, 9, 17];
     const haut = [C[0], C[1], C[2]];
     let best = null;
-    for (let k = 0; k < 32; k++) {
+    // des vues données par le lieu (la cascade : en face de la chute, à sa hauteur), si elles sont libres
+    for (const V of lieu.vues || []) {
+      const P0 = V.pos, P1 = [P0[0] + (C[0] - P0[0]) * 0.15, P0[1], P0[2] + (C[2] - P0[2]) * 0.15];
+      if (!this.libreDehors(w, L, P0) || !this.voit(w, L, P0, haut, 1.0) || !this.libreDehors(w, L, P1)) continue;
+      best = { a: Math.atan2(P0[0] - C[0], P0[2] - C[2]), P0, P1 };
+      break;
+    }
+    const fixe = !!best, propsL = fixe ? [] : qtProps(w, C[0], C[2], DS[3] + 4);
+    let pis = null;
+    for (let k = 0; k < 32 && !fixe; k++) {
       const a = (k / 32) * TAU;
       for (const d of DS) {
         const x = C[0] + Math.sin(a) * d, z = C[2] + Math.cos(a) * d, g = Math.max(w.heightAt(x, z), w.waterLevel);
         const P0 = [x, g + (lieu.loin ? 2.0 : 1.7), z];
         if (!this.libreDehors(w, L, P0) || !this.voit(w, L, P0, haut, lieu.hc > 2 ? 2 : 1.2)) continue;
+        // (pas par une porte ni entre deux murs : on voit aussi de part et d'autre du lieu, et son sommet)
+        const px = Math.cos(a), pz = -Math.sin(a), e = Math.max(2.5, lieu.hc * 0.8);
+        let vus = 0;
+        for (const Q of [[C[0] + px * e, C[1], C[2] + pz * e], [C[0] - px * e, C[1], C[2] - pz * e], [C[0], C[1] + lieu.hc * 0.6, C[2]]]) if (this.voit(w, L, P0, Q, 1.0)) vus++;
+        if (vus < 2) continue;
         const x1 = C[0] + Math.sin(a) * (d - 3.5), z1 = C[2] + Math.cos(a) * (d - 3.5);
         const P1 = [x1, Math.max(w.heightAt(x1, z1), w.waterLevel) + (lieu.loin ? 2.0 : 1.7), z1];
         if (!this.libreDehors(w, L, P1) || !this.voit(w, L, P1, haut, lieu.hc > 2 ? 2 : 1.2)) continue;
         // la lumière de côté (un peu de face, plutôt que dans le dos) ; l'endroit précis visible aussi, si possible
         const s = (-Math.sin(a) * sun[0] - Math.cos(a) * sun[1]) / sn;
         const sc = -Math.abs(s - 0.2) + (this.voit(w, L, P1, H, 0.3) ? 0.6 : 0) - (d === DS[3] ? 0.15 : 0) + (d === DS[0] ? 0.1 : 0) - k * 0.0005;
+        // (rien de planté juste devant l'objectif : un pan de mur, un poteau ; sinon, une autre distance)
+        if (!this.degage(w, L, P0, haut, propsL)) { if (!pis || sc > pis.sc) pis = { sc, a, P0, P1 }; continue; }
         if (!best || sc > best.sc) best = { sc, a, P0, P1 };
         break;
       }
     }
+    if (!best) best = pis;
     if (!best) { const a = 0.6, P0 = [C[0] + Math.sin(a) * 12, C[1] + 6, C[2] + Math.cos(a) * 12]; best = { a, P0, P1: [P0[0] * 0.9 + C[0] * 0.1, P0[1], P0[2] * 0.9 + C[2] * 0.1] }; }
-    // le plan rapproché : l'endroit précis, de près, au-dessus de l'herbe
+    // le plan rapproché : l'endroit précis, de près, au-dessus de l'herbe (du côté donné par le lieu, s'il en donne un ;
+    // ni poteau ni stèle entre la caméra et lui)
     let Cl = null;
-    const cible = [H[0], H[1], H[2]];
-    for (const dd of [3.2, 2.6, 4.0, 4.8]) {
-      for (const da of [0, 0.45, -0.45, 0.9, -0.9, 1.4, -1.4, 2.0, -2.0, Math.PI]) {
-        const a = Math.atan2(best.P1[0] - H[0], best.P1[2] - H[2]) + da;
+    const cible = [H[0], H[1], H[2]], props = qtProps(w, H[0], H[2], 7);
+    const a0 = lieu.face !== undefined ? lieu.face : Math.atan2(best.P1[0] - H[0], best.P1[2] - H[2]);
+    const DAS = lieu.face !== undefined ? [0, 0.3, -0.3, 0.6, -0.6, 1.0, -1.0, 1.5, -1.5] : [0, 0.45, -0.45, 0.9, -0.9, 1.4, -1.4, 2.0, -2.0, Math.PI];
+    const p0 = lieu.pres || 3.2;
+    for (const dd of [p0, p0 - 0.6, p0 + 0.8, p0 + 1.6]) {
+      for (const da of DAS) {
+        const a = a0 + da;
         const x = H[0] + Math.sin(a) * dd, z = H[2] + Math.cos(a) * dd;
         const Q0 = [x, Math.max(w.heightAt(x, z), H[1] - 0.3, w.waterLevel) + 1.35, z];
-        if (!this.libreDehors(w, L, Q0) || !this.voit(w, L, Q0, cible, 0.25)) continue;
+        if (!this.libreDehors(w, L, Q0) || !this.voit(w, L, Q0, cible, 0.25) || this.bute(props, Q0, cible)) continue;
         const x1 = H[0] + Math.sin(a) * (dd - 0.8), z1 = H[2] + Math.cos(a) * (dd - 0.8);
         const Q1 = [x1, Math.max(w.heightAt(x1, z1), H[1] - 0.3, w.waterLevel) + 1.25, z1];
-        if (!this.libreDehors(w, L, Q1) || !this.voit(w, L, Q1, cible, 0.25)) continue;
+        if (!this.libreDehors(w, L, Q1) || !this.voit(w, L, Q1, cible, 0.25) || this.bute(props, Q1, cible)) continue;
         Cl = { de: { pos: Q0, look: cible }, a: { pos: Q1, look: cible } };
         break;
       }
@@ -145,7 +212,7 @@ body.t-scene #t-voile{opacity:1}`;
     const lieu = S.lieu, H = S.p, C = lieu.c, y0 = lieu.sol;
     const L = qtBlocs(w, H[0], H[2], 16), props = qtProps(w, H[0], H[2], 12);
     const he = lieu.phare !== undefined ? 1.45 : 1.6;
-    const essai = (dmin, dmax, dpref, vise, pref) => {
+    const essai = (dmin, dmax, dpref, vise, pref, kp) => {
       const O = [H[0], y0 + he, H[2]];
       let best = null;
       for (let k = 0; k < 36; k++) {
@@ -160,21 +227,27 @@ body.t-scene #t-voile{opacity:1}`;
           if (qtRayon(w, L, P, [v[0] / dv, v[1] / dv, v[2] / dv], dv - 0.3)) continue;
           const v2 = [H[0] - P[0], H[1] - P[1], H[2] - P[2]], d2 = Math.hypot(v2[0], v2[1], v2[2]) || 1;
           const voitH = !qtRayon(w, L, P, [v2[0] / d2, v2[1] / d2, v2[2] / d2], d2 - 0.2);
-          const sc = -Math.abs(dd - dpref) + (voitH ? 1 : 0) - (pref !== undefined ? Math.abs(angDiff(a, pref)) * 0.25 : 0) - k * 0.0003;
+          const sc = -Math.abs(dd - dpref) + (voitH ? 1 : 0) - (pref !== undefined ? Math.abs(angDiff(a, pref)) * (kp || 0.25) : 0) - k * 0.0003;
           if (!best || sc > best.sc) best = { sc, P, a };
           break;
         }
       }
       return best;
     };
-    const large = essai(1.6, 7.5, lieu.phare !== undefined ? 2.2 : 4.2, C) || essai(0.9, 4, 1.6, C);
-    const pres = essai(0.8, 2.4, 1.5, H, large ? large.a : undefined) || large;
+    let large = null;
+    if (lieu.vue) {
+      const P = lieu.vue.pos, T = lieu.vue.look, v = [T[0] - P[0], T[1] - P[1], T[2] - P[2]], dv = Math.hypot(v[0], v[1], v[2]) || 1;
+      if (this.dansPiece(w, lieu, P) && !qtDansBloc(L, P, 0.25) && qtSousToit(w, L, P) && !qtRayon(w, L, P, [v[0] / dv, v[1] / dv, v[2] / dv], dv - 0.4)) large = { P, a: Math.atan2(P[0] - H[0], P[2] - H[2]), look: T };
+    }
+    if (!large) large = essai(1.6, 7.5, lieu.phare !== undefined ? 2.2 : 4.2, C) || essai(0.9, 4, 1.6, C);
+    const pres = (lieu.face !== undefined ? essai(0.9, 2.4, 1.6, H, lieu.face, 1.2) : null) || essai(0.8, 2.4, 1.5, H, large ? large.a : undefined) || large;
     if (!large) return null;
+    const CL = large.look || C;
     const vers = (P, T, k) => [P[0] + (T[0] - P[0]) * k, P[1] + (T[1] - P[1]) * k * 0.3, P[2] + (T[2] - P[2]) * k];
     const libre = (P) => this.dansPiece(w, lieu, P) && !qtDansBloc(L, P, 0.22) && this.horsMeubles(w, P, y0, props);
-    const P1 = vers(large.P, C, 0.18), Q1 = vers(pres.P, H, 0.15);
+    const P1 = vers(large.P, CL, large.look ? 0.12 : 0.18), Q1 = vers(pres.P, H, 0.15);
     return {
-      B: { de: { pos: large.P, look: C }, a: { pos: libre(P1) ? P1 : large.P, look: C } },
+      B: { de: { pos: large.P, look: CL }, a: { pos: libre(P1) ? P1 : large.P, look: CL } },
       C: { de: { pos: pres.P, look: H }, a: { pos: libre(Q1) ? Q1 : pres.P, look: H } },
       a: large.a,
     };
@@ -182,18 +255,29 @@ body.t-scene #t-voile{opacity:1}`;
   // les lumières d'une scène : sur l'endroit, et une douce derrière la caméra (dedans) ; de la lune, la nuit (dehors)
   lumieres(S, cad, h) {
     const H = S.p, nuit = h >= 20.2 || h < 5.6, out = [];
+    // le feu du phare, « déjà allumé » : devant la chambre de verre, du côté de la caméra
+    const lp = S.lieu.lampe;
+    if (lp && !S.lieu.dedans) {
+      const P = cad.B.de.pos, dx = P[0] - lp[0], dz = P[2] - lp[2], d = Math.hypot(dx, dz) || 1;
+      out.push({ x: lp[0] + dx / d * 2.2, y: lp[1] + 0.2, z: lp[2] + dz / d * 2.2, r: 6.5, c: [1.5, 1.0, 0.5], d: 0 });
+    }
     if (S.lieu.dedans) {
-      const k = nuit ? 0.85 : 1;
-      out.push({ x: H[0], y: H[1] + 0.9, z: H[2], r: 5.5, c: [0.95 * k, 0.76 * k, 0.5 * k], d: 0 });
+      // (la nuit, une chandelle : plus sourd, plus orangé)
+      out.push(nuit ? { x: H[0], y: H[1] + 0.7, z: H[2], r: 4.6, c: [0.82, 0.52, 0.26], d: 0 } : { x: H[0], y: H[1] + 0.9, z: H[2], r: 5.5, c: [0.95, 0.76, 0.5], d: 0 });
       const P = cad.B.de.pos;
-      out.push({ x: P[0], y: P[1] + 0.3, z: P[2], r: 6, c: nuit ? [0.42, 0.34, 0.24] : [0.45, 0.44, 0.42], d: 0 });
+      out.push({ x: P[0], y: P[1] + 0.3, z: P[2], r: nuit ? 4.5 : 6.5, c: nuit ? [0.26, 0.2, 0.14] : [0.45, 0.44, 0.42], d: 0 });
       const C = S.lieu.c;
-      if (Math.hypot(C[0] - H[0], C[2] - H[2]) > 2) out.push({ x: C[0], y: C[1] + 0.8, z: C[2], r: 5, c: [0.6, 0.5, 0.36], d: 0 });
+      if (Math.hypot(C[0] - H[0], C[2] - H[2]) > 2) out.push({ x: C[0], y: C[1] + 0.8, z: C[2], r: 5, c: nuit ? [0.7, 0.42, 0.2] : [0.6, 0.5, 0.36], d: 0 });
     } else if (nuit) {
-      out.push({ x: H[0], y: H[1] + 2.2, z: H[2], r: 9, c: [0.3, 0.33, 0.44], d: 0 });
+      out.push({ x: H[0], y: H[1] + 2.4, z: H[2], r: 11, c: [0.22, 0.25, 0.34], d: 0 });
       const C = S.lieu.c;
-      out.push({ x: C[0], y: C[1] + 3, z: C[2], r: S.lieu.loin ? 26 : 16, c: [0.2, 0.22, 0.3], d: 0 });
-    } else if (h < 7.3 || h > 17.8) out.push({ x: H[0], y: H[1] + 1.6, z: H[2], r: 6, c: [0.24, 0.2, 0.16], d: 0 });
+      out.push({ x: C[0], y: C[1] + 3, z: C[2], r: S.lieu.loin ? 28 : 18, c: [0.15, 0.17, 0.23], d: 0 });
+    } else if (h >= 17.6) {
+      // (au crépuscule, l'endroit précis garde un peu de jour, du côté d'où on le regarde)
+      out.push({ x: H[0], y: H[1] + 2.6, z: H[2], r: 9, c: [0.3, 0.27, 0.25], d: 0 });
+      const Q = cad.C.de.pos, dq = Math.hypot(Q[0] - H[0], Q[2] - H[2]);
+      out.push({ x: (Q[0] + H[0]) / 2, y: Q[1] + 0.6, z: (Q[2] + H[2]) / 2, r: dq + 2.5, c: [0.36, 0.32, 0.28], d: 0 });
+    }
     return out;
   },
   cadrer(id, i) {
@@ -222,7 +306,7 @@ body.t-scene #t-voile{opacity:1}`;
       const V = this.cadrer(id, i);
       if (!V) { for (const m of M) { m.dur = 0.01; m.texte = ''; } return; }
       ok = true;
-      const on = () => this.lumiere({ h: E.heure, dedans: !!E.dedans, lum: this.lumieres(V.S, V, E.heure) }), retour = this.vueJoueur();
+      const on = () => { this.lumiere({ h: E.heure, dedans: !!E.dedans, lum: this.lumieres(V.S, V, E.heure) }); this.montre = id + ':' + i; farm.dirtyProps = true; }, retour = this.vueJoueur();
       Object.assign(M[0], { de: V.B.de, a: V.B.a, debut: on });
       Object.assign(M[1], { de: V.C.de, a: V.C.a, debut: on });
       Object.assign(M[2], { de: V.C.a });
@@ -242,7 +326,7 @@ body.t-scene #t-voile{opacity:1}`;
     const h = { t1: k === 'a' ? 8.2 : 23.8, t2: 1.5, t3: 16.5, t4: 18.2, t5: 5.6 }[id] || 12;
     const lum = this.lumieres(V.S, V, h);
     if (id === 't2' && k === 'a') lum.length = 0;                          // la lanterne éteinte
-    const off = () => this.lumiere(null), on = () => this.lumiere({ h, dedans: !!D.etapes[n].dedans, lum }), retour = this.vueJoueur();
+    const off = () => this.lumiere(null), on = () => { this.lumiere({ h, dedans: !!D.etapes[n].dedans, lum }); this.montre = id + ':' + n; }, retour = this.vueJoueur();
     return cine.jouer([
       { dur: 1.0, de: this.vueJoueur(), fondu: 'noir' },
       { dur: 7.2, de: V.B.a, a: V.B.de, texte: C.texte, debut: on },
@@ -268,5 +352,22 @@ HOOKS.load.push(() => {
   };
 });
 HOOKS.lights.push(() => (qtScenes.mem && cine.on ? qtScenes.mem.lum : []));
+// un habitant planté devant la caméra (ou sur l'endroit montré) : effacé le temps du plan, il revient après
+{
+  const _d = npcs.draw.bind(npcs);
+  npcs.draw = function (buf, sbuf, cam, t, maxD) {
+    const P = qtScenes.mem && cine.on && cine.plans && cine.plans[cine.i];
+    const V = P && ((P.a && P.a.look) || (P.de && P.de.look));
+    if (!V || !cam) return _d(buf, sbuf, cam, t, maxD);
+    const caches = [], dx = V[0] - cam[0], dy = V[1] - cam[1], dz = V[2] - cam[2], L2 = dx * dx + dz * dz || 1e-9;
+    for (const n of this.list) {
+      if (n.vanished || n.state === 'gone' || !isFinite(n.x)) continue;
+      const t0 = clamp(((n.x - cam[0]) * dx + (n.z - cam[2]) * dz) / L2, 0, 1.1);
+      const px = cam[0] + dx * t0 - n.x, pz = cam[2] + dz * t0 - n.z, y = cam[1] + dy * Math.min(t0, 1);
+      if (Math.hypot(px, pz) < 0.85 && y > n.y - 0.4 && y < n.y + 2.2) { n.vanished = true; caches.push(n); }
+    }
+    try { return _d(buf, sbuf, cam, t, maxD); } finally { for (const n of caches) n.vanished = false; }
+  };
+}
 HOOKS.load.push(() => { qtScenes.lumiere(null); qtScenes.cadres = {}; });
 HOOKS.update.push(() => { if (qtScenes.mem && !cine.on) qtScenes.lumiere(null); });
