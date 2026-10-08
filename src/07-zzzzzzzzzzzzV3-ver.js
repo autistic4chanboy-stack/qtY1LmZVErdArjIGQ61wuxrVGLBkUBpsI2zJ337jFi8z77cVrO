@@ -441,24 +441,37 @@ Object.assign(PROP_MODELS, {
   v3_tas(E, o) {
     const k = 1 - clamp(((o.data && o.data.n) || 0) / 6, 0, 0.7);
     const R = mulberry32(((o.x * 13 + o.z * 7) | 0) >>> 0);
-    // un monticule (deux gradins de cendre et de rouille), puis ce qui dépasse : lames, casques, plats, os, crânes
-    E.bx(0, -0.3, 0, 7 * k + 1, 1.6 * k + 0.3, 6 * k + 1, [0.42, 0.36, 0.3], mt(M_V1_CENDRE));
-    E.bx(0.3, 0.9 * k - 0.2, -0.2, 4.4 * k + 0.6, 1.5 * k + 0.2, 3.8 * k + 0.6, [0.46, 0.34, 0.26], mt(M_V1_CENDRE), 0.5);
-    for (let i = 0; i < 64; i++) {
-      const a = R() * TAU, d = Math.sqrt(R()) * 3.4 * k, x = Math.cos(a) * d, z = Math.sin(a) * d, h = (2.5 * k + 0.3) * Math.max(0.1, 1 - d / (3.6 * k + 0.4)) + 0.05;
-      const r = R(), ry = R() * TAU, rx = (R() - 0.5) * 1.2;
-      if (r < 0.32) E.box(x, h, z, 0.12, 0.05, 1.3 + R(), V3P.fer, TL.iron, ry, rx);                      // une lame
-      else if (r < 0.5) E.box(x, h + 0.15, z, 0.5, 0.42, 0.55, V3P.rouille, TL.iron, ry, rx);           // un casque
-      else if (r < 0.66) E.box(x, h, z, 0.35, 0.06, 0.35, V3P.or, TL.gold, ry, rx);                      // des pièces, un plat
-      else if (r < 0.86) E.box(x, h, z, 0.14, 0.14, 0.9 + R() * 0.6, V3P.os, TL.bone, ry, rx);          // un os
-      else E.box(x, h + 0.1, z, 0.42, 0.36, 0.48, V3P.os2, TL.bone, ry, rx);                            // un crâne
+    // un monticule en gradins (cendre et rouille), et ce qui le couvre : lames, casques, plats, os, crânes — posés SUR la
+    // surface du gradin où ils tombent (pas noyés dedans)
+    // (le gradin du bas ne change pas : c'est lui qui arrête le joueur, PROP_COLL ; ce qu'on fouille, au-dessus, s'abaisse)
+    const G = [[8, 7, 0.95], [5 * k + 0.6, 4.2 * k + 0.6, 0.85 * k + 0.2], [2.8 * k + 0.4, 2.4 * k + 0.4, 0.7 * k + 0.15]];
+    const tops = [];
+    let y = -0.3;
+    for (let g = 0; g < G.length; g++) {
+      const [sx, sz, sy] = G[g], hh = sy + (g === 0 ? 0.3 : 0);
+      E.bx(g * 0.25, y, -g * 0.2, sx, hh, sz, g === 1 ? [0.47, 0.35, 0.27] : [0.42, 0.36, 0.3], mt(M_V1_CENDRE));
+      y += hh; tops.push([g * 0.25, -g * 0.2, sx / 2, sz / 2, y]);
     }
+    const surf = (x, z) => { let h = 0; for (const [cx, cz, hx, hz, t] of tops) if (Math.abs(x - cx) < hx && Math.abs(z - cz) < hz) h = t; return h; };
+    for (let i = 0; i < 72; i++) {
+      const a = R() * TAU, d = Math.sqrt(R()) * (2.2 * k + 1.5), x = Math.cos(a) * d, z = Math.sin(a) * d * 0.88, h = surf(x, z);
+      const r = R(), ry = R() * TAU, rx = (R() - 0.5) * 0.9;
+      if (r < 0.3) E.box(x, h + 0.04, z, 0.14, 0.06, 1.3 + R(), V3P.fer, TL.iron, ry, rx * 0.3);            // une lame
+      else if (r < 0.46) E.box(x, h + 0.2, z, 0.52, 0.42, 0.58, V3P.rouille, TL.iron, ry, rx);            // un casque
+      else if (r < 0.64) E.box(x, h + 0.04, z, 0.4, 0.07, 0.4, V3P.or, TL.gold, ry, rx * 0.4);            // des pièces, un plat
+      else if (r < 0.84) E.box(x, h + 0.08, z, 0.16, 0.16, 0.9 + R() * 0.6, V3P.os, TL.bone, ry, rx * 0.4); // un os
+      else E.box(x, h + 0.18, z, 0.44, 0.38, 0.5, V3P.os2, TL.bone, ry, rx);                              // un crâne
+    }
+    // une lame plantée tout en haut, et un bouclier appuyé
+    E.box(0.4, y + 0.7, -0.3, 0.12, 1.5, 0.3, V3P.fer, TL.iron, 0.6, 0, 0.25);
+    E.box(-1.6, tops[1][4] + 0.45, 1.2, 1.0, 1.0, 0.12, V3P.rouille, TL.iron, 0.4, -0.5);
   },
   // l'anneau scellé, la chaîne qui pend
   v3_anneau(E) {
     E.bx(0, -0.4, 0, 2.6, 1.6, 2.2, [0.5, 0.48, 0.46], mt(M_V1_PIERRE));
-    E.bx(0, 1.0, 0, 0.9, 0.5, 0.9, [0.3, 0.3, 0.32], TL.iron);
-    for (let k = 0; k < 10; k++) { const a = k / 10 * TAU; E.box(Math.cos(a) * 1.05, 2.3 + Math.sin(a) * 1.05, 0, 0.36, 0.7, 0.36, V3P.fer, TL.iron, 0, 0, a); }
+    E.bx(0, 1.0, 0, 0.9, 0.5, 0.9, [0.42, 0.4, 0.4], TL.iron);
+    // l'anneau, debout, rouillé (épais : on le voit de loin)
+    for (let k = 0; k < 12; k++) { const a = k / 12 * TAU; E.box(Math.cos(a) * 1.1, 2.4 + Math.sin(a) * 1.1, 0, 0.5, 0.66, 0.5, k % 3 ? [0.62, 0.44, 0.32] : V3P.rouille, TL.iron, 0, 0, a); }
     for (let k = 0; k < 4; k++) E.box(0.4 + k * 0.85, 0.35, 0.6 + k * 0.25, k % 2 ? 0.25 : 0.9, 0.9, k % 2 ? 0.9 : 0.25, V3P.rouille, TL.iron, 0.3, 0, Math.PI / 2);
   },
   // le collier ouvert (après la délivrance)
@@ -536,4 +549,4 @@ Object.assign(PROP_MODELS, {
   },
 });
 // des collisions (blocs cachés) pour ce qui est gros
-Object.assign(PROP_COLL, { v3_tas: [3.2, 2.8, 1.4], v3_anneau: [1.3, 1.1, 3.4], v3_baliste: [1.2, 2.3, 1.2], v3_borne: [0.45, 0.35, 2.2], v3_cloche: [1.3, 0.25, 3.4] });
+Object.assign(PROP_COLL, { v3_tas: [4.0, 3.5, 0.95], v3_anneau: [1.3, 1.1, 3.4], v3_baliste: [1.2, 2.3, 1.2], v3_borne: [0.45, 0.35, 2.2], v3_cloche: [1.3, 0.25, 3.4] });

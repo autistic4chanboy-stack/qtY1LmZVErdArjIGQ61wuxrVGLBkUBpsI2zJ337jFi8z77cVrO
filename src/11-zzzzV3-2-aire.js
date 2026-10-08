@@ -117,9 +117,13 @@ zone.passe('V3', (Z, O) => {
   }
   // le tas : de l'autre côté du corps lové, un peu en arrière (ce qu'il a pris à ceux qui sont venus)
   {
-    const [x, z] = B.toWorld(fc, -14, -5);
-    O.prop('v3_tas', x, sol(x, z), z, rnd() * TAU, {});
-    O.inter('v3_tas', 'v3_tas', x, sol(x, z) + 1.4, z, V3_TEXTES.tasTitre, {});
+    const [x, z] = B.toWorld(fc, -14, -5), rt = rnd() * TAU;
+    O.prop('v3_tas', x, sol(x, z), z, rt, {});
+    // (on fouille de n'importe quel côté : le gradin du bas arrête le joueur à quatre mètres du milieu)
+    for (const [lx, lz, nm] of [[4.4, 0, 'v3_tas'], [-4.4, 0, 'v3_tas_2'], [0, 3.9, 'v3_tas_3'], [0, -3.9, 'v3_tas_4']]) {
+      const [ix, iz] = B.toWorld({ x, z, r: rt }, lx, lz);
+      O.inter('v3_tas', nm, ix, sol(x, z) + 1.15, iz, V3_TEXTES.tasTitre, {});
+    }
     V.tas = { x, z };
   }
   // l'anneau scellé, la chaîne rompue : devant lui, du même côté que le tas

@@ -180,6 +180,7 @@ const dragonV3 = {
     this.majSouffle(dt);
     this.majJoueur(dt);
     this.majSons(dt);
+    this.majBraise();
     // la première fois qu'on le voit (de près, sous le ciel ouvert)
     const S = this.S();
     if (!S.premiere && D.dist < 260 && D.dist < (game.sky ? game.sky.fog[1] : 300) && D.mode !== 'dort' && !cine.on) {
@@ -231,6 +232,18 @@ const dragonV3 = {
       const vn = (p.vel[0] * nx + p.vel[2] * nz) / dh;
       if (vn < 0) { p.vel[0] -= vn * nx / dh; p.vel[2] -= vn * nz / dh; }
     }
+  },
+  // endormi : à chaque souffle (au plus fort, en même temps que la braise rougeoie), quelques étincelles s'échappent des
+  // naseaux et montent (de près seulement)
+  majBraise() {
+    const D = this.D;
+    if (!D || D.mode !== 'dort' || D.dist > 60 || !D.matOk || !this.rig) return;
+    const k = Math.sin(game.time * 0.9);
+    if (k > 0.93 && !this.braiseHaut) {
+      this.braiseHaut = true;
+      const q = this.rig.part('museau_bout'), b = v3Pt(q.W, 0, 0.1, 0.5), c = v3Pt(q.W, 0, 0.1, 1.5), fx = c[0] - b[0], fz = c[2] - b[2], R = Math.random;
+      for (let i = 0; i < 7; i++) particles.spawn(b[0] + (R() - 0.5) * 0.5, b[1] + (R() - 0.5) * 0.3, b[2] + (R() - 0.5) * 0.5, fx * (0.8 + R()) + (R() - 0.5) * 0.5, 0.5 + R() * 0.9, fz * (0.8 + R()) + (R() - 0.5) * 0.5, [1, 0.42 + R() * 0.3, 0.08, 1], 0.07, 0.9 + R() * 0.9, -0.35, true);
+    } else if (k < 0.4) this.braiseHaut = false;
   },
   // l'œil (la tête) dans le monde
   oeil() {
@@ -947,7 +960,7 @@ const dragonV3 = {
     if (D && D.mode !== 'mort' && D.dist < 60 && D.matOk && (this.feuK > 0.05 || (game.sky && game.sky.night > 0.5 && D.mode !== 'dort'))) { const o = this.oeil(); L.push({ x: o[0], y: o[1], z: o[2], r: 7 + this.feuK * 10, c: [1.0 + this.feuK, 0.45, 0.12], d: D.dist }); }
     // endormi : la braise au fond des naseaux, qui rougeoit à chaque souffle (comme une forge qu'on tisonne) — on le trouve
     // dans le noir, de près
-    else if (D && D.mode === 'dort' && D.dist < 70 && D.matOk) { const b = this.bouche(), k = 0.55 + 0.45 * Math.sin(game.time * 0.9); L.push({ x: b[0], y: b[1] + 0.4, z: b[2], r: 4.5 + k * 3, c: [0.95 * k, 0.32 * k, 0.07 * k], d: D.dist }); }
+    else if (D && D.mode === 'dort' && D.dist < 70 && D.matOk) { const b = this.bouche(), k = 0.5 + 0.5 * Math.sin(game.time * 0.9); L.push({ x: b[0], y: b[1] + 0.5, z: b[2], r: 6 + k * 4, c: [0.5 + 1.1 * k, 0.16 + 0.4 * k, 0.04 + 0.08 * k], d: D.dist }); }
     return L;
   },
   fx(fx, tint, sky) {
