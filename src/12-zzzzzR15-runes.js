@@ -31,7 +31,7 @@ const runesUI = {
 .r15 .r15porte { display: flex; gap: 8px; padding: 8px 14px; border-radius: 4px; background: linear-gradient(#8f897e, #77716a); }
 .r15 .r15porte .r15g { width: 34px; height: 34px; stroke: #2a241e; stroke-width: 8; }
 .r15 .r15porte .r15g.efface { stroke: #5d574f; opacity: .7; }
-.r15 .r15cercle { position: relative; width: min(210px, 60vw, 34vh); flex: none; aspect-ratio: 1; border-radius: 50%; border: 3px solid #6f5a3e;
+.r15 .r15cercle { position: relative; width: min(210px, 60vw, max(160px, 34vh)); flex: none; aspect-ratio: 1; border-radius: 50%; border: 3px solid #6f5a3e;
   background: radial-gradient(circle, #efe6cf 0%, #ddd0b2 70%, #cdbd9a 100%); transition: box-shadow .5s, filter .5s; }
 .r15 .r15cercle.dort { filter: grayscale(1) opacity(.5); }
 .r15 .r15cercle.prend { animation: r15prend 1.8s ease-out; }
@@ -42,7 +42,7 @@ const runesUI = {
   transform: translate(-50%, -50%); padding: 5%; box-sizing: border-box; cursor: pointer; }
 .r15 .r15place:focus-visible, .r15 .r15rune:focus-visible, .r15 .r15ok:focus-visible { outline: 2px solid #8a5a2a; outline-offset: 2px; }
 .r15 .r15place.p0 { left: 50%; top: 20%; } .r15 .r15place.p1 { left: 24%; top: 66%; } .r15 .r15place.p2 { left: 76%; top: 66%; }
-.r15 .r15ok { position: absolute; left: 50%; top: 52%; transform: translate(-50%, -50%); font-size: 15px; padding: 6px 12px; border-radius: 3px;
+.r15 .r15ok { font-size: 15px; padding: 6px 12px; border-radius: 3px;
   border: 1px solid #8a6a40; background: #f3ead2; color: #3d2e1c; cursor: pointer; }
 .r15 .r15ok:disabled { opacity: .45; cursor: default; }
 .r15 .r15runes { display: grid; grid-template-columns: repeat(6, 40px); gap: 8px; justify-content: center; }
@@ -70,7 +70,7 @@ const runesUI = {
     const places = [0, 1, 2].map((i) => `<button class="r15place p${i}" data-place="${i}" aria-label="Place ${i + 1}">${this.choix[i] ? this.svg(this.choix[i]) : ''}</button>`).join('');
     const pret = this.choix.filter(Boolean).length === 3 && !dort;
     const ok = `<button class="r15ok" ${pret ? '' : 'disabled'}${jour && eveil ? ' title="Pas avant demain."' : ''}>Assembler</button>`;
-    const cercle = `<div class="r15cercle${dort ? ' dort' : ''}${this.etat ? ' ' + this.etat : ''}">${places}${ok}</div>`;
+    const cercle = `<div class="r15cercle${dort ? ' dort' : ''}${this.etat ? ' ' + this.etat : ''}">${places}</div>${ok}`;
     const lst = K.map((r) => `<button class="r15rune${this.choix.includes(r) ? ' pris' : ''}" data-rune="${r}" title="${esc(R15_RUNES[r].nom)}" ${eveil ? '' : 'disabled'}>${this.svg(r)}</button>`).join('');
     const act = P ? '' : `<div class="r15actifs">${runes.actifs().map((E) => `<span title="${esc(R15_RUNES[E.r] ? R15_RUNES[E.r].nom : '')}" style="opacity:${clamp(0.35 + E.reste / 24, 0.35, 1).toFixed(2)}">${this.svg(E.r)}</span>`).join('')}</div>`;
     return `<div class="r15">${porte}<div class="r15tabs">${tabs}</div>${cercle}${act}<div class="r15runes">${lst}</div></div>`;
