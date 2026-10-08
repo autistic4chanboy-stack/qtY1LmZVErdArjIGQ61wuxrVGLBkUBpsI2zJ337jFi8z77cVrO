@@ -4,13 +4,16 @@
 //  Une grille fine (0,25 m), calculée par carreaux de 16 m quand on en a besoin et gardée en mémoire,
 //  qui sait où un habitant pose le pied : le sol (relief, planchers, marches, tabliers des ponts), l'eau
 //  et les douves, les murs, les meubles, les arbres et les rochers, les portes (et à qui elles sont), les
-//  ponts-levis (baissés ou levés) — avec la place qu'il faut à un corps (0,3 m de rayon, de la cheville
-//  à 1,75 m). Trois sortes de couches : la surface, le dessous (la halle des nains, sous la falaise), et les étages
-//  (les planchers hauts des maisons, qu'on rejoint par l'échelle de meunier — 11-zzzzB1-ville.js).
+//  ponts-levis (baissés ou levés) — avec la place qu'il faut à un corps (0,3 m de rayon, d'une marche de
+//  0,5 m — comme les collisions du jeu — à 1,75 m). Les douves de la ville (l'eau et ses berges) ne se passent que
+//  sur les ponts. Trois sortes de couches : la surface, le dessous (la halle des nains, sous la falaise), et les
+//  étages (les planchers hauts des maisons, qu'on rejoint par l'échelle de meunier — 11-zzzzB1-ville.js).
 //  Sur cette grille : un A* borné (tas binaire), la vue dégagée d'un point à un autre (pour couper au
-//  plus court), le point libre le plus proche (pour s'approcher d'un lit, d'un banc, d'un établi).
-//  API (interne : trajets.grille) : reset(w), couche(x, y, z), cellule(x, z, c), libre(x, z, c, r, opts),
-//  vue(x0, z0, x1, z1, c, opts), chemin(x0, z0, x1, z1, c, opts), carreauxFaits(), oublier(x, z, r).
+//  plus court), le point libre le plus proche (pour s'approcher d'un lit, d'un banc, d'un établi — du même côté
+//  des murs).
+//  API (globale `zgrille`, interne ; les autres modules passent par trajets.chemin / libre / passable) : reset(w),
+//  couche(x, y, z), cellule(x, z, c), libre(x, z, c, r, opts), vue(x0, z0, x1, z1, c, opts),
+//  chemin(x0, z0, x1, z1, c, opts), poche(gx, gz, c), murEntre(x0, z0, x1, z1, y), oublier(x, z, r).
 // ============================================================================
 const ZG_C = 0.25, ZG_N = 64, ZG_R = 0.3, ZG_RM = 0.22, ZG_PAS = 0.5, ZG_TETE = 1.75, ZG_PENTE = 1.0;
 // drapeaux d'une cellule
@@ -42,11 +45,31 @@ const zgrille = {
   },
   cle(tx, tz, c) { return (tx * 2048 + tz) * 16 + c; },
   carreau(tx, tz, c) {
-    const k = this.cle(tx, tz, c);
+    const k = this.cle(tx, tz, c), w = this.w;
     let T = this.carreaux.get(k);
+    // (le monde a changé depuis — un arbre repoussé, un objet posé, la « version » du monde qui tourne — : si ce qui
+    //  touche ce carreau n'est plus pareil, on le refait)
+    if (T && T.gref !== w.grid) {
+      if (!w.grid) w.rebuildGrid();
+      if (this.signature(tx, tz) !== T.sig) T = null;
+      else T.gref = w.grid;
+    }
     if (!T) { T = this.construire(tx, tz, c); this.carreaux.set(k, T); }
     T.t = this.image;
     return T;
+  },
+  // ce qui touche un carreau (les cases de la grille du monde autour : objets, blocs) : une empreinte
+  signature(tx, tz) {
+    const w = this.w, G = w.grid, S = ZG_N * ZG_C, m = 1.2;
+    const gx0 = Math.max(0, Math.floor((tx * S - m) / GRID_CELL)), gx1 = Math.min(G.gw - 1, Math.floor(((tx + 1) * S + m) / GRID_CELL));
+    const gz0 = Math.max(0, Math.floor((tz * S - m) / GRID_CELL)), gz1 = Math.min(G.gw - 1, Math.floor(((tz + 1) * S + m) / GRID_CELL));
+    let h = 17;
+    for (let gz = gz0; gz <= gz1; gz++) for (let gx = gx0; gx <= gx1; gx++) {
+      const cell = G.cells[gz * G.gw + gx];
+      h = (Math.imul(h, 31) + (cell ? cell.length : 0)) | 0;
+      if (cell) for (let i = 0; i < cell.length; i++) h = (Math.imul(h, 16777619) ^ (cell[i] + 7)) | 0;
+    }
+    return h;
   },
   // le monde a changé autour de (x, z) : on refera les carreaux
   oublier(x, z, r) {
@@ -254,7 +277,7 @@ const zgrille = {
     }
     this.nCarreaux++;
     if (t0) this.tCarreaux += performance.now() - t0;
-    return { tx, tz, c, sol, f, porte, t: this.image };
+    return { tx, tz, c, sol, f, porte, t: this.image, sig: this.signature(tx, tz), gref: w.grid };
   },
 
   // ------------------------------------------------------------------ lecture
@@ -263,7 +286,7 @@ const zgrille = {
   lire(gx, gz, c) {
     const tx = gx >> 6, tz = gz >> 6;
     let T = this.T;
-    if (!T || T.tx !== tx || T.tz !== tz || T.c !== c) T = this.T = this.carreau(tx, tz, c);
+    if (!T || T.tx !== tx || T.tz !== tz || T.c !== c || T.gref !== this.w.grid) T = this.T = this.carreau(tx, tz, c);
     return (gz & 63) * 64 + (gx & 63);
   },
   cellule(x, z, c) {

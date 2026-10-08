@@ -7,11 +7,13 @@
 //    au-delà, on file d'un nœud à l'autre sans rien heurter (personne ne regarde) ; départ et arrivée hors de
 //    vue : on y est déjà (comme avant).
 //  - Les portes : on ouvre en approchant, on attend que le battant soit ouvert, on referme derrière soi (les
-//    boutiques restent ouvertes aux heures d'ouverture) ; une porte fermée à clé n'est qu'à ses gens.
+//    boutiques restent ouvertes aux heures d'ouverture) ; une porte fermée à clé n'est qu'à ses gens (et l'on sort
+//    toujours d'une maison où l'on se trouve). Les ponts-levis : on monte sur le tablier ; levés, on attend.
 //  - Se croiser : on s'écarte sur sa droite, on ralentit, on laisse passer à une porte ; on ne traverse plus
 //    personne (le joueur non plus : « Pardon… »).
-//  - S'installer : un lit, un banc, une chaise, un établi — on s'en approche par le côté libre, puis on s'y
-//    met (et l'on s'en relève de même) ; la nuit, chacun dort dans SON lit.
+//  - S'installer : un lit, un banc, une chaise, un établi — on s'en approche par le côté libre (du même côté des
+//    murs), puis on s'y met (et l'on s'en relève de même) ; une place déjà prise : debout à côté ; la nuit, chacun
+//    dort dans SON lit ; pour l'étage, l'échelle de meunier.
 //  - Déblocage sûr : on recalcule, on se décale vers la case libre voisine, on attend qu'on nous laisse
 //    passer ; on ne saute jamais à travers un mur sous les yeux du joueur.
 //  API (pour les autres agents, gardée par typeof) : voir plus bas, « trajets.allerA / dormir / reveiller… ».
@@ -45,6 +47,9 @@ const trajets = {
         zgrille.gridRef = w.grid;
       }
     }
+    // (la « version » du monde a tourné — 11-strange.js — : des murs, des meubles ont changé ; les carreaux se refont
+    //  d'eux-mêmes, les tronçons gardés et les buts reconnus inaccessibles, non)
+    if (w && w.curVer !== this.verRef) { this.verRef = w.curVer; this.memo.clear(); this.inaccessibles.clear(); this.vus.clear(); this.deplaces.clear(); }
     if ((this.img & 255) === 0) zgrille.ranger(700);
     // (le temps de cette image : un carreau d'avance, s'il en faut)
     if (zgrille.file.length) { const t0 = performance.now(); zgrille.preparer(1.2); this.ms += performance.now() - t0; }
@@ -236,6 +241,8 @@ const trajets = {
     this.image();
     this.c = c;
     let t = n.zt;
+    // (sur l'échelle, on finit de grimper — même si le but a changé entre-temps : on ne reste pas pendu au barreau)
+    if (t && t.grimpe && n.dist <= ZT_PRES) { this.grimper(n, dt, t); if (t.grimpe || !n.goal) return; }
     if (!n.goal) { n.state = 'idle'; n.move = 0; return; }
     if (!t || t.G !== n.goal) { this.partir(n, n.goal); t = n.zt; }
     if (t.echec) { n.move = lerp(n.move, 0, Math.min(1, dt * 6)); return; }
@@ -605,7 +612,7 @@ const trajets = {
 
   // ------------------------------------------------------------------ loin des yeux : on file de nœud en nœud
   filer(n, dt, w, t) {
-    t.loin = true; t.leve = null; t.inst = null; t.pts = null;
+    t.loin = true; t.leve = null; t.inst = null; t.pts = null; t.grimpe = null;
     let reste = (n.dist > ZT_LOIN ? 28 : 6) * dt;
     const path = n.path || [];
     for (let k = 0; k < 10 && reste > 0; k++) {

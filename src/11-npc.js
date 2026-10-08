@@ -166,6 +166,8 @@ const npcs = {
     if (typeof trajets !== 'undefined') trajets.monde(w);
     for (const n of this.list) {
       if (!n.st.alive || n.vanished || n.hunting) continue;
+      // (un ordre en cours — trajets.allerA, reveiller — est interrompu : sa fin est appelée, fin(n, false))
+      if (n.zOrdre && typeof trajets !== 'undefined') trajets.liberer(n);
       const sp = this.schedulePlace(n, h);
       const D = typeof trajets !== 'undefined' ? trajets.but(n, this.dest(n, sp.place, sp.sleep), true) : this.dest(n, sp.place, sp.sleep);
       n.place = sp.place; n.sleep = sp.sleep; n.goal = D; n.path = []; n.pi = 0;
