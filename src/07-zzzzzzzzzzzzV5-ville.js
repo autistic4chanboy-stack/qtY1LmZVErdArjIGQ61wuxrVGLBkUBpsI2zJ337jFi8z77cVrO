@@ -173,6 +173,12 @@ function v5Cercle(E, cx, cy, cz, R, col) {
   for (let k = 0; k < n; k++) { const a = (k + 0.5) / n * TAU; E.box(cx + Math.cos(a) * R, cy, cz + Math.sin(a) * R, 0.035, 0.03, L, col, TL.iron, -a); }
 }
 Object.assign(PROP_MODELS, {
+  // une lampe de carrefour : une borne de tuf, une coupe (un crâne retourné), une flamme d'huile
+  v5_lampe(E, o, t) {
+    E.bx(0, 0, 0, 0.34, 1.25, 0.34, V5C.tufS, V5_TUF()); E.bx(0, 1.25, 0, 0.46, 0.08, 0.46, V5C.tuf, V5_TUF());
+    E.box(0, 1.41, 0, 0.2, 0.16, 0.22, V5C.os, tx(TL.bone, TL.v5Cranes), Math.PI);
+    if (!o.data || o.data.lit !== false) v5Flamme(E, 0, 1.49, 0, 0.1, 0.2, t, o.x);
+  },
   // une paire de souliers, la pointe vers +z (v : 0 un homme, 1 une femme, 2 un enfant)
   v5_souliers(E, o) {
     const v = (o.data && o.data.v) || 0, k = [1, 0.84, 0.62][v] || 1, c = [rgbf('#3a2a1e'), rgbf('#1e1a18'), rgbf('#5a4430')][v] || V5C.boisS, cs = v3.scale(c, 0.65);
@@ -422,6 +428,7 @@ Object.assign(PROP_MODELS, {
   },
 });
 Object.assign(PROP_COLL, {
+  v5_lampe: [0.22, 0.22, 1.5],
   v5_feu: [0.56, 0.56, 1.25], v5_feu_compte: [1.5, 1.5, 1.2], v5_lit: [0.48, 1.0, 0.6], v5_table: [0.65, 0.4, 0.8], v5_banc: [0.9, 0.24, 0.48],
   v5_etal: [1.0, 0.35, 0.95], v5_registre: [0.3, 0.25, 1.2], v5_foudre: [1.45, 1.6, 2.6], v5_stele: [0.7, 0.2, 2.6], v5_sarcophage: [0.48, 1.08, 0.9],
   v5_puits: [1.3, 1.3, 0.8], v5_metier: [0.8, 0.35, 1.5], v5_brasier: [1.2, 1.2, 0.5],
@@ -430,4 +437,5 @@ Object.assign(PROP_LIGHTS, {
   v5_feu: { c: [1.0, 0.7, 0.42], r: 15, y: 1.7, flicker: true, lit: true },
   v5_feu_compte: { c: [1.05, 0.76, 0.48], r: 22, y: 2.2, flicker: true, lit: true },
   v5_chandelles: { c: [1.0, 0.72, 0.42], r: 6, y: 0.4, flicker: true },
+  v5_lampe: { c: [0.95, 0.68, 0.4], r: 9, y: 1.6, flicker: true },
 });

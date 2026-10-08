@@ -144,7 +144,9 @@ const habitantsV5 = {
   // rend { n: nœud cible, pose, regard (cap à prendre une fois là), spot: [x, y, z] (facultatif, au-delà du nœud) }
   but(e, h) {
     const v = this.Z(), T = v.temple, M = e.maison, S = this.S();
-    const office = this.officeCourant && this.officeCourant.fin > this.heureAbs() ? this.officeCourant : null;
+    // l'office en cours, ou celui qui va sonner (on part pour le temple avant la cloche : 0,7 h)
+    let office = this.officeCourant && this.officeCourant.fin > this.heureAbs() ? this.officeCourant : null;
+    if (!office && S.fin !== 'remontee' && S.fin !== 'extinction') { const O = V5_OFFICES.find((q) => q.h !== 21 && h >= q.h - 0.7 && h < q.h); if (O) office = { O, bientot: true }; }
     const lit = () => (M ? { n: M.noeuds.dedans, pose: 'couche', spot: [M.lit[0], v.F + 0.56, M.lit[1]], regard: M.f.r } : { n: T.noeuds.greffeLit, pose: 'couche', spot: [v.greffe.lit[0], v.F + 0.54 + 0.56, v.greffe.lit[1]], regard: v.CF.r });
     const seuil = () => (M ? { n: M.noeuds.dehors, pose: 'debout', regard: M.f.r } : { n: T.noeuds.greffe, pose: 'ecrit', regard: v.CF.r - Math.PI / 2 });
     const auTemple = () => { const k = (e.k * 5 + 3) % (T.places.length + 6); if (k < T.places.length) return { n: T.places[k], pose: 'prie', regard: v.CF.r + Math.PI }; return { n: T.noeuds.porte, pose: 'prie', regard: v.CF.r + Math.PI, spot: this.devant(T.noeuds.porte, k) }; };

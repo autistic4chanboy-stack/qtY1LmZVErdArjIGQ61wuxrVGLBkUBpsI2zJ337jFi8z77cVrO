@@ -45,6 +45,7 @@ module.exports = {
       // l'obscurité : la part des nœuds des rues à plus de 9 m d'un feu
       const rues=v.noeuds.filter(q=>q.tag===''||q.tag==='enceinte');let sombres=0;for(const q of rues){let dm=1e9;for(const f of v.feux)dm=Math.min(dm,Math.hypot(f.x-q.x,f.z-q.z));if(dm>9)sombres++;}
       out.sombre=+(sombres/Math.max(1,rues.length)).toFixed(2);out.feux=v.feux.length;
+      { const lampes=Z.props.filter(q=>q.id==='v5_lampe'),sources=v.feux.concat(lampes);let sb=0;for(const q of rues){let dm=1e9;for(const f of sources)dm=Math.min(dm,Math.hypot(f.x-q.x,f.z-q.z));if(dm>9)sb++;}out.sombreL=+(sb/Math.max(1,rues.length)).toFixed(2);out.lampes=lampes.length; }
       // les secrets
       out.secrets=s?Object.keys(s.lieux):[];out.murs=v.murs.map(m=>m.id).concat(s?s.murs.map(m=>m.id):[]);
       out.objets=v.objets.map(o=>o.item).concat(s?s.objets.map(o=>o.item):[]);
@@ -74,7 +75,8 @@ module.exports = {
     for (const k in R.lieuxRelies) if (!R.lieuxRelies[k]) ko(`${k} n’est pas relié au temple (les gens d’en bas n’y vont pas)`);
     if (R.porteH < 2.05) ko('des portes trop basses');
     log(`feux : ${R.feux} ; rues dans le noir (à plus de 9 m d’un feu) : ${Math.round(R.sombre * 100)} %`);
-    if (R.sombre < 0.5) ko('les rues sont trop éclairées : on ne peut pas s’y cacher');
+    log(`avec les ${R.lampes} lampes des carrefours : rues dans le noir ${Math.round(R.sombreL * 100)} %`);
+    if (R.sombreL < 0.5) ko('les rues sont trop éclairées : on ne peut pas s’y cacher');
     if (R.sombre > 0.97) ko('les rues sont toutes dans le noir');
     log(`secrets : ${R.secrets.join(', ')} ; murs qui mentent : ${R.murs.join(', ')} ; le cairn d’A. à ${R.cairn} m de la tonnellerie`);
     for (const k of ['tertre', 'chapelle', 'ermitage', 'brasier', 'cairn']) if (!R.secrets.includes(k)) ko(`le lieu secret « ${k} » n’est pas posé`);

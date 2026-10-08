@@ -554,6 +554,25 @@ zone.passe('V5-basse-fosse', (Z, O) => {
     for (const [k, z] of [[1, 99 + 7], [-1, 66 + 7], [1, 132 + 7]]) feu(k * 2.4, z);
     for (const [lx, lz] of [[0, 44], [-30, 36], [30, 36], [-46, -12], [46, -26], [0, -48], [-38, -2]]) feu(lx, lz);
     for (const [xi, zj, s] of [[34, 66, 1], [-68, 99, -1], [68, -33, 1], [102, 33, -1], [-34, -99, 1], [34, -132, -1], [-102, 33, 1], [68, 99, -1]]) feu(xi + s * 1.9, zj + 7);
+    // des lampes aux carrefours (pas dans la Nef, qui a ses feux) : à un angle d'îlot, une sur deux ; elles comptent avec les
+    // chandelles (la fin du feu les éteint)
+    {
+      let nl = 0;
+      for (const X of RUES_X) for (const Zr of RUES_Z) {
+        if (Math.hypot(X, Zr) < P.NEF + 6 || Math.hypot(X, Zr) > P.ANNEAU - 6 || (Math.abs(X / P.PAS_X) + Math.abs(Zr / P.PAS_Z)) % 2 === 1) continue;
+        let pose = null;
+        for (const [sx, sz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+          const lx = X + sx * (largeur(X) / 2 - 0.45), lz = Zr + sz * (P.RUE / 2 - 0.45);
+          if (!obstacles.some((r) => lx > r[0] - 0.6 && lx < r[2] + 0.6 && lz > r[1] - 0.6 && lz < r[3] + 0.6)) continue; // contre un angle d'îlot
+          pose = [lx, lz]; break;
+        }
+        if (!pose) continue;
+        const [x, z] = v5Monde(CF, pose[0], pose[1]);
+        const q = O.prop('v5_lampe', x, F, z, O.rnd() * TAU, { lit: S.fin !== 'extinction' }); q.v5 = true;
+        v5.chandelles.push(q); nl++;
+      }
+      v5.lampes = nl;
+    }
     // la porte de la ville : deux feux contre l'enceinte, la stèle des lois
     for (const s of [-1, 1]) feu(s * 3.1, P.MUR - 1.0, 'Le feu de la porte');
     {
