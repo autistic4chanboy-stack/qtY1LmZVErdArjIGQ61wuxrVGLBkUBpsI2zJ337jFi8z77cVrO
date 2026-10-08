@@ -201,6 +201,12 @@ const zgrille = {
         sol[k] = br.y; f[k] = (f[k] & ~(ZG_EAU | ZG_BLOQ | ZG_SOLIDE)) | ZG_PONT | ZG_BLOC; porte[k] = -10 - bi;
       });
     }
+    // (le bord de l'eau — une berge, le bord d'un tablier de pont — : on ne le rase pas)
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const k = j * N + i;
+      if (f[k] & ZG_BLOQ) continue;
+      if ((i > 0 && (f[k - 1] & ZG_EAU)) || (i < N - 1 && (f[k + 1] & ZG_EAU)) || (j > 0 && (f[k - N] & ZG_EAU)) || (j < N - 1 && (f[k + N] & ZG_EAU))) f[k] |= ZG_BORD;
+    }
     // 3. les portes : l'embrasure (on y passe en ouvrant ; une porte fermée à clé n'est qu'à ses gens) ;
     //    dans l'embrasure on se fait mince et l'on baisse la tête (les portes basses des cabanes, des roulottes)
     if (sous === null && etage === null) for (let di = 0; di < w.doors.length; di++) {
@@ -274,7 +280,7 @@ const zgrille = {
       if (p <= -10) { const br = this.w.bridges[-10 - p]; if (br && br.a >= 0.3) return false; }
       else if (p >= 0 && !(opts && opts.portes)) {
         const dr = this.w.doors[p];
-        if (dr && dr.locked && !(qui && qui.d && (dr.bld === qui.d.home || dr.bld === qui.d.work)) && !(opts && opts.cles)) return false;
+        if (dr && dr.locked && !(qui && qui.d && (dr.bld === qui.d.home || dr.bld === qui.d.work || dr.bld === qui.zDedans)) && !(opts && opts.cles)) return false;
       }
     }
     return true;
@@ -313,8 +319,9 @@ const zgrille = {
 
   // ------------------------------------------------------------------ le point libre le plus proche (en spirale)
   // opts : qui, y (le niveau voulu), hors (pas la case même), ouvert (pas un recoin fermé : margelle de fontaine, enclos)
+  // (meme : { x, z } — du même côté des murs que ce point : pas de point d'approche derrière la cloison)
   libre(x, z, c, rmax, opts) {
-    const gx0 = Math.floor(x / ZG_C), gz0 = Math.floor(z / ZG_C), qui = opts && opts.qui, ouvert = opts && opts.ouvert;
+    const gx0 = Math.floor(x / ZG_C), gz0 = Math.floor(z / ZG_C), qui = opts && opts.qui, ouvert = opts && opts.ouvert, meme = opts && opts.meme;
     let k = this.lire(gx0, gz0, c);
     if (this.passe(this.T, k, qui, opts) && !(opts && opts.hors) && (!ouvert || !this.poche(gx0, gz0, c))) return { x: (gx0 + 0.5) * ZG_C, z: (gz0 + 0.5) * ZG_C, y: this.T.sol[k], d: 0 };
     // (on reste au même niveau : le plancher sous le meuble visé, pas le dessus d'un mur)
@@ -331,15 +338,34 @@ const zgrille = {
         cand.push([Math.hypot(dx, dz), gx, gz, T.sol[k]]);
       }
       // (assez de candidats à cette distance : la spirale s'arrête un anneau plus loin)
-      if (cand.length && cand.reduce((m, q) => Math.min(m, q[0]), 1e9) <= r - (ouvert ? 2 : 0)) break;
+      if (!meme && cand.length && cand.reduce((m, q) => Math.min(m, q[0]), 1e9) <= r - (ouvert ? 2 : 0)) break;
     }
     cand.sort((a, b) => a[0] - b[0]);
-    let essais = 0;
+    let essais = 0, essaisM = 0;
     for (const [d, gx, gz, s] of cand) {
       if (ouvert && essais++ < 10 && this.poche(gx, gz, c)) continue;
+      if (meme) { if (essaisM++ >= 24) break; if (this.murEntre((gx + 0.5) * ZG_C, (gz + 0.5) * ZG_C, meme.x, meme.z, s)) continue; }
       return { x: (gx + 0.5) * ZG_C, z: (gz + 0.5) * ZG_C, y: s, d: d * ZG_C };
     }
     return null;
+  },
+  // un mur (un bloc de structure haut — pas un meuble, pas un muret, pas un banc de pierre) entre deux points, à hauteur
+  // de corps ? (le dernier tiers de mètre avant le point visé ne compte pas : on s'assoit SUR un banc de pierre)
+  murEntre(x0, z0, x1, z1, y) {
+    const w = this.w, L = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.ceil(L / 0.1));
+    let hit = false;
+    for (let k = 1; k < n && !hit; k++) {
+      const x = x0 + (x1 - x0) * k / n, z = z0 + (z1 - z0) * k / n;
+      if (Math.hypot(x1 - x, z1 - z) < 0.3) break;
+      w.query(x, z, 0.2, null, (b) => {
+        if (hit || b.hidden || (b.ver && !(b.ver & w.curVer))) return;
+        const [lx, lz] = World.blockLocal(b, x, z);
+        if (Math.abs(lx) > b.sx / 2 - 0.01 || Math.abs(lz) > b.sz / 2 - 0.01) return;
+        if (b.y > y + 0.5 || b.y + World.blockTop(b, lx, lz) < y + 1.3) return;
+        hit = true;
+      });
+    }
+    return hit;
   },
   // un recoin fermé ? (on compte les cases qu'on atteint à pied, jusqu'à « lim » : moins, c'est une margelle, un enclos, un îlot)
   PQ: null, PV: null, PS: null, PF: null, pgen: 0,
@@ -393,7 +419,7 @@ const zgrille = {
     {
       const kg = this.lire(Math.floor(x1 / C), Math.floor(z1 / C), c);
       if (!this.passe(this.T, kg, qui, opts)) {
-        const L = this.libre(x1, z1, c, opts.rayonBut || 2.5, { qui, portes: opts.portes, cles: opts.cles, y: opts.yBut });
+        const L = this.libre(x1, z1, c, opts.rayonBut || 2.5, { qui, portes: opts.portes, cles: opts.cles, y: opts.yBut, meme: { x: x1, z: z1 } });
         if (!L) { this.stat.echec++; this.raison = 'but'; return null; }
         x1 = L.x; z1 = L.z; this.approche = L;
       }

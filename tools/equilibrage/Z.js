@@ -16,6 +16,7 @@ const { vallee, empreinte, EMPREINTE_1234 } = require('./vm.js');
 const CIBLES = {
   carreauMs: 60,          // ms par carreau de 16 m (moyenne ; machine virtuelle chargée — le navigateur va bien plus vite : ~2 à 4 ms)
   placesKo: 0,            // lits, chaises, postes qu'on ne rejoint pas de sa porte
+  approchesMur: 0,        // points d'approche (le côté libre d'un lit, d'une chaise) de l'autre côté d'un mur
   aretesImpossibles: 80,  // arêtes du graphe qu'aucun détour ne permet (sur ~2 900) — le jeu les évite
   clotures: 0,            // blocs de clôture dans une maison, après la passe
   casesParChemin: 4000,   // cases ouvertes par A* (moyenne, de la porte au lit) : la mesure qui ne dépend pas de la machine
@@ -44,7 +45,7 @@ module.exports = {
       }
       G.reset(w);
       // 2. les places de chacun
-      out.places = []; out.placesKo = []; let nA = 0, msA = 0;
+      out.places = []; out.placesKo = []; out.placesMur = []; let nA = 0, msA = 0;
       for (const d of NPC_DATA) {
         const qui = { id: d.id, d }, B = w.bld[d.home], W = w.bld[d.work] || B;
         if (!B) { out.placesKo.push(d.id + ' : pas de maison (' + d.home + ')'); continue; }
@@ -59,6 +60,8 @@ module.exports = {
           const appro = G.approche ? G.approche.d : 0;
           if (!p || reste > Math.max(1.3, appro + 0.3)) out.placesKo.push(d.id + ' : ' + nom + ' (' + BB.key + ') ' + (p ? 'au plus près à ' + reste.toFixed(1) + ' m' : 'pas de chemin'));
           else out.places.push([d.id, nom, p.length, appro]);
+          // (le point d'approche est du même côté des murs que la place : on ne se couche pas à travers une cloison)
+          if (p && G.approche && G.murEntre(G.approche.x, G.approche.z, s.x, s.z, G.approche.y)) out.placesMur.push(d.id + ' : ' + nom + ' (' + BB.key + ')');
         }
       }
       out.astarMs = msA / Math.max(1, nA); out.nA = nA; out.expPlaces = G.stat.exp / Math.max(1, G.stat.astar);
@@ -104,6 +107,8 @@ module.exports = {
     log(`Lits : ${lits.length} rejoints ; point d’approche (le côté libre) à ${(lits.reduce((a, p) => a + p[3], 0) / Math.max(1, lits.length)).toFixed(2)} m du lit en moyenne.`);
     for (const k of R.placesKo) log('  hors d’atteinte : ' + k);
     if (R.placesKo.length > CIBLES.placesKo) E.push(`${R.placesKo.length} places hors d’atteinte`);
+    log(`Points d’approche derrière un mur : ${R.placesMur.length}.` + (R.placesMur.length ? ' ' + R.placesMur.join(', ') : ''));
+    if (R.placesMur.length > CIBLES.approchesMur) E.push(`${R.placesMur.length} points d’approche derrière un mur`);
     if (R.expPlaces > CIBLES.casesParChemin) E.push(`un chemin de la porte au lit ouvre ${Math.round(R.expPlaces)} cases (> ${CIBLES.casesParChemin})`);
     log('\n# 3. Le graphe des routes, vu sur la carte des pas');
     const Gr = R.graphe;

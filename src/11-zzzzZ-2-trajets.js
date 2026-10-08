@@ -133,6 +133,7 @@ const trajets = {
   // (posé : on s'y met — lit, banc, chaise, poste de travail, bord de l'eau ; le reste, on s'y tient debout)
   pose(D) { return !!(D && (D.seat || D.pose === 'lie' || D.pose === 'sit' || D.pose === 'work' || D.pose === 'fish')); },
   but(n, D, force) {
+    if (D && this.pose(D) && D.pose !== 'lie') return this.placeLibre(n, D);
     if (!D || this.pose(D)) return D;
     this.monde(this.vallee());
     if (this.ms > ZT_BUDGET && !force) { D.zAVerifier = true; return D; } // (plus tard, avant le dernier tronçon)
@@ -149,11 +150,52 @@ const trajets = {
     return D;
   },
 
+  // une chaise, un banc, un poste que quelqu'un d'autre occupe déjà (ou va occuper) : on se tient debout à côté, tourné vers
+  // la place (l'auberge, le banc de la place, l'établi partagé) — plus de deux habitants l'un dans l'autre
+  placeLibre(n, D) {
+    let pris = false;
+    for (const m of npcs.list) {
+      if (m === n || !m.st.alive || m.vanished || m.state === 'gone' || !m.goal) continue;
+      const G = m.goal;
+      if (Math.abs(G.x - D.x) < 0.35 && Math.abs(G.z - D.z) < 0.35 && Math.abs((G.y ?? 0) - (D.y ?? 0)) < 0.6 && this.pose(G)) { pris = true; break; }
+    }
+    if (!pris) return D;
+    this.monde(this.vallee());
+    const t0 = performance.now();
+    try {
+      const c = zgrille.couche(D.x, D.y !== undefined && D.y !== null ? D.y - 0.6 : n.y, D.z);
+      for (let k = 0; k < 16; k++) {
+        const a = k * 2.4 + (n.id.length % 7), r = 0.9 + (k % 3) * 0.35, x = D.x + Math.cos(a) * r, z = D.z + Math.sin(a) * r;
+        const e = zgrille.cellule(x, z, c);
+        if (e.f & ZG_BLOQ) continue;
+        if (npcs.list.some((m) => m !== n && m.goal && Math.hypot(m.goal.x - x, m.goal.z - z) < 0.75)) continue;
+        if (zgrille.murEntre(x, z, D.x, D.z, e.sol)) continue;
+        return { node: D.node, x, z, r: Math.atan2(D.x - x, D.z - z), pose: null, bld: D.bld, y: undefined };
+      }
+    } catch (err) { console.error('trajets.placeLibre', err); } finally { this.temps(t0); }
+    return D;
+  },
+
   // ------------------------------------------------------------------ le départ
+  batimentEn(x, y, z) {
+    const w = this.w;
+    if (!w || !w.bld) return null;
+    for (const k in w.bld) {
+      const B = w.bld[k], f = B.f;
+      if (!f || B.under || !B.W || Math.abs(f.x - x) > 12 || Math.abs(f.z - z) > 12) continue;
+      if (y < f.y - 1 || y > f.y + 6) continue;
+      const [lx, lz] = World.blockLocal({ x: f.x, z: f.z, r: f.r || 0 }, x, z);
+      if (Math.abs(lx) < B.W / 2 && Math.abs(lz) < B.D / 2) return k;
+    }
+    return null;
+  },
+  zt0(D, n) { return { G: D, t0: game.time, pts: null, k: 0, ni: 0, final: false, approche: null, bloque: 0, chk: game.time, cx: n ? n.x : 0, cz: n ? n.z : 0, attente: 0, leve: null, inst: null, porte: null, echec: false, loin: false }; },
   partir(n, D) {
-    const w = this.w, t = n.zt = { G: D, t0: game.time, pts: null, k: 0, ni: 0, final: false, approche: null, bloque: 0, chk: game.time, cx: n.x, cz: n.z, attente: 0, leve: null, inst: null, porte: null, echec: false, loin: false };
+    const w = this.w, t = n.zt = this.zt0(D, n);
     this.S.trajets++;
     n.state = 'walk'; n.stuck = 0;
+    // (dans quelle maison est-il ? on sort toujours d'une maison où l'on se trouve, même fermée à clé pour la nuit)
+    n.zDedans = this.batimentEn(n.x, n.y, n.z);
     // on se lève d'abord (lit, banc, chaise)
     if (n.zInst && Math.hypot(n.x - n.zInst.sx, n.z - n.zInst.sz) < 0.6) t.leve = { a: 0, x0: n.x, z0: n.z, y0: n.y, x1: n.zInst.x, z1: n.zInst.z, y1: n.zInst.y };
     else t.aLever = true; // (placé d'un coup : on regardera, sous budget, s'il faut d'abord se lever)
@@ -165,7 +207,7 @@ const trajets = {
     else from = npcs.nearestReach(n.x, n.z, fil);
     let p = null;
     if (D.node >= 0 && from >= 0) p = npcs.findPath(n, from, D.node);
-    if (!p && D.node >= 0 && from >= 0 && from !== D.node && Math.hypot(D.x - n.x, D.z - n.z) > 70) {
+    if (!p && D.node >= 0 && from >= 0 && from !== D.node && Math.hypot(D.x - n.x, D.z - n.z) > 20) {
       // (un pont levé, une porte fermée à clé : la routine réessaiera — 11-zzz52-routines.js)
       n.path = []; n.pi = 0; t.echec = true; this.S.echecs++;
       return false;
@@ -252,7 +294,7 @@ const trajets = {
       const mk = !final && !t.echelle ? c + ':' + Math.floor(n.x) + ':' + Math.floor(n.z) + ':' + Math.floor(X.x * 4) + ':' + Math.floor(X.z * 4) : null, M = mk && this.memo.get(mk);
       if (M && M.t > game.time && zgrille.vue(n.x, n.z, M.pts[0].x, M.pts[0].z, c, vOpts)) { pts = M.pts.map((q) => Object.assign({}, q)); zgrille.approche = M.appro; zgrille.raison = null; this.S.memo++; }
       else {
-        pts = zgrille.chemin(n.x, n.z, X.x, X.z, c, { qui: n, marge, max: Math.min(30000, 8000 + D * 600), proche: !final ? 4 : pose ? 2.5 : 14, yDep: n.y, yBut: final && G.y !== undefined && G.y !== null ? G.y - 0.6 : undefined });
+        pts = zgrille.chemin(n.x, n.z, X.x, X.z, c, { qui: n, marge, max: Math.min(path.length ? 30000 : 12000, 8000 + D * 600), proche: !final ? 4 : pose ? 2.5 : 14, yDep: n.y, yBut: final && G.y !== undefined && G.y !== null ? G.y - 0.6 : undefined });
         if (mk && pts && pts.length && !this.porteSur(n.x, n.z, pts)) { if (this.memo.size > 1500) this.memo.clear(); this.memo.set(mk, { pts: pts.map((q) => Object.assign({}, q)), appro: zgrille.approche, t: game.time + 1200 }); }
       }
       const dt = performance.now() - t0;
@@ -391,18 +433,18 @@ const trajets = {
       if (t.attente < 4) { this.suivi(n, t, w, c, true); return; }
       // (on attend depuis longtemps : on contourne de plus près, tant pis)
     } else t.attente = Math.max(0, t.attente - dt * 2);
+    const ux0 = ux, uz0 = uz;
     ux += v.sx; uz += v.sz;
     const ul = Math.hypot(ux, uz) || 1; ux /= ul; uz /= ul;
     speed *= v.k;
     n.heading = turnToward(n.heading, Math.atan2(ux, uz), dt * 6);
-    // on avance dans la direction voulue (le corps se tourne à sa vitesse, les pieds ne glissent pas de travers)
-    const hx = Math.sin(n.heading), hz = Math.cos(n.heading), align = Math.max(0, hx * ux + hz * uz);
-    const step = speed * dt * (0.25 + 0.75 * align);
-    let nx = n.x + (ux * 0.6 + hx * 0.4) * step, nz = n.z + (uz * 0.6 + hz * 0.4) * step;
-    [nx, nz] = w.collideCircle(nx, nz, n.y, n.y + 1.7, 0.2, 0.5, true); // (le chemin garde 0,3 m des murs : 0,2 suffit en garde-fou)
-    const g = w.groundAt(nx, nz, n.y, 0.55, 0.05); // (une marche de 0,55 m au plus, sous les pieds mêmes : on ne grimpe pas sur une table)
-    // jamais dans l'eau, jamais du haut d'un mur (une marche, un banc d'où l'on descend : oui)
-    if (g < w.waterLevel - 0.02 || g < n.y - 1.6) { n.move = lerp(n.move, 0, Math.min(1, dt * 8)); this.suivi(n, t, w, c, false); return; }
+    // on avance dans la direction voulue (le corps se tourne à sa vitesse, les pieds ne glissent pas de travers) ;
+    // si l'écart pour un voisin mène au bord de l'eau, on avance droit
+    const cc = zgrille.couche(n.x, n.y, n.z);
+    let r = this.unPas(n, w, ux, uz, speed * dt, cc);
+    if (!r && (v.sx || v.sz)) r = this.unPas(n, w, ux0, uz0, speed * dt * 0.7, cc);
+    if (!r) { n.move = lerp(n.move, 0, Math.min(1, dt * 8)); this.suivi(n, t, w, c, false); return; }
+    const [nx, nz, g] = r;
     n.x = nx; n.z = nz; n.y = g;
     n.inside = null;
     n.move = lerp(n.move, 1, Math.min(1, dt * 6));
@@ -410,6 +452,20 @@ const trajets = {
     const want = n.dist < 6 ? angDiff(n.heading, Math.atan2(c.px - n.x, c.pz - n.z)) : 0;
     n.lookY = lerp(n.lookY, Math.abs(want) < 1.5 ? clamp(want, -1, 1) : 0, Math.min(1, dt * 3));
     this.suivi(n, t, w, c, false);
+  },
+  // un pas dans la direction (ux, uz) : [x, z, y] ou null — jamais dans l'eau, jamais du haut d'un mur (une marche, un
+  // banc d'où l'on descend : oui), jamais sur une case d'eau de la carte des pas (une berge des douves, le bord d'un
+  // tablier de pont-levis) quand on n'y est pas déjà
+  unPas(n, w, ux, uz, v, cc) {
+    const hx = Math.sin(n.heading), hz = Math.cos(n.heading), align = Math.max(0, hx * ux + hz * uz);
+    const step = v * (0.25 + 0.75 * align);
+    let nx = n.x + (ux * 0.6 + hx * 0.4) * step, nz = n.z + (uz * 0.6 + hz * 0.4) * step;
+    [nx, nz] = w.collideCircle(nx, nz, n.y, n.y + 1.7, 0.2, 0.5, true); // (le chemin garde 0,3 m des murs : 0,2 suffit en garde-fou)
+    const g = w.groundAt(nx, nz, n.y, 0.55, 0.05); // (une marche de 0,55 m au plus, sous les pieds mêmes : on ne grimpe pas sur une table)
+    if (g < w.waterLevel - 0.02 || g < n.y - 1.6) return null;
+    const G = zgrille, k1 = G.lire(Math.floor(nx / ZG_C), Math.floor(nz / ZG_C), cc), f1 = G.T.f[k1];
+    if (f1 & ZG_EAU) { const k0 = G.lire(Math.floor(n.x / ZG_C), Math.floor(n.z / ZG_C), cc); if (!(G.T.f[k0] & ZG_EAU)) return null; }
+    return [nx, nz, g];
   },
   // les portes : ouvrir en approchant, attendre le battant, refermer derrière soi
   portes(n, t, P, dt) {
@@ -438,7 +494,7 @@ const trajets = {
     if (!dr) return false;
     const dd = Math.hypot(dr.x - n.x, dr.z - n.z);
     if (dr.locked) {
-      if (dr.bld === n.d.home || dr.bld === n.d.work) dr.locked = false;
+      if (dr.bld === n.d.home || dr.bld === n.d.work || dr.bld === n.zDedans) dr.locked = false;
       else { t.pts = null; n.zt = null; return true; } // (fermée à clé entre-temps : on refait le trajet)
     }
     if (dd < 2.4) { dr.open = 1; n.lastDoor = dr; }
@@ -604,10 +660,17 @@ const trajets = {
     }
     for (const dr of w.doors) if (Math.abs(dr.x - n.x) < 2 && Math.abs(dr.z - n.z) < 2 && !dr.locked) dr.open = 1;
     n.heading = turnToward(n.heading, Math.atan2(gx - n.x, gz - n.z), dt * 6);
-    let nx = n.x + Math.sin(n.heading) * sp * dt, nz = n.z + Math.cos(n.heading) * sp * dt;
-    [nx, nz] = w.collideCircle(nx, nz, n.y, n.y + 1.7, 0.28, 0.5, true);
-    const g = w.groundAt(nx, nz, n.y + 0.6, 0.6);
-    if (g < w.waterLevel - 0.25 && !n.inside) { n.move = lerp(n.move, 0, dt * 6); return; }
+    const ud = Math.hypot(gx - n.x, gz - n.z) || 1;
+    const r = w === this.w ? this.unPas(n, w, (gx - n.x) / ud, (gz - n.z) / ud, sp * dt, cc) : null;
+    let nx, nz, g;
+    if (r) [nx, nz, g] = r;
+    else {
+      if (w === this.w) { n.move = lerp(n.move, 0, dt * 6); return; }
+      nx = n.x + Math.sin(n.heading) * sp * dt; nz = n.z + Math.cos(n.heading) * sp * dt;
+      [nx, nz] = w.collideCircle(nx, nz, n.y, n.y + 1.7, 0.28, 0.5, true);
+      g = w.groundAt(nx, nz, n.y + 0.6, 0.6);
+      if (g < w.waterLevel - 0.25 && !n.inside) { n.move = lerp(n.move, 0, dt * 6); return; }
+    }
     n.x = nx; n.z = nz; n.y = g; n.inside = null; n.state = 'walk';
     n.move = 1; n.run = sp > 3; n.phase += dt * sp * 2.2;
   },
@@ -684,10 +747,31 @@ const trajets = {
     const node = B ? B.nMid : npcs.nearestReach(px, pz, (q) => !/:(in|mid)$/.test(q.tag));
     return { node, x: px, z: pz, pose: o.pose || null, r: o.r ?? null, bld: o.bld || null, y: o.y, ordre: true };
   },
-  // un ordre : remplace la routine jusqu'à la fin de sa durée (comptée à partir de l'arrivée)
+  // un ordre : remplace la routine jusqu'à la fin de sa durée (comptée à partir de l'arrivée) ; un second ordre remplace
+  // le premier (dont la fin est appelée d'abord, fin(n, false) — le nouvel ordre passe après, quoi qu'elle fasse)
   ordre(n, D, o) {
+    const old = n.zOrdre;
+    if (old) { n.zOrdre = null; if (old.fin && !old.fini) { old.fini = true; try { old.fin(n, false); } catch (e) { console.error(e); } } }
     n.zOrdre = { D, duree: o.duree ?? 30, fin: o.fin || null, arrivee: o.arrivee || null, raison: o.raison || 'ordre', t0: game.time, max: game.time + (o.max ?? 240), dormir: !!o.dormir, course: !!o.course };
     n.goal = null;
+  },
+  // le mettre au lit sans marcher, quand il est au pied (à 3 m au plus, ou hors de vue) : il s'y couche (0,6 s) ; sinon
+  // il y va à pied (comme dormir). Rend vrai s'il se couche sur place.
+  coucher(n) {
+    if (typeof n === 'string') n = npcs.byId[n];
+    if (!n || !n.st || !n.st.alive || n.vanished || n.state === 'gone' || n.state === 'dead') return false;
+    const L = this.lit(n);
+    if (!L || (Math.hypot(L.x - n.x, L.z - n.z) > 3 && this.vu(n)) || Math.abs(L.y - n.y) > 2.2) { this.dormir(n); return false; }
+    this.liberer(n);
+    n.place = 'home'; n.sleep = true;
+    const D = npcs.dest(n, 'home', true);
+    if (!D || Math.hypot(D.x - L.x, D.z - L.z) > 0.6) { n.goal = null; n.place = null; return false; }
+    n.goal = D; n.path = []; n.pi = 0; n.zInst = null; n.run = false;
+    const t = n.zt = this.zt0(D, n);
+    t.pts = []; t.final = true;
+    t.inst = { a: 0, x0: n.x, z0: n.z, y0: n.y, ax: n.x, az: n.z, ay: n.y };
+    n.state = 'walk';
+    return true;
   },
   liberer(n) {
     if (typeof n === 'string') n = npcs.byId[n];
