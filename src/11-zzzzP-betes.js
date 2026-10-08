@@ -188,7 +188,7 @@ function bpLieux(w, seed) {
         const sc = db * 0.3 - av * 0.5 + rnd() * 0.1;
         if (!best || sc > best.sc) best = { x, z, sc };
       }
-      if (best) L.carpe = { x: best.x, y: WL - 0.09, z: best.z, cap: Math.atan2(tx - best.x, tz - best.z), r: 8, bout: [tx, tz], eau: WL };
+      if (best) L.carpe = { x: best.x, y: WL - 0.05, z: best.z, cap: Math.atan2(tx - best.x, tz - best.z), r: 8, bout: [tx, tz], eau: WL };
     }
   }
   // ---- Bayard : dans le pré de la ferme brûlée la plus proche de la ferme (celle des Chabert)
@@ -267,10 +267,9 @@ const betesParlantes = {
   etiquette(e) {
     const id = e.bp, D = BP_BETES[id], B = this.B(id);
     if (e.dead) return BP_MOTS.corps;
-    if (e.bpEtat === 'dort') return D.titre0 + ', ' + (D.fem ? BP_MOTS.endormie : BP_MOTS.endormi);
+    if (e.bpEtat === 'dort') return D.labDort || D.titre0;
     if (!B.n) return D.titre0;
-    const nom = B.nomConnu ? D.nom : D.titre0.charAt(0).toLowerCase() + D.titre0.slice(1);
-    return BP_MOTS.parler + ' ' + (/^le /.test(nom) ? 'au ' + nom.slice(3) : 'à ' + nom);
+    return B.nomConnu ? D.lab : D.lab0;
   },
   heure() { try { return npcs.hour(); } catch (e) { return 12; } },
   muet(id) { const B = this.B(id); return !!B.muet || this.S().tues >= 3; },
@@ -336,6 +335,11 @@ const betesParlantes = {
         const pres = this.presence(id), vue = this.vue(e.x, e.y + 0.3, e.z, eye, basis.f), de = Math.hypot(e.x - p.pos[0], e.z - p.pos[2]);
         if (ailleurs || !pres || d > BP_R + 45) { if (ailleurs || !vue || de > 70) this.oter(e); continue; }
         if (e.bpEtat !== pres) e.bpEtat = pres;
+        // sa voix, de temps en temps, quand on approche : on la trouve à l'oreille (rare, et doux)
+        if (pres === 'eveil' && de < 40 && de > 4 && !this.conv && !this.muet(id)) {
+          e.criT = (e.criT === undefined ? 6 + Math.random() * 10 : e.criT) - 0.5;
+          if (e.criT <= 0) { e.criT = 35 + Math.random() * 45; sound.bpVoix && sound.bpVoix(id, [e.x, e.y + (e.h || 0.5) * 0.6, e.z], 0.7); }
+        }
         // la première fois, elle parle la première
         const B = this.B(id);
         if (pres === 'eveil' && !B.app && !B.n && de < 6 && !this.muet(id) && vue) {
@@ -491,8 +495,24 @@ const betesParlantes = {
     }
     if (B.jour !== s.day) { B.jours++; B.jour = s.day; if (!premier) B.conf += 1; }
     B.n++;
+    this.temoin();
     const g = premier ? { texte: BP_TEXTES[id].intro } : this.salut(id, jourAvant);
     this.dire(id, g.texte, g.opts);
+  },
+  // quelqu'un passe, et vous voit parler à une bête : il n'y croit pas, ou fait semblant (une fois par jour)
+  temoin() {
+    const S = this.S(), s = farm.s, p = game.player;
+    if (S.temoinJour === s.day) return;
+    let best = null, bd = 11;
+    for (const n of npcs.list) {
+      if (!n.st || !n.st.alive || n.vanished || n.hunting || n.inside || n.state === 'sleep' || n.state === 'gone') continue;
+      const d = Math.hypot(n.x - p.pos[0], n.z - p.pos[2]);
+      if (d < bd) { bd = d; best = n; }
+    }
+    if (!best) return;
+    S.temoinJour = s.day;
+    const n = best, l = BP_MOTS.temoins[(s.day + n.id.length) % BP_MOTS.temoins.length];
+    setTimeout(() => { try { if (n.st.alive && !game.dying) npcs.say(n, l, 3.5); } catch (e) { console.error(e); } }, 1800);
   },
   dire(id, texte, opts) {
     const e = this.entite(id);
@@ -689,7 +709,7 @@ const betesParlantes = {
         const k = typeof strange !== 'undefined' && strange.s && strange.killerPhase && strange.killerPhase() >= 1 ? strange.s.killer : null;
         if (k && npcs.alive && npcs.alive(k)) {
           const od = BP_ODEURS[k] || 'quelque chose que je ne connais pas';
-          B.note = 'Celui qui sort la nuit sent ' + od + '.';
+          B.note = `Celui qui sort la nuit sent ${od}.`;
           return `Il y a quelqu’un, en ville, qui sort la nuit par la porte de derrière et qui rentre avant la boulangère. Je ne vous dirai pas son nom ; je ne le sais pas. Je vous dirai son odeur : ${od}. Et du sang, par-dessus, qu’on a lavé à l’eau froide.`;
         }
         if (w.lm.sout_cave && savoir.connaitreLieu) savoir.connaitreLieu('sout_cave');
@@ -899,6 +919,9 @@ const betesParlantes = {
 // ---------------------------------------------------------------- la pose de chaque bête (après la pose commune) ; renvoie le décalage en hauteur
 function bpPose(r, e, st, t) {
   const id = e.bp, dort = e.bpEtat === 'dort', parle = (e.parleT || 0) > 0, F = e.bpFuite;
+  const nuit = (typeof game !== 'undefined' && game.sky && game.sky.night) || 0;
+  // les yeux qui luisent la nuit : ceux du chat, l'œil ouvert de la hulotte (pas celui que ferme la cicatrice)
+  for (const n of r.bpLuisent || (r.bpLuisent = ['oeilG', 'oeilD', 'pupD'].filter((k) => r.has(k) && !(id === 'hulotte' && k === 'oeilG')))) r.part(n).fl = nuit > 0.55 && !dort && !e.dead ? FX_EMIT : 0;
   const hoche = parle ? Math.sin(t * 11) * 0.07 : 0;
   if (e.dead) {
     if (r.kind === 'bird') { r.set('body', 0, 0, 1.4); return -0.05; }
@@ -954,7 +977,7 @@ function bpPose(r, e, st, t) {
       const k = F ? 2.5 : 1;
       r.set('tail', 0, Math.sin(t * 1.6 * k + e.seed) * 0.35, 0);
       // (le nez levé vers la surface ; quand elle parle, la bouche et l'anneau sortent de l'eau)
-      r.set('body', (parle ? -0.32 + Math.sin(t * 6) * 0.03 : -0.14) * (F ? 0 : 1), Math.sin(t * 0.8 * k + e.seed) * 0.05, Math.sin(t * 0.5 + e.seed) * 0.04);
+      r.set('body', (parle ? -0.4 + Math.sin(t * 6) * 0.03 : -0.2) * (F ? 0 : 1), Math.sin(t * 0.8 * k + e.seed) * 0.05, Math.sin(t * 0.5 + e.seed) * 0.04);
       r.set('head', parle ? Math.sin(t * 9) * 0.06 : 0, 0, 0);
       for (const n of ['pectL', 'pectR']) { const q = r.part(n); if (q) q.r[0] = Math.sin(t * 3 + (n === 'pectL' ? 0 : 1.5)) * 0.4; }
       return 0;

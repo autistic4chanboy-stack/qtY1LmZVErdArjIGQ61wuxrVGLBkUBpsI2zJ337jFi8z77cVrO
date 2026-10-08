@@ -26,42 +26,42 @@ defItem('plume_hulotte', 'Plume de la hulotte', 'tresor', 2, ['plume', '#b8a080'
 const BP_ORDRE = ['chat', 'hulotte', 'crapaud', 'corbeau', 'renarde', 'chevre', 'carpe', 'cheval'];
 const BP_BETES = {
   chat: {
-    kind: 'p_chat', milieu: 'la ville', biome: 'ville', nom: 'Tibert', titre0: 'Le chat gris', qui: 'le chat de l’auberge', ou: 'sur un tonneau, devant l’auberge, le soir',
+    kind: 'p_chat', milieu: 'la ville', biome: 'ville', nom: 'Tibert', titre0: 'Le chat gris', lab0: 'Parler au chat gris', lab: 'Parler à Tibert', labDort: 'Le chat gris, endormi', qui: 'le chat de l’auberge', ou: 'sur un tonneau, devant l’auberge, le soir',
     lieu: 'auberge', heures: [[18, 24], [0, 2]], dort: [[9, 18]], pluie: 'fuit', fuite: 'court', voix: 'chat', tu: false, hp: 22, echelle: 1.15,
     service: { objets: [['poisson_frais', 1]], cadeau: 'poisson_frais' },
   },
   hulotte: {
-    kind: 'p_hulotte', milieu: 'les prés, au chêne millénaire', nom: 'la hulotte', titre0: 'La hulotte', qui: 'la hulotte du vieux chêne', ou: 'au chêne millénaire, la nuit',
+    kind: 'p_hulotte', milieu: 'les prés, au chêne millénaire', nom: 'la hulotte', titre0: 'La hulotte', lab0: 'Parler à la hulotte', lab: 'Parler à la hulotte', qui: 'la hulotte du vieux chêne', ou: 'au chêne millénaire, la nuit',
     lieu: 'chene', heures: [[20.5, 24], [0, 5]], orage: 'fuit', fuite: 'vole', voix: 'hulotte', tu: true, hp: 10, fem: true,
     service: { veille: 2 },
   },
   crapaud: {
-    kind: 'p_crapaud', milieu: 'le hameau abandonné', nom: 'le Crapaud', titre0: 'Le crapaud', qui: 'le crapaud du vieux puits', ou: 'sur la margelle du vieux puits, au hameau abandonné, le soir et les jours de pluie',
+    kind: 'p_crapaud', milieu: 'le hameau abandonné', nom: 'le Crapaud', titre0: 'Le crapaud', lab0: 'Parler au crapaud', lab: 'Parler au Crapaud', qui: 'le crapaud du vieux puits', ou: 'sur la margelle du vieux puits, au hameau abandonné, le soir et les jours de pluie',
     lieu: 'vieux_puits', heures: [[19, 24], [0, 2]], pluie: 'aime', neige: 'fuit', fuite: 'puits', voix: 'crapaud', tu: true, hp: 8,
     service: { objets: [['vers', 3]], cadeau: 'vers' },
   },
   corbeau: {
-    kind: 'p_corbeau', milieu: 'la lande', biome: 'lande', nom: 'Tiécelin', titre0: 'Le corbeau', qui: 'le corbeau de la Table des Géants', ou: 'sur la Table des Géants, la lande, le jour',
+    kind: 'p_corbeau', milieu: 'la lande', biome: 'lande', nom: 'Tiécelin', titre0: 'Le corbeau', lab0: 'Parler au corbeau', lab: 'Parler à Tiécelin', qui: 'le corbeau de la Table des Géants', ou: 'sur la Table des Géants, la lande, le jour',
     lieu: 'dolmen', heures: [[6.5, 19]], fuite: 'vole', voix: 'corbeau', tu: true, hp: 10,
     service: { objets: [['brillant', 1]], cadeau: 'brillant' },
   },
   renarde: {
-    kind: 'p_renarde', milieu: 'la forêt', biome: 'foret', nom: 'Hermeline', titre0: 'La renarde', qui: 'la renarde du relais de chasse', ou: 'à la lisière, près du relais de chasse, à la brune et à l’aube',
+    kind: 'p_renarde', milieu: 'la forêt', biome: 'foret', nom: 'Hermeline', titre0: 'La renarde', lab0: 'Parler à la renarde', lab: 'Parler à Hermeline', qui: 'la renarde du relais de chasse', ou: 'à la lisière, près du relais de chasse, à la brune et à l’aube',
     lieu: 'relais', heures: [[18.5, 23.5], [4, 7]], fuite: 'court', voix: 'renarde', tu: true, hp: 18, fem: true,
     service: { objets: [['oeuf', 1]], cadeau: 'oeuf' },
   },
   chevre: {
-    kind: 'p_chevre', milieu: 'les hauteurs, l’estive', biome: 'hauteurs', nom: 'l’Écornée', titre0: 'La vieille chèvre', qui: 'la vieille chèvre de l’estive', ou: 'près du cairn à la sonnaille, à l’estive, le jour',
+    kind: 'p_chevre', milieu: 'les hauteurs, l’estive', biome: 'hauteurs', nom: 'l’Écornée', titre0: 'La vieille chèvre', lab0: 'Parler à la vieille chèvre', lab: 'Parler à l’Écornée', qui: 'la vieille chèvre de l’estive', ou: 'près du cairn à la sonnaille, à l’estive, le jour',
     lieu: 'estive', heures: [[7, 19.5]], neige: 'fuit', fuite: 'court', voix: 'chevre', tu: true, hp: 30, fem: true,
     service: { objets: [['sel', 2]], cadeau: 'sel' },
   },
   carpe: {
-    kind: 'p_carpe', milieu: 'le lac', biome: 'lac', nom: 'la Vieille', titre0: 'La grosse carpe', qui: 'la vieille carpe du ponton', ou: 'au bout du ponton du pêcheur, le matin et le soir',
+    kind: 'p_carpe', milieu: 'le lac', biome: 'lac', nom: 'la Vieille', titre0: 'La grosse carpe', lab0: 'Parler à la grosse carpe', lab: 'Parler à la Vieille', qui: 'la vieille carpe du ponton', ou: 'au bout du ponton du pêcheur, le matin et le soir',
     lieu: 'ponton', heures: [[5, 9], [17, 21]], orage: 'fuit', fuite: 'plonge', voix: 'carpe', tu: false, hp: 24, fem: true,
     service: { promesse: 7, poissons: ['carpe', 'carpe_miroir'] },
   },
   cheval: {
-    kind: 'p_cheval', milieu: 'la ferme brûlée', nom: 'Bayard', titre0: 'Le vieux cheval', qui: 'le vieux cheval de la ferme brûlée', ou: 'dans le pré de la ferme brûlée des Chabert, le jour',
+    kind: 'p_cheval', milieu: 'la ferme brûlée', nom: 'Bayard', titre0: 'Le vieux cheval', lab0: 'Parler au vieux cheval', lab: 'Parler à Bayard', labDort: 'Le vieux cheval, endormi', qui: 'le vieux cheval de la ferme brûlée', ou: 'dans le pré de la ferme brûlée des Chabert, le jour',
     lieu: 'chabert', heures: [[6, 20.5]], dort: [[20.5, 24], [0, 6]], fuite: 'court', voix: 'cheval', tu: true, hp: 70, echelle: 1.06,
     service: { objets: [['pomme', 3]], cadeau: 'pomme' },
   },
@@ -69,7 +69,8 @@ const BP_BETES = {
 // ce qu'on peut donner (les « groupes ») : le chat veut un vrai poisson, cru ; le corbeau, ce qui brille
 const BP_GROUPES = {
   poisson_frais: { nom: 'un poisson frais', ok: (id) => { const it = ITEMS[id]; return !!(it && it.cat === 'poisson' && (it.price || 0) >= 5 && !/fum|grill|sech|sale/.test(id)); } },
-  brillant: { nom: 'quelque chose qui brille', ok: (id) => { const it = ITEMS[id]; return !!(it && !it.unique && ((it.cat === 'tresor' && (it.price || 0) >= 8 && id !== 'pierre_terne') || id === 'miroir_poche')); } },
+  // (le métal, le verre, les perles : ce qui accroche la lumière ; pas un tesson ni un fossile)
+  brillant: { nom: 'quelque chose qui brille', ok: (id) => { const it = ITEMS[id]; return !!(it && !it.unique && !it.questItem && it.cat !== 'quete' && it.cat !== 'legende' && (id === 'miroir_poche' || (/piece|bijou|perle|tabatiere|couteau_poche|medaill|cuiller|bougeoir|besicles|calice|montre|bague|alliance|bouton|de_coudre|de_argent|sonnaille|miroir|vg_plaque|vg_insigne|vg_toupie|vg_cristal|vg_oeil|geode|anneau|broche|boucle|clochette/.test(id) && (it.price || 0) >= 5))); } },
 };
 
 // ---------------------------------------------------------------- ce qu'elles disent
@@ -78,7 +79,7 @@ const BP_TEXTES = {
   // ======================================================================== Tibert, le chat de l'auberge
   chat: {
     approche: 'Vous avez fini de me dévisager ? Approchez, ou passez votre chemin. Mais pas les deux.',
-    intro: 'Eh bien oui. Je parle. Fermez la bouche, vous allez avaler une mouche, et elles sont d’une saleté, ici. Asseyez-vous si vous voulez ; le banc est au patron, il ne s’en servira pas ce soir.',
+    intro: 'Eh bien oui. Je parle. Fermez la bouche, vous allez avaler une mouche, et elles sont d’une saleté, ici. Asseyez-vous si vous voulez ; les chaises sont au patron, il ne s’en servira pas ce soir.',
     salut: {
       soir: ['Ah, c’est vous.', 'Bonsoir. Vous sentez le dehors.', 'Encore vous. On finira par jaser.'],
       nuit: ['Il est tard pour un honnête homme. Vous êtes donc autre chose.', 'La nuit vous va bien. Elle va bien à tout le monde, c’est sa politesse.'],
@@ -440,7 +441,7 @@ const BP_TEXTES = {
       label: 'Et les chasseurs ?',
       lignes: [
         'Le relais, là. Ils boivent, ils comptent leurs bêtes, ils se racontent les mêmes histoires. Le meilleur endroit pour ne pas être chassée, c’est sous le nez de ceux qui chassent.',
-        'Le chasseur, celui à la barbe, tire bien mais trop tôt. Il m’a manquée trois fois. La quatrième, je lui laisserai une poule devant la porte. Pour l’humilier.',
+        'Le chasseur du relais tire bien, mais trop tôt. Il m’a manquée trois fois. La quatrième, je lui laisserai une poule devant la porte. Pour l’humilier.',
         '(Elle lève sa patte de devant, celle à qui il manque deux doigts.) Les pièges. Il y en a qui se referment comme une bouche. Je sais où ils sont. Toi, tu ne sais pas. Marche dans l’herbe courte.',
         'Sous la forêt, il y a des galeries qui ne sont pas à nous. Le blaireau dit que ce sont des hommes petits, qui cognent. Le blaireau ment aussi, mais moins bien que moi.',
       ],
@@ -816,7 +817,6 @@ const BP_MOTS = {
   deja: 'Que voulais-tu, déjà ?',
   dejaVous: 'Que vouliez-vous, déjà ?',
   septJours: 'Sept jours, n’est-ce pas ?',
-  endormi: 'endormi',
-  endormie: 'endormie',
-  parler: 'Parler',
+  // ce que dit quelqu'un qui passe et vous voit parler à une bête (une fois par jour)
+  temoins: ['Vous parlez aux bêtes, vous ?', 'Laissez donc cette bête tranquille. Elle ne vous répondra pas.', 'Mon grand-père aussi parlait aux bêtes. Sur la fin.', 'Hé. À qui vous parlez, là ?', 'Il y a des soirs comme ça, où l’on parle aux bêtes. Rentrez donc vous coucher.'],
 };
