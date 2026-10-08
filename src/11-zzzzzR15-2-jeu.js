@@ -211,20 +211,20 @@ const runes = {
     const x0 = cx + (u0 - 0.5) * s, y0 = cy + (0.5 - v0) * s, x1 = cx + (u1 - 0.5) * s, y1 = cy + (0.5 - v1) * s;
     const mx = (x0 + x1) / 2, my = (y0 + y1) / 2, L = Math.hypot(x1 - x0, y1 - y0) + s * 0.1, ang = Math.atan2(y1 - y0, x1 - x0);
     const c = Math.cos(rx), sn = Math.sin(rx);
-    PE.box(mx, my * c - z0 * sn, my * sn + z0 * c, L, s * 0.11, 0.012, col, TL.plain, 0, rx, ang);
+    PE.box(mx, my * c - z0 * sn, my * sn + z0 * c, L, s * 0.13, 0.012, col, TL.plain, 0, rx, ang);
   },
   tablette(T, d, luit, t) {
-    const rx = -0.32, c = Math.cos(rx), sn = Math.sin(rx), pierre = [0.6, 0.58, 0.54];
+    const rx = -0.32, c = Math.cos(rx), sn = Math.sin(rx), pierre = [0.84, 0.81, 0.75];
     PE.frame(T.x, T.y, T.z, T.r, 1);
     const P = (y, z) => [y * c - z * sn, y * sn + z * c];
     { const [y, z] = P(0.27, 0); PE.box(0, y, z, 0.5, 0.7, 0.1, pierre, TL.stone, 0, rx, 0); }
-    { const [y, z] = P(0.6, 0); PE.box(0, y, z, 0.42, 0.06, 0.09, [0.52, 0.5, 0.46], TL.stone, 0, rx, 0); }
+    { const [y, z] = P(0.6, 0); PE.box(0, y, z, 0.42, 0.06, 0.09, [0.74, 0.71, 0.66], TL.stone, 0, rx, 0); }
     if (d > 28) return;
     const R = T.runes || [];
     const k = luit ? 0.55 + 0.25 * Math.sin(t * 1.3 + T.i) : 0;
     const col = luit ? [0.5 + k * 0.5, 0.75 + k * 0.4, 1.0 + k * 0.5] : [0.16, 0.15, 0.14];
     if (luit) PE.fl = FX_EMIT;
-    R.forEach((r, j) => { const g = R15_RUNES[r]; if (g) for (const sg of g.segs) this.trait(sg, 0, 0.47 - j * 0.17, 0.13, 0.056, rx, col, true); });
+    R.forEach((r, j) => { const g = R15_RUNES[r]; if (g) for (const sg of g.segs) this.trait(sg, 0, 0.5 - j * 0.19, 0.15, 0.056, rx, col, true); });
     PE.fl = 0;
   },
   dalle(D, id, bas, luit, t) {
@@ -234,13 +234,13 @@ const runes = {
     if (!P) return;
     const k = luit ? 0.5 + 0.2 * Math.sin(t * 1.1) : 0;
     const col = luit ? [0.45 + k * 0.5, 0.7 + k * 0.4, 0.95 + k * 0.5] : [0.15, 0.14, 0.13];
-    const use = luit ? [0.35, 0.45, 0.55] : [0.4, 0.38, 0.35];
+    const use = luit ? [0.16, 0.22, 0.28] : [0.4, 0.38, 0.35];
     const s = Math.min(0.3, L.sx / 4.2), z0 = -L.sz / 2 - 0.004, cy = Math.min(1.3, L.sy * 0.68);
     P.runes.forEach((r, j) => {
       const g = R15_RUNES[r];
       if (!g) return;
-      const cx = (j - 1) * s * 1.35, efface = r === P.efface;
-      if (luit && !efface) PE.fl = FX_EMIT;
+      const cx = (1 - j) * s * 1.35, efface = r === P.efface;
+      if (luit) PE.fl = FX_EMIT;
       g.segs.forEach((sg, n) => { if (efface && n % 2) return; this.trait(sg, cx, cy, s, z0, 0, efface ? use : col, false); });
       PE.fl = 0;
     });

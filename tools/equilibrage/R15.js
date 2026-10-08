@@ -122,9 +122,9 @@ module.exports = {
 
   // le labyrinthe : cases ouvertes, la dalle de la niche fermée ; on part de l'échelle
   laby(J, w, sansDalle) {
-    const M = w.maze, G = M.G, open = M.open, P = w.r15.portes.niche;
+    const World = J.ev('World'), M = w.maze, G = M.G, open = M.open, P = w.r15.portes.niche;
     const ferme = new Uint8Array(G * G);
-    if (P && !sansDalle) { const b = w.blocks[P.bloc]; for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) { const x = M.x0 + (i + 0.5) * M.R, z = M.z0 + (j + 0.5) * M.R; const [lx, lz] = J.ev('World').blockLocal(b, x, z); if (Math.abs(lx) < b.sx / 2 + 0.05 && Math.abs(lz) < b.sz / 2 + 0.05) ferme[j * G + i] = 1; } }
+    if (P && !sansDalle) { const b = w.blocks[P.bloc]; for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) { const x = M.x0 + (i + 0.5) * M.R, z = M.z0 + (j + 0.5) * M.R; const [lx, lz] = World.blockLocal(b, x, z); if (Math.abs(lx) < b.sx / 2 + 0.05 && Math.abs(lz) < b.sz / 2 + 0.05) ferme[j * G + i] = 1; } }
     const vu = new Uint8Array(G * G), Q = [];
     const ei = Math.floor((M.exit[0] - M.x0) / M.R), ej = Math.floor((M.exit[1] - M.z0) / M.R);
     vu[ej * G + ei] = 1; Q.push([ei, ej]);
@@ -151,7 +151,7 @@ module.exports = {
     const mi = J.avec({ x: P.x, z: P.z }, 'milieuAt(__w, __v.x, __v.z)');
     // rien d'autre dans le caveau : ni bloc étranger, ni objet posé, ni arbre debout
     let blocs = 0, props = 0, arbres = 0;
-    w.query(P.x, P.z, 3.2, (o) => { if (!o.gone && Math.hypot(o.x - P.x, o.z - P.z) < 2.6) { const t = J.ev('OBJ_TYPES')[o.t]; if (t && J.ev('objRadius')(t, o) > 0) arbres++; } }, (b) => { if (!b.r15c && b.y + b.sy > P.y - 0.5 && b.y < P.y + 2.6) { const [lx, lz] = J.ev('World').blockLocal({ x: P.x, z: P.z, r: P.r }, b.x, b.z); if (Math.abs(lx) < 2.2 && Math.abs(lz) < 2.6) blocs++; } });
+    w.query(P.x, P.z, 3.2, (o) => { if (!o.gone && Math.hypot(o.x - P.x, o.z - P.z) < 2.6) { const t = J.ev('OBJ_TYPES')[o.t]; if (t && J.ev('objRadius')(t, o) > 0) arbres++; } }, (b) => { if (!b.r15c && !b.hidden && b.y + b.sy > P.y - 0.5 && b.y < P.y + 2.6) { const [lx, lz] = J.ev('World').blockLocal({ x: P.x, z: P.z, r: P.r }, b.x, b.z); if (Math.abs(lx) < 2.2 && Math.abs(lz) < 2.6) blocs++; } });
     for (let k = 0; k < w.props.length; k++) { const q = w.props[k]; if (k !== P.coffre && Math.hypot(q.x - P.x, q.z - P.z) < 3.5) props++; }
     // à pied depuis la ferme (grille de 4 m, pentes douces), jusqu'au seuil
     const C = 4, N = Math.floor(w.size / C), acc = new Uint8Array(N * N), Q = [];

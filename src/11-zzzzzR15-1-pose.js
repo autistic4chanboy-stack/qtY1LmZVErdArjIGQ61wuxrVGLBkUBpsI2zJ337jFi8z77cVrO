@@ -223,8 +223,8 @@ const r15Pose = {
     }
     if (!culs.length) return;
     culs.sort((p, q) => q.d - p.d);
-    // la tablette : le cul-de-sac le plus loin de l'échelle
-    const T = culs[0];
+    // la tablette : l'un des trois culs-de-sac les plus loin de l'échelle (le labyrinthe est le même à chaque partie)
+    const T = culs[(rnd() * Math.min(3, culs.length)) | 0];
     {
       const [cx, cz] = centre(T.ci, T.cj), x = cx - T.a * 1.05, z = cz - T.b * 1.05;
       const pose = { i: 3, x: +x.toFixed(2), y: +y.toFixed(3), z: +z.toFixed(2), r: +Math.atan2(T.a, T.b).toFixed(3), lieu: 'dessous', runes, sous: true };
@@ -232,7 +232,7 @@ const r15Pose = {
       B.inter('r15_tablette', 'r15_tab_3', pose.x, pose.y + 0.35, pose.z, 'Une pierre gravée', { i: 3 });
     }
     // la niche : un autre cul-de-sac, loin aussi (parmi la moitié la plus lointaine), pas voisin de la tablette
-    const reste = culs.slice(1).filter((c) => Math.max(Math.abs(c.ci - T.ci), Math.abs(c.cj - T.cj)) > 1);
+    const reste = culs.filter((c) => c !== T).filter((c) => Math.max(Math.abs(c.ci - T.ci), Math.abs(c.cj - T.cj)) > 1);
     if (!reste.length) return;
     const N = reste[(rnd() * Math.max(1, Math.ceil(reste.length / 2))) | 0];
     const [cx, cz] = centre(N.ci, N.cj), [vx, vz] = centre(N.ci + N.a, N.cj + N.b);
@@ -245,7 +245,7 @@ const r15Pose = {
     B.prop('coffre_vieux', kx, y, kz, Math.atan2(N.a, N.b), { vide: false });
     const iq = w.props.length - 1;
     B.inter('r15_tresor', 'r15_tresor_niche', kx + N.a * 0.4, y + 0.75, kz + N.b * 0.4, 'Le coffre', { porte: 'niche', prop: iq });
-    const [dx, dz] = B.toWorld(f, 0, -0.55);
+    const [dx, dz] = B.toWorld(f, 0, -1.0);
     B.inter('r15_porte', 'r15_porte_niche', dx, y + 1.15, dz, 'Une dalle gravée', { porte: 'niche' });
     R.portes.niche = { id: 'niche', x: +mx.toFixed(2), y: +y.toFixed(3), z: +mz.toFixed(2), r: +r.toFixed(4), bloc: ib, coffre: iq, sous: true,
       dalle: { x: mx, y, z: mz, r, sx: 2 * Rc - 0.06, sy: MAZE.Hc - 0.02, sz: 0.36 }, devant: [dx, y, dz], cellule: [N.ci, N.cj], tablette: [T.ci, T.cj] };
@@ -284,7 +284,7 @@ LIEU_NAMES.r15_tertre = LIEU_NAMES.r15_tertre || 'le tertre scellé';
   const _gv = generateValley;
   generateValley = async function (seed, progress, gen) {
     const w = await _gv(seed, progress, gen);
-    if (w && w.designed && w.lm && !w.r15) { try { w.r15 = r15Pose.vallee(w, w.seed !== undefined ? w.seed : seed); } catch (e) { console.error('R15 : la pose', e); } }
+    if (w && w.designed && w.lm && !w.r15) { try { w.r15 = r15Pose.vallee(w, seed); } catch (e) { console.error('R15 : la pose', e); } }
     return w;
   };
 }
