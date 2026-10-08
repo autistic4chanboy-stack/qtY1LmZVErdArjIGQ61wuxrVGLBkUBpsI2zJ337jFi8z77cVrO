@@ -96691,8 +96691,11 @@ body.t-scene #t-voile{opacity:1}`;
       best = { a: Math.atan2(P0[0] - C[0], P0[2] - C[2]), P0, P1 };
       break;
     }
-    const fixe = !!best, propsL = fixe ? [] : qtProps(w, C[0], C[2], DS[3] + 4);
+    const fixe = !!best, propsL = fixe ? [] : qtProps(w, C[0], C[2], DS[3] + 4), t0 = performance.now();
     for (let k = 0; k < 32 && !fixe; k++) {
+      // (dans le noir, on ne s'attarde pas : passé un quart de seconde, le meilleur cadrage déjà trouvé suffit — près du
+      // phare, chaque essai vise à quarante mètres)
+      if (best && performance.now() - t0 > 250) break;
       const a = (k / 32) * TAU;
       // la lumière de côté (un peu de face, plutôt que dans le dos), ou celle que veut le lieu (l'abbaye : à contre-jour) ;
       // un angle qui ne peut plus faire mieux que le meilleur trouvé n'est pas essayé (le cadrage se calcule dans le noir)
