@@ -187,16 +187,16 @@ const ramGen = {
       return o;
     };
     // la taille des choses : les toutes petites (moins de 7,5 cm) ne se voient pas dans l'herbe haute (touffes de 40 à
-    // 75 cm) : dehors, on ne les pose que sur la terre nue, les pavés, le sable, la roche ; les moyennes, une fois sur deux
+    // 75 cm) : dehors, on ne les pose que sur la terre nue, les pavés, le sable, la roche ; les moyennes, une fois sur quatre
     const taille = {};
     for (const k of Object.keys(RAM_SORTES)) { const bb = typeof ramBoite === 'function' ? ramBoite(RAM_SORTES[k].mod) : null; taille[k] = !bb ? 1 : bb.r * 2 < 0.075 ? 0 : bb.r * 2 < 0.25 ? 1 : 2; }
-    const herbe = (x, z) => { const mt = w.matAt(x, z); return mt === M_GRASS || mt === M_LUSH || mt === M_FLOWERS || mt === M_DRY; };
+    const herbe = (x, z) => this.herbe(w, x, z);
     const tirSol = (m, x, z) => {
       const hb = herbe(x, z);
       for (let e = 0; e < 5; e++) {
         const k = tir(m);
         if (!k) return null;
-        if (!hb || taille[k] === 2 || (taille[k] === 1 && rnd() < 0.5)) return k;
+        if (!hb || taille[k] === 2 || (taille[k] === 1 && rnd() < 0.25)) return k;
       }
       return null;
     };
@@ -245,7 +245,7 @@ const ramGen = {
       const Lg = Math.hypot(B.x - A.x, B.z - A.z);
       if (Lg < 4 || Lg > 70) continue;
       if (rnd() >= (chemin ? 0.2 : 0.15) * Math.min(1.6, Lg / 22)) continue;
-      const t = rnd(), ux = (B.x - A.x) / Lg, uz = (B.z - A.z) / Lg, s = rnd() < 0.5 ? -1 : 1, off = rnd() < 0.25 ? rnd() * 0.5 : 1.1 + rnd() * 1.3;
+      const t = rnd(), ux = (B.x - A.x) / Lg, uz = (B.z - A.z) / Lg, s = rnd() < 0.5 ? -1 : 1, off = rnd() < 0.5 ? rnd() * 0.5 : 0.9 + rnd() * 1.1;
       poserDehors('chemin', A.x + (B.x - A.x) * t - uz * off * s, A.z + (B.z - A.z) * t + ux * off * s, { ecart: 28 }, 3);
     }
     // ---------------------------------------------------- 4. le pied des arbres à fruits
@@ -454,6 +454,16 @@ const ramGen = {
     }
     if (obstacleInter(w, x, g, z)) return null;
     return ramVide(w, x, z, g, 1.3) ? g : null;
+  },
+  // de l'herbe là, telle qu'on la voit : le terrain se dessine avec la matière d'un sommet voisin (à ±0,73 case près,
+  // pour que les bords soient irréguliers) — près d'un bord de chemin, la terre de la carte peut se voir en herbe
+  herbe(w, x, z) {
+    const c = w.cell || 2, u = x / c, v = z / c;
+    for (let i = Math.round(u - 0.73); i <= Math.round(u + 0.73); i++) for (let j = Math.round(v - 0.73); j <= Math.round(v + 0.73); j++) {
+      const mt = w.matAt(i * c, j * c);
+      if (mt === M_GRASS || mt === M_LUSH || mt === M_FLOWERS || mt === M_DRY) return true;
+    }
+    return false;
   },
 };
 // rien de bâti juste au-dessus d'un plancher (marches, poutres, cloisons), et pas dans un mur

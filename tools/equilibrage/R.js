@@ -59,7 +59,7 @@ module.exports = {
     if (R.ms > CIBLES.passeMs) E.push(`la passe prend ${R.ms} ms (> ${CIBLES.passeMs})`);
     for (const m of ['chemin', 'verger', 'rue', 'eau', 'foret', 'saint', 'ruine', 'maison', 'sol', 'seuil', 'champ']) if (!R.par[m]) E.push(`aucune trouvaille dans le milieu « ${m} »`);
     // rien dans l'eau, dans un mur, devant une interaction ; les toutes petites choses jamais dans l'herbe haute
-    const M_HERBE = new Set(J.ev('[M_GRASS, M_LUSH, M_FLOWERS, M_DRY]')), World = J.ev('World');
+    const RG = J.ev('ramGen'), World = J.ev('World');
     let eau = 0, mur = 0, inter = 0, herbe = 0;
     for (const o of L) {
       if (!o.b && w.heightAt(o.x, o.z) < WL + 0.02) eau++;
@@ -69,7 +69,7 @@ module.exports = {
         if (Math.abs(lx) < b.sx / 2 - 0.02 && Math.abs(lz) < b.sz / 2 - 0.02 && o.y + 0.01 > b.y + 0.01 && o.y + 0.01 < b.y + b.sy - 0.01) mur++;
       });
       for (const it of w.inter) if (Math.abs(it.x - o.x) < 0.6 && Math.abs(it.z - o.z) < 0.6 && Math.abs((it.y || 0) - o.y) < 1.5) { inter++; break; }
-      if (!o.b && o.m !== 'verger' && S[o.k].taille === 0 && M_HERBE.has(w.matAt(o.x, o.z))) herbe++;
+      if (!o.b && o.m !== 'verger' && S[o.k].taille === 0 && RG.herbe(w, o.x, o.z)) herbe++;
     }
     log(`Dans l'eau : ${eau} ; dans un bloc : ${mur} ; à moins de 60 cm d'une interaction : ${inter} ; toutes petites choses dans l'herbe haute : ${herbe}.`);
     if (eau) E.push(`${eau} trouvaille(s) dans l'eau`);

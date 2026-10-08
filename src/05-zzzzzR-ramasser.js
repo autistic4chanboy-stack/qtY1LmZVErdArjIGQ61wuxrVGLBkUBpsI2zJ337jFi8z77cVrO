@@ -91,7 +91,7 @@ const RAM_MILIEUX = ['chemin', 'champ', 'verger', 'seuil', 'rue', 'eau', 'foret'
 // pense : une pensée, la première fois seulement.
 const RAM_SORTES = {
   // ---- de quoi faire
-  branche: { it: 'bois_mort', n: [1, 2], lab: 'Ramasser la branche morte', mod: 'branche', ou: { foret: 8, pres: 1.5, chemin: 2, lande: 1.5, cour: 1.5, camp: 1, poules: 1 }, rev: 4 },
+  branche: { it: 'bois_mort', n: [1, 2], lab: 'Ramasser la branche morte', mod: 'branche', ou: { foret: 5, pres: 1.5, chemin: 2, lande: 1.5, cour: 1.5, camp: 1, poules: 1 }, rev: 4 },
   galet: { it: 'pierre', n: [1, 1], lab: 'Ramasser le galet', mod: 'galet', ou: { eau: 1.5, chemin: 0.6 } },
   silex: { it: 'silex', n: [1, 1], lab: 'Ramasser le silex', mod: 'silex', ou: { champ: 6, lande: 4, hauteurs: 1.5, chemin: 1.2, pres: 1.2, ancien: 1 } },
   clous: { it: 'clous', n: [1, 1], lab: 'Ramasser les clous', mod: 'clous', ou: { seuil: 3, grange: 5, rue: 1.5, chemin: 1.5, sol: 2, ruine: 3, cour: 1.5, poules: 0.8, tour: 2 }, brille: 1 },
@@ -99,7 +99,7 @@ const RAM_SORTES = {
   chiffon: { it: 'chiffon', n: [1, 1], lab: 'Ramasser le chiffon', mod: 'chiffon', ou: { chemin: 2, rue: 1.5, eau: 1.5, maison: 1, grange: 2, camp: 3, cour: 1, tour: 1.5, sol: 1 } },
   bouteille: { it: 'bouteille_vide', n: [1, 1], lab: 'Ramasser la bouteille', mod: 'bouteille', ou: { eau: 3.5, chemin: 1, rue: 0.8, camp: 3, ruine: 1, grange: 0.5, tour: 0.8 }, brille: 1 },
   fer: { it: 'fer_cheval', n: [1, 1], lab: 'Ramasser le fer à cheval', mod: 'fer', ou: { chemin: 4.5, rue: 1.5, grange: 2.5, cour: 2, champ: 1, estive: 0.5, poules: 1 } },
-  ferraille: { it: 'ferraille', n: [1, 1], lab: 'Ramasser la ferraille', mod: 'ferraille', ou: { chemin: 0.8, ruine: 3, cour: 1, grange: 1.2, camp: 0.8 } },
+  ferraille: { it: 'ferraille', n: [1, 1], lab: 'Ramasser la ferraille', mod: 'ferraille', ou: { chemin: 0.8, ruine: 2, cour: 1, grange: 1.2, camp: 0.8 } },
   verre: { it: 'eclats_verre', n: [1, 2], lab: 'Ramasser les éclats de verre', mod: 'verre', ou: { rue: 1, ruine: 2, chemin: 0.6, seuil: 0.5 }, brille: 1 },
   corde: { it: 'corde', n: [1, 1], lab: 'Ramasser le bout de corde', mod: 'corde', ou: { grange: 3, eau: 1.2, cour: 1, estive: 0.8, tour: 1.5 } },
   flotte: { it: 'bois_flotte', n: [1, 2], lab: 'Ramasser le bois flotté', mod: 'flotte', ou: { eau: 10 }, rev: 6 },
@@ -153,7 +153,7 @@ const RAM_SORTES = {
   image: { it: 'image_pieuse', n: [1, 1], lab: 'Ramasser l’image pieuse', mod: 'image', ou: { saint: 1, maison: 0.4, rue: 0.3, sol: 0.3 } },
   ex_voto: { it: 'ex_voto', n: [1, 1], lab: 'Ramasser l’ex-voto', mod: 'ex_voto', ou: { saint: 1.5 } },
   chandelle: { it: 'bougie', n: [1, 1], lab: 'Ramasser le bout de chandelle', mod: 'chandelle', ou: { saint: 1.2, maison: 0.6, grange: 0.4, ruine: 0.3, tour: 1.5 } },
-  gourde: { it: 'gourde', n: [1, 1], lab: 'Ramasser la gourde', mod: 'gourde', ou: { chemin: 0.5, foret: 0.4, lande: 0.4, hauteurs: 0.6, camp: 0.5 }, brille: 1 },
+  gourde: { it: 'gourde', n: [1, 1], lab: 'Ramasser la gourde', mod: 'gourde', ou: { chemin: 0.3, foret: 0.25, lande: 0.25, hauteurs: 0.35, camp: 0.4 }, brille: 1 },
   chapeau: { it: 'chapeau_feutre', n: [1, 1], lab: 'Ramasser le chapeau', mod: 'chapeau', ou: { foret: 0.35, chemin: 0.3, eau: 0.3 } },
   cle: { it: 'cle_sans_porte', n: [1, 1], lab: 'Ramasser la clé', mod: 'cle', ou: { ruine: 1, chemin: 0.2, rue: 0.2, eau: 0.2, foret: 0.12, tour: 0.2 } },
   poupee: { it: 'poupee_vieille', n: [1, 1], lab: 'Ramasser la poupée', mod: 'poupee', ou: { ruine: 0.6, maison: 0.15, eau: 0.12 } },

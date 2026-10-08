@@ -48,8 +48,8 @@ const RAM_MOD = {
     const r = ramAlea(v);
     for (let k = 0; k < 4; k++) {
       const a = r() * RAM_PI * 2, x = (r() - 0.5) * 0.08, z = (r() - 0.5) * 0.08;
-      E.box(x, 0.004, z, 0.007, 0.007, 0.07, RAM_C.rouille, TL.iron, a);
-      E.box(x + Math.sin(a) * 0.035, 0.005, z + Math.cos(a) * 0.035, 0.016, 0.009, 0.004, RAM_C.fer, TL.iron, a);
+      E.box(x, 0.004, z, 0.008, 0.008, 0.07, [0.62, 0.46, 0.36], TL.iron, a);
+      E.box(x + Math.sin(a) * 0.035, 0.005, z + Math.cos(a) * 0.035, 0.016, 0.01, 0.005, [0.6, 0.6, 0.64], TL.iron, a);
     }
   },
   ficelle(E, o, v) {
@@ -88,8 +88,9 @@ const RAM_MOD = {
   },
   corde(E, o, v) {
     const c = RAM_C.corde;
-    for (let k = 0; k < 4; k++) { const a = k * RAM_PI / 2; E.box(Math.sin(a) * 0.09, 0.012, Math.cos(a) * 0.09, 0.2, 0.024, 0.026, c, TL.rope, a + RAM_PI / 2); }
-    E.box(0.02, 0.03, 0.01, 0.15, 0.022, 0.024, c, TL.rope, 0.8); E.box(0.17, 0.012, -0.05, 0.16, 0.022, 0.024, c, TL.rope, 0.3 + v);
+    for (let k = 0; k < 8; k++) { const a = k * RAM_PI / 4; E.box(Math.sin(a) * 0.1, 0.012, Math.cos(a) * 0.1, 0.088, 0.024, 0.026, c, TL.rope, a); }
+    for (let k = 0; k < 6; k++) { const a = k * RAM_PI / 3 + 0.3; E.box(Math.sin(a) * 0.066, 0.034, Math.cos(a) * 0.066, 0.074, 0.022, 0.024, [0.68, 0.56, 0.38], TL.rope, a); }
+    E.box(0.17, 0.012, -0.05, 0.16, 0.022, 0.024, c, TL.rope, 0.3 + v);
   },
   flotte(E, o, v) {
     const c = RAM_C.flotte, L = 0.55 + v * 0.3;
@@ -173,10 +174,10 @@ const RAM_MOD = {
     for (let k = 0; k < 3; k++) E.box((r() - 0.5) * 0.28, 0.01, (r() - 0.5) * 0.28, 0.026, 0.02, 0.026, [0.42, 0.32, 0.22], TL.bark, r() * 3);
   },
   // ---------------------------------------------------------------- petites valeurs
-  sou(E, o, v) { ramDisque(E, 0, 0, 0, 0.025, 0.004, v < 0.7 ? [0.95, 0.6, 0.36] : [0.95, 0.95, 1.0], v < 0.7 ? TL.gold : TL.metal); },
-  bouton(E) { ramDisque(E, 0, 0, 0, 0.017, 0.004, [0.94, 0.92, 0.88], TL.plain); E.box(0, 0.0045, 0, 0.004, 0.002, 0.004, [0.6, 0.58, 0.55], TL.plain); },
+  sou(E, o, v) { ramDisque(E, 0, 0, 0, 0.025, 0.004, v < 0.7 ? [1.3, 0.82, 0.48] : [1.25, 1.25, 1.3], v < 0.7 ? TL.gold : TL.metal); },
+  bouton(E) { ramDisque(E, 0, 0, 0, 0.018, 0.005, [1.15, 1.13, 1.08], TL.plain); E.box(0, 0.0055, 0, 0.004, 0.002, 0.004, [0.6, 0.58, 0.55], TL.plain); },
   bille(E, o, v) { ramBoule(E, 0, 0, 0, 0.017, v < 0.5 ? [0.36, 0.62, 0.84] : [0.82, 0.4, 0.3], TL.plain, 0.016); E.box(0, 0.009, 0, 0.004, 0.017, 0.012, [0.95, 0.9, 0.7], TL.plain); },
-  de(E) { E.box(0, 0.011, 0, 0.017, 0.022, 0.017, RAM_C.argent, TL.metal); E.box(0, 0.011, 0, 0.016, 0.02, 0.016, RAM_C.argent, TL.metal, RAM_PI / 4); },
+  de(E) { const c = [1.15, 1.15, 1.2]; E.box(0, 0.011, 0, 0.017, 0.022, 0.017, c, TL.metal); E.box(0, 0.011, 0, 0.016, 0.02, 0.016, c, TL.metal, RAM_PI / 4); },
   bobine(E, o, v) {
     for (const y of [0.004, 0.036]) E.box(0, y, 0, 0.034, 0.008, 0.034, RAM_C.bois, TL.wood);
     E.box(0, 0.02, 0, 0.027, 0.026, 0.027, v < 0.4 ? [0.12, 0.12, 0.14] : v < 0.7 ? [0.66, 0.16, 0.16] : [0.9, 0.88, 0.82], TL.cloth);
@@ -197,8 +198,8 @@ const RAM_MOD = {
     for (const s of [-1, 1]) { E.box(s * 0.022, 0.0025, 0, 0.032, 0.003, 0.028, [0.8, 0.86, 0.88], TL.plain); E.box(s * 0.022, 0.0035, 0, 0.034, 0.002, 0.03, RAM_C.fer, TL.metal); E.box(s * 0.04, 0.002, -0.05, 0.002, 0.002, 0.1, RAM_C.fer, TL.metal, s * 0.15); }
     E.box(0, 0.004, 0.006, 0.014, 0.002, 0.003, RAM_C.fer, TL.metal);
   },
-  bague(E) { const c = RAM_C.laiton; for (let k = 0; k < 4; k++) { const a = k * RAM_PI / 2; E.box(Math.sin(a) * 0.008, 0.002, Math.cos(a) * 0.008, 0.016, 0.004, 0.004, c, TL.gold, a + RAM_PI / 2); } },
-  medaille(E) { ramDisque(E, 0, 0, 0, 0.02, 0.002, RAM_C.argent, TL.metal); E.box(0, 0.002, 0.012, 0.006, 0.002, 0.006, RAM_C.argent, TL.metal); },
+  bague(E) { const c = RAM_C.laiton; for (let k = 0; k < 6; k++) { const a = k * RAM_PI / 3; E.box(Math.sin(a) * 0.0085, 0.002, Math.cos(a) * 0.0085, 0.0105, 0.004, 0.004, c, TL.gold, a); } },
+  medaille(E) { const c = [1.15, 1.15, 1.2]; ramDisque(E, 0, 0, 0, 0.021, 0.003, c, TL.metal); E.box(0, 0.002, 0.013, 0.006, 0.003, 0.006, c, TL.metal); },
   montre(E) {
     ramDisque(E, 0, 0, 0, 0.05, 0.012, RAM_C.argent, TL.metal); E.box(0, 0.0125, 0, 0.034, 0.002, 0.034, [0.94, 0.92, 0.86], TL.plain);
     E.box(0, 0.006, 0.03, 0.012, 0.01, 0.01, RAM_C.argent, TL.metal); E.box(0.01, 0.0135, 0.004, 0.012, 0.001, 0.002, RAM_C.noir, TL.plain, 0.4);
@@ -253,7 +254,7 @@ const RAM_MOD = {
   cle(E) {
     const c = RAM_C.fer;
     E.box(0, 0.006, 0, 0.1, 0.012, 0.012, c, TL.iron);
-    for (let k = 0; k < 4; k++) { const a = k * RAM_PI / 2; E.box(-0.07 + Math.sin(a) * 0.016, 0.006, Math.cos(a) * 0.016, 0.034, 0.01, 0.008, c, TL.iron, a + RAM_PI / 2); }
+    for (let k = 0; k < 6; k++) { const a = k * RAM_PI / 3; E.box(-0.07 + Math.sin(a) * 0.017, 0.006, Math.cos(a) * 0.017, 0.021, 0.01, 0.008, c, TL.iron, a); }
     E.box(0.042, 0.006, 0.018, 0.018, 0.012, 0.028, c, TL.iron);
   },
   poupee(E) {
@@ -267,7 +268,7 @@ const RAM_MOD = {
   },
   // ---------------------------------------------------------------- choses anciennes, raretés
   tesson(E, o, v) { E.box(0, 0.006, 0, 0.07, 0.008, 0.05, RAM_C.terre, TL.terracotta, v * 3, 0, 0.12); E.box(0.03, 0.009, 0.005, 0.03, 0.008, 0.045, [0.66, 0.38, 0.24], TL.terracotta, v * 3, 0, 0.35); },
-  piece_ancienne(E) { ramDisque(E, 0, 0, 0, 0.026, 0.003, [0.42, 0.52, 0.38], TL.metal); },
+  piece_ancienne(E) { ramDisque(E, 0, 0, 0, 0.026, 0.004, [0.56, 0.7, 0.5], TL.metal); },
   pointe(E) { const c = [0.36, 0.34, 0.32]; E.box(0, 0.003, 0, 0.022, 0.006, 0.026, c, TL.stone, RAM_PI / 4); E.box(0, 0.003, -0.016, 0.01, 0.005, 0.014, c, TL.stone); },
   perle(E) { ramBoule(E, 0, 0, 0, 0.012, [0.24, 0.42, 0.78], TL.plain, 0.011); E.box(0, 0.0055, 0, 0.013, 0.004, 0.013, [0.9, 0.78, 0.26], TL.plain); },
   fibule(E) { const c = RAM_C.bronze; E.box(0, 0.012, 0, 0.034, 0.01, 0.008, c, TL.metal, 0, 0, 0.5); E.box(0.024, 0.012, 0, 0.03, 0.01, 0.008, c, TL.metal, 0, 0, -0.5); E.box(0.008, 0.003, 0, 0.06, 0.003, 0.003, [0.5, 0.5, 0.42], TL.metal); },
