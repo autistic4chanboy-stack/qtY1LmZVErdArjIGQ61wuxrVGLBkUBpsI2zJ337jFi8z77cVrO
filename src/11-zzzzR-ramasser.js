@@ -538,7 +538,7 @@ function ramIntervalle(B, lx, lz) {
   }
   return [y0, y1];
 }
-// la passe : après toutes les autres (P, Q, puis R ; avant le mode admin)
+// la passe : après toutes les autres de la vague (P, Q, puis R)
 {
   const _gv = generateValley;
   generateValley = async function (seed, progress, gen) {
