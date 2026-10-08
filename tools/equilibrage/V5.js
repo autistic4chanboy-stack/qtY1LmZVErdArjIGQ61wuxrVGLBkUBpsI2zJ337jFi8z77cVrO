@@ -40,6 +40,8 @@ module.exports = {
       const T=v.tonnellerie;out.tonn={region:zone.region(T.x,T.z),sol:+(T.y-WL).toFixed(1),chemin:zoneGen.surChemin(Z.v1.masque,Z.v1.mW,T.x,T.z,1),feu:Math.min(...Z.props.filter(q=>q.id==='v1_feu'&&!(q.data&&String(q.data.id).startsWith('feu_degre'))).map(q=>Math.hypot(q.x-T.x,q.z-T.z))).toFixed(0)};
       // les maisons reliées au temple ; les portes
       out.maisons=v.maisons.length;out.reliees=v.maisons.filter(M=>M.relie).length;out.porteH=V5_PLAN.PORTE_H;
+      { const N=v.noeuds,vu=new Set([v.temple.noeuds.porte]),pile=[v.temple.noeuds.porte];while(pile.length){const i=pile.pop();for(const j of N[i].v)if(!vu.has(j)){vu.add(j);pile.push(j);}}
+        out.lieuxRelies={'le marché':vu.has(v.marche.noeud),'le puits':vu.has(v.puits.noeud),'la porte':vu.has(v.porte.noeud),'la greffe':vu.has(v.temple.noeuds.greffe),'le registre':vu.has(v.temple.noeuds.registre)};out.noeudsSeuls=N.length-vu.size; }
       // l'obscurité : la part des nœuds des rues à plus de 9 m d'un feu
       const rues=v.noeuds.filter(q=>q.tag===''||q.tag==='enceinte');let sombres=0;for(const q of rues){let dm=1e9;for(const f of v.feux)dm=Math.min(dm,Math.hypot(f.x-q.x,f.z-q.z));if(dm>9)sombres++;}
       out.sombre=+(sombres/Math.max(1,rues.length)).toFixed(2);out.feux=v.feux.length;
@@ -67,7 +69,9 @@ module.exports = {
     if (R.tonn.chemin) ko('la tonnellerie est sur un chemin');
     if (R.tonn.feu < 60) ko('la tonnellerie est trop près d’un feu de veille (trop facile)');
     log(`maisons : ${R.maisons}, reliées au temple : ${R.reliees} ; portes de ${R.porteH} m`);
-    if (R.reliees < R.maisons * 0.95) ko('des maisons ne sont pas reliées aux rues');
+    if (R.reliees < R.maisons) ko('des maisons ne sont pas reliées aux rues');
+    log(`lieux des gens d’en bas reliés au temple : ${Object.entries(R.lieuxRelies).map(([k, ok]) => k + (ok ? '' : ' NON')).join(', ')} ; nœuds seuls : ${R.noeudsSeuls}`);
+    for (const k in R.lieuxRelies) if (!R.lieuxRelies[k]) ko(`${k} n’est pas relié au temple (les gens d’en bas n’y vont pas)`);
     if (R.porteH < 2.05) ko('des portes trop basses');
     log(`feux : ${R.feux} ; rues dans le noir (à plus de 9 m d’un feu) : ${Math.round(R.sombre * 100)} %`);
     if (R.sombre < 0.5) ko('les rues sont trop éclairées : on ne peut pas s’y cacher');
