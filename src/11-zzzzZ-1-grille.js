@@ -195,8 +195,9 @@ const zgrille = {
       const br = w.bridges[bi];
       if (Math.abs(br.x - (x0 + N * C / 2)) > N * C / 2 + br.L + 4 || Math.abs(br.z - (z0 + N * C / 2)) > N * C / 2 + br.L + 4) continue;
       const dx = Math.sin(br.r), dz = Math.cos(br.r);
-      const deck = { x: br.x + dx * br.L / 2, y: br.y - 0.25, z: br.z + dz * br.L / 2, sx: br.w, sy: 0.25, sz: br.L + 0.6, r: br.r };
-      balayer(deck, 0.05, (k) => {
+      // (le tablier moins un pas de chaque côté : on ne marche pas au ras du bord, d'où l'on tomberait sur la berge)
+      const deck = { x: br.x + dx * br.L / 2, y: br.y - 0.25, z: br.z + dz * br.L / 2, sx: Math.max(1, br.w - 0.5), sy: 0.25, sz: br.L + 0.3, r: br.r };
+      balayer(deck, 0, (k) => {
         if (!porte) { porte = new Int16Array(N * N); porte.fill(-1); }
         sol[k] = br.y; f[k] = (f[k] & ~(ZG_EAU | ZG_BLOQ | ZG_SOLIDE)) | ZG_PONT | ZG_BLOC; porte[k] = -10 - bi;
       });

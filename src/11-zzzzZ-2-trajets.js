@@ -143,7 +143,7 @@ const trajets = {
       const c = zgrille.couche(D.x, n.y, D.z), gx = Math.floor(D.x / ZG_C), gz = Math.floor(D.z / ZG_C);
       const k = zgrille.lire(gx, gz, c), T = zgrille.T;
       if ((T.f[k] & ZG_BLOQ) || zgrille.poche(gx, gz, c)) {
-        const L = zgrille.libre(D.x, D.z, c, 4, { qui: n, ouvert: true });
+        const L = zgrille.libre(D.x, D.z, c, 4, { qui: n, ouvert: true, meme: { x: D.x, z: D.z } });
         if (L) { D.x = L.x; D.z = L.z; }
       }
     } catch (err) { console.error('trajets.but', err); } finally { this.temps(t0); }
@@ -154,7 +154,9 @@ const trajets = {
   // la place (l'auberge, le banc de la place, l'établi partagé) — plus de deux habitants l'un dans l'autre
   placeLibre(n, D) {
     let pris = false;
-    for (const m of npcs.list) {
+    // (des boucles par indice sur npcs.list : un « for … of » interrompu laisserait un itérateur emballé à mi-course)
+    for (let i = 0, L = npcs.list; i < L.length; i++) {
+      const m = L[i];
       if (m === n || !m.st.alive || m.vanished || m.state === 'gone' || !m.goal) continue;
       const G = m.goal;
       if (Math.abs(G.x - D.x) < 0.35 && Math.abs(G.z - D.z) < 0.35 && Math.abs((G.y ?? 0) - (D.y ?? 0)) < 0.6 && this.pose(G)) { pris = true; break; }
@@ -172,6 +174,9 @@ const trajets = {
         if (zgrille.murEntre(x, z, D.x, D.z, e.sol)) continue;
         return { node: D.node, x, z, r: Math.atan2(D.x - x, D.z - z), pose: null, bld: D.bld, y: undefined };
       }
+      // (tout est pris autour : la case libre la plus proche, du même côté des murs, debout)
+      const L = zgrille.libre(D.x, D.z, c, 3, { qui: n, hors: true, meme: { x: D.x, z: D.z } });
+      if (L) return { node: D.node, x: L.x, z: L.z, r: Math.atan2(D.x - L.x, D.z - L.z), pose: null, bld: D.bld, y: undefined };
     } catch (err) { console.error('trajets.placeLibre', err); } finally { this.temps(t0); }
     return D;
   },
@@ -222,7 +227,7 @@ const trajets = {
     const c = zgrille.couche(n.x, n.y, n.z), e = zgrille.cellule(n.x, n.z, c);
     // (assis plus haut que le sol — margelle, banc sans meuble — : on se lève sur place)
     if (!(e.f & ZG_BLOQ)) { if (Math.abs(n.y - e.sol) > 0.25 && Math.abs(n.y - e.sol) < 2) t.leve = { a: 0, x0: n.x, z0: n.z, y0: n.y, x1: n.x, z1: n.z, y1: e.sol }; return; }
-    const L = zgrille.libre(n.x, n.z, c, 2.5, { qui: n, y: Math.min(n.y, e.sol + 0.3) });
+    const L = zgrille.libre(n.x, n.z, c, 2.5, { qui: n, y: Math.min(n.y, e.sol + 0.3), meme: { x: n.x, z: n.z } }) || zgrille.libre(n.x, n.z, c, 2.5, { qui: n, y: Math.min(n.y, e.sol + 0.3) });
     if (L && Math.hypot(L.x - n.x, L.z - n.z) < 2.6) t.leve = { a: 0, x0: n.x, z0: n.z, y0: n.y, x1: L.x, z1: L.z, y1: L.y };
   },
 
@@ -396,8 +401,8 @@ const trajets = {
   sortirDuRecoin(n, c) {
     const gx = Math.floor(n.x / ZG_C), gz = Math.floor(n.z / ZG_C);
     if (!zgrille.poche(gx, gz, c)) return false;
-    const L = zgrille.libre(n.x, n.z, c, 2.5, { qui: n, ouvert: true, hors: true, y: n.y });
-    const L2 = L || zgrille.libre(n.x, n.z, c, 2.5, { qui: n, ouvert: true, hors: true, y: n.y - 0.9 });
+    const L = zgrille.libre(n.x, n.z, c, 2.5, { qui: n, ouvert: true, hors: true, y: n.y, meme: { x: n.x, z: n.z } });
+    const L2 = L || zgrille.libre(n.x, n.z, c, 2.5, { qui: n, ouvert: true, hors: true, y: n.y - 0.9, meme: { x: n.x, z: n.z } });
     if (!L2) return false;
     n.zt.leve = { a: 0, x0: n.x, z0: n.z, y0: n.y, x1: L2.x, z1: L2.z, y1: L2.y };
     n.zt.pts = null; this.S.recoins = (this.S.recoins || 0) + 1;
@@ -407,7 +412,7 @@ const trajets = {
   reposer(n, w) {
     const c = zgrille.couche(n.x, n.y, n.z), e = zgrille.cellule(n.x, n.z, c);
     if (!(e.f & ZG_BLOQ)) { n.y = e.sol; return; }
-    const L = zgrille.libre(n.x, n.z, c, 3, { qui: n, y: n.y });
+    const L = zgrille.libre(n.x, n.z, c, 3, { qui: n, y: n.y, meme: { x: n.x, z: n.z } }) || zgrille.libre(n.x, n.z, c, 3, { qui: n, y: n.y });
     if (L) { n.x = L.x; n.z = L.z; n.y = L.y; }
   },
 
@@ -430,8 +435,9 @@ const trajets = {
       n.move = lerp(n.move, 0, Math.min(1, dt * 8)); t.attente += dt;
       n.heading = turnToward(n.heading, Math.atan2(ux, uz), dt * 4);
       if (v.joueur && t.attente > 1.2 && !t.pardon) { t.pardon = true; if (n.dist < 6 && Math.random() < 0.6) npcs.say(n, pick(['Pardon…', 'Vous permettez ?', 'Excusez-moi.', 'Je passe, si vous voulez bien.']), 2.2); }
-      if (t.attente < 4) { this.suivi(n, t, w, c, true); return; }
-      // (on attend depuis longtemps : on contourne de plus près, tant pis)
+      // (un passant qui vient en face : un instant, puis chacun prend sa droite ; quelqu'un d'arrêté, de couché : deux
+      //  secondes ; le joueur : trois — puis on contourne de plus près, tant pis)
+      if (t.attente < (v.joueur ? 3 : v.fixe ? 2 : 0.7)) { this.suivi(n, t, w, c, true); return; }
     } else t.attente = Math.max(0, t.attente - dt * 2);
     const ux0 = ux, uz0 = uz;
     ux += v.sx; uz += v.sz;
@@ -463,9 +469,17 @@ const trajets = {
     [nx, nz] = w.collideCircle(nx, nz, n.y, n.y + 1.7, 0.2, 0.5, true); // (le chemin garde 0,3 m des murs : 0,2 suffit en garde-fou)
     const g = w.groundAt(nx, nz, n.y, 0.55, 0.05); // (une marche de 0,55 m au plus, sous les pieds mêmes : on ne grimpe pas sur une table)
     if (g < w.waterLevel - 0.02 || g < n.y - 1.6) return null;
-    const G = zgrille, k1 = G.lire(Math.floor(nx / ZG_C), Math.floor(nz / ZG_C), cc), f1 = G.T.f[k1];
+    let g2 = g;
+    const G = zgrille, k1 = G.lire(Math.floor(nx / ZG_C), Math.floor(nz / ZG_C), cc), f1 = G.T.f[k1], s1 = G.T.sol[k1];
     if (f1 & ZG_EAU) { const k0 = G.lire(Math.floor(n.x / ZG_C), Math.floor(n.z / ZG_C), cc); if (!(G.T.f[k0] & ZG_EAU)) return null; }
-    return [nx, nz, g];
+    else if (!(f1 & ZG_BLOQ)) {
+      // le tablier d'un pont-levis : on y monte (son bout est plus haut que la berge — une demi-marche de plus, en trois pas)
+      if ((f1 & ZG_PONT) && s1 > g + 0.05 && s1 - n.y <= 0.95) g2 = Math.min(s1, Math.max(g, n.y + 0.3));
+      // la carte dit un sol bien plus haut que celui qu'on trouve sous ses pieds (sous un tablier, au bas d'un mur) : on
+      // n'y va pas — sauf si l'on y est déjà (alors on en sort)
+      else if (g < s1 - 0.6) { const k0 = G.lire(Math.floor(n.x / ZG_C), Math.floor(n.z / ZG_C), cc); if (!(n.y < G.T.sol[k0] - 0.6)) return null; }
+    }
+    return [nx, nz, g2];
   },
   // les portes : ouvrir en approchant, attendre le battant, refermer derrière soi
   portes(n, t, P, dt) {
@@ -506,7 +520,8 @@ const trajets = {
       return true;
     }
     if (dd > 0.5 && dd < 1.5) {
-      for (const m of npcs.list) {
+      for (let i = 0, L = npcs.list; i < L.length; i++) {
+        const m = L[i];
         if (m === n || !m.st.alive || m.vanished || m.state === 'gone' || m.state === 'sleep') continue;
         if (Math.hypot(m.x - dr.x, m.z - dr.z) < 0.55 && Math.hypot(m.x - dr.x, m.z - dr.z) < dd - 0.2) { n.move = lerp(n.move, 0, Math.min(1, dt * 6)); t.attente += dt; t.attPorte = t.attente < 5; return t.attente < 5; }
       }
@@ -515,7 +530,7 @@ const trajets = {
   },
   // les voisins : on s'écarte (sur sa droite), on ralentit, on s'arrête
   voisins(n, ux, uz, c) {
-    const out = { sx: 0, sz: 0, k: 1, stop: false, joueur: false };
+    const out = { sx: 0, sz: 0, k: 1, stop: false, joueur: false, mobile: false, fixe: false };
     const look = (x, z, mv, mx, mz, joueur, assis) => {
       const rx = x - n.x, rz = z - n.z, d = Math.hypot(rx, rz);
       if (d > 1.6 || d < 1e-4) return;
@@ -527,9 +542,10 @@ const trajets = {
       const w = (1.6 - d) / 1.6 * (0.6 + ahead);
       out.sx += -uz * side * w * 0.9; out.sz += ux * side * w * 0.9;
       if (d < 0.9 && ahead > 0.6) out.k = Math.min(out.k, mv ? 0.55 : 0.4);
-      if (d < (assis ? 0.42 : 0.62) && ahead > 0.75) { out.stop = true; if (joueur) out.joueur = true; }
+      if (d < (assis ? 0.42 : 0.62) && ahead > 0.75) { out.stop = true; if (joueur) out.joueur = true; else if (mv) out.mobile = true; else out.fixe = true; }
     };
-    for (const m of npcs.list) {
+    for (let i = 0, L = npcs.list; i < L.length; i++) {
+      const m = L[i];
       if (m === n || !m.st.alive || m.vanished || m.state === 'gone' || m.state === 'dead' || Math.abs(m.y - n.y) > 1.4) continue;
       if (Math.abs(m.x - n.x) > 1.7 || Math.abs(m.z - n.z) > 1.7) continue;
       const mv = m.state === 'walk' && m.move > 0.3;
@@ -711,7 +727,7 @@ const trajets = {
     else {
       // debout au pied du lit, à regarder autour
       const B = L ? this.w.bld[L.bld] : null, cc = zgrille.couche(n.x, n.y, n.z);
-      const A = zgrille.libre(n.x, n.z, cc, 2.5, { qui: n, y: L ? L.y - 0.5 : n.y, hors: etaitAuLit });
+      const A = zgrille.libre(n.x, n.z, cc, 2.5, { qui: n, y: L ? L.y - 0.5 : n.y, hors: etaitAuLit, meme: { x: n.x, z: n.z } });
       D = { node: B ? B.nMid : npcs.nearestReach(n.x, n.z, (q) => !/:(in|mid)$/.test(q.tag)), x: A ? A.x : n.x, z: A ? A.z : n.z, pose: null, bld: B ? B.key : null, r: Math.random() * TAU };
     }
     this.ordre(n, D, { duree: opts.duree ?? 40, fin: opts.fin, arrivee: opts.arrivee, raison: opts.raison || 'reveil', course: opts.course });
@@ -742,7 +758,7 @@ const trajets = {
     o = o || {};
     const cc = zgrille.couche(x, o.y ?? n.y, z), e = zgrille.cellule(x, z, cc);
     let px = x, pz = z;
-    if ((e.f & ZG_BLOQ) && !o.pose) { const L = zgrille.libre(x, z, cc, 3, { qui: n }); if (L) { px = L.x; pz = L.z; } }
+    if ((e.f & ZG_BLOQ) && !o.pose) { const L = zgrille.libre(x, z, cc, 3, { qui: n, meme: { x, z } }); if (L) { px = L.x; pz = L.z; } }
     const B = o.bld && this.w.bld[o.bld];
     const node = B ? B.nMid : npcs.nearestReach(px, pz, (q) => !/:(in|mid)$/.test(q.tag));
     return { node, x: px, z: pz, pose: o.pose || null, r: o.r ?? null, bld: o.bld || null, y: o.y, ordre: true };
@@ -845,5 +861,5 @@ HOOKS.load.push(() => {
   const w = trajets.vallee();
   trajets.monde(null); trajets.monde(w);
   if (farm.s && !farm.s.trajets) farm.s.trajets = { v: 1 };
-  for (const n of npcs.list) { n.zt = null; n.zOrdre = null; n.zInst = null; n.zc = null; n.zFuite = null; }
+  for (let i = 0; i < npcs.list.length; i++) { const n = npcs.list[i]; n.zt = null; n.zOrdre = null; n.zInst = null; n.zc = null; n.zFuite = null; }
 });

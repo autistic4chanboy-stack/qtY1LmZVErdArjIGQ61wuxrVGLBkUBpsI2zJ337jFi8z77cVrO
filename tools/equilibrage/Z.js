@@ -7,7 +7,9 @@
 // - Le graphe des routes : chaque arête vue sur la carte des pas (ligne droite, détour, impossible) ; les nœuds tombés
 //   dans un recoin (la margelle de la fontaine, une table) — le jeu les pose à côté, à la première occasion ;
 // - La passe de génération (src/11-zzzzZ-0-passe.js) : plus aucune clôture dans une maison ; les objets, objets posés
-//   et interactions des anciennes parties ne bougent pas (empreinte de la graine 1234).
+//   et interactions des anciennes parties ne bougent pas (empreinte de la graine 1234) ;
+// - Les douves : aucune case où se tenir, sauf les ponts ; et la carte d'accord avec les collisions du jeu (des chemins
+//   au hasard, suivis par un marcheur qui a les collisions : il ne doit pas bloquer).
 // Les mesures « en marche » (une semaine simulée : coincés, murs traversés, eau, lits, temps, coût par image) se font
 // dans le navigateur ($SP/agentZ/mesure.js) : voir README-Z / wiki-Z.
 'use strict';
@@ -19,11 +21,13 @@ const CIBLES = {
   approchesMur: 0,        // points d'approche (le côté libre d'un lit, d'une chaise) de l'autre côté d'un mur
   aretesImpossibles: 80,  // arêtes du graphe qu'aucun détour ne permet (sur ~2 900) — le jeu les évite
   clotures: 0,            // blocs de clôture dans une maison, après la passe
+  douvesLibres: 0,        // cases des douves (hors ponts) où l'on pourrait se tenir
+  marcheursBloques: 4,    // sur ~180 chemins au hasard, suivis avec les collisions du jeu : la carte ne ment pas
   casesParChemin: 4000,   // cases ouvertes par A* (moyenne, de la porte au lit) : la mesure qui ne dépend pas de la machine
 };
 
 module.exports = {
-  titre: 'Trajets des habitants (agent Z) : la carte des pas, les places de chacun, le graphe, la passe',
+  titre: 'Trajets des habitants (agent Z) : la carte des pas, les places de chacun, le graphe, la passe, les collisions',
   CIBLES,
   async verifier(J, log) {
     const E = [];
@@ -81,6 +85,15 @@ module.exports = {
       let recoins = 0; const rk = [];
       N.forEach((q, i) => { if (q.iso || /^(halle|village:)/.test(q.tag)) return; const gx = Math.floor(q.x / ZG_C), gz = Math.floor(q.z / ZG_C), k = G.lire(gx, gz, 0); if ((G.T.f[k] & ZG_BLOQ) || G.poche(gx, gz, 0)) { recoins++; if (rk.length < 10) rk.push(q.tag + ' (' + Math.round(q.x) + ', ' + Math.round(q.z) + ')'); } });
       out.recoins = { n: recoins, rk };
+      // les douves de la ville : on ne s'y tient nulle part, sauf sur les ponts (baissés)
+      out.douves = { cases: 0, libres: 0, ponts: 0 };
+      if (w.moat) {
+        const M = w.moat, dm = (M.inner + M.outer) / 2;
+        for (let t = -dm; t <= dm; t += 0.5) for (const [x, z] of [[M.x + t, M.z - dm], [M.x + t, M.z + dm], [M.x - dm, M.z + t], [M.x + dm, M.z + t]]) {
+          const q = G.cellule(x, z, 0); out.douves.cases++;
+          if (q.f & ZG_PONT) out.douves.ponts++; else if (!(q.f & ZG_BLOQ)) out.douves.libres++;
+        }
+      }
       // 4. la passe : plus de clôture dans une maison
       let cl = 0;
       for (const k in w.bld) {
@@ -94,6 +107,43 @@ module.exports = {
         }
       }
       out.clotures = cl; out.coupes = w.zClotures || 0;
+      // 5. la carte et les collisions d'accord : des chemins au hasard entre cases libres, suivis par un marcheur qui a les
+      //    collisions du jeu (rayon 0,2 m, marche de 0,5 m, portes ouvertes) — bloque-t-il quelque part ?
+      {
+        let graine = 7; const rnd = () => { graine = (graine * 16807) % 2147483647; return graine / 2147483647; };
+        const marcher = (x0, z0, p) => {
+          let x = x0, z = z0, y = w.groundAt(x, z, G.cellule(x, z, 0).sol + 0.3, 0.6);
+          for (const P of p) for (let k = 0; k < 600; k++) {
+            const dx = P.x - x, dz = P.z - z, d = Math.hypot(dx, dz);
+            if (d < 0.12) break;
+            let nx = x + dx / d * Math.min(0.07, d), nz = z + dz / d * Math.min(0.07, d);
+            [nx, nz] = w.collideCircle(nx, nz, y, y + 1.7, 0.2, 0.5, true);
+            const g = w.groundAt(nx, nz, y, 0.55, 0.05);
+            if (Math.hypot(nx - x, nz - z) < 0.004 || g < w.waterLevel - 0.02 || g < y - 1.6) return Math.round(x) + ',' + Math.round(z);
+            x = nx; z = nz; y = g;
+          }
+          return null;
+        };
+        const zm = { ville: [w.townInfo.x, w.townInfo.z, 45], hameau: w.lm.hameau ? [w.lm.hameau.x, w.lm.hameau.z, 35] : null };
+        for (const d of w.doors) d.a = 1.5;
+        out.marche = { chemins: 0, bloques: 0, ou: [] };
+        for (const k in zm) {
+          if (!zm[k]) continue;
+          const [cx, cz, R] = zm[k];
+          for (let i = 0, e = 0; i < 90 && e < 300; e++) {
+            const x0 = cx + (rnd() - 0.5) * 2 * R, z0 = cz + (rnd() - 0.5) * 2 * R, x1 = cx + (rnd() - 0.5) * 2 * R, z1 = cz + (rnd() - 0.5) * 2 * R;
+            const a = G.cellule(x0, z0, 0), b = G.cellule(x1, z1, 0);
+            if ((a.f & ZG_BLOQ) || (b.f & ZG_BLOQ) || G.poche(a.gx, a.gz, 0) || Math.abs(a.sol - w.heightAt(x0, z0)) > 0.3) continue;
+            i++;
+            const p = G.chemin(x0, z0, x1, z1, 0, { marge: 10, max: 20000, portes: true });
+            if (!p) continue;
+            out.marche.chemins++;
+            const r = marcher(x0, z0, p);
+            if (r) { out.marche.bloques++; if (out.marche.ou.length < 8) out.marche.ou.push(k + ' ' + r); }
+          }
+        }
+        for (const d of w.doors) d.a = 0;
+      }
       out.stat = G.stat;
       return JSON.stringify(out);
     })()`));
@@ -116,12 +166,17 @@ module.exports = {
     if (Gr.ko.length) log('  Impossibles (extrait) : ' + Gr.ko.join(' ; '));
     if (Gr.impossibles > CIBLES.aretesImpossibles) E.push(`${Gr.impossibles} arêtes impossibles (> ${CIBLES.aretesImpossibles})`);
     log(`Nœuds tombés dans un recoin (margelle, table, enclos) : ${R.recoins.n} — le jeu les pose à côté.` + (R.recoins.rk.length ? ' ' + R.recoins.rk.join(', ') + '.' : ''));
+    log(`Les douves (le milieu de l'anneau, tous les 50 cm) : ${R.douves.cases} cases, ${R.douves.ponts} sur les ponts, ${R.douves.libres} où l'on pourrait se tenir ailleurs.`);
+    if (R.douves.libres > CIBLES.douvesLibres) E.push(`${R.douves.libres} cases libres dans les douves`);
     log('\n# 4. La passe de génération');
     log(`Clôtures raccourcies dans les maisons : ${R.coupes} bloc(s) ; il en reste ${R.clotures} dans une maison.`);
     if (R.clotures > CIBLES.clotures) E.push(`${R.clotures} blocs de clôture encore dans une maison`);
     const emp = empreinte(w, [98896, 1308, 516]);
     log(`Empreinte des anciennes parties (graine 1234) : ${emp === EMPREINTE_1234 ? 'inchangée' : 'CHANGÉE (' + emp + ')'}.`);
     if (emp !== EMPREINTE_1234) E.push('empreinte 1234 changée');
+    log('\n# 5. La carte des pas et les collisions du jeu');
+    log(`${R.marche.chemins} chemins au hasard (la ville, le hameau), suivis par un marcheur qui a les collisions du jeu : ${R.marche.bloques} bloqué(s)` + (R.marche.ou.length ? ' (' + R.marche.ou.join(' ; ') + ')' : '') + '.');
+    if (R.marche.bloques > CIBLES.marcheursBloques) E.push(`${R.marche.bloques} marcheurs bloqués sur un chemin de la carte des pas`);
     log(`(A* : ${R.stat.astar} recherches, ${R.stat.exp} cases ouvertes, ${R.stat.echec} échecs)`);
     if (!E.length) log('\nToutes les mesures des trajets sont dans leurs bornes.');
     for (const e of E) log('  HORS BORNES : ' + e);
