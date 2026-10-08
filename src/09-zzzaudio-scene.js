@@ -68,10 +68,14 @@ SoundEngine.BOUCLES = {
     for (let i = 0; i < n; i++) { if (i % 32 === 0) { v += (R() - 0.5) * 0.35 - v * 0.2; m = clamp(m + v * 0.1, 0, 1); } d[i] += b(R() * 2 - 1) * m * m; }
     S.lp1(d, sr, 5500);
   }],
-  // un grillon qui chante tout seul
-  grillon: [2, (d, sr, D) => {
+  // un grillon qui chante tout seul : des séries de « cri-cri », puis il se tait un moment (sept secondes de boucle :
+  // plus de cri-cri sans fin qui revenait toutes les deux secondes)
+  grillon: [7, (d, sr, D) => {
     const R = Math.random, S = SoundEngine.SYN, f = 3600 + R() * 500, per = 0.42 + R() * 0.3;
-    for (let t = 0.03 + R() * 0.2; t < D - 0.12; t += per * (0.95 + R() * 0.1)) for (let p = 0, n = 3 + ((R() * 2) | 0); p < n; p++) S.note(d, sr, t + p * 0.027, 0.016, f, f * 0.99, 0.5, { att: 0.25, dec: 1.2 });
+    for (let t = 0.03 + R() * 0.6; t < D - 0.12;) {
+      for (let c = 0, nc = 4 + ((R() * 6) | 0); c < nc && t < D - 0.12; c++, t += per * (0.95 + R() * 0.1)) for (let p = 0, n = 3 + ((R() * 2) | 0); p < n; p++) S.note(d, sr, t + p * 0.027, 0.016, f, f * 0.99, 0.5, { att: 0.25, dec: 1.2 });
+      t += 1.4 + R() * 2.2;
+    }
   }],
   // le vent : un souffle qui tourbillonne — un fond grave et trois bandes qui enflent et retombent chacune à son rythme
   // (la plus aiguë, la plus vive, ne monte qu'avec les autres) ; ni sifflement ni grondement fixe
@@ -107,7 +111,7 @@ SoundEngine.BOUCLES = {
   }, 8000],
 };
 // volume de chaque boucle (k = 1)
-SoundEngine.VOL_BOUCLES = { riviere: 0.1, clapotis: 0.07, feu: 0.22, gouttes: 0.07, feuilles: 0.06, grillon: 0.12, bourdon: 0.05, vent: 0.085 };
+SoundEngine.VOL_BOUCLES = { riviere: 0.1, clapotis: 0.07, feu: 0.22, gouttes: 0.07, feuilles: 0.06, grillon: 0.07, bourdon: 0.05, vent: 0.085 };
 // les oiseaux selon le milieu : [sorte, poids]
 SoundEngine.OISEAUX = {
   foret: [['merle', 3], ['mesange', 3], ['pinson', 3], ['pic', 0.6], ['tourterelle', 1], ['coucou', 0.15]],
@@ -475,10 +479,10 @@ Object.assign(SoundEngine.prototype, {
     const P = SoundEngine.PHRASES[sorte] || [1, 2, 3];
     return { sorte, pos, k, reste: P[0] + ((R() * (P[1] - P[0] + 1)) | 0), pause: P[2] + (SoundEngine.TAMPONS[sorte] ? SoundEngine.TAMPONS[sorte][0] : 1.5) };
   },
-  // les grillons : trois à cinq, chacun à sa place dans l'herbe ; ils se taisent quand on s'approche
+  // les grillons : deux, chacun à sa place dans l'herbe ; ils se taisent quand on s'approche
   _grillons(S, k, p) {
     const L = this.L, R = Math.random, G = S.grillons, px = p.pos[0], pz = p.pos[2];
-    const n = k > 0 ? 4 : 0;
+    const n = k > 0 ? 2 : 0; // (deux grillons dans l'herbe, pas quatre)
     while (G.length < n) G.push({ id: 'grillon' + ((S.gid = (S.gid || 0) + 1)), pos: null, tait: 0 });
     for (let i = 0; i < G.length; i++) {
       const g = G[i];

@@ -54,7 +54,7 @@ RECIPES.push(
   { out: 'bandage', n: 1, need: { chiffon: 2 }, st: null },
   { out: 'fiole', n: 1, need: { bouteille_vide: 1 }, st: 'four' },
 );
-if (ITEMS.cierge_flottant) RECIPES.push({ out: 'cierge_flottant', n: 1, need: { liege: 1, bougie: 1 }, st: null });
+// (la chandelle sur liège : dans 11-zzzzR-ramasser.js — l'objet n'est défini qu'en 11-zzzz7-carte3-peuples.js)
 
 // ---------------------------------------------------------------- les saisons des fruits tombés
 // La vallée n'a pas de calendrier des saisons : les fruits tombés suivent leur propre cycle, de vingt-quatre jours

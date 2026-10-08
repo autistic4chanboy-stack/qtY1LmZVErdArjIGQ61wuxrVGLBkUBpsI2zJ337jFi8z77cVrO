@@ -31,6 +31,8 @@
 //  API : ramasser (liste(), visible(i), prendre(i), enSaison(sorte, jour),
 //        proches(x, z, r), compter(), S()).
 // ============================================================================
+// la chandelle sur liège (liège + bougie) : ici, parce que l'objet n'existe qu'à partir de 11-zzzz7-carte3-peuples.js
+if (ITEMS.cierge_flottant && !RECIPES.some((r) => r.out === 'cierge_flottant' && r.need && r.need.liege)) RECIPES.push({ out: 'cierge_flottant', n: 1, need: { liege: 1, bougie: 1 }, st: null });
 
 const RAM_REGL = {
   cellule: 16,     // m : cases de la grille des trouvailles

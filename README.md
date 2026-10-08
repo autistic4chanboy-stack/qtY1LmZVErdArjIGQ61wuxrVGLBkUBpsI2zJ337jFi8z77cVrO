@@ -636,12 +636,17 @@ Les commandes sont dans le menu **Commandes** (Échap).
   qu'avant.
 - **Doux et rare** : un chanteur à la fois, de longs silences ; tout se règle avec le curseur « Ambiance » des Options.
   Synthétisé, calculé en tâche de fond : rien de plus à chaque image.
+- **Les insectes, discrets** : dans les prés, trois ou quatre criquets qui chantent par reprises, avec de longs silences
+  (plus de nappe aiguë presque continue qui sifflait, ni de « zrrr » à quinze coups par seconde qui battait comme des
+  ailes) ; le soir, une grande sauterelle de loin en loin ; la nuit, deux ou trois grillons d'Italie qui se taisent
+  entre deux trilles, et deux grillons dans l'herbe. Des boucles longues (une demi-minute et plus) qu'on n'entend plus
+  revenir ; environ moitié moins fort qu'avant.
 
 **La musique**
 - **De temps en temps, un morceau doux** (piano surtout, parfois harpe, flûte, célesta, cordes, verre, boîte à musique,
-  orgue, cloche), puis de longues minutes de silence (de quatre minutes et demie à onze, au hasard ; le premier vient
-  une à deux minutes après le début de la partie). Le morceau dépend de l'endroit où l'on est quand il commence, et il
-  va jusqu'au bout.
+  orgue, cloche), puis un long silence (de douze à vingt-cinq minutes, au hasard : à peu près un morceau par journée de
+  jeu ; le premier vient deux minutes et demie à six minutes après le début de la partie). Le morceau dépend de
+  l'endroit où l'on est quand il commence, et il va jusqu'au bout.
 - **Quarante-deux morceaux** (une heure et demie de musique), de quatre à sept par endroit : les prés et la ferme, la
   forêt et les bouleaux, le marais et le lac, la lande et les hauteurs, la ville et le hameau, la nuit, le Dessous, le
   pays des bonbons, les Ténèbres, les Enfers, la cité vaisseau (rien dans le cauchemar). Trente-trois compositions
@@ -820,6 +825,29 @@ Les commandes sont dans le menu **Commandes** (Échap).
   six. On le voit ronger son os devant sa niche. Si le chien meurt en chemin, la quête s'arrête ; le chiot adopté
   ensuite n'hérite pas du nonos.
 
+**Cinq autres quêtes principales, à lieux précis (facultatives)**
+- **Cinq histoires, proposées, jamais imposées** : *La chambre sept* (l'aubergiste du Coq Tordu, à partir du deuxième
+  jour), *Le feu du lac* (une lettre d'une veuve, dans la boîte aux lettres, à partir du quatrième), *Les toiles
+  d'Ardoin* (un avis de la mairie, au panneau de la place, à partir du troisième), *La crécelle* (un objet trouvé sur une
+  souche devant le relais de chasse, à partir du troisième), *La source froide* (le docteur des Sources, à partir du
+  quatrième). Trois réponses à chaque fois : accepter, plus tard (elle attend au carnet, sous « Proposées »), ou jamais.
+  Une quête commencée s'abandonne et se reprend là où on l'avait laissée ; plusieurs peuvent courir ensemble ; si
+  l'habitant qui l'a proposée meurt, elle est perdue.
+- **Des lieux précis, les mêmes dans toutes les parties**, tantôt dedans, tantôt dehors : l'étage de l'auberge, le
+  pont des Saules, le casier de la poste, le cimetière ; la grève, le bureau et la lanterne du phare, le quai des
+  Planches ; le grenier de la mairie, le lavoir, les combles de la bibliothèque, l'abbaye de Montrevel, la nef de
+  l'église ; le relais de chasse, la cascade, la hutte de la guérisseuse, la chapelle abandonnée ; la maison du
+  docteur, le chêne millénaire, la maison du bas à Clairpré, la source aux rubans. Quatre ou cinq étapes par quête ;
+  sur place, quelque chose à trouver (E) ; certaines étapes ne se font que la nuit, ou avant l'aube.
+- **Chaque étape se montre dans une courte scène** : le nom du lieu dans le noir, le lieu en entier, puis l'endroit
+  précis où chercher, à l'heure qui lui convient (l'aube, le couchant, la nuit) ; dedans, la caméra reste dans la pièce,
+  éclairée. Chaque scène se revoit au carnet (sacoche, onglet Carnet, rubrique « Quêtes principales » : proposées, en
+  cours avec le lieu de l'étape nommé, abandonnées, achevées).
+- **Une fin à choisir**, et des récompenses à la mesure de chaque histoire : de l'argent (au plus 790 pièces pour les
+  cinq, la fin la mieux payée de chacune), une longue-vue (quatre fois plus près), une recette d'appeau, une montre de
+  gousset, de petits avantages durables (la chambre de l'auberge pour rien ; une source qui, à l'aube, referme une
+  plaie) — et des morceaux de vérité sur la vallée.
+
 ### Mode Création
 
 Éditeur de monde séparé : relief, peinture du sol, objets, animaux, blocs. **Exporter** télécharge un fichier
@@ -828,16 +856,16 @@ Les commandes sont dans le menu **Commandes** (Échap).
 ## Équilibrage
 
 Le jeu a été équilibré d'un bloc, en mesurant d'abord : chaque système avait été écrit avec ses propres nombres, et
-la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Vingt domaines, chacun avec sa
+la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Vingt et un domaines, chacun avec sa
 mesure et ses vérifications dans `tools/equilibrage/` : le jeu entier est chargé dans une machine virtuelle node (sans
 navigateur, `tools/equilibrage/vm.js`), ses propres fonctions calculent les rendements, les espérances et les
 fréquences, et la commande échoue si l'on recasse un équilibre :
 
 ```bash
-node tools/equilibrage.js                 # les vingt domaines (≈ 20 à 25 min)
+node tools/equilibrage.js                 # les vingt et un domaines (≈ 25 min)
 node tools/equilibrage.js commerce        # ou un seul : commerce, ferme, risques, survie, hasard, commandes, carte, nature, batiments
 node tools/equilibrage.js S D1 E2         # ou plusieurs ; ceux de la douzième vague : S, D1, D2, E1, E2, E3, F, G
-node tools/equilibrage.js R P Q           # ceux de la treizième vague : R, P, Q
+node tools/equilibrage.js R P Q T         # ceux de la treizième vague : R, P, Q, T
 ```
 
 Aucun réglage ne touche à la génération de la vallée : les anciennes parties retrouvent leurs objets (l'empreinte des
@@ -1145,7 +1173,7 @@ Les domaines de la douzième vague (les événements nouveaux, `F`, sont mesuré
   légèreté, et la cité ne cache pas de quoi tout prendre ; ce qu'on en rapporte, une fois, vaut quelques journées de
   travail, pas une fortune.
 
-### Les trouvailles, les bêtes qui parlent et le nonos
+### Les trouvailles, les bêtes qui parlent, le nonos et les quêtes à lieux précis
 
 Les domaines de la treizième vague :
 - `node tools/equilibrage.js R` (≈ 1,5 min) : la pose sur la vraie vallée (≈ 1 000 trouvailles, 69 des 73 sortes, en
@@ -1169,6 +1197,13 @@ Les domaines de la treizième vague :
   de 1 150 m de la ferme, l'indice sur la terre ferme et joignable à pied ; la faim du chien, mesurée avec ses vraies
   fonctions avant et après le nonos rendu : un repas de viande le tient 52 h au lieu de 26, chaque stade de faim vient
   deux fois plus tard, trois jours sans manger en deviennent six.
+- `T` (≈ 2 min : deux vallées, graines 1234 et 77) : les objets des cinq quêtes à lieux précis ne se vendent pas ;
+  chaque quête a sa proposition, ses trois réponses, ses étapes (un lieu nommé, deux plans, une phrase de carnet, ce
+  qu'on y trouve), des scènes dedans et dehors, une fin à deux choix ; les récompenses, mesurées avec les vraies
+  fonctions (la fin, puis le courrier qui suit) : chaque fin donne quelque chose, aucune plus de 250 pièces, les cinq
+  ensemble (la fin la mieux payée de chacune) 790 pièces, un peu plus de deux journées de revenu du début ; les
+  vingt-trois lieux trouvés et cadrés dans les deux vallées (le plus lent en un tiers de seconde), aux mêmes positions
+  d'une vallée à l'autre.
 
 ## Modifier le code
 
@@ -1234,6 +1269,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `05-zzzzzR-ramasser.js`, `07-zzzzzzzzzzzzR-ramasser.js`, `11-zzzzR-ramasser.js` | des trouvailles un peu partout : les objets nouveaux et quatre recettes, le catalogue des soixante-treize sortes (ce qu'on ramasse, combien, dans quels milieux, ce qui revient et en combien de jours, la saison des fruits tombés) et les lettres trouvées ; les modèles, chacun à sa taille, et les icônes ; la passe de génération (après toutes les autres, tirage propre : la liste dans `w.ramasse`, rien d'ajouté à `w.objects`, `w.props` ni `w.inter`), les cases de 16 m, la touche E, le dessin dans le tampon des objets posés, l'éclat du soleil sur ce qui brille, le vol chez les gens (`farm.s.ramasse` : un bit par trouvaille ; API `ramasser`) |
 | `05-zzzzzP-betes.js`, `07-zzzzzzzzzzzzP-betes.js`, `09-zzzzzP-voix.js`, `10-zzzzzP-betes.js`, `11-zzzzP-betes.js` | les bêtes qui parlent : ce qu'elles sont (endroit, heures, temps, service) et tout ce qu'elles disent ; leurs modèles en boîtes ; leurs voix (un petit cri au début de chaque réplique, en 3D, et le bruit de leur fuite) ; les créatures ; le jeu : leurs endroits (une passe de génération qui ne pose rien : `w.betesP`), leur apparition hors de la vue, la conversation, les services, la menace, les coups et la mort, ce qu'en disent les gens, le carnet (`farm.s.betesParlantes`, API `betesParlantes`) |
 | `05-zzzzzQ-nonos.js`, `11-zzzzQ-1-nonos.js`, `11-zzzzQ-2-scenes.js`, `12-zzzzzQ-nonos.js` | le nonos du chien : l'objet, les sortes de lieux et leurs phrases, les indices, les textes ; la quête (son début, les cinq lieux tirés au début de la quête, sans passe de génération, les indices dessinés à la volée, le chien qui flaire puis ronge son os, la faim deux fois moins vite) ; les scènes (moteur `cine` : le début, les souvenirs à hauteur de chien, la trouvaille, le retour) ; le carnet, « Quête principale — facultative », et ses « Revoir » (`farm.s.nonos`, API `nonos`) |
+| `05-zzzzzT-quetes.js`, `11-zzzzT-1-quetes.js`, `11-zzzzT-2-scenes.js`, `12-zzzzzT-quetes.js` | les cinq quêtes principales à lieux précis (la chambre sept, le feu du lac, les toiles d'Ardoin, la crécelle, la source froide) : les objets et tous les textes (`QT_QUETES`) ; la quête (les propositions — un habitant, une lettre, un avis, un objet trouvé —, les lieux précis, les objets dessinés à la volée, les étapes, les fins et leurs récompenses, les avantages durables) ; les scènes (cadrages dehors et dedans, l'heure du lieu, les lumières de scène, les épilogues) ; le carnet, rubrique « Quêtes principales », la lettre et les papiers qui se relisent (`farm.s.quetes`, API `quetes`) |
 | `11-zzz00b-pensees.js`, `tools/pensees.js` | dire peu : `penser.une` (une règle dite une fois par vie), `penser.pas` (un avertissement espacé), `farm.s.pensees` ; l'inventaire des pensées (`node tools/pensees.js`) |
 | `11-zzvallee0-gel.js` | le gel en altitude : la jauge `farm.s.gel`, le givre à l'écran, la mort de froid |
 | `11-zzzz7-carte*.js`, `07-zzzzzzzzzz-carte.js` | un lieu tous les 200 m (catalogue, textes, lettres, inscriptions, petits secrets), les deux peuples de surface et leurs parlers (`farm.s.carte2`, API `carte2`) |
@@ -1242,7 +1278,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzzz4-ferme-temps.js`, `11-zzzz4-meubles.js`, `07-zzzzzzzz-meubles.js` | portée des arroseurs, petites bêtes sous la pluie ; acheter et meubler sa maison (meubles, garde-meuble) |
 | `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
-| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js` et `Q.js`) |
+| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js`, `Q.js` et `T.js`) |
 | `shell.html` | HTML + CSS |
 | `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et ses deux codes (le jeu, le wiki), le site servi tel quel par GitHub Pages, changer un code |
 | `libre/` | la partie sans code : sa page d'accueil (`libre/index.html`), le jeu et le wiki sans leur porte (écrits par `node build.js` et `node tools/wiki-build.js`) |

@@ -1305,6 +1305,9 @@ async function extract() {
   say(`vallée générée : ${w.objects.length} objets, ${w.props.length} objets posés, ${w.blocks.length} blocs`);
   safe('carte', () => extractWorld(G, w, DB));
   say('carte extraite');
+  // la treizième vague : ce que la vallée générée porte de nouveau (les trouvailles, les endroits des bêtes qui parlent,
+  // les textes du nonos) : tools/wiki-v13.js
+  safe('vague 13', () => { const W13 = require('./wiki-v13.js'); if (W13.extract) W13.extract(G, w, DB); });
   // les semaines de chacun, maintenant que les lieux existent (la première lecture n'a que les journées ordinaires)
   { const R = safe('routines (vallée)', () => extractRoutines(G), null); if (R) DB.derived.routines = R; }
   // la vie de la vallée (lits, portes et serrures, fouilles, objets, activités, dépouilles, bail) : mesurée dans le jeu
@@ -4402,6 +4405,14 @@ function buildWiki(DB) {
       try { W12.build({ DB, T, P, SP, SEC, esc, lk, IL, FILL, quotes, npcLink, pages, used, addCat, rarTag, nfmt, planBtn, MF, ITEMS }); } catch (e) { (DB.log || []).push('wiki-v12.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
     }
   }
+  // ==== LA TREIZIÈME VAGUE : les trouvailles posées à la vue (« Fouiller, ramasser, casser »), les bêtes qui parlent
+  // et les quêtes principales (deux sections nouvelles : W13.sections, plus bas). Les textes et les fiches :
+  // tools/wiki-v13.js (ce qui se cache, sous « révéler les secrets »).
+  let W13 = null;
+  try { W13 = require('./wiki-v13.js'); } catch (e) { (DB.log || []).push('wiki-v13.js : ' + e.message); }
+  if (W13) {
+    try { W13.build({ DB, T, P, SP, SEC, esc, lk, IL, FILL, quotes, npcLink, pages, used, addCat, rarTag, nfmt, planBtn, mapBtn, MF, ITEMS, NAMES }); } catch (e) { (DB.log || []).push('wiki-v13.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
+  }
   for (const f of [FILE.vol, FILE.prison, FILE.sentiments]) if (f) genericPage(f, 'prison', 'Prison, vol et sentiments');
   for (const f of Object.keys(MF)) if (!MODPAGE[f] && !/^07-/.test(f)) genericPage(f, 'nouveautes-autres', 'Autres nouveautés');
   // ce qui reste des tables de chaque module : en bas de sa fiche principale
@@ -4509,6 +4520,8 @@ function buildWiki(DB) {
       cats.splice(cats.findIndex((c) => c.id === 'habitants') + 1, 0, { id: 'quetes', t: 'Quêtes', d: 'Toutes les quêtes des habitants.', page: true });
     }
   }
+  // les sections de la treizième vague (Quêtes principales, Les bêtes qui parlent), à leur place
+  if (W13 && W13.sections) try { W13.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v13.js (sections) : ' + e.message); }
   // semaine : page d'ensemble
   if (SEM.length) P('cat:semaine', { t: 'La semaine', s: `${SEM.length} jours`, c: [], i: '📅', h: `<p class="lead">Dans la vallée, la semaine compte ${SEM.length} jours${DB.derived.jour ? `, et une journée dure ${Math.round(DB.derived.jour / 60)} minutes` : ''}.</p><table class="t">${SEM.map((J, k) => `<tr><th>${link('sem:' + k)}</th><td>${esc((J.annonce || '').replace(/^\(|\)$/g, ''))}</td></tr>`).join('')}</table>` });
 

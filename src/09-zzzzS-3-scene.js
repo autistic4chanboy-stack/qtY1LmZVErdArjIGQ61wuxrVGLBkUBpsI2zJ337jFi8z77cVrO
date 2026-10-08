@@ -105,13 +105,13 @@ SoundEngine.SR_TAMPON = {
 SoundEngine.PLUIE_MILIEU = { plaine: 's_pl_herbe', ferme: 's_pl_paille', ville: 's_pl_toits', lande: 's_pl_bruyere', hauteurs: 's_pl_bruyere', foret: 's_pl_feuilles', bouleaux: 's_pl_feuilles', marais: 's_pl_eau', lac: 's_pl_eau' };
 // les nappes de chaque milieu : niveau (0..1) selon le moment et le temps (Q, voir _sContexte)
 SoundEngine.NAPPES_MILIEU = {
-  plaine: (Q) => ({ s_criquets: 0.9 * Q.insJour, s_oecanthe: 0.8 * Q.insNuit, s_sauterelle: 0.55 * Q.insSoir }),
-  ferme: (Q) => ({ s_criquets: 0.35 * Q.insJour, s_oecanthe: 0.45 * Q.insNuit, s_sauterelle: 0.3 * Q.insSoir, s_accoucheur: 0.7 * Q.batNuit }),
+  plaine: (Q) => ({ s_criquets: 0.45 * Q.insJour, s_oecanthe: 0.4 * Q.insNuit, s_sauterelle: 0.3 * Q.insSoir }),
+  ferme: (Q) => ({ s_criquets: 0.15 * Q.insJour, s_oecanthe: 0.2 * Q.insNuit, s_sauterelle: 0.15 * Q.insSoir, s_accoucheur: 0.7 * Q.batNuit }),
   ville: (Q) => ({ s_accoucheur: 0.55 * Q.batNuit }),
-  lande: (Q) => ({ s_bruyere: Q.ventBas, s_criquets: 0.7 * Q.insJour, s_oecanthe: 0.5 * Q.insNuit, s_sauterelle: 0.6 * Q.insSoir }),
-  hauteurs: (Q) => ({ s_cimes: Q.ventHaut, s_criquets: 0.25 * Q.insJour }),
+  lande: (Q) => ({ s_bruyere: Q.ventBas, s_criquets: 0.35 * Q.insJour, s_oecanthe: 0.25 * Q.insNuit, s_sauterelle: 0.3 * Q.insSoir }),
+  hauteurs: (Q) => ({ s_cimes: Q.ventHaut, s_criquets: 0.12 * Q.insJour }),
   foret: (Q) => ({ s_pins: Q.ventBois, s_feuillus: 0.55 * Q.ventBois }),
-  bouleaux: (Q) => ({ s_bouleaux: Q.ventBois, s_feuillus: 0.3 * Q.ventBois, s_oecanthe: 0.2 * Q.insNuit }),
+  bouleaux: (Q) => ({ s_bouleaux: Q.ventBois, s_feuillus: 0.3 * Q.ventBois, s_oecanthe: 0.1 * Q.insNuit }),
   marais: (Q) => ({ s_roseaux: Q.ventBas, s_grenouilles: Q.grenJour, s_rainettes: Q.grenNuit, s_accoucheur: 0.35 * Q.batNuit }),
   lac: (Q) => ({ s_ressac: Q.ressac, s_rainettes: 0.55 * Q.grenNuit, s_grenouilles: 0.35 * Q.grenJour, s_accoucheur: 0.45 * Q.batNuit, s_roseaux: 0.35 * Q.ventBas }),
 };
