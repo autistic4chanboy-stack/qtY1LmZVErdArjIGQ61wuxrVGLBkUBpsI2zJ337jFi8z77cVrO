@@ -296,6 +296,16 @@ PROP_MODELS.r_objet = function (E, o) {
   f(E, o, o.v || 0);
 };
 
+// la classe de taille d'une sorte, pour la poser dehors : 0 toute petite (jamais dans l'herbe), 1 moyenne, 2 grande ;
+// d'après la boîte de son modèle, ou ce que la sorte en dit (vu : une épingle, des clous, une ficelle sont plus longs
+// qu'ils ne se voient)
+function ramTaille(k) {
+  const S = RAM_SORTES[k];
+  if (!S) return 1;
+  if (S.vu !== undefined) return S.vu;
+  const b = ramBoite(S.mod);
+  return !b ? 1 : b.r * 2 < 0.075 ? 0 : b.r * 2 < 0.25 ? 1 : 2;
+}
 // la boîte d'un modèle (repère de la trouvaille) : pour viser, pour l'éclat ; relevée une fois par modèle
 const RAM_BB = {};
 function ramBoite(mod) {

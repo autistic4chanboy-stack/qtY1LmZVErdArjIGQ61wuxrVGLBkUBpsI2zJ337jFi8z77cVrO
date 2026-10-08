@@ -38,7 +38,7 @@ module.exports = {
     if (!R || !Array.isArray(R.L)) { log('  ÉCHEC : pas de liste de trouvailles (w.ramasse).'); return { echecs: 1 }; }
     const L = R.L, WL = w.waterLevel;
     const D = commerce.donnees(J), V = commerce.valeurs(D), H = commerce.HYP;
-    const S = JSON.parse(J.ev(`JSON.stringify(Object.fromEntries(Object.keys(RAM_SORTES).map((k) => [k, Object.assign({}, RAM_SORTES[k], { taille: (() => { const b = ramBoite(RAM_SORTES[k].mod); return b.r * 2 < 0.075 ? 0 : b.r * 2 < 0.25 ? 1 : 2; })() })])))`));
+    const S = JSON.parse(J.ev(`JSON.stringify(Object.fromEntries(Object.keys(RAM_SORTES).map((k) => [k, Object.assign({}, RAM_SORTES[k], { taille: ramTaille(k) })])))`));
     const saison = (k, d) => J.avec({ k, d }, 'ramEnSaison(__v.k, __v.d)');
     const SAI = {};
     for (const k in S) if (S[k].saison) { SAI[k] = []; for (let d = 1; d <= 24; d++) SAI[k][d] = saison(S[k].saison, d); }

@@ -186,29 +186,34 @@ const ramGen = {
       const kk = cle(x, z); let A = MI.get(kk); if (!A) MI.set(kk, (A = [])); A.push(x, z, y, MIL[m] || (MIL[m] = Object.keys(MIL).length + 1));
       return o;
     };
-    // la taille des choses : les toutes petites (moins de 7,5 cm) ne se voient pas dans l'herbe haute (touffes de 40 à
-    // 75 cm) : dehors, on ne les pose que sur la terre nue, les pavés, le sable, la roche ; les moyennes, une fois sur quatre
+    // la taille des choses (ramTaille) : les toutes petites (moins de 7,5 cm, ou fines : épingle, clous) ne se voient pas
+    // dans l'herbe haute (touffes de 40 à 75 cm) ni sur le sol dessiné en herbe : dehors, on ne les pose que sur la terre
+    // nue, les pavés, le sable, la roche, la neige ; les moyennes, une fois sur quatre
     const taille = {};
-    for (const k of Object.keys(RAM_SORTES)) { const bb = typeof ramBoite === 'function' ? ramBoite(RAM_SORTES[k].mod) : null; taille[k] = !bb ? 1 : bb.r * 2 < 0.075 ? 0 : bb.r * 2 < 0.25 ? 1 : 2; }
+    for (const k of Object.keys(RAM_SORTES)) taille[k] = ramTaille(k);
     const herbe = (x, z) => this.herbe(w, x, z);
-    const tirSol = (m, x, z) => {
-      const hb = herbe(x, z);
-      for (let e = 0; e < 5; e++) {
-        const k = tir(m);
-        if (!k) return null;
-        if (!hb || taille[k] === 2 || (taille[k] === 1 && rnd() < 0.25)) return k;
-      }
-      return null;
-    };
-    // une sorte tirée pour un milieu, posée dehors au point donné (ou tout près)
+    // une sorte tirée pour un milieu, posée dehors au point donné (ou tout près) ; une petite chose tirée là où l'herbe
+    // la cacherait se pose un peu plus loin (50 cm à 1,9 m), sur le sol nu le plus proche — la pierre d'une rue, la terre
+    // d'un chemin —, ou l'on en tire une autre
     const poserDehors = (m, x, z, opt, essais) => {
       for (let e = 0; e < (essais || 3); e++) {
         const jx = e ? x + (rnd() - 0.5) * 3 : x, jz = e ? z + (rnd() - 0.5) * 3 : z;
         const h = dehors(jx, jz, m, opt);
         if (h === null) continue;
-        const k = (opt && opt.k) || tirSol(m, jx, jz);
-        if (!k) continue;
-        return ajouter(k, jx, h, jz, m);
+        if (opt && opt.k) return ajouter(opt.k, jx, h, jz, m);
+        const hb = herbe(jx, jz);
+        for (let t = 0; t < 5; t++) {
+          const k = tir(m);
+          if (!k) break;
+          if (!hb || taille[k] === 2 || (taille[k] === 1 && rnd() < 0.25)) return ajouter(k, jx, h, jz, m);
+          const a0 = rnd() * TAU;
+          for (let q = 0; q < 9; q++) {
+            const a = a0 + q * 2.4, d = 0.5 + q * 0.17, x2 = jx + Math.cos(a) * d, z2 = jz + Math.sin(a) * d;
+            if (herbe(x2, z2)) continue;
+            const h2 = dehors(x2, z2, m, opt);
+            if (h2 !== null) return ajouter(k, x2, h2, z2, m);
+          }
+        }
       }
       return null;
     };
@@ -455,17 +460,37 @@ const ramGen = {
     if (obstacleInter(w, x, g, z)) return null;
     return ramVide(w, x, z, g, 1.3) ? g : null;
   },
-  // de l'herbe là, telle qu'on la voit : le terrain se dessine avec la matière d'un sommet voisin (à ±0,73 case près,
-  // pour que les bords soient irréguliers) — près d'un bord de chemin, la terre de la carte peut se voir en herbe
+  // de l'herbe là, telle qu'on la voit : (1) les touffes, plantées à moins de 60 cm, prennent la matière du sommet le
+  // plus proche d'elles ; (2) le sol se dessine avec la matière d'un sommet voisin, décalé d'un bruit (le même calcul
+  // que le shader du terrain, en flottants 32 bits) et d'un grain (au pire ±0,175 case) — près d'un bord de chemin, la
+  // terre de la carte peut se voir en herbe
   herbe(w, x, z) {
     const c = w.cell || 2, u = x / c, v = z / c;
-    for (let i = Math.round(u - 0.73); i <= Math.round(u + 0.73); i++) for (let j = Math.round(v - 0.73); j <= Math.round(v + 0.73); j++) {
-      const mt = w.matAt(i * c, j * c);
-      if (mt === M_GRASS || mt === M_LUSH || mt === M_FLOWERS || mt === M_DRY) return true;
-    }
+    const H = (mt) => mt === M_GRASS || mt === M_LUSH || mt === M_FLOWERS || mt === M_DRY;
+    for (let i = Math.round(u - 0.3); i <= Math.round(u + 0.3); i++) for (let j = Math.round(v - 0.3); j <= Math.round(v + 0.3); j++) if (H(w.matAt(i * c, j * c))) return true;
+    const f = Math.fround, px = f(f(x) * f(0.45)), pz = f(f(z) * f(0.45));
+    const ju = u + (ramBruit(px, pz) - 0.5) * 1.1, jv = v + (ramBruit(f(px + f(31.7)), f(pz + f(31.7))) - 0.5) * 1.1, e = 0.21;
+    for (let i = Math.round(ju - e); i <= Math.round(ju + e); i++) for (let j = Math.round(jv - e); j <= Math.round(jv + e); j++) if (H(w.matAt(i * c, j * c))) return true;
     return false;
   },
 };
+// le bruit du shader du terrain (hash21, vnoise de 07-shaders.js), en flottants 32 bits
+function ramHash(x, y) {
+  const f = Math.fround;
+  let a = f(x * f(123.34)), b = f(y * f(456.21));
+  a = f(a - Math.floor(a)); b = f(b - Math.floor(b));
+  const d = f(f(a * f(a + f(45.32))) + f(b * f(b + f(45.32))));
+  a = f(a + d); b = f(b + d);
+  const r = f(a * b);
+  return r - Math.floor(r);
+}
+function ramBruit(x, y) {
+  const ix = Math.floor(x), iy = Math.floor(y);
+  let fx = x - ix, fy = y - iy;
+  fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+  const a = ramHash(ix, iy), b = ramHash(ix + 1, iy), c = ramHash(ix, iy + 1), d = ramHash(ix + 1, iy + 1);
+  return (a + (b - a) * fx) * (1 - fy) + (c + (d - c) * fx) * fy;
+}
 // rien de bâti juste au-dessus d'un plancher (marches, poutres, cloisons), et pas dans un mur
 function ramVide(w, x, z, g, haut) {
   let hit = false;
