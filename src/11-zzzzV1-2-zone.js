@@ -37,6 +37,8 @@ const V1Relief = {
     this.nA = makeNoise2D(g); this.nB = makeNoise2D(g + 17); this.nC = makeNoise2D(g + 31); this.nD = makeNoise2D(g + 47);
   },
   S() { return V1_ZONE_N * V1_ZONE_CELL; },
+  // les bords des paliers des Degrés ne sont pas droits
+  ondule(u) { return Math.sin(u * 37 + 1.3) * 0.004 + this.nB(u * 14, 7.7) * 0.009; },
   // hauteur grossière (m, au-dessus de 0 ; l'eau est à V1_ZONE_EAU) en (x, z) mètres
   point(x, z) {
     const S = this.S(), u = x / S, v = z / S, WL = V1_ZONE_EAU;
@@ -52,7 +54,7 @@ const V1Relief = {
     {
       const t = smoothstep(0.58, 0.27, v) * smoothstep(0.30, 0.42, u) * (1 - smoothstep(0.62, 0.70, u));
       if (t > 0) {
-        const raw = smoothstep(0.56, 0.24, v), steps = 6, s = raw * steps, f = s - Math.floor(s);
+        const raw = smoothstep(0.56, 0.24, v + this.ondule(u)), steps = 6, s = raw * steps, f = s - Math.floor(s);
         const terr = (Math.floor(s) + smoothstep(0.8, 0.93, f)) / steps; // paliers : plats, puis une marche à pic
         h = lerp(h, WL + 26 + (122 - 26) * terr + fbm(nC, u * 40, v * 40, 2) * 2, t);
       }
@@ -95,7 +97,7 @@ const V1_TYPES_CROCHETS = ['update', 'draw', 'lights', 'target', 'sky', 'fx', 'c
 for (const k of V1_TYPES_CROCHETS) { const L = new V1Crochets(); for (const fn of HOOKS[k]) L.push(fn); HOOKS[k] = L; }
 // crochets de la vallée qui continuent dans la Zone (ceux du personnage) : reconnus par leur texte
 const V1_PERMIS_MOTIFS = {
-  update: ["BUFF.on('celerite')", 'alchimie.majPoison', 'corps.update(', 'cine.update(', 'effets.update(', 'alcool.update(', 'lanterne.update(', 'bar.update(', 'feed.update(', 'son3d.update(', 'butin.clore(', 'mondes.update('],
+  update: ["BUFF.on('celerite')", 'alchimie.majPoison', 'corps.update(', 'cine.update(', 'effets.update(', 'alcool.update(', 'lanterne.update(', 'bar.update(', 'feed.update(', 'son3d.update(', 'butin.clore(', 'mondes.update(', 'legChronoBuf.push('],
   draw: ['cine.rigJoueur', 'mondes.dessiner('],
   lights: ['mondes.lumieres('],
   target: ['mondes.cibles('],
@@ -435,6 +437,8 @@ function v1Installer() {
     const _ba = sound.biomeAmb.bind(sound);
     sound.biomeAmb = function (dt, E) { if (dans()) { if (typeof sonV1 !== 'undefined') sonV1.ambiance(dt, E); return; } return _ba(dt, E); };
   }
+  // la musique : dans la Zone, celle du Dessous, rarement (sinon le silence)
+  if (typeof musique !== 'undefined' && typeof musique.zone === 'function') { const _mz = musique.zone.bind(musique); musique.zone = function () { if (dans()) return game.player && !game.dying ? { g: 'dessous', cle: 'zone' } : null; return _mz(); }; }
   // le biome (brume, particules) : celui de la région
   { const _bi = game.biomeAt.bind(game); game.biomeAt = function (pos) { if (!dans()) return _bi(pos); const r = zone.region(pos[0], pos[2]); return r === 'cendrieres' || r === 'etang' ? 'marais' : r === 'bois_mort' ? 'foret' : 'hauteurs'; }; }
   // le rendu : la cendre tombe grise ; ni seconde lune ni herbe de bonbons
@@ -449,7 +453,12 @@ function v1Installer() {
   if (typeof builds !== 'undefined') for (const k of ['place', 'poser', 'build']) if (typeof builds[k] === 'function') pause(builds, k, false);
   // monter à cheval : il refuse la Porte (géré à l'entrée) ; pas de sifflet qui ferait venir le cheval de la vallée
   pause(game, 'whistle');
-  // la mort dans la Zone : d'abord les feux de veille (11-zzzzV1-4-lieux.js), puis la règle commune
+  // la mort dans la Zone : d'abord les feux de veille (11-zzzzV1-4-lieux.js), puis la règle commune ; les Enfers ne
+  // sont pas sous les Terres d'Avant (ils rendraient le corps à des coordonnées de la Zone, dans la vallée)
+  if (typeof enfers !== 'undefined' && typeof enfers.intercepter === 'function') { const _ei = enfers.intercepter.bind(enfers); enfers.intercepter = function (cause) { if (dans() && mondes.cur !== 'enfers') return false; return _ei(cause); }; }
+  // le chronographe (dix secondes en arrière) : sa mémoire ne traverse pas la Porte
+  zone.sur('entrer', () => { if (typeof legChronoBuf !== 'undefined') legChronoBuf.length = 0; });
+  zone.sur('sortir', () => { if (typeof legChronoBuf !== 'undefined') legChronoBuf.length = 0; });
   const trouves = v1Permettre();
   zone.permisTrouves = trouves;
 }
