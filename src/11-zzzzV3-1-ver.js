@@ -169,6 +169,7 @@ const dragonV3 = {
     if (!D) return;
     const p = game.player;
     D.dist = Math.hypot(D.x - p.pos[0], D.y - p.pos[1], D.z - p.pos[2]);
+    this.repousser();
     if (D.mode === 'mort') { this.majCorps(dt); return; }
     if (D.phase === 'parti') { this.majDepart(dt); return; }
     if (D.phase === 'parti0' || D.phase === 'parti1') return;   // (la délivrance : la cinématique le mène)
@@ -204,6 +205,32 @@ const dragonV3 = {
     const avant = D.etatConnu || 'tranquille';
     furtif.percevoir(D, dt);
     if (F.etat !== avant) { D.etatConnu = F.etat; this.onEtat(avant, F.etat); }
+  },
+  // posé, endormi ou mort, il a un corps : on ne le traverse pas (on est repoussé hors des capsules du tronc, des pattes, de
+  // la base du cou, des bras des ailes et de la queue ; pas de la tête ni du cou au-delà du collier, qui reste à portée de
+  // main ; on passe sous le ventre d'un Ver debout)
+  repousser() {
+    const D = this.D, p = game.player, R = this.rig;
+    if (!D || !R || !D.matOk || D.dist > 40 || p.fly || (D.mode !== 'pose' && D.mode !== 'dort' && D.mode !== 'mort')) return;
+    const c = [p.pos[0], p.pos[1] + 0.9, p.pos[2]];
+    for (const [nm, a, b, r] of V3_CORPS) {
+      const q = R.part(nm);
+      if (!q || !q.W) continue;
+      const A = v3Pt(q.W, a[0], a[1], a[2]), B = v3Pt(q.W, b[0], b[1], b[2]);
+      const ux = B[0] - A[0], uy = B[1] - A[1], uz = B[2] - A[2], L2 = ux * ux + uy * uy + uz * uz || 1;
+      const t = clamp(((c[0] - A[0]) * ux + (c[1] - A[1]) * uy + (c[2] - A[2]) * uz) / L2, 0, 1);
+      const px = A[0] + ux * t, py = A[1] + uy * t, pz = A[2] + uz * t;
+      const dx = c[0] - px, dy = c[1] - py, dz = c[2] - pz, R0 = r + 0.45;
+      if (Math.abs(dy) >= R0 || dx * dx + dy * dy + dz * dz >= R0 * R0) continue;
+      // dehors, à l'horizontale (on ne monte pas sur lui)
+      let nx = dx, nz = dz, dh = Math.hypot(dx, dz);
+      if (dh < 1e-3) { nx = Math.cos(D.yaw); nz = -Math.sin(D.yaw); dh = 1; }
+      const loin = Math.sqrt(R0 * R0 - dy * dy);
+      p.pos[0] = px + nx / dh * loin; p.pos[2] = pz + nz / dh * loin;
+      c[0] = p.pos[0]; c[2] = p.pos[2];
+      const vn = (p.vel[0] * nx + p.vel[2] * nz) / dh;
+      if (vn < 0) { p.vel[0] -= vn * nx / dh; p.vel[2] -= vn * nz / dh; }
+    }
   },
   // l'œil (la tête) dans le monde
   oeil() {
@@ -247,7 +274,9 @@ const dragonV3 = {
     let e = 0.22 + 0.78 * lumiere;
     e *= 1 - couvert * 0.95;
     e *= canopee;
-    e *= immobile ? 0.55 : accroupi ? 0.7 : court ? 1.25 : 1;
+    // (« il voit ce qui bouge » : immobile, on se fond dans le paysage ; accroupi et immobile, presque tout à fait — le
+    // berger du conte ; accroupi en marchant, un peu ; en courant, on se voit de plus loin)
+    e *= immobile ? (accroupi ? 0.32 : 0.5) : accroupi ? 0.7 : court ? 1.25 : 1;
     if (nage) e *= 0.45;
     if (feuProche) e = Math.max(e, 0.8);
     return clamp(e, 0, 1);
@@ -880,6 +909,16 @@ const dragonV3 = {
     if (D.etirer > 0) D.etirer -= 1 / 60;
     ST.souffle = D.mode === 'mort' ? 0 : 1;
     v3Poser(R, ST);
+    // endormi, les yeux fermés : un œil s'entrouvre quand quelque chose l'inquiète (la phase « oeil »), les deux au réveil ;
+    // mort, éteints ; la braise des naseaux rougeoie à chaque souffle quand il dort
+    const ferme = D.mode === 'mort' || (D.mode === 'dort' && D.phase !== 'reveil');
+    R.part('oeilL').hide = ferme && D.phase !== 'oeil'; R.part('oeilR').hide = ferme;
+    const nar = D.mode === 'dort' ? 0.5 + 0.5 * Math.sin(t * 0.9) : -1;
+    for (const S of ['L', 'R']) {
+      const q = R.part('narine' + S);
+      if (nar >= 0) { q.col = [0.5 + nar * 1.3, 0.14 + nar * 0.36, 0.04]; q.fl = FX_EMIT; q.tex = TL.ember; }
+      else if (q.fl) { q.col = V3_COUL.noir; q.fl = 0; q.tex = 0; }
+    }
     // les matrices (même de loin : la bouche, l'œil, les coups d'arme), puis les boîtes (de près)
     D.dist = Math.hypot(cam[0] - D.x, cam[1] - D.y, cam[2] - D.z);
     const sky = game.sky, loin = D.dist > (sky ? sky.fog[1] : 300) + 90;
@@ -906,6 +945,9 @@ const dragonV3 = {
     if (this.flammeProche) { const b = this.flammeProche; L.push({ x: b.x, y: b.y + 1, z: b.z, r: b.gros ? 12 : 7, c: [1.3, 0.62, 0.22], d: Math.hypot(b.x - eye[0], b.z - eye[2]) }); }
     // la gorge qui rougeoie, ses yeux la nuit (tout près)
     if (D && D.mode !== 'mort' && D.dist < 60 && D.matOk && (this.feuK > 0.05 || (game.sky && game.sky.night > 0.5 && D.mode !== 'dort'))) { const o = this.oeil(); L.push({ x: o[0], y: o[1], z: o[2], r: 7 + this.feuK * 10, c: [1.0 + this.feuK, 0.45, 0.12], d: D.dist }); }
+    // endormi : la braise au fond des naseaux, qui rougeoit à chaque souffle (comme une forge qu'on tisonne) — on le trouve
+    // dans le noir, de près
+    else if (D && D.mode === 'dort' && D.dist < 70 && D.matOk) { const b = this.bouche(), k = 0.55 + 0.45 * Math.sin(game.time * 0.9); L.push({ x: b[0], y: b[1] + 0.4, z: b[2], r: 4.5 + k * 3, c: [0.95 * k, 0.32 * k, 0.07 * k], d: D.dist }); }
     return L;
   },
   fx(fx, tint, sky) {
@@ -975,6 +1017,17 @@ zone.dragon = {
     return true;
   },
 };
+
+// ---------------------------------------------------------------- son corps (on ne le traverse pas : dragonV3.repousser)
+const V3_CORPS = [
+  ['bassin', [0, 0, -2.5], [0, 0, 2.0], 2.2], ['ventre', [0, 0, 0], [0, 0, 4.4], 2.3], ['poitrine', [0, 0.2, 0], [0, 0.2, 4.6], 2.5],
+  ['cou1', [0, 0, 0], [0, 0, 1.4], 1.4], ['cou2', [0, 0, 0], [0, 0, 1.4], 1.3],
+  ['cuisseL', [0, 0, 0], [0, -3.6, 0.4], 1.0], ['cuisseR', [0, 0, 0], [0, -3.6, 0.4], 1.0],
+  ['jambeL', [0, 0, 0], [0, -3.5, 0], 0.7], ['jambeR', [0, 0, 0], [0, -3.5, 0], 0.7],
+  ['tarseL', [0, 0, 0], [0, -2.1, 0], 0.5], ['tarseR', [0, 0, 0], [0, -2.1, 0], 0.5],
+  ['humerusL', [0, 0, 0], [5.2, 0, 0], 0.8], ['radiusL', [0, 0, 0], [7.2, 0, 0], 0.6], ['humerusR', [0, 0, 0], [-5.2, 0, 0], 0.8], ['radiusR', [0, 0, 0], [-7.2, 0, 0], 0.6],
+];
+for (let i = 1; i <= 9; i++) { const k = (i - 1) / (V3_QUEUE - 1), kk = Math.pow(k, 0.85); V3_CORPS.push(['queue' + i, [0, 0, 0], [0, 0, -lerp(1.75, 1.2, k)], Math.max(0.35, lerp(2.9, 0.42, kk) / 2)]); }
 
 // ---------------------------------------------------------------- les armes : on peut le toucher (presque toujours en vain)
 // des capsules le long du corps ; la plaie (sous l'aile gauche) d'abord

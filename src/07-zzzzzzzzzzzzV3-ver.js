@@ -441,9 +441,11 @@ Object.assign(PROP_MODELS, {
   v3_tas(E, o) {
     const k = 1 - clamp(((o.data && o.data.n) || 0) / 6, 0, 0.7);
     const R = mulberry32(((o.x * 13 + o.z * 7) | 0) >>> 0);
+    // un monticule (deux gradins de cendre et de rouille), puis ce qui dépasse : lames, casques, plats, os, crânes
     E.bx(0, -0.3, 0, 7 * k + 1, 1.6 * k + 0.3, 6 * k + 1, [0.42, 0.36, 0.3], mt(M_V1_CENDRE));
-    for (let i = 0; i < 46; i++) {
-      const a = R() * TAU, d = Math.sqrt(R()) * 3.4 * k, x = Math.cos(a) * d, z = Math.sin(a) * d, h = (1.6 * k + 0.3) * (1 - d / (3.6 * k + 0.4)) + 0.05;
+    E.bx(0.3, 0.9 * k - 0.2, -0.2, 4.4 * k + 0.6, 1.5 * k + 0.2, 3.8 * k + 0.6, [0.46, 0.34, 0.26], mt(M_V1_CENDRE), 0.5);
+    for (let i = 0; i < 64; i++) {
+      const a = R() * TAU, d = Math.sqrt(R()) * 3.4 * k, x = Math.cos(a) * d, z = Math.sin(a) * d, h = (2.5 * k + 0.3) * Math.max(0.1, 1 - d / (3.6 * k + 0.4)) + 0.05;
       const r = R(), ry = R() * TAU, rx = (R() - 0.5) * 1.2;
       if (r < 0.32) E.box(x, h, z, 0.12, 0.05, 1.3 + R(), V3P.fer, TL.iron, ry, rx);                      // une lame
       else if (r < 0.5) E.box(x, h + 0.15, z, 0.5, 0.42, 0.55, V3P.rouille, TL.iron, ry, rx);           // un casque

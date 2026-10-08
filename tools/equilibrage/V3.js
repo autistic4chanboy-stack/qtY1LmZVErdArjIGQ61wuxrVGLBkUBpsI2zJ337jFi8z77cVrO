@@ -125,6 +125,7 @@ module.exports = {
       return JSON.stringify({
         jourDebout: V.porteeVue(1, 300, false, e(0.95, 0, 1, false, false, false, false, false)),
         jourImmobile: V.porteeVue(1, 300, false, e(0.95, 0, 1, true, false, false, false, false)),
+        jourAccroupiImmobile: V.porteeVue(1, 300, false, e(0.95, 0, 1, true, true, false, false, false)),
         jourCourt: V.porteeVue(1, 300, false, e(0.95, 0, 1, false, false, true, false, false)),
         herbesAccroupi: V.porteeVue(1, 300, false, e(0.95, 0.85, 1, true, true, false, false, false)),
         sousArbres: V.porteeVue(1, 300, false, e(0.95, 0, 0.3, false, false, false, false, false)),
@@ -135,6 +136,9 @@ module.exports = {
     log(`portée du regard (m) : ${Object.entries(P).map(([k, v]) => k + ' ' + Math.round(v)).join(', ')}`);
     if (P.jourDebout < 120) ko('de jour, debout à découvert, il devrait voir de loin');
     if (P.herbesAccroupi > 70) ko('accroupi dans les herbes hautes, il voit de trop loin');
+    // (« le berger qui la trompa en ne bougeant pas » : accroupi et immobile en plein champ, de sa hauteur de ronde, rien)
+    if (P.jourAccroupiImmobile > J.ev('V3.altitude') + 8) ko('accroupi et immobile, il le voit encore de sa hauteur de ronde');
+    if (P.jourImmobile >= P.jourDebout * 0.75) ko('immobile ou pas, il voit presque aussi loin');
     if (P.nuit > 45) ko('la nuit, sans lanterne, il voit de trop loin');
     if (P.nuitLanterne < 120) ko('la lanterne devrait se voir de loin');
     if (P.brume > 110) ko('dans la brume, il voit plus loin que nous');
