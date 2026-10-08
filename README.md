@@ -639,9 +639,9 @@ Les commandes sont dans le menu **Commandes** (Échap).
 
 **La musique**
 - **De temps en temps, un morceau doux** (piano surtout, parfois harpe, flûte, célesta, cordes, verre, boîte à musique,
-  orgue, cloche), puis de longues minutes de silence (de quatre minutes et demie à onze, au hasard ; le premier vient
-  une à deux minutes après le début de la partie). Le morceau dépend de l'endroit où l'on est quand il commence, et il
-  va jusqu'au bout.
+  orgue, cloche), puis un long silence (de douze à vingt-cinq minutes, au hasard : à peu près un morceau par journée de
+  jeu ; le premier vient deux minutes et demie à six minutes après le début de la partie). Le morceau dépend de
+  l'endroit où l'on est quand il commence, et il va jusqu'au bout.
 - **Quarante-deux morceaux** (une heure et demie de musique), de quatre à sept par endroit : les prés et la ferme, la
   forêt et les bouleaux, le marais et le lac, la lande et les hauteurs, la ville et le hameau, la nuit, le Dessous, le
   pays des bonbons, les Ténèbres, les Enfers, la cité vaisseau (rien dans le cauchemar). Trente-trois compositions

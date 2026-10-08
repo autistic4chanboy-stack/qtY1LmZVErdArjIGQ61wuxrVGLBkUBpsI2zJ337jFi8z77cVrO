@@ -30,7 +30,8 @@ const MUS_MONDES = { bonbons: 'bonbons', tenebres: 'tenebres', enfers: 'enfers',
 // niveau du bus quand le curseur est au maximum (la musique reste sous l'ambiance)
 const MUS_NIVEAU = 0.55;
 // silences (secondes) : avant le premier morceau, entre deux morceaux, en arrivant dans un autre monde
-const MUS_SILENCE = { premier: [50, 130], entre: [270, 660], monde: [25, 75], reprise: [30, 90] };
+// (rares : un morceau toutes les douze à vingt-cinq minutes, à peu près une fois par journée de jeu)
+const MUS_SILENCE = { premier: [150, 360], entre: [720, 1500], monde: [60, 150], reprise: [90, 240] };
 
 const musique = {
   bus: null, jeu: null, id: null, groupe: null, cle: null, phase: 'repos', prochain: -1, finT: -1e9, debutT: 0,

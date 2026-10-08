@@ -640,7 +640,7 @@ const play = {
     const fear = strange.fear || 0;
     if (p.hp < 35 || fear > 0.3) { this.heartT -= dt; if (this.heartT <= 0) { this.heartT = p.hp < 20 || fear > 0.7 ? 0.55 : 0.85; sound.heartbeat(Math.max(1 - p.hp / 40, fear) * 0.8); } }
     // souffle court après une course
-    if (p.stamina < 0.3 && !p.riding) { this.breathT -= dt; if (this.breathT <= 0) { this.breathT = 0.7; sound.breath && sound.breath(1 - p.stamina / 0.3); } }
+    if (p.stamina < 0.3 && !p.riding) { this.breathT -= dt; if (this.breathT <= 0) { const per = sound.breath && sound.breath(1 - p.stamina / 0.3); this.breathT = per > 0 ? per : 1.4; } }
     // noyade
     const eye = p.eyePos(), w = game.world;
     if (eye[1] < w.waterLevel - 0.05 && w.heightAt(eye[0], eye[2]) < w.waterLevel) { p.breath -= dt / 25; if (p.breath <= 0) { p.hp -= dt * 12; this.lastHurtBy = 'Noyé'; if (p.hp <= 0) game.die('Noyé dans ' + (strange.placeName(p.pos) || 'l’eau froide')); } }

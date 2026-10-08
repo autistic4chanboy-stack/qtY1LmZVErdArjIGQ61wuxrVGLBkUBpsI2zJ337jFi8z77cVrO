@@ -116,11 +116,16 @@ Object.assign(SoundEngine.prototype, {
     this.tone(t, 'sine', 120, 55, 0.2, 0.16, null, 0.004);
     this.cri(t + 0.01, { dur: 0.22 + R() * 0.06, f: [[0, f * 1.1], [1, f * 0.8]], rug: [30, 0.3], form: [[600, 5, 1], [1100, 7, 0.5]], souffle: [0.2, 1200], vol: 0.24, lp: 2500, a: 0.01 }, this.sfx);
   },
+  // le souffle après une course (k : 0 → 1, de presque rien à hors d'haleine) : une inspiration puis une expiration,
+  // feutrées et graves, à mi-voix (sans le chuintement aigu d'avant) ; renvoie la durée du cycle (s), qui s'allonge à
+  // mesure que le souffle revient
   breath(k) {
-    if (!this.ok) return;
-    const t = this.at(), R = Math.random;
-    this.noiseHit(t, 0.42, 'bandpass', 950 + R() * 150, 0.9, 0.054 * k, null, 1300, 0.16);
-    this.noiseHit(t + 0.5, 0.48, 'bandpass', 640 + R() * 80, 0.9, 0.047 * k, null, 420, 0.06);
+    const per = 1.9 - 0.75 * clamp(k, 0, 1);
+    if (!this.ok) return per;
+    const t = this.at(), R = Math.random, v = Math.pow(clamp(k, 0, 1), 1.3);
+    this.noiseHit(t, 0.46, 'bandpass', 520 + R() * 60, 0.7, 0.017 * v, null, 720, 0.22);
+    this.noiseHit(t + 0.52, 0.56, 'bandpass', 390 + R() * 40, 0.7, 0.019 * v, null, 260, 0.12);
+    return per;
   },
   eat() {
     if (!this.ok) return;
