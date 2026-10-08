@@ -85,12 +85,16 @@ Object.assign(PROP_MODELS, {
     piece(-c * (W - 0.45), 3.05, -T / 2 - 0.12, 0.5, 0.08, 0.08, [0.45, 0.43, 0.4], TL.iron);
   },
   // la barre de fer passée dans les anneaux (montrée quand la Porte est close)
-  v1_barre(E) {
+  v1_barre(E, o, t) {
     if (typeof porteV1 === 'undefined' || !porteV1.barreMise()) return;
-    // (une grosse barre de fer rouillé, qu'on voit de loin : la Porte est fermée)
-    E.bx(0, 3.0, -0.38, 8.8, 0.44, 0.36, [0.66, 0.5, 0.38], TL.iron);
-    for (const x of [-3.55, 3.55, -1.2, 1.2]) E.bx(x, 2.55, -0.32, 0.36, 1.2, 0.24, [0.5, 0.42, 0.36], TL.iron);
-    E.bx(0, 2.6, -0.44, 0.62, 0.62, 0.26, [0.72, 0.58, 0.3], TL.iron); // le cadenas
+    // (une grosse barre de fer rouillé, qu'on voit de loin : la Porte est fermée ; la baie est dans l'ombre de la façade,
+    // alors le fer accroche un peu de jour — presque rien la nuit)
+    const k = t && t.night ? 0.16 : 0.6, c = (r, g, b) => [r * k, g * k, b * k], f0 = E.fl;
+    E.fl = FX_EMIT;
+    E.bx(0, 3.0, -0.38, 8.8, 0.44, 0.36, c(0.66, 0.5, 0.38), TL.iron);
+    for (const x of [-3.55, 3.55, -1.2, 1.2]) E.bx(x, 2.55, -0.32, 0.36, 1.2, 0.24, c(0.5, 0.42, 0.36), TL.iron);
+    E.bx(0, 2.6, -0.44, 0.62, 0.62, 0.26, c(0.72, 0.58, 0.3), TL.iron); // le cadenas
+    E.fl = f0;
   },
   // un brasero sur un fût de pierre (allumé ou non : o.data.feu = 'porte' suit la Porte, sinon o.data.lit)
   v1_brasier(E, o, t) {
