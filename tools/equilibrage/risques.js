@@ -228,7 +228,11 @@ module.exports = {
       crocs[d] = L;
       log(`${pad(d, 9)}${lpad(CP[d - 1], 6)}${lpad('±' + r0(L[0].fen) + ' ms', 9)}` + L.map((q) => lpad(`${pc(q.p)} / ${r1(q.rates)} / ${r1(q.casses)}`, 26)).join(''));
     }
-    log('Bruit : chaque raté réveille le propriétaire endormi avec 11 % (porte : bruit 1), un voisin endormi 4 %, un passant à moins de 9 m 50 % ; un passant qui voit la porte, 12 % par demi-seconde le jour (3 % la nuit), s’il regarde de ce côté (de côté la moitié, de dos le cinquième).');
+    // (vague 14, agent U : la nuit, les dormeurs suivent le modèle du cambriolage — tools/equilibrage/U.js, outils(J))
+    const UN = (() => { try { const U = require('./U.js'); return U.outils && J.ev("typeof U_MODELE !== 'undefined'") ? U.outils(J) : null; } catch (e) { return null; } })();
+    const uRate = (d, mur, h) => UN.M.chances({ f: UN.M.force(1, d, mur, false), sens: 1, heure: UN.M.heure(h, 20.6, 6), traine: 1, agit: 0 }).reveil;
+    if (UN) log(`Bruit : la nuit, un raté réveille le propriétaire endormi (derrière sa porte, à 6 m) avec ${pc(uRate(6, true, 2))} au plein de la nuit, ${pc(uRate(6, true, 21))} à l'heure du coucher (tout contre lui : ${pc(uRate(1, false, 2))}), et chaque bruit fait dedans compte (agent U, domaine U) ; un passant à moins de 9 m 50 % ; un passant qui voit la porte, 12 % par demi-seconde le jour (3 % la nuit), s’il regarde de ce côté (de côté la moitié, de dos le cinquième).`);
+    else log('Bruit : chaque raté réveille le propriétaire endormi avec 11 % (porte : bruit 1), un voisin endormi 4 %, un passant à moins de 9 m 50 % ; un passant qui voit la porte, 12 % par demi-seconde le jour (3 % la nuit), s’il regarde de ce côté (de côté la moitié, de dos le cinquième).');
 
     // ============================================================ 7. la bibliothèque
     const CAT = J.ev('biblio.catalogue()');
@@ -337,7 +341,9 @@ module.exports = {
       ['poche, dans le dos (jour)', volSc[1].p * moyB - (1 - volSc[1].p) * risque, 30, 'une fois par habitant et par jour'],
       ['poche, habitant endormi', volSc[4].p * moyB - (1 - volSc[4].p) * risque, 40, 'il faut entrer chez lui'],
       ['fouille chez quelqu\'un, de jour', evMaison - 0.6 * risque, 20, 'vu six fois sur dix'],
-      ['fouille chez quelqu\'un, la nuit', evMaison - 0.2 * risque, 25, 'le dormeur se réveille une fois sur cinq'],
+      // (vague 14, agent U : la nuit chez quelqu'un, c'est le cambriolage — la maison entière simulée par le domaine U)
+      UN ? ((m) => ['maison habitée, la nuit (U)', m.ev, m.duree, `réveil ${pc(m.reveil)}, pris ${pc(m.pp)} (novice accroupi : la porte, quatre meubles, la poche)`])(UN.maison({ L: 0, mode: 'accroupi' }))
+        : ['fouille chez quelqu\'un, la nuit', evMaison - 0.2 * risque, 25, 'le dormeur se réveille une fois sur cinq'],
       ['la cave de l\'auberge, la nuit', cave - 0.15 * risque, 240, 'tous les 2-3 jours'],
       ['maison des disparus', esperance('f2_abandon').tot, 20, 'une fois par semaine'],
       ['passe-dix (mise 20)', 20 * (PD.g - PD.p), 15, 'six parties par jour'],

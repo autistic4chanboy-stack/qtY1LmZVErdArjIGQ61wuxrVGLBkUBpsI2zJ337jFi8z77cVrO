@@ -308,7 +308,8 @@ Les commandes sont dans le menu **Commandes** (Échap).
   « Frapper » ou « Crocheter ». Petit jeu d'adresse : les goupilles montent et descendent, on cale chacune quand elle
   affleure la ligne (Espace, E ou clic) ; plus la serrure est bonne, plus elles sont nombreuses et rapides. Un raté fait
   du bruit (l'habitant peut se réveiller, un passant peut voir) et peut casser un crochet ; fatigué ou ivre, les mains
-  tremblent. Vu : c'est une effraction. De l'intérieur, une porte fermée à clé s'ouvre toujours (le verrou).
+  tremblent. Vu : c'est une effraction. De l'intérieur, une porte fermée à clé s'ouvre toujours (le verrou). La main
+  progresse avec la pratique, et la nuit on cambriole : voir « Le crochetage, une main qui s'exerce », plus bas.
 - **La poterne** du rempart est : une petite porte qui s'ouvre **de l'intérieur seulement** — on sort de la ville même
   ponts levés, elle se referme derrière soi ; dehors, ni serrure ni poignée. Pour rentrer : les douves et leurs échelles.
 - **De vraies portes** : planches, pentures, clous, serrures et encadrements, différentes selon la maison (ferme,
@@ -393,6 +394,8 @@ Les commandes sont dans le menu **Commandes** (Échap).
   pris), sciences, manuels (qui enseignent des recettes), et les livres de la bibliothèque (histoire, légendes, secrets).
 - **La grande bibliothèque** du plateau : on emprunte un livre ou une carte pour 1, 3 ou 7 jours, en payant d'avance.
   En retard, le bibliothécaire devient un **sorcier** et vous traque où que vous soyez. Un passage caché mène aux archives.
+  La bibliothèque est désormais rangée par rayons, compte quarante-six livres de plus et garde la clé de la Grande
+  Porte : voir « La bibliothèque, rangée par rayons », plus bas.
 - **Deux langues perdues** : l'**aëlin** (les Hautes Lettres des Aëlim, en colonnes) et le **gorrain** (les cupules des
   Gorr, le peuple des géants). Des stèles gravées partout ; on apprend les mots dans les lexiques, auprès du bibliothécaire,
   de l'ancien des nains ; les inscriptions se traduisent à mesure. Onglet « Langues » dans la sacoche.
@@ -848,6 +851,224 @@ Les commandes sont dans le menu **Commandes** (Échap).
   gousset, de petits avantages durables (la chambre de l'auberge pour rien ; une source qui, à l'aube, referme une
   plaie) — et des morceaux de vérité sur la vallée.
 
+**La bibliothèque, rangée par rayons, et la clé de la Grande Porte**
+- **Chaque livre à sa place** : en bas, dans la salle de lecture, les contes et légendes, les chroniques de la vallée,
+  les almanachs, les mémoires et voyages ; à la galerie (par l'échelle), l'histoire naturelle, les traités et manuels,
+  la réserve, les langues d'avant et les cartes. Un onglet par rayon, les dos des livres de la couleur de leur reliure.
+  On feuillette sur place deux pages ; pour le reste, on emprunte au comptoir, rangé lui aussi par rayons, aux prix
+  d'avant (10, 25 ou 40 pièces pour un, trois ou sept jours). Les livres d'avant ont reçu leur rayon, sans autre
+  changement.
+- **Quarante-six livres nouveaux**, chacun un vrai texte de trois à six pages : des contes (la fileuse de neige, la
+  meunière de minuit, le portier qui ne dormait jamais, le Ver du Pic, les comptines de la cour d'école…), des
+  chroniques (les seigneurs de Valmont, les annales de Valbrume, Saint-Aubin-des-Eaux, l'affaire du col de 1854,
+  l'abbaye de Montrevel, la semaine de douze jours, le procès de la Fileuse, ce qu'on a écrit de la Grande Porte…), des
+  almanachs, de l'histoire naturelle (oiseaux, champignons, insectes, pierres, bêtes disparues, haies, simples), des
+  traités (serrurerie, portes et seuils, l'art de passer inaperçu, feux et veilles, médecine des campagnes), des
+  mémoires (le journal d'un bibliothécaire, un monte-en-l'air, les lettres d'un soldat de 1870, une relation de voyage
+  aux Terres d'Avant, un garde champêtre, une institutrice). Plusieurs éclairent de biais la Grande Porte et ce qu'il
+  y a derrière, les petits voleurs de la nuit, les serrures, l'art de ne pas être vu ; ceux de serrurerie, lus
+  jusqu'au bout, font progresser la main du crocheteur.
+- **L'Enfer** : sept de ces livres sont interdits (un grimoire de rebouteuse, la Nuit et ses dons, des tables
+  tournantes, un puisatier qui a creusé trop profond, les portes qui mènent avant, le rituel des gardiens de la clé, la
+  confession d'un lecteur infidèle), rangés dans la salle des archives, sous la bibliothèque : on les lit sur place, en
+  entier ; ils ne sortent pas.
+- **La clé de la Grande Porte** dort à la bibliothèque. Le bibliothécaire la prête trois ou sept jours, contre une
+  caution de 150 ou 300 pièces rendue au retour, aux lecteurs exacts (des livres rendus à l'heure, son amitié) qui
+  savent répondre à sa question — la réponse est dans un livre. On peut aussi la prendre soi-même, si l'on sait où
+  elle dort et que personne ne voit (de jour, il entend presque tout ; la nuit, il dort à deux pas) : le registre
+  l'inscrit quand même, et il faut la rapporter dans les trois jours (un seul si l'on a été pris), sinon c'est un
+  livre en retard. Perdue, elle revient toujours à sa place au bout de deux jours — mais le bibliothécaire ne la prête
+  plus. Elle ne s'use pas et ne se vend pas ; en main, on la regarde (clic) : des Hautes Lettres sur l'anneau.
+
+**Les gobelins**
+- **Les Petits** : une nichée de neuf gobelins et leur vieille vivent sous la vallée. Petits (un mètre, voûtés),
+  gris-vert, les bras trop longs, le nez crochu, des yeux qui renvoient la lumière, vêtus de ce qu'ils ont volé ; ils
+  ne parlent pas, ils répètent des mots volés, avec la voix de ceux à qui ils les ont pris. Ils sortent la nuit (de
+  21 h 30 à 4 h 30) par des terriers près des maisons — Valbrume, Clairpré, la ferme, les Planches, le pêcheur, les
+  Sources, le bois de l'ouest —, et l'on en croise parfois un, de loin, au bord d'un bois, qui longe une haie,
+  s'arrête, renifle, ramasse.
+- **Ils volent vraiment** : chaque nuit, une à trois maisons (des commerces, des maisons habitées ; la vôtre s'ils
+  vous en veulent). Un meuble est vidé pour de bon ; le lendemain, celui qui a été volé s'en plaint quand on lui parle
+  (chacun à sa façon : de la farine marquée de petits pieds nus, une crinière tressée, des cachets de cire décollés) ;
+  sur le meuble, trois griffes et un rond. Loin de vous, ça se passe sans vous ; près de vous, on peut les voir faire
+  (entrer par le mur, fouiller, ressortir avec leur sac), et les suivre.
+- **Ils restent loin des hommes** : à quinze mètres, ils se tapissent ou s'écartent. **S'ils se savent vus** (vous
+  les regardez d'assez près pour les distinguer — la nuit, c'est peu : la lune, une lanterne, un réverbère y font
+  beaucoup), ils **fuient hors de votre vue**, à quatre pattes, très vite, derrière un mur, un tronc, une butte.
+  **Bloqués**, ils **passent à travers les murs** : lentement, en s'étirant, avec un bruit de bois mouillé. Puis ils
+  s'enfoncent dans la terre.
+- **Leur village, la Gobelinière**, est caché sous la terre, et son entrée ne se trouve pas par hasard (des habitants
+  en parlent à demi-mot, un livre de la bibliothèque aussi). En bas : la chambre des racines, un boyau où l'on ne
+  passe qu'accroupi, la grande salle aux chandelles, des cahutes, six tas et le grand tas — des générations de
+  vols —, l'étal de ce qu'ils ont pris ces dernières nuits, et la vieille, assise tout en haut, qui parle avec des voix
+  volées. Le jour, ils y dorment ; la nuit, ceux qui ne sont pas sortis voler sont deux ou trois à s'affairer, les
+  autres dorment.
+- **Et si…** : on les **attrape** (E, quand ils ne se savent pas vus, ou qu'ils fouillent, dorment, guettent) — les
+  laisser filer (un présent sur le seuil, un matin), leur faire lâcher ce qu'ils portent (ils mordent), leur serrer le
+  cou ; on les **tue** — au matin, un tas de chiffons ; la nichée s'en souvient ; six morts, ou la vieille tuée (une
+  malédiction), et ils quittent la vallée pour toujours ; on **reprend** leurs richesses — chaque poignée, ils
+  viendront la reprendre dans vos coffres ; ce qu'on reprend sur l'étal, on peut le **rendre** à qui on l'avait pris
+  (on vous en sait gré) ; on **entre** sans être vu, on fait un **marché** avec la vieille (« rien de chez toi, rien
+  de chez nous »), ou on leur laisse une **offrande**. Le carnet de la sacoche garde une page « Les Petits ».
+
+**Le crochetage, une main qui s'exerce, et le cambriolage de nuit**
+- **La main du crocheteur progresse** : chaque goupille calée, chaque serrure ouverte, un peu chaque échec, un
+  cambriolage mené sans être vu, les livres de la bibliothèque qui parlent de serrures, des papiers trouvés au fond
+  des tiroirs ; un **vieux cadenas** (forgeron, colporteur) pour s'exercer chez soi, jusqu'à « une main sûre »
+  seulement. Six paliers, de « des doigts gourds » à « une main de velours » (affichés dans le petit jeu, et d'un mot
+  vague dans le carnet) : la ligne dorée s'élargit, les goupilles courent moins vite, retombent et cassent moins,
+  chaque geste fait moins de bruit.
+- **Des serrures plus dures** : la serrure à secret et la serrure de coffre ne se tentent qu'avec la main qu'il faut
+  et des **crochets fins** (le colporteur les sort de sous son comptoir pour qui a « une main de serrurier »).
+- **Le cambriolage de nuit** : la nuit, chacun dort dans son lit ; on crochète sa porte, on entre, on fouille, on fait
+  les poches du dormeur. Chaque bruit (une goupille ratée, la porte, les pas — accroupi presque rien, en courant
+  beaucoup —, une latte qui grince, le meuble qu'on fouille, un bougeoir qui tombe) a une petite chance de le
+  réveiller ; plus si l'on s'attarde, à l'heure du coucher ou au petit matin, chez les dormeurs légers ; moins avec la
+  main. On l'entend respirer, ronfler ; souvent il remue avant de se réveiller. Les **chaussons de lisière**
+  (colporteuse) étouffent les pas.
+- **Réveillé**, il se lève avec une chandelle, va voir ; s'il vous voit, il crie, vous reconnaît peut-être (une
+  lanterne allumée ne pardonne pas) : effraction, vol, la prime, le garde de nuit qui accourt au cri ; les costauds
+  frappent. Sinon il se recouche, et dort mal. Le lendemain, on se plaint ; la maison se garde trois jours (un verrou
+  de plus, un sommeil plus léger). Certains meubles cachent un **double fond** qu'une main sûre sent en fouillant.
+
+**Les habitants marchent pour de bon**
+- **Une carte des pas** : chaque bout de chemin se trace sur une grille fine (des cases de 25 cm, calculées à la demande
+  autour d'eux : le sol, l'eau, les douves, les murs, les meubles, les arbres, les portes, les ponts-levis, les étages).
+  Plus de murs traversés, plus de coude dans une table, plus de nage ni de promenade dans les douves : on passe sur les
+  ponts, et quand un pont est levé, on attend. Coincé, on recalcule, on se décale d'un pas, on attend qu'on nous laisse
+  passer ; loin de vous, on file de nœud en nœud sur les routes, comme avant.
+- **Les portes** : on ouvre en approchant, on attend que le battant s'écarte, on referme derrière soi (les boutiques
+  restent ouvertes aux heures d'ouverture) ; une porte fermée à clé n'est qu'à ses gens. Aux étages, on prend l'échelle
+  de meunier.
+- **Se croiser** : on s'écarte sur sa droite, on ralentit, on laisse passer à une porte ; plus personne ne vous traverse
+  (« Pardon… Vous permettez ? ») ; la chaise déjà prise à l'auberge, on reste debout à côté.
+- **La nuit, chacun dort dans son lit** : on s'en approche par le côté libre, on s'y couche, on s'en relève le matin ;
+  réveillé par un bruit, on se lève, on va voir, on se recouche (le cambriolage de nuit repose là-dessus).
+- **Mesuré** (une semaine de douze jours, tous les habitants regardés de près) : le temps passé coincé tombe de 22 % à
+  moins de 1 % ; murs traversés 21 → 1, sauts 147 → 2, montées impossibles 105 → 0 ; trajets menés à leur but 47 % →
+  76 % ; au lit la nuit 31 % → 98 % ; la marche coûte deux fois moins par image.
+
+**La Grande Porte et les Terres d'Avant**
+- **La Grande Porte** : au bout de la route de Clairpré, passé les ruines, une façade de vieille pierre de
+  vingt-quatre mètres taillée dans la paroi des monts de l'est — deux statues agenouillées, deux braseros, une stèle.
+  Les gens en parlent. Elle est **parfois fermée à clé** : tout le jour des morts (Vorndi), les matins de brume, et
+  certaines nuits ; on le voit de loin (braseros éteints, barre de fer mise, qu'on entend retomber). Fermée, il faut
+  **la clé de la Grande Porte**, gardée à la bibliothèque ; le crochetage n'y fait rien. De l'autre côté, elle
+  s'ouvre toujours. On la passe à pied : le cheval refuse, le chien reste en bas des marches.
+- **Les Terres d'Avant** (« la Zone ») : un second monde, **deux fois la surface de la vallée** (4 344 m de côté),
+  généré une fois par partie derrière un écran d'attente : le Seuil, la Voie pavée, la Ville Basse en ruines, le Bois
+  Mort, les Cendrières (un marais de cendre où il en tombe encore), les Ravines, l'Étang des Noyés, les Tertres, les
+  Degrés (des paliers taillés en falaises) qui montent aux Hauts, le Pic. Un ciel plus gris, de la brume, du vent, des
+  bruits lointains. Le jour et la nuit sont ceux de la vallée : la ferme continue de pousser pendant qu'on y est ; les
+  habitants, eux, vivent leur journée sans vous. On n'y bâtit ni n'y laboure, on n'y dort qu'aux feux de veille, et
+  l'on peut y mourir pour de bon.
+- **Façon Dark Souls** : des raccourcis qui ne s'ouvrent que d'un côté (un pont-levis dont la travée du milieu se
+  dresse au-dessus d'une entaille de quarante mètres, une échelle tirée en haut d'une paroi, une grille barrée de
+  l'intérieur, des boyaux derrière une roche qui sonne creux), beaucoup de recoins (caveaux, trappes et caves, tours
+  creuses, corniches, chambres sous les tertres, maisons brûlées, une barque coulée, la cabane du bûcheron, des
+  inscriptions qui racontent sans expliquer), des passages qui ressortent dans la vallée (sans y rentrer), les restes
+  des fermiers des versions passées morts là-bas.
+- **Six feux de veille** : on les allume, on s'y repose (la vie, le souffle, la nuit qui passe, la partie
+  enregistrée) ; le dernier allumé vous garde de la mort une fois, et s'éteint.
+- **La discrétion** : tout peut se faire sans se battre. Ce qui vous trahit : la lumière (la lanterne se voit de
+  loin), le mouvement, le bruit (courir, sauter, l'eau, un coup de fusil, une porte, un mur qui tombe ; les bottes de
+  cuir s'entendent plus, les chaussons de lisière moins) ; ce qui vous cache : s'accroupir (C), les herbes hautes, les
+  roseaux, l'ombre. Les créatures voient en cône, entendent, se souviennent du dernier endroit, cherchent,
+  abandonnent. Dans la Zone, clic droit mains nues : on jette une pierre pour détourner leur attention. Un œil, en
+  haut de l'écran, s'ouvre quand on vous a entendu, vu, quand on vous cherche.
+
+**Les créatures des Terres d'Avant**
+- **Quinze espèces vivent derrière la Grande Porte**, chacune avec son modèle, ses cris, ses lieux, ses heures et sa
+  façon de voir et d'entendre : les **Garous** (des loups qui marchent debout, la nuit en meute dans le Bois Mort), les
+  **Mange-Morts** (charognards nus aux dents d'homme), les **Pendus** (aux arbres morts), **ce qui écoute** (une chose
+  aveugle de la Ville Basse, la nuit), les **Gargouilles** (elles voient loin, n'entendent rien, et leur cri fait tout
+  venir), les **Stryges** (au-dessus des falaises, la nuit), le **Basilic** (son regard pétrifie), la **Tarasque** (elle
+  dort sur les offrandes), la **Chimère** (trois têtes : l'une dort à son tour), la **Vouivre** (une braise au front),
+  les **Noyés** (une voix qui appelle depuis l'Étang), les **Korrigans** (la ronde des jours, aux Tertres), le
+  **Cerf-aux-Mains**, le **Chien Gris** et les **Sans-Visage**.
+- **Tout s'évite en restant discret** : accroupi, aucune bête ne vous entend à plus de cinq mètres ; les herbes hautes,
+  la nuit sans lanterne, l'immobilité vous cachent ; un caillou jeté les détourne ; elles renoncent au bout de leur
+  mémoire ou de leur territoire, et **aucune n'approche d'un feu de veille allumé**. Chaque coup est annoncé (un temps,
+  un cri) : on peut reculer. Sous terre, les bêtes de la surface ne vous suivent pas.
+- **Huit repaires** à trouver, et des secrets : certaines bêtes se trompent, se paient, se suivent ou se fuient d'une
+  façon qu'il faut comprendre (les contes de la bibliothèque y aident).
+- **Le Ver** les fait se terrer : à son ombre ou à son rugissement, les bêtes du dehors se figent quelques secondes ;
+  son feu les brûle.
+- Les bêtes tuées **reviennent quand on se repose à un feu de veille** (ou au bout de trois jours) ; les uniques,
+  jamais. Ce qu'on a compris de chacune s'écrit au **carnet** : « Derrière la Porte ».
+
+**Le Ver, le dragon qui surveille**
+- **Le Ver** : derrière la Grande Porte vit un dragon noir et très vieux, long d'une cinquantaine de mètres d'une aile
+  à l'autre, un collier de fer rivé au cou. Les livres de la bibliothèque l'appellent « le Ver ». On l'entend avant de
+  le voir (des battements lourds, un cri qui roule au loin), puis son ombre passe sur l'herbe ; le premier jour, une
+  pensée : « (Ce n'est pas un nuage.) » Il ne passe jamais la Porte.
+- **Ses heures** : il dort la nuit dans son aire, au sommet du Pic, la tête tournée vers la Porte (une braise rougeoie
+  dans ses naseaux à chaque souffle ; un œil s'entrouvre quand quelque chose l'inquiète) ; à l'aube il veille au bord
+  de l'aire, puis s'envole ; le jour il fait ses rondes au-dessus des régions, va souvent voir celle où vous êtes, et
+  se pose sur six perchoirs (on le voit tourner la tête, guetter) ; il rentre le soir.
+- **Ce qu'il voit** : ce qui est **à découvert** et **ce qui bouge**, de haut et de loin (debout en plein jour : près
+  de deux cents mètres ; accroupi et immobile, de sa hauteur de ronde, rien — comme le berger du conte). Il ne voit
+  rien sous un toit, sous terre, dans les salles du château ni dans la ville d'en bas ; à peine sous les arbres
+  serrés, ou accroupi dans les herbes hautes ; peu la nuit, sauf la lanterne. Dans la brume il vole plus bas. Il
+  entend, surtout quand il est posé :
+  un coup de fusil, de très loin. L'œil, en haut de l'écran, s'ouvre pour lui aussi.
+- **S'il vous voit** : il rugit, s'éloigne pour se mettre en ligne, pique et crache en rase-mottes ; trois passes au
+  plus, puis il cherche en cercles bas et abandonne. Une passe ne tue pas (une quarantaine de points de vie) : on a le
+  temps de courir sous un toit, dans une cave, dans l'eau, ou de se jeter accroupi dans les hautes herbes. Le feu ne
+  passe ni les toits ni la pierre. **Il brûle la Zone** : l'herbe haute, les roseaux, les buissons prennent feu et
+  gagnent alentour ; il reste de la cendre (qui ne cache plus personne) ; ça repousse en quatre jours.
+- **L'aire et les perchoirs** : un sentier monte des Degrés au Pic et s'arrête au pied de la roche ; une vieille
+  chaîne pend du bord de l'aire (« LE GUET MONTE. NUL AUTRE NE MONTE. »). Là-haut : le tas de ce qu'il a pris (on peut
+  le fouiller, mais cela fait du bruit), l'anneau de fer scellé dans le roc et ses mots, des os, et le dernier
+  guetteur, assis contre le roc. Sur les perchoirs : une borne, des griffures, un heaume fondu, une baliste renversée,
+  des encoches, des écailles tombées ; sur la crête du nord, **la loge du Guet**, son carnet et sa cloche (qui le fait
+  rentrer).
+- **Deux fins, aucune obligée** : le **délivrer** — la nuit, pendant qu'il dort, monter jusqu'à lui sans bruit et lui
+  ôter son collier : il s'éveille, et s'en va pour toujours (la Zone n'a plus de dragon ; un matin, une écaille sur le
+  seuil de la ferme) ; le **tuer** — presque impossible : il ne saigne qu'à un seul endroit, ailleurs tout ricoche, et
+  il guérit en deux jours ; son corps reste où il est tombé.
+
+**Hautguet, le château des Hauts**
+- **Hautguet** : dans la Zone, au bout des Degrés, sur le grand replat du nord-est. Un fossé sec et un pont-levis
+  levé, une basse-cour (écuries, caserne, forge, cimetière, une brèche), une haute cour derrière sa herse (cuisines et
+  cave, grand-salle au toit crevé et sa tribune, logis, galerie couverte, chapelle, clocher, crypte, puits, jardin),
+  un donjon de vingt-six mètres et son grand fanal éteint, le feu du Guet, la tour de la Dame, et sous terre les
+  cachots et un souterrain qui ressort au charnier, hors les murs. On entre partout.
+- **Des clés et des raccourcis qui ne s'ouvrent que d'un côté** : cinq clés (la poterne, la sacristie, le donjon, la
+  tour de la Dame, le trousseau du geôlier), et le treuil du pont-levis, la roue de la herse, deux poternes barrées de
+  l'intérieur, la grille du charnier, l'escalier des cachots. On y entre aussi sans clé et sans se battre, par plus
+  d'un chemin.
+- **Beaucoup de recoins** : quatre murs qui sonnent creux (une pioche ou un marteau), une quarantaine de coffres,
+  sacs, niches et paillasses à fouiller une fois, une oubliette (on n'en remonte pas), un puits où l'on descend, le
+  trou d'un fuyard. Le trésor de Hautguet est muré quelque part. La cloche de la chapelle appelle tout le château :
+  une diversion, ou une erreur.
+- **Ce qu'il reste des gens** : un vieil homme qui veille encore le treuil et voudrait qu'on ne baisse pas le pont ;
+  une voix de femme derrière la porte de sa tour, la nuit seulement ; des morts restés à leur place (le portier, la
+  cuisinière, le chapelain, le sénéchal, le geôlier, un tonnelier dans sa cellule, le sire devant son fanal). Leur
+  histoire se lit sur place (un registre, des lignes gravées, des tombes, une lettre) ; elle peut finir : le pont
+  baissé, le feu du Guet rallumé (le Ver le voit), la porte de la Dame ouverte.
+
+**Basse-Fosse, la ville sous la ville, et les secrets des Terres d'Avant**
+- **Basse-Fosse** : sous la Ville Basse, à quarante-huit mètres sous les ruines, une ville entière creusée dans le tuf,
+  sous une voûte où il n'y a jamais de jour. Une enceinte, une porte, une Grande-Rue qui mène à la Nef, quarante îlots
+  et quatre-vingt-dix maisons taillées dans la roche, des rues bordées d'ossements rangés comme des briques, un temple
+  et son clocher, le feu du compte qui ne s'éteint pas, un registre, un marché, un puits où l'on jette des noms, un
+  ossuaire, une nécropole contre l'enceinte, des quartiers effondrés où quelque chose vit, et des toits qu'on parcourt.
+- **Une entrée qui se mérite** : rien ne la montre ; quelques indices, sous les ruines et dans les livres, y mènent pas
+  à pas. Une fois passé, on peut laisser le chemin ouvert derrière soi.
+- **Les gens d'en bas** : vingt-quatre, pâles, sans autre lumière que leurs feux, aux heures de leurs cloches ; six lois
+  gravées à leur porte et un compte qui ne change jamais. Un étranger vu, c'est un cri, puis le tocsin, et des gardiens
+  armés de piques à croc. On peut tout faire sans être vu (le noir, l'accroupi, les ruelles, les toits), ou se faire
+  compter, à leur manière.
+- **Une histoire qui se lit sur place** : les lettres d'un voyageur venu en 1838 avec une lettre de notaire, comme
+  vous ; le vieil homme qui tient le registre et ne sait plus son nom ; une cloche qu'on a fait taire ; des
+  inscriptions, des objets qui racontent (une couronne de cire, des dents de lait sur un fil, un sceau dont la ville a perdu le nom).
+- **Les secrets des Terres d'Avant** : des murs qui mentent, un tertre creux sous lequel dort un autre roi, une chapelle
+  murée, l'ermitage de celui qui regardait passer le Ver, un brasier mort, des souliers rangés au bord de l'Étang des
+  Noyés, et au Seuil le banc d'un garde qui attendait quelqu'un.
+- **Trois fins, une seule pour toujours** : tenir le compte, rendre sa voix à la Cloche du Jour, ou laisser le feu du
+  compte s'éteindre — à chacun de trouver comment.
+
 ### Mode Création
 
 Éditeur de monde séparé : relief, peinture du sol, objets, animaux, blocs. **Exporter** télécharge un fichier
@@ -856,16 +1077,18 @@ Les commandes sont dans le menu **Commandes** (Échap).
 ## Équilibrage
 
 Le jeu a été équilibré d'un bloc, en mesurant d'abord : chaque système avait été écrit avec ses propres nombres, et
-la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Vingt et un domaines, chacun avec sa
+la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Trente domaines, chacun avec sa
 mesure et ses vérifications dans `tools/equilibrage/` : le jeu entier est chargé dans une machine virtuelle node (sans
 navigateur, `tools/equilibrage/vm.js`), ses propres fonctions calculent les rendements, les espérances et les
 fréquences, et la commande échoue si l'on recasse un équilibre :
 
 ```bash
-node tools/equilibrage.js                 # les vingt et un domaines (≈ 25 min)
+node tools/equilibrage.js                 # les trente domaines (≈ 35 min)
 node tools/equilibrage.js commerce        # ou un seul : commerce, ferme, risques, survie, hasard, commandes, carte, nature, batiments
 node tools/equilibrage.js S D1 E2         # ou plusieurs ; ceux de la douzième vague : S, D1, D2, E1, E2, E3, F, G
 node tools/equilibrage.js R P Q T         # ceux de la treizième vague : R, P, Q, T
+node tools/equilibrage.js Y X U Z         # ceux de la quatorzième vague : Y, X, U, Z…
+node tools/equilibrage.js V1 V2 V3 V4 V5  # … et ceux des Terres d'Avant : V1 à V5
 ```
 
 Aucun réglage ne touche à la génération de la vallée : les anciennes parties retrouvent leurs objets (l'empreinte des
@@ -1004,7 +1227,9 @@ milieu, 2000-4000 ensuite ; une journée dure vingt minutes). Un objet trouvé v
 **Relancer la mesure.** `node tools/equilibrage.js risques` affiche les tableaux (espérance par tentative et par
 minute réelle de chaque activité risquée, risque compté) et échoue si l'on recasse l'un de ces équilibres (un trésor
 scellé qui se regarnit, une carte qui rapporte une fortune, une amende de vol hors de la demi-journée, une tombola qui
-rend plus qu'elle ne coûte, un étal qui vend à la chaîne, un crime plus rentable que le travail…).
+rend plus qu'elle ne coûte, un étal qui vend à la chaîne, un crime plus rentable que le travail…). Depuis la
+quatorzième vague, la nuit chez quelqu'un, c'est le cambriolage : `risques` reprend la maison entière que simule le
+domaine `U` (voir plus bas) à la place de l'ancienne règle (« le dormeur se réveille une fois sur cinq »).
 
 ### Survie : le corps et l'esprit du personnage
 
@@ -1205,6 +1430,81 @@ Les domaines de la treizième vague :
   vingt-trois lieux trouvés et cadrés dans les deux vallées (le plus lent en un tiers de seconde), aux mêmes positions
   d'une vallée à l'autre.
 
+### La bibliothèque, les gobelins, le crochetage, les trajets des habitants et les Terres d'Avant
+
+Les domaines de la quatorzième vague :
+- `node tools/equilibrage.js Y` (moins d'une seconde) : les livres nouveaux — quarante au moins à lire (il y en a
+  quarante-six), chacun un vrai texte (titre, auteur, présentation, trois pages pleines au moins), sur un rayon qui
+  existe, avec la typographie du jeu (apostrophes et guillemets français, pas d'espace double) ; personne ne les vend
+  ni ne les achète ; au comptoir, rangés par rayons, au prix des livres d'avant (10, 25, 40 pièces) ; sur les
+  étagères, chacun à une seule place ; la clé, objet de quête unique et sans prix ; chaque question du bibliothécaire
+  a sa réponse écrite dans un livre du comptoir (jamais dans l'Enfer) ; le prêt, mesuré avec les vraies fonctions :
+  rendue à l'heure, la clé ne coûte rien ; en retard, la caution (300 pièces pour sept jours) et la confiance du
+  bibliothécaire ; perdue, elle revient à sa place au bout de 48 heures, pas avant ; prise sans prêt, trois jours pour
+  la rapporter (un seul si l'on a été pris).
+- `X` (≈ 1,5 min : la vallée 1234 est générée) : la passe de génération (moins d'une seconde, après toutes les autres,
+  avec son propre tirage ; l'empreinte des anciennes parties et celle de la huitième vague ne bougent pas ; rien dans
+  l'eau ni dans un mur, rien contre une trouvaille) ; la Gobelinière sous la roche (≈ 14,6 m de roche au-dessus de la
+  voûte, aucun bâtiment au-dessus ; le boyau ne se passe qu'accroupi) ; les maisons à portée d'un terrier (35 ; il
+  en faut quinze) ; le trésor, aux prix du jeu : une poignée d'un petit tas ≈ 38 pièces, du grand tas ≈ 115, tout
+  le trésor ≈ 1 030 pièces, près de trois journées de travail du début ; ce qu'ils reprennent ensuite dans les
+  coffres de la ferme (≈ 207 pièces en onze nuits, un cinquième) ; la sauvegarde (`farm.s.gobelins`, 5,6 Ko au
+  plus) ; les textes (chaque plainte, chaque rumeur va à un habitant qui existe).
+- `U` (≈ 5 s) : la main à chaque palier (chacun meilleur en tout ; aux doigts gourds, le petit jeu d'avant, pour que
+  les mesures de `risques` restent justes ; le vieux cadenas s'arrête à « une main sûre ») ; la réussite par goupille
+  de chaque serrure à chaque palier (la serrure de maître : 50 % aux doigts gourds, 84 % à une main de velours ; la
+  serrure à secret et celle de coffre, dures mais faisables au palier où l'on peut les tenter) ; ce qu'il faut pour
+  monter (le premier palier : cinq ou six portes ordinaires ; le dernier : soixante-dix bonnes serrures) ; une maison
+  la nuit, simulée avec le modèle du jeu (la porte crochetée, deux meubles fouillés) : un novice accroupi au plein de
+  la nuit réveille le dormeur une fois sur six, debout 28 %, en courant 64 %, à l'heure du coucher ou au petit matin
+  35 à 37 %, une main de velours 6 % ; la maison entière (quatre meubles et les poches du dormeur) : pris ≈ 15 % des
+  fois au début, ≈ 5 % au dernier palier, pour ≈ 18 à 85 pièces en moyenne — jamais plus, à la minute, que le travail
+  du milieu de partie ; pris, on perd plus d'une demi-journée des débuts. Le domaine `risques` reprend cette maison
+  (« maison habitée, la nuit (U) » : ≈ 5 pièces la minute, risque compté) ; un raté derrière la porte d'un dormeur le
+  réveille à 0,8 % au plein de la nuit (1,7 % à l'heure du coucher).
+- `Z` (≈ 1,5 min : la vallée 1234 est générée) : la carte des pas (un carreau de 16 m en quelques millisecondes, une
+  quinzaine en ville) ; pour chaque habitant, de la porte de sa maison à son lit, à sa chaise, à son poste : les 74
+  places rejointes ; chaque arête du graphe des routes vue sur la carte ; les douves sans case où se tenir, sauf les
+  ponts ; la carte d'accord avec les collisions du jeu ; la passe qui arrête la clôture du ranch au mur de la maison,
+  sans rien faire bouger des anciennes parties. Les mesures en marche (coincés, murs traversés, lits) se font dans le
+  navigateur : voir « Les habitants marchent pour de bon », plus haut.
+- `V1` (≈ 3 min : la vallée 1234, puis la Zone) : la vallée ne bouge pas (l'empreinte des anciens objets) ; la Porte
+  est posée sur la terre ferme, au pied d'une paroi, et l'on y va à pied depuis la ferme (1,3 km) ; sur 120 jours,
+  elle est fermée ≈ 20 % du temps (le jour des morts tout entier, les matins de brume, environ une nuit sur trois),
+  jamais le plus souvent ; la Zone fait deux fois la surface de la vallée (générée en un quart de minute environ dans
+  la machine virtuelle) ; depuis l'arrivée, on va à pied dans 99 % de la Zone, dans chaque région (l'Étang, on en fait
+  le tour) et sur chaque emplacement de surface (les ponts comptent) ; les emplacements réservés aux lieux qui s'y
+  ajoutent sont aplanis à leur hauteur, au sec ; six feux de veille, chacun à côté d'un chemin.
+- `V2` (≈ 30 s : la Zone est générée) : les quinze espèces complètes (squelette, poses, cris, sens), chacune avec un
+  nid ; tout s'évite : accroupi, on ne s'entend pas à plus de six mètres d'aucune bête, aucune bête unique à moins de
+  60 m d'un chemin, aucun nid hostile sur un chemin, près d'un feu de veille ni près de l'arrivée ; les nids au sec
+  (les noyés dans l'eau) ; la Zone ne rend pas riche (une bête ordinaire sous 40 pièces, une cache sous 250, tout ce
+  qui ne se prend qu'une fois ≈ 2 500 pièces, deux jours de revenus du milieu de partie) ; la fluidité (44 nids, 91
+  bêtes, la passe en quelques dizaines de millisecondes).
+- `V3` (≈ 30 s : la Zone est générée) : rien de la vallée n'est touché, et le jeu garde 64 matières au plus (il en
+  a 58) ; l'aire, le tas, l'anneau, le dernier guetteur, la loge du Guet et les six perchoirs s'atteignent à pied
+  depuis l'arrivée ; six journées de vol simulées (hasard à graine fixe) : jamais dans le relief (39 m au plus près en
+  ronde), posé trois fois par jour, au-dessus des régions sans y passer sans cesse, chaque jour au-dessus de celle du
+  joueur, de retour à l'aire chaque soir ; la portée de son regard (de jour, debout, ≈ 185 m ; immobile ≈ 115 ;
+  accroupi dans les herbes hautes ≈ 55 ; la nuit ≈ 35, ≈ 135 à la lanterne ; dans la brume, pas plus loin que nous) ;
+  une attaque simulée sur un joueur debout en plein champ, à midi : alerté en dix secondes, le premier jet un quart de
+  minute plus tard, une passe ne tue pas (≈ 43 PV), trois oui ; le tas (six fouilles) ≈ 1 000 pièces, quelques
+  journées de travail ; le tuer : dix balles de fusil au bon endroit (huit au moins), ou deux douzaines de flèches de
+  fer, et il guérit en deux jours.
+- `V4` (≈ 20 s) : Hautguet sur son site, léger (≈ 1 000 blocs, tous dessinés à chaque image ; ≈ 420 objets posés ;
+  ≈ 150 interactions) ; on entre partout : sous chacun des 42 toits, aucun niveau sans accès (la même mesure que les
+  bâtiments de la vallée) ; les quinze portes font 2,05 m au moins, et la baie au-dessus aussi ; les escaliers,
+  échelles et conduits déposent le joueur sur un sol, jamais dans un mur, et l'on ne se cogne la tête sur aucune des
+  108 marches ; l'éclairage du dedans (chaque salle couverte à l'ombre, presque rien du dehors) ; les clés (chacune
+  posée une fois, chacune ouvre quelque chose, aucune derrière sa propre porte) ; les six raccourcis à sens unique ;
+  le butin de tout le château, fouillé de fond en comble : ≈ 1 800 pièces ; les places des créatures (31, chacune sur
+  un sol) et les abris où le Ver ne voit pas (32).
+- `V5` (≈ 3 min : la vallée 1234, puis la Zone) : la vallée ne bouge pas ; la ville est sous terre (aucun bloc
+  n'affleure, la voûte sans un trou), légère (≈ 1 300 blocs, ≈ 720 objets posés, ≈ 130 interactions, la passe en moins
+  de deux secondes) ; le chemin qui y descend en pente douce ; les 713 nœuds des rues reliés au temple ; les portes de
+  2,05 m au moins ; les lieux secrets posés et atteints à pied, les objets des fins présents ; le noir où se cacher
+  (80 % des rues à plus de 9 m d'une lumière) ; des objets au prix sensé et des butins modestes.
+
 ## Modifier le code
 
 Les sources sont dans `src/` (triées par nom = ordre de chargement) :
@@ -1270,6 +1570,15 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `05-zzzzzP-betes.js`, `07-zzzzzzzzzzzzP-betes.js`, `09-zzzzzP-voix.js`, `10-zzzzzP-betes.js`, `11-zzzzP-betes.js` | les bêtes qui parlent : ce qu'elles sont (endroit, heures, temps, service) et tout ce qu'elles disent ; leurs modèles en boîtes ; leurs voix (un petit cri au début de chaque réplique, en 3D, et le bruit de leur fuite) ; les créatures ; le jeu : leurs endroits (une passe de génération qui ne pose rien : `w.betesP`), leur apparition hors de la vue, la conversation, les services, la menace, les coups et la mort, ce qu'en disent les gens, le carnet (`farm.s.betesParlantes`, API `betesParlantes`) |
 | `05-zzzzzQ-nonos.js`, `11-zzzzQ-1-nonos.js`, `11-zzzzQ-2-scenes.js`, `12-zzzzzQ-nonos.js` | le nonos du chien : l'objet, les sortes de lieux et leurs phrases, les indices, les textes ; la quête (son début, les cinq lieux tirés au début de la quête, sans passe de génération, les indices dessinés à la volée, le chien qui flaire puis ronge son os, la faim deux fois moins vite) ; les scènes (moteur `cine` : le début, les souvenirs à hauteur de chien, la trouvaille, le retour) ; le carnet, « Quête principale — facultative », et ses « Revoir » (`farm.s.nonos`, API `nonos`) |
 | `05-zzzzzT-quetes.js`, `11-zzzzT-1-quetes.js`, `11-zzzzT-2-scenes.js`, `12-zzzzzT-quetes.js` | les cinq quêtes principales à lieux précis (la chambre sept, le feu du lac, les toiles d'Ardoin, la crécelle, la source froide) : les objets et tous les textes (`QT_QUETES`) ; la quête (les propositions — un habitant, une lettre, un avis, un objet trouvé —, les lieux précis, les objets dessinés à la volée, les étapes, les fins et leurs récompenses, les avantages durables) ; les scènes (cadrages dehors et dedans, l'heure du lieu, les lumières de scène, les épilogues) ; le carnet, rubrique « Quêtes principales », la lettre et les papiers qui se relisent (`farm.s.quetes`, API `quetes`) |
+| `05-zzzzzY-0-cle.js`, `05-zzzzzY-1-contes.js`, `05-zzzzzY-2-savoirs.js`, `05-zzzzzY-3-memoires.js`, `05-zzzzzY-4-porte.js`, `07-zzzzzzzzzzzzY-cle.js`, `11-zzzzY-bibliotheque.js` | la bibliothèque, rangée par rayons, et la clé de la Grande Porte : les rayons (`Y2_RAYONS` ; les livres d'avant y reçoivent seulement une étiquette) et la clé (`05-zzzzzY-0-cle.js`), puis les quarante-six livres nouveaux, ajoutés à `LIVRES` par `y2Livres`, chacun son objet `livre_<id>` à emprunter sauf ceux de l'Enfer (contes et chroniques ; histoire naturelle, traités et almanachs ; mémoires et voyages, et l'Enfer ; la Porte et les Terres d'Avant, de biais) ; la clé en main ; le jeu : les étagères et leur onglet par rayon, feuilleter sur place, le comptoir rangé par rayons, l'Enfer lu en entier dans la salle des archives, la clé (le lecteur exact, les questions du bibliothécaire `Y2_QUESTIONS`, la caution, l'échéance inscrite au registre de la bibliothèque, la clé prise sans prêt, perdue, revenue d'elle-même) — sans passe de génération (`farm.s.bibliotheque2`, API `bibliotheque2`) |
+| `05-zzzzzX-gobelins.js`, `07-zzzzzzzzzzzzX-gobelins.js`, `09-zzzzzX-gobelins.js`, `10-zzzzzX-gobelins.js`, `11-zzzzX-1-gen.js`, `11-zzzzX-2-jeu.js`, `12-zzzzzX-gobelins.js` | les gobelins : les objets, les butins des tas, les réglages (`GOB_REGL`) et les textes (`GOB_T` : plaintes, rumeurs, mots volés) ; les modèles en boîtes (la nichée et ses habits volés, la vieille, la Gobelinière) ; leurs bruits (un rire étouffé, des pieds nus, le cri, le mur traversé, la fouille, les mots volés) ; les créatures (ni gibier, ni recherchées par les gardes) ; la passe de génération (après toutes les autres de la vallée, avec son tirage, ajoutée au bout des listes : les empreintes et les trouvailles ne bougent pas ; `w.gobelins`) ; le jeu (les vols de la nuit, sur le papier loin du joueur, en chair à moins de 125 m ; les rôdeurs, la fuite hors de la vue, les murs traversés ; attraper, tuer, la rancune, le marché, l'offrande ; la plainte du lendemain) ; l'étal des prises, rangé par maisons, et la page « Les Petits » du carnet (`farm.s.gobelins`, API `gobelins`) |
+| `05-zzzzzU-crochetage.js`, `09-zzzzzU-sons.js`, `11-zzzzU-1-competence.js`, `11-zzzzU-2-cambriolage.js` | la compétence de crochetage et le cambriolage de nuit : les tables (`U_PALIERS`, `U_SERRURES`, `U_BRUITS`, `U_REVEIL`) et le modèle du sommeil (`U_MODELE`, des fonctions pures que lit aussi `tools/equilibrage/U.js`), les trois objets, les doubles fonds, les répliques ; les sons, tout près et tout bas (le souffle des dormeurs, les draps, une latte qui grince, un objet qui tombe, un murmure) ; la main, accrochée au crochetage d'avant sans y toucher (les points, les paliers, les serrures à secret et de coffre, les crochets fins, le vieux cadenas, les livres de serrurerie) ; la nuit (chaque bruit et les dormeurs qui l'entendent, le réveillé qui va voir, le cri, la reconnaissance, la maison qui se garde, la plainte du lendemain) — sans passe de génération (`farm.s.crochetage` ; l'objet `crochetage` et `crochetage.cambriolage`) |
+| `11-npc.js` (refait), `11-zzzzZ-0-passe.js`, `11-zzzzZ-1-grille.js`, `11-zzzzZ-2-trajets.js` | les trajets des habitants : le cœur des déplacements refait dans `11-npc.js` (A* à tas binaire, nœuds rangés par cases ; `npcs.walk` et `npcs.flee` passent par les trajets, les autres noms et formes ne changent pas) ; la dernière passe de la vallée (la clôture du ranch s'arrête au mur de la maison, rien d'ajouté) ; la carte des pas (une grille de 25 cm calculée par carreaux de 16 m : sol, eau, douves, murs, meubles, arbres, portes et à qui elles sont, ponts-levis, étages) ; le suivi (les grands nœuds pour aller loin, un tronçon sur la carte quand la ligne droite ne passe pas, les portes, se croiser, le lit, se débloquer) et ce qu'on peut demander aux habitants (aller quelque part, se réveiller, se recoucher) (`farm.s.trajets`, API `trajets`) |
+| `05-zzzzzV1-zone.js`, `07-zzzzzzzzzzzzV1-porte.js`, `09-zzzzzV1-zone.js`, `11-zzzzV1-*.js`, `12-zzzzzV1-zone.js` | la Grande Porte et les Terres d'Avant : le plan de la Zone (une seule constante pour sa taille, `V1_ZONE_N` ; les régions, les chemins, les ravines, les inscriptions) ; trois matières (la cendre, la terre morte, la vieille pierre) et les modèles (les vantaux, la barre, les braseros, la stèle, les feux de veille) ; les sons (le vent, les bruits lointains, la barre, la clé, le feu de veille, la pierre jetée) ; la Porte (`11-zzzzV1-1-porte.js` : posée à la fin de la génération de la vallée, avec son tirage ; ses jours fermés) ; la Zone, un second monde à part (`11-zzzzV1-2-zone.js` : la vallée qui « s'endort » quand on entre, le temps partagé, les crochets qui ne tournent que dans la Zone, les passes des autres modules) ; sa génération, une fois par partie, gardée en mémoire (`11-zzzzV1-3-gen.js`) ; la Porte de ce côté et les feux de veille (`11-zzzzV1-4-lieux.js`) ; la discrétion, commune à tout ce qui guette (`11-zzzzV1-5-furtif.js` : ce que le joueur montre, ce que perçoit un guetteur) ; les raccourcis, les recoins, les passages vers la vallée et ceux d'avant (`11-zzzzV1-6-recoins.js`) ; l'œil en haut de l'écran (`12-zzzzzV1-zone.js`) (`farm.s.zone`, API `zone` et `furtif`) |
+| `05-zzzzzV2-creatures.js`, `07-zzzzzzzzzzzzV2-creatures.js`, `09-zzzzzV2-cris.js`, `11-zzzzV2-1-moteur.js`, `11-zzzzV2-2-repaires.js`, `11-zzzzV2-3-especes.js`, `12-zzzzzV2-carnet.js` | les créatures des Terres d'Avant : les quinze espèces, leurs textes et leurs butins ; leurs squelettes et les objets des repaires ; leurs cris ; le moteur (les nids, la naissance autour du joueur hors de la vue, les sens par la discrétion commune, le retour après un repos au feu de veille, les places offertes par le château et la ville d'en bas, l'ombre et le feu du Ver) ; la passe des huit repaires ; les conduites propres à chaque espèce ; le carnet, « Derrière la Porte » (`farm.s.v2`, API `zone.creatures`) |
+| `05-zzzzzV3-ver.js`, `07-zzzzzzzzzzzzV3-ver.js`, `09-zzzzzV3-ver.js`, `11-zzzzV3-1-ver.js`, `11-zzzzV3-2-aire.js` | le Ver : les réglages (`V3`), les objets, le butin du tas, les textes ; une matière (les écailles), sa peau, son squelette d'environ deux cents boîtes, ses poses et son ombre, les objets de l'aire et des perchoirs ; ses sons, qui portent loin (les battements, le cri, le rugissement, le feu, son souffle, la chaîne, la cloche) ; le dragon (`11-zzzzV3-1-ver.js` : ses heures, le vol, son regard et son ouïe, l'attaque, le feu et l'herbe qui brûle) ; l'aire, les perchoirs, la loge du Guet et les fins (`11-zzzzV3-2-aire.js`, une passe de la Zone) (`farm.s.v3`, API `zone.dragon`) |
+| `05-zzzzzV4-chateau.js`, `07-zzzzzzzzzzzzV4-chateau.js`, `09-zzzzzV4-chateau.js`, `11-zzzzV4-1-plan.js`, `11-zzzzV4-2-jeu.js`, `11-zzzzV4-3-api.js` | Hautguet, le château des Hauts : les textes, les objets et les clés, les butins ; deux matières (la pierre du château, le dallage) et les modèles ; les sons (les chaînes du pont-levis, la herse, la cloche, un mur creux qui cède, la grille, le Guet qui prend) ; le plan et sa passe de la Zone (`11-zzzzV4-1-plan.js` : environ mille blocs, les salles, l'éclairage du dedans) ; le jeu (`11-zzzzV4-2-jeu.js` : les portes, les clés, les raccourcis à sens unique, les recoins, les voix, le feu du Guet, la fin) ; ce que le château donne aux autres (`11-zzzzV4-3-api.js` : les places des créatures, les abris où le Ver ne voit pas) (`farm.s.v4`, API `zone.chateau`) |
+| `05-zzzzzV5-textes.js`, `07-zzzzzzzzzzzzV5-ville.js`, `09-zzzzzV5-sons.js`, `11-zzzzV5-1-ville.js`, `11-zzzzV5-2-catacombes.js`, `11-zzzzV5-3-habitants.js`, `11-zzzzV5-4-secrets.js`, `11-zzzzV5-5-fins.js` | Basse-Fosse et les secrets des Terres d'Avant : textes, lettres, objets, butins, troc ; deux matières (l'os, le tuf) et les modèles ; les sons ; la ville (`11-zzzzV5-1-ville.js`, une passe de la Zone : îlots, maisons, Nef, nécropole, le graphe des rues) ; l'entrée, la nuit d'en bas, les offices, lire, prendre, fouiller, les murs qui mentent (`11-zzzzV5-2-catacombes.js`) ; les vingt-quatre gens d'en bas (`11-zzzzV5-3-habitants.js`) ; les secrets de la Zone (`11-zzzzV5-4-secrets.js`) ; les trois fins (`11-zzzzV5-5-fins.js`) (`farm.s.v5`, API `zone.catacombes` et `zone.secrets`) |
 | `11-zzz00b-pensees.js`, `tools/pensees.js` | dire peu : `penser.une` (une règle dite une fois par vie), `penser.pas` (un avertissement espacé), `farm.s.pensees` ; l'inventaire des pensées (`node tools/pensees.js`) |
 | `11-zzvallee0-gel.js` | le gel en altitude : la jauge `farm.s.gel`, le givre à l'écran, la mort de froid |
 | `11-zzzz7-carte*.js`, `07-zzzzzzzzzz-carte.js` | un lieu tous les 200 m (catalogue, textes, lettres, inscriptions, petits secrets), les deux peuples de surface et leurs parlers (`farm.s.carte2`, API `carte2`) |
@@ -1278,7 +1587,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzzz4-ferme-temps.js`, `11-zzzz4-meubles.js`, `07-zzzzzzzz-meubles.js` | portée des arroseurs, petites bêtes sous la pluie ; acheter et meubler sa maison (meubles, garde-meuble) |
 | `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
-| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js`, `Q.js` et `T.js`) |
+| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js`, `Q.js` et `T.js`, la quatorzième `Y.js`, `X.js`, `U.js`, `Z.js` et `V1.js` à `V5.js` — et `risques.js` y reprend la maison la nuit de `U.js`) |
 | `shell.html` | HTML + CSS |
 | `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et ses deux codes (le jeu, le wiki), le site servi tel quel par GitHub Pages, changer un code |
 | `libre/` | la partie sans code : sa page d'accueil (`libre/index.html`), le jeu et le wiki sans leur porte (écrits par `node build.js` et `node tools/wiki-build.js`) |
@@ -1299,6 +1608,18 @@ particularité ancienne de `designFields`, dans 06-zzdesign.js, à ne pas corrig
 sauvegardes). Les voix des milieux, la musique et les bêtes du marais le reconnaissent à ses mares (les `w.fishZones`
 « marais ») et à leurs abords : `e3.milieu(w, x, z)` répond « marais » dans le rayon des mares, à moins de 5 m
 au-dessus de l'eau.
+
+Les Terres d'Avant sont un second `World`, à part : `game.world` n'est donc pas toujours la vallée (pour elle,
+`farm.w`, ou tester `zone.dedans`). Le temps est partagé (la Zone a le jour et la nuit de la vallée), mais quand on y
+entre, la vallée « s'endort » : les habitants, l'étrange, les événements et tous les crochets `HOOKS.update`, `draw`,
+`lights`, `target`, `sky`, `fx` et `camera` de la vallée se taisent, sauf ceux du personnage (corps, faim, lanterne,
+cinématiques…). Un crochet qui doit tourner dans les deux mondes porte `fn.zone = true` ; `zone.sur(type, fn)` en
+inscrit un qui ne tourne que là-bas ; ce qui se pose dans la Zone passe par `zone.passe(nom, fn)`, appelée à sa
+génération, dans l'ordre d'inscription. Ce qui guette le joueur (bêtes, dragon, gardiens) s'inscrit à la discrétion
+commune — `furtif.guetteur(e, réglages)`, puis `furtif.percevoir(e, dt)` à chaque image : tranquille, intriguée,
+alertée, cherche, abandonne — et un bruit que les guetteurs entendent se fait par
+`furtif.bruit(x, y, z, portée, nature)`. Le jeu ne peut pas avoir plus de 64 matières (`tools/equilibrage/V3.js` le
+vérifie) : chaque lieu nouveau en prend deux au plus.
 
 Après une modification, régénérer le fichier unique :
 
