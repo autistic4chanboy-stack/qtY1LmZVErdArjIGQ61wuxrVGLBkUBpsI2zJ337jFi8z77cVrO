@@ -46,7 +46,8 @@ body.q-souvenir #q-voile{opacity:1}`;
     w.query(P[0], P[2], 1.2, null, (b) => {
       if (dedans || b.hidden || (b.ver && !(b.ver & w.curVer))) return;
       const [lx, lz] = World.blockLocal(b, P[0], P[2]);
-      if (Math.abs(lx) < b.sx / 2 + 0.35 && Math.abs(lz) < b.sz / 2 + 0.35 && b.y < P[1] + 0.35 && b.y + b.sy > P[1] - 0.35) dedans = true;
+      if (Math.abs(lx) < b.sx / 2 + 0.35 && Math.abs(lz) < b.sz / 2 + 0.35 && b.y < P[1] + 0.35 && b.y + b.sy > P[1] - 0.35) dedans = true;   // dans un mur
+      else if (Math.abs(lx) < b.sx / 2 && Math.abs(lz) < b.sz / 2 && b.y >= P[1] && b.y < P[1] + 15) dedans = true;                          // sous un toit
     });
     if (dedans) return false;
     const [cx, cz] = w.collideCircle(P[0], P[2], P[1] - 0.4, P[1] + 0.3, 0.3, 0);
@@ -70,13 +71,15 @@ body.q-souvenir #q-voile{opacity:1}`;
     w.forObjectsNearRay(A, dir, Lm, (ob) => {
       if (hit || !ob) return;
       const T = OBJ_TYPES[ob.t];
-      if (!T || T.animal || !w.live(ob) || ob.h < 1.5) return;
+      if (!T || T.animal || !w.live(ob) || ob.h < 1.0 || T.cat === 'Fleurs' || T.cat === 'Champignons') return;
       const cx = ob.x - A[0], cz = ob.z - A[2], tc = (cx * dir[0] + cz * dir[2]) / dh2;
       if (tc < 0 || tc > Lm) return;
       const y = A[1] + dir[1] * tc, oy = w.objectY(ob);
       if (y < oy - 0.2 || y > oy + ob.h * 0.95) return;
-      let r = Math.max(0.25, objRadius(T, ob) || 0.3) + 0.15;
-      if (T.cat === 'Arbres' && y > oy + ob.h * 0.35) r = Math.max(r, ob.h * 0.22);
+      const col = objRadius(T, ob);
+      let r = Math.max(0.25, col || 0.3) + 0.15;
+      if (!col) r = Math.max(r, ob.h * 0.42);                                     // un buisson : large comme il est haut
+      else if (T.cat === 'Arbres' && y > oy + ob.h * 0.35) r = Math.max(r, ob.h * 0.22);
       const px = dir[0] * tc - cx, pz = dir[2] * tc - cz;
       if (px * px + pz * pz < r * r) hit = true;
     });
@@ -121,10 +124,11 @@ body.q-souvenir #q-voile{opacity:1}`;
     const sky = computeSky(L.h / 24, 300, {}), sun = [sky.sunDir[0], sky.sunDir[2]], sn = Math.hypot(sun[0], sun[1]) || 1;
     const rnd = mulberry32(((S.graine >>> 0) ^ Math.imul(i, 0x9E3779B1)) >>> 0);
     const stop = clamp((L.r || 5) * 0.6, 2.5, 7);
+    const DS = T.look <= 2.5 ? [12, 15, 10, 18] : [18, 23, 14, 28];   // ce qui est petit, on le voit de plus près
     let best = null;
     for (let k = 0; k < 28; k++) {
       const a = (k / 28) * TAU + rnd() * 0.15;
-      for (const d of [18, 23, 14, 28]) {
+      for (const d of DS) {
         const x = L.x + Math.sin(a) * d, z = L.z + Math.cos(a) * d, h = w.heightAt(x, z);
         if (h < w.waterLevel + 0.1) continue;
         const P0 = [x, h + 0.55, z];
@@ -134,7 +138,7 @@ body.q-souvenir #q-voile{opacity:1}`;
         if (!this.libre(w, P1) || !this.voit(w, P1, haut, stop)) continue;
         // la lumière : de côté ou un peu de face (contre-jour léger), plutôt que dans le dos
         const s = (-Math.sin(a) * sun[0] - Math.cos(a) * sun[1]) / sn;
-        const sc = -Math.abs(s - 0.25) + rnd() * 0.35 + (d === 18 ? 0.12 : 0) - (d === 28 ? 0.15 : 0);
+        const sc = -Math.abs(s - 0.25) + rnd() * 0.35 + (d === DS[0] ? 0.12 : 0) - (d === DS[3] ? 0.15 : 0);
         if (!best || sc > best.sc) best = { sc, a, d, P0, P1 };
         break;
       }
@@ -188,11 +192,12 @@ body.q-souvenir #q-voile{opacity:1}`;
     const c = [e.x, e.y, e.z], tete = [c[0], c[1] + 0.5, c[2]], sol = [c[0], c[1] + 0.12, c[2]];
     const versJoueur = Math.atan2(p.pos[0] - c[0], p.pos[2] - c[2]);
     const sc = { mode: 'tourne', a: Math.random() * TAU, h0: e.heading || 0, gT: 0, cam: null };
-    const A = this.arc(w, c, 4.4, 1.5, 1.4, versJoueur);
-    const p1 = A ? { orbite: { c: [c[0], c[1], c[2]], r: 4.4, h: 1.5, a0: A.a0, a1: A.a1, look: [c[0], c[1] + 0.3, c[2]] } } : { de: { pos: p.eyePos(), look: tete } };
-    const bas = this.autour(w, c, 2.0, 0.5, sol, A ? A.a1 + 0.6 : versJoueur, 0.4);
-    const p2 = bas ? { de: { pos: bas.P, look: sol }, a: { pos: [lerp(bas.P[0], c[0], 0.2), bas.P[1] - 0.05, lerp(bas.P[2], c[2], 0.2)], look: sol } } : { de: { pos: p.eyePos(), look: sol } };
-    const face = this.autour(w, c, 2.4, 1.45, tete, versJoueur, 0.4);
+    const A = this.arc(w, c, 3.4, 1.25, 1.3, versJoueur);
+    const p1 = A ? { orbite: { c: [c[0], c[1], c[2]], r: 3.4, h: 1.25, a0: A.a0, a1: A.a1, look: [c[0], c[1] + 0.3, c[2]] } } : { de: { pos: p.eyePos(), look: tete } };
+    // (au-dessus de l'herbe : sous 0,8 m, les touffes cachent tout)
+    const bas = this.autour(w, c, 2.3, 1.0, sol, A ? A.a1 + 0.6 : versJoueur, 0.4);
+    const p2 = bas ? { de: { pos: bas.P, look: sol }, a: { pos: [lerp(bas.P[0], c[0], 0.22), bas.P[1] - 0.1, lerp(bas.P[2], c[2], 0.22)], look: sol } } : { de: { pos: p.eyePos(), look: sol } };
+    const face = this.autour(w, c, 2.3, 1.05, tete, versJoueur, 0.4);
     const pf = face ? face.P : p.eyePos();
     sc.cam = pf;
     nonos.scene = { chien: (e2, dt, w2) => this.chienDebut(sc, c, e2, dt, w2) };
@@ -246,40 +251,64 @@ body.q-souvenir #q-voile{opacity:1}`;
     const fx = -Math.sin(r), fz = -Math.cos(r);   // l'entrée du terrier (vers -z local)
     const bouche = [L.ix + fx * 0.6, y + 0.22, L.iz + fz * 0.6], os = [L.ix + fx * 0.98, y + 0.05, L.iz + fz * 0.98];
     const a0 = Math.atan2(fx, fz);
-    const v1 = this.autour(w, bouche, 3.4, 0.55, bouche, a0, 0.3) || { P: [bouche[0] + fx * 3.4, y + 0.9, bouche[2] + fz * 3.4] };
-    const v2 = this.autour(w, os, 1.2, 0.38, os, a0 + 0.4, 0.2) || { P: [os[0] + fx * 1.2, y + 0.5, os[2] + fz * 1.2] };
-    // le renard : à quelques mètres, là où on le voit
+    // (caméras au-dessus de l'herbe, qui regardent vers le bas)
+    const v1 = this.autour(w, bouche, 3.0, 1.0, bouche, a0, 0.3) || { P: [bouche[0] + fx * 3.0, y + 1.1, bouche[2] + fz * 3.0] };
+    const v2 = this.autour(w, os, 1.5, 0.95, os, a0 + 0.35, 0.2) || { P: [os[0] + fx * 1.5, y + 1.0, os[2] + fz * 1.5] };
+    // le vieux renard : à quatre ou cinq mètres, là où on le voit depuis le terrier
     let R = null;
-    for (let k = 0; k < 24 && !R; k++) {
-      const a = a0 + (k % 2 ? 1 : -1) * (0.6 + (k >> 1) * 0.25), d = 7 + (k % 3);
+    for (let k = 0; k < 28 && !R; k++) {
+      const a = a0 + (k % 2 ? 1 : -1) * (0.5 + (k >> 1) * 0.22), d = 4.4 + (k % 3) * 0.6;
       const x = L.ix + Math.sin(a) * d, z = L.iz + Math.cos(a) * d, h = w.heightAt(x, z);
-      if (h < w.waterLevel + 0.2 || !nonosSol(w, null, x, z, 0.3, null)) continue;
-      const P = [x, h + 0.45, z], cam = this.autour(w, [L.ix, y, L.iz], 2.6, 0.7, P, a + Math.PI, 0.2);
+      if (h < w.waterLevel + 0.2 || !nonosSol(w, null, x, z, 0.3, null) || nonosBuisson(w, x, z, 0.8)) continue;
+      const P = [x, h + 0.4, z];
+      const cx = L.ix + Math.sin(a + 0.5) * 0.9, cz = L.iz + Math.cos(a + 0.5) * 0.9, C0 = [cx, Math.max(w.heightAt(cx, cz), y) + 1.0, cz];
+      const cam = this.libre(w, C0) && this.voit(w, C0, P, 0.2) ? { P: C0 } : this.autour(w, [L.ix, y, L.iz], 1.4, 1.0, P, a + Math.PI, 0.2);
       if (!cam) continue;
-      R = { x, y: h, z, heading: Math.atan2(L.ix - x, L.iz - z), move: 0, phase: 0, vis: false, part: false, cam: cam.P, fuite: a };
+      R = { x, y: h, z, heading: Math.atan2(L.ix - x, L.iz - z), move: 0, phase: 0, vis: false, cam: cam.P, fuite: a };
     }
-    if (!R) { const a = a0 + 0.9, x = L.ix + Math.sin(a) * 7, z = L.iz + Math.cos(a) * 7; R = { x, y: w.heightAt(x, z), z, heading: Math.atan2(L.ix - x, L.iz - z), move: 0, phase: 0, vis: false, part: false, cam: v1.P, fuite: a }; }
-    const tete = () => [R.x, R.y + 0.45, R.z];
+    if (!R) { const a = a0 + 0.9, x = L.ix + Math.sin(a) * 5, z = L.iz + Math.cos(a) * 5; R = { x, y: w.heightAt(x, z), z, heading: Math.atan2(L.ix - x, L.iz - z), move: 0, phase: 0, vis: false, cam: v1.P, fuite: a }; }
+    const tete = () => [R.x, R.y + 0.42, R.z];
     this.renard = R;
-    nonos.scene = { draw: (buf, sbuf, cam, t) => this.dessinerRenard(buf, sbuf, t) };
+    // le chien, s'il est là : il flaire le terrier, de côté (pas devant la caméra), puis fixe le renard
+    const perp = [Math.cos(a0), -Math.sin(a0)], cote = Math.sign((R.x - L.ix) * perp[0] + (R.z - L.iz) * perp[1]) || 1;
+    const D = { x: L.ix - perp[0] * cote * 1.8 + fx * 0.2, z: L.iz - perp[1] * cote * 1.8 + fz * 0.2, renard: false, grogne: false };
+    nonos.scene = {
+      draw: (buf, sbuf, cam, t) => this.dessinerRenard(buf, sbuf, t),
+      chien: (e, dt, w2) => {
+        if (Math.hypot(e.x - L.ix, e.z - L.iz) > 40) return undefined;
+        const d = Math.hypot(D.x - e.x, D.z - e.z);
+        e.ronge = false; e.wag = false;
+        if (d > 0.6) { chien.marcher(e, dt, w2, D.x, D.z, d > 5); e.grazeT = d < 3 ? 1 : 0; return true; }
+        e.move = 0; e.state = 'idle';
+        if (R.vis) {
+          e.grazeT = 0; e.lookY = 0;
+          e.heading = turnToward(e.heading, Math.atan2(R.x - e.x, R.z - e.z), dt * 4);
+          if (!D.grogne) { D.grogne = true; sound.growl && sound.growl(0.3); }
+        } else { e.grazeT = 1; e.heading = turnToward(e.heading, Math.atan2(L.ix + fx * 0.6 - e.x, L.iz + fz * 0.6 - e.z) + Math.sin((game.time || 0) * 1.4) * 0.4, dt * 3); }
+        return true;
+      },
+    };
+    const placerChien = () => { const e = chien.entite(); if (e && Math.hypot(e.x - L.ix, e.z - L.iz) < 40 && Math.hypot(e.x - D.x, e.z - D.z) > 3) { e.x = D.x; e.z = D.z; e.y = entities.groundY(w, e, D.x, D.z); } };
     const prendre = () => { nonos.prendreNonos(); R.vis = false; };
+    const zoom = (k) => { game.fovK = k; };
+    const suivre = { pos: R.cam, look: tete() };
     return cine.jouer([
-      { dur: 1.1, de: this.vueJoueur(), fondu: 'noir' },
-      { dur: 6.6, de: { pos: v1.P, look: bouche }, a: { pos: [lerp(v1.P[0], bouche[0], 0.25), v1.P[1] - 0.1, lerp(v1.P[2], bouche[2], 0.25)], look: bouche }, texte: NONOS_TXT.terrier[0] },
-      { dur: 4.6, de: { pos: v2.P, look: os }, texte: NONOS_TXT.terrier[1](nom) },
-      { dur: 6.8, de: { pos: R.cam, look: tete() }, texte: NONOS_TXT.terrier[2], debut: () => { R.vis = true; },
+      { dur: 1.1, de: this.vueJoueur(), fondu: 'noir', fin: placerChien },
+      { dur: 6.6, de: { pos: v1.P, look: bouche }, a: { pos: [lerp(v1.P[0], bouche[0], 0.25), v1.P[1] - 0.12, lerp(v1.P[2], bouche[2], 0.25)], look: bouche }, texte: NONOS_TXT.terrier[0] },
+      { dur: 4.6, de: { pos: v2.P, look: os }, a: { pos: [lerp(v2.P[0], os[0], 0.15), v2.P[1] - 0.06, lerp(v2.P[2], os[2], 0.15)], look: os }, texte: NONOS_TXT.terrier[1](nom) },
+      { dur: 7.0, de: suivre, texte: NONOS_TXT.terrier[2], debut: () => { R.vis = true; zoom(0.72); }, fin: () => zoom(1),
         chaque: (t, dt) => {
           dt = Math.min(dt || 0.016, 0.1);
-          if (t < 3.2) { R.move = 0; return; }
-          const h = R.fuite;
-          R.heading = turnToward(R.heading, h, dt * 3.5);
-          const v = 1.6;
+          suivre.look = tete();
+          if (t < 3.4) { R.move = 0; return; }
+          R.heading = turnToward(R.heading, R.fuite, dt * 3.5);
+          const v = 1.5;
           R.x += Math.sin(R.heading) * v * dt; R.z += Math.cos(R.heading) * v * dt; R.y = w.heightAt(R.x, R.z);
           R.move = 1; R.phase += dt * v * 2.6 / 0.6;
         } },
-      { dur: 1.3, de: { pos: R.cam, look: tete() }, fondu: 'noir', fin: prendre },
+      { dur: 1.3, de: suivre, fondu: 'noir', fin: prendre },
       { dur: 0.5, de: this.vueJoueur(), fondu: 'noir' },
-    ], { apres: () => { prendre(); this.renard = null; nonos.scene = null; } });
+    ], { apres: () => { prendre(); zoom(1); this.renard = null; nonos.scene = null; } });
   },
   renardRig() {
     if (this._rr) return this._rr;
@@ -304,33 +333,47 @@ body.q-souvenir #q-voile{opacity:1}`;
     const S = nonos.S(), w = game.world, p = game.player, nom = chien.nom();
     if (!S || S.rendu || cine.on || !e || e.removed || e.dead) return;
     ui.close(true);
-    const n = chien.niche(), eye = p.eyePos();
+    const n = nonosPlaceOs(), eye = p.eyePos();
     const sc = { mode: 'devant', os: false };
-    const tete = () => [e.x, e.y + 0.5, e.z];
-    const cote = this.autour(w, [e.x, e.y, e.z], 2.2, 0.55, [e.x, e.y + 0.4, e.z], Math.atan2(p.pos[0] - e.x, p.pos[2] - e.z) + 1.4, 0.3);
-    const pc = cote ? cote.P : eye;
-    const nc = [n[0], w.heightAt(n[0], n[1]), n[1]];
-    const vn = this.autour(w, nc, 2.7, 0.8, [nc[0], nc[1] + 0.3, nc[2]], n[2] !== null ? n[2] : Math.atan2(p.pos[0] - n[0], p.pos[2] - n[1]), 0.4);
-    const pn = vn ? vn.P : [nc[0] + 2.2, nc[1] + 1.2, nc[2] + 1.6];
+    const tete = () => [e.x, e.y + 0.45, e.z];
+    // on le regarde partir, de là où l'on est, un peu au-dessus (les tonneaux, les clôtures ne le cachent pas)
+    const f = cinAvant(), haut = [eye[0] - f[0] * 0.9, eye[1] + 0.7, eye[2] - f[2] * 0.9];
+    const suivre = { pos: this.libre(w, haut) ? haut : eye, look: tete() };
+    const nc = [n[0], w.heightAt(n[0], n[1]), n[1]], lc = [nc[0], nc[1] + 0.3, nc[2]];
+    const cap = nonosCapNiche(n);
+    // devant sa gueule (là où est l'os), dès qu'il est couché
+    const devant = () => {
+      const c0 = cap !== null ? cap : Math.atan2(p.pos[0] - n[0], p.pos[2] - n[1]);
+      const g = [nc[0] + Math.sin(c0) * 0.4, nc[1] + 0.2, nc[2] + Math.cos(c0) * 0.4];
+      for (const da of [0.35, -0.35, 0.75, -0.75, 0, 1.1, -1.1]) {
+        // (en plongée, au-dessus des touffes d'herbe : couché, il a la tête à trente centimètres du sol)
+        const a = c0 + da, P = [nc[0] + Math.sin(a) * 1.9, Math.max(w.heightAt(nc[0] + Math.sin(a) * 1.9, nc[2] + Math.cos(a) * 1.9), w.waterLevel) + 1.35, nc[2] + Math.cos(a) * 1.9];
+        if (this.libre(w, P) && this.voit(w, P, g, 0.3)) return { P, g };
+      }
+      const v = this.autour(w, nc, 2.6, 1.2, lc, c0, 0.4);
+      return v ? { P: v.P, g: lc } : { P: [nc[0] + 2.2, nc[1] + 1.4, nc[2] + 1.6], g: lc };
+    };
+    const V = devant(), pn = V.P;
     nonos.scene = {
       chien: (e2, dt, w2) => this.chienRetour(sc, n, e2, dt, w2),
       draw: () => { if (sc.os) { PE.fl = 0; nonosOsGueule(e); } },
     };
     const fin = () => { nonos.finRetour(); };
     return cine.jouer([
-      { dur: 3.9, de: { pos: eye, look: tete() }, texte: NONOS_TXT.retour[0](nom), debut: () => { sc.mode = 'devant'; sound.bark && sound.bark(0.6); } },
-      { dur: 4.6, de: { pos: pc, look: tete() }, a: { pos: pc, look: [lerp(e.x, n[0], 0.15), e.y + 0.4, lerp(e.z, n[1], 0.15)] }, texte: NONOS_TXT.retour[1](nom), debut: () => { sc.os = true; sc.mode = 'part'; } },
-      { dur: 1.1, de: { pos: pc, look: tete() }, fondu: 'noir', fin: () => { this.poserANiche(e, n); sc.mode = 'ronge'; } },
-      { dur: 6.0, de: { pos: pn, look: [nc[0], nc[1] + 0.3, nc[2]] }, a: { pos: [lerp(pn[0], nc[0], 0.12), pn[1] - 0.08, lerp(pn[2], nc[2], 0.12)], look: [nc[0], nc[1] + 0.25, nc[2]] }, texte: NONOS_TXT.retour[2](nom), debut: () => { this.poserANiche(e, n); sc.mode = 'ronge'; } },
-      { dur: 1.3, de: { pos: pn, look: [nc[0], nc[1] + 0.3, nc[2]] }, fondu: 'noir', fin },
+      { dur: 3.9, de: suivre, texte: NONOS_TXT.retour[0](nom), debut: () => { sc.mode = 'devant'; sound.bark && sound.bark(0.6); }, chaque: () => { suivre.look = tete(); } },
+      { dur: 3.6, de: suivre, texte: NONOS_TXT.retour[1](nom), debut: () => { sc.os = true; sc.mode = 'part'; }, chaque: () => { suivre.look = tete(); } },
+      { dur: 1.1, de: suivre, fondu: 'noir', fin: () => { this.poserANiche(e, n); sc.mode = 'ronge'; } },
+      { dur: 6.0, de: { pos: pn, look: V.g }, a: { pos: [lerp(pn[0], nc[0], 0.15), pn[1] - 0.12, lerp(pn[2], nc[2], 0.15)], look: V.g }, texte: NONOS_TXT.retour[2](nom), debut: () => { this.poserANiche(e, n); sc.mode = 'ronge'; } },
+      { dur: 1.3, de: { pos: pn, look: V.g }, fondu: 'noir', fin },
       { dur: 0.5, de: this.vueJoueur(), fondu: 'noir' },
     ], { apres: () => { fin(); nonos.scene = null; } });
   },
   poserANiche(e, n) {
+    const cap = nonosCapNiche(n);
+    if (cap !== null) e.heading = cap;
     if (Math.hypot(e.x - n[0], e.z - n[1]) < 1.2) return;
     const w = game.world;
     e.x = n[0]; e.z = n[1]; e.y = entities.groundY(w, e, n[0], n[1]);
-    if (n[2] !== null) e.heading = n[2];
   },
   chienRetour(sc, n, e, dt, w) {
     const t = game.time || 0, p = game.player;
@@ -347,9 +390,10 @@ body.q-souvenir #q-voile{opacity:1}`;
       return true;
     }
     e.move = 0; e.state = 'sheltered'; e.wag = false;
-    if (n[2] !== null) e.heading = turnToward(e.heading, n[2], dt * 3);
-    e.grazeT = 0.55 + 0.35 * Math.max(0, Math.sin(t * 2.3));
-    e.lookY = Math.sin(t * 0.7) * 0.25;
+    const cap = nonosCapNiche(n);
+    if (cap !== null) e.heading = turnToward(e.heading, cap, dt * 3);
+    e.grazeT = 0.1 + 0.22 * Math.max(0, Math.sin(t * 2.3));
+    e.lookY = Math.sin(t * 0.7) * 0.3;
     return true;
   },
 };

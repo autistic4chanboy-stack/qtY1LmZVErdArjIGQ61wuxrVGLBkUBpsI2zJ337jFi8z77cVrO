@@ -47,7 +47,22 @@ function nonosCandidats(w) {
   }
   return out;
 }
-// un sol où poser un indice : terre ferme, pente douce, joignable, ni mur ni toit ni tronc
+// un buisson, une touffe haute, un arbre à moins de R mètres (les fleurs ne comptent pas)
+function nonosBuisson(w, x, z, R) {
+  const G = w.objectsGrid(), C = G.C, m = R + 3;
+  const gx0 = clamp(Math.floor((x - m) / C), 0, G.gw - 1), gx1 = clamp(Math.floor((x + m) / C), 0, G.gw - 1);
+  const gz0 = clamp(Math.floor((z - m) / C), 0, G.gw - 1), gz1 = clamp(Math.floor((z + m) / C), 0, G.gw - 1);
+  for (let gz = gz0; gz <= gz1; gz++) for (let gx = gx0; gx <= gx1; gx++) {
+    const c = G.cells[gz * G.gw + gx];
+    if (c) for (const i of c) {
+      const o = w.objects[i], T = o && OBJ_TYPES[o.t];
+      if (!T || T.animal || !w.live(o) || o.h < 1.0 || T.cat === 'Fleurs' || T.cat === 'Champignons') continue;
+      if (Math.hypot(o.x - x, o.z - z) < R + (objRadius(T, o) || o.h * 0.35)) return true;
+    }
+  }
+  return false;
+}
+// un sol où poser un indice : terre ferme, pente douce, joignable, ni mur ni toit ni tronc, ni sous un buisson
 function nonosSol(w, A, x, z, rad, props) {
   if (!w.inside(x, z, 24)) return false;
   const h = w.heightAt(x, z);
@@ -67,9 +82,11 @@ function nonosSol(w, A, x, z, rad, props) {
     if (b.y + b.sy > h + 0.25 && b.y < h + 14) bloque = true; // un mur, un meuble, un toit au-dessus
   });
   if (bloque) return false;
-  const [cx, cz] = w.collideCircle(x, z, h, h + 1.7, rad, 0.3);
+  // (un tronc à moins d'un mètre et demi volerait la touche E : on s'en écarte)
+  const [cx, cz] = w.collideCircle(x, z, h, h + 1.7, rad + 0.5, 0.3);
   if (Math.hypot(cx - x, cz - z) > 0.05) return false;
   if (props) for (const q of props) if (Math.abs(q.x - x) < rad + 1.1 && Math.abs(q.z - z) < rad + 1.1) return false;
+  if (nonosBuisson(w, x, z, rad + 0.5)) return false;
   return true;
 }
 // l'endroit de l'indice, près du lieu (renvoie { x, z } ou null)
@@ -129,7 +146,7 @@ const nonos = {
   cherche: null,         // le matin où tout commence : le chien cherche (centre de sa ronde)
   scene: null,           // une scène en cours (11-zzzzQ-2-scenes.js) : { chien(e, dt, w, c), draw(buf, sbuf, cam, t) }
   aJouer: null,          // un souvenir à montrer dans un instant : { i, t }
-  reconnuT: 0, tickT: 0, yC: {}, tombesC: null,
+  reconnuT: 0, tickT: 0, yC: {}, tombesC: null, placeC: null,
   S() {
     const s = farm.s;
     if (!s) return null;
@@ -299,25 +316,27 @@ const nonos = {
     if (e.dist > 14 && !(chien.C().ordre === 'suivre' && e.dist < 40)) return undefined;
     const K = e.reconnait || (e.reconnait = { ouaf: false });
     if (!K.ouaf) { K.ouaf = true; sound.bark && sound.bark(0.8); }
-    const p = game.player, f = cinAvant(), tx = p.pos[0] + f[0] * 1.3, tz = p.pos[2] + f[2] * 1.3, d = Math.hypot(tx - e.x, tz - e.z);
+    const p = game.player, dp = Math.hypot(e.x - p.pos[0], e.z - p.pos[2]) || 1;
+    const tx = p.pos[0] + (e.x - p.pos[0]) / dp * 1.3, tz = p.pos[2] + (e.z - p.pos[2]) / dp * 1.3, d = Math.hypot(tx - e.x, tz - e.z);
     e.wag = true; e.grazeT = 0;
-    if (d > 0.7) chien.marcher(e, dt, w, tx, tz, d > 3);
+    if (d > 0.5) chien.marcher(e, dt, w, tx, tz, d > 3);
     else { e.move = 0; e.state = 'idle'; e.heading = turnToward(e.heading, Math.atan2(p.pos[0] - e.x, p.pos[2] - e.z), dt * 6); }
-    if (e.dist < 2.4 && !cine.on && !ui.panel && !game.sleeping && !game.dying && game.mode === 'play') { e.reconnait = null; nonosScenes.retour(e); }
+    if (e.dist < 2.6 && !cine.on && !ui.panel && !game.sleeping && !game.dying && game.mode === 'play') { e.reconnait = null; nonosScenes.retour(e); }
     return true;
   },
   // l'os retrouvé : il le ronge près de sa niche (quand vous n'êtes pas là, et souvent quand vous y êtes)
   iaRonge(e, dt, w, c) {
-    const C = chien.C(), n = chien.niche(), d = Math.hypot(n[0] - e.x, n[1] - e.z);
+    const C = chien.C(), n = nonosPlaceOs(), d = Math.hypot(n[0] - e.x, n[1] - e.z);
     let veut = C.ordre === 'niche';
     if (C.ordre === 'libre') { const cyc = ((game.time || 0) + (e.seed || 0) * 10) % 170; veut = c.night < 0.6 && (c.inside || e.dist > 30 || cyc < 100); }
     if (!veut) return undefined;
-    if (d > 0.9) { if (C.ordre === 'niche') return undefined; chien.marcher(e, dt, w, n[0], n[1], d > 12); e.wag = false; return true; }
-    const t = game.time || 0;
+    if (d > 0.7) { chien.marcher(e, dt, w, n[0], n[1], d > 12); e.wag = false; return true; }
+    const t = game.time || 0, cap = n[2];
     e.move = 0; e.state = 'sheltered'; e.wag = false; e.ronge = true;
-    if (n[2] !== null) e.heading = turnToward(e.heading, n[2], dt * 3);
-    e.grazeT = 0.55 + 0.35 * Math.max(0, Math.sin(t * 2.3 + (e.seed || 0)));
-    e.lookY = Math.sin(t * 0.7 + (e.seed || 0)) * 0.25;
+    if (cap !== null) e.heading = turnToward(e.heading, cap, dt * 3);
+    // (couché, la tête presque à plat : un peu plus, et le museau — et l'os — passeraient sous terre)
+    e.grazeT = 0.1 + 0.22 * Math.max(0, Math.sin(t * 2.3 + (e.seed || 0)));
+    e.lookY = Math.sin(t * 0.7 + (e.seed || 0)) * 0.3;
     return true;
   },
   // E sur le chien : les choix en plus (avant ceux du module du chien)
@@ -366,8 +385,8 @@ const nonos = {
     const S = this.S(), w = game.world;
     PE.buf = buf; PE.fl = 0;
     if (!S || !w || !S.L.length || (typeof strange !== 'undefined' && strange.inEnvers())) { if (this.scene && this.scene.draw) this.scene.draw(buf, sbuf, cam, t); return; }
-    // l'indice en cours (et le terrier, qui reste)
-    if (!S.fin && S.e >= 1) {
+    // l'indice en cours (et le terrier, qui reste) ; pas pendant un souvenir : il faut le chercher sur place
+    if (!S.fin && S.e >= 1 && !nonosScenes.mem) {
       const i = Math.min(S.e, NONOS_N), L = S.L[i - 1];
       if (L && Math.hypot(L.ix - cam[0], L.iz - cam[2]) < 70) this.dessinerIndice(i, L, cam, t, S.e > NONOS_N);
     }
@@ -408,12 +427,15 @@ const nonos = {
       PE.box(-0.12, 0.006, 0.09, 0.11, 0.006, 0.035, sombre, TL.plain, -0.4);
       PE.box(0.18, 0.006, 0.12, 0.09, 0.006, 0.03, plume, TL.plain, 0.3);
     } else if (id === 'empreintes') {
-      const boue = [0.2, 0.15, 0.1], trace = [0.08, 0.06, 0.045];
-      PE.box(0, 0.003, 0, 0.62, 0.006, 2.3, boue, TL.soilWet);
-      for (let k = 0; k < 7; k++) {
-        const z = -0.96 + k * 0.32, x = (k % 2 ? 0.04 : -0.04);
-        PE.box(x, 0.008, z, 0.07, 0.006, 0.08, trace, TL.plain);
-        for (let d = 0; d < 4; d++) PE.box(x + (d - 1.5) * 0.028, 0.008, z + 0.065 + (d === 0 || d === 3 ? -0.01 : 0), 0.022, 0.006, 0.026, trace, TL.plain);
+      // chaque empreinte épouse le sol (une plaque d'un seul tenant flotterait sur la pente)
+      const w = game.world, boue = rgbf('#6a5238'), trace = rgbf('#3a2c1e'), c = Math.cos(r), sn = Math.sin(r);
+      for (let k = 0; k < 8; k++) {
+        const lz = -1.1 + k * 0.31, lx = (k % 2 ? 0.05 : -0.05) + Math.sin(k * 1.7) * 0.02;
+        const x = L.ix + lx * c + lz * sn, z = L.iz - lx * sn + lz * c, h = w.heightAt(x, z);
+        PE.frame(x, w.groundAt(x, z, h + 0.4, 0.5), z, r, 1);
+        PE.box(0, 0.006, 0.01, 0.17, 0.008, 0.21, boue, TL.soilWet);
+        PE.box(0, 0.011, -0.02, 0.065, 0.006, 0.075, trace, TL.plain);
+        for (let d = 0; d < 4; d++) PE.box((d - 1.5) * 0.028, 0.011, 0.045 + (d === 0 || d === 3 ? -0.012 : 0), 0.021, 0.006, 0.025, trace, TL.plain);
       }
     } else if (id === 'ruban') {
       const rouge = rgbf('#a8161c');
@@ -426,12 +448,22 @@ const nonos = {
   },
   // le terrier (repère local déjà posé) ; avecOs : le nonos devant l'entrée
   dessinerTerrier(avecOs) {
-    const terre = rgbf('#6a5038'), noir = [0.05, 0.04, 0.035];
-    PE.box(0, 0.2, 0, 1.6, 0.42, 1.2, terre, TL.soil, 0.15);
-    PE.box(0.1, 0.48, 0.1, 1.0, 0.26, 0.8, terre, TL.soil, -0.2);
-    PE.box(-0.2, 0.62, 0.05, 0.5, 0.16, 0.5, rgbf('#4a6a2a'), TL.leaves, 0.4);
-    PE.box(0, 0.2, -0.6, 0.42, 0.32, 0.06, noir, TL.plain);
-    PE.box(0, 0.006, -0.95, 0.9, 0.012, 0.7, rgbf('#3a2c20'), TL.soilWet);
+    // une motte de terre ronde (des boîtes tournées les unes sur les autres), des racines au-dessus du trou
+    const terre = rgbf('#8a6844'), terre2 = rgbf('#7a5a3a'), herbe = rgbf('#5a7a34'), racine = rgbf('#5a4430'), noir = [0.04, 0.03, 0.025];
+    PE.box(0, 0.13, 0.15, 1.9, 0.26, 1.5, terre, TL.soil, 0.1);
+    PE.box(0, 0.13, 0.15, 1.6, 0.26, 1.7, terre2, TL.soil, 0.9);
+    PE.box(0.05, 0.36, 0.25, 1.3, 0.22, 1.1, terre, TL.soil, -0.35);
+    PE.box(0.05, 0.36, 0.25, 1.1, 0.22, 1.25, terre2, TL.soil, 0.45);
+    PE.box(0.08, 0.54, 0.3, 0.75, 0.16, 0.7, terre, TL.soil, 0.2);
+    PE.box(0.1, 0.65, 0.32, 0.5, 0.08, 0.5, herbe, TL.leaves, -0.3);
+    PE.box(-0.5, 0.3, 0.5, 0.35, 0.1, 0.3, herbe, TL.leaves, 0.6);
+    // le trou, et les racines qui le surplombent
+    PE.box(0, 0.2, -0.58, 0.5, 0.36, 0.12, noir, TL.plain);
+    PE.box(0, 0.17, -0.5, 0.36, 0.3, 0.12, noir, TL.plain);
+    PE.box(0, 0.42, -0.62, 0.62, 0.05, 0.05, racine, TL.bark, 0, 0, 0.15);
+    PE.box(0.18, 0.33, -0.66, 0.04, 0.22, 0.04, racine, TL.bark, 0, 0.3, 0.4);
+    PE.box(-0.2, 0.36, -0.64, 0.04, 0.18, 0.04, racine, TL.bark, 0, -0.2, -0.5);
+    PE.box(0, 0.006, -1.0, 1.0, 0.012, 0.75, rgbf('#5a4430'), TL.soilWet);
     PE.box(-0.32, 0.012, -1.05, 0.15, 0.012, 0.035, rgbf('#a8a8b0'), TL.metal, 0.6);      // une cuillère
     PE.box(-0.25, 0.014, -1.0, 0.045, 0.02, 0.035, rgbf('#a8a8b0'), TL.metal, 0.6);
     PE.box(0.36, 0.025, -1.12, 0.05, 0.05, 0.05, rgbf('#c09a3a'), TL.gold, 0.3);          // un grelot
@@ -443,10 +475,10 @@ const nonos = {
   dessinerOs(buf, cam, t) {
     const e = chien.entite();
     if (e && e.ronge && !e.removed && e.rig && Math.hypot(e.x - cam[0], e.z - cam[2]) < 60) { nonosOsGueule(e); return; }
-    const n = chien.niche();
+    const n = nonosPlaceOs();
     if (Math.hypot(n[0] - cam[0], n[1] - cam[2]) > 60) return;
     const w = game.world, x = n[0] + 0.45, z = n[1] + 0.25, h = w.heightAt(x, z);
-    PE.frame(x, w.groundAt(x, z, h + 0.5, 0.6), z, 0.7, 1);
+    PE.frame(x, w.groundAt(x, z, h + 0.5, 0.6), z, 0.7, 1.4);
     nonosOsLocal(0, 0, 0, 0);
   },
 
@@ -492,6 +524,33 @@ const nonos = {
 };
 // le nonos du terrier n'est dessiné que tant qu'on ne l'a pas pris
 function S_terrierAvecOs(S) { return !!(S && S.e === NONOS_N); }
+// le cap du chien couché à sa niche : celui de la niche posée, sinon le dos à la maison (sur le seuil)
+function nonosCapNiche(n) {
+  if (n[2] !== null && n[2] !== undefined) return n[2];
+  const B = game.world && game.world.bld && game.world.bld.ferme;
+  return B ? Math.atan2(n[0] - B.x, n[1] - B.z) : null;
+}
+// là où il ronge son os : devant sa niche ; sans niche, devant le seuil, de préférence sur la terre battue (l'herbe y
+// cacherait l'os), jamais contre la porte ; [x, z, cap, posée] (mis en cache : chien.niche() change rarement)
+function nonosPlaceOs() {
+  const n = chien.niche(), cap = nonosCapNiche(n), w = game.world;
+  if (n[3] || cap === null) return [n[0], n[1], cap, n[3]];
+  const K = nonos.placeC;
+  if (K && K.w === w && K.x === n[0] && K.z === n[1]) return K.v;
+  let v = null;
+  for (const d of [1.4, 1.9, 2.5, 1.1]) {
+    for (const da of [0, 0.5, -0.5, 1.0, -1.0, 1.45, -1.45]) {
+      const a = cap + da, x = n[0] + Math.sin(a) * d, z = n[1] + Math.cos(a) * d;
+      if (w.matAt(x, z) < M_DIRT || !nonosSol(w, null, x, z, 0.3, null)) continue;
+      v = [x, z, cap, false];
+      break;
+    }
+    if (v) break;
+  }
+  if (!v) v = [n[0] + Math.sin(cap) * 1.4, n[1] + Math.cos(cap) * 1.4, cap, false];
+  nonos.placeC = { w, x: n[0], z: n[1], v };
+  return v;
+}
 
 // ---------------------------------------------------------------- l'os (dessin), dans le repère courant de PE
 function nonosOsLocal(x, y, z, r) {
@@ -508,8 +567,12 @@ function nonosOsLocal(x, y, z, r) {
 function nonosOsGueule(e) {
   const head = e.rig && e.rig.part('head');
   if (!head || !head.W) return;
-  PE.M.set(head.W);
-  nonosOsLocal(0, -0.13, 0.3, 0);
+  // en travers de la gueule, sous la truffe, un peu plus gros que nature pour qu'on le voie dépasser des deux côtés
+  const M = PE.M;
+  M.set(head.W);
+  const s = 1.35;
+  for (let k = 0; k < 3; k++) { M[k * 4] *= s; M[k * 4 + 1] *= s; M[k * 4 + 2] *= s; }
+  nonosOsLocal(0, -0.12 / s, 0.33 / s, 0);   // (sous la truffe : y −0,12, z +0,33 dans le repère de la tête)
 }
 
 // ---------------------------------------------------------------- points d'accroche
@@ -553,6 +616,6 @@ HOOKS.load.push((saved) => {
   const S = nonos.S();
   if (!S) return;
   if (!S.adopte) S.adopte = 1;
-  nonos.cherche = null; nonos.scene = null; nonos.aJouer = null; nonos.reconnuT = 0; nonos.yC = {}; nonos.tombesC = null;
+  nonos.cherche = null; nonos.scene = null; nonos.aJouer = null; nonos.reconnuT = 0; nonos.yC = {}; nonos.tombesC = null; nonos.placeC = null;
   // une partie chargée au milieu d'un souvenir à venir : il attendra qu'on le revoie au carnet
 });
