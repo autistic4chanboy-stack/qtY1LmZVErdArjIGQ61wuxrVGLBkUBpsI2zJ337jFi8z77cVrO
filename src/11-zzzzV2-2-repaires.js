@@ -300,7 +300,7 @@ function v2Cache(it, bruit) {
   if (d.txt) ui.subtitle('', '(' + d.txt + ')', 4);
   farm.save();
 }
-HOOKS.inter.v2_lire = (it) => { const I = V2_INSCRIPTIONS[it.data.ins]; if (!I) return; ui.read(I[0], I[1]); if (typeof zone !== 'undefined') zone.S().lus['v2_' + it.data.ins] = farm.s.day; };
+HOOKS.inter.v2_lire = (it) => { const I = V2_INSCRIPTIONS[it.data.ins]; if (!I) return; ui.read(I[0], I[1]); const S = creaturesV2.S(); if (!S.lus || typeof S.lus !== 'object') S.lus = {}; S.lus[it.data.ins] = farm.s.day; };
 HOOKS.inter.v2_cache = (it) => v2Cache(it, 6);
 HOOKS.inter.v2_offrandes = (it) => v2Cache(Object.assign({}, it, { data: Object.assign({}, it.data, { txt: 'Des pièces vertes, des bagues, des petits saints de bois. Des gens sont venus jusqu’ici, autrefois, pour la prier de dormir.' }) }), 8);
 HOOKS.inter.v2_statue = (it) => {

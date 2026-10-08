@@ -107,16 +107,16 @@ Object.assign(SoundEngine.prototype, {
         return;
       // ------------------------------------------------------------ la tarasque
       case 'v2_tarasque:ronfle': // une respiration de forge, très basse
-        this.noiseHit(t, 1.6, 'lowpass', 220, 0.7, 0.05 * v, o, 120, 0.6);
-        this.tone(t + 0.2, 'sine', 42, 38, 1.3, 0.03 * v, o, 0.4);
+        this.noiseHit(t, 1.6, 'bandpass', 300, 0.8, 0.07 * v, o, 170, 0.6); // (assez haut pour qu'un petit haut-parleur l'entende)
+        this.tone(t + 0.2, 'sine', 78, 64, 1.3, 0.025 * v, o, 0.4);
         return;
       case 'v2_tarasque:rugit':
         this.cri(t, { dur: 2.4, f: [[0, 60], [0.25, 95], [1, 52]], rug: [22, 0.8], form: [[[260, 380, 240], 2, 1], [700, 4, 0.5], [1500, 6, 0.15]], souffle: [0.5, 600], vol: 0.11 * v, lp: 1500, a: 0.2 }, o);
         this.tone(t, 'sine', 38, 30, 2.2, 0.05 * v, o, 0.2);
         return;
       case 'v2_tarasque:pas':
-        this.noiseHit(t, 0.3, 'lowpass', 160, 0.8, 0.1 * v, o, 60);
-        this.tone(t, 'sine', 48, 32, 0.35, 0.06 * v, o);
+        this.noiseHit(t, 0.3, 'lowpass', 420, 0.8, 0.1 * v, o, 90);
+        this.tone(t, 'sine', 70, 40, 0.35, 0.06 * v, o);
         return;
       case 'v2_tarasque:meurt':
         this.cri(t, { dur: 3.2, f: [[0, 80], [0.2, 100], [1, 34]], rug: [14, 0.8], form: [[300, 2, 1], [650, 4, 0.4]], souffle: [0.6, 400], vol: 0.09 * v, lp: 1200, a: 0.1 }, o);

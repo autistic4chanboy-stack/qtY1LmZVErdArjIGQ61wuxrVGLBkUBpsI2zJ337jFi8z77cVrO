@@ -48,7 +48,7 @@ const creaturesV2 = {
     if (L.some((n) => n.id === id)) return id;
     const h = v2Hash(id), nb = o.n || D.nb[0] + (h % (D.nb[1] - D.nb[0] + 1));
     const N = { id, esp, x, y: isFinite(y) ? y : Z.heightAt(x, z), z, n: nb, r: o.r ?? D.errance, cap: o.cap ?? ((h % 628) / 100), perche: !!o.perche, dessous: !!o.dessous,
-      heures: o.heures || D.heures, garde: !!o.garde, site: o.site || null, agent: o.agent || 'V2', vie: 0, ents: [], attente: 0 };
+      heures: o.heures || D.heures, heuresDonnees: !!o.heures, garde: !!o.garde, site: o.site || null, agent: o.agent || 'V2', vie: 0, ents: [], attente: 0 };
     if (o.extra) Object.assign(N, o.extra);
     L.push(N);
     if (Z === zone.Z && Z === this.Zcur) this.nids = L;
@@ -90,17 +90,25 @@ const creaturesV2 = {
     let n = 0;
     for (const [agent, site, L] of lots) for (const P of L) {
       if (!P || !isFinite(P.x) || !isFinite(P.z)) continue;
-      const esp = V2_ESPECES[P.espece] ? P.espece : this.pour(P.type, P.dessous);
+      const esp = this.espece(P.espece) || this.pour(P.type, P.dessous);
       if (!esp) continue;
-      this.poser(esp, P.x, P.y, P.z, { id: P.id || agent + ':' + Math.round(P.x) + ',' + Math.round(P.z), r: P.r, dessous: !!P.dessous, perche: !!P.perche, garde: P.type === 'gardien', site, agent, cap: P.cap, n: P.n });
+      // une ronde (chemin de ronde…) : des points locaux au site, rendus au monde
+      let ronde = null;
+      if (Array.isArray(P.ronde) && P.ronde.length > 1) { const st = zone.site(P.site || site); if (st) ronde = P.ronde.map(([x, z]) => [st.x + x, st.z + z]); }
+      const garde = P.garde !== undefined ? !!P.garde : P.type === 'gardien';
+      this.poser(esp, P.x, P.y, P.z, { id: P.id || agent + ':' + Math.round(P.x) + ',' + Math.round(P.z), r: garde ? 0 : Math.min(P.r || 18, 40), dessous: !!P.dessous, perche: !!P.perche, garde,
+        site: P.site || site, agent, cap: P.cap, heures: Array.isArray(P.heures) ? P.heures : undefined, n: P.n || (esp === 'v2_sans_visage' ? 3 : 1), extra: ronde ? { ronde } : null });
       n++;
     }
     this.placesPosees = n;
   },
-  // l'espèce conseillée pour une place
+  // un nom d'espèce donné par un autre (« gargouille », « v2_gargouille ») ; null s'il n'existe pas
+  espece(nom) { if (!nom) return null; if (V2_ESPECES[nom]) return nom; const k = 'v2_' + String(nom).replace(/^v2_/, ''); return V2_ESPECES[k] ? k : null; },
+  // l'espèce conseillée pour une place : dehors, gargouille (gardien), mange-mort (rôdeur), sans-visage (paisible) ;
+  // sous terre, l'écoutant (gardien ou rôdeur : il n'a pas besoin d'yeux) ; rien de paisible sous terre
   pour(type, dessous) {
     if (type === 'gardien') return dessous ? 'v2_ecoutant' : 'v2_gargouille';
-    if (type === 'rodeur') return dessous ? 'v2_pendu' : 'v2_charognard';
+    if (type === 'rodeur') return dessous ? 'v2_ecoutant' : 'v2_charognard';
     if (type === 'paisible') return dessous ? null : 'v2_sans_visage';
     return null;
   },
@@ -113,6 +121,7 @@ const creaturesV2 = {
     if (m && m.n >= N.n) return false;
     const P = typeof V2_PRESENCE !== 'undefined' && V2_PRESENCE[D.conduite];
     if (P) { const r = P.call(this, N, D); if (r !== undefined) return r; }
+    if (N.dessous && !N.heuresDonnees) return true; // (sous terre, il fait toujours nuit)
     if (v2DansHeures(this.h, N.heures)) return true;
     return D.hors !== 'cache';
   },
@@ -134,6 +143,14 @@ const creaturesV2 = {
       const e = this.vivantes[i];
       if (!e) continue;
       try { this.vivre(e, dt, p); } catch (err) { console.error('V2 ' + e.esp, err); }
+    }
+    this.repousser(p);
+  },
+  repousser(p) {
+    for (const e of this.vivantes) {
+      if (e.cache || e.removed || e.vol || e.pendu || e.D.eau || e.D.rayon < 0.4 || e.dist > 6 || Math.abs(p.pos[1] - e.y) > 1.6) continue;
+      const dx = p.pos[0] - e.x, dz = p.pos[2] - e.z, d = Math.hypot(dx, dz), min = e.D.rayon * (e.echelle || 1) + 0.33;
+      if (d < min && d > 1e-4) { p.pos[0] = e.x + dx / d * min; p.pos[2] = e.z + dz / d * min; }
     }
   },
   scanner(p, basis) {
@@ -181,7 +198,12 @@ const creaturesV2 = {
   naitre(N, D, mortes) {
     const S = this.S(), m = (S.morts[N.id] && S.morts[N.id].n) || 0;
     N.vie = 1; N.ents = [];
-    if (mortes) { const e = this.creer(N, D, 0); e.mort = true; e.mortT = 0; e.mortGarde = true; N.ents.push(e); this.vivantes.push(e); return; }
+    if (mortes) {
+      const e = this.creer(N, D, 0); e.mort = true; e.mortT = 0; e.mortGarde = true; furtif.oublier(e); N.ents.push(e); this.vivantes.push(e);
+      const K = typeof V2_CADAVRE !== 'undefined' && V2_CADAVRE[D.conduite];
+      if (K) try { K.call(this, e, N); } catch (err) { console.error(err); }
+      return;
+    }
     for (let k = m; k < N.n; k++) { const e = this.creer(N, D, k); N.ents.push(e); this.vivantes.push(e); }
     const NA = typeof V2_NAISSANCE !== 'undefined' && V2_NAISSANCE[D.conduite];
     if (NA) try { NA.call(this, N, N.ents); } catch (err) { console.error('V2 naissance', N.esp, err); }
@@ -286,6 +308,18 @@ const creaturesV2 = {
   arreter(e, dt) { e.move = Math.max(0, e.move - dt * 4); e.run = false; },
   // errer autour de chez soi : un but, une pause
   errer(e, dt, rayon, vitesse) {
+    // une ronde donnée (le chemin de ronde du château…) : d'un point à l'autre, aller et retour
+    const RD = e.nid.ronde;
+    if (RD && RD.length > 1) {
+      if (e.rondeI === undefined) { e.rondeI = e.k % RD.length; e.rondeS = 1; }
+      if (e.pause) { e.timer -= dt; this.arreter(e, dt); if (e.timer <= 0) e.pause = false; return; }
+      const [tx, tz] = RD[e.rondeI];
+      if (this.aller(e, dt, tx, tz, vitesse || e.D.marche) < 1.2) {
+        if (e.rondeI + e.rondeS < 0 || e.rondeI + e.rondeS >= RD.length) e.rondeS = -e.rondeS;
+        e.rondeI += e.rondeS; e.pause = Math.random() < 0.3; e.timer = 2 + Math.random() * 4;
+      }
+      return;
+    }
     const R = rayon === undefined ? e.nid.r : rayon;
     e.timer -= dt;
     if (!e.but || e.timer <= 0) {
@@ -320,7 +354,8 @@ const creaturesV2 = {
       if (f) { const a = Math.atan2(e.x - f[0], e.z - f[1]); tx = f[0] + Math.sin(a) * (V2_REFUGE + 2); tz = f[1] + Math.cos(a) * (V2_REFUGE + 2); }
       // la meute tourne autour avant de mordre
       if (o.cercle && e.dist > 3 && e.dist < 9 && e.attT > 0.3) { const k = (e.k / Math.max(1, e.nid.n)) * TAU + this.t * 0.4; tx = p.pos[0] + Math.sin(k) * 6; tz = p.pos[2] + Math.cos(k) * 6; }
-      const reste = this.aller(e, dt, tx, tz, o.vitesse || e.D.course);
+      const pres = e.D.coup && !f && e.dist < e.D.coup.portee * 0.7 && Math.abs(p.pos[1] - e.y) < 2;
+      const reste = pres ? (this.arreter(e, dt), e.dist) : this.aller(e, dt, tx, tz, o.vitesse || e.D.course);
       this.regarder(e, p.pos[0], p.pos[2], dt);
       if (!f && e.D.coup && e.dist < e.D.coup.portee + 0.3 && Math.abs(p.pos[1] - e.y) < 2 && e.attT <= 0 && e.prep === undefined && (!o.peutMordre || o.peutMordre(e))) this.lancerCoup(e);
       return reste;
@@ -459,7 +494,7 @@ const creaturesV2 = {
       try { dy = pose ? pose(e.rig, e, t) || 0 : 0; } catch (err) { console.error('V2 pose', e.esp, err); }
       const fl = e.hurtT > 0 || e.highlight ? FX_HI : 0;
       e.highlight = false;
-      drawRig(buf, e.rig, e.x, e.y + dy + (e.dy || 0), e.z, e.heading, e.echelle || 1, fl);
+      drawRig(buf, e.rig, e.x, e.y + dy + (e.dy || 0), e.z, e.capCorps !== undefined ? e.capCorps : e.heading, e.echelle || 1, fl);
       if (sbuf && !e.vol && !e.pendu && !e.D.eau && !e.nid.perche && dx * dx + dz * dz < 3600) drawShadow(sbuf, e.x, e.y, e.z, Math.max(0.22, e.D.rayon * 1.05) * (e.echelle || 1));
     }
     const X = typeof V2_DESSIN !== 'undefined' ? V2_DESSIN : null;

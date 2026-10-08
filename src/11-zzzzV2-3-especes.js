@@ -92,7 +92,7 @@ Object.assign(V2_CONDUITES, {
       e.heading += Math.sin(C.t * 0.35 + e.seed) * dt * 0.18;
       const etat = furtif.percevoir(e, dt);
       const corde = farm.count('v2_corde_pendu') > 0;
-      const sous = e.dist < 3.2 && Math.abs(p.pos[1] - (e.y + 1)) < 3 && !(p.crouch > 0.5) && !corde;
+      const sous = e.dist < 3.2 && Math.abs(p.pos[1] - zone.Z.heightAt(e.x, e.z)) < 2 && !(p.crouch > 0.5) && !corde;
       if (sous || etat === 'alertee') {
         e.pendu = false;
         const g = zone.Z.groundAt(e.x, e.z, e.y + 1.5, 0.6);
@@ -285,7 +285,7 @@ Object.assign(V2_CONDUITES, {
       if (etat === 'alertee' && e.dist < 7 && a > 0.4 && a < 2.4 && !e.tetesDort[1]) {
         e.feuT = (e.feuT || 0) - dt;
         if (e.feuT <= 0) { e.feuT = 2.6; e.feu = 1.2; C.crier(e, 'feu', 1, true); }
-        if (e.feu > 0) { play.hurt(dt * 7, e, V2_TEXTES.feuChimere); v2Flammes(e, 6); }
+        if (e.feu > 0) { v2Flammes(e, 6); e.brule = (e.brule || 0) + dt; if (e.brule >= 0.4) { e.brule = 0; play.hurt(2.8, e, V2_TEXTES.feuChimere); } }
       }
       if (etat === 'alertee' && e.dist < 2.8 && Math.abs(a) > 2.3 && !e.tetesDort[2] && e.attT <= 0) { e.attT = 2.4; C.crier(e, 'siffle', 1, true); C.blesserJoueur(e, 10, { cause: e.D.coup.cause, poison: 25 }); }
       return;
@@ -653,6 +653,7 @@ const V2_PRESENCE = {
 };
 // ---------------------------------------------------------------- quand un nid s'efface
 const V2_FIN = {
+  chimere(N) { for (const e of N.ents) for (const T of e.tetes || []) furtif.oublier(T); },
   vouivre() { const V = creaturesV2.S().vouivre; if (V.gemme === 'pierre') { V.gemme = 'front'; v2PierreMaj(); } },
   noye() { creaturesV2.tenu = false; },
   ronde(N) { if (N.ev && N.ev.etat !== 'danse') { const K = creaturesV2.S().korrigans; if (!K.issue) K.nuit = farm.s.day; } N.ev = null; },
@@ -678,7 +679,7 @@ const V2_MORT = {
     const p = [e.x, e.y + 0.8, e.z];
     const don = [['v2_oeil_basilic', 1], ['v2_crete_basilic', 1]];
     for (const [id, n] of don) { farm.give(id, n); play.flyer(id, p, n); }
-    if (e.petrifie && e.rig) { for (const q of e.rig.parts) if (q.s) { q.col = [0.5, 0.49, 0.46]; q.tex = TL.stone; q.fl = 0; } sound.v2Cri('v2_basilic', 'pierre', p, 1.2); }
+    if (e.petrifie && e.rig) { creaturesV2.S().basilicPierre = farm.s.day; for (const q of e.rig.parts) if (q.s) { q.col = [0.5, 0.49, 0.46]; q.tex = TL.stone; q.fl = 0; } sound.v2Cri('v2_basilic', 'pierre', p, 1.2); }
   },
   tarasque(e) { const p = [e.x, e.y + 1.5, e.z]; for (const [id, n] of [['v2_ecaille_tarasque', 3], ['v2_ruban_bleu', 1]]) { farm.give(id, n); play.flyer(id, p, n); } if (e.rig && e.rig.part('ruban')) e.rig.part('ruban').hide = true; },
   chimere(e) { const p = [e.x, e.y + 1.2, e.z]; for (const [id, n] of [['v2_criniere', 1], ['v2_corne_chimere', 1], ['v2_collier_armes', 1]]) { farm.give(id, n); play.flyer(id, p, n); } for (const T of e.tetes || []) furtif.oublier(T); },
@@ -697,6 +698,12 @@ const V2_MORT = {
   noye(e) { e.tient = false; creaturesV2.tenu = false; },
   stryge(e) { e.vol = false; e.fond = null; e.y = Math.max(zone.Z.heightAt(e.x, e.z), zone.Z.waterLevel - 0.6); },
   guet(e) { e.vol = null; e.y = zone.Z.groundAt(e.x, e.z, e.y + 0.5, 0.5); },
+};
+// ---------------------------------------------------------------- les cadavres des uniques (quand on revient les voir)
+const V2_CADAVRE = {
+  basilic(e) { if (creaturesV2.S().basilicPierre && e.rig) for (const q of e.rig.parts) if (q.s) { q.col = [0.5, 0.49, 0.46]; q.tex = TL.stone; q.fl = 0; } },
+  tarasque(e) { if (e.rig && e.rig.part('ruban')) e.rig.part('ruban').hide = true; },
+  chimere(e) { e.couchee = true; },
 };
 // ---------------------------------------------------------------- les coups portés : effets en plus
 const V2_COUP = {
@@ -725,7 +732,7 @@ const V2_DESSIN = {
 // ---------------------------------------------------------------- le basilic : la pierre qui gagne le joueur
 creaturesV2.pierre = 0;
 creaturesV2.pierreJoueur = function (dt) {
-  this.pierre = clamp((this.pierre || 0) + dt * 0.42, 0, 1);
+  this.pierre = clamp((this.pierre || 0) + dt * 0.3, 0, 1);
   this.pierreMaj = true;
   if (this.pierre > 0.25 && !this.pierreDit) { this.pierreDit = true; ui.subtitle('', V2_TEXTES.basilicPierre, 4); }
   if (this.pierre >= 1 && !game.dying) { this.pierre = 0; game.die(V2_TEXTES.basilicMort); }
