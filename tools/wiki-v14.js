@@ -20,7 +20,7 @@
 'use strict';
 
 // les étiquettes des modules de la vague (leurs tables sont lues ici ; leurs modules n’ont pas de fiche d’office)
-const AGENTS = ['U', 'V1', 'V3', 'V4', 'V5', 'X', 'Y'];
+const AGENTS = ['U', 'V1', 'V2', 'V3', 'V4', 'V5', 'X', 'Y', 'Z'];
 const vagueRE = () => { const L = AGENTS.join('|'); return new RegExp(`^(05-z+(${L})-|07-z+(${L})-|09-z+(${L})-|10-z+(${L})-|11-zzzz(${L})-|12-z+(${L})-)`); };
 
 // ================================================================ les textes
@@ -514,12 +514,83 @@ REGIONS.cendrieres.secret.push('**Le brasier mort** : un tas de cendre pâle, fr
 REGIONS.etang.secret.push('**Les souliers** : au bord de l’eau, trois paires rangées côte à côte, la pointe vers l’eau.');
 (REGIONS.seuil.secret || (REGIONS.seuil.secret = [])).push('**Le banc du garde**, tourné vers la Porte : « M. de Sorbiers est entré au matin. Il a dit : trois jours. J’attends. »');
 
+// ---------------------------------------------------------------- les créatures des Terres d’Avant (V2)
+const BETES = {
+  lead: 'Derrière la Grande Porte vivent quinze sortes de bêtes. Aucune n’est obligée : tout peut se faire sans en tuer une, en restant discret. Elles naissent autour de vous (à cent cinquante mètres environ, deux cent trente pour celles qui volent), jamais sous vos yeux, et s’effacent quand vous vous éloignez. Elles voient et entendent comme tout ce qui guette ([[sys:discretion|la discrétion]], l’œil en haut de l’écran) : tranquille, intriguée, alertée, elle cherche, elle abandonne.',
+  regles: [
+    '**Accroupi**, aucune bête n’entend vos pas à plus de cinq mètres (celle qui écoute, la pire, entend un pas accroupi à 5 m, un pas ordinaire à 16 m, une course à 36 m). Immobile, on ne fait aucun bruit.',
+    '**Voir** : la lanterne se voit de loin ; la nuit, sans lumière, on voit mal ; les herbes hautes, les roseaux, les buissons cachent qui est accroupi dedans ; un toit, un mur, le relief coupent la vue.',
+    '**Un caillou jeté** (clic droit) : celles qui l’entendent tomber vont voir là où il est tombé (pas là où vous êtes), puis cherchent un moment alentour ; les mange-morts et les sans-visage s’égaillent quand il tombe tout près.',
+    '**Les feux de veille allumés sont des refuges** : aucune bête hostile n’approche à moins de quatorze mètres ; celles qui vous suivaient s’arrêtent à la lisière de la lumière, puis renoncent.',
+    '**La laisse** : chaque bête renonce au-delà de son territoire.',
+    '**Les coups sont annoncés** : la bête se ramasse et crie (de 0,2 à 0,9 s) avant de frapper ; on peut reculer.',
+    '**Les coups de feu** s’entendent à quatre-vingt-dix mètres ; l’arc est silencieux ; un coup porté à une bête s’entend à quatorze mètres, et la bête touchée sait d’où il vient.',
+    '**Mortes**, les bêtes reviennent quand on se repose à un feu de veille, ou au bout de trois jours ; les **uniques** (le Basilic, la Tarasque, la Chimère, la Vouivre, le Cerf-aux-Mains, le Chien Gris) ne reviennent jamais.',
+    '**Le Ver** : quand son ombre passe sur elles, ou qu’il rugit (à moins de 320 m), les bêtes du dehors se figent de trois à huit secondes — elles ne chassent plus, ne mordent plus : c’est le moment de filer. Son feu les brûle (une bête brûlée ne laisse rien). Les uniques, les gargouilles, les stryges, les noyés et ce qui vit sous terre n’en ont cure.',
+  ],
+  // [bête, où, quand, ce qu’elle voit / entend, ce qu’elle fait, ce qu’elle laisse]
+  especes: [
+    ['Les Garous', 'le Bois Mort (trois aux Charrettes, deux à l’est)', 'la nuit (19 h – 6 h) ; le jour, ils dorment en tas au repaire', 'voient la nuit comme le jour (30 m) ; bonne ouïe ; ils flairent, et se souviennent longtemps', 'un hurlement appelle la meute ; ils tournent autour et mordent un à la fois (13, parfois une plaie qui saigne)', 'peau de garou, crocs, parfois une chevalière de marchand'],
+    ['Les Mange-Morts', 'les Cendrières, les Tertres, les Ravines (quatre meutes)', 'toujours', '24 m ; ils sentent le sang à 70 m', 'suivent à distance ; ne mordent (7) que si l’on est blessé (moins de 55 de vie), si l’on saigne, ou dans le dos ; reculent si on leur fait face en avançant', 'dents, os'],
+    ['Les Pendus', 'le Bois Mort, le bord de la Voie (quatre arbres près des chemins)', 'toujours', 'aveugles (un sac sur la tête) ; ils entendent', 'tombent sur qui passe dessous **debout** (accroupi, rien) ; lents ; serrent (on avance mal) ; s’effondrent au bout de 25 s', 'corde de pendu, cuiller d’argent, vieilles pièces'],
+    ['Ce qui écoute', 'la Ville Basse (deux)', 'la nuit (21 h – 5 h)', 'aveugle ; entend tout', 's’arrête souvent pour écouter (des clics) ; fonce sur le bruit ; saisit (24) ; immobile, on n’existe pas', 'peau d’écoute'],
+    ['Les Gargouilles', 'perchées : les murs de la Ville Basse (cinq), le poste des Degrés (trois)', 'toujours', 'voient loin (40 m), dans un cône étroit qui balaie lentement ; **sourdes**', 'un cri qui fait venir toutes les bêtes à 70 m, puis un piqué (10) et retour au socle', 'œil d’agate, pierres'],
+    ['Les Stryges', 'les falaises des Ravines, des Degrés, du Pic (cinq nids)', 'la nuit (20 h – 5 h)', 'voient de haut, la nuit mieux que le jour', 'planent en cercle ; fondent sur ce qui est **à découvert** (7) et **prennent des pièces** ; sous un toit, sous les herbes, rien', 'plumes'],
+    ['Le Basilic (unique)', 'le Jardin de pierre (les Cendrières)', 'éveillé de 6 h à 21 h ; il dort la nuit', '26 m ; ouïe faible', '**son regard pétrifie qui le regarde en face** (l’écran grisonne ; trois secondes et c’est fini) ; lent ; mord (15, venin)', 'œil de basilic, crête'],
+    ['La Tarasque (unique)', 'la Bauge (les Cendrières)', 'elle dort ; se lève à midi, pour une heure', 'endormie, elle n’entend guère que courir (à une douzaine de mètres) ; voit à peine', 'réveillée, elle rugit, charge en ligne droite (lente à tourner), écrase (40) ; se recouche', 'trois écailles, le ruban bleu'],
+    ['La Chimère (unique)', 'l’Antre (les Ravines)', 'toujours, couchée devant sa tanière', 'trois têtes, trois regards : le lion devant, le bouc à gauche, le serpent derrière', 'le lion mord (20), le bouc crache le feu de son côté, le serpent frappe derrière (10, venin) ; elle ne quitte pas l’Antre', 'crinière, corne, collier aux armes'],
+    ['La Vouivre (unique)', 'l’Étang des Noyés, la Pierre plate', 'vole la nuit (19 h – 4 h) ; se baigne à l’aube ; dort le jour près de la pierre', '50 m, de haut ; dans l’eau, aveugle', 'fond, frappe (18, venin)', '(secret)'],
+    ['Les Noyés', 'dans l’Étang (cinq)', 'la nuit', 'sentent ce qui entre dans l’eau', 'tiennent et tirent au fond ce qui nage près d’eux', '(secret)'],
+    ['Les Korrigans', 'la Ronde (les Tertres ; sept)', 'de 22 h à 4 h, jamais le jour des morts', 'voient peu, absorbés par la danse', 'dansent en chantant les jours', '(secret)'],
+    ['Le Cerf-aux-Mains (unique)', 'le Bois Mort, à l’est', 'le jour', 'très méfiant', 'fuit qui court ou vient debout', 'bois aux mains (le tuer pèse sur l’esprit)'],
+    ['Le Chien Gris (unique)', 'le Seuil, près du premier feu', 'toujours', '—', 'garde ses distances', '—'],
+    ['Les Sans-Visage', 'les paliers des Degrés, le bord des Hauts (trois troupeaux)', 'toujours ; couchés la nuit', '18 m, tout autour', 'effrayés, ils s’égaillent en bêlant fort (tout ce qui est autour entend) ; accroupi au milieu d’eux, on est caché', 'laine sans visage, viande'],
+  ],
+  repaires: [
+    '**Les Charrettes** (le Bois Mort, à l’ouest) : deux charrettes renversées, des caisses, des os d’âne ; le registre des marchands (« Pierre a la fièvre ») ; une charrette à fouiller. Les garous y dorment le jour.',
+    '**Les Pendants** (le Bois Mort, au sud) : quatre arbres morts, sept pendus ; une planche « VOLEUR ».',
+    '**La Bauge** (les Cendrières, à l’ouest) : la Tarasque endormie, des offrandes (des pièces vertes, des bagues, des saints de bois) ; une stèle « À LA BÊTE DOUCE, QUI DORT POUR NOUS. NE COURS PAS ICI. »',
+    '**Le Jardin de pierre** (les Cendrières, au nord) : le Basilic, l’œuf ouvert, sept statues (des gens qui ont regardé) ; la stèle « QUE CEUX QUI ENTRENT FERMENT LES YEUX ».',
+    '**L’Antre** (les Ravines) : une tanière de rochers, la Chimère couchée devant ; une plaque « MÉNAGERIE DE MONSEIGNEUR » ; la tanière à fouiller.',
+    '**La Pierre plate** (la rive de l’Étang) : une pierre usée, au bord de l’eau.',
+    '**Les Guetteurs** (les Degrés) : trois gargouilles sur leurs socles, un poste ruiné.',
+    '**La Ronde** (les Tertres) : neuf pierres en cercle autour d’un menhir ; une dalle « On ne chante pas le jour des morts ».',
+  ],
+  secret: [
+    '**Le Basilic** : ne pas le regarder en face (détourner les yeux fait reculer la pierre) ; la nuit, il dort. **Un miroir le tue** : le miroir de poche (fabriqué), ou le **miroir d’acier**, qu’on prend dans la main d’une statue au bord du Jardin ; l’avoir en main face à lui, quand il vous voit : il se voit, et devient pierre. Tant qu’on le tient face à lui, son regard ne prend pas.',
+    '**La Vouivre** : à l’aube (de 4 h à 7 h), elle pose son **escarboucle** sur la Pierre plate et nage, aveugle. On peut la prendre (E sur la pierre) : elle devient aveugle pour toujours, et tant qu’on porte la pierre dans les Terres d’Avant, elle la cherche à l’oreille, la nuit, partout. La pierre luit : on se voit davantage. Reposée dans le creux de la pierre, la vouivre la reprend, laisse une écaille, et ne fait plus de mal à personne. Tuée avec sa pierre au front : l’escarboucle et deux écailles.',
+    '**Les Korrigans** chantent les jours (« Primedi, Ferdi, … Chômedi… ») et s’arrêtent ; quand on s’approche, ils font cercle : « Et après ? ». **« Primedi »** (la semaine recommence) : ils dansent autour de vous, donnent trois sous d’or, et le **pas des korrigans** (trois jours : on ne s’entend plus marcher, le bruit des pas divisé par deux). **« Vorndi »** (le jour des morts) : ils vous font danser jusqu’à l’aube (la nuit passe ; l’endurance, la faim, un peu de vie et une part des pièces y restent) et se cachent une semaine. Se taire : ils rient et filent. Frapper l’un d’eux : ils disparaissent une semaine (une malédiction s’il en meurt un).',
+    '**Les Noyés** : la nuit, au bord de l’Étang près d’eux, une voix vous appelle par votre nom. **Répondre** : l’eau vous prend (on est tiré vers le fond ; s’éloigner pour se dégager). **Se taire** : au matin, là où l’on s’est tu, un anneau dans la vase (l’alliance noyée, « À toi jusqu’au fond »).',
+    '**Le Cerf-aux-Mains** : approché **accroupi**, doucement (à moins de dix mètres, trois secondes), il baisse la tête et marche devant vous, s’arrête pour vous attendre, jusqu’à un **arbre creux** du Bois Mort (le carnier d’un chasseur : flèches, cuir, corde, parfois une boussole) ; il montre l’arbre de ses mains, puis s’en va. L’arbre se fouille aussi sans lui.',
+    '**Le Chien Gris** : avec de la viande en main, accroupi, il laisse approcher ; E pour la lui tendre. La première fois, on lit son collier (« FIDÈLE », et une lettre : A.). La deuxième, il **suit** : il gronde tout bas quand une bête hostile approche, mord ce qui vous attaque, et prend parfois un coup à votre place. Il ne passe pas la Porte (il vous attend au Seuil). Frappé, il part pour toujours ; tué, on garde son collier.',
+    '**La Tarasque** : approcher accroupi, sans courir ni sauter ; les offrandes se prennent sans bruit si l’on est accroupi. Courir près d’elle la réveille en trois secondes.',
+    '**La Chimère** : une tête dort, à tour de rôle (vingt-cinq secondes) ; elle pend : approcher par son côté.',
+    '**Les Pendus** : porter une **corde de pendu** : ils ne tombent plus sur vous.',
+    '**Les Stryges** : ce qu’elles vous ont pris revient quand on fouille un de leurs nids.',
+    '**Les Gargouilles** : la pioche les fend (trois coups), les flèches ricochent ; leur cône étroit balaie lentement : passer quand il regarde ailleurs ; elles n’entendent rien.',
+  ],
+};
+// les trajets des habitants (Z) : une note
+const TRAJETS = {
+  lead: 'Les habitants de la vallée marchent désormais comme on marche : ils contournent les murs, les meubles, les arbres, les enclos ; ils ne traversent plus personne ; la nuit, chacun dort dans son lit.',
+  points: [
+    '**Ils contournent** les murs, les meubles, les arbres, les rochers, la margelle de la fontaine, les enclos ; ils ne nagent pas et ne descendent pas dans les douves (on passe sur les ponts ; un pont levé, on attend qu’il s’abaisse) ; ils ne grimpent pas sur les tables.',
+    '**Les portes** : on ouvre en approchant, on attend que le battant soit ouvert, on referme derrière soi ; les boutiques restent ouvertes de 7 h 30 à 19 h ; une porte fermée à clé ne s’ouvre qu’à ses gens. À deux dans une embrasure, l’un attend.',
+    '**Se croiser** : on s’écarte sur sa droite, on ralentit, on s’arrête un instant. Si vous barrez le passage, on vous le dit (« Pardon… », « Vous permettez ? ») puis on vous contourne.',
+    '**S’installer** : un lit, une chaise, un banc, un établi, le bord de l’eau — on s’en approche par le côté libre. Une chaise déjà prise : on reste debout à côté.',
+    '**La nuit, chacun dort dans son lit** (les gardes dans le leur). Réveillé par un bruit — un cambrioleur, un meuble qu’on fouille, une porte —, on se lève, on va voir, on reste debout un moment, puis on se recouche ([[sys:cambriolage|le cambriolage de nuit]]).',
+    '**Les étages** : pour monter à l’étage de la mairie ou d’une maison de la ville, on prend l’échelle de meunier.',
+    '**Coincé**, on recalcule son chemin, on se décale d’un pas, on attend qu’on nous laisse passer ; on ne saute jamais à travers un mur sous vos yeux. Loin de vous (plus de 125 m), on file de nœud en nœud sur les routes, comme avant.',
+  ],
+  mesure: 'Mesuré sur une semaine de douze jours, chaque habitant regardé : le temps passé coincé tombe de 22 % à moins de 1 % ; les murs traversés, de 21 à 1 ; au lit la nuit, de 31 % à 98 % des habitants.',
+};
+
 // ================================================================ les sections (sections)
 // Chaque section : ses groupes de fiches (seules celles qui existent paraissent), et après quelles sections elle va.
 const SECTIONS = [
   { id: 'terres', t: 'La Grande Porte et les Terres d’Avant', apres: ['dessous', 'mondes'],
     d: 'Derrière la Grande Porte, un second pays, deux fois grand comme la vallée : ses régions et son plan, ses feux de veille, la discrétion ; le Ver qui veille au-dessus ; Hautguet, le château des Hauts (et ce qui s’y cache : secrets).',
-    groupes: [['La Grande Porte', ['sys:grande-porte', 'it:cle_grande_porte']], ['Les Terres d’Avant', ['sys:terres-avant', 'sys:discretion']], ['Les régions', Object.keys(REGIONS).map((k) => 'zone:' + k)], ['Le Ver', ['sys:ver', 'it:v3_ecaille', 'it:v3_dent', 'it:v3_coeur', 'it:v3_cle_collier', 'it:v3_carnet']], ['Hautguet', ['sys:hautguet', 'it:v4_registre', 'it:v4_lettre_dame', 'it:v4_anneau', 'it:v4_cle_poterne', 'it:v4_cle_chapelle', 'it:v4_cle_donjon', 'it:v4_cle_tour', 'it:v4_trousseau']], ['Basse-Fosse, la ville sous la ville', ['sys:basse-fosse', 'it:v5_jeton', 'it:v5_linceul', 'it:v5_pain_racines', 'it:v5_lettre_1', 'it:v5_lettre_2', 'it:v5_lettre_3', 'it:v5_lettre_4', 'it:v5_lettre_notaire', 'it:v5_livre_feve', 'it:v5_battant', 'it:v5_cendre_froide', 'it:v5_plume', 'it:v5_sceau_ville', 'it:v5_couronne_cire', 'it:v5_carnet_ermite']]] },
+    groupes: [['La Grande Porte', ['sys:grande-porte', 'it:cle_grande_porte']], ['Les Terres d’Avant', ['sys:terres-avant', 'sys:discretion']], ['Les régions', Object.keys(REGIONS).map((k) => 'zone:' + k)], ['Les bêtes', ['sys:betes-zone']], ['Le Ver', ['sys:ver', 'it:v3_ecaille', 'it:v3_dent', 'it:v3_coeur', 'it:v3_cle_collier', 'it:v3_carnet']], ['Hautguet', ['sys:hautguet', 'it:v4_registre', 'it:v4_lettre_dame', 'it:v4_anneau', 'it:v4_cle_poterne', 'it:v4_cle_chapelle', 'it:v4_cle_donjon', 'it:v4_cle_tour', 'it:v4_trousseau']], ['Basse-Fosse, la ville sous la ville', ['sys:basse-fosse', 'it:v5_jeton', 'it:v5_linceul', 'it:v5_pain_racines', 'it:v5_lettre_1', 'it:v5_lettre_2', 'it:v5_lettre_3', 'it:v5_lettre_4', 'it:v5_lettre_notaire', 'it:v5_livre_feve', 'it:v5_battant', 'it:v5_cendre_froide', 'it:v5_plume', 'it:v5_sceau_ville', 'it:v5_couronne_cire', 'it:v5_carnet_ermite']]] },
   { id: 'gobelins', t: 'Les gobelins', apres: ['parlantes', 'betes'],
     d: 'Les Petits, ceux d’en dessous : leurs vols de nuit, leur marque, ce qu’on peut leur faire ; leur village, le chemin pour y entrer, la vieille (secrets).',
     groupes: [['Les gobelins', ['sys:gobelins', 'an:gobelin', 'an:gob_aieule']], ['Leurs lieux', ['li:gob_souche', 'li:gobeliniere']], ['Ce qu’on trouve chez eux', ['it:gob_dent', 'it:gob_chiffons', 'it:gob_trousseau', 'it:gob_hochet', 'it:gob_alliance', 'it:gob_bonnet', 'it:gob_couronne']]] },
@@ -576,6 +647,9 @@ const COUCHES_PLAN = [
   { cle: 'bassefosse', nom: 'Basse-Fosse, et les secrets des Terres d’Avant', secret: 1, on: 1, marques(C) {
     const D = { v5_basse_fosse: ['Basse-Fosse (sous terre)', 'La ville sous la ville, à quarante-huit mètres sous les ruines', '⛪', 1], v5_tonnellerie: ['la tonnellerie', 'La trappe, la cave, le foudre : l’entrée de Basse-Fosse', '⇣'], v5_tertre_creux: ['le tertre creux', 'Un dolmen ; dessous, un roi, et le battant de la cloche', '⌓'], v5_chapelle_muree: ['la chapelle murée', 'Le sceau de la Ville Basse', '✝'], v5_ermitage: ['l’ermitage', 'Le carnet de celui qui regardait passer le Ver', '⌂'], v5_brasier_mort: ['le brasier mort', 'La cendre froide', '♨'] };
     for (const [key, , x, z] of C.R.lm || []) { const d = D[key]; if (d) C.M({ l: 'bassefosse', k: 'pt', x, z, t: d[0], s: d[1], p: C.pg('sys:basse-fosse'), i: d[2], big: d[3] ? 1 : 0 }); }
+  } },
+  { cle: 'repaires', nom: 'Les repaires des bêtes', secret: 1, on: 1, marques(C) {
+    for (const s of C.R.sites || []) if (/^repaire_/.test(s[0])) C.M({ l: 'repaires', k: 'pt', x: s[2], z: s[3], t: cap(String(s[6]).replace(/ \(.*$/, '')), s: String(s[6]).replace(/^[^(]*\(|\)$/g, ''), p: C.pg('sys:betes-zone', 'sys:terres-avant'), i: '☠' });
   } },
   { cle: 'inscr', nom: 'Ce que racontent les pierres', secret: 1, on: 0, marques(C) {
     const IN = Object.fromEntries((C.T('V1_INSCRIPTIONS', []) || []).map((a) => [a[0], a]));
@@ -955,6 +1029,24 @@ const CHAPITRES = [
     h += SEC(s, 'L’entrée, les murs qui mentent, les secrets des Terres d’Avant, l’histoire et les fins : masqué (secrets).');
     SP('sys:basse-fosse', { t: 'Basse-Fosse, la ville sous la ville', s: 'Sous la Ville Basse : ceux d’en bas, leurs lois, leur compte', c: ['terres'], i: '⛪', h }, files(/^(11-zzzzV5-|07-z+V5-)/));
     for (const i of Object.keys(ITEMS).filter((x) => /^v5_/.test(x))) C.append('it:' + i, `<p>${lk('sys:basse-fosse', 'Basse-Fosse')}</p>`);
+  } },
+
+  // ======== les créatures des Terres d’Avant (V2)
+  { id: 'V2', present: (C) => /V2/.test(Object.values(C.X.DB.tables || {}).map((t) => t.file || '').join(' ')), fiches(C) {
+    const { md, ul, h3, tbl, td, SEC, SP, lk, files, plan } = C;
+    let h = `<p class="lead">${md(BETES.lead)}</p>` + `<p>${plan('', 'Les régions sur le plan')}</p>`;
+    h += h3('Les règles communes') + ul(BETES.regles);
+    h += h3('Les quinze') + tbl(['Bête', 'Où', 'Quand', 'Ce qu’elle voit, ce qu’elle entend', 'Ce qu’elle fait', 'Ce qu’elle laisse'], BETES.especes.map((r) => td(r.map((x, i) => (i ? md(x) : `<b>${md(x)}</b>`)))));
+    h += h3('Leurs repaires') + ul(BETES.repaires);
+    h += SEC(h3('Ce qui se cache') + ul(BETES.secret), 'Comment passer chaque bête, ce qui les tue, ce qu’elles gardent : masqué (secrets).');
+    SP('sys:betes-zone', { t: 'Les bêtes des Terres d’Avant', s: 'Quinze sortes, toutes évitables : garous, gargouilles, basilic, tarasque, chimère, vouivre…', c: ['terres'], i: '☠', h }, files(/^(11-zzzzV2-|12-z+V2-|07-z+V2-)/));
+    C.append('sys:terres-avant', h3('Les bêtes') + `<p>${md('Quinze sortes de bêtes, toutes évitables en restant discret : [[sys:betes-zone|les bêtes des Terres d’Avant]].')}</p>`);
+  } },
+  // ======== les trajets des habitants (Z) : une note
+  { id: 'Z', present: (C) => /11-zzzzZ-/.test(Object.keys(C.X.MF || {}).join(' ')), fiches(C) {
+    const { md, ul, SP, files } = C;
+    const h = `<p class="lead">${md(TRAJETS.lead)}</p>` + ul(TRAJETS.points) + `<p class="note">${md(TRAJETS.mesure)}</p>`;
+    SP('sys:trajets', { t: 'Les trajets des habitants', s: 'Ils contournent, ouvrent les portes, se croisent, dorment dans leur lit', c: ['societe'], g: 'La vie de la vallée', i: '🚶', h }, files(/^11-zzzzZ-/));
   } },
 
   // ======== le Ver (V3)
