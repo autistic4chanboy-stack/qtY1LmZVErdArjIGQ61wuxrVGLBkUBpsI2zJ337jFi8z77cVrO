@@ -1319,6 +1319,10 @@ async function extract() {
   DB.world.dessous = safe('plan du Dessous', () => planDessous(G, DB), null);
   DB.world.mondes = safe('plans des autres mondes', () => planMondes(G, DB), {});
   DB.derived.nv = safe('nouveautés, mesures', () => textesNouveautes(G), {});
+  // la quatorzième vague : les Terres d'Avant (générées ici, une fois : leur plan), la Grande Porte, la bibliothèque, les
+  // gobelins… ce qui ne se lit qu'en faisant tourner le jeu : tools/wiki-v14.js
+  try { const W14 = require('./wiki-v14.js'); if (W14.extract) await W14.extract(G, w, DB, { Plan, boxTopFaces, blocM, paintFaces, jclone, say }); }
+  catch (e) { DB.log.push('vague 14 : ' + (e && e.message)); say('  ⚠', 'vague 14', '—', e && e.message); }
   say(`plans dessinés : le Dessous${DB.world.dessous ? ` (${DB.world.dessous.img.w} × ${DB.world.dessous.img.h} px, ${Math.round(DB.world.dessous.img.url.length / 1024)} Ko)` : ' (absent)'}, ${Object.keys(DB.world.mondes || {}).length} autres mondes`);
   // la planche des figurines (les portes et les meubles s'y sont ajoutés)
   if (FIGS) {
@@ -4413,6 +4417,14 @@ function buildWiki(DB) {
   if (W13) {
     try { W13.build({ DB, T, P, SP, SEC, esc, lk, IL, FILL, quotes, npcLink, pages, used, addCat, rarTag, nfmt, planBtn, mapBtn, MF, ITEMS, NAMES }); } catch (e) { (DB.log || []).push('wiki-v13.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
   }
+  // ==== LA QUATORZIÈME VAGUE : la Grande Porte, les Terres d'Avant (leurs régions, leur plan, la discrétion), le Ver,
+  // Hautguet ; la bibliothèque (les rayons, la clé), les gobelins, la main du crocheteur et le cambriolage de nuit (sections :
+  // W14.sections, plus bas). Les textes et les fiches : tools/wiki-v14.js (ce qui se cache, sous « révéler les secrets »).
+  let W14 = null;
+  try { W14 = require('./wiki-v14.js'); } catch (e) { (DB.log || []).push('wiki-v14.js : ' + e.message); }
+  if (W14) {
+    try { W14.build({ DB, T, P, SP, SEC, esc, lk, IL, FILL, quotes, npcLink, pages, used, addCat, rarTag, nfmt, planBtn, mapBtn, MF, ITEMS, NAMES, link, placeLink }); } catch (e) { (DB.log || []).push('wiki-v14.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
+  }
   for (const f of [FILE.vol, FILE.prison, FILE.sentiments]) if (f) genericPage(f, 'prison', 'Prison, vol et sentiments');
   for (const f of Object.keys(MF)) if (!MODPAGE[f] && !/^07-/.test(f)) genericPage(f, 'nouveautes-autres', 'Autres nouveautés');
   // ce qui reste des tables de chaque module : en bas de sa fiche principale
@@ -4522,6 +4534,7 @@ function buildWiki(DB) {
   }
   // les sections de la treizième vague (Quêtes principales, Les bêtes qui parlent), à leur place
   if (W13 && W13.sections) try { W13.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v13.js (sections) : ' + e.message); }
+  if (W14 && W14.sections) try { W14.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v14.js (sections) : ' + e.message); }
   // semaine : page d'ensemble
   if (SEM.length) P('cat:semaine', { t: 'La semaine', s: `${SEM.length} jours`, c: [], i: '📅', h: `<p class="lead">Dans la vallée, la semaine compte ${SEM.length} jours${DB.derived.jour ? `, et une journée dure ${Math.round(DB.derived.jour / 60)} minutes` : ''}.</p><table class="t">${SEM.map((J, k) => `<tr><th>${link('sem:' + k)}</th><td>${esc((J.annonce || '').replace(/^\(|\)$/g, ''))}</td></tr>`).join('')}</table>` });
 
@@ -4735,7 +4748,9 @@ function buildPlansData(DB, wiki) {
     out.push({ id: nom, t: TT[nom] || cap(o.titre || nom), i: { enfers: '🜂', cauchemar: '☾', bonbons: '🍬', tenebres: '🜏', vaisseau: '✧' }[nom] || '◐', s: NOTE[nom] || '', img: o.img, x0: o.x0, z0: o.z0, x1: o.x1, z1: o.z1, ppm: o.ppm, bg: { enfers: '#1a0c0a', cauchemar: '#0e0d0d', bonbons: '#eccede', tenebres: '#101016', vaisseau: '#0c1220' }[nom] || '#222', coords: 0, p: page,
       layers: [['noms', 'Les lieux', 0, 1], ['decors', 'Ce qui s’y dresse', 0, 1], ['betes', 'Ce qui y vit', 0, 1], ['cueillir', 'Ce qu’on y ramasse', 0, 1]], marks });
   }
-  const ORD = ['dessous', 'enfers', 'cauchemar', 'bonbons', 'tenebres', 'vaisseau'];
+  // ---- les Terres d'Avant (la quatorzième vague : tools/wiki-v14.js)
+  try { const W14 = require('./wiki-v14.js'); if (W14.plans) W14.plans(DB, wiki, out); } catch (e) { (DB.log || []).push('wiki-v14.js (plan) : ' + e.message); }
+  const ORD = ['dessous', 'terres', 'enfers', 'cauchemar', 'bonbons', 'tenebres', 'vaisseau'];
   return out.sort((a, b) => ORD.indexOf(a.id) - ORD.indexOf(b.id));
 }
 
@@ -6029,5 +6044,5 @@ async function main() {
   say('terminé');
 }
 
-module.exports = { encodePNG, pngURL, packGrid, packBytes, FakeCanvas, loadGame, URL_TO_CANVAS, jclone, extract, buildWiki, writeHTML, CLIENT, Plan, planPNG, planDessous, planMondes: typeof planMondes === 'function' ? planMondes : null };
+module.exports = { encodePNG, pngURL, packGrid, packBytes, FakeCanvas, loadGame, URL_TO_CANVAS, jclone, extract, buildWiki, writeHTML, CLIENT, Plan, planPNG, planDessous, planMondes: typeof planMondes === 'function' ? planMondes : null, boxTopFaces, blocM, paintFaces };
 if (require.main === module) main().then(() => process.exit(0), (e) => { console.error(e && e.stack || e); process.exit(1); });
