@@ -95,6 +95,47 @@ zone.passe('V1-feux', (Z, O) => {
   }
 });
 
+// ---------------------------------------------------------------- la mort dans la Zone : le dernier feu allumé vous garde, une fois, et s'éteint
+// (on le rallume, mais pas le jour même : la cendre est froide)
+Object.assign(feuxV1, {
+  garde(cause) {
+    const S = zone.S(), id = S.feu, p = game.player;
+    if (!zone.dedans || !id || !S.feux[id] || this.enCours) return false;
+    const q = this.dernier();
+    if (!q) return false;
+    this.enCours = true;
+    p.hp = Math.max(p.hp, 1);
+    (async () => {
+      game.sleeping = true;
+      $('#fade').style.background = '#140c08';
+      await ui.fade(true, V1_TEXTES.feuGarde, 1600);
+      S.feux[id] = 0; S.eteints = S.eteints || {}; S.eteints[id] = farm.s.day; S.gardes = (S.gardes || 0) + 1;
+      zone.setPropData(q, { lit: false }); zone.Z.collectLights();
+      if (typeof corps !== 'undefined' && corps.panser) try { corps.panser(); } catch (e) { /* */ }
+      const x = q.x + 1.4, z = q.z + 1.2;
+      p.pos = [x, zone.Z.groundAt(x, z, zone.Z.heightAt(x, z) + 1, 0.8) + 0.02, z]; p.vel = [0, 0, 0];
+      p.hp = 30; p.stamina = 0.5;
+      game.renderer.uploadCover(x, z);
+      zone.annoncer('repos', q);
+      await new Promise((r) => setTimeout(r, 1800));
+      $('#fade').style.background = '';
+      await ui.fade(false, '', 1500);
+      game.sleeping = false;
+      this.enCours = false;
+      farm.save();
+    })();
+    return true;
+  },
+});
+HOOKS.death.push((cause) => feuxV1.garde(cause));
+{
+  const _t = feuxV1.toucher.bind(feuxV1);
+  feuxV1.toucher = function (it) {
+    const S = zone.S(), id = it.data.id;
+    if (!S.feux[id] && S.eteints && S.eteints[id] === farm.s.day) { ui.subtitle('', '(La cendre est froide. Demain, peut-être.)', 3); return; }
+    return _t(it);
+  };
+}
 HOOKS.inter.v1_feu = (it) => feuxV1.toucher(it);
 HOOKS.inter.v1_seuil = () => zone.repasser();
 HOOKS.interVis.v1_feu = () => zone.dedans;

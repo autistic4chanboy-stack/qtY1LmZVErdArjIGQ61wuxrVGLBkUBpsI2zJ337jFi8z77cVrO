@@ -63,6 +63,50 @@ function v1BatirPorte(B, f, o) {
   return { vantaux: [vg, vd], braseros: br, bouchon, inter: [ix, f.y + 1.6, iz] };
 }
 
+// ---------------------------------------------------------------- la paroi : le relief dressé en falaise derrière la façade
+// (la vallée : la Porte est taillée dans la montagne). On ne fait que MONTER le sol, dans une bande de 90 m derrière
+// la façade, sur 240 m de large, sans enterrer ce qui est posé là (lieux, objets posés, interactions, blocs) ; ce qui
+// poussait sur la roche dressée s'en va (son rang dans w.objects ne change pas : l'empreinte reste la même).
+function v1Falaise(w, B, f) {
+  const nz = (u, s) => Math.sin(u * 0.11 + s) * 0.5 + Math.sin(u * 0.27 + s * 2.3) * 0.3 + Math.sin(u * 0.63 + s * 4.1) * 0.2;
+  const pied = (lx) => 1.5 + Math.max(0, Math.abs(lx) - 22) * 0.22 + nz(lx, 1.7) * 1.4;
+  const haut = (lx) => (37 + nz(lx, 4.2) * 6) * (1 - smoothstep(45, 118, Math.abs(lx)));
+  // ce qu'il ne faut pas enterrer
+  const garde = [];
+  for (const k in w.lm) { const L = w.lm[k]; if (!L.under) garde.push([L.x, L.z, Math.min(L.r || 8, 30)]); }
+  for (const q of w.props) garde.push([q.x, q.z, 3]);
+  for (const it of w.inter) garde.push([it.x, it.z, 3]);
+  for (const b of w.blocks) if (!b.under) garde.push([b.x, b.z, Math.max(b.sx, b.sz) / 2 + 1]);
+  const R = 175, pres = garde.filter(([x, z, r]) => Math.hypot(x - f.x, z - f.z) < R + r + 40).map(([x, z, r]) => [x, z, r, w.heightAt(x, z)]);
+  const leve = new Map();
+  B.forVerts(f.x, f.z, R, (i, j, k, x, z) => {
+    const [lx, lz] = B.toLocal(f, x, z);
+    if (lz < -1 || lz > 90 || Math.abs(lx) > 120) return;
+    const d = lz - pied(lx), Hc = haut(lx);
+    if (d <= 0 || Hc < 0.5) return;
+    let t = (Hc * smoothstep(0, 9, d) + Math.max(0, d - 9) * 0.25) * (1 - smoothstep(34, 88, lz));
+    t += nz(lx * 1.7 + lz * 0.9, 2.9) * Math.min(2.5, t * 0.12); // la roche n'est pas lisse
+    const y0 = w.heights[k];
+    let y = f.y - 0.1 + t;
+    // près de ce qu'on garde : au plus une pente qui descend vers lui
+    for (const [gx, gz, gr, gy] of pres) { const dd = Math.hypot(x - gx, z - gz) - gr - 3; if (dd < 45) y = Math.min(y, Math.max(y0, gy + Math.max(0, dd) * 0.9)); }
+    if (y <= y0 + 0.05) return;
+    w.heights[k] = y;
+    leve.set(k, y - y0);
+    if (y - y0 > 2.2) w.mats[k] = M_ROCK;
+  });
+  // ce qui poussait là où la roche s'est dressée s'en va
+  const c = w.cell;
+  for (const ob of w.objects) {
+    if (ob.gone || Math.abs(ob.x - f.x) > R || Math.abs(ob.z - f.z) > R) continue;
+    if (OBJ_TYPES[ob.t].animal) continue;
+    const dh = leve.get(Math.round(ob.z / c) * w.W + Math.round(ob.x / c));
+    if (dh && dh > 1.2) ob.gone = true;
+  }
+  w.shadeDirty = true; w.grid = null;
+  return leve.size;
+}
+
 // ---------------------------------------------------------------- génération (la vallée)
 function v1PorteGenerer(w, seed) {
   if (!w || !w.designed || !w.lm || w.v1porte) return;
@@ -100,6 +144,7 @@ function v1PorteGenerer(w, seed) {
   }
   if (!best) return;
   const f = { x: best.x, y: best.y + 0.1, z: best.z, r: best.an };
+  const nLeve = v1Falaise(w, B, f);
   const P = v1BatirPorte(B, f, { barre: true, feux: 'porte' });
   B.inter('v1_porte', 'v1_porte', P.inter[0], P.inter[1], P.inter[2], 'La Grande Porte', {});
   // la stèle, à gauche des marches
@@ -117,7 +162,13 @@ function v1PorteGenerer(w, seed) {
     const T = OBJ_TYPES[ob.t];
     if (T.animal) continue;
     const [lx, lz] = B.toLocal(f, ob.x, ob.z);
-    if ((Math.abs(lx) < 24 && lz > -22 && lz < 14) || route(ob.x, ob.z)) ob.gone = true;
+    if ((Math.abs(lx) < 30 && lz > -24 && lz < 14) || (Math.abs(lx) < 66 && lz > -6 && lz < 40) || route(ob.x, ob.z)) ob.gone = true;
+  }
+  // deux bornes de vieille pierre là où la route quitte les ruines, et une troisième à mi-chemin (on les voit de loin)
+  for (const [k, [bx, bz]] of [pts[0], pts[1]].entries()) {
+    const by = w.heightAt(bx, bz), r2 = Math.atan2(pts[k + 1][0] - bx, pts[k + 1][1] - bz);
+    for (const c of k ? [1] : [-1, 1]) { const [qx, qz] = B.toWorld({ x: bx, z: bz, r: r2 }, c * 3.2, 0); B.block({ x: qx, y: w.heightAt(qx, qz) - 1, z: qz, r: r2 + 0.1 * c }, 0, 0, 0, 1.1, 6.5 + k * 1.5, 0.9, M_V1_PIERRE); }
+    for (const ob of w.objects) if (!ob.gone && Math.abs(ob.x - bx) < 6 && Math.abs(ob.z - bz) < 6 && !OBJ_TYPES[ob.t].animal) ob.gone = true;
   }
   // les pavés du parvis
   B.paintRect(f, 0, -11, 9, 7, M_COBBLE);
@@ -125,7 +176,7 @@ function v1PorteGenerer(w, seed) {
   (w.noBuild || (w.noBuild = [])).push({ x: f.x, z: f.z, r: 42, why: 'la Grande Porte' });
   const [ox, oz] = B.toWorld(f, 0, -11);
   w.v1porte = { x: f.x, y: f.y, z: f.z, r: f.r, vantaux: P.vantaux, bouchon: P.bouchon, braseros: P.braseros, stele: [sx, sy, sz],
-    sortie: { x: ox, y: w.heightAt(ox, oz) + 0.05, z: oz, yaw: f.r + Math.PI }, plat: +best.plat.toFixed(2), paroi: +best.h30.toFixed(1), route: pts };
+    sortie: { x: ox, y: w.heightAt(ox, oz) + 0.05, z: oz, yaw: f.r + Math.PI }, plat: +best.plat.toFixed(2), paroi: +best.h30.toFixed(1), route: pts, falaise: nLeve };
   w.grid = null;
 }
 {

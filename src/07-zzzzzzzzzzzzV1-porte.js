@@ -87,9 +87,10 @@ Object.assign(PROP_MODELS, {
   // la barre de fer passée dans les anneaux (montrée quand la Porte est close)
   v1_barre(E) {
     if (typeof porteV1 === 'undefined' || !porteV1.barreMise()) return;
-    E.bx(0, 3.05, -0.33, 8.6, 0.26, 0.26, [0.38, 0.36, 0.34], TL.iron);
-    for (const x of [-3.55, 3.55]) E.bx(x, 2.6, -0.3, 0.32, 1.0, 0.2, [0.32, 0.3, 0.28], TL.iron);
-    E.bx(0, 2.75, -0.36, 0.5, 0.5, 0.22, [0.28, 0.26, 0.25], TL.iron); // le cadenas
+    // (une grosse barre de fer rouillé, qu'on voit de loin : la Porte est fermée)
+    E.bx(0, 3.0, -0.38, 8.8, 0.44, 0.36, [0.66, 0.5, 0.38], TL.iron);
+    for (const x of [-3.55, 3.55, -1.2, 1.2]) E.bx(x, 2.55, -0.32, 0.36, 1.2, 0.24, [0.5, 0.42, 0.36], TL.iron);
+    E.bx(0, 2.6, -0.44, 0.62, 0.62, 0.26, [0.72, 0.58, 0.3], TL.iron); // le cadenas
   },
   // un brasero sur un fût de pierre (allumé ou non : o.data.feu = 'porte' suit la Porte, sinon o.data.lit)
   v1_brasier(E, o, t) {
@@ -128,7 +129,31 @@ Object.assign(PROP_MODELS, {
     } else E.bx(0, 0.08, 0, 0.6, 0.1, 0.6, [0.12, 0.11, 0.1], TL.coal);
   },
 });
-Object.assign(PROP_COLL, { v1_brasier: [0.5, 0.5, 2.9], v1_stele: [0.6, 0.35, 2.6] });
+Object.assign(PROP_MODELS, {
+  // un levier de fer dans un bâti de pierre, une roue dentée, une chaîne (o.data.tire : abaissé)
+  v1_levier(E, o) {
+    E.bx(0, 0, 0, 1.2, 0.9, 0.9, [0.5, 0.5, 0.48], mt(M_V1_PIERRE));
+    E.box(0, 1.25, 0.46, 0.9, 0.9, 0.12, [0.38, 0.35, 0.32], TL.iron, 0, 0, 0.4);
+    const a = o.data && o.data.tire ? 1.0 : -0.7;
+    E.box(0, 0.9 + Math.cos(a) * 0.8, Math.sin(a) * 0.8, 0.1, 1.7, 0.1, [0.4, 0.38, 0.36], TL.iron, 0, a);
+    for (let k = 0; k < 6; k++) E.bx(0.45, 0.9 - k * 0.16, 0.5 + k * 0.08, 0.06, 0.12, 0.06, [0.36, 0.34, 0.32], TL.iron);
+  },
+  // une échelle couchée dans l'herbe, au bord d'une paroi (o.data.h)
+  v1_echelle_couchee(E, o) {
+    const h = (o.data && o.data.h) || 6;
+    for (const s of [-0.28, 0.28]) E.bx(s, 0, h / 2, 0.07, 0.07, h, WHITE, TL.wood);
+    for (let z = 0.3; z < h - 0.1; z += 0.38) E.bx(0, 0, z, 0.56, 0.05, 0.05, WHITE, TL.darkwood);
+  },
+  // des restes : des os, une veste, une besace (ceux d'avant)
+  v1_reste(E) {
+    E.bx(0, 0, 0, 0.55, 0.16, 1.2, [0.36, 0.32, 0.28], TL.cloth);
+    E.bx(0, 0.05, -0.75, 0.22, 0.2, 0.24, [0.85, 0.82, 0.74], TL.bone);
+    for (const c of [-1, 1]) E.box(c * 0.35, 0.05, 0.1, 0.07, 0.06, 0.7, [0.85, 0.82, 0.74], TL.bone, c * 0.4);
+    E.bx(0.5, 0, 0.3, 0.32, 0.26, 0.24, [0.42, 0.3, 0.2], TL.leather);
+    E.bx(-0.4, 0, -0.3, 0.2, 0.02, 0.28, [0.85, 0.82, 0.7], TL.paper);
+  },
+});
+Object.assign(PROP_COLL, { v1_brasier: [0.5, 0.5, 2.9], v1_stele: [0.6, 0.35, 2.6], v1_levier: [0.6, 0.45, 1.0] });
 // (les braseros de la Porte, côté vallée, éclairent par HOOKS.lights selon l'état de la Porte ; ceux de la Zone et les feux de
 // veille par leurs données : data.lit)
 Object.assign(PROP_LIGHTS, {
