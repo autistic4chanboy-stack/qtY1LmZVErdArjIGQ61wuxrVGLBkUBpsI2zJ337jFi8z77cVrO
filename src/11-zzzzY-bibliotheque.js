@@ -35,6 +35,7 @@
 const Y2_CAUTION = { 3: 150, 7: 300 };
 const Y2_RETOUR_H = 48;           // la clé perdue revient dans son livre au bout de deux jours
 const Y2_TITRE_CLE = 'La clé de la Grande Porte';
+const Y2_BRUIT_CLE = 0.35;        // soulever la clé de fer de son livre, la nuit : un bruit de porte (U_BRUITS de U)
 // la question du bibliothécaire : la réponse est dans les livres (voir 05-zzzzzY-4-…)
 const Y2_QUESTIONS = [
   { q: '« Que dit le gardien, quand il referme la Porte derrière celui qui revient ? »', livre: 'y_porte_chronique',
@@ -289,17 +290,11 @@ const bibliotheque2 = {
     ui.close(true);
     ui.subtitle(biblio.nom(), '« Celui-là ne se feuillette pas. » Il vous le reprend des mains, sans brusquerie, et le remet tout en haut.', 5);
   },
-  // un bruit, la nuit, près du dormeur : le réveille-t-il ? (le cambriolage de U s'il est là ; sinon la règle de 11-zzz97)
+  // le cambriolage de U (crochetage.cambriolage : bruit(force, { x, y, z, quoi }) → le premier réveillé, ou null)
+  cambriolageU() { try { const U = typeof crochetage !== 'undefined' && crochetage && crochetage.cambriolage; return U && typeof U.bruit === 'function' ? U : null; } catch (e) { return null; } },
+  // un bruit, la nuit, près du dormeur, sans U : le réveille-t-il ? (la règle de 11-zzz97 : un dormeur chez lui, ~12 % × force)
   bruitNuit(force) {
     const n = this.n(), p = game.player;
-    const U = typeof crochetage !== 'undefined' && crochetage.cambriolage;
-    if (U && typeof U.bruit === 'function') {
-      try {
-        const r = U.bruit(force, { x: p.pos[0], z: p.pos[2], quoi: 'cle', proprietaire: 'libraire' });
-        if (typeof r === 'boolean') return r;
-        return !!(n && n.st.alive && !(n.sleep || n.state === 'sleep'));
-      } catch (e) { console.error(e); }
-    }
     if (!n) return false;
     const d = Math.hypot(n.x - p.pos[0], n.z - p.pos[2]);
     const k = (d < 6 ? 1.5 : d < 14 ? 1 : 0.5) * (1 - 0.5 * (p.crouch || 0));
@@ -317,9 +312,20 @@ const bibliotheque2 = {
     const pres = biblio.present();
     if (pres === 'la') {
       // éveillé, dans sa bibliothèque : il entend presque tout
-      const pEnt = 0.75 * (1 - 0.45 * (game.player.crouch || 0));
+      // (déjà entendu aujourd'hui : il écoute, maintenant)
+      const pEnt = this.C().soupcon === s.day ? 1 : 0.75 * (1 - 0.45 * (game.player.crouch || 0));
       if (Math.random() < pEnt) { this.entendu(); return true; }
     } else if (pres === 'dort') {
+      const U = this.cambriolageU(), p = game.player;
+      if (U) {
+        // (U mène le réveil : il se lève, cherche d'où venait le bruit ; s'il vous voit, c'est lui qui crie et dénonce)
+        let r = null;
+        try { r = U.bruit(Y2_BRUIT_CLE, { x: p.pos[0], y: p.pos[1], z: p.pos[2], quoi: 'prendre' }); } catch (e) { console.error(e); }
+        this.sortir('vol');
+        if (r && r.id === 'libraire') this.C().reveil = farm.s.day;
+        ui.subtitle('', '(La clé est lourde, et plus froide que le papier autour d’elle.)', 3.5);
+        return true;
+      }
       if (this.bruitNuit(0.7)) { this.reveille(); return true; }
     }
     this.sortir('vol');
@@ -329,7 +335,8 @@ const bibliotheque2 = {
   entendu() {
     const n = this.n();
     sound.whisper && sound.whisper(0, 0.4);
-    ui.choice('Une voix, en bas', '(Sans élever la voix, d’en bas, quelqu’un dit : « Reposez-la. »)', [
+    const encore = this.C().soupcon === farm.s.day;
+    ui.choice('Une voix, en bas', encore ? '(D’en bas, la même voix, plus lente : « Je vous ai dit de la reposer. »)' : '(Sans élever la voix, d’en bas, quelqu’un dit : « Reposez-la. »)', [
       { label: 'Reposer la clé dans le livre', fn: () => { ui.close(); if (n) npcs.addAmitie(n, -10); this.C().soupcon = farm.s.day; ui.subtitle('', '(En bas, une page tourne.)', 3); } },
       { label: 'La garder', fn: () => { ui.close(); this.garder(); } },
     ]);
@@ -405,8 +412,17 @@ const bibliotheque2 = {
     }
   },
   // le matin : la lettre du registre, après une clé prise sans prêt
+  // le vol de la clé est-il connu ? (un crime contre le bibliothécaire, depuis le jour où on l'a prise)
+  connu() {
+    try { const C = this.C(), S = typeof societe !== 'undefined' && societe.S ? societe.S() : null; return !!(S && (S.crimes || []).some((k) => k.victime === 'libraire' && !k.leve && k.day >= (C.jour || 0))); } catch (e) { return false; }
+  },
   matin() {
     const C = this.C();
+    if (C.ou === 'dehors' && C.mode === 'vol' && !C.pris && this.vivant() && this.connu()) {
+      C.pris = true;
+      const due = ((C.jour || farm.s.day) + 1 - 1) * 24 + BIBLIO.heure, P = this.pret();
+      if (due < C.due) { C.due = Math.max(due, farm.s.hours + 6); if (P) P.due = C.due; }
+    }
     if (C.ou === 'dehors' && C.mode === 'vol' && !C.lettre && this.vivant()) {
       C.lettre = 1;
       const quand = biblio.dateTexte(C.due);
@@ -426,12 +442,40 @@ const bibliotheque2 = {
   pageCreux() {
     const C = this.C(), avec = C.ou === 'livre';
     let h = `<div class="y2-creux"><img src="${this.image(avec)}" alt=""></div>`;
-    if (avec) h += `<div class="txt">${livres.txt('Passé la vingtième page, les feuillets sont collés ensemble, et quelqu’un les a creusés au canif, proprement, comme on creuse un berceau. Dedans, couchée dans son lit de papier, une clé de fer noir, longue comme l’avant-bras.')}</div><p class="deplier-p"><button class="deplier" data-y2="prendre">Prendre la clé</button></p>`;
+    if (avec) h += `<div class="txt">${livres.txt('Passé la vingtième page, les feuillets sont collés ensemble et creusés au canif, proprement, comme on creuse un berceau. Dedans, couchée dans son lit de papier, une clé de fer noir.')}</div><p class="deplier-p"><button class="deplier" data-y2="prendre">Prendre la clé</button></p>`;
     else {
-      h += `<div class="txt">${livres.txt('Passé la vingtième page, les feuillets sont collés ensemble et creusés au canif. La cavité est vide. Le papier garde la forme d’une clé, en creux, avec un peu de rouille au fond.')}</div>`;
+      h += `<div class="txt">${livres.txt('Passé la vingtième page, les feuillets sont collés ensemble et creusés au canif. La cavité est vide ; le papier garde la forme d’une clé, avec un peu de rouille au fond.')}</div>`;
       if (C.ou === 'dehors' && farm.count(Y2_CLE)) h += `<p class="deplier-p"><button class="deplier" data-y2="remettre">Remettre la clé dans le livre</button></p>`;
     }
     return h;
+  },
+  // la clé dessinée seule, à plat (96 × 34 points), une fois pour toutes : l'anneau ovale ajouré, la bague, la tige,
+  // le panneton aux dents fines comme un peigne ; du fer noir, poli aux arêtes, un peu de rouille
+  dessinCle() {
+    if (this._cle) return this._cle;
+    const cv = document.createElement('canvas'); cv.width = 96; cv.height = 34;
+    const c = cv.getContext('2d'), P = (x, y, col) => { c.fillStyle = col; c.fillRect(x, y, 1, 1); }, R = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
+    const F = '#2b2926', H = '#57534b', E = '#8c867a', O = '#141311', U = '#6e4326';
+    // l'anneau : un ovale percé d'un trèfle
+    for (let y = 2; y < 32; y++) for (let x = 1; x < 26; x++) {
+      const ex = (x - 13) / 12, ey = (y - 17) / 15, d = ex * ex + ey * ey;
+      if (d > 1) continue;
+      const trou = [[13, 11], [9, 19], [17, 19]].some(([a, b]) => (x - a) * (x - a) + (y - b) * (y - b) < 9) || ((x - 13) * (x - 13) + (y - 17) * (y - 17) < 5);
+      if (trou) continue;
+      P(x, y, d > 0.8 ? (y < 17 ? E : O) : y < 12 ? H : F);
+    }
+    // la bague, la tige, le bout
+    R(25, 13, 5, 9, F); R(25, 13, 5, 1, E); R(25, 21, 5, 1, O); R(30, 14, 2, 7, H);
+    R(32, 15, 52, 5, F); R(32, 15, 52, 1, E); R(32, 16, 52, 1, H); R(32, 19, 52, 1, O);
+    R(84, 15, 6, 5, F); R(84, 15, 6, 1, E); R(90, 16, 2, 3, O);
+    // le panneton : il pend sous la tige, entaillé de dents fines
+    R(70, 20, 18, 12, F); R(70, 20, 1, 12, H); R(70, 31, 18, 1, O); R(87, 20, 1, 12, O);
+    for (const x of [73, 76, 79, 82, 85]) c.clearRect(x, 26, 1, 6);
+    R(76, 22, 6, 2, O);
+    // la rouille, l'usure
+    for (const [x, y] of [[40, 18], [41, 18], [58, 19], [64, 17], [72, 29], [83, 23], [6, 20], [20, 9], [27, 19]]) P(x, y, U);
+    for (const [x, y] of [[46, 15], [47, 15], [60, 15], [11, 4], [12, 4]]) P(x, y, '#b4ad9e');
+    return (this._cle = cv);
   },
   // le dessin du livre ouvert, creusé, avec ou sans la clé (une fois pour toutes)
   image(avec) {
@@ -439,47 +483,69 @@ const bibliotheque2 = {
     if (this._img[k]) return this._img[k];
     let url = '';
     try {
-      const cv = document.createElement('canvas'); cv.width = 120; cv.height = 72;
+      const cv = document.createElement('canvas'); cv.width = 120; cv.height = 64;
       const c = cv.getContext('2d'), R = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
-      R(0, 0, 120, 72, '#2a2018');
-      R(4, 5, 112, 62, '#5a3a24'); R(5, 6, 110, 60, '#6e4a2e');                 // la reliure
-      R(8, 8, 50, 56, '#e8dcbc'); R(62, 8, 50, 56, '#e4d6b4'); R(58, 8, 4, 56, '#b8a47c');   // les pages, le pli
-      for (let y = 12; y < 62; y += 3) { R(11, y, 44, 1, 'rgba(120,100,70,.25)'); R(65, y, 44, 1, 'rgba(120,100,70,.25)'); }
+      c.imageSmoothingEnabled = false;
+      R(0, 0, 120, 64, '#2a2018');
+      R(2, 3, 116, 58, '#5a3a24'); R(3, 4, 114, 56, '#6e4a2e');                // la reliure
+      R(6, 6, 52, 52, '#e8dcbc'); R(62, 6, 52, 52, '#e4d6b4'); R(58, 6, 4, 52, '#b8a47c');   // les pages, le pli
+      for (let y = 9; y < 56; y += 3) { R(9, y, 46, 1, 'rgba(120,100,70,.22)'); R(65, y, 46, 1, 'rgba(120,100,70,.22)'); }
       // la cavité : des tranches de papier, le fond sombre
-      R(18, 18, 84, 36, '#a08a62'); R(20, 20, 80, 32, '#8a7450'); R(22, 22, 76, 28, '#5a4a34'); R(24, 24, 72, 24, '#3a2e22');
-      for (let x = 20; x < 100; x += 2) R(x, 19, 1, 1, '#c8b48c');
-      if (avec) {
-        const K = '#26241f', H = '#5c5852', B = '#8a7a52';
-        // l'anneau en trèfle
-        for (const [cx, cy] of [[34, 36], [30, 31], [30, 41]]) { c.fillStyle = K; c.beginPath(); c.arc(cx, cy, 5, 0, Math.PI * 2); c.fill(); c.fillStyle = '#3a2e22'; c.beginPath(); c.arc(cx, cy, 2, 0, Math.PI * 2); c.fill(); }
-        R(38, 34, 46, 4, K); R(38, 34, 46, 1, H); R(44, 33, 3, 6, B);              // la tige, la bague
-        R(80, 37, 4, 9, K); R(84, 41, 6, 5, K); R(86, 46, 3, 3, K); R(80, 44, 2, 2, '#3a2e22');   // le panneton
-        R(81, 37, 1, 8, H);
-      } else {
-        R(30, 32, 56, 8, '#33281e'); R(32, 34, 50, 2, '#4a3624');
-        for (const [x, y] of [[40, 35], [58, 36], [70, 34]]) R(x, y, 2, 1, '#7a4a2a');
+      R(8, 12, 104, 40, '#a08a62'); R(10, 14, 100, 36, '#8a7450'); R(12, 16, 96, 32, '#5a4a34'); R(13, 17, 94, 30, '#3a2e22');
+      for (let x = 9; x < 111; x += 2) R(x, 13, 1, 1, '#c8b48c');
+      if (avec) c.drawImage(this.dessinCle(), 13, 15);
+      else {
+        R(16, 22, 24, 22, '#33281e'); R(40, 30, 50, 6, '#33281e'); R(80, 34, 18, 12, '#33281e');
+        for (const [x, y] of [[44, 32], [60, 33], [72, 31], [26, 30], [86, 40]]) R(x, y, 2, 1, '#7a4a2a');
       }
       url = cv.toDataURL();
     } catch (e) { url = ''; }
     return (this._img[k] = url);
+  },
+  // la clé seule, sur un velours sombre
+  imageCle() {
+    if (this._img.cle) return this._img.cle;
+    let url = '';
+    try {
+      const cv = document.createElement('canvas'); cv.width = 112; cv.height = 46;
+      const c = cv.getContext('2d');
+      c.imageSmoothingEnabled = false;
+      c.fillStyle = '#2a1c1c'; c.fillRect(0, 0, 112, 46);
+      for (let i = 0; i < 260; i++) { const x = (i * 37) % 112, y = (i * 53 + (i >> 3)) % 46; c.fillStyle = i % 3 ? 'rgba(80,40,40,.35)' : 'rgba(10,6,6,.4)'; c.fillRect(x, y, 1, 1); }
+      c.fillStyle = 'rgba(0,0,0,.45)'; c.fillRect(10, 10, 96, 34);   // l'ombre
+      c.drawImage(this.dessinCle(), 8, 6);
+      url = cv.toDataURL();
+    } catch (e) { url = ''; }
+    return (this._img.cle = url);
   },
   // la clé en main : la regarder
   regarder() {
     const C = this.C(), P = this.pret();
     let ins = '';
     try { ins = langCanvas('aelin', Y2_CLE_INSCR, { size: 16, bg: '#d8d0b8', ink: '#3a2a1a' }).toDataURL(); } catch (e) { ins = ''; }
+    // (la traduction ne remplace que les mots connus ; rien de connu : on ne sait pas lire)
     const tr = typeof langues !== 'undefined' ? langues.traduire('aelin', Y2_CLE_INSCR) : Y2_CLE_INSCR;
-    const lu = tr !== Y2_CLE_INSCR;
+    const lu = tr !== Y2_CLE_INSCR.replace(/\s+,/g, ',');
     let etat = '';
     if (P && C.mode === 'pret') etat = `Prêtée par la grande bibliothèque : à rendre au comptoir ${biblio.dateTexte(P.due)}.`;
     else if (P && C.mode === 'vol') etat = `Le registre de la grande bibliothèque l’attend ${biblio.dateTexte(P.due)}.`;
     this.style();
-    ui.open('#reader', `<h3>${esc(Y2_TITRE_CLE)}</h3><div class="y2-creux"><img src="${this.image(true)}" alt=""></div><div class="txt">${livres.txt('Du fer noir, poli aux endroits où les mains l’ont tenue. Elle est plus lourde qu’elle ne devrait, et ne se réchauffe pas dans la main. Le panneton porte des dents fines et serrées, comme celles d’un peigne, qui ne ressemblent à aucune serrure de la vallée.\n\nSur l’anneau, de haut en bas, des Hautes Lettres :')}</div><div class="bb-sceau"><img src="${ins}" alt=""><span>${esc(lu ? '« ' + tr + ' »' : '(Vous ne savez pas lire ces traits.)')}</span></div>${etat ? `<div class="sign">${esc(etat)}</div>` : ''}<button class="close">Refermer</button>`);
+    ui.open('#reader', `<h3>${esc(Y2_TITRE_CLE)}</h3><div class="y2-creux y2-seule"><img src="${this.imageCle()}" alt=""></div><div class="bb-sceau y2-sceau"><img src="${ins}" alt=""><span>${esc(lu ? '« ' + tr + ' »' : '(Sur l’anneau, de haut en bas, des Hautes Lettres. Vous ne savez pas les lire.)')}</span></div><div class="txt">${livres.txt('Du fer noir, poli là où les mains l’ont tenue, plus lourd qu’il ne devrait, et qui ne se réchauffe pas dans la main. Le panneton a des dents fines et serrées comme celles d’un peigne, qu’aucune serrure de la vallée ne connaît.')}</div>${etat ? `<div class="sign">${esc(etat)}</div>` : ''}<button class="close">Refermer</button>`);
     $('#reader .close').onclick = () => ui.close();
     biblio.style();
   },
 
   // ================================================================== LE BIBLIOTHÉCAIRE, EN PARLANT
+  // ce que la Grande Porte fera aujourd'hui (porteV1 de V1 : null | 'vorndi' | 'brume' | 'nuit'), dit de biais
+  ceSoir() {
+    try {
+      if (typeof porteV1 === 'undefined' || !porteV1 || typeof porteV1.fermee !== 'function') return '';
+      const d = farm.s.day, f = porteV1.fermee(d, 23);
+      if (f === 'vorndi') return ' Aujourd’hui, de toute façon, elle ne s’ouvrira pas.';
+      if (f === 'nuit') return ' Cette nuit, ses feux s’éteindront.';
+      return '';
+    } catch (e) { return ''; }
+  },
   question() { const S = this.S(), i = (S.qi ?? (S.qi = (farm.s.seed >>> 0) % Y2_QUESTIONS.length)); return Y2_QUESTIONS[i]; },
   // le texte de « La Grande Porte… » et les choix qui suivent : { text, options }
   porte(t) {
@@ -488,13 +554,14 @@ const bibliotheque2 = {
     if (C.ou === 'dehors' && C.mode === 'vol') return t.view(`Il manque une chose ici depuis le jour ${C.jour}. Le registre sait qui. Je ne le dirai pas plus fort que lui.`, t.options());
     if (C.ou !== 'livre') return t.view('Elle n’est pas là. Elle reviendra. Elles reviennent toujours.', t.options());
     if (C.plusPret) return t.view('Je vous l’ai prêtée une fois. Elle est revenue sans vous. Non.', t.options());
+    if (biblio.present() !== 'la') return t.view('Pas ici. Ces choses-là se demandent à la bibliothèque, au comptoir, et à voix basse.', t.options());
     if (!this.peutPreter()) {
       const l = Bb.lecteur || 0;
       return t.view(l === 0 ? 'La Grande Porte ? Une porte. Moi, je garde des livres. Empruntez-en un, et rendez-le à l’heure ; nous verrons après.'
         : l < 3 ? 'On me demande souvent la clé. On croit que je la garde dans un tiroir, comme un sacristain. Rendez encore quelques livres à l’heure, et nous en reparlerons.'
           : 'Vous êtes exact, c’est déjà beaucoup. Mais je ne vous connais pas encore assez. Revenez me voir. Parlez-moi d’autre chose.', t.options());
     }
-    if (S.q.ok) return t.view('La clé. Trois jours, ou sept. La caution vous sera rendue au retour, à l’heure. Pas une minute après.', [
+    if (S.q.ok) return t.view('La clé. Trois jours, ou sept. La caution vous sera rendue au retour, à l’heure. Pas une minute après.' + this.ceSoir(), [
       { label: `Trois jours (caution : ${Y2_CAUTION[3]} pièces)`, act: 'y2:pret3' }, { label: `Sept jours (caution : ${Y2_CAUTION[7]} pièces)`, act: 'y2:pret7' }, { label: 'Pas maintenant', act: 'y2:non' },
     ]);
     if (S.q.rate === s.day) return t.view('Pas aujourd’hui. Lisez. Revenez demain.', t.options());
@@ -546,8 +613,14 @@ const bibliotheque2 = {
 #biblio .y2-tabs button{padding:4px 9px;background:rgba(255,255,255,.3);border:1px solid rgba(90,70,40,.3);border-radius:3px;font:13px Georgia,serif;color:#4a3a26;cursor:pointer}
 #biblio .y2-tabs button.on{background:#8a5a2a;color:#f4ead2;border-color:#8a5a2a}
 #biblio .y2-tabs small{opacity:.7}
-.y2-creux{text-align:center;margin:6px 0 10px}
-.y2-creux img{width:min(100%,300px);image-rendering:pixelated;border-radius:2px;box-shadow:0 2px 8px rgba(0,0,0,.35)}`;
+.y2-creux{text-align:center;margin:2px 0 8px}
+.y2-creux img{width:min(100%,240px);image-rendering:pixelated;border-radius:2px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.y2-creux.y2-seule img{width:min(100%,300px)}
+#reader .y2-creux{margin:0 0 6px}
+#reader .y2-sceau{margin:2px 0 8px}
+#reader .y2-sceau img{height:72px}
+#reader .y2-sceau span{max-width:300px}
+#livre .deplier-p{margin-top:10px}`;
     document.head.appendChild(st);
   },
 };
@@ -678,6 +751,25 @@ HOOKS.day.push(() => { try { if (farm.s) bibliotheque2.matin(); } catch (e) { co
     return _choose(act);
   };
 }
+// le retour des Terres d'Avant (zone de V1, lien gardé) : le gardien dit la formule, avant toute autre parole
+HOOKS.load.push(() => {
+  if (bibliotheque2._zoneLie || typeof zone === 'undefined' || !zone || typeof zone.sur !== 'function') return;
+  bibliotheque2._zoneLie = true;
+  try { zone.sur('sortir', () => { try { if (farm.s) bibliotheque2.S().retour = farm.s.day; } catch (e) { console.error(e); } }); } catch (e) { console.error(e); }
+});
+{
+  const _open = talk.open.bind(talk);
+  talk.open = function (n) {
+    const v = _open(n);
+    try {
+      if (v && n && n.id === 'libraire' && farm.s && !biblio.banni() && !npcs.murdererKnown()) {
+        const S = bibliotheque2.S();
+        if (S.retour && farm.s.day - S.retour <= 2) { S.retour = 0; v.text = '« Rien n’est entré avec toi. » Il vous regarde longtemps, de face, puis de côté, comme on compte. Puis, plus bas : « Bien. »'; }
+      }
+    } catch (e) { console.error(e); }
+    return v;
+  };
+}
 // ce que le bibliothécaire dit en passant (des mots de plus ; l'ordre des autres ne change pas)
 {
   const d = NPC_DATA.find((q) => q.id === 'libraire');
@@ -686,6 +778,17 @@ HOOKS.day.push(() => { try { if (farm.s) bibliotheque2.matin(); } catch (e) { co
     if (Array.isArray(d.lines.etrange)) d.lines.etrange.push('Cette nuit, un livre de la galerie est tombé tout seul. Les Tables de concordance. Personne ne les lit, et elles tombent quand même.');
   }
 }
+
+// ---------------------------------------------------------------- les livres de serrurerie, pour la compétence de U
+function y2Serrures() {
+  try {
+    if (typeof crochetage === 'undefined' || !crochetage || !crochetage.livres || typeof crochetage.livres !== 'object') return;
+    const poids = { y_serrurerie: 3, y_monte_en_l_air: 2, y_portes_seuils: 1 };
+    for (const id of bibliotheque2.serrures()) if (!crochetage.livres[id]) crochetage.livres[id] = poids[id] || 1;
+  } catch (e) { console.error(e); }
+}
+y2Serrures();
+HOOKS.load.push(() => y2Serrures());
 
 // ---------------------------------------------------------------- chargement : remettre l'état d'aplomb
 HOOKS.load.push(() => {
