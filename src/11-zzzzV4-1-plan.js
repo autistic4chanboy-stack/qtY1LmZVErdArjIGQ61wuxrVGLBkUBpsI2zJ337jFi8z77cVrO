@@ -106,7 +106,11 @@ function v4Batir(Z, O) {
   const murZ = (xc, e, z0, z1, y0, y1, m, ouv, o) => mur('z', xc, e, z0, z1, y0, y1, m, ouv, o);
   // une dalle percée de trous rectangulaires [x0, x1, z0, z1]
   const dalle = (x0, x1, z0, z1, y0, y1, m, trous, o) => {
-    let parts = [[x0, x1, z0, z1]];
+    for (const [a0, a1, b0, b1] of percer([[x0, x1, z0, z1]], trous)) B(a0, a1, y0, y1, b0, b1, m, o);
+  };
+  // des rectangles [x0, x1, z0, z1] moins des trous rectangulaires
+  function percer(rects, trous) {
+    let parts = rects;
     for (const [tx0, tx1, tz0, tz1] of trous || []) {
       const out = [];
       for (const [a0, a1, b0, b1] of parts) {
@@ -119,8 +123,8 @@ function v4Batir(Z, O) {
       }
       parts = out;
     }
-    for (const [a0, a1, b0, b1] of parts) B(a0, a1, y0, y1, b0, b1, m, o);
-  };
+    return parts;
+  }
   const prop = (id, x, y, z, r, data, s) => O.prop(id, CX + x, Y0 + y, CZ + z, r || 0, data || null, s);
   const inter = (kind, id, x, y, z, nom, data) => O.inter(kind, id, CX + x, Y0 + y, CZ + z, nom || '', data || {});
   // une vraie porte (Z.doors) : (x, z) au milieu du mur, plancher y, r (le +z de la porte regarde « dedans »), w, h ;
@@ -132,7 +136,17 @@ function v4Batir(Z, O) {
     if (o.id) V.portes[o.id] = d;
     return d;
   };
-  const salle = (id, nom, x0, x1, y0, y1, z0, z1, o) => { const s = Object.assign({ id, nom, x0: CX + x0, x1: CX + x1, y0: Y0 + y0, y1: Y0 + y1, z0: CZ + z0, z1: CZ + z1, couvert: true, dessous: y1 <= 0.5 }, o || {}); V.salles.push(s); return s; };
+  // (o.trous : [x0, x1, z0, z1] locaux, là où le toit est crevé : ni abri pour l'éclairage, ni pour le dragon ;
+  //  o.octo : [cx, cz, apothème] local, une salle octogonale, pour la carte des abris ; o.abri : [x0, x1, z0, z1] local,
+  //  le rectangle de la carte des abris quand la salle est tracée au milieu des murs ou s'ouvre d'un côté)
+  const salle = (id, nom, x0, x1, y0, y1, z0, z1, o) => {
+    const s = Object.assign({ id, nom, x0: CX + x0, x1: CX + x1, y0: Y0 + y0, y1: Y0 + y1, z0: CZ + z0, z1: CZ + z1, couvert: true, dessous: y1 <= 0.5 }, o || {});
+    if (s.trous) s.trous = s.trous.map(([a, b, c, d]) => [CX + a, CX + b, CZ + c, CZ + d]);
+    if (s.octo) s.octo = [CX + s.octo[0], CZ + s.octo[1], s.octo[2]];
+    if (s.abri) s.abri = [CX + s.abri[0], CX + s.abri[1], CZ + s.abri[2], CZ + s.abri[3]];
+    V.salles.push(s);
+    return s;
+  };
   const place = (id, type, x, y, z, r, o) => V.places.push(Object.assign({ id: 'v4_' + id, type, x: CX + x, y: Y0 + y, z: CZ + z, r: r || 4, site: 'chateau', agent: 'V4' }, o || {}));
   const pt = (k, x, y, z, yaw) => (V.pts[k] = { x: CX + x, y: Y0 + y, z: CZ + z, yaw: yaw || 0 });
   const lieu = (cle, x, z, r) => { const L = O.lieu(cle, CX + x, CZ + z, r, V4_LIEUX[cle] || cle, { v4: true }); V.lieux[cle] = L; return L; };
@@ -349,15 +363,14 @@ function v4Batir(Z, O) {
     // le passage (z −3 … 3), voûté à 6 m ; deux corps de part et d'autre
     murX(-3.25, 0.5, x0, x1, -1, 6.5, M_V4_PIERRE, [[-98.6, -97.0, 0, 2.4]]);       // mur du passage, côté nord (porte de la loge)
     murX(3.25, 0.5, x0, x1, -1, 6.5, M_V4_PIERRE, [[-98.6, -97.0, 0, 2.4]]);        // côté sud (porte du corps de garde)
-    B(x0, x1, 6.0, 7.0, -3.5, 3.5, M_V4_PIERRE);                                      // la voûte du passage
+    B(x0, x1, 6.0, 6.6, -3.5, 3.5, M_V4_PIERRE, { plafond: true });                    // la voûte du passage
     // les murs extérieurs : le passage s'ouvre à l'ouest (sous le pont) et à l'est (la basse-cour)
     murZ(x0 + e / 2, e, z0, z1, -P.FOSSE.p - 1, H, M_V4_PIERRE, [[-3, 3, 0, 6.0]]);
     murZ(x1 - e / 2, e, z0, z1, -1, H, M_V4_PIERRE, [[-3, 3, 0, 6.0], [-8.4, -7.0, 8.2, 10.4], [7.0, 8.4, 8.2, 10.4]]);
     murX(z0 + e / 2, e, x0 + e, x1 - e, -1, H, M_V4_PIERRE);
     murX(z1 - e / 2, e, x0 + e, x1 - e, -1, H, M_V4_PIERRE);
     // planchers : la salle du treuil (y 7) au-dessus du passage et des deux corps ; la terrasse (y 14)
-    B(x0 + e, x1 - e, 6.6, 7.0, z0 + e, -3.5, M_PLANKS, { plafond: true });
-    B(x0 + e, x1 - e, 6.6, 7.0, 3.5, z1 - e, M_PLANKS, { plafond: true });
+    B(x0 + e, x1 - e, 6.6, 7.0, z0 + e, z1 - e, M_PLANKS, { plafond: true });
     B(x0 + e, x1 - e, H - 0.4, H, z0 + e, z1 - e, M_V4_DALLES);
     murX(z0 + 0.3, 0.6, x0, x1, H, H + 1.3); murX(z1 - 0.3, 0.6, x0, x1, H, H + 1.3);
     murZ(x0 + 0.3, 0.6, z0 + 0.6, z1 - 0.6, H, H + 1.3); murZ(x1 - 0.3, 0.6, z0 + 0.6, z1 - 0.6, H, H + 1.3);
@@ -373,7 +386,7 @@ function v4Batir(Z, O) {
     porte(-97.8, 3.25, 0, 0, 1.4, 2.35, { id: 'garde', style: 'rustique' });
     salle('loge', 'la loge du portier', x0 + e, x1 - e, 0, 6.6, z0 + e, -3.5);
     salle('corps_garde', 'le corps de garde du châtelet', x0 + e, x1 - e, 0, 6.6, 3.5, z1 - e);
-    salle('passage', 'le passage du châtelet', x0, x1, 0, 6, -3, 3);
+    salle('passage', 'le passage du châtelet', x0, x1, 0, 6, -3, 3, { abri: [x0 + e, x1 - e, -3, 3] });
     salle('treuil', 'la salle du treuil', x0 + e, x1 - e, 7, H - 0.4, z0 + e, z1 - e);
     lieu('v4_chatelet', -99, 0, 14);
     V.abris.push({ x: CX - 99, y: Y0 + 3, z: CZ, r: 3, nom: 'le passage du châtelet' }, { x: CX - 99, y: Y0 + 9, z: CZ, r: 7, nom: 'la salle du treuil' });
@@ -391,7 +404,7 @@ function v4Batir(Z, O) {
     prop('table', -99, 0, 6.0, 0); prop('banc', -99, 0, 5.2, 0); prop('banc', -99, 0, 6.8, Math.PI);
     fouille('garde_chatelet', -105.0, 0.4, 8.6, 'Sous une paillasse', 'v4_soldat');
     // la salle du treuil : le treuil (face au mur ouest), le brasero du vieil homme, son banc
-    prop('v4_treuil', -104.4, 7, 0, -Math.PI / 2);
+    prop('v4_treuil', -104.4, 7, 0, -Math.PI / 2, null, 1.3);
     inter('v4_levier', 'v4_lev_pont', -103.0, 8.2, 0, V4_TEXTES.treuilTitre, { id: 'pont' });
     lire('chatelet', -105.9, 9.6, -1.6);
     prop('brasero', -99.0, 7, 4.6, 0, { lit: true });
@@ -432,7 +445,7 @@ function v4Batir(Z, O) {
     for (const [x, z] of [[-88, -56.8], [-85, -55.6], [-74, -56.4], [-72.5, -55.0]]) prop('botte_foin', x, 3.2, z, rnd() * 3);
     prop('v4_coffre', -73.4, 3.2, -57.4, 0, { f: 'fenil' }); fouille('fenil', -73.4, 3.9, -56.9, 'Un coffre, sous le foin', 'v4_coffre');
     lire('ecurie', -75.5, 2.2, -48.4);
-    salle('ecuries', 'les écuries', x0, x1, 0, 4.4, z0, z1);
+    salle('ecuries', 'les écuries', x0, x1, 0, 4.4, z0, z1, { abri: [x0 + 0.4, x1 - 0.4, z0, z1] });
     V.abris.push({ x: CX - 81, y: Y0 + 2, z: CZ - 53, r: 9, nom: 'les écuries' });
     place('ecuries', 'paisible', -81, 0, -52, 6);
   }
@@ -501,13 +514,12 @@ function v4Batir(Z, O) {
   {
     const x0 = -35, x1 = -25, z0 = -7, z1 = 7, H = 17, e = 1.3;
     murX(-2.5, 0.5, x0, x1, -1, 5.8, M_V4_PIERRE); murX(2.5, 0.5, x0, x1, -1, 5.8, M_V4_PIERRE);
-    B(x0, x1, 5.0, 6.0, -2.75, 2.75, M_V4_PIERRE);                                      // la voûte
+    B(x0, x1, 5.0, 5.6, -2.75, 2.75, M_V4_PIERRE, { plafond: true });                   // la voûte
     murZ(x0 + e / 2, e, z0, z1, -1, H, M_V4_PIERRE, [[-2.25, 2.25, 0, 5.0], [-4.3, -2.9, HM, HM + 2.4]]);
     murZ(x1 - e / 2, e, z0, z1, -1, H, M_V4_PIERRE, [[-2.25, 2.25, 0, 5.0], [3.0, 4.6, 6.0, 8.4], [-4.3, -2.9, HM, HM + 2.4]]);
     murX(z0 + e / 2, e, x0 + e, x1 - e, -1, H, M_V4_PIERRE, [[-30.75, -29.25, HM, HM + 2.4]]);
     murX(z1 - e / 2, e, x0 + e, x1 - e, -1, H, M_V4_PIERRE, [[-30.75, -29.25, HM, HM + 2.4]]);
-    B(x0 + e, x1 - e, 5.6, 6.0, z0 + e, -2.75, M_PLANKS, { plafond: true });
-    B(x0 + e, x1 - e, 5.6, 6.0, 2.75, z1 - e, M_PLANKS, { plafond: true });
+    B(x0 + e, x1 - e, 5.6, 6.0, z0 + e, z1 - e, M_PLANKS, { plafond: true });
     B(x0 + e, x1 - e, HM - 0.35, HM, z0 + e, z1 - e, M_PLANKS, { plafond: true });
     B(x0 + e, x1 - e, H - 0.4, H, z0 + e, z1 - e, M_V4_DALLES);
     murX(z0 + 0.3, 0.6, x0, x1, H, H + 1.3); murX(z1 - 0.3, 0.6, x0, x1, H, H + 1.3);
@@ -523,10 +535,11 @@ function v4Batir(Z, O) {
     // l'escalier de l'étage, contre la face est (de la haute cour), et son palier
     escalier(-24.1, 17.0, 0, 6.0, '-z', 1.8, 0.48);
     B(-25, -23.2, -0.6, 6.0, 2.6, 8.0);
+    B(-25, -23.2, 6.0, 7.1, 2.6, 2.9); B(-23.5, -23.2, 6.0, 7.1, 2.9, 8.0);
     // l'étage du chemin de ronde (y 11) : vis
     vis('herse_vis', [-27.4, 6, 4.4], [-27.4, HM, 4.4], V4_TEXTES.vis);
     vis('herse_vis2', [-32.4, HM, -4.4], [-32.4, H, -4.4], V4_TEXTES.vis);
-    salle('porte_haute', 'la porte de la haute cour', x0, x1, 0, 5, -2.25, 2.25);
+    salle('porte_haute', 'la porte de la haute cour', x0, x1, 0, 5, -2.25, 2.25, { abri: [x0 + e, x1 - e, -2.25, 2.25] });
     salle('herse_etage', 'la salle de la herse', x0 + e, x1 - e, 6, HM - 0.35, z0 + e, z1 - e);
     salle('herse_haut', 'la salle haute de la porte', x0 + e, x1 - e, HM, H - 0.4, z0 + e, z1 - e);
     V.abris.push({ x: CX - 30, y: Y0 + 2.5, z: CZ, r: 3, nom: 'la porte de la haute cour' });
@@ -582,7 +595,13 @@ function v4Batir(Z, O) {
     const x0 = -6, x1 = 32, H = 12;
     murX(ZF, 1.2, x0 + 0.6, x1 - 0.6, -0.5, H, M_V4_PIERRE, [[11.7, 14.3, 0, 3.4], [5.4, 6.6, 5.4, 8], [19.4, 20.6, 4, 8], [25.4, 26.6, 4, 8]]);
     murZ(x1, 1.2, -58.5, ZF + 0.6, -0.5, H, M_V4_PIERRE, [[-46.7, -45.3, 0.6, 3.0]]);
-    B(x0 - 0.6, x1 + 0.6, H, H + 6.5, -58.5, ZF + 1.0, M_SLATE, { sh: 1 });
+    // le toit a cédé au-dessus des tables (x 14.4 … 20.8) : il reste une poutre, une autre pend ; les gravats dessous
+    B(x0 - 0.6, 14.4, H, H + 6.5, -58.5, ZF + 1.0, M_SLATE, { sh: 1 }); B(20.8, x1 + 0.6, H, H + 6.5, -58.5, ZF + 1.0, M_SLATE, { sh: 1 });
+    B(16.5, 16.8, H - 0.3, H, -58.5, ZF - 0.6, M_PLANKS); B(18.7, 19.0, H - 0.3, H, -58.5, -51.5, M_PLANKS);
+    B(15.4, 17.2, -0.1, 0.55, -50.6, -48.8, M_V4_PIERRE, { r: 0.35 }); B(16.4, 17.4, 0.55, 0.95, -50.2, -49.2, M_V4_PIERRE, { r: 0.9 });
+    B(17.6, 18.8, -0.1, 0.45, -53.4, -52.2, M_V4_PIERRE, { r: -0.5 }); B(19.0, 20.0, -0.1, 0.35, -46.2, -45.2, M_V4_PIERRE, { r: 1.2 });
+    B(18.2, 20.4, -0.1, 0.1, -48.6, -47.2, M_SLATE, { r: 0.6 }); B(15.0, 16.4, -0.1, 0.1, -55.0, -53.8, M_SLATE, { r: -0.3 });
+    B(19.85, 20.15, -0.05, 0.25, -53.4, -46.6, M_PLANKS, { r: 0.3 });                     // la poutre tombée
     // l'estrade, au fond (est) ; deux cheminées au mur nord
     B(23.6, 31.4, -0.2, 0.6, -57.9, ZF - 0.6, M_V4_DALLES); B(23.0, 23.6, -0.2, 0.3, -57.9, ZF - 0.6, M_V4_DALLES);
     for (const xc of [4, 16]) { B(xc - 2.2, xc - 1.4, -0.2, 2.6, -58.5, -56.4, M_V4_PIERRE); B(xc + 1.4, xc + 2.2, -0.2, 2.6, -58.5, -56.4, M_V4_PIERRE); B(xc - 2.4, xc + 2.4, 2.6, 3.6, -58.5, -56.2, M_V4_PIERRE); B(xc - 0.9, xc + 0.9, 3.6, 18.6, -58.5, -57.2, M_V4_PIERRE); }
@@ -593,13 +612,13 @@ function v4Batir(Z, O) {
     B(-1.6, 0.6, 4.6, 5.0, -44.2, ZF - 0.6, M_V4_PIERRE);
     // la cache au-dessus des cuisines : une porte murée en apparence (mur creux) dans le mur ouest, sur la tribune
     V.murs.tribune = { blocs: [B(-6.62, -5.38, 5.2, 7.6, -57.2, -55.8, M_V4_PIERRE, { v4mur: 'tribune' })], nom: 'tribune' };
-    prop('v4_fissure', -5.35, 5.0, -56.5, Math.PI / 2);
+    prop('v4_fissure', -5.35, 5.0, -56.5, Math.PI / 2, { mur: 'tribune' });
     inter('v4_mur', 'v4_mur_tribune', -4.9, 6.2, -56.5, '', { id: 'tribune' });
     // les tables, le siège du sire (tourné vers le mur), les bancs
     for (let k = 0; k < 3; k++) { prop('table', 27.4, 0.6, -55 + k * 1.45, Math.PI / 2); prop('v4_couverts', 27.4, 1.39, -55 + k * 1.45, Math.PI / 2, { v: k }); }
     prop('v4_trone', 29.4, 0.6, -52.8, Math.PI / 2 + 0.15);
     lire('table', 28.0, 1.6, -52.8);
-    for (const zr of [-52.5, -47.5]) for (let k = 0; k < 4; k++) { const x = 1 + k * 5.4; prop('table', x, 0, zr, 0); prop('banc', x, 0, zr - 0.85, 0); prop('banc', x, 0, zr + 0.85, Math.PI); if (rnd() < 0.6) prop('v4_couverts', x, 0.79, zr, 0, { v: k }); }
+    for (const zr of [-52.5, -47.5]) for (let k = 0; k < 3; k++) { const x = 1 + k * 5.4; prop('table', x, 0, zr, 0); prop('banc', x, 0, zr - 0.85, 0); prop('banc', x, 0, zr + 0.85, Math.PI); if (rnd() < 0.6) prop('v4_couverts', x, 0.79, zr, 0, { v: k }); }
     prop('v4_tapisserie', 10, 0.6, -57.85, 0, { v: 0, w: 2.6, h: 3.6 }); prop('v4_tapisserie', 22, 0.6, -57.85, 0, { v: 1, w: 2.6, h: 3.6 }); prop('v4_tapisserie', 31.35, 1.0, -48, -Math.PI / 2, { v: 2, w: 3.2, h: 4.4 });
     for (const x of [2, 12, 22]) prop('v4_banniere', x, 4.8, ZF - 0.62, Math.PI, { h: 5 });
     prop('v4_lustre', 27.4, 9.2, -51, 0, { lit: true, h: 6.2 }); prop('v4_lustre', 10, 9.2, -50, 0, { h: 5.5 });
@@ -607,10 +626,11 @@ function v4Batir(Z, O) {
     prop('v4_mort', 6.8, 0, -51.6, 0.4, { pose: 'assis', look: { top: '#5a4a3a', bottom: '#3a302a' } });
     fouille('salle_coffre', 30.6, 1.2, -44.2, 'Un coffre, au pied de l’estrade', 'v4_coffre');
     prop('v4_coffre', 30.6, 0.6, -43.6, Math.PI, { f: 'salle_coffre' });
-    salle('grand_salle', 'la grand-salle', x0, x1, 0, H, -58.5, ZF);
+    prop('banc', 21.4, 0, -43.9, 1.9); prop('table', 22.6, 0, -55.4, 0.25); prop('ossements', 16.0, 0, -46.4, 2.2);
+    salle('grand_salle', 'la grand-salle', x0, x1, 0, H, -58.5, ZF, { trous: [[14.4, 20.8, -58.5, ZF]] });
     salle('tribune', 'la tribune de la grand-salle', x0, -1.2, 5, H, -58.5, ZF);
     lieu('v4_grand_salle', 13, -50, 16);
-    V.abris.push({ x: CX + 13, y: Y0 + 3, z: CZ - 50, r: 16, nom: 'la grand-salle' });
+    V.abris.push({ x: CX + 4, y: Y0 + 3, z: CZ - 50, r: 8.5, nom: 'la grand-salle' }, { x: CX + 26.5, y: Y0 + 3, z: CZ - 50, r: 6, nom: 'la grand-salle' });
     place('grand_salle', 'gardien', 26, 0.6, -50, 6, { cap: -Math.PI / 2 });
     place('grand_salle_rodeur', 'rodeur', 10, 0, -50, 12, { heures: [21, 5] });
     porte(13, ZF, 0, Math.PI, 2.5, 3.3, { id: 'salle_s', style: 'double' });
@@ -656,7 +676,7 @@ function v4Batir(Z, O) {
     B(-6, 32, 4.6, 5.0, ZF + 0.6, -36.4, M_PLANKS);
     B(-6.4, 32.4, 5.0, 6.2, ZF + 0.6, -36.0, M_SLATE, { sh: 2, r: Math.PI });
     for (const x of [-5.6, -0.6, 4.4, 9.4, 17.0, 22.0, 27.0, 31.6]) B(x - 0.4, x + 0.4, -0.3, 4.6, -37.2, -36.4, M_V4_PIERRE);
-    salle('galerie', 'la galerie couverte', -6, 32, 0, 4.6, ZF, -36.4);
+    salle('galerie', 'la galerie couverte', -6, 32, 0, 4.6, ZF, -36.4, { abri: [-5.6, 31.6, ZF + 0.6, -36.4] });
     for (const x of [0, 13, 26]) V.abris.push({ x: CX + x, y: Y0 + 2, z: CZ - 39, r: 3, nom: 'la galerie couverte' });
   }
 
@@ -677,7 +697,7 @@ function v4Batir(Z, O) {
     prop('croix', 15.0, 0.4, 47, -Math.PI / 2);
     for (let k = 0; k < 4; k++) for (const z of [44.2, 49.8]) prop('banc', -9 + k * 4, 0, z, Math.PI / 2);
     prop('b1_lutrin', 6.6, 0.4, 44.6, Math.PI / 2); lire('chapelle', 6.9, 1.5, 44.6);
-    prop('v4_mort', 11.6, 0.4, 47, Math.PI / 2, { pose: 'prie', look: { top: '#3a3430', bottom: '#3a3430', hairStyle: 'tonsure' } });
+    prop('v4_mort', 11.6, 0.4, 47, Math.PI / 2, { pose: 'prie', look: { top: '#3a3430', bottom: '#3a3430', hairStyle: 'chauve' } });
     prop('statue_saint', -12.6, 0, 52.6, Math.PI * 0.75); prop('benitier', 1.8, 0, 41.4, 0);
     // le clocher, à l'ouest : la corde de la cloche, l'échelle de la chambre des cloches
     const cx0 = -20, cx1 = -14.6, cz0 = 44, cz1 = 50, CH = 20;
@@ -699,7 +719,7 @@ function v4Batir(Z, O) {
     vis('crypte', [9.6, 0, 56.6], [11.6, P.CRYPTE, 50.4], V4_TEXTES.descendre, { texte: 'Vous descendez dans la crypte.', texte2: 'Vous remontez à la sacristie.' });
     salle('chapelle', 'la chapelle', x0, x1, 0, H, z0, z1);
     salle('clocher', 'le clocher', cx0, cx1, 0, CH, cz0, cz1);
-    salle('sacristie', 'la sacristie', 8, 16, 0, 4.2, z1, 58.5);
+    salle('sacristie', 'la sacristie', 8, 16, 0, 4.2, z1, 58.5, { abri: [8.5, 15.5, z1 + 0.6, 58.5] });
     lieu('v4_chapelle', 1, 47, 12);
     V.abris.push({ x: CX + 1, y: Y0 + 3, z: CZ + 47, r: 12, nom: 'la chapelle' }, { x: CX + 12, y: Y0 + 2, z: CZ + 56.2, r: 2.5, nom: 'la sacristie' });
     porte(0, z0, 0, 0, 2.3, 3.3, { id: 'chapelle', style: 'eglise' });
@@ -725,7 +745,7 @@ function v4Batir(Z, O) {
     fouille('crypte', -9.2, y + 0.6, 50.8, 'Une niche, des os rangés', 'v4_crypte');
     // l'ancien ossuaire, derrière une dalle qui sonne creux (mur est, une baie murée)
     V.murs.ossuaire = { blocs: [B(x1, x1 + 0.4, y, y + 2.6, 45.6, 48.4, M_V4_PIERRE, { under: true, v4mur: 'ossuaire' })], nom: 'ossuaire' };
-    prop('v4_fissure', x1 - 0.05, y, 47, -Math.PI / 2);
+    prop('v4_fissure', x1 - 0.05, y, 47, -Math.PI / 2, { mur: 'ossuaire' });
     inter('v4_mur', 'v4_mur_ossuaire', x1 - 0.5, y + 1.2, 47, '', { id: 'ossuaire' });
     B(x1 + 0.8, x1 + 3.6, y - 0.5, y, 45.2, 48.8, M_V4_DALLES, U); murX(45.0, 0.4, x1 + 0.8, x1 + 3.8, y, y + 2.6, M_V4_PIERRE, null, U); murX(49.0, 0.4, x1 + 0.8, x1 + 3.8, y, y + 2.6, M_V4_PIERRE, null, U);
     murZ(x1 + 3.8, 0.4, 45, 49, y, y + 2.6, M_V4_PIERRE, null, U); B(x1 + 0.6, x1 + 4, y + 2.6, y + 3.0, 44.8, 49.2, M_V4_PIERRE, U);
@@ -749,7 +769,7 @@ function v4Batir(Z, O) {
     murZ(x1 - e / 2, e, iz0, iz1, -1, H, M_V4_PIERRE, [[3.6, 4.4, L1 + 1.0, L1 + 2.6], [8.0, 11.0, L2, L2 + 2.4], [3.6, 4.4, L3 + 1.0, L3 + 2.6]]);
     B(x1 - 0.5, x1, L2, L2 + 2.4, 8.0, 11.0, M_V4_PIERRE);                                   // le fond du trésor (le parement extérieur)
     V.murs.tresor = { blocs: [B(ix1, ix1 + 0.35, L2, L2 + 2.4, 8.0, 11.0, M_V4_PIERRE, { v4mur: 'tresor' })], nom: 'tresor' };
-    prop('v4_fissure', ix1 - 0.02, L2, 9.5, -Math.PI / 2);
+    prop('v4_fissure', ix1 - 0.02, L2, 9.5, -Math.PI / 2, { mur: 'tresor' });
     inter('v4_mur', 'v4_mur_tresor', ix1 - 0.45, L2 + 1.2, 9.5, '', { id: 'tresor' });
     prop('v4_coffre', x1 - 1.3, L2, 9.5, -Math.PI / 2, { f: 'tresor' }); fouille('tresor', x1 - 1.6, L2 + 0.7, 9.5, 'Le trésor de Hautguet', 'v4_tresor');
     salle('tresor', 'le trésor', ix1, x1 - 0.5, L2, L2 + 2.4, 8.0, 11.0);
@@ -771,6 +791,7 @@ function v4Batir(Z, O) {
     // l'escalier de pierre, la porte haute (fermée : la grande clé)
     escalier(35, 21.4, 0, L1, '-z', 2.0, 0.78);
     B(34, x0, -0.6, L1, 0.2, 4.2);
+    B(34, x0, L1, L1 + 1.1, 0.2, 0.5); B(34, 34.3, L1, L1 + 1.1, 0.5, 4.2); B(36, x0, L1, L1 + 1.1, 3.9, 4.2);
     porte(x0 + e / 2, 1.8, L1, Math.PI / 2, 1.5, 2.4, { id: 'donjon', cle: 'v4_cle_donjon', style: 'garde', ep: e });
     // les escaliers dans le mur (d'un étage à l'autre) et l'échelle de la terrasse
     vis('donjon1', [ix0 + 1.0, L1, iz0 + 1.0], [ix0 + 1.0, L2, iz0 + 2.0], V4_TEXTES.murEsc);
@@ -853,11 +874,11 @@ function v4Batir(Z, O) {
     prop('lit', cx + 2.4, 8, cz - 1.6, -Math.PI / 2); prop('coffre_vieux', cx - 2.6, 8, cz + 1, Math.PI / 2); fouille('servante', cx - 2.2, 8.5, cz + 1, 'Le coffre de la servante', 'v4_armoire');
     prop('b1_lutrin', cx - 2.4, 16, cz - 1.2, Math.PI / 2); prop('statue_saint', cx + 2.6, 16, cz + 1.8, -Math.PI * 0.75);
     const yt = 24, fx = cx + Math.sin(ad) * (ri - 1.1), fz = cz + Math.cos(ad) * (ri - 1.1);
-    prop('fauteuil', fx, yt, fz, ad); prop('v4_mort', fx, yt, fz, ad, { pose: 'assis', dy: 0.12, look: { top: '#3e3446', bottom: '#2e2834', dress: true, hairStyle: 'long', hair: '#9a9a96' } });
+    prop('fauteuil', fx, yt, fz, ad); prop('v4_mort', fx, yt, fz, ad, { pose: 'assis', dy: 0.12, look: { top: '#3e3446', bottom: '#2e2834', dress: true, hairStyle: 'long', hair: '#9a9a96', hat: 'voile', hatCol: '#2a2630' } });
     prop('b1_metier', cx + 2.8, yt, cz - 0.6, -Math.PI / 2); prop('lit', cx - 1.6, yt, cz - 2.6, 0); prop('poupee', cx + 0.6, yt, cz + 2.0, 1.2);
     prop('gueridon', cx - 2.2, yt, cz + 1.0, 0); prop('c2_bougies', cx - 2.2, yt + 0.75, cz + 1.0, 0, { lit: true });
     objet('lettre_dame', 'v4_lettre_dame', cx - 2.0, yt + 0.76, cz + 0.8, 0.3);
-    salle('tour_dame', 'la tour de la Dame', cx - ri, cx + ri, 0, H, cz - ri, cz + ri);
+    salle('tour_dame', 'la tour de la Dame', cx - ri, cx + ri, 0, H, cz - ri, cz + ri, { octo: [cx, cz, ri] });
     lieu('v4_tour_dame', cx, cz, 7);
     V.abris.push({ x: CX + cx, y: Y0 + 12, z: CZ + cz, r: ri, nom: 'la tour de la Dame' });
     V.dame = { x: CX + fx, y: Y0 + yt, z: CZ + fz };
@@ -900,6 +921,12 @@ function v4Batir(Z, O) {
     // des tonneaux et une charrette près des cuisines
     prop('charrette_renversee', -18, 0, -36, 1.2); prop('tonneau_vieux', -24, 0, -38, 0); prop('caisse', -22.6, 0, -37.4, 0.4);
     O.objet('deadtree', CX + 58, CZ + 30); O.objet('deadtree', CX - 10, CZ + 22);
+    // la barricade de la nuit de la cendre, contre le mur de la haute cour, au nord de la herse : défaite, tirée de côté
+    prop('charrette_renversee', -21.4, 0, -6.6, 0.4); prop('tonneau_vieux', -23.2, 0, -8.4, 0); prop('tonneau_vieux', -19.6, 0, -9.0, 1.1);
+    prop('caisse', -22.8, 0, -4.6, 0.7); prop('tas_bois', -19.0, 0, -5.2, 1.4); prop('ossements', -18.4, 0, -3.4, 0.9);
+    B(-23.6, -18.6, 0, 0.12, -10.4, -10.1, M_PLANKS, { r: 0.25 }); B(-22.4, -19.0, 0.12, 0.24, -10.9, -10.6, M_PLANKS, { r: -0.3 });
+    // des os, devant la chapelle et au pied de l'escalier du donjon
+    prop('ossements', -6.2, 0, 34.6, 2.4); prop('ossements', 31.8, 0, 22.8, 0.3);
   }
 
   // ------------------------------------------------------------- sous terre : la cave des cuisines
@@ -915,7 +942,7 @@ function v4Batir(Z, O) {
     fouille('cave', -12.4, y + 1.0, -52, 'Les bocaux de l’étagère', 'v4_cuisine');
     // la cache de la cuisinière : derrière un pan qui sonne creux (mur ouest)
     V.murs.cave = { blocs: [B(x0 - 0.6, x0, y, y + 2.3, -52.2, -50.8, M_V4_PIERRE, { under: true, v4mur: 'cave' })], nom: 'cave' };
-    prop('v4_fissure', x0 + 0.02, y, -51.5, Math.PI / 2);
+    prop('v4_fissure', x0 + 0.02, y, -51.5, Math.PI / 2, { mur: 'cave' });
     inter('v4_mur', 'v4_mur_cave', x0 + 0.5, y + 1.2, -51.5, '', { id: 'cave' });
     B(x0 - 3.4, x0 - 0.6, y - 0.4, y, -53, -50, M_V4_DALLES, U); murX(-53.2, 0.4, x0 - 3.6, x0 - 0.6, y, y + 2.3, M_V4_PIERRE, null, U); murX(-49.8, 0.4, x0 - 3.6, x0 - 0.6, y, y + 2.3, M_V4_PIERRE, null, U);
     murZ(x0 - 3.6, 0.4, -53, -50, y, y + 2.3, M_V4_PIERRE, null, U); B(x0 - 3.8, x0 - 0.4, y + 2.3, y + 2.7, -53.4, -49.6, M_V4_PIERRE, U);
@@ -1026,6 +1053,42 @@ function v4Batir(Z, O) {
     lieu('v4_charnier', 99, 20, 8);
     pt('charnier', 92, 0, 20, Math.PI / 2);
     place('charnier', 'paisible', 99, 0, 20, 5, { heures: [21, 4] });
+  }
+
+  // ------------------------------------------------------------- la carte des abris (l'éclairage du dedans)
+  // 05-world.js computeCover ne retient, par case d'un mètre, que les plafonds dont l'empreinte (moins 45 cm) couvre le
+  // milieu de la case : le long d'un mur dont le toit s'arrête au nu intérieur (la courtine, la voûte d'une porte), la
+  // rangée de cases serait « dehors », claire en plein jour. Chaque case qui touche une salle couverte (hors les trous
+  // d'un toit crevé) prend donc au moins la hauteur du plafond de la salle. Les murs du château font plus d'un mètre :
+  // leur parement extérieur est dans une autre case. Seulement ce monde-ci (la Zone), et seulement le château.
+  {
+    const R = [], OCT = [];
+    for (const s of V.salles) {
+      if (!s.couvert || s.dessous) continue;
+      if (s.octo) { OCT.push([s.octo[0], s.octo[1], s.octo[2], s.y1]); continue; }
+      for (const [a0, a1, b0, b1] of percer([s.abri || [s.x0, s.x1, s.z0, s.z1]], s.trous)) if (a1 - a0 > 0.05 && b1 - b0 > 0.05) R.push([a0, a1, b0, b1, s.y1]);
+    }
+    const dansOcto = (x, z, o) => { for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; if ((x - o[0]) * Math.sin(a) + (z - o[1]) * Math.cos(a) > o[2]) return false; } return true; };
+    const _cc = Z.computeCover;
+    Z.computeCover = function (cx, cz) {
+      _cc.call(this, cx, cz);
+      const S = this.coverW, cov = this.cover;
+      if (!cov || !this.coverO) return;
+      const [ox, oz] = this.coverO;
+      const mettre = (i, j, y) => { if (i >= 0 && j >= 0 && i < S && j < S && cov[j * S + i] < y) cov[j * S + i] = y; };
+      for (const [a0, a1, b0, b1, y] of R) {
+        const i0 = Math.floor(a0 - ox + 1e-3), i1 = Math.ceil(a1 - ox - 1e-3) - 1, j0 = Math.floor(b0 - oz + 1e-3), j1 = Math.ceil(b1 - oz - 1e-3) - 1;
+        if (i1 < 0 || j1 < 0 || i0 >= S || j0 >= S) continue;
+        for (let j = Math.max(0, j0); j <= Math.min(S - 1, j1); j++) for (let i = Math.max(0, i0); i <= Math.min(S - 1, i1); i++) mettre(i, j, y);
+      }
+      for (const o of OCT) {
+        const i0 = Math.floor(o[0] - o[2] - 1 - ox), i1 = Math.ceil(o[0] + o[2] + 1 - ox), j0 = Math.floor(o[1] - o[2] - 1 - oz), j1 = Math.ceil(o[1] + o[2] + 1 - oz);
+        for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+          const x = ox + i, z = oz + j;
+          if (dansOcto(x + 0.5, z + 0.5, o) || dansOcto(x + 0.1, z + 0.1, o) || dansOcto(x + 0.9, z + 0.1, o) || dansOcto(x + 0.1, z + 0.9, o) || dansOcto(x + 0.9, z + 0.9, o)) mettre(i, j, o[3]);
+        }
+      }
+    };
   }
 
   // ------------------------------------------------------------- ce qui dépend de l'état (une partie déjà avancée)

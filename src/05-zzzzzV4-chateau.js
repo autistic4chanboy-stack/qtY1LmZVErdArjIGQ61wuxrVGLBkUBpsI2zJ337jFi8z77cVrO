@@ -3,8 +3,8 @@
 //  Le château du site « chateau » de la Zone (V1), sur le grand replat des Hauts.
 //  Ce qu'on en sait se lit sur place : un registre, des lignes gravées, des tombes,
 //  une lettre ; deux voix (le vieil homme du treuil, la Dame derrière sa porte).
-//  Les sires de Hautguet tenaient le Guet, le grand fanal du donjon : tant qu'il
-//  brûlait, la ville d'en bas dormait. Une nuit, il s'est éteint ; le Ver est
+//  Les sires de Hautguet tenaient le feu du Guet, le grand fanal du donjon (le Guet : les
+//  hommes qui gardaient le Ver, voir V3) : tant qu'il brûlait, la ville d'en bas dormait. Une nuit, il s'est éteint ; le Ver est
 //  descendu sur la Ville Basse ; ceux d'en bas sont montés aux Hauts avec des
 //  torches ; le sire a gardé le pont levé. Le reste, on le trouve.
 //  Clés (objets) : v4_cle_poterne, v4_cle_chapelle (la sacristie), v4_cle_donjon,
@@ -61,8 +61,8 @@ const V4_LIRE = {
   senechal: ['Dans la main du mort, une feuille', 'Le sire a enfermé la dame dans sa tour, pour qu’elle ne descende pas au treuil.\nJ’ai enfermé le sire dans son donjon, pour qu’il ne redescende plus.\nJe garde la clé ici, avec ses pères. Dieu fera le reste.', 'Hugues, sénéchal'],
   cachot: ['Gratté dans la pierre, au fond de la cellule', 'J. F., TONNELIER, DE LA VILLE BASSE.\nJ’AI FRAPPÉ À LA POTERNE POUR QU’ON LES LAISSE ENTRER.\nON M’A FAIT ENTRER, MOI.'],
   geolier: ['Une planche clouée au mur, à la craie', 'Prisonniers : un.\nNourriture : ce qui reste.\nOrdre : ne pas l’écouter.'],
-  guet: ['Gravé sur le fût du Guet', 'TANT QUE LE GUET BRÛLE, LA VILLE DORT.'],
-  aymon: ['Sous la main du mort, une feuille roulée', 'Je l’ai enfermée pour qu’elle ne descende pas au treuil.\nOn m’a enfermé pour que je ne descende plus. C’est juste.\nLe Guet restera éteint. Il n’y a plus personne en bas à qui dire de dormir.'],
+  guet: ['Gravé sur le fût du fanal', 'TANT QUE LE FEU DU GUET BRÛLE, LA VILLE DORT.'],
+  aymon: ['Sous la main du mort, une feuille roulée', 'Je l’ai enfermée pour qu’elle ne descende pas au treuil.\nOn m’a enfermé pour que je ne descende plus. C’est juste.\nLe feu du Guet restera éteint. Il n’y a plus personne en bas à qui dire de dormir.'],
   charnier: ['Sur le linteau du charnier', 'ICI CEUX DU FOSSÉ QU’ON A PU RAMASSER.'],
   cimetiere: ['Une pierre, à l’entrée du cimetière', 'ICI LES GENS DU CHÂTEAU.\nLES AUTRES SONT AU FOSSÉ.'],
   puits: ['Sur la margelle du puits', 'NE PUISEZ PAS APRÈS LA NUIT TOMBÉE.'],
@@ -74,7 +74,7 @@ const V4_LIRE = {
   chatelet: ['Peint au-dessus du treuil, presque effacé', 'LE PONT NE SE BAISSE QUE SUR L’ORDRE DU SIRE.'],
 };
 // le registre du portier (l'objet v4_registre : clic pour le lire)
-const V4_REGISTRE = 'Entré : le charretier de la Ville Basse, avec le sel. Sorti le soir.\nEntrés : deux moines des Tertres. Sortis le lendemain.\nSorties : dame Aude, avec sa nourrice, pour la foire d’en bas. Le matin.\nEntré : frère Anselme, revenu des Tertres.\n\n(Une page plus loin, d’une autre main, très serrée.)\nLa cendre tombe sur la ville. Le Guet ne brûle pas.\nOn monte les Degrés avec des torches.\nOrdre du sire : le pont reste levé.\nIls sont au fossé. Ils appellent par leurs noms.\nLe pont reste levé.\n\n(La dernière ligne.)\nJe ne note plus les entrées. Il n’en vient plus.';
+const V4_REGISTRE = 'Entré : le charretier de la Ville Basse, avec le sel. Sorti le soir.\nEntrés : deux moines des Tertres. Sortis le lendemain.\nSorties : dame Aude, avec sa nourrice, pour la foire d’en bas. Le matin.\nEntré : frère Anselme, revenu des Tertres.\n\n(Une page plus loin, d’une autre main, très serrée.)\nLa cendre tombe sur la ville. Le feu du Guet ne brûle pas.\nOn monte les Degrés avec des torches.\nOrdre du sire : le pont reste levé.\nIls sont au fossé. Ils appellent par leurs noms.\nLe pont reste levé.\n\n(La dernière ligne.)\nJe ne note plus les entrées. Il n’en vient plus.';
 const V4_LETTRE_DAME = 'À qui ouvrira.\n\nAude est descendue à la foire avec sa nourrice, le matin du jour de la cendre. Je l’ai regardée descendre les Degrés depuis ma fenêtre, jusqu’à ce que la brume la prenne.\nLe soir, j’ai vu les torches monter. J’ai entendu sa voix au fossé, ou j’ai cru l’entendre. Il n’a pas voulu baisser le pont. Il a fermé ma porte, et il a emporté la clé.\nSi le pont est baissé quand tu liras ceci, alors je peux dormir.';
 
 // ---------------------------------------------------------------- le vieil homme du treuil (Thibaud), au châtelet
@@ -83,10 +83,10 @@ const V4_THIBAUD = {
   premier: 'Un vieil homme est assis près du treuil, une couverture sur les épaules. Il ne se lève pas. « Vous venez d’en bas. Personne ne vient d’en bas. »',
   revoir: ['Le vieil homme lève à peine la tête. « Encore vous. »', 'Le vieil homme regarde le treuil, pas vous.', '« Vous avez entendu ? Non. Moi non plus. Il ne vient jamais rien. »'],
   qui: '« Thibaud. J’étais au treuil, cette nuit-là. J’y suis encore. »',
-  quoi: '« Le Guet s’est éteint. Le Ver est descendu sur la ville. Ils sont montés avec des torches, toute la nuit. Le sire a dit : le pont reste levé. J’ai obéi. »',
+  quoi: '« Le feu du Guet s’est éteint. Le Ver est descendu sur la ville. Ils sont montés avec des torches, toute la nuit. Le sire a dit : le pont reste levé. J’ai obéi. »',
   treuil: '« N’y touchez pas. S’il baisse, ils monteront tous. Ils attendent au fossé. Ils attendent depuis si longtemps. »',
   dame: '« La dame ? Elle est dans sa tour. Le sire a fermé sa porte, cette nuit-là, pour qu’elle ne vienne pas ici. Pour qu’elle ne vienne pas au treuil. »',
-  guet: '« Le Guet, il faut de l’huile. Beaucoup. Il n’y en a plus. Il n’y a plus personne pour le monter, de toute façon. »',
+  guet: '« Le feu du Guet ? Il faut de l’huile. Beaucoup. Il n’y en a plus. Et il n’y a plus personne pour la monter. »',
   baisse: '« Vous l’avez baissé. » Le vieil homme se lève, pour la première fois, et regarde par la meurtrière. Longtemps. « Personne ne monte. Vous voyez ? Personne. »',
   apres: 'Le vieil homme n’est plus près du treuil. Sa couverture est pliée sur le banc.',
   bout: 'Le vieil homme est assis au bout du pont, face aux Degrés. Il ne respire plus. Il a l’air d’attendre encore.',
@@ -101,7 +101,7 @@ const V4_DAME = {
   cle: '« Il a gardé la clé. Il l’a emportée là-haut, au donjon. Il ne redescendra pas. Il ne peut plus. »',
   aCle: '« Tu as la clé. Je l’entends tinter. Ouvre, si tu veux. Il n’y a plus ici qu’une vieille femme. »',
   aude: '« Aude. Elle avait neuf ans. Elle voulait voir la foire. »',
-  guet: '« Le Guet brûle. Je le vois sur le mur, par la fente de la porte. La ville peut dormir. »',
+  guet: '« Le feu du Guet brûle. Je le vois sur le mur, par la fente de la porte. La ville peut dormir. »',
   silence: 'Derrière la porte, plus rien. Pas même le vent.',
 };
 // ---------------------------------------------------------------- pensées et petits textes (peu)
@@ -159,12 +159,12 @@ const V4_TEXTES = {
   cloche: 'La corde de la cloche',
   clocheDesc: 'La corde de la cloche pend jusqu’au sol, raide de poussière. Une seule fois, et tout le château l’entendra.',
   clocheTirer: 'Tirer la corde',
-  guetTitre: 'Le Guet',
+  guetTitre: 'Le feu du Guet',
   guetDesc: 'Une corbeille de fer, grande comme une charrette, sur un fût de pierre. Des cendres froides, très vieilles. Le fanal est vide.',
   guetHuile: 'Il faudrait de l’huile. Beaucoup : trois jarres au moins.',
-  guetAllumer: 'Verser l’huile et allumer le Guet',
-  guetAllume: 'Le Guet prend, lentement, puis d’un coup. Toute la Zone, en bas, doit le voir.',
-  guetBrule: 'Le Guet brûle. Il brûlera longtemps.',
+  guetAllumer: 'Verser l’huile et rallumer le feu du Guet',
+  guetAllume: 'Le feu prend, lentement, puis d’un coup. Toute la Zone, en bas, doit le voir.',
+  guetBrule: 'Le feu du Guet brûle. Il brûlera longtemps.',
   coffreVide: '(Il n’y a plus rien.)',
   fini: 'Hautguet se tait. Pour la première fois, le silence ressemble à du sommeil.',
 };

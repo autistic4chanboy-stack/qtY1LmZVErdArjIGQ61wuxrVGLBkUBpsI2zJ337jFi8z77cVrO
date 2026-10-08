@@ -33,7 +33,7 @@ zone.chateau = {
     if (Math.hypot(pos[0] - V.cx, pos[2] - V.cz) > V4_RAYON) return false;
     if (pos[1] < Z.heightAt(pos[0], pos[2]) - 2) return true; // sous terre
     const s = chateauV4.salle(pos);
-    if (s && s.couvert) return true;
+    if (s && s.couvert && !(s.trous && s.trous.some(([a, b, c, d]) => pos[0] > a && pos[0] < b && pos[2] > c && pos[2] < d))) return true;
     try { return !!Z.covered(pos[0], pos[1] + 1.4, pos[2]); } catch (e) { return false; }
   },
   dedans(pos) {
@@ -43,7 +43,7 @@ zone.chateau = {
     return (x > V4_PLAN.XO - 1.5 && x < V4_PLAN.XE + 1.5 && z > V4_PLAN.ZN - 1.5 && z < V4_PLAN.ZS + 1.5) || pos[1] < V.y0 - 2;
   },
   salle(pos) { const s = chateauV4.salle(pos); return s ? s.id : null; },
-  salles() { const V = chateauV4.Z; return V ? V.salles.map((s) => ({ id: s.id, nom: s.nom, x0: s.x0, x1: s.x1, y0: s.y0, y1: s.y1, z0: s.z0, z1: s.z1, couvert: s.couvert, dessous: s.dessous })) : []; },
+  salles() { const V = chateauV4.Z; return V ? V.salles.map((s) => ({ id: s.id, nom: s.nom, x0: s.x0, x1: s.x1, y0: s.y0, y1: s.y1, z0: s.z0, z1: s.z1, couvert: s.couvert, dessous: s.dessous, trous: s.trous ? s.trous.map((t) => t.slice()) : null })) : []; },
   // ------------------------------------------------------------- l'état du château
   pontBaisse() { return !!chateauV4.S().leviers.pont; },
   herseLevee() { return !!chateauV4.S().leviers.herse; },

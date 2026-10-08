@@ -13,8 +13,8 @@
 //    boyaux, conduits.
 //  - Les habitants : Thibaud, le vieil homme du treuil (vivant, à sa façon) ; la Dame,
 //    derrière la porte de sa tour (la nuit seulement) ; les morts, là où ils sont.
-//  - Le Guet : trois mesures d'huile, et il brûle. Le pont baissé, le Guet rallumé, la
-//    porte de la Dame ouverte : le château se tait.
+//  - Le feu du Guet (le fanal du donjon) : trois mesures d'huile, et il brûle. Le pont baissé,
+//    le feu rallumé, la porte de la Dame ouverte : le château se tait.
 //  État : farm.s.v4 (chateauV4.S()).
 // ============================================================================
 const V4_RAYON = 230; // (m) au-delà, on n'est plus au château
@@ -35,6 +35,7 @@ Object.assign(chateauV4, {
   // ------------------------------------------------------------- l'état vu des modèles
   pris(id) { return !!this.S().pris['o:' + id]; },
   fait(id) { return !!this.S().pris['f:' + id]; },
+  murTombe(id) { return !!this.S().murs[id]; },
   herseK() { return this.anim.herse; },
   treuilK() { return this.anim.treuil; },
   levierOn(o) { return !!this.S().leviers.herse; },
@@ -405,7 +406,7 @@ Object.assign(chateauV4, {
     q('quoi', '« Que s’est-il passé ? »');
     if (vu('quoi')) q('treuil', '« Le treuil ? »');
     if (vu('quoi')) q('dame', '« La dame ? »');
-    if (vu('treuil') || vu('dame')) q('guet', '« Le Guet ? »');
+    if (vu('treuil') || vu('dame')) q('guet', '« Le feu du Guet ? »');
     opts.push({ label: 'Le laisser', fn: () => ui.close() });
     ui.choice(V4_THIBAUD.titre, txt, opts);
   },
@@ -479,7 +480,7 @@ Object.assign(chateauV4, {
     if (etat === 'treuil' || etat === 'baisse') {
       const T = V.thibaud;
       if (Math.abs(T.x - cam[0]) > 60 || Math.abs(T.z - cam[2]) > 60) return;
-      const r = this.rigs.thibaud || (this.rigs.thibaud = humanRig({ skin: '#c8b49c', hair: '#c8c4bc', top: '#4a4238', bottom: '#3a342c', shoe: '#2a2018', beard: 'longue', old: true, build: 'mince' }));
+      const r = this.rigs.thibaud || (this.rigs.thibaud = humanRig({ skin: '#c8b49c', hair: '#c8c4bc', top: '#4a4238', bottom: '#3a342c', shoe: '#2a2018', beard: 'longue', old: true, build: 'mince', hat: 'capuche', hatCol: '#3e3226' }));
       poseHuman(r, { sit: true, lean: 0.32, lookP: etat === 'baisse' ? 0.05 : 0.35 + Math.sin(t * 0.4) * 0.04, lookY: etat === 'baisse' ? 0.5 : 0, t, tilt: 0.06 });
       r.set('armL', -0.75, 0, 0.2); r.set('armR', -0.85, 0, -0.2);
       drawRig(buf, r, T.x, T.y + 0.04 + Math.sin(t * 1.3) * 0.004, T.z, T.r, 1);

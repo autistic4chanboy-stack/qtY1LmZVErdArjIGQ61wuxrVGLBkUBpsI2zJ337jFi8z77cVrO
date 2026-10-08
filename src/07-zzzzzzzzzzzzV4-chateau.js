@@ -11,7 +11,7 @@
 
 // ---------------------------------------------------------------- matières
 function texV4Pierre(seed) {
-  const P = ramp(['#46433e', '#524e48', '#5e5952', '#6a655d', '#767068', '#837c73', '#90887e', '#9c9489']);
+  const P = ramp(['#55514a', '#625d56', '#6f6a62', '#7c766d', '#898279', '#968e84', '#a39a8f', '#b0a69a']);
   const J = [38, 35, 32];
   const pb = new PixelBuf(TS, TS), tn = makeTileNoise(seed), rnd = mulberry32(seed + 3);
   // des assises de 16 px ; chaque assise coupée en pierres de 22 à 52 px (le compte boucle sur 128)
@@ -197,12 +197,15 @@ Object.assign(PROP_MODELS, {
     const d = o.data || {}, dy = d.pose === 'assis' ? (d.dy ?? 0.05) : d.pose === 'prie' ? -0.3 : d.pose === 'adosse' ? -0.42 : 0;
     drawRig(E.buf, o.rig, o.x, o.y + dy, o.z, o.r, 1);
   },
-  // une fissure sur un mur (le +z regarde dehors du mur) : on la voit si on regarde bien
+  // une fissure sur un mur (le +z regarde dehors du mur) : on la voit si on regarde bien (data.mur : le mur creux ;
+  // tombé, il ne reste que les pierres au pied)
   v4_fissure(E, o) {
+    const S = v4St(), id = o.data && o.data.mur, tombe = !!(S && id && S.murTombe && S.murTombe(id));
     const c = [0.08, 0.075, 0.07];
     const P = [[0, 0.2, 0.05, 0.5, 0.2], [0.06, 0.65, 0.04, 0.45, -0.35], [-0.04, 1.05, 0.04, 0.4, 0.3], [0.08, 1.42, 0.035, 0.38, -0.25], [0.02, 1.78, 0.03, 0.3, 0.15]];
-    for (const [x, y, w, h, a] of P) E.box(x, y, 0.012, w, h, 0.012, c, TL.plain, 0, 0, a);
+    if (!tombe) for (const [x, y, w, h, a] of P) E.box(x, y, 0.012, w, h, 0.012, c, TL.plain, 0, 0, a);
     E.bx(0.2, 0, 0.12, 0.22, 0.14, 0.18, [0.6, 0.58, 0.55], mt(M_V4_PIERRE)); E.bx(-0.15, 0, 0.18, 0.14, 0.1, 0.14, [0.6, 0.58, 0.55], mt(M_V4_PIERRE));
+    if (tombe) { E.box(0.45, 0.08, 0.3, 0.32, 0.16, 0.26, [0.6, 0.58, 0.55], mt(M_V4_PIERRE), 0.6); E.box(-0.4, 0.06, 0.42, 0.26, 0.12, 0.22, [0.6, 0.58, 0.55], mt(M_V4_PIERRE), -0.4); E.box(0.05, 0.07, 0.55, 0.3, 0.14, 0.2, [0.6, 0.58, 0.55], mt(M_V4_PIERRE), 1.1); }
   },
   // une trappe de chêne dans un plancher (data.open), un anneau ; une corde pend quand elle est ouverte (data.corde)
   v4_trappe(E, o) {

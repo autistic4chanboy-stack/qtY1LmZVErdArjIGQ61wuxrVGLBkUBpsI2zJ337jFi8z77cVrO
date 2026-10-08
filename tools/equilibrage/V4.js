@@ -5,6 +5,7 @@
 //    une échelle, une trappe (la même mesure que les bâtiments de la vallée, tools/equilibrage/batiments.js) ;
 //  - les portes font 2,05 m au moins, et la baie au-dessus d'elles aussi ;
 //  - les escaliers à vis, échelles, conduits déposent le joueur sur un sol, jamais dans un mur ;
+//  - l'éclairage du dedans : chaque salle couverte est à l'ombre (la carte des abris), et presque rien du dehors ne l'est ;
 //  - les clés : chacune posée une fois, chacune ouvre une porte qui existe, et aucune n'est derrière sa propre porte ;
 //  - les raccourcis à sens unique sont là (pont-levis, herse, deux poternes barrées, grille du charnier, escalier des cachots) ;
 //  - le butin : ce que rapporte tout le château, fouillé de fond en comble (espérance), reste borné ;
@@ -75,6 +76,53 @@ module.exports = {
     }
     log(`passages : ${n}, ${mauvais} à revoir`);
     if (mauvais) ko('des passages déposent le joueur dans le vide ou dans un mur');
+    // ---------------------------------------------------------------- l'éclairage du dedans (la carte des abris, 05-world.js)
+    // chaque salle couverte est « à l'ombre » jusqu'à 2,2 m au-dessus de son plancher (hors les trous d'un toit crevé) ;
+    // et le château n'assombrit presque pas de dehors (un seuil de porte, le bord d'un trou)
+    {
+      World.prototype.computeCover.call(Z, V.cx, V.cz);
+      const base = Float32Array.from(Z.cover);
+      Z.computeCover(V.cx, V.cz);
+      const S = Z.coverW, [ox, oz] = Z.coverO, cov = Z.cover;
+      const dansOcto = (x, z, o) => { for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; if ((x - o[0]) * Math.sin(a) + (z - o[1]) * Math.cos(a) > o[2]) return false; } return true; };
+      const couvertes = V.salles.filter((s) => s.couvert && !s.dessous);
+      const dans = (x, z, s, r) => {
+        if (s.trous && s.trous.some(([a, b, c, d]) => x > a && x < b && z > c && z < d)) return false;
+        if (s.octo) return dansOcto(x, z, s.octo);
+        const [x0, x1, z0, z1] = (r && s.abri) || [s.x0, s.x1, s.z0, s.z1];
+        return x > x0 && x < x1 && z > z0 && z < z1;
+      };
+      const auJour = [];
+      for (const s of couvertes) {
+        const [x0, x1, z0, z1] = s.abri || [s.x0, s.x1, s.z0, s.z1];
+        let bad = 0;
+        for (let j = Math.floor(z0 - oz); j <= Math.floor(z1 - oz); j++) for (let i = Math.floor(x0 - ox); i <= Math.floor(x1 - ox); i++) {
+          if (i < 0 || j < 0 || i >= S || j >= S) continue;
+          const x = ox + i, z = oz + j;
+          if (![[0.5, 0.5], [0.1, 0.1], [0.9, 0.1], [0.1, 0.9], [0.9, 0.9]].some(([a, b]) => dans(x + a, z + b, s, true))) continue;
+          if (cov[j * S + i] <= s.y0 + 2.2) bad++;
+        }
+        if (bad) auJour.push(`${s.id} (${bad} cases)`);
+      }
+      const murs = blocks.filter((b) => !b.hidden && !b.under && b.sy >= 1.5);
+      const dansMur = (x, z, y) => murs.some((b) => { if (b.y > y + 0.5 || b.y + b.sy < y + 2) return false; const [lx, lz] = World.blockLocal(b, x, z); return Math.abs(lx) <= b.sx / 2 && Math.abs(lz) <= b.sz / 2; });
+      let dehors = 0, plus = 0;
+      for (let k = 0; k < S * S; k++) {
+        if (!(cov[k] > base[k] + 0.01)) continue;
+        plus++;
+        const i = k % S, j = (k - i) / S;
+        let nd = 0;
+        for (let a = 0; a < 4; a++) for (let b = 0; b < 4; b++) {
+          const x = ox + i + (a + 0.5) / 4, z = oz + j + (b + 0.5) / 4;
+          if (couvertes.some((s) => dans(x, z, s))) continue;
+          if (!dansMur(x, z, Math.max(Z.heightAt(x, z), V.y0))) nd++;
+        }
+        if (nd >= 3) dehors++;
+      }
+      log(`éclairage du dedans : ${couvertes.length} salles couvertes, ${auJour.length} au jour ; ${plus} cases assombries par le château, dont ${dehors} touchent le dehors`);
+      if (auJour.length) ko('des salles couvertes sont claires comme dehors : ' + auJour.join(', '));
+      if (dehors > 40) ko(`le château assombrit trop de dehors (${dehors} cases)`);
+    }
     // ---------------------------------------------------------------- les clés
     const cles = { v4_cle_poterne: ['poterne'], v4_cle_chapelle: ['sacristie'], v4_cle_donjon: ['donjon'], v4_cle_tour: ['tour_dame'], v4_trousseau: ['cellule_n2', 'cachots'] };
     const ou = {}; for (const id in V.objets) ou[V.objets[id]] = (ou[V.objets[id]] || 0) + 1;
