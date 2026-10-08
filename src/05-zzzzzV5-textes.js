@@ -54,6 +54,8 @@ const V5_TEXTES = {
   septieme: 'ICI COMMENCE LE SEPTIÈME DEGRÉ.\nON LE DESCEND SEUL.\nON NE LE REMONTE PAS.',
   // la ville
   arrivee: 'Basse-Fosse',
+  necropoleTitre: 'Des mots, entre les crânes',
+  necropole: 'Gravé dans l’os d’un front, en lettres serrées :\n\nILS NE SONT PAS PARTIS.\nILS SONT COMPTÉS.',
   loisTitre: 'Une stèle, près de la porte',
   lois: 'CECI EST LA LOI DE BASSE-FOSSE.\n\nI. ICI, ON NE PORTE QUE NOTRE FEU.\nII. ICI, ON NE COURT PAS.\nIII. CE QUI EST POSÉ RESTE POSÉ.\nIV. LES MORTS PASSENT LES PREMIERS.\nV. ON NE REMONTE PAS.\nVI. CHACUN EST COMPTÉ.\n\n(Une septième ligne a été martelée. On ne peut plus la lire.)',
   feu: 'Un feu sans bois, dans une vasque de tuf. Des os dans la cendre, qui ne se consument pas. Il ne chauffe presque pas.',

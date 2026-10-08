@@ -179,7 +179,7 @@ const catacombesV5 = {
   // ------------------------------------------------------------- les interactions
   lire(it) {
     const k = it.data.texte, S = this.S();
-    const T = { enseigne: ['enseigneTitre', 'enseigne'], traits: ['traitsTitre', 'traits'], septieme: ['septiemeTitre', 'septieme'], lois: ['loisTitre', 'lois'], chambre_avant: ['chambreAvantTitre', 'chambreAvant'], premiers: ['premiersTitre', 'premiers'] }[k];
+    const T = { enseigne: ['enseigneTitre', 'enseigne'], traits: ['traitsTitre', 'traits'], septieme: ['septiemeTitre', 'septieme'], lois: ['loisTitre', 'lois'], chambre_avant: ['chambreAvantTitre', 'chambreAvant'], premiers: ['premiersTitre', 'premiers'], necropole: ['necropoleTitre', 'necropole'] }[k];
     if (typeof secretsV5 !== 'undefined' && !T) return secretsV5.lire(it);
     if (!T) return;
     S.lus[k] = farm.s.day;
@@ -446,6 +446,16 @@ zone.catacombes = {
 
 // ---------------------------------------------------------------- branchements
 zone.sur('sky', (sky) => catacombesV5.ciel(sky));
+// le feu de veille du Septième Degré est sous terre : qui s'y réveille (le feu qui garde, V1) s'y réveille vraiment,
+// et non sur la roche au-dessus (V1 cherche le sol depuis le relief)
+zone.sur('repos', (q) => {
+  if (!q || !q.data || q.data.id !== 'feu_degre') return;
+  const v = catacombesV5.Z(), p = game.player;
+  if (!v || (Math.hypot(p.pos[0] - q.x, p.pos[2] - q.z) < 6 && Math.abs(p.pos[1] - q.y) < 2.5)) return;
+  const D = v.degre;
+  p.pos = [D.haut[0], D.yHaut + 0.02, D.haut[1]]; p.vel = [0, 0, 0];
+  game.renderer.uploadCover(p.pos[0], p.pos[2]);
+});
 zone.sur('update', (dt, eye) => { if (farm.s && game.mode !== 'menu') catacombesV5.update(dt, eye); });
 HOOKS.inter.v5_lire = (it) => catacombesV5.lire(it);
 HOOKS.inter.v5_trappe = () => catacombesV5.trappe();

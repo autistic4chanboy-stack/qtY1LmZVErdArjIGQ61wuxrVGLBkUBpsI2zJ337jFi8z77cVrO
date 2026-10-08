@@ -38,6 +38,10 @@ const V5_SECRETS_TEXTES = {
   pierreBrasier: 'ICI, LE DERNIER SOIR, ON A BRÛLÉ LES NOMS.',
   ermitageTitre: 'Des traits, sur la pierre',
   ermitage: 'Des traits gravés, par paquets de sept, sur tout un mur. Au-dessus de chaque paquet, une petite aile, dessinée d’un seul trait.',
+  souliersTitre: 'Des souliers, au bord de l’eau',
+  souliers: 'Trois paires de souliers, rangées côte à côte, la pointe vers l’eau : un homme, une femme, un enfant. Les lacets sont noués. Personne n’est revenu les chercher.',
+  bancTitre: 'Un banc, face à la Porte',
+  banc: 'Un banc de pierre, tourné vers la Porte. Dessus, une capote de garde pliée, raide de cendre ; dans la poche, une page :\n\n« M. de Sorbiers est entré au matin. Il a dit : trois jours. J’attends. »\n\nAu dos, des traits, par paquets de sept. Beaucoup de paquets.',
   cairnTitre: 'Un tas de pierres',
   cairn: 'Un petit tas de pierres plates, bien rangé, comme on en fait pour marquer un chemin. Sous la pierre du haut, quelque chose de blanc.',
 };
@@ -63,7 +67,7 @@ const secretsV5 = {
   },
   lire(it) {
     const k = it.data.texte, T = V5_SECRETS_TEXTES;
-    const L = { roi: ['roiTitre', 'roi'], roi2: ['roi2Titre', 'roi2'], chapelle: ['chapelleTitre', 'chapelle'], crypt: ['cryptTitre', 'crypt'], brasier_pierre: ['pierreBrasierTitre', 'pierreBrasier'], ermitage: ['ermitageTitre', 'ermitage'], cairn: ['cairnTitre', 'cairn'] }[k];
+    const L = { roi: ['roiTitre', 'roi'], roi2: ['roi2Titre', 'roi2'], chapelle: ['chapelleTitre', 'chapelle'], crypt: ['cryptTitre', 'crypt'], brasier_pierre: ['pierreBrasierTitre', 'pierreBrasier'], ermitage: ['ermitageTitre', 'ermitage'], cairn: ['cairnTitre', 'cairn'], souliers: ['souliersTitre', 'souliers'], banc: ['bancTitre', 'banc'] }[k];
     if (!L) return;
     catacombesV5.S().lus[k] = farm.s.day;
     sound.page && sound.page();
@@ -306,6 +310,35 @@ zone.passe('V5-secrets', (Z, O) => {
       // la troisième : sur la table du greffe ; la quatrième : dans la salle d'avant, près de la lettre de notaire
       if (V.greffe) objet('lettre', 'v5_lettre_3', V.greffe.f, 1.4, 0.8, 1.3, 'Une lettre');
       if (V.salleAvant) objet('lettre', 'v5_lettre_4', V.salleAvant.f, -1.0, 0.8, 1.5, 'Une lettre');
+    }
+  }
+
+  // ------------------------------------------------------------ 6. les souliers (l'Étang des Noyés) : au bord, rangés, la pointe vers l'eau
+  {
+    const WL = O.WL;
+    const bord = (x, z) => { const h = O.hauteur(x, z); if (h < WL + 0.4 || h > WL + 2.2) return false; for (let k = 0; k < 8; k++) { const a = k * TAU / 8; if (O.hauteur(x + Math.cos(a) * 9, z + Math.sin(a) * 9) < WL - 0.3) return true; } return false; };
+    const P = chercher('etang', 4, bord);
+    if (P) {
+      let best = 0, hb = 1e9;
+      for (let k = 0; k < 16; k++) { const a = k * TAU / 16, h = O.hauteur(P.x + Math.sin(a) * 9, P.z + Math.cos(a) * 9); if (h < hb) { hb = h; best = a; } }
+      const f = { x: P.x, y: O.hauteur(P.x, P.z), z: P.z, r: best };
+      prop('v5_souliers', f, -0.55, 0, 0, 0.05, { v: 0 }); prop('v5_souliers', f, 0, 0, 0.05, -0.04, { v: 1 }); prop('v5_souliers', f, 0.45, 0, 0.1, 0.02, { v: 2 });
+      inter('v5_lire', 'v5_souliers', f, 0, 0.4, -0.2, 'Des souliers', { texte: 'souliers' });
+      v.lieux.souliers = { x: P.x, z: P.z };
+    }
+  }
+
+  // ------------------------------------------------------------ 7. le banc du garde (le Seuil) : face à la Porte, il attendait quelqu'un
+  {
+    const Pt = Z.v1 && Z.v1.porte;
+    const P = Pt ? chercher('seuil', 3, (x, z) => { const d = Math.hypot(x - Pt.x, z - Pt.z); return d > 28 && d < 80 && Math.abs(O.hauteur(x, z) - Pt.y) < 6; }) : null;
+    if (P) {
+      const a = Math.atan2(Pt.x - P.x, Pt.z - P.z), f = { x: P.x, y: O.hauteur(P.x, P.z), z: P.z, r: a };
+      O.aplanir(P.x, P.z, 2.5, f.y, 2);
+      prop('v5_banc', f, 0, 0, 0, 0);
+      prop('v5_manteau', f, 0.35, 0.48, 0.02, 0.1);
+      inter('v5_lire', 'v5_banc_garde', f, 0, 0.9, -0.3, 'Un banc, face à la Porte', { texte: 'banc' });
+      v.lieux.banc = { x: P.x, z: P.z };
     }
   }
 });

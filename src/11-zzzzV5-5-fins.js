@@ -89,8 +89,10 @@ const finsV5 = {
         chaque: (t, dt) => { tt += dt; while (k < feux.length && tt > 0.6 + k * 0.55) { eteindre(feux[k]); k++; zone.Z.collectLights(); } } },
       { dur: 3, fondu: 'noir', texte: '' },
     ], V5_TEXTES.finExtinctionTitre, V5_TEXTES.epilogueExtinction);
+    eteindre(v.refs.feuCompte);
     for (const q of v.feux) eteindre(q);
     for (const q of v.chandelles) eteindre(q);
+    for (const M of v.maisons) if (M.chandelle) eteindre(M.chandelle);
     zone.Z.collectLights();
     for (const e of habitantsV5.L) { if (e.parti) continue; e.couche = true; e.coucheEnRue = true; e.pose = 'couche'; e.chemin = null; e.mode = null; e.y = e.y || F; }
   },
@@ -105,4 +107,5 @@ zone.passe('V5-fins', (Z) => {
   const S = typeof farm !== 'undefined' && farm.s ? farm.s.v5 || {} : {};
   if (!Z.v5 || S.fin !== 'extinction') return;
   for (const q of Z.v5.chandelles) q.data = Object.assign({}, q.data, { lit: false });
+  for (const M of Z.v5.maisons) if (M.chandelle) M.chandelle.data = Object.assign({}, M.chandelle.data, { lit: false });
 });

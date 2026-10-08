@@ -46,6 +46,8 @@ function v5ChoisirCave(Z, O, st) {
   const S = O.S, VB = V1_REGIONS.ville_basse, vx = VB.x * S, vz = VB.z * S, vr = VB.r * S;
   const a0 = Math.atan2(vx - st.x, vz - st.z);
   const feux = Z.props.filter((q) => q.id === 'v1_feu');
+  // ce que d'autres ont creusé (les caves de V1 sous les ruines, ses chambres, ses boyaux) : la galerie ne doit pas y passer
+  const sous = Z.blocks.filter((b) => b.under && !b.v5sous);
   let best = null;
   for (let k = 0; k < 600; k++) {
     const a = a0 + (O.rnd() - 0.5) * 2.6, r = 262 + O.rnd() * 58;
@@ -58,10 +60,11 @@ function v5ChoisirCave(Z, O, st) {
     let ok = true, plat = 0;
     for (let q = 0; q < 8 && ok; q++) { const h = O.hauteur(x + Math.cos(q) * 7, z + Math.sin(q) * 7); plat = Math.max(plat, Math.abs(h - sol)); if (Math.abs(h - sol) > 2.2) ok = false; }
     for (let t = 0; t <= 1.001 && ok; t += 0.04) {
-      const rr = lerp(r - 8, 172, t), fy = lerp(sol - V5_PLAN.CAVE_SOUS, st.y, t);
+      const rr = lerp(r + 5, 172, t), fy = lerp(sol - V5_PLAN.CAVE_SOUS, st.y, t);
       for (const lat of [-3, 0, 3]) {
         const xx = st.x + Math.sin(a) * rr + Math.cos(a) * lat, zz = st.z + Math.cos(a) * rr - Math.sin(a) * lat;
-        if (O.hauteur(xx, zz) < fy + 5.0) { ok = false; break; }
+        if (rr < r - 7 && O.hauteur(xx, zz) < fy + 5.0) { ok = false; break; }
+        if (sous.some((b) => Math.hypot(b.x - xx, b.z - zz) < Math.hypot(b.sx, b.sz) / 2 + 3 && b.y < fy + 6 && b.y + b.sy > fy - 2)) { ok = false; break; }
       }
     }
     if (!ok) continue;
@@ -176,6 +179,9 @@ zone.passe('V5-basse-fosse', (Z, O) => {
     v5.refs.trappe = prop('v5_trappe', fR, -2.4, 0.02, -1.6, 0, { degagee: !!S.trappe, ouverte: !!S.trappe });
     inter('v5_trappe', 'v5_trappe', fR, -2.4, 0.5, -1.6, 'La trappe', {});
     prop('tonneau', fR, 3.6, 0, -2.6, 0.3);
+    // ce qui reste du métier : des fûts crevés, des cercles rouillés, des douelles (dedans et contre les murs)
+    prop('tonneau_vieux', fR, 3.7, 0, -1.7, 1.2); prop('tonneau_vieux', fR, 5.95, 0, 2.3, 0.4); prop('tonneau_vieux', fR, -6.0, 0, -2.4, 2.1);
+    prop('v5_cercles', fR, 1.6, 0, -2.9, 0.6); prop('v5_cercles', fR, 6.2, 0, -1.2, 2.0);
     v5.tonnellerie = { x: cave.x, z: cave.z, y: sol, r: aG, f: fR, trappe: v5Monde(fR, -2.4, -0.4), sortie: v5Monde(fR, -1.2, 0.6) };
     O.lieu('v5_tonnellerie', cave.x, cave.z, 9, 'la tonnellerie', { secret: true });
   }
@@ -321,7 +327,7 @@ zone.passe('V5-basse-fosse', (Z, O) => {
   }
   // l'ossuaire : la case habitable la plus proche de la Nef, à l'ouest de l'axe
   const caseOss = cases.filter((c) => c.q !== 'bas' && c.cx < -20 && Math.abs(c.cz) < 60 && c.W >= 28).sort((a, b) => Math.hypot(a.cx, a.cz) - Math.hypot(b.cx, b.cz))[0];
-  let nMaisons = 0;
+  let nMaisons = 0, nBas = 0;
   for (const C of cases) {
     const { i, j, cx: ccx, cz: ccz, W, D, q } = C;
     const [wx, wz] = v5Monde(CF, ccx, ccz);
@@ -338,7 +344,8 @@ zone.passe('V5-basse-fosse', (Z, O) => {
       }
       for (let k = 0; k < 3; k++) { const lx = (O.rnd() - 0.5) * (W - 3), lz = (O.rnd() - 0.5) * (D - 3); v5Bloc(Z, fI, lx, -0.5, lz, 2.5 + O.rnd() * 2, 1.2 + O.rnd(), 2 + O.rnd() * 2, M_V5_TUF, { er: O.rnd() * TAU, sh: 3 }); }
       for (let k = 0; k < 4; k++) prop(O.rnd() < 0.5 ? 'v5_os_tas' : 'v5_cranes', fI, (O.rnd() - 0.5) * (W - 3), 0, (O.rnd() - 0.5) * (D - 3), O.rnd() * TAU, { n: 3 + Math.floor(O.rnd() * 5) });
-      v5.places.push({ x: wx, y: F, z: wz, r: Math.min(W, D) / 2, type: 'rodeur', id: 'v5_bas_' + i + '_' + j, dessous: true });
+      // (une bête sur deux cases : un quartier qu'on traverse en retenant son souffle, pas un nid)
+      if (nBas++ % 2 === 0) v5.places.push({ x: wx, y: F, z: wz, r: Math.min(W, D) / 2, type: 'rodeur', id: 'v5_bas_' + i + '_' + j, dessous: true });
       continue;
     }
     // le genre d'îlot : plein jusqu'à la voûte (un pilier de roche), quatre, trois ou deux maisons
@@ -563,6 +570,48 @@ zone.passe('V5-basse-fosse', (Z, O) => {
     v5.fouilles.push({ id: M.fouille, maison: M.id });
   });
 
+  // ------------------------------------------------------------ 9 bis. la nécropole : entre les îlots et l'enceinte, les morts
+  // (« les morts passent les premiers » : ils ont le bord de la ville, tout autour ; des sarcophages, des murs de crânes,
+  // des dalles ; rien n'y brûle, personne n'y habite ; les rues et la ruelle de l'enceinte restent libres)
+  {
+    const rueProche = (lx, lz) => RUES_X.some((X) => Math.abs(lx - X) < 4.8) || RUES_Z.some((Zr) => Math.abs(lz - Zr) < 4.8);
+    const pris = (lx, lz, m) => obstacles.some((r) => lx > r[0] - m && lx < r[2] + m && lz > r[1] - m && lz < r[3] + m);
+    let n = 0, mot = null;
+    for (let R = 108; R <= 155.5; R += 5.3) {
+      const nA = Math.floor(TAU * R / 5.0), a0 = O.rnd() * TAU;
+      for (let k = 0; k < nA; k++) {
+        const a = a0 + k * TAU / nA, lx = Math.sin(a) * R, lz = Math.cos(a) * R;
+        if (rueProche(lx, lz) || pris(lx, lz, 2.0)) continue;
+        if (Math.abs(lx) < 14 && lz > 100) continue; // devant la porte, le passage reste nu
+        const [wx, wz] = v5Monde(CF, lx, lz);
+        const f = { x: wx, y: F, z: wz, r: CF.r + a }; // z : vers l'enceinte ; x : le long
+        const t = O.rnd();
+        let demi = 1.3;
+        if (t < 0.42) {
+          prop('v5_sarcophage', f, 0, 0, 0, (O.rnd() - 0.5) * 0.25, { ouvert: O.rnd() < 0.22 });
+          if (O.rnd() < 0.35) prop('v5_cranes', f, 0.75, 0, 1.3, O.rnd() * TAU, { n: 2 + Math.floor(O.rnd() * 3) });
+        } else if (t < 0.74) {
+          // un mur de crânes, de biais sur la rangée
+          const L = 2.6 + O.rnd() * 2.2, h = 1.5 + O.rnd() * 1.2;
+          const b = v5Bloc(Z, f, 0, -0.3, 0, L, h + 0.3, 0.9, M_V5_OS);
+          prop('v5_cranes', f, (O.rnd() - 0.5) * (L - 1), h, 0, O.rnd() * TAU, { n: 3 + Math.floor(O.rnd() * 4) });
+          if (O.rnd() < 0.4) prop('v5_os_tas', f, (O.rnd() - 0.5) * L, 0, -0.9, O.rnd() * TAU);
+          demi = L / 2 + 0.4;
+          if (!mot && lz > 60 && Math.abs(lx) < 70) mot = { f, b };
+        } else {
+          // une dalle de tuf, un tas d'os au pied
+          v5Bloc(Z, f, 0, -0.3, 0, 1.1, 0.75, 2.2, M_V5_TUF);
+          if (O.rnd() < 0.5) prop('v5_os_tas', f, 0.9, 0, 0.6, O.rnd() * TAU);
+        }
+        obstacles.push([lx - demi, lz - demi, lx + demi, lz + demi]);
+        n++;
+      }
+    }
+    // des mots, entre les crânes, sur un mur de la nécropole du côté de la porte
+    if (mot) inter('v5_lire', 'v5_necropole', mot.f, 0, 1.3, -0.75, 'Des mots, entre les crânes', { texte: 'necropole' });
+    v5.necropole = n;
+  }
+
   // ------------------------------------------------------------ 10. le graphe des rues (pour les gens d'en bas)
   {
     const N = v5.noeuds, A = v5.aretes, cle = new Map();
@@ -698,5 +747,5 @@ zone.passe('V5-basse-fosse', (Z, O) => {
       try { return _cs(region); } finally { this.blocks = B; }
     };
   }
-  v5.mesures = { ms: Math.round(performance.now() - t0), blocs: Z.blocks.length - B0, props: Z.props.length - P0, inter: Z.inter.length - I0, maisons: v5.maisons.length, ilots: v5.ilots.length, noeuds: v5.noeuds.length, aretes: v5.aretes.length, relies: v5.relies };
+  v5.mesures = { ms: Math.round(performance.now() - t0), blocs: Z.blocks.length - B0, props: Z.props.length - P0, inter: Z.inter.length - I0, maisons: v5.maisons.length, ilots: v5.ilots.length, noeuds: v5.noeuds.length, aretes: v5.aretes.length, relies: v5.relies, necropole: v5.necropole || 0 };
 });

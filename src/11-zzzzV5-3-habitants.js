@@ -195,7 +195,7 @@ const habitantsV5 = {
   office(O) {
     if (O.h === 21) return; // complies : la cloche seulement
     const dur = O.h === 18 ? 1.0 : O.h === 6 ? 0.5 : 0.35;
-    this.officeCourant = { O, fin: this.heureAbs() + dur };
+    this.officeCourant = { O, debut: this.heureAbs(), fin: this.heureAbs() + dur };
     for (const e of this.L) e.replan = true;
   },
 
@@ -238,7 +238,7 @@ const habitantsV5 = {
     this.actif = actif;
     if (!actif) { this.fin(); return; }
     const S = this.S(), h = catacombesV5.heure(), etranger = this.etranger();
-    if (this.officeCourant && this.officeCourant.fin <= this.heureAbs()) { this.officeCourant = null; for (const e of this.L) e.replan = true; }
+    { const hA = this.heureAbs(), O = this.officeCourant; if (O && (O.fin <= hA || hA < O.debut - 0.2)) { this.officeCourant = null; for (const e of this.L) e.replan = true; } }
     // les lois, pour qui est compté : courir, un feu étranger (vus de près)
     this.loiT = (this.loiT || 0) - dt;
     if (this.loiT <= 0) {
@@ -299,6 +299,8 @@ const habitantsV5 = {
     const etat = furtif.percevoir(e, dt);
     if (etat === avant) return;
     if (etat === 'alertee') {
+      // le Greffier ne voit plus guère, et il attend qu'on vienne à lui : il ne crie pas, il appelle (« Approche. »)
+      if (e.role === 'greffier') { e.regardJoueur = 3; F.etat = 'intriguee'; F.soupcon = Math.min(F.soupcon, 0.9); return; }
       if (e.role === 'enfant') { e.regardJoueur = 3; if (Math.random() < 0.5) this.dire(e, pick(V5_TEXTES.enfant), 3); return; }
       if (linceul && !game.player.sprinting && !(game.lantern && !this.S().flamme)) { e.regardJoueur = 2; return; }
       this.alarme(e, 'vu');
@@ -437,7 +439,9 @@ const habitantsV5 = {
     let tx, ty, tz;
     if (cible === -1) { const sp = e.but && e.but.spot; if (!sp) { e.chemin = null; return; } [tx, ty, tz] = sp; }
     else { const q = this.noeud(cible); tx = q.x; ty = q.y; tz = q.z; }
-    const dx = tx - e.x, dz = tz - e.z, dd = Math.hypot(dx, dz), pas = vit * dt;
+    // loin du joueur (au-delà de ce que la nuit d'en bas laisse voir), on presse le pas : la ville tient ses heures
+    const loin = Math.hypot(e.x - game.player.pos[0], e.z - game.player.pos[2]) > 48;
+    const dx = tx - e.x, dz = tz - e.z, dd = Math.hypot(dx, dz), pas = vit * dt * (loin ? 3 : 1);
     e.pose = 'debout';
     if (dd <= pas + 0.05) {
       e.x = tx; e.z = tz; e.y = ty;
@@ -469,7 +473,7 @@ const habitantsV5 = {
     if (voit && d < 1.7 && Math.abs(p.pos[1] - e.y) < 1.8) {
       e.vitesse = 0; e.attT -= dt;
       e.pose = 'frappe';
-      if (e.attT <= 0) { e.attT = 1.35; play.hurt(16, { x: e.x, z: e.z }, 'Un gardien de Basse-Fosse'); sound.stab && sound.stab(); }
+      if (e.attT <= 0) { e.attT = 1.5; play.hurt(14, { x: e.x, z: e.z }, 'Un gardien de Basse-Fosse'); sound.stab && sound.stab(); }
       return;
     }
     e.attT = Math.min(e.attT, 0.5);

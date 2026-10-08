@@ -167,7 +167,36 @@ function v5Flamme(E, cx, y0, cz, w, h, t, ph) {
 }
 
 // ---------------------------------------------------------------- objets posés
+// un cercle de fer à plat (centre cx, cy, cz ; rayon R) : douze bouts de fer, chacun tangent au cercle
+function v5Cercle(E, cx, cy, cz, R, col) {
+  const n = 12, L = TAU * R / n * 1.1;
+  for (let k = 0; k < n; k++) { const a = (k + 0.5) / n * TAU; E.box(cx + Math.cos(a) * R, cy, cz + Math.sin(a) * R, 0.035, 0.03, L, col, TL.iron, -a); }
+}
 Object.assign(PROP_MODELS, {
+  // une paire de souliers, la pointe vers +z (v : 0 un homme, 1 une femme, 2 un enfant)
+  v5_souliers(E, o) {
+    const v = (o.data && o.data.v) || 0, k = [1, 0.84, 0.62][v] || 1, c = [rgbf('#3a2a1e'), rgbf('#1e1a18'), rgbf('#5a4430')][v] || V5C.boisS, cs = v3.scale(c, 0.65);
+    for (const sx of [-1, 1]) {
+      const x = sx * 0.075 * k;
+      E.bx(x, 0, 0.01, 0.11 * k, 0.03, 0.28 * k, cs, TL.leather);
+      E.bx(x, 0.03, -0.05 * k, 0.1 * k, 0.1 * k, 0.16 * k, c, TL.leather);
+      E.bx(x, 0.03, 0.08 * k, 0.09 * k, 0.05 * k, 0.11 * k, c, TL.leather);
+      E.box(x, 0.13 * k + 0.03, -0.02 * k, 0.07 * k, 0.012, 0.012, [0.7, 0.66, 0.58], TL.cloth, 0.2);
+    }
+  },
+  // une capote de garde pliée, raide de cendre, et une lanterne morte (le banc du garde, au Seuil)
+  v5_manteau(E) {
+    const c = rgbf('#3e4048'), cg = [0.5, 0.5, 0.5];
+    E.bx(0, 0, 0, 0.55, 0.12, 0.38, c, TL.cloth, 0.08); E.bx(0.02, 0.12, 0.01, 0.5, 0.06, 0.34, v3.lerp(c, cg, 0.35), TL.cloth, 0.12);
+    E.bx(-0.75, 0, 0.02, 0.18, 0.04, 0.18, V5C.fer, TL.iron); E.bx(-0.75, 0.04, 0.02, 0.15, 0.22, 0.15, [0.12, 0.12, 0.11], TL.glass); E.bx(-0.75, 0.26, 0.02, 0.18, 0.04, 0.18, V5C.fer, TL.iron);
+    E.box(-0.75, 0.36, 0.02, 0.12, 0.02, 0.02, V5C.fer, TL.iron);
+  },
+  // des cercles de tonneau rouillés, empilés, et deux douelles
+  v5_cercles(E) {
+    const r1 = rgbf('#5a3422'), r2 = rgbf('#6e4228');
+    v5Cercle(E, 0, 0.02, 0, 0.44, r1); v5Cercle(E, 0.1, 0.055, 0.06, 0.4, r2); v5Cercle(E, -0.06, 0.09, -0.03, 0.36, r1);
+    E.box(0.55, 0.025, 0.25, 0.09, 0.025, 0.95, V5C.boisS, TL.darkwood, 0.5); E.box(0.4, 0.06, -0.35, 0.09, 0.025, 0.9, V5C.bois, TL.wood, -0.9, 0.15);
+  },
   // un feu qui ne s'éteint pas : une vasque de tuf sur un fût, des os dans la cendre, une flamme pâle (data.lit)
   v5_feu(E, o, t) {
     E.bx(0, 0, 0, 0.78, 0.18, 0.78, V5C.tufS, V5_TUF());
@@ -311,6 +340,7 @@ Object.assign(PROP_MODELS, {
       E.box(-0.3, 0.12, 0.2, 0.6, 0.3, 0.45, c, mt(M_V1_PIERRE), 0.4); E.box(0.35, 0.1, -0.25, 0.5, 0.26, 0.5, c, mt(M_V1_PIERRE), -0.3);
       E.box(0.1, 0.32, 0.05, 0.45, 0.24, 0.4, c, mt(M_V1_PIERRE), 1.1); E.box(-0.45, 0.06, -0.4, 0.4, 0.16, 0.3, c, mt(M_V1_PIERRE), 0.2);
       E.box(0.45, 0.05, 0.45, 0.7, 0.08, 0.12, V5C.boisS, TL.darkwood, 0.7);
+      v5Cercle(E, -0.05, 0.27, -0.1, 0.38, rgbf('#5a3422'));
     }
   },
   // l'enseigne tombée : une potence de fer, une planche peinte d'un tonneau
