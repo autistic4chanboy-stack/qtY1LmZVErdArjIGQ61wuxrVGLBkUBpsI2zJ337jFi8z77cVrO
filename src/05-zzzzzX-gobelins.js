@@ -21,8 +21,9 @@ defItem('gob_chiffons', 'Chiffons de gobelin', 'materiau', 1, ['tas', '#6a5a48']
 defItem('gob_couronne', 'Couronne de cuillères', 'tresor', 64, ['couronne', '#c8c8d0'], { desc: 'Des cuillères d’argent tordues, liées au fil de laiton en une couronne. Elle est tiède, et elle le reste.' });
 
 // ---------------------------------------------------------------- ce qu'on tire d'un tas (une poignée)
-// (un petit tas : trois poignées d'une cinquantaine de pièces ; le grand tas : trois poignées d'environ cent trente :
-// tout le trésor de la Gobelinière vaut quatre journées de travail du début — voir tools/equilibrage/X.js)
+// (un petit tas : trois poignées d'une quarantaine de pièces ; le grand tas : trois poignées d'environ cent quinze :
+// tout le trésor de la Gobelinière, quelque 1 030 pièces, vaut près de trois journées de travail du début — voir
+// tools/equilibrage/X.js)
 Object.assign(LOOT, {
   gob_tas: { rolls: [2, 4], items: [['argent', 3, 14, 4], ['vieille_piece', 1, 2, 3], ['cuillere_argent', 1, 1, 2], ['de_coudre', 1, 1, 1.5], ['boutons_nacre', 1, 1, 1.5], ['ruban', 1, 1, 1], ['bougeoir', 1, 1, 0.8], ['besicles', 1, 1, 0.7], ['montre', 1, 1, 0.25], ['bijou', 1, 1, 0.35], ['tabatiere', 1, 1, 0.4], ['couteau_poche', 1, 1, 0.6], ['bobine_fil', 1, 2, 1], ['clous', 1, 3, 1], ['timbres', 1, 1, 0.6], ['image_pieuse', 1, 1, 0.6], ['jeu_cartes', 1, 1, 0.4], ['bille', 1, 3, 1], ['figurine', 1, 1, 0.4], ['mouchoir_brode', 1, 1, 1], ['gob_alliance', 1, 1, 0.12], ['gob_hochet', 1, 1, 0.1], ['gob_trousseau', 1, 1, 0.2], ['gob_bonnet', 1, 1, 0.15]] },
   gob_grand_tas: { rolls: [3, 5], items: [['argent', 10, 30, 4], ['vieille_piece', 1, 3, 3], ['cuillere_argent', 1, 2, 2], ['bougeoir', 1, 1, 1.4], ['bijou', 1, 1, 1.2], ['montre', 1, 1, 0.8], ['medaillon_portrait', 1, 1, 0.8], ['tabatiere', 1, 1, 1], ['besicles', 1, 1, 0.6], ['eau_cologne', 1, 1, 0.5], ['calice_etain', 1, 1, 0.3], ['gob_alliance', 1, 1, 0.35], ['gob_hochet', 1, 1, 0.3]] },

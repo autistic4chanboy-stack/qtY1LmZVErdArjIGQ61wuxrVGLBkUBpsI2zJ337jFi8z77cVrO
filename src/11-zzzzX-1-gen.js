@@ -43,7 +43,7 @@ const GOB_GEN = {
 };
 
 function gobGenerer(w, seed) {
-  const t0 = Date.now();
+  const t0 = Date.now(), nb0 = w.blocks.length, grille0 = w.grid;
   const rnd = mulberry32(((seed | 0) ^ GOB_GEN.graine) >>> 0);
   const B = new Builder(w, rnd, new Uint8Array(1));
   const WL = w.waterLevel, H = (x, z) => w.heightAt(x, z);
@@ -186,8 +186,23 @@ function gobGenerer(w, seed) {
   // ================================================ la Gobelinière
   const V = gobSalle(w, B, rnd, sx, sz);
   if (V) G.village = V;
+  // la grille des collisions : nos blocs y entrent un à un (la refaire toute coûterait cher au premier appel : les objets
+  // n'ont pas changé) ; si elle n'est pas encore faite, elle les prendra d'elle-même
+  if (w.grid !== grille0) w.grid = null; // (refaite en chemin : elle n'a peut-être qu'une partie de nos blocs)
+  else if (w.grid && w.grid.cells) {
+    const gw = w.grid.gw, cells = w.grid.cells;
+    for (let idx = nb0; idx < w.blocks.length; idx++) {
+      const b = w.blocks[idx];
+      if (b.ver && !(b.ver & w.curVer)) continue;
+      const r = Math.hypot(b.sx, b.sz) / 2;
+      for (let gz = Math.floor((b.z - r) / GRID_CELL); gz <= Math.floor((b.z + r) / GRID_CELL); gz++) for (let gx = Math.floor((b.x - r) / GRID_CELL); gx <= Math.floor((b.x + r) / GRID_CELL); gx++) {
+        if (gx < 0 || gz < 0 || gx >= gw || gz >= gw) continue;
+        const k = gz * gw + gx;
+        (cells[k] || (cells[k] = [])).push(-1 - idx);
+      }
+    }
+  }
   G.ms = Date.now() - t0;
-  w.grid = null;
   return G;
 }
 

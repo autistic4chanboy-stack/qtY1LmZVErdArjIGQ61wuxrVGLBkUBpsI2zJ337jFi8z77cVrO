@@ -83,7 +83,7 @@ const GOB_C = {
   flamme: [1.5, 1.05, 0.45], braise: [1.4, 0.6, 0.2], toile: rgbf('#d6cbb2'), bleu: rgbf('#5a7a9a'), rouge: rgbf('#9a4a3a'), vert: rgbf('#5a7a4a'), os: rgbf('#ddd4ba'),
 };
 // la peau : grise, verdâtre, terreuse
-const GOB_PEAUX = ['#c0c6a2', '#b2b896', '#c6bea4', '#cac8b2', '#b8bc9c', '#c0b6a0', '#c4c8aa', '#aeb496', '#ccc6ac'];
+const GOB_PEAUX = ['#b4bc8a', '#a6b080', '#bab48e', '#c0c09a', '#aab488', '#b6ac8c', '#b8c094', '#a0aa7e', '#c2ba98'];
 // ce qu'ils portent (volé, trop grand)
 const GOB_HABITS = [
   { top: '#a04a3a', gilet: true, bonnet: '#7a6a8a' },             // un gilet rouge délavé, un bonnet de laine
@@ -245,7 +245,15 @@ function gobPose(r, st) {
   }
   // les yeux luisent la nuit (pas ceux qui dorment, ni les morts)
   const luit = (st.nuit || 0) > 0.45 && m !== 'dort' && m !== 'mort';
-  for (const n of ['oeilG', 'oeilD']) { const q = r.part(n); if (q) { q.fl = luit ? FX_EMIT : 0; q.hide = m === 'dort' || m === 'mort'; } }
+  // (la nuit, l'œil qui renvoie la lumière paraît plus grand que l'œil : deux points dans le noir, de loin)
+  for (const n of ['oeilG', 'oeilD']) {
+    const q = r.part(n);
+    if (!q) continue;
+    if (!q.s0) q.s0 = q.s.slice();
+    const kE = luit ? 1.7 : 1;
+    q.s[0] = q.s0[0] * kE; q.s[1] = q.s0[1] * kE;
+    q.fl = luit ? FX_EMIT : 0; q.hide = m === 'dort' || m === 'mort';
+  }
   const tete = r.part('head');
   if (tete) tete.tex = tx(TL.gobPeau, m === 'dort' || m === 'mort' ? TL.gobVisageDort : TL.gobVisage);
   const sac = r.part('butin'); if (sac) sac.hide = !st.sac;
@@ -255,7 +263,8 @@ function gobPose(r, st) {
 // ---------------------------------------------------------------- les objets posés
 // (les tuiles colorées — bois, écorce, terre, feuilles, or — se teintent à peine ; les tuiles grises prennent la couleur)
 const gobR = (o, k) => hash2i(Math.round(o.x * 10) + k * 7, Math.round(o.z * 10) - k * 13, 977 + k);
-const GT = { blanc: WHITE, sombre: [0.66, 0.64, 0.62], clair: [1.18, 1.12, 1.05], mort: [1.3, 1.3, 1.42], gris: [1.55, 1.55, 1.68], laitonT: [0.92, 0.76, 0.56], argentT: [0.8, 0.8, 0.86] };
+const GOB_REFLET = [0.62, 0.58, 0.5]; // (les reflets : de l'or, sans lumière propre, à peine)
+const GT = { blanc: WHITE, sombre: [0.66, 0.64, 0.62], clair: [1.18, 1.12, 1.05], mort: [1.75, 2.05, 2.5], gris: [1.95, 2.3, 2.75], laitonT: [0.92, 0.76, 0.56], argentT: [0.8, 0.8, 0.86] };
 Object.assign(PROP_MODELS, {
   // la vieille souche : un chêne mort, ouvert par la foudre (creux, l'écorce en couronne brisée), ses racines
   gob_souche(E, o) {
@@ -263,7 +272,7 @@ Object.assign(PROP_MODELS, {
     for (let k = 0; k < 8; k++) {
       const a = k * Math.PI / 4, h = H[k];
       E.bx(Math.cos(a) * 0.74, 0, Math.sin(a) * 0.74, 0.66, h, 0.34, k % 2 ? GT.mort : GT.gris, TL.bark, Math.PI / 2 - a);
-      E.bx(Math.cos(a) * 0.74, h, Math.sin(a) * 0.74, 0.4, 0.18 + (k % 3) * 0.12, 0.2, GT.sombre, TL.bark, Math.PI / 2 - a + 0.3, 0.25, 0.1);
+      E.bx(Math.cos(a) * 0.74, h, Math.sin(a) * 0.74, 0.4, 0.18 + (k % 3) * 0.12, 0.2, GT.mort, TL.bark, Math.PI / 2 - a + 0.3, 0.25, 0.1);
     }
     E.bx(0, 0, 0, 1.15, 0.06, 1.15, GOB_C.noir, TL.plain);
     E.bx(0, 0.06, 0.15, 0.7, 0.04, 0.5, GT.sombre, TL.soil);
@@ -351,6 +360,10 @@ Object.assign(PROP_MODELS, {
     if (v % 3 === 0 && n === 0) E.box(-0.1, h + 0.05, -0.3, 0.12, 0.2, 0.08, rgbf('#e0d0b0'), TL.doll, 0.4, -0.5); // une poupée, la tête en bas
     if (v % 3 === 1 && n === 0) E.box(0.4, h * 0.6, -0.25, 0.22, 0.22, 0.02, GT.blanc, TL.gold, 0.7, 0.6);       // un cadre doré
     if (v % 3 === 2 && n === 0) E.box(0.1, h + 0.02, 0.3, 0.2, 0.14, 0.14, GOB_C.cuivre, TL.metal, 0.3);           // une théière
+    // l'or qui accroche la lueur des chandelles
+    E.fl = FX_EMIT;
+    for (let i = 0; i < 5 - n * 2; i++) E.bx((R(i + 30) - 0.5) * 1.0 * k, 0.28 * k + R(i + 34) * 0.3 * k, (R(i + 38) - 0.5) * 0.8 * k, 0.05, 0.012, 0.05, GOB_REFLET, TL.gold, R(i + 42) * 3);
+    E.fl = 0;
   },
   // le grand tas : une butte d'or et d'argent, des générations de vols ; la vieille siège tout en haut
   gob_grand_tas(E, o) {
@@ -371,6 +384,13 @@ Object.assign(PROP_MODELS, {
     }
     E.box(-1.7, 0.9, -0.9, 0.06, 1.6, 0.06, GT.blanc, TL.darkwood, 0.3, 0.4, 0.3);                               // un pied de chaise, un manche de faux
     E.box(1.8, 0.7, -0.6, 0.5, 0.06, 0.06, GOB_C.laiton, TL.metal, 0.7, 0.2, 0.5);
+    // l'or qui accroche la lueur des chandelles
+    E.fl = FX_EMIT;
+    for (let i = 0; i < 14 - n * 3; i++) {
+      const a = R(i + 60) * TAU, rr = 0.4 + R(i + 100) * 1.6, y = R(i + 140) < 0.5 ? 0.5 : 0.95 * k + 0.05;
+      E.bx(Math.cos(a) * rr, y, Math.sin(a) * rr * 0.7, 0.06, 0.012, 0.06, GOB_REFLET, TL.gold, a);
+    }
+    E.fl = 0;
   },
   // ce qui traîne par terre, autour des tas : des pièces, une cuillère, un bouton
   gob_eparpille(E, o) {
@@ -502,6 +522,6 @@ Object.assign(PROP_COLL, {
 });
 // lumières : les chandelles, la marmite
 Object.assign(PROP_LIGHTS, {
-  gob_chandelles: { c: [1.25, 0.82, 0.4], r: 10, y: 0.35, flicker: true },
-  gob_marmite: { c: [1.3, 0.62, 0.26], r: 11, y: 0.4, flicker: true },
+  gob_chandelles: { c: [1.25, 0.82, 0.4], r: 12, y: 0.35, flicker: true },
+  gob_marmite: { c: [1.3, 0.62, 0.26], r: 13, y: 0.4, flicker: true },
 });

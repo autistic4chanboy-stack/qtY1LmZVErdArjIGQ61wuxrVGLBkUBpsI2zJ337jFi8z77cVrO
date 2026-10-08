@@ -1338,10 +1338,10 @@ HOOKS.day.push(() => { try { if (farm.s) gobelins.jour(); } catch (e) { console.
 HOOKS.sky.push((sky) => {
   if (!gobelins.dans) return;
   const N = [0, 0, 0];
-  sky.zen = [0.012, 0.009, 0.006]; sky.hor = [0.016, 0.012, 0.008]; sky.glow = N; sky.haze = [0.02, 0.014, 0.009];
-  sky.amb = [0.11, 0.09, 0.07]; sky.sunCol = N; sky.moonCol = N; sky.cloudLit = N; sky.cloudDark = N;
+  sky.zen = [0.02, 0.015, 0.01]; sky.hor = [0.034, 0.024, 0.015]; sky.glow = N; sky.haze = [0.05, 0.034, 0.02];
+  sky.amb = [0.17, 0.135, 0.1]; sky.sunCol = N; sky.moonCol = N; sky.cloudLit = N; sky.cloudDark = N;
   sky.stars = 0; sky.sunVis = 0; sky.moonVis = 0; sky.cloudCover = 0; sky.mist = 0; sky.shadowK = 0; sky.nightLit = 1; sky.wet = 0; sky.frost = 0;
-  sky.fog = [4, 46];
+  sky.fog = [9, 64];
 });
 HOOKS.load.push(() => {
   const X = gobelins;
