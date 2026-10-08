@@ -382,10 +382,12 @@ const cambriolage = {
     for (const m of this.maisons[k] || []) if (m !== n && uDort(m) && Math.hypot(m.x - n.x, m.z - n.z) < 14) this.reveiller(m, { x: n.x, y: n.y, z: n.z, nature: 'cri' });
     // et lui : un garde vous poursuit (s'il vous a reconnu, le crime est su : 11-zzzzC1 mène la suite) ; un costaud
     // se jette sur vous ; les autres fuient en criant
+    // (si Z le faisait marcher, son ordre « va voir » cède : la poursuite, la fuite, le coup passent avant)
+    if (E.z) { const Z = uZ(); try { if (Z && Z.liberer) Z.liberer(n); } catch (e) { /* rien */ } E.z = false; }
     if (uEstGarde(n)) { this.lacher(n, 120); if (reconnu) { n.poursuite = now + 18; n.vuT = now; n.fleeT = 0; } }
     else if (brave) {
-      // (c'est nous qui le menons, ces quelques secondes : Z le lâche)
-      if (E.z) { const Z = uZ(); try { if (Z && Z.liberer) Z.liberer(n); } catch (e) { /* rien */ } E.z = false; n.sleep = false; n.state = 'idle'; n.path = []; n.pi = 0; }
+      // (c'est nous qui le menons, ces quelques secondes)
+      n.sleep = false; n.state = 'idle'; n.path = []; n.pi = 0;
       E.phase = 'face'; E.t2 = now;
     } else { this.lacher(n, 100); n.fleeT = 5 + Math.random() * 2; n.run = true; }
   },
