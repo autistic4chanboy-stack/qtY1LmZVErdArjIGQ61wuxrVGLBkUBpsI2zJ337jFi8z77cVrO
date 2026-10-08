@@ -2,7 +2,7 @@
 //  INTERFACE : menus, options, panneau de l'éditeur, HUD, fichiers
 // ============================================================================
 
-const DEFAULT_SETTINGS = { sens: 1.0, fov: 90, pixel: 270, dither: true, bands: true, volume: 0.6, ambVolume: 0.5, invertY: false, viewDist: 340, showFps: false, gamma: 1.0, subs: true, aimDot: false };
+const DEFAULT_SETTINGS = { sens: 1.0, fov: 90, pixel: 270, dither: true, bands: true, volume: 0.6, ambVolume: 0.5, invertY: false, viewDist: 340, fogDist: 1, grassDist: 40, showFps: false, gamma: 1.0, subs: true, aimDot: false };
 const settings = Object.assign({}, DEFAULT_SETTINGS, store.get('prairie.settings', {}));
 
 function thumbFromCanvas(cv, crop) {
@@ -85,6 +85,8 @@ const ui = {
     bindOpt('#o-fov', 'fov', (v) => v + '°');
     bindOpt('#o-pixel', 'pixel', null, (v) => parseInt(v, 10));
     bindOpt('#o-view', 'viewDist', null, (v) => parseInt(v, 10));
+    bindOpt('#o-fog', 'fogDist', (v) => Math.round(v * 100) + ' %');
+    bindOpt('#o-grass', 'grassDist', (v) => v + ' m', (v) => parseInt(v, 10));
     bindOpt('#o-gamma', 'gamma', (v) => v.toFixed(2));
     bindOpt('#o-volume', 'volume', (v) => Math.round(v * 100) + ' %');
     bindOpt('#o-amb', 'ambVolume', (v) => Math.round(v * 100) + ' %');

@@ -12,7 +12,7 @@ try { ts = require('typescript'); } catch (e) { ts = require('/opt/node22/lib/no
 
 const root = path.join(__dirname, '..');
 // modules sans texte affiché (code, shaders, sons) : on n'y prend que les valeurs de propriétés « name », « label »…
-const SKIP = /^(00-util|01-gl|02-|07-shaders|08-renderer|09-audio|14-i18n)/;
+const SKIP = /^(00-util|01-gl|02-|07-shaders|08-renderer|09-audio|09-zzzzM|14-i18n)/; // (09-zzzzM : les partitions des musiques ; leurs titres, « titre: », restent pris)
 const NAME_PROPS = new Set(['name', 'label', 'title', 'titre', 'hint', 'desc', 'text', 'texte', 'nom']);
 
 // Un texte lisible (et non un identifiant, un sélecteur, une couleur, du code…)

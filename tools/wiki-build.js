@@ -2075,7 +2075,7 @@ function buildWiki(DB) {
     const n = spawn.reduce((a, s) => a + ((W.objCounts || {})[s] || 0), 0);
     if (n) h += `<dt>Dans la vallée</dt><dd>${plur(n, 'gîte', 'gîtes')} ${spawn.some((s) => W.species && W.species.idx[s]) ? mapBtn('an:' + k, 'où les trouver') : ''}</dd>`;
     h += '</dl>';
-    const extra = Object.keys(c).filter((q) => !TRAITS[q] && !['walk', 'run', 'range', 'flee', 'radius', 'idle', 'call', 'solid', 'rig', 'h', 'dmg', 'nat', 'ombreNat'].includes(q));
+    const extra = Object.keys(c).filter((q) => !TRAITS[q] && !['walk', 'run', 'range', 'flee', 'radius', 'idle', 'call', 'solid', 'rig', 'h', 'dmg', 'nat', 'ombreNat', 'e1', 'e2', 'e3', 'ombre', 'e2Ombre', 'ombreE3'].includes(q));
     if (extra.length) h += `<details><summary>Autres caractéristiques</summary><dl class="kv">${extra.map((q) => `<dt>${esc(q)}</dt><dd>${esc(JSON.stringify(c[q]))}</dd>`).join('')}</dl></details>`;
     p.h = h;
     p.g = e ? (e[2].includes('ferme') ? 'À la ferme' : e[2].some((x) => ['rochers', 'neiges', 'alpage', 'sapiniere'].includes(x)) ? 'En montagne' : e[2].some((x) => ['marais', 'berges', 'riviere'].includes(x)) ? 'Au bord de l’eau' : 'Des bois et des prés') : 'Autres';
@@ -4391,6 +4391,17 @@ function buildWiki(DB) {
       SP('sys:gardes', { t: 'Les gardes : se rendre, ou pas', s: 'Deux protecteurs par lieu, leurs cabanes, la sommation, la rébellion', c: ['societe', 'batiments'], g: 'Les gardes', i: '⚔', h }, [FG0, FG1].filter(Boolean));
     }
   }
+  // ==== LA DOUZIÈME VAGUE : la voix de chaque milieu, la musique (section « Musique et ambiances »), dix plantes et dix
+  // bêtes de plus par milieu (« La nature »), le hasard de la vallée (soixante et un événements), la pierre ronde, la cité
+  // des Maisons-d'Étoile, ses machines et l'Atelier des corps (« Autres mondes »). Les textes et les fiches :
+  // tools/wiki-v12.js (ce qui se cache, sous « révéler les secrets »).
+  {
+    let W12 = null;
+    try { W12 = require('./wiki-v12.js'); } catch (e) { (DB.log || []).push('wiki-v12.js : ' + e.message); }
+    if (W12) {
+      try { W12.build({ DB, T, P, SP, SEC, esc, lk, IL, FILL, quotes, npcLink, pages, used, addCat, rarTag, nfmt, planBtn, MF, ITEMS }); } catch (e) { (DB.log || []).push('wiki-v12.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
+    }
+  }
   for (const f of [FILE.vol, FILE.prison, FILE.sentiments]) if (f) genericPage(f, 'prison', 'Prison, vol et sentiments');
   for (const f of Object.keys(MF)) if (!MODPAGE[f] && !/^07-/.test(f)) genericPage(f, 'nouveautes-autres', 'Autres nouveautés');
   // ce qui reste des tables de chaque module : en bas de sa fiche principale
@@ -4455,17 +4466,18 @@ function buildWiki(DB) {
     { id: 'lieux2', t: 'Lieux perdus', d: 'Un lieu tous les deux cents mètres : croix, chapelles, pierres levées, cabanes, sources… leurs sortes, ce qu’on y lit, leurs lettres, leurs histoires (et leurs secrets).', nouveau: true, groups: [{ t: 'Les lieux perdus', ids: byCat('lieux2').filter(isSys) }, { t: 'Les sortes de lieux', ids: sortT(byCat('lieux2').filter((i) => i.startsWith('c2t:'))) }, { t: 'Les histoires à recouper', ids: byCat('lieux2').filter((i) => i.startsWith('c2h:')) }, { t: 'Les lettres', ids: sortT(byCat('lieux2').filter((i) => i.startsWith('c2l:'))) }, { t: 'Les lieux de la vallée', ids: sortT(byCat('lieux2').filter((i) => i.startsWith('li:'))) }] },
     { id: 'peuples', t: 'Les deux peuples', d: 'Les Planches, sur le lac, et l’estive, là-haut : leurs gens, leurs coutumes, leurs parlers.', nouveau: true, groups: [{ t: 'Les deux peuples', ids: sysFirst(byCat('peuples').filter((i) => isSys(i) && !i.startsWith('parler:'))) }, { t: 'Leurs parlers', ids: byCat('peuples').filter((i) => i.startsWith('parler:')) }, { t: 'Leurs gens', ids: sortT(byCat('peuples').filter((i) => i.startsWith('pnj:'))) }, { t: 'Leurs lieux', ids: sortT(byCat('peuples').filter((i) => i.startsWith('li:'))) }] },
     { id: 'dessous', t: 'Le Dessous', d: 'Sous la vallée : les salles et leur plan, ceux d’en bas et leur parler, les minerais, les plantes et les bêtes d’en bas ; le passage, le Hoûm et le tombeau (secrets).', nouveau: true, groups: [{ t: 'Le Dessous', ids: sysFirst(byCat('dessous').filter((i) => isSys(i) && !/^(sout:g:|parler:|sout:gens|sout:encoches)/.test(i))) }, { t: 'Les salles', ids: sortT(byCat('dessous').filter((i) => i.startsWith('li:'))) }, { t: 'Ceux d’en bas', ids: [...['sout:gens', 'parler:bas', 'sout:encoches'].filter((i) => byCat('dessous').includes(i)), ...byCat('dessous').filter((i) => i.startsWith('sout:g:'))] }, { t: 'Les pierres gravées', ids: byCat('dessous').filter((i) => i.startsWith('ins:')) }] },
-    { id: 'nature', t: 'La nature', d: 'Chaque plante son objet, les bois, les plantes et les bêtes nouvelles, les cris d’oiseaux, le papillon d’or.', nouveau: true, groups: [{ t: 'La nature', ids: sysFirst(byCat('nature').filter(isSys)) }, { t: 'Les plantes nouvelles', ids: sortT(byCat('nature').filter((i) => i.startsWith('pl:'))) }, { t: 'Les bêtes nouvelles', ids: sortT(byCat('nature').filter((i) => i.startsWith('an:'))) }] },
+    { id: 'nature', t: 'La nature', d: 'Chaque plante son objet, les bois, les plantes et les bêtes nouvelles (dix de plus par milieu), les cris d’oiseaux, le papillon d’or.', nouveau: true, groups: [{ t: 'La nature', ids: sysFirst(byCat('nature').filter(isSys)) }, { t: 'Les plantes nouvelles', ids: sortT(byCat('nature').filter((i) => i.startsWith('pl:'))) }, { t: 'Les bêtes nouvelles', ids: sortT(byCat('nature').filter((i) => i.startsWith('an:'))) }] },
     { id: 'quotidien', t: 'Au quotidien', d: 'Le carnet de commandes et le voiturier, la lanterne et son huile, les ruches, les recettes qu’on n’oublie pas, le gel là-haut, le son.', nouveau: true, groups: [{ t: 'Au quotidien', ids: byCat('quotidien') }] },
-    { id: 'corps', t: 'Corps et esprit', d:'Chutes, blessures, mentalité, le sommeil et la fatigue, ce qu’on mange, le chien, l’alcool.', nouveau: true, groups: groupBy(byCat('corps'), (p) => p.g || 'Le corps et l’esprit') },
+    { id: 'musique', t: 'Musique et ambiances', d: 'Quarante-deux morceaux doux, de temps en temps, selon le lieu (et la case pour les couper) ; la voix de chaque milieu : ses oiseaux, ses bruits, sa pluie ; le son.', nouveau: true, groups: [{ t: 'Musique et ambiances', ids: sortT(byCat('musique')) }] },
+    { id: 'corps', t: 'Corps et esprit', d:'Chutes, blessures, mentalité, le sommeil et la fatigue, ce qu’on mange, le chien, l’alcool, l’Atelier des corps.', nouveau: true, groups: groupBy(byCat('corps'), (p) => p.g || 'Le corps et l’esprit') },
     { id: 'batiments', t: 'On entre partout', d: 'Les étages des maisons, les tours et le chemin de ronde, le clocher, la tente ; le moulin, le phare, les pigeonniers, les loges, le clocher englouti : comment on monte, ce qu’il y a dedans (et ce qui s’y cache).', nouveau: true, groups: [{ t: 'Monter, entrer', ids: byCat('batiments').filter(isSys) }, { t: 'Dedans', ids: sortT(byCat('batiments').filter((i) => !isSys(i))) }] },
     { id: 'maisons', t: 'Maisons, lits et serrures', d: 'Dormir et la fatigue, louer une maison, l’acheter et la meubler, les portes, crocheter une serrure, la poterne.', nouveau: true, groups: groupBy(byCat('maisons'), (p) => p.g || 'Se loger') },
     { id: 'fouilles', t: 'Fouiller, ramasser, casser', d: 'Les armoires et les tiroirs-caisses, le menu de butin, ce qui se casse et à qui c’était, les morts qui restent au sol.', nouveau: true, groups: groupBy(byCat('fouilles'), (p) => p.g || 'Fouiller') },
     { id: 'activites', t: 'Activités des villes et villages', d: 'Les dés, le vingt-et-un, la veillée, les petits travaux, le puits, la diseuse, les quilles, la tombola, les concours, les étals du Marchedi…', nouveau: true, groups: groupBy(byCat('activites'), (p) => p.g || 'Les activités') },
     { id: 'chasse', t: 'Chasse et attelage', d: 'Le fusil, les pièges, les bêtes dangereuses, les chasseurs, la charrette.', nouveau: true, groups: groupBy(byCat('chasse'), (p) => p.g || 'La chasse') },
     { id: 'societe', t: 'Société', d: 'Les gardes et la sommation (se rendre, ou pas), la mort des habitants, les crimes et les primes, les Sources, les nains, les géants, les colporteurs.', nouveau: true, groups: groupBy(byCat('societe'), (p) => p.g || 'La vie de la vallée') },
-    { id: 'evenements', t: 'Événements et divinités', d: 'Nuits noires, neige, soleil, tornades, prodiges, les Trois, les malédictions, le temple, les cinématiques.', nouveau: true, groups: groupBy(byCat('evenements'), (p) => p.g || 'Ce qui arrive') },
-    { id: 'mondes', t: 'Autres mondes', d: 'Le pays des bonbons, les Ténèbres, le cauchemar, les Enfers.', nouveau: true, groups: groupBy(byCat('mondes'), (p) => p.g || 'Les mondes') },
+    { id: 'evenements', t: 'Événements et divinités', d: 'Nuits noires, neige, soleil, tornades, prodiges, le hasard de la vallée (soixante et un événements), les Trois, les malédictions, le temple, les cinématiques.', nouveau: true, groups: groupBy(byCat('evenements'), (p) => p.g || 'Ce qui arrive') },
+    { id: 'mondes', t: 'Autres mondes', d: 'Le pays des bonbons, les Ténèbres, le cauchemar, les Enfers, la cité des Maisons-d’Étoile (par la pierre ronde : un seul voyage).', nouveau: true, groups: groupBy(byCat('mondes'), (p) => p.g || 'Les mondes') },
     { id: 'merveilles', t: 'Merveilles et mystères', d: 'Objets légendaires et mythiques, l’Homme long, la Fondation.', nouveau: true, groups: groupBy(byCat('merveilles'), (p) => p.g || 'Merveilles') },
     { id: 'prison', t: 'Prison, vol à la tire et sentiments', d: 'Voler, être pris, le cachot ; ce que les gens ressentent.', nouveau: true, groups: groupBy(byCat('prison'), (p) => p.g || 'Fiches') },
     { id: 'nouveautes-autres', t: 'Autres nouveautés', d: 'Les modules nouveaux qui n’ont pas encore de section à eux.', nouveau: true, groups: groupBy(byCat('nouveautes-autres'), (p) => p.g || 'Fiches') },
@@ -4502,7 +4514,7 @@ function buildWiki(DB) {
 
   // les nouveautés : toutes les sections nouvelles, et les fiches des systèmes dans les sections anciennes
   {
-    const SUBF = /^(eff|pr|scp|an:m|geant|mal|dieu|act):/;
+    const SUBF = /^(eff|pr|scp|an:m|geant|mal|dieu|act|hf):/;
     let h = `<p class="lead">Ce qui est arrivé dans la vallée, section par section. Chaque fiche est tirée du jeu lui-même : l’en-tête de ses modules, leurs tables, ce qu’ils calculent.</p>`;
     let n = 0;
     for (const c of [...cats.filter((q) => q.nouveau), ...cats.filter((q) => !q.nouveau)]) {
@@ -4683,6 +4695,8 @@ function buildPlansData(DB, wiki) {
       else if (byM[src]) { at = mid(byM[src]); r = ext(byM[src]); }
       if (at) M({ l: 'noms', k: 'zone', x: at[0], z: at[1], r: Math.max(12, r), t: cap(t), p: page });
     }
+    // la cité des Maisons-d'Étoile : ses salles (des rectangles autour de son origine), avec leur niveau
+    if (nom === 'vaisseau' && o.fond) { const VN = T('VG_ZONES_NOMS', {}); for (const [k, x0, x1, z0, z1, y0] of T('VG_ZONES', [])) M({ l: 'noms', k: 'zone', x: o.fond.x + (x0 + x1) / 2, z: o.fond.z + (z0 + z1) / 2, r: Math.max(8, Math.min(x1 - x0, z1 - z0) / 2), t: cap(VN[k] || k) + (y0 > 20 ? ' (tout en haut)' : y0 > 5 ? ' (en haut)' : y0 < -5 ? ' (en bas)' : ''), p: page }); }
     for (const [m, L] of Object.entries(byM)) {
       const d = PLAN_DECORS[m];
       if (m === 'ENF.stele') L.forEach((c) => { const S2 = ST[c.v]; M({ l: 'decors', k: 'pt', x: c.x, z: c.z, t: S2 ? 'Stèle : « ' + S2[0] + ' »' : 'une stèle', s: 'Gravée dans la pierre noire (E : la lire)', p: page, i: '▮' }); });
@@ -4697,17 +4711,18 @@ function buildPlansData(DB, wiki) {
       M({ l: 'betes', k: 'pt', x: b.x, z: b.z, t, s: b.nom ? 'Une âme, près de la Porte' : '', p: p2, i: b.k === 'gardien' ? '☉' : b.k === 'ame' ? '☁' : '✱' });
     }
     for (const b of o.betes || []) if (!b.nom && seen[b.k] > 1) M({ l: 'betes', k: 'dot', x: b.x, z: b.z, t: cap(titre(pg('an:m:' + b.k, page)) || b.k), s: '', p: pg('an:m:' + b.k, page), c: '#d8b8a8' });
-    const TT = { enfers: 'Les Enfers', cauchemar: 'Le cauchemar', bonbons: 'Le pays des bonbons', tenebres: 'Les Ténèbres' };
+    const TT = { enfers: 'Les Enfers', cauchemar: 'Le cauchemar', bonbons: 'Le pays des bonbons', tenebres: 'Les Ténèbres', vaisseau: 'La cité des Maisons-d’Étoile' };
     const NOTE = {
       enfers: 'Sous la vallée, sous l’Envers même : ce que le monde construit quand on y descend (les âmes du champ sont celles de vos victimes : ici, une partie neuve n’en a pas).',
       cauchemar: 'Le rêve qui tourne mal : la maison-souvenir, le couloir qui boucle, l’issue au bout.',
       bonbons: 'Une vision qui se dresse autour de l’endroit où l’on est (ici : devant la ferme) ; la disposition change à chaque fois.',
       tenebres: 'Une vision qui se dresse autour de l’endroit où l’on est (ici : devant la ferme) ; la disposition change à chaque fois.',
+      vaisseau: 'Au-delà de la pierre ronde, un seul voyage : le Seuil, la Nef et ses maisons, les Jardins ; l’aile haute et l’Observatoire au-dessus, la Machinerie et la Brèche en dessous (les niveaux sont superposés).',
     };
-    out.push({ id: nom, t: TT[nom] || cap(o.titre || nom), i: { enfers: '🜂', cauchemar: '☾', bonbons: '🍬', tenebres: '🜏' }[nom] || '◐', s: NOTE[nom] || '', img: o.img, x0: o.x0, z0: o.z0, x1: o.x1, z1: o.z1, ppm: o.ppm, bg: { enfers: '#1a0c0a', cauchemar: '#0e0d0d', bonbons: '#eccede', tenebres: '#101016' }[nom] || '#222', coords: 0, p: page,
+    out.push({ id: nom, t: TT[nom] || cap(o.titre || nom), i: { enfers: '🜂', cauchemar: '☾', bonbons: '🍬', tenebres: '🜏', vaisseau: '✧' }[nom] || '◐', s: NOTE[nom] || '', img: o.img, x0: o.x0, z0: o.z0, x1: o.x1, z1: o.z1, ppm: o.ppm, bg: { enfers: '#1a0c0a', cauchemar: '#0e0d0d', bonbons: '#eccede', tenebres: '#101016', vaisseau: '#0c1220' }[nom] || '#222', coords: 0, p: page,
       layers: [['noms', 'Les lieux', 0, 1], ['decors', 'Ce qui s’y dresse', 0, 1], ['betes', 'Ce qui y vit', 0, 1], ['cueillir', 'Ce qu’on y ramasse', 0, 1]], marks });
   }
-  const ORD = ['dessous', 'enfers', 'cauchemar', 'bonbons', 'tenebres'];
+  const ORD = ['dessous', 'enfers', 'cauchemar', 'bonbons', 'tenebres', 'vaisseau'];
   return out.sort((a, b) => ORD.indexOf(a.id) - ORD.indexOf(b.id));
 }
 

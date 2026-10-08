@@ -11,6 +11,9 @@ premier Tomb Raider, bêtes en boîtes), presque sans affichage à l'écran. Un 
 Ouvrir **`Prairie.html`** dans un navigateur récent (Chrome, Edge ou Firefox, WebGL 2 requis).
 Aucune installation ni connexion : tout est dans ce seul fichier. La partie est sauvegardée automatiquement.
 Le jeu existe en **français** et en **anglais** (Options, ou le bouton de langue du menu ; bascule à chaud).
+Les **Options** règlent aussi l'image : champ de vision, pixelisation, distance de vue, **distance du brouillard** (de 50 à
+200 % : plus près pour l'ambiance, plus loin pour voir plus loin, sans jamais dépasser la distance de vue) et **distance de
+l'herbe et des fleurs** (le tapis d'herbe et de fleurs autour de soi, de 20 à 80 m ; plus court, le jeu est plus léger).
 
 **Le wiki de la vallée** : **`Prairie-Wiki.html`** (à ouvrir de même, hors du jeu) est un compagnon autonome : les cartes interactives,
 en onglets — toute la vallée (relief, eaux, forêts, chemins, milieux, lieux-dits, lieux perdus, villages, maisons des habitants, zones de
@@ -39,6 +42,11 @@ privé avec Pages demande un abonnement GitHub payant).
 sont les mêmes pages moins le bloc « porte » (balisé dans `src/shell.html` et dans `tools/wiki-build.js`). La bêta
 avec code ne change pas. Même site, même navigateur : les parties, les réglages et la langue sont les mêmes des deux
 côtés.
+
+**La présentation (`vitrine/`)** : une page d'images et de musiques, ouverte à tous, en ligne à
+`https://<compte>.github.io/<dépôt>/vitrine/` (liée depuis les deux pages d'accueil) : la vallée, Valbrume, les cartes,
+les écrans de jeu, les événements, les bêtes et les plantes, la cité vaisseau, les autres mondes, les affiches, et les
+42 musiques à écouter (plus fortes que dans le jeu).
 
 ### La grande vallée
 
@@ -607,7 +615,141 @@ Les commandes sont dans le menu **Commandes** (Échap).
   avant, dont un tiers du temps à plusieurs ; une dizaine aujourd'hui, jamais ensemble, et trois quarts de silence) ; la nuit, des grillons dans l'herbe (ils se taisent quand on s'approche), la chouette au loin, les grenouilles
   au marais ; sous terre, des gouttes et un grondement sourd.
 - **Options** : « Son 3D pour casque » (coché par défaut ; décoché : simple panoramique, pour des haut-parleurs), à côté
-  du volume général et du volume de l'ambiance.
+  du volume général, de celui de la musique et de celui de l'ambiance.
+
+**Les voix de chaque milieu**
+- **Chaque milieu a sa voix** : les prés (l'alouette, le bruant jaune, la caille, les criquets au soleil), la forêt (la
+  grive, le rouge-gorge, le troglodyte, le souffle dans les pins), le bois de bouleaux (le pouillot fitis, le frisson des
+  petites feuilles), le marais (les rousserolles, les roseaux, le chœur des rainettes la nuit), le bord du lac (le
+  loriot, le ressac, un poisson qui saute), la lande (l'alouette lulu, le tarier, les gousses d'ajonc qui éclatent au
+  soleil), les hauteurs (le merle à plastron, la buse très haut, les sonnailles), la ville (les martinets, le petit-duc
+  la nuit, une charrette sur les pavés) et la ferme (les hirondelles, la basse-cour, la chevêche). Trente-cinq oiseaux
+  nouveaux, qu'on entend sans les voir, chacun avec son vrai chant ; d'un milieu à l'autre, les sons se fondent en
+  quelques secondes.
+- **L'heure et le temps qu'il fait** : le chœur de l'aube commence dans le noir, les derniers chants viennent le soir,
+  puis la nuit le rossignol, l'engoulevent, le râle des genêts, les chouettes, le grillon d'Italie, les crapauds
+  accoucheurs. Les insectes aiment le beau temps et la chaleur ; la pluie, l'orage, le brouillard, le gel et la neige
+  font taire, chacun à sa façon ; les nuits noires, toute la nature se tait. L'angélus sonne à 7 h, à midi et à 19 h.
+- **La pluie de chaque milieu** : sur les feuilles en forêt (et l'égouttement des arbres après l'averse), sur l'eau au
+  marais et au lac, sur les toits, les gouttières et les pavés en ville, sur la bruyère et la pierre là-haut, sur le
+  chaume, les tuiles et le tonneau à la ferme ; à l'abri, sur le toit au-dessus de soi. Le tout n'est pas plus fort
+  qu'avant.
+- **Doux et rare** : un chanteur à la fois, de longs silences ; tout se règle avec le curseur « Ambiance » des Options.
+  Synthétisé, calculé en tâche de fond : rien de plus à chaque image.
+
+**La musique**
+- **De temps en temps, un morceau doux** (piano surtout, parfois harpe, flûte, célesta, cordes, verre, boîte à musique,
+  orgue, cloche), puis de longues minutes de silence (de quatre minutes et demie à onze, au hasard ; le premier vient
+  une à deux minutes après le début de la partie). Le morceau dépend de l'endroit où l'on est quand il commence, et il
+  va jusqu'au bout.
+- **Quarante-deux morceaux** (une heure et demie de musique), de quatre à sept par endroit : les prés et la ferme, la
+  forêt et les bouleaux, le marais et le lac, la lande et les hauteurs, la ville et le hameau, la nuit, le Dessous, le
+  pays des bonbons, les Ténèbres, les Enfers, la cité vaisseau (rien dans le cauchemar). Trente-trois compositions
+  originales ; l'air d'« Au clair de la lune » (celui de la boîte à musique des bonbons, enfin juste) ; huit œuvres du
+  domaine public arrangées fidèlement : les trois Gymnopédies de Satie, quatre préludes de Chopin (op. 28 n° 4, 6, 7,
+  20) et le prélude en ut de Bach (BWV 846), pour harpe et cordes.
+- **Tout est synthétisé** dans le navigateur, sans fichier audio : un piano calculé partiel par partiel (cordes raides,
+  deux cordes qui battent, double extinction, feutre du marteau, étouffoirs et pédale), joué avec des nuances, des
+  phrases qui respirent et un léger rubato, dans une salle (réverbération calculée).
+- **Elle se tait** quand la peur monte, pendant une nuit noire ou rouge, dans l'Envers, quand le violoneux joue près de
+  vous ; si l'on change de monde, le morceau s'efface et celui du nouveau monde vient bientôt.
+- **Options** : le curseur « Musique » (juste après le volume général) et la case « Musique de temps en temps », qui la
+  coupe en fondu ; enregistrés avec les autres réglages. La musique reste sous l'ambiance et sous le volume général.
+
+**Plantes et bêtes de chaque milieu**
+- **Quatre-vingt-dix plantes nouvelles, dix par milieu** (les prés, la ferme, la ville, la lande, les hauteurs, la
+  forêt, le bois de bouleaux, le marais, le bord du lac) : des espèces vraies de la flore de France, de communes à
+  introuvables ou presque — la chicorée et l'orchis homme-pendu des prés, la cymbalaire des vieux murs, le genévrier de
+  la lande, la grande gentiane des alpages, le lis martagon et l'oronge vraie des sous-bois, l'amadouvier des bouleaux
+  morts, la grassette du marais, le nénuphar jaune et la macre du lac… Chacune a son objet, sa notice dans l'herbier,
+  son effet quand on la mange (remède, herbe qui arrête le sang, sommeil, ivresse, poison), ses essences pour la table
+  d'alchimiste et ses acheteurs. La plupart n'ont d'abord que leur allure, jusqu'à ce que l'alchimiste de la ville les
+  nomme — et la grande gentiane ressemble beaucoup au vérâtre, qui tue.
+- **Où les trouver** : au bord des chemins et dans les prés ; autour des fermes, du hameau et du moulin, dans les champs
+  et les décombres ; au pied des murs et dans les jardins ; sur la lande ; dans les alpages, sur les rochers, au bord
+  des neiges ; sous les vieux chênes et sur le bois mort ; autour des mares du marais ; sur les rives et dans l'eau
+  libre du grand lac. Près de deux mille pieds, posés après tout le reste (les objets d'avant ne bougent pas) ; on en
+  trouve aussi en fouillant (bocaux, apothicaire, caves, cabanes des bûcherons et des pêcheurs…).
+- **Ce qu'on en fait** : café de chicorée, sirop de capillaire et pâte de guimauve au feu ; genièvre et eau de mélisse
+  à l'alambic du bouilleur de cru ; liqueur de gentiane au tonneau ; chandelles de jonc, lait caillé à la grassette ;
+  l'amadou et quelques herbes pansent les plaies. Et quelques conduites : la sève de la berce brûle la peau au soleil,
+  la carline se ferme quand il pleut, l'ail victorial endurcit un peu.
+- **Quatre-vingt-dix bêtes nouvelles, dix par milieu**, de la faune française du XIXᵉ siècle : du faucon crécerelle qui
+  « fait le Saint-Esprit » au-dessus des prés au gypaète des falaises, en passant par le grillon du foyer, les
+  hirondelles sous les avant-toits de la ville, la huppe de la lande, la foulque du lac, le daim de la forêt, la
+  gélinotte des bouleaux ou la rainette du marais. Chacune a son modèle en boîtes, sa rareté, son heure (le jour, le
+  crépuscule, la nuit), son temps (le lézard au soleil, les grenouilles sous la pluie), sa notice au bestiaire, et ses
+  cris, synthétisés, doux et rares, en 3D (le curseur « Ambiance » les règle).
+- **Chacune sa manière** : la caille part sous les pieds, la perdrix en compagnie dans un fracas d'ailes ; les pics
+  tambourinent, la bécasse « croule » au crépuscule, le râle crie comme un goret sans qu'on le voie ; le cormoran sèche
+  ses ailes en croix, le balbuzard plonge et emporte son poisson, le gypaète laisse tomber des os sur les rochers, les
+  vautours descendent sur une bête morte quand on s'éloigne ; la nuit, le sphinx tête-de-mort tourne autour de la
+  lanterne.
+- **Pas de points d'apparition** : les bêtes paraissent autour de vous dans leur milieu, ou sur leurs **territoires**
+  tirés de la graine (un arbre, une rive, une mare, une falaise : on retrouve une bête là où on l'a vue, à son heure),
+  et s'en vont hors de vue ; tuée ou prise, sa place reste vide quelques jours (plus longtemps pour les rares). Peu de
+  bêtes à la fois, et rien n'est ajouté au monde : les parties anciennes se chargent telles quelles.
+- **Ce qu'on en tire** : à la chasse, de la viande, des peaux (putois, fouine, genette, vison), des plumes (huppe, tétras
+  lyre, gypaète, la plume du peintre de la bécasse, les aigrettes que paient les modistes), le bois du daim ; au filet à
+  papillons, le machaon, le grand paon de nuit, le sphinx, l'apollon, le grand mars ; à la main (E), un escargot après
+  la pluie (à l'ail, au feu), un hanneton, une toile d'araignée qui arrête le sang. Le maire collectionne les papillons,
+  le chasseur prend les peaux, l'alchimiste les plumes. Qui entre dans l'eau du marais en ressort avec des sangsues aux
+  jambes ; posée sur la peau, une sangsue boit le venin.
+- **Les dangereuses restent rares et se font entendre** : la sentinelle des frelons tourne d'abord autour de la tête, la
+  vipère péliade siffle avant de mordre, la nuit le grand-duc fait face et claque du bec, le daim mâle gratte et rait
+  avant de charger, l'autour crie avant de piquer sur qui s'attarde sous son arbre ; acculé, le putois empeste et le
+  surmulot mord.
+
+**Le hasard de la vallée**
+- **Soixante et un événements nouveaux**, rares ou peu fréquents, qui s'ajoutent aux prodiges, au calendrier et à
+  l'étrange d'avant : **le ciel** (un arc-en-ciel double, les faux soleils d'un matin de gel, la foudre en boule, le
+  rayon vert sur le lac, une comète sept nuits durant…), **les bêtes** (des cigognes sur le clocher, le brame, les
+  crapauds qui traversent le chemin, un essaim, des renardeaux à l'aube…), **les villages** (une noce derrière le
+  violoneux, un enterrement sous le glas, un enfant perdu, des saltimbanques et leur ours, un charivari…), **la ferme**
+  (le renard au poulailler, un panier sur le seuil, un vagabond dans le foin, une mise bas la nuit, le jury du
+  comice…), **les routes** (une diligence versée, le rémouleur, la transhumance, un petit Savoyard et sa marmotte, un
+  peintre anglais…) et **l'étrange** (une lettre de 1812 pour quelqu'un d'autre, une berceuse qui monte d'un puits, le
+  chien noir, la dame blanche, la messe des morts à minuit, la chasse volante…).
+- **Chacun a sa condition** : le lieu, l'heure, le temps qu'il fait — ou qu'il fera (la lune cerclée annonce la pluie,
+  les hirondelles qui rasent l'herbe l'averse) —, le jour de la semaine (la procession un Primedi, le linge envolé un
+  Lavedi, la messe des morts la nuit du Vorndi), ce qu'on a (des poules pour le renard, des cultures pour les
+  sangliers) et ce qu'on a fait (un bienfait vaut un panier sur le seuil). **Quelque chose à voir, à entendre ou à
+  faire** : rapporter les draps, ramener l'enfant par la main, saisir la longe, passer les seaux, séparer les ivrognes,
+  bander un colporteur, pousser une charrette, s'asseoir au feu des voyageurs… — pour des suites modestes (une pièce,
+  des dragées, une poulette, une poule perdue, l'amitié des habitants). La musique des gens (violon de la noce, fifre
+  et tambour, litanie, vielle, requiem) et les bruits sont synthétisés.
+- **Un par jour environ, tous confondus** : la plupart sont tirés à l'aube, et ce qui arrive sans vous se fait quand
+  même (la procession bénit vos champs même si vous n'y êtes pas, le renard prend une poule pendant que vous dormez) ;
+  les autres arrivent là où l'on se trouve (au bord du lac au coucher du soleil, la nuit près d'un puits, dans les bois
+  au crépuscule). Jamais plus de deux le même jour, jamais deux fois le même avant plusieurs jours ; l'étrange vient
+  plus souvent quand l'esprit s'assombrit.
+- **Des traces** : le carnet de la sacoche en garde une ligne (« Ce qui est arrivé ») ; les habitants en parlent deux
+  jours, et annoncent la veille ce qui se prépare (une noce, un enterrement, des saltimbanques, la procession).
+
+**La pierre ronde et la cité vaisseau**
+- **Une seule pierre ronde dans toute la vallée**, ailleurs à chaque partie, quelque part sur les hauteurs, loin des
+  chemins et des villages : un anneau de pierre grise, haut comme une porte de grange, plein d'une lumière bleue qui
+  coule sans bruit. Elle luit la nuit et chante tout bas quand on s'approche. Trois habitants en parlent de loin, sans
+  dire où ; au pied, un papier glissé sous un caillou dit qu'« on n'y va qu'une fois ».
+- **De l'autre côté, la cité des Maisons-d'Étoile**, abandonnée : un monde à part, où le temps de la vallée s'arrête
+  (pas la faim). Le Seuil, le couloir des hublots, la Nef immense et les maisons de l'équipage, les Jardins, l'aile
+  haute (Archives, Atelier des corps, Chapelle, Berceaux), l'Observatoire, et sous la Nef la Machinerie et la Brèche,
+  où il n'y a plus d'air. Une voix, la veilleuse, vous accueille, vous répond et se souvient. Le registre de bord, des
+  écrans, des carnets, des messages enregistrés, des inscriptions en Hautes Lettres, une lunette : qui a bâti la cité,
+  pourquoi elle est là, ce qui l'a suivie, ce que sont devenus ceux qui sont descendus — à vous de recouper.
+- **Des machines qu'on met en route ou qu'on arrête** (E) : le Cœur, le générateur de la cité (la veilleuse l'éteint
+  elle-même s'il brûle trop longtemps), les lampes de la Nef, la fontaine, le régulateur de pesanteur (on saute très
+  haut dans la Nef), les serres (les plantes repoussent, on en cueille les fruits), trois hologrammes, le rideau qui
+  tient l'air dans la Brèche, des portes qui s'ouvrent devant vous, deux ascenseurs ; chacune avec sa lumière et son
+  bruit.
+- **L'Atelier des corps** : quatre reprises modestes et permanentes — les jambes (courir un peu plus vite), le jarret
+  (sauter un peu plus haut), le souffle (moins de fatigue à la course, plus longtemps sous l'eau), les os (les chutes
+  font moins de mal) ; trois fois au plus pour chacune, six en tout, et chaque fois des cœurs de verre (un, puis deux,
+  puis trois), du sang et des courbatures.
+- **Un seul voyage** : on reste aussi longtemps qu'on veut ; on revient par le seuil de la cité, devant la pierre, et
+  les deux portails s'éteignent pour toujours. Mourir là-haut vous ramène aussi (la veilleuse dépense la dernière
+  lumière du seuil), et le voyage finit de la même façon. Ce qu'on a rapporté (une trentaine d'objets, environ 1 400
+  pièces à la revente) et ce que l'Atelier a fait restent.
 
 ### Mode Création
 
@@ -617,14 +759,15 @@ Les commandes sont dans le menu **Commandes** (Échap).
 ## Équilibrage
 
 Le jeu a été équilibré d'un bloc, en mesurant d'abord : chaque système avait été écrit avec ses propres nombres, et
-la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Neuf domaines, chacun avec sa mesure
-et ses vérifications dans `tools/equilibrage/` : le jeu entier est chargé dans une machine virtuelle node (sans
+la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Dix-sept domaines, chacun avec sa
+mesure et ses vérifications dans `tools/equilibrage/` : le jeu entier est chargé dans une machine virtuelle node (sans
 navigateur, `tools/equilibrage/vm.js`), ses propres fonctions calculent les rendements, les espérances et les
 fréquences, et la commande échoue si l'on recasse un équilibre :
 
 ```bash
-node tools/equilibrage.js                 # les neuf domaines (≈ 10 min)
+node tools/equilibrage.js                 # les dix-sept domaines (≈ 15 à 20 min)
 node tools/equilibrage.js commerce        # ou un seul : commerce, ferme, risques, survie, hasard, commandes, carte, nature, batiments
+node tools/equilibrage.js S D1 E2         # ou plusieurs ; ceux de la douzième vague : S, D1, D2, E1, E2, E3, F, G
 ```
 
 Aucun réglage ne touche à la génération de la vallée : les anciennes parties retrouvent leurs objets (l'empreinte des
@@ -871,6 +1014,15 @@ profil). Quatre esprits (mentalité 95, 70, 35, 5) ; le joueur « typique » se 
 L'outil échoue si l'on recasse l'équilibre (tueur la première semaine, anciennes nuits rouges, ancienne
 `bizarrerie()`, lavandière plus fréquente, rêves trop serrés…).
 
+**Les événements nouveaux de la douzième vague** (soixante et un : le ciel, les bêtes, les villages, la ferme, les
+routes, l'étrange) se règlent dans `HF_FREQ` (11-zzzzF-0-moteur.js) et se mesurent à part : `node tools/equilibrage.js F`
+(≈ 10 s ; `F_GRAINES=n` pour n parties) rejoue le tirage du jour tel quel sur cent vingt parties de 288 jours et suit
+les tirages au fil du temps pour trois joueurs (un nouveau venu, un fermier, un fermier à l'esprit très sombre).
+Environ un événement par jour, tous confondus (1,03 ; 1,14 pour l'esprit sombre), deux le même jour une fois sur
+trois, jamais trois ; aucun ne revient plus d'une fois tous les douze jours en moyenne (six pour le panier des
+bienfaits), rien avant le troisième jour ; ni renard, ni sangliers, ni couvée, ni mise bas dans une ferme sans bêtes
+ni cultures ; l'étrange passe d'un jour sur quatre à un sur trois quand l'esprit s'assombrit.
+
 ### Les commandes par la poste
 
 `node tools/equilibrage.js commandes` vérifie que chaque article coûte au carnet le prix de sa boutique (1 600 prix,
@@ -899,6 +1051,29 @@ interaction qui transporte y dépose le joueur, à l'intérieur), « clos » ou 
 un seul clos, ou plein sous un toit en pente (les masses pleines à dessus plat, fours à chaux ou table des géants, ne
 sont pas des bâtiments). Avant la dixième vague : 47 niveaux sans accès ; après : aucun. Elle vérifie aussi les
 empreintes des objets d'avant (`BATIMENTS_DETAIL=1` liste tout, `BATIMENTS_GRAINES=1234,77` d'autres graines).
+
+### Les voix, les plantes, les bêtes et la cité
+
+Les domaines de la douzième vague (les événements nouveaux, `F`, sont mesurés avec le hasard, plus haut) :
+- `node tools/equilibrage.js S` (≈ 2 s) : chacun des neuf milieux a ses chanteurs (aube, jour, soir, nuit), ses nappes,
+  sa pluie et ses bruits rares ; chaque tampon se calcule sans valeur aberrante et n'est pas muet ; la mémoire d'une
+  promenade (trois milieux à la fois ; ce qui n'a pas servi depuis cinq minutes est libéré) reste sous 34 Mo ; et la
+  rareté : au plus 2,5 chanteurs par minute en plein jour, moins de deux bruits rares.
+- `D1` (≈ 2 min) et `D2` (≈ 1,5 min) : chaque plante est complète (objet, type du décor, sprite, icône, effet,
+  essences, notice, allure et mot de l'alchimiste, acheteur, prix selon la rareté ; les vénéneuses disent ce qui a
+  tué), une cueillette rapporte au plus 30 pièces et les recettes ne font pas d'argent de rien ; la passe de génération
+  (graine 1234 : ≈ 1 260 et ≈ 670 pieds) pose chaque espèce dans son milieu, en nombre selon sa rareté, jamais sur un
+  chemin, devant une porte ou sur le champ de la ferme, les plantes d'eau dans l'eau et les autres au sec ; les objets
+  d'avant ne bougent pas.
+- `E1`, `E2`, `E3` (≈ 1,5 à 2 min chacun) : les trente bêtes de chacun sont complètes (conduite, modèle, notice, butin,
+  nom à la chasse, cri qui se calcule sans écrêter) ; les objets nouveaux ont un prix modeste, des essences, un
+  acheteur et pas de vendeur ; les dangereuses restent rares et lisibles ; `E1` mesure l'attente avant de voir chaque
+  espèce là où elle vit, `E2` et `E3` calculent les territoires sur la vraie vallée (chaque espèce en a, les rares
+  moins que les communes, ceux du marais dans le marais) ; aucun objet n'est ajouté au monde.
+- `G` (≈ 1,5 min) : une seule pierre ronde par vallée, sur la terre ferme, loin des chemins, et un chemin praticable à
+  pied pour y monter depuis la ferme ; l'Atelier des corps reste en deçà de la potion de célérité et de l'élixir de
+  légèreté, et la cité ne cache pas de quoi tout prendre ; ce qu'on en rapporte, une fois, vaut quelques journées de
+  travail, pas une fortune.
 
 ## Modifier le code
 
@@ -952,6 +1127,15 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzzzB1-ville.js`, `07-zzzzzzzzzzzzB1-ville.js` | on entre partout, en ville : les étages (échelle de meunier et trappe, `b.plafond` pour que l'étage soit sous le toit), les huit tours et le chemin de ronde, le beffroi du clocher, la tente de la diseuse ; `game.insideBuilding` vaut à l'étage (API `b1`) |
 | `11-zzzzB2-campagne.js`, `07-zzzzzzzzzzzzB2-campagne.js` | on entre partout, à la campagne : le vieux moulin, le phare, les pigeonniers, les loges, le clocher englouti, les ruines où le butin était muré, la bergerie, les cabanes de l'estive (`farm.s.campagne`, API `campagne`) |
 | `11-zzzzC-gardes.js`, `11-zzzzC1-gardes-jeu.js`, `07-zzzzzzzzzzzzC-gardes.js` | les gardes et les chevaliers : les trois nouveaux protecteurs (le chevalier du guet, le garde champêtre, le gendarme), le corps de garde du pont nord et la cabane des gardes (générés après tout le reste), la sommation (se rendre, payer, refuser), la rébellion, les rondes et la relève, ce qu'ils font quand il y a un problème (`farm.s.gardes`, API `gardes`) |
+| `09-zzzzS-1-chants.js`, `09-zzzzS-2-fonds.js`, `09-zzzzS-3-scene.js` | les voix de chaque milieu : les chants (trente-cinq oiseaux qu'on entend sans les voir, chacun son phrasé ; un chien au loin, l'angélus), les fonds (insectes, grenouilles, vent dans les arbres, roseaux, bruyère, ressac ; la pluie de chaque milieu, l'égouttement), la scène (les milieux pesés autour de l'écouteur et fondus en quelques secondes, l'heure, le temps qu'il fait ; tampons calculés en tâche de fond, sous le réglage « Ambiance » ; API `ambiance`) |
+| `09-zzzzM-*.js`, `12-zzzzM-musique.js` | la musique : le moteur (piano, harpe, célesta, boîte à musique et cordes calculés note par note dans un Worker ; flûte, verre et orgue joués en direct ; réverbération de salle, bus à part), l'aide à l'écriture des accompagnements, les partitions en texte par endroit (prés, forêt, eau, lande, village, nuit, Dessous, autres mondes, cité vaisseau) et celles du domaine public ; dans le jeu (`12-zzzzM-musique.js`) : le choix du morceau, les silences, ce qui la fait taire, les Options (`settings.musique`, `settings.musiqueVol` ; API `musique`) |
+| `03-zzzzzD1-plantes.js`, `05-zzzzzD1-plantes.js`, `11-zzzzD1-plantes.js` | cinquante plantes des prés, de la ferme, de la ville, de la lande et des hauteurs : sprites et icônes ; données (allure, notice d'herbier, rareté, prix, essences) ; le jeu : types du décor (après tous les autres : les numéros d'avant ne bougent pas), effets, mot de l'alchimiste, acheteurs, recettes, fouilles, quelques conduites, la passe de génération (`farm.s.d1`, API `d1plantes`) |
+| `03-zzzzD2-plantes.js`, `05-zzzzzD2-plantes.js`, `11-zzzzD2-plantes.js` | quarante plantes de la forêt, du bois de bouleaux, du marais et du bord du lac, de même (les plantes d'eau dans l'eau ; `farm.s.d2`, API `d2`) |
+| `03-zzzzzE1-icones.js`, `05-zzzzzE1-betes.js`, `07-zzzzzzzzzzzzE1-modeles.js`, `09-zzzzE1-cris.js`, `10-zzzzE1-betes.js`, `11-zzzzE1-betes.js` | trente bêtes des prés, de la ferme et de la ville : icônes des objets, données (bestiaire, notices, butins, objets, essences), modèles en boîtes, cris, réglages des créatures ; le jeu : elles naissent autour du joueur selon le milieu, l'heure, le temps et la rareté (sans passe de génération), leurs lieux se calculent d'après la graine (nid de frelons, toiles, âtre, clocher, réverbères, douves…), la chasse, le filet, la main, les dangers (`farm.s.e1`, API `e1`) |
+| `03-zzzzzE2-icones.js`, `05-zzzzzE2-betes.js`, `07-zzzzzzzzzzzzE2-modeles.js`, `09-zzzzE2-cris.js`, `10-zzzzE2-betes.js`, `11-zzzzE2-betes.js` | trente bêtes de la lande, des hauteurs et du bord du lac, en six fichiers de même (icônes, données, modèles, cris, conduites, jeu) : leurs territoires, tirés de la graine au chargement (la pente, l'eau, l'altitude, les buissons), la chasse, le filet, les marchands (`farm.s.e2`, API `e2betes`) |
+| `03-zzzzzE3-icones.js`, `05-zzzzzE3-betes.js`, `07-zzzzzzzzzzzzE3-betes.js`, `09-zzzzE3-cris.js`, `10-zzzzE3-betes.js`, `11-zzzzE3-betes.js` | trente bêtes de la forêt, du bois de bouleaux et du marais, de même : leurs territoires (un arbre, un vieux chêne, une rive, une mare, un pan de ciel), leurs heures, leurs mœurs, les sangsues du marais (`farm.s.e3`, API `e3`) |
+| `11-zzzzF-*.js`, `09-zzzzF-sons.js` | le hasard de la vallée : le moteur (`11-zzzzF-0-moteur.js` : le tirage du jour à l'aube, ceux du fil du temps là où l'on est, le quota et les écarts `HF_FREQ`, les traces au carnet et dans les conversations) et les soixante et un événements, une famille par fichier, de `11-zzzzF-1-ciel.js` à `11-zzzzF-6-etrange.js` (les textes dans chaque définition) ; leurs sons et la musique des gens (`farm.s.evF`, API `hasardF`) |
+| `05-zzzzzG-vaisseau.js`, `07-zzzzzzzzzzzzG-vaisseau.js`, `11-zzzzG-portail.js`, `11-zzzzG-vaisseau.js`, `11-zzzzG-vaisseau2-choses.js`, `11-zzzzG-vaisseau3-corps.js` | la pierre ronde et la cité vaisseau : objets, papiers, journaux et voix de la veilleuse ; matières, modèles et icônes ; la pierre (générée après tout le reste, avec son propre tirage) ; la cité, monde « à part » `vaisseau` (plan, lieux, un seul voyage, le retour) ; ses machines, écrans, messages et maisons ; l'Atelier des corps (`farm.s.vaisseau`) |
 | `11-zzz00b-pensees.js`, `tools/pensees.js` | dire peu : `penser.une` (une règle dite une fois par vie), `penser.pas` (un avertissement espacé), `farm.s.pensees` ; l'inventaire des pensées (`node tools/pensees.js`) |
 | `11-zzvallee0-gel.js` | le gel en altitude : la jauge `farm.s.gel`, le givre à l'écran, la mort de froid |
 | `11-zzzz7-carte*.js`, `07-zzzzzzzzzz-carte.js` | un lieu tous les 200 m (catalogue, textes, lettres, inscriptions, petits secrets), les deux peuples de surface et leurs parlers (`farm.s.carte2`, API `carte2`) |
@@ -960,10 +1144,11 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzzz4-ferme-temps.js`, `11-zzzz4-meubles.js`, `07-zzzzzzzz-meubles.js` | portée des arroseurs, petites bêtes sous la pluie ; acheter et meubler sa maison (meubles, garde-meuble) |
 | `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
-| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus bas) |
+| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`) |
 | `shell.html` | HTML + CSS |
 | `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et ses deux codes (le jeu, le wiki), le site servi tel quel par GitHub Pages, changer un code |
 | `libre/` | la partie sans code : sa page d'accueil (`libre/index.html`), le jeu et le wiki sans leur porte (écrits par `node build.js` et `node tools/wiki-build.js`) |
+| `vitrine/` | la présentation du jeu : une page (`vitrine/index.html`), 106 images (captures du jeu en 1920 × 1080, du wiki, affiches ; `img/` en grand, `min/` en vignettes) et les 42 musiques en MP3 (`audio/`) ; liée depuis les deux pages d'accueil |
 
 Le son, pour placer un bruit dans le monde : `sound.pan(p, dest)` accepte un panoramique −1..1 (comme avant) **ou une
 position** (`[x, y, z]`, `{x, y, z}`, une bête, un habitant) ; `sound.ici(pos, () => …, o)` place tous les sons joués
@@ -974,6 +1159,12 @@ nœud d'entrée placé ; `sound.source(clé, type, pos, k)` entretient une boucl
 `sound.cri(t, {…})` fabrique un cri « voisé » (hauteur, formants, vibrato, rugosité, souffle) ; `sound.lieuForce =
 'grotte'` impose une réverbération (sinon `dehors`, `foret`, `montagne`, `piece`, `salle` ou `grotte`, choisie d'après
 le lieu). Une fonction enveloppée garde son original dans `f.__orig` (l'outil d'équilibrage y lit les tirages).
+
+Le marais de la vallée dessinée n'a pas de case de biome : `game.biomeAt` n'y répond jamais « marais » (une
+particularité ancienne de `designFields`, dans 06-zzdesign.js, à ne pas corriger : elle changerait la génération et les
+sauvegardes). Les voix des milieux, la musique et les bêtes du marais le reconnaissent à ses mares (les `w.fishZones`
+« marais ») et à leurs abords : `e3.milieu(w, x, z)` répond « marais » dans le rayon des mares, à moins de 5 m
+au-dessus de l'eau.
 
 Après une modification, régénérer le fichier unique :
 

@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>Newy and the Dark Forest</title>
+<meta name="description" content="Captures, cartes, musiques et affiches de Newy and the Dark Forest.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+French+Canon:ital@0;1&family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap">
+<style>
+/* Un album de la vallée, la nuit : une couverture (la ville à l'heure dorée), puis des chapitres empilés,
+   chacun une courte légende et une planche de vignettes ; la musique en bas, avec un lecteur collé au pied de l'écran.
+   Une seule ambiance, sombre, celle de l'écran titre du jeu (ambre sur nuit). */
+:root {
+  --nuit: #0d0c10;
+  --nuit-2: #16141a;
+  --nuit-3: #211e25;
+  --parchemin: #eee4cc;
+  --brume: #a69e8c;
+  --ambre: #ffc93c;
+  --ambre-doux: rgba(255, 201, 60, .74);
+  --filet: rgba(255, 201, 60, .22);
+  --voile: rgba(13, 12, 16, .9);
+  --f-titre: 'IM Fell French Canon', Georgia, 'Times New Roman', serif;
+  --f-texte: 'Spectral', Georgia, 'Times New Roman', serif;
+  --gouttiere: clamp(16px, 4vw, 48px);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; animation: none !important; } }
+body { margin: 0; background: var(--nuit); color: var(--parchemin); font-family: var(--f-texte); font-weight: 300; font-size: 18px; line-height: 1.55; }
+a { color: var(--ambre); }
+img { max-width: 100%; display: block; }
+:focus-visible { outline: 2px solid var(--ambre); outline-offset: 3px; }
+
+/* la couverture */
+.couverture { position: relative; min-height: min(78vh, 760px); display: flex; align-items: flex-end; padding-inline: var(--gouttiere); padding-block: 96px 56px;
+  background: linear-gradient(90deg, rgba(13, 12, 16, .9) 0%, rgba(13, 12, 16, .55) 38%, rgba(13, 12, 16, 0) 70%), linear-gradient(0deg, var(--nuit) 0%, rgba(13, 12, 16, 0) 45%), url('img/valbrume_soir.jpg') center 40% / cover no-repeat; }
+.couverture .bloc { max-width: 640px; min-width: 0; }
+@media (max-width: 640px) { .couverture { padding-block: 72px 40px; background: linear-gradient(0deg, var(--nuit) 0%, rgba(13, 12, 16, .78) 55%, rgba(13, 12, 16, .45) 100%), url('img/valbrume_soir.jpg') 30% 40% / cover no-repeat; } }
+.surtitre { font-family: var(--f-texte); font-weight: 400; font-size: 13px; letter-spacing: .24em; text-transform: uppercase; color: var(--ambre-doux); margin: 0; }
+h1 { font-family: var(--f-titre); font-weight: 400; color: var(--ambre); letter-spacing: .16em; line-height: 1; margin: 18px 0 0; font-size: clamp(64px, 12vw, 150px); text-shadow: 0 0 26px rgba(255, 201, 60, .25); }
+.sous-titre { font-family: var(--f-titre); font-style: italic; font-size: clamp(26px, 4vw, 46px); margin: 8px 0 0; letter-spacing: .04em; }
+.accroche { font-size: clamp(19px, 2.2vw, 24px); margin: 28px 0 0; max-width: 34ch; text-wrap: balance; }
+.faits { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 18px 28px; margin: 36px 0 0; padding: 22px 0 0; border-top: 1px solid var(--filet); max-width: 640px; }
+.faits div { min-width: 0; }
+.faits dt { font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--brume); font-weight: 400; }
+.lien-jeu { display: inline-block; margin-top: 28px; padding: 10px 20px; border: 1px solid var(--ambre); border-radius: 4px; color: var(--ambre); text-decoration: none; font-weight: 400; letter-spacing: .04em; }
+.lien-jeu:hover { background: rgba(255, 201, 60, .1); }
+.faits dd { margin: 4px 0 0; font-family: var(--f-titre); font-size: 22px; font-variant-numeric: tabular-nums; }
+
+/* les chapitres */
+nav.chapitres { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--voile); backdrop-filter: blur(6px); border-bottom: 1px solid var(--filet); }
+nav.chapitres ul { list-style: none; margin: 0; padding-inline: var(--gouttiere); padding-block: 10px; display: flex; gap: 6px 22px; overflow-x: auto; scrollbar-width: none; }
+nav.chapitres a { color: var(--brume); text-decoration: none; white-space: nowrap; font-size: 15px; font-weight: 400; }
+nav.chapitres a:hover { color: var(--ambre); }
+main { padding-inline: var(--gouttiere); padding-block: 24px 140px; max-width: 1480px; margin: 0 auto; }
+section.chapitre { padding-block: 64px 8px; scroll-margin-top: 56px; }
+.entete { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 12px 48px; align-items: end; margin-bottom: 26px; }
+@media (max-width: 760px) { .entete { grid-template-columns: minmax(0, 1fr); } }
+h2 { font-family: var(--f-titre); font-weight: 400; font-size: clamp(36px, 5vw, 56px); line-height: 1.05; margin: 0; color: var(--parchemin); text-wrap: balance; }
+h2 em { color: var(--ambre); font-style: italic; }
+.entete p { margin: 0; color: var(--brume); max-width: 62ch; }
+
+/* les planches de vignettes */
+.planche { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+.planche figure { margin: 0; min-width: 0; }
+.planche button { all: unset; cursor: zoom-in; display: block; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 3px; background: var(--nuit-2); }
+.planche button:focus-visible { outline: 2px solid var(--ambre); outline-offset: 3px; }
+.planche img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s ease, filter .3s ease; filter: saturate(.96); }
+.planche button:hover img { transform: scale(1.03); filter: saturate(1.06); }
+.planche figcaption { font-style: italic; font-size: 15px; color: var(--brume); margin-top: 7px; line-height: 1.35; }
+@media (min-width: 900px) { .planche .une { grid-column: span 2; grid-row: span 2; } .planche .une figcaption { font-size: 17px; color: var(--parchemin); } }
+.planche.affiches { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); align-items: start; }
+.planche.affiches button { aspect-ratio: auto; }
+.planche.affiches img { height: auto; object-fit: contain; }
+@media (min-width: 900px) { .planche.affiches .une { grid-row: auto; } }
+
+/* ce qu'on y fait */
+.activites { columns: 2 320px; column-gap: 48px; margin: 0 0 34px; padding: 0; list-style: none; }
+.activites li { break-inside: avoid; padding: 10px 0; border-top: 1px solid var(--filet); }
+.activites b { font-weight: 600; color: var(--parchemin); }
+.activites span { color: var(--brume); }
+.semaine { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 30px; padding: 0; list-style: none; font-family: var(--f-titre); font-style: italic; font-size: 19px; color: var(--ambre-doux); }
+.semaine li { white-space: nowrap; }
+.note { color: var(--brume); font-size: 15px; margin: -14px 0 26px; }
+
+/* la musique */
+.zones { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 30px 48px; }
+.zone { min-width: 0; }
+.zone h3 { font-family: var(--f-titre); font-weight: 400; font-style: italic; font-size: 24px; margin: 0 0 8px; color: var(--ambre); }
+.zone ol { list-style: none; margin: 0; padding: 0; }
+.piste { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 4px 12px; align-items: baseline; padding: 9px 8px; border-top: 1px solid var(--filet); border-radius: 2px; }
+.piste:hover { background: var(--nuit-2); }
+.piste:focus-visible { outline: 2px solid var(--ambre); outline-offset: -2px; }
+.piste .ic { color: var(--ambre); font-size: 14px; text-align: center; }
+.piste .t { font-weight: 400; color: var(--parchemin); }
+.piste .a { grid-column: 2 / 4; font-size: 14px; color: var(--brume); font-style: italic; margin-top: -2px; }
+.piste .d { font-size: 14px; color: var(--brume); font-variant-numeric: tabular-nums; }
+.piste[aria-pressed="true"] { background: var(--nuit-3); }
+.piste[aria-pressed="true"] .t { color: var(--ambre); }
+
+/* le lecteur, au pied de l'écran */
+.lecteur { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--voile); backdrop-filter: blur(8px); border-top: 1px solid var(--filet);
+  padding-inline: var(--gouttiere); padding-top: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px 16px; align-items: center; }
+.lecteur button { all: unset; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--filet); color: var(--ambre); font-size: 15px; }
+.lecteur button:hover { background: var(--nuit-3); }
+.lecteur button:focus-visible { outline: 2px solid var(--ambre); outline-offset: 2px; }
+.lecteur .quoi { min-width: 0; }
+.lecteur .quoi b { display: block; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lecteur .quoi span { display: block; font-size: 13px; color: var(--brume); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lecteur input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--ambre); margin: 0; }
+.lecteur .boutons { display: flex; gap: 8px; }
+
+/* la visionneuse */
+.visionneuse { position: fixed; inset: 0; z-index: 10; background: #09080b; display: grid; grid-template-rows: minmax(0, 1fr) auto; padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px)); }
+.visionneuse img { max-width: 100%; max-height: 100%; margin: auto; object-fit: contain; border-radius: 2px; }
+.visionneuse .bas { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 12px; }
+.visionneuse p { margin: 0; font-style: italic; color: var(--parchemin); min-width: 0; }
+.visionneuse p span { color: var(--brume); font-style: normal; font-size: 14px; margin-left: 10px; font-variant-numeric: tabular-nums; }
+.visionneuse .boutons { display: flex; gap: 8px; flex: none; }
+.visionneuse button { all: unset; cursor: pointer; padding: 8px 14px; border: 1px solid var(--filet); border-radius: 3px; color: var(--ambre); font-size: 15px; }
+.visionneuse button:hover { background: var(--nuit-3); }
+.visionneuse button:focus-visible { outline: 2px solid var(--ambre); outline-offset: 2px; }
+
+footer { border-top: 1px solid var(--filet); margin-top: 72px; padding-top: 22px; color: var(--brume); font-size: 15px; display: grid; gap: 8px; max-width: 80ch; }
+</style>
+
+<header class="couverture">
+  <div class="bloc">
+    <p class="surtitre">Un jeu de ferme au XIXᵉ siècle</p>
+    <h1>NEWY</h1>
+    <p class="sous-titre">and the Dark Forest</p>
+    <p class="accroche">Une vieille ferme à reprendre, au fond d’une vallée qui n’aime pas la nuit.</p>
+    <dl class="faits">
+      <div><dt>Jour et nuit</dt><dd>10 + 10 min</dd></div>
+      <div><dt>La semaine</dt><dd>12 jours</dd></div>
+      <div><dt>Musiques</dt><dd>42, 91 minutes</dd></div>
+      <div><dt>Langues</dt><dd>français, anglais</dd></div>
+    </dl>
+    <p><a class="lien-jeu" href="../">Jouer — l’accueil du jeu</a></p>
+  </div>
+</header>
+<nav class="chapitres" aria-label="Chapitres"><ul id="nav"></ul></nav>
+<main id="album"></main>
+<div class="lecteur" id="lecteur" hidden>
+  <div class="boutons"><button type="button" id="l-jouer" aria-label="Pause">❚❚</button><button type="button" id="l-suite" aria-label="Morceau suivant">▶▶</button></div>
+  <div class="quoi"><b id="l-titre"></b><span id="l-auteur"></span></div>
+  <span id="l-temps" class="d" style="font-size:14px;color:var(--brume);font-variant-numeric:tabular-nums"></span>
+  <input type="range" id="l-pos" min="0" max="1000" value="0" aria-label="Position dans le morceau">
+</div>
+<div class="visionneuse" id="vis" hidden role="dialog" aria-modal="true" aria-label="Image en grand">
+  <img id="v-img" alt="">
+  <div class="bas"><p id="v-leg"></p><div class="boutons"><button type="button" id="v-prec" aria-label="Image précédente">←</button><button type="button" id="v-suiv" aria-label="Image suivante">→</button><button type="button" id="v-fermer">Fermer</button></div></div>
+</div>
+<audio id="audio" preload="none"></audio>
+
+<script>
+const DATA = {"chapitres":[{"id":"vallee","titre":"La vallée","texte":"Des prés, une forêt, un grand lac, une lande et des monts. Le jour dure dix minutes, la nuit aussi.","affiches":false,"images":[{"id":"panorama","legende":"La vallée, depuis les hauteurs du sud","w":1920,"h":1080},{"id":"vallee_nord","legende":"La vallée vue des contreforts du nord","w":1920,"h":1080},{"id":"ferme","legende":"La vieille ferme, au matin","w":1920,"h":1080},{"id":"hameau","legende":"Le hameau de Clairpré","w":1920,"h":1080},{"id":"moulin","legende":"Le vieux moulin","w":1920,"h":1080},{"id":"foret","legende":"Au cœur de la forêt, un matin de brume","w":1920,"h":1080},{"id":"bouleaux","legende":"Le bois de bouleaux","w":1920,"h":1080},{"id":"lac_couchant","legende":"Le grand lac au coucher du soleil","w":1920,"h":1080},{"id":"phare","legende":"Le phare, à la nuit tombée","w":1920,"h":1080},{"id":"planches","legende":"Les Planches, le village sur le lac","w":1920,"h":1080},{"id":"marais","legende":"Les mares du marais","w":1920,"h":1080},{"id":"lande_chateau","legende":"La lande et le château, à l’heure dorée","w":1920,"h":1080},{"id":"dolmen","legende":"Le dolmen, au crépuscule","w":1920,"h":1080},{"id":"menhirs","legende":"Les menhirs, dans les blés","w":1920,"h":1080},{"id":"abbaye","legende":"L’abbaye","w":1920,"h":1080},{"id":"bibliotheque","legende":"La grande bibliothèque","w":1920,"h":1080},{"id":"vieux_chene","legende":"Le vieux chêne","w":1920,"h":1080},{"id":"lac_noir","legende":"Le lac Noir, dans la montagne","w":1920,"h":1080},{"id":"estive","legende":"L’estive, en montagne","w":1920,"h":1080},{"id":"glacier","legende":"Les hauteurs, le glacier et les monts","w":1920,"h":1080},{"id":"ferme_nuit","legende":"La ferme, une nuit claire, et les lucioles","w":1920,"h":1080}]},{"id":"valbrume","titre":"Valbrume","texte":"La ville, ses remparts, ses douves et ses ponts-levis. On y achète, on y loue une maison, on y crochète parfois une porte, et les gardes veillent.","affiches":false,"images":[{"id":"valbrume_midi","legende":"Valbrume, ses remparts et ses douves","w":1920,"h":1080},{"id":"valbrume_aube","legende":"Valbrume au matin","w":1920,"h":1080},{"id":"valbrume_soir","legende":"Valbrume à l’heure dorée","w":1920,"h":1080},{"id":"eglise","legende":"L’église de Valbrume","w":1920,"h":1080},{"id":"marche","legende":"Jour de marché sur la place","w":1920,"h":1080},{"id":"noce","legende":"Une noce traverse la ville","w":1920,"h":1080},{"id":"saltimbanques","legende":"Les saltimbanques sur la place","w":1920,"h":1080},{"id":"rue_pluie","legende":"Une rue sous la pluie","w":1920,"h":1080},{"id":"pont_levis","legende":"Sous les remparts","w":1920,"h":1080},{"id":"valbrume_nuit","legende":"La ville la nuit, depuis le pont nord","w":1920,"h":1080},{"id":"carte_valbrume","legende":"Le plan de Valbrume, dans le wiki","w":1920,"h":1080}]},{"id":"carte","titre":"La carte","texte":"Dans le jeu, pas de carte complète : on en achète d’approximatives. Le wiki, lui, dessine toute la vallée, et les plans de ce qui est dessous.","affiches":false,"images":[{"id":"carte_vallee","legende":"La carte de la vallée (wiki)","w":1920,"h":1080},{"id":"plan_valbrume","legende":"Valbrume vue du ciel, dans le jeu","w":1920,"h":1080},{"id":"plan_clairpre","legende":"Clairpré vu du ciel, dans le jeu","w":1920,"h":1080},{"id":"plan_ferme","legende":"La vieille ferme vue du ciel, dans le jeu","w":1920,"h":1080},{"id":"plan_dessous","legende":"Le plan du Dessous (wiki)","w":1920,"h":1080},{"id":"plan_enfers","legende":"Le plan des Enfers (wiki)","w":1920,"h":1080},{"id":"wiki_accueil","legende":"Le wiki de la vallée","w":1920,"h":1080},{"id":"wiki_habitant","legende":"Une fiche d’habitant (wiki)","w":1920,"h":1080},{"id":"wiki_betes","legende":"Les bêtes (wiki)","w":1920,"h":1080}]},{"id":"jouer","titre":"Ce qu’on y fait","texte":"","affiches":false,"images":[{"id":"ecran_titre","legende":"L’écran titre","w":1920,"h":1080},{"id":"ecran_ferme","legende":"À la ferme","w":1920,"h":1080},{"id":"ecran_sacoche","legende":"La sacoche","w":1920,"h":1080},{"id":"ecran_fabrication","legende":"La fabrication par assemblage","w":1920,"h":1080},{"id":"ecran_boutique","legende":"L’échoppe de l’alchimiste","w":1920,"h":1080},{"id":"ecran_alchimie","legende":"L’alambic","w":1920,"h":1080},{"id":"ecran_bestiaire","legende":"Le bestiaire de la vallée","w":1920,"h":1080},{"id":"ecran_herbier","legende":"L’herbier","w":1920,"h":1080},{"id":"options_musique","legende":"Les options : « Musique de temps en temps »","w":1000,"h":720}]},{"id":"ciel","titre":"Le ciel et le hasard","texte":"Soixante et un événements nouveaux, tirés au hasard : un arc-en-ciel, une comète sept nuits durant, une noce, une procession, une diligence, un incendie…","affiches":false,"images":[{"id":"arc_en_ciel","legende":"Un arc-en-ciel après l’averse","w":1920,"h":1080},{"id":"comete","legende":"La comète, sept nuits durant","w":1920,"h":1080},{"id":"f1_rayon_vert","legende":"Le rayon vert, sur le lac","w":800,"h":500},{"id":"f1_halo_lune","legende":"Un halo autour de la lune","w":800,"h":500},{"id":"f1_parhelie","legende":"Les faux soleils d’un matin de gel","w":800,"h":500},{"id":"f1_foudre_boule","legende":"La foudre en boule","w":800,"h":500},{"id":"f1_pluie_soleil","legende":"La pluie au soleil","w":800,"h":500},{"id":"f2_etourneaux","legende":"Un nuage d’étourneaux","w":800,"h":500},{"id":"f3_procession","legende":"Une procession dans les champs","w":800,"h":500},{"id":"f3_enterrement","legende":"Un enterrement","w":800,"h":500},{"id":"f3_bapteme","legende":"Un baptême","w":800,"h":500},{"id":"f3_incendie","legende":"Une maison qui brûle, la nuit","w":800,"h":500},{"id":"f5_diligence","legende":"La diligence","w":800,"h":500},{"id":"f5_soldats","legende":"Des soldats sur la route","w":800,"h":500},{"id":"f5_transhumance","legende":"La transhumance","w":800,"h":500},{"id":"f5_peintre","legende":"Un peintre devant son chevalet","w":800,"h":500},{"id":"f4_poussins","legende":"Une poule et ses poussins","w":800,"h":500}]},{"id":"betes","titre":"Les bêtes et les plantes","texte":"Dix plantes et dix bêtes de plus dans chaque milieu, chacune avec sa rareté, ses heures et son comportement. Les plantes s’identifient chez l’alchimiste.","affiches":false,"images":[{"id":"e3_aigrette","legende":"Une aigrette, au bord de l’eau","w":800,"h":500},{"id":"e3_cigogne_noire","legende":"La cigogne noire","w":800,"h":500},{"id":"e3_daim_harde","legende":"Une harde de daims","w":800,"h":500},{"id":"f2_chevreuil","legende":"Un chevreuil près de la maison forestière","w":800,"h":500},{"id":"f2_renardeaux","legende":"Le soir, à l’orée","w":800,"h":500},{"id":"e3_autour","legende":"L’autour, dans les bouleaux","w":800,"h":500},{"id":"e3_busard","legende":"Le busard des roseaux","w":800,"h":500},{"id":"e1_petit_duc","legende":"Le petit-duc","w":800,"h":500},{"id":"e1_buse","legende":"Une buse, posée","w":800,"h":500},{"id":"e1_outarde","legende":"L’outarde","w":800,"h":500},{"id":"e2_scene_lac","legende":"Canards sur le grand lac","w":800,"h":500},{"id":"e2_gypaete","legende":"Le gypaète, un os dans les serres","w":800,"h":500},{"id":"e2_planche_lac","legende":"Planche : les bêtes du lac","w":1084,"h":514},{"id":"e2_planche_hauteurs","legende":"Planche : les bêtes des hauteurs","w":1084,"h":514},{"id":"e2_planche_lande","legende":"Planche : les bêtes de la lande","w":1084,"h":514},{"id":"d1_chicoree","legende":"La chicorée, au bord du chemin","w":800,"h":500},{"id":"d1_grande_cigue","legende":"La grande ciguë, près de la ferme","w":800,"h":500},{"id":"d1_genevrier","legende":"Les genévriers de la lande","w":800,"h":500},{"id":"d1_saponaire","legende":"La saponaire, sur la grève","w":800,"h":500}]},{"id":"cite","titre":"La cité vaisseau","texte":"Quelque part dans la vallée, une pierre ronde ouvre un passage vers une cité abandonnée. On y entre une seule fois, et le portail reste pour revenir. Des machines à remettre en marche, beaucoup de choses à lire, et l’Atelier des corps.","affiches":false,"images":[{"id":"cite_seuil","legende":"Le Seuil, et le portail","w":1920,"h":1080},{"id":"cite_nef","legende":"La Nef, toutes lumières allumées","w":1920,"h":1080},{"id":"g2_nef_eteinte","legende":"La Nef, éteinte","w":800,"h":500},{"id":"cite_hologramme","legende":"Un hologramme dans la Nef","w":1920,"h":1080},{"id":"cite_jardins","legende":"Les Jardins suspendus","w":1920,"h":1080},{"id":"cite_machinerie","legende":"La Machinerie : le Cœur en marche","w":1920,"h":1080},{"id":"g2_machinerie_arret","legende":"Le Cœur, à l’arrêt","w":800,"h":500},{"id":"cite_atelier","legende":"L’Atelier des corps","w":1920,"h":1080},{"id":"ecran_atelier_corps","legende":"L’Atelier des corps : courir plus vite, porter plus…","w":1920,"h":1080},{"id":"g2_archives_ciel","legende":"Les archives du ciel","w":800,"h":500},{"id":"g2_chapelle","legende":"La chapelle","w":800,"h":500},{"id":"cite_observatoire","legende":"L’Observatoire","w":1920,"h":1080}]},{"id":"mondes","titre":"Les autres mondes","texte":"Il arrive qu’on se réveille ailleurs.","affiches":false,"images":[{"id":"bonbons","legende":"Le pays des bonbons","w":1920,"h":1080},{"id":"enfers","legende":"Les Enfers","w":1920,"h":1080},{"id":"pierre","legende":"La pierre ronde, la nuit","w":1920,"h":1080}]},{"id":"affiches","titre":"Les affiches","texte":"Composées à partir des captures, dans la typographie de l’écran titre.","affiches":true,"images":[{"id":"affiche_valbrume","legende":"Fond d’écran (1920 × 1080)","w":1920,"h":1080},{"id":"mosaique","legende":"Mosaïque (1920 × 1080)","w":1920,"h":1080},{"id":"affiche_nuit","legende":"Affiche (1080 × 1350)","w":1080,"h":1350},{"id":"affiche_cite","legende":"La cité vaisseau (1080 × 1080)","w":1080,"h":1080},{"id":"banniere","legende":"Bannière (1500 × 500)","w":1500,"h":500}]}],"pistes":[{"n":1,"mp3":"01-pres_matin.mp3","titre":"Le pré du matin","auteur":"composition originale (agent M)","instr":"piano","duree":"1 min 55","zone":"Les prés et la ferme"},{"n":2,"mp3":"02-pres_foins.mp3","titre":"Les foins","auteur":"composition originale (agent M)","instr":"piano, cordes","duree":"2 min 08","zone":"Les prés et la ferme"},{"n":3,"mp3":"03-pres_chemin.mp3","titre":"Le chemin creux","auteur":"composition originale (agent M)","instr":"piano","duree":"2 min 24","zone":"Les prés et la ferme"},{"n":4,"mp3":"04-pres_noyer.mp3","titre":"L’ombre du noyer","auteur":"composition originale (agent M)","instr":"cordes, piano","duree":"1 min 57","zone":"Les prés et la ferme"},{"n":5,"mp3":"05-pd_gymnopedie1.mp3","titre":"Gymnopédie n° 1","auteur":"Erik Satie (1888)","instr":"piano","duree":"3 min 42","zone":"Les prés et la ferme"},{"n":6,"mp3":"06-foret_hetres.mp3","titre":"Sous les hêtres","auteur":"composition originale (agent M)","instr":"piano","duree":"1 min 48","zone":"La forêt et le bois de bouleaux"},{"n":7,"mp3":"07-foret_bouleaux.mp3","titre":"Le bois blanc","auteur":"composition originale (agent M)","instr":"flûte, harpe","duree":"1 min 35","zone":"La forêt et le bois de bouleaux"},{"n":8,"mp3":"08-foret_clairiere.mp3","titre":"La clairière","auteur":"composition originale (agent M)","instr":"piano, cordes","duree":"2 min 41","zone":"La forêt et le bois de bouleaux"},{"n":9,"mp3":"09-foret_chene.mp3","titre":"Le vieux chêne","auteur":"composition originale (agent M)","instr":"piano, cordes","duree":"1 min 45","zone":"La forêt et le bois de bouleaux"},{"n":10,"mp3":"10-pd_gymnopedie2.mp3","titre":"Gymnopédie n° 2","auteur":"Erik Satie (1888)","instr":"piano","duree":"3 min 12","zone":"Le marais et le bord du lac"},{"n":11,"mp3":"11-pd_chopin6.mp3","titre":"Prélude en si mineur, op. 28 n° 6","auteur":"Frédéric Chopin (1839)","instr":"piano","duree":"1 min 46","zone":"Le marais et le bord du lac"},{"n":12,"mp3":"12-eau_reflets.mp3","titre":"Reflets","auteur":"composition originale (agent M)","instr":"piano","duree":"2 min 07","zone":"Le marais et le bord du lac"},{"n":13,"mp3":"13-eau_marais.mp3","titre":"Le marais au soir","auteur":"composition originale (agent M)","instr":"piano, cordes, célesta","duree":"2 min 49","zone":"Le marais et le bord du lac"},{"n":14,"mp3":"14-eau_lac.mp3","titre":"Le lac au matin","auteur":"composition originale (agent M)","instr":"piano","duree":"1 min 47","zone":"Le marais et le bord du lac"},{"n":15,"mp3":"15-pd_gymnopedie3.mp3","titre":"Gymnopédie n° 3","auteur":"Erik Satie (1888)","instr":"piano","duree":"3 min 03","zone":"La lande et les hauteurs"},{"n":16,"mp3":"16-lande_bruyeres.mp3","titre":"Les bruyères","auteur":"composition originale (agent M)","instr":"flûte, piano","duree":"2 min 03","zone":"La lande et les hauteurs"},{"n":17,"mp3":"17-lande_crete.mp3","titre":"La crête","auteur":"composition originale (agent M)","instr":"piano, cloche","duree":"2 min 56","zone":"La lande et les hauteurs"},{"n":18,"mp3":"18-lande_refuge.mp3","titre":"Le refuge","auteur":"composition originale (agent M)","instr":"piano","duree":"2 min 25","zone":"La lande et les hauteurs"},{"n":19,"mp3":"19-pd_chopin7.mp3","titre":"Prélude en la majeur, op. 28 n° 7","auteur":"Frédéric Chopin (1839)","instr":"piano","duree":"1 min 33","zone":"La ville et le hameau"},{"n":20,"mp3":"20-village_marche.mp3","titre":"La place du marché","auteur":"composition originale (agent M)","instr":"piano","duree":"1 min 43","zone":"La ville et le hameau"},{"n":21,"mp3":"21-village_volets.mp3","titre":"Les volets bleus","auteur":"composition originale (agent M)","instr":"boîte à musique, piano","duree":"1 min 45","zone":"La ville et le hameau"},{"n":22,"mp3":"22-village_dimanche.mp3","titre":"Dimanche","auteur":"composition originale (agent M)","instr":"piano, cloche","duree":"1 min 29","zone":"La ville et le hameau"},{"n":23,"mp3":"23-pd_chopin4.mp3","titre":"Prélude en mi mineur, op. 28 n° 4","auteur":"Frédéric Chopin (1839)","instr":"piano","duree":"2 min 13","zone":"La nuit"},{"n":24,"mp3":"24-nuit_veilleuse.mp3","titre":"Veilleuse","auteur":"composition originale (agent M)","instr":"piano","duree":"2 min 52","zone":"La nuit"},{"n":25,"mp3":"25-nuit_berceuse.mp3","titre":"Berceuse des granges","auteur":"composition originale (agent M)","instr":"piano, célesta","duree":"1 min 28","zone":"La nuit"},{"n":26,"mp3":"26-nuit_claire.mp3","titre":"Nuit claire","auteur":"composition originale (agent M)","instr":"cordes, harpe","duree":"2 min 10","zone":"La nuit"},{"n":27,"mp3":"27-pd_chopin20.mp3","titre":"Prélude en ut mineur, op. 28 n° 20","auteur":"Frédéric Chopin (1839)","instr":"piano","duree":"1 min 32","zone":"Le Dessous"},{"n":28,"mp3":"28-dessous_eaux.mp3","titre":"Les eaux sans soleil","auteur":"composition originale (agent M)","instr":"piano, cordes, célesta","duree":"3 min 14","zone":"Le Dessous"},{"n":29,"mp3":"29-dessous_cristaux.mp3","titre":"Cristaux","auteur":"composition originale (agent M)","instr":"célesta, harpe, verre","duree":"1 min 45","zone":"Le Dessous"},{"n":30,"mp3":"30-bonbons_clair.mp3","titre":"Au clair de la lune, au pays du sucre","auteur":"air populaire, arrangé par l'agent M","instr":"boîte à musique, célesta, harpe","duree":"1 min 51","zone":"Le pays des bonbons"},{"n":31,"mp3":"31-bonbons_sucre.mp3","titre":"Sucre filé","auteur":"composition originale (agent M)","instr":"célesta, boîte à musique, harpe","duree":"1 min 31","zone":"Le pays des bonbons"},{"n":32,"mp3":"32-bonbons_manege.mp3","titre":"Le manège","auteur":"composition originale (agent M)","instr":"boîte à musique, piano","duree":"1 min 40","zone":"Le pays des bonbons"},{"n":33,"mp3":"33-tenebres_clair.mp3","titre":"Clair de lune noir","auteur":"composition originale (agent M)","instr":"piano, verre","duree":"2 min 51","zone":"Les Ténèbres"},{"n":34,"mp3":"34-tenebres_cendres.mp3","titre":"Cendres","auteur":"composition originale (agent M)","instr":"piano, cordes","duree":"2 min 17","zone":"Les Ténèbres"},{"n":35,"mp3":"35-tenebres_yeux.mp3","titre":"Les yeux fermés","auteur":"composition originale (agent M)","instr":"célesta, verre, piano, nappe","duree":"2 min 42","zone":"Les Ténèbres"},{"n":36,"mp3":"36-enfers_portes.mp3","titre":"Les portes","auteur":"composition originale (agent M)","instr":"orgue, cordes, cloche","duree":"2 min 02","zone":"Les Enfers"},{"n":37,"mp3":"37-enfers_fleuve.mp3","titre":"Le fleuve de braise","auteur":"composition originale (agent M)","instr":"cordes, piano, cloche","duree":"2 min 06","zone":"Les Enfers"},{"n":38,"mp3":"38-enfers_descente.mp3","titre":"Descente","auteur":"composition originale (agent M)","instr":"orgue, cordes","duree":"1 min 46","zone":"Les Enfers"},{"n":39,"mp3":"39-pd_bach846.mp3","titre":"Prélude en ut majeur, BWV 846","auteur":"Jean-Sébastien Bach (1722)","instr":"harpe, cordes","duree":"2 min 37","zone":"La cité vaisseau"},{"n":40,"mp3":"40-vaisseau_cite.mp3","titre":"Cité dormante","auteur":"composition originale (agent M)","instr":"verre, célesta, nappe, harpe","duree":"2 min 12","zone":"La cité vaisseau"},{"n":41,"mp3":"41-vaisseau_hublots.mp3","titre":"Hublots","auteur":"composition originale (agent M)","instr":"piano, verre","duree":"2 min 01","zone":"La cité vaisseau"},{"n":42,"mp3":"42-vaisseau_jardins.mp3","titre":"Les jardins suspendus","auteur":"composition originale (agent M)","instr":"célesta, harpe, cordes","duree":"1 min 42","zone":"La cité vaisseau"}]};
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// ce qu'on y fait : la liste (les écrans suivent)
+const ACTIVITES = [
+  ['Cultiver la vieille ferme', 'semer, arroser, récolter ; la terre se fatigue à force de récoltes.'],
+  ['Tenir une ruche', 'du miel, de la cire, et quelques piqûres.'],
+  ['Pêcher et chasser', 'des poissons selon les eaux, un fusil à lunette, des pièges.'],
+  ['Cueillir et identifier', 'chaque plante a son effet ; l’alchimiste de la ville dit ce qu’elle est.'],
+  ['L’alambic', 'des mélanges à l’aveugle d’abord, puis des recettes qu’on garde d’une vie à l’autre.'],
+  ['Fabriquer par assemblage', 'les recettes se découvrent en essayant.'],
+  ['Vivre en ville', 'acheter ou louer une maison, la meubler, y dormir.'],
+  ['Prendre des risques', 'crocheter une porte, chaparder ; les gardes, la prison, la rançon.'],
+  ['Lire les pierres', 'deux langues perdues, gravées dans la vallée et dessous.'],
+  ['Descendre, et partir', 'le Dessous, d’autres mondes, et une cité vaisseau qu’on ne visite qu’une fois.'],
+];
+const SEMAINE = ['Primedi', 'Ferdi', 'Marchedi', 'Lavedi', 'Nahédi', 'Chassedi', 'Pêchedi', 'Orédi', 'Foiredi', 'Veilledi', 'Chômedi', 'Vorndi'];
+
+const toutes = []; // toutes les images, dans l'ordre de la page (pour la visionneuse)
+function planche(ch) {
+  return `<div class="planche${ch.affiches ? ' affiches' : ''}">` + ch.images.map((im, i) => {
+    const k = toutes.push(im) - 1;
+    const ratio = ch.affiches ? ` style="aspect-ratio:${im.w} / ${im.h}"` : '';
+    return `<figure class="${i === 0 ? 'une' : ''}"><button type="button" data-k="${k}"${ratio} aria-label="Agrandir : ${esc(im.legende)}"><img src="min/${im.id}.jpg" alt="${esc(im.legende)}" loading="${k < 6 ? 'eager' : 'lazy'}" decoding="async"></button><figcaption>${esc(im.legende)}</figcaption></figure>`;
+  }).join('') + '</div>';
+}
+let html = '';
+const nav = [];
+for (const ch of DATA.chapitres) {
+  nav.push(`<li><a href="#${ch.id}">${esc(ch.titre)}</a></li>`);
+  let avant = '';
+  if (ch.id === 'vallee') avant = `<ul class="semaine" aria-label="Les douze jours de la semaine">${SEMAINE.map((j) => `<li>${j}</li>`).join('')}</ul><p class="note">La semaine de la vallée a douze jours.</p>`;
+  if (ch.id === 'jouer') avant = `<ul class="activites">${ACTIVITES.map(([a, b]) => `<li><b>${esc(a)}</b> <span>— ${esc(b)}</span></li>`).join('')}</ul>`;
+  html += `<section class="chapitre" id="${ch.id}"><div class="entete"><h2>${esc(ch.titre)}</h2>${ch.texte ? `<p>${esc(ch.texte)}</p>` : ''}</div>${avant}${planche(ch)}</section>`;
+}
+// la musique
+nav.push('<li><a href="#musique">La musique</a></li>');
+const zones = [];
+for (const p of DATA.pistes) { let z = zones.find((x) => x.nom === p.zone); if (!z) zones.push(z = { nom: p.zone, pistes: [] }); z.pistes.push(p); }
+const auteur = (p) => /composition originale/.test(p.auteur) ? 'Composition originale' : /arrangé/.test(p.auteur) ? 'Air populaire, arrangé' : p.auteur;
+html += `<section class="chapitre" id="musique"><div class="entete"><h2>La musique</h2><p>Quarante-deux morceaux, quatre-vingt-onze minutes : des compositions originales et des pages de Satie, Chopin et Bach, jouées par le moteur du jeu. En jeu, elles viennent de temps en temps, doucement, selon le lieu ; on peut les couper dans les options. Ici, elles sont plus fortes que dans le jeu.</p></div><div class="zones">` +
+  zones.map((z) => `<div class="zone"><h3>${esc(z.nom)}</h3><ol>${z.pistes.map((p) => `<li><button type="button" class="piste" data-n="${p.n}" aria-pressed="false"><span class="ic" aria-hidden="true">▶</span><span class="t">${esc(p.titre)}</span><span class="d">${esc(p.duree.replace(' min ', ':'))}</span><span class="a">${esc(auteur(p))} · ${esc(p.instr)}</span></button></li>`).join('')}</ol></div>`).join('') + '</div></section>';
+html += `<footer><span>Les images sont des captures du jeu et de son wiki, sans retouche ; les affiches sont composées à partir de ces captures.</span><span>Le jeu se joue dans le navigateur, sur ordinateur ; le wiki s’ouvre à côté.</span></footer>`;
+$('#album').innerHTML = html;
+$('#nav').innerHTML = nav.join('');
+
+// la visionneuse
+let cur = -1, retour = null;
+function voir(k) {
+  cur = (k + toutes.length) % toutes.length;
+  const im = toutes[cur];
+  $('#v-img').src = `img/${im.id}.jpg`; $('#v-img').alt = im.legende;
+  $('#v-leg').innerHTML = `${esc(im.legende)}<span>${cur + 1} / ${toutes.length}</span>`;
+}
+function ouvrir(k, el) { retour = el; voir(k); $('#vis').hidden = false; document.body.style.overflow = 'hidden'; $('#v-fermer').focus(); }
+function fermer() { $('#vis').hidden = true; document.body.style.overflow = ''; if (retour) retour.focus(); }
+$('#album').addEventListener('click', (e) => { const b = e.target.closest('button[data-k]'); if (b) ouvrir(+b.dataset.k, b); });
+$('#v-fermer').onclick = fermer; $('#v-prec').onclick = () => voir(cur - 1); $('#v-suiv').onclick = () => voir(cur + 1);
+$('#vis').addEventListener('click', (e) => { if (e.target.id === 'vis') fermer(); });
+document.addEventListener('keydown', (e) => {
+  if ($('#vis').hidden) return;
+  if (e.key === 'Escape') fermer(); else if (e.key === 'ArrowLeft') voir(cur - 1); else if (e.key === 'ArrowRight') voir(cur + 1);
+});
+
+// le lecteur
+const audio = $('#audio');
+let piste = null;
+const fmt = (s) => isFinite(s) ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : '';
+function jouer(n) {
+  const p = DATA.pistes.find((x) => x.n === n); if (!p) return;
+  if (piste === n) { audio.paused ? audio.play().catch(() => {}) : audio.pause(); return; }
+  piste = n; audio.src = `audio/${p.mp3}`; audio.play().catch(() => {});
+  $('#lecteur').hidden = false; $('#l-titre').textContent = p.titre; $('#l-auteur').textContent = `${auteur(p)} · ${p.zone}`;
+  for (const b of document.querySelectorAll('.piste')) { const on = +b.dataset.n === n; b.setAttribute('aria-pressed', on); }
+}
+function majIcones() {
+  for (const b of document.querySelectorAll('.piste')) b.querySelector('.ic').textContent = +b.dataset.n === piste && !audio.paused ? '❚❚' : '▶';
+  $('#l-jouer').textContent = audio.paused ? '▶' : '❚❚'; $('#l-jouer').setAttribute('aria-label', audio.paused ? 'Lecture' : 'Pause');
+}
+$('#album').addEventListener('click', (e) => { const b = e.target.closest('.piste'); if (b) jouer(+b.dataset.n); });
+$('#l-jouer').onclick = () => { audio.paused ? audio.play().catch(() => {}) : audio.pause(); };
+const suivante = () => { const i = DATA.pistes.findIndex((x) => x.n === piste); jouer(DATA.pistes[(i + 1) % DATA.pistes.length].n); };
+$('#l-suite').onclick = suivante;
+audio.addEventListener('play', majIcones); audio.addEventListener('pause', majIcones); audio.addEventListener('ended', suivante);
+audio.addEventListener('timeupdate', () => { if (audio.duration) { $('#l-pos').value = Math.round(audio.currentTime / audio.duration * 1000); $('#l-temps').textContent = `${fmt(audio.currentTime)} / ${fmt(audio.duration)}`; } });
+$('#l-pos').addEventListener('input', (e) => { if (audio.duration) audio.currentTime = e.target.value / 1000 * audio.duration; });
+</script>
+
+</body>
+</html>
