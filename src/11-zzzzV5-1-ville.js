@@ -492,6 +492,7 @@ zone.passe('V5-basse-fosse', (Z, O) => {
     obstacles.push([35.5, -9.6, 45.4, 17.6]);
     v5.etals = [];
     for (const lz of [-8, 0, 8]) v5.etals.push(prop('v5_etal', fMa, 1.6, 0, lz, -Math.PI / 2));
+    v5.chandelles.push(prop('v5_chandelles', fMa, 1.7, 0.91, 0.7, 0, { lit: true, v: 2 })); // (la Marchande y voit ce qu'on lui tend)
     v5.marche = { f: fMa, place: v5Monde(fMa, -0.9, 0), etal: v5Monde(fMa, 0.4, 0) };
     // le puits des noms, à l'ouest de la Nef
     const [px, pz] = v5Monde(fN, -34, 10);
@@ -502,6 +503,14 @@ zone.passe('V5-basse-fosse', (Z, O) => {
     obstacles.push([-35.6, 8.4, -32.4, 11.6]);
     // quatre piliers autour du temple : ils tiennent la voûte de la Nef
     for (const [lx, lz] of [[-26, -30], [26, -30], [-26, 22], [26, 22]]) { v5Bloc(Z, fN, lx, -0.3, lz, 4, V + 0.6, 4, M_V5_TUF); obstacles.push([lx - 2, lz - 2, lx + 2, lz + 2]); }
+    // et une couronne de piliers plus minces, à mi-chemin des îlots : la Nef a ses travées (on s'y cache, aussi)
+    for (let k = 0; k < 16; k++) {
+      const an = (k + 0.5) * TAU / 16, lx = Math.sin(an) * 54, lz = Math.cos(an) * 54;
+      if (Math.abs(lx) < 7 || [-68, -34, 34, 68].some((X) => Math.abs(lx - X) < 4) || [-66, -33, 0, 33, 66].some((Zr) => Math.abs(lz - Zr) < 4) || obstacles.some((r) => lx > r[0] - 3 && lx < r[2] + 3 && lz > r[1] - 3 && lz < r[3] + 3)) continue;
+      v5Bloc(Z, fN, lx, -0.3, lz, 2.4, V + 0.6, 2.4, M_V5_TUF, { er: an });
+      obstacles.push([lx - 1.7, lz - 1.7, lx + 1.7, lz + 1.7]);
+      if (k % 3 === 0) prop('v5_cranes', fN, lx + Math.sin(an) * 1.7, 0, lz + Math.cos(an) * 1.7, an, { n: 4 + (k % 4) });
+    }
     obstacles.push([-TW / 2 - 0.2, tz - TD / 2 - 7.2, TW / 2 + 0.2, tz + TD / 2 + 0.2]);
     v5.temple = { f: fT, TW, TD, fl, porte: v5Monde(fT, 0, TD / 2 + 2.5), dedans: v5Monde(fT, 0, TD / 2 - 3), feu: v5Monde(fT, 0, -4), registre: v5Monde(fT, 3.4, -1.6), clocher: [kx, kz], cloche: v5Monde(fT, 7.6, -9.9) };
     O.lieu('v5_temple', fT.x, fT.z, 18, 'le temple des cloches', { under: true, secret: true });
@@ -576,12 +585,15 @@ zone.passe('V5-basse-fosse', (Z, O) => {
   {
     const rueProche = (lx, lz) => RUES_X.some((X) => Math.abs(lx - X) < 4.8) || RUES_Z.some((Zr) => Math.abs(lz - Zr) < 4.8);
     const pris = (lx, lz, m) => obstacles.some((r) => lx > r[0] - m && lx < r[2] + m && lz > r[1] - m && lz < r[3] + m);
+    // le devant de chaque porte reste libre : un couloir de 18 m dans l'axe de la porte (on sort de chez soi)
+    const portes = v5.maisons.map((M) => { const [a, b] = v5Local(CF, M.porte.dehors[0], M.porte.dehors[1]), [c, d] = v5Local(CF, M.porte.dehors[0] + Math.sin(M.f.r), M.porte.dehors[1] + Math.cos(M.f.r)); return [a, b, c - a, d - b]; });
+    const devantPorte = (lx, lz) => portes.some(([a, b, ux, uz]) => { const dx = lx - a, dz = lz - b, t = dx * ux + dz * uz; return Math.hypot(dx, dz) < 6 || (t > 0 && t < 18 && Math.abs(dx * uz - dz * ux) < 3.6); });
     let n = 0, mot = null;
     for (let R = 108; R <= 155.5; R += 5.3) {
       const nA = Math.floor(TAU * R / 5.0), a0 = O.rnd() * TAU;
       for (let k = 0; k < nA; k++) {
         const a = a0 + k * TAU / nA, lx = Math.sin(a) * R, lz = Math.cos(a) * R;
-        if (rueProche(lx, lz) || pris(lx, lz, 2.0)) continue;
+        if (rueProche(lx, lz) || pris(lx, lz, 2.0) || devantPorte(lx, lz)) continue;
         if (Math.abs(lx) < 14 && lz > 100) continue; // devant la porte, le passage reste nu
         const [wx, wz] = v5Monde(CF, lx, lz);
         const f = { x: wx, y: F, z: wz, r: CF.r + a }; // z : vers l'enceinte ; x : le long
@@ -677,7 +689,10 @@ zone.passe('V5-basse-fosse', (Z, O) => {
     // le marché, le puits, la porte de la ville
     const ML = v5Local(CF, v5.marche.place[0], v5.marche.place[1]);
     const iMar = noeud(ML[0], ML[1], 'marche');
-    { let n2 = 0; for (const q of proches(ML[0], ML[1], (q) => q.i !== iMar && !q.tag.startsWith('temple') && q.tag !== 'banc')) { if (lier(iMar, q.i) && ++n2 >= 2) break; } }
+    // (la place est sous l'arcade, entre deux piliers : on en sort tout droit, vers la Nef)
+    const [dax, daz] = v5Local(CF, ...v5Monde(v5.marche.f, -6.8, 0)), iMa2 = noeud(dax, daz, 'marche_devant');
+    lier(iMar, iMa2, true);
+    { let n2 = 0; for (const q of proches(dax, daz, (q) => q.i !== iMar && q.i !== iMa2 && !q.tag.startsWith('temple') && q.tag !== 'banc')) { if (lier(iMa2, q.i) && ++n2 >= 2) break; } }
     v5.marche.noeud = iMar;
     const PL = v5Local(CF, v5.puits.x, v5.puits.z);
     const iPu = noeud(PL[0] + 2.4, PL[1] + 2.4, 'puits');
