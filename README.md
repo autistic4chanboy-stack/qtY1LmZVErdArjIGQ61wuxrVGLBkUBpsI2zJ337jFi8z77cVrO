@@ -236,8 +236,8 @@ Les commandes sont dans le menu **Commandes** (Échap).
 - **Son propre alcool** : le tonneau (cidre, vin, bière, hydromel, liqueurs) et l'alambic du bouilleur de cru (eaux-de-vie
   de prune, de poire, de grain…). L'ivresse fait tanguer la vue et dériver les pas ; trop, c'est le coma ; le lendemain,
   la gueule de bois. L'aubergiste achète les bouteilles.
-- **Le chien** : il faut le nourrir (gamelle, ou E sur lui) : trois jours sans manger et il meurt. E sur lui : le caresser,
-  « À la niche ! », « Au pied ! », « Pas bouger ! ».
+- **Le chien** : il faut le nourrir (gamelle, ou E sur lui) : trois jours sans manger et il meurt (six, s'il a
+  retrouvé son nonos : voir plus bas). E sur lui : le caresser, « À la niche ! », « Au pied ! », « Pas bouger ! ».
 
 **Les gens**
 - Dix habitants de plus : l'alchimiste de la ville, le bibliothécaire, deux colporteurs qui vont de village en village
@@ -751,6 +751,75 @@ Les commandes sont dans le menu **Commandes** (Échap).
   lumière du seuil), et le voyage finit de la même façon. Ce qu'on a rapporté (une trentaine d'objets, environ 1 400
   pièces à la revente) et ce que l'Atelier a fait restent.
 
+**Des trouvailles un peu partout**
+- **Ce qui traîne, à la vue** : un millier de choses posées dans la vallée, qu'on trouve en se promenant, sans meuble
+  à ouvrir ni fouille : on les vise (« Ramasser le fer à cheval »), **E**, et c'est dans la sacoche. Le long des
+  chemins et au bord des champs, au pied des arbres à fruits, sur les seuils, dans les rues et sur les places des
+  villages, au bord de l'eau (ce qu'elle ramène), dans la forêt, la lande et les hauteurs (ce qu'on y a perdu), près
+  des croix, des pierres levées et des ruines, et dans les maisons et les granges (sur une table, une étagère, un
+  rebord, ou par terre). Plus dense en ville et près des maisons ; rare dans les montagnes.
+- **Soixante-treize sortes**, chacune à sa taille (une branche morte fait près d'un mètre, un sou deux centimètres et
+  demi ; de près, le métal et le verre accrochent le soleil ; les plus petites choses ne sont jamais dans l'herbe,
+  mais sur la terre des chemins, les pavés, le sable, la roche) : de quoi faire (bois mort, ficelle, chiffon, clous,
+  bouteille, fer à cheval, ferraille, bois flotté, liège, plumes, silex…), de quoi manger (pommes, poires, prunes,
+  cerises, noix, châtaignes, faînes tombées — en saison), de petites valeurs (sous, boutons de nacre, dé à coudre,
+  bague, médaille, montre arrêtée…), des choses perdues qui racontent un peu (des lettres qu'on lit, un sabot
+  d'enfant, un gant, une pipe, un soldat de plomb, une clé sans porte…) et quelques raretés (fibule de bronze,
+  portrait sur plaque, pierre percée, fossile…).
+- **Ce qui revient** : les fruits tombés (trois jours après, et seulement en saison : chaque fruit a ses semaines, sur
+  un cycle de vingt-quatre jours), le bois mort (quatre jours), les œufs pondus dehors (deux), les plumes de poule
+  (trois), le bois flotté (six), les coquilles (huit) ; le reste se trouve une fois pour toutes.
+- **Chez les gens, c'est à eux** : dehors, ce qui traîne est à qui le trouve ; dans une maison habitée, on lit
+  « (chez Untel) » sous le réticule, et prendre sous les yeux de quelqu'un est un vol.
+- **Ce qu'on en fait** : trois bouts de ficelle font une corde, deux chiffons un bandage, une bouteille vide une fiole
+  (au four), un flotteur de liège et une bougie une chandelle sur liège ; le bois flotté compte comme du bois ; une
+  mulette s'ouvre (rarement, une perle) ; une lettre ramassée se relit, en main. De quoi récompenser la promenade, pas
+  d'en vivre : une journée à flâner rapporte une quarantaine de pièces.
+
+**Les bêtes qui parlent**
+- **Huit bêtes uniques**, chacune à son endroit et à ses heures : Tibert, le gros chat gris de l'auberge (le soir, sur
+  le tonneau devant la porte ; il y dort le jour) ; la hulotte du chêne millénaire (la nuit) ; le Crapaud du vieux
+  puits, au hameau abandonné (le soir, et le jour quand il pleut) ; Tiécelin, le grand corbeau de la Table des Géants
+  (le jour) ; Hermeline, la renarde boiteuse du relais de chasse (à la brune et à l'aube) ; l'Écornée, la vieille
+  chèvre de l'estive (le jour) ; la Vieille, la grosse carpe du ponton du pêcheur (le matin et le soir) ; Bayard, le
+  vieux cheval de trait de la ferme brûlée des Chabert (le jour ; il dort debout la nuit). Chacune se reconnaît à un
+  détail, qu'on ne dit pas. On les entend avant de les voir (un petit cri, de temps en temps) ; la nuit, les yeux du
+  chat luisent, et celui de la hulotte.
+- **Elles ne parlent qu'au joueur** : les gens n'y croient pas, ou font semblant (on peut leur en parler, une fois
+  chacun), et qui passe pendant qu'on parle à une bête le remarque.
+- **Parler (E)** : la première fois, la bête parle la première quand on approche. Puis une conversation qui se
+  souvient : qui elle est, pourquoi elle parle, son sujet (une confidence de plus chaque jour où l'on revient), deux
+  rumeurs par jour, obliques, sur la vallée et ses secrets (jamais la solution), une question qu'elle vous pose et
+  dont elle vous reparlera, ce que vous avez fait (crimes, chasse, le chien, l'Envers, la cité…) — selon l'heure, le
+  temps qu'il fait et le jour de la semaine. Un petit cri de bête au début de chaque réplique. Chacune, quand on la
+  connaît un peu, dit où en trouver deux autres.
+- **Un service, et la pareille** : chacune demande un jour quelque chose (une chose à lui apporter, une veille, une
+  promesse) et rend la pareille, une fois : un objet, un renseignement, un endroit.
+- **On peut les menacer, les blesser, les tuer** : une arme pointée sur elle, la bête s'en va pour la journée ;
+  blessée, pour trois jours (blessée deux fois, elle ne vous parle plus jamais) ; tuée, elle ne revient pas — l'esprit
+  en prend un coup, quelques nuits sont mauvaises, les autres le savent et vous le disent ; trois tuées, et toutes se
+  taisent.
+- **Le carnet** de la sacoche garde une page « Des bêtes qui parlent ».
+
+**Le nonos du chien (une quête principale, facultative)**
+- **Un matin, le chien cherche** : une seule fois par partie, à partir du troisième jour (au premier matin venu dans
+  une partie déjà avancée), le chien de la ferme tourne en rond près de sa niche, gratte, gémit : le vieil os qu'il
+  traînait partout a disparu. Une courte scène, puis un premier souvenir ; le carnet de la sacoche note
+  « Quête principale — facultative ». On peut ne jamais s'en occuper : rien n'attend après elle.
+- **Cinq lieux, tirés au hasard** au début de la quête (d'autres à chaque partie) parmi les vrais repères de la
+  vallée — calvaires, chapelles en ruine, pierres levées, moulins, ponts, sources, arbres aux offrandes, fermes
+  brûlées, bords de l'eau… —, le premier non loin de la ferme, chacun à quelques centaines de mètres du précédent,
+  tous joignables à pied.
+- **Chaque lieu se montre dans un souvenir** (une cinématique) : on le voit à hauteur de chien, dans la lumière de
+  l'aube ou du soir, sans jamais voir le chemin qui y mène (ni survol, ni flèche, ni carte) ; le carnet en garde une
+  phrase vague, et un bouton « Revoir ». Sur place, un indice à chercher un peu (il luit à peine quand on le regarde
+  de près) : E dessus, et un nouveau souvenir montre le lieu suivant. Le chien, s'il vous suit (« Au pied ! »), le
+  sent à une trentaine de mètres et court le flairer. Au cinquième lieu, le nonos — et qui l'avait pris.
+- **Rendu au chien** (E sur lui, ou il le reconnaît en vous voyant revenir) : une dernière scène, et pour toujours il
+  a faim **deux fois moins vite** — un repas le tient deux fois plus longtemps, trois jours sans manger en deviennent
+  six. On le voit ronger son os devant sa niche. Si le chien meurt en chemin, la quête s'arrête ; le chiot adopté
+  ensuite n'hérite pas du nonos.
+
 ### Mode Création
 
 Éditeur de monde séparé : relief, peinture du sol, objets, animaux, blocs. **Exporter** télécharge un fichier
@@ -759,15 +828,16 @@ Les commandes sont dans le menu **Commandes** (Échap).
 ## Équilibrage
 
 Le jeu a été équilibré d'un bloc, en mesurant d'abord : chaque système avait été écrit avec ses propres nombres, et
-la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Dix-sept domaines, chacun avec sa
+la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Vingt domaines, chacun avec sa
 mesure et ses vérifications dans `tools/equilibrage/` : le jeu entier est chargé dans une machine virtuelle node (sans
 navigateur, `tools/equilibrage/vm.js`), ses propres fonctions calculent les rendements, les espérances et les
 fréquences, et la commande échoue si l'on recasse un équilibre :
 
 ```bash
-node tools/equilibrage.js                 # les dix-sept domaines (≈ 15 à 20 min)
+node tools/equilibrage.js                 # les vingt domaines (≈ 20 à 25 min)
 node tools/equilibrage.js commerce        # ou un seul : commerce, ferme, risques, survie, hasard, commandes, carte, nature, batiments
 node tools/equilibrage.js S D1 E2         # ou plusieurs ; ceux de la douzième vague : S, D1, D2, E1, E2, E3, F, G
+node tools/equilibrage.js R P Q           # ceux de la treizième vague : R, P, Q
 ```
 
 Aucun réglage ne touche à la génération de la vallée : les anciennes parties retrouvent leurs objets (l'empreinte des
@@ -1075,6 +1145,31 @@ Les domaines de la douzième vague (les événements nouveaux, `F`, sont mesuré
   légèreté, et la cité ne cache pas de quoi tout prendre ; ce qu'on en rapporte, une fois, vaut quelques journées de
   travail, pas une fortune.
 
+### Les trouvailles, les bêtes qui parlent et le nonos
+
+Les domaines de la treizième vague :
+- `node tools/equilibrage.js R` (≈ 1,5 min) : la pose sur la vraie vallée (≈ 1 000 trouvailles, 69 des 73 sortes, en
+  un quart de seconde ; rien dans l'eau, dans un mur ni devant une interaction, aucune toute petite chose dans l'herbe
+  haute, rien d'ajouté à `w.objects`, `w.props` ni `w.inter` : l'empreinte des anciennes parties ne bouge pas) ; la
+  valeur, aux prix du jeu : tout ce qui ne se ramasse qu'une fois vaut ≈ 2 000 pièces pour toute la vallée (cinq
+  journées et demie de travail du début) ; une journée de promenade (sur les chemins, les rues et les sentiers, au
+  hasard des carrefours, avec un petit détour pour ce qu'on aperçoit) rapporte une quarantaine de pièces, ≈ 11 % d'une
+  journée de travail du début (la meilleure, un tiers) ; le ramassage le plus acharné, en sachant où tout est, à peu
+  près la moitié ; ce qui revient, ramassé chaque jour au plus près, ≈ 6 % ; la sauvegarde ne garde qu'un bit par
+  trouvaille (127 octets, quelques centaines au plus quand tout est pris).
+- `P` (≈ 2,5 min : deux vallées, graines 1234 et 77) : les huit bêtes ont tous leurs textes (≈ 10 000 mots ; rien de
+  vide, aucun gabarit oublié, les bêtes qu'elles nomment existent) ; ce qu'elles demandent existe dans le jeu, et ce
+  qu'elles rendent, une fois, ne vaut pas une fortune (≈ 200 pièces pour les huit ; le reste, ce sont des
+  renseignements et des endroits) ; leurs endroits : chacune son milieu, loin des autres, pas toutes près de la ferme
+  (quatre à plus de 500 m), à la bonne hauteur, et l'on y va à pied depuis la ferme ; la passe de génération ne pose
+  rien.
+- `Q` (≈ 1,5 min) : le nonos ne se vend pas, et chacune des cinquante-sept sortes de lieux a ses phrases ; trois cents
+  tirages des cinq lieux sur la vraie vallée, avec le tirage du jeu : aucun raté, trois cents chaînes différentes, le
+  premier lieu à 110-380 m de la ferme, chacun à 150-430 m du précédent et à 140 m au moins des autres, tous à moins
+  de 1 150 m de la ferme, l'indice sur la terre ferme et joignable à pied ; la faim du chien, mesurée avec ses vraies
+  fonctions avant et après le nonos rendu : un repas de viande le tient 52 h au lieu de 26, chaque stade de faim vient
+  deux fois plus tard, trois jours sans manger en deviennent six.
+
 ## Modifier le code
 
 Les sources sont dans `src/` (triées par nom = ordre de chargement) :
@@ -1136,6 +1231,9 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `03-zzzzzE3-icones.js`, `05-zzzzzE3-betes.js`, `07-zzzzzzzzzzzzE3-betes.js`, `09-zzzzE3-cris.js`, `10-zzzzE3-betes.js`, `11-zzzzE3-betes.js` | trente bêtes de la forêt, du bois de bouleaux et du marais, de même : leurs territoires (un arbre, un vieux chêne, une rive, une mare, un pan de ciel), leurs heures, leurs mœurs, les sangsues du marais (`farm.s.e3`, API `e3`) |
 | `11-zzzzF-*.js`, `09-zzzzF-sons.js` | le hasard de la vallée : le moteur (`11-zzzzF-0-moteur.js` : le tirage du jour à l'aube, ceux du fil du temps là où l'on est, le quota et les écarts `HF_FREQ`, les traces au carnet et dans les conversations) et les soixante et un événements, une famille par fichier, de `11-zzzzF-1-ciel.js` à `11-zzzzF-6-etrange.js` (les textes dans chaque définition) ; leurs sons et la musique des gens (`farm.s.evF`, API `hasardF`) |
 | `05-zzzzzG-vaisseau.js`, `07-zzzzzzzzzzzzG-vaisseau.js`, `11-zzzzG-portail.js`, `11-zzzzG-vaisseau.js`, `11-zzzzG-vaisseau2-choses.js`, `11-zzzzG-vaisseau3-corps.js` | la pierre ronde et la cité vaisseau : objets, papiers, journaux et voix de la veilleuse ; matières, modèles et icônes ; la pierre (générée après tout le reste, avec son propre tirage) ; la cité, monde « à part » `vaisseau` (plan, lieux, un seul voyage, le retour) ; ses machines, écrans, messages et maisons ; l'Atelier des corps (`farm.s.vaisseau`) |
+| `05-zzzzzR-ramasser.js`, `07-zzzzzzzzzzzzR-ramasser.js`, `11-zzzzR-ramasser.js` | des trouvailles un peu partout : les objets nouveaux et quatre recettes, le catalogue des soixante-treize sortes (ce qu'on ramasse, combien, dans quels milieux, ce qui revient et en combien de jours, la saison des fruits tombés) et les lettres trouvées ; les modèles, chacun à sa taille, et les icônes ; la passe de génération (après toutes les autres, tirage propre : la liste dans `w.ramasse`, rien d'ajouté à `w.objects`, `w.props` ni `w.inter`), les cases de 16 m, la touche E, le dessin dans le tampon des objets posés, l'éclat du soleil sur ce qui brille, le vol chez les gens (`farm.s.ramasse` : un bit par trouvaille ; API `ramasser`) |
+| `05-zzzzzP-betes.js`, `07-zzzzzzzzzzzzP-betes.js`, `09-zzzzzP-voix.js`, `10-zzzzzP-betes.js`, `11-zzzzP-betes.js` | les bêtes qui parlent : ce qu'elles sont (endroit, heures, temps, service) et tout ce qu'elles disent ; leurs modèles en boîtes ; leurs voix (un petit cri au début de chaque réplique, en 3D, et le bruit de leur fuite) ; les créatures ; le jeu : leurs endroits (une passe de génération qui ne pose rien : `w.betesP`), leur apparition hors de la vue, la conversation, les services, la menace, les coups et la mort, ce qu'en disent les gens, le carnet (`farm.s.betesParlantes`, API `betesParlantes`) |
+| `05-zzzzzQ-nonos.js`, `11-zzzzQ-1-nonos.js`, `11-zzzzQ-2-scenes.js`, `12-zzzzzQ-nonos.js` | le nonos du chien : l'objet, les sortes de lieux et leurs phrases, les indices, les textes ; la quête (son début, les cinq lieux tirés au début de la quête, sans passe de génération, les indices dessinés à la volée, le chien qui flaire puis ronge son os, la faim deux fois moins vite) ; les scènes (moteur `cine` : le début, les souvenirs à hauteur de chien, la trouvaille, le retour) ; le carnet, « Quête principale — facultative », et ses « Revoir » (`farm.s.nonos`, API `nonos`) |
 | `11-zzz00b-pensees.js`, `tools/pensees.js` | dire peu : `penser.une` (une règle dite une fois par vie), `penser.pas` (un avertissement espacé), `farm.s.pensees` ; l'inventaire des pensées (`node tools/pensees.js`) |
 | `11-zzvallee0-gel.js` | le gel en altitude : la jauge `farm.s.gel`, le givre à l'écran, la mort de froid |
 | `11-zzzz7-carte*.js`, `07-zzzzzzzzzz-carte.js` | un lieu tous les 200 m (catalogue, textes, lettres, inscriptions, petits secrets), les deux peuples de surface et leurs parlers (`farm.s.carte2`, API `carte2`) |
@@ -1144,7 +1242,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzzz4-ferme-temps.js`, `11-zzzz4-meubles.js`, `07-zzzzzzzz-meubles.js` | portée des arroseurs, petites bêtes sous la pluie ; acheter et meubler sa maison (meubles, garde-meuble) |
 | `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
-| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`) |
+| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js` et `Q.js`) |
 | `shell.html` | HTML + CSS |
 | `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et ses deux codes (le jeu, le wiki), le site servi tel quel par GitHub Pages, changer un code |
 | `libre/` | la partie sans code : sa page d'accueil (`libre/index.html`), le jeu et le wiki sans leur porte (écrits par `node build.js` et `node tools/wiki-build.js`) |
