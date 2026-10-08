@@ -21,8 +21,8 @@
 //    fouilles.temoins / fouiller / resoudre / etiquette, HOOKS.inter.f2, game.useDoor, npcs.update (comme les
 //    gardes : on mène nous-mêmes les réveillés), npcs.schedulePlace (le réveillé reste debout), npcs.snap,
 //    talk.open (les plaintes), vol.echec / vol.reussite, HOOKS.lights (la chandelle), HOOKS.update.
-//    Si l'agent Z expose trajets (auLit, reveiller, allerA, dormir, liberer), c'est lui qui fait marcher les réveillés
-//    (voir le contrat) ; sans lui, on les mène nous-mêmes.
+//    Si l'agent Z expose trajets (auLit, reveiller, allerA, coucher, dormir, liberer), c'est lui qui fait marcher
+//    les réveillés (voir le contrat) ; sans lui, on les mène nous-mêmes.
 //  API : crochetage.cambriolage (bruit(force, x, y, z, nature), dormeurs(), reveiller(n, src), ici, forcee(bld),
 //        maisonGardee(bld), stats()).
 // ============================================================================
@@ -278,7 +278,8 @@ const cambriolage = {
       }
       if (now - E.t1 > E.cherche) {
         E.phase = 'retour'; npcs.say(n, uGenre(pick(U_RECOUCHE), n), 2.6);
-        if (Z) { try { Z.dormir(n); } catch (e) { console.error('U : trajets.dormir', e); } }
+        // (Z : trajets.coucher le couche sur place s'il est au pied du lit, sinon il y retourne à pied — comme dormir)
+        if (Z) { try { if (typeof Z.coucher === 'function') Z.coucher(n); else Z.dormir(n); } catch (e) { console.error('U : trajets.coucher', e); } }
         this.lacher(n, 0);
       }
       return;
@@ -316,8 +317,8 @@ const cambriolage = {
     if (!n.inside && this.dans(n.d.home, n.x, n.z)) n.inside = n.d.home;
     this.retours.set(n, game.time + (sec || 0));
   },
-  // il retourne se coucher : les derniers pas jusqu'au lit (le lit, avec sa tête et son pied, gêne l'arrivée par le côté ;
-  // Z refait les trajets : trajets.coucher(n) s'il l'expose)
+  // il retourne se coucher : les derniers pas jusqu'au lit (le lit, avec sa tête et son pied, gêne l'arrivée par le côté).
+  // Sans Z seulement : avec Z, sa routine (ou trajets.coucher, à la fin de la recherche) les couche.
   recoucher() {
     const now = game.time;
     for (const [n, t0] of this.retours) {
@@ -327,7 +328,6 @@ const cambriolage = {
       if (!G || G.pose !== 'lie') { if (now > t0 + 240) this.retours.delete(n); continue; }
       const d = Math.hypot(G.x - n.x, G.z - n.z);
       if (d > 1.8 && now < t0 + 50) continue;
-      try { if (typeof trajets !== 'undefined' && trajets && typeof trajets.coucher === 'function') { trajets.coucher(n); this.retours.delete(n); continue; } } catch (e) { /* le geste ci-dessous */ }
       n.x = G.x; n.z = G.z; if (G.y !== undefined && G.y !== null) n.y = G.y; if (G.r !== undefined && G.r !== null) n.heading = G.r;
       n.state = 'sleep'; n.inside = G.bld || n.inside; n.path = []; n.pi = 0; n.move = 0; n.run = false;
       sound.uDraps && sound.uDraps(n, 0.8);
