@@ -19,7 +19,7 @@ const runesUI = {
     const st = document.createElement('style');
     st.id = 'r15-css';
     st.textContent = `
-.r15 { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 4px 4px 8px; }
+.r15 { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 2px 4px 8px; }
 .r15 .r15g { width: 100%; height: 100%; stroke: #3a2e22; stroke-width: 7; stroke-linecap: round; fill: none; }
 .r15 .r15tabs { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .r15 .r15tab { width: 42px; height: 58px; border-radius: 6px 6px 3px 3px; background: linear-gradient(#9c968a, #7f796e); box-shadow: inset 0 0 8px rgba(0,0,0,.35);
@@ -31,7 +31,7 @@ const runesUI = {
 .r15 .r15porte { display: flex; gap: 8px; padding: 8px 14px; border-radius: 4px; background: linear-gradient(#8f897e, #77716a); }
 .r15 .r15porte .r15g { width: 34px; height: 34px; stroke: #2a241e; stroke-width: 8; }
 .r15 .r15porte .r15g.efface { stroke: #5d574f; opacity: .7; }
-.r15 .r15cercle { position: relative; width: min(210px, 60vw, max(160px, 34vh)); flex: none; aspect-ratio: 1; border-radius: 50%; border: 3px solid #6f5a3e;
+.r15 .r15cercle { position: relative; width: min(190px, 60vw, max(160px, 32vh)); flex: none; aspect-ratio: 1; border-radius: 50%; border: 3px solid #6f5a3e;
   background: radial-gradient(circle, #efe6cf 0%, #ddd0b2 70%, #cdbd9a 100%); transition: box-shadow .5s, filter .5s; }
 .r15 .r15cercle.dort { filter: grayscale(1) opacity(.5); }
 .r15 .r15cercle.prend { animation: r15prend 1.8s ease-out; }
