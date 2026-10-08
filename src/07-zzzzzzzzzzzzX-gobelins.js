@@ -264,54 +264,54 @@ function gobPose(r, st) {
 // (les tuiles colorées — bois, écorce, terre, feuilles, or — se teintent à peine ; les tuiles grises prennent la couleur)
 const gobR = (o, k) => hash2i(Math.round(o.x * 10) + k * 7, Math.round(o.z * 10) - k * 13, 977 + k);
 const GOB_REFLET = [0.62, 0.58, 0.5]; // (les reflets : de l'or, sans lumière propre, à peine)
-const GT = { blanc: WHITE, sombre: [0.66, 0.64, 0.62], clair: [1.18, 1.12, 1.05], mort: [1.75, 2.05, 2.5], gris: [1.95, 2.3, 2.75], laitonT: [0.92, 0.76, 0.56], argentT: [0.8, 0.8, 0.86] };
+const GOB_GT = { blanc: WHITE, sombre: [0.66, 0.64, 0.62], clair: [1.18, 1.12, 1.05], mort: [1.75, 2.05, 2.5], gris: [1.95, 2.3, 2.75], laitonT: [0.92, 0.76, 0.56], argentT: [0.8, 0.8, 0.86] };
 Object.assign(PROP_MODELS, {
   // la vieille souche : un chêne mort, ouvert par la foudre (creux, l'écorce en couronne brisée), ses racines
   gob_souche(E, o) {
     const H = [2.05, 1.5, 2.3, 1.15, 1.75, 0.85, 1.55, 2.15];
     for (let k = 0; k < 8; k++) {
       const a = k * Math.PI / 4, h = H[k];
-      E.bx(Math.cos(a) * 0.74, 0, Math.sin(a) * 0.74, 0.66, h, 0.34, k % 2 ? GT.mort : GT.gris, TL.bark, Math.PI / 2 - a);
-      E.bx(Math.cos(a) * 0.74, h, Math.sin(a) * 0.74, 0.4, 0.18 + (k % 3) * 0.12, 0.2, GT.mort, TL.bark, Math.PI / 2 - a + 0.3, 0.25, 0.1);
+      E.bx(Math.cos(a) * 0.74, 0, Math.sin(a) * 0.74, 0.66, h, 0.34, k % 2 ? GOB_GT.mort : GOB_GT.gris, TL.bark, Math.PI / 2 - a);
+      E.bx(Math.cos(a) * 0.74, h, Math.sin(a) * 0.74, 0.4, 0.18 + (k % 3) * 0.12, 0.2, GOB_GT.mort, TL.bark, Math.PI / 2 - a + 0.3, 0.25, 0.1);
     }
     E.bx(0, 0, 0, 1.15, 0.06, 1.15, GOB_C.noir, TL.plain);
-    E.bx(0, 0.06, 0.15, 0.7, 0.04, 0.5, GT.sombre, TL.soil);
+    E.bx(0, 0.06, 0.15, 0.7, 0.04, 0.5, GOB_GT.sombre, TL.soil);
     for (let k = 0; k < 7; k++) {
       const a = k * TAU / 7 + 0.3, L = 1.3 + (k % 3) * 0.35;
-      E.box(Math.cos(a) * (0.9 + L / 2), 0.08, Math.sin(a) * (0.9 + L / 2), 0.26, 0.2, L, GT.mort, TL.bark, Math.PI / 2 - a, -0.12);
+      E.box(Math.cos(a) * (0.9 + L / 2), 0.08, Math.sin(a) * (0.9 + L / 2), 0.26, 0.2, L, GOB_GT.mort, TL.bark, Math.PI / 2 - a, -0.12);
     }
     // des champignons en console, de la mousse
     E.bx(0.55, 0.9, -0.55, 0.32, 0.05, 0.22, rgbf('#c8a070'), TL.plain, 0.8);
     E.bx(0.6, 1.25, -0.5, 0.24, 0.05, 0.18, rgbf('#b89060'), TL.plain, 0.8);
     E.bx(-0.75, 0.45, 0.35, 0.28, 0.05, 0.2, rgbf('#d0b080'), TL.plain, -0.4);
-    E.bx(-0.4, 0, -0.85, 0.7, 0.12, 0.5, GT.blanc, TL.leaves, 0.4);
+    E.bx(-0.4, 0, -0.85, 0.7, 0.12, 0.5, GOB_GT.blanc, TL.leaves, 0.4);
   },
   // la racine polie : une boucle de racine, plus claire et lisse que les autres
   gob_racine(E, o) {
-    const c = (o.data && o.data.tiree) ? GT.sombre : GT.clair;
+    const c = (o.data && o.data.tiree) ? GOB_GT.sombre : GOB_GT.clair;
     E.box(-0.2, 0.08, 0, 0.11, 0.24, 0.11, c, TL.wood, 0, 0, 0.5);
     E.box(0.03, 0.22, 0, 0.36, 0.1, 0.11, c, TL.wood);
     E.box(0.25, 0.08, 0, 0.11, 0.24, 0.11, c, TL.wood, 0, 0, -0.5);
   },
   // le panneau : une vieille porte peinte en bleu, à demi enterrée entre les racines ; levée quand on y descend
   gob_trappe(E, o) {
-    if (o.data && o.data.cachee) { E.bx(0, -0.01, 0, 0.9, 0.05, 1.2, GT.blanc, TL.soil); E.bx(0.1, 0.03, -0.1, 0.6, 0.04, 0.8, GT.blanc, TL.leaves, 0.3); return; }
+    if (o.data && o.data.cachee) { E.bx(0, -0.01, 0, 0.9, 0.05, 1.2, GOB_GT.blanc, TL.soil); E.bx(0.1, 0.03, -0.1, 0.6, 0.04, 0.8, GOB_GT.blanc, TL.leaves, 0.3); return; }
     const ouv = o.data && o.data.ouverte;
     E.bx(0, -0.02, 0, 0.86, 0.04, 1.16, GOB_C.noir, TL.plain);
     if (ouv) {
       E.box(0, 0.42, -0.62, 0.82, 1.1, 0.05, GOB_C.bleu, TL.porteBois ?? TL.plain, 0, -0.35, 0);
-      for (let k = 0; k < 3; k++) E.box(-0.3 + k * 0.3, -0.35, 0.1 - k * 0.2, 0.08, 0.7, 0.08, GT.blanc, TL.bark, 0, 0.3 * (k - 1), 0.2);
+      for (let k = 0; k < 3; k++) E.box(-0.3 + k * 0.3, -0.35, 0.1 - k * 0.2, 0.08, 0.7, 0.08, GOB_GT.blanc, TL.bark, 0, 0.3 * (k - 1), 0.2);
     } else {
       E.bx(0, 0.01, 0, 0.82, 0.05, 1.1, GOB_C.bleu, TL.porteBois ?? TL.plain);
       E.bx(0.3, 0.06, 0.32, 0.12, 0.02, 0.06, GOB_C.laiton, TL.metal);
-      E.bx(-0.2, 0.06, -0.3, 0.5, 0.05, 0.4, GT.blanc, TL.soil, 0.3);
-      E.bx(0.25, 0.06, 0.05, 0.3, 0.04, 0.5, GT.blanc, TL.leaves, -0.2);
+      E.bx(-0.2, 0.06, -0.3, 0.5, 0.05, 0.4, GOB_GT.blanc, TL.soil, 0.3);
+      E.bx(0.25, 0.06, 0.05, 0.3, 0.04, 0.5, GOB_GT.blanc, TL.leaves, -0.2);
     }
-    E.box(-0.5, 0.08, 0, 0.14, 0.14, 1.4, GT.mort, TL.bark, 0.1);
+    E.box(-0.5, 0.08, 0, 0.14, 0.14, 1.4, GOB_GT.mort, TL.bark, 0.1);
   },
   // la pierre griffée : trois entailles et un rond
   gob_marque(E, o) {
-    E.bx(0, 0, 0, 0.46, 0.13, 0.36, GT.blanc, mt(M_STONE), 0.2);
+    E.bx(0, 0, 0, 0.46, 0.13, 0.36, GOB_GT.blanc, mt(M_STONE), 0.2);
     for (let k = 0; k < 3; k++) E.bx(-0.07 + k * 0.07, 0.13, 0.04, 0.018, 0.006, 0.13, [0.12, 0.1, 0.09], TL.plain, 0.12);
     for (let k = 0; k < 6; k++) { const a = k * TAU / 6; E.bx(Math.cos(a) * 0.045, 0.13, -0.09 + Math.sin(a) * 0.045, 0.022, 0.006, 0.022, [0.12, 0.1, 0.09], TL.plain, a); }
   },
@@ -323,42 +323,42 @@ Object.assign(PROP_MODELS, {
     E.bx(0, -0.06, -0.2, 0.46, 0.36, 0.34, GOB_C.noir, TL.plain);
     E.bx(0, -0.04, -0.52, 0.7, 0.05, 0.42, WHITE, m, 0.3);
     E.bx(0.3, -0.02, -0.45, 0.22, 0.08, 0.16, WHITE, m, 0.9);
-    E.box(0, 0.4, 0.08, 0.08, 0.08, 0.95, GT.mort, TL.bark, 0.2, -0.15);
-    E.box(0.2, 0.33, 0.1, 0.06, 0.06, 0.75, GT.mort, TL.bark, -0.6, -0.1);
+    E.box(0, 0.4, 0.08, 0.08, 0.08, 0.95, GOB_GT.mort, TL.bark, 0.2, -0.15);
+    E.box(0.2, 0.33, 0.1, 0.06, 0.06, 0.75, GOB_GT.mort, TL.bark, -0.6, -0.1);
   },
   // une cahute : un bric-à-brac de planches, de volets, de portes volées, un drap pour rideau
   gob_cahute(E, o) {
     const v = (o.v | 0) % 5, W = 2.2, D = 1.8, Hh = 1.55 + v * 0.06;
     const pan = [rgbf('#7a6a52'), rgbf('#5a6a7a'), GOB_C.bleu, GOB_C.rouge, GOB_C.vert][v];
-    for (const [x, z] of [[-W / 2, -D / 2], [W / 2, -D / 2], [-W / 2, D / 2], [W / 2, D / 2]]) E.bx(x, 0, z, 0.08, Hh + 0.1, 0.08, GT.blanc, TL.darkwood);
-    E.bx(0, 0, D / 2, W, Hh, 0.06, GT.blanc, TL.wood);                          // le fond : des planches
+    for (const [x, z] of [[-W / 2, -D / 2], [W / 2, -D / 2], [-W / 2, D / 2], [W / 2, D / 2]]) E.bx(x, 0, z, 0.08, Hh + 0.1, 0.08, GOB_GT.blanc, TL.darkwood);
+    E.bx(0, 0, D / 2, W, Hh, 0.06, GOB_GT.blanc, TL.wood);                          // le fond : des planches
     E.bx(-W / 2, 0, 0, 0.06, Hh * 0.95, D, pan, TL.porteBois ?? TL.plain);     // un côté : une porte couchée
     E.bx(W / 2, 0, 0, 0.06, Hh * 0.9, D, rgbf('#b8a888'), TL.porteBasPanneau ?? TL.plain); // l'autre : un volet
-    E.bx(-W / 2 + 0.45, 0, -D / 2, 0.9, Hh, 0.05, GT.sombre, TL.wood);         // devant, à gauche
-    E.bx(W / 2 - 0.35, 0, -D / 2, 0.7, Hh, 0.05, GT.blanc, TL.wood);
+    E.bx(-W / 2 + 0.45, 0, -D / 2, 0.9, Hh, 0.05, GOB_GT.sombre, TL.wood);         // devant, à gauche
+    E.bx(W / 2 - 0.35, 0, -D / 2, 0.7, Hh, 0.05, GOB_GT.blanc, TL.wood);
     E.bx(0.05, 0.25, -D / 2 - 0.01, 0.62, Hh - 0.25, 0.02, GOB_C.toile, TL.cloth);  // le rideau : un drap volé
-    E.box(0, Hh + 0.12, 0, W + 0.4, 0.06, D + 0.4, GT.sombre, TL.wood, 0, 0.12, v % 2 ? 0.08 : -0.06); // le toit, de travers
+    E.box(0, Hh + 0.12, 0, W + 0.4, 0.06, D + 0.4, GOB_GT.sombre, TL.wood, 0, 0.12, v % 2 ? 0.08 : -0.06); // le toit, de travers
     E.bx(v % 2 ? 0.6 : -0.7, Hh + 0.16, 0.2, 0.5, 0.18, 0.4, rgbf('#a08a64'), TL.cloth2);
-    if (v === 1 || v === 3) E.box(W / 2 + 0.06, 0.45, 0.3, 0.06, 0.9, 0.9, GT.blanc, TL.darkwood, 0, 0, 0.1); // une roue de charrette contre le mur
+    if (v === 1 || v === 3) E.box(W / 2 + 0.06, 0.45, 0.3, 0.06, 0.9, 0.9, GOB_GT.blanc, TL.darkwood, 0, 0, 0.1); // une roue de charrette contre le mur
     if (v === 2) E.bx(-W / 2 - 0.04, Hh * 0.55, -0.2, 0.03, 0.22, 0.22, GOB_C.laiton, TL.metal);     // un heurtoir
   },
   // un tas : des pièces, de l'argenterie, du laiton ; et ce qui dépasse. Il baisse à chaque poignée (data.n)
   gob_tas(E, o) {
     const n = (o.data && o.data.n) | 0, k = Math.max(0.12, 1 - n * 0.3), v = (o.v | 0);
-    if (n >= 3) { E.bx(0, 0, 0, 0.9, 0.04, 0.8, GT.sombre, TL.soil); E.bx(0.1, 0.03, 0.1, 0.12, 0.012, 0.06, GOB_C.argent, TL.metal, 0.6); return; }
-    E.bx(0, 0, 0, 1.5 * Math.sqrt(k), 0.28 * k, 1.3 * Math.sqrt(k), GT.blanc, TL.gold);
+    if (n >= 3) { E.bx(0, 0, 0, 0.9, 0.04, 0.8, GOB_GT.sombre, TL.soil); E.bx(0.1, 0.03, 0.1, 0.12, 0.012, 0.06, GOB_C.argent, TL.metal, 0.6); return; }
+    E.bx(0, 0, 0, 1.5 * Math.sqrt(k), 0.28 * k, 1.3 * Math.sqrt(k), GOB_GT.blanc, TL.gold);
     E.bx(0.08, 0.28 * k, -0.05, 1.0 * Math.sqrt(k), 0.24 * k, 0.85 * Math.sqrt(k), GOB_C.argent, TL.metal, 0.4);
-    E.bx(-0.05, 0.52 * k, 0.02, 0.55 * Math.sqrt(k), 0.18 * k, 0.5 * Math.sqrt(k), GT.laitonT, TL.gold, 0.9);
+    E.bx(-0.05, 0.52 * k, 0.02, 0.55 * Math.sqrt(k), 0.18 * k, 0.5 * Math.sqrt(k), GOB_GT.laitonT, TL.gold, 0.9);
     const h = 0.7 * k, R = (i) => gobR(o, i);
     if (n < 2) {
       E.bx(0.25, h - 0.1, 0.1, 0.05, 0.42, 0.05, GOB_C.laiton, TL.metal, 0, 0.25, 0.15);           // un bougeoir
       E.bx(0.3, h + 0.28, 0.0, 0.1, 0.03, 0.1, GOB_C.laiton, TL.metal);
-      E.box(-0.35, h * 0.7, 0.2, 0.25, 0.3, 0.12, GT.blanc, TL.darkwood, R(1) * 2, 0.4);           // une pendule
+      E.box(-0.35, h * 0.7, 0.2, 0.25, 0.3, 0.12, GOB_GT.blanc, TL.darkwood, R(1) * 2, 0.4);           // une pendule
       E.box(-0.35, h * 0.7 + 0.02, 0.27, 0.16, 0.16, 0.01, [0.92, 0.9, 0.82], TL.plain, R(1) * 2, 0.4);
     }
     for (let i = 0; i < 6 - n * 2; i++) E.box((R(i + 3) - 0.5) * 1.1 * k, h * (0.3 + R(i + 9) * 0.5), (R(i + 5) - 0.5) * 0.9 * k, 0.03, 0.012, 0.2, GOB_C.argent, TL.metal, R(i + 7) * 6, 0.3, 0.2); // des cuillères
     if (v % 3 === 0 && n === 0) E.box(-0.1, h + 0.05, -0.3, 0.12, 0.2, 0.08, rgbf('#e0d0b0'), TL.doll, 0.4, -0.5); // une poupée, la tête en bas
-    if (v % 3 === 1 && n === 0) E.box(0.4, h * 0.6, -0.25, 0.22, 0.22, 0.02, GT.blanc, TL.gold, 0.7, 0.6);       // un cadre doré
+    if (v % 3 === 1 && n === 0) E.box(0.4, h * 0.6, -0.25, 0.22, 0.22, 0.02, GOB_GT.blanc, TL.gold, 0.7, 0.6);       // un cadre doré
     if (v % 3 === 2 && n === 0) E.box(0.1, h + 0.02, 0.3, 0.2, 0.14, 0.14, GOB_C.cuivre, TL.metal, 0.3);           // une théière
     // l'or qui accroche la lueur des chandelles
     E.fl = FX_EMIT;
@@ -368,21 +368,21 @@ Object.assign(PROP_MODELS, {
   // le grand tas : une butte d'or et d'argent, des générations de vols ; la vieille siège tout en haut
   gob_grand_tas(E, o) {
     const n = (o.data && o.data.n) | 0, k = Math.max(0.45, 1 - n * 0.16), R = (i) => gobR(o, i);
-    E.bx(0, 0, 0, 4.6, 0.5, 3.6, GT.blanc, TL.gold);
+    E.bx(0, 0, 0, 4.6, 0.5, 3.6, GOB_GT.blanc, TL.gold);
     E.bx(0.1, 0.5, 0.2, 3.6, 0.45 * k + 0.05, 2.8, GOB_C.argent, TL.metal, 0.12);
-    E.bx(0.0, 0.95 * k + 0.05, 0.35, 2.4, 0.45 * k, 1.9, GT.blanc, TL.gold, -0.08);
-    E.bx(0.05, 1.35 * k + 0.05, 0.5, 1.4, 0.25, 1.2, GT.laitonT, TL.gold, 0.2);
+    E.bx(0.0, 0.95 * k + 0.05, 0.35, 2.4, 0.45 * k, 1.9, GOB_GT.blanc, TL.gold, -0.08);
+    E.bx(0.05, 1.35 * k + 0.05, 0.5, 1.4, 0.25, 1.2, GOB_GT.laitonT, TL.gold, 0.2);
     for (let i = 0; i < 18 - n * 4; i++) {
       const a = R(i) * TAU, rr = 0.6 + R(i + 40) * 1.5, y = 0.35 + R(i + 80) * 0.9 * k, kind = i % 6;
       const x = Math.cos(a) * rr, z = Math.sin(a) * rr * 0.75;
       if (kind === 0) E.box(x, y, z, 0.05, 0.4, 0.05, GOB_C.laiton, TL.metal, a, 0.3, 0.2);                    // chandeliers
       else if (kind === 1) E.box(x, y, z, 0.03, 0.012, 0.22, GOB_C.argent, TL.metal, a, 0.2, 0.3);              // cuillères
-      else if (kind === 2) E.box(x, y + 0.1, z, 0.26, 0.3, 0.12, GT.blanc, TL.darkwood, a, 0.35);               // pendules
+      else if (kind === 2) E.box(x, y + 0.1, z, 0.26, 0.3, 0.12, GOB_GT.blanc, TL.darkwood, a, 0.35);               // pendules
       else if (kind === 3) E.box(x, y + 0.05, z, 0.2, 0.15, 0.15, GOB_C.cuivre, TL.metal, a);                     // théières, chaudrons
-      else if (kind === 4) E.box(x, y + 0.08, z, 0.34, 0.26, 0.03, GT.blanc, TL.gold, a, 0.5);                    // cadres
+      else if (kind === 4) E.box(x, y + 0.08, z, 0.34, 0.26, 0.03, GOB_GT.blanc, TL.gold, a, 0.5);                    // cadres
       else E.box(x, y, z, 0.1, 0.05, 0.2, [0.55, 0.45, 0.4], TL.leather, a, 0.2);                                 // souliers
     }
-    E.box(-1.7, 0.9, -0.9, 0.06, 1.6, 0.06, GT.blanc, TL.darkwood, 0.3, 0.4, 0.3);                               // un pied de chaise, un manche de faux
+    E.box(-1.7, 0.9, -0.9, 0.06, 1.6, 0.06, GOB_GT.blanc, TL.darkwood, 0.3, 0.4, 0.3);                               // un pied de chaise, un manche de faux
     E.box(1.8, 0.7, -0.6, 0.5, 0.06, 0.06, GOB_C.laiton, TL.metal, 0.7, 0.2, 0.5);
     // l'or qui accroche la lueur des chandelles
     E.fl = FX_EMIT;
@@ -401,11 +401,11 @@ Object.assign(PROP_MODELS, {
   },
   // le siège de la vieille : un dossier de banc d'église, un coussin de velours
   gob_siege(E, o) {
-    E.bx(0, 0, 0, 0.8, 0.3, 0.6, GT.blanc, TL.darkwood);
+    E.bx(0, 0, 0, 0.8, 0.3, 0.6, GOB_GT.blanc, TL.darkwood);
     E.bx(0, 0.3, 0.02, 0.72, 0.08, 0.55, rgbf('#9a3a3a'), TL.cloth);
-    E.bx(0, 0.3, -0.28, 0.82, 1.15, 0.08, GT.blanc, TL.meuSculpte ?? TL.darkwood);
-    E.bx(0, 1.45, -0.28, 0.4, 0.22, 0.08, GT.blanc, TL.meuSculpte ?? TL.darkwood);
-    for (const s of [-1, 1]) E.bx(s * 0.38, 0.3, -0.05, 0.06, 0.35, 0.5, GT.blanc, TL.darkwood);
+    E.bx(0, 0.3, -0.28, 0.82, 1.15, 0.08, GOB_GT.blanc, TL.meuSculpte ?? TL.darkwood);
+    E.bx(0, 1.45, -0.28, 0.4, 0.22, 0.08, GOB_GT.blanc, TL.meuSculpte ?? TL.darkwood);
+    for (const s of [-1, 1]) E.bx(s * 0.38, 0.3, -0.05, 0.06, 0.35, 0.5, GOB_GT.blanc, TL.darkwood);
   },
   // un nid : des chiffons, des plumes, des cheveux
   gob_nid(E, o) {
@@ -418,16 +418,16 @@ Object.assign(PROP_MODELS, {
   // le berceau, très ancien ; un bonnet dedans, une poupée de paille tournée vers le mur
   gob_berceau(E, o) {
     const c = rgbf('#8a9ab0');
-    for (const s of [-1, 1]) E.box(0, 0.06, s * 0.3, 0.95, 0.06, 0.06, GT.blanc, TL.darkwood, 0, 0, 0);
+    for (const s of [-1, 1]) E.box(0, 0.06, s * 0.3, 0.95, 0.06, 0.06, GOB_GT.blanc, TL.darkwood, 0, 0, 0);
     E.bx(0, 0.1, 0, 0.9, 0.06, 0.5, c, TL.cloth2);
     for (const s of [-1, 1]) { E.bx(0, 0.1, s * 0.25, 0.9, 0.42, 0.04, c, TL.cloth2); E.bx(s * 0.45, 0.1, 0, 0.04, s < 0 ? 0.62 : 0.45, 0.5, c, TL.cloth2); }
     E.bx(0.2, 0.16, 0, 0.18, 0.08, 0.16, rgbf('#f0ece0'), TL.cloth);
-    E.box(-0.2, 0.25, 0.1, 0.1, 0.2, 0.08, GT.blanc, TL.straw, Math.PI, 0.2);
+    E.box(-0.2, 0.25, 0.1, 0.1, 0.2, 0.08, GOB_GT.blanc, TL.straw, Math.PI, 0.2);
   },
   // l'étal des prises : des planches sur deux tréteaux ; dessus, ce qu'ils ont rapporté (data.items : couleurs)
   gob_etal(E, o) {
-    E.bx(0, 0.72, 0, 2.3, 0.05, 0.8, GT.blanc, TL.wood);
-    for (const s of [-1, 1]) { E.box(s * 0.95, 0.36, 0.25, 0.06, 0.78, 0.06, GT.blanc, TL.darkwood, 0, -0.25); E.box(s * 0.95, 0.36, -0.25, 0.06, 0.78, 0.06, GT.blanc, TL.darkwood, 0, 0.25); }
+    E.bx(0, 0.72, 0, 2.3, 0.05, 0.8, GOB_GT.blanc, TL.wood);
+    for (const s of [-1, 1]) { E.box(s * 0.95, 0.36, 0.25, 0.06, 0.78, 0.06, GOB_GT.blanc, TL.darkwood, 0, -0.25); E.box(s * 0.95, 0.36, -0.25, 0.06, 0.78, 0.06, GOB_GT.blanc, TL.darkwood, 0, 0.25); }
     const L = (o.data && o.data.items) || [];
     for (let i = 0; i < Math.min(L.length, 30); i++) {
       const row = Math.floor(i / 10), col = i % 10, c = typeof L[i] === 'string' ? rgbf(L[i]) : GOB_C.argent;
@@ -447,7 +447,7 @@ Object.assign(PROP_MODELS, {
   },
   // la marmite volée, sur trois pierres, au-dessus des braises
   gob_marmite(E, o) {
-    for (let k = 0; k < 3; k++) { const a = k * TAU / 3; E.bx(Math.cos(a) * 0.32, 0, Math.sin(a) * 0.32, 0.22, 0.18, 0.2, GT.blanc, mt(M_STONE), a); }
+    for (let k = 0; k < 3; k++) { const a = k * TAU / 3; E.bx(Math.cos(a) * 0.32, 0, Math.sin(a) * 0.32, 0.22, 0.18, 0.2, GOB_GT.blanc, mt(M_STONE), a); }
     const lit = !(o.data && o.data.lit === false);
     E.fl = lit ? FX_EMIT : 0; E.bx(0, 0, 0, 0.42, 0.06, 0.42, lit ? GOB_C.braise : [0.1, 0.08, 0.07], lit ? TL.ember : TL.coal); E.fl = 0;
     E.bx(0, 0.18, 0, 0.5, 0.36, 0.5, [0.45, 0.45, 0.48], TL.iron);
@@ -469,49 +469,49 @@ Object.assign(PROP_MODELS, {
   gob_racines(E, o) {
     for (let k = 0; k < 9; k++) {
       const x = (gobR(o, k) - 0.5) * 1.3, z = (gobR(o, k + 20) - 0.5) * 1.0, L = 0.6 + gobR(o, k + 40) * 1.6;
-      E.bx(x, 2.4 - L, z, 0.06 + (k % 3) * 0.03, L, 0.06 + (k % 2) * 0.03, GT.blanc, TL.bark, k);
+      E.bx(x, 2.4 - L, z, 0.06 + (k % 3) * 0.03, L, 0.06 + (k % 2) * 0.03, GOB_GT.blanc, TL.bark, k);
     }
-    for (let k = 0; k < 5; k++) E.box(-0.05, 0.3 + k * 0.42, 0.45, 0.6, 0.07, 0.07, GT.clair, TL.wood, 0, 0, (k % 2 ? 0.1 : -0.1));
+    for (let k = 0; k < 5; k++) E.box(-0.05, 0.3 + k * 0.42, 0.45, 0.6, 0.07, 0.07, GOB_GT.clair, TL.wood, 0, 0, (k % 2 ? 0.1 : -0.1));
   },
   // ce qu'on lit : la cloche pleine d'alliances, les horloges sans aiguilles, les clés, les souliers, le miroir, les lettres
   gob_cloche(E, o) {
     E.bx(0, 0, 0, 0.5, 0.06, 0.5, rgbf('#8a6a3a'), TL.metal);
     E.bx(0, 0.06, 0, 0.42, 0.32, 0.42, rgbf('#a8823e'), TL.metal, 0.785);
-    for (let k = 0; k < 7; k++) E.bx((gobR(o, k) - 0.5) * 0.26, 0.38, (gobR(o, k + 7) - 0.5) * 0.26, 0.04, 0.012, 0.04, GT.blanc, TL.gold);
+    for (let k = 0; k < 7; k++) E.bx((gobR(o, k) - 0.5) * 0.26, 0.38, (gobR(o, k + 7) - 0.5) * 0.26, 0.04, 0.012, 0.04, GOB_GT.blanc, TL.gold);
   },
   gob_horloges(E, o) {
     for (let k = 0; k < 7; k++) {
       const x = (k % 4) * 0.42 - 0.6, y = 0.6 + Math.floor(k / 4) * 0.55 + gobR(o, k) * 0.15, s = 0.22 + gobR(o, k + 8) * 0.14;
-      E.bx(x, y, 0, s + 0.06, s + 0.06, 0.06, k % 2 ? GT.blanc : GOB_C.laiton, k % 2 ? TL.darkwood : TL.metal);
+      E.bx(x, y, 0, s + 0.06, s + 0.06, 0.06, k % 2 ? GOB_GT.blanc : GOB_C.laiton, k % 2 ? TL.darkwood : TL.metal);
       E.bx(x, y + 0.03, 0.035, s, s, 0.01, [0.92, 0.9, 0.82], TL.plain);
     }
   },
   gob_cles(E, o) {
     for (let k = 0; k < 24; k++) { const a = k / 24 * TAU; E.box(Math.cos(a) * 0.45, 1.2 + Math.sin(a) * 0.45, 0, 0.05, 0.05, 0.05, [0.7, 0.66, 0.6], TL.iron); }
     for (let k = 0; k < 30; k++) { const a = k / 30 * Math.PI + Math.PI, L = 0.1 + gobR(o, k) * 0.12; E.box(Math.cos(a) * 0.45, 1.2 + Math.sin(a) * 0.45 - L / 2, 0.02, 0.025, L, 0.012, k % 3 ? rgbf('#8a7a62') : GOB_C.laiton, TL.metal); }
-    E.bx(0, 1.62, -0.02, 0.06, 0.1, 0.06, GT.blanc, TL.darkwood);
+    E.bx(0, 1.62, -0.02, 0.06, 0.1, 0.06, GOB_GT.blanc, TL.darkwood);
   },
   gob_souliers(E, o) {
     const C = [[0.35, 0.3, 0.28], [0.6, 0.5, 0.42], [0.7, 0.4, 0.36], [0.45, 0.45, 0.45], [0.66, 0.56, 0.4], [0.9, 0.8, 0.66]];
     for (let k = 0; k < 16; k++) { const a = gobR(o, k) * TAU, r = gobR(o, k + 30) * 0.5; E.box(Math.cos(a) * r, 0.05 + (k % 4) * 0.07, Math.sin(a) * r, 0.11, 0.08, 0.24, C[k % 6], TL.leather, a, (k % 3) * 0.3); }
   },
   gob_miroir(E, o) {
-    E.bx(0, 0, 0, 1.0, 1.9, 0.08, GT.laitonT, TL.gold, 0, 0.12);
-    E.bx(0, 0.05, -0.05, 0.86, 1.8, 0.03, GT.blanc, TL.darkwood, 0, 0.12);
+    E.bx(0, 0, 0, 1.0, 1.9, 0.08, GOB_GT.laitonT, TL.gold, 0, 0.12);
+    E.bx(0, 0.05, -0.05, 0.86, 1.8, 0.03, GOB_GT.blanc, TL.darkwood, 0, 0.12);
   },
   gob_lettres(E, o) {
-    E.bx(0, 0, 0, 0.6, 0.4, 0.45, GT.blanc, TL.chest);
+    E.bx(0, 0, 0, 0.6, 0.4, 0.45, GOB_GT.blanc, TL.chest);
     for (let k = 0; k < 6; k++) E.bx((k % 2 - 0.5) * 0.12, 0.4 + k * 0.025, 0, 0.22, 0.022, 0.15, WHITE, TL.paper, (k % 3 - 1) * 0.15);
     E.bx(0, 0.42, 0, 0.03, 0.15, 0.17, rgbf('#8a2a30'), TL.cloth);
   },
   // le panneau du raccourci : des planches, une lourde barre qui le tient fermé de l'intérieur
   gob_panneau(E, o) {
     const ouv = o.data && o.data.ouvert;
-    E.bx(0, 0, -0.06, 1.3, 1.3, 0.1, ouv ? GOB_C.noir : GT.blanc, ouv ? TL.plain : TL.soil);   // (ouvert : le noir du boyau derrière)
-    if (ouv) E.box(-0.6, 0.6, 0.45, 0.06, 1.15, 0.9, GT.blanc, TL.wood);                     // le panneau rabattu contre la paroi
-    else E.bx(0, 0.05, 0.02, 1.05, 1.15, 0.06, GT.blanc, TL.wood);
-    if (ouv) E.box(0.55, 0.35, 0.12, 0.1, 0.7, 0.1, GT.blanc, TL.darkwood, 0, 0, 0.25);       // la barre, posée de côté
-    else { E.bx(0, 0.58, 0.1, 1.3, 0.1, 0.1, GT.blanc, TL.darkwood); for (const s of [-1, 1]) E.bx(s * 0.6, 0.5, 0.12, 0.08, 0.26, 0.12, GT.blanc, TL.bark); }
+    E.bx(0, 0, -0.06, 1.3, 1.3, 0.1, ouv ? GOB_C.noir : GOB_GT.blanc, ouv ? TL.plain : TL.soil);   // (ouvert : le noir du boyau derrière)
+    if (ouv) E.box(-0.6, 0.6, 0.45, 0.06, 1.15, 0.9, GOB_GT.blanc, TL.wood);                     // le panneau rabattu contre la paroi
+    else E.bx(0, 0.05, 0.02, 1.05, 1.15, 0.06, GOB_GT.blanc, TL.wood);
+    if (ouv) E.box(0.55, 0.35, 0.12, 0.1, 0.7, 0.1, GOB_GT.blanc, TL.darkwood, 0, 0, 0.25);       // la barre, posée de côté
+    else { E.bx(0, 0.58, 0.1, 1.3, 0.1, 0.1, GOB_GT.blanc, TL.darkwood); for (const s of [-1, 1]) E.bx(s * 0.6, 0.5, 0.12, 0.08, 0.26, 0.12, GOB_GT.blanc, TL.bark); }
   },
 });
 // collisions des objets posés : [demi-largeur, demi-profondeur, hauteur]
