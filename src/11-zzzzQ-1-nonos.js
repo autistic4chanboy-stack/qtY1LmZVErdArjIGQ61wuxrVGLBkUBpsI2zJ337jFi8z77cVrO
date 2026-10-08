@@ -188,6 +188,8 @@ const nonos = {
     const e = chien.entite(), p = game.player, n = chien.niche();
     if (!this.cherche) { const pres = Math.hypot(n[0] - e.x, n[1] - e.z) < 40; this.cherche = { x: pres ? n[0] : e.x, z: pres ? n[1] : e.z, a: Math.random() * TAU, gratteT: 0, gemitT: 2 }; }
     if (cine.on || ui.panel || game.sleeping || game.dying || game.mode !== 'play' || p.riding) return;
+    const fondu = typeof document !== 'undefined' && document.getElementById('fade');
+    if (fondu && fondu.classList.contains('open')) return;   // (le réveil, un voyage : on attend d'y voir)
     const d = Math.hypot(e.x - p.pos[0], e.z - p.pos[2]);
     if (d < 9 || (d < 22 && espritVoit(e.x, e.y + 0.4, e.z, 22))) this.commencer();
   },
@@ -358,6 +360,8 @@ const nonos = {
   tick(dt) {
     const S = this.S(), s = farm.s;
     if (!S) return;
+    // une partie sauvegardée pendant la scène du début, avant le tirage : on tire les lieux (le premier souvenir se revoit au carnet)
+    if (S.e >= 1 && S.e <= NONOS_N && !S.fin && S.L.length !== NONOS_N && !cine.on) { if (!S.graine) S.graine = (Math.random() * 4294967296) >>> 0; S.L = []; this.tirer(); }
     // le chien est mort en chemin : la quête s'arrête
     if (S.e >= 1 && !S.rendu && !S.fin && !chien.vivant()) { S.fin = 'mort'; S.finJ = s.day; this.aJouer = null; }
     // l'os rendu, le chien mort et enterré : l'os est avec lui

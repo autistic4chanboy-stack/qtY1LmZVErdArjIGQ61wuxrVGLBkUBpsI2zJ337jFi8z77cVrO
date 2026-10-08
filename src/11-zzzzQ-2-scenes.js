@@ -180,9 +180,12 @@ body.q-souvenir #q-voile{opacity:1}`;
     const S = nonos.S();
     if (!S || !S.L[i - 1] || cine.on) return Promise.resolve();
     const txt = apresIndice ? NONOS_TXT.avant[i - 1] : '';
-    const plans = this.plansSouvenir(i, txt);
-    plans.unshift({ dur: apresIndice ? 1.2 : 0.8, de: this.vueJoueur(), fondu: 'noir', texte: txt });
-    return cine.jouer(plans, { apres: () => this.memoire(null) });
+    // le cadrage (quelques dizaines de millisecondes) se calcule une fois l'écran noir
+    const M = [{ dur: txt ? 2.0 : 0.7, fondu: 'noir', texte: txt }, { dur: 5.6 }, { dur: 5.0 }, { dur: 1.3, fondu: 'noir' }, { dur: 0.5, fondu: 'noir' }];
+    let pret = false;
+    const preparer = () => { if (pret) return; pret = true; const P = this.plansSouvenir(i, txt); M.forEach((m, k) => Object.assign(m, P[k])); };
+    const d0 = 1.15;
+    return cine.jouer([{ dur: d0, de: this.vueJoueur(), fondu: 'noir', texte: txt, chaque: (t) => { if (t > d0 - 0.12) preparer(); }, fin: preparer }, ...M], { apres: () => this.memoire(null) });
   },
 
   // -------------------------------------------------------------- le matin où il cherche
