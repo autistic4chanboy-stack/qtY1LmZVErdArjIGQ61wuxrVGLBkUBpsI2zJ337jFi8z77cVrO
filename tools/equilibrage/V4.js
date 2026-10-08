@@ -106,6 +106,7 @@ module.exports = {
       }
       const murs = blocks.filter((b) => !b.hidden && !b.under && b.sy >= 1.5);
       const dansMur = (x, z, y) => murs.some((b) => { if (b.y > y + 0.5 || b.y + b.sy < y + 2) return false; const [lx, lz] = World.blockLocal(b, x, z); return Math.abs(lx) <= b.sx / 2 && Math.abs(lz) <= b.sz / 2; });
+      // (une case compte si le sol du dehors, hors des murs, y passe de la lumière à l'ombre : lu à 8 cm, à 5 cm près)
       let dehors = 0, plus = 0;
       for (let k = 0; k < S * S; k++) {
         if (!(cov[k] > base[k] + 0.01)) continue;
@@ -115,11 +116,13 @@ module.exports = {
         for (let a = 0; a < 4; a++) for (let b = 0; b < 4; b++) {
           const x = ox + i + (a + 0.5) / 4, z = oz + j + (b + 0.5) / 4;
           if (couvertes.some((s) => dans(x, z, s))) continue;
-          if (!dansMur(x, z, Math.max(Z.heightAt(x, z), V.y0))) nd++;
+          const g = Math.max(Z.heightAt(x, z), V.y0) + 0.08;
+          if (g < base[k] - 0.05 || !(g < cov[k] - 0.05)) continue;
+          if (!dansMur(x, z, g - 0.08)) nd++;
         }
         if (nd >= 3) dehors++;
       }
-      log(`éclairage du dedans : ${couvertes.length} salles couvertes, ${auJour.length} au jour ; ${plus} cases assombries par le château, dont ${dehors} touchent le dehors`);
+      log(`éclairage du dedans : ${couvertes.length} salles couvertes, ${auJour.length} au jour ; ${plus} cases relevées par le château, dont ${dehors} où le sol du dehors passe à l'ombre`);
       if (auJour.length) ko('des salles couvertes sont claires comme dehors : ' + auJour.join(', '));
       if (dehors > 40) ko(`le château assombrit trop de dehors (${dehors} cases)`);
     }

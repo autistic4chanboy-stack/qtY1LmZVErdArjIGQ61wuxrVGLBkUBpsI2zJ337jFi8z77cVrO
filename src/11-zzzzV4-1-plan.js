@@ -407,7 +407,7 @@ function v4Batir(Z, O) {
     prop('v4_treuil', -104.4, 7, 0, -Math.PI / 2, null, 1.3);
     inter('v4_levier', 'v4_lev_pont', -103.0, 8.2, 0, V4_TEXTES.treuilTitre, { id: 'pont' });
     lire('chatelet', -105.9, 9.6, -1.6);
-    prop('brasero', -99.0, 7, 4.6, 0, { lit: true });
+    prop('brasero', -99.0, 7, 4.6, 0, { lit: true }); prop('lanterne_cachot', -102.6, 7, -2.0, 0.4);
     prop('banc', -97.6, 7, 6.6, Math.PI / 2);
     prop('b1_ratelier', -92.8, 7, -6.0, -Math.PI / 2);
     for (let k = 0; k < 3; k++) prop('v4_meurtriere', -106.4, 7.8, -7 + k * 3.5, Math.PI / 2);
@@ -621,7 +621,7 @@ function v4Batir(Z, O) {
     for (const zr of [-52.5, -47.5]) for (let k = 0; k < 3; k++) { const x = 1 + k * 5.4; prop('table', x, 0, zr, 0); prop('banc', x, 0, zr - 0.85, 0); prop('banc', x, 0, zr + 0.85, Math.PI); if (rnd() < 0.6) prop('v4_couverts', x, 0.79, zr, 0, { v: k }); }
     prop('v4_tapisserie', 10, 0.6, -57.85, 0, { v: 0, w: 2.6, h: 3.6 }); prop('v4_tapisserie', 22, 0.6, -57.85, 0, { v: 1, w: 2.6, h: 3.6 }); prop('v4_tapisserie', 31.35, 1.0, -48, -Math.PI / 2, { v: 2, w: 3.2, h: 4.4 });
     for (const x of [2, 12, 22]) prop('v4_banniere', x, 4.8, ZF - 0.62, Math.PI, { h: 5 });
-    prop('v4_lustre', 27.4, 9.2, -51, 0, { lit: true, h: 6.2 }); prop('v4_lustre', 10, 9.2, -50, 0, { h: 5.5 });
+    prop('v4_lustre', 27.4, 9.2, -51, 0, { lit: true, h: 6.2 }); prop('v4_lustre', 10, 9.2, -50, 0, { lit: true, h: 5.5 });
     prop('chandelier', 24.6, 0.6, -43.6, 0, { lit: false });
     prop('v4_mort', 6.8, 0, -51.6, 0.4, { pose: 'assis', look: { top: '#5a4a3a', bottom: '#3a302a' } });
     fouille('salle_coffre', 30.6, 1.2, -44.2, 'Un coffre, au pied de l’estrade', 'v4_coffre');
@@ -1059,14 +1059,16 @@ function v4Batir(Z, O) {
   // 05-world.js computeCover ne retient, par case d'un mètre, que les plafonds dont l'empreinte (moins 45 cm) couvre le
   // milieu de la case : le long d'un mur dont le toit s'arrête au nu intérieur (la courtine, la voûte d'une porte), la
   // rangée de cases serait « dehors », claire en plein jour. Chaque case qui touche une salle couverte (hors les trous
-  // d'un toit crevé) prend donc au moins la hauteur du plafond de la salle. Les murs du château font plus d'un mètre :
-  // leur parement extérieur est dans une autre case. Seulement ce monde-ci (la Zone), et seulement le château.
+  // d'un toit crevé) prend donc au moins la hauteur du plafond de la salle, plus 10 cm (l'éclairage lit la carte à 5 cm
+  // près : sans cela, le haut des murs, sous le plafond, brillerait d'un liseré ; un sol posé à cette hauteur, lu à 8 cm
+  // au-dessus, reste dehors). Les murs du château font plus d'un mètre : leur parement extérieur est dans une autre
+  // case. Seulement ce monde-ci (la Zone), et seulement le château.
   {
     const R = [], OCT = [];
     for (const s of V.salles) {
       if (!s.couvert || s.dessous) continue;
-      if (s.octo) { OCT.push([s.octo[0], s.octo[1], s.octo[2], s.y1]); continue; }
-      for (const [a0, a1, b0, b1] of percer([s.abri || [s.x0, s.x1, s.z0, s.z1]], s.trous)) if (a1 - a0 > 0.05 && b1 - b0 > 0.05) R.push([a0, a1, b0, b1, s.y1]);
+      if (s.octo) { OCT.push([s.octo[0], s.octo[1], s.octo[2], s.y1 + 0.1]); continue; }
+      for (const [a0, a1, b0, b1] of percer([s.abri || [s.x0, s.x1, s.z0, s.z1]], s.trous)) if (a1 - a0 > 0.05 && b1 - b0 > 0.05) R.push([a0, a1, b0, b1, s.y1 + 0.1]);
     }
     const dansOcto = (x, z, o) => { for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; if ((x - o[0]) * Math.sin(a) + (z - o[1]) * Math.cos(a) > o[2]) return false; } return true; };
     const _cc = Z.computeCover;

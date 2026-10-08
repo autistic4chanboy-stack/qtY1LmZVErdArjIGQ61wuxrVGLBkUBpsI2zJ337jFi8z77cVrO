@@ -148,8 +148,7 @@ Object.assign(chateauV4, {
       }
     }
     dr.open = dr.open ? 0 : 1;
-    sound.door && sound.door(!!dr.open);
-    if (typeof furtif !== 'undefined') furtif.bruit(dr.x, dr.y, dr.z, 9, 'porte');
+    sound.door && sound.door(!!dr.open); // (V1 en fait un bruit : furtif, 10 m)
   },
   deverrouiller(dr, comment) {
     const S = this.S(), v = dr.v4 || {};
@@ -302,7 +301,7 @@ Object.assign(chateauV4, {
     const d = it.data || {}, S = this.S();
     if (!S.trappes[d.id]) {
       ui.choice(V4_TEXTES.trappeTitre, V4_TEXTES.trappeDesc, [
-        { label: V4_TEXTES.trappeOuvrir, fn: () => { ui.close(); S.trappes[d.id] = farm.s.day || 1; this.appliquer(false); sound.door && sound.door(true); if (typeof furtif !== 'undefined') furtif.bruit(it.x, it.y, it.z, 10, 'trappe'); setTimeout(() => this.trappe(it), 500); } },
+        { label: V4_TEXTES.trappeOuvrir, fn: () => { ui.close(); S.trappes[d.id] = farm.s.day || 1; this.appliquer(false); sound.door && sound.door(true); setTimeout(() => this.trappe(it), 500); } },
         { label: 'Laisser', fn: () => ui.close() },
       ]);
       return;
