@@ -280,7 +280,7 @@ const QT_LIEUX = {
       if (sec && Math.hypot(sec.x - x, sec.z - z) < 4) continue;
       if (!qtSolDedans(w, x, A.y, z, 0.45, props)) continue;
       const [mx, mz] = qtW(f, lx < 0 ? -4.4 : 4.4, lz);
-      return { p: [x, A.y + 0.2, z], dessin: 'pierre', rot: f.r + (lx < 0 ? Math.PI / 2 : -Math.PI / 2), r: 2.4, lieu: { dedans: false, c: [A.x, A.y + 3.2, A.z], hc: 3.2, mur: [mx, mz] } };
+      return { p: [x, A.y + 0.2, z], dessin: 'pierre', rot: f.r + (lx < 0 ? Math.PI / 2 : -Math.PI / 2), r: 2.4, lieu: { dedans: false, c: [A.x, A.y + 3.2, A.z], hc: 3.2, mur: [mx, mz], soleil: 0.8 } };
     }
     return null;
   },

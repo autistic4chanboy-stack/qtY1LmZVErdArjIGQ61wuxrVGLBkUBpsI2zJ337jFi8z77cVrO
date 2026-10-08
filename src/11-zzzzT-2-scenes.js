@@ -88,22 +88,27 @@ body.t-scene #t-voile{opacity:1}`;
     this.ign = S.lieu.arbre || null;
     try { return this.cadrerDehors0(w, S, h); } finally { this.ign = null; }
   },
-  // devant l'objectif, sur les trois premiers mètres, rien de massif : ni bloc (un pan de mur, une poutre), ni objet posé
-  // à moins de 2,6 m dans le champ (un poteau, une charrette)
-  degage(w, L, P, T, props) {
+  // ce qui encombre le devant de l'objectif (0 : rien) : un pan de mur tout contre la caméra, des blocs dans le champ sur
+  // les quatre premiers mètres, un objet posé à moins de 8 m (un panneau, une borne), une chose du monde à moins de 5 m
+  // (un buisson, une charrette, un tronc) ; le plus près, le plus au milieu, le plus lourd
+  encombre(w, L, P, T, props) {
     const dx = T[0] - P[0], dz = T[2] - P[2], D = Math.hypot(dx, dz) || 1, yaw = Math.atan2(dx, dz), pente = (T[1] - P[1]) / D;
-    const Lc = L.filter((b) => Math.hypot(b.x - P[0], b.z - P[2]) < 4.6 + Math.hypot(b.sx, b.sz) / 2);
-    if (Lc.length) for (const d of [1.0, 2.0, 3.0, 4.0]) for (const da of [-0.7, -0.45, -0.22, 0, 0.22, 0.45, 0.7]) {
-      const x = P[0] + Math.sin(yaw + da) * d, z = P[2] + Math.cos(yaw + da) * d;
-      for (const e of [-1.1, -0.5, 0, 0.6]) if (qtDansBloc(Lc, [x, P[1] + pente * d + e, z], 0.05)) return false;
+    let pen = 0;
+    const Lc = L.filter((b) => Math.hypot(b.x - P[0], b.z - P[2]) < 5.6 + Math.hypot(b.sx, b.sz) / 2);
+    if (Lc.length) {
+      if (qtDansBloc(Lc, P, 1.5)) pen += 1.5;                                 // (dans une embrasure, contre un pan de mur)
+      let n = 0;
+      for (const d of [0.7, 1.4, 2.2, 3.0, 4.0, 5.0]) for (const da of [-0.8, -0.55, -0.3, 0, 0.3, 0.55, 0.8]) {
+        const x = P[0] + Math.sin(yaw + da) * d, z = P[2] + Math.cos(yaw + da) * d;
+        for (const e of [-1.1, -0.5, 0, 0.6, 1.1]) if (qtDansBloc(Lc, [x, P[1] + pente * d + e, z], 0.05)) n += 1.2 - Math.abs(da);
+      }
+      pen += Math.min(3, n * 0.12);
     }
     const devant = (x, z, y, loin) => {
-      const qx = x - P[0], qz = z - P[2], d = Math.hypot(qx, qz);
-      return d < loin && d > 0.01 && Math.abs(y - P[1]) < 3 && Math.abs(angDiff(Math.atan2(qx, qz), yaw)) < (d < 3 ? 0.8 : 0.6);
+      const qx = x - P[0], qz = z - P[2], d = Math.hypot(qx, qz), a = Math.abs(angDiff(Math.atan2(qx, qz), yaw));
+      return d < loin && d > 0.01 && Math.abs(y - P[1]) < 3 && a < (d < 3 ? 0.8 : 0.6) ? (1.2 - a) * Math.min(1, 2.5 / d) : 0;
     };
-    // (un objet posé, un panneau, une borne : jusqu'à 8 m, il prend encore un bord de l'image)
-    for (const q of props) if (devant(q.x, q.z, q.y, 8)) return false;
-    // (et les choses du monde : un buisson, une charrette, un tronc)
+    for (const q of props) pen += devant(q.x, q.z, q.y, 8) * 0.8;
     const G = w.objectsGrid(), K = G.C;
     for (let gz = Math.floor((P[2] - 5) / K); gz <= Math.floor((P[2] + 5) / K); gz++) for (let gx = Math.floor((P[0] - 5) / K); gx <= Math.floor((P[0] + 5) / K); gx++) {
       const c = gx >= 0 && gz >= 0 && gx < G.gw && gz < G.gw ? G.cells[gz * G.gw + gx] : null;
@@ -111,10 +116,10 @@ body.t-scene #t-voile{opacity:1}`;
         const o = w.objects[i], Tt = o && OBJ_TYPES[o.t];
         if (!Tt || Tt.animal || !w.live(o) || o.h < 0.9 || Tt.cat === 'Fleurs' || Tt.cat === 'Champignons') continue;
         if (this.ign && Math.hypot(o.x - this.ign[0], o.z - this.ign[1]) < 0.6) continue;
-        if (devant(o.x, o.z, w.objectY ? w.objectY(o) : P[1], 5)) return false;
+        pen += devant(o.x, o.z, w.objectY ? w.objectY(o) : P[1], 5) * 0.5;
       }
     }
-    return true;
+    return pen;
   },
   // le segment A→B (au sol) passe-t-il contre un objet posé (un poteau, une stèle) ? (hors de ceux qui portent l'endroit)
   bute(props, A, B) {
@@ -142,10 +147,14 @@ body.t-scene #t-voile{opacity:1}`;
       break;
     }
     const fixe = !!best, propsL = fixe ? [] : qtProps(w, C[0], C[2], DS[3] + 4);
-    let pis = null;
     for (let k = 0; k < 32 && !fixe; k++) {
       const a = (k / 32) * TAU;
+      // la lumière de côté (un peu de face, plutôt que dans le dos), ou celle que veut le lieu (l'abbaye : à contre-jour) ;
+      // un angle qui ne peut plus faire mieux que le meilleur trouvé n'est pas essayé (le cadrage se calcule dans le noir)
+      const s = (-Math.sin(a) * sun[0] - Math.cos(a) * sun[1]) / sn, sl = -Math.abs(s - (lieu.soleil !== undefined ? lieu.soleil : 0.2)) - k * 0.0005;
+      if (best && sl + 0.7 <= best.sc) continue;
       for (const d of DS) {
+        if (best && sl + 0.6 + (d === DS[0] ? 0.1 : 0) - (d === DS[3] ? 0.15 : 0) <= best.sc) continue;
         const x = C[0] + Math.sin(a) * d, z = C[2] + Math.cos(a) * d, g = Math.max(w.heightAt(x, z), w.waterLevel);
         const P0 = [x, g + (lieu.loin ? 2.0 : 1.7), z];
         if (!this.libreDehors(w, L, P0) || !this.voit(w, L, P0, haut, lieu.hc > 2 ? 2 : 1.2)) continue;
@@ -157,16 +166,15 @@ body.t-scene #t-voile{opacity:1}`;
         const x1 = C[0] + Math.sin(a) * (d - 3.5), z1 = C[2] + Math.cos(a) * (d - 3.5);
         const P1 = [x1, Math.max(w.heightAt(x1, z1), w.waterLevel) + (lieu.loin ? 2.0 : 1.7), z1];
         if (!this.libreDehors(w, L, P1) || !this.voit(w, L, P1, haut, lieu.hc > 2 ? 2 : 1.2)) continue;
-        // la lumière de côté (un peu de face, plutôt que dans le dos) ; l'endroit précis visible aussi, si possible
-        const s = (-Math.sin(a) * sun[0] - Math.cos(a) * sun[1]) / sn;
-        const sc = -Math.abs(s - 0.2) + (this.voit(w, L, P1, H, 0.3) ? 0.6 : 0) - (d === DS[3] ? 0.15 : 0) + (d === DS[0] ? 0.1 : 0) - k * 0.0005;
-        // (rien de planté juste devant l'objectif : un pan de mur, un poteau ; sinon, une autre distance)
-        if (!this.degage(w, L, P0, haut, propsL)) { if (!pis || sc > pis.sc) pis = { sc, a, P0, P1 }; continue; }
-        if (!best || sc > best.sc) best = { sc, a, P0, P1 };
-        break;
+        // l'endroit précis visible aussi, si possible
+        const sc = sl + (this.voit(w, L, P1, H, 0.3) ? 0.6 : 0) - (d === DS[3] ? 0.15 : 0) + (d === DS[0] ? 0.1 : 0);
+        if (best && sc <= best.sc) continue;
+        // (rien de planté devant l'objectif : un pan de mur, un poteau ; encombré, on essaie aussi la distance suivante)
+        const pen = this.encombre(w, L, P0, haut, propsL);
+        if (!best || sc - pen > best.sc) best = { sc: sc - pen, a, P0, P1 };
+        if (pen < 0.05) break;
       }
     }
-    if (!best) best = pis;
     if (!best) { const a = 0.6, P0 = [C[0] + Math.sin(a) * 12, C[1] + 6, C[2] + Math.cos(a) * 12]; best = { a, P0, P1: [P0[0] * 0.9 + C[0] * 0.1, P0[1], P0[2] * 0.9 + C[2] * 0.1] }; }
     // le plan rapproché : l'endroit précis, de près, au-dessus de l'herbe (du côté donné par le lieu, s'il en donne un ;
     // ni poteau ni stèle entre la caméra et lui)
