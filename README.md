@@ -931,6 +931,23 @@ Les commandes sont dans le menu **Commandes** (Échap).
   frappent. Sinon il se recouche, et dort mal. Le lendemain, on se plaint ; la maison se garde trois jours (un verrou
   de plus, un sommeil plus léger). Certains meubles cachent un **double fond** qu'une main sûre sent en fouillant.
 
+**Les habitants marchent pour de bon**
+- **Une carte des pas** : chaque bout de chemin se trace sur une grille fine (des cases de 25 cm, calculées à la demande
+  autour d'eux : le sol, l'eau, les douves, les murs, les meubles, les arbres, les portes, les ponts-levis, les étages).
+  Plus de murs traversés, plus de coude dans une table, plus de nage ni de promenade dans les douves : on passe sur les
+  ponts, et quand un pont est levé, on attend. Coincé, on recalcule, on se décale d'un pas, on attend qu'on nous laisse
+  passer ; loin de vous, on file de nœud en nœud sur les routes, comme avant.
+- **Les portes** : on ouvre en approchant, on attend que le battant s'écarte, on referme derrière soi (les boutiques
+  restent ouvertes aux heures d'ouverture) ; une porte fermée à clé n'est qu'à ses gens. Aux étages, on prend l'échelle
+  de meunier.
+- **Se croiser** : on s'écarte sur sa droite, on ralentit, on laisse passer à une porte ; plus personne ne vous traverse
+  (« Pardon… Vous permettez ? ») ; la chaise déjà prise à l'auberge, on reste debout à côté.
+- **La nuit, chacun dort dans son lit** : on s'en approche par le côté libre, on s'y couche, on s'en relève le matin ;
+  réveillé par un bruit, on se lève, on va voir, on se recouche (le cambriolage de nuit repose là-dessus).
+- **Mesuré** (une semaine de douze jours, tous les habitants regardés de près) : le temps passé coincé tombe de 22 % à
+  moins de 1 % ; murs traversés 21 → 1, sauts 147 → 2, montées impossibles 105 → 0 ; trajets menés à leur but 47 % →
+  76 % ; au lit la nuit 31 % → 98 % ; la marche coûte deux fois moins par image.
+
 **La Grande Porte et les Terres d'Avant**
 - **La Grande Porte** : au bout de la route de Clairpré, passé les ruines, une façade de vieille pierre de
   vingt-quatre mètres taillée dans la paroi des monts de l'est — deux statues agenouillées, deux braseros, une stèle.
@@ -960,6 +977,26 @@ Les commandes sont dans le menu **Commandes** (Échap).
   abandonnent. Dans la Zone, clic droit mains nues : on jette une pierre pour détourner leur attention. Un œil, en
   haut de l'écran, s'ouvre quand on vous a entendu, vu, quand on vous cherche.
 
+**Les créatures des Terres d'Avant**
+- **Quinze espèces vivent derrière la Grande Porte**, chacune avec son modèle, ses cris, ses lieux, ses heures et sa
+  façon de voir et d'entendre : les **Garous** (des loups qui marchent debout, la nuit en meute dans le Bois Mort), les
+  **Mange-Morts** (charognards nus aux dents d'homme), les **Pendus** (aux arbres morts), **ce qui écoute** (une chose
+  aveugle de la Ville Basse, la nuit), les **Gargouilles** (elles voient loin, n'entendent rien, et leur cri fait tout
+  venir), les **Stryges** (au-dessus des falaises, la nuit), le **Basilic** (son regard pétrifie), la **Tarasque** (elle
+  dort sur les offrandes), la **Chimère** (trois têtes : l'une dort à son tour), la **Vouivre** (une braise au front),
+  les **Noyés** (une voix qui appelle depuis l'Étang), les **Korrigans** (la ronde des jours, aux Tertres), le
+  **Cerf-aux-Mains**, le **Chien Gris** et les **Sans-Visage**.
+- **Tout s'évite en restant discret** : accroupi, aucune bête ne vous entend à plus de cinq mètres ; les herbes hautes,
+  la nuit sans lanterne, l'immobilité vous cachent ; un caillou jeté les détourne ; elles renoncent au bout de leur
+  mémoire ou de leur territoire, et **aucune n'approche d'un feu de veille allumé**. Chaque coup est annoncé (un temps,
+  un cri) : on peut reculer. Sous terre, les bêtes de la surface ne vous suivent pas.
+- **Huit repaires** à trouver, et des secrets : certaines bêtes se trompent, se paient, se suivent ou se fuient d'une
+  façon qu'il faut comprendre (les contes de la bibliothèque y aident).
+- **Le Ver** les fait se terrer : à son ombre ou à son rugissement, les bêtes du dehors se figent quelques secondes ;
+  son feu les brûle.
+- Les bêtes tuées **reviennent quand on se repose à un feu de veille** (ou au bout de trois jours) ; les uniques,
+  jamais. Ce qu'on a compris de chacune s'écrit au **carnet** : « Derrière la Porte ».
+
 **Le Ver, le dragon qui surveille**
 - **Le Ver** : derrière la Grande Porte vit un dragon noir et très vieux, long d'une cinquantaine de mètres d'une aile
   à l'autre, un collier de fer rivé au cou. Les livres de la bibliothèque l'appellent « le Ver ». On l'entend avant de
@@ -971,8 +1008,9 @@ Les commandes sont dans le menu **Commandes** (Échap).
   se pose sur six perchoirs (on le voit tourner la tête, guetter) ; il rentre le soir.
 - **Ce qu'il voit** : ce qui est **à découvert** et **ce qui bouge**, de haut et de loin (debout en plein jour : près
   de deux cents mètres ; accroupi et immobile, de sa hauteur de ronde, rien — comme le berger du conte). Il ne voit
-  rien sous un toit, sous terre, dans les salles du château ; à peine sous les arbres serrés, ou accroupi dans les
-  herbes hautes ; peu la nuit, sauf la lanterne. Dans la brume il vole plus bas. Il entend, surtout quand il est posé :
+  rien sous un toit, sous terre, dans les salles du château ni dans la ville d'en bas ; à peine sous les arbres
+  serrés, ou accroupi dans les herbes hautes ; peu la nuit, sauf la lanterne. Dans la brume il vole plus bas. Il
+  entend, surtout quand il est posé :
   un coup de fusil, de très loin. L'œil, en haut de l'écran, s'ouvre pour lui aussi.
 - **S'il vous voit** : il rugit, s'éloigne pour se mettre en ligne, pique et crache en rase-mottes ; trois passes au
   plus, puis il cherche en cercles bas et abandonne. Une passe ne tue pas (une quarantaine de points de vie) : on a le
@@ -1010,6 +1048,27 @@ Les commandes sont dans le menu **Commandes** (Échap).
   histoire se lit sur place (un registre, des lignes gravées, des tombes, une lettre) ; elle peut finir : le pont
   baissé, le feu du Guet rallumé (le Ver le voit), la porte de la Dame ouverte.
 
+**Basse-Fosse, la ville sous la ville, et les secrets des Terres d'Avant**
+- **Basse-Fosse** : sous la Ville Basse, à quarante-huit mètres sous les ruines, une ville entière creusée dans le tuf,
+  sous une voûte où il n'y a jamais de jour. Une enceinte, une porte, une Grande-Rue qui mène à la Nef, quarante îlots
+  et quatre-vingt-dix maisons taillées dans la roche, des rues bordées d'ossements rangés comme des briques, un temple
+  et son clocher, le feu du compte qui ne s'éteint pas, un registre, un marché, un puits où l'on jette des noms, un
+  ossuaire, une nécropole contre l'enceinte, des quartiers effondrés où quelque chose vit, et des toits qu'on parcourt.
+- **Une entrée qui se mérite** : rien ne la montre ; quelques indices, sous les ruines et dans les livres, y mènent pas
+  à pas. Une fois passé, on peut laisser le chemin ouvert derrière soi.
+- **Les gens d'en bas** : vingt-quatre, pâles, sans autre lumière que leurs feux, aux heures de leurs cloches ; six lois
+  gravées à leur porte et un compte qui ne change jamais. Un étranger vu, c'est un cri, puis le tocsin, et des gardiens
+  armés de piques à croc. On peut tout faire sans être vu (le noir, l'accroupi, les ruelles, les toits), ou se faire
+  compter, à leur manière.
+- **Une histoire qui se lit sur place** : les lettres d'un voyageur venu en 1838 avec une lettre de notaire, comme
+  vous ; le vieil homme qui tient le registre et ne sait plus son nom ; une cloche qu'on a fait taire ; des
+  inscriptions, des objets qui racontent (une couronne de cire, des dents de lait sur un fil, un sceau dont la ville a perdu le nom).
+- **Les secrets des Terres d'Avant** : des murs qui mentent, un tertre creux sous lequel dort un autre roi, une chapelle
+  murée, l'ermitage de celui qui regardait passer le Ver, un brasier mort, des souliers rangés au bord de l'Étang des
+  Noyés, et au Seuil le banc d'un garde qui attendait quelqu'un.
+- **Trois fins, une seule pour toujours** : tenir le compte, rendre sa voix à la Cloche du Jour, ou laisser le feu du
+  compte s'éteindre — à chacun de trouver comment.
+
 ### Mode Création
 
 Éditeur de monde séparé : relief, peinture du sol, objets, animaux, blocs. **Exporter** télécharge un fichier
@@ -1018,17 +1077,18 @@ Les commandes sont dans le menu **Commandes** (Échap).
 ## Équilibrage
 
 Le jeu a été équilibré d'un bloc, en mesurant d'abord : chaque système avait été écrit avec ses propres nombres, et
-la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Vingt-sept domaines, chacun avec sa
+la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Trente domaines, chacun avec sa
 mesure et ses vérifications dans `tools/equilibrage/` : le jeu entier est chargé dans une machine virtuelle node (sans
 navigateur, `tools/equilibrage/vm.js`), ses propres fonctions calculent les rendements, les espérances et les
 fréquences, et la commande échoue si l'on recasse un équilibre :
 
 ```bash
-node tools/equilibrage.js                 # les vingt-sept domaines (≈ 30 min)
+node tools/equilibrage.js                 # les trente domaines (≈ 35 min)
 node tools/equilibrage.js commerce        # ou un seul : commerce, ferme, risques, survie, hasard, commandes, carte, nature, batiments
 node tools/equilibrage.js S D1 E2         # ou plusieurs ; ceux de la douzième vague : S, D1, D2, E1, E2, E3, F, G
 node tools/equilibrage.js R P Q T         # ceux de la treizième vague : R, P, Q, T
-node tools/equilibrage.js Y X U V1 V3 V4  # ceux de la quatorzième vague : Y, X, U, V1, V3, V4
+node tools/equilibrage.js Y X U Z         # ceux de la quatorzième vague : Y, X, U, Z…
+node tools/equilibrage.js V1 V2 V3 V4 V5  # … et ceux des Terres d'Avant : V1 à V5
 ```
 
 Aucun réglage ne touche à la génération de la vallée : les anciennes parties retrouvent leurs objets (l'empreinte des
@@ -1370,7 +1430,7 @@ Les domaines de la treizième vague :
   vingt-trois lieux trouvés et cadrés dans les deux vallées (le plus lent en un tiers de seconde), aux mêmes positions
   d'une vallée à l'autre.
 
-### La bibliothèque, les gobelins, le crochetage, la Grande Porte et les Terres d'Avant
+### La bibliothèque, les gobelins, le crochetage, les trajets des habitants et les Terres d'Avant
 
 Les domaines de la quatorzième vague :
 - `node tools/equilibrage.js Y` (moins d'une seconde) : les livres nouveaux — quarante au moins à lire (il y en a
@@ -1402,6 +1462,12 @@ Les domaines de la quatorzième vague :
   du milieu de partie ; pris, on perd plus d'une demi-journée des débuts. Le domaine `risques` reprend cette maison
   (« maison habitée, la nuit (U) » : ≈ 5 pièces la minute, risque compté) ; un raté derrière la porte d'un dormeur le
   réveille à 0,8 % au plein de la nuit (1,7 % à l'heure du coucher).
+- `Z` (≈ 1,5 min : la vallée 1234 est générée) : la carte des pas (un carreau de 16 m en quelques millisecondes, une
+  quinzaine en ville) ; pour chaque habitant, de la porte de sa maison à son lit, à sa chaise, à son poste : les 74
+  places rejointes ; chaque arête du graphe des routes vue sur la carte ; les douves sans case où se tenir, sauf les
+  ponts ; la carte d'accord avec les collisions du jeu ; la passe qui arrête la clôture du ranch au mur de la maison,
+  sans rien faire bouger des anciennes parties. Les mesures en marche (coincés, murs traversés, lits) se font dans le
+  navigateur : voir « Les habitants marchent pour de bon », plus haut.
 - `V1` (≈ 3 min : la vallée 1234, puis la Zone) : la vallée ne bouge pas (l'empreinte des anciens objets) ; la Porte
   est posée sur la terre ferme, au pied d'une paroi, et l'on y va à pied depuis la ferme (1,3 km) ; sur 120 jours,
   elle est fermée ≈ 20 % du temps (le jour des morts tout entier, les matins de brume, environ une nuit sur trois),
@@ -1409,6 +1475,12 @@ Les domaines de la quatorzième vague :
   la machine virtuelle) ; depuis l'arrivée, on va à pied dans 99 % de la Zone, dans chaque région (l'Étang, on en fait
   le tour) et sur chaque emplacement de surface (les ponts comptent) ; les emplacements réservés aux lieux qui s'y
   ajoutent sont aplanis à leur hauteur, au sec ; six feux de veille, chacun à côté d'un chemin.
+- `V2` (≈ 30 s : la Zone est générée) : les quinze espèces complètes (squelette, poses, cris, sens), chacune avec un
+  nid ; tout s'évite : accroupi, on ne s'entend pas à plus de six mètres d'aucune bête, aucune bête unique à moins de
+  60 m d'un chemin, aucun nid hostile sur un chemin, près d'un feu de veille ni près de l'arrivée ; les nids au sec
+  (les noyés dans l'eau) ; la Zone ne rend pas riche (une bête ordinaire sous 40 pièces, une cache sous 250, tout ce
+  qui ne se prend qu'une fois ≈ 2 500 pièces, deux jours de revenus du milieu de partie) ; la fluidité (44 nids, 91
+  bêtes, la passe en quelques dizaines de millisecondes).
 - `V3` (≈ 30 s : la Zone est générée) : rien de la vallée n'est touché, et le jeu garde 64 matières au plus (il en
   a 58) ; l'aire, le tas, l'anneau, le dernier guetteur, la loge du Guet et les six perchoirs s'atteignent à pied
   depuis l'arrivée ; six journées de vol simulées (hasard à graine fixe) : jamais dans le relief (39 m au plus près en
@@ -1427,6 +1499,11 @@ Les domaines de la quatorzième vague :
   posée une fois, chacune ouvre quelque chose, aucune derrière sa propre porte) ; les six raccourcis à sens unique ;
   le butin de tout le château, fouillé de fond en comble : ≈ 1 800 pièces ; les places des créatures (31, chacune sur
   un sol) et les abris où le Ver ne voit pas (32).
+- `V5` (≈ 3 min : la vallée 1234, puis la Zone) : la vallée ne bouge pas ; la ville est sous terre (aucun bloc
+  n'affleure, la voûte sans un trou), légère (≈ 1 300 blocs, ≈ 720 objets posés, ≈ 130 interactions, la passe en moins
+  de deux secondes) ; le chemin qui y descend en pente douce ; les 713 nœuds des rues reliés au temple ; les portes de
+  2,05 m au moins ; les lieux secrets posés et atteints à pied, les objets des fins présents ; le noir où se cacher
+  (80 % des rues à plus de 9 m d'une lumière) ; des objets au prix sensé et des butins modestes.
 
 ## Modifier le code
 
@@ -1496,9 +1573,12 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `05-zzzzzY-0-cle.js`, `05-zzzzzY-1-contes.js`, `05-zzzzzY-2-savoirs.js`, `05-zzzzzY-3-memoires.js`, `05-zzzzzY-4-porte.js`, `07-zzzzzzzzzzzzY-cle.js`, `11-zzzzY-bibliotheque.js` | la bibliothèque, rangée par rayons, et la clé de la Grande Porte : les rayons (`Y2_RAYONS` ; les livres d'avant y reçoivent seulement une étiquette) et la clé (`05-zzzzzY-0-cle.js`), puis les quarante-six livres nouveaux, ajoutés à `LIVRES` par `y2Livres`, chacun son objet `livre_<id>` à emprunter sauf ceux de l'Enfer (contes et chroniques ; histoire naturelle, traités et almanachs ; mémoires et voyages, et l'Enfer ; la Porte et les Terres d'Avant, de biais) ; la clé en main ; le jeu : les étagères et leur onglet par rayon, feuilleter sur place, le comptoir rangé par rayons, l'Enfer lu en entier dans la salle des archives, la clé (le lecteur exact, les questions du bibliothécaire `Y2_QUESTIONS`, la caution, l'échéance inscrite au registre de la bibliothèque, la clé prise sans prêt, perdue, revenue d'elle-même) — sans passe de génération (`farm.s.bibliotheque2`, API `bibliotheque2`) |
 | `05-zzzzzX-gobelins.js`, `07-zzzzzzzzzzzzX-gobelins.js`, `09-zzzzzX-gobelins.js`, `10-zzzzzX-gobelins.js`, `11-zzzzX-1-gen.js`, `11-zzzzX-2-jeu.js`, `12-zzzzzX-gobelins.js` | les gobelins : les objets, les butins des tas, les réglages (`GOB_REGL`) et les textes (`GOB_T` : plaintes, rumeurs, mots volés) ; les modèles en boîtes (la nichée et ses habits volés, la vieille, la Gobelinière) ; leurs bruits (un rire étouffé, des pieds nus, le cri, le mur traversé, la fouille, les mots volés) ; les créatures (ni gibier, ni recherchées par les gardes) ; la passe de génération (après toutes les autres de la vallée, avec son tirage, ajoutée au bout des listes : les empreintes et les trouvailles ne bougent pas ; `w.gobelins`) ; le jeu (les vols de la nuit, sur le papier loin du joueur, en chair à moins de 125 m ; les rôdeurs, la fuite hors de la vue, les murs traversés ; attraper, tuer, la rancune, le marché, l'offrande ; la plainte du lendemain) ; l'étal des prises, rangé par maisons, et la page « Les Petits » du carnet (`farm.s.gobelins`, API `gobelins`) |
 | `05-zzzzzU-crochetage.js`, `09-zzzzzU-sons.js`, `11-zzzzU-1-competence.js`, `11-zzzzU-2-cambriolage.js` | la compétence de crochetage et le cambriolage de nuit : les tables (`U_PALIERS`, `U_SERRURES`, `U_BRUITS`, `U_REVEIL`) et le modèle du sommeil (`U_MODELE`, des fonctions pures que lit aussi `tools/equilibrage/U.js`), les trois objets, les doubles fonds, les répliques ; les sons, tout près et tout bas (le souffle des dormeurs, les draps, une latte qui grince, un objet qui tombe, un murmure) ; la main, accrochée au crochetage d'avant sans y toucher (les points, les paliers, les serrures à secret et de coffre, les crochets fins, le vieux cadenas, les livres de serrurerie) ; la nuit (chaque bruit et les dormeurs qui l'entendent, le réveillé qui va voir, le cri, la reconnaissance, la maison qui se garde, la plainte du lendemain) — sans passe de génération (`farm.s.crochetage` ; l'objet `crochetage` et `crochetage.cambriolage`) |
+| `11-npc.js` (refait), `11-zzzzZ-0-passe.js`, `11-zzzzZ-1-grille.js`, `11-zzzzZ-2-trajets.js` | les trajets des habitants : le cœur des déplacements refait dans `11-npc.js` (A* à tas binaire, nœuds rangés par cases ; `npcs.walk` et `npcs.flee` passent par les trajets, les autres noms et formes ne changent pas) ; la dernière passe de la vallée (la clôture du ranch s'arrête au mur de la maison, rien d'ajouté) ; la carte des pas (une grille de 25 cm calculée par carreaux de 16 m : sol, eau, douves, murs, meubles, arbres, portes et à qui elles sont, ponts-levis, étages) ; le suivi (les grands nœuds pour aller loin, un tronçon sur la carte quand la ligne droite ne passe pas, les portes, se croiser, le lit, se débloquer) et ce qu'on peut demander aux habitants (aller quelque part, se réveiller, se recoucher) (`farm.s.trajets`, API `trajets`) |
 | `05-zzzzzV1-zone.js`, `07-zzzzzzzzzzzzV1-porte.js`, `09-zzzzzV1-zone.js`, `11-zzzzV1-*.js`, `12-zzzzzV1-zone.js` | la Grande Porte et les Terres d'Avant : le plan de la Zone (une seule constante pour sa taille, `V1_ZONE_N` ; les régions, les chemins, les ravines, les inscriptions) ; trois matières (la cendre, la terre morte, la vieille pierre) et les modèles (les vantaux, la barre, les braseros, la stèle, les feux de veille) ; les sons (le vent, les bruits lointains, la barre, la clé, le feu de veille, la pierre jetée) ; la Porte (`11-zzzzV1-1-porte.js` : posée à la fin de la génération de la vallée, avec son tirage ; ses jours fermés) ; la Zone, un second monde à part (`11-zzzzV1-2-zone.js` : la vallée qui « s'endort » quand on entre, le temps partagé, les crochets qui ne tournent que dans la Zone, les passes des autres modules) ; sa génération, une fois par partie, gardée en mémoire (`11-zzzzV1-3-gen.js`) ; la Porte de ce côté et les feux de veille (`11-zzzzV1-4-lieux.js`) ; la discrétion, commune à tout ce qui guette (`11-zzzzV1-5-furtif.js` : ce que le joueur montre, ce que perçoit un guetteur) ; les raccourcis, les recoins, les passages vers la vallée et ceux d'avant (`11-zzzzV1-6-recoins.js`) ; l'œil en haut de l'écran (`12-zzzzzV1-zone.js`) (`farm.s.zone`, API `zone` et `furtif`) |
+| `05-zzzzzV2-creatures.js`, `07-zzzzzzzzzzzzV2-creatures.js`, `09-zzzzzV2-cris.js`, `11-zzzzV2-1-moteur.js`, `11-zzzzV2-2-repaires.js`, `11-zzzzV2-3-especes.js`, `12-zzzzzV2-carnet.js` | les créatures des Terres d'Avant : les quinze espèces, leurs textes et leurs butins ; leurs squelettes et les objets des repaires ; leurs cris ; le moteur (les nids, la naissance autour du joueur hors de la vue, les sens par la discrétion commune, le retour après un repos au feu de veille, les places offertes par le château et la ville d'en bas, l'ombre et le feu du Ver) ; la passe des huit repaires ; les conduites propres à chaque espèce ; le carnet, « Derrière la Porte » (`farm.s.v2`, API `zone.creatures`) |
 | `05-zzzzzV3-ver.js`, `07-zzzzzzzzzzzzV3-ver.js`, `09-zzzzzV3-ver.js`, `11-zzzzV3-1-ver.js`, `11-zzzzV3-2-aire.js` | le Ver : les réglages (`V3`), les objets, le butin du tas, les textes ; une matière (les écailles), sa peau, son squelette d'environ deux cents boîtes, ses poses et son ombre, les objets de l'aire et des perchoirs ; ses sons, qui portent loin (les battements, le cri, le rugissement, le feu, son souffle, la chaîne, la cloche) ; le dragon (`11-zzzzV3-1-ver.js` : ses heures, le vol, son regard et son ouïe, l'attaque, le feu et l'herbe qui brûle) ; l'aire, les perchoirs, la loge du Guet et les fins (`11-zzzzV3-2-aire.js`, une passe de la Zone) (`farm.s.v3`, API `zone.dragon`) |
 | `05-zzzzzV4-chateau.js`, `07-zzzzzzzzzzzzV4-chateau.js`, `09-zzzzzV4-chateau.js`, `11-zzzzV4-1-plan.js`, `11-zzzzV4-2-jeu.js`, `11-zzzzV4-3-api.js` | Hautguet, le château des Hauts : les textes, les objets et les clés, les butins ; deux matières (la pierre du château, le dallage) et les modèles ; les sons (les chaînes du pont-levis, la herse, la cloche, un mur creux qui cède, la grille, le Guet qui prend) ; le plan et sa passe de la Zone (`11-zzzzV4-1-plan.js` : environ mille blocs, les salles, l'éclairage du dedans) ; le jeu (`11-zzzzV4-2-jeu.js` : les portes, les clés, les raccourcis à sens unique, les recoins, les voix, le feu du Guet, la fin) ; ce que le château donne aux autres (`11-zzzzV4-3-api.js` : les places des créatures, les abris où le Ver ne voit pas) (`farm.s.v4`, API `zone.chateau`) |
+| `05-zzzzzV5-textes.js`, `07-zzzzzzzzzzzzV5-ville.js`, `09-zzzzzV5-sons.js`, `11-zzzzV5-1-ville.js`, `11-zzzzV5-2-catacombes.js`, `11-zzzzV5-3-habitants.js`, `11-zzzzV5-4-secrets.js`, `11-zzzzV5-5-fins.js` | Basse-Fosse et les secrets des Terres d'Avant : textes, lettres, objets, butins, troc ; deux matières (l'os, le tuf) et les modèles ; les sons ; la ville (`11-zzzzV5-1-ville.js`, une passe de la Zone : îlots, maisons, Nef, nécropole, le graphe des rues) ; l'entrée, la nuit d'en bas, les offices, lire, prendre, fouiller, les murs qui mentent (`11-zzzzV5-2-catacombes.js`) ; les vingt-quatre gens d'en bas (`11-zzzzV5-3-habitants.js`) ; les secrets de la Zone (`11-zzzzV5-4-secrets.js`) ; les trois fins (`11-zzzzV5-5-fins.js`) (`farm.s.v5`, API `zone.catacombes` et `zone.secrets`) |
 | `11-zzz00b-pensees.js`, `tools/pensees.js` | dire peu : `penser.une` (une règle dite une fois par vie), `penser.pas` (un avertissement espacé), `farm.s.pensees` ; l'inventaire des pensées (`node tools/pensees.js`) |
 | `11-zzvallee0-gel.js` | le gel en altitude : la jauge `farm.s.gel`, le givre à l'écran, la mort de froid |
 | `11-zzzz7-carte*.js`, `07-zzzzzzzzzz-carte.js` | un lieu tous les 200 m (catalogue, textes, lettres, inscriptions, petits secrets), les deux peuples de surface et leurs parlers (`farm.s.carte2`, API `carte2`) |
@@ -1507,7 +1587,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzzz4-ferme-temps.js`, `11-zzzz4-meubles.js`, `07-zzzzzzzz-meubles.js` | portée des arroseurs, petites bêtes sous la pluie ; acheter et meubler sa maison (meubles, garde-meuble) |
 | `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
-| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js`, `Q.js` et `T.js`, la quatorzième `Y.js`, `X.js`, `U.js`, `V1.js`, `V3.js` et `V4.js` — et `risques.js` y reprend la maison la nuit de `U.js`) |
+| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js`, `Q.js` et `T.js`, la quatorzième `Y.js`, `X.js`, `U.js`, `Z.js` et `V1.js` à `V5.js` — et `risques.js` y reprend la maison la nuit de `U.js`) |
 | `shell.html` | HTML + CSS |
 | `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et ses deux codes (le jeu, le wiki), le site servi tel quel par GitHub Pages, changer un code |
 | `libre/` | la partie sans code : sa page d'accueil (`libre/index.html`), le jeu et le wiki sans leur porte (écrits par `node build.js` et `node tools/wiki-build.js`) |
