@@ -63,7 +63,7 @@ function figures(F) {
   const { G, renderRig, add, safe } = F;
   const ordre = safe('V2_ORDRE', () => G.get('V2_ORDRE'), null) || [];
   if (G.has && G.has('V2_RIGS')) for (const k of ordre) {
-    const cv = safe('bête ' + k, () => renderRig(`(() => { const r = V2_RIGS[${JSON.stringify(k)}](0); try { V2_POSES[${JSON.stringify(k)}](r, { move: 0, phase: 0, nuit: 1, regard: 0 }, 0); } catch (e) {} return r; })()`, 128), null);
+    const cv = safe('bête ' + k, () => renderRig(`(() => { const r = V2_RIGS[${JSON.stringify(k)}](0); try { V2_POSES[${JSON.stringify(k)}](r, { move: 0, phase: 0, nuit: 1, regard: 0, seed: 0, att: 0, id: 1 }, 0); } catch (e) {} return r; })()`, 128), null);
     if (cv) add('an:' + k, cv);
   }
   if (G.has && G.has('v3Rig') && G.has('v3Emettre')) {
