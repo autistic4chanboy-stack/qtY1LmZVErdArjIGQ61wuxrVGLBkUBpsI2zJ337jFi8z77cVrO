@@ -705,6 +705,18 @@ const bibliotheque2 = {
   };
 }
 
+// ---------------------------------------------------------------- la typographie des livres nouveaux, à l'affichage
+// une espace insécable à l'intérieur des guillemets et avant « : ; ? ! » : un guillemet ou un signe ne reste plus seul
+// au bout d'une ligne (les textes de LIVRES ne changent pas ; les livres des autres non plus)
+{
+  const _txt = livres.txt.bind(livres);
+  livres.txt = function (t) {
+    const h = _txt(t), C = livres.cur;
+    if (!C || !Y2_LIVRES.includes(C.id)) return h;
+    return h.replace(/« /g, '« ').replace(/ ([»:;?!])/g, ' $1');
+  };
+}
+
 // ---------------------------------------------------------------- accroches : rayonnages, archives, la clé en main
 {
   const _pr = HOOKS.interPre.biblio_rayon;
