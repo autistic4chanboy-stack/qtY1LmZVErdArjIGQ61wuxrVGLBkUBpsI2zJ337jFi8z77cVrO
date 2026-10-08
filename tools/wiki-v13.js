@@ -1,5 +1,6 @@
 // Le wiki — LA TREIZIÈME VAGUE : des trouvailles posées à la vue un peu partout (un millier, soixante-treize sortes),
-// huit bêtes uniques qui parlent (une fiche chacune) et les quêtes principales (pour l’instant : le nonos du chien).
+// huit bêtes uniques qui parlent (une fiche chacune) et les quêtes principales (le nonos du chien ; les cinq quêtes à
+// lieux précis de l’agent T : la chambre sept, le feu du lac, les toiles d’Ardoin, la crécelle, la source froide).
 // Rédigé d’après les modules src/*R-ramasser*, *P-betes*, *P-voix*, *Q-nonos*, *Q-scenes* (et les notes de leurs
 // auteurs). tools/wiki-build.js appelle :
 //  - extract(G, w, DB) pendant la génération : ce que la vallée générée porte de nouveau (les trouvailles, les endroits
@@ -14,7 +15,7 @@
 'use strict';
 
 // les étiquettes des modules de la vague (leurs tables sont lues ici : rien dans « Autres tables »)
-const AGENTS = ['P', 'Q', 'R'];
+const AGENTS = ['P', 'Q', 'R', 'T'];
 
 // ================================================================ 1) les trouvailles (des objets à ramasser un peu partout)
 const TROUV = {
@@ -268,6 +269,91 @@ const NONOS_GROUPES = [
 // les lieux-dits nommés (pas une sorte de lieu perdu) : leur nom
 const NONOS_NOMS = { calvaire: 'les calvaires des carrefours', chapelle: 'la chapelle abandonnée', cimetiere: 'le cimetière', menhirs: 'les Demoiselles', dolmen: 'la Table des Géants', cercle: 'le cercle de pierres', charbonniere: 'la charbonnière', ruines: 'les ruines', hameau_abandonne: 'le hameau abandonné', bergerie: 'la bergerie des Combes', moulin: 'le vieux moulin', tour: 'la tour de guet', campement: 'les campements abandonnés', source: 'la source aux rubans', lavoir: 'le lavoir', pont: 'les ponts sur la rivière', ponton: 'le ponton', cabane_pecheur: 'la cabane du pêcheur', phare: 'le phare', chene: 'le chêne millénaire' };
 
+// les quêtes à lieux précis (agent T) : ce que les données du jeu (QT_QUETES) ne disent pas
+const QT_WIKI = {
+  gen: [
+    '**Proposée** par un habitant, une lettre, un avis ou un objet trouvé ; trois réponses : **accepter** ; **plus tard** (elle attend au carnet, sous « Proposées », avec *S’en occuper* et *Jamais*) ; **refuser pour de bon** (elle ne reviendra plus).',
+    '**Une quête commencée s’abandonne** (carnet, *Abandonner*) **et se reprend** (*Reprendre*) là où on l’avait laissée ; plusieurs peuvent courir ensemble, dans n’importe quel ordre.',
+    '**Les lieux sont précis, les mêmes dans toutes les parties** : un étage d’un bâtiment de la vallée, un lieu-dit ; tantôt dedans, tantôt dehors.',
+    '**Sur place, quelque chose à trouver** : un objet posé là (il luit à peine quand on le regarde de près) ou une chose de la maison (des souliers, un casier, un tableau sous un drap, un registre…) ; **E** pour le prendre ou le regarder.',
+    '**Certaines étapes ont leur heure** : la nuit (de 21 h à 5 h), ou avant l’aube (de 3 h à 6 h 30) ; le carnet le dit.',
+    '**Si l’habitant qui l’a proposée meurt** avant la fin, elle est perdue (« † ne pourra plus se faire »).',
+  ],
+  scenes: 'À chaque étape, une courte scène montre le lieu : son nom dans le noir, le lieu en entier, puis l’endroit précis où chercher, de près ; toujours à l’heure qui convient au lieu (l’aube au pont, le couchant à l’abbaye, la nuit sur le quai), quelle que soit l’heure du jeu. Dedans, la caméra reste dans la pièce, éclairée. **Espace** la passe ; chaque scène vue **se revoit au carnet** (*Revoir*). À la fin, un dernier plan raconte la fin choisie.',
+  carnet: 'Au carnet de la sacoche (onglet **Carnet**), rubrique « {section} » : *Proposées*, *En cours* (le lieu de l’étape, nommé, une phrase vague, l’heure s’il en faut une, *Revoir*, *Abandonner*), *Abandonnées*, *Achevées*, *Laissées de côté*.',
+  comment: { pnj: 'en lui parlant : une réplique de plus dans la conversation', lettre: 'une lettre dans la boîte aux lettres de la ferme (elle se relit dans la sacoche, onglet Lettres, avec ses trois réponses)', avis: 'un avis au panneau de la place de Valbrume, sous les autres', objet: 'un objet trouvé : E dessus, on le regarde, et on choisit' },
+  // ce qu’on gagne (11-zzzzT-1-quetes.js, recompense) ; les deux fins, a et b
+  gains: {
+    t1: { a: '180 pièces ; la chambre de l’auberge pour rien, quand vous voulez', b: '120 pièces' },
+    t2: { a: 'le lendemain, une lettre de Marie, et la longue-vue d’Aristide (en main, clic droit : quatre fois plus près)', b: 'le lendemain, une lettre, et 160 pièces' },
+    t3: { a: 'deux jours plus tard, une lettre de Lyon, et 200 pièces', b: '60 pièces, du curé' },
+    t4: { a: '150 pièces, et la recette de l’appeau (ou un appeau, si on la connaît déjà)', b: 'le lendemain matin, sur la souche devant le relais, un appeau que personne ne réclame' },
+    t5: { a: '100 pièces, la montre de gousset de Ménard, et un avantage durable (secret)', b: 'la montre de gousset de Ménard ; guéri de tout, sur-le-champ' },
+  },
+  // la fiche d’ensemble : comment elle commence, où, au bout
+  ligne: {
+    t1: ['l’aubergiste, à partir du deuxième jour', 'l’auberge, le pont des Saules, la poste, le cimetière', '180 pièces et la chambre pour rien, ou 120 pièces'],
+    t2: ['une lettre de Marie Lemarié, à partir du quatrième jour', 'le phare, la grève, le quai des Planches', 'la longue-vue d’Aristide, ou 160 pièces'],
+    t3: ['un avis au panneau de la place, à partir du troisième jour', 'la mairie, le lavoir, la bibliothèque, l’abbaye, l’église', '200 pièces, ou 60'],
+    t4: ['une crécelle trouvée devant le relais de chasse, à partir du troisième jour', 'le relais, la cascade, la hutte de la guérisseuse, la chapelle abandonnée', '150 pièces et la recette de l’appeau, ou un appeau'],
+    t5: ['le docteur des Sources, à partir du quatrième jour', 'les Sources, le chêne millénaire, Clairpré, la source aux rubans', 'la montre de Ménard, et 100 pièces ou la guérison'],
+  },
+  resume: {
+    t1: 'la chambre sept (qui dort, chaque nuit, dans la chambre que l’aubergiste ne loue pas)',
+    t2: 'le feu du lac (qui allume encore le feu du phare, depuis dix-neuf ans)',
+    t3: 'les toiles d’Ardoin (les tableaux qu’un peintre a laissés derrière lui)',
+    t4: 'la crécelle (une crécelle de rabatteur trouvée sur une souche)',
+    t5: 'la source froide (la caisse du docteur Ménard, sous un lit)',
+  },
+  icone: { t1: '🛏', t2: '🗼', t3: '🖼', t4: '🌲', t5: '💧' },
+  // ce qui se cache (d’après les notes de l’agent T)
+  secret: {
+    t1: ['L’occupant est **Jean-Baptiste Maury**, roulier de Tulle, noyé au gué des Saules en 1861 ; la lettre de sa femme (« Ne passe pas par le gué… Reviens par le pont ») est arrivée trop tard, et dort depuis dans le casier des lettres en souffrance. La croix du cimetière porte « LA RIVIÈRE L’A GARDÉ ».', '**Poser la lettre** : au matin, le lit est fait au carré, les souliers propres, la lettre n’est plus là ; ensuite, E sur le lit : « Le lit est fait au carré. Les draps sont froids. » Les lits loués de l’auberge sont gratuits pour toujours.', '**Lui laisser sa chambre** : la nuit, de la salle, on entend une cuillère tourner dans un bol ; personne ne louera plus la sept.'],
+    t2: ['Le feuillet du registre, de la main du gardien, Aristide Lemarié : le passeur l’a vu « debout dans l’eau jusqu’aux genoux, au bout du quai des Planches. Il ne bouge pas. Il regarde la lumière. » En haut, la nuit, la flamme ne tremble pas, le réservoir est plein : personne.', '**Éteindre le feu** : ce qui attendait au bout des Planches rentre dans l’eau ; Marie dort d’un trait pour la première fois depuis dix-neuf ans ; ensuite, la mèche est froide.', '**Remplir la lampe** : sous la dernière ligne du registre, de votre main : « Allumé. »'],
+    t3: ['Sur chaque toile, une jeune fille en coiffe blanche, de plus en plus près (« I. Elle était là quand j’ai relevé la tête » ; « II. Elle m’a fait signe de continuer » ; « III. Elle m’a demandé de la finir. Je ne peux pas. »). Sur la troisième, elle est assise au dernier rang de la nef, et n’a pas de visage. Le chevalet du lavoir n’a pas grisé, et le tube de blanc d’argent est encore souple.', '**Envoyer les toiles** : Mlle Ardoin écrit que Félix n’est jamais revenu, que sa dernière lettre disait « Je l’ai finie », et que la troisième toile a un visage, maintenant.', '**La laisser là** : le dimanche suivant, personne ne s’assoit plus au dernier rang.'],
+    t4: ['Battue du 12 novembre 1851 : neuf rabatteurs, huit rentrés (le « 8 » est écrit sur un « 9 ») ; neuf traits sur la pierre de la cascade, le dernier barré ; dans le bocal de la guérisseuse, trois grains de plomb « retirés du petit Bastien Roux… Il n’a pas passé la nuit. Le père Brossard l’a porté lui-même. » On ne l’a pas enterré au cimetière : un tertre près de la chapelle abandonnée, qu’on entretient.', '**Tout dire au chasseur** : le fils Brossard comprend pourquoi son père allait là-bas le dimanche, avec une serpe ; la crécelle se fait encore entendre, le soir, du côté du relais.', '**Planter la crécelle sur le tertre** : elle y reste ; on ne l’entend plus le soir.', 'La crécelle du soir : entre 18 h 30 et 21 h 30, entre 12 et 140 m du relais, de temps en temps.'],
+    t5: ['Le registre de Ménard (1859–1871) : la vieille des bois l’a mené sous le grand chêne, puis à la source aux rubans ; l’eau « rend ce qu’on lui demande, elle garde ce qu’on oublie » ; Clémence, guérie en neuf jours, ne reconnaissait plus sa mère ; onze malades, onze guérisons, onze oublis ; en 1871, Ménard a bu. Après l’aube, l’eau est tiède et ne fait rien.', '**Rapporter le registre** : le docteur le cloue dans sa caisse ; et pour toujours, **à l’aube (de 3 h à 6 h 30), les pieds dans l’eau de la source (E)**, une plaie se ferme : +35 de vie, le sang s’arrête, une jambe cassée se remet un peu — une fois par jour.', '**Boire** : on est guéri de tout (vie pleine, plaies pansées, jambe remise), et « il vous manque quelque chose. Vous ne savez pas quoi. »'],
+  },
+};
+// la fiche d’une quête à lieux précis (t1…t5), d’après ses données dans le jeu
+function ficheQT(id) {
+  return function (C) {
+    const { X, md, ul, h3, h4, tbl, td, cap, files } = C;
+    const { T, SEC, esc, nfmt } = X;
+    const Q = (T('QT_QUETES', {}) || {})[id], CA = T('QT_CARNET', {}) || {};
+    if (!Q) return null;
+    const P = Q.propose || {}, G = QT_WIKI.gains[id] || {};
+    const jour = ['', 'premier', 'deuxième', 'troisième', 'quatrième', 'cinquième', 'sixième'][Q.des] || `${nfmt(Q.des)}ᵉ`;
+    const heure = (h) => { const H = Math.floor(h), m = Math.round((h - H) * 60); return `${H} h${m ? ' ' + String(m).padStart(2, '0') : ''}`; };
+    let h = `<p class="lead">${md(`Une quête principale, **facultative**. ${P.resume || ''}`)}</p>`;
+    h += h3('Comment elle commence') + `<p>${md(`Proposée par **${Q.quiNom}**, à partir du ${jour} jour : ${QT_WIKI.comment[Q.qui] || ''}${Q.qui === 'pnj' && P.label ? ` (« ${P.label} »)` : ''}.`)}</p>`;
+    const rep = [P.oui, P.plusTard, P.non].filter(Boolean);
+    if (rep.length === 3) h += `<p>${md(`Trois réponses : « ${rep[0]} » (accepter), « ${rep[1]} » (plus tard), « ${rep[2]} » (refuser pour de bon).`)}</p>`;
+    if (P.texte) h += h4(Q.qui === 'lettre' ? `La lettre${P.de ? ` — ${P.de}` : ''}` : Q.qui === 'avis' ? 'L’avis' : Q.qui === 'objet' ? 'Ce qu’on trouve' : 'Ce qu’on vous dit') + `<section class="bookpage"><p>${X.FILL(P.texte)}</p></section>`;
+    // les étapes
+    const quand = (E) => (E.quand === 'nuit' ? ' <small>(la nuit seulement)</small>' : E.quand === 'aube' ? ' <small>(avant l’aube seulement)</small>' : '');
+    h += h3('Les étapes') + tbl(['', 'Le lieu', '', 'Au carnet', 'La scène'], (Q.etapes || []).map((E, i) => td([nfmt(i + 1), `<b>${esc(E.nom)}</b>${quand(E)}`, E.dedans ? 'dedans' : 'dehors', esc(E.carnet || ''), `<small>vers ${heure(E.heure || 12)}</small>`])));
+    h += `<p class="note">${md(QT_WIKI.scenes)}</p>`;
+    // au bout
+    const F = Q.fin || {};
+    h += h3('Au bout : un choix') + tbl(['Le choix', 'Ce qu’on y gagne'], (F.choix || []).map((c) => td([`« ${esc(c.label)} »`, md(G[c.k] || '')])));
+    h += `<p class="note">${md('Les habitants concernés vous estiment davantage. Voir [[sys:quetes-principales|les quêtes principales]].')}</p>`;
+    h += h3('Au carnet') + `<p>${md(QT_WIKI.carnet.replace('{section}', CA.section || 'Quêtes principales'))}</p>` + ul(QT_WIKI.gen);
+    // ce qui se cache : ce qu’on trouve, les fins, l’histoire
+    let s = h3('Ce qui se cache') + ul(QT_WIKI.secret[id] || []);
+    const trouve = (E) => {
+      const t = E.trouve;
+      if (!t && !E.feuillet && !E.dit) return '<small>(une scène)</small>';
+      if (t && typeof t === 'object') return `<b>${esc(t.titre || '')}</b> : ${X.FILL(String(t.texte || t.registre || '').slice(0, 600))}${String(t.texte || t.registre || '').length > 600 ? '…' : ''}`;
+      return esc(String(t || E.dit || E.feuillet || '').replace(/^\s*\(|\)\s*$/g, '').trim());
+    };
+    s += h4('Ce qu’on trouve à chaque étape') + tbl(['', 'Le lieu', 'Ce qu’on trouve'], (Q.etapes || []).map((E, i) => td([nfmt(i + 1), esc(E.nom), trouve(E)])));
+    s += h4('Les deux fins') + tbl(['Le choix', 'Ce qui se passe', 'Ensuite'], (F.choix || []).map((c) => td([`« ${esc(c.label)} »`, esc(c.texte || ''), esc(c.apres || '')])));
+    h += SEC(s, 'L’histoire, ce qu’on trouve et les deux fins : masqué (secrets).');
+    return { s: `Quête principale, facultative : ${cap(QT_WIKI.resume[id] || Q.titre)}`, i: QT_WIKI.icone[id] || '✎', h, files: files(/^(05-z+T-|11-zzzzT-|12-z+T-)/) };
+  };
+}
+
 // Les quêtes principales, dans l’ordre de la section. Chacune : son id (sa fiche « qp:<id> »), son titre, si elle est
 // dans ce jeu (present), sa ligne dans la fiche d’ensemble (debut, ou, fin), ce qu’en dit la section (resume) et sa
 // fiche (fiche(C) → { s, i, h, files }).
@@ -278,6 +364,13 @@ const QUETES = [
     resume: 'le nonos du chien (cinq lieux tirés au hasard, cinq souvenirs, et le chien a faim deux fois moins vite)',
     fiche: ficheNonos,
   },
+  ...['t1', 't2', 't3', 't4', 't5'].map((id) => ({
+    id: 'qt-' + id, titre: { t1: 'La chambre sept', t2: 'Le feu du lac', t3: 'Les toiles d’Ardoin', t4: 'La crécelle', t5: 'La source froide' }[id],
+    present: (X) => !!(X.ITEMS && X.ITEMS.t_crecelle),
+    debut: QT_WIKI.ligne[id][0], ou: QT_WIKI.ligne[id][1], fin: QT_WIKI.ligne[id][2],
+    resume: QT_WIKI.resume[id],
+    fiche: ficheQT(id),
+  })),
 ];
 
 // ================================================================ ce qu’on lit dans la vallée générée (extract)
