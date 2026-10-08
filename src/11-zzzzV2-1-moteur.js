@@ -160,11 +160,15 @@ const creaturesV2 = {
   },
   scanner(p, basis) {
     const px = p.pos[0], pz = p.pos[2];
+    // sous terre (la ville d'en bas de V5, les caves de V4…) : pas de bêtes de surface ; dehors, pas celles d'en dessous
+    let dessous = !!p.underground;
+    try { if (zone.catacombes && typeof zone.catacombes.dedans === 'function' && zone.catacombes.dedans(p.pos)) dessous = true; } catch (err) { /* */ }
     for (const N of this.nids) {
       const D = V2_ESPECES[N.esp];
       const d = Math.hypot(N.x - px, N.z - pz);
       const R = D.vol ? V2_R_VOL : D.unique ? V2_R_UNIQUE : V2_R_ACT;
-      const pr = d < R + 60 ? this.present(N, D) : false;
+      const ailleurs = N.dessous ? !dessous && p.pos[1] - N.y > 6 : dessous;
+      const pr = d < R + 60 && !ailleurs ? this.present(N, D) : false;
       if (!N.vie) {
         if (d < R && pr) {
           // jamais sous ses yeux, s'il est tout près (sauf s'il attend là depuis un moment)
@@ -287,7 +291,17 @@ const creaturesV2 = {
   percevoir(e, dt) {
     const F = e.furtif;
     if (!F) return 'tranquille';
-    const etat = furtif.percevoir(e, dt);
+    let etat = furtif.percevoir(e, dt);
+    // un caillou jeté (la diversion) : celles qui l'entendent tomber vont voir là où il est tombé, pas où l'on est
+    if (!F.sourd && !e.dort && etat !== 'alertee' && furtif.bruits.length) {
+      for (const b of furtif.bruits) {
+        if (b.nature !== 'caillou' || b === e.cailloux || Math.hypot(b.x - e.x, b.z - e.z) > b.portee * (F.ouie || 1)) continue;
+        e.cailloux = b;
+        F.soupcon = Math.max(F.soupcon, 1.05); F.dernier = { x: b.x, y: b.y, z: b.z, t: game.time, vu: false };
+        if (etat !== 'cherche') furtif.changer(e, 'cherche');
+        etat = 'cherche';
+      }
+    }
     // la laisse : au-delà de son territoire, elle renonce
     const dh = Math.hypot(e.x - e.hx, e.z - e.hz);
     if (dh > e.D.laisse && (etat === 'alertee' || etat === 'cherche' || etat === 'intriguee')) { F.soupcon = 0.2; furtif.changer(e, 'abandonne'); this.noterFuite(e); return 'abandonne'; }
@@ -608,11 +622,4 @@ creaturesV2.ralenti = function (dt) {
   if (this.tenu) k = Math.min(k, 0.35);
   return k;
 };
-// les coups de feu s'entendent de loin (l'arc, non)
-if (typeof chasse !== 'undefined' && chasse.sonTir) {
-  const _st = chasse.sonTir.bind(chasse);
-  chasse.sonTir = function (pos, soi) {
-    if (soi && zone.dedans && game.player) { const p = game.player.pos; furtif.bruit(p[0], p[1], p[2], 120, 'coup de feu'); }
-    return _st(pos, soi);
-  };
-}
+// (les coups de feu : V1 en fait un bruit de 90 m, emballage de sound.shot ; l'arc reste muet)

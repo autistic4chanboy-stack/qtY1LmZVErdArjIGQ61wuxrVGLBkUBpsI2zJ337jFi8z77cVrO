@@ -777,19 +777,8 @@ furtif.lumieresEnPlus.push((J) => {
   if (J.accroupi) { let n = 0; for (const e of creaturesV2.vivantes) if (e.esp === 'v2_sans_visage' && !e.mort && Math.hypot(e.x - J.x, e.z - J.z) < 3.2) n++; if (n >= 2) L -= 0.4; }
   return L;
 });
-// le pas des korrigans : trois nuits où l'on ne s'entend plus marcher (emballage de furtif.joueur, en attendant un crochet de V1)
-{
-  const _j = furtif.joueur.bind(furtif);
-  furtif.joueur = function () {
-    const J = _j();
-    if (J && J._v2 !== this.jT && farm.s && zone.dedans) {
-      J._v2 = this.jT;
-      const K = creaturesV2.S().korrigans;
-      if (K.pas && farm.s.hours < K.pas) J.bruit *= 0.45;
-    }
-    return J;
-  };
-}
+// le pas des korrigans : trois jours où l'on ne s'entend plus marcher (le crochet de V1 : furtif.pasEnPlus)
+if (Array.isArray(furtif.pasEnPlus)) furtif.pasEnPlus.push(() => { if (!farm.s || !zone.dedans) return 1; const K = creaturesV2.S().korrigans; return K.pas && farm.s.hours < K.pas ? 0.45 : 1; });
 
 // ---------------------------------------------------------------- les cibles (E) : le chien, les korrigans
 zone.sur('target', (eye, f, cand) => {
