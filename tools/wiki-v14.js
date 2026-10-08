@@ -20,7 +20,7 @@
 'use strict';
 
 // les étiquettes des modules de la vague (leurs tables sont lues ici ; leurs modules n’ont pas de fiche d’office)
-const AGENTS = ['U', 'V1', 'V3', 'V4', 'X', 'Y'];
+const AGENTS = ['U', 'V1', 'V3', 'V4', 'V5', 'X', 'Y'];
 const vagueRE = () => { const L = AGENTS.join('|'); return new RegExp(`^(05-z+(${L})-|07-z+(${L})-|09-z+(${L})-|10-z+(${L})-|11-zzzz(${L})-|12-z+(${L})-)`); };
 
 // ================================================================ les textes
@@ -441,12 +441,85 @@ const U_BRUITS_NOMS = [
   ['un objet qui tombe (la maladresse : {m0} des fouilles au début, {m5} au dernier palier ; plus si l’on est fatigué ou ivre)', ['chute']],
 ];
 
+// ---------------------------------------------------------------- Basse-Fosse, la ville sous la ville (V5)
+const BASSEFOSSE = {
+  lead: 'Sous la Ville Basse des Terres d’Avant, à quarante-huit mètres sous les ruines, une ville creusée dans le tuf : Basse-Fosse. Le soir de la cendre, ceux de la Ville Basse sont descendus sous leur ville, avec leurs morts ; ils y sont encore. Pâles, sans autre lumière que leurs feux, ils ont leurs heures, leurs lois, et ils comptent.',
+  trouver: 'Rien ne la signale ; on la trouve en mettant des indices bout à bout : les inscriptions de la Ville Basse, un livre de la bibliothèque qui parle de « la ville sous la ville », et, aux heures des offices (6 h, 12 h, 18 h, 21 h), des **cloches** très étouffées qu’on entend dans les ruines — d’autant plus fort qu’on approche du bon endroit. Là-haut, il n’y a plus ni église ni clocher. (Le chemin : secret.)',
+  ville: [
+    '**La porte** et sa **stèle des lois** (six lois, et une septième ligne martelée) ; **la Grande-Rue** va de la porte à la Nef, bordée de murs d’ossements rangés comme des briques (les crânes en haut, les os longs en bas).',
+    '**Les quartiers** : quarante îlots taillés dans le tuf, des maisons creusées (une porte basse, un lit de pierre, une table, des niches où l’on fouille une fois) ; plus on s’éloigne de la Nef, plus elles sont vides. Les **Bas-Quartiers** sont effondrés : des pans de murs, des éboulis, des crânes, et quelque chose qui y vit (les gens d’en bas n’y vont pas).',
+    '**La Nef**, au centre, sous la voûte la plus haute : le **temple** (le feu du compte, qui ne s’éteint pas ; le registre ; des bancs ; la **Cloche du Jour**, posée par terre, sans battant) et son clocher ; la **greffe** (la table, le lit de pierre du Greffier) ; le **marché** (une arcade, des étals, quelques chandelles) ; le **puits des noms**. L’**ossuaire**, près de la Nef : l’Ordonnateur y range les morts dans les murs.',
+    '**La nécropole**, tout autour, entre les derniers îlots et l’enceinte : des sarcophages en rangées, des murs de crânes, des tas d’os ; rien n’y brûle. « ILS NE SONT PAS PARTIS. ILS SONT COMPTÉS. »',
+    '**Les toits** : des échelles et des passerelles ; on traverse une partie de la ville par en haut, loin des yeux.',
+    'Il fait sombre : la lumière vient de dix feux qui ne s’éteignent pas, d’une lampe à un carrefour sur deux et des chandelles des maisons habitées ; entre elles, le noir, où l’on se cache. Pas de vent ; des gouttes, des os qui roulent, des murmures. Le Ver n’y voit pas.',
+  ],
+  gens: [
+    'Vingt-quatre : **le Greffier** (un vieil homme qui écrit dans un livre sans encre), **la Sonneuse**, **la Marchande**, **la Veilleuse** (elle fait la ronde des feux, une lanterne à la main), **l’Ordonnateur** (l’ossuaire), **quatre gardiens** (capuches noires, piques à croc : un à la porte, trois en ronde), douze hommes et femmes, trois enfants.',
+    '**Leurs heures** : ils dorment de 21 h à 5 h environ ; aux offices (prime à 6 h, sexte à 12 h, **le compte à 18 h**, une heure, complies à 21 h), ils vont au temple — un peu avant la cloche : les rues se vident. Le reste du temps, chacun son ouvrage. Le Greffier est seul à la greffe de 14 h à 17 h 30. Le gardien de la porte dort debout, de 2 h à 4 h.',
+    '**Ce qu’ils voient** : très peu (de près, et la lumière) ; ils **entendent bien**. Une lanterne se voit de loin.',
+    '**Un étranger vu** : un cri, puis le tocsin ; les gardiens viennent de toute la ville, les autres rentrent chez eux. Les gardiens frappent fort ; on leur échappe en rompant la vue, accroupi dans le noir ; ils ne passent pas la porte de la ville. Les enfants vous parlent même si vous êtes un étranger (et ne crient pas) ; les dormeurs, réveillés, crient parfois.',
+  ],
+  compte: [
+    '**Les lois** : I. ici, on ne porte que notre feu ; II. ici, on ne court pas ; III. ce qui est posé reste posé ; IV. les morts passent les premiers ; V. on ne remonte pas ; VI. chacun est compté. Même compté, si l’on vous **voit** courir, porter une lanterne allumée ailleurs qu’à leurs feux, prendre ce qui est posé ou frapper quelqu’un, c’est l’alarme ; et s’ils vous voient voler, vous redevenez un étranger jusqu’au lendemain (trois jours si vous avez frappé).',
+    '**Se faire compter** : parler au Greffier, « Me faire compter », **arracher une dent** (six points de vie, un peu de sang). Il vous inscrit, le quatre cent douzième, et vous donne un [[it:v5_jeton|jeton d’os]]. Le compte ne change jamais : un de plus en bas, un de moins debout (le lendemain, la plus vieille ne se relève pas).',
+    '**La flamme commune** : allumer sa lanterne à l’un de leurs feux (E sur un feu) ; alors elle ne vous dénonce plus.',
+    '**Le [[it:v5_linceul|linceul]]** (en main) : on vous prend pour un mort qu’on porte ; on s’écarte sans vous regarder (sauf si vous courez ou portez un feu étranger).',
+  ],
+  marchande: 'Au marché, de 8 h à 17 h 30. Elle ne prend que **ce qui a vu le jour** ; elle donne du [[it:v5_pain_racines|pain de racines]] (une chose), un [[it:v5_linceul|linceul]] (quatre), et pour deux, **ce qu’elle sait** (six conseils, l’un après l’autre).',
+  conseils: [
+    'Lanterne éteinte en ville tant qu’on n’est pas compté, ou qu’on ne l’a pas allumée à l’un de leurs feux. Accroupi, on ne s’entend presque pas ; en courant, on s’entend de loin, et l’on enfreint la deuxième loi.',
+    'Pendant les offices, la Grande-Rue est vide : ils sont tous au temple.',
+    'Le Greffier ne voit presque plus : on peut lui parler sans être compté ; lui ne crie jamais.',
+    'On peut tout faire sans jamais être vu, et sans tuer personne.',
+  ],
+  secret: {
+    entree: [
+      '**La tonnellerie** : une ruine plus grande que les autres, à l’écart de la Voie, sur une hauteur de la Ville Basse ; une enseigne tombée devant (« J. FÈVE — TONNELIER »). À une centaine de mètres, **le cairn d’A.** : sous la pierre du haut, la première lettre.',
+      '**La trappe** : dans la tonnellerie, un tas de gravats, de planches pourries et un cercle de fer ; le sol sonne creux. E : dégager les gravats (ça s’entend un peu) ; dessous, une trappe de chêne et des marches.',
+      '**La cave et le foudre** : un foudre de trois mètres, au fond. Sa portette est barrée de l’autre côté ; elle ne s’ouvre qu’**au matin, de 5 h à 7 h 30** (vers 5 h, près de la tonnellerie, on entend la barre glisser en bas) — « il l’a rouverte au matin ». Passé la portette, on peut **lever la barre** de ce côté : elle reste ouverte à toute heure (un raccourci).',
+      '**Le Septième Degré** : une galerie taillée, six volées et sept paliers, qui descend jusqu’à la porte de la ville — « LE SEPTIÈME, TU LE DESCENDRAS SEUL ». En haut, **un feu de veille** (l’allumer, s’y reposer, la partie s’enregistre ; on s’y réveille). Les gardiens ne montent jamais le Degré.',
+      'Le mieux : descendre au matin, le plus tôt possible — la portette, puis le Degré, puis la ville pendant prime (6 h), quand ils sont tous au temple.',
+    ],
+    murs: 'Un coup (n’importe quel outil, ou le poing) et le mur n’est plus là. Rien ne les distingue, sinon, de très près, un souffle d’air qui fait bouger la poussière. Une fois dissipé, il le reste.',
+    mursListe: [['l’ossuaire, le mur du fond', '**la salle des Premiers** (les premiers morts de la ville ; quelque chose les garde)'], ['la greffe, le mur de l’ouest', '**la salle d’avant** (la lettre de notaire, la quatrième lettre, des mots gravés)'], ['le tertre creux, au fond de la chambre du roi', 'un escalier, la chambre d’un roi plus vieux, et sur sa poitrine [[it:v5_battant|le battant]]'], ['la chapelle murée, le chevet', 'la crypte, et [[it:v5_sceau_ville|le sceau de la Ville Basse]]'], ['l’ermitage, un pan de mur', 'ce qui reste d’un homme, et [[it:v5_carnet_ermite|son carnet]] (le Ver : ses heures, ses passages)']],
+    lieux: [
+      '**Le tertre creux** (les Tertres) : un dolmen au pied d’un tertre ; E : se glisser sous la dalle. Dessous, la chambre d’un roi ([[it:v5_couronne_cire|une couronne de cire]]), puis, derrière le mur qui ment, le roi plus vieux et le battant de la Cloche du Jour.',
+      '**La chapelle murée** (le Bois Mort) : une plaque sur l’autel ; la crypte derrière le chevet ; le sceau.',
+      '**L’ermitage** (les Ravines) : une cabane creusée dans la pente, sans porte ; le carnet de l’ermite.',
+      '**Le brasier mort** (les Cendrières) : des troncs noircis en cercle, un pieu calciné, un tas de cendre pâle, froide comme de la neige ; E : en prendre une poignée — [[it:v5_cendre_froide|la cendre froide]], qui ne brûle pas.',
+      '**Les souliers** (l’Étang des Noyés) : au bord de l’eau, trois paires rangées côte à côte, la pointe vers l’eau — un homme, une femme, un enfant. Les lacets sont noués.',
+      '**Le banc du garde** (le Seuil) : un banc de pierre tourné vers la Porte, une capote de garde pliée, une lanterne morte, et une page : « M. de Sorbiers est entré au matin. Il a dit : trois jours. J’attends. » Au dos, des traits par sept.',
+      'Dans les niches et les caveaux, des objets qui racontent : des dents de lait sur un fil, un chapelet de dents, une bague d’os, un cerceau, un masque de cire, une clochette muette.',
+    ],
+    histoire: [
+      'Le soir de la cendre, ceux de la Ville Basse sont descendus sous leur ville, avec leurs morts. On a descendu la Cloche du Jour de l’église et on lui a ôté son battant, « pour qu’elle ne nous appelle pas là-haut » ; on a brûlé les noms (le brasier mort des Cendrières) ; le battant a été caché sous un tertre, « avec un roi ». Depuis, on compte.',
+      '**A.**, c’est Auguste de Sorbiers, arrivé dans la vallée au printemps de 1838 avec une lettre de notaire (comme vous). Ses quatre lettres : la première sous le cairn, près de la tonnellerie ; la deuxième dans une maison vide près de la porte de la ville ; la troisième sur la table de la greffe ; la quatrième, sans fin, dans la salle d’avant, avec sa [[it:v5_lettre_notaire|lettre de notaire]].',
+      '**Le Greffier, c’est lui.** Compté, lisez-lui la quatrième lettre, ou celle du notaire : il retrouve son nom. Il explique alors la Cloche du Jour et le feu du compte.',
+    ],
+    fins: [
+      '**Le compte** : compté, ayant rendu son nom au Greffier, et lui vivant, prendre [[it:v5_plume|la plume]] (au registre, ou en lui parlant). Il se couche et ne se relève pas ; c’est vous qui tenez le compte. Les gens d’en bas ne vous dénoncent plus (sauf si vous frappez).',
+      '**La remontée** : rapporter le battant (le tertre creux), le remettre à la Cloche du Jour (au temple), puis la **sonner au matin** (de 5 h à 7 h 30). Ils remontent tous, par le Septième Degré et la tonnellerie, les morts portés d’abord ; la ville reste vide, ses feux allumés.',
+      '**L’extinction** : jeter la cendre froide (le brasier mort) sur le feu du compte. Les feux s’éteignent rue après rue ; ils se couchent là où ils sont, auprès de leurs morts.',
+      'Chacune a sa scène, puis quelques lignes ; le choix est pour toujours.',
+    ],
+  },
+};
+// ce que Basse-Fosse ajoute aux régions (secrets)
+Object.assign(REGIONS.ville_basse, { voir: ['Sous elle, à quarante-huit mètres, une autre ville : [[sys:basse-fosse|Basse-Fosse]]. Aux heures des offices, on entend des cloches très étouffées dans les ruines.'] });
+REGIONS.ville_basse.secret.push('**La tonnellerie** de Joachim Fève, et sa cave : l’entrée de [[sys:basse-fosse|Basse-Fosse]] ; le cairn d’A., à une centaine de mètres.');
+REGIONS.tertres.secret.push('**Le tertre creux** : un dolmen au pied d’un tertre ; dessous, la chambre d’un roi, et derrière un mur qui ment, le battant de la Cloche du Jour ([[sys:basse-fosse|Basse-Fosse]]).');
+REGIONS.bois_mort.secret.push('**La chapelle murée** : une plaque sur l’autel, une crypte derrière le chevet (un mur qui ment), le sceau de la Ville Basse.');
+REGIONS.ravines.secret.push('**L’ermitage** : une cabane creusée dans la pente, sans porte ; derrière un mur qui ment, le carnet de celui qui regardait passer le Ver.');
+REGIONS.cendrieres.secret.push('**Le brasier mort** : un tas de cendre pâle, froide comme de la neige — la cendre froide ([[sys:basse-fosse|Basse-Fosse]]).');
+REGIONS.etang.secret.push('**Les souliers** : au bord de l’eau, trois paires rangées côte à côte, la pointe vers l’eau.');
+(REGIONS.seuil.secret || (REGIONS.seuil.secret = [])).push('**Le banc du garde**, tourné vers la Porte : « M. de Sorbiers est entré au matin. Il a dit : trois jours. J’attends. »');
+
 // ================================================================ les sections (sections)
 // Chaque section : ses groupes de fiches (seules celles qui existent paraissent), et après quelles sections elle va.
 const SECTIONS = [
   { id: 'terres', t: 'La Grande Porte et les Terres d’Avant', apres: ['dessous', 'mondes'],
     d: 'Derrière la Grande Porte, un second pays, deux fois grand comme la vallée : ses régions et son plan, ses feux de veille, la discrétion ; le Ver qui veille au-dessus ; Hautguet, le château des Hauts (et ce qui s’y cache : secrets).',
-    groupes: [['La Grande Porte', ['sys:grande-porte', 'it:cle_grande_porte']], ['Les Terres d’Avant', ['sys:terres-avant', 'sys:discretion']], ['Les régions', Object.keys(REGIONS).map((k) => 'zone:' + k)], ['Le Ver', ['sys:ver', 'it:v3_ecaille', 'it:v3_dent', 'it:v3_coeur', 'it:v3_cle_collier', 'it:v3_carnet']], ['Hautguet', ['sys:hautguet', 'it:v4_registre', 'it:v4_lettre_dame', 'it:v4_anneau', 'it:v4_cle_poterne', 'it:v4_cle_chapelle', 'it:v4_cle_donjon', 'it:v4_cle_tour', 'it:v4_trousseau']]] },
+    groupes: [['La Grande Porte', ['sys:grande-porte', 'it:cle_grande_porte']], ['Les Terres d’Avant', ['sys:terres-avant', 'sys:discretion']], ['Les régions', Object.keys(REGIONS).map((k) => 'zone:' + k)], ['Le Ver', ['sys:ver', 'it:v3_ecaille', 'it:v3_dent', 'it:v3_coeur', 'it:v3_cle_collier', 'it:v3_carnet']], ['Hautguet', ['sys:hautguet', 'it:v4_registre', 'it:v4_lettre_dame', 'it:v4_anneau', 'it:v4_cle_poterne', 'it:v4_cle_chapelle', 'it:v4_cle_donjon', 'it:v4_cle_tour', 'it:v4_trousseau']], ['Basse-Fosse, la ville sous la ville', ['sys:basse-fosse', 'it:v5_jeton', 'it:v5_linceul', 'it:v5_pain_racines', 'it:v5_lettre_1', 'it:v5_lettre_2', 'it:v5_lettre_3', 'it:v5_lettre_4', 'it:v5_lettre_notaire', 'it:v5_livre_feve', 'it:v5_battant', 'it:v5_cendre_froide', 'it:v5_plume', 'it:v5_sceau_ville', 'it:v5_couronne_cire', 'it:v5_carnet_ermite']]] },
   { id: 'gobelins', t: 'Les gobelins', apres: ['parlantes', 'betes'],
     d: 'Les Petits, ceux d’en dessous : leurs vols de nuit, leur marque, ce qu’on peut leur faire ; leur village, le chemin pour y entrer, la vieille (secrets).',
     groupes: [['Les gobelins', ['sys:gobelins', 'an:gobelin', 'an:gob_aieule']], ['Leurs lieux', ['li:gob_souche', 'li:gobeliniere']], ['Ce qu’on trouve chez eux', ['it:gob_dent', 'it:gob_chiffons', 'it:gob_trousseau', 'it:gob_hochet', 'it:gob_alliance', 'it:gob_bonnet', 'it:gob_couronne']]] },
@@ -499,6 +572,10 @@ const COUCHES_PLAN = [
   } },
   { cle: 'passages', nom: 'Les passages vers la vallée', secret: 1, on: 1, marques(C) {
     for (const it of C.inter('v1_passage')) C.M({ l: 'passages', k: 'pt', x: it[3], z: it[5], t: it[1] === 'passage_puits' ? 'le puits sec' : 'la fente du Pic', s: it[1] === 'passage_puits' ? 'On ressort près du vieux puits du hameau abandonné' : 'On ressort près de l’antre, au pied des monts de l’est', p: C.pg('zone:' + C.region(it[3], it[5]), 'sys:terres-avant'), i: '⇣' });
+  } },
+  { cle: 'bassefosse', nom: 'Basse-Fosse, et les secrets des Terres d’Avant', secret: 1, on: 1, marques(C) {
+    const D = { v5_basse_fosse: ['Basse-Fosse (sous terre)', 'La ville sous la ville, à quarante-huit mètres sous les ruines', '⛪', 1], v5_tonnellerie: ['la tonnellerie', 'La trappe, la cave, le foudre : l’entrée de Basse-Fosse', '⇣'], v5_tertre_creux: ['le tertre creux', 'Un dolmen ; dessous, un roi, et le battant de la cloche', '⌓'], v5_chapelle_muree: ['la chapelle murée', 'Le sceau de la Ville Basse', '✝'], v5_ermitage: ['l’ermitage', 'Le carnet de celui qui regardait passer le Ver', '⌂'], v5_brasier_mort: ['le brasier mort', 'La cendre froide', '♨'] };
+    for (const [key, , x, z] of C.R.lm || []) { const d = D[key]; if (d) C.M({ l: 'bassefosse', k: 'pt', x, z, t: d[0], s: d[1], p: C.pg('sys:basse-fosse'), i: d[2], big: d[3] ? 1 : 0 }); }
   } },
   { cle: 'inscr', nom: 'Ce que racontent les pierres', secret: 1, on: 0, marques(C) {
     const IN = Object.fromEntries((C.T('V1_INSCRIPTIONS', []) || []).map((a) => [a[0], a]));
@@ -851,6 +928,33 @@ const CHAPITRES = [
       h += h3('L’œil, en haut de l’écran') + `<p>${md(DISCRETION.oeil)}</p>` + tbl(['L’œil', 'Ce qu’il veut dire'], [['fermé (on ne voit rien)', 'personne ne s’inquiète'], ['mi-clos', 'quelque chose a entendu, ou entrevu'], ['grand ouvert, cerclé de rouge', 'on vous a vu'], ['il regarde de côté', 'on vous cherche']].map((r) => td(r.map(esc))));
       SP('sys:discretion', { t: 'La discrétion', s: 'Ce qui vous montre, ce qui vous cache ; l’œil, en haut de l’écran', c: ['terres'], i: '👁', h }, files(/^(11-zzzzV1-5-|12-z+V1-)/));
     }
+  } },
+
+  // ======== Basse-Fosse, la ville sous la ville, et les secrets des Terres d’Avant (V5)
+  { id: 'V5', present: (C) => !!C.T('V5_TEXTES', null), fiches(C) {
+    const { T, md, ul, ol, h3, h4, tbl, td, SEC, SP, lk, IL, book, engr, plan, files, ITEMS } = C;
+    const TX = T('V5_TEXTES', {}), LE = T('V5_LETTRES', {}), LC = T('V5_LECTURES', {}), PR = T('V5_TROC_PREND', {}), B = BASSEFOSSE, BS = B.secret;
+    let h = `<p class="lead">${md(B.lead)}</p>`;
+    h += C.kv([['Où', `sous ${lk('zone:ville_basse', 'la Ville Basse')}, à quarante-huit mètres sous les ruines ${plan('p:zone:ville_basse', 'Voir sur le plan')}`], ['Combien', 'vingt-quatre gens d’en bas ; quatre cent douze au compte, toujours']]);
+    h += h3('La trouver') + `<p>${md(B.trouver)}</p>`;
+    h += h3('La ville') + ul(B.ville);
+    h += h3('Les gens d’en bas') + ul(B.gens);
+    if (TX.lois) h += engr(TX.loisTitre || 'Une stèle, près de la porte', TX.lois);
+    h += h3('Les lois, et être compté') + ul(B.compte);
+    const pr = Object.entries(PR).filter(([i]) => ITEMS[i]);
+    h += h3('La Marchande') + `<p>${md(B.marchande)}</p>` + (pr.length ? tbl(['Ce qu’elle prend (ce qui a vu le jour)', 'Ce que ça vaut'], pr.map(([i, v]) => td([IL(i), `${v} ${v > 1 ? 'choses' : 'chose'}`]))) : '');
+    h += h3('Conseils') + ul(B.conseils);
+    let s = h3('L’entrée') + ol(BS.entree);
+    s += h3('Les murs qui mentent') + `<p>${md(BS.murs)}</p>` + tbl(['Où', 'Derrière'], BS.mursListe.map((r) => td(r.map(md))));
+    s += h3('Les secrets des Terres d’Avant') + ul(BS.lieux);
+    s += h3('L’histoire') + ul(BS.histoire);
+    const lt = Object.values(LE);
+    if (lt.length) s += h4('Les lettres') + `<div class="book">${lt.map((L) => book(L.titre, L.texte)).join('')}</div>`;
+    for (const k of ['v5_livre_feve', 'v5_carnet_ermite']) if (LC[k]) s += h4(LC[k].titre) + book('', LC[k].texte);
+    s += h3('Les trois fins (une seule, pour toujours)') + ul(BS.fins);
+    h += SEC(s, 'L’entrée, les murs qui mentent, les secrets des Terres d’Avant, l’histoire et les fins : masqué (secrets).');
+    SP('sys:basse-fosse', { t: 'Basse-Fosse, la ville sous la ville', s: 'Sous la Ville Basse : ceux d’en bas, leurs lois, leur compte', c: ['terres'], i: '⛪', h }, files(/^(11-zzzzV5-|07-z+V5-)/));
+    for (const i of Object.keys(ITEMS).filter((x) => /^v5_/.test(x))) C.append('it:' + i, `<p>${lk('sys:basse-fosse', 'Basse-Fosse')}</p>`);
   } },
 
   // ======== le Ver (V3)
