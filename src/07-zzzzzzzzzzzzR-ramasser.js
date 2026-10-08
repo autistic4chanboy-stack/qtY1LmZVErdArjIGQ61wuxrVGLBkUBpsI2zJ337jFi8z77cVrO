@@ -84,7 +84,7 @@ const RAM_MOD = {
   },
   verre(E, o, v) {
     const r = ramAlea(v);
-    for (let k = 0; k < 4; k++) E.box((r() - 0.5) * 0.12, 0.003, (r() - 0.5) * 0.12, 0.03 + r() * 0.02, 0.004, 0.02 + r() * 0.02, k % 2 ? RAM_C.verreC : RAM_C.verreV, TL.plain, r() * 6);
+    for (let k = 0; k < 5; k++) E.box((r() - 0.5) * 0.14, 0.005, (r() - 0.5) * 0.14, 0.035 + r() * 0.025, 0.008, 0.025 + r() * 0.02, k % 2 ? [0.82, 1.0, 0.96] : [0.36, 0.62, 0.44], TL.plain, r() * 6, 0.15, r() * 0.3);
   },
   corde(E, o, v) {
     const c = RAM_C.corde;
@@ -93,8 +93,8 @@ const RAM_MOD = {
   },
   flotte(E, o, v) {
     const c = RAM_C.flotte, L = 0.55 + v * 0.3;
-    E.box(0, 0.03, 0, L, 0.055, 0.062, c, TL.wood, 0, 0, 0.04); E.box(L * 0.32, 0.026, 0.07, 0.2, 0.04, 0.04, c, TL.wood, -0.8);
-    E.box(-L * 0.5, 0.03, 0, 0.06, 0.07, 0.08, [0.72, 0.7, 0.66], TL.wood);
+    E.box(0, 0.03, 0, L, 0.055, 0.062, c, TL.cloth2, 0, 0, 0.04); E.box(L * 0.32, 0.026, 0.07, 0.2, 0.04, 0.04, c, TL.cloth2, -0.8);
+    E.box(-L * 0.5, 0.03, 0, 0.06, 0.07, 0.08, [0.66, 0.64, 0.6], TL.cloth2);
   },
   liege(E) { const c = [0.5, 0.36, 0.25]; E.box(0, 0.024, 0, 0.09, 0.048, 0.07, c, TL.leather); E.box(0, 0.025, 0, 0.07, 0.05, 0.09, c, TL.leather, RAM_PI / 4); E.box(0, 0.05, 0, 0.012, 0.006, 0.012, RAM_C.noir, TL.plain); },
   charbon(E, o, v) { const r = ramAlea(v); for (let k = 0; k < 3; k++) E.box((r() - 0.5) * 0.1, 0.018, (r() - 0.5) * 0.1, 0.04 + r() * 0.02, 0.03, 0.035, RAM_C.noir, TL.coal, r() * 3); },
@@ -140,41 +140,40 @@ const RAM_MOD = {
     }
   },
   oeuf(E) { const c = [0.95, 0.92, 0.84]; E.box(0, 0.022, 0, 0.044, 0.04, 0.06, c, TL.plain); E.box(0, 0.022, 0, 0.034, 0.044, 0.05, c, TL.plain, RAM_PI / 4); },
-  // ---------------------------------------------------------------- fruits tombés
+  // ---------------------------------------------------------------- fruits tombés (autant qu'on en ramasse : ramNombre)
   pommes(E, o, v) {
-    const r = ramAlea(v), n = 1 + Math.floor(v * 3);
+    const r = ramAlea(v), n = ramNombre(RAM_SORTES.pommes, v);
     for (let k = 0; k < n; k++) {
-      const x = (r() - 0.5) * 0.4, z = (r() - 0.5) * 0.4, c = r() < 0.6 ? [0.74, 0.16, 0.12] : r() < 0.6 ? [0.72, 0.62, 0.2] : [0.46, 0.32, 0.18];
+      const x = (r() - 0.5) * 0.6, z = (r() - 0.5) * 0.6, u = r(), c = u < 0.55 ? [0.8, 0.14, 0.1] : u < 0.85 ? [0.76, 0.66, 0.2] : [0.5, 0.33, 0.16];
       ramBoule(E, x, 0, z, 0.07, c, TL.plain, 0.064); E.box(x, 0.068, z, 0.005, 0.014, 0.005, [0.3, 0.22, 0.14], TL.plain);
     }
   },
   poires(E, o, v) {
-    const r = ramAlea(v), n = 1 + Math.floor(v * 2);
-    for (let k = 0; k < n; k++) { const x = (r() - 0.5) * 0.3, z = (r() - 0.5) * 0.3, a = r() * 6, c = [0.74, 0.7, 0.3]; E.box(x, 0.03, z, 0.064, 0.058, 0.064, c, TL.plain, a); E.box(x + Math.sin(a) * 0.05, 0.026, z + Math.cos(a) * 0.05, 0.04, 0.04, 0.05, c, TL.plain, a); }
+    const r = ramAlea(v), n = ramNombre(RAM_SORTES.poires, v);
+    for (let k = 0; k < n; k++) { const x = (r() - 0.5) * 0.5, z = (r() - 0.5) * 0.5, a = r() * 6, c = [0.8, 0.74, 0.28]; E.box(x, 0.03, z, 0.064, 0.058, 0.064, c, TL.plain, a); E.box(x + Math.sin(a) * 0.05, 0.026, z + Math.cos(a) * 0.05, 0.04, 0.04, 0.05, c, TL.plain, a); E.box(x + Math.sin(a) * 0.08, 0.026, z + Math.cos(a) * 0.08, 0.004, 0.004, 0.02, [0.3, 0.22, 0.14], TL.plain, a); }
   },
-  prunes(E, o, v) { const r = ramAlea(v); for (let k = 0; k < 4; k++) ramBoule(E, (r() - 0.5) * 0.3, 0, (r() - 0.5) * 0.3, 0.034, [0.34, 0.14, 0.38], TL.plain, 0.032); },
+  prunes(E, o, v) { const r = ramAlea(v), n = ramNombre(RAM_SORTES.prunes, v); for (let k = 0; k < n; k++) ramBoule(E, (r() - 0.5) * 0.45, 0, (r() - 0.5) * 0.45, 0.036, [0.38, 0.13, 0.44], TL.plain, 0.034); },
   cerises(E, o, v) {
-    const r = ramAlea(v);
-    for (let k = 0; k < 6; k++) { const x = (r() - 0.5) * 0.28, z = (r() - 0.5) * 0.28; E.box(x, 0.01, z, 0.02, 0.019, 0.02, [0.62, 0.05, 0.1], TL.plain); E.box(x, 0.022, z + 0.01, 0.002, 0.003, 0.03, [0.3, 0.42, 0.18], TL.plain); }
+    const r = ramAlea(v), n = ramNombre(RAM_SORTES.cerises, v);
+    for (let k = 0; k < n; k++) { const x = (r() - 0.5) * 0.4, z = (r() - 0.5) * 0.4; E.box(x, 0.01, z, 0.021, 0.02, 0.021, [0.7, 0.04, 0.1], TL.plain); E.box(x, 0.022, z + 0.01, 0.002, 0.003, 0.03, [0.3, 0.42, 0.18], TL.plain); }
   },
   noix(E, o, v) {
-    const r = ramAlea(v);
-    for (let k = 0; k < 4; k++) ramBoule(E, (r() - 0.5) * 0.32, 0, (r() - 0.5) * 0.32, 0.036, [0.62, 0.5, 0.35], TL.wood, 0.032);
-    E.box((r() - 0.5) * 0.3, 0.008, (r() - 0.5) * 0.3, 0.04, 0.014, 0.035, [0.14, 0.12, 0.1], TL.plain, r() * 3);
+    const r = ramAlea(v), n = ramNombre(RAM_SORTES.noix, v);
+    for (let k = 0; k < n; k++) ramBoule(E, (r() - 0.5) * 0.45, 0, (r() - 0.5) * 0.45, 0.036, [0.66, 0.54, 0.38], TL.wood, 0.032);
+    for (let k = 0; k < 2; k++) E.box((r() - 0.5) * 0.4, 0.008, (r() - 0.5) * 0.4, 0.04, 0.014, 0.035, [0.14, 0.12, 0.1], TL.plain, r() * 3);
   },
   chataignes(E, o, v) {
-    const r = ramAlea(v);
-    for (let k = 0; k < 3; k++) { const x = (r() - 0.5) * 0.3, z = (r() - 0.5) * 0.3; E.box(x, 0.011, z, 0.028, 0.022, 0.026, [0.4, 0.21, 0.11], TL.plain, r() * 3); E.box(x, 0.016, z, 0.012, 0.014, 0.022, [0.86, 0.78, 0.64], TL.plain, r() * 3); }
-    const x = (r() - 0.5) * 0.25, z = (r() - 0.5) * 0.25;
-    E.box(x, 0.026, z, 0.06, 0.05, 0.06, [0.48, 0.5, 0.24], TL.leaves, 0.4); E.box(x, 0.026, z, 0.05, 0.054, 0.05, [0.42, 0.42, 0.2], TL.leaves, 1.2);
+    const r = ramAlea(v), n = ramNombre(RAM_SORTES.chataignes, v);
+    for (let k = 0; k < n; k++) { const x = (r() - 0.5) * 0.4, z = (r() - 0.5) * 0.4; E.box(x, 0.011, z, 0.028, 0.022, 0.026, [0.42, 0.2, 0.1], TL.plain, r() * 3); E.box(x, 0.016, z, 0.012, 0.014, 0.022, [0.86, 0.78, 0.64], TL.plain, r() * 3); }
+    for (let k = 0; k < 2; k++) { const x = (r() - 0.5) * 0.35, z = (r() - 0.5) * 0.35; E.box(x, 0.026, z, 0.06, 0.05, 0.06, [0.5, 0.52, 0.24], TL.leaves, 0.4); E.box(x, 0.026, z, 0.05, 0.054, 0.05, [0.44, 0.44, 0.2], TL.leaves, 1.2); }
   },
   faines(E, o, v) {
-    const r = ramAlea(v);
-    for (let k = 0; k < 7; k++) E.box((r() - 0.5) * 0.24, 0.006, (r() - 0.5) * 0.24, 0.012, 0.011, 0.016, [0.5, 0.32, 0.2], TL.plain, r() * 3);
-    for (let k = 0; k < 2; k++) E.box((r() - 0.5) * 0.2, 0.01, (r() - 0.5) * 0.2, 0.024, 0.018, 0.024, [0.42, 0.32, 0.22], TL.bark, r() * 3);
+    const r = ramAlea(v), n = ramNombre(RAM_SORTES.faines, v);
+    for (let k = 0; k < n; k++) E.box((r() - 0.5) * 0.3, 0.006, (r() - 0.5) * 0.3, 0.013, 0.012, 0.017, [0.52, 0.32, 0.2], TL.plain, r() * 3);
+    for (let k = 0; k < 3; k++) E.box((r() - 0.5) * 0.28, 0.01, (r() - 0.5) * 0.28, 0.026, 0.02, 0.026, [0.42, 0.32, 0.22], TL.bark, r() * 3);
   },
   // ---------------------------------------------------------------- petites valeurs
-  sou(E, o, v) { ramDisque(E, 0, 0, 0, 0.025, 0.003, v < 0.7 ? RAM_C.cuivre : RAM_C.argent, TL.metal); },
+  sou(E, o, v) { ramDisque(E, 0, 0, 0, 0.025, 0.004, v < 0.7 ? [0.95, 0.6, 0.36] : [0.95, 0.95, 1.0], v < 0.7 ? TL.gold : TL.metal); },
   bouton(E) { ramDisque(E, 0, 0, 0, 0.017, 0.004, [0.94, 0.92, 0.88], TL.plain); E.box(0, 0.0045, 0, 0.004, 0.002, 0.004, [0.6, 0.58, 0.55], TL.plain); },
   bille(E, o, v) { ramBoule(E, 0, 0, 0, 0.017, v < 0.5 ? [0.36, 0.62, 0.84] : [0.82, 0.4, 0.3], TL.plain, 0.016); E.box(0, 0.009, 0, 0.004, 0.017, 0.012, [0.95, 0.9, 0.7], TL.plain); },
   de(E) { E.box(0, 0.011, 0, 0.017, 0.022, 0.017, RAM_C.argent, TL.metal); E.box(0, 0.011, 0, 0.016, 0.02, 0.016, RAM_C.argent, TL.metal, RAM_PI / 4); },
@@ -291,6 +290,8 @@ PROP_MODELS.r_objet = function (E, o) {
   const S = o && o.data && typeof RAM_SORTES !== 'undefined' ? RAM_SORTES[o.data.k] : null, f = S && RAM_MOD[S.mod];
   if (!f) return;
   if (o.tx || o.tz) { m34TR(RAM_T1, 0, 0, 0, o.tx || 0, 0, o.tz || 0); m34Mul(RAM_T2, E.M, RAM_T1); E.M.set(RAM_T2); }
+  // (quelques millimètres au-dessus du sol ou du meuble : une pièce, un papier ne s'y enfoncent pas, de loin)
+  E.M[7] += 0.006;
   f(E, o, o.v || 0);
 };
 
@@ -308,7 +309,7 @@ function ramBoite(mod) {
       if (i === 0) { x0 = Math.min(x0, m - e); x1 = Math.max(x1, m + e); } else if (i === 1) { y0 = Math.min(y0, m - e); y1 = Math.max(y1, m + e); } else { z0 = Math.min(z0, m - e); z1 = Math.max(z1, m + e); }
     }
   };
-  const E = { M: new Float32Array(12), box: rec, bx: (cx, y, cz, sx, sy, sz, c, t, ry, rx, rz) => rec(cx, y + sy / 2, cz, sx, sy, sz, ry, rx, rz) };
+  const E = { M: new Float32Array(12), box: (cx, cy, cz, sx, sy, sz, c, t, ry, rx, rz) => rec(cx, cy, cz, sx, sy, sz, ry, rx, rz), bx: (cx, y, cz, sx, sy, sz, c, t, ry, rx, rz) => rec(cx, y + sy / 2, cz, sx, sy, sz, ry, rx, rz) };
   try { if (f) f(E, { v: 0.5, data: {} }, 0.5); } catch (e) { /* rien */ }
   const b = x1 > x0 ? { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, cz: (z0 + z1) / 2, r: Math.max(0.02, Math.hypot(x1 - x0, z1 - z0) / 2), h: Math.max(0.006, y1) } : { cx: 0, cy: 0.02, cz: 0, r: 0.08, h: 0.04 };
   return (RAM_BB[mod] = b);

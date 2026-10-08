@@ -13,7 +13,8 @@
 //    b (bâtiment), o (arbre), t (lettre) }] et sa signature.
 //  - L'état : farm.s.ramasse = { v, sig, p (ce qui est pris : un bit par
 //    trouvaille, en base64), r ({ rang: jour } : ce qui revient, tant que ça
-//    n'est pas revenu), n, k ({ sorte: nombre }), l (les lettres lues), vu }.
+//    n'est pas revenu), n (combien en tout), l (les lettres lues), vu (les
+//    pensées déjà venues) }.
 //    Une sauvegarde d'avant se charge sans rien (tout est là) ; si la liste a
 //    changé (signature), ce qui était pris est oublié (tout revient).
 //  - Fluidité : rien sur w.objects ni w.props à chaque image. Une grille de
@@ -41,7 +42,7 @@ const RAM_REGL = {
 };
 // les meubles sur lesquels une chose peut traîner (pas dedans : dessus)
 const RAM_SUPPORTS = new Set(['table', 'etagere', 'commode', 'buffet', 'secretaire', 'petrin', 'malle', 'tonneau', 'tonneau_vieux', 'caisse', 'caisses',
-  'etabli', 'banc', 'cheminee', 'gueridon', 'b1_toilette', 'coffre_vieux', 'lit', 'paillasse']);
+  'etabli', 'banc', 'cheminee', 'gueridon', 'b1_toilette', 'coffre_vieux']);
 // les arbres dont les fruits tombent : la sorte, et la part des arbres qui en ont au pied (près des maisons, plus)
 const RAM_VERGERS = { apple: ['pommes', 0.025, 0.07], poirier: ['poires', 0.3, 0.4], prunier: ['prunes', 0.3, 0.4], cerisier: ['cerises', 0.3, 0.4],
   noyer: ['noix', 0.22, 0.35], chataignier: ['chataignes', 0.25, 0.35], hetre: ['faines', 0.1, 0.15] };
@@ -185,14 +186,28 @@ const ramGen = {
       const kk = cle(x, z); let A = MI.get(kk); if (!A) MI.set(kk, (A = [])); A.push(x, z, y, MIL[m] || (MIL[m] = Object.keys(MIL).length + 1));
       return o;
     };
+    // la taille des choses : les toutes petites (moins de 7,5 cm) ne se voient pas dans l'herbe haute (touffes de 40 à
+    // 75 cm) : dehors, on ne les pose que sur la terre nue, les pavés, le sable, la roche ; les moyennes, une fois sur deux
+    const taille = {};
+    for (const k of Object.keys(RAM_SORTES)) { const bb = typeof ramBoite === 'function' ? ramBoite(RAM_SORTES[k].mod) : null; taille[k] = !bb ? 1 : bb.r * 2 < 0.075 ? 0 : bb.r * 2 < 0.25 ? 1 : 2; }
+    const herbe = (x, z) => { const mt = w.matAt(x, z); return mt === M_GRASS || mt === M_LUSH || mt === M_FLOWERS || mt === M_DRY; };
+    const tirSol = (m, x, z) => {
+      const hb = herbe(x, z);
+      for (let e = 0; e < 5; e++) {
+        const k = tir(m);
+        if (!k) return null;
+        if (!hb || taille[k] === 2 || (taille[k] === 1 && rnd() < 0.5)) return k;
+      }
+      return null;
+    };
     // une sorte tirée pour un milieu, posée dehors au point donné (ou tout près)
     const poserDehors = (m, x, z, opt, essais) => {
       for (let e = 0; e < (essais || 3); e++) {
         const jx = e ? x + (rnd() - 0.5) * 3 : x, jz = e ? z + (rnd() - 0.5) * 3 : z;
         const h = dehors(jx, jz, m, opt);
         if (h === null) continue;
-        const k = (opt && opt.k) || tir(m);
-        if (!k) return null;
+        const k = (opt && opt.k) || tirSol(m, jx, jz);
+        if (!k) continue;
         return ajouter(k, jx, h, jz, m);
       }
       return null;
@@ -308,7 +323,7 @@ const ramGen = {
     for (const k of RAM_COURS) {
       const b = w.bld && w.bld[k];
       if (!b || !b.f || b.under) continue;
-      const m = RAM_POULES.has(k) ? 'poules' : 'cour', n = k === 'ferme' ? 2 : (rnd() < 0.6 ? 1 : 0) + (rnd() < 0.3 ? 1 : 0);
+      const m = RAM_POULES.has(k) ? 'poules' : 'cour', n = k === 'ferme' ? 2 : RAM_POULES.has(k) ? 1 + (rnd() < 0.6 ? 1 : 0) : (rnd() < 0.6 ? 1 : 0) + (rnd() < 0.3 ? 1 : 0);
       for (let j = 0; j < n; j++) { const a = rnd() * TAU, d = Math.max(b.W, b.D) * 0.5 + 1.5 + rnd() * 7; poserDehors(m, b.f.x + Math.cos(a) * d, b.f.z + Math.sin(a) * d, { ecart: 3 }, 5); }
     }
     if (fd) for (let j = 0; j < 2; j++) {
@@ -375,7 +390,7 @@ const ramGen = {
           for (let e = 0; e < 5; e++) {
             const lx = (rnd() - 0.5) * (fenil.sx - 1.8), lz = (rnd() - 0.5) * (fenil.sz - 1.8), x = fenil.x + lx * cb + lz * sb, z = fenil.z - lx * sb + lz * cb;
             const g = w.groundAt(x, z, yF + 0.3, 0.4);
-            if (!isFinite(g) || Math.abs(g - yF) > 0.15 || obstacle(x, z, g, 0.35) || pres(x, z, g, 1.2) || bloc(x, z, g + 0.03, 1.6, 0.15)) continue;
+            if (!isFinite(g) || Math.abs(g - yF) > 0.15 || obstacle(x, z, g, 0.35) || pres(x, z, g, 1.2) || !ramVide(w, x, z, g, 1.6)) continue;
             const kk = tir(rnd() < 0.5 ? 'grange' : 'poules');
             if (kk) ajouter(kk, x, g, z, 'grange', { b: '_fenil', plat: 1 });
             break;
@@ -391,7 +406,7 @@ const ramGen = {
         for (let e = 0; e < 5; e++) {
           const a = rnd() * TAU, d = rnd() * T.R[i] * 0.55, x = T.x + Math.cos(a) * d, z = T.z + Math.sin(a) * d;
           const g = w.groundAt(x, z, T.S[i] + 0.3, 0.4);
-          if (!isFinite(g) || Math.abs(g - T.S[i]) > 0.3 || obstacle(x, z, g, 0.3) || pres(x, z, g, 1) || bloc(x, z, g + 0.03, 1.4, 0.1)) continue;
+          if (!isFinite(g) || Math.abs(g - T.S[i]) > 0.3 || obstacle(x, z, g, 0.3) || pres(x, z, g, 1) || !ramVide(w, x, z, g, 1.4)) continue;
           const kk = tir('tour');
           if (kk) ajouter(kk, x, g, z, 'tour', { b: '_' + key, plat: 1 });
           break;
@@ -438,18 +453,21 @@ const ramGen = {
       if (qx > B.x0 - 0.18 && qx < B.x1 + 0.18 && qz > B.z0 - 0.18 && qz < B.z1 + 0.18) return null;
     }
     if (obstacleInter(w, x, g, z)) return null;
-    // rien de bâti juste au-dessus du plancher (marches, poutres, cloisons)
-    let hit = false;
-    w.query(x, z, 1.2, null, (bl) => {
-      if (hit || bl.hidden) return;
-      const [bx, bz] = World.blockLocal(bl, x, z);
-      if (Math.abs(bx) > bl.sx / 2 + 0.12 || Math.abs(bz) > bl.sz / 2 + 0.12) return;
-      if (bl.y > g + 0.02 && bl.y < g + 1.3) hit = true;
-      if (bl.y <= g - 0.02 && bl.y + bl.sy > g + 0.04) hit = true;
-    });
-    return hit ? null : g;
+    return ramVide(w, x, z, g, 1.3) ? g : null;
   },
 };
+// rien de bâti juste au-dessus d'un plancher (marches, poutres, cloisons), et pas dans un mur
+function ramVide(w, x, z, g, haut) {
+  let hit = false;
+  w.query(x, z, 1.2, null, (bl) => {
+    if (hit || bl.hidden) return;
+    const [bx, bz] = World.blockLocal(bl, x, z);
+    if (Math.abs(bx) > bl.sx / 2 + 0.12 || Math.abs(bz) > bl.sz / 2 + 0.12) return;
+    if (bl.y > g + 0.02 && bl.y < g + haut) hit = true;
+    if (bl.y <= g - 0.02 && bl.y + bl.sy > g + 0.04) hit = true;
+  });
+  return !hit;
+}
 // une interaction ou une porte tout près (ce qu'on vise avec E là : on n'y met rien)
 function obstacleInter(w, x, y, z) {
   for (const it of w.inter || []) if (it && Math.abs(it.x - x) < 0.9 && Math.abs(it.z - z) < 0.9 && Math.abs((it.y || 0) - y) < 1.8) return true;
@@ -510,7 +528,6 @@ const ramasser = {
     if (!S.v) S.v = 1;
     if (typeof S.p !== 'string') S.p = '';
     if (!S.r || typeof S.r !== 'object' || Array.isArray(S.r)) S.r = {};
-    if (!S.k || typeof S.k !== 'object' || Array.isArray(S.k)) S.k = {};
     if (!Array.isArray(S.l)) S.l = [];
     if (!S.vu || typeof S.vu !== 'object' || Array.isArray(S.vu)) S.vu = {};
     if (!isFinite(S.n)) S.n = 0;
@@ -602,7 +619,7 @@ const ramasser = {
   jour() { if (!this.w || !farm.s) return; this.purger(); this.rafraichir(); },
   compter() {
     const S = this.S();
-    return { total: this.L.length, visibles: this.nVis, pris: S ? S.n : 0, sortes: S ? Object.keys(S.k).length : 0 };
+    return { total: this.L.length, visibles: this.nVis, pris: S ? S.n : 0 };
   },
   proches(x, z, r) {
     const out = [];
@@ -681,13 +698,13 @@ const ramasser = {
     if (!this.actif() || !this.vis || !this.vis[i]) return false;
     const o = this.L[i], R = RAM_SORTES[o.k], S = this.S();
     if (!R || !S) return false;
-    const n = R.n[0] + Math.floor(Math.random() * (R.n[1] - R.n[0] + 1)), pos = [o.x, o.y + 0.12, o.z];
+    const n = ramNombre(R, o.v), pos = [o.x, o.y + 0.12, o.z];
     const L = this.lieu(o);
     this.marquer(i);
     this.vis[i] = 0; this.nVis = Math.max(0, this.nVis - 1);
     if (R.it === 'argent') { farm.earn(n); sound.coin && sound.coin(); if (ITEMS.vieille_piece) play.flyer('vieille_piece', pos, 1); }
     else { farm.give(R.it, n); play.flyer(R.it, pos, n); sound.pop && sound.pop(); }
-    S.n++; S.k[o.k] = (S.k[o.k] || 0) + 1;
+    S.n++;
     farm.dirtyProps = true;
     if (game.hiProp && game.hiProp.id === 'r_objet') game.hiProp = null;
     this.cibleO = null;
