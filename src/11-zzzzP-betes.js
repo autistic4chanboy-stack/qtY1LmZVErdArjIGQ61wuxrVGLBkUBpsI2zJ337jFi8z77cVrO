@@ -607,7 +607,9 @@ const betesParlantes = {
       if (H.length) {
         B.rq.versions = day;
         const hh = H[H.length - 1], V = BP_VERSIONS.cheval;
-        return V[H.length % V.length].replace('{qui}', hh.name ? hh.name : 'Celui d’avant toi').replace('{jours}', String(hh.day || 1)).replace(/^Celui d’avant toi, Celui d’avant toi,/, 'Celui d’avant toi,');
+        // sans nom, la première tournure (« Un autre a tenu… ») : l'autre redirait « Celui d'avant toi » deux fois
+        const t = hh.name ? V[H.length % V.length] : V[0];
+        return t.replace('{qui}', hh.name || 'Un autre').replace('{jours}', String(hh.day || 1));
       }
     }
     // le nonos retrouvé (quête de l'agent Q)
