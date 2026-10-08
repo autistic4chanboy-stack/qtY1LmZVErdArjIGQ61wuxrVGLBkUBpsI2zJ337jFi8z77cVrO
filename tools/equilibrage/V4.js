@@ -76,6 +76,21 @@ module.exports = {
     }
     log(`passages : ${n}, ${mauvais} à revoir`);
     if (mauvais) ko('des passages déposent le joueur dans le vide ou dans un mur');
+    // ---------------------------------------------------------------- les escaliers : 1,9 m libres au-dessus de chaque marche
+    let tetes = 0;
+    for (const mq of V.marches || []) {
+      for (const b of blocks) {
+        if (b.y <= mq.top + 0.05 || b.y >= mq.top + 1.9) continue;
+        let touche = false;
+        for (const [u, v] of [[0, 0], [-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]]) {
+          const [lx, lz] = World.blockLocal(b, mq.x + u * (mq.sx - 0.3), mq.z + v * (mq.sz - 0.3));
+          if (Math.abs(lx) < b.sx / 2 && Math.abs(lz) < b.sz / 2) { touche = true; break; }
+        }
+        if (touche) { tetes++; if (tetes <= 6) log(`       marche (${(mq.x - V.cx).toFixed(1)}, ${(mq.top - V.y0).toFixed(2)}, ${(mq.z - V.cz).toFixed(1)}) : un bloc ${(b.y - mq.top).toFixed(2)} m au-dessus`); break; }
+      }
+    }
+    log(`escaliers : ${(V.marches || []).length} marches, ${tetes} où l'on se cogne la tête`);
+    if (tetes) ko('des marches sans place pour la tête');
     // ---------------------------------------------------------------- l'éclairage du dedans (la carte des abris, 05-world.js)
     // chaque salle couverte est « à l'ombre » jusqu'à 2,2 m au-dessus de son plancher (hors les trous d'un toit crevé) ;
     // et le château n'assombrit presque pas de dehors (un seuil de porte, le bord d'un trou)

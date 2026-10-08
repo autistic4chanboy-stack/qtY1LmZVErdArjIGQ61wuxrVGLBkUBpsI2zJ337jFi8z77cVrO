@@ -66,7 +66,7 @@ function v4Batir(Z, O) {
   const rnd = O.rnd, SV = chateauV4.S();
   const V = {
     cx: CX, cz: CZ, y0: Y0, salles: [], abris: [], places: [], portes: {}, herses: {}, murs: {}, ponts: {},
-    echelles: {}, trappes: {}, grilles: {}, objets: {}, fouilles: {}, lieux: {}, pts: {}, guet: null, thibaud: null, cloche: null,
+    echelles: {}, trappes: {}, grilles: {}, objets: {}, fouilles: {}, lieux: {}, pts: {}, guet: null, thibaud: null, cloche: null, marches: [],
   };
   Object.defineProperty(V, 'monde', { value: Z, enumerable: false });
   Z.v4 = V; chateauV4.Z = V;
@@ -151,14 +151,16 @@ function v4Batir(Z, O) {
   const pt = (k, x, y, z, yaw) => (V.pts[k] = { x: CX + x, y: Y0 + y, z: CZ + z, yaw: yaw || 0 });
   const lieu = (cle, x, z, r) => { const L = O.lieu(cle, CX + x, CZ + z, r, V4_LIEUX[cle] || cle, { v4: true }); V.lieux[cle] = L; return L; };
   // un escalier droit, marches pleines : de (x, z) au sol y0 jusqu'à y1, vers dir ('+x', '-x', '+z', '-z'), largeur l
+  // (chaque marche est notée dans V.marches : le domaine V4 vérifie qu'on y passe la tête)
+  const marche = (b, top) => { if (b) V.marches.push({ x: b.x, z: b.z, sx: b.sx, sz: b.sz, r: b.r || 0, top: Y0 + top }); };
   const escalier = (x, z, y0, y1, dir, l, run, m) => {
     const n = Math.max(1, Math.ceil((y1 - y0) / 0.33)), h = (y1 - y0) / n, s = run || 0.5;
     for (let i = 0; i < n; i++) {
       const top = y0 + h * (i + 1), a = i * s, b = (i + 1) * s;
-      if (dir === '+x') B(x + a, x + b, Math.min(y0, -0.6), top, z - l / 2, z + l / 2, m || M_V4_PIERRE);
-      else if (dir === '-x') B(x - b, x - a, Math.min(y0, -0.6), top, z - l / 2, z + l / 2, m || M_V4_PIERRE);
-      else if (dir === '+z') B(x - l / 2, x + l / 2, Math.min(y0, -0.6), top, z + a, z + b, m || M_V4_PIERRE);
-      else B(x - l / 2, x + l / 2, Math.min(y0, -0.6), top, z - b, z - a, m || M_V4_PIERRE);
+      if (dir === '+x') marche(B(x + a, x + b, Math.min(y0, -0.6), top, z - l / 2, z + l / 2, m || M_V4_PIERRE), top);
+      else if (dir === '-x') marche(B(x - b, x - a, Math.min(y0, -0.6), top, z - l / 2, z + l / 2, m || M_V4_PIERRE), top);
+      else if (dir === '+z') marche(B(x - l / 2, x + l / 2, Math.min(y0, -0.6), top, z + a, z + b, m || M_V4_PIERRE), top);
+      else marche(B(x - l / 2, x + l / 2, Math.min(y0, -0.6), top, z - b, z - a, m || M_V4_PIERRE), top);
     }
     return n * s;
   };
@@ -167,10 +169,10 @@ function v4Batir(Z, O) {
     const n = Math.max(1, Math.ceil((y1 - y0) / 0.33)), h = (y1 - y0) / n, s = run || 0.5;
     for (let i = 0; i < n; i++) {
       const top = y0 + h * (i + 1), a = i * s, b = (i + 1) * s, bas = Math.max(y0 - 0.6, top - 0.9);
-      if (dir === '+x') B(x + a, x + b, bas, top, z - l / 2, z + l / 2, m);
-      else if (dir === '-x') B(x - b, x - a, bas, top, z - l / 2, z + l / 2, m);
-      else if (dir === '+z') B(x - l / 2, x + l / 2, bas, top, z + a, z + b, m);
-      else B(x - l / 2, x + l / 2, bas, top, z - b, z - a, m);
+      if (dir === '+x') marche(B(x + a, x + b, bas, top, z - l / 2, z + l / 2, m), top);
+      else if (dir === '-x') marche(B(x - b, x - a, bas, top, z - l / 2, z + l / 2, m), top);
+      else if (dir === '+z') marche(B(x - l / 2, x + l / 2, bas, top, z + a, z + b, m), top);
+      else marche(B(x - l / 2, x + l / 2, bas, top, z - b, z - a, m), top);
     }
   };
   // un passage d'un point à un autre (escalier à vis, échelle, escalier dans le mur…) : deux interactions (aller, retour)
@@ -609,7 +611,7 @@ function v4Batir(Z, O) {
     B(x0 + 0.6, -1.0, 4.7, 5.0, -57.9, ZF - 0.6, M_PLANKS, { plafond: true });
     murZ(-1.2, 0.3, -57.9, -45.6, 5.0, 6.0, M_PLANKS);
     escalierSuspendu(8.6, -43.4, 0, 5.0, '-x', 1.4, 0.6, M_V4_PIERRE);
-    B(-1.6, 0.6, 4.6, 5.0, -44.2, ZF - 0.6, M_V4_PIERRE);
+    B(-1.6, -0.4, 4.6, 5.0, -44.2, ZF - 0.6, M_V4_PIERRE);                               // (le palier ne déborde pas sur les marches : la tête)
     // la cache au-dessus des cuisines : une porte murée en apparence (mur creux) dans le mur ouest, sur la tribune
     V.murs.tribune = { blocs: [B(-6.62, -5.38, 5.2, 7.6, -57.2, -55.8, M_V4_PIERRE, { v4mur: 'tribune' })], nom: 'tribune' };
     prop('v4_fissure', -5.35, 5.0, -56.5, Math.PI / 2, { mur: 'tribune' });
