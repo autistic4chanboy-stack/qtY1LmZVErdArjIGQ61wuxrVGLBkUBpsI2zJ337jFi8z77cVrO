@@ -56,12 +56,16 @@ module.exports = {
         if (S.veille) R.demandes.push(id + ' : ' + S.veille + ' heures de veille, sans lumière');
       }
       for (const k of ['crapaudine', 'pierre_terne', 'plume_hulotte', 'bijou', 'vieille_piece']) R.prix[k] = ITEMS[k] ? ITEMS[k].price : null;
+      // ce qu'une bête ne doit jamais prendre « au hasard » : un outil (le miroir de poche ramène de l'Envers), un poisson, à manger
+      R.mauvais = ['miroir_poche', 'montre', 'boussole', 'lanterne', 'brochet', 'brochette', 'carpe_miroir', 'anneau_fiancailles'].filter((k) => ITEMS[k] && BP_GROUPES.brillant.ok(k));
+      R.mauvais.push(...Object.keys(ITEMS).filter((k) => BP_GROUPES.poisson_frais.ok(k) && ITEMS[k].cat !== 'poisson'));
       return R;
     })())`));
     for (const d of E.demandes) log('  demande — ' + d);
     for (const k of E.manquants) ko('objet demandé inconnu : ' + k);
     for (const k in E.groupes) if (E.groupes[k] < 2) ko(`groupe « ${k} » : trop peu d’objets qui conviennent (${E.groupes[k]})`);
     for (const k in E.prix) if (E.prix[k] === null) ko('objet inconnu : ' + k);
+    for (const k of E.mauvais) ko(`une bête prendrait « ${k} » pour ce qu’elle demande`);
     // ce qu'on reçoit une fois pour toutes, vendu : la crapaudine, la plume, la bague de la carpe, les sous de la grand-mère Chabert
     const une = (E.prix.crapaudine || 0) + (E.prix.plume_hulotte || 0) + (E.prix.bijou || 0) + 42 + 2 * (E.prix.vieille_piece || 0);
     log(`ce que rendent les services, une fois, vendu : ${une} pièces (le reste : des renseignements, des endroits)`);

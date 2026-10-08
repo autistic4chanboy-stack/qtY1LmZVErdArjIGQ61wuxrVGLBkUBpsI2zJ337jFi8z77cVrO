@@ -68,9 +68,12 @@ const BP_BETES = {
 };
 // ce qu'on peut donner (les « groupes ») : le chat veut un vrai poisson, cru ; le corbeau, ce qui brille
 const BP_GROUPES = {
-  poisson_frais: { nom: 'un poisson frais', ok: (id) => { const it = ITEMS[id]; return !!(it && it.cat === 'poisson' && (it.price || 0) >= 5 && !/fum|grill|sech|sale/.test(id)); } },
+  // (cru, de cinq à soixante pièces : ni une ablette, ni un poisson de légende qu'on voudrait garder)
+  poisson_frais: { nom: 'un poisson frais', ok: (id) => { const it = ITEMS[id]; return !!(it && it.cat === 'poisson' && (it.price || 0) >= 5 && (it.price || 0) <= 60 && !it.unique && !it.questItem && !/fum|grill|sech|sale/.test(id)); } },
   // (le métal, le verre, les perles : ce qui accroche la lumière ; pas un tesson ni un fossile)
-  brillant: { nom: 'quelque chose qui brille', ok: (id) => { const it = ITEMS[id]; return !!(it && !it.unique && !it.questItem && it.cat !== 'quete' && it.cat !== 'legende' && (id === 'miroir_poche' || (/piece|bijou|perle|tabatiere|couteau_poche|medaill|cuiller|bougeoir|besicles|calice|montre|bague|alliance|bouton|de_coudre|de_argent|sonnaille|miroir|vg_plaque|vg_insigne|vg_toupie|vg_cristal|vg_oeil|geode|anneau|broche|boucle|clochette/.test(id) && (it.price || 0) >= 5))); } },
+  // (des trésors seulement, de cinq à cent pièces : pas un outil — ni la montre, ni le miroir de poche qui ramène de l'Envers —,
+  //  ni un poisson, ni ce qui se mange, ni ce qu'on voudrait garder)
+  brillant: { nom: 'quelque chose qui brille', ok: (id) => { const it = ITEMS[id]; return !!(it && it.cat === 'tresor' && !it.tool && !it.unique && !it.questItem && (it.price || 0) >= 5 && (it.price || 0) <= 100 && /piece|bijou|perle|tabatiere|couteau_poche|medaill|cuiller|bougeoir|besicles|calice|montre|bague|alliance|bouton|de_coudre|de_argent|sonnaille|miroir|vg_plaque|vg_insigne|vg_toupie|vg_cristal|vg_oeil|geode|anneau|(^|_)broche($|_)|boucle|clochette/.test(id)); } },
 };
 
 // ---------------------------------------------------------------- ce qu'elles disent
@@ -382,7 +385,7 @@ const BP_TEXTES = {
     },
     service: {
       label: 'Tu veux quelque chose ?',
-      demande: 'Un service ? Apporte-moi quelque chose qui brille. Une pièce ancienne, un bijou, un miroir… Ce que tu voudras, tant que ça brille. Je paie en choses qu’on ne trouve pas dans les boutiques.',
+      demande: 'Un service ? Apporte-moi quelque chose qui brille. Une pièce ancienne, un bijou, une cuillère d’argent… Ce que tu voudras, tant que ça brille. Je paie en choses qu’on ne trouve pas dans les boutiques.',
       attente: 'Rien qui brille. Tu me fais perdre mon temps. J’en ai beaucoup, mais il est à moi.',
       donner: 'J’ai quelque chose qui brille.',
       merci: '(Il le prend dans son bec, le retourne au soleil, le cache sous son aile.) Bien. Je vais te dire un endroit. Un seul. Ouvre tes oreilles, pas ta bouche.',
@@ -818,5 +821,5 @@ const BP_MOTS = {
   dejaVous: 'Que vouliez-vous, déjà ?',
   septJours: 'Sept jours, n’est-ce pas ?',
   // ce que dit quelqu'un qui passe et vous voit parler à une bête (une fois par jour)
-  temoins: ['Vous parlez aux bêtes, vous ?', 'Laissez donc cette bête tranquille. Elle ne vous répondra pas.', 'Mon grand-père aussi parlait aux bêtes. Sur la fin.', 'Hé. À qui vous parlez, là ?', 'Il y a des soirs comme ça, où l’on parle aux bêtes. Rentrez donc vous coucher.'],
+  temoins: ['Vous parlez aux bêtes, vous ?', 'Laissez donc cette bête tranquille. Elle ne vous répondra pas.', 'Mon grand-père aussi parlait aux bêtes. Sur la fin.', 'Hé. À qui vous parlez, là ?', 'Il y a des jours comme ça, où l’on parle aux bêtes. Rentrez donc chez vous.'],
 };
