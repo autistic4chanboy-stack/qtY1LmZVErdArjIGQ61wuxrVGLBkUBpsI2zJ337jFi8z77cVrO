@@ -1,6 +1,8 @@
 // ============================================================================
 //  HABITANTS : routines, déplacements (graphe de chemins, portes), mémoire,
 //  réputation sans jauge, dialogues, quêtes, commerces, tournées de livraison
+//  (vague 14, agent Z : les trajets sont refaits — le graphe des routes pour aller loin, la carte des pas
+//   de 11-zzzzZ-1-grille.js pour chaque tronçon, le suivi et l'API « trajets » de 11-zzzzZ-2-trajets.js)
 // ============================================================================
 
 const NPC_BY_ID = {};
@@ -44,9 +46,15 @@ const npcs = {
     return { place: cur, sleep: cur === 'home' && (h >= last + 0.6 || h < S[0][0]) };
   },
   nodeTag(tag) { const N = game.world.nav; for (let i = 0; i < N.nodes.length; i++) if (N.nodes[i].tag === tag) return i; return -1; },
+  // (les nœuds sont rangés par cases de 32 m : on ne parcourt plus tout le graphe à chaque question)
   nearestNode(x, z, maxD = 1e9, filter) {
     const N = game.world.nav;
     let best = -1, bd = maxD;
+    if (maxD <= 200) {
+      trajets.monde(trajets.vallee());
+      trajets.noeudsPres(x, z, maxD, (i, q) => { if (q.iso || (filter && !filter(q, i))) return; const d = Math.hypot(q.x - x, q.z - z); if (d < bd) { bd = d; best = i; } });
+      return best;
+    }
     for (let i = 0; i < N.nodes.length; i++) {
       const q = N.nodes[i];
       if (q.iso || (filter && !filter(q, i))) continue;
@@ -57,13 +65,9 @@ const npcs = {
   },
   // Nœud le plus proche joignable en ligne droite
   nearestReach(x, z, filter) {
-    const N = game.world.nav, w = game.world, cand = [];
-    for (let i = 0; i < N.nodes.length; i++) {
-      const q = N.nodes[i];
-      if (q.iso || (filter && !filter(q, i))) continue;
-      const d = Math.hypot(q.x - x, q.z - z);
-      if (d < 70) cand.push([d, i]);
-    }
+    const w = game.world, N = w.nav, cand = [];
+    trajets.monde(trajets.vallee());
+    trajets.noeudsPres(x, z, 70, (i, q) => { if (q.iso || (filter && !filter(q, i))) return; const d = Math.hypot(q.x - x, q.z - z); if (d < 70) cand.push([d, i]); });
     cand.sort((a, b) => a[0] - b[0]);
     for (let k = 0; k < Math.min(8, cand.length); k++) { const q = N.nodes[cand[k][1]]; if (cand[k][0] < 1 || segClear(w, x, z, q.x, q.z)) return cand[k][1]; }
     return cand.length ? cand[0][1] : this.nearestNode(x, z, 1e9, filter);
@@ -112,26 +116,37 @@ const npcs = {
     return inB(home, null, null);
   },
 
-  // A* sur le graphe ; les ponts levés et les portes verrouillées (d'autrui) coupent le chemin
+  // A* sur le graphe (tas binaire) ; les ponts levés, les portes verrouillées (d'autrui) et les arêtes que la carte
+  // des pas a trouvées impossibles coupent le chemin
+  _A: null,
   findPath(n, a, b) {
-    const w = game.world, N = w.nav;
+    const w = game.world, N = w.nav, nodes = N.nodes, nn = nodes.length;
     if (a < 0 || b < 0) return null;
     if (a === b) return [a];
-    const open = [a], g = new Map([[a, 0]]), came = new Map(), f = new Map([[a, 0]]);
-    const H = (i) => Math.hypot(N.nodes[i].x - N.nodes[b].x, N.nodes[i].z - N.nodes[b].z);
-    const closed = new Set();
-    let it = 0;
-    while (open.length && it++ < 4000) {
-      let bi = 0;
-      for (let k = 1; k < open.length; k++) if (f.get(open[k]) < f.get(open[bi])) bi = k;
-      const cur = open.splice(bi, 1)[0];
-      if (cur === b) { const path = [cur]; let c = cur; while (came.has(c)) { c = came.get(c); path.unshift(c); } return path; }
-      closed.add(cur);
+    let A = this._A;
+    if (!A || A.cap < nn) A = this._A = { cap: nn + 64, g: new Float64Array(nn + 64), par: new Int32Array(nn + 64), st: new Uint32Array(nn + 64), fer: new Uint32Array(nn + 64), tas: new Int32Array((nn + 64) * 8), cle: new Float64Array((nn + 64) * 8), gen: 0 };
+    const gen = ++A.gen, B = nodes[b];
+    const H = (i) => Math.hypot(nodes[i].x - B.x, nodes[i].z - B.z);
+    let nt = 0;
+    const push = (i, key) => { if (nt >= A.tas.length) return; let p = nt++; while (p > 0) { const q = (p - 1) >> 1; if (A.cle[q] <= key) break; A.tas[p] = A.tas[q]; A.cle[p] = A.cle[q]; p = q; } A.tas[p] = i; A.cle[p] = key; };
+    const pop = () => { const top = A.tas[0]; nt--; if (nt > 0) { const i = A.tas[nt], key = A.cle[nt]; let p = 0; for (;;) { let q = 2 * p + 1; if (q >= nt) break; if (q + 1 < nt && A.cle[q + 1] < A.cle[q]) q++; if (A.cle[q] >= key) break; A.tas[p] = A.tas[q]; A.cle[p] = A.cle[q]; p = q; } A.tas[p] = i; A.cle[p] = key; } return top; };
+    A.st[a] = gen; A.g[a] = 0; A.par[a] = -1;
+    push(a, H(a));
+    const cond = typeof trajets !== 'undefined' && trajets.condamnees.size ? trajets : null;
+    while (nt > 0) {
+      const cur = pop();
+      if (A.fer[cur] === gen) continue;
+      A.fer[cur] = gen;
+      if (cur === b) { const path = []; for (let c = cur; c >= 0; c = A.par[c]) path.push(c); return path.reverse(); }
+      const gc = A.g[cur];
       for (const e of N.adj[cur]) {
-        if (closed.has(e.to)) continue;
+        if (A.fer[e.to] === gen) continue;
         if (!this.edgeOk(n, e)) continue;
-        const ng = g.get(cur) + e.d;
-        if (ng < (g.get(e.to) ?? 1e18)) { came.set(e.to, cur); g.set(e.to, ng); f.set(e.to, ng + H(e.to)); if (!open.includes(e.to)) open.push(e.to); }
+        if (cond && cond.condamnee(cur, e.to)) continue;
+        const ng = gc + e.d;
+        if (A.st[e.to] === gen && A.g[e.to] <= ng) continue;
+        A.st[e.to] = gen; A.g[e.to] = ng; A.par[e.to] = cur;
+        push(e.to, ng + H(e.to));
       }
     }
     return null;
@@ -140,21 +155,24 @@ const npcs = {
     const w = game.world, fl = e.flag;
     if (!fl) return true;
     if (fl.startsWith('bridge:')) { const b = w.bridges[+fl.slice(7)]; return !b || b.a < 0.3; }
-    if (fl.startsWith('door:')) { const dr = w.doors[+fl.slice(5)]; return !dr || !dr.locked || (n && (dr.bld === n.d.home || dr.bld === n.d.work)); }
+    // (une porte fermée à clé : ses gens l'ouvrent ; on sort toujours d'une maison où l'on se trouve)
+    if (fl.startsWith('door:')) { const dr = w.doors[+fl.slice(5)]; return !dr || !dr.locked || (n && (dr.bld === n.d.home || dr.bld === n.d.work || n.inside === dr.bld)); }
     return true;
   },
 
-  // Place tout le monde là où sa routine l'attend (chargement, réveil)
+  // Place tout le monde là où sa routine l'attend (chargement, réveil) — couché dans SON lit la nuit
   snap(w, first) {
     const h = this.hour();
+    if (typeof trajets !== 'undefined') trajets.monde(w);
     for (const n of this.list) {
       if (!n.st.alive || n.vanished || n.hunting) continue;
       const sp = this.schedulePlace(n, h);
-      const D = this.dest(n, sp.place, sp.sleep);
+      const D = typeof trajets !== 'undefined' ? trajets.but(n, this.dest(n, sp.place, sp.sleep), true) : this.dest(n, sp.place, sp.sleep);
       n.place = sp.place; n.sleep = sp.sleep; n.goal = D; n.path = []; n.pi = 0;
       n.x = D.x; n.z = D.z; n.heading = D.r ?? Math.random() * TAU;
       n.y = D.y !== undefined && D.y !== null ? D.y : w.groundAt(D.x, D.z, w.heightAt(D.x, D.z) + 1.2, 0.8);
       n.state = sp.sleep ? 'sleep' : 'idle'; n.inside = D.bld || null;
+      n.zt = { G: D, fini: true, pts: [], k: 0, ni: 0 }; n.zInst = null; n.zOrdre = null; n.zEtat = n.state; n.move = 0;
     }
     this.updateDoors(w, true);
   },
@@ -183,12 +201,13 @@ const npcs = {
   someoneInDoor(dr) {
     const p = game.player;
     if (Math.hypot(p.pos[0] - dr.x, p.pos[2] - dr.z) < 1.2) return true;
-    return this.list.some((n) => n.st.alive && Math.hypot(n.x - dr.x, n.z - dr.z) < 1.0);
+    return this.list.some((n) => n.st.alive && !n.vanished && Math.hypot(n.x - dr.x, n.z - dr.z) < (n.state === 'walk' ? 1.6 : 1.0));
   },
 
   // ------------------------------------------------------------- mise à jour
   update(dt, w, c) {
     const h = this.hour();
+    trajets.image();
     this.doorT = (this.doorT || 0) - dt;
     if (this.doorT <= 0) { this.doorT = 1; this.updateDoors(w, false); }
     for (const dr of w.doors) { const tgt = dr.open ? 1.5 : 0; dr.a += clamp(tgt - dr.a, -dt * 3, dt * 3); }
@@ -206,28 +225,34 @@ const npcs = {
         if (n.d.id === 'garde' && !n.sleep) { if (this.guardAttack(n, dt, w, c)) continue; }
         else if (!n.sleep && n.dist < 12) { n.fleeT = 6; this.say(n, pick(['Au secours ! C’est l’assassin !', 'N’approchez pas !', 'À l’aide !']), 2.5); continue; }
       }
-      // routine
-      const sp = this.schedulePlace(n, h);
-      if (sp.place !== n.place || sp.sleep !== n.sleep || !n.goal) {
-        n.place = sp.place; n.sleep = sp.sleep;
-        n.goal = this.dest(n, sp.place, sp.sleep);
-        // loin des yeux du joueur (départ et arrivée) : on y est déjà
-        const pd = Math.hypot(n.x - c.px, n.z - c.pz), gd = Math.hypot(n.goal.x - c.px, n.goal.z - c.pz);
-        if (pd > 140 && gd > 140) {
-          const D = n.goal;
-          n.x = D.x; n.z = D.z; n.heading = D.r ?? n.heading;
-          n.y = D.y !== undefined && D.y !== null ? D.y : w.groundAt(D.x, D.z, w.heightAt(D.x, D.z) + 1.2, 0.8);
-          n.state = n.sleep ? 'sleep' : 'idle'; n.inside = D.bld || null; n.path = []; n.move = 0;
-          continue;
+      // réveillé par un bruit, un voleur, une fouille (un autre module l'a levé) : il reste debout un moment
+      if (n.zEtat === 'sleep' && n.state !== 'sleep' && !n.sleep && !n.zOrdre && !n.talking && n.fleeT <= 0) {
+        const sp0 = this.schedulePlace(n, h);
+        if (sp0.sleep) trajets.reveiller(n, { duree: 20 + Math.random() * 25, raison: 'reveil' });
+      }
+      // un ordre (trajets.allerA, reveiller…) mène ; sinon la routine
+      if (!trajets.mener(n)) {
+        const sp = this.schedulePlace(n, h);
+        if (sp.place !== n.place || sp.sleep !== n.sleep || !n.goal) {
+          n.place = sp.place; n.sleep = sp.sleep;
+          n.goal = trajets.but(n, this.dest(n, sp.place, sp.sleep));
+          // loin des yeux du joueur (départ et arrivée) : on y est déjà
+          const pd = Math.hypot(n.x - c.px, n.z - c.pz), gd = Math.hypot(n.goal.x - c.px, n.goal.z - c.pz);
+          if (pd > ZT_SAUT && gd > ZT_SAUT) {
+            const D = n.goal;
+            n.x = D.x; n.z = D.z; n.heading = D.r ?? n.heading;
+            n.y = D.y !== undefined && D.y !== null ? D.y : w.groundAt(D.x, D.z, w.heightAt(D.x, D.z) + 1.2, 0.8);
+            n.state = n.sleep ? 'sleep' : 'idle'; n.inside = D.bld || null; n.path = []; n.move = 0;
+            n.zt = { G: D, fini: true, pts: [], k: 0, ni: 0 }; n.zInst = null; n.zEtat = n.state;
+            continue;
+          }
+          trajets.partir(n, n.goal);
         }
-        const from = n.inside ? this.nearestNode(n.x, n.z, 60, (q, i) => this.inNode(n, i)) : this.nearestReach(n.x, n.z, (q) => !/:(in|mid)$/.test(q.tag));
-        const p = this.findPath(n, from, n.goal.node);
-        n.path = p || []; n.pi = 0; n.state = 'walk'; n.stuck = 0;
-        if (!p) n.path = [];
       }
       if (n.state === 'walk') this.walk(n, dt, w, c);
       else if (n.state === 'sleep') { n.move = 0; }
       else { n.move = lerp(n.move, 0, Math.min(1, dt * 6)); this.idleLook(n, dt, c); }
+      n.zEtat = n.state;
       // salutations spontanées
       n.greetT -= dt;
       if (n.greetT <= 0 && n.dist < 6 && n.state !== 'sleep' && c.visible(n) && !n.talking) {
@@ -242,68 +267,9 @@ const npcs = {
     n.lookY = lerp(n.lookY, Math.abs(want) < 1.7 ? clamp(want, -1.1, 1.1) : 0, Math.min(1, dt * 3));
     if (n.goal && n.goal.r !== null && n.goal.r !== undefined && n.dist > 3) n.heading = turnToward(n.heading, n.goal.r, dt * 2);
   },
-  walk(n, dt, w, c) {
-    const near = n.dist < 70;
-    const pts = n.path;
-    let tx, tz, last = false, edgeFlag = '';
-    if (n.pi < pts.length) {
-      const q = w.nav.nodes[pts[n.pi]]; tx = q.x; tz = q.z;
-      if (n.pi > 0) { const prev = pts[n.pi - 1]; const e = w.nav.adj[prev].find((x) => x.to === pts[n.pi]); edgeFlag = e ? e.flag : ''; }
-    } else { tx = n.goal.x; tz = n.goal.z; last = true; }
-    // porte sur le trajet : l'ouvrir en approchant, la refermer derrière soi
-    if (edgeFlag.startsWith('door:')) {
-      const dr = w.doors[+edgeFlag.slice(5)];
-      if (dr) {
-        const dd = Math.hypot(dr.x - n.x, dr.z - n.z);
-        if (dd < 2.2) { if (dr.locked && (dr.bld === n.d.home || dr.bld === n.d.work)) dr.locked = false; if (!dr.locked) { dr.open = 1; n.lastDoor = dr; } }
-        if (near && dr.a < 1.0 && dd < 1.5) { n.move = lerp(n.move, 0, dt * 6); return; }
-      }
-    } else if (n.lastDoor && Math.hypot(n.lastDoor.x - n.x, n.lastDoor.z - n.z) > 1.8) {
-      const dr = n.lastDoor; n.lastDoor = null;
-      if (!SHOP_DOORS.has(dr.bld) || this.hour() >= 19 || this.hour() < 7.5) { if (!this.someoneInDoor(dr)) dr.open = 0; }
-    }
-    let dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz);
-    if (last && n.goal.seat && d < 2.4) { n.x = tx; n.z = tz; dx = 0; dz = 0; d = 0; }
-    const reach = last ? 0.25 : 0.9;
-    if (d < reach) {
-      if (!last) { n.pi++; return; }
-      n.state = n.sleep ? 'sleep' : 'idle'; n.inside = n.goal.bld || null;
-      if (n.goal.y !== undefined && n.goal.y !== null) n.y = n.goal.y;
-      if (n.goal.r !== null && n.goal.r !== undefined) n.heading = n.goal.r;
-      n.move = 0;
-      return;
-    }
-    const speed = n.run ? 3.4 : near ? 1.35 * (n.d.age > 60 ? 0.85 : 1) * (n.d.id === 'fillette' ? 1.2 : 1) : 6;
-    n.heading = turnToward(n.heading, Math.atan2(dx, dz), dt * 5);
-    let nx = n.x + Math.sin(n.heading) * speed * dt, nz = n.z + Math.cos(n.heading) * speed * dt;
-    if (near) {
-      [nx, nz] = w.collideCircle(nx, nz, n.y, n.y + 1.7, 0.28, 0.5, true);
-      const moved = Math.hypot(nx - n.x, nz - n.z);
-      n.stuck = moved < speed * dt * 0.3 ? n.stuck + dt : Math.max(0, n.stuck - dt);
-      if (n.stuck > 1.5) { // bloqué : on contourne, puis on saute au point suivant
-        n.stuck = 0;
-        if (!c.visible(n) || n.stuckN > 3) { if (last) { n.x = tx; n.z = tz; } else { const q = w.nav.nodes[pts[n.pi]]; n.x = q.x; n.z = q.z; n.pi++; } n.stuckN = 0; }
-        else if ((n.stuckN = (n.stuckN || 0) + 1) > 1) { if (last) { n.x = tx; n.z = tz; } else { const q = w.nav.nodes[pts[n.pi]]; n.x = q.x; n.z = q.z; n.pi++; } n.stuckN = 0; }
-        else n.heading += (Math.random() < 0.5 ? 1 : -1) * 1.6;
-      }
-    }
-    n.x = nx; n.z = nz;
-    n.inside = null;
-    n.y = w.groundAt(nx, nz, n.y + 0.6, 0.6);
-    n.move = lerp(n.move, 1, Math.min(1, dt * 6));
-    n.phase += dt * speed * 2.4;
-    const want = n.dist < 6 ? angDiff(n.heading, Math.atan2(c.px - n.x, c.pz - n.z)) : 0;
-    n.lookY = lerp(n.lookY, Math.abs(want) < 1.5 ? clamp(want, -1, 1) : 0, Math.min(1, dt * 3));
-  },
-  flee(n, dt, w, c) {
-    const a = Math.atan2(n.x - c.px, n.z - c.pz);
-    n.heading = turnToward(n.heading, a, dt * 6);
-    let nx = n.x + Math.sin(n.heading) * 3.6 * dt, nz = n.z + Math.cos(n.heading) * 3.6 * dt;
-    [nx, nz] = w.collideCircle(nx, nz, n.y, n.y + 1.7, 0.28, 0.5, true);
-    n.x = nx; n.z = nz; n.y = w.groundAt(nx, nz, n.y + 0.6, 0.6);
-    n.move = 1; n.run = true; n.phase += dt * 8;
-    if (n.fleeT <= 0) { n.run = false; n.goal = null; }
-  },
+  // la marche (le suivi d'un trajet) et la fuite : 11-zzzzZ-2-trajets.js
+  walk(n, dt, w, c) { return trajets.marcher(n, dt, w, c); },
+  flee(n, dt, w, c) { return trajets.fuir(n, dt, w, c); },
   guardAttack(n, dt, w, c) {
     n.atkT = Math.max(0, (n.atkT || 0) - dt);
     if (n.dist > 1.8) {

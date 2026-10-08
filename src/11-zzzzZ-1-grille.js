@@ -5,16 +5,21 @@
 //  qui sait où un habitant pose le pied : le sol (relief, planchers, marches, tabliers des ponts), l'eau
 //  et les douves, les murs, les meubles, les arbres et les rochers, les portes (et à qui elles sont), les
 //  ponts-levis (baissés ou levés) — avec la place qu'il faut à un corps (0,3 m de rayon, de la cheville
-//  à 1,75 m). Deux sortes de couches : la surface, et le dessous (la halle des nains, sous la falaise).
+//  à 1,75 m). Trois sortes de couches : la surface, le dessous (la halle des nains, sous la falaise), et les étages
+//  (les planchers hauts des maisons, qu'on rejoint par l'échelle de meunier — 11-zzzzB1-ville.js).
 //  Sur cette grille : un A* borné (tas binaire), la vue dégagée d'un point à un autre (pour couper au
 //  plus court), le point libre le plus proche (pour s'approcher d'un lit, d'un banc, d'un établi).
 //  API (interne : trajets.grille) : reset(w), couche(x, y, z), cellule(x, z, c), libre(x, z, c, r, opts),
 //  vue(x0, z0, x1, z1, c, opts), chemin(x0, z0, x1, z1, c, opts), carreauxFaits(), oublier(x, z, r).
 // ============================================================================
-const ZG_C = 0.25, ZG_N = 64, ZG_R = 0.3, ZG_RM = 0.22, ZG_PAS = 0.55, ZG_TETE = 1.75, ZG_PENTE = 1.0;
+const ZG_C = 0.25, ZG_N = 64, ZG_R = 0.3, ZG_RM = 0.22, ZG_PAS = 0.5, ZG_TETE = 1.75, ZG_PENTE = 1.0;
 // drapeaux d'une cellule
 const ZG_BLOQ = 1, ZG_EAU = 2, ZG_PORTE = 4, ZG_PONT = 8, ZG_BLOC = 16, ZG_MEUBLE = 32, ZG_BORD = 64, ZG_SOLIDE = 128;
 const ZG_K = 8; // surfaces retenues par cellule pendant le calcul d'un carreau
+const ZG_TOUTES = { portes: true }; // (les portes comptent ouvertes)
+// un objet posé large, plat et mince (les planches d'un pont de bois, un caillebotis) se marche comme un plancher ;
+// les autres (lits, tables, bancs, coffres) sont des meubles qu'on contourne
+const zgPlancher = (b) => b.sy <= 0.35 && Math.min(b.sx, b.sz) >= 0.9;
 
 const zgrille = {
   w: null, carreaux: new Map(), couches: [], nCarreaux: 0, tCarreaux: 0, gridRef: null, image: 0,
@@ -22,17 +27,20 @@ const zgrille = {
   lb: new Float32Array(ZG_N * ZG_N * ZG_K), lt: new Float32Array(ZG_N * ZG_N * ZG_K), le: new Uint8Array(ZG_N * ZG_N * ZG_K), ln: new Uint8Array(ZG_N * ZG_N),
   vuB: new Uint32Array(16), vuO: new Uint32Array(16), tampon: 1,
 
-  reset(w) { this.w = w; this.carreaux.clear(); this.couches = []; this.gridRef = w ? w.grid : null; this.nCarreaux = 0; this.tCarreaux = 0; },
-  // la couche d'un point : 0 = surface ; k ≥ 1 = un dessous (repéré par sa hauteur)
+  reset(w) { this.w = w; this.carreaux.clear(); this.couches = []; this.gridRef = w ? w.grid : null; this.nCarreaux = 0; this.tCarreaux = 0; this.file = []; this.fileK = new Set(); this.T = null; },
+  // la couche d'un point : 0 = surface ; k ≥ 1 = un dessous (plus de 2 m sous le relief) ou un étage (plus de 2,2 m
+  // au-dessus du relief ou de l'eau), repérés par leur hauteur
   couche(x, y, z) {
     const w = this.w;
-    if (!w || y === undefined || y === null || y > w.heightAt(x, z) - 2) return 0;
-    for (let k = 0; k < this.couches.length; k++) if (Math.abs(this.couches[k] - y) < 3) return k + 1;
-    if (this.couches.length >= 6) return 1;
-    this.couches.push(y);
+    if (!w || y === undefined || y === null) return 0;
+    const terr = w.heightAt(x, z), type = y < terr - 2 ? -1 : y > Math.max(terr, w.waterLevel) + 2.2 ? 1 : 0;
+    if (!type) return 0;
+    for (let k = 0; k < this.couches.length; k++) { const C = this.couches[k]; if (C.type === type && Math.abs(C.y - y) < (type < 0 ? 3 : 1.0)) return k + 1; }
+    if (this.couches.length >= 15) return 0;
+    this.couches.push({ type, y });
     return this.couches.length;
   },
-  cle(tx, tz, c) { return (tx * 2048 + tz) * 8 + c; },
+  cle(tx, tz, c) { return (tx * 2048 + tz) * 16 + c; },
   carreau(tx, tz, c) {
     const k = this.cle(tx, tz, c);
     let T = this.carreaux.get(k);
@@ -48,6 +56,25 @@ const zgrille = {
       if (r === undefined || (Math.abs(cx - x) < r + S && Math.abs(cz - z) < r + S)) this.carreaux.delete(k);
     }
   },
+  // des carreaux à préparer d'avance, un par image quand on a le temps (pour qu'un A* n'en calcule pas dix d'un coup)
+  file: [], fileK: new Set(),
+  prechauffer(x, z, r, c) {
+    const S = ZG_N * ZG_C, t0x = Math.floor((x - r) / S), t1x = Math.floor((x + r) / S), t0z = Math.floor((z - r) / S), t1z = Math.floor((z + r) / S);
+    for (let tx = t0x; tx <= t1x; tx++) for (let tz = t0z; tz <= t1z; tz++) {
+      const k = this.cle(tx, tz, c || 0);
+      if (this.carreaux.has(k) || this.fileK.has(k)) continue;
+      if (this.file.length > 400) return;
+      this.fileK.add(k); this.file.push([tx, tz, c || 0]);
+    }
+  },
+  preparer(ms) {
+    const t0 = performance.now();
+    while (this.file.length && performance.now() - t0 < ms) {
+      const [tx, tz, c] = this.file.shift(), k = this.cle(tx, tz, c);
+      this.fileK.delete(k);
+      if (!this.carreaux.has(k)) this.carreau(tx, tz, c);
+    }
+  },
   // garder la mémoire raisonnable : on oublie les carreaux les moins servis
   ranger(max) {
     if (this.carreaux.size <= max) return;
@@ -59,7 +86,7 @@ const zgrille = {
   construire(tx, tz, c) {
     const t0 = typeof performance !== 'undefined' ? performance.now() : 0;
     const w = this.w, N = ZG_N, C = ZG_C, x0 = tx * N * C, z0 = tz * N * C, WL = w.waterLevel;
-    const sous = c > 0 ? this.couches[c - 1] : null;
+    const Lc = c > 0 ? this.couches[c - 1] : null, sous = Lc && Lc.type < 0 ? Lc.y : null, etage = Lc && Lc.type > 0 ? Lc.y : null;
     const sol = new Float32Array(N * N), f = new Uint8Array(N * N);
     let porte = null;
     const lb = this.lb, lt = this.lt, le = this.le, ln = this.ln;
@@ -80,7 +107,9 @@ const zgrille = {
         else { const bi = -1 - it; if (this.vuB[bi] !== tb) { this.vuB[bi] = tb; const b = w.blocks[bi]; if (!(b.ver && !(b.ver & w.curVer))) blocs.push(b); } }
       }
     }
-    const pour = (b) => (sous === null ? !b.under : !!b.under || (b.hidden && Math.abs(b.y - sous) < 3));
+    // (sous terre : les blocs du dessous, et tout ce qui s'y dresse à hauteur — les murs des salles des nains ne sont pas
+    //  tous marqués « under » ; à l'étage et en surface, rien de ce qui est sous terre)
+    const pour = (b) => (sous === null ? !b.under : !!b.under || (b.y < sous + 3 && b.y + b.sy > sous - 2));
     // parcourt les cellules dont le centre est à moins de « marge » du rectangle du bloc
     const balayer = (b, marge, fn) => {
       const co = Math.cos(b.r), si = Math.sin(b.r), hx = b.sx / 2, hz = b.sz / 2;
@@ -99,9 +128,9 @@ const zgrille = {
         }
       }
     };
-    // 1. les surfaces de chaque cellule (relief, dessus des blocs « de structure » : pas les meubles)
+    // 1. les surfaces de chaque cellule (relief, dessus des blocs « de structure », planches posées : pas les meubles)
     for (const b of blocs) {
-      if (b.hidden || !pour(b)) continue;
+      if ((b.hidden && !zgPlancher(b)) || !pour(b)) continue;
       const eau = b.m === M_WATERB ? 1 : 0;
       balayer(b, 0, (k, lx, lz) => {
         const n = ln[k];
@@ -111,6 +140,7 @@ const zgrille = {
       });
     }
     const cand = new Float32Array(ZG_K + 1), candB = new Uint8Array(ZG_K + 1);
+    const Md = w.moat && Math.abs(w.moat.x - (x0 + N * C / 2)) < w.moat.outer + N * C && Math.abs(w.moat.z - (z0 + N * C / 2)) < w.moat.outer + N * C ? w.moat : null;
     // le relief (même triangulation que World.heightAt, sans appel par cellule)
     const terrH = this.terrH || (this.terrH = new Float32Array(N * N));
     {
@@ -131,10 +161,10 @@ const zgrille = {
       const terr = terrH[k], n = ln[k];
       // les candidats, du plus bas au plus haut
       let nc = 0;
-      if (sous === null) { cand[nc] = terr; candB[nc++] = 0; }
+      if (sous === null && (etage === null || Math.abs(terr - etage) < 1.0)) { cand[nc] = terr; candB[nc++] = 0; }
       for (let e = 0; e < n; e++) { const q = k * ZG_K + e; if (le[q]) continue; cand[nc] = lt[q]; candB[nc++] = 1; }
       for (let a = 1; a < nc; a++) { const v = cand[a], vb = candB[a]; let b = a - 1; while (b >= 0 && cand[b] > v) { cand[b + 1] = cand[b]; candB[b + 1] = candB[b]; b--; } cand[b + 1] = v; candB[b + 1] = vb; }
-      const bas = sous === null ? terr - 0.05 : sous - 1.6, haut = sous === null ? 1e9 : sous + 1.2;
+      const bas = sous !== null ? sous - 1.6 : etage !== null ? etage - 1.0 : terr - 0.05, haut = sous !== null ? sous + 1.2 : etage !== null ? etage + 1.0 : 1e9;
       let s = NaN, deBloc = false, mouille = false;
       for (let a = 0; a < nc; a++) {
         const T = cand[a];
@@ -150,13 +180,18 @@ const zgrille = {
         if (dansEau) { mouille = true; continue; }
         s = T; deBloc = candB[a] === 1; break;
       }
-      // (un dessus de mur, un toit : on n'y marche pas — à plus de 3 m au-dessus du relief ou de l'eau)
-      if (s === s && sous === null && s > Math.max(terr, WL) + 3.0) s = NaN;
-      if (s !== s) { sol[k] = sous === null ? terr : sous; f[k] = mouille ? (ZG_EAU | ZG_BLOQ) : (ZG_SOLIDE | ZG_BLOQ); }
+      // (un dessus de mur, un toit restent des cases « libres » mais sans voisin à leur hauteur : on n'y va jamais ;
+      //  un tablier de pont haut au-dessus d'une rivière, lui, se rejoint par ses rampes)
+      if (s !== s) { sol[k] = sous !== null ? sous : etage !== null ? etage : terr; f[k] = mouille ? (ZG_EAU | ZG_BLOQ) : (ZG_SOLIDE | ZG_BLOQ); }
       else { sol[k] = s; f[k] = deBloc ? ZG_BLOC : 0; }
+      // (les douves de la ville : l'eau, et ses berges en pente — on ne s'y promène pas ; on les passe sur les ponts)
+      if (Md && sous === null && etage === null && !(f[k] & ZG_EAU)) {
+        const dc = Math.max(Math.abs(x0 + (i + 0.5) * C - Md.x), Math.abs(z0 + (j + 0.5) * C - Md.z));
+        if (dc > Md.inner + 0.2 && dc < Md.outer - 0.2) f[k] = ZG_EAU | ZG_BLOQ;
+      }
     }
     // 2. les tabliers des ponts-levis (on les compte baissés ; levés, on ne passe pas : voir passe())
-    if (sous === null) for (let bi = 0; bi < w.bridges.length; bi++) {
+    if (sous === null && etage === null) for (let bi = 0; bi < w.bridges.length; bi++) {
       const br = w.bridges[bi];
       if (Math.abs(br.x - (x0 + N * C / 2)) > N * C / 2 + br.L + 4 || Math.abs(br.z - (z0 + N * C / 2)) > N * C / 2 + br.L + 4) continue;
       const dx = Math.sin(br.r), dz = Math.cos(br.r);
@@ -168,7 +203,7 @@ const zgrille = {
     }
     // 3. les portes : l'embrasure (on y passe en ouvrant ; une porte fermée à clé n'est qu'à ses gens) ;
     //    dans l'embrasure on se fait mince et l'on baisse la tête (les portes basses des cabanes, des roulottes)
-    if (sous === null) for (let di = 0; di < w.doors.length; di++) {
+    if (sous === null && etage === null) for (let di = 0; di < w.doors.length; di++) {
       const d = w.doors[di];
       if (d.x < x0 - 3 || d.x > x0 + N * C + 3 || d.z < z0 - 3 || d.z > z0 + N * C + 3) continue;
       const box = { x: d.x, z: d.z, r: d.r, sx: d.w + 0.1, sz: 1.3 };
@@ -182,11 +217,11 @@ const zgrille = {
     const R = ZG_R, RB = ZG_R + 0.3;
     for (const b of blocs) {
       if (!pour(b)) continue;
-      const meuble = !!b.hidden;
+      const meuble = !!b.hidden && !zgPlancher(b);
       balayer(b, RB, (k, lx, lz, d, hx, hz) => {
         const fk = f[k];
         if (fk & (ZG_SOLIDE | ZG_EAU)) return;
-        const em = fk & ZG_PORTE, s = sol[k], lo = s + (meuble ? 0.05 : ZG_PAS), hi = s + (em ? 1.5 : ZG_TETE);
+        const em = fk & ZG_PORTE, s = sol[k], lo = s + (meuble ? 0.05 : ZG_PAS - 0.03), hi = s + (em ? 1.5 : ZG_TETE);
         if (b.y >= hi) return;
         const top = b.sh ? b.y + World.blockTop(b, lx < -hx ? -hx : lx > hx ? hx : lx, lz < -hz ? -hz : lz > hz ? hz : lz) : b.y + b.sy;
         if (top <= lo) return;
@@ -277,13 +312,14 @@ const zgrille = {
   },
 
   // ------------------------------------------------------------------ le point libre le plus proche (en spirale)
+  // opts : qui, y (le niveau voulu), hors (pas la case même), ouvert (pas un recoin fermé : margelle de fontaine, enclos)
   libre(x, z, c, rmax, opts) {
-    const gx0 = Math.floor(x / ZG_C), gz0 = Math.floor(z / ZG_C), qui = opts && opts.qui;
+    const gx0 = Math.floor(x / ZG_C), gz0 = Math.floor(z / ZG_C), qui = opts && opts.qui, ouvert = opts && opts.ouvert;
     let k = this.lire(gx0, gz0, c);
-    if (this.passe(this.T, k, qui, opts) && !(opts && opts.hors)) return { x: (gx0 + 0.5) * ZG_C, z: (gz0 + 0.5) * ZG_C, y: this.T.sol[k], d: 0 };
+    if (this.passe(this.T, k, qui, opts) && !(opts && opts.hors) && (!ouvert || !this.poche(gx0, gz0, c))) return { x: (gx0 + 0.5) * ZG_C, z: (gz0 + 0.5) * ZG_C, y: this.T.sol[k], d: 0 };
     // (on reste au même niveau : le plancher sous le meuble visé, pas le dessus d'un mur)
     const R = Math.ceil((rmax || 3) / ZG_C), ref = opts && opts.y !== undefined && opts.y !== null ? opts.y : this.T.sol[k];
-    let best = null, bd = 1e9;
+    const cand = [];
     for (let r = 1; r <= R; r++) {
       for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
         if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
@@ -292,12 +328,49 @@ const zgrille = {
         const T = this.T;
         if (!this.passe(T, k, qui, null)) continue;
         if (Math.abs(T.sol[k] - ref) > 0.8) continue;
-        const d = Math.hypot(dx, dz);
-        if (d < bd) { bd = d; best = { x: (gx + 0.5) * ZG_C, z: (gz + 0.5) * ZG_C, y: T.sol[k], d: d * ZG_C }; }
+        cand.push([Math.hypot(dx, dz), gx, gz, T.sol[k]]);
       }
-      if (best && bd <= r) break;
+      // (assez de candidats à cette distance : la spirale s'arrête un anneau plus loin)
+      if (cand.length && cand.reduce((m, q) => Math.min(m, q[0]), 1e9) <= r - (ouvert ? 2 : 0)) break;
     }
-    return best;
+    cand.sort((a, b) => a[0] - b[0]);
+    let essais = 0;
+    for (const [d, gx, gz, s] of cand) {
+      if (ouvert && essais++ < 10 && this.poche(gx, gz, c)) continue;
+      return { x: (gx + 0.5) * ZG_C, z: (gz + 0.5) * ZG_C, y: s, d: d * ZG_C };
+    }
+    return null;
+  },
+  // un recoin fermé ? (on compte les cases qu'on atteint à pied, jusqu'à « lim » : moins, c'est une margelle, un enclos, un îlot)
+  PQ: null, PV: null, PS: null, PF: null, pgen: 0,
+  poche(gx0, gz0, c, lim) {
+    lim = lim || 480;
+    const W = 96, H = W >> 1;
+    if (!this.PQ) { this.PQ = new Int32Array(W * W); this.PV = new Uint32Array(W * W); this.PS = new Float32Array(W * W); this.PF = new Uint8Array(W * W); }
+    const g = ++this.pgen, Q = this.PQ, V = this.PV, sols = this.PS, fls = this.PF;
+    let qa = 0, qb = 0, n = 0;
+    Q[qb++] = H * W + H; V[H * W + H] = g;
+    let k = this.lire(gx0, gz0, c);
+    sols[H * W + H] = this.T.sol[k]; fls[H * W + H] = this.T.f[k];
+    const DX = [1, -1, 0, 0], DZ = [0, 0, 1, -1];
+    while (qa < qb) {
+      const cur = Q[qa++]; n++;
+      if (n >= lim) return false;
+      const cx = cur % W, cz = (cur / W) | 0;
+      for (let d = 0; d < 4; d++) {
+        const nx = cx + DX[d], nz = cz + DZ[d];
+        if (nx < 0 || nz < 0 || nx >= W || nz >= W) return false; // (on sort de la fenêtre : c'est ouvert)
+        const ni = nz * W + nx;
+        if (V[ni] === g) continue;
+        k = this.lire(gx0 + nx - H, gz0 + nz - H, c);
+        const T = this.T;
+        if (!this.passe(T, k, null, ZG_TOUTES)) continue;
+        if (!this.marche(sols[cur], fls[cur], T.sol[k], T.f[k], ZG_C)) continue;
+        V[ni] = g; sols[ni] = T.sol[k]; fls[ni] = T.f[k];
+        Q[qb++] = ni;
+      }
+    }
+    return true;
   },
 
   // ------------------------------------------------------------------ A* sur la grille (fenêtre bornée, tas binaire)
@@ -316,12 +389,12 @@ const zgrille = {
     const C = ZG_C, qui = opts.qui;
     // une arrivée impossible (dans un meuble, un mur, l'eau) : la cellule libre la plus proche (le « point d'approche ») ;
     // un départ dans la bordure d'un obstacle : on part de la cellule libre voisine
-    this.approche = null;
+    this.approche = null; this.raison = null;
     {
       const kg = this.lire(Math.floor(x1 / C), Math.floor(z1 / C), c);
       if (!this.passe(this.T, kg, qui, opts)) {
         const L = this.libre(x1, z1, c, opts.rayonBut || 2.5, { qui, portes: opts.portes, cles: opts.cles, y: opts.yBut });
-        if (!L) { this.stat.echec++; return null; }
+        if (!L) { this.stat.echec++; this.raison = 'but'; return null; }
         x1 = L.x; z1 = L.z; this.approche = L;
       }
       const ks = this.lire(Math.floor(x0 / C), Math.floor(z0 / C), c);
@@ -334,7 +407,7 @@ const zgrille = {
     const marge = Math.ceil((opts.marge ?? 14) / C);
     let wx0 = Math.min(sx, ex) - marge, wz0 = Math.min(sz, ez) - marge, wx1 = Math.max(sx, ex) + marge, wz1 = Math.max(sz, ez) + marge;
     const ww = wx1 - wx0 + 1, wh = wz1 - wz0 + 1;
-    if (ww * wh > 640000) { this.stat.trop++; return null; }
+    if (ww * wh > 640000) { this.stat.trop++; this.raison = 'max'; return null; }
     const F = this.fenetre(ww * wh);
     const gen = ++F.gen;
     const idx = (gx, gz) => (gz - wz0) * ww + (gx - wx0);
@@ -387,6 +460,8 @@ const zgrille = {
       }
     }
     this.stat.astar++; this.stat.exp += it;
+    // (pourquoi rien : la fenêtre épuisée — on ne passe pas —, ou le compte d'expansions atteint — on ne sait pas)
+    this.raison = found >= 0 ? null : nt > 0 && it >= max ? 'max' : 'ferme';
     if (found < 0 && opts.proche && best >= 0 && bestH <= opts.proche) found = best;
     if (found < 0) { this.stat.echec++; if (t0) this.stat.ms += performance.now() - t0; return null; }
     // les cellules, de l'arrivée au départ
