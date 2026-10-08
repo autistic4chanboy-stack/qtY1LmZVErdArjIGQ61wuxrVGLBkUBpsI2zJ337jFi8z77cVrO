@@ -302,9 +302,15 @@ const dragonV3 = {
     let best = 0, ou = null;
     if (J.bruit > 0) { const d = Math.hypot(J.x - eye[0], J.y - eye[1], J.z - eye[2]), por = J.bruit * k; if (d < por) { best = (1 - d / por) * 0.8; ou = [J.x, J.y, J.z]; } }
     for (const b of furtif.bruits) {
-      const fort = b.nature === 'coup de feu' ? 2.6 : b.nature === 'cloche' ? 0 : 1;
+      const fort = b.nature === 'coup de feu' ? 2.6 : b.nature === 'cloche' || b.nature === 'feu' ? 0 : 1;
       const d = Math.hypot(b.x - eye[0], b.y - eye[1], b.z - eye[2]), por = b.portee * k * fort;
-      if (d < por) { const q = 1 - d / por; if (q > best) { best = q; ou = [b.x, b.y, b.z]; } }
+      if (d < por) {
+        const q = 1 - d / por;
+        if (q > best) { best = q; ou = [b.x, b.y, b.z]; }
+        // un bruit soudain le fait tressaillir, une fois (comme les autres guetteurs de V1, en moins nerveux : pas pour
+        // un bruit à peine perçu) ; un caillou tout près d'un perchoir lui fait tourner la tête
+        if (q > 0.15) { if (!b.ont) b.ont = new Set(); if (!b.ont.has(D)) { b.ont.add(D); F.sursaut = Math.max(F.sursaut || 0, q * 0.5); } }
+      }
     }
     F.ouLeBruit = ou;
     return best;
@@ -1019,11 +1025,7 @@ zone.sur('fx', (fx, tint, sky) => dragonV3.fx(fx, tint, sky));
 zone.sur('entrer', () => { dragonV3.D = null; dragonV3.placer('entrer'); });
 zone.sur('sortir', () => { if (dragonV3.D) furtif.oublier(dragonV3.D); dragonV3.D = null; dragonV3.souffle = null; dragonV3.flammes.clear(); dragonV3.impacts = []; dragonV3.brule = 0; dragonV3.ombreK = 0; });
 zone.sur('repos', () => { dragonV3.placer('repos'); });
-// un coup de fusil, dans la Zone, s'entend de très loin (le Ver vient voir)
-{
-  const _shot = sound.shot.bind(sound);
-  sound.shot = function (...a) { if (zone.dedans && game.player) furtif.bruit(game.player.pos[0], game.player.pos[1], game.player.pos[2], 60, 'coup de feu'); return _shot(...a); };
-}
+// (un coup de fusil, dans la Zone : V1 en fait un bruit de 90 m, « coup de feu » ; le Ver l'entend de très loin — voir ouie)
 // l'œil (V1) montre aussi le Ver, de loin (au-delà des 90 m de l'œil commun)
 HOOKS.load.push(() => {
   if (dragonV3.oeilBranche || typeof oeilV1 === 'undefined') return;
