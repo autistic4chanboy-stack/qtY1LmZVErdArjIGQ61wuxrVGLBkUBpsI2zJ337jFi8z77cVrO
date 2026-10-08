@@ -1204,6 +1204,8 @@ async function extract() {
       const cv = safe('bête ' + k, () => renderRig(`(() => { const cfg = CREATURES[${JSON.stringify(k)}]; const rig = ANIMAL_RIGS[cfg.rig](1); try { if (rig.kind === 'bird') poseBird(rig, { t: 0, move: 0 }); else poseQuad(rig, { t: 0, move: 0 }); } catch (e) {} return rig; })()`, 96));
       if (cv) fig['an:' + k] = { full: shelf.add(trim(cv)) };
     }
+    // les bêtes des Terres d'Avant et le Ver (la quinzième vague : tools/wiki-v15.js)
+    safe('vague 15 (figurines)', () => { const W15 = require('./wiki-v15.js'); if (W15.figures) W15.figures({ G, renderRig, safe, add: (key, cv) => { fig[key] = { full: shelf.add(trim(cv)) }; } }); });
     // plantes, arbres, champignons… (sprites du décor)
     const OT = G.get('OBJ_TYPES') || [];
     OT.forEach((t) => {
@@ -4425,6 +4427,10 @@ function buildWiki(DB) {
   if (W14) {
     try { W14.build({ DB, T, P, SP, SEC, esc, lk, IL, FILL, quotes, npcLink, pages, used, addCat, rarTag, nfmt, planBtn, mapBtn, MF, ITEMS, NAMES, link, placeLink }); } catch (e) { (DB.log || []).push('wiki-v14.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
   }
+  // ==== LA QUINZIÈME VAGUE : une fiche par bête des Terres d'Avant (et le Ver), un peu de rangement : tools/wiki-v15.js
+  let W15 = null;
+  try { W15 = require('./wiki-v15.js'); } catch (e) { (DB.log || []).push('wiki-v15.js : ' + e.message); }
+  if (W15) try { W15.build({ DB, T, P, SP, SEC, esc, lk, IL, FILL, quotes, npcLink, pages, used, addCat, rarTag, nfmt, planBtn, mapBtn, MF, ITEMS, NAMES, link, placeLink, FIG }); } catch (e) { (DB.log || []).push('wiki-v15.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
   for (const f of [FILE.vol, FILE.prison, FILE.sentiments]) if (f) genericPage(f, 'prison', 'Prison, vol et sentiments');
   for (const f of Object.keys(MF)) if (!MODPAGE[f] && !/^07-/.test(f)) genericPage(f, 'nouveautes-autres', 'Autres nouveautés');
   // ce qui reste des tables de chaque module : en bas de sa fiche principale
@@ -4535,6 +4541,7 @@ function buildWiki(DB) {
   // les sections de la treizième vague (Quêtes principales, Les bêtes qui parlent), à leur place
   if (W13 && W13.sections) try { W13.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v13.js (sections) : ' + e.message); }
   if (W14 && W14.sections) try { W14.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v14.js (sections) : ' + e.message); }
+  if (W15 && W15.sections) try { W15.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v15.js (sections) : ' + e.message); }
   // semaine : page d'ensemble
   if (SEM.length) P('cat:semaine', { t: 'La semaine', s: `${SEM.length} jours`, c: [], i: '📅', h: `<p class="lead">Dans la vallée, la semaine compte ${SEM.length} jours${DB.derived.jour ? `, et une journée dure ${Math.round(DB.derived.jour / 60)} minutes` : ''}.</p><table class="t">${SEM.map((J, k) => `<tr><th>${link('sem:' + k)}</th><td>${esc((J.annonce || '').replace(/^\(|\)$/g, ''))}</td></tr>`).join('')}</table>` });
 
