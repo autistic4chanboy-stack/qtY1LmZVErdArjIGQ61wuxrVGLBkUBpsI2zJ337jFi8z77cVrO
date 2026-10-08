@@ -131,6 +131,12 @@ zone.passe('V2-repaires', (Z, O) => {
     B.block(f, 3.3, -0.6, 0, 0.9, 4.2, 6.2, M_ROCK);
     B.block(f, 0, 3.2, -0.3, 7.6, 1.2, 6.0, m);
     B.block({ x: f.x + fx * 3.6 + fz * 3.4, y: s.y - 0.3, z: f.z + fz * 3.6 - fx * 3.4, r: cap + 0.5 }, 0, 0, 0, 1.6, 1.4, 1.2, M_ROCK);
+    // des rochers contre les parois et sur le toit, de travers : une tanière, pas une boîte
+    for (const [lx, ly, lz, sx, sy, sz, rr] of [[-4.3, -0.5, -1.4, 1.8, 2.8, 2.6, 0.45], [4.2, -0.5, -2.3, 1.7, 3.2, 2.2, -0.35], [0.9, 3.8, -1.3, 3.4, 1.1, 3.6, 0.3],
+      [-2.1, 3.6, 0.9, 2.5, 0.9, 2.1, -0.55], [1.4, -0.6, -4.1, 3.2, 2.4, 1.7, 0.18], [-4.1, -0.5, 2.7, 1.4, 1.5, 1.6, 0.8], [4.1, -0.5, 2.9, 1.3, 1.3, 1.4, -0.65]]) {
+      const [wx, wz] = B.toWorld(f, lx, lz);
+      B.block({ x: wx, y: f.y, z: wz, r: cap + rr }, 0, ly, 0, sx, sy, sz, M_ROCK);
+    }
     const [tx, tz] = B.toWorld(f, 1.6, -1.7);
     O.prop('coffre_vieux', tx, s.y, tz, cap + Math.PI);
     cache('v2_tanniere', tx, s.y + 0.6, tz, 'Fouiller la tanière', 'v2_tanniere', 'Des os rongés, de la paille noire, et ce qui reste d’un coffre.');
@@ -263,7 +269,8 @@ zone.passe('V2-repaires', (Z, O) => {
   // le cerf-aux-mains : le Bois Mort, à l'est ; son arbre creux, plus loin
   {
     const B = reg('bois_mort'), P = chercher(B.x + B.r * 0.15, B.z + B.r * 0.35, B.r * 0.25, { r: 3, nid: 120 });
-    const T = chercher(B.x - B.r * 0.05, B.z - B.r * 0.4, B.r * 0.3, { r: 3, nid: 60, test: (x, z) => !P || Math.hypot(x - P[0], z - P[1]) > 140 });
+    // (l'arbre creux : à deux ou trois minutes de marche derrière lui, toujours dans le Bois Mort)
+    const T = P ? chercher(P[0], P[1], 200, { r: 3, nid: 60, essais: 400, test: (x, z) => { const d = Math.hypot(x - P[0], z - P[1]); return d > 130 && d < 200 && zone.region(x, z) === 'bois_mort'; } }) : null;
     if (T) {
       O.prop('v2_creux', T[0], sol(T[0], T[1]), T[1], rnd() * TAU);
       cache('v2_creux', T[0], sol(T[0], T[1]) + 1.0, T[1], 'L’arbre creux', 'v2_cache_cerf', 'Un carnier de chasseur, rangé avec soin dans le creux de l’arbre, comme pour quelqu’un qui devait revenir.');

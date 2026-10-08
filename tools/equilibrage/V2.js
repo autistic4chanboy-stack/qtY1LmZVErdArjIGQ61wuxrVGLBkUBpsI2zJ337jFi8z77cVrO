@@ -65,6 +65,7 @@ module.exports = {
         const r={id:n.id,esp:n.esp,n:n.n,hostile:D.nature==='hostile',unique:!!D.unique,eau:!!D.eau,perche:!!n.perche,sol:+sol.toFixed(1),y:+n.y.toFixed(1),
           chem:Math.round(zoneGen.surChemin(Z.v1.masque,Z.v1.mW,n.x,n.z,0)?0:dChem(n.x,n.z)),feu:Math.round(Math.min(...feux.map(f=>Math.hypot(f.x-n.x,f.z-n.z)))),arr:Math.round(Math.hypot(n.x-A.x,n.z-A.z))};
         if(n.esp==='v2_pendu'&&n.branches)r.cordes=Math.round(Math.min(...n.branches.map(b=>dChem(b.x,b.z)))*10)/10;
+        if(n.esp==='v2_cerf')r.creux=n.creux?Math.round(Math.hypot(n.creux.x-n.x,n.creux.z-n.z)):-1;
         out.push(r);}
       return JSON.stringify({nids:out,WL,props:Z.props.filter(q=>q.id.startsWith('v2_')).length,blocs:Z.blocks.length,mes:zone.mesures.etapes['passe V2-repaires']});})()`));
     log(`la Zone générée en ${Date.now() - t0} ms (machine virtuelle) ; la passe V2 : ${R.mes} ms ; ${R.nids.length} nids, ${R.nids.reduce((a, n) => a + n.n, 0)} bêtes, ${R.props} objets posés V2`);
@@ -85,8 +86,10 @@ module.exports = {
       if (n.unique && n.hostile && n.chem < 60) ko(`${n.id} : une bête unique à ${n.chem} m d'un chemin`);
       if (n.cordes !== undefined && n.cordes < 3.5) ko(`${n.id} : une corde à ${n.cordes} m d'un chemin`);
     }
+    const cerf = R.nids.find((n) => n.esp === 'v2_cerf');
+    if (!cerf || cerf.creux < 60 || cerf.creux > 230) ko(`le cerf : son arbre creux à ${cerf ? cerf.creux : '?'} m (il faut le suivre : 60 à 230 m)`);
     const uniq = R.nids.filter((n) => n.unique && n.hostile).map((n) => `${n.esp.replace('v2_', '')} ${n.chem} m`);
-    log(`les uniques, loin des chemins : ${uniq.join(', ')} ; les pendus des chemins : cordes à ${R.nids.filter((n) => n.cordes !== undefined).map((n) => n.cordes).join(', ')} m`);
+    log(`le cerf mène à son arbre creux, à ${cerf && cerf.creux} m ; les uniques, loin des chemins : ${uniq.join(', ')} ; les pendus des chemins : cordes à ${R.nids.filter((n) => n.cordes !== undefined).map((n) => n.cordes).join(', ')} m`);
     // ---------------------------------------------------------------- l'API pour V3, V4, V5
     const API = JSON.parse(J.ev(`(()=>{const Z=__Z,C=zone.creatures;const n0=Z.v2.nids.length;
       const id=C.poser('gargouille',100,50,100,{id:'essai_v2',agent:'V4',perche:true});

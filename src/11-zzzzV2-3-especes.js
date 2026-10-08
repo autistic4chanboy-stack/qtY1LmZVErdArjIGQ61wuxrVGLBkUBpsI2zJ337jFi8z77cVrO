@@ -412,11 +412,15 @@ Object.assign(V2_CONDUITES, {
     if (ev.etat === 'danse') {
       e.danse = true; e.cache = false;
       e.ang += dt * 0.55;
-      const R = 4.2;
-      e.x = N.x + Math.cos(e.ang) * R; e.z = N.z + Math.sin(e.ang) * R;
-      e.y = zone.Z.heightAt(e.x, e.z);
-      e.heading = e.ang + Math.PI;
-      e.move = 1; e.phase += dt * 6;
+      const R = 4.2, tx = N.x + Math.cos(e.ang) * R, tz = N.z + Math.sin(e.ang) * R;
+      // (loin de sa place dans la ronde, il y retourne en courant ; puis il danse)
+      if (Math.hypot(tx - e.x, tz - e.z) > 0.8) { e.danse = false; C.aller(e, dt, tx, tz, e.D.course); }
+      else {
+        e.x = tx; e.z = tz;
+        e.y = zone.Z.heightAt(e.x, e.z);
+        e.heading = e.ang + Math.PI;
+        e.move = 1; e.phase += dt * 6;
+      }
       if (e.k === 0 && e.sonT <= 0) { e.sonT = 3.1; if (e.dist < 70) { C.crier(e, 'ronde', 0.9); if (e.dist < 45) penser.une('v2_ronde', V2_TEXTES.korriganRonde, 3.5); C.noter('v2_korrigan', 0); } }
       const etat = furtif.percevoir(e, dt);
       if (!ami && K.nuit !== farm.s.day && (e.dist < 8.5 || etat === 'alertee') && !game.dying && !ui.panel) {
@@ -430,10 +434,17 @@ Object.assign(V2_CONDUITES, {
       // ils s'arrêtent tous ensemble, se tournent, et viennent faire cercle autour de vous
       ev.t += dt / Math.max(1, N.ents.length);
       e.danse = false;
+      // on a filé avant qu'ils ne fassent cercle : ils rient, et la ronde reprend sans vous
+      if (e.k === 0 && e.dist > 22) {
+        ev.etat = 'danse'; ev.t = 0;
+        for (const o of N.ents) { o.ang = Math.atan2(o.z - N.z, o.x - N.x); o.rit = 1.5; }
+        C.crier(e, 'rire', 0.8, true);
+        return;
+      }
       const a = (e.k / Math.max(1, N.n)) * TAU, tx = p.pos[0] + Math.cos(a) * 2.6, tz = p.pos[2] + Math.sin(a) * 2.6;
       C.aller(e, dt, tx, tz, e.D.course);
       if (Math.hypot(tx - e.x, tz - e.z) < 0.6) { e.move = 0; C.tourner(e, p.pos[0], p.pos[2], dt, 6); }
-      if (ev.t > 2.4 && e.k === 0 && !ui.panel && !game.dying) { ev.etat = 'question'; v2Korrigans.question(N); }
+      if (ev.t > 2.4 && e.k === 0 && e.dist < 6 && !ui.panel && !game.dying) { ev.etat = 'question'; v2Korrigans.question(N); }
       return;
     }
     if (ev.etat === 'question') { C.arreter(e, dt); C.tourner(e, p.pos[0], p.pos[2], dt, 6); if (!ui.panel) { ev.etat = 'parti'; } return; }
@@ -582,7 +593,8 @@ function v2CerfGuide(e, dt, p) {
   if (G.phase === 'marche') {
     const loin = e.dist > 16;
     if (loin) { C.arreter(e, dt); C.regarder(e, p.pos[0], p.pos[2], dt, 2); if (!G.attendu && e.dist < 40) { G.attendu = true; penser.pas('v2_cerf_attend', 60, V2_TEXTES.cerfAttend, 3); } if (e.dist > 90) { e.guide = null; e.fuitT = 3; } return; }
-    const reste = C.aller(e, dt, T.x + 2.2, T.z + 2.2, e.D.marche * 1.3);
+    // (il va du pas de qui le suit accroupi ; plus doucement quand on traîne)
+    const reste = C.aller(e, dt, T.x + 2.2, T.z + 2.2, e.D.marche * (e.dist > 9 ? 1.2 : 1.8));
     C.regarder(e, T.x, T.z, dt);
     if (reste < 1.5) { G.phase = 'montre'; G.t = 0; C.crier(e, 'doigts', 1, true); }
     return;
@@ -631,7 +643,11 @@ const V2_NAISSANCE = {
   },
   // (les noyés et le chien ne guettent pas le joueur : ni l'œil ni les cris des autres ne les concernent)
   noye(N, L) { for (const e of L) { e.y = zone.Z.waterLevel - 1.3; furtif.oublier(e); } },
-  ronde(N, L) { const ev = N.ev = { etat: 'danse', t: 0 }; void ev; L.forEach((e, k) => { e.ang = (k / L.length) * TAU; e.echelle = 0.62; e.danse = true; }); },
+  ronde(N, L) {
+    N.ev = { etat: 'danse', t: 0 };
+    // (ils naissent à leur place dans la ronde)
+    L.forEach((e, k) => { e.ang = (k / L.length) * TAU; e.echelle = 0.62; e.danse = true; e.x = N.x + Math.cos(e.ang) * 4.2; e.z = N.z + Math.sin(e.ang) * 4.2; e.y = zone.Z.heightAt(e.x, e.z); });
+  },
   cerf(N, L) { for (const e of L) e.echelle = 1; },
   chien(N, L) {
     const K = this.S().chien;

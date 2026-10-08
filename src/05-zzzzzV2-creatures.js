@@ -83,7 +83,7 @@ const V2_ESPECES = {
     nb: [1, 1], pv: 650, rayon: 2.1, haut: 2.6, marche: 0.9, course: 4.8, tour: 0.8, errance: 30, laisse: 60,
     heures: [12, 13], hors: 'dort', feu: false,
     sens: { vue: 18, cone: 120, nuit: 0.6, ouie: 1.0, memoire: 12, oubli: 0.3, vitesse: 0.8, lumiere: 0.5, hauteur: 2.2 },
-    dort: { vue: 5, cone: 90, nuit: 1, ouie: 0.55, memoire: 6, vitesse: 0.7 },
+    dort: { vue: 5, cone: 90, nuit: 1, ouie: 0.7, memoire: 6, vitesse: 1.0 },
     coup: { dmg: 40, portee: 3.2, prep: 0.9, recup: 3.5, cause: 'Écrasé par la Tarasque' },
     butin: null,
   },
