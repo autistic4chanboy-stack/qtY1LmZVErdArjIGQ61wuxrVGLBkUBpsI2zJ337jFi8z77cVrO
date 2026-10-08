@@ -35,7 +35,7 @@
 const Y2_CAUTION = { 3: 150, 7: 300 };
 const Y2_RETOUR_H = 48;           // la clé perdue revient dans son livre au bout de deux jours
 const Y2_TITRE_CLE = 'La clé de la Grande Porte';
-const Y2_BRUIT_CLE = 0.35;        // soulever la clé de fer de son livre, la nuit : un bruit de porte (U_BRUITS de U)
+const Y2_BRUIT_CLE = 0.7;         // soulever la clé de fer de son livre, la nuit (la force que U a calibrée : ≈ 3 % tout près du lit)
 // la question du bibliothécaire : la réponse est dans les livres (voir 05-zzzzzY-4-…)
 const Y2_QUESTIONS = [
   { q: '« Que dit le gardien, quand il referme la Porte derrière celui qui revient ? »', livre: 'y_porte_chronique',
@@ -779,16 +779,7 @@ HOOKS.load.push(() => {
   }
 }
 
-// ---------------------------------------------------------------- les livres de serrurerie, pour la compétence de U
-function y2Serrures() {
-  try {
-    if (typeof crochetage === 'undefined' || !crochetage || !crochetage.livres || typeof crochetage.livres !== 'object') return;
-    const poids = { y_serrurerie: 3, y_monte_en_l_air: 2, y_portes_seuils: 1 };
-    for (const id of bibliotheque2.serrures()) if (!crochetage.livres[id]) crochetage.livres[id] = poids[id] || 1;
-  } catch (e) { console.error(e); }
-}
-y2Serrures();
-HOOKS.load.push(() => y2Serrures());
+// (les livres de serrurerie, pour la compétence de U : U lit lui-même bibliotheque2.serrures(), « ils comptent deux »)
 
 // ---------------------------------------------------------------- chargement : remettre l'état d'aplomb
 HOOKS.load.push(() => {
