@@ -427,7 +427,7 @@ Object.assign(PROP_COLL, {
   v5_puits: [1.3, 1.3, 0.8], v5_metier: [0.8, 0.35, 1.5], v5_brasier: [1.2, 1.2, 0.5],
 });
 Object.assign(PROP_LIGHTS, {
-  v5_feu: { c: [1.0, 0.7, 0.42], r: 13, y: 1.7, flicker: true, lit: true },
-  v5_feu_compte: { c: [1.05, 0.76, 0.48], r: 20, y: 2.2, flicker: true, lit: true },
-  v5_chandelles: { c: [1.0, 0.72, 0.42], r: 5, y: 0.4, flicker: true },
+  v5_feu: { c: [1.0, 0.7, 0.42], r: 15, y: 1.7, flicker: true, lit: true },
+  v5_feu_compte: { c: [1.05, 0.76, 0.48], r: 22, y: 2.2, flicker: true, lit: true },
+  v5_chandelles: { c: [1.0, 0.72, 0.42], r: 6, y: 0.4, flicker: true },
 });

@@ -168,9 +168,13 @@ zone.passe('V5-basse-fosse', (Z, O) => {
     const pan = (lx, lz, sx, sz, h) => v5Bloc(Z, fR, lx, -0.8, lz, sx, h + 0.8, sz, pierre, { surface: true });
     // quatre murs à moitié tombés (la porte sur la façade), des pierres au pied
     pan(-3.4, D / 2, 3.2, ep, 2.6); pan(3.1, D / 2, 3.8, ep, 1.4);
-    pan(0, -D / 2, W, ep, 3.4);
-    pan(-W / 2, -1.6, ep, 4.8, 3.0); pan(-W / 2, 3.0, ep, 1.4, 1.1);
-    pan(W / 2, 0.6, ep, 6.8, 1.9);
+    // (le fond et les côtés à moitié tombés, à des hauteurs inégales : de loin, une ruine et non un bloc)
+    pan(-2.6, -D / 2, 4.8, ep, 3.4); pan(1.4, -D / 2, 3.2, ep, 2.3); pan(4.0, -D / 2, 2.0, ep, 1.2);
+    pan(-W / 2, -2.2, ep, 3.6, 2.9); pan(-W / 2, 1.2, ep, 1.6, 1.6); pan(-W / 2, 3.0, ep, 1.4, 1.1);
+    pan(W / 2, -2.3, ep, 2.6, 1.7); pan(W / 2, 2.9, ep, 2.2, 0.9);
+    // une poutre du toit, tombée en travers ; des tuiles de pierre au pied du mur
+    v5Bloc(Z, fR, 1.8, -0.05, 0.6, 0.32, 0.32, 5.6, M_PLANKS, { surface: true, er: 0.55 });
+    v5Bloc(Z, fR, -0.6, -0.1, -2.9, 2.2, 0.4, 0.9, pierre, { surface: true, er: 0.2 });
     v5Bloc(Z, fR, -3.4, 2.6, D / 2, 3.4, 0.3, ep + 0.2, pierre, { surface: true });
     for (const [lx, lz, s] of [[2.4, -1.8, 0.7], [-2.9, 1.2, 0.5], [4.1, -3.0, 0.6], [1.0, 3.0, 0.45]]) { const [x, z] = v5Monde(fR, lx, lz); Z.blocks.push({ x, y: O.hauteur(x, z) - 0.2, z, sx: s * 1.4, sy: s, sz: s * 1.1, r: O.rnd() * TAU, m: pierre, sh: 0 }); }
     // l'enseigne tombée, devant la porte ; la trappe dans un coin, sous les gravats

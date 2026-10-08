@@ -210,6 +210,9 @@ zone.passe('V5-secrets', (Z, O) => {
       blk(-W / 4 - 0.6, -0.6, D / 2, W / 2 - 1.2, H + 0.6, ep, m); blk(W / 4 + 0.6, -0.6, D / 2, W / 2 - 1.2, H * 0.8 + 0.6, ep, m);
       blk(0, H - 0.6, D / 2, 2.6, 1.0, ep, m);
       blk(-1.2, H, -1.0, W / 2 + 1.6, 0.4, D - 3, M_SLATE, { er: 0.05 });
+      // le clocher-mur au-dessus de la porte : vide (la cloche, on l'a descendue) ; une croix de pierre
+      blk(-0.8, H + 0.4, D / 2, 0.5, 1.9, ep, m); blk(0.8, H + 0.4, D / 2, 0.5, 1.9, ep, m); blk(0, H + 2.3, D / 2, 2.1, 0.5, ep, m);
+      blk(0, H + 2.8, D / 2, 0.2, 1.1, 0.2, m); blk(0, H + 3.35, D / 2, 0.75, 0.18, 0.18, m);
       // le chevet : deux pans et, au milieu, le mur qui ment ; derrière, la crypte (fermée, couverte)
       blk(-2.4, -0.6, -D / 2, 2.2, H + 0.6, ep, m); blk(2.4, -0.6, -D / 2, 2.2, H + 0.6, ep, m); blk(0, 2.7, -D / 2, 2.6, H - 2.7, ep, m);
       mur('chapelle', blk(0, -0.6, -D / 2, 2.64, 3.3, ep + 0.02, m));

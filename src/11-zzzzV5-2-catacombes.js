@@ -69,12 +69,13 @@ const catacombesV5 = {
     if (!(k > 0)) return;
     const N = [0, 0, 0], mix = (a, b) => v3.lerp(a, b, k);
     sky.zen = mix(sky.zen, [0.004, 0.004, 0.005]); sky.hor = mix(sky.hor, [0.006, 0.0055, 0.006]); sky.glow = mix(sky.glow, N); sky.haze = mix(sky.haze, [0.006, 0.005, 0.005]);
-    sky.amb = mix(sky.amb, [0.05, 0.047, 0.052]); sky.sunCol = mix(sky.sunCol, N); sky.moonCol = mix(sky.moonCol, N);
+    // (assez de jour gris pour lire la forme des rues ; trop peu pour y être vu : le noir d'en bas cache encore)
+    sky.amb = mix(sky.amb, [0.115, 0.108, 0.118]); sky.sunCol = mix(sky.sunCol, N); sky.moonCol = mix(sky.moonCol, N);
     if (sky.cloudLit) sky.cloudLit = mix(sky.cloudLit, N);
     if (sky.cloudDark) sky.cloudDark = mix(sky.cloudDark, N);
     sky.stars *= 1 - k; sky.sunVis = (sky.sunVis || 0) * (1 - k); sky.moonVis = (sky.moonVis || 0) * (1 - k);
     sky.shadowK = (sky.shadowK || 0) * (1 - k); sky.nightLit = 1; sky.wet = 0; sky.frost = 0; sky.mist = 0;
-    sky.fog = [lerp(sky.fog[0], 4, k), lerp(sky.fog[1], 74, k)];
+    sky.fog = [lerp(sky.fog[0], 5, k), lerp(sky.fog[1], 84, k)];
     void p;
   },
 
