@@ -326,8 +326,8 @@ const game = {
     if (nh && npcs.byId[nh.n.id]) cand({ kind: 'npc', n: nh.n }, nh.t);
     const eh = entities.raycast(eye, f, 2.8);
     if (eh && (eh.e.owner || eh.e.kind === 'horse' || eh.e.kind === 'cat')) cand({ kind: 'animal', e: eh.e }, eh.t);
-    const envers = strange.inEnvers();
-    for (const it of w.inter || []) {
+    const envers = strange.inEnvers(), pres = this.presDe(eye);
+    for (const it of pres.inter) {
       const dx = it.x - eye[0], dy = it.y - eye[1], dz = it.z - eye[2], d = Math.hypot(dx, dy, dz);
       if (d > 2.7) continue;
       const cos = (dx * f[0] + dy * f[1] + dz * f[2]) / (d || 1);
@@ -348,9 +348,9 @@ const game = {
       cand({ kind: 'door', d: dr }, d + 0.25);
     }
     // objets posés interactifs
-    for (let qi = 0; qi < w.props.length; qi++) {
-      const q = w.props[qi];
-      if (!w.live(q) || !PROP_USE[q.id]) continue;
+    for (let k = 0; k < pres.qi.length; k++) {
+      const qi = pres.qi[k], q = w.props[qi];
+      if (!q || !w.live(q) || !PROP_USE[q.id]) continue;
       if (PROP_USE[q.id] === 'm' && qi < farm.genProps) continue;
       const dx = q.x - eye[0], dy = q.y + 0.6 - eye[1], dz = q.z - eye[2], d = Math.hypot(dx, dy, dz);
       if (d > 2.6) continue;
@@ -369,6 +369,22 @@ const game = {
       else if ((['oak', 'apple', 'birch', 'pine'].includes(tid) || (H && H.fruit)) && oh.t < 2.4) cand({ kind: 'tree', o: oh.obj, idx: oh.idx }, oh.t + 0.4);
     }
     return best;
+  },
+
+  // les objets posés et les interactions à quelques mètres du regard (la cible de E les teste à chaque image : on ne
+  // reparcourt les listes entières du monde que quand on a bougé de quelques mètres, qu'elles ont changé, ou deux fois
+  // par seconde) ; pres.qi : les indices dans w.props, dans l'ordre
+  presDe(eye) {
+    const w = this.world, P = this._pres || (this._pres = { w: null });
+    const inter = w.inter || [];
+    if (P.w !== w || P.props !== w.props || P.np !== w.props.length || P.interL !== inter || P.ni !== inter.length || this.time - P.t > 0.5 || this.time < P.t
+      || Math.abs(eye[0] - P.x) > 3 || Math.abs(eye[2] - P.z) > 3) {
+      const R = 8, x = eye[0], z = eye[2], qi = [], it = [];
+      for (let i = 0; i < w.props.length; i++) { const q = w.props[i]; if (q && Math.abs(q.x - x) < R && Math.abs(q.z - z) < R) qi.push(i); }
+      for (const t of inter) if (Math.abs(t.x - x) < R && Math.abs(t.z - z) < R) it.push(t);
+      Object.assign(P, { w, props: w.props, np: w.props.length, interL: inter, ni: inter.length, t: this.time, x, z, qi, inter: it });
+    }
+    return P;
   },
 
   interact() {
@@ -1133,7 +1149,7 @@ const game = {
       else if (t.kind === 'crop') this.hiCrop = t;
       else if (t.kind === 'inter') {
         let best = null, bd = 1.4;
-        for (const q of w.props) { if (!w.live(q) || !PROP_MODELS[q.id] || q.id === 'epouvantail') continue; const d = Math.hypot(q.x - t.it.x, q.z - t.it.z); if (d < bd && Math.abs(q.y - t.it.y) < 2.5) { bd = d; best = q; } }
+        for (const qi of this.presDe(eye).qi) { const q = w.props[qi]; if (!q || !w.live(q) || !PROP_MODELS[q.id] || q.id === 'epouvantail') continue; const d = Math.hypot(q.x - t.it.x, q.z - t.it.z); if (d < bd && Math.abs(q.y - t.it.y) < 2.5) { bd = d; best = q; } }
         this.hiProp = best;
       }
     }

@@ -16,70 +16,83 @@
 //  moins toutes les secondes ; elle s'éteint seule sinon.
 // ============================================================================
 
-// boucles (sans raccord) : [durée, remplissage]
-SoundEngine.BOUCLES = {
+// boucles (sans raccord) : [durée, remplissage]. Chacune est écrite comme une fonction génératrice qui rend la main
+// régulièrement (SoundEngine.BOUCLES_PAS) : la mise en train la calcule par tranches de quelques millisecondes entre
+// deux images (09-zzzzS-3-scene.js, _sFaire) ; le remplissage d'un seul tenant (outils, rendu hors ligne) la déroule
+// d'un trait. Même calcul, dans le même ordre : le son est le même.
+SoundEngine.BOUCLES_PAS = SoundEngine.BOUCLES_PAS || {};
+const BOUCLE_TRANCHE = 4095; // (rendre la main tous les 4 096 échantillons : moins d'une milliseconde)
+const boucleGen = (gen) => (d, sr, D) => { const it = gen(d, sr, D); while (!it.next().done) { /* d'un trait */ } };
+const BOUCLES_GEN = {
   // ruisseau : un écoulement grave et doux, quelques éclats, des bulles çà et là (moins serrées : l'eau ne doit pas
   // occuper tout l'espace)
-  riviere: [6, (d, sr, D) => {
+  riviere: [6, function* (d, sr, D) {
     const R = Math.random, S = SoundEngine.SYN, n = d.length, lo = S.bq('bp', 450, 0.7, sr), hi = S.bq('bp', 2200, 0.9, sr);
     let m1 = 0.5, m2 = 0.5, v1 = 0, v2 = 0;
     for (let i = 0; i < n; i++) {
+      if ((i & BOUCLE_TRANCHE) === 0) yield;
       if (i % 64 === 0) { v1 += (R() - 0.5) * 0.08 - v1 * 0.02; v2 += (R() - 0.5) * 0.2 - v2 * 0.06; m1 = clamp(m1 + v1 * 0.1, 0.25, 1); m2 = clamp(m2 + v2 * 0.1, 0.1, 1); }
       const x = R() * 2 - 1;
       d[i] += lo(x) * 0.5 * m1 + hi(x) * 0.07 * m2;
     }
-    for (let k = 0, N = Math.floor(D * 24); k < N; k++) { const f = 300 + Math.pow(R(), 1.6) * 1200, t = R() * (D - 0.06); S.note(d, sr, t, 0.012 + R() * 0.03, f, f * (1.3 + R() * 0.6), 0.04 + R() * 0.08, { att: 0.2, dec: 2, c: 0.5 }); }
+    for (let k = 0, N = Math.floor(D * 24); k < N; k++) { if ((k & 15) === 0) yield; const f = 300 + Math.pow(R(), 1.6) * 1200, t = R() * (D - 0.06); S.note(d, sr, t, 0.012 + R() * 0.03, f, f * (1.3 + R() * 0.6), 0.04 + R() * 0.08, { att: 0.2, dec: 2, c: 0.5 }); }
   }],
   // clapotis : de petites vagues qui s'enflent et viennent mourir à la rive, sans claquement (de loin, un choc sec
   // sonnait comme un coup de feu)
-  clapotis: [8, (d, sr, D) => {
+  clapotis: [8, function* (d, sr, D) {
     const R = Math.random, S = SoundEngine.SYN, lo = S.bq('lp', 360, 0.7, sr), n = d.length;
     let m = 0.3, v = 0;
-    for (let i = 0; i < n; i++) { if (i % 128 === 0) { v += (R() - 0.5) * 0.05 - v * 0.03; m = clamp(m + v * 0.1, 0.1, 0.5); } d[i] += lo(R() * 2 - 1) * 0.25 * m; }
+    for (let i = 0; i < n; i++) { if ((i & BOUCLE_TRANCHE) === 0) yield; if (i % 128 === 0) { v += (R() - 0.5) * 0.05 - v * 0.03; m = clamp(m + v * 0.1, 0.1, 0.5); } d[i] += lo(R() * 2 - 1) * 0.25 * m; }
     for (let t = 0.2 + R() * 0.5; t < D - 1; t += 1.4 + R() * 1.8) {
-      S.bruit(d, sr, t, 0.22 + R() * 0.12, 0.55 + R() * 0.25, 0.3 + R() * 0.15, S.bq('lp', 380 + R() * 140, 0.7, sr));
-      S.bruit(d, sr, t + 0.2, 0.15, 0.3, 0.035 + R() * 0.03, S.bq('bp', 900 + R() * 300, 0.7, sr));
+      yield;
+      yield* S.bruitG(d, sr, t, 0.22 + R() * 0.12, 0.55 + R() * 0.25, 0.3 + R() * 0.15, S.bq('lp', 380 + R() * 140, 0.7, sr));
+      yield* S.bruitG(d, sr, t + 0.2, 0.15, 0.3, 0.035 + R() * 0.03, S.bq('bp', 900 + R() * 300, 0.7, sr));
       for (let k = 0; k < 2; k++) { const f = 450 + R() * 600; S.note(d, sr, t + 0.3 + R() * 0.4, 0.02 + R() * 0.02, f, f * 1.4, 0.02 + R() * 0.02, { att: 0.2, dec: 2 }); }
     }
+    yield;
     S.lp1(d, sr, 2400);
   }],
   // feu : un souffle grave qui ondule, des crépitements, parfois une bûche qui craque
-  feu: [5, (d, sr, D) => {
+  feu: [5, function* (d, sr, D) {
     const R = Math.random, S = SoundEngine.SYN, n = d.length, lo = S.bq('lp', 260, 0.7, sr), hs = S.bq('bp', 1800, 0.6, sr);
     let m = 0.5, v = 0;
-    for (let i = 0; i < n; i++) { if (i % 64 === 0) { v += (R() - 0.5) * 0.12 - v * 0.05; m = clamp(m + v * 0.1, 0.2, 1); } const x = R() * 2 - 1; d[i] += lo(x) * 0.9 * m + hs(x) * 0.02; }
-    for (let k = 0, N = Math.floor(D * 14); k < N; k++) { const a = Math.pow(R(), 3) * 0.9 + 0.05; S.bruit(d, sr, R() * (D - 0.02), 0.0003, 0.0015 + R() * 0.004, a, S.bq('bp', 900 + R() * 2600, 1.1, sr)); }
+    for (let i = 0; i < n; i++) { if ((i & BOUCLE_TRANCHE) === 0) yield; if (i % 64 === 0) { v += (R() - 0.5) * 0.12 - v * 0.05; m = clamp(m + v * 0.1, 0.2, 1); } const x = R() * 2 - 1; d[i] += lo(x) * 0.9 * m + hs(x) * 0.02; }
+    for (let k = 0, N = Math.floor(D * 14); k < N; k++) { if ((k & 15) === 0) yield; const a = Math.pow(R(), 3) * 0.9 + 0.05; S.bruit(d, sr, R() * (D - 0.02), 0.0003, 0.0015 + R() * 0.004, a, S.bq('bp', 900 + R() * 2600, 1.1, sr)); }
     for (let k = 0, N = 1 + ((R() * 2) | 0); k < N; k++) { const t = 0.3 + R() * (D - 0.8); S.mode(d, sr, t, 380 + R() * 500, 0.02, 0.2); S.bruit(d, sr, t, 0.002, 0.012, 0.18, S.bq('bp', 1200, 0.8, sr)); }
   }],
   // gouttes de pluie tout près (sur l'herbe, sur les feuilles, dans les flaques)
-  gouttes: [3, (d, sr, D) => {
+  gouttes: [3, function* (d, sr, D) {
     const R = Math.random, S = SoundEngine.SYN, b = S.bq('bp', 2600, 0.9, sr);
     for (let k = 0, N = Math.floor(D * 28); k < N; k++) {
+      if ((k & 15) === 0) yield;
       const t = R() * (D - 0.03);
       if (R() < 0.3) { const f = 1400 + R() * 1600; S.note(d, sr, t, 0.012 + R() * 0.012, f, f * 0.7, 0.1 + R() * 0.2, { att: 0.08, dec: 2.5 }); }
       else S.bruit(d, sr, t, 0.0003, 0.0015 + R() * 0.002, 0.2 + R() * 0.5, b);
     }
+    yield;
     S.lp1(d, sr, 6500);
   }],
   // feuillage agité par une rafale
-  feuilles: [4, (d, sr) => {
+  feuilles: [4, function* (d, sr) {
     const R = Math.random, S = SoundEngine.SYN, b = S.bq('bp', 2400, 0.7, sr), n = d.length;
     let m = 0.5, v = 0;
-    for (let i = 0; i < n; i++) { if (i % 32 === 0) { v += (R() - 0.5) * 0.35 - v * 0.2; m = clamp(m + v * 0.1, 0, 1); } d[i] += b(R() * 2 - 1) * m * m; }
+    for (let i = 0; i < n; i++) { if ((i & BOUCLE_TRANCHE) === 0) yield; if (i % 32 === 0) { v += (R() - 0.5) * 0.35 - v * 0.2; m = clamp(m + v * 0.1, 0, 1); } d[i] += b(R() * 2 - 1) * m * m; }
+    yield;
     S.lp1(d, sr, 5500);
   }],
   // un grillon qui chante tout seul : des séries de « cri-cri », puis il se tait un moment (sept secondes de boucle :
   // plus de cri-cri sans fin qui revenait toutes les deux secondes)
-  grillon: [7, (d, sr, D) => {
+  grillon: [7, function* (d, sr, D) {
     const R = Math.random, S = SoundEngine.SYN, f = 3600 + R() * 500, per = 0.42 + R() * 0.3;
     for (let t = 0.03 + R() * 0.6; t < D - 0.12;) {
+      yield;
       for (let c = 0, nc = 4 + ((R() * 6) | 0); c < nc && t < D - 0.12; c++, t += per * (0.95 + R() * 0.1)) for (let p = 0, n = 3 + ((R() * 2) | 0); p < n; p++) S.note(d, sr, t + p * 0.027, 0.016, f, f * 0.99, 0.5, { att: 0.25, dec: 1.2 });
       t += 1.4 + R() * 2.2;
     }
   }],
   // le vent : un souffle qui tourbillonne — un fond grave et trois bandes qui enflent et retombent chacune à son rythme
   // (la plus aiguë, la plus vive, ne monte qu'avec les autres) ; ni sifflement ni grondement fixe
-  vent: [14, (d, sr, D) => {
+  vent: [14, function* (d, sr, D) {
     const R = Math.random, S = SoundEngine.SYN, n = d.length;
     const lo = S.bq('lp', 210, 0.6, sr), b1 = S.bq('bp', 420, 0.8, sr), b2 = S.bq('bp', 950, 0.9, sr), b3 = S.bq('bp', 2100, 1.0, sr);
     // une courbe lisse : un point au hasard toutes les T secondes, raccordés en cosinus
@@ -90,6 +103,7 @@ SoundEngine.BOUCLES = {
     const m0 = courbe(3.1, 0.45, 1), m1 = courbe(1.7, 0.15, 1), m2 = courbe(0.9, 0.05, 1), m3 = courbe(0.45, 0, 1);
     let p0 = 0, p1 = 0, p2 = 0, k0 = 1, k1 = 1, k2 = 1, k3 = 1;
     for (let i = 0; i < n; i++) {
+      if ((i & BOUCLE_TRANCHE) === 0) yield;
       if (i % 32 === 0) { const t = i / sr; k0 = m0(t); k1 = m1(t) * k0; k2 = m2(t) * k1; k3 = m3(t) * k2; }
       const x = R() * 2 - 1; p0 = 0.997 * p0 + x * 0.06; p1 = 0.96 * p1 + x * 0.3; p2 = 0.6 * p2 + x * 0.9;
       const y = p0 * 0.35 + p1 + p2 * 0.7 + x * 0.25;
@@ -97,20 +111,25 @@ SoundEngine.BOUCLES = {
     }
   }],
   // un long bruit doux (vent, lit de pluie) : assez long pour qu'on n'entende jamais la boucle
-  bruit: [9, (d, sr) => {
+  bruit: [9, function* (d, sr) {
     const R = Math.random, n = d.length;
     let b0 = 0, b1 = 0, b2 = 0;
-    for (let i = 0; i < n; i++) { const x = R() * 2 - 1; b0 = 0.99765 * b0 + x * 0.099046; b1 = 0.963 * b1 + x * 0.2965164; b2 = 0.57 * b2 + x * 1.0526913; d[i] = (b0 + b1 + b2 + x * 0.1848) * 0.6 + x * 0.25; }
+    for (let i = 0; i < n; i++) { if ((i & BOUCLE_TRANCHE) === 0) yield; const x = R() * 2 - 1; b0 = 0.99765 * b0 + x * 0.099046; b1 = 0.963 * b1 + x * 0.2965164; b2 = 0.57 * b2 + x * 1.0526913; d[i] = (b0 + b1 + b2 + x * 0.1848) * 0.6 + x * 0.25; }
+    yield;
     SoundEngine.SYN.lp1(d, sr, 9000);
   }],
   // bourdon grave des souterrains (on le sent plus qu'on ne l'entend)
-  bourdon: [7, (d, sr) => {
+  bourdon: [7, function* (d, sr) {
     const R = Math.random, S = SoundEngine.SYN, lo = S.bq('lp', 120, 0.7, sr), n = d.length;
     let m = 0.5, v = 0;
-    for (let i = 0; i < n; i++) { if (i % 256 === 0) { v += (R() - 0.5) * 0.03 - v * 0.01; m = clamp(m + v, 0.3, 1); } d[i] += lo(R() * 2 - 1) * m; }
+    for (let i = 0; i < n; i++) { if ((i & BOUCLE_TRANCHE) === 0) yield; if (i % 256 === 0) { v += (R() - 0.5) * 0.03 - v * 0.01; m = clamp(m + v, 0.3, 1); } d[i] += lo(R() * 2 - 1) * m; }
   }, 8000],
 };
+SoundEngine.BOUCLES = {};
+for (const k in BOUCLES_GEN) { const [dur, gen, sr] = BOUCLES_GEN[k]; SoundEngine.BOUCLES_PAS[k] = gen; SoundEngine.BOUCLES[k] = sr ? [dur, boucleGen(gen), sr] : [dur, boucleGen(gen)]; }
 // volume de chaque boucle (k = 1)
+// la part du vent qui reste la nuit (nuit : 0..1, orage : 0..1) : un peu plus d'un tiers par nuit calme, presque tout dans l'orage
+SoundEngine.ventNuit = (nuit, orage) => 1 - 0.62 * clamp(nuit || 0, 0, 1) * (1 - 0.7 * clamp(orage || 0, 0, 1));
 SoundEngine.VOL_BOUCLES = { riviere: 0.1, clapotis: 0.07, feu: 0.22, gouttes: 0.07, feuilles: 0.06, grillon: 0.07, bourdon: 0.05, vent: 0.085 };
 // les oiseaux selon le milieu : [sorte, poids]
 SoundEngine.OISEAUX = {
@@ -223,9 +242,11 @@ Object.assign(SoundEngine.prototype, {
     if (!this._chaud && !this._chauffeEnCours) {
       if (typeof requestIdleCallback === 'function') {
         this._chauffeEnCours = true;
+        // (un pas seulement s'il reste du temps avant la prochaine image — ou si l'attente a trop duré ; les boucles et
+        //  la réponse des lieux se font par tranches de 4 ms, voir chauffer)
         const f = (dl) => {
-          let n = this.chauffer();
-          while (n > 0 && dl.timeRemaining() > 4) n = this.chauffer();
+          let n = this._chauffe ? this._chauffe.length : 1;
+          if (dl.didTimeout || dl.timeRemaining() > 6) { n = this.chauffer(); while (n > 0 && dl.timeRemaining() > 6) n = this.chauffer(); }
           if (n > 0) requestIdleCallback(f, { timeout: 1500 }); else { this._chaud = true; this._chauffeEnCours = false; }
         };
         requestIdleCallback(f, { timeout: 1500 });
@@ -252,19 +273,21 @@ Object.assign(SoundEngine.prototype, {
     let brise = 0;
     if (S.brise > 0) { S.brise -= dt; brise = 0.09 * Math.sin(Math.PI * clamp(1 - S.brise / S.briseD, 0, 1)); }
     const v = under ? 0 : clamp(base * (0.5 + 0.75 * S.vg) + brise, 0, 1.2);
-    const niv = Math.pow(v, 1.4) * (inside ? 0.35 : 1);
+    // la nuit, le vent se fait plus discret (le reste se tait : il ne doit pas prendre toute la place), sauf dans l'orage
+    const kNuit = SoundEngine.ventNuit(E.night, orage);
+    const niv = Math.pow(v, 1.4) * (inside ? 0.35 : 1) * kNuit;
     const coupe = inside ? 160 + 350 * clamp(v, 0, 1) : 260 + 1900 * clamp(v, 0, 1) * (0.75 + 0.25 * S.vg);
     const wa = typeof weather !== 'undefined' && weather.windAngle !== undefined ? weather.windAngle : 0;
     for (const [cle, da, rate, kf] of [['vent', 1.25, 1, 1], ['ventB', -1.25, 0.93, 0.82]]) {
       const a = wa + da, x = this.source(cle, 'vent', [L.x + Math.cos(a) * 12, L.y + 2.5, L.z + Math.sin(a) * 12], niv, { att: 'aucune', tau: 0.5, rate });
       if (x) x.f.frequency.setTargetAtTime(coupe * kf, now, 0.5);
     }
-    const sif = Math.pow(clamp((v - 0.55) / 0.5, 0, 1), 2) * (inside ? 0.3 : 1);
+    const sif = Math.pow(clamp((v - 0.55) / 0.5, 0, 1), 2) * (inside ? 0.3 : 1) * kNuit;
     const vx2 = this.source('vent2', 'vent', [L.x - Math.cos(wa + 0.7) * 16, L.y + 6, L.z - Math.sin(wa + 0.7) * 16], sif, { att: 'aucune', tau: 0.8, vol: 0.035 });
     if (vx2) { vx2.f.type = 'bandpass'; vx2.f.Q.value = 9; vx2.f.frequency.setTargetAtTime(520 + 600 * clamp(v, 0, 1.2) * (0.8 + 0.4 * S.vg), now, 0.9); }
     // le feuillage, sous les bouffées, dans les arbres
     const bois = biome === 'foret' || biome === 'bouleaux';
-    this.source('feuilles', 'feuilles', [L.x + Math.cos(wa + 0.3) * 7, L.y + 5, L.z + Math.sin(wa + 0.3) * 7], dehors && bois ? clamp(v * (0.5 + 0.9 * S.vg) * 1.5, 0, 1.2) : 0, { att: 'aucune', tau: 0.7 });
+    this.source('feuilles', 'feuilles', [L.x + Math.cos(wa + 0.3) * 7, L.y + 5, L.z + Math.sin(wa + 0.3) * 7], dehors && bois ? clamp(v * (0.5 + 0.9 * S.vg) * 1.5, 0, 1.2) * kNuit : 0, { att: 'aucune', tau: 0.7 });
     // ---- la pluie : un lit large, et des gouttes tout autour (sur le toit quand on est à l'abri)
     this._pluie(dt, E, S, under, inside, now);
     // ---- l'eau : la rivière qui coule, le lac qui clapote

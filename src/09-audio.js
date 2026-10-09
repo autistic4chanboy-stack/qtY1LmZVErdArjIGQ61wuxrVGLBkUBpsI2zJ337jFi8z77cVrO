@@ -88,7 +88,9 @@ class SoundEngine {
     return buf;
   }
   // Réponse impulsionnelle d'un lieu (queue diffuse, aigus qui meurent plus vite que les graves, premières réflexions)
-  static reverbIR(c, P) {
+  static reverbIR(c, P) { return synDerouler(SoundEngine.reverbIRG(c, P)); }
+  // (la même par tranches : la mise en train la calcule en plusieurs fois)
+  static *reverbIRG(c, P) {
     const sr = c.sampleRate, n = Math.max(64, Math.floor(sr * P.len)), buf = c.createBuffer(2, n, sr);
     const pre = Math.floor(P.pre * sr), att = Math.max(1, Math.floor(P.att * sr));
     const dl = Math.exp(-6.91 / (P.t60 * sr)), dh = Math.exp(-6.91 / (P.t60h * sr));
@@ -99,6 +101,7 @@ class SoundEngine {
       const er = (P.er || []).map(([tt, g]) => [pre + Math.floor(tt * (ch ? 1.06 : 0.95) * sr), (Math.random() < 0.5 ? -1 : 1) * g * 4]).sort((u, v) => u[0] - v[0]);
       let lo = 0, el = 1, eh = 1, y = 0, q = 0;
       for (let i = pre; i < n; i++) {
+        if (((i - pre) & 8191) === 8191) yield;
         const w = Math.random() * 2 - 1;
         lo = w + (lo - w) * a;
         let v = lo * el * 2.2 + (w - lo) * P.hiK * eh;
@@ -141,10 +144,10 @@ class SoundEngine {
       const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 28; hp.Q.value = 0.6;
       hp.connect(glue);
       this.master = G(1); this.master.connect(hp);
-      // réverbération : deux convolueurs pour passer d'un lieu à l'autre en fondu
+      // réverbération : un convolueur par lieu (sa réponse posée une seule fois : poser un tampon sur un convolueur
+      // coûte des dizaines de millisecondes), on passe d'un lieu à l'autre en fondu
       this.revIn = G(1);
-      this.rev = [0, 1].map(() => { const cv = c.createConvolver(), g = G(0); cv.connect(g).connect(this.master); return { cv, g, on: false }; });
-      this.revCur = 0;
+      this._revs = {}; this._revAct = null;
       // les bus : entrée (volume du bus) → mélange ; envoi vers la réverbération ; retour « distance » des sources placées
       const bus = (level, send) => {
         const inp = G(level), snd = G(send), xrv = G(level);
@@ -199,17 +202,28 @@ class SoundEngine {
     const P = SoundEngine.LIEUX[k];
     if (!P || k === this.lieu) return;
     this.lieu = k;
-    const ir = this._irs[k] || (this._irs[k] = SoundEngine.reverbIR(this.ctx, P));
-    const t = this.ctx.currentTime, old = this.rev[this.revCur], nw = this.rev[1 - this.revCur];
-    this.revCur = 1 - this.revCur;
-    nw.cv.buffer = ir;
-    if (!nw.on) { this.revIn.connect(nw.cv); nw.on = true; }
+    const t = this.ctx.currentTime, old = this._revAct, nw = this._revDe(k);
+    this._revAct = nw;
+    if (!nw.on) { this.revIn.connect(nw.inp); nw.on = true; }
     const fade = this.offline ? 0.001 : 0.6;
     nw.g.gain.cancelScheduledValues(t); nw.g.gain.setValueAtTime(nw.g.gain.value, t); nw.g.gain.linearRampToValueAtTime(P.wet, t + fade);
+    if (!old || old === nw) return;
     old.g.gain.cancelScheduledValues(t); old.g.gain.setValueAtTime(old.g.gain.value, t); old.g.gain.linearRampToValueAtTime(0, t + fade);
-    // l'ancien convolueur se tait puis se débranche (moins de calcul)
-    const tok = this._revTok = (this._revTok || 0) + 1;
-    if (old.on && !this.offline) setTimeout(() => { if (this._revTok === tok && old.on && this.rev[this.revCur] !== old) { try { this.revIn.disconnect(old.cv); } catch (e) { /* déjà */ } old.on = false; } }, P.len * 1000 + 1500);
+    // l'ancien convolueur se tait puis se débranche (moins de calcul) ; il garde sa réponse pour la prochaine fois
+    if (old.on && !this.offline) setTimeout(() => { if (old.on && this._revAct !== old) { try { this.revIn.disconnect(old.inp); } catch (e) { /* déjà */ } old.on = false; } }, SoundEngine.LIEUX[old.k].len * 1000 + 1500);
+  }
+  // le convolueur d'un lieu, préparé une fois (aussi en tâche de fond : chauffer). (Poser la réponse sur le convolueur
+  // se fait d'un bloc dans le navigateur — de 3 à 11 ms selon sa longueur — : on ne peut pas le couper ; le couper en
+  // morceaux retardés ne sonnait pas pareil, un DelayNode de Chrome se taisant quand son entrée s'arrête.)
+  _revDe(k) {
+    const R = this._revs || (this._revs = {});
+    if (R[k]) return R[k];
+    const c = this.ctx, ir = this._irs[k] || (this._irs[k] = SoundEngine.reverbIR(c, SoundEngine.LIEUX[k]));
+    const cv = c.createConvolver(), g = c.createGain();
+    g.gain.value = 0;
+    cv.buffer = ir;
+    cv.connect(g).connect(this.master);
+    return (R[k] = { inp: cv, g, on: false, k });
   }
 
   // ---------------------------------------------------------------- le son en 3D
@@ -604,6 +618,8 @@ SoundEngine.LIEUX = {
 // ============================================================================
 //  PETITE SYNTHÈSE « À L'ÉCHANTILLON » (tampons calculés une fois, variantes)
 // ============================================================================
+// une fonction génératrice de la synthèse, déroulée d'un trait (sa valeur de retour)
+function synDerouler(it) { let r; while (!(r = it.next()).done) { /* d'un trait */ } return r.value; }
 SoundEngine.SYN = {
   // filtre biquadratique (RBJ) : une fonction x → y ; 'lp', 'hp', 'bp' (0 dB au centre)
   bq(type, f, q, sr) {
@@ -623,10 +639,13 @@ SoundEngine.SYN = {
     for (let i = i0, j = 0; i < d.length && e > 1e-5; i++, j++) { d[i] += Math.sin(ph) * e * (j < at ? j / at : 1); ph += w; e *= k; }
   },
   // un souffle de bruit enveloppé (attaque, déclin), passé dans un filtre
-  bruit(d, sr, t0, att, tau, a, filt) {
+  bruit(d, sr, t0, att, tau, a, filt) { return synDerouler(SoundEngine.SYN.bruitG(d, sr, t0, att, tau, a, filt)); },
+  // (la même, par tranches : elle rend la main tous les 4 096 échantillons — pour les boucles calculées en tâche de fond)
+  *bruitG(d, sr, t0, att, tau, a, filt) {
     const i0 = Math.floor(t0 * sr), na = Math.max(1, att * sr), k = Math.exp(-1 / (tau * sr));
     let e = 1;
     for (let i = i0, j = 0; i < d.length; i++, j++) {
+      if ((j & 4095) === 4095) yield;
       let env;
       if (j < na) env = j / na; else { e *= k; env = e; if (e < 1e-3) break; }
       const x = Math.random() * 2 - 1;
@@ -634,11 +653,13 @@ SoundEngine.SYN = {
     }
   },
   // une note sifflée (oiseaux, grillons…) : glissement f0 → f1 (courbe c), vibrato, 2e harmonique, modulation d'amplitude
-  note(d, sr, t0, dur, f0, f1, a, o) {
+  note(d, sr, t0, dur, f0, f1, a, o) { return synDerouler(SoundEngine.SYN.noteG(d, sr, t0, dur, f0, f1, a, o)); },
+  *noteG(d, sr, t0, dur, f0, f1, a, o) {
     o = o || {};
     const i0 = Math.floor(t0 * sr), n = Math.floor(dur * sr), c = o.c || 1, vib = o.vib || 0, vd = o.vd || 0, h2 = o.h2 || 0, am = o.am || 0, amd = o.amd || 0, dec2 = (o.dec || 1.5) > 2.2;
     let ph = 0;
     for (let j = 0; j < n && i0 + j < d.length; j++) {
+      if ((j & 4095) === 4095) yield;
       const u = j / n, tt = j / sr;
       const f = f0 + (f1 - f0) * (c === 1 ? u : Math.pow(u, c)) + (vib ? Math.sin(2 * Math.PI * vib * tt) * vd * f0 : 0);
       ph += 2 * Math.PI * f / sr;
@@ -836,19 +857,43 @@ Object.assign(SoundEngine.prototype, {
   chauffer() {
     if (!this._chauffe) {
       const L = [], T = (nom, n) => { for (let i = 0; i < n; i++) L.push(() => this.tb(nom, n, i)); };
+      // (les boucles : par tranches, dans la tâche de fond des ambiances quand elle est là — voir boucleEnFond)
+      const Bk = (k) => () => this.boucleEnFond(k);
       for (const k of ['herbe', 'terre', 'pierre', 'bois']) T(k, 6);
       for (const k of ['coup', 'toc', 'pieces', 'page']) T(k, 6);
-      L.push(() => this.boucleTampon && this.boucleTampon('bruit'), () => this.boucleTampon && this.boucleTampon('gouttes'));
+      L.push(Bk('bruit'), Bk('gouttes'));
       for (const k of ['merle', 'mesange', 'pinson', 'tourterelle', 'moineau', 'alouette', 'coucou']) T(k, 5);
       T('chouette', 4); T('pic', 4);
       for (const k of ['eau', 'neige', 'sabot', 'croque', 'grenouille']) T(k, 6);
       T('plouf', 5); T('goutte', 8);
-      for (const k of ['grillon', 'feuilles', 'riviere', 'clapotis', 'feu', 'bourdon', 'vent']) L.push(() => this.boucleTampon && this.boucleTampon(k));
+      for (const k of ['grillon', 'feuilles', 'riviere', 'clapotis', 'feu', 'bourdon', 'vent']) L.push(Bk(k));
+      // la réverbération de chaque lieu : la réponse, puis (une autre fois) sa pose sur le convolueur
+      // (la réponse par tranches de 4 ms : le pas se remet en tête de la file tant qu'elle n'est pas finie)
+      for (const k in SoundEngine.LIEUX) {
+        let it = null;
+        const pas = () => {
+          if (!this.ctx || this._irs[k]) return;
+          it = it || SoundEngine.reverbIRG(this.ctx, SoundEngine.LIEUX[k]);
+          const fin = performance.now() + 4;
+          let r;
+          do { r = it.next(); } while (!r.done && performance.now() < fin);
+          if (r.done) this._irs[k] = r.value; else this._chauffe.unshift(pas);
+        };
+        L.push(pas, () => { if (this.ctx) this._revDe(k); });
+      }
       this._chauffe = L;
     }
     const f = this._chauffe.shift();
     if (f) f();
     return this._chauffe.length;
+  },
+
+  // une boucle à préparer d'avance : par tranches de quelques millisecondes (la tâche de fond des ambiances,
+  // 09-zzzzS-3-scene.js) si elle sait la faire ainsi, sinon d'un trait
+  boucleEnFond(k) {
+    if (!this.ctx || !this.boucleTampon) return;
+    if (this._sDemander && SoundEngine.BOUCLES_PAS && SoundEngine.BOUCLES_PAS[k]) this._sDemander('B:' + k);
+    else this.boucleTampon(k);
   },
 
   // ------------------------------------------------------------ tonnerre (vient de l'éclair : portée « ici », sinon d'une direction au hasard)

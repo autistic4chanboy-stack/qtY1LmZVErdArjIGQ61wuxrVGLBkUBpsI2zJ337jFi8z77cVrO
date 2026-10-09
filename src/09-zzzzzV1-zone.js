@@ -78,9 +78,11 @@ const sonV1 = {
       const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 0.07; lg.gain.value = 160; lfo.connect(lg).connect(bp.frequency);
       src.connect(bp).connect(g).connect(sound.B.amb.inp);
       src.start(); lfo.start();
-      g.gain.setTargetAtTime(0.05, c.currentTime, 2.5);
-      this.vent = { src, g, lfo };
+      this.vent = { src, g, lfo, k: -1 };
     }
+    // (plus discret la nuit, comme le vent de la vallée)
+    const kv = Math.round(20 * SoundEngine.ventNuit(E && E.night, E && E.storm)) / 20;
+    if (kv !== this.vent.k) { this.vent.k = kv; this.vent.g.gain.setTargetAtTime(0.05 * kv, c.currentTime, 2.5); }
     this.coupeT = 1.5;
     this.prochain -= dt;
     if (this.prochain > 0) return;

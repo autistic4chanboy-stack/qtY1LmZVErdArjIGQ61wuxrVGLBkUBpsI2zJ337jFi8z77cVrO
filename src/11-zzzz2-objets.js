@@ -749,7 +749,7 @@ const objets = {
     if (w.props.indexOf(q) < 0) return;
     farm.removeProp(q);
     q.gone = true; // (les listes que d'autres modules gardent le voient disparu)
-    farm.dirtyProps = true; w.grid = null;
+    farm.dirtyProps = true; // (son collisionneur est sorti de la grille par farm.removeProp)
     if (q.id === 'tente') w.coverDirty = true;
     if (lum) w.collectLights();
     if (game.hiProp === q) game.hiProp = null;
@@ -1246,8 +1246,9 @@ const objets = {
       if (h && h.t < 2.6) cand({ kind: 'hook', use: () => objets.prendreTas(T), f2lab: 'Ramasser ce qui est tombé' }, h.t * 0.7);
     }
     let best = null, bt = 2.6;
-    for (const q of w.props) {
-      if (!OBJ_RAMASSE[q.id] || !w.live(q)) continue;
+    const pres = game.presDe ? game.presDe(eye) : null;
+    for (const q of pres ? pres.qi.map((i) => w.props[i]) : w.props) {
+      if (!q || !OBJ_RAMASSE[q.id] || !w.live(q)) continue;
       if (Math.abs(q.x - eye[0]) > 3.4 || Math.abs(q.z - eye[2]) > 3.4) continue;
       const B = this.boite(q, true);
       if (!B) continue;

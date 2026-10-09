@@ -111,7 +111,7 @@
       let t = rf(0, 9);
       while (t < dur) {
         if (type === 0) { // trois couplets de plus en plus forts
-          for (let c = 0; c < 3; c++) { const du = rf(0.9, 1.3); if (t + du >= dur) break; S.rape(d, sr, t, du, filt, a * (0.45 + 0.2 * c), { att: 0.35, rel: 0.2, am: rf(34, 44), amd: 0.6 }); t += du + rf(0.3, 0.5); yield; }
+          for (let c = 0; c < 3; c++) { const du = rf(0.9, 1.3); if (t + du >= dur) break; yield* S.rapeG(d, sr, t, du, filt, a * (0.45 + 0.2 * c), { att: 0.35, rel: 0.2, am: rf(34, 44), amd: 0.6 }); t += du + rf(0.3, 0.5); yield; }
           t += rf(11, 22);
         } else { for (let c = 0, nc = ri(3, 6); c < nc; c++) { const du = rf(0.14, 0.2); if (t + du >= dur) break; S.rape(d, sr, t, du, filt, a * 0.6, { att: 0.25, rel: 0.45, am: rf(55, 70), amd: 0.6 }); t += rf(1.6, 2.6); } t += rf(10, 20); yield; }
       }
@@ -127,7 +127,7 @@
       const f = rf(2450, 3050), pr = rf(34, 48), a = k === 0 ? 1 : rf(0.3, 0.6);
       for (let t = rf(0, 4); t < dur; ) {
         const du = rf(1.2, 2.4);
-        if (t + du < dur) S.trait(d, sr, t, du, [[0, f * 0.995], [0.5, f], [1, f * 0.99]], a, { am: pr, amd: 0.7, att: 0.3, rel: 0.3, h: [0.04] });
+        if (t + du < dur) yield* S.traitG(d, sr, t, du, [[0, f * 0.995], [0.5, f], [1, f * 0.99]], a, { am: pr, amd: 0.7, att: 0.3, rel: 0.3, h: [0.04] });
         t += du + rf(2.5, 6);
         yield;
       }
@@ -191,15 +191,15 @@
   // chœur qui part d'un coup
   fond('s_grenouilles', 18, function* (d, sr, D) {
     const dur = D - 0.25, G = Array.from({ length: ri(4, 5) }, (_, k) => ({ f: rf(380, 620), a: k < 2 ? rf(0.6, 1) : rf(0.2, 0.5) }));
-    const rire = (g, t) => {
+    const rire = function* (g, t) {
       const du = rf(0.45, 1.2), f = g.f;
-      S.trait(d, sr, t, du, [[0, f * 0.95], [0.5, f * 1.05], [1, f * 0.9]], g.a, { h: [0.9, 0.7, 0.55, 0.4, 0.25, 0.12], am: rf(24, 34), amd: 0.92, souffle: 0.18, att: 0.1, rel: 0.2 });
+      yield* S.traitG(d, sr, t, du, [[0, f * 0.95], [0.5, f * 1.05], [1, f * 0.9]], g.a, { h: [0.9, 0.7, 0.55, 0.4, 0.25, 0.12], am: rf(24, 34), amd: 0.92, souffle: 0.18, att: 0.1, rel: 0.2 });
       return du;
     };
     const kouak = (g, t) => { const f = g.f * rf(0.7, 0.85); S.trait(d, sr, t, rf(0.12, 0.18), [[0, f * 1.1], [1, f * 0.82]], g.a * 0.8, { h: [0.8, 0.6, 0.4, 0.2], am: 70, amd: 0.4, souffle: 0.12, att: 0.08, rel: 0.4 }); };
-    for (const g of G) for (let t = rf(0, 4); t < dur; ) { if (R() < 0.6) t += rire(g, t); else kouak(g, t); t += rf(2.5, 7); yield; }
+    for (const g of G) for (let t = rf(0, 4); t < dur; ) { if (R() < 0.6) t += yield* rire(g, t); else kouak(g, t); t += rf(2.5, 7); yield; }
     // un départ en chœur
-    for (let t = rf(2, dur - 3), k = 0; k < ri(1, 2); k++, t = rf(1, dur - 3)) { for (const g of G) rire(g, t + rf(0, 0.8)); yield; }
+    for (let t = rf(2, dur - 3), k = 0; k < ri(1, 2); k++, t = rf(1, dur - 3)) { for (const g of G) yield* rire(g, t + rf(0, 0.8)); yield; }
     S.lp1(d, sr, 3200);
   });
 

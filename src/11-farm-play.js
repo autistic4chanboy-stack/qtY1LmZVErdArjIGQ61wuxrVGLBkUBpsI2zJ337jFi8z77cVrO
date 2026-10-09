@@ -227,8 +227,10 @@ const play = {
     }
     if (H.regrow) { s.forage[idx] = s.hours; o.gone = true; }
     else { o.gone = true; s.removed[idx] = H.stump ? 'stump' : 1; if (H.stump) w.objects.push({ t: OBJ_INDEX.stump, x: o.x, z: o.z, h: 0.8, f: 0, v: 0, fromStump: idx }); }
-    if (o.fromStump !== undefined) { s.removed[o.fromStump] = 1; const i = w.objects.indexOf(o); if (i >= 0) w.objects.splice(i, 1); }
-    w.objectsDirty = true; w.shadeDirty = true; w.shadeRegion = [o.x - 12, o.z - 12, o.x + 12, o.z + 12]; w.grid = null;
+    // (l'objet seul est refait, et la souche ajoutée au bout ; une souche retirée raccourcit la liste : tout est refait)
+    if (o.fromStump !== undefined) { s.removed[o.fromStump] = 1; const i = w.objects.indexOf(o); if (i >= 0) w.objects.splice(i, 1); w.objectsDirty = true; w.grid = null; }
+    else w.objetChange(idx);
+    w.shadeDirty = true; w.shadeRegion = [o.x - 12, o.z - 12, o.x + 12, o.z + 12];
     sound.pop();
     return true;
   },
@@ -256,7 +258,7 @@ const play = {
       const dx = o.x - eye[0], dz = o.z - eye[2], d = Math.hypot(dx, dz);
       if (d > 3.2 || (dx * fx + dz * fz) / (d * fl) < 0.45) return;
       const H = HARVEST[t.id];
-      o.gone = true; n++;
+      o.gone = true; n++; w.objetChange(idx);
       if (H && H.regrow) s.forage[idx] = s.hours; else s.removed[idx] = 1;
       farm.give(t.id === 'wheat' ? 'ble' : 'foin', 1);
       if (Math.random() < 0.3) farm.give('fibre', 1);
@@ -267,7 +269,7 @@ const play = {
       const c = farm.crop(cx, cz);
       if (c && c.c && !c.tree && farm.ripe(c)) { this.harvestCrop(Math.floor(cx) + 0.5, Math.floor(cz) + 0.5, c, true); n++; }
     }
-    if (n) { w.objectsDirty = true; w.grid = null; sound.scythe && sound.scythe(); for (let k = 0; k < 10; k++) particles.spawn(eye[0] + fx / fl * 2, eye[1] - 1.2, eye[2] + fz / fl * 2, (Math.random() - 0.5) * 3, Math.random() * 2, (Math.random() - 0.5) * 3, [0.5, 0.7, 0.3, 1], 0.06, 0.8, 6, false); }
+    if (n) { sound.scythe && sound.scythe(); for (let k = 0; k < 10; k++) particles.spawn(eye[0] + fx / fl * 2, eye[1] - 1.2, eye[2] + fz / fl * 2, (Math.random() - 0.5) * 3, Math.random() * 2, (Math.random() - 0.5) * 3, [0.5, 0.7, 0.3, 1], 0.06, 0.8, 6, false); }
   },
 
   // ------------------------------------------------------------- cultures
@@ -664,9 +666,11 @@ const play = {
 
   // ------------------------------------------------------------- rendu des objets 3D posés et des cultures
   buildProps(cam, sky) {
-    const w = game.world, buf = this.propBuf, R = sky.fog[1] + 40;
+    const w = game.world, buf = this.propBuf, need = sky.fog[1] + 40;
     const night = sky.nightLit ? 1 : 0;
-    if (!farm.dirtyProps && this.propCenter && Math.hypot(cam[0] - this.propCenter[0], cam[2] - this.propCenter[1]) < 30 && this.propNight === night && this.propR === R) return;
+    // (le rayon suit le brouillard, qui bouge un peu à chaque image : une marge, sinon tout se refaisait à chaque image)
+    if (!farm.dirtyProps && this.propCenter && Math.hypot(cam[0] - this.propCenter[0], cam[2] - this.propCenter[1]) < 30 && this.propNight === night && need <= this.propR && need >= this.propR - 30) return;
+    const R = need + 10;
     this.propCenter = [cam[0], cam[2]]; this.propNight = night; this.propR = R;
     farm.dirtyProps = false;
     buf.reset();
@@ -719,7 +723,13 @@ const play = {
     buf.reset(); this.shadowBuf.reset();
     PE.buf = buf;
     const T = { night: !!sky.nightLit, t, wind: t * 0.07 + Math.sin(t * 0.13) * 1.2, hour: w.time * 24 };
-    for (const p of w.props) {
+    // (les objets animés : relevés parmi tous les objets posés quand la liste change, et chaque seconde)
+    const D = this._dynL || (this._dynL = { props: null });
+    if (D.props !== w.props || D.n !== w.props.length || !(t - D.t < 1) || t < D.t) {
+      D.props = w.props; D.n = w.props.length; D.t = t; D.l = [];
+      for (const p of w.props) if (p && DYN_PROPS.has(p.id)) D.l.push(p);
+    }
+    for (const p of D.l) {
       if (!DYN_PROPS.has(p.id) || !w.live(p)) continue;
       if (Math.abs(p.x - cam[0]) > 160 || Math.abs(p.z - cam[2]) > 160) continue;
       PE.frame(p.x, p.y, p.z, p.r, p.s || 1);

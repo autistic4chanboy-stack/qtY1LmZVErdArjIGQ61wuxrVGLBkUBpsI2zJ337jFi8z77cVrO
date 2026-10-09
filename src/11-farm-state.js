@@ -149,13 +149,14 @@ const farm = {
     if (p.s) q.s = p.s;
     w.props.push(q); addPropCollider(w, q);
     this.s.props.push({ id: q.id, x: q.x, y: q.y, z: q.z, r: q.r, data: q.data, s: q.s });
-    this.dirtyProps = true; w.grid = null; w.coverDirty = true;
+    this.dirtyProps = true; w.coverDirty = true;
+    w.blocChange(); // (son collisionneur, au bout de la liste des blocs : la grille l'ajoute sans tout refaire)
     return q;
   },
   removeProp(q) {
     const w = this.w, i = w.props.indexOf(q);
     if (i < 0) return;
-    removePropCollider(w, q);
+    removePropCollider(w, q, true);
     if (i < this.genProps) { q.gone = true; this.s.gone[i] = 1; }
     else {
       w.props.splice(i, 1);
@@ -327,7 +328,7 @@ const farm = {
     for (const k in s.forage) {
       const o = w.objects[+k];
       const H = o && HARVEST[OBJ_TYPES[o.t].id];
-      if (!o || !H || s.hours - s.forage[k] >= (H.regrow || 24)) { if (o && !o.cleared) { o.gone = false; w.objectsDirty = true; w.grid = null; } delete s.forage[k]; }
+      if (!o || !H || s.hours - s.forage[k] >= (H.regrow || 24)) { if (o && !o.cleared) { o.gone = false; w.objetChange(+k); } delete s.forage[k]; }
     }
     // bêtes : production au fil des heures
     for (const a of s.animals) {

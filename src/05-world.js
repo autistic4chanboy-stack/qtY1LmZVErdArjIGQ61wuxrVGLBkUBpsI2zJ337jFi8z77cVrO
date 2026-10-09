@@ -86,26 +86,65 @@ class World {
     this.dirtyMats = d ? [Math.min(d[0], i0), Math.min(d[1], j0), Math.max(d[2], i1), Math.max(d[3], j1)] : [i0, j0, i1, j1];
   }
 
+  // Un objet a changé (cueilli, repoussé, abattu, ajouté au bout de la liste) : le rendu et les grilles ne refont que
+  // lui, au lieu de tout reconstruire (ce qui coûtait une image de cent millisecondes à chaque cueillette). Pour un
+  // changement plus large (liste raccourcie, relief…), on continue de mettre objectsDirty / grid = null.
+  objetChange(i) {
+    const C = this._chg || (this._chg = { r: new Set(), g: new Set(), b: false });
+    C.r.add(i); C.g.add(i);
+  }
+  // des blocs ajoutés au bout de la liste (le collisionneur d'un objet posé) : ils entrent dans la grille sans la refaire
+  blocChange() { (this._chg || (this._chg = { r: new Set(), g: new Set(), b: false })).b = true; }
+  // le bloc j vient d'être retiré de la liste (splice) : on le sort de la grille et les blocs suivants reculent d'un
+  // rang, sans refaire la grille (sinon : grid = null, elle sera refaite)
+  blocRetire(j) {
+    const S = this._gs, G = this.grid, C = this._chg;
+    if (!G || !S || S.grid !== G || S.blocks !== this.blocks || S.nb !== this.blocks.length + 1 || (C && C.b) || S.curVer !== this.curVer) { this.grid = null; return; }
+    const e = -1 - j, cells = G.cells;
+    for (let k = 0; k < cells.length; k++) {
+      const L = cells[k];
+      if (!L || !L.length || L[L.length - 1] >= 0) continue;
+      let w = L.length - 1;
+      while (w >= 0 && L[w] < 0) w--;
+      let out = w + 1;
+      for (let r = w + 1; r < L.length; r++) { const v = L[r]; if (v === e) continue; L[out++] = v < e ? v + 1 : v; }
+      L.length = out;
+    }
+    S.bs.copyWithin(j * 5, (j + 1) * 5); S.bs = S.bs.subarray(0, (S.nb - 1) * 5).slice(); S.nb--;
+    this.grid = S.grid = { gw: G.gw, cells }; // (nouvelle : les carreaux des trajets voient le changement)
+  }
+  get _chgG() { const C = this._chg; return !!C && (C.g.size > 0 || C.b); }
+
   objectY(o) {
     return o.y !== undefined ? o.y : this.heightAt(o.x, o.z);
   }
 
   // ------------------------------------------------------------------ grille spatiale
+  // (une cueillette, une repousse, un arbre abattu remettent la grille à null : au lieu de tout refaire, _gridPatch ne
+  // déplace que les objets dont la case a changé ; le résultat est le même, dans le même ordre)
   rebuildGrid() {
+    const C = this._chgG ? this._chg : null;
+    const fin = () => { if (C) { C.g.clear(); C.b = false; } };
+    if (this._gridPatch(this.grid && C ? C.g : null)) { fin(); return; }
+    fin();
     const gw = Math.ceil(this.size / GRID_CELL) + 1;
     const cells = new Array(gw * gw);
     for (let k = 0; k < cells.length; k++) cells[k] = null;
     const push = (gx, gz, item) => {
-      if (gx < 0 || gz < 0 || gx >= gw || gz >= gw) return;
+      if (gx < 0 || gz < 0 || gx >= gw || gz >= gw) return -1;
       const k = gz * gw + gx;
       (cells[k] || (cells[k] = [])).push(item);
+      return k;
     };
-    this.objects.forEach((o, idx) => {
-      const t = OBJ_TYPES[o.t];
-      if ((!t.col && !t.colK) || !this.live(o)) return;
-      push(Math.floor(o.x / GRID_CELL), Math.floor(o.z / GRID_CELL), idx);
-    });
+    const objs = this.objects, gk = new Int32Array(objs.length).fill(-1);
+    for (let idx = 0; idx < objs.length; idx++) {
+      const o = objs[idx], t = OBJ_TYPES[o.t];
+      if ((!t.col && !t.colK) || !this.live(o)) continue;
+      gk[idx] = push(Math.floor(o.x / GRID_CELL), Math.floor(o.z / GRID_CELL), idx);
+    }
+    const nb = this.blocks.length, bs = new Float64Array(nb * 5);
     this.blocks.forEach((b, idx) => {
+      bs[idx * 5] = b.x; bs[idx * 5 + 1] = b.z; bs[idx * 5 + 2] = b.sx; bs[idx * 5 + 3] = b.sz; bs[idx * 5 + 4] = b.ver || 0;
       if (b.ver && !(b.ver & this.curVer)) return;
       const r = Math.hypot(b.sx, b.sz) / 2;
       const gx0 = Math.floor((b.x - r) / GRID_CELL), gx1 = Math.floor((b.x + r) / GRID_CELL);
@@ -114,18 +153,90 @@ class World {
     });
     this.grid = { gw, cells };
     this.allGrid = null;
+    this._gs = { objs, n: objs.length, gk, curVer: this.curVer, blocks: this.blocks, nb, bs, grid: this.grid, ak: null, ag: null };
+  }
+  // liste : seulement ces indices (la grille est encore là) ; sinon tous les objets
+  _gridPatch(liste) {
+    const S = this._gs, objs = this.objects, blocks = this.blocks;
+    if (liste && S && S.grid !== this.grid) return false;
+    if (!S || S.objs !== objs || objs.length < S.n || S.curVer !== this.curVer || S.blocks !== blocks || blocks.length < S.nb || S.grid.gw !== Math.ceil(this.size / GRID_CELL) + 1) return false;
+    let bs = S.bs;
+    for (let j = 0; j < S.nb; j++) {
+      const b = blocks[j], q = j * 5;
+      if (bs[q] !== b.x || bs[q + 1] !== b.z || bs[q + 2] !== b.sx || bs[q + 3] !== b.sz || bs[q + 4] !== (b.ver || 0)) return false;
+    }
+    // les blocs ajoutés au bout : au bout de leurs cases (comme le ferait la grille refaite)
+    if (blocks.length > S.nb) {
+      const b2 = new Float64Array(blocks.length * 5); b2.set(bs); bs = S.bs = b2;
+      const gw = S.grid.gw, cells = S.grid.cells;
+      for (let idx = S.nb; idx < blocks.length; idx++) {
+        const b = blocks[idx];
+        bs[idx * 5] = b.x; bs[idx * 5 + 1] = b.z; bs[idx * 5 + 2] = b.sx; bs[idx * 5 + 3] = b.sz; bs[idx * 5 + 4] = b.ver || 0;
+        if (b.ver && !(b.ver & this.curVer)) continue;
+        const r = Math.hypot(b.sx, b.sz) / 2;
+        const gx0 = Math.floor((b.x - r) / GRID_CELL), gx1 = Math.floor((b.x + r) / GRID_CELL);
+        const gz0 = Math.floor((b.z - r) / GRID_CELL), gz1 = Math.floor((b.z + r) / GRID_CELL);
+        for (let gz = gz0; gz <= gz1; gz++) for (let gx = gx0; gx <= gx1; gx++) {
+          if (gx < 0 || gz < 0 || gx >= gw || gz >= gw) continue;
+          const k = gz * gw + gx;
+          const L = cells[k] || (cells[k] = []);
+          if (L.indexOf(-1 - idx) < 0) L.push(-1 - idx); // (déjà rangé par celui qui l'a ajouté : 11-zzzzX-1-gen)
+        }
+      }
+      S.nb = blocks.length;
+    }
+    const N = objs.length, ag = S.ag && this.allGrid === S.ag ? S.ag : null;
+    if (N > S.n) {
+      const g2 = new Int32Array(N).fill(-1); g2.set(S.gk); S.gk = g2;
+      if (ag) { const a2 = new Int32Array(N).fill(-1); a2.set(S.ak); S.ak = a2; }
+    }
+    const gk = S.gk, ak = S.ak, gw = S.grid.gw, cells = S.grid.cells;
+    // retirer / ranger un indice d'objet dans une case (les objets d'abord, dans l'ordre, puis les blocs)
+    const ote = (L, i) => { const p = L ? L.indexOf(i) : -1; if (p >= 0) L.splice(p, 1); };
+    const range = (C, k, i) => { const L = C[k] || (C[k] = []); let p = 0; while (p < L.length && L[p] >= 0 && L[p] < i) p++; L.splice(p, 0, i); };
+    const aC = ag ? ag.C : 8, agw = ag ? ag.gw : 0, acells = ag ? ag.cells : null;
+    const L = liste ? [...liste] : null;
+    if (L) for (let i = S.n; i < N; i++) L.push(i); // (les objets ajoutés au bout)
+    const nn = L ? L.length : N;
+    for (let q = 0; q < nn; q++) {
+      const i = L ? L[q] : q;
+      if (i < 0 || i >= N) continue;
+      const o = objs[i], live = this.live(o);
+      let k = -1;
+      if (live) {
+        const t = OBJ_TYPES[o.t];
+        if (t.col || t.colK) { const gx = Math.floor(o.x / GRID_CELL), gz = Math.floor(o.z / GRID_CELL); if (gx >= 0 && gz >= 0 && gx < gw && gz < gw) k = gz * gw + gx; }
+      }
+      if (k !== gk[i]) { if (gk[i] >= 0) ote(cells[gk[i]], i); if (k >= 0) range(cells, k, i); gk[i] = k; }
+      if (ag) {
+        const a = live ? clamp(Math.floor(o.z / aC), 0, agw - 1) * agw + clamp(Math.floor(o.x / aC), 0, agw - 1) : -1;
+        if (a !== ak[i]) { if (ak[i] >= 0) ote(acells[ak[i]], i); if (a >= 0) range(acells, a, i); ak[i] = a; }
+      }
+    }
+    S.n = N;
+    // (une grille « nouvelle » : les carreaux des trajets (zgrille) reconnaissent un monde changé à ce qu'elle n'est plus
+    // la même ; ils comparent ensuite le contenu des cases)
+    this.grid = S.grid = { gw: S.grid.gw, cells: S.grid.cells };
+    if (ag) this.allGrid = ag; else { this.allGrid = null; S.ag = null; S.ak = null; }
+    return true;
   }
   // Grille de tous les objets (pour les rayons courts : visée, outils, fioles)
   objectsGrid() {
-    if (!this.grid) this.rebuildGrid();
+    if (!this.grid || this._chgG) this.rebuildGrid();
     if (this.allGrid) return this.allGrid;
     const C = 8, gw = Math.ceil(this.size / C) + 1, cells = new Array(gw * gw);
-    this.objects.forEach((o, i) => {
-      if (!this.live(o)) return;
+    const objs = this.objects, ak = new Int32Array(objs.length).fill(-1);
+    for (let i = 0; i < objs.length; i++) {
+      const o = objs[i];
+      if (!this.live(o)) continue;
       const k = clamp(Math.floor(o.z / C), 0, gw - 1) * gw + clamp(Math.floor(o.x / C), 0, gw - 1);
       (cells[k] || (cells[k] = [])).push(i);
-    });
-    return (this.allGrid = { C, gw, cells });
+      ak[i] = k;
+    }
+    this.allGrid = { C, gw, cells };
+    const S = this._gs;
+    if (S && S.grid === this.grid && S.objs === objs && S.n === objs.length) { S.ag = this.allGrid; S.ak = ak; }
+    return this.allGrid;
   }
   forObjectsNearRay(o, d, maxDist, fn) {
     if (maxDist > 40) { this.objects.forEach(fn); return; }
@@ -140,7 +251,7 @@ class World {
   }
   // Appelle cb(obj, idx) pour objets solides et cbB(block, idx) pour blocs proches
   query(x, z, r, cbO, cbB) {
-    if (!this.grid) this.rebuildGrid();
+    if (!this.grid || this._chgG) this.rebuildGrid();
     const { gw, cells } = this.grid;
     const gx0 = Math.floor((x - r) / GRID_CELL), gx1 = Math.floor((x + r) / GRID_CELL);
     const gz0 = Math.floor((z - r) / GRID_CELL), gz1 = Math.floor((z + r) / GRID_CELL);
@@ -313,7 +424,11 @@ class World {
       }
     };
     const inRegion = (x, z, R) => x + R >= rx0 && z + R >= rz0 && x - R <= rx1 && z - R <= rz1;
+    // (une zone : on écarte d'abord, sans rien lire d'autre, les objets bien trop loin pour y jeter leur ombre)
+    if (!World.ombreMax || World.ombreMaxN !== OBJ_TYPES.length) { let m = 0; for (const t of OBJ_TYPES) if (t.shade && t.shade[0] > m) m = t.shade[0]; World.ombreMax = m * 4 + 2; World.ombreMaxN = OBJ_TYPES.length; }
+    const M = region ? World.ombreMax : Infinity, qx0 = rx0 - M, qx1 = rx1 + M, qz0 = rz0 - M, qz1 = rz1 + M;
     for (const o of this.objects) {
+      if (o.x < qx0 || o.x > qx1 || o.z < qz0 || o.z > qz1) continue;
       const t = OBJ_TYPES[o.t];
       if (!t.shade || !this.live(o)) continue;
       const R = t.shade[0] * (o.h / ((t.h[0] + t.h[1]) / 2));
@@ -331,12 +446,13 @@ class World {
 
   collectLights() {
     const L = [];
-    this.objects.forEach((o, idx) => {
-      const t = OBJ_TYPES[o.t];
-      if (!t.light || !this.live(o)) return;
+    const objs = this.objects;
+    for (let idx = 0; idx < objs.length; idx++) {
+      const o = objs[idx], t = OBJ_TYPES[o.t];
+      if (!t.light || !this.live(o)) continue;
       const y = this.objectY(o);
       L.push({ x: o.x, y: y + t.light.y * (o.h / t.h[0]), z: o.z, r: t.light.r, c: t.light.c, night: !!t.light.night, flicker: !!t.light.flicker, power: !!t.light.power, seed: idx * 1.37 });
-    });
+    }
     if (typeof PROP_LIGHTS !== 'undefined') this.props.forEach((p, idx) => {
       const pl = PROP_LIGHTS[p.id];
       if (!pl || !this.live(p)) return;
@@ -402,7 +518,10 @@ class World {
 
   raycastBlocks(o, d, maxDist) {
     let best = null;
-    this.blocks.forEach((b, idx) => {
+    // (rayon court : seulement les blocs des cases de la grille que le rayon traverse, dans l'ordre de la liste ;
+    //  sinon, ou si la grille ne connaît pas tous les blocs, tous)
+    const L = this._blocsSurRayon(o, d, maxDist);
+    const test = (b, idx) => {
       if (b.ver && !(b.ver & this.curVer)) return;
       const r = Math.hypot(b.sx, b.sy, b.sz);
       const cx = b.x - o[0], cy = b.y + b.sy / 2 - o[1], cz = b.z - o[2];
@@ -412,8 +531,28 @@ class World {
       if (perp2 > r * r) return;
       const h = this.raycastBlock(b, o, d);
       if (h && h.t <= maxDist && (!best || h.t < best.t)) best = { ...h, idx, block: b };
-    });
+    };
+    if (L) for (const idx of L) test(this.blocks[idx], idx);
+    else this.blocks.forEach(test);
     return best;
+  }
+  _blocsSurRayon(o, d, maxDist) {
+    if (!(maxDist <= 40)) return null;
+    if (!this.grid || this._chgG) this.rebuildGrid();
+    const S = this._gs, G = this.grid;
+    if (!S || S.grid !== G || S.blocks !== this.blocks || S.nb !== this.blocks.length) return null;
+    const ex = o[0] + d[0] * maxDist, ez = o[2] + d[2] * maxDist;
+    const x0 = Math.min(o[0], ex), x1 = Math.max(o[0], ex), z0 = Math.min(o[2], ez), z1 = Math.max(o[2], ez);
+    if (!(x0 >= 0 && z0 >= 0 && x1 < this.size && z1 < this.size)) return null;
+    const gw = G.gw, cells = G.cells, L = [];
+    const gx0 = Math.floor(x0 / GRID_CELL), gx1 = Math.floor(x1 / GRID_CELL), gz0 = Math.floor(z0 / GRID_CELL), gz1 = Math.floor(z1 / GRID_CELL);
+    for (let gz = gz0; gz <= gz1; gz++) for (let gx = gx0; gx <= gx1; gx++) {
+      const c = cells[gz * gw + gx];
+      if (c) for (let k = c.length - 1; k >= 0 && c[k] < 0; k--) L.push(-1 - c[k]);
+    }
+    if (gx1 > gx0 || gz1 > gz0) { L.sort((a, b) => a - b); let n = 0; for (let k = 0; k < L.length; k++) if (k === 0 || L[k] !== L[k - 1]) L[n++] = L[k]; L.length = n; }
+    else L.reverse();
+    return L;
   }
 
   // Objets vus comme des cylindres verticaux (tronc / silhouette)
