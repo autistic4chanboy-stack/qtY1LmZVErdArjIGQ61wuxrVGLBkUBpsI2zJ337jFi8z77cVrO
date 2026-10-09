@@ -500,7 +500,10 @@ class World {
 
   raycastBlocks(o, d, maxDist) {
     let best = null;
-    this.blocks.forEach((b, idx) => {
+    // (rayon court : seulement les blocs des cases de la grille que le rayon traverse, dans l'ordre de la liste ;
+    //  sinon, ou si la grille ne connaît pas tous les blocs, tous)
+    const L = this._blocsSurRayon(o, d, maxDist);
+    const test = (b, idx) => {
       if (b.ver && !(b.ver & this.curVer)) return;
       const r = Math.hypot(b.sx, b.sy, b.sz);
       const cx = b.x - o[0], cy = b.y + b.sy / 2 - o[1], cz = b.z - o[2];
@@ -510,8 +513,28 @@ class World {
       if (perp2 > r * r) return;
       const h = this.raycastBlock(b, o, d);
       if (h && h.t <= maxDist && (!best || h.t < best.t)) best = { ...h, idx, block: b };
-    });
+    };
+    if (L) for (const idx of L) test(this.blocks[idx], idx);
+    else this.blocks.forEach(test);
     return best;
+  }
+  _blocsSurRayon(o, d, maxDist) {
+    if (!(maxDist <= 40)) return null;
+    if (!this.grid || this._chgG) this.rebuildGrid();
+    const S = this._gs, G = this.grid;
+    if (!S || S.grid !== G || S.blocks !== this.blocks || S.nb !== this.blocks.length) return null;
+    const ex = o[0] + d[0] * maxDist, ez = o[2] + d[2] * maxDist;
+    const x0 = Math.min(o[0], ex), x1 = Math.max(o[0], ex), z0 = Math.min(o[2], ez), z1 = Math.max(o[2], ez);
+    if (!(x0 >= 0 && z0 >= 0 && x1 < this.size && z1 < this.size)) return null;
+    const gw = G.gw, cells = G.cells, L = [];
+    const gx0 = Math.floor(x0 / GRID_CELL), gx1 = Math.floor(x1 / GRID_CELL), gz0 = Math.floor(z0 / GRID_CELL), gz1 = Math.floor(z1 / GRID_CELL);
+    for (let gz = gz0; gz <= gz1; gz++) for (let gx = gx0; gx <= gx1; gx++) {
+      const c = cells[gz * gw + gx];
+      if (c) for (let k = c.length - 1; k >= 0 && c[k] < 0; k--) L.push(-1 - c[k]);
+    }
+    if (gx1 > gx0 || gz1 > gz0) { L.sort((a, b) => a - b); let n = 0; for (let k = 0; k < L.length; k++) if (k === 0 || L[k] !== L[k - 1]) L[n++] = L[k]; L.length = n; }
+    else L.reverse();
+    return L;
   }
 
   // Objets vus comme des cylindres verticaux (tronc / silhouette)

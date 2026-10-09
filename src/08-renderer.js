@@ -341,8 +341,10 @@ class Renderer {
   syncWorld() {
     const w = this.world;
     if (w.dirtyHeights) {
-      this.objHauteurs = true; // le relief a bougé : la hauteur des objets est à revoir (reconstruction complète)
       const [i0, j0, i1, j1] = w.dirtyHeights;
+      // le relief a bougé : la hauteur des objets de cette zone est à revoir (patchObjects)
+      const c = w.cell, z0 = [i0 * c - c, j0 * c - c, i1 * c + c, j1 * c + c], H = this.objHReg;
+      this.objHReg = H ? [Math.min(H[0], z0[0]), Math.min(H[1], z0[1]), Math.max(H[2], z0[2]), Math.max(H[3], z0[3])] : z0;
       gl.activeTexture(gl.TEXTURE0 + TEX_H);
       glDataTexRegion(this.hTex, w.W, 'R32F', w.heights, i0, j0, i1, j1);
       this.updateChunkBounds(i0, j0, i1, j1);
@@ -399,7 +401,7 @@ class Renderer {
     }
     this.objTotal = n;
     this.objActive = new Float32Array(cap * 13);
-    this.objHauteurs = false;
+    this.objHReg = null;
     this.activeCenter = null;
   }
   // un objet dans le tampon (case sl) ; false s'il ne se dessine pas (créature, disparu, absent de ce monde-ci)
@@ -428,7 +430,9 @@ class Renderer {
   patchObjects(liste) {
     const w = this.world, G = this.objSig, objs = w.objects, N = objs.length;
     const env = w.sprMap || (w.envers ? ENVERS_SPRITES : null);
-    if (!G || !this.objAll || this.objHauteurs || G.objs !== objs || N < G.n || N > this.objCap || G.env !== env) return false;
+    if (!G || !this.objAll || G.objs !== objs || N < G.n || N > this.objCap || G.env !== env) return false;
+    const H = this.objHReg;
+    if (H) liste = null; // (le relief a changé quelque part : on regarde tout, et on refait les objets de la zone)
     const slot = this.objSlot, xz = this.objXZ, data = this.objAll;
     let n = this.objTotal, ch = 0;
     const L = liste ? liste.slice() : null;
@@ -439,7 +443,7 @@ class Renderer {
       if (i < 0 || i >= N) continue;
       const o = objs[i];
       if (i < G.n && G.live[i] === (w.live(o) ? 1 : 0) && G.t[i] === o.t && G.v[i] === objNum(o.v) && G.x[i] === o.x && G.z[i] === o.z && G.h[i] === objNum(o.h)
-        && G.y[i] === objNum(o.y) && G.fx[i] === (o.fx || 0) && G.f[i] === objNum(o.f)) continue;
+        && G.y[i] === objNum(o.y) && G.fx[i] === (o.fx || 0) && G.f[i] === objNum(o.f) && !(H && o.x >= H[0] && o.x <= H[2] && o.z >= H[1] && o.z <= H[3])) continue;
       ch++;
       this.objSigSet(G, i, o);
       const sl = slot[i];
@@ -448,7 +452,7 @@ class Renderer {
       } else if (n < this.objCap && this.objWrite(o, n, env)) { slot[i] = n; n++; }
       else if (n >= this.objCap) return false;
     }
-    G.n = N; this.objTotal = n;
+    G.n = N; this.objTotal = n; this.objHReg = null;
     if (ch) this.activeCenter = null;
     return true;
   }
