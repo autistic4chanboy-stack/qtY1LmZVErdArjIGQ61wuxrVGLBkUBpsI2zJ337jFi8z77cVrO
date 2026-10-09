@@ -770,7 +770,7 @@ const betesParlantes = {
     sound.dig ? sound.dig(0.6) : sound.pop && sound.pop();
     farm.earn(42); sound.coin && sound.coin();
     this.donner('vieille_piece', 2, { x: Fo.x, y: Fo.y, z: Fo.z });
-    const m = { from: BP_MOTS.lettreSigne, title: BP_MOTS.lettreTitre, text: BP_MOTS.lettre, day: farm.s.day, read: true };
+    const m = { from: BP_MOTS.lettreSigne, title: BP_MOTS.lettreTitre, text: BP_MOTS.lettre, day: farm.s.day, read: true, sur: true };
     if (Array.isArray(farm.s.mail)) farm.s.mail.push(m);
     setTimeout(() => ui.read(BP_MOTS.lettreTitre, BP_MOTS.lettre, BP_MOTS.lettreSigne), 700);
   },
