@@ -141,10 +141,10 @@ class SoundEngine {
       const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 28; hp.Q.value = 0.6;
       hp.connect(glue);
       this.master = G(1); this.master.connect(hp);
-      // réverbération : deux convolueurs pour passer d'un lieu à l'autre en fondu
+      // réverbération : un convolueur par lieu (sa réponse posée une seule fois : poser un tampon sur un convolueur
+      // coûte des dizaines de millisecondes), on passe d'un lieu à l'autre en fondu
       this.revIn = G(1);
-      this.rev = [0, 1].map(() => { const cv = c.createConvolver(), g = G(0); cv.connect(g).connect(this.master); return { cv, g, on: false }; });
-      this.revCur = 0;
+      this._revs = {}; this._revAct = null;
       // les bus : entrée (volume du bus) → mélange ; envoi vers la réverbération ; retour « distance » des sources placées
       const bus = (level, send) => {
         const inp = G(level), snd = G(send), xrv = G(level);
@@ -199,17 +199,26 @@ class SoundEngine {
     const P = SoundEngine.LIEUX[k];
     if (!P || k === this.lieu) return;
     this.lieu = k;
-    const ir = this._irs[k] || (this._irs[k] = SoundEngine.reverbIR(this.ctx, P));
-    const t = this.ctx.currentTime, old = this.rev[this.revCur], nw = this.rev[1 - this.revCur];
-    this.revCur = 1 - this.revCur;
-    nw.cv.buffer = ir;
+    const t = this.ctx.currentTime, old = this._revAct, nw = this._revDe(k);
+    this._revAct = nw;
     if (!nw.on) { this.revIn.connect(nw.cv); nw.on = true; }
     const fade = this.offline ? 0.001 : 0.6;
     nw.g.gain.cancelScheduledValues(t); nw.g.gain.setValueAtTime(nw.g.gain.value, t); nw.g.gain.linearRampToValueAtTime(P.wet, t + fade);
+    if (!old || old === nw) return;
     old.g.gain.cancelScheduledValues(t); old.g.gain.setValueAtTime(old.g.gain.value, t); old.g.gain.linearRampToValueAtTime(0, t + fade);
-    // l'ancien convolueur se tait puis se débranche (moins de calcul)
-    const tok = this._revTok = (this._revTok || 0) + 1;
-    if (old.on && !this.offline) setTimeout(() => { if (this._revTok === tok && old.on && this.rev[this.revCur] !== old) { try { this.revIn.disconnect(old.cv); } catch (e) { /* déjà */ } old.on = false; } }, P.len * 1000 + 1500);
+    // l'ancien convolueur se tait puis se débranche (moins de calcul) ; il garde sa réponse pour la prochaine fois
+    if (old.on && !this.offline) setTimeout(() => { if (old.on && this._revAct !== old) { try { this.revIn.disconnect(old.cv); } catch (e) { /* déjà */ } old.on = false; } }, SoundEngine.LIEUX[old.k].len * 1000 + 1500);
+  }
+  // le convolueur d'un lieu, préparé une fois (aussi en tâche de fond : chauffer)
+  _revDe(k) {
+    const R = this._revs || (this._revs = {});
+    if (R[k]) return R[k];
+    const c = this.ctx, ir = this._irs[k] || (this._irs[k] = SoundEngine.reverbIR(c, SoundEngine.LIEUX[k]));
+    const cv = c.createConvolver(), g = c.createGain();
+    g.gain.value = 0;
+    cv.buffer = ir;
+    cv.connect(g).connect(this.master);
+    return (R[k] = { cv, g, on: false, k });
   }
 
   // ---------------------------------------------------------------- le son en 3D
@@ -844,6 +853,7 @@ Object.assign(SoundEngine.prototype, {
       for (const k of ['eau', 'neige', 'sabot', 'croque', 'grenouille']) T(k, 6);
       T('plouf', 5); T('goutte', 8);
       for (const k of ['grillon', 'feuilles', 'riviere', 'clapotis', 'feu', 'bourdon', 'vent']) L.push(() => this.boucleTampon && this.boucleTampon(k));
+      for (const k in SoundEngine.LIEUX) L.push(() => { if (this.ctx) this._revDe(k); });
       this._chauffe = L;
     }
     const f = this._chauffe.shift();

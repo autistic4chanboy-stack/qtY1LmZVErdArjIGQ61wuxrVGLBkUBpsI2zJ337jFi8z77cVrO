@@ -4,6 +4,8 @@
 
 const CHUNK = 32;      // cellules par morceau de terrain
 const RING = 3;        // morceaux de montagnes autour du monde
+// une valeur d'objet pour la comparer (absente : une valeur que rien d'autre ne prend ; NaN ne s'égale pas lui-même)
+const objNum = (v) => (v === undefined || v !== v ? -1e300 : +v);
 const TEX_H = 0, TEX_M = 1, TEX_S = 2, TEX_A = 3, TEX_ATLAS = 4, TEX_SCENE = 5, TEX_C = 6, TEX_SKIN = 7, TEX_VM = 8;
 const MAX_LIGHTS = 12;
 // L'Envers : les arbres sont morts, les fleurs ont disparu (null = masqué)
@@ -339,6 +341,7 @@ class Renderer {
   syncWorld() {
     const w = this.world;
     if (w.dirtyHeights) {
+      this.objHauteurs = true; // le relief a bougé : la hauteur des objets est à revoir (reconstruction complète)
       const [i0, j0, i1, j1] = w.dirtyHeights;
       gl.activeTexture(gl.TEXTURE0 + TEX_H);
       glDataTexRegion(this.hTex, w.W, 'R32F', w.heights, i0, j0, i1, j1);
@@ -358,35 +361,96 @@ class Renderer {
       glDataTexRegion(this.sTex, w.W, 'R8', w.shade, i0, j0, i1, j1);
     }
     if (w.coverDirty) this.uploadCover();
-    if (w.objectsDirty) { this.buildObjects(); w.collectLights(); w.objectsDirty = false; w.objVersion = (w.objVersion || 0) + 1; }
+    if (w.objectsDirty) {
+      if (!this.patchObjects()) this.buildObjects();
+      w.collectLights(); w.objectsDirty = false; w.objVersion = (w.objVersion || 0) + 1;
+      if (w._chg) w._chg.r.clear();
+    } else if (w._chg && w._chg.r.size) {
+      // quelques objets changés (w.objetChange) : eux seuls ; les lumières et les bêtes seulement s'ils en sont
+      const L = [...w._chg.r], G = this.objSig;
+      w._chg.r.clear();
+      let lum = false, bete = false;
+      for (const i of L) {
+        const o = w.objects[i], t0 = G && i < G.n ? OBJ_TYPES[G.t[i]] : null, t1 = o ? OBJ_TYPES[o.t] : null;
+        if ((t0 && t0.light) || (t1 && t1.light)) lum = true;
+        if ((t0 && t0.animal) || (t1 && t1.animal) || !t0) bete = true;
+      }
+      if (!this.patchObjects(L)) { this.buildObjects(); lum = bete = true; }
+      if (lum) w.collectLights();
+      if (bete) w.objVersion = (w.objVersion || 0) + 1;
+    }
     if (w.blocksDirty) { this.buildBlocks(); w.blocksDirty = false; }
   }
 
   // Tous les objets statiques sont préparés ici ; seuls ceux proches de la caméra sont envoyés au GPU
   buildObjects() {
-    const w = this.world;
-    const data = new Float32Array(Math.max(1, w.objects.length) * 13), xz = new Float32Array(Math.max(1, w.objects.length) * 2);
-    let k = 0, n = 0;
+    const w = this.world, N = w.objects.length, cap = N + 256 + (N >> 5);
+    const data = new Float32Array(cap * 13), xz = new Float32Array(cap * 2);
     const env = w.sprMap || (w.envers ? ENVERS_SPRITES : null); // sprMap : autres mondes (bonbons, ténèbres)
-    const slot = this.objSlot = new Int32Array(w.objects.length).fill(-1);
-    for (let oi = 0; oi < w.objects.length; oi++) {
-      const o = w.objects[oi], t = OBJ_TYPES[o.t];
-      if (t.animal || !w.live(o)) continue; // les créatures sont dessinées à part
-      slot[oi] = n;
-      let sid = t.spr[o.v % t.spr.length];
-      if (env) { const m = env[t.id]; if (m === null) continue; if (m) sid = m[o.v % m.length]; }
-      xz[n * 2] = o.x; xz[n * 2 + 1] = o.z;
-      n++;
-      const s = ATLAS.sprites[sid];
-      const y = w.objectY(o) - o.h * (o.y !== undefined ? 0 : t.sink);
-      data[k++] = o.x; data[k++] = y; data[k++] = o.z;
-      data[k++] = o.h * s.aspect; data[k++] = o.h;
-      data[k++] = s.u0; data[k++] = s.v0; data[k++] = s.u1; data[k++] = s.v1;
-      data[k++] = t.sway; data[k++] = s.frames; data[k++] = (t.flags || 0) | (o.fx || 0); data[k++] = o.f;
+    const slot = this.objSlot = new Int32Array(cap).fill(-1);
+    this.objAll = data; this.objXZ = xz; this.objCap = cap;
+    // ce qui a servi à préparer chaque objet : une cueillette ou une repousse ne refait que l'objet changé (patchObjects)
+    const G = this.objSig = { objs: w.objects, n: N, env, live: new Uint8Array(cap), t: new Int32Array(cap), v: new Float64Array(cap), x: new Float64Array(cap), z: new Float64Array(cap), h: new Float64Array(cap), y: new Float64Array(cap), fx: new Float64Array(cap), f: new Float64Array(cap) };
+    let n = 0;
+    for (let oi = 0; oi < N; oi++) {
+      const o = w.objects[oi];
+      this.objSigSet(G, oi, o);
+      if (this.objWrite(o, n, env)) { slot[oi] = n; n++; }
     }
-    this.objAll = data; this.objXZ = xz; this.objTotal = n;
-    this.objActive = new Float32Array(Math.max(1, n) * 13);
+    this.objTotal = n;
+    this.objActive = new Float32Array(cap * 13);
+    this.objHauteurs = false;
     this.activeCenter = null;
+  }
+  // un objet dans le tampon (case sl) ; false s'il ne se dessine pas (créature, disparu, absent de ce monde-ci)
+  objWrite(o, sl, env) {
+    const w = this.world, t = OBJ_TYPES[o.t];
+    if (t.animal || !w.live(o)) return false; // les créatures sont dessinées à part
+    let sid = t.spr[o.v % t.spr.length];
+    if (env) { const m = env[t.id]; if (m === null) return false; if (m) sid = m[o.v % m.length]; }
+    const data = this.objAll, xz = this.objXZ, s = ATLAS.sprites[sid];
+    const y = w.objectY(o) - o.h * (o.y !== undefined ? 0 : t.sink);
+    let k = sl * 13;
+    xz[sl * 2] = o.x; xz[sl * 2 + 1] = o.z;
+    data[k++] = o.x; data[k++] = y; data[k++] = o.z;
+    data[k++] = o.h * s.aspect; data[k++] = o.h;
+    data[k++] = s.u0; data[k++] = s.v0; data[k++] = s.u1; data[k++] = s.v1;
+    data[k++] = t.sway; data[k++] = s.frames; data[k++] = (t.flags || 0) | (o.fx || 0); data[k++] = o.f;
+    return true;
+  }
+  objSigSet(G, i, o) {
+    G.live[i] = this.world.live(o) ? 1 : 0; G.t[i] = o.t; G.v[i] = objNum(o.v); G.x[i] = o.x; G.z[i] = o.z; G.h[i] = objNum(o.h);
+    G.y[i] = objNum(o.y); G.fx[i] = o.fx || 0; G.f[i] = objNum(o.f);
+  }
+  // Mise à jour sans tout reconstruire : seuls les objets dont quelque chose a changé (disparu, revenu, déplacé,
+  // changé de sorte ou de taille) sont refaits ; les nouveaux prennent une case libre au bout. false : il faut tout
+  // reconstruire (liste remplacée ou raccourcie, relief changé, autre monde, plus de place).
+  patchObjects(liste) {
+    const w = this.world, G = this.objSig, objs = w.objects, N = objs.length;
+    const env = w.sprMap || (w.envers ? ENVERS_SPRITES : null);
+    if (!G || !this.objAll || this.objHauteurs || G.objs !== objs || N < G.n || N > this.objCap || G.env !== env) return false;
+    const slot = this.objSlot, xz = this.objXZ, data = this.objAll;
+    let n = this.objTotal, ch = 0;
+    const L = liste ? liste.slice() : null;
+    if (L) for (let i = G.n; i < N; i++) L.push(i); // (les objets ajoutés au bout)
+    const nn = L ? L.length : N;
+    for (let q = 0; q < nn; q++) {
+      const i = L ? L[q] : q;
+      if (i < 0 || i >= N) continue;
+      const o = objs[i];
+      if (i < G.n && G.live[i] === (w.live(o) ? 1 : 0) && G.t[i] === o.t && G.v[i] === objNum(o.v) && G.x[i] === o.x && G.z[i] === o.z && G.h[i] === objNum(o.h)
+        && G.y[i] === objNum(o.y) && G.fx[i] === (o.fx || 0) && G.f[i] === objNum(o.f)) continue;
+      ch++;
+      this.objSigSet(G, i, o);
+      const sl = slot[i];
+      if (sl >= 0) {
+        if (!this.objWrite(o, sl, env)) { data[sl * 13 + 3] = 0; data[sl * 13 + 4] = 0; xz[sl * 2] = 1e9; xz[sl * 2 + 1] = 1e9; } // caché (sa case reste)
+      } else if (n < this.objCap && this.objWrite(o, n, env)) { slot[i] = n; n++; }
+      else if (n >= this.objCap) return false;
+    }
+    G.n = N; this.objTotal = n;
+    if (ch) this.activeCenter = null;
+    return true;
   }
   // marque d'un objet (8 : il brûle) sans tout reconstruire
   objFlag(i, fx) {
@@ -477,10 +541,12 @@ class Renderer {
     this.syncWorld();
     // fenêtre de la carte des abris et objets actifs : suivent la caméra
     if (!w.coverO || Math.hypot(cam.pos[0] - (w.coverO[0] + 128), cam.pos[2] - (w.coverO[1] + 128)) > 64) this.uploadCover(cam.pos[0], cam.pos[2]);
+    // (le rayon suit le brouillard, qui bouge un peu à chaque image : on garde une marge, sinon on refaisait la liste
+    // de tous les objets du monde à chaque image)
     const activeR = sky.fog[1] + 90;
-    if (!this.activeCenter || Math.hypot(cam.pos[0] - this.activeCenter[0], cam.pos[2] - this.activeCenter[1]) > 40 || this.activeR !== activeR) {
-      this.activeR = activeR;
-      this.updateActiveObjects(cam.pos, activeR);
+    if (!this.activeCenter || Math.hypot(cam.pos[0] - this.activeCenter[0], cam.pos[2] - this.activeCenter[1]) > 40 || !(activeR <= this.activeR) || activeR < this.activeR - 30) {
+      this.activeR = activeR + 12;
+      this.updateActiveObjects(cam.pos, this.activeR);
     }
     const [rw, rh] = this.res;
     const aspect = rw / rh;
@@ -694,16 +760,15 @@ class Renderer {
       v3.add(v3.scale(b.u, -Math.cos(hy)), v3.scale(b.f, -Math.sin(hy))),
     ];
     let n = 0;
-    const half = CHUNK * cell / 2;
+    const half = CHUNK * cell / 2, h2 = half * half * 2.0002;
+    const [p0, p1, p2, p3] = planes;
     for (const c of this.chunks) {
       const cx = c.x * cell + half - pos[0], cz = c.z * cell + half - pos[2];
       const cy = (c.minH + c.maxH) / 2 - pos[1];
-      const r = Math.hypot(half * 1.4143, (c.maxH - c.minH) / 2);
-      const d = Math.hypot(cx, cy, cz);
-      if (d - r > far) continue;
-      let out = false;
-      for (const p of planes) if (p[0] * cx + p[1] * cy + p[2] * cz > r) { out = true; break; }
-      if (out) continue;
+      const eh = (c.maxH - c.minH) / 2, r = Math.sqrt(h2 + eh * eh);
+      // (Math.sqrt plutôt que Math.hypot : bien plus rapide, et c'est fait pour chaque morceau à chaque image)
+      if (Math.sqrt(cx * cx + cy * cy + cz * cz) - r > far) continue;
+      if (p0[0] * cx + p0[1] * cy + p0[2] * cz > r || p1[0] * cx + p1[1] * cy + p1[2] * cz > r || p2[0] * cx + p2[1] * cy + p2[2] * cz > r || p3[0] * cx + p3[1] * cy + p3[2] * cz > r) continue;
       this.visData[n * 2] = c.x; this.visData[n * 2 + 1] = c.z;
       n++;
     }
