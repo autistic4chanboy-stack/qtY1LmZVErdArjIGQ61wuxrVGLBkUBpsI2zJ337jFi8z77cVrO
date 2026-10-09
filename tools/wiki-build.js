@@ -401,7 +401,7 @@ function extractSystems(G, DB) {
   const safe = (label, fn, d) => { try { return fn(); } catch (e) { DB.log.push('systèmes, ' + label + ' : ' + (e && e.message)); return d; } };
   const J = (expr) => jclone(G.run(expr));
   for (const [file, text] of G.texts) {
-    if (!SYS_FILE.test(file) || /admin/.test(file)) continue; // (les outils de mise au point restent cachés)
+    if (!SYS_FILE.test(file) || /admin|camera/.test(file)) continue; // (les outils de mise au point restent cachés)
     const M = S.files[file] = parseModule(text);
     // les tables des objets du module (propriétés en majuscules : chasse.XXX, fabrication.LECONS…)
     for (const o of M.objs) {
@@ -1204,6 +1204,8 @@ async function extract() {
       const cv = safe('bête ' + k, () => renderRig(`(() => { const cfg = CREATURES[${JSON.stringify(k)}]; const rig = ANIMAL_RIGS[cfg.rig](1); try { if (rig.kind === 'bird') poseBird(rig, { t: 0, move: 0 }); else poseQuad(rig, { t: 0, move: 0 }); } catch (e) {} return rig; })()`, 96));
       if (cv) fig['an:' + k] = { full: shelf.add(trim(cv)) };
     }
+    // les bêtes des Terres d'Avant et le Ver (la quinzième vague : tools/wiki-v15.js)
+    safe('vague 15 (figurines)', () => { const W15 = require('./wiki-v15.js'); if (W15.figures) W15.figures({ G, renderRig, safe, add: (key, cv) => { fig[key] = { full: shelf.add(trim(cv)) }; } }); });
     // plantes, arbres, champignons… (sprites du décor)
     const OT = G.get('OBJ_TYPES') || [];
     OT.forEach((t) => {
@@ -3546,7 +3548,7 @@ function buildWiki(DB) {
     for (const [id, P] of Object.entries(PA)) (pools[P.pool || '_'] || (pools[P.pool || '_'] = [])).push([id, P]);
     const poolNom = (p) => (p === '_' ? 'Trouvé dans une cachette' : NPC_BY[p] ? `Chez ${npcName(p)}` : p === 'tri' ? 'Les casiers du tri, à la poste' : p === 'boite' ? 'La boîte aux lettres' : p === 'rebut' ? 'Les poubelles' : p === 'cave' ? 'La cave de l’auberge' : p === 'morel' ? 'La maison Morel' : p === 'bastien' ? 'La maison Bastien' : cap(bldNom(p)));
     let s = `<h3>Les cachettes</h3><table class="t"><tr><th>Cachette</th><th>Ce qu’il y a</th><th>Révélée par</th></tr>${Object.entries(CA).map(([c, C]) => `<tr><td>${esc(cap(C.nom))}${C.own ? ` <small>(${nomNPC(C.own)})</small>` : ''}</td><td>${(C.lots || []).map(([id, n]) => (id === 'argent' ? pieces(n) : IL(id, n > 1 ? n : undefined))).join(', ')}${C.papier && PA[C.papier] ? ` ; ${esc(PA[C.papier].t)}` : ''}</td><td>${Object.entries(PA).filter(([, P]) => P.cache === c).map(([, P]) => `« ${esc(P.t)} »`).join(', ')}</td></tr>`).join('')}</table>`;
-    s += `<h3>Les papiers</h3><p class="note">${plur(Object.keys(PA).length, 'papier', 'papiers')}, qu’on relit dans la sacoche (onglet Lettres).</p>${Object.entries(pools).map(([p, L]) => `<details><summary>${esc(poolNom(p))} <small>(${L.length})</small></summary>${L.map(([id, P]) => `<section class="bookpage"><h4>${esc(P.t)}${P.cache ? ' <small>— révèle une cachette</small>' : ''}</h4>${para(P.x)}${P.s ? `<p class="note">${FILL(P.s)}</p>` : ''}</section>`).join('')}</details>`).join('')}`;
+    s += `<h3>Les papiers</h3><p class="note">${plur(Object.keys(PA).length, 'papier', 'papiers')}, qu’on relit dans la sacoche (onglet Sacoche, page Lettres).</p>${Object.entries(pools).map(([p, L]) => `<details><summary>${esc(poolNom(p))} <small>(${L.length})</small></summary>${L.map(([id, P]) => `<section class="bookpage"><h4>${esc(P.t)}${P.cache ? ' <small>— révèle une cachette</small>' : ''}</h4>${para(P.x)}${P.s ? `<p class="note">${FILL(P.s)}</p>` : ''}</section>`).join('')}</details>`).join('')}`;
     h += SEC(s, 'Les cachettes et les papiers (leurs textes complets) sont masqués : révélez les secrets pour les lire.');
     SP('sys:fouilles', { t: 'Fouiller', s: 'Armoires, commodes, tiroirs-caisses, étals, cachettes : ce qu’on y trouve, et chez qui', c: ['fouilles'], i: '🔎', h, g: 'Fouiller' }, FV.fouilles);
   }
@@ -4425,6 +4427,14 @@ function buildWiki(DB) {
   if (W14) {
     try { W14.build({ DB, T, P, SP, SEC, esc, lk, IL, FILL, quotes, npcLink, pages, used, addCat, rarTag, nfmt, planBtn, mapBtn, MF, ITEMS, NAMES, link, placeLink }); } catch (e) { (DB.log || []).push('wiki-v14.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
   }
+  // ==== LA QUINZIÈME VAGUE : une fiche par bête des Terres d'Avant (et le Ver), un peu de rangement : tools/wiki-v15.js
+  let W15 = null;
+  try { W15 = require('./wiki-v15.js'); } catch (e) { (DB.log || []).push('wiki-v15.js : ' + e.message); }
+  if (W15) try { W15.build({ DB, T, P, SP, SEC, esc, lk, IL, FILL, quotes, npcLink, pages, used, addCat, rarTag, nfmt, planBtn, mapBtn, MF, ITEMS, NAMES, link, placeLink, FIG }); } catch (e) { (DB.log || []).push('wiki-v15.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
+  // la suite : les runes, le wiki du jeu et les découvertes, le menu simplifié (tools/wiki-v15b.js)
+  let W15B = null;
+  try { W15B = require('./wiki-v15b.js'); } catch (e) { (DB.log || []).push('wiki-v15b.js : ' + e.message); }
+  if (W15B) try { W15B.build({ DB, T, P, SP, SEC, esc, lk, IL, pages, used, MF, ITEMS }); } catch (e) { (DB.log || []).push('wiki-v15b.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
   for (const f of [FILE.vol, FILE.prison, FILE.sentiments]) if (f) genericPage(f, 'prison', 'Prison, vol et sentiments');
   for (const f of Object.keys(MF)) if (!MODPAGE[f] && !/^07-/.test(f)) genericPage(f, 'nouveautes-autres', 'Autres nouveautés');
   // ce qui reste des tables de chaque module : en bas de sa fiche principale
@@ -4535,6 +4545,8 @@ function buildWiki(DB) {
   // les sections de la treizième vague (Quêtes principales, Les bêtes qui parlent), à leur place
   if (W13 && W13.sections) try { W13.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v13.js (sections) : ' + e.message); }
   if (W14 && W14.sections) try { W14.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v14.js (sections) : ' + e.message); }
+  if (W15 && W15.sections) try { W15.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v15.js (sections) : ' + e.message); }
+  if (W15B && W15B.sections) try { W15B.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v15b.js (sections) : ' + e.message); }
   // semaine : page d'ensemble
   if (SEM.length) P('cat:semaine', { t: 'La semaine', s: `${SEM.length} jours`, c: [], i: '📅', h: `<p class="lead">Dans la vallée, la semaine compte ${SEM.length} jours${DB.derived.jour ? `, et une journée dure ${Math.round(DB.derived.jour / 60)} minutes` : ''}.</p><table class="t">${SEM.map((J, k) => `<tr><th>${link('sem:' + k)}</th><td>${esc((J.annonce || '').replace(/^\(|\)$/g, ''))}</td></tr>`).join('')}</table>` });
 
@@ -4772,6 +4784,98 @@ function CLIENT(D) {
   let reveal = !!store.get('secrets', false);
   const main = $('#main');
 
+  // ---------------------------------------------------------------- suivre ma partie : ce que le jeu a écrit (même site)
+  // localStorage['prairie.decouvertes'] = { v, partie, mode: 'interactif'|'exact', tout, pages: { id: { j, champs: { k: 1 } } },
+  // notes: { id: { k: texte } }, valides: { id: { k: bool } } } (le jeu l'écrit ; le wiki ne fait que le lire)
+  const CHAMPS = D.champs || {}, NOMS_CHAMPS = D.nomsChamps || {};
+  const lirePartie = () => { try { const v = JSON.parse(localStorage.getItem('prairie.decouvertes') || 'null'); return v && typeof v === 'object' && v.pages && typeof v.pages === 'object' ? v : null; } catch (e) { return null; } };
+  let PARTIE = lirePartie();
+  let suivre = !!(PARTIE && store.get('suivre', false));
+  const SUIT = () => !!(suivre && PARTIE && !PARTIE.tout);
+  const connu = (id) => !SUIT() || !!PARTIE.pages[id];
+  const prefixe = (id) => (/^(it:livre_|lv:)/.test(id) ? 'lv' : id.slice(0, Math.max(0, id.indexOf(':'))));
+  const sait = (id, f) => {
+    if (!SUIT()) return true;
+    const e = PARTIE.pages[id];
+    if (!e || !e.champs || !e.champs[f]) return false;
+    return PARTIE.mode === 'exact' || !!(PARTIE.valides && PARTIE.valides[id] && PARTIE.valides[id][f]);
+  };
+  const ETIQ = {
+    an: [[/^(Milieux|Où|Monde|Dans la vallée|Rareté|Combien)$/, 'milieux'], [/^(Quand|Le jour)$/, 'jour'], [/^La nuit$/, 'nuit'], [/^(Danger|Blessures?|Course|Fuit|Fuit à|Vigueur|Menacée?|Il vous|Elle vous|Vous voit|Ce qu’elle fait|Son feu|Sur l’avis de décès)$/, 'danger'], [/^(Dépouille|Ce qu’elle laisse|Ce qu’il laisse|S’achète)$/, 'depouille']],
+    it: [[/^Catégorie$/, 'sorte'], [/^Prix/, 'prix'], [/^(Soigne|Nourrit|Alchimie|Blesse|Poison|Effets?|Cru|Alcool|Panse|Durée|Outil|Soif|Gel|Pousse|Repousse)$/, 'effet']],
+    pl: [[/^(Milieux|Rareté|Dans la vallée)$/, 'milieux'], [/^(Récolte|Identification|Effets)$/, 'recolte']],
+    li: [[/^(Secret|Au-dessus|Sous terre)$/, 'dedans']],
+    pnj: [[/^Rôle$/, 'metier'], [/^(Maison|Vit)$/, 'demeure']],
+    lv: [],
+  };
+  const quelChamp = (pf, dt, dd) => {
+    const L = CHAMPS[pf] || [];
+    if (dt.dataset.f && L.includes(dt.dataset.f)) return dt.dataset.f;
+    const t = dt.textContent.trim();
+    if (pf === 'an' && t === 'Mœurs') return /nocturne|la nuit/.test(dd.textContent) ? 'nuit' : 'jour';
+    for (const [re, f] of ETIQ[pf] || []) if (re.test(t)) return f;
+    return L[0];
+  };
+  // la fiche telle que la partie la connaît : les lignes non sues → « ??? », la suite seulement quand tout est su
+  function selonPartie(p) {
+    if (!suivre || !PARTIE) return p.h;
+    const N = (PARTIE.notes || {})[p.id] || {}, VAL = (PARTIE.valides || {})[p.id] || {};
+    const nk = Object.keys(N).filter((k) => String(N[k] || '').trim());
+    const notes = nk.length ? `<div class="mesnotes"><h3>Mes notes</h3><dl class="kv">${nk.map((k) => `<dt>${esc(NOMS_CHAMPS[k] || k)}</dt><dd class="${VAL[k] ? 'juste' : 'gris'}">${esc(N[k])}</dd>`).join('')}</dl></div>` : '';
+    const pf = prefixe(p.id);
+    if (!SUIT() || !CHAMPS[pf]) return notes + p.h;
+    const tpl = document.createElement('template');
+    tpl.innerHTML = p.h;
+    const R = tpl.content, vus = new Set(), vert = PARTIE.mode !== 'exact';
+    for (const dt of R.querySelectorAll('dl.kv > dt')) {
+      const dd = dt.nextElementSibling; if (!dd || dd.tagName !== 'DD') continue;
+      const f = quelChamp(pf, dt, dd); vus.add(f);
+      if (!sait(p.id, f)) { dd.innerHTML = '<span class="inconnu">???</span>'; dd.className = 'nsu'; }
+      else if (vert) dd.classList.add('juste');
+    }
+    if (![...vus].every((f) => sait(p.id, f))) {
+      let ote = 0;
+      for (const el of [...R.children]) {
+        if (el.matches('dl.kv, p.lead')) continue;
+        const nx = el.nextElementSibling;
+        if (/^H[2-4]$/.test(el.tagName) && nx && nx.matches('dl.kv')) continue;
+        el.remove(); ote++;
+      }
+      if (ote) R.appendChild(Object.assign(document.createElement('p'), { className: 'suite inconnu', textContent: '???' }));
+    }
+    const d = document.createElement('div'); d.appendChild(R);
+    return notes + d.innerHTML;
+  }
+  // les liens vers ce qu'on ne connaît pas encore : « ??? »
+  function masquer(root) {
+    if (!SUIT()) return;
+    for (const a of $$('a[href^="#/p/"]', root)) {
+      const id = decodeURIComponent(a.getAttribute('href').slice(4));
+      if (connu(id)) continue;
+      const sp = document.createElement('span'); sp.className = 'inconnu'; sp.textContent = '???';
+      a.replaceWith(sp);
+    }
+  }
+  function suivLabel() {
+    const b = $('#suivbtn'); if (!b) return;
+    b.hidden = !PARTIE;
+    b.setAttribute('aria-pressed', suivre ? 'true' : 'false');
+    b.innerHTML = suivre ? '📖 <span class="long">Ma partie</span><span class="short">Partie</span>' : '📖 <span class="long">Suivre ma partie</span><span class="short">Partie</span>';
+    b.title = suivre ? 'Le wiki suit votre partie (cliquer : tout voir)' : 'Ne montrer que ce que votre partie a découvert';
+    document.body.classList.toggle('suivi', SUIT());
+  }
+  const setSuivre = (v) => { suivre = !!(v && PARTIE); store.set('suivre', !!v); suivLabel(); renderNav(); route(); };
+  function proposerSuivi() {
+    if (!PARTIE || store.get('suivre', null) !== null) return;
+    const d = document.createElement('div');
+    d.id = 'suividlg';
+    d.innerHTML = '<div class="box" role="dialog" aria-modal="true" aria-labelledby="suivtitre"><h2 id="suivtitre">Une partie est en cours</h2><p>Le wiki peut ne montrer que ce qu’elle a découvert.</p><p class="row"><button class="btn big" data-v="1">📖 Suivre ma partie</button> <button class="btn big" data-v="0">Tout voir</button></p></div>';
+    document.body.appendChild(d);
+    d.addEventListener('click', (e) => { const b = e.target.closest('button[data-v]'); if (!b) return; d.remove(); setSuivre(b.dataset.v === '1'); });
+    const b1 = $('button[data-v="1"]', d); if (b1) b1.focus();
+  }
+  window.addEventListener('storage', (e) => { if (e.key !== 'prairie.decouvertes') return; PARTIE = lirePartie(); suivre = !!(PARTIE && store.get('suivre', false)); suivLabel(); renderNav(); if (mode === 'wiki') route(); });
+
   // ---------------------------------------------------------------- icônes (planche) et figurines
   {
     const I = D.icons, st = document.createElement('style');
@@ -4807,15 +4911,17 @@ function CLIENT(D) {
     $('#secbtn').innerHTML = reveal ? '👁 <span class="long">Secrets révélés</span><span class="short">Révélés</span>' : '🔒 <span class="long">Révéler les secrets</span><span class="short">Secrets</span>';
   }
   $('#secbtn').addEventListener('click', () => { if (!reveal && !confirm('Révéler les secrets ? Solutions d’énigmes, lieux cachés, combinaisons d’alchimie, fins… Tout sera visible.')) return; setReveal(!reveal); });
-  const visible = (p) => p && (reveal || !p.x);
+  const visible = (p) => !!p && (SUIT() ? connu(p.id) : (reveal || !p.x));
 
   // ---------------------------------------------------------------- navigation (catégories)
   function renderNav() {
     $('#nav').innerHTML = `<a class="navmap" href="#/carte">🗺 Les cartes <small>vallée, Dessous, Enfers…</small></a>` + CATS.map((c) => {
       const n = c.groups ? c.groups.reduce((a, g) => a + g.ids.filter((id) => visible(PAGES.get(id))).length, 0) : 0;
+      if (SUIT() && !n && !c.page) return '';
       if (!n && !c.page && !PAGES.has('cat:' + c.id)) return '';
       if (!reveal && !n && !c.page) return '';
-      return `<a href="#/cat/${c.id}" data-cat="${c.id}">${esc(c.t)}${n ? ` <small>${n}</small>` : ''}</a>`;
+      const tot = SUIT() && c.groups ? c.groups.reduce((a, g) => a + g.ids.filter((id) => PAGES.get(id) && (reveal || !PAGES.get(id).x)).length, 0) : 0;
+      return `<a href="#/cat/${c.id}" data-cat="${c.id}">${esc(c.t)}${n ? ` <small>${n}${tot > n ? '/' + tot : ''}</small>` : ''}</a>`;
     }).join('');
   }
 
@@ -4830,7 +4936,7 @@ function CLIENT(D) {
     setMode('wiki'); activeNav('');
     const total = D.pages.filter(visible).length;
     main.innerHTML = `<article class="pg home">
-      <header class="hd"><div><h1>Newy and the Dark Forest — le wiki de la vallée</h1><p class="sub">Tout ce que contient la vallée : ses gens, ses bêtes, ses plantes, ses objets, ses langues perdues et ses secrets. ${total} fiches.</p></div></header>
+      <header class="hd"><div><h1>Newy and the Dark Forest — le wiki de la vallée</h1><p class="sub">${SUIT() ? `Ce que votre partie a découvert : ${total} fiche${total > 1 ? 's' : ''} sur ${D.pages.length}.` : `Tout ce que contient la vallée : ses gens, ses bêtes, ses plantes, ses objets, ses langues perdues et ses secrets. ${total} fiches.`}</p></div></header>
       <p class="lead">Ce compagnon se lit à côté du jeu. Il a été tiré du jeu lui-même, le ${new Date(D.meta.built).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}. Dans le jeu, il n’y a jamais de carte de toute la vallée : ici, si.</p>
       <p><a class="btn big" href="#/carte">🗺 Ouvrir la carte de la vallée</a> ${reveal ? '' : '<button class="btn" data-reveal>🔒 Révéler les secrets</button>'}</p>
       ${(D.plans || []).length ? `<p class="plans">Et les plans de ce qui n’est pas sur la carte : ${(D.plans || []).map((P) => `<a class="btn" href="#/plan/${P.id}">${esc(P.i || '')} ${esc(P.t)}</a>`).join(' ')}</p>` : ''}
@@ -4845,7 +4951,11 @@ function CLIENT(D) {
     if (!c && !extra) return showHome();
     setMode('wiki'); activeNav(id);
     let h = crumbs([['Accueil', '#/'], [c ? c.t : extra.t]]) + `<header class="hd"><div><h1>${esc(c ? c.t : extra.t)}</h1>${c && c.d ? `<p class="sub">${esc(c.d)}</p>` : ''}</div></header>`;
-    if (c && c.groups) for (const g of c.groups) { const ps = g.ids.map((i) => PAGES.get(i)).filter(visible); if (ps.length) h += `${c.groups.length > 1 ? `<h2>${esc(g.t)} <small>${ps.length}</small></h2>` : ''}<div class="grid">${ps.map(card).join('')}</div>`; }
+    if (c && c.groups) for (const g of c.groups) {
+      const ps = g.ids.map((i) => PAGES.get(i)).filter(visible);
+      const reste = SUIT() ? g.ids.filter((i) => { const q = PAGES.get(i); return q && !connu(i) && (reveal || !q.x); }).length : 0;
+      if (ps.length || reste) h += `${c.groups.length > 1 ? `<h2>${esc(g.t)} <small>${ps.length}${reste ? '/' + (ps.length + reste) : ''}</small></h2>` : ''}<div class="grid">${ps.map(card).join('')}${reste ? `<span class="card inconnu"><span class="gi" style="font-size:22px;width:36px;height:36px">?</span><span class="ct">???</span><span class="cs">${reste} à découvrir</span></span>` : ''}</div>`;
+    }
     if (extra) h += `<div class="catpage">${extra.h}</div>`;
     main.innerHTML = `<article class="pg">${h}</article>`;
     post(main); window.scrollTo(0, 0);
@@ -4854,16 +4964,18 @@ function CLIENT(D) {
     const p = PAGES.get(id);
     if (!p) { setMode('wiki'); main.innerHTML = `<article class="pg">${crumbs([['Accueil', '#/']])}<p>Cette fiche n’existe pas : <code>${esc(id)}</code>.</p></article>`; return; }
     setMode('wiki');
+    if (!connu(id)) { activeNav(''); main.innerHTML = `<article class="pg inconnue">${crumbs([['Accueil', '#/'], ['???']])}<header class="hd"><span class="gi" style="font-size:40px;width:64px;height:64px">?</span><div><h1>???</h1></div></header><p class="inconnu">???</p></article>`; window.scrollTo(0, 0); return; }
     const c = CATS.find((q) => p.c.includes(q.id));
     activeNav(c ? c.id : '');
     main.innerHTML = `<article class="pg${p.x ? ' secret' : ''}">${crumbs([['Accueil', '#/'], ...(c ? [[c.t, '#/cat/' + c.id]] : []), [p.t]])}
       <header class="hd">${p.fig ? `<div class="figbox">${figHTML(p.fig, 150)}</div>` : iconHTML(p.i, 64)}<div><h1>${esc(p.t)}</h1>${p.s ? `<p class="sub">${esc(p.s)}</p>` : ''}${p.x ? '<span class="tag warn">secret</span>' : ''}</div></header>
-      ${p.x && !reveal ? secretNote : p.h}</article>`;
+      ${p.x && !reveal && !SUIT() ? secretNote : selonPartie(p)}</article>`;
     post(main); window.scrollTo(0, 0);
   }
   // après rendu : écritures anciennes, boutons
   function post(root) {
     for (const cv of $$('canvas.glyph', root)) drawGlyph(cv);
+    masquer(root);
   }
   document.addEventListener('click', (e) => { const b = e.target.closest('[data-reveal]'); if (b) { e.preventDefault(); $('#secbtn').click(); } });
 
@@ -5206,10 +5318,10 @@ function CLIENT(D) {
     // ce que la recherche de la carte connaît
     feats() {
       const f = [];
-      for (const L of M.lm) if ((reveal || !(L[5] & 3)) && !(L[5] & 4)) f.push({ t: L[1], s: L[5] & 2 ? 'souterrain' : L[5] & 1 ? 'lieu secret' : L[5] & 8 ? 'un des deux peuples' : 'lieu-dit', go: () => this.go('li:' + L[0]) });
-      for (const [key, t] of M.c2 || []) { const L = M.lm.find((q) => q[0] === key), T = (M.c2t || {})[t]; if (L) f.push({ t: L[1], s: 'lieu perdu' + (T ? ' — ' + T[0].toLowerCase() : ''), go: () => { this.layers.lieux2 = 1; this.go('li:' + key); } }); }
-      for (const B of M.bld) if (!f.some((q) => norm(q.t) === norm(B[1])) && (reveal || !B[4])) f.push({ t: B[1], s: 'bâtiment', go: () => this.go('li:' + B[0]) });
-      for (const [b, a] of Object.entries(M.homes)) for (const [id, nm, home, role] of a) if (home && (reveal || !(PAGES.get('pnj:' + id) || {}).x)) f.push({ t: nm, s: role + ' — sa maison', go: () => this.go('li:' + b) });
+      for (const L of M.lm) if ((SUIT() ? connu('li:' + L[0]) : (reveal || !(L[5] & 3))) && !(L[5] & 4)) f.push({ t: L[1], s: L[5] & 2 ? 'souterrain' : L[5] & 1 ? 'lieu secret' : L[5] & 8 ? 'un des deux peuples' : 'lieu-dit', go: () => this.go('li:' + L[0]) });
+      for (const [key, t] of M.c2 || []) { const L = M.lm.find((q) => q[0] === key), T = (M.c2t || {})[t]; if (L && connu('li:' + key)) f.push({ t: L[1], s: 'lieu perdu' + (T ? ' — ' + T[0].toLowerCase() : ''), go: () => { this.layers.lieux2 = 1; this.go('li:' + key); } }); }
+      for (const B of M.bld) if (!f.some((q) => norm(q.t) === norm(B[1])) && (SUIT() ? connu('li:' + B[0]) : (reveal || !B[4]))) f.push({ t: B[1], s: 'bâtiment', go: () => this.go('li:' + B[0]) });
+      for (const [b, a] of Object.entries(M.homes)) for (const [id, nm, home, role] of a) if (home && visible(PAGES.get('pnj:' + id))) f.push({ t: nm, s: role + ' — sa maison', go: () => this.go('li:' + b) });
       for (const [id, nm] of Object.entries(M.spNames)) { const pg = PAGES.get('pl:' + id); if (pg && visible(pg)) f.push({ t: nm, s: 'où elle pousse', go: () => this.go('pl:' + id) }); }
       for (const [k, a] of Object.entries(M.spawns)) { const pg = PAGES.get('an:' + k); if (pg && visible(pg)) f.push({ t: pg.t, s: 'où la trouver', go: () => this.go('an:' + k) }); }
       const V = M.vie;
@@ -5404,7 +5516,7 @@ function CLIENT(D) {
         if (!inV(Bd[2], Bd[3], 30) || (L.habitants && M.homes[Bd[0]])) continue;
         const [sx, sy] = T(Bd[2], Bd[3]);
         marks.push({ x: sx, y: sy, r: 7, f: { kind: 'li', key: Bd[0], x: Bd[2], z: Bd[3] } });
-        if (k > 1.6) labels.push({ x: sx, y: sy, t: Bd[1], pr: 2, cls: 'bld' });
+        if (k > 1.6 && connu('li:' + Bd[0])) labels.push({ x: sx, y: sy, t: Bd[1], pr: 2, cls: 'bld' });
       }
       // les lieux perdus (un tous les deux cents mètres), chacun le signe de sa sorte
       if (L.lieux2 && k > 0.12) {
@@ -5416,7 +5528,7 @@ function CLIENT(D) {
           c.fillStyle = 'rgba(244,236,212,.95)'; c.fill(); c.strokeStyle = '#2c4c4c'; c.lineWidth = 1.2; c.stroke();
           if (k > 0.5) { c.font = '9px serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#1e3a3a'; c.fillText(TY[1] || '•', sx, sy + 0.5); }
           marks.push({ x: sx, y: sy, r: 9, f: { kind: 'li', key, x: Lm[2], z: Lm[3] } });
-          if (k > 0.9) labels.push({ x: sx + 8, y: sy, t: Lm[1], pr: 2.4, cls: 'lieu2', left: true });
+          if (k > 0.9 && connu('li:' + key)) labels.push({ x: sx + 8, y: sy, t: Lm[1], pr: 2.4, cls: 'lieu2', left: true });
         }
       }
       // les deux peuples : leur village
@@ -5424,7 +5536,7 @@ function CLIENT(D) {
         const Lm = (this.lmIdx || (this.lmIdx = new Map(M.lm.map((q) => [q[0], q])))).get(key); if (!Lm || !inV(Lm[2], Lm[3], 200)) continue;
         const [sx, sy] = dot(Lm[2], Lm[3], 6, '#3a5a2a', '#fbf2dc');
         marks.push({ x: sx, y: sy, r: 11, f: { kind: 'li', key, x: Lm[2], z: Lm[3] } });
-        if (k > 0.1) labels.push({ x: sx + 9, y: sy, t: Lm[1], pr: 6, cls: 'peuple', left: true });
+        if (k > 0.1 && connu('li:' + key)) labels.push({ x: sx + 9, y: sy, t: Lm[1], pr: 6, cls: 'peuple', left: true });
       }
       // lieux-dits
       if (L.lieux || L.secrets || L.souterrains) for (const Lm of M.lm) {
@@ -5434,13 +5546,13 @@ function CLIENT(D) {
         const r = Lm[4];
         if (!inV(Lm[2], Lm[3], r + 200)) continue;
         const big = r >= 100, [sx, sy] = T(Lm[2], Lm[3]);
-        if (big) { if (k * r > 60 && k < 2.2) labels.push({ x: sx, y: sy, t: Lm[1], pr: 1 + r / 100, cls: 'region' }); marks.push({ x: sx, y: sy, r: 10, f: { kind: 'li', key: Lm[0], x: Lm[2], z: Lm[3] } }); continue; }
+        if (big) { if (k * r > 60 && k < 2.2 && connu('li:' + Lm[0])) labels.push({ x: sx, y: sy, t: Lm[1], pr: 1 + r / 100, cls: 'region' }); marks.push({ x: sx, y: sy, r: 10, f: { kind: 'li', key: Lm[0], x: Lm[2], z: Lm[3] } }); continue; }
         const minK = r >= 30 ? 0.12 : r >= 12 ? 0.3 : 0.55;
         if (k < minK && !(this.sel && this.sel.key === Lm[0])) continue;
         if (und) { c.setLineDash([3, 2]); dot(Lm[2], Lm[3], 5, 'rgba(90,60,120,.35)', 'rgba(70,40,100,.95)'); c.setLineDash([]); }
         else dot(Lm[2], Lm[3], sec ? 4 : r >= 20 ? 4.5 : 3, sec ? 'rgba(170,40,30,.95)' : Lm[6] ? '#2c5a7a' : '#3a2a1a', '#fbf2dc');
         marks.push({ x: sx, y: sy, r: 9, f: { kind: 'li', key: Lm[0], x: Lm[2], z: Lm[3] } });
-        labels.push({ x: sx + 7, y: sy, t: Lm[1], pr: 3 + Math.min(3, r / 12), cls: und ? 'under' : sec ? 'secret' : Lm[6] ? 'water' : r >= 25 ? 'town' : 'place', left: true });
+        if (connu('li:' + Lm[0])) labels.push({ x: sx + 7, y: sy, t: Lm[1], pr: 3 + Math.min(3, r / 12), cls: und ? 'under' : sec ? 'secret' : Lm[6] ? 'water' : r >= 25 ? 'town' : 'place', left: true });
       }
       // sélection
       if (this.sel) { const [sx, sy] = T(this.sel.x, this.sel.z); c.strokeStyle = 'rgba(160,30,20,.95)'; c.lineWidth = 2.2; c.beginPath(); c.arc(sx, sy, Math.max(10, (this.sel.r || 6) * k), 0, Math.PI * 2); c.stroke(); }
@@ -5481,8 +5593,8 @@ function CLIENT(D) {
       const pgLink = (id, t) => { const p = PAGES.get(id); return p && visible(p) ? `<a class="btn" href="#/p/${encodeURIComponent(id)}">${esc(t || 'Ouvrir la fiche')}</a>` : ''; };
       if (f.kind === 'li') {
         const L = M.lm.find((q) => q[0] === f.key), Bd = M.bld.find((q) => q[0] === f.key), p = PAGES.get('li:' + f.key);
-        const name = p ? p.t : L ? L[1] : Bd ? Bd[1] : f.key;
-        h += `<h3>${esc(name)}</h3><p class="sub">${esc(p ? p.s : '')}</p>`;
+        const name = !connu('li:' + f.key) ? '???' : p ? p.t : L ? L[1] : Bd ? Bd[1] : f.key;
+        h += `<h3>${esc(name)}</h3><p class="sub">${esc(p && connu(p.id) ? p.s : '')}</p>`;
         const x = L ? L[2] : Bd[2], z = L ? L[3] : Bd[3];
         const mil = this.milAt(x, z);
         h += `<p>Altitude ${Math.round(this.altAt(x, z))} m${mil ? ` · <a href="#/p/${encodeURIComponent('mil:' + mil[0])}">${esc(mil[1])}</a>` : ''}</p>`;
@@ -5521,6 +5633,7 @@ function CLIENT(D) {
         }
       }
       el.innerHTML = '<button class="x" aria-label="Fermer">×</button>' + h;
+      masquer(el);
       el.querySelector('.x').onclick = () => { el.hidden = true; this.sel = null; this.req(); };
       el.hidden = false;
     },
@@ -5673,6 +5786,7 @@ function CLIENT(D) {
           h += `<h3>${esc(m ? m.t : P.t)}</h3>${P.coords ? `<p>x ${Math.round(f.x)} · z ${Math.round(f.z)}</p>` : ''}${m && m.p ? pgLink(m.p) : P.p ? pgLink(P.p) : ''}`;
         }
         el.innerHTML = '<button class="x" aria-label="Fermer">×</button>' + h;
+      masquer(el);
         el.querySelector('.x').onclick = () => { el.hidden = true; this.sel = null; this.req(); };
         el.hidden = false;
       },
@@ -5725,12 +5839,15 @@ function CLIENT(D) {
   }
   window.addEventListener('hashchange', route);
   secLabel();
+  suivLabel();
+  $('#suivbtn').addEventListener('click', () => setSuivre(!suivre));
   document.body.classList.toggle('reveal', reveal);
   $('#menubtn').addEventListener('click', () => document.body.classList.toggle('navopen'));
   $('#nav').addEventListener('click', (e) => { if (e.target.closest('a')) document.body.classList.remove('navopen'); });
   renderNav();
   route();
-  window.PRAIRIE_WIKI = { D, MAP, PLANS, search, PAGES, get VIEW() { return V(); } };
+  proposerSuivi();
+  window.PRAIRIE_WIKI = { D, MAP, PLANS, search, PAGES, get VIEW() { return V(); }, get suivi() { return { partie: !!PARTIE, suivre, actif: SUIT() }; } };
 }
 
 // ============================================================================
@@ -5919,7 +6036,23 @@ body[data-mode="map"] #main, body[data-mode="map"] #nav { display: none; }
 #mapcard .sub { margin: 0 0 .3em; color: var(--ink2); font-style: italic; }
 #mapinfo { position: absolute; right: 12px; bottom: 10px; z-index: 4; background: rgba(246,238,216,.88); border: 1px solid var(--line); border-radius: 3px; padding: 2px 8px; font-size: .82em; color: var(--ink2); pointer-events: none; }
 #maploading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-style: italic; font-size: 1.1em; color: var(--ink2); background: rgba(217,203,166,.85); z-index: 8; }
+/* ------------------------------------------------ suivre ma partie */
+#suivbtn { white-space: nowrap; }
+body.suivi #suivbtn { background: linear-gradient(#cfe3b8, #a9c98a); }
+.inconnu { color: #8a7a60; letter-spacing: .12em; font-style: normal; }
+span.card.inconnu { display: grid; grid-template-columns: 40px 1fr; grid-template-rows: auto auto; column-gap: 8px; align-items: center; padding: 6px 8px; border: 1px dashed rgba(90,60,30,.35); border-radius: 4px; min-height: 50px; color: #8a7a60; letter-spacing: 0; }
+span.card.inconnu .gi { grid-row: 1 / 3; justify-self: center; color: #a8987a; }
+span.card.inconnu .cs { font-size: .8em; font-style: italic; }
+dl.kv dd.juste { color: #1d5a24; background: rgba(70,140,60,.13); border-left: 3px solid #4a8a3a; padding-left: 6px; }
+dl.kv dd.gris { color: #6e6658; font-style: italic; }
+.mesnotes { border: 1px solid var(--line); background: rgba(255,250,235,.6); border-radius: 4px; padding: 2px 12px 8px; margin: 0 0 1em; }
+.mesnotes h3 { margin: .4em 0; }
+#suividlg { position: fixed; inset: 0; z-index: 60; background: rgba(30,20,10,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
+#suividlg .box { background: var(--card); border: 1px solid rgba(90,60,30,.5); border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.4); padding: 14px 20px 18px; max-width: 420px; width: 100%; }
+#suividlg h2 { margin: .2em 0 .4em; font-variant: small-caps; }
+#suividlg .row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 0; }
 @media (max-width: 820px) {
+  #suivbtn { font-size: .82em; padding: .25em .5em; }
   #top { gap: 8px; padding: 8px 12px; flex-wrap: wrap; }
   #top .title small { display: none; }
   #top .search { order: 5; flex: 1 1 100%; }
@@ -5947,6 +6080,8 @@ body[data-mode="map"] #main, body[data-mode="map"] #nav { display: none; }
 // ============================================================================
 function writeHTML(DB) {
   say('fiches du wiki…');
+  let W15C = {};
+  try { W15C = require('./wiki-v15.js'); } catch (e) { (DB.log || []).push('wiki-v15.js : ' + e.message); }
   const wiki = buildWiki(DB);
   const map = buildMapData(DB, wiki);
   const plans = buildPlansData(DB, wiki);
@@ -5969,6 +6104,7 @@ function writeHTML(DB) {
     icons: { url: DB.images.icons.url, cols: DB.images.icons.cols, n: DB.images.icons.n },
     figures: { url: DB.images.figures.url, w: DB.images.figures.w, h: DB.images.figures.h },
     langCode: DB.derived.langCode || '', map, plans,
+    champs: W15C.CHAMPS || {}, nomsChamps: W15C.NOMS || {},
   };
   const json = JSON.stringify(D).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
   const html = `<!DOCTYPE html>
@@ -5995,6 +6131,7 @@ function writeHTML(DB) {
   <div class="search"><input id="q" type="search" placeholder="Chercher (touche /) : un nom, un mot, une réplique…" autocomplete="off" aria-label="Chercher"><div id="sug" hidden></div></div>
   <span class="sp"></span>
   <a class="btn" href="#/carte">🗺 Carte</a>
+  <button id="suivbtn" class="btn" aria-pressed="false" hidden>📖 Ma partie</button>
   <button id="secbtn" class="btn" aria-pressed="false">🔒 Révéler les secrets</button>
 </header>
 <div id="wrap">

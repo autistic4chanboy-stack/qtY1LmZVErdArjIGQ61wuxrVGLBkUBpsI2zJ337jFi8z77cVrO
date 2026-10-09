@@ -528,6 +528,8 @@ const BETES = {
     '**Mortes**, les bêtes reviennent quand on se repose à un feu de veille, ou au bout de trois jours ; les **uniques** (le Basilic, la Tarasque, la Chimère, la Vouivre, le Cerf-aux-Mains, le Chien Gris) ne reviennent jamais.',
     '**Le Ver** : quand son ombre passe sur elles, ou qu’il rugit (à moins de 320 m), les bêtes du dehors se figent de trois à huit secondes — elles ne chassent plus, ne mordent plus : c’est le moment de filer. Son feu les brûle (une bête brûlée ne laisse rien). Les uniques, les gargouilles, les stryges, les noyés et ce qui vit sous terre n’en ont cure.',
   ],
+  // les fiches des bêtes (tools/wiki-v15.js : an:v2_…), dans l’ordre des lignes d’« especes »
+  ordre: ['v2_garou', 'v2_charognard', 'v2_pendu', 'v2_ecoutant', 'v2_gargouille', 'v2_stryge', 'v2_basilic', 'v2_tarasque', 'v2_chimere', 'v2_vouivre', 'v2_noye', 'v2_korrigan', 'v2_cerf', 'v2_chien', 'v2_sans_visage'],
   // [bête, où, quand, ce qu’elle voit / entend, ce qu’elle fait, ce qu’elle laisse]
   especes: [
     ['Les Garous', 'le Bois Mort (trois aux Charrettes, deux à l’est)', 'la nuit (19 h – 6 h) ; le jour, ils dorment en tas au repaire', 'voient la nuit comme le jour (30 m) ; bonne ouïe ; ils flairent, et se souviennent longtemps', 'un hurlement appelle la meute ; ils tournent autour et mordent un à la fois (13, parfois une plaie qui saigne)', 'peau de garou, crocs, parfois une chevalière de marchand'],
@@ -1036,7 +1038,7 @@ const CHAPITRES = [
     const { md, ul, h3, tbl, td, SEC, SP, lk, files, plan } = C;
     let h = `<p class="lead">${md(BETES.lead)}</p>` + `<p>${plan('', 'Les régions sur le plan')}</p>`;
     h += h3('Les règles communes') + ul(BETES.regles);
-    h += h3('Les quinze') + tbl(['Bête', 'Où', 'Quand', 'Ce qu’elle voit, ce qu’elle entend', 'Ce qu’elle fait', 'Ce qu’elle laisse'], BETES.especes.map((r) => td(r.map((x, i) => (i ? md(x) : `<b>${md(x)}</b>`)))));
+    h += h3('Les quinze') + tbl(['Bête', 'Où', 'Quand', 'Ce qu’elle voit, ce qu’elle entend', 'Ce qu’elle fait', 'Ce qu’elle laisse'], BETES.especes.map((r, k) => td(r.map((x, i) => (i ? md(x) : `<b>${BETES.ordre[k] ? lk('an:' + BETES.ordre[k], x) : md(x)}</b>`)))));
     h += h3('Leurs repaires') + ul(BETES.repaires);
     h += SEC(h3('Ce qui se cache') + ul(BETES.secret), 'Comment passer chaque bête, ce qui les tue, ce qu’elles gardent : masqué (secrets).');
     SP('sys:betes-zone', { t: 'Les bêtes des Terres d’Avant', s: 'Quinze sortes, toutes évitables : garous, gargouilles, basilic, tarasque, chimère, vouivre…', c: ['terres'], i: '☠', h }, files(/^(11-zzzzV2-|12-z+V2-|07-z+V2-)/));
@@ -1257,4 +1259,4 @@ function sections(cats, X) {
   if (nv && nv.d && !/Terres d’Avant/.test(nv.d)) nv.d = nv.d.replace(' : ', ' : la Grande Porte et les Terres d’Avant, le Ver, Hautguet, les gobelins, la main du crocheteur et le cambriolage de nuit, ');
 }
 
-module.exports = { extract, build, sections, plans, planZone, dessinerZone, PLAN_ZONE, AGENTS, CHAPITRES, SECTIONS, COUCHES_PLAN, REGIONS };
+module.exports = { extract, build, sections, plans, planZone, dessinerZone, PLAN_ZONE, AGENTS, CHAPITRES, SECTIONS, COUCHES_PLAN, REGIONS, BETES, VER };

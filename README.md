@@ -19,7 +19,9 @@ l'herbe et des fleurs** (le tapis d'herbe et de fleurs autour de soi, de 20 à 8
 en onglets — toute la vallée (relief, eaux, forêts, chemins, milieux, lieux-dits, lieux perdus, villages, maisons des habitants, zones de
 pêche), le Dessous, les Enfers, le cauchemar, le pays des bonbons et les Ténèbres, dessinés depuis le jeu (zoom, recherche, repères qui
 mènent aux fiches) — et les fiches de tout le jeu (habitants et leur semaine, objets, recettes, cultures, plantes, arbres, bêtes, poissons, alchimie, livres, langues perdues,
-légendes, ce qu'il y a dans chaque bâtiment et à chaque étage…), avec une recherche plein texte. Les secrets restent masqués tant qu'on ne clique pas sur « révéler les secrets ». Il se
+légendes, ce qu'il y a dans chaque bâtiment et à chaque étage…), avec une recherche plein texte. Les secrets restent masqués tant qu'on ne clique pas sur « révéler les secrets ». Il peut aussi **suivre votre
+partie** (même navigateur, même site que le jeu) : il ne montre alors que ce que vous avez découvert, avec vos notes du
+wiki du jeu (voir « Le wiki dans le jeu », plus bas). Il se
 régénère depuis les sources du jeu (la vallée est générée, ≈ 1 minute) : `node tools/wiki-build.js`.
 
 **La bêta en ligne (GitHub Pages)** : la page d'accueil **`index.html`** a deux portes, chacune son code — celui de la
@@ -1069,6 +1071,53 @@ Les commandes sont dans le menu **Commandes** (Échap).
 - **Trois fins, une seule pour toujours** : tenir le compte, rendre sa voix à la Cloche du Jour, ou laisser le feu du
   compte s'éteindre — à chacun de trouver comment.
 
+**Le menu, simplifié**
+- **Quatre onglets** au menu (Tab) : **Sacoche** (Objets, Lettres, Trésors), **Atelier** (Établi, Grimoire, Runes),
+  **Carnet** (Quêtes, Légendes, Langues) et **Wiki** ; sous l'onglet, de petits boutons pour ses pages. Rien n'a
+  disparu : tout ce qu'avaient les huit anciens onglets s'y retrouve, et le menu se souvient de la dernière page vue
+  dans chaque onglet.
+- **Au clavier** : Tab ouvre et ferme ; ← → passent d'un onglet à l'autre, Maj+← → d'une page à l'autre ; 1-9 posent
+  toujours un objet survolé sur la barre d'outils. Le bouton ⚙ ouvre les **Options**, rangées en quatre sections :
+  Image, Son, Commandes, Jeu. Sur un téléphone, la barre tient sur une ligne et les pages défilent de côté.
+- **Les lettres** : dans la sacoche, on ne lit que celles qu'on a **sur soi**. Le courrier attend dans la **boîte aux
+  lettres** de la ferme (son drapeau rouge se lève) : E dessus pour le lire sur place, prendre une lettre (ou tout),
+  ou y en reposer une. Une ancienne partie retrouve tout son courrier dans la boîte ; la lettre de Marie Lemarié garde
+  ses trois choix, où qu'on la lise.
+- Lire une lettre, une note ou une page depuis le menu y ramène en la refermant.
+
+**Le wiki dans le jeu**
+- **Il se remplit en jouant** : chaque chose rencontrée ouvre sa page dans l'onglet **Wiki** du menu — les bêtes vues
+  de près (celles des Terres d'Avant et le Ver compris), les plantes et les arbres qu'on a regardés ou cueillis, les
+  objets qu'on a tenus, les lieux visités, les habitants croisés, les livres lus. Une petite plume passe un instant
+  dans le coin de l'écran : c'est tout. Les pages sont rangées par familles, chacune avec son compte (« 7 / 193 »),
+  et une recherche.
+- **On ne sait que ce qu'on a vu** : une page ne montre que ce que le personnage a constaté, le reste reste « ??? ».
+  Une bête vue à son heure (le jour, la nuit), revue ailleurs (ses milieux), qui a fui ou qui vous a blessé (son
+  danger), abattue (ce qu'elle laisse) ; un objet tenu (sa sorte), vu chez un marchand (son prix), mangé (ce qu'il
+  fait) ; une plante cueillie ; un habitant à qui l'on a parlé (son métier), vu chez lui, revu plusieurs jours (son
+  caractère). La notice d'une bête ou d'une plante se lit quand on sait tout d'elle.
+- **Le wiki interactif** : dans chaque case apprise, on écrit ce qu'on en sait, avec ses mots, puis on valide. Juste,
+  la case passe **au vert** ; pas encore, elle reste grise, et l'on peut réessayer. Des notes libres sur chaque page.
+- **Ou exact** : dans les Options (section Jeu), décocher « Wiki interactif » fait afficher directement les bonnes
+  informations — toujours au fur et à mesure des découvertes.
+- **Le wiki de la vallée suit la partie** : le jeu garde dans le navigateur une copie de ce qu'on a découvert ;
+  `Prairie-Wiki.html`, ouvert sur le même site, propose à l'ouverture « Suivre ma partie » ou « Tout voir » (le choix
+  est retenu, un bouton « Ma partie » en haut pour changer). En suivant, seules les fiches découvertes s'ouvrent, avec
+  ce que vous en savez et vos notes, en vert quand elles sont validées ; la recherche et les liens se limitent à ce
+  que vous connaissez. Les bêtes des Terres d'Avant y ont désormais chacune leur fiche, dans la liste des bêtes.
+
+**Les runes**
+- **Quatre tablettes de pierre gravées** sont cachées, à l'écart des chemins : trois quelque part dans les premières
+  contrées de la vallée (leur place change à chaque partie), la quatrième dans le labyrinthe de la mine. On ne tombe
+  pas dessus par hasard ; la nuit, et sous terre, leurs signes luisent à peine. E : on la prend.
+- **L'assemblage** : chaque tablette porte des runes. Les quatre réunies, la pierre s'éveille, et l'on assemble trois
+  runes dans un cercle (menu, Atelier → Runes). Selon l'assemblage, quelque chose change, pour un temps ou pour
+  plusieurs jours : la récolte, la chance, la pêche, et d'autres choses du même genre. À chacun de comprendre ce que
+  veut dire chaque signe. Un assemblage par jour.
+- **Des dalles scellées**, gravées de leurs runes, ne s'ouvrent pas autrement : il faut le bon assemblage. Derrière,
+  quelque chose attend.
+- **Peu de mots** : une lueur, un son de pierre, ou un coup mat ; le wiki du jeu pour noter ce qu'on a compris.
+
 ### Mode Création
 
 Éditeur de monde séparé : relief, peinture du sol, objets, animaux, blocs. **Exporter** télécharge un fichier
@@ -1077,18 +1126,19 @@ Les commandes sont dans le menu **Commandes** (Échap).
 ## Équilibrage
 
 Le jeu a été équilibré d'un bloc, en mesurant d'abord : chaque système avait été écrit avec ses propres nombres, et
-la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Trente domaines, chacun avec sa
+la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Trente et un domaines, chacun avec sa
 mesure et ses vérifications dans `tools/equilibrage/` : le jeu entier est chargé dans une machine virtuelle node (sans
 navigateur, `tools/equilibrage/vm.js`), ses propres fonctions calculent les rendements, les espérances et les
 fréquences, et la commande échoue si l'on recasse un équilibre :
 
 ```bash
-node tools/equilibrage.js                 # les trente domaines (≈ 35 min)
+node tools/equilibrage.js                 # les trente et un domaines (≈ 38 min)
 node tools/equilibrage.js commerce        # ou un seul : commerce, ferme, risques, survie, hasard, commandes, carte, nature, batiments
 node tools/equilibrage.js S D1 E2         # ou plusieurs ; ceux de la douzième vague : S, D1, D2, E1, E2, E3, F, G
 node tools/equilibrage.js R P Q T         # ceux de la treizième vague : R, P, Q, T
 node tools/equilibrage.js Y X U Z         # ceux de la quatorzième vague : Y, X, U, Z…
 node tools/equilibrage.js V1 V2 V3 V4 V5  # … et ceux des Terres d'Avant : V1 à V5
+node tools/equilibrage.js R15             # celui de la quinzième vague : les runes
 ```
 
 Aucun réglage ne touche à la génération de la vallée : les anciennes parties retrouvent leurs objets (l'empreinte des
@@ -1505,6 +1555,20 @@ Les domaines de la quatorzième vague :
   2,05 m au moins ; les lieux secrets posés et atteints à pied, les objets des fins présents ; le noir où se cacher
   (80 % des rues à plus de 9 m d'une lumière) ; des objets au prix sensé et des butins modestes.
 
+### Les runes
+
+Le domaine de la quinzième vague :
+- `node tools/equilibrage.js R15` (≈ 2,5 min : la vallée 1234 est générée, puis une autre) : la passe de génération,
+  la dernière de la vallée (une quarantaine de millisecondes, avec son propre tirage) ne fait rien bouger — l'empreinte
+  des anciennes parties et les trouvailles de la treizième vague sont les mêmes, rien n'est ajouté aux objets du
+  décor ; les quatre tablettes, sur deux graines : au sec, à plat, au pied d'un arbre, d'un rocher ou d'une souche,
+  hors des murs, des chemins et des champs, à l'écart de toute autre interaction ; les douze runes, chacune sur une
+  seule tablette ; celle du labyrinthe atteinte à pied depuis l'échelle sans passer de dalle ; chaque dalle scellée
+  posée à sa place, au sec, et l'on y va à pied (la dalle sous terre ne ferme qu'un cul-de-sac) ; les règles, avec les
+  vraies fonctions : la pierre endort tout avant les quatre tablettes, un assemblage par jour, un seul effet durable à
+  la fois, chaque dalle ne s'ouvre qu'avec ses runes ; les forces des effets restent bornées ; les trois coffres des
+  dalles valent ≈ 1 100 pièces en tout, moins de trois journées de travail du début.
+
 ## Modifier le code
 
 Les sources sont dans `src/` (triées par nom = ordre de chargement) :
@@ -1579,6 +1643,9 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `05-zzzzzV3-ver.js`, `07-zzzzzzzzzzzzV3-ver.js`, `09-zzzzzV3-ver.js`, `11-zzzzV3-1-ver.js`, `11-zzzzV3-2-aire.js` | le Ver : les réglages (`V3`), les objets, le butin du tas, les textes ; une matière (les écailles), sa peau, son squelette d'environ deux cents boîtes, ses poses et son ombre, les objets de l'aire et des perchoirs ; ses sons, qui portent loin (les battements, le cri, le rugissement, le feu, son souffle, la chaîne, la cloche) ; le dragon (`11-zzzzV3-1-ver.js` : ses heures, le vol, son regard et son ouïe, l'attaque, le feu et l'herbe qui brûle) ; l'aire, les perchoirs, la loge du Guet et les fins (`11-zzzzV3-2-aire.js`, une passe de la Zone) (`farm.s.v3`, API `zone.dragon`) |
 | `05-zzzzzV4-chateau.js`, `07-zzzzzzzzzzzzV4-chateau.js`, `09-zzzzzV4-chateau.js`, `11-zzzzV4-1-plan.js`, `11-zzzzV4-2-jeu.js`, `11-zzzzV4-3-api.js` | Hautguet, le château des Hauts : les textes, les objets et les clés, les butins ; deux matières (la pierre du château, le dallage) et les modèles ; les sons (les chaînes du pont-levis, la herse, la cloche, un mur creux qui cède, la grille, le Guet qui prend) ; le plan et sa passe de la Zone (`11-zzzzV4-1-plan.js` : environ mille blocs, les salles, l'éclairage du dedans) ; le jeu (`11-zzzzV4-2-jeu.js` : les portes, les clés, les raccourcis à sens unique, les recoins, les voix, le feu du Guet, la fin) ; ce que le château donne aux autres (`11-zzzzV4-3-api.js` : les places des créatures, les abris où le Ver ne voit pas) (`farm.s.v4`, API `zone.chateau`) |
 | `05-zzzzzV5-textes.js`, `07-zzzzzzzzzzzzV5-ville.js`, `09-zzzzzV5-sons.js`, `11-zzzzV5-1-ville.js`, `11-zzzzV5-2-catacombes.js`, `11-zzzzV5-3-habitants.js`, `11-zzzzV5-4-secrets.js`, `11-zzzzV5-5-fins.js` | Basse-Fosse et les secrets des Terres d'Avant : textes, lettres, objets, butins, troc ; deux matières (l'os, le tuf) et les modèles ; les sons ; la ville (`11-zzzzV5-1-ville.js`, une passe de la Zone : îlots, maisons, Nef, nécropole, le graphe des rues) ; l'entrée, la nuit d'en bas, les offices, lire, prendre, fouiller, les murs qui mentent (`11-zzzzV5-2-catacombes.js`) ; les vingt-quatre gens d'en bas (`11-zzzzV5-3-habitants.js`) ; les secrets de la Zone (`11-zzzzV5-4-secrets.js`) ; les trois fins (`11-zzzzV5-5-fins.js`) (`farm.s.v5`, API `zone.catacombes` et `zone.secrets`) |
+| `05-zzzzzzM15-menus.js`, `12-zzzzzzM15-menus.js` | le menu simplifié : le registre des pages du menu Tab (`menus.page`, `menus.ouvrir`, `menus.marque` ; chargé avant les tranches 06 à 13, on y inscrit une page de partout), puis la mise en page, emballée en dernier autour de `ui.renderSatchel` (quatre onglets et leurs pages, le clavier, les Options en quatre sections) ; les lettres sur soi (`farm.s.mail[i].sur`) et la boîte aux lettres (`menus.lireLettre`) |
+| `11-zzzzzD15-1-decouvertes.js`, `12-zzzzzD15-wiki.js` | le wiki dans le jeu : les découvertes (`farm.s.decouvertes`, API `decouvertes` : `voir`, `sait`, `declarer`, `ajouterChamps`… ; les identifiants de page sont ceux du wiki, `an:`, `it:`, `pl:`, `li:`, `pnj:`, `lv:`, `sys:`), les fiches tirées des tables du jeu, les relevés (une minuterie espacée, des emballages légers), le miroir `prairie.decouvertes` que lit `Prairie-Wiki.html` ; le panneau (l'onglet Wiki, les modes interactif et exact, la case des Options) |
+| `05-zzzzzR15-runes.js`, `09-zzzzzR15-runes.js`, `11-zzzzzR15-1-pose.js`, `11-zzzzzR15-2-jeu.js`, `12-zzzzzR15-runes.js` | les runes : les données (`R15_RUNES`, `R15_REGL`, `R15_PORTES`, les butins des dalles), les sons, la pose (la dernière passe de la vallée, avec son propre tirage, et `zone.passe('R15')` dans les Terres d'Avant : rien de ce qui était posé ne bouge), le jeu (`farm.s.runes`, API `runes` : les tablettes, l'assemblage, les effets, les dalles, le dessin) et le panneau (la page Runes du menu, `runesUI`) |
 | `11-zzz00b-pensees.js`, `tools/pensees.js` | dire peu : `penser.une` (une règle dite une fois par vie), `penser.pas` (un avertissement espacé), `farm.s.pensees` ; l'inventaire des pensées (`node tools/pensees.js`) |
 | `11-zzvallee0-gel.js` | le gel en altitude : la jauge `farm.s.gel`, le givre à l'écran, la mort de froid |
 | `11-zzzz7-carte*.js`, `07-zzzzzzzzzz-carte.js` | un lieu tous les 200 m (catalogue, textes, lettres, inscriptions, petits secrets), les deux peuples de surface et leurs parlers (`farm.s.carte2`, API `carte2`) |
@@ -1587,7 +1654,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzzz4-ferme-temps.js`, `11-zzzz4-meubles.js`, `07-zzzzzzzz-meubles.js` | portée des arroseurs, petites bêtes sous la pluie ; acheter et meubler sa maison (meubles, garde-meuble) |
 | `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
-| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js`, `Q.js` et `T.js`, la quatorzième `Y.js`, `X.js`, `U.js`, `Z.js` et `V1.js` à `V5.js` — et `risques.js` y reprend la maison la nuit de `U.js`) |
+| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html` ; les fiches de chaque vague dans `wiki-v12.js` à `wiki-v15b.js`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js`, `Q.js` et `T.js`, la quatorzième `Y.js`, `X.js`, `U.js`, `Z.js` et `V1.js` à `V5.js`, la quinzième `R15.js` — et `risques.js` y reprend la maison la nuit de `U.js`) |
 | `shell.html` | HTML + CSS |
 | `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et ses deux codes (le jeu, le wiki), le site servi tel quel par GitHub Pages, changer un code |
 | `libre/` | la partie sans code : sa page d'accueil (`libre/index.html`), le jeu et le wiki sans leur porte (écrits par `node build.js` et `node tools/wiki-build.js`) |
