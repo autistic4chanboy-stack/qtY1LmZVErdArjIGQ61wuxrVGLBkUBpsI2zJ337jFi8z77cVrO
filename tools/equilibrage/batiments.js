@@ -22,7 +22,8 @@ const PAS = 0.2, MARGE = 0.33, MARCHE = 0.55, TETE = 1.75, BORD = 3;
 
 function examiner(J, w) {
   const World = J.ev('World');
-  const blocs = w.blocks.filter((b) => !(b.ver && !(b.ver & 1)));
+  // (R15 : une dalle scellée par les runes, b.r15, est une porte : elle compte comme ouverte)
+  const blocs = w.blocks.filter((b) => !(b.ver && !(b.ver & 1)) && !b.r15);
   const C = 8, G = new Map(), cle = (i, j) => i * 100000 + j;
   for (const b of blocs) {
     const r = Math.hypot(b.sx, b.sz) / 2;
