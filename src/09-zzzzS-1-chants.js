@@ -22,7 +22,9 @@
   // un trait de chant : hauteur en points [[u, f], …] (u de 0 à 1 sur la durée), ou f, ou [f0, f1] ;
   // o : h (harmoniques [h2, h3…]), att / rel (part de la durée), vib / vd (vibrato : Hz, profondeur relative),
   //     am / amd (modulation d'amplitude : Hz, profondeur), souffle (part de bruit qui suit la note), lisse (glissés en cosinus)
-  S.trait = function (d, sr, t0, dur, F, a, o) {
+  S.trait = function (d, sr, t0, dur, F, a, o) { return synDerouler(S.traitG(d, sr, t0, dur, F, a, o)); };
+  // (la même, par tranches de 4 096 échantillons : pour les boucles calculées en tâche de fond)
+  S.traitG = function* (d, sr, t0, dur, F, a, o) {
     o = o || {};
     const i0 = Math.floor(t0 * sr), n = Math.max(2, Math.floor(dur * sr)), lim = sr * 0.45, W = 2 * Math.PI / sr;
     const P = typeof F === 'number' ? [[0, F], [1, F]] : typeof F[0] === 'number' ? [[0, F[0]], [1, F[1]]] : F;
@@ -35,6 +37,7 @@
     for (let j = 0; j < n; j++) {
       const i = i0 + j;
       if (i >= d.length) break;
+      if ((j & 4095) === 4095) yield;
       const u = j / n;
       while (k < P.length - 2 && u > P[k + 1][0]) k++;
       const ua = P[k][0], ub = P[k + 1][0], fa = P[k][1], fb = P[k + 1][1];
@@ -74,7 +77,8 @@
     }
   };
   // un souffle de bruit filtré (attaque, tenue, relâche), avec modulation d'amplitude (râpe, grésillement)
-  S.rape = function (d, sr, t0, dur, filt, a, o) {
+  S.rape = function (d, sr, t0, dur, filt, a, o) { return synDerouler(S.rapeG(d, sr, t0, dur, filt, a, o)); };
+  S.rapeG = function* (d, sr, t0, dur, filt, a, o) {
     o = o || {};
     const i0 = Math.floor(t0 * sr), n = Math.max(2, Math.floor(dur * sr)), att = o.att === undefined ? 0.1 : o.att, rel = o.rel === undefined ? 0.4 : o.rel;
     const am = o.am || 0, amd = o.amd || 0, ph0 = Math.random() * 6.283, W = 2 * Math.PI * am / sr, wc = Math.cos(W), ws = Math.sin(W);
@@ -82,6 +86,7 @@
     for (let j = 0; j < n; j++) {
       const i = i0 + j;
       if (i >= d.length) break;
+      if ((j & 4095) === 4095) yield;
       const u = j / n;
       let e = u < att ? u / att : u > 1 - rel ? (1 - u) / rel : 1;
       e = e * e * (3 - 2 * e);
@@ -121,11 +126,12 @@
     const f = rf(4500, 6200), du = 0.05;
     return { dur: 0.15, jouer: (d, sr, t) => { S.trait(d, sr, t, du, [f, f * 1.1], 0.5, {}); S.trait(d, sr, t + 0.075, 0.07, [f * 0.8, f * 0.62], 0.6, { rel: 0.5 }); } };
   };
-  T.s_grive = [5.4, (d, sr) => {
+  // (les plus longs à calculer sont écrits en fonctions génératrices : la tâche de fond les fait par tranches)
+  T.s_grive = [5.4, function* (d, sr) {
     let t = 0.04;
     for (let m = 0, nm = ri(2, 3); m < nm && t < 4.0; m++) {
       const M = griveMotif();
-      for (let r = 0, nr = R() < 0.15 ? 5 : ri(2, 4); r < nr && t + M.dur < 5.2; r++) { M.jouer(d, sr, t); t += M.dur + rf(0.05, 0.11); }
+      for (let r = 0, nr = R() < 0.15 ? 5 : ri(2, 4); r < nr && t + M.dur < 5.2; r++) { M.jouer(d, sr, t); t += M.dur + rf(0.05, 0.11); yield; }
       t += rf(0.3, 0.6);
     }
   }];
@@ -510,25 +516,26 @@
     S.lp1(d, sr, 2500);
   }];
   // une charrette sur les pavés : le roulement, les cahots, l'essieu qui grince à chaque tour, le pas du cheval
-  T.s_charrette = [7.0, (d, sr) => {
+  T.s_charrette = [7.0, function* (d, sr) {
     const D = 6.8, lo = S.bq('lp', 300, 0.7, sr), n = Math.floor(D * sr);
     let e = 0;
-    for (let j = 0; j < n; j++) { if ((j & 63) === 0) e = Math.exp(-Math.pow((j / n - 0.5) / 0.3, 2)) * 0.5; d[j] += lo(R() * 2 - 1) * e; }
-    for (let t = 0.1; t < D - 0.2; t += rf(0.05, 0.16)) { const u = t / D, e = Math.exp(-Math.pow((u - 0.5) / 0.3, 2)); S.modeR(d, sr, t, rf(90, 180), 0.03, rf(0.1, 0.35) * e); S.bruit(d, sr, t, 0.001, 0.006, 0.08 * e, S.bq('bp', 900, 0.8, sr)); }
-    for (let t = 0.6; t < D - 0.6; t += rf(1.1, 1.3)) { const u = t / D, e = Math.exp(-Math.pow((u - 0.5) / 0.3, 2)); S.trait(d, sr, t, 0.25, [[0, 620], [0.5, 700], [1, 600]], 0.06 * e, { h: [0.5, 0.3, 0.2], am: 26, amd: 0.6 }); }
-    for (let t = 0.2, k = 0; t < D - 0.3; k++, t += k % 2 ? 0.22 : 0.42) { const u = t / D, e = Math.exp(-Math.pow((u - 0.5) / 0.3, 2)); S.modeR(d, sr, t, rf(380, 520), 0.016, 0.45 * e); S.modeR(d, sr, t, rf(1000, 1300), 0.007, 0.18 * e); S.modeR(d, sr, t, rf(90, 115), 0.025, 0.3 * e); }
+    for (let j = 0; j < n; j++) { if ((j & 4095) === 0) yield; if ((j & 63) === 0) e = Math.exp(-Math.pow((j / n - 0.5) / 0.3, 2)) * 0.5; d[j] += lo(R() * 2 - 1) * e; }
+    for (let t = 0.1, c = 0; t < D - 0.2; t += rf(0.05, 0.16)) { if ((++c & 7) === 0) yield; const u = t / D, e = Math.exp(-Math.pow((u - 0.5) / 0.3, 2)); S.modeR(d, sr, t, rf(90, 180), 0.03, rf(0.1, 0.35) * e); S.bruit(d, sr, t, 0.001, 0.006, 0.08 * e, S.bq('bp', 900, 0.8, sr)); }
+    for (let t = 0.6; t < D - 0.6; t += rf(1.1, 1.3)) { yield; const u = t / D, e = Math.exp(-Math.pow((u - 0.5) / 0.3, 2)); S.trait(d, sr, t, 0.25, [[0, 620], [0.5, 700], [1, 600]], 0.06 * e, { h: [0.5, 0.3, 0.2], am: 26, amd: 0.6 }); }
+    for (let t = 0.2, k = 0; t < D - 0.3; k++, t += k % 2 ? 0.22 : 0.42) { if ((k & 3) === 0) yield; const u = t / D, e = Math.exp(-Math.pow((u - 0.5) / 0.3, 2)); S.modeR(d, sr, t, rf(380, 520), 0.016, 0.45 * e); S.modeR(d, sr, t, rf(1000, 1300), 0.007, 0.18 * e); S.modeR(d, sr, t, rf(90, 115), 0.025, 0.3 * e); }
+    yield;
     S.lp1(d, sr, 3000);
   }];
 
   // ================================================================ LE CRÉPUSCULE, LA NUIT (suite)
   // l'engoulevent : un ronronnement sec et continu (« rrrrrrr… »), comme un petit moteur dans la bruyère, qui change de
   // ton toutes les deux ou trois secondes ; parfois, à la fin, un « kou-ik » et un claquement d'ailes
-  T.s_engoulevent = [7.0, (d, sr, iv) => {
+  T.s_engoulevent = [7.0, function* (d, sr, iv) {
     let t = 0.05, haut = R() < 0.5;
     const fin = rf(5.4, 6.4), fb = rf(1050, 1250);
     while (t < fin) {
       const du = Math.min(fin - t, rf(1.4, 2.8)), f = haut ? fb * 1.3 : fb;
-      S.trait(d, sr, t, du, [[0, f * 0.97], [0.5, f], [1, f * 1.01]], haut ? 0.8 : 1, { h: [0.45, 0.2, 0.08], am: haut ? rf(40, 44) : rf(31, 35), amd: 0.93, souffle: 0.22, att: 0.04, rel: 0.04 });
+      yield* S.traitG(d, sr, t, du, [[0, f * 0.97], [0.5, f], [1, f * 1.01]], haut ? 0.8 : 1, { h: [0.45, 0.2, 0.08], am: haut ? rf(40, 44) : rf(31, 35), amd: 0.93, souffle: 0.22, att: 0.04, rel: 0.04 });
       t += du; haut = !haut;
     }
     if (iv % 2) { t += 0.25; S.trait(d, sr, t, 0.08, [[0, 1500], [1, 1900]], 0.6, { h: [0.2] }); S.trait(d, sr, t + 0.12, 0.14, [[0, 2300], [0.4, 2600], [1, 2000]], 0.7, { h: [0.15], lisse: true }); S.clic(d, sr, t + 0.4, 900, 0.4); S.clic(d, sr, t + 0.47, 850, 0.35); }
@@ -614,4 +621,11 @@
   SoundEngine.VARIANTES = { s_rossignol: 6, s_grive: 4, s_rougegorge: 5, s_troglodyte: 3, s_lulu: 4, s_loriot: 4, s_cloche: 2, s_coq: 3, s_chien: 3, s_moyenduc: 3, s_petitduc: 3, s_cheveche: 3, s_sonnailles: 3, s_bourdons: 3, s_charrette: 2, s_buse: 3, s_tarier: 3, s_bouvreuil: 3, s_sittelle: 3, s_caille: 3,
     s_engoulevent: 3, s_rale: 3, s_brindille: 3, s_tronc: 3, s_gousse: 3, s_caillou: 3, s_poisson: 3 };
   for (const k of Object.keys(T)) if (k.startsWith('s_') && !SoundEngine.VARIANTES[k]) SoundEngine.VARIANTES[k] = 4;
+  // les remplissages écrits en fonctions génératrices : rangés à part (SoundEngine.TAMPONS_PAS, pour la tâche de fond
+  // par tranches) ; le tampon garde un remplissage ordinaire, d'un trait (outils, essais, appels directs)
+  const PAS = SoundEngine.TAMPONS_PAS || (SoundEngine.TAMPONS_PAS = {});
+  for (const k of Object.keys(T)) {
+    const f = T[k][1];
+    if (f && f.constructor && f.constructor.name === 'GeneratorFunction') { PAS[k] = f; T[k] = [T[k][0], (d, sr, iv) => synDerouler(f(d, sr, iv))].concat(T[k].slice(2)); }
+  }
 }

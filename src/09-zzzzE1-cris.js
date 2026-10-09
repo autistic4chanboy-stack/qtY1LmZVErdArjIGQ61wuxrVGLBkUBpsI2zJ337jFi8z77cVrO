@@ -173,11 +173,15 @@ Object.assign(SoundEngine.TAMPONS, {
   e1_froisse: [0.3, (d, sr) => { const S = SoundEngine.SYN; S.bruit(d, sr, 0.01, 0.03, 0.12, 0.6, S.bq('bp', 2600, 0.9, sr)); }],
 });
 // une boucle : l'essaim autour du nid de frelons (placée, on la rafraîchit tant qu'on est près)
-SoundEngine.BOUCLES.e1_essaim = [3, (d, sr, dur) => {
+// (par tranches pour la mise en train : une note à la fois ; voir SoundEngine.BOUCLES_PAS)
+SoundEngine.BOUCLES_PAS = SoundEngine.BOUCLES_PAS || {};
+SoundEngine.BOUCLES_PAS.e1_essaim = function* (d, sr, dur) {
   const S = SoundEngine.SYN, R = Math.random;
-  for (let k = 0; k < 7; k++) { const f = 120 + R() * 40, t0 = R() * dur * 0.7; S.note(d, sr, t0, 0.8 + R() * 1.2, f, f * (0.96 + R() * 0.08), 0.25, { h2: 0.8, vib: 3 + R() * 3, vd: 0.05, att: 0.3, dec: 1.2 }); }
+  for (let k = 0; k < 7; k++) { yield; const f = 120 + R() * 40, t0 = R() * dur * 0.7; yield* S.noteG(d, sr, t0, 0.8 + R() * 1.2, f, f * (0.96 + R() * 0.08), 0.25, { h2: 0.8, vib: 3 + R() * 3, vd: 0.05, att: 0.3, dec: 1.2 }); }
+  yield;
   S.lp1(d, sr, 1800);
-}];
+};
+SoundEngine.BOUCLES.e1_essaim = [3, (d, sr, dur) => { const it = SoundEngine.BOUCLES_PAS.e1_essaim(d, sr, dur); while (!it.next().done) { /* d'un trait */ } }];
 SoundEngine.VOL_BOUCLES.e1_essaim = 0.032;
 Object.assign(SoundEngine.VOL_OISEAUX, E1_VOL);
 // les tampons se calculent avec les autres, en tâche de fond au début de la partie (jamais pendant le jeu)
@@ -188,7 +192,7 @@ Object.assign(SoundEngine.VOL_OISEAUX, E1_VOL);
     if (this._chauffe && !this._e1chaud) {
       this._e1chaud = true;
       for (const k of Object.keys(E1_VOL)) for (let i = 0; i < 3; i++) this._chauffe.push(() => this.tb(k, 3, i));
-      this._chauffe.push(() => this.boucleTampon && this.boucleTampon('e1_essaim'));
+      this._chauffe.push(() => (this.boucleEnFond ? this.boucleEnFond('e1_essaim') : this.boucleTampon && this.boucleTampon('e1_essaim')));
       return this._chauffe.length;
     }
     return n;

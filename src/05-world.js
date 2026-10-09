@@ -95,6 +95,24 @@ class World {
   }
   // des blocs ajoutés au bout de la liste (le collisionneur d'un objet posé) : ils entrent dans la grille sans la refaire
   blocChange() { (this._chg || (this._chg = { r: new Set(), g: new Set(), b: false })).b = true; }
+  // le bloc j vient d'être retiré de la liste (splice) : on le sort de la grille et les blocs suivants reculent d'un
+  // rang, sans refaire la grille (sinon : grid = null, elle sera refaite)
+  blocRetire(j) {
+    const S = this._gs, G = this.grid, C = this._chg;
+    if (!G || !S || S.grid !== G || S.blocks !== this.blocks || S.nb !== this.blocks.length + 1 || (C && C.b) || S.curVer !== this.curVer) { this.grid = null; return; }
+    const e = -1 - j, cells = G.cells;
+    for (let k = 0; k < cells.length; k++) {
+      const L = cells[k];
+      if (!L || !L.length || L[L.length - 1] >= 0) continue;
+      let w = L.length - 1;
+      while (w >= 0 && L[w] < 0) w--;
+      let out = w + 1;
+      for (let r = w + 1; r < L.length; r++) { const v = L[r]; if (v === e) continue; L[out++] = v < e ? v + 1 : v; }
+      L.length = out;
+    }
+    S.bs.copyWithin(j * 5, (j + 1) * 5); S.bs = S.bs.subarray(0, (S.nb - 1) * 5).slice(); S.nb--;
+    this.grid = S.grid = { gw: G.gw, cells }; // (nouvelle : les carreaux des trajets voient le changement)
+  }
   get _chgG() { const C = this._chg; return !!C && (C.g.size > 0 || C.b); }
 
   objectY(o) {

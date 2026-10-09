@@ -647,8 +647,9 @@ SoundEngine.BRUITS_MILIEU = {
       const ric = typeof requestIdleCallback === 'function' ? (f) => requestIdleCallback(f, { timeout: 1200 }) : (f) => setTimeout(() => f(null), 60);
       const tour = (dl) => {
         let k = null;
-        // (le temps de ce tour : ce que le navigateur dit avoir devant lui, jamais plus de 12 ms ; au moins 3)
-        const fin = performance.now() + (dl ? clamp(dl.timeRemaining() - 1, 3, 12) : 6);
+        // (le temps de ce tour : ce que le navigateur dit avoir devant lui, jamais plus de 4 ms ; au moins 2 — une image
+        //  ne doit jamais attendre)
+        const fin = performance.now() + (dl ? clamp(dl.timeRemaining() - 1, 2, 4) : 4);
         try {
           let n = 0;
           // (un pas au moins à chaque tour ; d'autres tant qu'il reste du temps)
@@ -671,17 +672,49 @@ SoundEngine.BRUITS_MILIEU = {
         if (!gen || fin === undefined) { this.boucleTampon(nom); return; }
         const J = this._sJobs || (this._sJobs = new Map());
         let job = J.get(nom);
+        // (trois temps, chacun son tour : préparer le tampon, le calculer par tranches, en faire la boucle)
         if (!job) {
           const [dur, , srB] = SoundEngine.BOUCLES[nom], sr = Math.min(this.ctx.sampleRate, srB || SoundEngine.SR_SYNTH), n = Math.floor(dur * sr), X = Math.floor(0.25 * sr), tmp = new Float32Array(n + X);
           job = { sr, n, X, tmp, it: gen(tmp, sr, dur + 0.25) };
           J.set(nom, job);
+          return;
         }
-        do { if (job.it.next().done) { J.delete(nom); this._sFinBoucle(nom, job); return; } } while (performance.now() < fin);
+        if (job.fini) { J.delete(nom); this._sFinBoucle(nom, job); return; }
+        do { if (job.it.next().done) { job.fini = true; return; } } while (performance.now() < fin);
         return;
       }
       if (!SoundEngine.TAMPONS[nom]) return;
       const n = (SoundEngine.VARIANTES && SoundEngine.VARIANTES[nom]) || 5, arr = this._bufs[nom] || [];
-      for (let i = 0; i < n; i++) if (!arr[i]) { tbS(this, nom, n, i); break; }
+      for (let i = 0; i < n; i++) if (!arr[i]) { if (fin !== undefined && this._sTamponPas(nom, i, fin)) break; tbS(this, nom, n, i); break; }
+    },
+    // une variante dont le remplissage est une fonction génératrice : par tranches jusqu'à « fin » (comme tb, puis
+    // tampon, puis tbS : crête à 1, fondus d'entrée et de sortie, silence final rogné) ; false : pas de cette sorte
+    _sTamponPas(nom, i, fin) {
+      const T = SoundEngine.TAMPONS[nom], gen = SoundEngine.TAMPONS_PAS && SoundEngine.TAMPONS_PAS[nom];
+      if (!T || !gen) return false;
+      const J = this._sJobsT || (this._sJobsT = new Map()), cle = nom + '|' + i;
+      let job = J.get(cle);
+      if (!job) {
+        const sr = Math.min(this.ctx.sampleRate, SoundEngine.SR_TAMPON[nom] || SoundEngine.SR_SYNTH), len = Math.max(32, Math.ceil(sr * T[0])), b = this.ctx.createBuffer(1, len, sr), d = b.getChannelData(0);
+        job = { b, d, len, it: gen(d, sr, i) };
+        J.set(cle, job);
+        return true;
+      }
+      do {
+        if (job.it.next().done) {
+          J.delete(cle);
+          const { b, d, len } = job, arr = this._bufs[nom] || (this._bufs[nom] = []);
+          if (arr[i]) return true; // (calculée entre-temps d'un trait)
+          SoundEngine.SYN.norm(d, 1);
+          const fi = Math.min(24, len >> 3), fo = Math.min(Math.floor(len * 0.06), 2000);
+          for (let k = 0; k < fi; k++) d[k] *= k / fi;
+          for (let k = 0; k < fo; k++) d[len - 1 - k] *= k / fo;
+          arr[i] = b;
+          if (nom.startsWith('s_')) rogner(this, nom, b);
+          return true;
+        }
+      } while (performance.now() < fin);
+      return true;
     },
 
     // une boucle calculée par tranches devient un tampon (comme boucleTampon : le raccord en fondu enchaîné, la crête à 1)
