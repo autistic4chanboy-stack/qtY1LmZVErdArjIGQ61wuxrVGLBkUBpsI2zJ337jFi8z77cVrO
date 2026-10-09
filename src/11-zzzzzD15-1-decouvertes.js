@@ -96,7 +96,21 @@ const decouvertes = {
   change() { clearTimeout(this.miroirT); this.miroirT = setTimeout(() => this.miroir(), 1200); if (this.surChange) try { this.surChange(); } catch (e) { console.error(e); } },
   miroir() {
     const D = this.S();
-    store.set(D15_CLE, { v: 1, partie: D.partie, mode: D.mode, tout: D.tout, pages: D.pages, notes: D.notes, valides: D.valides });
+    // le wiki du site (W15) range ses lignes sous ses propres champs (vue/vu/lu, jour/nuit, dedans) : on les ajoute
+    const pages = {}, notes = {}, valides = {}, alias = (id) => { const pre = id.slice(0, id.indexOf(':')); return pre === 'an' || pre === 'pl' ? 'vue' : pre === 'it' || pre === 'li' || pre === 'pnj' ? 'vu' : pre === 'lv' ? 'lu' : null; };
+    const jn = (id) => { const H = this.ficheCache(id).champs.find((c) => c.k === 'heures'); return !H ? [] : H.val === 'la nuit' ? ['nuit'] : H.val === 'le jour' ? ['jour'] : ['jour', 'nuit']; };
+    for (const id in D.pages) {
+      const P = D.pages[id], ch = Object.assign({}, P.champs || {}), a = alias(id);
+      if (a) ch[a] = 1;
+      if (ch.heures && id.startsWith('an:')) for (const k of jn(id)) ch[k] = 1;
+      if ((ch.habitants || ch.travail) && id.startsWith('li:')) ch.dedans = 1;
+      pages[id] = { j: P.j, champs: ch };
+    }
+    for (const [src, dst] of [[D.notes, notes], [D.valides, valides]]) for (const id in src) {
+      const o = dst[id] = Object.assign({}, src[id]);
+      if (o.heures !== undefined && id.startsWith('an:')) for (const k of jn(id)) o[k] = o.heures;
+    }
+    store.set(D15_CLE, { v: 1, partie: D.partie, mode: D.mode, tout: D.tout, pages, notes, valides });
   },
   // apprendre un champ que la fiche connaît (sinon : la page seulement)
   apprendre(id, k) { if (this.ficheCache(id).champs.some((c) => c.k === k)) return this.voir(id, k); return this.voir(id); },
