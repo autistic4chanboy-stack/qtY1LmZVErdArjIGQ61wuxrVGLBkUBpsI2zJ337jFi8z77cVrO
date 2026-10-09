@@ -401,7 +401,7 @@ function extractSystems(G, DB) {
   const safe = (label, fn, d) => { try { return fn(); } catch (e) { DB.log.push('systèmes, ' + label + ' : ' + (e && e.message)); return d; } };
   const J = (expr) => jclone(G.run(expr));
   for (const [file, text] of G.texts) {
-    if (!SYS_FILE.test(file) || /admin/.test(file)) continue; // (les outils de mise au point restent cachés)
+    if (!SYS_FILE.test(file) || /admin|camera/.test(file)) continue; // (les outils de mise au point restent cachés)
     const M = S.files[file] = parseModule(text);
     // les tables des objets du module (propriétés en majuscules : chasse.XXX, fabrication.LECONS…)
     for (const o of M.objs) {
@@ -3548,7 +3548,7 @@ function buildWiki(DB) {
     for (const [id, P] of Object.entries(PA)) (pools[P.pool || '_'] || (pools[P.pool || '_'] = [])).push([id, P]);
     const poolNom = (p) => (p === '_' ? 'Trouvé dans une cachette' : NPC_BY[p] ? `Chez ${npcName(p)}` : p === 'tri' ? 'Les casiers du tri, à la poste' : p === 'boite' ? 'La boîte aux lettres' : p === 'rebut' ? 'Les poubelles' : p === 'cave' ? 'La cave de l’auberge' : p === 'morel' ? 'La maison Morel' : p === 'bastien' ? 'La maison Bastien' : cap(bldNom(p)));
     let s = `<h3>Les cachettes</h3><table class="t"><tr><th>Cachette</th><th>Ce qu’il y a</th><th>Révélée par</th></tr>${Object.entries(CA).map(([c, C]) => `<tr><td>${esc(cap(C.nom))}${C.own ? ` <small>(${nomNPC(C.own)})</small>` : ''}</td><td>${(C.lots || []).map(([id, n]) => (id === 'argent' ? pieces(n) : IL(id, n > 1 ? n : undefined))).join(', ')}${C.papier && PA[C.papier] ? ` ; ${esc(PA[C.papier].t)}` : ''}</td><td>${Object.entries(PA).filter(([, P]) => P.cache === c).map(([, P]) => `« ${esc(P.t)} »`).join(', ')}</td></tr>`).join('')}</table>`;
-    s += `<h3>Les papiers</h3><p class="note">${plur(Object.keys(PA).length, 'papier', 'papiers')}, qu’on relit dans la sacoche (onglet Lettres).</p>${Object.entries(pools).map(([p, L]) => `<details><summary>${esc(poolNom(p))} <small>(${L.length})</small></summary>${L.map(([id, P]) => `<section class="bookpage"><h4>${esc(P.t)}${P.cache ? ' <small>— révèle une cachette</small>' : ''}</h4>${para(P.x)}${P.s ? `<p class="note">${FILL(P.s)}</p>` : ''}</section>`).join('')}</details>`).join('')}`;
+    s += `<h3>Les papiers</h3><p class="note">${plur(Object.keys(PA).length, 'papier', 'papiers')}, qu’on relit dans la sacoche (onglet Sacoche, page Lettres).</p>${Object.entries(pools).map(([p, L]) => `<details><summary>${esc(poolNom(p))} <small>(${L.length})</small></summary>${L.map(([id, P]) => `<section class="bookpage"><h4>${esc(P.t)}${P.cache ? ' <small>— révèle une cachette</small>' : ''}</h4>${para(P.x)}${P.s ? `<p class="note">${FILL(P.s)}</p>` : ''}</section>`).join('')}</details>`).join('')}`;
     h += SEC(s, 'Les cachettes et les papiers (leurs textes complets) sont masqués : révélez les secrets pour les lire.');
     SP('sys:fouilles', { t: 'Fouiller', s: 'Armoires, commodes, tiroirs-caisses, étals, cachettes : ce qu’on y trouve, et chez qui', c: ['fouilles'], i: '🔎', h, g: 'Fouiller' }, FV.fouilles);
   }
@@ -4431,6 +4431,10 @@ function buildWiki(DB) {
   let W15 = null;
   try { W15 = require('./wiki-v15.js'); } catch (e) { (DB.log || []).push('wiki-v15.js : ' + e.message); }
   if (W15) try { W15.build({ DB, T, P, SP, SEC, esc, lk, IL, FILL, quotes, npcLink, pages, used, addCat, rarTag, nfmt, planBtn, mapBtn, MF, ITEMS, NAMES, link, placeLink, FIG }); } catch (e) { (DB.log || []).push('wiki-v15.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
+  // la suite : les runes, le wiki du jeu et les découvertes, le menu simplifié (tools/wiki-v15b.js)
+  let W15B = null;
+  try { W15B = require('./wiki-v15b.js'); } catch (e) { (DB.log || []).push('wiki-v15b.js : ' + e.message); }
+  if (W15B) try { W15B.build({ DB, T, P, SP, SEC, esc, lk, IL, pages, used, MF, ITEMS }); } catch (e) { (DB.log || []).push('wiki-v15b.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
   for (const f of [FILE.vol, FILE.prison, FILE.sentiments]) if (f) genericPage(f, 'prison', 'Prison, vol et sentiments');
   for (const f of Object.keys(MF)) if (!MODPAGE[f] && !/^07-/.test(f)) genericPage(f, 'nouveautes-autres', 'Autres nouveautés');
   // ce qui reste des tables de chaque module : en bas de sa fiche principale
@@ -4542,6 +4546,7 @@ function buildWiki(DB) {
   if (W13 && W13.sections) try { W13.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v13.js (sections) : ' + e.message); }
   if (W14 && W14.sections) try { W14.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v14.js (sections) : ' + e.message); }
   if (W15 && W15.sections) try { W15.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v15.js (sections) : ' + e.message); }
+  if (W15B && W15B.sections) try { W15B.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v15b.js (sections) : ' + e.message); }
   // semaine : page d'ensemble
   if (SEM.length) P('cat:semaine', { t: 'La semaine', s: `${SEM.length} jours`, c: [], i: '📅', h: `<p class="lead">Dans la vallée, la semaine compte ${SEM.length} jours${DB.derived.jour ? `, et une journée dure ${Math.round(DB.derived.jour / 60)} minutes` : ''}.</p><table class="t">${SEM.map((J, k) => `<tr><th>${link('sem:' + k)}</th><td>${esc((J.annonce || '').replace(/^\(|\)$/g, ''))}</td></tr>`).join('')}</table>` });
 

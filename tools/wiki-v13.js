@@ -281,7 +281,7 @@ const QT_WIKI = {
   ],
   scenes: 'À chaque étape, une courte scène montre le lieu : son nom dans le noir, le lieu en entier, puis l’endroit précis où chercher, de près ; toujours à l’heure qui convient au lieu (l’aube au pont, le couchant à l’abbaye, la nuit sur le quai), quelle que soit l’heure du jeu. Dedans, la caméra reste dans la pièce, éclairée. **Espace** la passe ; chaque scène vue **se revoit au carnet** (*Revoir*). À la fin, un dernier plan raconte la fin choisie.',
   carnet: 'Au carnet de la sacoche (onglet **Carnet**), rubrique « {section} » : *Proposées*, *En cours* (le lieu de l’étape, nommé, une phrase vague, l’heure s’il en faut une, *Revoir*, *Abandonner*), *Abandonnées*, *Achevées*, *Laissées de côté*.',
-  comment: { pnj: 'en lui parlant : une réplique de plus dans la conversation', lettre: 'une lettre dans la boîte aux lettres de la ferme (elle se relit dans la sacoche, onglet Lettres, avec ses trois réponses)', avis: 'un avis au panneau de la place de Valbrume, sous les autres', objet: 'un objet trouvé : E dessus, on le regarde, et on choisit' },
+  comment: { pnj: 'en lui parlant : une réplique de plus dans la conversation', lettre: 'une lettre dans la boîte aux lettres de la ferme (elle se lit à la boîte, ou sur soi dans la sacoche, page Lettres, avec ses trois réponses)', avis: 'un avis au panneau de la place de Valbrume, sous les autres', objet: 'un objet trouvé : E dessus, on le regarde, et on choisit' },
   // ce qu’on gagne (11-zzzzT-1-quetes.js, recompense) ; les deux fins, a et b
   gains: {
     t1: { a: '180 pièces ; la chambre de l’auberge pour rien, quand vous voulez', b: '120 pièces' },
