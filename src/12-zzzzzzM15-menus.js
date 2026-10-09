@@ -15,7 +15,6 @@
   const st = document.createElement('style');
   st.id = 'm15-css';
   st.textContent = `
-#satchel { min-height: min(480px, calc(100vh - 8vh)); }
 #satchel > .tabs { flex-wrap: nowrap; gap: 2px; padding: 8px 10px 0; }
 #satchel > .tabs .m15-o { position: relative; padding: 6px 14px 8px; font-size: 17px; letter-spacing: .02em; white-space: nowrap; }
 #satchel > .tabs .m15-o:focus-visible, #satchel .m15-pages button:focus-visible, #m15-boite button:focus-visible { outline: 2px dotted #8a5a2a; outline-offset: 1px; }
@@ -40,7 +39,7 @@
 #dlg-options .cols h4.m15-sec { grid-column: 1 / -1; margin: 16px 0 0; padding-bottom: 3px; color: var(--amber); font-size: 12px; letter-spacing: .14em; font-weight: normal; border-bottom: 1px solid rgba(255,255,255,.08); }
 #dlg-options .cols h4.m15-sec:first-child { margin-top: 0; }
 @media (max-width: 560px) {
-  #satchel { min-height: calc(100vh - 6vh); margin-bottom: 2vh; }
+  #satchel { height: calc(100vh - 5vh); margin-bottom: 2vh; }
   #satchel > .tabs { padding: 6px 4px 0; }
   #satchel > .tabs .m15-o { padding: 6px 8px 8px; font-size: 15px; }
   #satchel > .tabs .m15-opt { padding: 4px 6px 8px; }
