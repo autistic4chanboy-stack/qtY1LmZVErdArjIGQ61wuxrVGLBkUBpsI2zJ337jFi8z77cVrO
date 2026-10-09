@@ -351,6 +351,7 @@ SoundEngine.BRUITS_MILIEU = {
       const sec = 1 - lisse(0.1, 0.45, pluie), froid = Math.max(gel, neige, 0.8 * sol), raf = clamp(this.sc && this.sc.vg !== undefined ? this.sc.vg : 0.4, 0, 1);
       // (la pluie qui vient de finir : les grenouilles chantent plus, les arbres s'égouttent)
       if (pluie > 0.3) Z.pluieVue = 1; else Z.pluieVue = Math.max(0, Z.pluieVue - dt / 240);
+      const kNuit = SoundEngine.ventNuit(nuit, orage); // (le vent, plus discret la nuit : voir _scene)
       const hs = h < 12 ? h + 24 : h; // les heures du soir et de la nuit, d'un seul tenant
       Object.assign(Q, {
         h, jour, nuit, pluie, neige, brouillard, gel, chaud, orage, vent, sec, noire,
@@ -362,7 +363,7 @@ SoundEngine.BRUITS_MILIEU = {
         grenNuit: nuit * (1 - froid) * (1 - noire) * (1 - lisse(0.6, 0.9, pluie)) * (1 + 0.3 * Z.pluieVue),
         batNuit: nuit * (1 - froid) * (1 - noire) * (1 - lisse(0.5, 0.85, pluie)),
         // (le vent dans les arbres, les roseaux, la bruyère suit les bouffées du vent : sc.vg, 0..1)
-        ventBois: (0.35 + 0.9 * vent) * (1 - 0.5 * neige) * (0.75 + 0.4 * raf), ventBas: (0.3 + 0.8 * vent) * (0.75 + 0.4 * raf), ventHaut: (0.35 + 0.8 * vent) * (0.8 + 0.3 * raf), ressac: (0.45 + 0.8 * vent) * clamp(this._sGL === undefined ? 1 : this._sGL * 1.5, 0, 1),
+        ventBois: (0.35 + 0.9 * vent) * (1 - 0.5 * neige) * (0.75 + 0.4 * raf) * kNuit, ventBas: (0.3 + 0.8 * vent) * (0.75 + 0.4 * raf) * kNuit, ventHaut: (0.35 + 0.8 * vent) * (0.8 + 0.3 * raf) * kNuit, ressac: (0.45 + 0.8 * vent) * clamp(this._sGL === undefined ? 1 : this._sGL * 1.5, 0, 1),
         egout: Z.pluieVue * (1 - lisse(0.05, 0.3, pluie)),
       });
       return Q;

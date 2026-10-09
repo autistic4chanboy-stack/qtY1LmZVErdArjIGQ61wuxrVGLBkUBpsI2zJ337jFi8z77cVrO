@@ -111,6 +111,8 @@ SoundEngine.BOUCLES = {
   }, 8000],
 };
 // volume de chaque boucle (k = 1)
+// la part du vent qui reste la nuit (nuit : 0..1, orage : 0..1) : un peu plus d'un tiers par nuit calme, presque tout dans l'orage
+SoundEngine.ventNuit = (nuit, orage) => 1 - 0.62 * clamp(nuit || 0, 0, 1) * (1 - 0.7 * clamp(orage || 0, 0, 1));
 SoundEngine.VOL_BOUCLES = { riviere: 0.1, clapotis: 0.07, feu: 0.22, gouttes: 0.07, feuilles: 0.06, grillon: 0.07, bourdon: 0.05, vent: 0.085 };
 // les oiseaux selon le milieu : [sorte, poids]
 SoundEngine.OISEAUX = {
@@ -252,19 +254,21 @@ Object.assign(SoundEngine.prototype, {
     let brise = 0;
     if (S.brise > 0) { S.brise -= dt; brise = 0.09 * Math.sin(Math.PI * clamp(1 - S.brise / S.briseD, 0, 1)); }
     const v = under ? 0 : clamp(base * (0.5 + 0.75 * S.vg) + brise, 0, 1.2);
-    const niv = Math.pow(v, 1.4) * (inside ? 0.35 : 1);
+    // la nuit, le vent se fait plus discret (le reste se tait : il ne doit pas prendre toute la place), sauf dans l'orage
+    const kNuit = SoundEngine.ventNuit(E.night, orage);
+    const niv = Math.pow(v, 1.4) * (inside ? 0.35 : 1) * kNuit;
     const coupe = inside ? 160 + 350 * clamp(v, 0, 1) : 260 + 1900 * clamp(v, 0, 1) * (0.75 + 0.25 * S.vg);
     const wa = typeof weather !== 'undefined' && weather.windAngle !== undefined ? weather.windAngle : 0;
     for (const [cle, da, rate, kf] of [['vent', 1.25, 1, 1], ['ventB', -1.25, 0.93, 0.82]]) {
       const a = wa + da, x = this.source(cle, 'vent', [L.x + Math.cos(a) * 12, L.y + 2.5, L.z + Math.sin(a) * 12], niv, { att: 'aucune', tau: 0.5, rate });
       if (x) x.f.frequency.setTargetAtTime(coupe * kf, now, 0.5);
     }
-    const sif = Math.pow(clamp((v - 0.55) / 0.5, 0, 1), 2) * (inside ? 0.3 : 1);
+    const sif = Math.pow(clamp((v - 0.55) / 0.5, 0, 1), 2) * (inside ? 0.3 : 1) * kNuit;
     const vx2 = this.source('vent2', 'vent', [L.x - Math.cos(wa + 0.7) * 16, L.y + 6, L.z - Math.sin(wa + 0.7) * 16], sif, { att: 'aucune', tau: 0.8, vol: 0.035 });
     if (vx2) { vx2.f.type = 'bandpass'; vx2.f.Q.value = 9; vx2.f.frequency.setTargetAtTime(520 + 600 * clamp(v, 0, 1.2) * (0.8 + 0.4 * S.vg), now, 0.9); }
     // le feuillage, sous les bouffées, dans les arbres
     const bois = biome === 'foret' || biome === 'bouleaux';
-    this.source('feuilles', 'feuilles', [L.x + Math.cos(wa + 0.3) * 7, L.y + 5, L.z + Math.sin(wa + 0.3) * 7], dehors && bois ? clamp(v * (0.5 + 0.9 * S.vg) * 1.5, 0, 1.2) : 0, { att: 'aucune', tau: 0.7 });
+    this.source('feuilles', 'feuilles', [L.x + Math.cos(wa + 0.3) * 7, L.y + 5, L.z + Math.sin(wa + 0.3) * 7], dehors && bois ? clamp(v * (0.5 + 0.9 * S.vg) * 1.5, 0, 1.2) * kNuit : 0, { att: 'aucune', tau: 0.7 });
     // ---- la pluie : un lit large, et des gouttes tout autour (sur le toit quand on est à l'abri)
     this._pluie(dt, E, S, under, inside, now);
     // ---- l'eau : la rivière qui coule, le lac qui clapote
