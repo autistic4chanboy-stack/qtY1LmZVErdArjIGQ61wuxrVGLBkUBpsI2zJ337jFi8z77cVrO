@@ -32,11 +32,13 @@ function addPropCollider(w, p) {
   p.blk = b;
   w.blocks.push(b);
 }
-function removePropCollider(w, p) {
+// vite : pendant le jeu, la grille est corrigée sur place (World.blocRetire) au lieu d'être refaite
+function removePropCollider(w, p, vite) {
   if (!p.blk) return;
   const i = w.blocks.indexOf(p.blk);
   if (i >= 0) w.blocks.splice(i, 1);
-  p.blk = null; w.grid = null;
+  if (i >= 0 && vite && w.blocRetire) w.blocRetire(i); else w.grid = null;
+  p.blk = null;
 }
 
 Object.assign(Builder.prototype, {

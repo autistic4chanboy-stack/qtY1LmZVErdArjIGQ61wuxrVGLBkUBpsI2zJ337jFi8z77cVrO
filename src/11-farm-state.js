@@ -156,7 +156,7 @@ const farm = {
   removeProp(q) {
     const w = this.w, i = w.props.indexOf(q);
     if (i < 0) return;
-    removePropCollider(w, q);
+    removePropCollider(w, q, true);
     if (i < this.genProps) { q.gone = true; this.s.gone[i] = 1; }
     else {
       w.props.splice(i, 1);

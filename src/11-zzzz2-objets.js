@@ -749,7 +749,7 @@ const objets = {
     if (w.props.indexOf(q) < 0) return;
     farm.removeProp(q);
     q.gone = true; // (les listes que d'autres modules gardent le voient disparu)
-    farm.dirtyProps = true; w.grid = null;
+    farm.dirtyProps = true; // (son collisionneur est sorti de la grille par farm.removeProp)
     if (q.id === 'tente') w.coverDirty = true;
     if (lum) w.collectLights();
     if (game.hiProp === q) game.hiProp = null;
