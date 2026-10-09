@@ -6931,26 +6931,65 @@ class World {
     this.dirtyMats = d ? [Math.min(d[0], i0), Math.min(d[1], j0), Math.max(d[2], i1), Math.max(d[3], j1)] : [i0, j0, i1, j1];
   }
 
+  // Un objet a changé (cueilli, repoussé, abattu, ajouté au bout de la liste) : le rendu et les grilles ne refont que
+  // lui, au lieu de tout reconstruire (ce qui coûtait une image de cent millisecondes à chaque cueillette). Pour un
+  // changement plus large (liste raccourcie, relief…), on continue de mettre objectsDirty / grid = null.
+  objetChange(i) {
+    const C = this._chg || (this._chg = { r: new Set(), g: new Set(), b: false });
+    C.r.add(i); C.g.add(i);
+  }
+  // des blocs ajoutés au bout de la liste (le collisionneur d'un objet posé) : ils entrent dans la grille sans la refaire
+  blocChange() { (this._chg || (this._chg = { r: new Set(), g: new Set(), b: false })).b = true; }
+  // le bloc j vient d'être retiré de la liste (splice) : on le sort de la grille et les blocs suivants reculent d'un
+  // rang, sans refaire la grille (sinon : grid = null, elle sera refaite)
+  blocRetire(j) {
+    const S = this._gs, G = this.grid, C = this._chg;
+    if (!G || !S || S.grid !== G || S.blocks !== this.blocks || S.nb !== this.blocks.length + 1 || (C && C.b) || S.curVer !== this.curVer) { this.grid = null; return; }
+    const e = -1 - j, cells = G.cells;
+    for (let k = 0; k < cells.length; k++) {
+      const L = cells[k];
+      if (!L || !L.length || L[L.length - 1] >= 0) continue;
+      let w = L.length - 1;
+      while (w >= 0 && L[w] < 0) w--;
+      let out = w + 1;
+      for (let r = w + 1; r < L.length; r++) { const v = L[r]; if (v === e) continue; L[out++] = v < e ? v + 1 : v; }
+      L.length = out;
+    }
+    S.bs.copyWithin(j * 5, (j + 1) * 5); S.bs = S.bs.subarray(0, (S.nb - 1) * 5).slice(); S.nb--;
+    this.grid = S.grid = { gw: G.gw, cells }; // (nouvelle : les carreaux des trajets voient le changement)
+  }
+  get _chgG() { const C = this._chg; return !!C && (C.g.size > 0 || C.b); }
+
   objectY(o) {
     return o.y !== undefined ? o.y : this.heightAt(o.x, o.z);
   }
 
   // ------------------------------------------------------------------ grille spatiale
+  // (une cueillette, une repousse, un arbre abattu remettent la grille à null : au lieu de tout refaire, _gridPatch ne
+  // déplace que les objets dont la case a changé ; le résultat est le même, dans le même ordre)
   rebuildGrid() {
+    const C = this._chgG ? this._chg : null;
+    const fin = () => { if (C) { C.g.clear(); C.b = false; } };
+    if (this._gridPatch(this.grid && C ? C.g : null)) { fin(); return; }
+    fin();
     const gw = Math.ceil(this.size / GRID_CELL) + 1;
     const cells = new Array(gw * gw);
     for (let k = 0; k < cells.length; k++) cells[k] = null;
     const push = (gx, gz, item) => {
-      if (gx < 0 || gz < 0 || gx >= gw || gz >= gw) return;
+      if (gx < 0 || gz < 0 || gx >= gw || gz >= gw) return -1;
       const k = gz * gw + gx;
       (cells[k] || (cells[k] = [])).push(item);
+      return k;
     };
-    this.objects.forEach((o, idx) => {
-      const t = OBJ_TYPES[o.t];
-      if ((!t.col && !t.colK) || !this.live(o)) return;
-      push(Math.floor(o.x / GRID_CELL), Math.floor(o.z / GRID_CELL), idx);
-    });
+    const objs = this.objects, gk = new Int32Array(objs.length).fill(-1);
+    for (let idx = 0; idx < objs.length; idx++) {
+      const o = objs[idx], t = OBJ_TYPES[o.t];
+      if ((!t.col && !t.colK) || !this.live(o)) continue;
+      gk[idx] = push(Math.floor(o.x / GRID_CELL), Math.floor(o.z / GRID_CELL), idx);
+    }
+    const nb = this.blocks.length, bs = new Float64Array(nb * 5);
     this.blocks.forEach((b, idx) => {
+      bs[idx * 5] = b.x; bs[idx * 5 + 1] = b.z; bs[idx * 5 + 2] = b.sx; bs[idx * 5 + 3] = b.sz; bs[idx * 5 + 4] = b.ver || 0;
       if (b.ver && !(b.ver & this.curVer)) return;
       const r = Math.hypot(b.sx, b.sz) / 2;
       const gx0 = Math.floor((b.x - r) / GRID_CELL), gx1 = Math.floor((b.x + r) / GRID_CELL);
@@ -6959,18 +6998,90 @@ class World {
     });
     this.grid = { gw, cells };
     this.allGrid = null;
+    this._gs = { objs, n: objs.length, gk, curVer: this.curVer, blocks: this.blocks, nb, bs, grid: this.grid, ak: null, ag: null };
+  }
+  // liste : seulement ces indices (la grille est encore là) ; sinon tous les objets
+  _gridPatch(liste) {
+    const S = this._gs, objs = this.objects, blocks = this.blocks;
+    if (liste && S && S.grid !== this.grid) return false;
+    if (!S || S.objs !== objs || objs.length < S.n || S.curVer !== this.curVer || S.blocks !== blocks || blocks.length < S.nb || S.grid.gw !== Math.ceil(this.size / GRID_CELL) + 1) return false;
+    let bs = S.bs;
+    for (let j = 0; j < S.nb; j++) {
+      const b = blocks[j], q = j * 5;
+      if (bs[q] !== b.x || bs[q + 1] !== b.z || bs[q + 2] !== b.sx || bs[q + 3] !== b.sz || bs[q + 4] !== (b.ver || 0)) return false;
+    }
+    // les blocs ajoutés au bout : au bout de leurs cases (comme le ferait la grille refaite)
+    if (blocks.length > S.nb) {
+      const b2 = new Float64Array(blocks.length * 5); b2.set(bs); bs = S.bs = b2;
+      const gw = S.grid.gw, cells = S.grid.cells;
+      for (let idx = S.nb; idx < blocks.length; idx++) {
+        const b = blocks[idx];
+        bs[idx * 5] = b.x; bs[idx * 5 + 1] = b.z; bs[idx * 5 + 2] = b.sx; bs[idx * 5 + 3] = b.sz; bs[idx * 5 + 4] = b.ver || 0;
+        if (b.ver && !(b.ver & this.curVer)) continue;
+        const r = Math.hypot(b.sx, b.sz) / 2;
+        const gx0 = Math.floor((b.x - r) / GRID_CELL), gx1 = Math.floor((b.x + r) / GRID_CELL);
+        const gz0 = Math.floor((b.z - r) / GRID_CELL), gz1 = Math.floor((b.z + r) / GRID_CELL);
+        for (let gz = gz0; gz <= gz1; gz++) for (let gx = gx0; gx <= gx1; gx++) {
+          if (gx < 0 || gz < 0 || gx >= gw || gz >= gw) continue;
+          const k = gz * gw + gx;
+          const L = cells[k] || (cells[k] = []);
+          if (L.indexOf(-1 - idx) < 0) L.push(-1 - idx); // (déjà rangé par celui qui l'a ajouté : 11-zzzzX-1-gen)
+        }
+      }
+      S.nb = blocks.length;
+    }
+    const N = objs.length, ag = S.ag && this.allGrid === S.ag ? S.ag : null;
+    if (N > S.n) {
+      const g2 = new Int32Array(N).fill(-1); g2.set(S.gk); S.gk = g2;
+      if (ag) { const a2 = new Int32Array(N).fill(-1); a2.set(S.ak); S.ak = a2; }
+    }
+    const gk = S.gk, ak = S.ak, gw = S.grid.gw, cells = S.grid.cells;
+    // retirer / ranger un indice d'objet dans une case (les objets d'abord, dans l'ordre, puis les blocs)
+    const ote = (L, i) => { const p = L ? L.indexOf(i) : -1; if (p >= 0) L.splice(p, 1); };
+    const range = (C, k, i) => { const L = C[k] || (C[k] = []); let p = 0; while (p < L.length && L[p] >= 0 && L[p] < i) p++; L.splice(p, 0, i); };
+    const aC = ag ? ag.C : 8, agw = ag ? ag.gw : 0, acells = ag ? ag.cells : null;
+    const L = liste ? [...liste] : null;
+    if (L) for (let i = S.n; i < N; i++) L.push(i); // (les objets ajoutés au bout)
+    const nn = L ? L.length : N;
+    for (let q = 0; q < nn; q++) {
+      const i = L ? L[q] : q;
+      if (i < 0 || i >= N) continue;
+      const o = objs[i], live = this.live(o);
+      let k = -1;
+      if (live) {
+        const t = OBJ_TYPES[o.t];
+        if (t.col || t.colK) { const gx = Math.floor(o.x / GRID_CELL), gz = Math.floor(o.z / GRID_CELL); if (gx >= 0 && gz >= 0 && gx < gw && gz < gw) k = gz * gw + gx; }
+      }
+      if (k !== gk[i]) { if (gk[i] >= 0) ote(cells[gk[i]], i); if (k >= 0) range(cells, k, i); gk[i] = k; }
+      if (ag) {
+        const a = live ? clamp(Math.floor(o.z / aC), 0, agw - 1) * agw + clamp(Math.floor(o.x / aC), 0, agw - 1) : -1;
+        if (a !== ak[i]) { if (ak[i] >= 0) ote(acells[ak[i]], i); if (a >= 0) range(acells, a, i); ak[i] = a; }
+      }
+    }
+    S.n = N;
+    // (une grille « nouvelle » : les carreaux des trajets (zgrille) reconnaissent un monde changé à ce qu'elle n'est plus
+    // la même ; ils comparent ensuite le contenu des cases)
+    this.grid = S.grid = { gw: S.grid.gw, cells: S.grid.cells };
+    if (ag) this.allGrid = ag; else { this.allGrid = null; S.ag = null; S.ak = null; }
+    return true;
   }
   // Grille de tous les objets (pour les rayons courts : visée, outils, fioles)
   objectsGrid() {
-    if (!this.grid) this.rebuildGrid();
+    if (!this.grid || this._chgG) this.rebuildGrid();
     if (this.allGrid) return this.allGrid;
     const C = 8, gw = Math.ceil(this.size / C) + 1, cells = new Array(gw * gw);
-    this.objects.forEach((o, i) => {
-      if (!this.live(o)) return;
+    const objs = this.objects, ak = new Int32Array(objs.length).fill(-1);
+    for (let i = 0; i < objs.length; i++) {
+      const o = objs[i];
+      if (!this.live(o)) continue;
       const k = clamp(Math.floor(o.z / C), 0, gw - 1) * gw + clamp(Math.floor(o.x / C), 0, gw - 1);
       (cells[k] || (cells[k] = [])).push(i);
-    });
-    return (this.allGrid = { C, gw, cells });
+      ak[i] = k;
+    }
+    this.allGrid = { C, gw, cells };
+    const S = this._gs;
+    if (S && S.grid === this.grid && S.objs === objs && S.n === objs.length) { S.ag = this.allGrid; S.ak = ak; }
+    return this.allGrid;
   }
   forObjectsNearRay(o, d, maxDist, fn) {
     if (maxDist > 40) { this.objects.forEach(fn); return; }
@@ -6985,7 +7096,7 @@ class World {
   }
   // Appelle cb(obj, idx) pour objets solides et cbB(block, idx) pour blocs proches
   query(x, z, r, cbO, cbB) {
-    if (!this.grid) this.rebuildGrid();
+    if (!this.grid || this._chgG) this.rebuildGrid();
     const { gw, cells } = this.grid;
     const gx0 = Math.floor((x - r) / GRID_CELL), gx1 = Math.floor((x + r) / GRID_CELL);
     const gz0 = Math.floor((z - r) / GRID_CELL), gz1 = Math.floor((z + r) / GRID_CELL);
@@ -7158,7 +7269,11 @@ class World {
       }
     };
     const inRegion = (x, z, R) => x + R >= rx0 && z + R >= rz0 && x - R <= rx1 && z - R <= rz1;
+    // (une zone : on écarte d'abord, sans rien lire d'autre, les objets bien trop loin pour y jeter leur ombre)
+    if (!World.ombreMax || World.ombreMaxN !== OBJ_TYPES.length) { let m = 0; for (const t of OBJ_TYPES) if (t.shade && t.shade[0] > m) m = t.shade[0]; World.ombreMax = m * 4 + 2; World.ombreMaxN = OBJ_TYPES.length; }
+    const M = region ? World.ombreMax : Infinity, qx0 = rx0 - M, qx1 = rx1 + M, qz0 = rz0 - M, qz1 = rz1 + M;
     for (const o of this.objects) {
+      if (o.x < qx0 || o.x > qx1 || o.z < qz0 || o.z > qz1) continue;
       const t = OBJ_TYPES[o.t];
       if (!t.shade || !this.live(o)) continue;
       const R = t.shade[0] * (o.h / ((t.h[0] + t.h[1]) / 2));
@@ -7176,12 +7291,13 @@ class World {
 
   collectLights() {
     const L = [];
-    this.objects.forEach((o, idx) => {
-      const t = OBJ_TYPES[o.t];
-      if (!t.light || !this.live(o)) return;
+    const objs = this.objects;
+    for (let idx = 0; idx < objs.length; idx++) {
+      const o = objs[idx], t = OBJ_TYPES[o.t];
+      if (!t.light || !this.live(o)) continue;
       const y = this.objectY(o);
       L.push({ x: o.x, y: y + t.light.y * (o.h / t.h[0]), z: o.z, r: t.light.r, c: t.light.c, night: !!t.light.night, flicker: !!t.light.flicker, power: !!t.light.power, seed: idx * 1.37 });
-    });
+    }
     if (typeof PROP_LIGHTS !== 'undefined') this.props.forEach((p, idx) => {
       const pl = PROP_LIGHTS[p.id];
       if (!pl || !this.live(p)) return;
@@ -7247,7 +7363,10 @@ class World {
 
   raycastBlocks(o, d, maxDist) {
     let best = null;
-    this.blocks.forEach((b, idx) => {
+    // (rayon court : seulement les blocs des cases de la grille que le rayon traverse, dans l'ordre de la liste ;
+    //  sinon, ou si la grille ne connaît pas tous les blocs, tous)
+    const L = this._blocsSurRayon(o, d, maxDist);
+    const test = (b, idx) => {
       if (b.ver && !(b.ver & this.curVer)) return;
       const r = Math.hypot(b.sx, b.sy, b.sz);
       const cx = b.x - o[0], cy = b.y + b.sy / 2 - o[1], cz = b.z - o[2];
@@ -7257,8 +7376,28 @@ class World {
       if (perp2 > r * r) return;
       const h = this.raycastBlock(b, o, d);
       if (h && h.t <= maxDist && (!best || h.t < best.t)) best = { ...h, idx, block: b };
-    });
+    };
+    if (L) for (const idx of L) test(this.blocks[idx], idx);
+    else this.blocks.forEach(test);
     return best;
+  }
+  _blocsSurRayon(o, d, maxDist) {
+    if (!(maxDist <= 40)) return null;
+    if (!this.grid || this._chgG) this.rebuildGrid();
+    const S = this._gs, G = this.grid;
+    if (!S || S.grid !== G || S.blocks !== this.blocks || S.nb !== this.blocks.length) return null;
+    const ex = o[0] + d[0] * maxDist, ez = o[2] + d[2] * maxDist;
+    const x0 = Math.min(o[0], ex), x1 = Math.max(o[0], ex), z0 = Math.min(o[2], ez), z1 = Math.max(o[2], ez);
+    if (!(x0 >= 0 && z0 >= 0 && x1 < this.size && z1 < this.size)) return null;
+    const gw = G.gw, cells = G.cells, L = [];
+    const gx0 = Math.floor(x0 / GRID_CELL), gx1 = Math.floor(x1 / GRID_CELL), gz0 = Math.floor(z0 / GRID_CELL), gz1 = Math.floor(z1 / GRID_CELL);
+    for (let gz = gz0; gz <= gz1; gz++) for (let gx = gx0; gx <= gx1; gx++) {
+      const c = cells[gz * gw + gx];
+      if (c) for (let k = c.length - 1; k >= 0 && c[k] < 0; k--) L.push(-1 - c[k]);
+    }
+    if (gx1 > gx0 || gz1 > gz0) { L.sort((a, b) => a - b); let n = 0; for (let k = 0; k < L.length; k++) if (k === 0 || L[k] !== L[k - 1]) L[n++] = L[k]; L.length = n; }
+    else L.reverse();
+    return L;
   }
 
   // Objets vus comme des cylindres verticaux (tronc / silhouette)
@@ -18817,11 +18956,13 @@ function addPropCollider(w, p) {
   p.blk = b;
   w.blocks.push(b);
 }
-function removePropCollider(w, p) {
+// vite : pendant le jeu, la grille est corrigée sur place (World.blocRetire) au lieu d'être refaite
+function removePropCollider(w, p, vite) {
   if (!p.blk) return;
   const i = w.blocks.indexOf(p.blk);
   if (i >= 0) w.blocks.splice(i, 1);
-  p.blk = null; w.grid = null;
+  if (i >= 0 && vite && w.blocRetire) w.blocRetire(i); else w.grid = null;
+  p.blk = null;
 }
 
 Object.assign(Builder.prototype, {
@@ -33695,6 +33836,8 @@ function y2VmCle() {
 
 const CHUNK = 32;      // cellules par morceau de terrain
 const RING = 3;        // morceaux de montagnes autour du monde
+// une valeur d'objet pour la comparer (absente : une valeur que rien d'autre ne prend ; NaN ne s'égale pas lui-même)
+const objNum = (v) => (v === undefined || v !== v ? -1e300 : +v);
 const TEX_H = 0, TEX_M = 1, TEX_S = 2, TEX_A = 3, TEX_ATLAS = 4, TEX_SCENE = 5, TEX_C = 6, TEX_SKIN = 7, TEX_VM = 8;
 const MAX_LIGHTS = 12;
 // L'Envers : les arbres sont morts, les fleurs ont disparu (null = masqué)
@@ -34031,6 +34174,9 @@ class Renderer {
     const w = this.world;
     if (w.dirtyHeights) {
       const [i0, j0, i1, j1] = w.dirtyHeights;
+      // le relief a bougé : la hauteur des objets de cette zone est à revoir (patchObjects)
+      const c = w.cell, z0 = [i0 * c - c, j0 * c - c, i1 * c + c, j1 * c + c], H = this.objHReg;
+      this.objHReg = H ? [Math.min(H[0], z0[0]), Math.min(H[1], z0[1]), Math.max(H[2], z0[2]), Math.max(H[3], z0[3])] : z0;
       gl.activeTexture(gl.TEXTURE0 + TEX_H);
       glDataTexRegion(this.hTex, w.W, 'R32F', w.heights, i0, j0, i1, j1);
       this.updateChunkBounds(i0, j0, i1, j1);
@@ -34049,35 +34195,98 @@ class Renderer {
       glDataTexRegion(this.sTex, w.W, 'R8', w.shade, i0, j0, i1, j1);
     }
     if (w.coverDirty) this.uploadCover();
-    if (w.objectsDirty) { this.buildObjects(); w.collectLights(); w.objectsDirty = false; w.objVersion = (w.objVersion || 0) + 1; }
+    if (w.objectsDirty) {
+      if (!this.patchObjects()) this.buildObjects();
+      w.collectLights(); w.objectsDirty = false; w.objVersion = (w.objVersion || 0) + 1;
+      if (w._chg) w._chg.r.clear();
+    } else if (w._chg && w._chg.r.size) {
+      // quelques objets changés (w.objetChange) : eux seuls ; les lumières et les bêtes seulement s'ils en sont
+      const L = [...w._chg.r], G = this.objSig;
+      w._chg.r.clear();
+      let lum = false, bete = false;
+      for (const i of L) {
+        const o = w.objects[i], t0 = G && i < G.n ? OBJ_TYPES[G.t[i]] : null, t1 = o ? OBJ_TYPES[o.t] : null;
+        if ((t0 && t0.light) || (t1 && t1.light)) lum = true;
+        if ((t0 && t0.animal) || (t1 && t1.animal) || !t0) bete = true;
+      }
+      if (!this.patchObjects(L)) { this.buildObjects(); lum = bete = true; }
+      if (lum) w.collectLights();
+      if (bete) w.objVersion = (w.objVersion || 0) + 1;
+    }
     if (w.blocksDirty) { this.buildBlocks(); w.blocksDirty = false; }
   }
 
   // Tous les objets statiques sont préparés ici ; seuls ceux proches de la caméra sont envoyés au GPU
   buildObjects() {
-    const w = this.world;
-    const data = new Float32Array(Math.max(1, w.objects.length) * 13), xz = new Float32Array(Math.max(1, w.objects.length) * 2);
-    let k = 0, n = 0;
+    const w = this.world, N = w.objects.length, cap = N + 256 + (N >> 5);
+    const data = new Float32Array(cap * 13), xz = new Float32Array(cap * 2);
     const env = w.sprMap || (w.envers ? ENVERS_SPRITES : null); // sprMap : autres mondes (bonbons, ténèbres)
-    const slot = this.objSlot = new Int32Array(w.objects.length).fill(-1);
-    for (let oi = 0; oi < w.objects.length; oi++) {
-      const o = w.objects[oi], t = OBJ_TYPES[o.t];
-      if (t.animal || !w.live(o)) continue; // les créatures sont dessinées à part
-      slot[oi] = n;
-      let sid = t.spr[o.v % t.spr.length];
-      if (env) { const m = env[t.id]; if (m === null) continue; if (m) sid = m[o.v % m.length]; }
-      xz[n * 2] = o.x; xz[n * 2 + 1] = o.z;
-      n++;
-      const s = ATLAS.sprites[sid];
-      const y = w.objectY(o) - o.h * (o.y !== undefined ? 0 : t.sink);
-      data[k++] = o.x; data[k++] = y; data[k++] = o.z;
-      data[k++] = o.h * s.aspect; data[k++] = o.h;
-      data[k++] = s.u0; data[k++] = s.v0; data[k++] = s.u1; data[k++] = s.v1;
-      data[k++] = t.sway; data[k++] = s.frames; data[k++] = (t.flags || 0) | (o.fx || 0); data[k++] = o.f;
+    const slot = this.objSlot = new Int32Array(cap).fill(-1);
+    this.objAll = data; this.objXZ = xz; this.objCap = cap;
+    // ce qui a servi à préparer chaque objet : une cueillette ou une repousse ne refait que l'objet changé (patchObjects)
+    const G = this.objSig = { objs: w.objects, n: N, env, live: new Uint8Array(cap), t: new Int32Array(cap), v: new Float64Array(cap), x: new Float64Array(cap), z: new Float64Array(cap), h: new Float64Array(cap), y: new Float64Array(cap), fx: new Float64Array(cap), f: new Float64Array(cap) };
+    let n = 0;
+    for (let oi = 0; oi < N; oi++) {
+      const o = w.objects[oi];
+      this.objSigSet(G, oi, o);
+      if (this.objWrite(o, n, env)) { slot[oi] = n; n++; }
     }
-    this.objAll = data; this.objXZ = xz; this.objTotal = n;
-    this.objActive = new Float32Array(Math.max(1, n) * 13);
+    this.objTotal = n;
+    this.objActive = new Float32Array(cap * 13);
+    this.objHReg = null;
     this.activeCenter = null;
+  }
+  // un objet dans le tampon (case sl) ; false s'il ne se dessine pas (créature, disparu, absent de ce monde-ci)
+  objWrite(o, sl, env) {
+    const w = this.world, t = OBJ_TYPES[o.t];
+    if (t.animal || !w.live(o)) return false; // les créatures sont dessinées à part
+    let sid = t.spr[o.v % t.spr.length];
+    if (env) { const m = env[t.id]; if (m === null) return false; if (m) sid = m[o.v % m.length]; }
+    const data = this.objAll, xz = this.objXZ, s = ATLAS.sprites[sid];
+    const y = w.objectY(o) - o.h * (o.y !== undefined ? 0 : t.sink);
+    let k = sl * 13;
+    xz[sl * 2] = o.x; xz[sl * 2 + 1] = o.z;
+    data[k++] = o.x; data[k++] = y; data[k++] = o.z;
+    data[k++] = o.h * s.aspect; data[k++] = o.h;
+    data[k++] = s.u0; data[k++] = s.v0; data[k++] = s.u1; data[k++] = s.v1;
+    data[k++] = t.sway; data[k++] = s.frames; data[k++] = (t.flags || 0) | (o.fx || 0); data[k++] = o.f;
+    return true;
+  }
+  objSigSet(G, i, o) {
+    G.live[i] = this.world.live(o) ? 1 : 0; G.t[i] = o.t; G.v[i] = objNum(o.v); G.x[i] = o.x; G.z[i] = o.z; G.h[i] = objNum(o.h);
+    G.y[i] = objNum(o.y); G.fx[i] = o.fx || 0; G.f[i] = objNum(o.f);
+  }
+  // Mise à jour sans tout reconstruire : seuls les objets dont quelque chose a changé (disparu, revenu, déplacé,
+  // changé de sorte ou de taille) sont refaits ; les nouveaux prennent une case libre au bout. false : il faut tout
+  // reconstruire (liste remplacée ou raccourcie, relief changé, autre monde, plus de place).
+  patchObjects(liste) {
+    const w = this.world, G = this.objSig, objs = w.objects, N = objs.length;
+    const env = w.sprMap || (w.envers ? ENVERS_SPRITES : null);
+    if (!G || !this.objAll || G.objs !== objs || N < G.n || N > this.objCap || G.env !== env) return false;
+    const H = this.objHReg;
+    if (H) liste = null; // (le relief a changé quelque part : on regarde tout, et on refait les objets de la zone)
+    const slot = this.objSlot, xz = this.objXZ, data = this.objAll;
+    let n = this.objTotal, ch = 0;
+    const L = liste ? liste.slice() : null;
+    if (L) for (let i = G.n; i < N; i++) L.push(i); // (les objets ajoutés au bout)
+    const nn = L ? L.length : N;
+    for (let q = 0; q < nn; q++) {
+      const i = L ? L[q] : q;
+      if (i < 0 || i >= N) continue;
+      const o = objs[i];
+      if (i < G.n && G.live[i] === (w.live(o) ? 1 : 0) && G.t[i] === o.t && G.v[i] === objNum(o.v) && G.x[i] === o.x && G.z[i] === o.z && G.h[i] === objNum(o.h)
+        && G.y[i] === objNum(o.y) && G.fx[i] === (o.fx || 0) && G.f[i] === objNum(o.f) && !(H && o.x >= H[0] && o.x <= H[2] && o.z >= H[1] && o.z <= H[3])) continue;
+      ch++;
+      this.objSigSet(G, i, o);
+      const sl = slot[i];
+      if (sl >= 0) {
+        if (!this.objWrite(o, sl, env)) { data[sl * 13 + 3] = 0; data[sl * 13 + 4] = 0; xz[sl * 2] = 1e9; xz[sl * 2 + 1] = 1e9; } // caché (sa case reste)
+      } else if (n < this.objCap && this.objWrite(o, n, env)) { slot[i] = n; n++; }
+      else if (n >= this.objCap) return false;
+    }
+    G.n = N; this.objTotal = n; this.objHReg = null;
+    if (ch) this.activeCenter = null;
+    return true;
   }
   // marque d'un objet (8 : il brûle) sans tout reconstruire
   objFlag(i, fx) {
@@ -34168,10 +34377,12 @@ class Renderer {
     this.syncWorld();
     // fenêtre de la carte des abris et objets actifs : suivent la caméra
     if (!w.coverO || Math.hypot(cam.pos[0] - (w.coverO[0] + 128), cam.pos[2] - (w.coverO[1] + 128)) > 64) this.uploadCover(cam.pos[0], cam.pos[2]);
+    // (le rayon suit le brouillard, qui bouge un peu à chaque image : on garde une marge, sinon on refaisait la liste
+    // de tous les objets du monde à chaque image)
     const activeR = sky.fog[1] + 90;
-    if (!this.activeCenter || Math.hypot(cam.pos[0] - this.activeCenter[0], cam.pos[2] - this.activeCenter[1]) > 40 || this.activeR !== activeR) {
-      this.activeR = activeR;
-      this.updateActiveObjects(cam.pos, activeR);
+    if (!this.activeCenter || Math.hypot(cam.pos[0] - this.activeCenter[0], cam.pos[2] - this.activeCenter[1]) > 40 || !(activeR <= this.activeR) || activeR < this.activeR - 30) {
+      this.activeR = activeR + 12;
+      this.updateActiveObjects(cam.pos, this.activeR);
     }
     const [rw, rh] = this.res;
     const aspect = rw / rh;
@@ -34385,16 +34596,15 @@ class Renderer {
       v3.add(v3.scale(b.u, -Math.cos(hy)), v3.scale(b.f, -Math.sin(hy))),
     ];
     let n = 0;
-    const half = CHUNK * cell / 2;
+    const half = CHUNK * cell / 2, h2 = half * half * 2.0002;
+    const [p0, p1, p2, p3] = planes;
     for (const c of this.chunks) {
       const cx = c.x * cell + half - pos[0], cz = c.z * cell + half - pos[2];
       const cy = (c.minH + c.maxH) / 2 - pos[1];
-      const r = Math.hypot(half * 1.4143, (c.maxH - c.minH) / 2);
-      const d = Math.hypot(cx, cy, cz);
-      if (d - r > far) continue;
-      let out = false;
-      for (const p of planes) if (p[0] * cx + p[1] * cy + p[2] * cz > r) { out = true; break; }
-      if (out) continue;
+      const eh = (c.maxH - c.minH) / 2, r = Math.sqrt(h2 + eh * eh);
+      // (Math.sqrt plutôt que Math.hypot : bien plus rapide, et c'est fait pour chaque morceau à chaque image)
+      if (Math.sqrt(cx * cx + cy * cy + cz * cz) - r > far) continue;
+      if (p0[0] * cx + p0[1] * cy + p0[2] * cz > r || p1[0] * cx + p1[1] * cy + p1[2] * cz > r || p2[0] * cx + p2[1] * cy + p2[2] * cz > r || p3[0] * cx + p3[1] * cy + p3[2] * cz > r) continue;
       this.visData[n * 2] = c.x; this.visData[n * 2 + 1] = c.z;
       n++;
     }
@@ -34504,7 +34714,9 @@ class SoundEngine {
     return buf;
   }
   // Réponse impulsionnelle d'un lieu (queue diffuse, aigus qui meurent plus vite que les graves, premières réflexions)
-  static reverbIR(c, P) {
+  static reverbIR(c, P) { return synDerouler(SoundEngine.reverbIRG(c, P)); }
+  // (la même par tranches : la mise en train la calcule en plusieurs fois)
+  static *reverbIRG(c, P) {
     const sr = c.sampleRate, n = Math.max(64, Math.floor(sr * P.len)), buf = c.createBuffer(2, n, sr);
     const pre = Math.floor(P.pre * sr), att = Math.max(1, Math.floor(P.att * sr));
     const dl = Math.exp(-6.91 / (P.t60 * sr)), dh = Math.exp(-6.91 / (P.t60h * sr));
@@ -34515,6 +34727,7 @@ class SoundEngine {
       const er = (P.er || []).map(([tt, g]) => [pre + Math.floor(tt * (ch ? 1.06 : 0.95) * sr), (Math.random() < 0.5 ? -1 : 1) * g * 4]).sort((u, v) => u[0] - v[0]);
       let lo = 0, el = 1, eh = 1, y = 0, q = 0;
       for (let i = pre; i < n; i++) {
+        if (((i - pre) & 8191) === 8191) yield;
         const w = Math.random() * 2 - 1;
         lo = w + (lo - w) * a;
         let v = lo * el * 2.2 + (w - lo) * P.hiK * eh;
@@ -34557,10 +34770,10 @@ class SoundEngine {
       const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 28; hp.Q.value = 0.6;
       hp.connect(glue);
       this.master = G(1); this.master.connect(hp);
-      // réverbération : deux convolueurs pour passer d'un lieu à l'autre en fondu
+      // réverbération : un convolueur par lieu (sa réponse posée une seule fois : poser un tampon sur un convolueur
+      // coûte des dizaines de millisecondes), on passe d'un lieu à l'autre en fondu
       this.revIn = G(1);
-      this.rev = [0, 1].map(() => { const cv = c.createConvolver(), g = G(0); cv.connect(g).connect(this.master); return { cv, g, on: false }; });
-      this.revCur = 0;
+      this._revs = {}; this._revAct = null;
       // les bus : entrée (volume du bus) → mélange ; envoi vers la réverbération ; retour « distance » des sources placées
       const bus = (level, send) => {
         const inp = G(level), snd = G(send), xrv = G(level);
@@ -34615,17 +34828,28 @@ class SoundEngine {
     const P = SoundEngine.LIEUX[k];
     if (!P || k === this.lieu) return;
     this.lieu = k;
-    const ir = this._irs[k] || (this._irs[k] = SoundEngine.reverbIR(this.ctx, P));
-    const t = this.ctx.currentTime, old = this.rev[this.revCur], nw = this.rev[1 - this.revCur];
-    this.revCur = 1 - this.revCur;
-    nw.cv.buffer = ir;
-    if (!nw.on) { this.revIn.connect(nw.cv); nw.on = true; }
+    const t = this.ctx.currentTime, old = this._revAct, nw = this._revDe(k);
+    this._revAct = nw;
+    if (!nw.on) { this.revIn.connect(nw.inp); nw.on = true; }
     const fade = this.offline ? 0.001 : 0.6;
     nw.g.gain.cancelScheduledValues(t); nw.g.gain.setValueAtTime(nw.g.gain.value, t); nw.g.gain.linearRampToValueAtTime(P.wet, t + fade);
+    if (!old || old === nw) return;
     old.g.gain.cancelScheduledValues(t); old.g.gain.setValueAtTime(old.g.gain.value, t); old.g.gain.linearRampToValueAtTime(0, t + fade);
-    // l'ancien convolueur se tait puis se débranche (moins de calcul)
-    const tok = this._revTok = (this._revTok || 0) + 1;
-    if (old.on && !this.offline) setTimeout(() => { if (this._revTok === tok && old.on && this.rev[this.revCur] !== old) { try { this.revIn.disconnect(old.cv); } catch (e) { /* déjà */ } old.on = false; } }, P.len * 1000 + 1500);
+    // l'ancien convolueur se tait puis se débranche (moins de calcul) ; il garde sa réponse pour la prochaine fois
+    if (old.on && !this.offline) setTimeout(() => { if (old.on && this._revAct !== old) { try { this.revIn.disconnect(old.inp); } catch (e) { /* déjà */ } old.on = false; } }, SoundEngine.LIEUX[old.k].len * 1000 + 1500);
+  }
+  // le convolueur d'un lieu, préparé une fois (aussi en tâche de fond : chauffer). (Poser la réponse sur le convolueur
+  // se fait d'un bloc dans le navigateur — de 3 à 11 ms selon sa longueur — : on ne peut pas le couper ; le couper en
+  // morceaux retardés ne sonnait pas pareil, un DelayNode de Chrome se taisant quand son entrée s'arrête.)
+  _revDe(k) {
+    const R = this._revs || (this._revs = {});
+    if (R[k]) return R[k];
+    const c = this.ctx, ir = this._irs[k] || (this._irs[k] = SoundEngine.reverbIR(c, SoundEngine.LIEUX[k]));
+    const cv = c.createConvolver(), g = c.createGain();
+    g.gain.value = 0;
+    cv.buffer = ir;
+    cv.connect(g).connect(this.master);
+    return (R[k] = { inp: cv, g, on: false, k });
   }
 
   // ---------------------------------------------------------------- le son en 3D
@@ -35020,6 +35244,8 @@ SoundEngine.LIEUX = {
 // ============================================================================
 //  PETITE SYNTHÈSE « À L'ÉCHANTILLON » (tampons calculés une fois, variantes)
 // ============================================================================
+// une fonction génératrice de la synthèse, déroulée d'un trait (sa valeur de retour)
+function synDerouler(it) { let r; while (!(r = it.next()).done) { /* d'un trait */ } return r.value; }
 SoundEngine.SYN = {
   // filtre biquadratique (RBJ) : une fonction x → y ; 'lp', 'hp', 'bp' (0 dB au centre)
   bq(type, f, q, sr) {
@@ -35039,10 +35265,13 @@ SoundEngine.SYN = {
     for (let i = i0, j = 0; i < d.length && e > 1e-5; i++, j++) { d[i] += Math.sin(ph) * e * (j < at ? j / at : 1); ph += w; e *= k; }
   },
   // un souffle de bruit enveloppé (attaque, déclin), passé dans un filtre
-  bruit(d, sr, t0, att, tau, a, filt) {
+  bruit(d, sr, t0, att, tau, a, filt) { return synDerouler(SoundEngine.SYN.bruitG(d, sr, t0, att, tau, a, filt)); },
+  // (la même, par tranches : elle rend la main tous les 4 096 échantillons — pour les boucles calculées en tâche de fond)
+  *bruitG(d, sr, t0, att, tau, a, filt) {
     const i0 = Math.floor(t0 * sr), na = Math.max(1, att * sr), k = Math.exp(-1 / (tau * sr));
     let e = 1;
     for (let i = i0, j = 0; i < d.length; i++, j++) {
+      if ((j & 4095) === 4095) yield;
       let env;
       if (j < na) env = j / na; else { e *= k; env = e; if (e < 1e-3) break; }
       const x = Math.random() * 2 - 1;
@@ -35050,11 +35279,13 @@ SoundEngine.SYN = {
     }
   },
   // une note sifflée (oiseaux, grillons…) : glissement f0 → f1 (courbe c), vibrato, 2e harmonique, modulation d'amplitude
-  note(d, sr, t0, dur, f0, f1, a, o) {
+  note(d, sr, t0, dur, f0, f1, a, o) { return synDerouler(SoundEngine.SYN.noteG(d, sr, t0, dur, f0, f1, a, o)); },
+  *noteG(d, sr, t0, dur, f0, f1, a, o) {
     o = o || {};
     const i0 = Math.floor(t0 * sr), n = Math.floor(dur * sr), c = o.c || 1, vib = o.vib || 0, vd = o.vd || 0, h2 = o.h2 || 0, am = o.am || 0, amd = o.amd || 0, dec2 = (o.dec || 1.5) > 2.2;
     let ph = 0;
     for (let j = 0; j < n && i0 + j < d.length; j++) {
+      if ((j & 4095) === 4095) yield;
       const u = j / n, tt = j / sr;
       const f = f0 + (f1 - f0) * (c === 1 ? u : Math.pow(u, c)) + (vib ? Math.sin(2 * Math.PI * vib * tt) * vd * f0 : 0);
       ph += 2 * Math.PI * f / sr;
@@ -35252,19 +35483,43 @@ Object.assign(SoundEngine.prototype, {
   chauffer() {
     if (!this._chauffe) {
       const L = [], T = (nom, n) => { for (let i = 0; i < n; i++) L.push(() => this.tb(nom, n, i)); };
+      // (les boucles : par tranches, dans la tâche de fond des ambiances quand elle est là — voir boucleEnFond)
+      const Bk = (k) => () => this.boucleEnFond(k);
       for (const k of ['herbe', 'terre', 'pierre', 'bois']) T(k, 6);
       for (const k of ['coup', 'toc', 'pieces', 'page']) T(k, 6);
-      L.push(() => this.boucleTampon && this.boucleTampon('bruit'), () => this.boucleTampon && this.boucleTampon('gouttes'));
+      L.push(Bk('bruit'), Bk('gouttes'));
       for (const k of ['merle', 'mesange', 'pinson', 'tourterelle', 'moineau', 'alouette', 'coucou']) T(k, 5);
       T('chouette', 4); T('pic', 4);
       for (const k of ['eau', 'neige', 'sabot', 'croque', 'grenouille']) T(k, 6);
       T('plouf', 5); T('goutte', 8);
-      for (const k of ['grillon', 'feuilles', 'riviere', 'clapotis', 'feu', 'bourdon', 'vent']) L.push(() => this.boucleTampon && this.boucleTampon(k));
+      for (const k of ['grillon', 'feuilles', 'riviere', 'clapotis', 'feu', 'bourdon', 'vent']) L.push(Bk(k));
+      // la réverbération de chaque lieu : la réponse, puis (une autre fois) sa pose sur le convolueur
+      // (la réponse par tranches de 4 ms : le pas se remet en tête de la file tant qu'elle n'est pas finie)
+      for (const k in SoundEngine.LIEUX) {
+        let it = null;
+        const pas = () => {
+          if (!this.ctx || this._irs[k]) return;
+          it = it || SoundEngine.reverbIRG(this.ctx, SoundEngine.LIEUX[k]);
+          const fin = performance.now() + 4;
+          let r;
+          do { r = it.next(); } while (!r.done && performance.now() < fin);
+          if (r.done) this._irs[k] = r.value; else this._chauffe.unshift(pas);
+        };
+        L.push(pas, () => { if (this.ctx) this._revDe(k); });
+      }
       this._chauffe = L;
     }
     const f = this._chauffe.shift();
     if (f) f();
     return this._chauffe.length;
+  },
+
+  // une boucle à préparer d'avance : par tranches de quelques millisecondes (la tâche de fond des ambiances,
+  // 09-zzzzS-3-scene.js) si elle sait la faire ainsi, sinon d'un trait
+  boucleEnFond(k) {
+    if (!this.ctx || !this.boucleTampon) return;
+    if (this._sDemander && SoundEngine.BOUCLES_PAS && SoundEngine.BOUCLES_PAS[k]) this._sDemander('B:' + k);
+    else this.boucleTampon(k);
   },
 
   // ------------------------------------------------------------ tonnerre (vient de l'éclair : portée « ici », sinon d'une direction au hasard)
@@ -35871,70 +36126,83 @@ Object.assign(SoundEngine.prototype, {
 //  moins toutes les secondes ; elle s'éteint seule sinon.
 // ============================================================================
 
-// boucles (sans raccord) : [durée, remplissage]
-SoundEngine.BOUCLES = {
+// boucles (sans raccord) : [durée, remplissage]. Chacune est écrite comme une fonction génératrice qui rend la main
+// régulièrement (SoundEngine.BOUCLES_PAS) : la mise en train la calcule par tranches de quelques millisecondes entre
+// deux images (09-zzzzS-3-scene.js, _sFaire) ; le remplissage d'un seul tenant (outils, rendu hors ligne) la déroule
+// d'un trait. Même calcul, dans le même ordre : le son est le même.
+SoundEngine.BOUCLES_PAS = SoundEngine.BOUCLES_PAS || {};
+const BOUCLE_TRANCHE = 4095; // (rendre la main tous les 4 096 échantillons : moins d'une milliseconde)
+const boucleGen = (gen) => (d, sr, D) => { const it = gen(d, sr, D); while (!it.next().done) { /* d'un trait */ } };
+const BOUCLES_GEN = {
   // ruisseau : un écoulement grave et doux, quelques éclats, des bulles çà et là (moins serrées : l'eau ne doit pas
   // occuper tout l'espace)
-  riviere: [6, (d, sr, D) => {
+  riviere: [6, function* (d, sr, D) {
     const R = Math.random, S = SoundEngine.SYN, n = d.length, lo = S.bq('bp', 450, 0.7, sr), hi = S.bq('bp', 2200, 0.9, sr);
     let m1 = 0.5, m2 = 0.5, v1 = 0, v2 = 0;
     for (let i = 0; i < n; i++) {
+      if ((i & BOUCLE_TRANCHE) === 0) yield;
       if (i % 64 === 0) { v1 += (R() - 0.5) * 0.08 - v1 * 0.02; v2 += (R() - 0.5) * 0.2 - v2 * 0.06; m1 = clamp(m1 + v1 * 0.1, 0.25, 1); m2 = clamp(m2 + v2 * 0.1, 0.1, 1); }
       const x = R() * 2 - 1;
       d[i] += lo(x) * 0.5 * m1 + hi(x) * 0.07 * m2;
     }
-    for (let k = 0, N = Math.floor(D * 24); k < N; k++) { const f = 300 + Math.pow(R(), 1.6) * 1200, t = R() * (D - 0.06); S.note(d, sr, t, 0.012 + R() * 0.03, f, f * (1.3 + R() * 0.6), 0.04 + R() * 0.08, { att: 0.2, dec: 2, c: 0.5 }); }
+    for (let k = 0, N = Math.floor(D * 24); k < N; k++) { if ((k & 15) === 0) yield; const f = 300 + Math.pow(R(), 1.6) * 1200, t = R() * (D - 0.06); S.note(d, sr, t, 0.012 + R() * 0.03, f, f * (1.3 + R() * 0.6), 0.04 + R() * 0.08, { att: 0.2, dec: 2, c: 0.5 }); }
   }],
   // clapotis : de petites vagues qui s'enflent et viennent mourir à la rive, sans claquement (de loin, un choc sec
   // sonnait comme un coup de feu)
-  clapotis: [8, (d, sr, D) => {
+  clapotis: [8, function* (d, sr, D) {
     const R = Math.random, S = SoundEngine.SYN, lo = S.bq('lp', 360, 0.7, sr), n = d.length;
     let m = 0.3, v = 0;
-    for (let i = 0; i < n; i++) { if (i % 128 === 0) { v += (R() - 0.5) * 0.05 - v * 0.03; m = clamp(m + v * 0.1, 0.1, 0.5); } d[i] += lo(R() * 2 - 1) * 0.25 * m; }
+    for (let i = 0; i < n; i++) { if ((i & BOUCLE_TRANCHE) === 0) yield; if (i % 128 === 0) { v += (R() - 0.5) * 0.05 - v * 0.03; m = clamp(m + v * 0.1, 0.1, 0.5); } d[i] += lo(R() * 2 - 1) * 0.25 * m; }
     for (let t = 0.2 + R() * 0.5; t < D - 1; t += 1.4 + R() * 1.8) {
-      S.bruit(d, sr, t, 0.22 + R() * 0.12, 0.55 + R() * 0.25, 0.3 + R() * 0.15, S.bq('lp', 380 + R() * 140, 0.7, sr));
-      S.bruit(d, sr, t + 0.2, 0.15, 0.3, 0.035 + R() * 0.03, S.bq('bp', 900 + R() * 300, 0.7, sr));
+      yield;
+      yield* S.bruitG(d, sr, t, 0.22 + R() * 0.12, 0.55 + R() * 0.25, 0.3 + R() * 0.15, S.bq('lp', 380 + R() * 140, 0.7, sr));
+      yield* S.bruitG(d, sr, t + 0.2, 0.15, 0.3, 0.035 + R() * 0.03, S.bq('bp', 900 + R() * 300, 0.7, sr));
       for (let k = 0; k < 2; k++) { const f = 450 + R() * 600; S.note(d, sr, t + 0.3 + R() * 0.4, 0.02 + R() * 0.02, f, f * 1.4, 0.02 + R() * 0.02, { att: 0.2, dec: 2 }); }
     }
+    yield;
     S.lp1(d, sr, 2400);
   }],
   // feu : un souffle grave qui ondule, des crépitements, parfois une bûche qui craque
-  feu: [5, (d, sr, D) => {
+  feu: [5, function* (d, sr, D) {
     const R = Math.random, S = SoundEngine.SYN, n = d.length, lo = S.bq('lp', 260, 0.7, sr), hs = S.bq('bp', 1800, 0.6, sr);
     let m = 0.5, v = 0;
-    for (let i = 0; i < n; i++) { if (i % 64 === 0) { v += (R() - 0.5) * 0.12 - v * 0.05; m = clamp(m + v * 0.1, 0.2, 1); } const x = R() * 2 - 1; d[i] += lo(x) * 0.9 * m + hs(x) * 0.02; }
-    for (let k = 0, N = Math.floor(D * 14); k < N; k++) { const a = Math.pow(R(), 3) * 0.9 + 0.05; S.bruit(d, sr, R() * (D - 0.02), 0.0003, 0.0015 + R() * 0.004, a, S.bq('bp', 900 + R() * 2600, 1.1, sr)); }
+    for (let i = 0; i < n; i++) { if ((i & BOUCLE_TRANCHE) === 0) yield; if (i % 64 === 0) { v += (R() - 0.5) * 0.12 - v * 0.05; m = clamp(m + v * 0.1, 0.2, 1); } const x = R() * 2 - 1; d[i] += lo(x) * 0.9 * m + hs(x) * 0.02; }
+    for (let k = 0, N = Math.floor(D * 14); k < N; k++) { if ((k & 15) === 0) yield; const a = Math.pow(R(), 3) * 0.9 + 0.05; S.bruit(d, sr, R() * (D - 0.02), 0.0003, 0.0015 + R() * 0.004, a, S.bq('bp', 900 + R() * 2600, 1.1, sr)); }
     for (let k = 0, N = 1 + ((R() * 2) | 0); k < N; k++) { const t = 0.3 + R() * (D - 0.8); S.mode(d, sr, t, 380 + R() * 500, 0.02, 0.2); S.bruit(d, sr, t, 0.002, 0.012, 0.18, S.bq('bp', 1200, 0.8, sr)); }
   }],
   // gouttes de pluie tout près (sur l'herbe, sur les feuilles, dans les flaques)
-  gouttes: [3, (d, sr, D) => {
+  gouttes: [3, function* (d, sr, D) {
     const R = Math.random, S = SoundEngine.SYN, b = S.bq('bp', 2600, 0.9, sr);
     for (let k = 0, N = Math.floor(D * 28); k < N; k++) {
+      if ((k & 15) === 0) yield;
       const t = R() * (D - 0.03);
       if (R() < 0.3) { const f = 1400 + R() * 1600; S.note(d, sr, t, 0.012 + R() * 0.012, f, f * 0.7, 0.1 + R() * 0.2, { att: 0.08, dec: 2.5 }); }
       else S.bruit(d, sr, t, 0.0003, 0.0015 + R() * 0.002, 0.2 + R() * 0.5, b);
     }
+    yield;
     S.lp1(d, sr, 6500);
   }],
   // feuillage agité par une rafale
-  feuilles: [4, (d, sr) => {
+  feuilles: [4, function* (d, sr) {
     const R = Math.random, S = SoundEngine.SYN, b = S.bq('bp', 2400, 0.7, sr), n = d.length;
     let m = 0.5, v = 0;
-    for (let i = 0; i < n; i++) { if (i % 32 === 0) { v += (R() - 0.5) * 0.35 - v * 0.2; m = clamp(m + v * 0.1, 0, 1); } d[i] += b(R() * 2 - 1) * m * m; }
+    for (let i = 0; i < n; i++) { if ((i & BOUCLE_TRANCHE) === 0) yield; if (i % 32 === 0) { v += (R() - 0.5) * 0.35 - v * 0.2; m = clamp(m + v * 0.1, 0, 1); } d[i] += b(R() * 2 - 1) * m * m; }
+    yield;
     S.lp1(d, sr, 5500);
   }],
   // un grillon qui chante tout seul : des séries de « cri-cri », puis il se tait un moment (sept secondes de boucle :
   // plus de cri-cri sans fin qui revenait toutes les deux secondes)
-  grillon: [7, (d, sr, D) => {
+  grillon: [7, function* (d, sr, D) {
     const R = Math.random, S = SoundEngine.SYN, f = 3600 + R() * 500, per = 0.42 + R() * 0.3;
     for (let t = 0.03 + R() * 0.6; t < D - 0.12;) {
+      yield;
       for (let c = 0, nc = 4 + ((R() * 6) | 0); c < nc && t < D - 0.12; c++, t += per * (0.95 + R() * 0.1)) for (let p = 0, n = 3 + ((R() * 2) | 0); p < n; p++) S.note(d, sr, t + p * 0.027, 0.016, f, f * 0.99, 0.5, { att: 0.25, dec: 1.2 });
       t += 1.4 + R() * 2.2;
     }
   }],
   // le vent : un souffle qui tourbillonne — un fond grave et trois bandes qui enflent et retombent chacune à son rythme
   // (la plus aiguë, la plus vive, ne monte qu'avec les autres) ; ni sifflement ni grondement fixe
-  vent: [14, (d, sr, D) => {
+  vent: [14, function* (d, sr, D) {
     const R = Math.random, S = SoundEngine.SYN, n = d.length;
     const lo = S.bq('lp', 210, 0.6, sr), b1 = S.bq('bp', 420, 0.8, sr), b2 = S.bq('bp', 950, 0.9, sr), b3 = S.bq('bp', 2100, 1.0, sr);
     // une courbe lisse : un point au hasard toutes les T secondes, raccordés en cosinus
@@ -35945,6 +36213,7 @@ SoundEngine.BOUCLES = {
     const m0 = courbe(3.1, 0.45, 1), m1 = courbe(1.7, 0.15, 1), m2 = courbe(0.9, 0.05, 1), m3 = courbe(0.45, 0, 1);
     let p0 = 0, p1 = 0, p2 = 0, k0 = 1, k1 = 1, k2 = 1, k3 = 1;
     for (let i = 0; i < n; i++) {
+      if ((i & BOUCLE_TRANCHE) === 0) yield;
       if (i % 32 === 0) { const t = i / sr; k0 = m0(t); k1 = m1(t) * k0; k2 = m2(t) * k1; k3 = m3(t) * k2; }
       const x = R() * 2 - 1; p0 = 0.997 * p0 + x * 0.06; p1 = 0.96 * p1 + x * 0.3; p2 = 0.6 * p2 + x * 0.9;
       const y = p0 * 0.35 + p1 + p2 * 0.7 + x * 0.25;
@@ -35952,20 +36221,25 @@ SoundEngine.BOUCLES = {
     }
   }],
   // un long bruit doux (vent, lit de pluie) : assez long pour qu'on n'entende jamais la boucle
-  bruit: [9, (d, sr) => {
+  bruit: [9, function* (d, sr) {
     const R = Math.random, n = d.length;
     let b0 = 0, b1 = 0, b2 = 0;
-    for (let i = 0; i < n; i++) { const x = R() * 2 - 1; b0 = 0.99765 * b0 + x * 0.099046; b1 = 0.963 * b1 + x * 0.2965164; b2 = 0.57 * b2 + x * 1.0526913; d[i] = (b0 + b1 + b2 + x * 0.1848) * 0.6 + x * 0.25; }
+    for (let i = 0; i < n; i++) { if ((i & BOUCLE_TRANCHE) === 0) yield; const x = R() * 2 - 1; b0 = 0.99765 * b0 + x * 0.099046; b1 = 0.963 * b1 + x * 0.2965164; b2 = 0.57 * b2 + x * 1.0526913; d[i] = (b0 + b1 + b2 + x * 0.1848) * 0.6 + x * 0.25; }
+    yield;
     SoundEngine.SYN.lp1(d, sr, 9000);
   }],
   // bourdon grave des souterrains (on le sent plus qu'on ne l'entend)
-  bourdon: [7, (d, sr) => {
+  bourdon: [7, function* (d, sr) {
     const R = Math.random, S = SoundEngine.SYN, lo = S.bq('lp', 120, 0.7, sr), n = d.length;
     let m = 0.5, v = 0;
-    for (let i = 0; i < n; i++) { if (i % 256 === 0) { v += (R() - 0.5) * 0.03 - v * 0.01; m = clamp(m + v, 0.3, 1); } d[i] += lo(R() * 2 - 1) * m; }
+    for (let i = 0; i < n; i++) { if ((i & BOUCLE_TRANCHE) === 0) yield; if (i % 256 === 0) { v += (R() - 0.5) * 0.03 - v * 0.01; m = clamp(m + v, 0.3, 1); } d[i] += lo(R() * 2 - 1) * m; }
   }, 8000],
 };
+SoundEngine.BOUCLES = {};
+for (const k in BOUCLES_GEN) { const [dur, gen, sr] = BOUCLES_GEN[k]; SoundEngine.BOUCLES_PAS[k] = gen; SoundEngine.BOUCLES[k] = sr ? [dur, boucleGen(gen), sr] : [dur, boucleGen(gen)]; }
 // volume de chaque boucle (k = 1)
+// la part du vent qui reste la nuit (nuit : 0..1, orage : 0..1) : un peu plus d'un tiers par nuit calme, presque tout dans l'orage
+SoundEngine.ventNuit = (nuit, orage) => 1 - 0.62 * clamp(nuit || 0, 0, 1) * (1 - 0.7 * clamp(orage || 0, 0, 1));
 SoundEngine.VOL_BOUCLES = { riviere: 0.1, clapotis: 0.07, feu: 0.22, gouttes: 0.07, feuilles: 0.06, grillon: 0.07, bourdon: 0.05, vent: 0.085 };
 // les oiseaux selon le milieu : [sorte, poids]
 SoundEngine.OISEAUX = {
@@ -36078,9 +36352,11 @@ Object.assign(SoundEngine.prototype, {
     if (!this._chaud && !this._chauffeEnCours) {
       if (typeof requestIdleCallback === 'function') {
         this._chauffeEnCours = true;
+        // (un pas seulement s'il reste du temps avant la prochaine image — ou si l'attente a trop duré ; les boucles et
+        //  la réponse des lieux se font par tranches de 4 ms, voir chauffer)
         const f = (dl) => {
-          let n = this.chauffer();
-          while (n > 0 && dl.timeRemaining() > 4) n = this.chauffer();
+          let n = this._chauffe ? this._chauffe.length : 1;
+          if (dl.didTimeout || dl.timeRemaining() > 6) { n = this.chauffer(); while (n > 0 && dl.timeRemaining() > 6) n = this.chauffer(); }
           if (n > 0) requestIdleCallback(f, { timeout: 1500 }); else { this._chaud = true; this._chauffeEnCours = false; }
         };
         requestIdleCallback(f, { timeout: 1500 });
@@ -36107,19 +36383,21 @@ Object.assign(SoundEngine.prototype, {
     let brise = 0;
     if (S.brise > 0) { S.brise -= dt; brise = 0.09 * Math.sin(Math.PI * clamp(1 - S.brise / S.briseD, 0, 1)); }
     const v = under ? 0 : clamp(base * (0.5 + 0.75 * S.vg) + brise, 0, 1.2);
-    const niv = Math.pow(v, 1.4) * (inside ? 0.35 : 1);
+    // la nuit, le vent se fait plus discret (le reste se tait : il ne doit pas prendre toute la place), sauf dans l'orage
+    const kNuit = SoundEngine.ventNuit(E.night, orage);
+    const niv = Math.pow(v, 1.4) * (inside ? 0.35 : 1) * kNuit;
     const coupe = inside ? 160 + 350 * clamp(v, 0, 1) : 260 + 1900 * clamp(v, 0, 1) * (0.75 + 0.25 * S.vg);
     const wa = typeof weather !== 'undefined' && weather.windAngle !== undefined ? weather.windAngle : 0;
     for (const [cle, da, rate, kf] of [['vent', 1.25, 1, 1], ['ventB', -1.25, 0.93, 0.82]]) {
       const a = wa + da, x = this.source(cle, 'vent', [L.x + Math.cos(a) * 12, L.y + 2.5, L.z + Math.sin(a) * 12], niv, { att: 'aucune', tau: 0.5, rate });
       if (x) x.f.frequency.setTargetAtTime(coupe * kf, now, 0.5);
     }
-    const sif = Math.pow(clamp((v - 0.55) / 0.5, 0, 1), 2) * (inside ? 0.3 : 1);
+    const sif = Math.pow(clamp((v - 0.55) / 0.5, 0, 1), 2) * (inside ? 0.3 : 1) * kNuit;
     const vx2 = this.source('vent2', 'vent', [L.x - Math.cos(wa + 0.7) * 16, L.y + 6, L.z - Math.sin(wa + 0.7) * 16], sif, { att: 'aucune', tau: 0.8, vol: 0.035 });
     if (vx2) { vx2.f.type = 'bandpass'; vx2.f.Q.value = 9; vx2.f.frequency.setTargetAtTime(520 + 600 * clamp(v, 0, 1.2) * (0.8 + 0.4 * S.vg), now, 0.9); }
     // le feuillage, sous les bouffées, dans les arbres
     const bois = biome === 'foret' || biome === 'bouleaux';
-    this.source('feuilles', 'feuilles', [L.x + Math.cos(wa + 0.3) * 7, L.y + 5, L.z + Math.sin(wa + 0.3) * 7], dehors && bois ? clamp(v * (0.5 + 0.9 * S.vg) * 1.5, 0, 1.2) : 0, { att: 'aucune', tau: 0.7 });
+    this.source('feuilles', 'feuilles', [L.x + Math.cos(wa + 0.3) * 7, L.y + 5, L.z + Math.sin(wa + 0.3) * 7], dehors && bois ? clamp(v * (0.5 + 0.9 * S.vg) * 1.5, 0, 1.2) * kNuit : 0, { att: 'aucune', tau: 0.7 });
     // ---- la pluie : un lit large, et des gouttes tout autour (sur le toit quand on est à l'abri)
     this._pluie(dt, E, S, under, inside, now);
     // ---- l'eau : la rivière qui coule, le lac qui clapote
@@ -36593,11 +36871,15 @@ Object.assign(SoundEngine.TAMPONS, {
   e1_froisse: [0.3, (d, sr) => { const S = SoundEngine.SYN; S.bruit(d, sr, 0.01, 0.03, 0.12, 0.6, S.bq('bp', 2600, 0.9, sr)); }],
 });
 // une boucle : l'essaim autour du nid de frelons (placée, on la rafraîchit tant qu'on est près)
-SoundEngine.BOUCLES.e1_essaim = [3, (d, sr, dur) => {
+// (par tranches pour la mise en train : une note à la fois ; voir SoundEngine.BOUCLES_PAS)
+SoundEngine.BOUCLES_PAS = SoundEngine.BOUCLES_PAS || {};
+SoundEngine.BOUCLES_PAS.e1_essaim = function* (d, sr, dur) {
   const S = SoundEngine.SYN, R = Math.random;
-  for (let k = 0; k < 7; k++) { const f = 120 + R() * 40, t0 = R() * dur * 0.7; S.note(d, sr, t0, 0.8 + R() * 1.2, f, f * (0.96 + R() * 0.08), 0.25, { h2: 0.8, vib: 3 + R() * 3, vd: 0.05, att: 0.3, dec: 1.2 }); }
+  for (let k = 0; k < 7; k++) { yield; const f = 120 + R() * 40, t0 = R() * dur * 0.7; yield* S.noteG(d, sr, t0, 0.8 + R() * 1.2, f, f * (0.96 + R() * 0.08), 0.25, { h2: 0.8, vib: 3 + R() * 3, vd: 0.05, att: 0.3, dec: 1.2 }); }
+  yield;
   S.lp1(d, sr, 1800);
-}];
+};
+SoundEngine.BOUCLES.e1_essaim = [3, (d, sr, dur) => { const it = SoundEngine.BOUCLES_PAS.e1_essaim(d, sr, dur); while (!it.next().done) { /* d'un trait */ } }];
 SoundEngine.VOL_BOUCLES.e1_essaim = 0.032;
 Object.assign(SoundEngine.VOL_OISEAUX, E1_VOL);
 // les tampons se calculent avec les autres, en tâche de fond au début de la partie (jamais pendant le jeu)
@@ -36608,7 +36890,7 @@ Object.assign(SoundEngine.VOL_OISEAUX, E1_VOL);
     if (this._chauffe && !this._e1chaud) {
       this._e1chaud = true;
       for (const k of Object.keys(E1_VOL)) for (let i = 0; i < 3; i++) this._chauffe.push(() => this.tb(k, 3, i));
-      this._chauffe.push(() => this.boucleTampon && this.boucleTampon('e1_essaim'));
+      this._chauffe.push(() => (this.boucleEnFond ? this.boucleEnFond('e1_essaim') : this.boucleTampon && this.boucleTampon('e1_essaim')));
       return this._chauffe.length;
     }
     return n;
@@ -38843,7 +39125,9 @@ MUSIQUE.ajouter({ id: "pd_bach846", titre: "Prélude en ut majeur, BWV 846", aut
   // un trait de chant : hauteur en points [[u, f], …] (u de 0 à 1 sur la durée), ou f, ou [f0, f1] ;
   // o : h (harmoniques [h2, h3…]), att / rel (part de la durée), vib / vd (vibrato : Hz, profondeur relative),
   //     am / amd (modulation d'amplitude : Hz, profondeur), souffle (part de bruit qui suit la note), lisse (glissés en cosinus)
-  S.trait = function (d, sr, t0, dur, F, a, o) {
+  S.trait = function (d, sr, t0, dur, F, a, o) { return synDerouler(S.traitG(d, sr, t0, dur, F, a, o)); };
+  // (la même, par tranches de 4 096 échantillons : pour les boucles calculées en tâche de fond)
+  S.traitG = function* (d, sr, t0, dur, F, a, o) {
     o = o || {};
     const i0 = Math.floor(t0 * sr), n = Math.max(2, Math.floor(dur * sr)), lim = sr * 0.45, W = 2 * Math.PI / sr;
     const P = typeof F === 'number' ? [[0, F], [1, F]] : typeof F[0] === 'number' ? [[0, F[0]], [1, F[1]]] : F;
@@ -38856,6 +39140,7 @@ MUSIQUE.ajouter({ id: "pd_bach846", titre: "Prélude en ut majeur, BWV 846", aut
     for (let j = 0; j < n; j++) {
       const i = i0 + j;
       if (i >= d.length) break;
+      if ((j & 4095) === 4095) yield;
       const u = j / n;
       while (k < P.length - 2 && u > P[k + 1][0]) k++;
       const ua = P[k][0], ub = P[k + 1][0], fa = P[k][1], fb = P[k + 1][1];
@@ -38895,7 +39180,8 @@ MUSIQUE.ajouter({ id: "pd_bach846", titre: "Prélude en ut majeur, BWV 846", aut
     }
   };
   // un souffle de bruit filtré (attaque, tenue, relâche), avec modulation d'amplitude (râpe, grésillement)
-  S.rape = function (d, sr, t0, dur, filt, a, o) {
+  S.rape = function (d, sr, t0, dur, filt, a, o) { return synDerouler(S.rapeG(d, sr, t0, dur, filt, a, o)); };
+  S.rapeG = function* (d, sr, t0, dur, filt, a, o) {
     o = o || {};
     const i0 = Math.floor(t0 * sr), n = Math.max(2, Math.floor(dur * sr)), att = o.att === undefined ? 0.1 : o.att, rel = o.rel === undefined ? 0.4 : o.rel;
     const am = o.am || 0, amd = o.amd || 0, ph0 = Math.random() * 6.283, W = 2 * Math.PI * am / sr, wc = Math.cos(W), ws = Math.sin(W);
@@ -38903,6 +39189,7 @@ MUSIQUE.ajouter({ id: "pd_bach846", titre: "Prélude en ut majeur, BWV 846", aut
     for (let j = 0; j < n; j++) {
       const i = i0 + j;
       if (i >= d.length) break;
+      if ((j & 4095) === 4095) yield;
       const u = j / n;
       let e = u < att ? u / att : u > 1 - rel ? (1 - u) / rel : 1;
       e = e * e * (3 - 2 * e);
@@ -38942,11 +39229,12 @@ MUSIQUE.ajouter({ id: "pd_bach846", titre: "Prélude en ut majeur, BWV 846", aut
     const f = rf(4500, 6200), du = 0.05;
     return { dur: 0.15, jouer: (d, sr, t) => { S.trait(d, sr, t, du, [f, f * 1.1], 0.5, {}); S.trait(d, sr, t + 0.075, 0.07, [f * 0.8, f * 0.62], 0.6, { rel: 0.5 }); } };
   };
-  T.s_grive = [5.4, (d, sr) => {
+  // (les plus longs à calculer sont écrits en fonctions génératrices : la tâche de fond les fait par tranches)
+  T.s_grive = [5.4, function* (d, sr) {
     let t = 0.04;
     for (let m = 0, nm = ri(2, 3); m < nm && t < 4.0; m++) {
       const M = griveMotif();
-      for (let r = 0, nr = R() < 0.15 ? 5 : ri(2, 4); r < nr && t + M.dur < 5.2; r++) { M.jouer(d, sr, t); t += M.dur + rf(0.05, 0.11); }
+      for (let r = 0, nr = R() < 0.15 ? 5 : ri(2, 4); r < nr && t + M.dur < 5.2; r++) { M.jouer(d, sr, t); t += M.dur + rf(0.05, 0.11); yield; }
       t += rf(0.3, 0.6);
     }
   }];
@@ -39331,25 +39619,26 @@ MUSIQUE.ajouter({ id: "pd_bach846", titre: "Prélude en ut majeur, BWV 846", aut
     S.lp1(d, sr, 2500);
   }];
   // une charrette sur les pavés : le roulement, les cahots, l'essieu qui grince à chaque tour, le pas du cheval
-  T.s_charrette = [7.0, (d, sr) => {
+  T.s_charrette = [7.0, function* (d, sr) {
     const D = 6.8, lo = S.bq('lp', 300, 0.7, sr), n = Math.floor(D * sr);
     let e = 0;
-    for (let j = 0; j < n; j++) { if ((j & 63) === 0) e = Math.exp(-Math.pow((j / n - 0.5) / 0.3, 2)) * 0.5; d[j] += lo(R() * 2 - 1) * e; }
-    for (let t = 0.1; t < D - 0.2; t += rf(0.05, 0.16)) { const u = t / D, e = Math.exp(-Math.pow((u - 0.5) / 0.3, 2)); S.modeR(d, sr, t, rf(90, 180), 0.03, rf(0.1, 0.35) * e); S.bruit(d, sr, t, 0.001, 0.006, 0.08 * e, S.bq('bp', 900, 0.8, sr)); }
-    for (let t = 0.6; t < D - 0.6; t += rf(1.1, 1.3)) { const u = t / D, e = Math.exp(-Math.pow((u - 0.5) / 0.3, 2)); S.trait(d, sr, t, 0.25, [[0, 620], [0.5, 700], [1, 600]], 0.06 * e, { h: [0.5, 0.3, 0.2], am: 26, amd: 0.6 }); }
-    for (let t = 0.2, k = 0; t < D - 0.3; k++, t += k % 2 ? 0.22 : 0.42) { const u = t / D, e = Math.exp(-Math.pow((u - 0.5) / 0.3, 2)); S.modeR(d, sr, t, rf(380, 520), 0.016, 0.45 * e); S.modeR(d, sr, t, rf(1000, 1300), 0.007, 0.18 * e); S.modeR(d, sr, t, rf(90, 115), 0.025, 0.3 * e); }
+    for (let j = 0; j < n; j++) { if ((j & 4095) === 0) yield; if ((j & 63) === 0) e = Math.exp(-Math.pow((j / n - 0.5) / 0.3, 2)) * 0.5; d[j] += lo(R() * 2 - 1) * e; }
+    for (let t = 0.1, c = 0; t < D - 0.2; t += rf(0.05, 0.16)) { if ((++c & 7) === 0) yield; const u = t / D, e = Math.exp(-Math.pow((u - 0.5) / 0.3, 2)); S.modeR(d, sr, t, rf(90, 180), 0.03, rf(0.1, 0.35) * e); S.bruit(d, sr, t, 0.001, 0.006, 0.08 * e, S.bq('bp', 900, 0.8, sr)); }
+    for (let t = 0.6; t < D - 0.6; t += rf(1.1, 1.3)) { yield; const u = t / D, e = Math.exp(-Math.pow((u - 0.5) / 0.3, 2)); S.trait(d, sr, t, 0.25, [[0, 620], [0.5, 700], [1, 600]], 0.06 * e, { h: [0.5, 0.3, 0.2], am: 26, amd: 0.6 }); }
+    for (let t = 0.2, k = 0; t < D - 0.3; k++, t += k % 2 ? 0.22 : 0.42) { if ((k & 3) === 0) yield; const u = t / D, e = Math.exp(-Math.pow((u - 0.5) / 0.3, 2)); S.modeR(d, sr, t, rf(380, 520), 0.016, 0.45 * e); S.modeR(d, sr, t, rf(1000, 1300), 0.007, 0.18 * e); S.modeR(d, sr, t, rf(90, 115), 0.025, 0.3 * e); }
+    yield;
     S.lp1(d, sr, 3000);
   }];
 
   // ================================================================ LE CRÉPUSCULE, LA NUIT (suite)
   // l'engoulevent : un ronronnement sec et continu (« rrrrrrr… »), comme un petit moteur dans la bruyère, qui change de
   // ton toutes les deux ou trois secondes ; parfois, à la fin, un « kou-ik » et un claquement d'ailes
-  T.s_engoulevent = [7.0, (d, sr, iv) => {
+  T.s_engoulevent = [7.0, function* (d, sr, iv) {
     let t = 0.05, haut = R() < 0.5;
     const fin = rf(5.4, 6.4), fb = rf(1050, 1250);
     while (t < fin) {
       const du = Math.min(fin - t, rf(1.4, 2.8)), f = haut ? fb * 1.3 : fb;
-      S.trait(d, sr, t, du, [[0, f * 0.97], [0.5, f], [1, f * 1.01]], haut ? 0.8 : 1, { h: [0.45, 0.2, 0.08], am: haut ? rf(40, 44) : rf(31, 35), amd: 0.93, souffle: 0.22, att: 0.04, rel: 0.04 });
+      yield* S.traitG(d, sr, t, du, [[0, f * 0.97], [0.5, f], [1, f * 1.01]], haut ? 0.8 : 1, { h: [0.45, 0.2, 0.08], am: haut ? rf(40, 44) : rf(31, 35), amd: 0.93, souffle: 0.22, att: 0.04, rel: 0.04 });
       t += du; haut = !haut;
     }
     if (iv % 2) { t += 0.25; S.trait(d, sr, t, 0.08, [[0, 1500], [1, 1900]], 0.6, { h: [0.2] }); S.trait(d, sr, t + 0.12, 0.14, [[0, 2300], [0.4, 2600], [1, 2000]], 0.7, { h: [0.15], lisse: true }); S.clic(d, sr, t + 0.4, 900, 0.4); S.clic(d, sr, t + 0.47, 850, 0.35); }
@@ -39435,6 +39724,13 @@ MUSIQUE.ajouter({ id: "pd_bach846", titre: "Prélude en ut majeur, BWV 846", aut
   SoundEngine.VARIANTES = { s_rossignol: 6, s_grive: 4, s_rougegorge: 5, s_troglodyte: 3, s_lulu: 4, s_loriot: 4, s_cloche: 2, s_coq: 3, s_chien: 3, s_moyenduc: 3, s_petitduc: 3, s_cheveche: 3, s_sonnailles: 3, s_bourdons: 3, s_charrette: 2, s_buse: 3, s_tarier: 3, s_bouvreuil: 3, s_sittelle: 3, s_caille: 3,
     s_engoulevent: 3, s_rale: 3, s_brindille: 3, s_tronc: 3, s_gousse: 3, s_caillou: 3, s_poisson: 3 };
   for (const k of Object.keys(T)) if (k.startsWith('s_') && !SoundEngine.VARIANTES[k]) SoundEngine.VARIANTES[k] = 4;
+  // les remplissages écrits en fonctions génératrices : rangés à part (SoundEngine.TAMPONS_PAS, pour la tâche de fond
+  // par tranches) ; le tampon garde un remplissage ordinaire, d'un trait (outils, essais, appels directs)
+  const PAS = SoundEngine.TAMPONS_PAS || (SoundEngine.TAMPONS_PAS = {});
+  for (const k of Object.keys(T)) {
+    const f = T[k][1];
+    if (f && f.constructor && f.constructor.name === 'GeneratorFunction') { PAS[k] = f; T[k] = [T[k][0], (d, sr, iv) => synDerouler(f(d, sr, iv))].concat(T[k].slice(2)); }
+  }
 }
 
 // ---- 09-zzzzS-2-fonds.js
@@ -39551,7 +39847,7 @@ MUSIQUE.ajouter({ id: "pd_bach846", titre: "Prélude en ut majeur, BWV 846", aut
       let t = rf(0, 9);
       while (t < dur) {
         if (type === 0) { // trois couplets de plus en plus forts
-          for (let c = 0; c < 3; c++) { const du = rf(0.9, 1.3); if (t + du >= dur) break; S.rape(d, sr, t, du, filt, a * (0.45 + 0.2 * c), { att: 0.35, rel: 0.2, am: rf(34, 44), amd: 0.6 }); t += du + rf(0.3, 0.5); yield; }
+          for (let c = 0; c < 3; c++) { const du = rf(0.9, 1.3); if (t + du >= dur) break; yield* S.rapeG(d, sr, t, du, filt, a * (0.45 + 0.2 * c), { att: 0.35, rel: 0.2, am: rf(34, 44), amd: 0.6 }); t += du + rf(0.3, 0.5); yield; }
           t += rf(11, 22);
         } else { for (let c = 0, nc = ri(3, 6); c < nc; c++) { const du = rf(0.14, 0.2); if (t + du >= dur) break; S.rape(d, sr, t, du, filt, a * 0.6, { att: 0.25, rel: 0.45, am: rf(55, 70), amd: 0.6 }); t += rf(1.6, 2.6); } t += rf(10, 20); yield; }
       }
@@ -39567,7 +39863,7 @@ MUSIQUE.ajouter({ id: "pd_bach846", titre: "Prélude en ut majeur, BWV 846", aut
       const f = rf(2450, 3050), pr = rf(34, 48), a = k === 0 ? 1 : rf(0.3, 0.6);
       for (let t = rf(0, 4); t < dur; ) {
         const du = rf(1.2, 2.4);
-        if (t + du < dur) S.trait(d, sr, t, du, [[0, f * 0.995], [0.5, f], [1, f * 0.99]], a, { am: pr, amd: 0.7, att: 0.3, rel: 0.3, h: [0.04] });
+        if (t + du < dur) yield* S.traitG(d, sr, t, du, [[0, f * 0.995], [0.5, f], [1, f * 0.99]], a, { am: pr, amd: 0.7, att: 0.3, rel: 0.3, h: [0.04] });
         t += du + rf(2.5, 6);
         yield;
       }
@@ -39631,15 +39927,15 @@ MUSIQUE.ajouter({ id: "pd_bach846", titre: "Prélude en ut majeur, BWV 846", aut
   // chœur qui part d'un coup
   fond('s_grenouilles', 18, function* (d, sr, D) {
     const dur = D - 0.25, G = Array.from({ length: ri(4, 5) }, (_, k) => ({ f: rf(380, 620), a: k < 2 ? rf(0.6, 1) : rf(0.2, 0.5) }));
-    const rire = (g, t) => {
+    const rire = function* (g, t) {
       const du = rf(0.45, 1.2), f = g.f;
-      S.trait(d, sr, t, du, [[0, f * 0.95], [0.5, f * 1.05], [1, f * 0.9]], g.a, { h: [0.9, 0.7, 0.55, 0.4, 0.25, 0.12], am: rf(24, 34), amd: 0.92, souffle: 0.18, att: 0.1, rel: 0.2 });
+      yield* S.traitG(d, sr, t, du, [[0, f * 0.95], [0.5, f * 1.05], [1, f * 0.9]], g.a, { h: [0.9, 0.7, 0.55, 0.4, 0.25, 0.12], am: rf(24, 34), amd: 0.92, souffle: 0.18, att: 0.1, rel: 0.2 });
       return du;
     };
     const kouak = (g, t) => { const f = g.f * rf(0.7, 0.85); S.trait(d, sr, t, rf(0.12, 0.18), [[0, f * 1.1], [1, f * 0.82]], g.a * 0.8, { h: [0.8, 0.6, 0.4, 0.2], am: 70, amd: 0.4, souffle: 0.12, att: 0.08, rel: 0.4 }); };
-    for (const g of G) for (let t = rf(0, 4); t < dur; ) { if (R() < 0.6) t += rire(g, t); else kouak(g, t); t += rf(2.5, 7); yield; }
+    for (const g of G) for (let t = rf(0, 4); t < dur; ) { if (R() < 0.6) t += yield* rire(g, t); else kouak(g, t); t += rf(2.5, 7); yield; }
     // un départ en chœur
-    for (let t = rf(2, dur - 3), k = 0; k < ri(1, 2); k++, t = rf(1, dur - 3)) { for (const g of G) rire(g, t + rf(0, 0.8)); yield; }
+    for (let t = rf(2, dur - 3), k = 0; k < ri(1, 2); k++, t = rf(1, dur - 3)) { for (const g of G) yield* rire(g, t + rf(0, 0.8)); yield; }
     S.lp1(d, sr, 3200);
   });
 
@@ -40176,6 +40472,7 @@ SoundEngine.BRUITS_MILIEU = {
       const sec = 1 - lisse(0.1, 0.45, pluie), froid = Math.max(gel, neige, 0.8 * sol), raf = clamp(this.sc && this.sc.vg !== undefined ? this.sc.vg : 0.4, 0, 1);
       // (la pluie qui vient de finir : les grenouilles chantent plus, les arbres s'égouttent)
       if (pluie > 0.3) Z.pluieVue = 1; else Z.pluieVue = Math.max(0, Z.pluieVue - dt / 240);
+      const kNuit = SoundEngine.ventNuit(nuit, orage); // (le vent, plus discret la nuit : voir _scene)
       const hs = h < 12 ? h + 24 : h; // les heures du soir et de la nuit, d'un seul tenant
       Object.assign(Q, {
         h, jour, nuit, pluie, neige, brouillard, gel, chaud, orage, vent, sec, noire,
@@ -40187,7 +40484,7 @@ SoundEngine.BRUITS_MILIEU = {
         grenNuit: nuit * (1 - froid) * (1 - noire) * (1 - lisse(0.6, 0.9, pluie)) * (1 + 0.3 * Z.pluieVue),
         batNuit: nuit * (1 - froid) * (1 - noire) * (1 - lisse(0.5, 0.85, pluie)),
         // (le vent dans les arbres, les roseaux, la bruyère suit les bouffées du vent : sc.vg, 0..1)
-        ventBois: (0.35 + 0.9 * vent) * (1 - 0.5 * neige) * (0.75 + 0.4 * raf), ventBas: (0.3 + 0.8 * vent) * (0.75 + 0.4 * raf), ventHaut: (0.35 + 0.8 * vent) * (0.8 + 0.3 * raf), ressac: (0.45 + 0.8 * vent) * clamp(this._sGL === undefined ? 1 : this._sGL * 1.5, 0, 1),
+        ventBois: (0.35 + 0.9 * vent) * (1 - 0.5 * neige) * (0.75 + 0.4 * raf) * kNuit, ventBas: (0.3 + 0.8 * vent) * (0.75 + 0.4 * raf) * kNuit, ventHaut: (0.35 + 0.8 * vent) * (0.8 + 0.3 * raf) * kNuit, ressac: (0.45 + 0.8 * vent) * clamp(this._sGL === undefined ? 1 : this._sGL * 1.5, 0, 1),
         egout: Z.pluieVue * (1 - lisse(0.05, 0.3, pluie)),
       });
       return Q;
@@ -40471,8 +40768,9 @@ SoundEngine.BRUITS_MILIEU = {
       const ric = typeof requestIdleCallback === 'function' ? (f) => requestIdleCallback(f, { timeout: 1200 }) : (f) => setTimeout(() => f(null), 60);
       const tour = (dl) => {
         let k = null;
-        // (le temps de ce tour : ce que le navigateur dit avoir devant lui, jamais plus de 12 ms ; au moins 3)
-        const fin = performance.now() + (dl ? clamp(dl.timeRemaining() - 1, 3, 12) : 6);
+        // (le temps de ce tour : ce que le navigateur dit avoir devant lui, jamais plus de 4 ms ; au moins 2 — une image
+        //  ne doit jamais attendre)
+        const fin = performance.now() + (dl ? clamp(dl.timeRemaining() - 1, 2, 4) : 4);
         try {
           let n = 0;
           // (un pas au moins à chaque tour ; d'autres tant qu'il reste du temps)
@@ -40495,17 +40793,49 @@ SoundEngine.BRUITS_MILIEU = {
         if (!gen || fin === undefined) { this.boucleTampon(nom); return; }
         const J = this._sJobs || (this._sJobs = new Map());
         let job = J.get(nom);
+        // (trois temps, chacun son tour : préparer le tampon, le calculer par tranches, en faire la boucle)
         if (!job) {
           const [dur, , srB] = SoundEngine.BOUCLES[nom], sr = Math.min(this.ctx.sampleRate, srB || SoundEngine.SR_SYNTH), n = Math.floor(dur * sr), X = Math.floor(0.25 * sr), tmp = new Float32Array(n + X);
           job = { sr, n, X, tmp, it: gen(tmp, sr, dur + 0.25) };
           J.set(nom, job);
+          return;
         }
-        do { if (job.it.next().done) { J.delete(nom); this._sFinBoucle(nom, job); return; } } while (performance.now() < fin);
+        if (job.fini) { J.delete(nom); this._sFinBoucle(nom, job); return; }
+        do { if (job.it.next().done) { job.fini = true; return; } } while (performance.now() < fin);
         return;
       }
       if (!SoundEngine.TAMPONS[nom]) return;
       const n = (SoundEngine.VARIANTES && SoundEngine.VARIANTES[nom]) || 5, arr = this._bufs[nom] || [];
-      for (let i = 0; i < n; i++) if (!arr[i]) { tbS(this, nom, n, i); break; }
+      for (let i = 0; i < n; i++) if (!arr[i]) { if (fin !== undefined && this._sTamponPas(nom, i, fin)) break; tbS(this, nom, n, i); break; }
+    },
+    // une variante dont le remplissage est une fonction génératrice : par tranches jusqu'à « fin » (comme tb, puis
+    // tampon, puis tbS : crête à 1, fondus d'entrée et de sortie, silence final rogné) ; false : pas de cette sorte
+    _sTamponPas(nom, i, fin) {
+      const T = SoundEngine.TAMPONS[nom], gen = SoundEngine.TAMPONS_PAS && SoundEngine.TAMPONS_PAS[nom];
+      if (!T || !gen) return false;
+      const J = this._sJobsT || (this._sJobsT = new Map()), cle = nom + '|' + i;
+      let job = J.get(cle);
+      if (!job) {
+        const sr = Math.min(this.ctx.sampleRate, SoundEngine.SR_TAMPON[nom] || SoundEngine.SR_SYNTH), len = Math.max(32, Math.ceil(sr * T[0])), b = this.ctx.createBuffer(1, len, sr), d = b.getChannelData(0);
+        job = { b, d, len, it: gen(d, sr, i) };
+        J.set(cle, job);
+        return true;
+      }
+      do {
+        if (job.it.next().done) {
+          J.delete(cle);
+          const { b, d, len } = job, arr = this._bufs[nom] || (this._bufs[nom] = []);
+          if (arr[i]) return true; // (calculée entre-temps d'un trait)
+          SoundEngine.SYN.norm(d, 1);
+          const fi = Math.min(24, len >> 3), fo = Math.min(Math.floor(len * 0.06), 2000);
+          for (let k = 0; k < fi; k++) d[k] *= k / fi;
+          for (let k = 0; k < fo; k++) d[len - 1 - k] *= k / fo;
+          arr[i] = b;
+          if (nom.startsWith('s_')) rogner(this, nom, b);
+          return true;
+        }
+      } while (performance.now() < fin);
+      return true;
     },
 
     // une boucle calculée par tranches devient un tampon (comme boucleTampon : le raccord en fondu enchaîné, la crête à 1)
@@ -40837,9 +41167,11 @@ const sonV1 = {
       const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 0.07; lg.gain.value = 160; lfo.connect(lg).connect(bp.frequency);
       src.connect(bp).connect(g).connect(sound.B.amb.inp);
       src.start(); lfo.start();
-      g.gain.setTargetAtTime(0.05, c.currentTime, 2.5);
-      this.vent = { src, g, lfo };
+      this.vent = { src, g, lfo, k: -1 };
     }
+    // (plus discret la nuit, comme le vent de la vallée)
+    const kv = Math.round(20 * SoundEngine.ventNuit(E && E.night, E && E.storm)) / 20;
+    if (kv !== this.vent.k) { this.vent.k = kv; this.vent.g.gain.setTargetAtTime(0.05 * kv, c.currentTime, 2.5); }
     this.coupeT = 1.5;
     this.prochain -= dt;
     if (this.prochain > 0) return;
@@ -44484,8 +44816,10 @@ const play = {
     }
     if (H.regrow) { s.forage[idx] = s.hours; o.gone = true; }
     else { o.gone = true; s.removed[idx] = H.stump ? 'stump' : 1; if (H.stump) w.objects.push({ t: OBJ_INDEX.stump, x: o.x, z: o.z, h: 0.8, f: 0, v: 0, fromStump: idx }); }
-    if (o.fromStump !== undefined) { s.removed[o.fromStump] = 1; const i = w.objects.indexOf(o); if (i >= 0) w.objects.splice(i, 1); }
-    w.objectsDirty = true; w.shadeDirty = true; w.shadeRegion = [o.x - 12, o.z - 12, o.x + 12, o.z + 12]; w.grid = null;
+    // (l'objet seul est refait, et la souche ajoutée au bout ; une souche retirée raccourcit la liste : tout est refait)
+    if (o.fromStump !== undefined) { s.removed[o.fromStump] = 1; const i = w.objects.indexOf(o); if (i >= 0) w.objects.splice(i, 1); w.objectsDirty = true; w.grid = null; }
+    else w.objetChange(idx);
+    w.shadeDirty = true; w.shadeRegion = [o.x - 12, o.z - 12, o.x + 12, o.z + 12];
     sound.pop();
     return true;
   },
@@ -44513,7 +44847,7 @@ const play = {
       const dx = o.x - eye[0], dz = o.z - eye[2], d = Math.hypot(dx, dz);
       if (d > 3.2 || (dx * fx + dz * fz) / (d * fl) < 0.45) return;
       const H = HARVEST[t.id];
-      o.gone = true; n++;
+      o.gone = true; n++; w.objetChange(idx);
       if (H && H.regrow) s.forage[idx] = s.hours; else s.removed[idx] = 1;
       farm.give(t.id === 'wheat' ? 'ble' : 'foin', 1);
       if (Math.random() < 0.3) farm.give('fibre', 1);
@@ -44524,7 +44858,7 @@ const play = {
       const c = farm.crop(cx, cz);
       if (c && c.c && !c.tree && farm.ripe(c)) { this.harvestCrop(Math.floor(cx) + 0.5, Math.floor(cz) + 0.5, c, true); n++; }
     }
-    if (n) { w.objectsDirty = true; w.grid = null; sound.scythe && sound.scythe(); for (let k = 0; k < 10; k++) particles.spawn(eye[0] + fx / fl * 2, eye[1] - 1.2, eye[2] + fz / fl * 2, (Math.random() - 0.5) * 3, Math.random() * 2, (Math.random() - 0.5) * 3, [0.5, 0.7, 0.3, 1], 0.06, 0.8, 6, false); }
+    if (n) { sound.scythe && sound.scythe(); for (let k = 0; k < 10; k++) particles.spawn(eye[0] + fx / fl * 2, eye[1] - 1.2, eye[2] + fz / fl * 2, (Math.random() - 0.5) * 3, Math.random() * 2, (Math.random() - 0.5) * 3, [0.5, 0.7, 0.3, 1], 0.06, 0.8, 6, false); }
   },
 
   // ------------------------------------------------------------- cultures
@@ -44921,9 +45255,11 @@ const play = {
 
   // ------------------------------------------------------------- rendu des objets 3D posés et des cultures
   buildProps(cam, sky) {
-    const w = game.world, buf = this.propBuf, R = sky.fog[1] + 40;
+    const w = game.world, buf = this.propBuf, need = sky.fog[1] + 40;
     const night = sky.nightLit ? 1 : 0;
-    if (!farm.dirtyProps && this.propCenter && Math.hypot(cam[0] - this.propCenter[0], cam[2] - this.propCenter[1]) < 30 && this.propNight === night && this.propR === R) return;
+    // (le rayon suit le brouillard, qui bouge un peu à chaque image : une marge, sinon tout se refaisait à chaque image)
+    if (!farm.dirtyProps && this.propCenter && Math.hypot(cam[0] - this.propCenter[0], cam[2] - this.propCenter[1]) < 30 && this.propNight === night && need <= this.propR && need >= this.propR - 30) return;
+    const R = need + 10;
     this.propCenter = [cam[0], cam[2]]; this.propNight = night; this.propR = R;
     farm.dirtyProps = false;
     buf.reset();
@@ -44976,7 +45312,13 @@ const play = {
     buf.reset(); this.shadowBuf.reset();
     PE.buf = buf;
     const T = { night: !!sky.nightLit, t, wind: t * 0.07 + Math.sin(t * 0.13) * 1.2, hour: w.time * 24 };
-    for (const p of w.props) {
+    // (les objets animés : relevés parmi tous les objets posés quand la liste change, et chaque seconde)
+    const D = this._dynL || (this._dynL = { props: null });
+    if (D.props !== w.props || D.n !== w.props.length || !(t - D.t < 1) || t < D.t) {
+      D.props = w.props; D.n = w.props.length; D.t = t; D.l = [];
+      for (const p of w.props) if (p && DYN_PROPS.has(p.id)) D.l.push(p);
+    }
+    for (const p of D.l) {
       if (!DYN_PROPS.has(p.id) || !w.live(p)) continue;
       if (Math.abs(p.x - cam[0]) > 160 || Math.abs(p.z - cam[2]) > 160) continue;
       PE.frame(p.x, p.y, p.z, p.r, p.s || 1);
@@ -45170,13 +45512,14 @@ const farm = {
     if (p.s) q.s = p.s;
     w.props.push(q); addPropCollider(w, q);
     this.s.props.push({ id: q.id, x: q.x, y: q.y, z: q.z, r: q.r, data: q.data, s: q.s });
-    this.dirtyProps = true; w.grid = null; w.coverDirty = true;
+    this.dirtyProps = true; w.coverDirty = true;
+    w.blocChange(); // (son collisionneur, au bout de la liste des blocs : la grille l'ajoute sans tout refaire)
     return q;
   },
   removeProp(q) {
     const w = this.w, i = w.props.indexOf(q);
     if (i < 0) return;
-    removePropCollider(w, q);
+    removePropCollider(w, q, true);
     if (i < this.genProps) { q.gone = true; this.s.gone[i] = 1; }
     else {
       w.props.splice(i, 1);
@@ -45348,7 +45691,7 @@ const farm = {
     for (const k in s.forage) {
       const o = w.objects[+k];
       const H = o && HARVEST[OBJ_TYPES[o.t].id];
-      if (!o || !H || s.hours - s.forage[k] >= (H.regrow || 24)) { if (o && !o.cleared) { o.gone = false; w.objectsDirty = true; w.grid = null; } delete s.forage[k]; }
+      if (!o || !H || s.hours - s.forage[k] >= (H.regrow || 24)) { if (o && !o.cleared) { o.gone = false; w.objetChange(+k); } delete s.forage[k]; }
     }
     // bêtes : production au fil des heures
     for (const a of s.animals) {
@@ -74155,7 +74498,7 @@ const objets = {
     if (w.props.indexOf(q) < 0) return;
     farm.removeProp(q);
     q.gone = true; // (les listes que d'autres modules gardent le voient disparu)
-    farm.dirtyProps = true; w.grid = null;
+    farm.dirtyProps = true; // (son collisionneur est sorti de la grille par farm.removeProp)
     if (q.id === 'tente') w.coverDirty = true;
     if (lum) w.collectLights();
     if (game.hiProp === q) game.hiProp = null;
@@ -74652,8 +74995,9 @@ const objets = {
       if (h && h.t < 2.6) cand({ kind: 'hook', use: () => objets.prendreTas(T), f2lab: 'Ramasser ce qui est tombé' }, h.t * 0.7);
     }
     let best = null, bt = 2.6;
-    for (const q of w.props) {
-      if (!OBJ_RAMASSE[q.id] || !w.live(q)) continue;
+    const pres = game.presDe ? game.presDe(eye) : null;
+    for (const q of pres ? pres.qi.map((i) => w.props[i]) : w.props) {
+      if (!q || !OBJ_RAMASSE[q.id] || !w.live(q)) continue;
       if (Math.abs(q.x - eye[0]) > 3.4 || Math.abs(q.z - eye[2]) > 3.4) continue;
       const B = this.boite(q, true);
       if (!B) continue;
@@ -123488,8 +123832,8 @@ const game = {
     if (nh && npcs.byId[nh.n.id]) cand({ kind: 'npc', n: nh.n }, nh.t);
     const eh = entities.raycast(eye, f, 2.8);
     if (eh && (eh.e.owner || eh.e.kind === 'horse' || eh.e.kind === 'cat')) cand({ kind: 'animal', e: eh.e }, eh.t);
-    const envers = strange.inEnvers();
-    for (const it of w.inter || []) {
+    const envers = strange.inEnvers(), pres = this.presDe(eye);
+    for (const it of pres.inter) {
       const dx = it.x - eye[0], dy = it.y - eye[1], dz = it.z - eye[2], d = Math.hypot(dx, dy, dz);
       if (d > 2.7) continue;
       const cos = (dx * f[0] + dy * f[1] + dz * f[2]) / (d || 1);
@@ -123510,9 +123854,9 @@ const game = {
       cand({ kind: 'door', d: dr }, d + 0.25);
     }
     // objets posés interactifs
-    for (let qi = 0; qi < w.props.length; qi++) {
-      const q = w.props[qi];
-      if (!w.live(q) || !PROP_USE[q.id]) continue;
+    for (let k = 0; k < pres.qi.length; k++) {
+      const qi = pres.qi[k], q = w.props[qi];
+      if (!q || !w.live(q) || !PROP_USE[q.id]) continue;
       if (PROP_USE[q.id] === 'm' && qi < farm.genProps) continue;
       const dx = q.x - eye[0], dy = q.y + 0.6 - eye[1], dz = q.z - eye[2], d = Math.hypot(dx, dy, dz);
       if (d > 2.6) continue;
@@ -123531,6 +123875,22 @@ const game = {
       else if ((['oak', 'apple', 'birch', 'pine'].includes(tid) || (H && H.fruit)) && oh.t < 2.4) cand({ kind: 'tree', o: oh.obj, idx: oh.idx }, oh.t + 0.4);
     }
     return best;
+  },
+
+  // les objets posés et les interactions à quelques mètres du regard (la cible de E les teste à chaque image : on ne
+  // reparcourt les listes entières du monde que quand on a bougé de quelques mètres, qu'elles ont changé, ou deux fois
+  // par seconde) ; pres.qi : les indices dans w.props, dans l'ordre
+  presDe(eye) {
+    const w = this.world, P = this._pres || (this._pres = { w: null });
+    const inter = w.inter || [];
+    if (P.w !== w || P.props !== w.props || P.np !== w.props.length || P.interL !== inter || P.ni !== inter.length || this.time - P.t > 0.5 || this.time < P.t
+      || Math.abs(eye[0] - P.x) > 3 || Math.abs(eye[2] - P.z) > 3) {
+      const R = 8, x = eye[0], z = eye[2], qi = [], it = [];
+      for (let i = 0; i < w.props.length; i++) { const q = w.props[i]; if (q && Math.abs(q.x - x) < R && Math.abs(q.z - z) < R) qi.push(i); }
+      for (const t of inter) if (Math.abs(t.x - x) < R && Math.abs(t.z - z) < R) it.push(t);
+      Object.assign(P, { w, props: w.props, np: w.props.length, interL: inter, ni: inter.length, t: this.time, x, z, qi, inter: it });
+    }
+    return P;
   },
 
   interact() {
@@ -124295,7 +124655,7 @@ const game = {
       else if (t.kind === 'crop') this.hiCrop = t;
       else if (t.kind === 'inter') {
         let best = null, bd = 1.4;
-        for (const q of w.props) { if (!w.live(q) || !PROP_MODELS[q.id] || q.id === 'epouvantail') continue; const d = Math.hypot(q.x - t.it.x, q.z - t.it.z); if (d < bd && Math.abs(q.y - t.it.y) < 2.5) { bd = d; best = q; } }
+        for (const qi of this.presDe(eye).qi) { const q = w.props[qi]; if (!q || !w.live(q) || !PROP_MODELS[q.id] || q.id === 'epouvantail') continue; const d = Math.hypot(q.x - t.it.x, q.z - t.it.z); if (d < bd && Math.abs(q.y - t.it.y) < 2.5) { bd = d; best = q; } }
         this.hiProp = best;
       }
     }
