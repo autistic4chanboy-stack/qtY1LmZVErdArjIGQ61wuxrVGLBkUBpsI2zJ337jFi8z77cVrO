@@ -13,6 +13,8 @@
 //                déjà (« (La clé tourne.) », « (Vous laissez tomber.) », un son
 //                mis en mots, une chose regardée de nouveau) : la PREMIÈRE fois
 //                seulement (mémoire par ligne dans farm.s.texteN15), puis plus.
+//    rappel      « c'est vide », « il n'y a plus rien », « personne ne répond » :
+//                une fois par jour de jeu et par ligne (on l'a déjà constaté).
 //    redondant   la liste de ce qu'on vient de ramasser, quand la colonne des
 //                trouvailles (feed) vient de l'afficher : jamais.
 //  Option « Moins de texte » (Options, section Jeu), cochée par défaut ;
@@ -53,6 +55,9 @@ const N15_NEC = [
   // une direction, une mesure (les instruments, les indices)
   /\bnord\b|\bsud\b|ouest|[ld]’est\b|à gauche|à droite|du côté|aiguille|encoches/i,
 ];
+
+// ce qu'on a déjà constaté (vide, plus rien, personne) : une fois par jour
+const N15_RAPPEL = /^\(Vide\b|^\(Il n’y a (plus )?rien|^\(Rien\.|plus rien à prendre|Personne ne répond|^\(Ses poches sont vides|besace est vide|cachette est vide|^\(Des poches vides/;
 
 const texte = {
   stats: { appels: {}, tus: {} },
@@ -98,7 +103,7 @@ const texte = {
     if (t.includes('«')) return 'necessaire';
     if ((dur || 0) >= 5) return 'necessaire';
     if (this.etats().has(t)) return 'necessaire';
-    if (N15_NEC.some((r) => r.test(t))) return 'necessaire';
+    if (N15_NEC.some((r) => r.test(t))) return N15_RAPPEL.test(t) ? 'rappel' : 'necessaire';
     return 'descriptif';
   },
   // décide si la ligne se montre ; compte
@@ -111,6 +116,7 @@ const texte = {
     let ok = true;
     if (c === 'redondant') ok = now - this._feedT > 1.5;
     else if (this._vu[k] !== undefined && now - this._vu[k] < Math.max(6, (dur || 3) + 1)) ok = false;   // la même, encore à l'écran
+    else if (c === 'rappel') { const S = this.S(), j = (farm.s && farm.s.day) || 1; if (S && S[k] === j) ok = false; else if (S) S[k] = j; }
     else if (c === 'descriptif') { const S = this.S(); if (S && S[k]) ok = false; else if (S) S[k] = farm.s.day || 1; }
     if (ok) { this._vu[k] = now; return true; }
     const T = this.stats.tus; T[c] = (T[c] || 0) + 1;

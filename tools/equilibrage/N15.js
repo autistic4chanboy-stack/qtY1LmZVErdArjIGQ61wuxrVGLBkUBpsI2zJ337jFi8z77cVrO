@@ -31,6 +31,8 @@ const ATTENDU = [
   ['', '(Votre ventre gargouille.)', 'necessaire'],
   ['', '(La fatigue vient. Une bonne fatigue, pour l’instant.)', 'necessaire'],
   ['', '(Vous trouvez : une bougie, deux pièces.)', 'redondant'],
+  ['', '(Vide. Le fond est poli, comme par des mains.)', 'rappel'],
+  ['', '(Il n’y a plus rien.)', 'rappel'],
 ];
 
 module.exports = {
@@ -57,6 +59,12 @@ module.exports = {
     J.ev('texte._vu = {}');
     const n3 = montre('', '(L’arrosoir est vide.)');
     if (!n1 || n2 || !n3) ko(`nécessaire : ${n1}, ${n2}, ${n3} (attendu : montrée, tue tout de suite après, montrée plus tard)`);
+    const r1 = montre('', '(Il n’y a plus rien.)');
+    J.ev('texte._vu = {}');
+    const r2 = montre('', '(Il n’y a plus rien.)');
+    J.ev('texte._vu = {}; farm.s.day = 4');
+    const r3 = montre('', '(Il n’y a plus rien.)');
+    if (!r1 || r2 || !r3) ko(`rappel : ${r1}, ${r2}, ${r3} (attendu : montrée, tue le même jour, montrée le lendemain)`);
     const p = [1, 2, 3].map(() => montre('Rosalie', 'Bonjour.'));
     if (!p.every(Boolean)) ko('une parole a été tue');
     J.ev('texte._feedT = performance.now() / 1000');
@@ -66,7 +74,7 @@ module.exports = {
     J.ev('settings.moinsTexte = false; texte._vu = {}');
     if (!montre('', '(La clé tourne.)')) ko('option décochée : une ligne descriptive est tue');
     J.ev('settings.moinsTexte = true; farm.s = null');
-    log('règle vérifiée (descriptive une fois, nécessaire espacée, paroles toujours, trouvailles sans doublon, option)');
+    log('règle vérifiée (descriptive une fois, rappel une fois par jour, nécessaire espacée, paroles toujours, trouvailles sans doublon, option)');
     log('\n# 3. Les lignes d’état');
     const etats = J.ev('texte.etats().size');
     if (etats < 40) ko(`les lignes d'état (humeur, faim, maux) ne sont pas trouvées (${etats})`);
