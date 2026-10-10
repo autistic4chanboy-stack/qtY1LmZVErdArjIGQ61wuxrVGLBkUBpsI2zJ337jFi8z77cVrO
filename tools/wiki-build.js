@@ -401,7 +401,7 @@ function extractSystems(G, DB) {
   const safe = (label, fn, d) => { try { return fn(); } catch (e) { DB.log.push('systèmes, ' + label + ' : ' + (e && e.message)); return d; } };
   const J = (expr) => jclone(G.run(expr));
   for (const [file, text] of G.texts) {
-    if (!SYS_FILE.test(file) || /admin|camera/.test(file)) continue; // (les outils de mise au point restent cachés)
+    if (!SYS_FILE.test(file) || /admin|camera|E16/.test(file)) continue; // (les outils de mise au point restent cachés)
     const M = S.files[file] = parseModule(text);
     // les tables des objets du module (propriétés en majuscules : chasse.XXX, fabrication.LECONS…)
     for (const o of M.objs) {
@@ -1140,6 +1140,8 @@ async function extract() {
       DB.tables[name] = { file, v: c };
     }
   }
+  // (les objets cachés « e16 » restent hors du wiki, comme les outils de mise au point)
+  if (DB.tables.ITEMS) for (const id of Object.keys(DB.tables.ITEMS.v)) if (DB.tables.ITEMS.v[id] && DB.tables.ITEMS.v[id].e16) delete DB.tables.ITEMS.v[id];
   // ordre d'insertion de ITEMS (celui du jeu) et prix, noms tels qu'après tous les modules
   say(`${Object.keys(DB.tables).length} tables lues`);
 
@@ -1153,7 +1155,7 @@ async function extract() {
   // ---------------------------------------------------------------- icônes des objets (celles du jeu : iconURL)
   {
     const ITEMS = G.get('ITEMS') || {};
-    const ids = Object.keys(ITEMS), COLS = 32, S = 32, rows = Math.max(1, Math.ceil(ids.length / COLS));
+    const ids = Object.keys(ITEMS).filter((id) => !ITEMS[id].e16), COLS = 32, S = 32, rows = Math.max(1, Math.ceil(ids.length / COLS));
     const sheet = new Uint8ClampedArray(COLS * S * rows * S * 4), index = {};
     let n = 0;
     ids.forEach((id) => {
@@ -1419,7 +1421,7 @@ function extractWorld(G, w, DB) {
   W.peuples = w.peuples ? Object.keys(w.peuples).filter((k) => k !== 'n') : null;
   W.bld = Object.values(w.bld || {}).map((B) => ({ key: B.key, name: B.name, x: r1(B.x), z: r1(B.z), y: r1(B.y), W: B.W, D: B.D, rot: B.f ? Math.round(B.f.r * 1000) / 1000 : 0, under: !!B.under }));
   W.nav = { nodes: (w.nav && w.nav.nodes || []).map((q) => [r1(q.x), r1(q.z), q.iso ? 1 : 0, q.tag || '']), edges: (w.nav && w.nav.edges || []).map((e) => (Array.isArray(e) ? [e[0], e[1]] : [e.a, e.b])) };
-  W.inter = (w.inter || []).map((it) => ({ kind: it.kind, id: it.id, name: it.name || '', x: r1(it.x), y: r1(it.y ?? 0), z: r1(it.z), data: jclone(it.data ? Object.fromEntries(Object.entries(it.data).filter(([k, v]) => typeof v !== 'object' || v === null || (Array.isArray(v) && v.length < 8 && v.every((x) => typeof x !== 'object')))) : null) }));
+  W.inter = (w.inter || []).filter((it) => !/^e16_/.test(it.kind)).map((it) => ({ kind: it.kind, id: it.id, name: it.name || '', x: r1(it.x), y: r1(it.y ?? 0), z: r1(it.z), data: jclone(it.data ? Object.fromEntries(Object.entries(it.data).filter(([k, v]) => typeof v !== 'object' || v === null || (Array.isArray(v) && v.length < 8 && v.every((x) => typeof x !== 'object')))) : null) }));
   W.props = (w.props || []).filter((p) => !p.gone && (!p.ver || (p.ver & 1))).map((p) => [p.id, r1(p.x), r1(p.z), r1(p.y ?? 0)]);
   W.fishZones = (w.fishZones || []).map((Z) => [r1(Z.x), r1(Z.z), r1(Z.r), Z.kind]);
   W.lakes = (w.lakes || []).map((Z) => [r1(Z.x), r1(Z.z), r1(Z.r), Z.kind || 'lac']);
@@ -1618,7 +1620,7 @@ function planDessous(G, DB) {
     const KEEP = /^(sout_filon|sout_vasque|sout_pied_pierre|sout_mousse|sout_lichen|sout_fougere|sout_algue|sout_suie|sout_guano|sout_champi|sout_fleche|sout_cairn|sout_dormeur|sout_colonne|stele)$/;
     const props = {};
     for (const q of w.props) if ((q.ver & VER_SOUS) && KEEP.test(q.id)) (props[q.id] || (props[q.id] = [])).push([r1(q.x), r1(q.z), Math.round((q.r || 0) * 100) / 100, (q.data && (q.data.m || q.data.it)) || '']);
-    const inter = w.inter.filter((it) => isFinite(it.x) && (/^sout_/.test(it.kind) || ((it.y < SOUT_TOP || it.y < w.heightAt(it.x, it.z) - 3) && reg(it.x, it.z)))).map((it) => [it.kind, it.id, it.name || '', r1(it.x), r1(it.y), r1(it.z), String((it.data && (it.data.ins || it.data.k || it.data.table || it.data.n)) ?? '')]);
+    const inter = w.inter.filter((it) => isFinite(it.x) && !/^e16_/.test(it.kind) && (/^sout_/.test(it.kind) || ((it.y < SOUT_TOP || it.y < w.heightAt(it.x, it.z) - 3) && reg(it.x, it.z)))).map((it) => [it.kind, it.id, it.name || '', r1(it.x), r1(it.y), r1(it.z), String((it.data && (it.data.ins || it.data.k || it.data.table || it.data.n)) ?? '')]);
     const lm = Object.values(w.lm).filter((L) => L.souterrain || /^sout_/.test(L.key) || (L.under && reg(L.x, L.z))).map((L) => [L.key, L.name, r1(L.x), r1(L.z), r1(L.y || 0), L.r || 6, L.souterrain ? 1 : 0]);
     const V = w.soutVillage, pt = (a) => (a ? [r1(a[0]), r1(a[1])] : null);
     // (le centre et la pierre d'appel sont rangés x, y, z ; le reste x, z)
