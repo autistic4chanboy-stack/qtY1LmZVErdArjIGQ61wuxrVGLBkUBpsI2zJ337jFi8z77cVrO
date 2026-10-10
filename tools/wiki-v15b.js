@@ -118,14 +118,16 @@ function build(X) {
       '<b>Habitants</b> : <i>métier</i> (lui parler) ; <i>où il vit</i> (le voir chez lui) ; <i>son caractère</i> (lui parler trois jours différents).',
     ]);
     h += h3('Interactif ou exact') + ul([
-      '<b>Wiki interactif</b> (Options, section Jeu ; coché d’origine) : dans chaque case apprise, on écrit ce qu’on en sait, avec ses mots, puis <b>Valider</b> (ou <kbd>Entrée</kbd>). Juste : la case passe au <b>vert</b> (un ✎ permet de la réécrire). Pas encore : elle reste <b>grise</b>, et l’on peut réessayer autant qu’on veut. Il suffit de nommer l’essentiel : un des milieux, une des choses qu’elle laisse, « la nuit », « dangereuse », un prix à un quart près…',
-      'Une case jamais constatée reste « ??? » : on ne peut rien y écrire.',
+      '<b>Wiki interactif</b> (Options, section Jeu ; coché d’origine) : chaque case apprise propose <b>trois réponses</b> ; une seule est juste, les deux autres sont prises aux autres fiches (les milieux d’autres bêtes, l’effet d’autres plats…). Les trois restent les mêmes d’une fois à l’autre, et la juste n’est pas toujours à la même place. On clique (ou <kbd>Tab</kbd> puis <kbd>Entrée</kbd>, ou <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> sur un choix).',
+      'Juste : la case passe au <b>vert</b>. Fausse : la réponse se barre en <b>rouge</b>, et l’on attend quelques secondes avant de rechoisir parmi les deux autres.',
+      'Les parties d’avant (où l’on écrivait ses réponses) : les cases déjà vertes le restent ; les autres reviennent aux trois choix.',
+      'Une case jamais constatée reste « ??? » : rien à choisir.',
       '<b>Exact</b> (la case décochée) : les cases apprises montrent directement la bonne information — toujours au fur et à mesure des découvertes.',
       'Sur chaque page, des <b>notes libres</b> (jamais validées).',
     ]);
     h += h3('Ce wiki-ci suit votre partie') + ul([
       'Le jeu garde une copie de ses découvertes dans le navigateur. Ouvert depuis le même endroit que le jeu (même site, même navigateur), ce wiki le voit : à l’ouverture, « Suivre ma partie » ou « Tout voir » (le choix est retenu ; le bouton « Ma partie », en haut, pour changer).',
-      'En suivant : seules les fiches découvertes s’ouvrent (les autres : « ??? ») ; dans chaque fiche, seulement ce que vous savez ; vos notes du wiki interactif, en vert quand elles sont validées ; la recherche et les liens se limitent à ce que vous connaissez.',
+      'En suivant : seules les fiches découvertes s’ouvrent (les autres : « ??? ») ; dans chaque fiche, seulement ce que vous savez ; vos réponses justes du wiki interactif, en vert, et vos notes ; la recherche et les liens se limitent à ce que vous connaissez.',
       'Les secrets restent sous « révéler les secrets », même en suivant la partie.',
     ]);
     h += `<p>${lk('sys:savoir', 'La sacoche et le carnet')} · ${lk('sys:runes', 'Les runes')}</p>`;

@@ -3,8 +3,9 @@
 //  - decouvertes.rendre(el) : le wiki dans un élément (l'onglet « Wiki » du menu,
 //    M15) ; decouvertes.ouvrir(id) : le même, en panneau seul (#wiki15).
 //  - À gauche, les pages découvertes, par familles ; à droite, la fiche : ce
-//    que l'on sait seulement (le reste : « ??? »). Mode interactif : on écrit,
-//    on valide (vert : juste ; gris : pas encore). Mode exact : la bonne
+//    que l'on sait seulement (le reste : « ??? »). Mode interactif : trois
+//    réponses au choix par champ (vert : juste ; rouge barré : faux, et une
+//    courte attente ; touches 1 2 3 sur un choix). Mode exact : la bonne
 //    information des champs appris. Des notes libres sur chaque page.
 //  - Sans l'onglet de M15 (decouvertes.accueilli), un onglet « Wiki » de secours
 //    dans la sacoche. La case « Wiki interactif » dans les Options.
@@ -39,6 +40,7 @@ Object.assign(decouvertes, {
     this.style();
     if (this.nouveaux) { this.nouveaux = 0; if (typeof menus !== 'undefined' && menus.marque) try { menus.marque('wiki', 0); } catch (e) { /* */ } }
     this.cible = el;
+    const fa = document.activeElement, foc = fa && el.contains(fa) && fa.dataset ? (fa.dataset.w15c ? `[data-w15c="${fa.dataset.w15c}"][data-w15o="${fa.dataset.w15o}"]` : fa.dataset.w15 ? `[data-w15="${fa.dataset.w15}"]` : fa.dataset.w15g ? `[data-w15g="${fa.dataset.w15g}"]` : null) : null;
     const D = this.S(), G = this.connues(), T = this.totaux(), f = d15Norme(this.vue.filtre);
     const n = Object.values(G).reduce((a, L) => a + L.length, 0);
     if (this.vue.id && !this.connu(this.vue.id)) this.vue.id = null;
@@ -55,6 +57,7 @@ Object.assign(decouvertes, {
     el.innerHTML = `<div class="w15${this.vue.id ? ' a-fiche' : ''}"><div class="w15-tete"><input type="search" class="w15-cherche" placeholder="Chercher…" value="${esc(this.vue.filtre)}"><span class="w15-n">${n}</span></div>
       <div class="w15-cols"><nav class="w15-liste">${liste}</nav><article class="w15-fiche">${this.vue.id ? this.ficheHTML(this.vue.id) : '<p class="hint w15-vide">✎</p>'}</article></div></div>`;
     this.brancher(el);
+    if (foc) { let b = null; try { b = el.querySelector(foc); } catch (e) { /* */ } if (b && !b.disabled) b.focus({ preventScroll: true }); }
   },
   complet(id, F) { return F.champs.length > 0 && F.champs.every((c) => this.sait(id, c.k) && (this.mode() === 'exact' || ((this.S().valides[id] || {})[c.k] === true))); },
   ficheHTML(id) {
@@ -71,9 +74,10 @@ Object.assign(decouvertes, {
         h += `<dt>${esc(c.nom)}</dt>`;
         if (!su) { h += '<dd class="inc">???</dd>'; continue; }
         if (!inter) { h += `<dd class="ex">${esc(c.val)}</dd>`; continue; }
-        const t = N[c.k] || '', v = V[c.k];
-        if (v === true) h += `<dd class="ok"><span>${esc(t)}</span><button class="w15-mod" data-w15mod="${esc(c.k)}" title="Modifier">✎</button></dd>`;
-        else h += `<dd class="ecr${v === false ? ' non' : ''}"><input type="text" maxlength="240" data-w15k="${esc(c.k)}" value="${esc(t)}"><button data-w15val="${esc(c.k)}">Valider</button></dd>`;
+        const O = this.options(id, c.k);
+        if (V[c.k] === true || O.length < 2) { h += `<dd class="${V[c.k] === true ? 'ok' : 'ex'}"><span>${esc(c.val)}</span></dd>`; continue; }
+        const B = this.barres(id, c.k).map(d15Norme), att = this.attend(id, c.k) > 0;
+        h += `<dd class="qcm${B.length ? ' non' : ''}">` + O.map((o, i) => { const x = B.includes(d15Norme(o)); return `<button class="w15-o${x ? ' faux' : att ? ' att' : ''}" data-w15c="${esc(c.k)}" data-w15o="${i}"${x || att ? ' aria-disabled="true"' : ''}>${esc(o)}</button>`; }).join('') + '</dd>';
       }
       h += '</dl>';
     }
@@ -86,20 +90,21 @@ Object.assign(decouvertes, {
     on('[data-w15g]', (b) => { const g = b.dataset.w15g; this.vue.groupe = this.vue.groupe === g ? null : g; if (this.vue.groupe !== g && this.vue.id && this.ficheCache(this.vue.id).groupe === g) this.vue.id = null; redessiner(); sound.click && sound.click(); });
     on('[data-w15]', (b) => { this.vue.id = b.dataset.w15; this.vue.groupe = this.ficheCache(this.vue.id).groupe; redessiner(); sound.page && sound.page(); });
     on('[data-w15retour]', () => { this.vue.id = null; redessiner(); });
-    on('[data-w15mod]', (b) => { const V = this.S().valides[this.vue.id]; if (V) delete V[b.dataset.w15mod]; redessiner(); const i = el.querySelector(`[data-w15k="${b.dataset.w15mod}"]`); if (i) i.focus(); });
-    const valider = (k) => {
-      const i = el.querySelector(`[data-w15k="${k}"]`), id = this.vue.id;
-      if (!i || !id) return;
-      const ok = this.valider(id, k, i.value);
-      if (ok === null) { sound.click && sound.click(); return; }
+    const choisir = (k, i) => {
+      const id = this.vue.id, o = this.options(id, k)[i];
+      if (!id || o === undefined) return;
+      const ok = this.choisir(id, k, o);
+      if (ok === null) return;
       if (ok) { sound.pop && sound.pop(); } else { sound.click && sound.click(); }
       redessiner();
-      if (!ok) { const j = el.querySelector(`[data-w15k="${k}"]`); if (j) { j.focus(); j.select(); } }
+      // le clavier : on reste sur le champ (faux), ou l'on passe au champ suivant (juste)
+      const b = ok ? el.querySelector('.w15-o') : el.querySelector(`[data-w15c="${k}"][data-w15o="${i}"]`);
+      if (b) b.focus({ preventScroll: true });
+      if (!ok) { clearTimeout(this.attT); this.attT = setTimeout(() => { if (el.isConnected && el.querySelector('.w15')) this.rendre(el); }, this.attend(id, k) + 50); }
     };
-    on('[data-w15val]', (b) => valider(b.dataset.w15val));
-    el.querySelectorAll('[data-w15k]').forEach((i) => {
-      i.onkeydown = (e) => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); valider(i.dataset.w15k); } else if (e.key === 'Escape') i.blur(); };
-      i.onchange = () => { const D = this.S(), id = this.vue.id; if (!id) return; const N = D.notes[id] || (D.notes[id] = {}); const v = i.value.slice(0, 240); if ((N[i.dataset.w15k] || '') !== v) { if (v) N[i.dataset.w15k] = v; else delete N[i.dataset.w15k]; if (D.valides[id]) delete D.valides[id][i.dataset.w15k]; this.change(); } };
+    on('[data-w15c]', (b) => choisir(b.dataset.w15c, +b.dataset.w15o));
+    el.querySelectorAll('[data-w15c]').forEach((b) => {
+      b.onkeydown = (e) => { const m = /^(?:Digit|Numpad)([1-3])$/.exec(e.code); if (m && !e.repeat) { e.preventDefault(); e.stopPropagation(); const q = el.querySelector(`[data-w15c="${b.dataset.w15c}"][data-w15o="${+m[1] - 1}"]`); if (q) choisir(b.dataset.w15c, +m[1] - 1); } };
     });
     const ta = el.querySelector('[data-w15notes]');
     if (ta) { ta.onkeydown = (e) => { e.stopPropagation(); if (e.key === 'Escape') ta.blur(); }; ta.onchange = () => { const id = this.vue.id; if (id) this.note(id, '_', ta.value.slice(0, 600)); }; }
@@ -190,10 +195,13 @@ Object.assign(decouvertes, {
 .w15-ch dd.inc{color:#9a8a6a;letter-spacing:.1em}
 .w15-ch dd.ex{color:#2d2216}
 .w15-ch dd.ok span{color:#2f6a2a;font-weight:bold}
-.w15-ch dd.ok .w15-mod{background:none;border:none;color:#9a8a6a;cursor:pointer;font-size:13px;padding:0 4px}
-.w15-ch dd.ecr input{flex:1;min-width:0;padding:3px 6px;font:inherit;font-size:14px;background:rgba(255,250,235,.75);border:1px solid rgba(90,70,40,.35);color:#2d2216}
-.w15-ch dd.ecr.non input{color:#8a8278;background:rgba(200,195,185,.45);border-color:rgba(120,115,105,.45)}
-.w15-ch dd.ecr button{padding:3px 8px;font-size:13px}
+.w15-ch dd.qcm{flex-wrap:wrap;gap:5px}
+.w15-o{flex:0 1 auto;max-width:100%;padding:3px 9px;font:inherit;font-size:13.5px;line-height:1.3;text-align:left;background:rgba(255,250,235,.75);border:1px solid rgba(90,70,40,.35);border-radius:3px;color:#2d2216;cursor:pointer}
+.w15-o:hover:not([aria-disabled]){background:rgba(255,236,190,.95);border-color:#8a5a2a}
+.w15-o:focus-visible{outline:2px dotted #8a5a2a;outline-offset:1px}
+.w15-o[aria-disabled]{cursor:default}
+.w15-o.att{opacity:.55}
+.w15-o.faux{color:#9a3a2a;text-decoration:line-through;background:rgba(200,120,100,.12);border-color:rgba(150,60,40,.4)}
 .w15-notes{width:100%;box-sizing:border-box;min-height:64px;resize:vertical;padding:6px;font:inherit;font-size:14px;font-style:italic;background:rgba(255,250,235,.5);border:1px dashed rgba(90,70,40,.35);color:#4a3e2e}
 .w15-retour{display:none}
 .w15-vide{font-size:32px;text-align:center;margin-top:20%;opacity:.35}

@@ -11,12 +11,15 @@
 //    habitants, ce qu'on regarde, les lieux ; des emballages légers (farm.give,
 //    ui.shopPrice, play.eat, play.collect, play.harvest, ui.openTalk, livres.ouvrir,
 //    play.hurt, la mort des bêtes). Rien sur w.objects à chaque image.
-//  - Mode « interactif » : le joueur écrit ce qu'il sait dans chaque champ appris et
-//    le valide (juste → vert) ; mode « exact » : la bonne information s'affiche.
+//  - Mode « interactif » : pour chaque champ appris, trois réponses au choix (une
+//    juste, deux leurres tirés des autres fiches, fixes pour une partie) ; la
+//    juste → vert ; une fausse se barre en rouge, et l'on attend un instant avant
+//    de rechoisir. Mode « exact » : la bonne information s'affiche.
 //  État : farm.s.decouvertes ; miroir localStorage 'prairie.decouvertes' (lu par
 //  Prairie-Wiki.html). API : decouvertes (contrat : $SP/eq/contrat-v15.md, D15).
 // ============================================================================
 const D15_CLE = 'prairie.decouvertes', D15_MODE = 'prairie.wiki15';
+const D15_ATTENTE = 6000; // ms d'attente après une mauvaise réponse
 const D15_DANGER = ['inoffensive', 'se défend', 'dangereuse', 'très dangereuse'];
 const D15_OUTILS = { main: 'à la main', hache: 'à la hache', pioche: 'à la pioche', faux: 'à la faux', pelle: 'à la pelle', houe: 'à la houe', cisailles: 'aux cisailles' };
 // mots acceptés pour chaque milieu (le joueur écrit avec ses mots)
@@ -44,8 +47,9 @@ const decouvertes = {
     const s = typeof farm !== 'undefined' && farm.s;
     if (!s) return { v: 1, partie: '', mode: 'interactif', tout: false, pages: {}, notes: {}, valides: {}, cpt: {} };
     let D = s.decouvertes;
-    if (!D || typeof D !== 'object') D = s.decouvertes = { v: 1 };
-    for (const k of ['pages', 'notes', 'valides', 'cpt']) if (!D[k] || typeof D[k] !== 'object') D[k] = {};
+    if (!D || typeof D !== 'object') D = s.decouvertes = { v: 1, qcm: 1 };
+    for (const k of ['pages', 'notes', 'valides', 'cpt', 'faux']) if (!D[k] || typeof D[k] !== 'object') D[k] = {};
+    if (!D.qcm) this.migrer(D);
     if (D.mode !== 'interactif' && D.mode !== 'exact') D.mode = store.get(D15_MODE, 'interactif') === 'exact' ? 'exact' : 'interactif';
     if (typeof D.tout !== 'boolean') D.tout = false;
     D.v = 1; D.partie = String(s.seed) + '-' + (s.run || 1);
@@ -77,21 +81,109 @@ const decouvertes = {
     if (D.valides[id]) delete D.valides[id][k];
     this.change();
   },
-  // valider ce que le joueur a écrit : juste → vert ; faux → gris, on peut réessayer
+  // (ancienne API) valider un texte : il doit être l'une des trois réponses proposées
   valider(id, k, texte) {
-    const D = this.S();
-    if (texte !== undefined) this.note(id, k, texte);
-    const t = (D.notes[id] || {})[k];
-    const C = this.fiche(id).champs.find((c) => c.k === k);
-    if (!C || !t || !C.test) return null;
-    let ok = false;
-    try { ok = !!C.test(t); } catch (e) { ok = false; }
+    const n = d15Norme(texte), o = this.options(id, k).find((t) => d15Norme(t) === n);
+    return o === undefined ? null : this.choisir(id, k, o);
+  },
+  // les parties d'avant (réponses écrites) : les justes restent validées, le reste s'efface
+  migrer(D) {
+    for (const id in D.notes) {
+      const N = D.notes[id], V = D.valides[id] || {};
+      for (const k in N) if (k !== '_' && V[k] !== true) delete N[k];
+    }
+    for (const id in D.valides) { const V = D.valides[id]; for (const k in V) if (V[k] !== true) delete V[k]; }
+    D.qcm = 1;
+  },
+
+  // ------------------------------------------------------------- les trois réponses au choix
+  // un tirage fixe pour une page et un champ (les leurres ne bougent pas d'une ouverture à l'autre)
+  hasard(graine) { let h = 2166136261; for (const ch of String(graine)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return () => { h = (h + 0x6D2B79F5) | 0; let t = Math.imul(h ^ (h >>> 15), 1 | h); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; },
+  // les valeurs que prend ce champ (k, ou '*' : tous) sur les fiches du préfixe (pre, ou '*' : toutes), triées
+  reserve(pre, k) {
+    if (!this._res || this._resOf !== this.catalogue()) { this._res = new Map(); this._resOf = this.catalogue(); }
+    const q = pre + '|' + k;
+    let R = this._res.get(q);
+    if (!R) {
+      const S = new Set();
+      for (const id of this._resOf) {
+        if (pre !== '*' && !id.startsWith(pre + ':')) continue;
+        for (const C of this.ficheCache(id).champs) if ((k === '*' || C.k === k) && C.val) S.add(String(C.val));
+      }
+      R = [...S].sort();
+      this._res.set(q, R);
+    }
+    return R;
+  },
+  // quelques leurres de secours, du même domaine
+  leurresFixes(k) {
+    if (k === 'heures') return ['le jour', 'la nuit', 'à toute heure'];
+    if (k === 'danger') return D15_DANGER.slice();
+    if (k === 'outil') return Object.values(D15_OUTILS);
+    if (k === 'effet') return ['nourrit', 'soigne', 'empoisonne', 'redonne des forces'];
+    if (k === 'milieux') return typeof HABITATS !== 'undefined' ? Object.values(HABITATS) : [];
+    if (k === 'sorte') return typeof ITEM_CAT_NAMES !== 'undefined' ? Object.values(ITEM_CAT_NAMES) : [];
+    return [];
+  },
+  // [trois textes] : la bonne réponse et deux leurres (C.choix d'abord, s'il y en a), la bonne à une place tirée au sort
+  options(id, k) {
+    const C = this.ficheCache(id).champs.find((c) => c.k === k);
+    if (!C || !C.val) return [];
+    const O = this._opt || (this._opt = new Map()), q = id + '|' + k + '|' + C.val;
+    if (O.has(q)) return O.get(q);
+    const r = this.hasard(q), juste = String(C.val), nj = d15Norme(juste);
+    const parts = (t) => String(t).split(/[,;]/).map(d15Norme).filter(Boolean), PJ = new Set(parts(juste));
+    const melange = (L) => { const A = L.slice(); for (let i = A.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [A[i], A[j]] = [A[j], A[i]]; } return A; };
+    const pris = [], deja = new Set([nj]);
+    // exigence 2 : aucun morceau en commun avec la bonne réponse (« la forêt » n'est pas un leurre de « les prés, la forêt ») ;
+    // 1 : ni une partie, ni un surplus de la bonne réponse ; 0 : seulement différente
+    const prendre = (L, ex) => {
+      for (const t of melange(L)) {
+        if (pris.length >= 2) return;
+        const n = d15Norme(t); if (!n || deja.has(n)) continue;
+        const P = parts(t), com = P.filter((x) => PJ.has(x)).length;
+        if (ex === 2 && com) continue;
+        if (ex === 1 && (com === P.length || com === PJ.size)) continue;
+        pris.push(String(t)); deja.add(n);
+      }
+    };
+    let leurres = [];
+    if (k === 'prix') {
+      const p = +(juste.match(/\d+/) || [0])[0], N = new Set();
+      for (const m of [0.4, 0.5, 0.6, 1.6, 2, 2.5, 3, 4, 5]) { const n = Math.max(1, Math.round(p * m)); if (Math.abs(n - p) >= Math.max(1, p * 0.3)) N.add(n); }
+      leurres = [...N].map((n) => `${n} pièce${n > 1 ? 's' : ''}`);
+    }
+    const pre = id.slice(0, id.indexOf(':'));
+    // les autres champs de la même fiche : ceux de la même famille d'abord (tablette1, tablette2…)
+    const fam = (x) => (/\d$/.test(x) ? x.replace(/\d+$/, '') : ''), voisins = (meme) => this.ficheCache(id).champs.filter((c) => c.k !== k && (fam(c.k) === fam(k)) === meme).map((c) => c.val);
+    const sources = [() => C.choix || [], () => leurres, () => this.reserve(pre, k), () => this.reserve('*', k), () => this.leurresFixes(k), () => voisins(true), () => voisins(false), () => this.reserve(pre, '*')];
+    for (const ex of [2, 1, 0]) for (const L of sources) if (pris.length < 2) prendre(L() || [], ex);
+    const R = pris.slice(0, 2);
+    R.splice(Math.floor(r() * (R.length + 1)), 0, juste);
+    O.set(q, R);
+    return R;
+  },
+  // le joueur choisit : juste → vert ; faux → barré, et une petite attente
+  choisir(id, k, texte) {
+    const D = this.S(), C = this.ficheCache(id).champs.find((c) => c.k === k);
+    if (!C || !C.val || !this.sait(id, k) || this.attend(id, k) || (D.valides[id] || {})[k] === true) return null;
+    if (this.barres(id, k).some((t) => d15Norme(t) === d15Norme(texte))) return null;
+    const ok = d15Norme(texte) === d15Norme(C.val);
     if (!D.valides[id]) D.valides[id] = {};
     D.valides[id][k] = ok;
-    if (ok) this.voir(id, k);
+    if (ok) {
+      (D.notes[id] || (D.notes[id] = {}))[k] = String(C.val);
+      if (D.faux[id]) { delete D.faux[id][k]; if (!Object.keys(D.faux[id]).length) delete D.faux[id]; }
+    } else {
+      const F = D.faux[id] || (D.faux[id] = {}), L = F[k] || (F[k] = []);
+      if (!L.includes(String(texte))) L.push(String(texte));
+      (this.attente || (this.attente = {}))[id + '|' + k] = performance.now() + D15_ATTENTE;
+    }
     this.change();
     return ok;
   },
+  attend(id, k) { const t = this.attente && this.attente[id + '|' + k]; return t && t > performance.now() ? t - performance.now() : 0; },
+  barres(id, k) { const F = this.S().faux[id]; return (F && F[k]) || []; },
   toutDebloquer(on) { const D = this.S(); D.tout = on !== false; this.change(); },
   change() { clearTimeout(this.miroirT); this.miroirT = setTimeout(() => this.miroir(), 1200); if (this.surChange) try { this.surChange(); } catch (e) { console.error(e); } },
   miroir() {
@@ -366,7 +458,7 @@ function d15Cap(t) { t = String(t || ''); return t.charAt(0).toUpperCase() + t.s
 
 // ---------------------------------------------------------------- les emballages
 HOOKS.load.push(() => {
-  try { decouvertes.cat = null; decouvertes._fc = null; decouvertes.S(); decouvertes.rattraper(); decouvertes.miroir(); } catch (e) { console.error('decouvertes', e); }
+  try { decouvertes.cat = null; decouvertes._fc = null; decouvertes._opt = null; decouvertes._res = null; decouvertes.attente = {}; decouvertes.S(); decouvertes.rattraper(); decouvertes.miroir(); } catch (e) { console.error('decouvertes', e); }
   if (decouvertes.branche) return;
   decouvertes.branche = true;
   const D = decouvertes, garde = (fn) => { try { fn(); } catch (e) { console.error('decouvertes', e); } };
