@@ -1808,7 +1808,7 @@ function buildWiki(DB) {
     cadeau_adore: 'un cadeau adoré', cadeau_deteste: 'un cadeau détesté', aide: 'votre aide', toque_nuit: 'quand on frappe la nuit', coup: 'un coup reçu', absence: 'une longue absence', victime: 'une victime',
     arme: 'une arme à la main', pelle: 'une pelle', potion: 'une potion', animal_mort: 'une bête morte', fleurs: 'des fleurs', poisson: 'un poisson', lanterne_jour: 'une lanterne en plein jour', relique: 'une relique', rien: 'les mains vides',
     travail: 'au travail', repas: 'au repas', priere: 'à la prière', promenade: 'en promenade', eglise: 'l’Église', anciens: 'les Anciens', dessous: 'Ceux d’en dessous',
-    offre: 'La demande', accepte: 'Quand on accepte', attente: 'En attendant', recu: 'Le message', fin: 'À la fin', resume: 'En bref', texte: 'Le récit', indice_m: 'Indice', decouverte: 'La découverte',
+    offre: 'La demande', accepte: 'Quand on accepte', attente: 'En attendant', recu: 'Le message', fin: 'À la fin', resume: 'En bref', texte: 'Le récit', indice_m: 'Indice', decouverte: 'La découverte', vu: 'Sur place',
   };
   // (les tables des modules nouveaux : des clés lisibles, sans les intitulés propres aux répliques)
   let plainLabels = false;
@@ -2129,11 +2129,12 @@ function buildWiki(DB) {
   // (une routine peut compter deux étapes à la même heure : seule la dernière compte)
   const schedText = (S, d) => (S || []).filter((e, i, a) => !(a[i + 1] && a[i + 1][0] === e[0])).map(([hr, pl]) => { const q = placeKey(pl, d); return `<span class="sch"><b>${hours(hr)}</b> ${pages.has('li:' + q.k) && q.t !== 'chez soi' ? placeLink(q.k, q.t) : esc(q.t)}</span>`; }).join(' ');
   const questHTML = (d, q) => {
-    const typ = { apporter: 'apporter', parler: 'aller parler', livrer: 'livrer', trouver: 'retrouver', enquete: 'enquêter' }[q.type] || q.type;
+    const typ = { apporter: 'apporter', parler: 'aller parler', livrer: 'livrer', trouver: 'retrouver', enquete: 'enquêter', aller: 'se rendre', chasse: 'chasser' }[q.type] || q.type;
     let h = `<div class="quest"><h4>« ${esc(q.title)} » <small>${esc(typ)}${q.minAmitie ? ` · amitié ${q.minAmitie} au moins` : ''}</small></h4><dl class="kv">`;
     if (q.need) h += `<dt>Il faut</dt><dd>${needList(q.need)}</dd>`;
     if (q.a) h += `<dt>${q.type === 'livrer' ? 'À livrer à' : 'Voir'}</dt><dd>${npcLink(q.a)}${q.objet ? ' — ' + IL(q.objet) : ''}</dd>`;
     else if (q.objet) h += `<dt>Objet</dt><dd>${IL(q.objet)}</dd>`;
+    if (q.type === 'chasse' && q.bete) h += `<dt>Abattre</dt><dd>${esc((U('CHASSE_NOMS', {}) || {})[q.bete] || q.bete)}${(q.n || 1) > 1 ? ` <small>×${q.n}</small>` : ''}</dd>`;
     if (q.lieu) h += `<dt>Lieu</dt><dd>${q.type === 'trouver' ? secS(placeLink(q.lieu)) + '<span class="sec-note">masqué</span>' : placeLink(q.lieu)}${q.moment ? ` <small>(${esc(q.moment)})</small>` : ''}</dd>`;
     const rw = q.reward || {};
     const rws = [];
@@ -2143,11 +2144,13 @@ function buildWiki(DB) {
     if (rw.objets) rws.push(Object.entries(rw.objets).map(([k, n]) => IL(k, n)).join(', '));
     for (const k of Object.keys(rw)) if (!['argent', 'amitie', 'recette', 'objets'].includes(k)) rws.push(esc(label(k)) + ' : ' + esc(JSON.stringify(rw[k])));
     if (rws.length) h += `<dt>Récompense</dt><dd>${rws.join(' · ')}</dd>`;
+    if (Array.isArray(q.choix) && q.choix.length) h += `<dt>À la fin</dt><dd>une réponse à choisir (${q.choix.length}) ; la récompense en dépend</dd>`;
     h += '</dl>';
     const tx = q.texte || {};
     if (tx.offre) h += quote(tx.offre, d.id);
     const rest = Object.keys(tx).filter((k) => k !== 'offre');
-    if (rest.length) h += SEC(`<details><summary>La suite de la quête</summary>${rest.map((k) => `<p class="small"><b>${esc(label(k))} :</b> ${FILL(tx[k], k === 'recu' ? q.a : d.id)}</p>`).join('')}</details>`, false);
+    const chx = Array.isArray(q.choix) ? q.choix.map((c) => { const r = c.reward || {}; const rr = [r.argent ? nfmt(r.argent) + ' pièces' : '', r.amitie ? 'amitié +' + r.amitie : '', r.objets ? Object.entries(r.objets).map(([k, n]) => IL(k, n)).join(', ') : ''].filter(Boolean).join(' · '); return `<p class="small"><b>« ${esc(c.label)} »</b>${rr ? ` <small>(${rr})</small>` : ''} : ${FILL(c.texte, d.id)}</p>`; }).join('') : '';
+    if (rest.length || chx) h += SEC(`<details><summary>La suite de la quête</summary>${rest.map((k) => `<p class="small"><b>${esc(label(k))} :</b> ${FILL(tx[k], k === 'recu' ? q.a : d.id)}</p>`).join('')}${chx}</details>`, false);
     return h + '</div>';
   };
   for (const d of NPCS) {
@@ -4437,6 +4440,10 @@ function buildWiki(DB) {
   let W15B = null;
   try { W15B = require('./wiki-v15b.js'); } catch (e) { (DB.log || []).push('wiki-v15b.js : ' + e.message); }
   if (W15B) try { W15B.build({ DB, T, P, SP, SEC, esc, lk, IL, pages, used, MF, ITEMS }); } catch (e) { (DB.log || []).push('wiki-v15b.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
+  // ==== LA SEIZIÈME VAGUE : des quêtes pour tout le monde (tools/wiki-v16.js)
+  let W16 = null;
+  try { W16 = require('./wiki-v16.js'); } catch (e) { (DB.log || []).push('wiki-v16.js : ' + e.message); }
+  if (W16) try { W16.build({ DB, T, P, SP, SEC, esc, lk, IL, FILL, quotes, npcLink, placeLink, link, pages, used, nfmt, MF, ITEMS, NAMES }); } catch (e) { (DB.log || []).push('wiki-v16.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
   for (const f of [FILE.vol, FILE.prison, FILE.sentiments]) if (f) genericPage(f, 'prison', 'Prison, vol et sentiments');
   for (const f of Object.keys(MF)) if (!MODPAGE[f] && !/^07-/.test(f)) genericPage(f, 'nouveautes-autres', 'Autres nouveautés');
   // ce qui reste des tables de chaque module : en bas de sa fiche principale
@@ -4538,9 +4545,10 @@ function buildWiki(DB) {
   // toutes les quêtes
   {
     const qs = NPCS.flatMap((d) => (d.quests || []).map((q) => [d, q]));
-    const typ = { apporter: 'apporter', parler: 'aller parler', livrer: 'livrer', trouver: 'retrouver', enquete: 'enquêter' };
+    const typ = { apporter: 'apporter', parler: 'aller parler', livrer: 'livrer', trouver: 'retrouver', enquete: 'enquêter', aller: 'se rendre', chasse: 'chasser' };
+    const CHN = T('CHASSE_NOMS', {}) || {};
     if (qs.length) {
-      P('cat:quetes', { t: 'Quêtes', s: `${qs.length} quêtes`, c: [], i: '✎', h: `<p class="lead">Ce que les habitants vous demandent, à mesure qu’ils vous font confiance.</p><table class="t"><tr><th>Quête</th><th>Qui</th><th>Quoi</th><th>Récompense</th></tr>${qs.map(([d, q]) => `<tr><td>« ${esc(q.title)} »${q.minAmitie ? ` <small>amitié ${q.minAmitie}</small>` : ''}</td><td>${npcLink(d.id)}</td><td>${esc(typ[q.type] || q.type || '')}${q.need ? ' : ' + needList(q.need) : ''}${q.a ? ' → ' + npcLink(q.a) : ''}${q.objet ? ' ' + IL(q.objet) : ''}${q.lieu && q.type !== 'trouver' ? ' — ' + placeLink(q.lieu) : ''}${q.moment ? ` <small>(${esc(q.moment)})</small>` : ''}</td><td>${[q.reward && q.reward.argent ? nfmt(q.reward.argent) + ' pièces' : '', q.reward && q.reward.recette ? 'recette : ' + IL(q.reward.recette) : '', q.reward && q.reward.objets ? Object.entries(q.reward.objets).map(([k, n]) => IL(k, n)).join(', ') : ''].filter(Boolean).join(' · ')}</td></tr>`).join('')}</table>` });
+      P('cat:quetes', { t: 'Quêtes', s: `${qs.length} quêtes`, c: [], i: '✎', h: `<p class="lead">Ce que les habitants vous demandent, à mesure qu’ils vous font confiance.</p><table class="t"><tr><th>Quête</th><th>Qui</th><th>Quoi</th><th>Récompense</th></tr>${qs.map(([d, q]) => `<tr><td>« ${esc(q.title)} »${q.minAmitie ? ` <small>amitié ${q.minAmitie}</small>` : ''}</td><td>${npcLink(d.id)}</td><td>${esc(typ[q.type] || q.type || '')}${q.need ? ' : ' + needList(q.need) : ''}${q.a ? ' → ' + npcLink(q.a) : ''}${q.objet ? ' ' + IL(q.objet) : ''}${q.type === 'chasse' && q.bete ? ' : ' + esc(CHN[q.bete] || q.bete) + ((q.n || 1) > 1 ? ` <small>×${q.n}</small>` : '') : ''}${q.lieu && q.type !== 'trouver' ? ' — ' + placeLink(q.lieu) : ''}${q.moment ? ` <small>(${esc(q.moment)})</small>` : ''}</td><td>${[q.reward && q.reward.argent ? nfmt(q.reward.argent) + ' pièces' : '', q.reward && q.reward.recette ? 'recette : ' + IL(q.reward.recette) : '', q.reward && q.reward.objets ? Object.entries(q.reward.objets).map(([k, n]) => IL(k, n)).join(', ') : ''].filter(Boolean).join(' · ')}</td></tr>`).join('')}</table>` });
       cats.splice(cats.findIndex((c) => c.id === 'habitants') + 1, 0, { id: 'quetes', t: 'Quêtes', d: 'Toutes les quêtes des habitants.', page: true });
     }
   }
@@ -4549,6 +4557,7 @@ function buildWiki(DB) {
   if (W14 && W14.sections) try { W14.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v14.js (sections) : ' + e.message); }
   if (W15 && W15.sections) try { W15.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v15.js (sections) : ' + e.message); }
   if (W15B && W15B.sections) try { W15B.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v15b.js (sections) : ' + e.message); }
+  if (W16 && W16.sections) try { W16.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v16.js (sections) : ' + e.message); }
   // semaine : page d'ensemble
   if (SEM.length) P('cat:semaine', { t: 'La semaine', s: `${SEM.length} jours`, c: [], i: '📅', h: `<p class="lead">Dans la vallée, la semaine compte ${SEM.length} jours${DB.derived.jour ? `, et une journée dure ${Math.round(DB.derived.jour / 60)} minutes` : ''}.</p><table class="t">${SEM.map((J, k) => `<tr><th>${link('sem:' + k)}</th><td>${esc((J.annonce || '').replace(/^\(|\)$/g, ''))}</td></tr>`).join('')}</table>` });
 

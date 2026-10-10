@@ -1096,8 +1096,10 @@ Les commandes sont dans le menu **Commandes** (Échap).
   danger), abattue (ce qu'elle laisse) ; un objet tenu (sa sorte), vu chez un marchand (son prix), mangé (ce qu'il
   fait) ; une plante cueillie ; un habitant à qui l'on a parlé (son métier), vu chez lui, revu plusieurs jours (son
   caractère). La notice d'une bête ou d'une plante se lit quand on sait tout d'elle.
-- **Le wiki interactif** : dans chaque case apprise, on écrit ce qu'on en sait, avec ses mots, puis on valide. Juste,
-  la case passe **au vert** ; pas encore, elle reste grise, et l'on peut réessayer. Des notes libres sur chaque page.
+- **Le wiki interactif** : chaque case apprise propose **trois réponses** ; une seule est juste, les deux autres sont
+  prises aux autres fiches. On clique (ou Tab puis Entrée, ou 1, 2, 3). Juste, la case passe **au vert** ; fausse, la
+  réponse se barre **en rouge**, et l'on attend six secondes avant de rechoisir parmi les deux autres. Les cases déjà
+  vertes des anciennes parties le restent. Des notes libres sur chaque page.
 - **Ou exact** : dans les Options (section Jeu), décocher « Wiki interactif » fait afficher directement les bonnes
   informations — toujours au fur et à mesure des découvertes.
 - **Le wiki de la vallée suit la partie** : le jeu garde dans le navigateur une copie de ce qu'on a découvert ;
@@ -1117,6 +1119,23 @@ Les commandes sont dans le menu **Commandes** (Échap).
 - **Des dalles scellées**, gravées de leurs runes, ne s'ouvrent pas autrement : il faut le bon assemblage. Derrière,
   quelque chose attend.
 - **Peu de mots** : une lueur, un son de pierre, ou un coup mat ; le wiki du jeu pour noter ce qu'on a compris.
+
+**Des quêtes pour tout le monde**
+- **Chaque personnage a au moins une quête, un tiers en a deux** : les habitants (les Sources, la naine, les gardes et
+  le chevalier ont maintenant les leurs ; d'autres, une seconde), et tous ceux qui parlent sans être des habitants —
+  la diseuse, le violoneux, le crieur, le voiturier, le marchand de joie, le roi Sucre, la vieille des gobelins,
+  Thibaud et la Dame de Hautguet, la veilleuse de la cité, les bêtes qui parlent (après leur propre service), ceux
+  d'en bas, les gens de Basse-Fosse.
+- **Dans leur panneau**, une ligne de plus : « Avez-vous besoin d'aide ? ». Ceux qui ne parlent qu'en sous-titres
+  ouvrent un panneau quand ils ont quelque chose à demander, une fois par jour au plus ; « Pas maintenant », et ils
+  redemandent le lendemain.
+- **Des sortes nouvelles** : se rendre quelque part (parfois à une heure dite : la nuit, l'aube, le soir), abattre une
+  bête, et des fins à choisir, dont la récompense dépend. On porte aussi des objets et des messages d'un personnage à
+  l'autre (« Remettre : … »).
+- **Ceux d'en bas n'ont pas nos mots** : leurs demandes se font par gestes, et ils paient en choses, pas en pièces.
+  À Basse-Fosse, ceux qui n'ont pas de nom ont chacun la leur, toujours la même pour une partie donnée.
+- Tout se suit dans le carnet (Carnet → Quêtes), avec celles des habitants ; si celui qui demande disparaît, la quête
+  ne pourra plus se faire.
 
 ### Mode Création
 
@@ -1645,6 +1664,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `05-zzzzzV5-textes.js`, `07-zzzzzzzzzzzzV5-ville.js`, `09-zzzzzV5-sons.js`, `11-zzzzV5-1-ville.js`, `11-zzzzV5-2-catacombes.js`, `11-zzzzV5-3-habitants.js`, `11-zzzzV5-4-secrets.js`, `11-zzzzV5-5-fins.js` | Basse-Fosse et les secrets des Terres d'Avant : textes, lettres, objets, butins, troc ; deux matières (l'os, le tuf) et les modèles ; les sons ; la ville (`11-zzzzV5-1-ville.js`, une passe de la Zone : îlots, maisons, Nef, nécropole, le graphe des rues) ; l'entrée, la nuit d'en bas, les offices, lire, prendre, fouiller, les murs qui mentent (`11-zzzzV5-2-catacombes.js`) ; les vingt-quatre gens d'en bas (`11-zzzzV5-3-habitants.js`) ; les secrets de la Zone (`11-zzzzV5-4-secrets.js`) ; les trois fins (`11-zzzzV5-5-fins.js`) (`farm.s.v5`, API `zone.catacombes` et `zone.secrets`) |
 | `05-zzzzzzM15-menus.js`, `12-zzzzzzM15-menus.js` | le menu simplifié : le registre des pages du menu Tab (`menus.page`, `menus.ouvrir`, `menus.marque` ; chargé avant les tranches 06 à 13, on y inscrit une page de partout), puis la mise en page, emballée en dernier autour de `ui.renderSatchel` (quatre onglets et leurs pages, le clavier, les Options en quatre sections) ; les lettres sur soi (`farm.s.mail[i].sur`) et la boîte aux lettres (`menus.lireLettre`) |
 | `11-zzzzzD15-1-decouvertes.js`, `12-zzzzzD15-wiki.js` | le wiki dans le jeu : les découvertes (`farm.s.decouvertes`, API `decouvertes` : `voir`, `sait`, `declarer`, `ajouterChamps`… ; les identifiants de page sont ceux du wiki, `an:`, `it:`, `pl:`, `li:`, `pnj:`, `lv:`, `sys:`), les fiches tirées des tables du jeu, les relevés (une minuterie espacée, des emballages légers), le miroir `prairie.decouvertes` que lit `Prairie-Wiki.html` ; le panneau (l'onglet Wiki, les modes interactif et exact, la case des Options) |
+| `05-zzzzzzQ16-quetes.js`, `11-zzzzzzQ16-quetes.js`, `12-zzzzzzQ16-quetes.js` | des quêtes pour tout le monde : les quêtes en plus des habitants (`Q16_HABITANTS`, ajoutées à leur liste ; les sortes `aller` et `chasse`, les fins à choix `choix`), celles des autres (`Q16_PNJ`) et les modèles des anonymes de Basse-Fosse (`Q16_V5_MODELES`, tirés par partie) ; le jeu (API `q16`, état `farm.s.q16`), les lignes glissées dans les panneaux de chacun, le carnet |
 | `05-zzzzzR15-runes.js`, `09-zzzzzR15-runes.js`, `11-zzzzzR15-1-pose.js`, `11-zzzzzR15-2-jeu.js`, `12-zzzzzR15-runes.js` | les runes : les données (`R15_RUNES`, `R15_REGL`, `R15_PORTES`, les butins des dalles), les sons, la pose (la dernière passe de la vallée, avec son propre tirage, et `zone.passe('R15')` dans les Terres d'Avant : rien de ce qui était posé ne bouge), le jeu (`farm.s.runes`, API `runes` : les tablettes, l'assemblage, les effets, les dalles, le dessin) et le panneau (la page Runes du menu, `runesUI`) |
 | `11-zzz00b-pensees.js`, `tools/pensees.js` | dire peu : `penser.une` (une règle dite une fois par vie), `penser.pas` (un avertissement espacé), `farm.s.pensees` ; l'inventaire des pensées (`node tools/pensees.js`) |
 | `11-zzvallee0-gel.js` | le gel en altitude : la jauge `farm.s.gel`, le givre à l'écran, la mort de froid |
@@ -1654,7 +1674,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzzz4-ferme-temps.js`, `11-zzzz4-meubles.js`, `07-zzzzzzzz-meubles.js` | portée des arroseurs, petites bêtes sous la pluie ; acheter et meubler sa maison (meubles, garde-meuble) |
 | `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
-| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html` ; les fiches de chaque vague dans `wiki-v12.js` à `wiki-v15b.js`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js`, `Q.js` et `T.js`, la quatorzième `Y.js`, `X.js`, `U.js`, `Z.js` et `V1.js` à `V5.js`, la quinzième `R15.js` — et `risques.js` y reprend la maison la nuit de `U.js`) |
+| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html` ; les fiches de chaque vague dans `wiki-v12.js` à `wiki-v16.js`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js`, `Q.js` et `T.js`, la quatorzième `Y.js`, `X.js`, `U.js`, `Z.js` et `V1.js` à `V5.js`, la quinzième `R15.js` — et `risques.js` y reprend la maison la nuit de `U.js`) |
 | `shell.html` | HTML + CSS |
 | `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et ses deux codes (le jeu, le wiki), le site servi tel quel par GitHub Pages, changer un code |
 | `libre/` | la partie sans code : sa page d'accueil (`libre/index.html`), le jeu et le wiki sans leur porte (écrits par `node build.js` et `node tools/wiki-build.js`) |
