@@ -422,6 +422,16 @@ const npcs = {
 };
 
 // ---------------------------------------------------------------- mise en forme des répliques
+// « au {lieu:cimetiere} » → « au cimetière », « du {lieu:ruines} » → « des ruines », « à {lieu:chapelle} » → « à la chapelle »
+function lieuApres(prep, nom) {
+  const m = /^(?:(les|le|la)\s+|(l['’]))/i.exec(nom);
+  if (!m) return prep + ' ' + nom;
+  const mot = m[1] || m[2], art = mot.toLowerCase(), reste = nom.slice(m[0].length);
+  const versA = prep === 'au' || prep === 'aux' || prep === 'à', apo = !m[1];
+  if (art === 'le') return (versA ? 'au ' : 'du ') + reste;
+  if (art === 'les') return (versA ? 'aux ' : 'des ') + reste;
+  return (versA ? 'à ' : 'de ') + (apo ? mot : mot + ' ') + reste;
+}
 function fmtLine(t, n, extra) {
   if (!t) return '';
   const prenom = farm.s.prenom || (farm.s.fem ? 'Jeanne' : 'Jean');
@@ -433,6 +443,7 @@ function fmtLine(t, n, extra) {
     .replace(/\{fermier\}/g, intime ? prenom : farm.s.fem ? 'la nouvelle fermière' : 'le nouveau fermier')
     .replace(/\{ville\}/g, farm.names.ville).replace(/\{hameau\}/g, farm.names.hameau)
     .replace(/\{npc:(\w+)\}/g, (_, id) => npcs.nameOf(id))
+    .replace(/(^|[\s(«“’'])(au|aux|du|des|à|de) \{lieu:(\w+)\}/g, (_, av, prep, k) => av + lieuApres(prep, LIEU_NAMES[k] || k))
     .replace(/\{lieu:(\w+)\}/g, (_, k) => LIEU_NAMES[k] || k)
     .replace(/\{victime\}/g, (extra && extra.victime) || (farm.s.dead.length ? farm.s.dead[farm.s.dead.length - 1].name : 'quelqu’un'))
     .replace(/\{jour\}/g, String(farm.s.day));
