@@ -993,8 +993,8 @@ function extract(G, w, DB, O) {
     // ce que la passe a ajouté, au bout des listes : [sorte, x, z, y (dessous) ou null, v]
     const n0 = R.n0, n = R.n, oT = (o) => (OBJ_TYPES[o.t] || {}).id || String(o.t);
     out.objets = []; for (let i = n0.o; i < n0.o + n.o; i++) { const o = w.objects[i]; if (!o || o.gone) continue; out.objets.push([oT(o), r1(o.x), r1(o.z), o.y !== undefined && o.y < -30 ? r1(o.y) : null, o.v !== undefined ? o.v : null]); }
-    // [id, x, z, y, ce qu'il donne (it / m / k), repousse (every), combien (n)]
-    out.props = []; for (let i = n0.p; i < n0.p + n.p; i++) { const q = w.props[i]; if (!q || q.gone) continue; const d = q.data || {}; out.props.push([q.id, r1(q.x), r1(q.z), r1(q.y || 0), d.it || d.m || (q.id === 'p18_peinture' || q.id === 'p18_signe' ? d.k : '') || '', d.every !== undefined ? d.every : null, d.n || null]); }
+    // [id, x, z, y, ce qu'il donne (it / m / k), repousse (every), combien (n), rotation]
+    out.props = []; for (let i = n0.p; i < n0.p + n.p; i++) { const q = w.props[i]; if (!q || q.gone) continue; const d = q.data || {}; out.props.push([q.id, r1(q.x), r1(q.z), r1(q.y || 0), d.it || d.m || (q.id === 'p18_peinture' || q.id === 'p18_signe' ? d.k : '') || '', d.every !== undefined ? d.every : null, d.n || null, Math.round((q.r || 0) * 100) / 100]); }
     // [sorte, id, libellé, x, y, z, clé]
     out.inter = []; for (let i = n0.i; i < n0.i + n.i; i++) { const it = w.inter[i]; if (!it) continue; const d = it.data || {}; out.inter.push([it.kind, it.id, it.name || '', r1(it.x), r1(it.y || 0), r1(it.z), String(d.k || d.coin || d.item || '')]); }
     // les salles : [clé, sol, hauteur sous la voûte, rx, rz, la vallée au-dessus] (au centre) ; le lac : le fond, l'eau
@@ -1002,13 +1002,13 @@ function extract(G, w, DB, O) {
     out.lacs = P18_GROTTE.lacs.map(([k, x, z, rx, rz]) => [k, r1(S.floorAt(x, z)), r1(S.vaultAt(x, z) - SOUT_WL), rx, rz, r1(w.heightAt(x, z) - WL)]);
     out.galeries = (p18Grotte._gal || []).map(([k, pts, a, b]) => { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return [k, a, b, Math.round(L)]; });
     out.boyaux = (p18Grotte._br || []).map((b) => (b.fin ? 1 : 0));
-    out.nids = (Gr.nids || []).map(([k, x, y, z, m]) => [k, salleDe(x, z), m]);
+    out.nids = (Gr.nids || []).map(([k, x, y, z, m]) => [k, r1(x), r1(z), salleDe(x, z), m]);
     out.trouvailles = (Gr.trouvailles || []).map((T) => ({ id: T.id, items: T.items }));
     out.peintures = Gr.peintures || []; out.signes = Gr.signes || []; out.fleches = Gr.fleches || 0;
     out.sortie = Gr.sortie ? [r1(Gr.sortie[0]), r1(Gr.sortie[2])] : null;
     out.aven = Gr.aven ? { bas: [r1(Gr.aven.bas[0]), r1(Gr.aven.bas[2])], haut: [r1(Gr.aven.haut[0]), r1(Gr.aven.haut[2])], prof: r1(Gr.aven.haut[1] - Gr.aven.bas[1]) } : null;
     out.carnet = typeof P18_CARNET === 'string' ? P18_CARNET : '';
-    // (la salle de ce qui est dessous : props [7], objets [5], interactions [7])
+    // (la salle de ce qui est dessous : props [8], objets [5], interactions [7])
     for (const q of out.props) q.push(q[3] < -30 ? salleDe(q[1], q[2]) : '');
     for (const o of out.objets) o.push(o[3] !== null ? salleDe(o[1], o[2]) : '');
     for (const it of out.inter) it.push(it[4] < -30 ? salleDe(it[3], it[5]) : '');
@@ -1097,9 +1097,394 @@ function planGrottes(G, DB, O) {
   return { x0: X0, z0: Z0, x1: X0 + w / ppm, z1: Z0 + h / ppm, ppm, img: P.png(), faces: faces.length, open: op.reduce((a, v) => a + v, 0) };
 }
 
+// ---- les fiches (build) : « Les cascades » (sys:cascades), « Les Grottes de la Chute » (sys:grottes), « Les coins de paradis »
+// (sys:paradis), et ce que disent les fiches des lieux que la passe a nommés (les cinq chutes, les six coins, la grotte, sa bouche,
+// l'aven, les douze salles, le lac, la rivière). Sous « révéler les secrets » : l'ordre des trois signes et ce qu'il y a derrière
+// la dalle (le Sanctuaire, son coffre, ses peintures) ; ce que montrent les peintures de la Galerie des Mains et le carnet du
+// géologue (l'ordre y est) ; l'endroit exact des coins de paradis et du haut de l'aven (le jeu les tient pour des lieux
+// secrets) ; les filons et les trouvailles d'une fois.
+const P18_SORTE = { rideau: 'un rideau, large', ruban: 'un ruban, étroit et très haut', gradins: 'des gradins, de vasque en vasque' };
+const P18_FIN = { perte: 'se perd sous la roche (une perte : l’eau tourne, et s’enfonce)', lac: 'rejoint le grand lac', mare: 'finit dans une mare aux roseaux' };
+const P18_CHUTE_TXT = {
+  grande: 'Un rideau de treize mètres de large, qui tombe d’une dalle en surplomb, sous les monts de l’ouest. Derrière l’eau, une corniche de roche mouillée et, au fond, une bouche noire : l’entrée des Grottes de la Chute. À l’aval, le ruisseau se perd sous la roche ; son eau retombe, dessous, dans la Salle du Tonnerre.',
+  saules: 'L’eau sort d’une faille de la paroi et tombe dans un bassin où se tient un îlot. En quatre marches, le ruisseau rejoint le grand lac.',
+  cascatelles: 'Six gradins dans le bois : l’eau naît d’une source au-dessus de la première vasque et descend de vasque en vasque jusqu’au bassin du bas, puis à une mare aux roseaux.',
+  loup: 'Un ruban de moins de trois mètres de large qui saute d’une falaise, tout au bout de l’est, dans le bois : la plus haute des cinq.',
+  voile: 'Un ruban de quatre mètres de large, qui tombe d’une haute paroi, au nord, au-dessus de l’abbaye.',
+};
+// les salles : ce qu'on y voit (le reste — la profondeur, la hauteur, ce qui s'y cueille, ce qui y vit — se lit dans la vallée)
+const P18_SALLE_TXT = {
+  vestibule: 'Là où l’on arrive, au bas du long boyau qui descend de la chute. Des stalactites ; au bout, une pâleur : le jour, très loin. Sur une pierre, le carnet d’un géologue (« Lire le carnet laissé là ») ; près du départ, un cairn de trois pierres : « Remonter vers la chute ». Deux chemins : vers le levant, on remonte doucement jusqu’à l’Aven ; de l’autre côté, la Galerie des Mains.',
+  mains: 'Une galerie basse, au sol d’argile. Sur les parois, des peintures très anciennes (« Regarder la peinture ») : des dizaines de mains soufflées à l’ocre, trois figures côte à côte avec une encoche sous chacune, un long trait qui fait le tour de la paroi. Dans un coin, la paroi s’effrite en poudre rouge : « Gratter l’ocre ».',
+  cristaux: 'Une haute salle de calcite, hérissée de cristaux qui luisent un peu, bleus et violets. Dans la paroi, des filons de cristal de roche ; au sol, de grosses grappes de cristaux.',
+  puits: 'Une salle ronde ; au milieu, un gouffre dont on ne voit pas le fond. Des os, au bord ; des filons dans la paroi.',
+  aven: 'Une salle au sol de terre noire, sous une cheminée ouverte sur le ciel : de jour, la lumière descend jusqu’en bas. Des racines pendent jusqu’au sol ; on y grimpe pour sortir (« Grimper aux racines »). Des fougères pâles, de la mousse qui luit.',
+  tonnerre: 'L’eau tombe de la voûte, très haut, dans une vasque, avec un bruit de forge : c’est l’eau de la Grande Chute, qui s’était perdue sous la roche, dehors. De là part la Rivière grondante. Des éboulis, des stalactites.',
+  fossiles: 'Une longue galerie d’argile ; dans les parois, des coquilles enroulées, prises dans la pierre. Quelques fossiles se détachent (« Détacher le fossile »).',
+  cathedrale: 'La plus grande : une voûte que la lanterne ne trouve pas, des piliers, des forêts de stalagmites, des chauves-souris par milliers, et leur guano. Sur une paroi, des cerfs, des aurochs, un cheval qui court. Au fond, une galerie lisse finit sur une dalle qui ne bouge pas.',
+  sanctuaire: 'Derrière la dalle du fond de la Cathédrale : une petite salle aux parois peintes, et un coffre.',
+  gours: 'Des vasques de calcite en terrasses, pleines d’une eau immobile.',
+  draperies: 'Des voiles de calcite qui pendent de la voûte comme des rideaux, des colonnes, une forêt de stalagmites ; des filons dans la paroi.',
+  eboulis: 'Le bout : un amas de blocs ferme la galerie. Derrière, très loin, de l’eau noire bat contre la pierre (« Écouter derrière l’éboulis ») ; on ne passe pas.',
+  lac: 'Un lac sous une voûte basse, éclairé par des champignons qui luisent comme des veilleuses ; des champignons géants sur les rives, du pied-de-pierre sur l’argile, un îlot. Dans l’eau peu profonde, des protées et des écrevisses aveugles ; on y pêche.',
+  torrent: 'La rivière qui descend de la Salle du Tonnerre jusqu’au lac, de vasque en vasque, en petites chutes ; une berge pour marcher.',
+};
+// les coins : ce qu'on y trouve, en clair
+const P18_COIN_TXT = {
+  papillons: 'Une clairière que les arbres ont laissée : un pré de fleurs sauvages, où les papillons viennent tous, de jour, quand il ne pleut pas. Une souche, pour s’asseoir.',
+  source: 'Une eau qui sort de terre toute tiède, dans un bassin entouré de pierres moussues ; elle fume un peu. Des fougères, de la mousse, des violettes.',
+  saule: 'Un îlot au milieu d’un bassin, sous un saule pleureur ; des iris, des myosotis ; une pierre plate au bord de l’eau.',
+  fees: 'Un bassin dans le bois, l’herbe épaisse, des fougères, des fraises des bois ; une pierre plate. De jour, des papillons ; la nuit, des lucioles.',
+  belvedere: 'Un replat d’herbe au-dessus du vide, des fleurs de montagne, un pin seul, et un banc de pierre tourné vers la vallée.',
+  verger: 'Un verger que personne n’a planté : des poiriers, des pruniers, des cerisiers, des pommiers, un noyer ; des ronces, des églantiers, des sureaux au bord ; un muret pour s’asseoir.',
+};
+// les bêtes d'en bas (leurs nids) : comme la fiche « Les bêtes d'en bas »
+const P18_BETES = { chauve: 'chauves-souris', protee: 'protées', ecrevisse: 'écrevisses aveugles', grillon: 'grillons des cavernes', scolopendre: 'scolopendres' };
+// ce qu'on voit dessous (objets posés de décor)
+const P18_DECO = { sout_stalac: 'stalactites', sout_stalag: 'stalagmites', sout_cristal: 'cristaux', sout_os: 'os', sout_eboulis: 'blocs d’éboulis', p18_ammonite: 'coquilles fossiles dans la paroi', sout_champi_grand: 'champignons géants', p18_draperie: 'draperies de calcite', sout_colonne: 'colonnes' };
+// ce qui se cueille dessous (objets posés « cueillette ») : l'objet qu'il donne
+const P18_CUEILLE = { sout_filon: 1, sout_vasque: 1, sout_fougere: 1, sout_mousse: 1, sout_guano: 1, sout_champi: 1, sout_pied_pierre: 1 };
+
 function cascades(X, H) {
-  void X; void H;
+  const { DB, T, SP, P, SEC, esc, IL, lk, nfmt, MF, ITEMS, pages, used, mapBtn, planBtn } = X;
+  const { h3, ul, tbl, kv, lieu, pnj, pg, log } = H;
+  const CH = T('P18_CHUTES', null), CO = T('P18_COINS', []) || [], GR = T('P18_GROTTE', null), SN = T('P18_SALLES_NOMS', {}) || {}, TX = T('P18_TEXTES', {}) || {};
+  if (!Array.isArray(CH) || !CH.length || !GR) { log('P18_CHUTES introuvable : pas de fiches des cascades'); return; }
+  // (les tables de la part : lues ici, rien dans « Autres tables » ni en bas des fiches — l'ordre des signes surtout)
+  for (const [n, t] of Object.entries(DB.tables || {})) if (/P18-/.test(t.file || '')) used.add(n);
+  const V = (DB.world && DB.world.p18) || null;
+  if (!V) log('pas de relevé de la vallée (DB.world.p18) : les fiches des cascades sans les chiffres de la vallée');
+  const files = Object.keys(MF || {}).filter((f) => /P18-/.test(f));
+  const fG = files.filter((f) => /P18-(2|3)-|P18-carnet/.test(f)), fC = files.filter((f) => !fG.includes(f));
+  const scal = (k, d) => { for (const f of files) { const S = MF[f] && MF[f].scal && MF[f].scal[k]; if (S && typeof S.v === 'number') return S.v; } return d; };
+  const SOIN = scal('P18_REPOS_SOIN', 12), ESPRIT = scal('P18_REPOS_ESPRIT', 3), BAIN = scal('P18_BAIN_SOIN', 25), PREMIER = scal('P18_PREMIERE_FOIS', 4);
+  const m = (v, d) => `${nfmt(Math.round(v * (d ? 10 : 1)) / (d ? 10 : 1))} m`;
+  const prix = (id) => (ITEMS[id] && ITEMS[id].price) || 0;
+  const pcs = (n) => `${nfmt(n)} pièce${n > 1 ? 's' : ''}`;
+  const plur = (n, a, b) => `${nfmt(n)} ${n > 1 ? b : a}`;
+  const nomS = (k) => SN[k] || k;
+  const salle = (k, t) => lk('li:p18g_' + k, t || nomS(k));
+  const chute = (k, t) => lk('li:p18_' + k, t || (CH.find((c) => c.k === k) || {}).nom || k);
+  const coin = (k, t) => lk('li:p18_' + k, t || (CO.find((c) => c.k === k) || {}).nom || k);
+  const grottes = (t) => lk('sys:grottes', t || 'les Grottes de la Chute');
+  const paradis = (t) => lk('sys:paradis', t || 'les coins de paradis');
+  const cascL = (t) => lk('sys:cascades', t || 'les cascades');
+  // la place d'un point : à quelle distance de la ferme, dans quelle direction ; le lieu-dit le plus proche
+  const LMS = (DB.world && DB.world.lm) || [], LM = Object.fromEntries(LMS.map((L) => [L.key, L]));
+  const FARM = LM.ferme || { x: (DB.world && DB.world.size || 2688) / 2, z: (DB.world && DB.world.size || 2688) / 2 };
+  const DIRS = ['au nord', 'au nord-est', 'à l’est', 'au sud-est', 'au sud', 'au sud-ouest', 'à l’ouest', 'au nord-ouest'];
+  const cap8 = (x, z) => DIRS[((Math.round(Math.atan2(x - FARM.x, -(z - FARM.z)) / (Math.PI / 4)) % 8) + 8) % 8];
+  const loinF = (x, z) => { const d = Math.hypot(x - FARM.x, z - FARM.z); return d >= 1000 ? `${nfmt(Math.round(d / 100) / 10)} km` : `${Math.round(d / 10) * 10} m`; };
+  const ouDe = (x, z) => `${loinF(x, z)} ${cap8(x, z)} de la ferme`;
+  const pres = (x, z) => {
+    let best = null, bd = 1e9;
+    for (const L of LMS) { if (/^p18/.test(L.key) || L.secret || L.under || L.c2 || L.peuple || L.r > 200 || !pages.has('li:' + L.key)) continue; const d = Math.hypot(L.x - x, L.z - z) - L.r; if (d < bd) { bd = d; best = L; } }
+    return best && bd < 450 ? `${bd < 30 ? 'au bord de' : 'à ' + Math.round(bd / 10) * 10 + ' m de'} ${lieu(best.key)}` : '';
+  };
+  // ---- ce que la vallée porte (le relevé ; à défaut, les tables)
+  const VC = Object.fromEntries(((V && V.chutes) || []).map((c) => [c.k, c]));
+  const VQ = Object.fromEntries(((V && V.coins) || []).map((c) => [c.k, c]));
+  const haut = (C) => (VC[C.k] ? VC[C.k].h : (C.amont && C.amont.length > 1 ? C.amont[C.amont.length - 2][2] : C.haut) - C.bas);
+  const pos = (k) => { const L = LM['p18_' + k]; return L ? [L.x, L.z] : null; };
+  const OT = Object.fromEntries((T('OBJ_TYPES', []) || []).map((t) => [t.id, t]));
+  const plante = (id, n) => { const t = OT[id], nm = t ? t.name : id; return (pages.has('pl:' + id) ? lk('pl:' + id, nm) : esc(nm)) + (n > 1 ? ` <small>×${n}</small>` : ''); };
+  // dessous : ce qui est posé dans chaque salle
+  const props = (V && V.props) || [], objets = (V && V.objets) || [], inter = (V && V.inter) || [], nids = (V && V.nids) || [];
+  const dessous = (L) => L.filter((q) => q[3] !== null && q[3] < -30);
+  const SAL = {};
+  for (const [k] of GR.salles.concat(GR.lacs)) SAL[k] = { deco: {}, cue: {}, filons: {}, vasques: 0, fossiles: 0, objets: {}, nids: {}, inter: {} };
+  SAL.torrent = { deco: {}, cue: {}, filons: {}, vasques: 0, fossiles: 0, objets: {}, nids: {}, inter: {} };
+  SAL.galerie = { deco: {}, cue: {}, filons: {}, vasques: 0, fossiles: 0, objets: {}, nids: {}, inter: {} };
+  for (const q of dessous(props)) {
+    const [id, , , , it, every, n, , s] = q, S = SAL[s || 'galerie'];
+    if (!S) continue;
+    if (id === 'sout_filon') (S.filons[it] || (S.filons[it] = [])).push(n || 3);
+    else if (id === 'sout_vasque') S.vasques++;
+    else if (P18_CUEILLE[id] && it) { const e = S.cue[it] || (S.cue[it] = { n: 0, every }); e.n++; }
+    else if (P18_DECO[id]) S.deco[id] = (S.deco[id] || 0) + 1;
+  }
+  for (const o of objets) if (o[3] !== null) { const S = SAL[o[5] || 'galerie']; if (S) { const k = o[0] + (o[4] !== null && o[0] === 'vein' ? ':' + o[4] : ''); S.objets[k] = (S.objets[k] || 0) + 1; } }
+  for (const it of inter) if (it[4] < -30) { const S = SAL[it[7] || 'galerie']; if (S) { S.inter[it[0]] = (S.inter[it[0]] || 0) + 1; if (it[0] === 'p18_trouve' && it[6] === 'fossile') S.fossiles++; } }
+  for (const q of nids) { const [k, , , s, n] = q.length >= 5 ? q : [q[0], 0, 0, q[1], q[2]]; const S = SAL[s || 'galerie']; if (S) S.nids[k] = (S.nids[k] || 0) + (n || 1); }
+  const VEINS = T('VEINS', []) || [], HV = T('HARVEST', {}) || {}, TIERS = T('TIERS', []) || [], TIERN = T('TIER_NAMES', {}) || {};
+  const pioche = (tier) => `la pioche ${TIERN[TIERS[tier]] || ''}`.trim();
+  // les liens entre salles (les galeries, et la rivière) ; le chemin vers la sortie, comme les flèches du jeu
+  const GAL = ((V && V.galeries) || GR.galeries.map((g) => [g[0], g[1], g[2], 0])).map(([k, a, b, L]) => [a, b, k, L]);
+  const LIENS = GAL.concat([['tonnerre', 'torrent', 'torrent', 0], ['torrent', 'lac', 'torrent', 0]]);
+  const DV = { vestibule: 0 };
+  { const Q = ['vestibule']; while (Q.length) { const a = Q.shift(); for (const [p, q] of LIENS) { const b = p === a ? q : q === a ? p : null; if (b && DV[b] === undefined) { DV[b] = DV[a] + 1; Q.push(b); } } } }
+  const versSortie = (k) => { let best = null; for (const [p, q, g] of LIENS) { const b = p === k ? q : q === k ? p : null; if (b && DV[b] !== undefined && (best === null || DV[b] < DV[best[0]])) best = [b, g]; } return best; };
+  const voisins = (k) => LIENS.filter(([p, q]) => p === k || q === k).map(([p, q, g, L]) => [p === k ? q : p, g, L]);
+  const pro = (sol) => (V ? Math.round(V.wl - sol) : Math.round(-sol));
+  const VS = Object.fromEntries(((V && V.salles) || []).map((s) => [s[0], s])), VL = Object.fromEntries(((V && V.lacs) || []).map((s) => [s[0], s]));
+  const marche = (k) => (V && V.marche && V.marche[k] > 0 ? V.marche[k] : null);
+  const FISH = T('FISH', {}) || {}, EAUX = T('EAUX', {}) || {};
+  const poissons = Object.keys(FISH).filter((f) => (FISH[f].where || []).includes('souterrain') && ITEMS[f]);
+  const MU = T('MUSIQUE', null), MUS = (MU && MU.morceaux) || {}, TITRES = T('P18_SCENES_TITRES', {}) || {}, SMUS = T('P18_SCENES_MUSIQUE', {}) || {};
+  const morceau = (id) => (MUS[id] ? `« ${esc(MUS[id].titre)} »` : '');
+  const paradisMus = (MU && (MU.ordre || Object.keys(MUS)).filter((id) => MUS[id] && MUS[id].groupe === 'paradis')) || [];
+  const RUM = T('P18_RUMEURS', {}) || {}, RUMT = T('P18_RUMEURS_TOUS', []) || [];
+  const rumeur = (id) => (RUM[id] || []).map((t) => `${pnj(id, cap(pnjRole(id)))} : « ${esc(t)} »`);
+  const NPCS = T('NPC_DATA', []) || [];
+  function pnjRole(id) { const d = NPCS.find((q) => q.id === id); const r = d ? String(d.role || id).toLowerCase() : id; return /^[aeéèêiîoôuh]/i.test(r) ? 'l’' + r : (d && d.gender === 'f' ? 'la ' : 'le ') + r; }
+  const DIVS = { aela: 'Aëla', durn: 'Durn', vesh: 'Vesh' };
+  const div = (k) => (pages.has('div:' + k) ? lk('div:' + k, DIVS[k] || k) : esc(DIVS[k] || k));
+  const PEINT = Object.fromEntries((T('P18_PEINTURES', []) || []).map(([k, s, t]) => [k, { salle: s, t }]));
+  const peint = (k) => (PEINT[k] ? `« ${esc(PEINT[k].t)} »` : '');
+  const carnet = (V && V.carnet) || '';
+  const book = (titre, texte) => `<section class="bookpage">${titre ? `<h4>${esc(titre)}</h4>` : ''}${String(texte || '').split(/\n\n+/).map((x) => `<p>${esc(x)}</p>`).join('')}</section>`;
+
+  // ================================================================ les cascades
+  {
+    const rows = CH.map((C) => {
+      const p = pos(C.k), Vc = VC[C.k], B = C.bassin;
+      const pied = [B ? `un bassin de ${m(B[2] * 2)} sur ${m(B[3] * 2)}` : '', C.fin && P18_FIN[C.fin] ? `le ruisseau ${P18_FIN[C.fin]}` : ''].filter(Boolean).join(' ; ');
+      return [`<b>${chute(C.k, cap(C.nom))}</b>`, esc(cap(P18_SORTE[C.sorte] || C.sorte)) + (C.gradins ? ` <small>(${enLettres(C.gradins.length)})</small>` : ''), m(haut(C), 1), m(C.larg, 1), p ? `${ouDe(p[0], p[1])}${pres(p[0], p[1]) ? '<br><small>' + pres(p[0], p[1]) + '</small>' : ''}` : '—', pied + (Vc && V.minis && V.minis[C.k] ? ` <small>(${plur(V.minis[C.k], 'petite chute', 'petites chutes')} sur le ruisseau)</small>` : '')];
+    });
+    let h = `<p class="lead">Cinq chutes d’eau, loin des chemins, chacune à sa place : la Grande Chute, sous les monts de l’ouest, qui cache une grotte ; la Cascade des Saules, qui descend au grand lac ; les Cascatelles, six gradins dans le bois ; le Saut du Loup, la plus haute ; le Voile de la Mariée, au nord. Au pied de chacune, un cirque de roche, un bassin, la brume ; on les entend avant de les voir.</p>`;
+    h += kv([
+      ['Où', 'loin des routes et des maisons : il faut y aller (voir le tableau ; chaque fiche a son bouton « Voir sur la carte »)'],
+      ['Les trouver', 'en y allant : quand on approche du bassin et que l’eau qui tombe est en vue, la chute est trouvée ; la première fois, une courte scène'],
+      ['Derrière la Grande Chute', `${grottes('les Grottes de la Chute')}`],
+      ['Tout près', `${paradis('des coins de paradis')}, pour s’asseoir`],
+      ['Au carnet', 'Carnet → « Souvenirs » (les scènes vues) ; les lieux trouvés vont au carnet et au wiki du jeu'],
+    ]);
+    h += h3('Les cinq chutes') + tbl(['Chute', 'Sorte', 'Hauteur', 'Largeur', 'Où', 'Au pied'], rows) + `<p class="small">La hauteur : du bord d’où l’eau tombe au bassin. Les ruisseaux d’amont et d’aval descendent en gradins, avec leurs petites chutes.</p>`;
+    h += CH.map((C) => `<h3>${chute(C.k, cap(C.nom))}</h3><p>${esc(P18_CHUTE_TXT[C.k] || '')}</p>`).join('');
+    h += h3('Ce qu’on y voit, ce qu’on y entend') + ul([
+      '<b>Le grondement</b> : un souffle large et grave, qui ne s’arrête pas, avec des éclats d’eau sur l’eau ; on l’entend avant de voir la chute (jusqu’à deux cent soixante mètres), plus sourd quand le relief la cache. Les petites chutes des ruisseaux chantent comme un ruisseau ; la perte de la Grande Chute fait un glouglou qui descend.',
+      '<b>La brume</b> : au pied de chaque chute, des embruns montent et dérivent, plus fournis quand on est près.',
+      '<b>L’arc-en-ciel</b> : de jour, par beau temps (ni pluie, ni ciel couvert), quand le soleil est bas sur l’horizon (moins de quarante-deux degrés) et qu’on l’a dans le dos, à moins de quatre-vingt-dix mètres de la chute, dans la brume.',
+      '<b>L’eau qui tombe</b> : un voile, des filets qui tombent chacun à son allure, l’écume au pied ; derrière le rideau de la Grande Chute, le jour passe à travers l’eau, une clarté pâle qui tremble.',
+    ]);
+    h += h3('À savoir') + ul([
+      `On ne bâtit pas au bord : un cercle autour de chaque bassin (quatorze mètres au-delà de l’eau) et de chaque ${paradis('coin de paradis')} reste libre.`,
+      'Les chutes ont été creusées après tout le reste de la vallée, sans rien déplacer : seules des herbes, des arbres et des cailloux ont été ôtés là où l’eau passe. Une partie d’avant les trouve aussi.',
+      `À l’aval de la Grande Chute, la perte : <kbd>E</kbd>, « Regarder la perte » — « ${esc(String(TX.perte || '').replace(/^\(|\)$/g, ''))} »`,
+    ]);
+    // les scènes
+    const QUAND = { grande: 'en trouvant la chute', saules: 'en trouvant la chute', cascatelles: 'en trouvant la chute', loup: 'en trouvant la chute', voile: 'en trouvant la chute', bouche: 'la première fois qu’on passe derrière le rideau de la Grande Chute', g_cathedrale: 'en entrant dans la Cathédrale', g_lac: 'en arrivant au Lac aux Lueurs', g_cristaux: 'en entrant dans la Salle des Cristaux' };
+    const scenes = Object.keys(TITRES);
+    if (scenes.length) {
+      h += h3(`Les scènes`) + `<p>${cap(enLettres(scenes.length))} courtes scènes, une seule fois chacune : la première fois qu’on trouve une chute, qu’on passe derrière le rideau de la Grande Chute, qu’on entre dans trois grandes salles des grottes, et dans chaque coin de paradis. Sur le moteur des cinématiques de l’histoire : elles se jouent au premier moment tranquille (pas pendant un danger, un panneau ouvert, le sommeil ; une scène de l’histoire qui attend passe d’abord), on les passe en maintenant <kbd>Espace</kbd> ou <kbd>Échap</kbd>. Elles rejoignent les Souvenirs du carnet, d’où l’on peut les revoir de n’importe où : la scène se joue sur place, et le personnage est rendu où il était.</p>`;
+      h += tbl(['Scène', 'Quand', 'Musique'], scenes.map((k) => [`« ${esc(TITRES[k])} »`, esc(QUAND[k] || (CO.some((c) => c.k === k) ? 'en trouvant ce coin de paradis' : '')), morceau(SMUS[k]) || '—']));
+    }
+    h += `<p>${grottes('Les Grottes de la Chute')} · ${paradis('Les coins de paradis')} · ${pg('sys:cinematiques', 'Les cinématiques')} · ${pg('sys:musique', 'La musique')}</p>`;
+    SP('sys:cascades', { t: 'Les cascades', s: 'Cinq chutes d’eau loin des chemins : le rideau, les rubans, les gradins ; la brume, l’arc-en-ciel, le grondement', c: ['cascades'], i: '≋', h }, fC);
+  }
+
+  // ================================================================ les Grottes de la Chute
+  {
+    const toutes = GR.salles.map((s) => s[0]).concat(GR.lacs.map((s) => s[0]));
+    const sols = toutes.map((k) => (VS[k] ? VS[k][1] : VL[k] ? VL[k][1] : null)).filter((x) => x !== null);
+    const loin = Math.max(0, ...toutes.filter((k) => k !== 'sanctuaire').map((k) => marche(k) || 0));
+    const bm = (k) => (marche(k) !== null ? `${nfmt(Math.round(marche(k) / 10) * 10)} m` : '—');
+    let h = `<p class="lead">Derrière le rideau de la Grande Chute, sous les monts de l’ouest, un réseau de grottes : douze salles, un lac, une rivière qui gronde, des galeries, des boyaux. Il y fait noir ; des peintures très anciennes couvrent certaines parois ; un géologue, en 1823, y a laissé des cairns, des flèches et un carnet.</p>`;
+    h += kv([
+      ['L’entrée', `derrière le rideau de ${chute('grande', 'la Grande Chute')} : une bouche noire, au fond de la corniche`],
+      ['Les sorties', `par où l’on est entré ; ou par les racines de l’Aven, vers le jour`],
+      ['La lumière', `une lanterne allumée (${pg('sys:lanterne', 'la lanterne et son huile')})`],
+      ['Profondeur', sols.length ? `de ${nfmt(Math.min(...sols.map(pro)))} à ${nfmt(Math.max(...sols.map(pro)))} m sous l’eau de la vallée` : ''],
+      ['Étendue', V && V.aire ? `${nfmt(Math.round(V.aire / 100) * 100)} m² où l’on marche ; la salle la plus loin, à ${nfmt(Math.round(loin / 10) * 10)} m de marche de l’arrivée` : ''],
+      ['Au carnet', 'Carnet → « Les Grottes de la Chute » : le plan de ce qu’on a vu'],
+    ]) + `<p>${planBtn('grottes', '', 'Le plan des grottes')}</p>`;
+    // ---- entrer, sortir
+    h += h3('Entrer') + ul([
+      `Derrière le rideau de ${chute('grande', 'la Grande Chute')}, une corniche de roche mouillée longe la paroi ; au fond, une bouche noire. On y entre en marchant dedans, ou <kbd>E</kbd> : « Entrer dans la grotte ». « ${esc(TX.entrer || '')} »`,
+      'La première fois qu’on passe derrière le rideau : une scène, « Derrière l’eau ».',
+      `On arrive dans ${salle('vestibule', 'le Vestibule')}, loin sous la chute. Le nom de chaque salle s’affiche quand on y entre.`,
+    ]);
+    h += h3('Sortir') + ul([
+      `<b>Par la chute</b> : au ${salle('vestibule', 'Vestibule')}, près du cairn, « Remonter vers la chute » — « ${esc(TX.sortir || '')} » On ressort sur la corniche, derrière l’eau.`,
+      `<b>Par l’Aven</b> : dans ${salle('aven', 'l’Aven')}, des racines pendent d’une cheminée ouverte sur le ciel : « Grimper aux racines » — « ${esc(TX.aven || '')} » On sort dans les bois, au bord du trou. (La jambe cassée, les racines échappent souvent.)`,
+      `<b>Descendre par l’Aven</b>, depuis le dehors : au bord du trou, « Regarder dans le trou » — « ${esc(TX.avenHaut || '')} » Avec une ${IL('corde')} dans la sacoche, on y descend (« ${esc(TX.avenDescendre || '')} ») ; sans corde, « ${esc(String(TX.avenSansCorde || '').replace(/^\(|\)$/g, ''))} »`,
+      `Au bout du réseau, ${salle('eboulis', 'l’Éboulis')} : on n’y passe pas. Aucune galerie ne rejoint ${pg('sys:dessous', 'le Dessous')}.`,
+    ]);
+    h += SEC(`<p>Le haut de l’Aven : ${LM.p18_aven ? `${ouDe(LM.p18_aven.x, LM.p18_aven.z)} (x ${Math.round(LM.p18_aven.x)}, z ${Math.round(LM.p18_aven.z)}), ${lieu('p18_aven', 'un trou au milieu des arbres')} ${mapBtn('li:p18_aven')}` : lieu('p18_aven', 'un trou au milieu des arbres')}.${V && V.aven ? ` On y descend d’environ ${nfmt(Math.round(V.aven.prof))} m.` : ''}</p>`, 'Où s’ouvre l’Aven, dehors : masqué (secrets).');
+    // ---- la lumière, s'y retrouver
+    h += h3('La lumière') + ul([
+      `Il y fait noir comme ${pg('sys:dessous', 'au Dessous')}, dont les grottes sont un morceau, loin de lui : sans lanterne allumée (ou la pierre luisante), « ${esc(TX.entrerNoir || '')} » La lanterne brûle son huile : en emporter (${pg('sys:lanterne', 'la lanterne et son huile')}, ${pg('sout:noir', 'dans le noir')}).`,
+      'Dans les grandes salles (la Cathédrale, le Lac aux Lueurs, la Salle du Tonnerre, les Draperies, la Salle des Cristaux), le noir porte plus loin. Les cristaux luisent un peu, bleus et violets ; les champignons du lac, vert d’eau ; sous l’Aven, de jour, la lumière descend.',
+    ]);
+    h += h3('S’y retrouver') + ul([
+      `Dans chaque salle, un cairn et une flèche peinte à la craie rouge montrent la galerie qui ramène vers la sortie (vers ${salle('vestibule', 'le Vestibule')}).${V && V.fleches ? ` ${cap(enLettres(V.fleches))} en tout.` : ''}`,
+      `Au ${salle('vestibule', 'Vestibule')}, sur une pierre, le carnet d’un géologue (« Lire le carnet laissé là ») : le seul plan qu’on ait, au début.`,
+      'Carnet → <b>« Les Grottes de la Chute »</b> (la page paraît après la première salle) : le plan, au propre, de ce qu’on a vu — les salles où l’on est entré, avec leur nom, les galeries qui y mènent (en pointillé quand on n’en a vu qu’un bout), le lac, la rivière, les deux sorties (↑), et un point rouge là où l’on est. En bas, le compte des salles vues (sur quatorze).',
+    ]);
+    // ---- les salles
+    const ligne = (k) => {
+      const s = VS[k] || VL[k], prof = s ? `${pro(s[1])} m` : '—', hv = s ? m(s[2]) : '—';
+      const Q = GR.salles.find((q) => q[0] === k) || GR.lacs.find((q) => q[0] === k);
+      return [`<b>${salle(k, cap(nomS(k)))}</b>`, prof, Q ? `${Math.round(Q[3] * 2)} × ${Math.round(Q[4] * 2)} m` : '—', hv, bm(k), esc(P18_SALLE_TXT[k] || '')];
+    };
+    const pub = toutes.filter((k) => k !== 'sanctuaire');
+    h += h3('Les salles') + `<p class="note">Douze salles, le lac et la rivière. La profondeur : sous l’eau de la vallée ; la hauteur : sous la voûte, au milieu ; la marche : depuis l’arrivée, au plus court.</p>` + tbl(['Salle', 'Profondeur', 'Étendue', 'Hauteur', 'Marche', 'Ce qu’on y voit'], [...pub.map(ligne), [`<b>${salle('torrent', cap(nomS('torrent')))}</b>`, '—', '—', '—', bm('torrent'), esc(P18_SALLE_TXT.torrent)]]);
+    h += SEC(tbl(['Salle', 'Profondeur', 'Étendue', 'Hauteur', 'Marche', 'Ce qu’on y voit'], [ligne('sanctuaire')]), 'Une salle de plus, fermée : masqué (secrets).');
+    h += h3('Les galeries') + `<p>${GAL.filter(([a, b]) => a !== 'sanctuaire' && b !== 'sanctuaire').map(([a, b, , L]) => `${salle(a, cap(nomS(a)))} — ${salle(b, nomS(b))}${L ? ` <small>(${L} m)</small>` : ''}`).join(' ; ')} ; et ${salle('tonnerre', 'la Salle du Tonnerre')} — ${salle('torrent', 'la Rivière grondante')} — ${salle('lac', 'le Lac aux Lueurs')}. Un tour se fait sans revenir sur ses pas : le Vestibule, l’Aven, le Tonnerre, la rivière, le lac, la Cathédrale, les Fossiles, les Mains, le Vestibule.</p>`;
+    if (V && V.boyaux && V.boyaux.length) h += `<p>Et ${enLettres(V.boyaux.length)} boyaux qui partent des galeries (les mêmes dans chaque partie), plus bas et plus étroits ; ${enLettres(V.boyaux.filter(Boolean).length)} finissent dans un réduit — parfois un filon, des os, de la mousse qui luit.</p>`;
+    // ---- ce qu'on y trouve
+    const cue = {}, fil = {}, once = {};
+    for (const [k, S] of Object.entries(SAL)) {
+      for (const [it, e] of Object.entries(S.cue)) { const c = cue[it] || (cue[it] = { n: 0, every: e.every, ou: new Set() }); c.n += e.n; c.ou.add(k); }
+      for (const [it, L] of Object.entries(S.filons)) { const c = fil[it] || (fil[it] = { n: 0, q: [], ou: new Set() }); c.n += L.length; c.q.push(...L); c.ou.add(k); }
+      if (S.vasques) { const c = once.perle_caverne || (once.perle_caverne = { n: 0, ou: new Set() }); c.n += S.vasques; c.ou.add(k); }
+      if (S.fossiles) { const c = once.fossile || (once.fossile = { n: 0, ou: new Set() }); c.n += S.fossiles; c.ou.add(k); }
+    }
+    const ouL = (set) => [...set].map((k) => (k === 'galerie' ? 'des boyaux' : salle(k, nomS(k)))).join(', ');
+    const rows = [];
+    rows.push([IL('ocre'), salle('mains', 'la Galerie des Mains'), '« Gratter l’ocre » : deux par jour', pcs(prix('ocre')), 'chaque jour']);
+    for (const [it, c] of Object.entries(cue).sort((a, b) => prix(b[0]) - prix(a[0]))) rows.push([IL(it), ouL(c.ou), `${nfmt(c.n)} touffes ou tas`, pcs(prix(it)), c.every ? `tous les ${enLettres(c.every)} jours` : 'une fois']);
+    h += h3('Ce qu’on y trouve') + `<p>Ce qui se cueille ou se gratte (<kbd>E</kbd>), et repousse :</p>` + tbl(['Objet', 'Où', 'Combien', 'Prix', 'Repousse'], rows);
+    const sec = [];
+    for (const [it, c] of Object.entries(fil)) sec.push([IL(it), ouL(c.ou), `${plur(c.n, 'filon', 'filons')} (${nfmt(Math.min(...c.q))}${Math.max(...c.q) > Math.min(...c.q) ? ' ou ' + nfmt(Math.max(...c.q)) : ''} chacun ; la pioche)`, pcs(prix(it)), 'une fois']);
+    for (const [it, c] of Object.entries(once)) sec.push([IL(it), ouL(c.ou), it === 'perle_caverne' ? `${plur(c.n, 'vasque', 'vasques')} (une perle au fond de chacune)` : `${nfmt(c.n)} à détacher (« Détacher le fossile »)`, pcs(prix(it)), 'une fois']);
+    const objT = {};
+    for (const [k, S] of Object.entries(SAL)) for (const [o, n] of Object.entries(S.objets)) { const c = objT[o] || (objT[o] = { n: 0, ou: new Set() }); c.n += n; c.ou.add(k); }
+    for (const [o, c] of Object.entries(objT)) {
+      if (o === 'crystal' && HV.crystal) { const d = (HV.crystal.drop || [])[0] || ['gemme', 1, 2]; sec.push([IL(d[0]), ouL(c.ou), `${plur(c.n, 'grappe de cristaux', 'grappes de cristaux')} (${pioche(HV.crystal.tier || 0)} ; ${d[1]} ou ${d[2]} chacune)`, pcs(prix(d[0])), 'une fois']); }
+      else if (/^vein:/.test(o)) { const Vn = VEINS[+o.slice(5) % (VEINS.length || 1)]; if (Vn) sec.push([IL(Vn.item), ouL(c.ou), `${plur(c.n, Vn.name.toLowerCase(), Vn.name.toLowerCase().replace(/^(\S+)/, '$1s'))} (${pioche(Vn.tier || 0)} ; ${Vn.n[0]} à ${Vn.n[1]} chacun)`, pcs(prix(Vn.item)), 'une fois']); }
+    }
+    if (sec.length) h += `<p>Et ce qui ne se prend qu’une fois :</p>` + SEC(tbl(['Objet', 'Où', 'Combien', 'Prix', ''], sec), 'Les filons et les trouvailles d’une fois : masqué (secrets).');
+    if (poissons.length) h += `<p>On pêche dans ${salle('lac', 'le Lac aux Lueurs')} comme dans ${esc(EAUX.souterrain || 'les eaux souterraines')} : ${poissons.map((f) => IL(f)).join(', ')}.</p>`;
+    // ---- ce qui y vit
+    const bt = {};
+    for (const [k, S] of Object.entries(SAL)) for (const [b, n] of Object.entries(S.nids)) { const c = bt[b] || (bt[b] = { n: 0, ou: new Set() }); c.n += n; c.ou.add(k); }
+    if (Object.keys(bt).length) h += h3('Ce qui y vit') + tbl(['Bête', 'Où', 'Combien'], Object.entries(bt).map(([b, c]) => [esc(cap(P18_BETES[b] || b)), b === 'grillon' || b === 'scolopendre' ? 'le long des galeries' : ouL(c.ou), nfmt(c.n)])) + `<p class="small">Les bêtes d’en bas, comme au Dessous : ${pg('sout:betes', 'leur fiche')}.</p>`;
+    // ---- le Sanctuaire
+    {
+      const T0 = ((V && V.trouvailles) || []).find((q) => q.id === 'p18_tresor');
+      const tr = T0 ? T0.items.map(([id, n]) => (id === 'argent' ? pcs(n) : IL(id, n > 1 ? n : ''))).join(', ') : '';
+      h += h3('La dalle du fond') + `<p>Au fond de ${salle('cathedrale', 'la Cathédrale')}, une galerie lisse finit sur une dalle plus haute qu’un homme, où sont taillés trois creux ; devant, trois signes. <kbd>E</kbd> : « Poser la main dans le creux ». « ${esc(String(TX.porteFermee || '').replace(/^\(|\)$/g, ''))} »</p>`;
+      h += SEC(ul([
+        `<b>L’ordre</b> est celui des trois figures de ${salle('mains', 'la Galerie des Mains')}, de gauche à droite : la femme qui porte un soleil levant (${div('aela')}, l’aube), l’homme fait de pierres empilées (${div('durn')}, la pierre), la forme sans visage (${div('vesh')}, la nuit). Le carnet du géologue le dit aussi : « Je les ai recopiées, dans l’ordre : la femme au soleil, l’homme de pierre, l’autre. »`,
+        `Un mauvais ordre : « ${esc(String(TX.porteMauvais || '').replace(/^\(|\)$/g, ''))} », et l’on recommence du début. Le bon : « ${esc(String(TX.porteOuverte || '').replace(/^\(|\)$/g, ''))} » Elle reste ouverte.`,
+        `Derrière, ${salle('sanctuaire', 'le Sanctuaire des Trois')} : trois peintures — ${peint('feux')} ; ${peint('porte')} ; ${peint('oeil')} —, et un coffre cerclé de fer (« Ouvrir le coffre ») : « Sous la poussière, un coffre cerclé de fer. Il n’était pas fermé. »${tr ? ` Dedans : ${tr}.` : ''}`,
+      ]), 'L’ordre des trois signes, et ce qu’il y a derrière la dalle : masqué (secrets).');
+    }
+    // ---- les peintures, le carnet
+    h += h3('Les peintures') + `<p>Dans ${salle('mains', 'la Galerie des Mains')} : ${peint('mains')} Et deux autres. Dans ${salle('cathedrale', 'la Cathédrale')} : ${peint('cerfs')} (<kbd>E</kbd> : « Regarder la peinture » ; on les retrouve au wiki du jeu.)</p>`;
+    h += SEC(`<p>Les deux autres peintures de la Galerie des Mains : ${peint('trois')} ; ${peint('ver')}</p>` + (carnet ? book('Le carnet du géologue', carnet) : ''), 'Ce que montrent les autres peintures, et le carnet du géologue (l’ordre y est) : masqué (secrets).');
+    h += `<p>${cascL('Les cascades')} · ${paradis('Les coins de paradis')} · ${pg('sys:dessous', 'Le Dessous')} · ${pg('sys:lanterne', 'La lanterne')} · ${pg('sout:betes', 'Les bêtes d’en bas')}</p>`;
+    SP('sys:grottes', { t: 'Les Grottes de la Chute', s: 'Derrière le rideau de la Grande Chute : douze salles, un lac, une rivière ; la lanterne, les cairns, le plan du carnet', c: ['cascades'], i: '⛏', h }, fG);
+  }
+
+  // ================================================================ les coins de paradis
+  {
+    const plantes = (Q) => {
+      const c = {};
+      for (const o of objets) { if (o[3] !== null || Math.hypot(o[1] - Q.c[0], o[2] - Q.c[1]) > Q.r + 2) continue; c[o[0]] = (c[o[0]] || 0) + 1; }
+      return Object.entries(c).filter(([id]) => OT[id] && !/^(reeds)$/.test(id)).sort((a, b) => b[1] - a[1]).map(([id, n]) => plante(id, n));
+    };
+    let h = `<p class="lead">Six endroits de la vallée où l’on oublie l’heure : un pré plein de papillons, une source tiède, un îlot sous un saule, un bassin au pied des Cascatelles, un belvédère, un verger que personne n’a planté. Rien ne les signale : on les trouve en y allant ; les habitants en parlent à demi-mot.</p>`;
+    h += kv([
+      ['S’asseoir', `une fois par jour et par coin (<kbd>E</kbd> sur la souche, la pierre, le banc ou le muret) : ${SOIN} points de santé, le souffle retrouvé, et la tête plus claire (l’esprit : +${ESPRIT}, ${ESPRIT * 2} au plus par jour pour tous les coins)`],
+      ['Le bain', `à la Source Tiède, une fois par jour : ${BAIN} points de santé, le souffle, l’esprit (+${ESPRIT}) ; une plaie qui saigne saigne moitié moins`],
+      ['La première fois', `trouver un coin apaise l’esprit (+${PREMIER}) ; une courte scène`],
+      ['La musique', paradisMus.length ? `${paradisMus.map(morceau).join(' et ')}, qui viennent sans trop attendre quand on s’y trouve` : ''],
+      ['On n’y bâtit pas', 'chaque coin reste libre (six mètres au-delà de son bord)'],
+    ]);
+    h += h3('S’y reposer') + ul([
+      `« S’asseoir un moment » (au bord de la Source Tiède : « S’asseoir au bord ») : « ${esc(String(TX.repos || '').replace(/^\(|\)$/g, ''))} » ${SOIN} points de santé, le souffle, l’esprit un peu plus clair ; la musique des coins vient bientôt. Le même jour, au même coin : « ${esc(String(TX.reposDeja || '').replace(/^\(|\)$/g, ''))} » — rien de plus.`,
+      `« Se glisser dans l’eau tiède » (la Source Tiède) : « ${esc(String(TX.bain || '').replace(/^\(|\)$/g, ''))} » ${BAIN} points de santé, le souffle, l’esprit ; une plaie qui saigne, moitié moins. Le même jour : « ${esc(String(TX.bainDeja || '').replace(/^\(|\)$/g, ''))} »`,
+      `Deux airs, qu’on n’entend que là : ${paradisMus.map((id) => `${morceau(id)} <small>(${esc(MUS[id].mesure || '')}, ${esc([...new Set(Object.values(MUS[id].voix || {}).map((v) => ({ piano: 'piano', harpe: 'harpe', celesta: 'célesta', cordes: 'cordes' })[v.inst] || v.inst))].join(', '))})</small>`).join(' et ')} ; quand on arrive dans un coin et que la musique se tait depuis un moment, l’un d’eux commence dans les secondes qui suivent (${pg('sys:musique', 'la musique')}).`,
+    ]);
+    for (const Q of CO) {
+      const q = VQ[Q.k] || {}, pl = plantes(Q);
+      let s = `<h3>${coin(Q.k, cap(Q.nom))}</h3><p>${esc(P18_COIN_TXT[Q.k] || '')}</p>`;
+      const bits = [];
+      if (Q.chute) bits.push(`Au ${chute(Q.chute, (CH.find((c) => c.k === Q.chute) || {}).nom)}.`);
+      if (Q.sorte === 'source') bits.push(`On s’y baigne (une fois par jour, ${BAIN} points de santé) ; on s’assied au bord.`);
+      if (q.papillons) bits.push(`${cap(enLettres(q.papillons))} papillons, le jour, sans pluie.`);
+      if (q.lucioles) bits.push('Des lucioles, la nuit, sans pluie.');
+      if (pl.length) bits.push(`Ce qui y pousse : ${pl.slice(0, 12).join(', ')}.`);
+      if (TITRES[Q.k]) bits.push(`La scène : « ${esc(TITRES[Q.k])} »${SMUS[Q.k] ? ` (${morceau(SMUS[Q.k])})` : ''}.`);
+      s += `<p class="small">${bits.filter((b, i) => !(Q.chute && i === 0)).join(' ')}</p>`;
+      const R = rumeur(Object.keys(RUM).find((id) => RUM[id].some((t) => P18_INDICE[Q.k] && P18_INDICE[Q.k].test(t))) || '');
+      if (R.length) s += `<blockquote>${R.join('<br>')}</blockquote>`;
+      const p = pos(Q.k);
+      s += SEC(`<p>${p ? `${ouDe(p[0], p[1])} (x ${Math.round(p[0])}, z ${Math.round(p[1])})${q.y !== undefined ? `, à ${nfmt(Math.round(q.y))} m au-dessus de l’eau` : ''}${pres(p[0], p[1]) ? ', ' + pres(p[0], p[1]) : ''}. ` : ''}${Q.chute ? `Au pied, ou au bord, de ${chute(Q.chute, (CH.find((c) => c.k === Q.chute) || {}).nom)}. ` : ''}${mapBtn('li:p18_' + Q.k)}</p>`, 'Où il est exactement : masqué (secrets).');
+      h += s;
+    }
+    h += h3('Ce qu’on en dit') + `<p>Les habitants en parlent à demi-mot, parmi leurs rumeurs ; jamais tout.</p>` + ul([...Object.keys(RUM).flatMap(rumeur), ...RUMT.map((t) => `Tout le monde, ou presque : « ${esc(t)} »`)]);
+    h += `<p>${cascL('Les cascades')} · ${grottes('Les Grottes de la Chute')} · ${pg('sys:musique', 'La musique')}</p>`;
+    SP('sys:paradis', { t: 'Les coins de paradis', s: 'Six endroits où l’on oublie l’heure : s’y asseoir, s’y baigner, leur musique', c: ['cascades'], i: '❀', h });
+  }
+
+  // ================================================================ les fiches des lieux
+  // (les cinq chutes : publiques ; un mot en tête de la fiche ordinaire)
+  for (const C of CH) {
+    const p = pages.get('li:p18_' + C.k);
+    if (!p || /p18-chute/.test(p.h || '')) continue;
+    const Vc = VC[C.k] || {}, B = C.bassin;
+    let b = `<p class="lead p18-chute">${esc(P18_CHUTE_TXT[C.k] || '')}</p>`;
+    b += kv([
+      ['Sorte', esc(cap(P18_SORTE[C.sorte] || C.sorte)) + (C.gradins ? ` (${enLettres(C.gradins.length)} vasques)` : '')],
+      ['Hauteur', m(haut(C), 1)],
+      ['Largeur', m(C.larg, 1)],
+      ['Le bassin', B ? `${m(B[2] * 2)} sur ${m(B[3] * 2)}, ${nfmt(B[5])} m de fond, dans un cirque de roche` : ''],
+      ['Le ruisseau', [C.amont ? 'il arrive en gradins, d’une source' : C.source === 'faille' ? 'l’eau sort d’une faille de la paroi' : C.gradins ? 'il naît d’une source, au-dessus de la première vasque' : '', C.fin ? `à l’aval, il ${P18_FIN[C.fin]}` : ''].filter(Boolean).join(' ; ')],
+      ['La scène', TITRES[C.k] ? `« ${esc(TITRES[C.k])} », la première fois qu’on la trouve` : ''],
+    ]);
+    if (C.k === 'grande') b += `<p>Derrière le rideau : ${lieu('p18_bouche', 'la bouche de la grotte')}, et ${grottes()}.</p>`;
+    b += `<p>${cascL('Les cinq cascades')} · ${paradis('Les coins de paradis')}</p>`;
+    Object.assign(p, { s: 'Une cascade', i: '≋', h: b + (p.h || '') });
+  }
+  // (les six coins : secrets, comme le jeu les tient ; un mot en tête)
+  for (const Q of CO) {
+    const p = pages.get('li:p18_' + Q.k);
+    if (!p || /p18-coin/.test(p.h || '')) continue;
+    let b = `<p class="lead p18-coin">${esc(P18_COIN_TXT[Q.k] || '')}</p>`;
+    b += kv([
+      ['S’asseoir', `une fois par jour : ${SOIN} points de santé, le souffle, l’esprit (+${ESPRIT})`],
+      ['Le bain', Q.sorte === 'source' ? `une fois par jour : ${BAIN} points de santé, le souffle, l’esprit (+${ESPRIT})` : ''],
+      ['La première fois', `l’esprit (+${PREMIER}) ; la scène « ${esc(TITRES[Q.k] || cap(Q.nom))} »`],
+      ['Sa musique', paradisMus.map(morceau).join(', ')],
+    ]);
+    b += `<p>${paradis('Les six coins de paradis')}</p>`;
+    Object.assign(p, { s: 'Un coin de paradis', i: '❀', h: b + (p.h || '') });
+  }
+  // (la grotte, sa bouche, l'aven ; les salles : publiques — le carnet les nomme —, sauf le Sanctuaire)
+  {
+    const G0 = pages.get('li:p18_grotte');
+    if (G0) Object.assign(G0, { s: 'Sous les monts de l’ouest', i: '⛏', x: 0, g: 'Les Grottes de la Chute', h: `<p class="lead">Un réseau de grottes sous les monts de l’ouest, derrière le rideau de ${chute('grande', 'la Grande Chute')} : ${grottes('les Grottes de la Chute')}.</p><p>${planBtn('grottes', '', 'Le plan des grottes')}</p><ul class="cards">${GR.salles.map((s) => s[0]).concat(['lac', 'torrent']).filter((k) => pages.has('li:p18g_' + k)).map((k) => `<li>${salle(k, cap(nomS(k)))}</li>`).join('')}</ul>` });
+    const B0 = pages.get('li:p18_bouche');
+    if (B0) Object.assign(B0, { s: 'L’entrée des Grottes de la Chute', i: '⛏', x: 0, h: `<p class="lead">Derrière le rideau de ${chute('grande', 'la Grande Chute')}, au fond de la corniche de roche mouillée : une bouche noire. On y entre en marchant dedans, ou <kbd>E</kbd> (« Entrer dans la grotte »). « ${esc(TX.entrer || '')} »</p><p>${grottes('Les Grottes de la Chute')}</p>` + (B0.h || '') });
+    const A0 = pages.get('li:p18_aven');
+    if (A0 && !/p18-aven/.test(A0.h || '')) Object.assign(A0, { s: 'Une sortie des Grottes de la Chute', i: '◎', h: `<p class="lead p18-aven">Un trou rond au milieu des arbres : l’Aven, la cheminée de ${salle('aven', 'la salle du même nom')}, aux ${grottes('Grottes de la Chute')}. « ${esc(TX.avenHaut || '')} » Avec une ${IL('corde')}, on y descend ; d’en bas, on remonte par les racines.</p>` + (A0.h || '') });
+    for (const k of GR.salles.map((s) => s[0]).concat(GR.lacs.map((s) => s[0]), ['torrent'])) {
+      const p = pages.get('li:p18g_' + k);
+      if (!p) continue;
+      const S = SAL[k] || {}, s = VS[k] || VL[k], Q = GR.salles.find((q) => q[0] === k) || GR.lacs.find((q) => q[0] === k);
+      let h = kv([
+        ['Où', `${grottes()}${s ? `, à ${pro(s[1])} m sous l’eau de la vallée` : ''}`],
+        ['Étendue', Q ? `${Math.round(Q[3] * 2)} × ${Math.round(Q[4] * 2)} m` : ''],
+        ['Sous la voûte', s ? m(s[2]) : ''],
+        ['Depuis l’arrivée', marche(k) !== null ? `${nfmt(Math.round(marche(k) / 10) * 10)} m de marche` : ''],
+      ]);
+      h += `<p>${esc(P18_SALLE_TXT[k] || '')}</p>`;
+      if (k === 'sanctuaire') h = SEC(h + ul([`Trois peintures : ${peint('feux')} ; ${peint('porte')} ; ${peint('oeil')}`, `Un coffre cerclé de fer : ${(((V && V.trouvailles) || []).find((q) => q.id === 'p18_tresor') || { items: [] }).items.map(([id, n]) => (id === 'argent' ? pcs(n) : IL(id, n > 1 ? n : ''))).join(', ')}.`]), false);
+      const deco = Object.entries(S.deco || {}).map(([id, n]) => `${nfmt(n)} ${esc(P18_DECO[id])}`);
+      if (deco.length && k !== 'sanctuaire') h += `<h3>Ce qu’on y voit</h3><p>${deco.join(', ')}.</p>`;
+      const cu = Object.entries(S.cue || {});
+      if (cu.length) h += `<h3>Ce qui s’y cueille</h3><p>${cu.map(([it, e]) => `${IL(it)} <small>(${e.n}${e.every ? `, tous les ${enLettres(e.every)} jours` : ''})</small>`).join(', ')}</p>`;
+      if (k === 'mains') h += `<p>${IL('ocre')} : « Gratter l’ocre », deux par jour.</p>`;
+      if (k === 'lac' && poissons.length) h += `<h3>On y pêche</h3><p>${poissons.map((f) => IL(f)).join(', ')}</p>`;
+      const nb = Object.entries(S.nids || {});
+      if (nb.length) h += `<h3>Ce qui y vit</h3><p>${nb.map(([b, n]) => `${esc(P18_BETES[b] || b)} <small>(${n})</small>`).join(', ')} — ${pg('sout:betes', 'les bêtes d’en bas')}</p>`;
+      const fl = Object.entries(S.filons || {}), ob = Object.entries(S.objets || {});
+      if (k !== 'sanctuaire' && (fl.length || ob.length || S.vasques || S.fossiles)) h += SEC(`<h3>Ce qui se prend une fois</h3><p>${[...fl.map(([it, L]) => `${IL(it)} <small>(${plur(L.length, 'filon', 'filons')})</small>`), ...ob.map(([o, n]) => (o === 'crystal' ? `${IL((((HV.crystal || {}).drop || [])[0] || ['gemme'])[0])} <small>(${plur(n, 'grappe de cristaux', 'grappes de cristaux')}, ${pioche((HV.crystal || {}).tier || 0)})</small>` : /^vein:/.test(o) && VEINS[+o.slice(5) % (VEINS.length || 1)] ? `${IL(VEINS[+o.slice(5) % VEINS.length].item)} <small>(${nfmt(n)} ; ${pioche(VEINS[+o.slice(5) % VEINS.length].tier || 0)})</small>` : esc(o))), S.vasques ? `${IL('perle_caverne')} <small>(${plur(S.vasques, 'vasque', 'vasques')})</small>` : '', S.fossiles ? `${IL('fossile')} <small>(${S.fossiles})</small>` : ''].filter(Boolean).join(', ')}</p>`, false);
+      const vs = voisins(k);
+      if (vs.length) h += `<h3>Les salles voisines</h3><ul class="cards">${vs.filter(([b]) => b !== 'sanctuaire' || k === 'sanctuaire').map(([b, , L]) => `<li>${salle(b, cap(nomS(b)))}${L ? ` <small>${L} m</small>` : ''}</li>`).join('')}</ul>`;
+      const vers = k !== 'vestibule' && k !== 'torrent' ? versSortie(k) : null;
+      if (vers && vers[1] !== 'torrent') h += `<p class="small">Le cairn et la flèche de la salle montrent la galerie vers ${salle(vers[0], nomS(vers[0]))} : le chemin de la sortie.</p>`;
+      h += `<p>${planBtn('grottes', 'li:p18g_' + k, 'Sur le plan des grottes')} ${grottes('Les Grottes de la Chute')}</p>`;
+      Object.assign(p, { h, t: cap(nomS(k)), s: 'Les Grottes de la Chute', g: 'Les Grottes de la Chute', i: k === 'sanctuaire' ? '⚿' : k === 'lac' || k === 'torrent' ? '≈' : '⛏', x: k === 'sanctuaire' ? 1 : 0 });
+      p.map = undefined;
+    }
+  }
 }
+// à quoi l'on reconnaît, dans une rumeur, le coin dont elle parle
+const P18_INDICE = { papillons: /papillons/i, source: /tiède/i, saule: /saule/i, fees: /bassin en bassin/i, belvedere: /toute la vallée/i, verger: /verger/i };
 
 // ============================================================================ UN MOT AILLEURS
 function liens(X, H) {
