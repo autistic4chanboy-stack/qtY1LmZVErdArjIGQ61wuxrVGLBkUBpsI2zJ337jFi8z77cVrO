@@ -1321,6 +1321,9 @@ async function extract() {
   say('vie de la vallée mesurée');
   // les plans : le Dessous, puis les autres mondes (ouverts et défaits l'un après l'autre, après tout le reste)
   DB.world.dessous = safe('plan du Dessous', () => planDessous(G, DB), null);
+  // la dix-huitième vague : les cascades, les coins de paradis et les Grottes de la Chute telles que la passe les a faites
+  // (w.p18), et le plan des grottes, dessiné comme celui du Dessous : tools/wiki-v18.js
+  safe('vague 18 (cascades)', () => { const W18 = require('./wiki-v18.js'); if (W18.extract) W18.extract(G, w, DB, { Plan, boxTopFaces, blocM, paintFaces, facesOfBoxes, CAPTURE_BOXES, PLAN_L, jclone, say }); });
   DB.world.mondes = safe('plans des autres mondes', () => planMondes(G, DB), {});
   DB.derived.nv = safe('nouveautés, mesures', () => textesNouveautes(G), {});
   // la quatorzième vague : les Terres d'Avant (générées ici, une fois : leur plan), la Grande Porte, la bibliothèque, les
@@ -1605,22 +1608,25 @@ function planDessous(G, DB) {
   try {
     const flat = G.run(`(${CAPTURE_BOXES})(() => {
       const w = game.world, T = { t: 1.3, hour: 12, night: 1, day: 0, wind: 0.2, rain: 0 }, SKIP = new Set(['sout_stalac', 'sout_racines', 'sout_vers', 'sout_barreaux', 'sout_echelle_racines']);
-      for (const q of w.props) { if (!(q.ver & VER_SOUS) || SKIP.has(q.id) || !PROP_MODELS[q.id]) continue; PE.frame(q.x, q.y, q.z, q.r, q.s || 1); try { PROP_MODELS[q.id](PE, q, T); } catch (e) { /* rien */ } }
+      for (const q of w.props) { if (!(q.ver & VER_SOUS) || SKIP.has(q.id) || !PROP_MODELS[q.id] || (typeof p18Grotte !== 'undefined' && p18Grotte.dans(q.x, q.z))) continue; PE.frame(q.x, q.y, q.z, q.r, q.s || 1); try { PROP_MODELS[q.id](PE, q, T); } catch (e) { /* rien */ } }
     })`);
     facesOfBoxes(flat, faces);
     const mats = DB.derived.mats || [];
-    const bl = jclone(G.run('game.world.blocks.filter((b) => (b.ver & VER_SOUS) && !b.hidden).map((b) => [b.x, b.y, b.z, b.sx, b.sy, b.sz, b.r || 0, b.m])')) || [];
+    // (les Grottes de la Chute, sous les monts de l'ouest, ont leur plan à elles : tools/wiki-v18.js)
+    const bl = jclone(G.run('game.world.blocks.filter((b) => (b.ver & VER_SOUS) && !b.hidden && !(typeof p18Grotte !== "undefined" && p18Grotte.dans(b.x, b.z))).map((b) => [b.x, b.y, b.z, b.sx, b.sy, b.sz, b.r || 0, b.m])')) || [];
     for (const [x, y, z, sx, sy, sz, r, m] of bl) boxTopFaces(blocM(x, y, z, sx, sy, sz, r), (mats[m] && mats[m].avg) || [140, 130, 120], false, faces);
   } catch (e) { DB.log.push('plan du Dessous, objets : ' + (e && e.message)); }
   paintFaces(P, faces, true);
   const img = P.png();
   // ce que la page pose par-dessus : les salles du plan, les lieux, ce qui est posé, ceux d'en bas, les secrets
+  // (les Grottes de la Chute sont un morceau du Dessous pour le jeu — son moteur, sa région —, mais loin de lui et sans
+  // galerie qui les relie : rien d'elles ici, ni leurs cueillettes, ni leurs bêtes, ni leurs salles ; leur plan, ailleurs)
   const raw = jclone(G.run(`(() => {
-    const w = game.world, r1 = (v) => Math.round(v * 10) / 10, reg = (x, z) => souterrain.dansRegion(x, z);
+    const w = game.world, r1 = (v) => Math.round(v * 10) / 10, p18 = (x, z) => typeof p18Grotte !== 'undefined' && p18Grotte.dans(x, z), reg = (x, z) => souterrain.dansRegion(x, z) && !p18(x, z);
     const KEEP = /^(sout_filon|sout_vasque|sout_pied_pierre|sout_mousse|sout_lichen|sout_fougere|sout_algue|sout_suie|sout_guano|sout_champi|sout_fleche|sout_cairn|sout_dormeur|sout_colonne|stele)$/;
     const props = {};
-    for (const q of w.props) if ((q.ver & VER_SOUS) && KEEP.test(q.id)) (props[q.id] || (props[q.id] = [])).push([r1(q.x), r1(q.z), Math.round((q.r || 0) * 100) / 100, (q.data && (q.data.m || q.data.it)) || '']);
-    const inter = w.inter.filter((it) => isFinite(it.x) && !/^e16_/.test(it.kind) && (/^sout_/.test(it.kind) || ((it.y < SOUT_TOP || it.y < w.heightAt(it.x, it.z) - 3) && reg(it.x, it.z)))).map((it) => [it.kind, it.id, it.name || '', r1(it.x), r1(it.y), r1(it.z), String((it.data && (it.data.ins || it.data.k || it.data.table || it.data.n)) ?? '')]);
+    for (const q of w.props) if ((q.ver & VER_SOUS) && KEEP.test(q.id) && !p18(q.x, q.z)) (props[q.id] || (props[q.id] = [])).push([r1(q.x), r1(q.z), Math.round((q.r || 0) * 100) / 100, (q.data && (q.data.m || q.data.it)) || '']);
+    const inter = w.inter.filter((it) => isFinite(it.x) && !/^e16_/.test(it.kind) && !p18(it.x, it.z) && (/^sout_/.test(it.kind) || ((it.y < SOUT_TOP || it.y < w.heightAt(it.x, it.z) - 3) && reg(it.x, it.z)))).map((it) => [it.kind, it.id, it.name || '', r1(it.x), r1(it.y), r1(it.z), String((it.data && (it.data.ins || it.data.k || it.data.table || it.data.n)) ?? '')]);
     const lm = Object.values(w.lm).filter((L) => L.souterrain || /^sout_/.test(L.key) || (L.under && reg(L.x, L.z))).map((L) => [L.key, L.name, r1(L.x), r1(L.z), r1(L.y || 0), L.r || 6, L.souterrain ? 1 : 0]);
     const V = w.soutVillage, pt = (a) => (a ? [r1(a[0]), r1(a[1])] : null);
     // (le centre et la pierre d'appel sont rangés x, y, z ; le reste x, z)
@@ -1632,7 +1638,7 @@ function planDessous(G, DB) {
       props, inter, lm, village,
       dormeurs: (X.dormeurs || []).map((d) => [r1(d[0]), r1(d[2])]), tombeau: X.tombeau ? [r1(X.tombeau.x), r1(X.tombeau.z)] : null,
       sorties: (Rt.sorties || []).map((s) => ({ k: s.k, bas: [r1(s.bas[0]), r1(s.bas[2])], haut: [r1(s.haut[0]), r1(s.haut[2])] })), fleches: Rt.fleches || 0, chemin: Rt.chemin || 0,
-      nids: typeof soutBetes !== 'undefined' ? soutBetes.construireNids().map((n) => [n.k, r1(n.x), r1(n.z), n.n]) : [],
+      nids: typeof soutBetes !== 'undefined' ? soutBetes.construireNids().filter((n) => !n.p18).map((n) => [n.k, r1(n.x), r1(n.z), n.n]) : [],
       cueillettes: typeof SOUT_CUEILLETTES !== 'undefined' ? SOUT_CUEILLETTES.map((c) => [c[0], c[1], c[2], c[3], c[4], c[5], c[6] && c[6].m || '']) : [],
       gens: typeof SOUT_GENS !== 'undefined' ? SOUT_GENS.map((g) => [g.k, g.nom, g.dit, g.lieu]) : [],
     };
@@ -4449,10 +4455,10 @@ function buildWiki(DB) {
   try { W17 = require('./wiki-v17.js'); } catch (e) { (DB.log || []).push('wiki-v17.js : ' + e.message); }
   if (W17) try { W17.build({ DB, T, P, SP, SEC, esc, lk, IL, link, placeLink, pages, used, MF, ITEMS }); } catch (e) { (DB.log || []).push('wiki-v17.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
   // ==== LA DIX-HUITIÈME VAGUE : les dettes de la ferme, le Grand Hôtel des Cimes, le Grand Cercle et la suite Impériale, les
-  // récits des proches (tools/wiki-v18.js ; la cinquième part, les cascades et les grottes, y a sa place, vide pour l'instant)
+  // récits des proches, les cascades, les Grottes de la Chute et les coins de paradis (tools/wiki-v18.js)
   let W18 = null;
   try { W18 = require('./wiki-v18.js'); } catch (e) { (DB.log || []).push('wiki-v18.js : ' + e.message); }
-  if (W18) try { W18.build({ DB, T, P, SP, SEC, esc, lk, IL, FILL, link, placeLink, npcLink, pages, used, nfmt, MF, ITEMS, NAMES, mapBtn }); } catch (e) { (DB.log || []).push('wiki-v18.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
+  if (W18) try { W18.build({ DB, T, P, SP, SEC, esc, lk, IL, FILL, link, placeLink, npcLink, pages, used, nfmt, MF, ITEMS, NAMES, mapBtn, planBtn, addCat }); } catch (e) { (DB.log || []).push('wiki-v18.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
   for (const f of [FILE.vol, FILE.prison, FILE.sentiments]) if (f) genericPage(f, 'prison', 'Prison, vol et sentiments');
   for (const f of Object.keys(MF)) if (!MODPAGE[f] && !/^07-/.test(f)) genericPage(f, 'nouveautes-autres', 'Autres nouveautés');
   // ce qui reste des tables de chaque module : en bas de sa fiche principale
@@ -4784,7 +4790,9 @@ function buildPlansData(DB, wiki) {
   }
   // ---- les Terres d'Avant (la quatorzième vague : tools/wiki-v14.js)
   try { const W14 = require('./wiki-v14.js'); if (W14.plans) W14.plans(DB, wiki, out); } catch (e) { (DB.log || []).push('wiki-v14.js (plan) : ' + e.message); }
-  const ORD = ['dessous', 'terres', 'enfers', 'cauchemar', 'bonbons', 'tenebres', 'vaisseau'];
+  // ---- les Grottes de la Chute (la dix-huitième vague : tools/wiki-v18.js)
+  try { const W18 = require('./wiki-v18.js'); if (W18.plans) W18.plans(DB, wiki, out); } catch (e) { (DB.log || []).push('wiki-v18.js (plan) : ' + e.message); }
+  const ORD = ['dessous', 'grottes', 'terres', 'enfers', 'cauchemar', 'bonbons', 'tenebres', 'vaisseau'];
   return out.sort((a, b) => ORD.indexOf(a.id) - ORD.indexOf(b.id));
 }
 
