@@ -451,8 +451,8 @@ body.cine #k18-but{visibility:hidden}`;
     }
     if (r < 0.32 && V.ferme && lvl >= 3 && ((s.stats && s.stats.crops > 15) || (s.animals && s.animals.length > 2))) return V.ferme;
     // selon l'amitié
-    if (lvl >= 6 && V.proche) return pick(V.proche);
-    if (lvl >= 3 && V.ami && Math.random() < 0.6) return pick(V.ami);
+    if (lvl >= 6 && V.proche && Math.random() < 0.4) return pick(V.proche);
+    if (lvl >= 3 && lvl < 6 && V.ami && Math.random() < 0.4) return pick(V.ami);
     return null;
   },
   // ------------------------------------------------------------- les visites à la ferme
