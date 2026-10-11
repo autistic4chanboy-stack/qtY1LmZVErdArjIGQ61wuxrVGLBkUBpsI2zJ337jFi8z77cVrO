@@ -1,0 +1,3 @@
+IM Fell French Canon (romain et italique), par Igino Marini — SIL Open Font License 1.1
+(https://openfontlicense.org). Téléchargée depuis Google Fonts ; sert au titre des capsules
+(scripts/store-assets.js). La licence permet de l'utiliser, de l'intégrer et de la redistribuer.

@@ -1,0 +1,730 @@
+// Newy and the Dark Forest — liste des succès (à saisir dans Steamworks ; ce fichier n'est pas importable tel quel)
+"achievements"
+{
+	"1"
+	{
+		"apiname"	"NEWY_PREMIERE_RECOLTE"
+		"hidden"	"0"
+		"icon"	"256/NEWY_PREMIERE_RECOLTE.png"
+		"icon_gray"	"256/NEWY_PREMIERE_RECOLTE_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"First Harvest"
+				"french"	"Première récolte"
+			}
+			"desc"
+			{
+				"english"	"Harvest your first crop."
+				"french"	"Récolter sa première culture."
+			}
+		}
+	}
+	"2"
+	{
+		"apiname"	"NEWY_CENT_RECOLTES"
+		"hidden"	"0"
+		"icon"	"256/NEWY_CENT_RECOLTES.png"
+		"icon_gray"	"256/NEWY_CENT_RECOLTES_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Hands in the Soil"
+				"french"	"Les mains dans la terre"
+			}
+			"desc"
+			{
+				"english"	"Harvest one hundred crops."
+				"french"	"Récolter cent cultures."
+			}
+		}
+	}
+	"3"
+	{
+		"apiname"	"NEWY_PREMIERE_VENTE"
+		"hidden"	"0"
+		"icon"	"256/NEWY_PREMIERE_VENTE.png"
+		"icon_gray"	"256/NEWY_PREMIERE_VENTE_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Market Day"
+				"french"	"Au marché"
+			}
+			"desc"
+			{
+				"english"	"Sell something through the shipping crate."
+				"french"	"Vendre quelque chose par la caisse d’expédition."
+			}
+		}
+	}
+	"4"
+	{
+		"apiname"	"NEWY_ECONOMIES"
+		"hidden"	"0"
+		"icon"	"256/NEWY_ECONOMIES.png"
+		"icon_gray"	"256/NEWY_ECONOMIES_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Nest Egg"
+				"french"	"Bas de laine"
+			}
+			"desc"
+			{
+				"english"	"Earn 10,000 coins in total."
+				"french"	"Gagner 10 000 pièces en tout."
+			}
+		}
+	}
+	"5"
+	{
+		"apiname"	"NEWY_PREMIER_ANIMAL"
+		"hidden"	"0"
+		"icon"	"256/NEWY_PREMIER_ANIMAL.png"
+		"icon_gray"	"256/NEWY_PREMIER_ANIMAL_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"One More Mouth to Feed"
+				"french"	"Une bouche de plus"
+			}
+			"desc"
+			{
+				"english"	"Keep your first farm animal."
+				"french"	"Avoir un premier animal à la ferme."
+			}
+		}
+	}
+	"6"
+	{
+		"apiname"	"NEWY_PREMIER_POISSON"
+		"hidden"	"0"
+		"icon"	"256/NEWY_PREMIER_POISSON.png"
+		"icon_gray"	"256/NEWY_PREMIER_POISSON_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"A Bite"
+				"french"	"Ça mord"
+			}
+			"desc"
+			{
+				"english"	"Catch your first fish."
+				"french"	"Pêcher son premier poisson."
+			}
+		}
+	}
+	"7"
+	{
+		"apiname"	"NEWY_PECHEUR"
+		"hidden"	"0"
+		"icon"	"256/NEWY_PECHEUR.png"
+		"icon_gray"	"256/NEWY_PECHEUR_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Angler’s Patience"
+				"french"	"Patience de pêcheur"
+			}
+			"desc"
+			{
+				"english"	"Catch twenty-five fish."
+				"french"	"Pêcher vingt-cinq poissons."
+			}
+		}
+	}
+	"8"
+	{
+		"apiname"	"NEWY_POTION"
+		"hidden"	"0"
+		"icon"	"256/NEWY_POTION.png"
+		"icon_gray"	"256/NEWY_POTION_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Apprentice Alchemist"
+				"french"	"Apprenti alchimiste"
+			}
+			"desc"
+			{
+				"english"	"Brew your first potion."
+				"french"	"Réussir une première potion."
+			}
+		}
+	}
+	"9"
+	{
+		"apiname"	"NEWY_PREMIERE_NUIT"
+		"hidden"	"0"
+		"icon"	"256/NEWY_PREMIERE_NUIT.png"
+		"icon_gray"	"256/NEWY_PREMIERE_NUIT_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"The First Morning"
+				"french"	"Le premier matin"
+			}
+			"desc"
+			{
+				"english"	"Survive your first night in the valley."
+				"french"	"Survivre à sa première nuit dans la vallée."
+			}
+		}
+	}
+	"10"
+	{
+		"apiname"	"NEWY_SEMAINE"
+		"hidden"	"0"
+		"icon"	"256/NEWY_SEMAINE.png"
+		"icon_gray"	"256/NEWY_SEMAINE_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"One Week"
+				"french"	"Une semaine"
+			}
+			"desc"
+			{
+				"english"	"Last seven days."
+				"french"	"Tenir sept jours."
+			}
+		}
+	}
+	"11"
+	{
+		"apiname"	"NEWY_TRENTE_JOURS"
+		"hidden"	"0"
+		"icon"	"256/NEWY_TRENTE_JOURS.png"
+		"icon_gray"	"256/NEWY_TRENTE_JOURS_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"One of the Locals"
+				"french"	"Gens du pays"
+			}
+			"desc"
+			{
+				"english"	"Last thirty days."
+				"french"	"Tenir trente jours."
+			}
+		}
+	}
+	"12"
+	{
+		"apiname"	"NEWY_CENT_JOURS"
+		"hidden"	"0"
+		"icon"	"256/NEWY_CENT_JOURS.png"
+		"icon_gray"	"256/NEWY_CENT_JOURS_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"One Hundred Days"
+				"french"	"Cent jours"
+			}
+			"desc"
+			{
+				"english"	"Last one hundred days in the valley."
+				"french"	"Tenir cent jours dans la vallée."
+			}
+		}
+	}
+	"13"
+	{
+		"apiname"	"NEWY_MORT"
+		"hidden"	"0"
+		"icon"	"256/NEWY_MORT.png"
+		"icon_gray"	"256/NEWY_MORT_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"The Valley Remembers"
+				"french"	"La vallée se souvient"
+			}
+			"desc"
+			{
+				"english"	"Die. Someone else will take over the farm."
+				"french"	"Mourir. Quelqu’un d’autre reprendra la ferme."
+			}
+		}
+	}
+	"14"
+	{
+		"apiname"	"NEWY_BETES_10"
+		"hidden"	"0"
+		"icon"	"256/NEWY_BETES_10.png"
+		"icon_gray"	"256/NEWY_BETES_10_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Bestiary"
+				"french"	"Carnet de bêtes"
+			}
+			"desc"
+			{
+				"english"	"Discover ten creatures in the in-game wiki."
+				"french"	"Découvrir dix bêtes dans le wiki du jeu."
+			}
+		}
+	}
+	"15"
+	{
+		"apiname"	"NEWY_BETES_40"
+		"hidden"	"0"
+		"icon"	"256/NEWY_BETES_40.png"
+		"icon_gray"	"256/NEWY_BETES_40_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Naturalist"
+				"french"	"Naturaliste"
+			}
+			"desc"
+			{
+				"english"	"Discover forty creatures in the in-game wiki."
+				"french"	"Découvrir quarante bêtes dans le wiki du jeu."
+			}
+		}
+	}
+	"16"
+	{
+		"apiname"	"NEWY_PLANTES_25"
+		"hidden"	"0"
+		"icon"	"256/NEWY_PLANTES_25.png"
+		"icon_gray"	"256/NEWY_PLANTES_25_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Herbarium"
+				"french"	"Herbier"
+			}
+			"desc"
+			{
+				"english"	"Discover twenty-five plants in the in-game wiki."
+				"french"	"Découvrir vingt-cinq plantes dans le wiki du jeu."
+			}
+		}
+	}
+	"17"
+	{
+		"apiname"	"NEWY_HABITANTS_20"
+		"hidden"	"0"
+		"icon"	"256/NEWY_HABITANTS_20.png"
+		"icon_gray"	"256/NEWY_HABITANTS_20_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Everybody Knows Everybody"
+				"french"	"Tout le monde se connaît"
+			}
+			"desc"
+			{
+				"english"	"Meet twenty people of the valley."
+				"french"	"Rencontrer vingt habitants de la vallée."
+			}
+		}
+	}
+	"18"
+	{
+		"apiname"	"NEWY_PREMIERE_TABLETTE"
+		"hidden"	"0"
+		"icon"	"256/NEWY_PREMIERE_TABLETTE.png"
+		"icon_gray"	"256/NEWY_PREMIERE_TABLETTE_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"A Carved Stone"
+				"french"	"Une pierre gravée"
+			}
+			"desc"
+			{
+				"english"	"Find a rune tablet."
+				"french"	"Trouver une tablette de runes."
+			}
+		}
+	}
+	"19"
+	{
+		"apiname"	"NEWY_TOUTES_LES_TABLETTES"
+		"hidden"	"0"
+		"icon"	"256/NEWY_TOUTES_LES_TABLETTES.png"
+		"icon_gray"	"256/NEWY_TOUTES_LES_TABLETTES_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"The Stone Awakens"
+				"french"	"La pierre s’éveille"
+			}
+			"desc"
+			{
+				"english"	"Gather all four rune tablets."
+				"french"	"Réunir les quatre tablettes de runes."
+			}
+		}
+	}
+	"20"
+	{
+		"apiname"	"NEWY_PREMIER_ASSEMBLAGE"
+		"hidden"	"0"
+		"icon"	"256/NEWY_PREMIER_ASSEMBLAGE.png"
+		"icon_gray"	"256/NEWY_PREMIER_ASSEMBLAGE_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Three Signs"
+				"french"	"Trois signes"
+			}
+			"desc"
+			{
+				"english"	"Combine three runes."
+				"french"	"Assembler trois runes."
+			}
+		}
+	}
+	"21"
+	{
+		"apiname"	"NEWY_DALLE"
+		"hidden"	"1"
+		"icon"	"256/NEWY_DALLE.png"
+		"icon_gray"	"256/NEWY_DALLE_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"What the Slab Keeps"
+				"french"	"Ce que garde la dalle"
+			}
+			"desc"
+			{
+				"english"	"Open a slab sealed with runes."
+				"french"	"Ouvrir une dalle scellée par les runes."
+			}
+		}
+	}
+	"22"
+	{
+		"apiname"	"NEWY_GRANDE_PORTE"
+		"hidden"	"0"
+		"icon"	"256/NEWY_GRANDE_PORTE.png"
+		"icon_gray"	"256/NEWY_GRANDE_PORTE_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"The Great Gate"
+				"french"	"La Grande Porte"
+			}
+			"desc"
+			{
+				"english"	"Go through the Great Gate into the Lands of Before."
+				"french"	"Passer la Grande Porte et entrer dans les Terres d’Avant."
+			}
+		}
+	}
+	"23"
+	{
+		"apiname"	"NEWY_TERRES_FEU"
+		"hidden"	"1"
+		"icon"	"256/NEWY_TERRES_FEU.png"
+		"icon_gray"	"256/NEWY_TERRES_FEU_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"A Fire in the Lands of Before"
+				"french"	"Un feu dans les Terres d’Avant"
+			}
+			"desc"
+			{
+				"english"	"Light a fire on the other side of the Gate."
+				"french"	"Allumer un feu de l’autre côté de la Porte."
+			}
+		}
+	}
+	"24"
+	{
+		"apiname"	"NEWY_QUETE_1"
+		"hidden"	"0"
+		"icon"	"256/NEWY_QUETE_1.png"
+		"icon_gray"	"256/NEWY_QUETE_1_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Lending a Hand"
+				"french"	"Rendre service"
+			}
+			"desc"
+			{
+				"english"	"Complete a quest for someone in the valley."
+				"french"	"Mener à bien une quête pour un habitant."
+			}
+		}
+	}
+	"25"
+	{
+		"apiname"	"NEWY_QUETES_10"
+		"hidden"	"0"
+		"icon"	"256/NEWY_QUETES_10.png"
+		"icon_gray"	"256/NEWY_QUETES_10_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Someone to Count On"
+				"french"	"On peut compter sur vous"
+			}
+			"desc"
+			{
+				"english"	"Complete ten quests."
+				"french"	"Mener à bien dix quêtes."
+			}
+		}
+	}
+	"26"
+	{
+		"apiname"	"NEWY_QUETES_25"
+		"hidden"	"0"
+		"icon"	"256/NEWY_QUETES_25.png"
+		"icon_gray"	"256/NEWY_QUETES_25_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Pillar of the Valley"
+				"french"	"Pilier de la vallée"
+			}
+			"desc"
+			{
+				"english"	"Complete twenty-five quests."
+				"french"	"Mener à bien vingt-cinq quêtes."
+			}
+		}
+	}
+	"27"
+	{
+		"apiname"	"NEWY_FOYER"
+		"hidden"	"0"
+		"icon"	"256/NEWY_FOYER.png"
+		"icon_gray"	"256/NEWY_FOYER_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"A Home"
+				"french"	"Un foyer"
+			}
+			"desc"
+			{
+				"english"	"Marry and start a household."
+				"french"	"Se marier et fonder un foyer."
+			}
+		}
+	}
+	"28"
+	{
+		"apiname"	"NEWY_TUEUR"
+		"hidden"	"1"
+		"icon"	"256/NEWY_TUEUR.png"
+		"icon_gray"	"256/NEWY_TUEUR_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Justice"
+				"french"	"Justice"
+			}
+			"desc"
+			{
+				"english"	"See the valley’s killer arrested."
+				"french"	"Faire arrêter celui qui tue dans la vallée."
+			}
+		}
+	}
+	"29"
+	{
+		"apiname"	"NEWY_AUTRE_MONDE"
+		"hidden"	"1"
+		"icon"	"256/NEWY_AUTRE_MONDE.png"
+		"icon_gray"	"256/NEWY_AUTRE_MONDE_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Elsewhere"
+				"french"	"Ailleurs"
+			}
+			"desc"
+			{
+				"english"	"Find yourself in another world."
+				"french"	"Se retrouver dans un autre monde."
+			}
+		}
+	}
+	"30"
+	{
+		"apiname"	"NEWY_HISTOIRE_CH1"
+		"hidden"	"0"
+		"icon"	"256/NEWY_HISTOIRE_CH1.png"
+		"icon_gray"	"256/NEWY_HISTOIRE_CH1_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Chapter I"
+				"french"	"Chapitre I"
+			}
+			"desc"
+			{
+				"english"	"Complete the first chapter of the story."
+				"french"	"Achever le premier chapitre de l’histoire."
+			}
+		}
+	}
+	"31"
+	{
+		"apiname"	"NEWY_HISTOIRE_CH2"
+		"hidden"	"1"
+		"icon"	"256/NEWY_HISTOIRE_CH2.png"
+		"icon_gray"	"256/NEWY_HISTOIRE_CH2_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Chapter II"
+				"french"	"Chapitre II"
+			}
+			"desc"
+			{
+				"english"	"Complete the second chapter of the story."
+				"french"	"Achever le deuxième chapitre de l’histoire."
+			}
+		}
+	}
+	"32"
+	{
+		"apiname"	"NEWY_HISTOIRE_CH3"
+		"hidden"	"1"
+		"icon"	"256/NEWY_HISTOIRE_CH3.png"
+		"icon_gray"	"256/NEWY_HISTOIRE_CH3_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Chapter III"
+				"french"	"Chapitre III"
+			}
+			"desc"
+			{
+				"english"	"Complete the third chapter of the story."
+				"french"	"Achever le troisième chapitre de l’histoire."
+			}
+		}
+	}
+	"33"
+	{
+		"apiname"	"NEWY_HISTOIRE_CH4"
+		"hidden"	"1"
+		"icon"	"256/NEWY_HISTOIRE_CH4.png"
+		"icon_gray"	"256/NEWY_HISTOIRE_CH4_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Chapter IV"
+				"french"	"Chapitre IV"
+			}
+			"desc"
+			{
+				"english"	"Complete the fourth chapter of the story."
+				"french"	"Achever le quatrième chapitre de l’histoire."
+			}
+		}
+	}
+	"34"
+	{
+		"apiname"	"NEWY_HISTOIRE_FIN"
+		"hidden"	"1"
+		"icon"	"256/NEWY_HISTOIRE_FIN.png"
+		"icon_gray"	"256/NEWY_HISTOIRE_FIN_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"The End of the Story"
+				"french"	"La fin de l’histoire"
+			}
+			"desc"
+			{
+				"english"	"Reach an ending of the story."
+				"french"	"Voir une fin de l’histoire."
+			}
+		}
+	}
+	"35"
+	{
+		"apiname"	"NEWY_HISTOIRE_FIN_A"
+		"hidden"	"1"
+		"icon"	"256/NEWY_HISTOIRE_FIN_A.png"
+		"icon_gray"	"256/NEWY_HISTOIRE_FIN_A_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"One Ending"
+				"french"	"Une fin"
+			}
+			"desc"
+			{
+				"english"	"Reach ending A."
+				"french"	"Voir la fin A de l’histoire."
+			}
+		}
+	}
+	"36"
+	{
+		"apiname"	"NEWY_HISTOIRE_FIN_B"
+		"hidden"	"1"
+		"icon"	"256/NEWY_HISTOIRE_FIN_B.png"
+		"icon_gray"	"256/NEWY_HISTOIRE_FIN_B_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Another Ending"
+				"french"	"Une autre fin"
+			}
+			"desc"
+			{
+				"english"	"Reach ending B."
+				"french"	"Voir la fin B de l’histoire."
+			}
+		}
+	}
+}
+"stats"
+{
+	"JOURS_MAX"	{ "type" "INT" "incrementonly" "1" "displayname" "Most days survived" }
+	"QUETES_FINIES"	{ "type" "INT" "incrementonly" "1" "displayname" "Quests completed" }
+	"RECOLTES"	{ "type" "INT" "incrementonly" "1" "displayname" "Crops harvested" }
+}

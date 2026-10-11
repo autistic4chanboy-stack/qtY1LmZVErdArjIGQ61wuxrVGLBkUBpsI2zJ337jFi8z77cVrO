@@ -1,0 +1,15 @@
+// Dépôt Linux 64 bits (et Steam Deck en natif) : dist/linux-unpacked (../build.sh linux).
+// Steamworks › Installation › Dépôts : ce dépôt, système « Linux + SteamOS ».
+// Options de lancement (Linux) : NewyAndTheDarkForest   (arguments : --no-sandbox, voir ../CHECKLIST.md)
+"DepotBuild"
+{
+	"DepotID"	"DEPOTID_LINUX"
+	"ContentRoot"	"../dist/linux-unpacked/"
+	"FileMapping"
+	{
+		"LocalPath"	"*"
+		"DepotPath"	"."
+		"Recursive"	"1"
+	}
+	"FileExclusion"	"steam_appid.txt"
+}

@@ -1,0 +1,16 @@
+// Dépôt macOS : l'application signée et notarisée, construite SUR UN MAC (../build.sh mac),
+// dossier dist/mac-universal/ (contient « Newy and the Dark Forest.app »).
+// Options de lancement (macOS) : Newy and the Dark Forest.app
+// Pas de version macOS au lancement ? Retirer la ligne DEPOTID_MAC de app_build_XXXX.vdf.
+"DepotBuild"
+{
+	"DepotID"	"DEPOTID_MAC"
+	"ContentRoot"	"../dist/mac-universal/"
+	"FileMapping"
+	{
+		"LocalPath"	"*"
+		"DepotPath"	"."
+		"Recursive"	"1"
+	}
+	"FileExclusion"	"steam_appid.txt"
+}

@@ -1,0 +1,16 @@
+// Dépôt Windows 64 bits : le dossier produit par ../build.sh win (dist/win-unpacked).
+// Steamworks › Installation › Dépôts : ce dépôt, système « Windows », 64 bits.
+// Steamworks › Installation › Général › Options de lancement : NewyAndTheDarkForest.exe (Windows)
+"DepotBuild"
+{
+	"DepotID"	"DEPOTID_WIN"
+	"ContentRoot"	"../dist/win-unpacked/"
+	"FileMapping"
+	{
+		"LocalPath"	"*"
+		"DepotPath"	"."
+		"Recursive"	"1"
+	}
+	"FileExclusion"	"*.pdb"
+	"FileExclusion"	"steam_appid.txt"
+}

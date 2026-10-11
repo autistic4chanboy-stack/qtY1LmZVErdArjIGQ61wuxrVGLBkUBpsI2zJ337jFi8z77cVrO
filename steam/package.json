@@ -1,0 +1,109 @@
+{
+  "name": "newy-and-the-dark-forest",
+  "productName": "Newy and the Dark Forest",
+  "version": "1.0.0",
+  "description": "Newy and the Dark Forest — jeu de ferme et d'horreur lente (version de bureau pour Steam)",
+  "main": "main.js",
+  "private": true,
+  "license": "UNLICENSED",
+  "author": "Newy and the Dark Forest",
+  "scripts": {
+    "prepare-game": "node scripts/prepare.js",
+    "start": "npm run prepare-game && electron .",
+    "icons": "node scripts/icons.js",
+    "achievements": "node scripts/achievements.js",
+    "store-assets": "node scripts/store-assets.js",
+    "dist:win": "npm run prepare-game && electron-builder --win dir zip --x64",
+    "dist:linux": "npm run prepare-game && electron-builder --linux dir --x64",
+    "dist:mac": "npm run prepare-game && electron-builder --mac dir --universal",
+    "dist": "npm run prepare-game && electron-builder --win dir --linux dir --x64",
+    "smoke": "node scripts/smoke.js"
+  },
+  "dependencies": {
+    "steamworks.js": "0.4.0"
+  },
+  "devDependencies": {
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.newy.darkforest",
+    "productName": "Newy and the Dark Forest",
+    "executableName": "NewyAndTheDarkForest",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "saves.js",
+      "steam.js",
+      "app/**/*",
+      "package.json",
+      "!**/*.map"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/steamworks.js/dist/**/*"
+    ],
+    "electronLanguages": [
+      "fr",
+      "en-US",
+      "en-GB"
+    ],
+    "compression": "normal",
+    "win": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": true,
+      "files": [
+        "!node_modules/steamworks.js/dist/linux64/**",
+        "!node_modules/steamworks.js/dist/osx/**",
+        "!node_modules/steamworks.js/dist/win64/*.lib"
+      ]
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icons",
+      "category": "Game",
+      "files": [
+        "!node_modules/steamworks.js/dist/win64/**",
+        "!node_modules/steamworks.js/dist/osx/**"
+      ]
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.games",
+      "hardenedRuntime": true,
+      "identity": null,
+      "files": [
+        "!node_modules/steamworks.js/dist/win64/**",
+        "!node_modules/steamworks.js/dist/linux64/**"
+      ]
+    },
+    "publish": null
+  }
+}

@@ -50,6 +50,13 @@ côtés.
 les écrans de jeu, les événements, les bêtes et les plantes, la cité vaisseau, les autres mondes, les affiches, et les
 42 musiques à écouter (plus fortes que dans le jeu).
 
+**La version Steam (`steam/`)** : le même jeu (la page sans code) dans une application de bureau (Electron) pour
+Windows, Linux et macOS, avec les succès Steam, les sauvegardes dans le Steam Cloud, le plein écran (F11 ou Alt+Entrée)
+et un bouton « Quitter ». Tout ce qu'il faut pour la sortie (construction, envoi SteamPipe, visuels et textes de la
+page, liste de vérification) est décrit pas à pas dans **`steam/CHECKLIST.md`** ; il reste ce qui demande le compte
+Steamworks (inscription, identifiants, envois, relectures). Dans le jeu, deux réglages en plus dans Options › Image,
+partout : « Qualité graphique » (quatre préréglages) et « Plein écran ».
+
 ### La grande vallée
 
 Par défaut, la vallée est **dessinée à la main** (3 km de côté, la même à chaque partie ; « une vallée au hasard » de 2 km
