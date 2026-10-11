@@ -55,7 +55,7 @@ Windows, Linux et macOS, avec les succès Steam, les sauvegardes dans le Steam C
 et un bouton « Quitter ». Tout ce qu'il faut pour la sortie (construction, envoi SteamPipe, visuels et textes de la
 page, liste de vérification) est décrit pas à pas dans **`steam/CHECKLIST.md`** ; il reste ce qui demande le compte
 Steamworks (inscription, identifiants, envois, relectures). Dans le jeu, deux réglages en plus dans Options › Image,
-partout : « Qualité graphique » (quatre préréglages) et « Plein écran ».
+partout : « Qualité graphique » (quatre préréglages) et « Plein écran » (voir « L'histoire, Le Guet », plus bas).
 
 ### La grande vallée
 
@@ -1144,7 +1144,7 @@ Les commandes sont dans le menu **Commandes** (Échap).
 - Tout se suit dans le carnet (Carnet → Quêtes), avec celles des habitants ; si celui qui demande disparaît, la quête
   ne pourra plus se faire.
 
-**L'histoire : la quête principale, et ses cinématiques**
+**L'histoire, « Le Guet » : la quête principale, ses cinématiques, et la version de bureau**
 - **Huit chapitres, de l'héritage au Guet**, qui tiennent ensemble ce que la vallée avait déjà : *I. L'héritage* (la
   lettre d'Anselme, une première nuit), *II. Les traces d'Anselme* (la tombe sans date, sa dernière page au vieux
   puits), *III. Les Trois* (le temple derrière la cascade, la porte des Trois), *IV. Les mots d'avant* (relever trois
@@ -1154,9 +1154,9 @@ Les commandes sont dans le menu **Commandes** (Échap).
   n'importe quel ordre, avec ce qui existe : rien n'est généré, rien n'est donné (ni argent ni objet) ; un chapitre
   s'ouvre quand le précédent est fini et que son jour est venu (jour 2, 4, 6, 8, 10) ; la ferme continue à côté, rien
   n'attend. Ce qu'on a fait d'avance compte : une partie d'avant reprend au bon chapitre.
-- **Deux fins**, celles du Ver : le **délivrer** (« L'aube ») ou le **tuer** (« La cendre »), où qu'en soit
-  l'histoire ; une scène sur place, puis l'épilogue dans la vallée (au retour, s'il le faut), où ce qu'on a fait à
-  Basse-Fosse ajoute sa phrase, puis le **générique**.
+- **Deux fins**, celles du Ver : **« L'aube »** et **« La cendre »**, où qu'en soit l'histoire (ce qui y mène est
+  dans le wiki, sous « révéler les secrets ») ; une scène sur place, puis l'épilogue dans la vallée (au retour, s'il le
+  faut), où ce qu'on a fait à Basse-Fosse ajoute sa phrase, puis le **générique**.
 - **Les cinématiques** : l'arrivée (la vallée, la vieille forêt, la ferme), une à l'ouverture de chaque chapitre, la
   fin et chacun de ses épilogues, le générique. Caméra sur des chemins (des clés, une courbe, un adoucissement), bandes
   noires, fondus, cartes de chapitre, sous-titres avec le nom de qui parle (l'aëlin ne se lit que par les mots qu'on
@@ -1171,6 +1171,15 @@ Les commandes sont dans le menu **Commandes** (Échap).
   `chapitre`, `fin`, `generique` ou `cinematique` ; `chapitre`, `etape`, `fin`, `cine` ; et `succes` :
   `histoire_c1` … `histoire_c8`, `histoire_fin_aube`, `histoire_fin_cendre`, `histoire_generique`) ; aussi
   `prairieHistoire.ecouter(fn)`.
+- **Dans les Options** (partout, navigateur compris) : Image › **Qualité graphique** (Basse, Moyenne — par défaut —,
+  Haute, Très haute : la pixelisation, la distance de vue, le brouillard et l'herbe ensemble ; « Personnalisée » dès
+  qu'on retouche l'un d'eux) et Image › **Plein écran** ; Jeu › « Revoir les cinématiques (Souvenirs) ».
+- **La version de bureau (Steam)** : un bouton **« Quitter »** en bas du menu (il enregistre la partie, puis ferme),
+  le plein écran par F11 ou Alt+Entrée, les succès Steam, les sauvegardes dans le Steam Cloud. L'application, sa
+  construction et la marche à suivre pour la sortie : le dossier `steam/`, et pas à pas **`steam/CHECKLIST.md`** (voir
+  « La version Steam », plus haut).
+- **Dans le wiki** : la section « L'histoire » (les chapitres et leurs étapes, les fins et les paroles sous « révéler les
+  secrets »), la fiche « Les options » ; `tools/wiki-v17.js`.
 
 ### Mode Création
 
@@ -1715,6 +1724,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzzzzD15-1-decouvertes.js`, `12-zzzzzD15-wiki.js` | le wiki dans le jeu : les découvertes (`farm.s.decouvertes`, API `decouvertes` : `voir`, `sait`, `declarer`, `ajouterChamps`… ; les identifiants de page sont ceux du wiki, `an:`, `it:`, `pl:`, `li:`, `pnj:`, `lv:`, `sys:`), les fiches tirées des tables du jeu, les relevés (une minuterie espacée, des emballages légers), le miroir `prairie.decouvertes` que lit `Prairie-Wiki.html` ; le panneau (l'onglet Wiki, les modes interactif et exact, la case des Options) |
 | `05-zzzzzzQ16-quetes.js`, `11-zzzzzzQ16-quetes.js`, `12-zzzzzzQ16-quetes.js` | des quêtes pour tout le monde : les quêtes en plus des habitants (`Q16_HABITANTS`, ajoutées à leur liste ; les sortes `aller` et `chasse`, les fins à choix `choix`), celles des autres (`Q16_PNJ`) et les modèles des anonymes de Basse-Fosse (`Q16_V5_MODELES`, tirés par partie) ; le jeu (API `q16`, état `farm.s.q16`), les lignes glissées dans les panneaux de chacun, le carnet |
 | `05-zzzzzzzH17-histoire.js`, `11-zzzzzzzH17-1-moteur.js`, `11-zzzzzzzH17-2-histoire.js`, `12-zzzzzzzH17-carnet.js` | l'histoire : les chapitres, les fins, les paroles et le générique (`H17_CHAPITRES`, `H17_FINS`, `H17_CINES`) ; le moteur des cinématiques en plus du socle (`h17Cine` : chemins de caméra, figurants, cartes, générique, passer en maintenant Espace ou Échap, la partie tenue pendant la scène) ; le jeu (API `histoire`, état `farm.s.histoire`, les scènes `H17_SCENES`, l'événement `prairie:histoire`) ; les pages Histoire et Souvenirs du carnet |
+| `13-zzzzzzS17-bureau.js`, `13-zzzzzzS17-succes.js` | la version de bureau : le bouton « Quitter » (seulement quand `window.steamBridge` existe), les options « Plein écran » et « Qualité graphique » (`bureau`) ; les succès, lus dans l'état de la partie et envoyés au pont de l'application quand il existe (`succes` ; leurs titres dans `steam/achievements.json`) |
 | `05-zzzzzR15-runes.js`, `09-zzzzzR15-runes.js`, `11-zzzzzR15-1-pose.js`, `11-zzzzzR15-2-jeu.js`, `12-zzzzzR15-runes.js` | les runes : les données (`R15_RUNES`, `R15_REGL`, `R15_PORTES`, les butins des dalles), les sons, la pose (la dernière passe de la vallée, avec son propre tirage, et `zone.passe('R15')` dans les Terres d'Avant : rien de ce qui était posé ne bouge), le jeu (`farm.s.runes`, API `runes` : les tablettes, l'assemblage, les effets, les dalles, le dessin) et le panneau (la page Runes du menu, `runesUI`) |
 | `11-zzz00b-pensees.js`, `tools/pensees.js` | dire peu : `penser.une` (une règle dite une fois par vie), `penser.pas` (un avertissement espacé), `farm.s.pensees` ; l'inventaire des pensées (`node tools/pensees.js`) |
 | `11-zzvallee0-gel.js` | le gel en altitude : la jauge `farm.s.gel`, le givre à l'écran, la mort de froid |
@@ -1724,7 +1734,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzzz4-ferme-temps.js`, `11-zzzz4-meubles.js`, `07-zzzzzzzz-meubles.js` | portée des arroseurs, petites bêtes sous la pluie ; acheter et meubler sa maison (meubles, garde-meuble) |
 | `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
-| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html` ; les fiches de chaque vague dans `wiki-v12.js` à `wiki-v16.js`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js`, `Q.js` et `T.js`, la quatorzième `Y.js`, `X.js`, `U.js`, `Z.js` et `V1.js` à `V5.js`, la quinzième `R15.js`, la dix-septième `H17.js` — et `risques.js` y reprend la maison la nuit de `U.js`) |
+| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html` ; les fiches de chaque vague dans `wiki-v12.js` à `wiki-v17.js`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js`, `Q.js` et `T.js`, la quatorzième `Y.js`, `X.js`, `U.js`, `Z.js` et `V1.js` à `V5.js`, la quinzième `R15.js`, la dix-septième `H17.js` — et `risques.js` y reprend la maison la nuit de `U.js`) |
 | `shell.html` | HTML + CSS |
 | `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et ses deux codes (le jeu, le wiki), le site servi tel quel par GitHub Pages, changer un code |
 | `libre/` | la partie sans code : sa page d'accueil (`libre/index.html`), le jeu et le wiki sans leur porte (écrits par `node build.js` et `node tools/wiki-build.js`) |
