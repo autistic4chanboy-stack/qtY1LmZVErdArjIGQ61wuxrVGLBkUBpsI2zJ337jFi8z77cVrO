@@ -809,5 +809,162 @@ const K18_SUITE = {
 };
 // les heures des récits (K18_HEURES)
 const K18_MOMENT = { nuit: 'la nuit (21 h 30 - 4 h)', aube: 'à l’aube (4 h 30 - 7 h 30)', soir: 'le soir (18 h - 21 h 30)', jour: 'de jour (7 h 30 - 18 h)' };
+// les choix qui dépendent de la partie (une fonction, dans le récit) : l'étape où ils tombent
+const K18_CHOIX_FN = { forgeron: 'bague', aubergiste: 'chiche', eleveuse: 'nom' };
+// comment on les appelle, dans les phrases
+const K18_NOM = { fillette: 'la petite Aubert' };
 
-module.exports = { dettes, hotel, cercle };
+function recits(X, H) {
+  const { T, SP, SEC, esc, IL, lk, FILL, pages, MF } = X;
+  const { h3, ul, tbl, lieu, aLieu, pnj, pg, log } = H;
+  const ARCS = (T('K18_ARCS', []) || []).slice().sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+  const VOIX = T('K18_VOIX', {}) || {}, APRES = T('K18_APRES', {}) || {}, PORTR = T('K18_PORTRAITS', {}) || {}, NIV = T('K18_NIVEAUX', []) || [], REGL = T('K18_REGL', {}) || {};
+  const NPCS = T('NPC_DATA', []) || [];
+  if (!ARCS.length) { log('K18_ARCS introuvable : pas de fiche « Les récits des proches »'); return; }
+  const files = Object.keys(MF || {}).filter((f) => /K18-/.test(f));
+  const F = (t) => FILL(String(t || '').replace(/\{e\}/g, '').replace(/\{m:([^|}]*)\|([^}]*)\}/g, '$1'));
+  const npcD = (id) => NPCS.find((d) => d.id === id) || null;
+  const leRole = (id) => {
+    if (K18_NOM[id]) return K18_NOM[id];
+    const d = npcD(id), r = d ? String(d.role || id).toLowerCase() : id;
+    return /^[aeéèêiîoôuh]/i.test(r) ? 'l’' + r : (d && d.gender === 'f' ? 'la ' : 'le ') + r;
+  };
+  const qui = (id) => pnj(id, leRole(id));
+  const its = (o) => (o && typeof o === 'object' ? Object.entries(o).map(([k, n]) => IL(k, n > 1 ? n : '')).join(', ') : '');
+  const quete = (qid) => { for (const d of NPCS) for (const q of d.quests || []) if (q.id === qid) return [d, q]; return null; };
+  const ROM = T('K18_ROMAINS', null) || ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+  const branche = (D, E) => !!(K18_SI[D.id] && K18_SI[D.id][E.id]);
+  const aChoix = (D, E) => (Array.isArray(E.choix) && E.choix.length) || K18_CHOIX_FN[D.id] === E.id;
+  // ce qu'un chapitre demande, en clair (sans rien dire de l'histoire)
+  const pratique = (D, E) => {
+    const q = E.qui || D.npc;
+    let t;
+    if (E.aller) t = `aller ${aLieu(E.lieu)}${E.moment ? ', ' + K18_MOMENT[E.moment] : ''}`;
+    else if (E.need && typeof E.need === 'object') t = `apporter ${its(E.need)} à ${qui(q)}`;
+    else t = q === D.npc ? `${D.npc === 'fillette' ? 'lui' : 'lui'} parler` : `parler à ${qui(q)}`;
+    const c = [];
+    if (E.min) c.push(`amitié ${E.min}`);
+    if (E.minQui) c.push(`amitié ${E.minQui} avec ${leRole(q)}`);
+    if (E.jour) c.push(`dès le jour ${E.jour}`);
+    if (E.delai) c.push(E.delai === 1 ? 'le lendemain' : `${E.delai} jours après`);
+    return t + (c.length ? ` <small>(${c.join(', ')})</small>` : '');
+  };
+  const fins = (D) => Object.keys(D.fins || {}).length;
+  const debut = (D) => { const E = D.etapes[0] || {}; return `amitié ${E.min || 0}, dès le jour ${E.jour || 1}`; };
+  const premisse = (D) => (K18_PREMISSE[D.id] ? esc(K18_PREMISSE[D.id]) : F(D.accroche));
+  const pub = (D) => D.etapes.filter((E) => !branche(D, E));
+
+  // ================================================================ la fiche
+  let h = `<p class="lead">Onze habitants de la vallée ont chacun un long récit : six à huit chapitres, sur des semaines — leur histoire révélée peu à peu, un vrai choix qui en change la fin, les liens entre eux. Il y faut du temps et de l’amitié. Les proches viennent aussi voir la ferme, apportent des cadeaux, et se souviennent de ce qu’on a fait pour eux.</p>`;
+  h += h3('Comment ça marche') + ul([
+    'Un récit commence quand on est assez lié à l’habitant et que son jour est venu (voir le tableau). Chaque chapitre s’ouvre à son tour : il demande parfois un peu plus d’amitié, parfois un délai (le lendemain, quelques jours), parfois qu’un autre récit en soit là.',
+    'Quand un chapitre s’ouvre, une ligne discrète, en haut à gauche de l’écran, quelques secondes : « Un récit · » son titre, et ce qu’il demande.',
+    `On le fait en parlant — une ligne de plus dans le dialogue de la personne, entre guillemets —, en apportant ce qui est demandé, ou en allant quelque part, parfois à une heure dite : ${Object.values(K18_MOMENT).join(', ')} ; il suffit d’y rester un instant (devant la porte d’une maison, cela compte aussi).`,
+    'Chaque chapitre rapproche : l’habitant, et l’autre personne à qui l’on a parlé.',
+    'Un vrai choix, au moins une fois par récit : il change la suite et la fin. Ce qu’on a choisi ne se défait pas ; un chapitre sauté prend le choix « par défaut ».',
+    'Des lettres à la boîte, quelques jours après ; des cadeaux ; parfois un départ : l’habitant part sur la route quelques jours. Une ou deux scènes par récit, sur le moteur des cinématiques : elles se jouent au premier moment tranquille (l’histoire principale passe d’abord), on les passe en maintenant <kbd>Espace</kbd> ou <kbd>Échap</kbd>, on les revoit au carnet (page Proches).',
+    'Les récits se croisent : la croix d’Émile (la boulangère, le curé, le forgeron), la soupe du dimanche (l’aubergiste, le pêcheur), une lettre gardée à la poste (le maire), le chiot du ranch (le garde), la clochette de la guérisseuse (la petite), les charbonniers (la grainetière)… Une fin en ouvre parfois une autre : celle de la boulangère compte pour le forgeron.',
+    'À la fin, la vallée change parfois : une noce, des liens nouveaux entre habitants (et ce qu’ils se disent), une boutique qui vend autre chose, une lumière au phare.',
+    'Une ancienne partie : les récits commencent au début ; rien ne se rejoue.',
+  ]);
+  h += h3('Les onze récits') + tbl(['Récit', 'Qui', 'Commence', 'Chapitres', 'Fins'], ARCS.map((D) => {
+    const n = pub(D).length, b = D.etapes.length - n;
+    return [`« ${esc(D.titre)} »`, qui(D.npc), debut(D), b ? `${n}, et ${b === 1 ? 'un autre' : 'd’autres'} selon le choix` : String(n), String(fins(D))];
+  }));
+  // ---- un récit par habitant
+  for (const D of ARCS) {
+    let s = `<h3>« ${esc(D.titre)} » <small>— ${qui(D.npc)}</small></h3><p>${premisse(D)}</p>`;
+    const L = pub(D);
+    s += `<p class="small">Commence : ${debut(D)}. Ce qu’il faudra faire :</p><ol>${L.map((E) => `<li><b>${esc(E.titre)}</b> — ${pratique(D, E)}${aChoix(D, E) ? ' — <b>un choix</b>' : ''}</li>`).join('')}</ol>`;
+    if (L.length < D.etapes.length) s += `<p class="small">La suite dépend du choix.</p>`;
+    // sous les secrets : le récit en entier
+    const H2 = {
+      f: (k, arc) => { const A = arc ? ARCS.find((x) => x.id === arc) : D, Fn = A && A.fins && A.fins[k]; return Fn ? `« ${esc(Fn.titre)} »` : esc(k); },
+      c: (e, k) => { const E = D.etapes.find((x) => x.id === e), C = E && Array.isArray(E.choix) ? E.choix.find((x) => x.k === k) : null; return C ? `« ${F(C.label)} »` : esc(k); },
+      sc: (k) => (D.scenes && D.scenes[k] ? `« ${esc(D.scenes[k].titre)} »` : esc(k)),
+      vend: (k) => { const M = D.monde && D.monde[k] && D.monde[k].boutique; return M ? M.vend.map(([it, p]) => `${IL(it)} (${p} pièces)`).join(', ') : ''; },
+      IL: (k, n) => IL(k, n > 1 ? n : ''), lieu, pnj,
+    };
+    let sec = '';
+    if (K18_PREMISSE[D.id]) sec += `<p><b>Le fond de l’histoire :</b> ${F(D.accroche)}</p>`;
+    sec += `<h4>Les chapitres</h4><ol>${D.etapes.map((E) => {
+      const si = K18_SI[D.id] && K18_SI[D.id][E.id];
+      const plus = [];
+      if (E.vu) plus.push(`<i>${F(E.vu)}</i>`);
+      if (E.don && typeof E.don === 'object') plus.push('reçu : ' + its(E.don));
+      if (E.argent) plus.push(`${E.argent} pièces`);
+      if (E.lettre && E.lettre.titre) plus.push(`une lettre, quelques jours après (« ${F(E.lettre.titre)} »)`);
+      if (E.voyage) plus.push(`il part sur la route ${E.voyage[1]} jours`);
+      return `<li><b>${esc(E.titre)}</b>${si ? ` <small>(${esc(si)})</small>` : ''} — ${F(E.carnet || '')}${plus.length ? `<br><span class="small">${plus.join(' ; ')}</span>` : ''}</li>`;
+    }).join('')}</ol>`;
+    sec += `<h4>Le choix, et ce qu’il change</h4>` + ul((K18_SUITE[D.id] ? K18_SUITE[D.id](H2) : []));
+    sec += `<h4>Les fins</h4>` + ul(Object.values(D.fins || {}).map((Fn) => `<b>« ${esc(Fn.titre)} »</b> — ${F(Fn.resume)}${Fn.lettre && Fn.lettre.titre ? ` <small>(une lettre : « ${F(Fn.lettre.titre)} »)</small>` : ''}`));
+    if (D.rituel) sec += `<p class="small">Le récit fini (et l’habitant vivant), un cadeau, tous les ${D.rituel.tous} jours environ, avec son salut : ${its(D.rituel.don)}.</p>`;
+    sec += `<p class="small">Les scènes : ${Object.values(D.scenes || {}).map((S) => `« ${esc(S.titre)} »`).join(', ')}.</p>`;
+    h += s + SEC(sec, 'Les chapitres, le choix et les fins : masqué (secrets).');
+  }
+  // ---- quand quelqu'un manque
+  h += h3('Si quelqu’un meurt, s’en va, ou manque') + ul([
+    'L’habitant du récit meurt : son récit s’achève là, doucement (au carnet : « † — … n’est plus. Le récit s’arrête au chapitre … »). Emmené à la préfecture (la prison) : il « ne pourra plus se poursuivre ». Un récit qui n’avait pas commencé ne commencera pas.',
+    `La personne à qui il fallait parler n’est plus là : le chapitre est sauté, avec son choix par défaut, et le récit va au bout quand même. Un chapitre qui attend un autre récit est sauté au bout de ${REGL.attenteMax || 18} jours.`,
+    'Quelques récits ont une fin pour cela — une bague sur une tombe, la dernière lettre, une soupe au cimetière : sous « révéler les secrets », plus haut.',
+    `Voir aussi ${pg('sys:morts', 'la mort des habitants')}.`,
+  ]);
+  // ---- les proches
+  const avecVoix = ARCS.map((D) => D.npc).filter((id) => VOIX[id]);
+  h += h3('Les proches : saluts, visites, cadeaux') + ul([
+    'Les saluts changent : selon l’amitié (de 3 à 5, un ami ; 6 et plus, un proche), le dernier cadeau qu’on a fait, la dernière quête rendue, la ferme qui pousse, le gel ou la pluie ; dans une partie d’avant, ils se souviennent qu’il y a eu quelqu’un d’autre à la vieille ferme ; et, un récit fini, ils en parlent.',
+    `<b>Les visites</b> : à l’amitié ${REGL.visiteNiveau || 6}, un proche vient parfois voir la ferme, l’après-midi (il part de la ville vers 12 h 30 - 14 h) — une chance sur deux certains jours, jamais deux visites à moins de ${REGL.visiteEcart || 5} jours ; pas fâché, pas malade, pas sur la route, ni la personne qui vit avec vous. On le trouve près de la maison : un mot, un geste, ses cadeaux, et l’amitié grandit. Si l’on n’y est pas, il laisse un mot à la boîte.`,
+    'Un récit achevé (autrement que par un deuil), l’habitant redonne de temps en temps un petit quelque chose, avec son salut (amitié 4 au moins).',
+  ]) + tbl(['Qui', 'Ce qu’il apporte en visite', 'Le cadeau, un récit fini'], avecVoix.map((id) => { const D = ARCS.find((x) => x.npc === id); return [qui(id), its(VOIX[id].don), D && D.rituel ? `${its(D.rituel.don)} <small>(tous les ${D.rituel.tous} jours)</small>` : '—']; }));
+  // ---- la suite des quêtes d'avant
+  {
+    const par = {};
+    for (const qid of Object.keys(APRES)) { const r = quete(qid); if (r) (par[r[0].id] || (par[r[0].id] = [])).push([r[1], APRES[qid]]); }
+    h += h3('La suite des quêtes d’avant') + `<p>Une à six journées après une quête faite, l’habitant en dit un mot de plus, une fois — comme on reparle d’une chose qui a compté.</p>` + ul(Object.entries(par).map(([id, L]) => `${qui(id)} : ${L.map(([q]) => `« ${esc(q.title)} »`).join(', ')}`));
+    h += SEC(`<details><summary>Ce qu’ils en disent</summary>${Object.entries(par).map(([id, L]) => `<h5>${qui(id)}</h5><ul class="qs">${L.map(([q, t]) => `<li><b>« ${esc(q.title)} »</b> — ${F(t)}</li>`).join('')}</ul>`).join('')}</details>`, 'Ce qu’ils disent après leurs quêtes : masqué (secrets).');
+  }
+  // ---- le carnet
+  h += h3('Au carnet') + ul([
+    'Carnet → <b>Quêtes</b> : en tête, les « Récits » — le chapitre en cours et ce qu’il demande (« Chapitre III · … »), ou la fin d’un récit achevé ; « La suite viendra : il faut du temps, ou un peu plus d’amitié », tant que le chapitre n’est pas ouvert.',
+    `Carnet → <b>Proches</b> : ceux qu’on connaît un peu (amitié 2, ou un récit commencé). Ce qu’on est pour eux (${NIV.map(([n, t]) => `${esc(t)}${n ? ` (${n})` : ''}`).join(', ')}), une barre d’amitié, un portrait qui s’étoffe avec l’amitié et la fin de leur récit, le dernier souvenir partagé (un cadeau, une quête, un chapitre, une visite), leurs récits, et leurs scènes à revoir. Les morts y restent, en gris ; ceux qui sont sur la route, aussi.`,
+  ]);
+  h += `<p>${pg('cat:quetes', 'Les quêtes des habitants')} · ${pg('sys:quetes-tous', 'Des quêtes pour tout le monde')} · ${pg('sys:dettes', 'Les dettes de la ferme')} · ${pg('sys:l18_hotel', 'Le Grand Hôtel des Cimes')}</p>`;
+  SP('sys:recits', { t: 'Les récits des proches', s: 'Onze habitants, onze longs récits : leurs choix, leurs fins, leurs visites à la ferme', c: ['recits'], i: '❦', h }, files);
+
+  // ================================================================ un mot dans la fiche de chacun
+  const croise = {};
+  for (const D of ARCS) for (const E of D.etapes) { const q = E.qui; if (q && q !== D.npc) (croise[q] || (croise[q] = new Set())).add(D.id); }
+  const LIB = { ami: 'En ami', proche: 'En proche', cadeau: 'Après un cadeau', quete: 'Après une quête', ferme: 'De votre ferme', gel: 'Un matin de gel', pluie: 'Sous la pluie', vies: 'Dans une partie d’avant', visite: 'En visite à la ferme', absent: 'Le mot laissé à la boîte' };
+  const pour = new Set([...ARCS.map((D) => D.npc), ...Object.keys(croise), ...Object.keys(APRES).map((q) => (quete(q) || [{}])[0].id).filter(Boolean)]);
+  for (const id of pour) {
+    const p = pages.get('pnj:' + id);
+    if (!p || /k18-pnj/.test(p.h || '')) continue;
+    let b = '';
+    const D = ARCS.find((x) => x.npc === id);
+    if (D) {
+      b += `<h3 class="k18-pnj">Son récit : « ${esc(D.titre)} »</h3><p>${premisse(D)}</p><p class="small">Il commence à l’${debut(D)} ; ${pub(D).length} chapitres${pub(D).length < D.etapes.length ? ', et la suite selon un choix' : ''} ; ${fins(D)} fins possibles. ${lk('sys:recits', 'Les récits des proches')}</p>`;
+    }
+    if (croise[id]) {
+      const L = [...croise[id]].map((a) => ARCS.find((x) => x.id === a)).filter(Boolean);
+      b += `<p class="small${D ? '' : ' k18-pnj'}">On ${D ? 'le croise aussi' : 'le croise'} dans ${L.map((A) => `« ${esc(A.titre)} » (${leRole(A.npc)})`).join(', ')} : ${lk('sys:recits', 'les récits des proches')}.</p>`;
+    }
+    const V = VOIX[id];
+    if (V) {
+      b += `<h4>En visite</h4><p>À l’amitié ${REGL.visiteNiveau || 6}, ${leRole(id)} vient parfois voir la ferme, l’après-midi, et apporte ${its(V.don)}.</p>`;
+      const lignes = Object.entries(LIB).map(([k, t]) => { const x = V[k]; const L = Array.isArray(x) ? x : x ? [x] : []; return L.length ? `<h5>${esc(t)}</h5><ul class="qs">${L.map((l) => `<li>${F(String(l).replace(/\{objet\}/g, '‹ce cadeau›').replace(/\{quete\}/g, '‹la quête›'))}</li>`).join('')}</ul>` : ''; }).join('');
+      if (lignes) b += `<details><summary>Ce qu’il dit à ses proches</summary>${lignes}</details>`;
+    }
+    const Pt = PORTR[id];
+    if (Pt && Pt.length) {
+      b += `<h4>Au carnet « Proches »</h4><p>${F(Pt[0][1])}</p>`;
+      if (Pt.length > 1) b += SEC(ul(Pt.slice(1).map(([n, t]) => `<small>amitié ${n} :</small> ${F(t)}`)), 'Ce que le portrait révèle, à mesure : masqué (secrets).');
+    }
+    const AQ = Object.keys(APRES).filter((q) => { const r = quete(q); return r && r[0].id === id; });
+    if (AQ.length) b += (D || V ? '<h4>Après ses quêtes</h4>' : '<h3 class="k18-pnj">Après ses quêtes</h3>') + `<p class="small">Quelques jours après chacune, un mot de plus, une fois.</p>` + SEC(`<ul class="qs">${AQ.map((q) => `<li><b>« ${esc(quete(q)[1].title)} »</b> — ${F(APRES[q])}</li>`).join('')}</ul>`, 'Ce qu’il en dit : masqué (secrets).');
+    if (b) p.h = (p.h || '') + b;
+  }
+  void ROM;
+}
+
+module.exports = { dettes, hotel, cercle, recits };
