@@ -15,7 +15,7 @@
 // ============================================================================
 // ---------------------------------------------------------------- les noms des lieux (LIEU_NAMES : 06-zfarm-structures.js)
 Object.assign(LIEU_NAMES, {
-  p18_grotte: 'les Grottes de la Chute', p18_bouche: 'la grotte derrière la chute',
+  p18_grotte: 'les Grottes de la Chute', p18_bouche: 'la grotte derrière la chute', p18_aven: 'le trou de l’Aven',
 });
 for (const C of P18_CHUTES) LIEU_NAMES['p18_' + C.k] = C.nom;
 for (const C of P18_COINS) LIEU_NAMES['p18_' + C.k] = C.nom;

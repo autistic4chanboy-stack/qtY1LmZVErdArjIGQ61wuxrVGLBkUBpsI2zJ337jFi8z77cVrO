@@ -1284,13 +1284,13 @@ Les commandes sont dans le menu **Commandes** (Échap).
 ## Équilibrage
 
 Le jeu a été équilibré d'un bloc, en mesurant d'abord : chaque système avait été écrit avec ses propres nombres, et
-la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Trente et un domaines, chacun avec sa
+la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Quarante domaines, chacun avec sa
 mesure et ses vérifications dans `tools/equilibrage/` : le jeu entier est chargé dans une machine virtuelle node (sans
 navigateur, `tools/equilibrage/vm.js`), ses propres fonctions calculent les rendements, les espérances et les
 fréquences, et la commande échoue si l'on recasse un équilibre :
 
 ```bash
-node tools/equilibrage.js                     # les trente et un domaines (≈ 38 min)
+node tools/equilibrage.js                     # les quarante domaines (plus d’une heure)
 node tools/equilibrage.js commerce            # ou un seul : commerce, ferme, risques, survie, hasard, commandes, carte, nature, batiments
 node tools/equilibrage.js S D1 E2             # ou plusieurs ; ceux de la douzième vague : S, D1, D2, E1, E2, E3, F, G
 node tools/equilibrage.js R P Q T             # ceux de la treizième vague : R, P, Q, T

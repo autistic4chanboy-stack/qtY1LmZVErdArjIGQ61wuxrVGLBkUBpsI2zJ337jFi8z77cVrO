@@ -20033,6 +20033,7 @@ const I18N_EN = {"v":1,"exact":[
 ["le triton","the newt"],
 ["le trolle","globeflower"],
 ["le trou aux Mineurs","the Miners’ Hole"],
+["le trou de l’Aven","the mouth of the Sinkhole"],
 ["le trou du Vent","the Wind Hole"],
 ["le trou du fuyard","the fugitive’s hole"],
 ["le trou d’eau profond","the deep water hole"],
