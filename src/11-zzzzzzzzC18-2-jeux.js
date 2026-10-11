@@ -198,6 +198,8 @@ Object.assign(SoundEngine.prototype, {
 const C18_RANGS = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'V', 'D', 'R'];
 const C18_COULEURS = ['♠', '♥', '♦', '♣'];
 const C18_SYMBOLES = { fer: 'fer à cheval', carreau: 'carreau', pique: 'pique', coeur: 'cœur', cloche: 'cloche', etoile: 'étoile' };
+// trois fois le même symbole (au pluriel, une phrase entière pour la traduction)
+const C18_TROIS = { fer: 'Trois fers à cheval !', carreau: 'Trois carreaux !', pique: 'Trois piques !', coeur: 'Trois cœurs !', cloche: 'Trois cloches !', etoile: 'Trois étoiles !' };
 const C18_NOMS_JEUX = { roulette: 'La roulette', vingt: 'Le vingt-et-un', baccara: 'Le baccara', des: 'Le passe-dix', bandit: 'Le bandit manchot' };
 
 const c18Jeux = {
@@ -700,7 +702,7 @@ const c18Jeux = {
     if (!this.ouvert()) return;
     if (m >= 7) { sound.c18 && sound.c18('sonnette', null, Math.min(8, Math.round(m / 5))); sound.c18 && sound.c18('jetons', null, 3); }
     else if (m) sound.c18 && sound.c18('jetons', null, 1);
-    this.ligne(m ? (m === 1 ? 'La machine vous rend votre jeton.' : `${sy[0] === sy[1] && sy[1] === sy[2] ? 'Trois ' + C18_SYMBOLES[sy[0]] + (sy[0] === 'fer' ? 's à cheval' : 's') + ' ! ' : ''}La machine crache ${rendu} jetons.`) : pick(['Rien.', 'Rien. La machine a un petit bruit content.', 'Rien. Le ressort se détend avec un soupir.']));
+    this.ligne(m ? (m === 1 ? 'La machine vous rend votre jeton.' : `${sy[0] === sy[1] && sy[1] === sy[2] && C18_TROIS[sy[0]] ? C18_TROIS[sy[0]] + ' ' : ''}La machine crache ${rendu} jetons.`) : pick(['Rien.', 'Rien. La machine a un petit bruit content.', 'Rien. Le ressort se détend avec un soupir.']));
     this.etat('Un fer au premier rouleau rend la mise.');
   },
 
