@@ -967,4 +967,150 @@ function recits(X, H) {
   void ROM;
 }
 
-module.exports = { dettes, hotel, cercle, recits };
+// ============================================================================ P18 : LES CASCADES, LES GROTTES, LES COINS DE PARADIS
+// La cinquième part de la vague (les cascades, le réseau de grottes derrière la Grande Chute, les coins de paradis :
+// modules *P18*) n'est pas encore fusionnée : cette fonction ne rend rien. Le jour venu, elle écrira ici la fiche
+// sys:cascades (avec SP(…, fichiers /P18-/) pour que ses modules n'aient pas de fiche générique, et used.add() pour ses
+// tables), ce que voient les lieux concernés, et sections() rangera la section « Les cascades et les grottes » (voir
+// SECTION_P18, plus bas).
+function cascades(X, H) {
+  void X; void H;
+}
+
+// ============================================================================ UN MOT AILLEURS
+function liens(X, H) {
+  const { T, pages, lk, esc, IL } = X;
+  const has = (id) => pages.has(id);
+  const ajoute = (id, test, html, debut) => { const p = pages.get(id); if (p && !test.test(p.h || '')) p.h = debut ? html + (p.h || '') : (p.h || '') + html; };
+  // ---- la ferme, la maison Delorme, la poste
+  if (has('sys:dettes')) {
+    ajoute('li:ferme', /d18-ferme/, `<h3 class="d18-ferme">Les dettes, et les travaux</h3><p>La ferme est grevée d’une dette ancienne : huit termes à l’étude de Maître Delorme. Chaque terme payé, les ouvriers viennent le lendemain matin — un toit d’ardoise, une cour pavée et ses réverbères, des murs de pierre, un verger, une aile neuve, une serre, une écurie, un étage — et la vieille ferme devient un domaine : ${lk('sys:dettes', 'les dettes de la ferme')}.</p>${has('sys:recits') ? `<p>Les proches viennent parfois la voir, l’après-midi, et apportent des cadeaux : ${lk('sys:recits', 'les récits des proches')}.</p>` : ''}`);
+    ajoute('li:vide5', /d18-plaque/, `<p class="note d18-plaque">C’est la maison Delorme. Sur sa porte, à gauche, la plaque de cuivre de l’étude de Maître Delorme, notaire, et sa fente : on y paie ${lk('sys:dettes', 'les dettes de la ferme')}.</p>`, true);
+    ajoute('li:poste', /d18-mandat/, `<p class="note d18-mandat">On y envoie aussi des mandats pour l’étude Delorme (trois pièces de frais) : ${lk('sys:dettes', 'les dettes de la ferme')}.</p>`);
+    ajoute('pnj:postiere', /d18-mandat/, `<p class="note d18-mandat">« Un mandat pour l’étude Delorme » : elle fait partir les termes des ${lk('sys:dettes', 'dettes de la ferme')} (trois pièces de frais).</p>`);
+  }
+  // ---- la ville : la place, le Grand Cercle
+  if (has('sys:cercle')) {
+    ajoute('li:place', /c18-place/, `<p class="note c18-place">Au sud-est de la place, entre la grand-rue et la maison Delorme, adossé au rempart sud : ${lk('sys:cercle', 'le Grand Cercle')}, le casino de la ville (de 18 h à 3 h), et la suite Impériale à l’étage.</p>`);
+    ajoute('li:marche', /c18-place/, `<p class="note c18-place">En face, de l’autre côté des étals : la façade et la marquise du ${lk('sys:cercle', 'Grand Cercle')}.</p>`);
+    ajoute('li:casino', /c18-fiche/, `<p class="lead c18-fiche">Le casino de la ville, de 18 h à 3 h : ${lk('sys:cercle', 'le Grand Cercle')} — sa porte, sa caisse, ses cinq jeux, son bar et ses gens ; à l’étage, ${lk('sys:c18_suite', 'la suite Impériale')}.</p>`, true);
+    ajoute('act:des', /c18-jeu/, `<p class="note c18-jeu">Au ${lk('sys:cercle', 'Grand Cercle')}, le passe-dix se joue contre la banque, avec des jetons : ${lk('sys:c18_des', 'le passe-dix du Cercle')}.</p>`);
+    ajoute('act:cartes', /c18-jeu/, `<p class="note c18-jeu">Au ${lk('sys:cercle', 'Grand Cercle')}, le vingt-et-un se joue contre un croupier : ${lk('sys:c18_vingt', 'le vingt-et-un du Cercle')}.</p>`);
+    ajoute('sys:alcool', /c18-bar/, `<p class="note c18-bar">Au bar du ${lk('sys:cercle', 'Grand Cercle')} : une coupe de champagne, un verre de fine, une absinthe, ou un café noir.</p>`);
+    ajoute('sys:location', /c18-suite/, `<p class="note c18-suite">En ville encore, au ${lk('sys:cercle', 'Grand Cercle')} : ${lk('sys:c18_suite', 'la suite Impériale')}, à la nuit (350 pièces) ou à vendre (30 000).</p>`);
+  }
+  // (les interactions des gens du Cercle n'ont pas de nom à elles, dans la liste d'un lieu)
+  for (const p of pages.values()) if (p.id.startsWith('li:') && p.h && p.h.includes('c18_parler')) p.h = p.h.replace(/<li>c18_parler( ×\d+)?<\/li>/g, (m, n) => `<li>Parler aux gens du Cercle${n || ''}</li>`);
+  // ---- l'hôtel : ses lieux, les monts, le château
+  if (has('sys:l18_hotel')) {
+    const H18 = (t) => lk('sys:l18_hotel', t || 'le Grand Hôtel des Cimes');
+    for (const id of [...pages.keys()].filter((k) => /^li:l18_/.test(k))) ajoute(id, /l18-fiche/, `<p class="note l18-fiche">Au ${H18('Grand Hôtel des Cimes')} : ses lieux, ses gens, ${lk('sys:l18_concierge', 'le métier de concierge')}, ses histoires.</p>`, true);
+    ajoute('li:monts', /l18-monts/, `<p class="note l18-monts">À l’est de la vallée, sur le replat des monts de l’Est, au-dessus du château de Valmont : ${H18()}, un palace de 1868 ; on y monte par un funiculaire, au bout de la route du château, ou par le chemin muletier.</p>`);
+    ajoute('li:chateau', /l18-monts/, `<p class="note l18-monts">En face, sur le replat des monts de l’Est : ${H18()}. Au bout de la route du château, la gare basse de son funiculaire (un poteau : « Grand Hôtel des Cimes ⇨ 450 m, puis le funiculaire »).</p>`);
+    ajoute('sys:sommeil', /l18-lit/, `<p class="note l18-lit">Deux lits de plus : celui de la mansarde du concierge, au ${H18('Grand Hôtel des Cimes')} (une fois engagé), et le lit à baldaquin de ${lk('sys:c18_suite', 'la suite Impériale')}, au Grand Cercle (louée ou achetée).</p>`);
+  }
+  // ---- les morts
+  if (has('sys:recits')) ajoute('sys:morts', /k18-morts/, `<p class="note k18-morts">Un habitant qui meurt : son récit s’achève là (au carnet, une croix) ; s’il manquait à un chapitre du récit d’un autre, le chapitre est sauté et le récit va au bout quand même : ${lk('sys:recits', 'les récits des proches')}.</p>`);
+  // ---- les cinématiques
+  ajoute('sys:cinematiques', /v18-cine/, `<h3 class="v18-cine">La ferme, l’hôtel, le Cercle, les proches</h3><p>Sur le même moteur, et qui se passent de même : les travaux de ${lk('sys:dettes', 'la ferme')} et les huissiers (en revenant à la ferme) ; les scènes du ${lk('sys:l18_hotel', 'Grand Hôtel des Cimes')} — l’arrivée, le funiculaire, la voiture, l’embauche, la terrasse, le bal, l’aile Nord, et celles de ses histoires —, qui se revoient au carnet, page « Le Grand Hôtel » ; celles du ${lk('sys:cercle', 'Grand Cercle')} (la première soirée, la suite) ; celles des ${lk('sys:recits', 'récits des proches')}, qui se revoient au carnet, page « Proches ».</p>`);
+  // ---- le carnet
+  const sv = pages.get('sys:savoir');
+  if (sv && sv.h && !/sys%3Arecits|\u0002sys:recits/.test(sv.h)) {
+    sv.h = sv.h.replace('<td>Histoire · Quêtes · Légendes · Langues · Souvenirs</td>', '<td>Histoire · Quêtes · Proches · La ferme · Légendes · Langues · Le Grand Hôtel · Souvenirs</td>')
+      .replace('quêtes, gens rencontrés, notes, journal ;', `quêtes, gens rencontrés, notes, journal (en tête, les ${lk('sys:recits', 'récits des proches')}) ; les proches (ce qu’on est pour eux, leur portrait, leurs scènes) ; la ferme (${lk('sys:dettes', 'les dettes')} : le terme en cours, les travaux) ;`)
+      .replace('les mots de l’aëlin et du gorrain, les inscriptions ;', `les mots de l’aëlin et du gorrain, les inscriptions ; ${lk('sys:l18_hotel', 'le Grand Hôtel')} (le rang de concierge, le service, les commissions, les histoires, les souvenirs de l’hôtel ; la page n’apparaît qu’une fois l’hôtel vu) ;`);
+  }
+  // ---- la musique : les deux airs de l'hôtel (groupe « hotel »)
+  {
+    const p = pages.get('sys:musique'), MU = T('MUSIQUE', null);
+    const M = MU && MU.morceaux, fin = '<p class="note">Rien ne joue dans le cauchemar.</p>';
+    if (p && p.h && M && p.h.includes(fin) && !/l18-musique/.test(p.h)) {
+      const ids = (MU.ordre || Object.keys(M)).filter((id) => M[id] && M[id].groupe === 'hotel');
+      const INST = { piano: 'piano', harpe: 'harpe', celesta: 'célesta', boite: 'boîte à musique', cloche: 'cloche', cordes: 'cordes', flute: 'flûte', verre: 'verre', nappe: 'nappes', orgue: 'orgue' }, SALLE = { chambre: 'chambre', salle: 'salle', cathedrale: 'grande nef', grotte: 'grotte' };
+      // (la durée comme la fiche de la musique la calcule : la partition, le tempo, un peu de respiration, la salle)
+      const duree = (q) => {
+        const [num, den] = String(q.mesure || '4/4').split('/').map(Number), barQ = num * 4 / (den || 4);
+        let nb = 0; for (const v of Object.values(q.voix || {})) nb = Math.max(nb, String(v.notes || '').split('|').filter((x) => x.trim()).length);
+        let s = (q.anacrouse ? (nb - 1) * barQ + q.anacrouse : nb * barQ) * 60 / (q.tempo || 60);
+        for (const f of q.fermates || []) s += f[1] || 0;
+        return Math.round((s * 1.07 + 4) / 5) * 5;
+      };
+      const fmtS = (s) => { s = Math.round(s); const m = Math.floor(s / 60), r = s % 60; return m ? `${m} min${r ? ' ' + String(r).padStart(2, '0') : ''}` : `${r} s`; };
+      if (ids.length) {
+        const rows = ids.map((id) => { const q = M[id]; return `<tr><td>${q.auteur ? esc(q.titre) : `« ${esc(q.titre)} »`}</td><td><small>${esc(q.auteur ? q.auteur + ' (un personnage du jeu)' : 'composition originale')}</small></td><td>${esc([...new Set(Object.values(q.voix || {}).map((v) => INST[v.inst] || v.inst))].join(', '))}</td><td>${esc(q.mesure || '')}</td><td>${esc(SALLE[q.salle] || q.salle || '')}</td><td>${fmtS(duree(q))}</td></tr>`; }).join('');
+        const bloc = `<h4 class="l18-musique">${lk('sys:l18_hotel', 'Le Grand Hôtel des Cimes')} <small>(dans l’hôtel et dans ses scènes, jamais ailleurs)</small></h4><table class="t"><tr><th>Morceau</th><th>Compositeur</th><th>Instruments</th><th>Mesure</th><th>Salle</th><th>Durée</th></tr>${rows}</table>`;
+        p.h = p.h.replace(fin, bloc + fin);
+      }
+    }
+  }
+  void IL;
+}
+
+// ============================================================================ LES OUTILS, ET LE TOUT
+function outils(X) {
+  const { DB, esc, lk, pages, placeLink, npcLink } = X;
+  const log = (m) => (DB.log || (DB.log = [])).push('wiki-v18.js : ' + m);
+  const h3 = (t) => `<h3>${esc(t)}</h3>`;
+  const ul = (a) => `<ul>${a.filter(Boolean).map((x) => `<li>${x}</li>`).join('')}</ul>`;
+  const tbl = (head, rows) => `<table class="t"><tr>${head.map((x) => `<th>${esc(x)}</th>`).join('')}</tr>${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')}</table>`;
+  const kv = (L) => `<dl class="kv">${L.filter(Boolean).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join('')}</dl>`;
+  const lieu = (k, t) => (pages.has('li:' + k) ? placeLink(k, t) : esc(t || k));
+  // « au cimetière », « à la forge », « à l’église », d’après le titre de la fiche du lieu
+  const aLieu = (k) => {
+    const p = pages.get('li:' + k);
+    if (!p) return 'à ' + esc(k);
+    const t = p.t; let m;
+    if ((m = t.match(/^Le (.+)$/))) return 'au ' + placeLink(k, m[1]);
+    if ((m = t.match(/^Les (.+)$/))) return 'aux ' + placeLink(k, m[1]);
+    if ((m = t.match(/^La (.+)$/))) return 'à la ' + placeLink(k, m[1]);
+    if ((m = t.match(/^L['’](.+)$/))) return 'à l’' + placeLink(k, m[1]);
+    return 'à ' + placeLink(k, t);
+  };
+  const pnj = (id, t) => (pages.has('pnj:' + id) ? npcLink(id, t) : esc(t || id));
+  const pg = (id, t) => lk(id, t);
+  return { log, h3, ul, tbl, kv, lieu, aLieu, pnj, pg };
+}
+
+function build(X) {
+  const { DB, used } = X;
+  const H = outils(X);
+  // les tables de la vague : lues ici (pas d'« Autres tables », pas de « données du module » en bas des fiches)
+  for (const [n, t] of Object.entries(DB.tables || {})) if (/(D18|L18|C18|K18)-/.test(t.file || '')) used.add(n);
+  for (const [nom, f] of [['dettes', dettes], ['hôtel', hotel], ['Cercle', cercle], ['récits', recits], ['cascades', cascades], ['liens', liens]]) {
+    try { f(X, H); } catch (e) { H.log(nom + ' : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
+  }
+}
+
+// la section de la cinquième part (P18), le jour où elle sera écrite : { id: 'cascades', t: 'Les cascades et les grottes', … }
+const SECTION_P18 = null;
+
+function sections(cats, X) {
+  const { pages, link } = X;
+  const at = (id) => cats.findIndex((c) => c.id === id);
+  const apres = (cat, ancres) => {
+    if (at(cat.id) >= 0 || !cat.groups.some((g) => g.ids.length)) return;
+    let i = -1;
+    for (const a of ancres) { i = at(a); if (i >= 0) break; }
+    cats.splice(i >= 0 ? i + 1 : cats.length, 0, cat);
+  };
+  const ids = (L) => L.filter((id) => pages.has(id));
+  const par = (re) => [...pages.keys()].filter((id) => re.test(id));
+  const tri = (L) => L.sort((a, b) => pages.get(a).t.localeCompare(pages.get(b).t, 'fr'));
+  // les récits, puis les dettes : après les quêtes
+  if (pages.has('sys:recits')) {
+    const onze = ['boulangere', 'forgeron', 'fillette', 'grainetiere', 'aubergiste', 'pecheur', 'guerisseuse', 'eleveuse', 'garde', 'maire', 'postiere'].map((k) => 'pnj:' + k);
+    apres({ id: 'recits', t: 'Les récits des proches', d: 'Onze habitants, onze longs récits : l’amitié qui les ouvre, leurs chapitres, un choix qui change la fin ; les visites à la ferme, les cadeaux, le carnet « Proches ».', nouveau: true, groups: [{ t: 'Les récits des proches', ids: ['sys:recits'] }, { t: 'Les onze', ids: ids(onze) }] }, ['quetes16', 'principales', 'histoire', 'quetes']);
+  }
+  if (pages.has('sys:dettes')) apres({ id: 'dettes', t: 'Les dettes de la ferme', d: 'Huit termes à l’étude de Maître Delorme ; chaque terme payé, des travaux : la vieille ferme devient un domaine. Le retard, les huissiers, les scellés.', nouveau: true, groups: [{ t: 'Les dettes de la ferme', ids: ['sys:dettes'] }, { t: 'La ferme', ids: ids(['li:ferme']) }] }, ['recits', 'quetes16', 'principales']);
+  // l'hôtel et le Cercle : après les runes (les grands lieux)
+  if (pages.has('sys:l18_hotel')) apres({ id: 'grand-hotel', t: 'Le Grand Hôtel des Cimes', d: 'Un palace de 1868 sur le replat des monts de l’Est : le funiculaire, le métier de concierge (les clients, les gages, la réputation), quatre histoires, ses gens, ses lieux — et une chambre qui n’existe pas.', nouveau: true, groups: [{ t: 'L’hôtel', ids: ids(['sys:l18_hotel', 'sys:l18_concierge']) }, { t: 'Ses histoires', ids: ids(['sys:l18_firmin', 'sys:l18_lucien', 'sys:l18_symphonie', 'sys:l18_treize']) }, { t: 'Ses gens', ids: par(/^pnj:l18_/) }, { t: 'Ses lieux', ids: tri(par(/^li:l18_/)) }] }, ['runes', 'terres']);
+  if (pages.has('sys:cercle')) apres({ id: 'grand-cercle', t: 'Le Grand Cercle', d: 'Le casino de Valbrume : la porte et la caisse, cinq jeux et leurs chances, le bar, les habitués ; la suite Impériale à l’étage, et le baron qui ne l’a jamais quittée.', nouveau: true, groups: [{ t: 'Le Cercle', ids: ids(['sys:cercle', 'sys:c18_suite', 'sys:c18_baron']) }, { t: 'Les jeux', ids: ids(['sys:c18_roulette', 'sys:c18_vingt', 'sys:c18_baccara', 'sys:c18_des', 'sys:c18_bandit']) }, { t: 'Ses gens', ids: par(/^pnj:c18_/) }, { t: 'Le lieu', ids: ids(['li:casino']) }] }, ['grand-hotel', 'runes', 'terres']);
+  if (SECTION_P18) apres(SECTION_P18, ['grand-cercle']);
+  // un mot dans « Quêtes » et dans « Nouveautés »
+  const cq = pages.get('cat:quetes');
+  if (cq && pages.has('sys:recits') && !cq.h.includes('sys%3Arecits')) cq.h = `<p class="note">Et les longues histoires : ${link('sys:recits', 'les récits des proches')} (onze habitants, un choix chacun) ; ${link('sys:l18_hotel', 'les histoires du Grand Hôtel des Cimes')} (quatre) ; ${link('sys:c18_baron', 'le baron de la suite Impériale')}, au Grand Cercle.</p>` + cq.h;
+  const nv = cats[at('nouveautes')];
+  if (nv && nv.d && !/dettes de la ferme/.test(nv.d)) nv.d = nv.d.replace(' : ', ' : les dettes de la ferme, le Grand Hôtel des Cimes, le Grand Cercle, les récits des proches, ');
+}
+
+module.exports = { build, sections };
