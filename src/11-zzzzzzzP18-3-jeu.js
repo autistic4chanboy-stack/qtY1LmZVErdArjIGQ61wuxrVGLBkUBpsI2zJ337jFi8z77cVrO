@@ -436,7 +436,7 @@ HOOKS.lights.push((eye) => {
   const t = game.world.time || 0, jour = clamp(Math.min((t - 0.26) / 0.06, (0.76 - t) / 0.06), 0, 1);
   if (jour <= 0) return [];
   const k = jour * (0.85 + 0.15 * Math.sin(performance.now() / 260));
-  return [{ x: bx + Math.cos(G.a) * 2.6, y: by + 2.4, z: bz + Math.sin(G.a) * 2.6, r: 10, c: [0.3 * k, 0.35 * k, 0.38 * k], d: 0.03 }];
+  return [{ x: bx + Math.cos(G.a) * 2.6, y: by + 2.4, z: bz + Math.sin(G.a) * 2.6, r: 15, c: [0.22 * k, 0.26 * k, 0.29 * k], d: 0.03 }];
 });
 
 // ---------------------------------------------------------------- branchements
