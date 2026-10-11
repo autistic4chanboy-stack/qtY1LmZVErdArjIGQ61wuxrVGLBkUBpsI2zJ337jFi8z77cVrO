@@ -71,6 +71,8 @@ const h17 = {
     if (!sens) return { texte: txt, qui };
     let tr = null;
     try { tr = divins.comprendre(txt, sens); } catch (e) { tr = null; }
+    const nu = (x) => String(x || '').replace(/\s*,\s*/g, ', ').replace(/\s+/g, ' ').trim();
+    if (tr && nu(tr) === nu(txt)) tr = null; // (aucun mot connu : la phrase seule)
     return { texte: tr ? `« ${txt} » (${tr})` : `« ${txt} »`, qui };
   },
   paroles(k, i) { const C = H17_CINES[k]; return this.dire(C && C.paroles && C.paroles[i]); },
@@ -190,7 +192,7 @@ const H17_SCENES = {
     const at = (d, h) => { const x = P.x + f[0] * d, z = P.z + f[2] * d; return [x, Math.max(h17.sol(x, z), y0) + h, z]; };
     const seuil = at(2, 0), haut = [P.x, P.y + 17, P.z];
     return {
-      opts: { h: 19.3, musique: H17_MUSIQUES.c6 },
+      opts: { h: 16.8, musique: H17_MUSIQUES.c6 },
       plans: [
         h17.noir(2.8, h17.carteChapitre('c6')),
         { dur: 8, chemin: [{ pos: at(75, 9), look: at(0, 8) }, { pos: at(48, 6), look: at(0, 10) }, { pos: at(28, 3), look: haut }], ...h17.paroles('c6', 0) },
@@ -275,7 +277,7 @@ const H17_SCENES = {
     const G = h17.porte();
     const plans = [
       h17.noir(1.6),
-      { dur: 7.5, de: { pos: C1, look: M }, a: { pos: h17.vers(C1, M, 0.2), look: M }, ...h17.paroles('fin_cendre', 0), h: 19.6,
+      { dur: 7.5, de: { pos: C1, look: M }, a: { pos: h17.vers(C1, M, 0.2), look: M }, ...h17.paroles('fin_cendre', 0), h: 18.3,
         chaque: (t, dt) => { if (Math.random() < (dt || 0.02) * 6) h17.cendre(h17.vers(C1, M, 0.5), 3); } },
     ];
     if (G) {
@@ -285,7 +287,7 @@ const H17_SCENES = {
     plans.push({ dur: 6, de: { pos: CP, look: M }, a: { pos: h17.vers(CP, M, 0.15), look: h17.haut(M, -0.6) }, ...h17.paroles('fin_cendre', 2), h: 23.4,
       debut: () => { setTimeout(() => { if (cine.on) sound.knock && sound.knock(3); }, 900); } });
     plans.push({ dur: 3.6, de: { pos: CP, look: M }, fondu: 'noir', carte: { haut: H17_TEXTES.fin, titre: H17_FINS.cendre.titre } });
-    return { opts: { h: 19.6, musique: H17_MUSIQUES.fin_cendre, garderMusique: true }, plans };
+    return { opts: { h: 18.3, musique: H17_MUSIQUES.fin_cendre, garderMusique: true }, plans };
   },
   // ------------------------------------------------------------ le générique
   generique() {
