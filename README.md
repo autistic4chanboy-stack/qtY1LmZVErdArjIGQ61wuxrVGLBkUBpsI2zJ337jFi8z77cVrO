@@ -1144,6 +1144,34 @@ Les commandes sont dans le menu **Commandes** (Échap).
 - Tout se suit dans le carnet (Carnet → Quêtes), avec celles des habitants ; si celui qui demande disparaît, la quête
   ne pourra plus se faire.
 
+**L'histoire : la quête principale, et ses cinématiques**
+- **Huit chapitres, de l'héritage au Guet**, qui tiennent ensemble ce que la vallée avait déjà : *I. L'héritage* (la
+  lettre d'Anselme, une première nuit), *II. Les traces d'Anselme* (la tombe sans date, sa dernière page au vieux
+  puits), *III. Les Trois* (le temple derrière la cascade, la porte des Trois), *IV. Les mots d'avant* (relever trois
+  pierres gravées, savoir six mots des langues perdues), *V. Les pierres qui parlent* (les quatre tablettes, un premier
+  assemblage), *VI. La Grande Porte* (y aller, la passer), *VII. Les Terres d'Avant* (un feu de veille, le carnet du
+  Guet), *VIII. Le Guet* (la clé du dernier guetteur, puis décider de ce qu'il garde). Les étapes se font dans
+  n'importe quel ordre, avec ce qui existe : rien n'est généré, rien n'est donné (ni argent ni objet) ; un chapitre
+  s'ouvre quand le précédent est fini et que son jour est venu (jour 2, 4, 6, 8, 10) ; la ferme continue à côté, rien
+  n'attend. Ce qu'on a fait d'avance compte : une partie d'avant reprend au bon chapitre.
+- **Deux fins**, celles du Ver : le **délivrer** (« L'aube ») ou le **tuer** (« La cendre »), où qu'en soit
+  l'histoire ; une scène sur place, puis l'épilogue dans la vallée (au retour, s'il le faut), où ce qu'on a fait à
+  Basse-Fosse ajoute sa phrase, puis le **générique**.
+- **Les cinématiques** : l'arrivée (la vallée, la vieille forêt, la ferme), une à l'ouverture de chaque chapitre, la
+  fin et chacun de ses épilogues, le générique. Caméra sur des chemins (des clés, une courbe, un adoucissement), bandes
+  noires, fondus, cartes de chapitre, sous-titres avec le nom de qui parle (l'aëlin ne se lit que par les mots qu'on
+  sait), une silhouette qui marche, la lumière de l'heure, un air de la vallée. On les **passe en maintenant Espace ou
+  Échap** (une jauge sous l'invite) ; pendant ce temps, la vallée attend (le temps arrêté, ni coup ni mort), et l'on
+  retrouve sa place et son regard. Elles se jouent au premier moment tranquille (pas pendant un danger, une nuit
+  rouge, un panneau ouvert) ; plusieurs chapitres d'un coup : seule la dernière se joue.
+- **Au carnet** : Carnet → **Histoire** (le chapitre en cours et ce qui reste, les chapitres passés en une phrase,
+  « Revoir ») ; Carnet → **Souvenirs** (les scènes déjà vues, de cette vie et des autres), aussi depuis les Options
+  (section Jeu). À l'écran, rien qu'une ligne discrète, quelques secondes, quand un chapitre s'ouvre ou avance.
+- **Pour les succès** : le jeu émet `prairie:histoire` sur `window` (`detail` : `type` = `debut`, `etape`,
+  `chapitre`, `fin`, `generique` ou `cinematique` ; `chapitre`, `etape`, `fin`, `cine` ; et `succes` :
+  `histoire_c1` … `histoire_c8`, `histoire_fin_aube`, `histoire_fin_cendre`, `histoire_generique`) ; aussi
+  `prairieHistoire.ecouter(fn)`.
+
 ### Mode Création
 
 Éditeur de monde séparé : relief, peinture du sol, objets, animaux, blocs. **Exporter** télécharge un fichier
@@ -1165,6 +1193,7 @@ node tools/equilibrage.js R P Q T         # ceux de la treizième vague : R, P, 
 node tools/equilibrage.js Y X U Z         # ceux de la quatorzième vague : Y, X, U, Z…
 node tools/equilibrage.js V1 V2 V3 V4 V5  # … et ceux des Terres d'Avant : V1 à V5
 node tools/equilibrage.js R15             # celui de la quinzième vague : les runes
+node tools/equilibrage.js H17             # celui de la dix-septième vague : l'histoire
 ```
 
 Aucun réglage ne touche à la génération de la vallée : les anciennes parties retrouvent leurs objets (l'empreinte des
@@ -1595,6 +1624,19 @@ Le domaine de la quinzième vague :
   la fois, chaque dalle ne s'ouvre qu'avec ses runes ; les forces des effets restent bornées ; les trois coffres des
   dalles valent ≈ 1 100 pièces en tout, moins de trois journées de travail du début.
 
+### L'histoire
+
+Le domaine de la dix-septième vague :
+- `node tools/equilibrage.js H17` (≈ 2,5 min : les vallées 1234 et 77) : aucune passe de génération ; huit chapitres,
+  chacun son titre, son résumé, ses étapes (une épreuve chacune), sa scène, des jours d'ouverture qui ne reculent
+  pas ; chaque scène a son constructeur, son titre aux souvenirs, ses paroles, une musique qui existe ; deux fins au
+  moins. Pas d'impasse : les notes d'Anselme, le temple et ses trois pierres, trente inscriptions et plus, un
+  bibliothécaire, les quatre tablettes, la Grande Porte, les feux de veille, le carnet et la clé du Guet, le collier
+  existent, et les lieux des étapes et des scènes sont dans les deux vallées, où chaque scène se construit (positions
+  finies, moins de 40 s). La partie jouée avec les vraies fonctions, jusqu'à chaque fin : chaque chapitre s'ouvre à
+  son jour et se ferme par ses étapes ; une ancienne partie reprend au bon chapitre, une partie déjà finie ne rejoue
+  rien ; l'histoire ne paie rien (0 pièce, aucun objet).
+
 ## Modifier le code
 
 Les sources sont dans `src/` (triées par nom = ordre de chargement) :
@@ -1672,6 +1714,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `05-zzzzzzM15-menus.js`, `12-zzzzzzM15-menus.js` | le menu simplifié : le registre des pages du menu Tab (`menus.page`, `menus.ouvrir`, `menus.marque` ; chargé avant les tranches 06 à 13, on y inscrit une page de partout), puis la mise en page, emballée en dernier autour de `ui.renderSatchel` (quatre onglets et leurs pages, le clavier, les Options en quatre sections) ; les lettres sur soi (`farm.s.mail[i].sur`) et la boîte aux lettres (`menus.lireLettre`) |
 | `11-zzzzzD15-1-decouvertes.js`, `12-zzzzzD15-wiki.js` | le wiki dans le jeu : les découvertes (`farm.s.decouvertes`, API `decouvertes` : `voir`, `sait`, `declarer`, `ajouterChamps`… ; les identifiants de page sont ceux du wiki, `an:`, `it:`, `pl:`, `li:`, `pnj:`, `lv:`, `sys:`), les fiches tirées des tables du jeu, les relevés (une minuterie espacée, des emballages légers), le miroir `prairie.decouvertes` que lit `Prairie-Wiki.html` ; le panneau (l'onglet Wiki, les modes interactif et exact, la case des Options) |
 | `05-zzzzzzQ16-quetes.js`, `11-zzzzzzQ16-quetes.js`, `12-zzzzzzQ16-quetes.js` | des quêtes pour tout le monde : les quêtes en plus des habitants (`Q16_HABITANTS`, ajoutées à leur liste ; les sortes `aller` et `chasse`, les fins à choix `choix`), celles des autres (`Q16_PNJ`) et les modèles des anonymes de Basse-Fosse (`Q16_V5_MODELES`, tirés par partie) ; le jeu (API `q16`, état `farm.s.q16`), les lignes glissées dans les panneaux de chacun, le carnet |
+| `05-zzzzzzzH17-histoire.js`, `11-zzzzzzzH17-1-moteur.js`, `11-zzzzzzzH17-2-histoire.js`, `12-zzzzzzzH17-carnet.js` | l'histoire : les chapitres, les fins, les paroles et le générique (`H17_CHAPITRES`, `H17_FINS`, `H17_CINES`) ; le moteur des cinématiques en plus du socle (`h17Cine` : chemins de caméra, figurants, cartes, générique, passer en maintenant Espace ou Échap, la partie tenue pendant la scène) ; le jeu (API `histoire`, état `farm.s.histoire`, les scènes `H17_SCENES`, l'événement `prairie:histoire`) ; les pages Histoire et Souvenirs du carnet |
 | `05-zzzzzR15-runes.js`, `09-zzzzzR15-runes.js`, `11-zzzzzR15-1-pose.js`, `11-zzzzzR15-2-jeu.js`, `12-zzzzzR15-runes.js` | les runes : les données (`R15_RUNES`, `R15_REGL`, `R15_PORTES`, les butins des dalles), les sons, la pose (la dernière passe de la vallée, avec son propre tirage, et `zone.passe('R15')` dans les Terres d'Avant : rien de ce qui était posé ne bouge), le jeu (`farm.s.runes`, API `runes` : les tablettes, l'assemblage, les effets, les dalles, le dessin) et le panneau (la page Runes du menu, `runesUI`) |
 | `11-zzz00b-pensees.js`, `tools/pensees.js` | dire peu : `penser.une` (une règle dite une fois par vie), `penser.pas` (un avertissement espacé), `farm.s.pensees` ; l'inventaire des pensées (`node tools/pensees.js`) |
 | `11-zzvallee0-gel.js` | le gel en altitude : la jauge `farm.s.gel`, le givre à l'écran, la mort de froid |
@@ -1681,7 +1724,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzzz4-ferme-temps.js`, `11-zzzz4-meubles.js`, `07-zzzzzzzz-meubles.js` | portée des arroseurs, petites bêtes sous la pluie ; acheter et meubler sa maison (meubles, garde-meuble) |
 | `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
-| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html` ; les fiches de chaque vague dans `wiki-v12.js` à `wiki-v16.js`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js`, `Q.js` et `T.js`, la quatorzième `Y.js`, `X.js`, `U.js`, `Z.js` et `V1.js` à `V5.js`, la quinzième `R15.js` — et `risques.js` y reprend la maison la nuit de `U.js`) |
+| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html` ; les fiches de chaque vague dans `wiki-v12.js` à `wiki-v16.js`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js`, `Q.js` et `T.js`, la quatorzième `Y.js`, `X.js`, `U.js`, `Z.js` et `V1.js` à `V5.js`, la quinzième `R15.js`, la dix-septième `H17.js` — et `risques.js` y reprend la maison la nuit de `U.js`) |
 | `shell.html` | HTML + CSS |
 | `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et ses deux codes (le jeu, le wiki), le site servi tel quel par GitHub Pages, changer un code |
 | `libre/` | la partie sans code : sa page d'accueil (`libre/index.html`), le jeu et le wiki sans leur porte (écrits par `node build.js` et `node tools/wiki-build.js`) |
