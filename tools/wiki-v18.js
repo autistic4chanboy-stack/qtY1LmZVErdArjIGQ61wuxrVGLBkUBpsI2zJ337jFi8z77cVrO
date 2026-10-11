@@ -1,18 +1,24 @@
 // Le wiki — LA DIX-HUITIÈME VAGUE : les dettes de la ferme (D18), le Grand Hôtel des Cimes (L18), le Grand Cercle et la
-// suite Impériale (C18), les récits des proches (K18). La cinquième part de la vague — les cascades, les grottes derrière
-// la Grande Chute, les coins de paradis (P18) — n’est pas encore dans le jeu : sa place est prête, voir cascades().
+// suite Impériale (C18), les récits des proches (K18), les cascades, les Grottes de la Chute et les coins de paradis (P18).
 // tools/wiki-build.js appelle :
+//  - extract(G, w, DB, O) pendant l’extraction, après le plan du Dessous : ce que la passe P18 a fait dans la vallée
+//    générée (w.p18) et le plan des grottes, dans DB.world.p18 ;
 //  - build(X) après tools/wiki-v17.js : la fiche sys:dettes ; sys:l18_hotel (l’identifiant de la page de l’hôtel dans le
 //    wiki du jeu), sys:l18_concierge, les quatre histoires de l’hôtel (sys:l18_lucien…), ses gens (pnj:l18_…, comme le
 //    wiki du jeu) ; sys:cercle, ses cinq jeux (sys:c18_roulette…, comme le wiki du jeu), sys:c18_suite, sys:c18_baron,
-//    ses gens (pnj:c18_…) ; sys:recits ; un mot dans les fiches des onze habitants (leur récit), de la ferme, de la maison
-//    Delorme, de la poste, de la place, du Grand Cercle, des lieux de l’hôtel, des Monts, du château, du carnet, des
-//    cinématiques, de la musique, des morts, de la location, de l’alcool, des jeux de l’auberge ;
-//  - sections(cats, X) : quatre sections (« Les récits des proches », « Les dettes de la ferme », « Le Grand Hôtel des
-//    Cimes », « Le Grand Cercle ») ; un mot dans « Quêtes » et dans « Nouveautés ».
+//    ses gens (pnj:c18_…) ; sys:recits ; sys:cascades, sys:grottes, sys:paradis, et les fiches des lieux de la passe
+//    (li:p18_…, li:p18g_…, comme le wiki du jeu) ; un mot dans les fiches des onze habitants (leur récit), de la ferme,
+//    de la maison Delorme, de la poste, de la place, du Grand Cercle, des lieux de l’hôtel, des Monts, du château, du
+//    carnet, des cinématiques, de l’histoire, de la musique, des morts, de la location, de l’alcool, des jeux de
+//    l’auberge, de la lanterne, de la corde, du Dessous et de ses bêtes et plantes, des objets qu’on trouve aux grottes ;
+//  - sections(cats, X) : cinq sections (« Les récits des proches », « Les dettes de la ferme », « Le Grand Hôtel des
+//    Cimes », « Le Grand Cercle », « Les cascades et les grottes ») ; un mot dans « Quêtes », « Poissons » et
+//    « Nouveautés » ;
+//  - plans(DB, wiki, out) : le plan des Grottes de la Chute (l’onglet « grottes » des cartes).
 // Ce qui se cache (sous « révéler les secrets ») : les choix et ce qu’ils changent, les fins, les étapes qui en dépendent,
 // ce que les portraits des proches révèlent à la longue ; la treize et ce qu’elle cache ; les bonnes réponses du métier
-// de concierge ; ce qui se passe la nuit au Grand Cercle (l’homme en gris, la croupière) et la fin du baron.
+// de concierge ; ce qui se passe la nuit au Grand Cercle (l’homme en gris, la croupière) et la fin du baron ; l’ordre
+// de la dalle des grottes et ce qu’elle garde, les filons et les trouvailles d’une fois, l’endroit des coins de paradis.
 // Les chances des jeux du Cercle sont calculées ici, exactement, avec les règles mêmes du jeu (C18_REGLES, lues dans
 // src/11-zzzzzzzzC18-2-jeux.js) ; le vingt-et-un, contre le meilleur jeu (la méthode de tools/equilibrage/C18.js).
 'use strict';
@@ -1138,6 +1144,8 @@ const P18_COIN_TXT = {
   belvedere: 'Un replat d’herbe au-dessus du vide, des fleurs de montagne, un sapin seul, et un banc de pierre tourné vers la vallée.',
   verger: 'Un verger que personne n’a planté : des poiriers, des cerisiers, des pruniers, des pommiers, des noyers ; des ronces, des églantiers, des sureaux au bord ; un muret pour s’asseoir.',
 };
+// les lieux de la passe que le jeu ne nomme pas (LIEU_NAMES) : leur nom dans le wiki (la carte, les alentours des fiches)
+const P18_NOMS = { p18_aven: 'le trou de l’Aven' };
 // un coin posé sur sa chute (sous les secrets) ; les autres se disent par leur lieu le plus proche
 const P18_COIN_OU = { saule: ['sur l’îlot, au milieu du bassin', 'saules'], fees: ['au pied', 'cascatelles'], belvedere: ['au-dessus', 'voile'] };
 // les bêtes d'en bas (leurs nids) : comme la fiche « Les bêtes d'en bas »
@@ -1157,6 +1165,14 @@ function cascades(X, H) {
   for (const [n, t] of Object.entries(DB.tables || {})) if (/P18-/.test(t.file || '')) used.add(n);
   const V = (DB.world && DB.world.p18) || null;
   if (!V) log('pas de relevé de la vallée (DB.world.p18) : les fiches des cascades sans les chiffres de la vallée');
+  // (un lieu sans nom dans le jeu portait sa clé : un nom, pour la carte, et dans les fiches déjà faites)
+  for (const L of (DB.world && DB.world.lm) || []) {
+    const nm = P18_NOMS[L.key];
+    if (!nm || (L.name && L.name !== L.key)) continue;
+    L.name = nm;
+    const re = new RegExp(`(<a href="#/p/${encodeURIComponent('li:' + L.key)}"[^>]*>)${L.key}(</a>)`, 'g');
+    for (const q of pages.values()) if (q.h && q.h.includes(L.key)) q.h = q.h.replace(re, `$1${nm}$2`);
+  }
   const files = Object.keys(MF || {}).filter((f) => /P18-/.test(f));
   const fG = files.filter((f) => /P18-(2|3)-|P18-carnet/.test(f)), fC = files.filter((f) => !fG.includes(f));
   const scal = (k, d) => { for (const f of files) { const S = MF[f] && MF[f].scal && MF[f].scal[k]; if (S && typeof S.v === 'number') return S.v; } return d; };
@@ -1445,7 +1461,7 @@ function cascades(X, H) {
       ['Le ruisseau', [C.amont ? 'il arrive en gradins, d’une source' : C.source === 'faille' ? 'l’eau sort d’une faille de la paroi' : C.gradins ? 'il naît d’une source, au-dessus de la première vasque' : '', C.fin ? `à l’aval, il ${P18_FIN[C.fin]}` : ''].filter(Boolean).join(' ; ')],
       ['La scène', TITRES[C.k] ? `« ${esc(TITRES[C.k])} », la première fois qu’on la trouve` : ''],
     ]);
-    if (C.k === 'grande') b += `<p>Derrière le rideau : ${lieu('p18_bouche', 'la bouche de la grotte')}, l’entrée des ${grottes('Grottes de la Chute')}. À l’aval, la perte (<kbd>E</kbd> : « Regarder la perte »).</p>`;
+    if (C.k === 'grande') b += `<p>Derrière le rideau : ${lieu('p18_bouche', 'la grotte derrière la chute')}, l’entrée des ${grottes('Grottes de la Chute')}. À l’aval, la perte (<kbd>E</kbd> : « Regarder la perte »).</p>`;
     b += `<p>${cascL('Les cinq cascades')} · ${paradis('Les coins de paradis')}</p>`;
     Object.assign(p, { s: 'Une cascade', i: '≋', g: 'Les cascades', h: b + (p.h || '') });
   }
@@ -1467,9 +1483,9 @@ function cascades(X, H) {
   const publics = [];
   {
     const G0 = pages.get('li:p18_grotte');
-    if (G0) { Object.assign(G0, { s: 'Sous les monts de l’ouest', i: '⛏', x: 0, g: 'Les Grottes de la Chute', h: `<p class="lead">Un réseau de grottes sous les monts de l’ouest, derrière le rideau de ${chute('grande', 'la Grande Chute')} : ${grottes('les Grottes de la Chute')}.</p>${plan ? `<p>${surPlan('', 'Le plan des grottes')}</p>` : ''}<ul class="cards">${GR.salles.map((q) => q[0]).concat(['lac', 'torrent']).filter((k) => pages.has('li:p18g_' + k)).map((k) => `<li>${salle(k, cap(nomS(k)))}</li>`).join('')}</ul>` }); G0.map = undefined; publics.push(G0.id); }
+    if (G0) { Object.assign(G0, { s: 'Sous les monts de l’ouest', i: '⛏', x: 0, g: 'Les Grottes de la Chute', h: `<p class="lead">Un réseau de grottes sous les monts de l’ouest, derrière le rideau de ${chute('grande', 'la Grande Chute')} : ${grottes('les Grottes de la Chute')}.</p>${plan ? `<p>${surPlan('', 'Le plan des grottes')}</p>` : ''}<ul class="cards">${GR.salles.map((q) => q[0]).concat(['lac', 'torrent']).filter((k) => k !== 'sanctuaire' && pages.has('li:p18g_' + k)).map((k) => `<li>${salle(k, cap(nomS(k)))}</li>`).join('')}</ul>` }); G0.map = undefined; publics.push(G0.id); }
     const B0 = pages.get('li:p18_bouche'), Lb = LM.p18_bouche;
-    if (B0) { Object.assign(B0, { t: 'La bouche de la grotte', s: 'L’entrée des Grottes de la Chute', i: '⛏', x: 0, g: 'Les Grottes de la Chute', h: `<p class="lead">Derrière le rideau de ${chute('grande', 'la Grande Chute')}, au fond de la corniche de roche mouillée : une bouche noire. On y entre en marchant dedans, ou <kbd>E</kbd> (« Entrer dans la grotte »). « ${esc(TX.entrer || '')} »</p>` + kv([['Situation', Lb ? `${ouDe(Lb.x, Lb.z)} <small>(x ${Math.round(Lb.x)}, z ${Math.round(Lb.z)})</small>` : ''], ['On y arrive', salle('vestibule', 'au Vestibule')]]) + `<p>${mapBtn('li:p18_bouche')} ${grottes('Les Grottes de la Chute')}</p>` }); publics.push(B0.id); }
+    if (B0) { Object.assign(B0, { s: 'L’entrée des Grottes de la Chute', i: '⛏', x: 0, g: 'Les Grottes de la Chute', h: `<p class="lead">Derrière le rideau de ${chute('grande', 'la Grande Chute')}, au fond de la corniche de roche mouillée : une bouche noire. On y entre en marchant dedans, ou <kbd>E</kbd> (« Entrer dans la grotte »). « ${esc(TX.entrer || '')} »</p>` + kv([['Situation', Lb ? `${ouDe(Lb.x, Lb.z)} <small>(x ${Math.round(Lb.x)}, z ${Math.round(Lb.z)})</small>` : ''], ['On y arrive', salle('vestibule', 'au Vestibule')]]) + `<p>${mapBtn('li:p18_bouche')} ${grottes('Les Grottes de la Chute')}</p>` }); publics.push(B0.id); }
     const A0 = pages.get('li:p18_aven');
     if (A0 && !/p18-aven/.test(A0.h || '')) Object.assign(A0, { t: 'Le trou de l’Aven', s: 'Une sortie des Grottes de la Chute', i: '◎', g: 'Les Grottes de la Chute', h: `<p class="lead p18-aven">Un trou rond au milieu des arbres : la cheminée de ${salle('aven', 'l’Aven')}, aux ${grottes('Grottes de la Chute')}. <kbd>E</kbd> : « Regarder dans le trou » — « ${esc(TX.avenHaut || '')} » Avec une ${IL('corde')}, on y descend${V && V.aven ? ` (environ ${nfmt(Math.round(V.aven.prof))} m)` : ''} ; d’en bas, on remonte par les racines.</p>` + (A0.h || '') });
     for (const k of GR.salles.map((q) => q[0]).concat(GR.lacs.map((q) => q[0]), ['torrent'])) {
