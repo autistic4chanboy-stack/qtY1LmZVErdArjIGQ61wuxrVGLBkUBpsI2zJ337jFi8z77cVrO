@@ -121,6 +121,8 @@ const p18Jeu = {
     const p = game.player, S = this.S();
     this.boucheT = Math.max(0, this.boucheT - dt);
     const dedans = this.dansGrotte(p.pos);
+    // pendant une scène, rien à découvrir : le personnage n'est posé là que le temps de la scène (et il est rendu après)
+    if (cine.on) { this.sons(dt, eye, dedans); return; }
     // la bouche, derrière le rideau : on y entre en marchant
     const G = this.chute('grande');
     if (playing && !dedans && G && G.bouche && !game.sleeping && !this._passe && this.boucheT <= 0 && !cine.on) {

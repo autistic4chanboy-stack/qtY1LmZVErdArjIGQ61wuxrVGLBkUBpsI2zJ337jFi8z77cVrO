@@ -127,7 +127,8 @@ const p18Scenes = {
     let sc = null;
     try { sc = this.construire(k); } catch (e) { console.error('P18 scène ' + k, e); sc = null; }
     const S = p18Jeu.S();
-    if (!rejeu) { S.cines[k] = farm.s.day; S.aVoir = S.aVoir.filter((q) => q !== k); }
+    if (!rejeu) S.cines[k] = farm.s.day;
+    S.aVoir = S.aVoir.filter((q) => q !== k);
     try { histoire.souvenir(k); } catch (e) { /* rien */ }
     if (!sc) return Promise.resolve(false);
     // la scène se joue là où elle se passe : le personnage y est posé s'il est ailleurs (dessous / dehors)
