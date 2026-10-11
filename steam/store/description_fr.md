@@ -20,6 +20,9 @@ Vous héritez de la vieille ferme d'Anselme Varenne, au fond d'une vallée oubli
 
 Mais la vallée n'est pas tranquille. D'abord presque rien : une porte qui n'était pas ouverte, un chant d'oiseau qui s'arrête. Puis, au fil des jours, de moins en moins discret. Les nuits sont longues, la forêt est sombre, et vous n'avez qu'une vie : à la mort, la partie s'efface… et la vallée s'en souviendra.
 
+[h2]Une histoire en huit chapitres[/h2]
+Anselme, l'ancien fermier, a laissé une lettre et une consigne étrange : fermer la porte à clé chaque soir, et ne jamais ouvrir à sa voix. Suivez ses traces, d'une tombe sans date à un temple sous la montagne, des pierres gravées dans des langues oubliées jusqu'à la Grande Porte, et au-delà. Huit chapitres, chacun ouvert par une cinématique, qui avancent à votre rythme pendant que la ferme continue à côté ; et deux fins, selon ce que vous déciderez.
+
 [h2]Un monde qui vit sans vous[/h2]
 Vingt-deux habitants nommés et bien d'autres vivent leur semaine de douze jours : marché, messe, lessive, chasse, veillée, jour des morts. Chacun a son histoire, racontée chapitre après chapitre à mesure qu'on se lie, ses quêtes, sa boutique, ses souvenirs de vous. Il n'y a pas de jauge de réputation : ils se souviennent.
 
@@ -28,6 +31,7 @@ Pas de barre de vie, pas de mini-carte. Votre faim, votre santé et votre esprit
 
 [h2]Fonctionnalités[/h2]
 [list]
+[*][b]L'histoire principale[/b] : huit chapitres, des cinématiques, deux fins.
 [*][b]Une grande vallée dessinée à la main[/b] (3 km de côté) : la ferme sur sa butte, une ville fortifiée et ses ponts-levis, des hameaux, une rivière, un grand lac et son marais, la vieille forêt, la lande, les alpages et les monts enneigés — ou une vallée au hasard.
 [*][b]Soixante-quatre cultures[/b] et leurs variétés, des bêtes à élever, la pêche, la cueillette, la cuisine, la fabrication, l'alchimie et ses potions.
 [*][b]Des habitants avec leur vie[/b] : routines, histoires, amitiés, quêtes, mariage et foyer.
@@ -36,7 +40,7 @@ Pas de barre de vie, pas de mini-carte. Votre faim, votre santé et votre esprit
 [*][b]Un style rétro[/b] : pixels façon années 90, personnages anguleux, palette tramée, éclairage par paliers (tout se règle dans les Options).
 [*][b]Plus de quarante musiques[/b] originales et une ambiance sonore en 3D.
 [*][b]Un mode Création[/b] : un éditeur de monde pour bâtir votre propre vallée.
-[*][b]Succès Steam[/b] et sauvegardes dans le Steam Cloud.
+[*][b]Quarante succès Steam[/b] et sauvegardes dans le Steam Cloud.
 [/list]
 
 ## Langues

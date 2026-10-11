@@ -20,7 +20,7 @@ compte : l'inscription, les identifiants, les envois, les relectures de Valve.
 | `steam.js` | Steam (steamworks.js), facultatif : sans Steam, le jeu tourne quand même |
 | `saves.js` | la copie des sauvegardes en fichiers (Steam Cloud) |
 | `steam_appid.txt` | l'identifiant de l'application : **480** (Spacewar, l'appli d'essai de Valve) **à remplacer** |
-| `achievements.json` | les 36 succès (noms d'API, titres et descriptions FR/EN, cachés ou non) et 3 statistiques |
+| `achievements.json` | les 40 succès (noms d'API, titres et descriptions FR/EN, cachés ou non) et 3 statistiques |
 | `build.sh` | tout construire : `./build.sh` (Windows + Linux), `./build.sh mac` (sur un Mac) |
 | `scripts/` | `prepare.js` (le jeu sans porte → `app/`), `icons.js`, `achievements.js`, `captures.js`, `store-assets.js`, `set-ids.js`, `smoke.js` |
 | `steampipe/` | `app_build_XXXX.vdf`, `depot_build_*.vdf`, `upload.sh` |
@@ -77,9 +77,16 @@ quoi que ce soit depuis le réseau.
 4. (Facultatif) **Stats** : créer `JOURS_MAX`, `QUETES_FINIES`, `RECOLTES` (type INT, « Increment only »).
    Sans elles, le jeu marche pareil (les appels sont ignorés).
 5. **Publier** les changements (Publish › Prepare for publishing › Publish to Steam).
-6. Les succès `NEWY_HISTOIRE_*` sont des **emplacements** pour l'histoire principale : leurs titres et
-   descriptions seront à revoir quand elle sera finie (voir `achievements.json`, champ `placeholder`) ; le jeu
-   les débloque sur les événements `prairie:histoire` / `prairie:histoire-fin`.
+6. L'histoire principale (huit chapitres, des cinématiques, deux fins) a **11 succès** :
+   `NEWY_HISTOIRE_CH1` … `NEWY_HISTOIRE_CH8` (un par chapitre **achevé** : I L'héritage, II Les traces
+   d'Anselme, III Les Trois, IV Les mots d'avant, V Les pierres qui parlent, VI La Grande Porte, VII Les
+   Terres d'Avant, VIII Le Guet), `NEWY_HISTOIRE_FIN` (l'une des deux fins), `NEWY_FIN_AUBE` et
+   `NEWY_FIN_CENDRE` (chacune des fins). Tous **cachés** sauf le chapitre I ; les descriptions ne disent
+   rien de ce qui mène à chaque fin. Le jeu les débloque sur l'événement `prairie:histoire` (champ
+   `succes`) et les relit dans la partie (`farm.s.histoire`) au chargement et toutes les 3 s : une partie
+   reprise au chapitre V débloque les chapitres I à IV. (Si une version d'essai avait déjà créé
+   `NEWY_HISTOIRE_FIN_A` / `_FIN_B` dans Steamworks : les supprimer, ils sont devenus `NEWY_FIN_AUBE` /
+   `NEWY_FIN_CENDRE`.)
 
 ## 4. Steam Cloud (Auto-Cloud)
 
@@ -211,6 +218,9 @@ Sur au moins une machine Windows et une machine Linux (et le Steam Deck si possi
 - [ ] **Succès** : récolter une première culture → « Première récolte » s'affiche (overlay) ; vérifier
       dans le profil Steam. (Pour remettre à zéro pendant les essais : Steamworks › Stats & Achievements,
       ou la console steam : `achievement_clear <appid> <API>`.)
+- [ ] **Succès de l'histoire** : achever le chapitre I (lire la lettre d'Anselme, passer une nuit) →
+      « Chapitre I — L'héritage » ; reprendre une partie plus avancée → les chapitres déjà achevés
+      s'affichent dans les secondes qui suivent ; une fin → « Ce qu'il gardait » et le succès de cette fin.
 - [ ] **Overlay Steam** (Maj+Tab) : avec Electron il est fragile. L'application appelle
       `electronEnableSteamOverlay()` de steamworks.js (rendu GPU dans le processus principal,
       `--in-process-gpu`, et `--disable-direct-composition` sous Windows). Si l'overlay ne s'affiche pas ou
