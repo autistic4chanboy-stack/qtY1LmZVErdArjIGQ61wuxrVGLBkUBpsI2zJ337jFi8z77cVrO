@@ -209,7 +209,7 @@ const c18Jeux = {
     if (this.styled || typeof document === 'undefined') return;
     this.styled = true;
     const st = document.createElement('style');
-    st.textContent = `#choice.c18w{width:min(700px,calc(100vw - 24px))}
+    st.textContent = `#choice.c18w{width:min(700px,calc(100vw - 24px));max-height:calc(100vh - 16px);overflow-y:auto;margin-bottom:8px}
 #choice .c18 canvas{display:block;width:100%;max-width:640px;margin:4px auto 6px;border-radius:6px;background:#1e5232;box-shadow:inset 0 0 18px rgba(0,0,0,.45)}
 #choice .c18 .c18l{font:14px Georgia,serif;color:#5a4a36;margin:2px 0 6px;text-align:center;min-height:19px;font-style:italic}
 #choice .c18 .c18e{display:flex;justify-content:space-between;font:13px Georgia,serif;color:#6a5638;margin:0 4px 6px}
@@ -286,7 +286,7 @@ const c18Jeux = {
     for (let r = 0; r < 3; r++) for (let c = 0; c < 12; c++) { const n = c * 3 + 3 - r; grille += btn('n:' + n, C18_ROUGES.has(n) ? 'r' : 'n', n); }
     grille += '<span></span>' + ['d1', 'd2', 'd3'].map((d, i) => btn(d, 'd', ['1re douzaine', '2e douzaine', '3e douzaine'][i])).join('');
     grille += '<span></span>' + [['manque', 'Manque'], ['pair', 'Pair'], ['rouge', 'Rouge'], ['noir', 'Noir'], ['impair', 'Impair'], ['passe', 'Passe']].map(([k, t]) => btn(k, 's', t)).join('');
-    this.panneau('La roulette', `<canvas width="640" height="200"></canvas><div class="c18l"></div><div class="c18e"></div>${this.choixJetons(5)}<div class="c18g">${grille}</div>
+    this.panneau('La roulette', `<canvas width="640" height="170"></canvas><div class="c18l"></div><div class="c18e"></div>${this.choixJetons(5)}<div class="c18g">${grille}</div>
 <div class="c18b"><button data-a="lancer">Lancer la bille</button><button data-a="effacer">Retirer les mises</button><button data-a="partir">Quitter la table</button></div>`);
     this.brancherJetons(5);
     $$('#choice .c18g [data-p]').forEach((b) => (b.onclick = () => this.miser(b.dataset.p)));
@@ -322,8 +322,8 @@ const c18Jeux = {
   dessinRoue() {
     const g = this.cv(), E = this.E;
     if (!g || !E) return;
-    g.clearRect(0, 0, 640, 200);
-    const cx = 320, cy = 100, R = 92;
+    g.clearRect(0, 0, 640, 170);
+    const cx = 320, cy = 85, R = 80;
     g.fillStyle = '#4a2416'; g.beginPath(); g.arc(cx, cy, R + 6, 0, TAU); g.fill();
     for (let i = 0; i < 37; i++) {
       const n = C18_CYLINDRE[i], a0 = E.ang + (i / 37) * TAU - Math.PI / 2, a1 = a0 + TAU / 37;
@@ -339,8 +339,8 @@ const c18Jeux = {
     if (E.tourne || E.res !== null) { g.fillStyle = '#f4f0e4'; g.beginPath(); g.arc(cx + Math.cos(ab) * rb, cy + Math.sin(ab) * rb, 5, 0, TAU); g.fill(); }
     if (E.res !== null && !E.tourne) {
       g.fillStyle = E.res === 0 ? '#1f6a3a' : C18_ROUGES.has(E.res) ? '#a8241e' : '#1c1a1a';
-      g.beginPath(); g.arc(560, 100, 34, 0, TAU); g.fill(); g.strokeStyle = '#e8c060'; g.lineWidth = 2; g.stroke();
-      g.fillStyle = '#f4ead2'; g.font = 'bold 30px Georgia'; g.textAlign = 'center'; g.fillText(String(E.res), 560, 111);
+      g.beginPath(); g.arc(560, 85, 34, 0, TAU); g.fill(); g.strokeStyle = '#e8c060'; g.lineWidth = 2; g.stroke();
+      g.fillStyle = '#f4ead2'; g.font = 'bold 30px Georgia'; g.textAlign = 'center'; g.fillText(String(E.res), 560, 96);
     }
   },
   lancerBille() {

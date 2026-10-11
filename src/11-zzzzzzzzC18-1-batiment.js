@@ -142,11 +142,11 @@ function c18Generer(w, seed) {
   }
   P('c18_rampe', IX - 0.12, Y.sol, E.z0, 0, { L: E.z1 - E.z0, h: Y.etage - Y.sol });
   P('c18_colonne', E.x0 - 0.06, Y.sol, E.z0 - 0.05, 0, { h: Y.plafond - Y.sol });
-  // les tentures : papier peint et lambris au rez-de-chaussée, papier peint à l'étage
+  // les tentures : papier peint et soubassement de pierre au rez-de-chaussée (pas de planches minces : la passe Z les prendrait pour une clôture), papier peint à l'étage
   const doubler = (y0r, y1r, lam) => {
     const L = [[-IX, -IX + 0.04, -IZ, IZ], [-IX, E.x0 - 0.12, IZ - 0.04, IZ], [-IX, -1.0, -IZ, -IZ + 0.04], [1.0, IX, -IZ, -IZ + 0.04], [IX - 0.04, IX, -IZ, E.z0]];
     for (const R of L) K(R, y0r, y1r, M_PAPIER_PEINT, PL);
-    if (lam) for (const R of [[-IX + 0.04, -IX + 0.1, -IZ + 0.04, IZ - 0.04], [-IX + 0.04, E.x0 - 0.12, IZ - 0.1, IZ - 0.04], [-IX + 0.04, -1.0, -IZ + 0.04, -IZ + 0.1], [1.0, IX - 0.04, -IZ + 0.04, -IZ + 0.1], [IX - 0.1, IX - 0.04, -IZ + 0.1, E.z0]]) K(R, y0r, y0r + 0.95, M_PLANKS, PL);
+    if (lam) for (const R of [[-IX + 0.04, -IX + 0.1, -IZ + 0.04, IZ - 0.04], [-IX + 0.04, E.x0 - 0.12, IZ - 0.1, IZ - 0.04], [-IX + 0.04, -1.0, -IZ + 0.04, -IZ + 0.1], [1.0, IX - 0.04, -IZ + 0.04, -IZ + 0.1], [IX - 0.1, IX - 0.04, -IZ + 0.1, E.z0]]) K(R, y0r, y0r + 0.95, M_STONE, PL);
   };
   doubler(Y.sol, Y.plafond, true);
   K([IX - 0.04, IX, E.z0, IZ], Y.sol, Y.haut, M_PAPIER_PEINT, PL);                           // la cage, côté rue
@@ -368,6 +368,25 @@ function c18Generer(w, seed) {
       ok = [x, z]; break;
     }
     if (ok) { o.x = ok[0]; o.z = ok[1]; C.deplaces.push(i); } else { o.gone = true; o.cleared = true; C.arraches.push(i); }
+  }
+  // les trouvailles (11-zzzzR-ramasser.js) tombées dans l'emprise : posées sur ce qui les porte (le parquet, une marche),
+  // sans bouger en plan (leur signature, qui garde ce qu'on a ramassé, ne change pas)
+  C.trouvailles = 0;
+  if (w.ramasse && Array.isArray(w.ramasse.L)) for (const o of w.ramasse.L) {
+    if (!emprise(o.x, o.z, 0.3)) continue;
+    let y = Math.max(o.y, f.y);
+    for (let k = 0; k < 12; k++) {
+      let haut = y;
+      for (let j = C.blocs0; j < w.blocks.length; j++) {
+        const b = w.blocks[j];
+        if (b.hidden || b.y > y + 0.01 || b.y + b.sy <= y + 0.001 || Math.abs(b.x - o.x) > 20 || Math.abs(b.z - o.z) > 20) continue;
+        const [lx, lz] = World.blockLocal(b, o.x, o.z);
+        if (Math.abs(lx) <= b.sx / 2 && Math.abs(lz) <= b.sz / 2) haut = Math.max(haut, b.y + b.sy);
+      }
+      if (haut <= y + 0.001) break;
+      y = haut;
+    }
+    if (Math.abs(y - o.y) > 0.001) { o.y = y + 0.005; o.b = '_casino'; o.tx = 0; o.tz = 0; C.trouvailles++; }
   }
   w.objectsDirty = true; w.grid = null; w.blocksDirty = true; w.coverDirty = true; w.shadeDirty = true;
 }
