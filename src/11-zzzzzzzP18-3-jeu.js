@@ -344,7 +344,7 @@ HOOKS.interVis.p18_signe = () => !p18Jeu.S().porte;
 HOOKS.interVis.p18_racines = () => true;
 
 // le carnet du géologue (dans le Vestibule) : le seul plan qu'on ait, au début
-const P18_CARNET = 'Juin 1823. J. Delorme, des Mines.\n\n' +
+const P18_CARNET = 'Juin 1823. J. Castan, des Mines.\n\n' +
   'Entré par derrière la chute, comme me l’avait dit le berger. L’eau fait un bruit de forge ; dedans, plus rien.\n\n' +
   'Du Vestibule, deux chemins. À droite, vers le levant, on remonte doucement : un trou dans la voûte, le jour, des racines qui pendent. On peut sortir par là, avec de bons bras.\n\n' +
   'À gauche, la Galerie des Mains. Je n’ai pas su compter les mains. Trois figures, aussi. Je les ai recopiées, dans l’ordre : la femme au soleil, l’homme de pierre, l’autre.\n\n' +

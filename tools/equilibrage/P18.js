@@ -4,7 +4,9 @@
 //   tout le reste ; là où le terrain est creusé ou noyé, ni chemin, ni maison, ni objet posé, ni interaction, ni
 //   nœud de chemin, ni autre chose que des herbes, des arbres, des cailloux (ôtés) ; les chutes et les coins loin
 //   les uns des autres, loin des lieux d'avant et des endroits de la montagne où l'on bâtirait (refuge, col, lacs
-//   d'en haut, estive) ; l'eau tient dans ses bassins (le bord est plus haut que l'eau).
+//   d'en haut, estive), loin du Grand Hôtel des Cimes (sa voie, sa route, l'arrêt de sa voiture) et du Grand Cercle ;
+//   l'eau tient dans ses bassins (le bord est plus haut que l'eau). Après nous ne viennent que les bâtisses de la même
+//   vague (le Grand Hôtel, L18, puis le Grand Cercle, C18), qui notent où elles commencent et n'ajoutent qu'au bout.
 // - Les grottes : chaque salle, le lac, la rivière, le Sanctuaire sont atteints à pied depuis l'arrivée ; les deux
 //   sorties aussi ; chaque galerie part d'une salle et arrive dans une autre ; le Dessous n'a pas bougé (sa grille,
 //   hors de la boîte des grottes, est la même avec et sans elles ; aucun de ses creuseurs n'entre dans la boîte) ;
@@ -23,7 +25,7 @@ const JOURNEE_DEBUT = 375;   // pièces (domaine commerce)
 const N_C3 = [103331, 3384, 931], EMPREINTE_C3 = '103331/3384/931/48142f0b97c7';
 const BORNES = {
   objets: 450, props: 650, blocs: 260, inter: 45, nappes: 140, minis: 80, boitesChute: 520, decoVue: 520, passeMs: 6000,
-  ecartChutes: 140, ecartCoins: 90, loinMontagne: 250, uneFois: 2 * JOURNEE_DEBUT, parJour: JOURNEE_DEBUT / 3,
+  ecartChutes: 140, ecartCoins: 90, loinMontagne: 250, loinHotel: 250, loinVoies: 120, uneFois: 2 * JOURNEE_DEBUT, parJour: JOURNEE_DEBUT / 3,
 };
 
 module.exports = {
@@ -45,9 +47,13 @@ module.exports = {
       log(`empreintes : d'origine ${e1 === EMPREINTE_1234 ? 'inchangée' : 'CHANGÉE ' + e1} ; huitième vague ${e3 === EMPREINTE_C3 ? 'inchangée' : 'CHANGÉE ' + e3}`);
       if (e1 !== EMPREINTE_1234) ko('empreinte d’origine changée');
       if (graine === 1234 && e3 !== EMPREINTE_C3) ko('empreinte de la huitième vague changée'); // (celle-ci n'est relevée que pour la graine 1234)
-      // ce qu'on ajoute vient après tout le reste
-      const fin = [w.objects.length - R.n.o, w.props.length - R.n.p, w.inter.length - R.n.i, w.blocks.length - R.n.b];
-      if (fin[0] !== R.n0.o || fin[1] !== R.n0.p || fin[2] !== R.n0.i || fin[3] !== R.n0.b) ko(`la passe n’est pas la dernière (${fin.join('/')} contre ${R.n0.o}/${R.n0.p}/${R.n0.i}/${R.n0.b})`);
+      // ce qu'on ajoute vient après tout le reste ; ensuite, seules les bâtisses de la même vague (le Grand Hôtel, puis le
+      // Grand Cercle) : chacune note où elle commence, et n'ajoute qu'au bout
+      const L18 = w.l18 && w.l18.avant ? w.l18.avant : null, C18 = w.c18 && w.c18.objets0 !== undefined ? w.c18 : null;
+      const bout = L18 ? [L18.o, L18.p, L18.i, L18.b] : C18 ? [C18.objets0, C18.props0, C18.inter0, C18.blocs0] : [w.objects.length, w.props.length, w.inter.length, w.blocks.length];
+      const fin = [bout[0] - R.n.o, bout[1] - R.n.p, bout[2] - R.n.i, bout[3] - R.n.b];
+      if (fin[0] !== R.n0.o || fin[1] !== R.n0.p || fin[2] !== R.n0.i || fin[3] !== R.n0.b) ko(`la passe n’est pas la dernière${L18 ? ' avant le Grand Hôtel' : C18 ? ' avant le Grand Cercle' : ''} (${fin.join('/')} contre ${R.n0.o}/${R.n0.p}/${R.n0.i}/${R.n0.b})`);
+      if (L18 && C18 && C18.objets0 < L18.o) ko('le Grand Cercle commence avant le Grand Hôtel');
       log(`ajouté : ${R.n.o} objets, ${R.n.p} objets posés, ${R.n.i} interactions, ${R.n.b} blocs ; ${R.n.eaux} nappes d’eau, ${R.n.minis} petites chutes ; ${R.n.sommets} sommets du terrain touchés ; ${R.otes} herbes, arbres ou cailloux ôtés ; passe : ${R.ms} ms`);
       if (R.n.o > BORNES.objets) ko(`${R.n.o} objets ajoutés (> ${BORNES.objets})`);
       if (R.n.p > BORNES.props) ko(`${R.n.p} objets posés ajoutés (> ${BORNES.props})`);
@@ -58,7 +64,7 @@ module.exports = {
       if (R.ms > BORNES.passeMs) ko(`la passe prend ${R.ms} ms`);
       // chaque chose à sa place
       const P = JSON.parse(JJ.ev(`JSON.stringify((() => {
-        const w = __w, R = w.p18, WL = w.waterLevel, out = { routes: R.routes, ecartes: R.ecartes.length, gene: [], chutes: [], coins: [], fuites: [], ecarts: [], montagne: [], dessous: 0, n0: R.n0 };
+        const w = __w, R = w.p18, WL = w.waterLevel, out = { routes: R.routes, ecartes: R.ecartes.length, gene: [], chutes: [], coins: [], fuites: [], ecarts: [], montagne: [], voisins: [], dessous: 0, n0: R.n0 };
         // le terrain touché : une grille des sommets changés (plus de 20 cm)
         const C = w.cell, Wd = w.W, chg = new Set();
         // (on n'a plus la hauteur d'avant : la passe la garde dans R.chg ? non : on la recalcule en régénérant sans P18 serait trop long ;
@@ -68,10 +74,12 @@ module.exports = {
         for (const D of R.chutes) if (!D.sous) { zones.push({ x: D.x, z: D.z, r: (D.l || 4) + 8 }); if (D.bassin) zones.push({ x: D.bassin.x, z: D.bassin.z, r: D.bassin.r + 6 }); }
         for (const Q of R.coins) zones.push({ x: Q.x, z: Q.z, r: Q.r });
         const dans = (x, z, m) => zones.some((Z) => Math.hypot(x - Z.x, z - Z.z) < Z.r + (m || 0));
-        // ce qui était là avant (indices < n0) et qui ne doit pas être dans une zone : objets posés, interactions, blocs de surface, maisons, nœuds de chemin
-        for (let i = 0; i < R.n0.p; i++) { const q = w.props[i]; if (q.y > -30 && !q.gone && dans(q.x, q.z, 1)) out.gene.push('objet posé ' + q.id + ' @' + Math.round(q.x) + ',' + Math.round(q.z)); }
-        for (let i = 0; i < R.n0.i; i++) { const it = w.inter[i]; if ((it.y || 0) > -30 && dans(it.x, it.z, 1)) out.gene.push('interaction ' + it.kind + ' @' + Math.round(it.x) + ',' + Math.round(it.z)); }
-        for (let i = 0; i < R.n0.b; i++) { const b = w.blocks[i]; if (!b.under && b.y > -30 && dans(b.x, b.z, Math.max(b.sx, b.sz) / 2)) out.gene.push('bloc @' + Math.round(b.x) + ',' + Math.round(b.z)); }
+        // ce qui n'est pas à nous (avant nous, ou ajouté après : l'hôtel, le Cercle) et qui ne doit pas être dans une zone :
+        // objets posés, interactions, blocs de surface, maisons, nœuds de chemin, portes
+        const aNous = (i, k) => i >= R.n0[k] && i < R.n0[k] + R.n[k];
+        for (let i = 0; i < w.props.length; i++) { if (aNous(i, 'p')) continue; const q = w.props[i]; if (q.y > -30 && !q.gone && dans(q.x, q.z, 1)) out.gene.push('objet posé ' + q.id + ' @' + Math.round(q.x) + ',' + Math.round(q.z)); }
+        for (let i = 0; i < w.inter.length; i++) { if (aNous(i, 'i')) continue; const it = w.inter[i]; if ((it.y || 0) > -30 && dans(it.x, it.z, 1)) out.gene.push('interaction ' + it.kind + ' @' + Math.round(it.x) + ',' + Math.round(it.z)); }
+        for (let i = 0; i < w.blocks.length; i++) { if (aNous(i, 'b')) continue; const b = w.blocks[i]; if (!b.under && b.y > -30 && dans(b.x, b.z, Math.max(b.sx, b.sz) / 2)) out.gene.push('bloc @' + Math.round(b.x) + ',' + Math.round(b.z)); }
         for (const k in w.bld) { const b = w.bld[k]; if (dans(b.x, b.z, 10)) out.gene.push('maison ' + k); }
         for (const n of w.nav.nodes) if (dans(n.x, n.z, 4) && !/p18/.test(n.tag || '')) out.gene.push('nœud de chemin ' + (n.tag || '') + ' @' + Math.round(n.x) + ',' + Math.round(n.z));
         for (const d of w.doors || []) if (d && dans(d.x, d.z, 2)) out.gene.push('porte @' + Math.round(d.x) + ',' + Math.round(d.z));
@@ -88,6 +96,28 @@ module.exports = {
         }
         // loin des endroits de la montagne où l'on bâtirait (un hôtel, un chalet)
         for (const k of ['refuge', 'col', 'lac_gele', 'lac_noir', 'combe', 'estive', 'glacier', 'faille', 'fente_nains']) { const L = w.lm[k]; if (!L) continue; for (const A of pts) { const d = Math.hypot(A[1] - L.x, A[2] - L.z) - (k === 'glacier' || k === 'combe' ? (L.r || 0) * 0.6 : 0); if (d < ${BORNES.loinMontagne}) out.montagne.push(A[0] + ' / ' + k + ' : ' + Math.round(d) + ' m'); } }
+        // loin du Grand Hôtel des Cimes (L18 : l'hôtel, la voie du funiculaire, la route, l'arrêt de la voiture) et du Grand Cercle (C18)
+        const segD = (px, pz, ax, az, bx, bz) => { const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1, t = Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / L2)); return Math.hypot(px - ax - t * dx, pz - az - t * dz); };
+        const V = w.l18;
+        if (V) {
+          const lignes = [];
+          if (V.funi) lignes.push(['la voie du funiculaire', [V.funi.A[0], V.funi.A[2]], [V.funi.B[0], V.funi.B[2]]]);
+          const rt = V.route || [];
+          for (let i = 1; i < rt.length; i++) lignes.push(['la route de l’hôtel', rt[i - 1], rt[i]]);
+          for (const A of pts) {
+            const dh = Math.hypot(A[1] - V.x, A[2] - V.z);
+            if (dh < ${BORNES.loinHotel}) out.voisins.push(A[0] + ' / le Grand Hôtel : ' + Math.round(dh) + ' m');
+            for (const [nom, a, b] of lignes) { const d = segD(A[1], A[2], a[0], a[1], b[0], b[1]); if (d < ${BORNES.loinVoies}) out.voisins.push(A[0] + ' / ' + nom + ' : ' + Math.round(d) + ' m'); }
+            if (V.arret) { const d = Math.hypot(A[1] - V.arret.x, A[2] - V.arret.z); if (d < ${BORNES.loinVoies}) out.voisins.push(A[0] + ' / l’arrêt de la voiture : ' + Math.round(d) + ' m'); }
+          }
+          out.hotel = Math.round(Math.min(...pts.map((A) => Math.hypot(A[1] - V.x, A[2] - V.z))));
+          out.voies = Math.round(Math.min(...pts.map((A) => Math.min(...lignes.map(([, a, b]) => segD(A[1], A[2], a[0], a[1], b[0], b[1]))))));
+        }
+        if (w.c18 && w.c18.f) {
+          const F = w.c18.f;
+          for (const A of pts) { const d = Math.hypot(A[1] - F.x, A[2] - F.z); if (d < ${BORNES.loinVoies}) out.voisins.push(A[0] + ' / le Grand Cercle : ' + Math.round(d) + ' m'); }
+          out.cercle = Math.round(Math.min(...pts.map((A) => Math.hypot(A[1] - F.x, A[2] - F.z))));
+        }
         // l'eau tient dans ses bassins : sur le pourtour (un peu dehors), le terrain est plus haut que l'eau (sauf à l'endroit où elle s'en va)
         for (const D of R.chutes) {
           if (D.sous || !D.bassin) continue;
@@ -113,6 +143,8 @@ module.exports = {
       if (P.ecarts.length) ko('trop près les uns des autres : ' + P.ecarts.join(' ; '));
       log(`  écarts : ${P.ecarts.length ? P.ecarts.join(' ; ') : 'chutes à plus de ' + BORNES.ecartChutes + ' m les unes des autres, coins à plus de ' + BORNES.ecartCoins + ' m'} ; montagne : ${P.montagne.length ? P.montagne.join(' ; ') : 'tout à plus de ' + BORNES.loinMontagne + ' m du refuge, du col, des lacs d’en haut, de l’estive'}`);
       if (P.montagne.length) ko('trop près des hauteurs où l’on bâtirait : ' + P.montagne.join(' ; '));
+      log(`  voisins : ${P.voisins.length ? P.voisins.join(' ; ') : 'le Grand Hôtel ' + (P.hotel !== undefined ? 'à ' + P.hotel + ' m au plus près, sa voie et sa route à ' + P.voies + ' m' : 'absent') + ' ; le Grand Cercle ' + (P.cercle !== undefined ? 'à ' + P.cercle + ' m' : 'absent')}`);
+      if (P.voisins.length) ko('trop près du Grand Hôtel ou du Grand Cercle : ' + P.voisins.join(' ; '));
       for (const C of P.chutes) if (C.fuites > 3) ko(`le bassin de ${C.k} fuit (${C.fuites} points sur 32 plus bas que l’eau)`);
       for (const Q of P.coins) if (!Q.sec) ko(`le coin ${Q.k} est dans l’eau`);
       if (P.chutes.length < 4 || P.chutes.length > 6) ko(`${P.chutes.length} chutes (4 à 6)`);

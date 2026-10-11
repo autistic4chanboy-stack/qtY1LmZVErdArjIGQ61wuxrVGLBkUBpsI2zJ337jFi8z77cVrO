@@ -1,14 +1,15 @@
 // ============================================================================
 //  LES CASCADES, LES GROTTES ET LES COINS DE PARADIS (agent P18) — 2. LA GÉNÉRATION
-//  Après tout le reste (la dernière passe de generateValley) et seulement dans
-//  la vallée dessinée : on creuse le terrain d'après le plan (05-zzzzzzzP18-lieux.js)
+//  Après les passes d'avant (jusqu'aux runes) et avant les bâtisses de la même
+//  vague (le Grand Hôtel, le Grand Cercle, qui évitent ce qui est déjà là),
+//  seulement dans la vallée dessinée : on creuse le terrain d'après le plan (05-zzzzzzzP18-lieux.js)
 //  — le cirque au pied de chaque chute, le bassin, le ruisseau en gradins, la
 //  perte ou la mare où il finit ; on dégage les coins de paradis et on les garnit ;
 //  sous les monts de l'ouest, les Grottes de la Chute (des creuseurs de plus pour
 //  le moteur du Dessous, posés loin des siens) et ce qu'on y trouve.
 //  Les objets d'avant ne bougent pas (leur rang) ; ceux qui gênent (arbres,
 //  herbes, cailloux là où l'on creuse) sont seulement ôtés, comme les autres
-//  lieux le font. Ce qui est ajouté vient après tout le reste, dans le même ordre
+//  lieux le font. Ce qui est ajouté vient au bout des listes, dans le même ordre
 //  à chaque chargement (graine fixe : la vallée dessinée est la même partout).
 //  Résultat : w.p18 = { eaux, chutes, minis, coins, grotte, n, ms, … } (voir plus bas).
 // ============================================================================
@@ -453,14 +454,4 @@ const p18Gen = {
   },
 };
 
-// ---------------------------------------------------------------- la passe : après toutes les autres
-{
-  const _gv = generateValley;
-  generateValley = async function (seed, progress, gen) {
-    const w = await _gv(seed, progress, gen);
-    if (w && w.designed) {
-      try { if (progress) progress('Les cascades…'); p18Gen.passe(w); } catch (e) { console.error('P18', e); }
-    }
-    return w;
-  };
-}
+// (la passe se branche sur generateValley dans 11-zzzzzzzI-P18-0-passe.js : avant les bâtisses de la même vague)
