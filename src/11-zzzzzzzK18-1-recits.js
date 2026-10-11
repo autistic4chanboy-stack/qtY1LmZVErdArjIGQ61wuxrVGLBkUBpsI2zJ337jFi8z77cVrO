@@ -473,8 +473,8 @@ body.cine #k18-but{visibility:hidden}`;
     if (rnd() > K18_REGL.visiteChance) return;
     const C = this.candidatsVisite();
     if (!C.length) return;
-    const n = C[(rnd() * C.length) | 0], h0 = 13.5 + rnd() * 1.6;
-    Object.assign(S.visite, { id: n.id, h0, h1: h0 + 1.7, fait: 0 });
+    const n = C[(rnd() * C.length) | 0], h0 = 12.5 + rnd() * 1.5;
+    Object.assign(S.visite, { id: n.id, h0, h1: h0 + 3.5, fait: 0 }); // (le temps de venir à pied depuis la ville)
   },
   visiteDe(n, h) { const V = this.S().visite; return !!(V && V.id === n.id && V.j === farm.s.day && !V.fait && h >= V.h0 && h < V.h1 && n.st.alive && !(n.st.anger > 0)); },
   visites() {

@@ -244,6 +244,14 @@ const K18_APRES = {
   fillette_1: 'Lise a mis la couronne. Elle dit que c’est la première fois qu’on lui fait une couronne depuis… depuis très longtemps. Elle a pas dit combien.',
   fillette_2: 'Lise a retrouvé sa poupée ! Elle la serre tout le temps. Elle dit merci. Elle dit aussi que t’as marché sur une tombe, en revenant. C’est pas grave.',
   fillette_3: 'C’est nous qui changeons de côté… Je l’ai dit à maman. Elle a fait la tête qu’elle fait quand je dis des choses vraies.',
+  // les autres, ailleurs dans la vallée : les quêtes les plus ordinaires
+  alchimiste_1: 'La gentiane et l’edelweiss sont sous presse, entre deux buvards. Ils sèchent mieux que mes certitudes. Merci encore, et ne marchez pas sur mes fioles.',
+  chasseur_1: 'Les peaux sont tannées. J’ai doublé mon manteau avec. Cet hiver, si je meurs, ce ne sera pas de froid. C’est déjà une option de moins.',
+  colporteuse_1: 'Ma sœur a goûté le poisson des Sources. Elle m’écrit qu’il a le goût « d’un bain chaud qui aurait appris à nager ». Elle écrit mieux que moi, la garce.',
+  nain_ancien_1: 'Le pain d’en haut est fini. Tout le monde a pleuré à la dernière tranche, et tout le monde a dit que c’était la farine. Ici, on ne pleure pas : on a de la farine dans les yeux.',
+  nain_forgeronne_1: 'Votre charbon d’en haut a fait une lame qui chante. Elle chante faux. Je l’ai gardée quand même : on ne jette pas une lame qui a quelque chose à dire.',
+  naturiste_a_1: 'Le docteur a reniflé l’eau, il a dit « c’est l’eau », et il a pris un deuxième bain. Je compte ça comme une victoire.',
+  naturiste_b_1: 'La pharmacie est pleine. J’ai soigné une entorse, deux fièvres, et un berger qui voulait seulement parler. C’est le cas le plus fréquent.',
 };
 
 // ---------------------------------------------------------------- les portraits du carnet « Proches » (ce qu'on sait d'eux, à mesure)
