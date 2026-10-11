@@ -36,7 +36,9 @@ module.exports = {
     const emp = empreinte(w, [98896, 1308, 516]);
     log(`empreinte 1234 : ${emp === EMPREINTE_1234 ? 'inchangée' : 'CHANGÉE ' + emp} ; passe : ${R.ms} ms ; ajouté : ${w.props.length - R.avant.p} objet(s) posé(s), ${w.inter.length - R.avant.i} interaction(s), ${w.blocks.length - R.avant.b} bloc(s), 0 objet`);
     if (emp !== EMPREINTE_1234) ko('empreinte 1234 changée');
-    if (w.objects.length !== R.avant.o) ko('des objets ajoutés à w.objects');
+    // (les passes venues après R15 — les cascades, P18 — ajoutent leurs propres objets : on les compte à part)
+    const apres = (w.p18 && w.p18.n ? w.p18.n.o : 0);
+    if (w.objects.length - apres !== R.avant.o) ko('des objets ajoutés à w.objects');
     if (R.ms > BORNES.passeMs) ko(`la passe prend ${R.ms} ms`);
     const sig = J.ev('ramGen.signature(__w.ramasse.L)');
     log(`trouvailles de R : ${w.ramasse.L.length}, signature ${sig === R.avant.ram && sig === w.ramasse.sig ? 'inchangée' : 'CHANGÉE'}`);
