@@ -70,7 +70,7 @@ K18_ARCS.push({
   },
   rituel: { tous: 8, don: { bougie: 2 }, texte: ['Pour vos nuits. Deux bougies réglementaires. Le règlement n’existe pas, mais les bougies, si.'] },
   scenes: {
-    quivive: { titre: 'Qui vive', lieu: 'pont_nord', h: 21.4, musique: 'nuit_claire', angle: 4.6,
+    quivive: { titre: 'Qui vive', lieu: 'pont_nord', h: 20.5, musique: 'nuit_claire', angle: 4.6,
       gens: [
         { id: 'garde', x: 0, z: 0, cap: 'dos' },
         { joueur: true, x: 1.4, z: 2.2, cap: 'centre' },
@@ -165,7 +165,7 @@ K18_ARCS.push({
   },
   rituel: { tous: 9, don: { vin: 1 }, texte: ['Une bouteille de la cave municipale. Ne demandez pas comment la commune a une cave. Je ne le sais pas moi-même.'] },
   scenes: {
-    puits_maire: { titre: 'Une réponse dans le puits', lieu: 'vieux_puits', h: 21.6, musique: 'nuit_veilleuse', angle: 2.7,
+    puits_maire: { titre: 'Une réponse dans le puits', lieu: 'vieux_puits', h: 20.5, musique: 'nuit_veilleuse', angle: 2.7,
       gens: [
         { id: 'maire', x: 0, z: -0.2, cap: 'dos' },
         { joueur: true, x: 1.2, z: 2.0, cap: 'centre' },
@@ -178,7 +178,7 @@ K18_ARCS.push({
         ['@maire', '(Il se redresse. Il ôte l’écharpe, la plie, la remet.) Bien. Bien. La séance est levée.'],
       ],
       fin: { haut: 'L’arrêté sans date', titre: 'Une réponse dans le puits' } },
-    arrete: { titre: 'L’arrêté', lieu: 'place', h: 19.3, musique: 'village_volets', angle: 0.4,
+    arrete: { titre: 'L’arrêté', lieu: 'place', h: 18.6, musique: 'village_volets', angle: 0.4,
       gens: [
         { id: 'maire', x: 0, z: 0, cap: 'cam' },
         { id: 'fillette', x: -2.0, z: 2.2, cap: 'centre', chemin: { de: [-3.2, 3.0], a: [-1.4, 1.6], t0: 6, t1: 20 } },

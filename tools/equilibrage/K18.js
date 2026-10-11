@@ -346,6 +346,7 @@ module.exports = {
             for (const q of cams) if (!fini(q)) mauvais++;
           }
           for (const g of sc.gens) { if (!fini(g.P) || !Number.isFinite(g.cap)) mauvais++; if (g.ch && (!fini(g.ch.de) || !fini(g.ch.a))) mauvais++; }
+          for (const l of sc.opts.lum || []) if (!fini([l.x, l.y, l.z]) || !(l.r > 0)) mauvais++;
           if (mauvais) out.e.push('scène ' + c + ' : ' + mauvais + ' positions non finies');
           if (sc.duree > 90) out.e.push('scène ' + c + ' : ' + sc.duree.toFixed(0) + ' s (trop longue)');
           if (sc.gens.length < 1) out.e.push('scène ' + c + ' : personne');

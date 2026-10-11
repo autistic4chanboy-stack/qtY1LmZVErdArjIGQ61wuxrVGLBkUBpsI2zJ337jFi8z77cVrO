@@ -88,11 +88,11 @@ K18_ARCS.push({
     },
   },
   scenes: {
-    ponton: { titre: 'Deux hommes au bout du ponton', lieu: 'ponton', h: 19.0, musique: 'eau_lac', angle: 0.9,
+    ponton: { titre: 'Deux hommes au bout du ponton', lieu: 'ponton', h: 18.4, musique: 'eau_lac', angle: 0.9,
       gens: [
         { id: 'aubergiste', x: -0.6, z: 0, cap: 'droite' },
         { id: 'pecheur', x: 0.6, z: 0, cap: 'gauche' },
-        { joueur: true, x: -0.4, z: 4.0, cap: 'centre' },
+        { joueur: true, x: -2.6, z: 1.4, cap: 'centre' },
       ],
       paroles: [
         ['', 'Le soir tombe sur le lac. Au bout du ponton, deux hommes qui se connaissent depuis cinquante ans ne savent pas où mettre leurs mains.'],
@@ -103,7 +103,7 @@ K18_ARCS.push({
         ['', '(Ils versent le lait à deux, maladroitement. Il en tombe à côté. Ils rient, comme des noyés qui ont pied.)'],
       ],
       fin: { haut: 'Chiche', titre: 'Deux hommes au bout du ponton' } },
-    veillee: { titre: 'La fête des vivants', lieu: { bld: 'auberge' }, repli: 'place', h: 20.4, musique: 'village_dimanche',
+    veillee: { titre: 'La fête des vivants', lieu: { bld: 'auberge' }, repli: 'place', h: 19.6, musique: 'village_dimanche', lum: [[0, 1.2, 2.4, 13], [-2.5, 2.0, 2.2, 9], [2.5, 2.0, 2.2, 9]],
       gens: [
         { id: 'aubergiste', x: 0, z: 0.4, cap: 'cam' },
         { id: 'pecheur', x: 1.4, z: 1.2, cap: 'centre' },
@@ -219,7 +219,7 @@ K18_ARCS.push({
         ['', '(Il traverse. Il ne se retourne pas. Il marche comme on rame : un pas, un temps, un pas.)'],
       ],
       fin: { haut: 'Quarante lettres', titre: 'Sur la route de la gare' } },
-    retour: { titre: 'Deux coups de lanterne', lieu: 'phare', repli: 'ponton', h: 19.6, musique: 'eau_reflets', angle: 0.3,
+    retour: { titre: 'Deux coups de lanterne', lieu: 'phare', repli: 'ponton', h: 18.9, musique: 'eau_reflets', angle: 0.3, lum: [[0, 0.3, 2.0, 10], [0, -1, 17.8, 30]],
       gens: [
         { look: 'rose', x: -0.4, z: 0.2, cap: 'cam' },
         { id: 'pecheur', x: 0.5, z: 0.6, cap: 'gauche' },
@@ -311,7 +311,7 @@ K18_ARCS.push({
         ['', '(Elle pose le grimoire sur vos genoux, et sa main dessus, un moment. Elle est légère comme une feuille sèche.)'],
       ],
       fin: { haut: 'Celle qui viendra', titre: 'Le grimoire' } },
-    dolmen: { titre: 'La Table des Géants', lieu: 'dolmen', h: 21.6, musique: 'lande_bruyeres', angle: 5.2,
+    dolmen: { titre: 'La Table des Géants', lieu: 'dolmen', h: 20.6, musique: 'lande_bruyeres', angle: 5.2,
       gens: [
         { id: 'guerisseuse', x: 0, z: 0, cap: 'dos' },
         { joueur: true, x: 0.8, z: 3.6, cap: 'centre' },
@@ -404,7 +404,7 @@ K18_ARCS.push({
     },
   },
   scenes: {
-    calvaire: { titre: 'Au calvaire, au crépuscule', lieu: 'calvaire0', repli: 'pont_nord', h: 19.2, musique: 'pres_noyer', angle: 1.9,
+    calvaire: { titre: 'Au calvaire, au crépuscule', lieu: 'calvaire0', repli: 'pont_nord', h: 18.6, musique: 'pres_noyer', angle: 1.9,
       gens: [
         { id: 'eleveuse', x: -0.7, z: 0, cap: 'droite' },
         { id: 'garde', x: 0.7, z: 0, cap: 'gauche', chemin: { de: [7, -4], a: [0.7, 0], t0: 3, t1: 14 } },

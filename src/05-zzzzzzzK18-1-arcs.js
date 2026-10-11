@@ -218,7 +218,7 @@ K18_ARCS.push({
     },
   },
   scenes: {
-    mine: { titre: 'Quatorze noms', lieu: 'mine', h: 18.6, musique: 'nuit_veilleuse', angle: 2.2,
+    mine: { titre: 'Quatorze noms', lieu: 'mine', h: 18.3, musique: 'nuit_veilleuse', angle: 2.2,
       gens: [
         { id: 'forgeron', x: 0, z: -0.6, cap: 'dos' },
         { joueur: true, x: 1.6, z: 0.8, cap: 'centre' },
@@ -334,7 +334,7 @@ K18_ARCS.push({
   },
   rituel: { tous: 7, don: { fleur: 2 }, texte: ['Tiens ! Des fleurs. Deux. Pas trois : trois, c’est pour les morts.', 'J’ai cueilli ça pour toi. Lise a aidé. Enfin, elle a regardé.'] },
   scenes: {
-    puits: { titre: 'La nuit de la clochette', lieu: 'vieux_puits', h: 21.3, musique: 'nuit_berceuse', angle: 4.0,
+    puits: { titre: 'La nuit de la clochette', lieu: 'vieux_puits', h: 20.4, musique: 'nuit_berceuse', angle: 4.0,
       gens: [
         { id: 'fillette', x: 0, z: 0, cap: 'dos', chemin: { de: [-1.2, 6], a: [0, 1.4], t0: 2, t1: 16 } },
         { look: 'blanc', x: 0.6, z: -9, cap: 'cam', chemin: { de: [0.6, -9], a: [0.6, -14], t0: 30, t1: 44 } },
@@ -450,7 +450,7 @@ K18_ARCS.push({
     graines: { boutique: { npc: 'grainetiere', vend: [['graines_melon', 18]] } },
   },
   scenes: {
-    retrouvailles: { titre: 'Le Tombé', lieu: { bld: 'graineterie' }, repli: 'place', h: 18.7, musique: 'pd_gymnopedie1',
+    retrouvailles: { titre: 'Le Tombé', lieu: { bld: 'graineterie' }, repli: 'place', h: 18.2, musique: 'pd_gymnopedie1',
       gens: [
         { id: 'grainetiere', x: 0, z: -0.4, cap: 'cam' },
         { look: 'jean', x: 0.3, z: 2.0, cap: 'dos', chemin: { de: [5.5, 13], a: [0.3, 2.0], t0: 3, t1: 18 } },

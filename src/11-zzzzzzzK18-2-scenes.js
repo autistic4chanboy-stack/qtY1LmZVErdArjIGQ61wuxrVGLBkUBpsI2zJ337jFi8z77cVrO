@@ -111,8 +111,10 @@ const k18Scenes = {
     }
     plans.push({ dur: def.fin ? 3.2 : 2.2, de: { pos: der, look: look0 }, fondu: 'noir', carte: def.fin || undefined });
     const tot = plans.reduce((a, P) => a + (P.dur || 0), 0);
+    // la lumière d'une lanterne, le soir et la nuit (lum : [[x, z, hauteur, rayon]] ; par défaut, au milieu, après 19 h 30)
+    const lum = (def.lum || (def.h >= 19.5 ? [[0, 0.6, 2.1, 11]] : [])).map(([x, z, hy, r]) => { const P = at(x, z); return { x: P[0], y: P[1] + (hy || 2), z: P[2], r: r || 11, c: [1.0, 0.76, 0.42], d: 12 }; });
     this.actif = { cle, gens };
-    return { plans, opts: { h: def.h, musique: def.musique }, ids, gens, duree: tot };
+    return { plans, opts: { h: def.h, musique: def.musique, lum }, ids, gens, duree: tot };
   },
   // les gens, à l'heure de la scène (k18.sceneT)
   dessiner(buf, sbuf, t) {
