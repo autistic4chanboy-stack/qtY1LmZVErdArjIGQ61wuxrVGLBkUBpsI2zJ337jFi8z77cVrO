@@ -10,15 +10,17 @@
 //    Au démarrage, ceux déjà notés sont renvoyés au pont (Steam les ignore s'il
 //    les a déjà : utile si l'on a joué hors ligne).
 //  - Événements écoutés (window) :
-//      prairie:succes   { api }                    débloque ce succès (pour d'autres modules)
-//      prairie:histoire { chapitre, etape, fin?, termine? }   l'histoire principale :
-//          un chapitre N annoncé débloque les chapitres d'avant (N-1…) ; termine: true
-//          (ou etape === 'fin') débloque le chapitre N ; fin: 'a' | 'b' | … une fin
-//      prairie:histoire-fin / prairie:fin { fin }  une fin de l'histoire
+//      prairie:succes   { api }   débloque ce succès (pour d'autres modules)
+//      prairie:histoire { type, chapitre, etape, fin, cine, succes }   l'histoire principale
+//          (11-zzzzzzzH17-2-histoire.js) : succes 'histoire_c1'…'histoire_c8' (un chapitre
+//          ACHEVÉ), 'histoire_fin_aube' | 'histoire_fin_cendre' (une fin) ; type 'debut' d'un
+//          chapitre cN : ceux d'avant sont achevés. Les mêmes succès se lisent aussi dans
+//          farm.s.histoire (fini: { cN: jour }, fin: 'aube'|'cendre') à chaque vérification
+//          et au chargement : une partie reprise retrouve ceux qu'elle a déjà gagnés.
 //    Émis : prairie:succes-debloque { api } (après chaque nouveau succès).
 //  - Statistiques Steam (facultatives, si définies dans Steamworks) : JOURS_MAX,
 //    QUETES_FINIES, RECOLTES (entiers qui ne font que monter).
-//  API : succes (LISTE, HISTOIRE, debloque(api), estDebloque(api), liste(), verifier(),
+//  API : succes (LISTE, HISTOIRE, debloque(api), estDebloque(api), liste(), verifier(), depuisHistoire(),
 //        nQuetes(), nPages(prefixe))
 // ============================================================================
 const succes = (() => {
@@ -48,6 +50,10 @@ const succes = (() => {
   }
   const zone = () => { const s = st(); return (s && s.zone) || {}; };
   const runesS = () => { const s = st(); return (s && s.runes) || {}; };
+  // l'histoire (farm.s.histoire) : le chapitre n achevé ? la fin ('aube' | 'cendre' | null)
+  const hist = (s) => (s && s.histoire && typeof s.histoire === 'object' ? s.histoire : null);
+  const chapFini = (s, n) => { const H = hist(s); return !!(H && H.fini && typeof H.fini === 'object' && H.fini['c' + n]); };
+  const finHist = (s) => { const H = hist(s); return H && (H.fin === 'aube' || H.fin === 'cendre') ? H.fin : null; };
 
   // ---------------------------------------------------------------- la liste (même ordre que steam/achievements.json)
   // [api, règle(s) → vrai quand c'est gagné] ; règle null : seulement par événement
@@ -86,20 +92,25 @@ const succes = (() => {
     ['NEWY_FOYER', (s) => !!(s.coeur && s.coeur.foyer)],
     ['NEWY_TUEUR', (s) => !!(s.strange && s.strange.kCaught)],
     ['NEWY_AUTRE_MONDE', (s) => nb(s.mondes && s.mondes.vus) >= 1],
-    // l'histoire principale (événements prairie:histoire)
-    ['NEWY_HISTOIRE_CH1', null],
-    ['NEWY_HISTOIRE_CH2', null],
-    ['NEWY_HISTOIRE_CH3', null],
-    ['NEWY_HISTOIRE_CH4', null],
-    ['NEWY_HISTOIRE_FIN', null],
-    ['NEWY_HISTOIRE_FIN_A', null],
-    ['NEWY_HISTOIRE_FIN_B', null],
+    // l'histoire principale : un succès par chapitre achevé, puis les fins (événements prairie:histoire, et farm.s.histoire)
+    ['NEWY_HISTOIRE_CH1', (s) => chapFini(s, 1)],
+    ['NEWY_HISTOIRE_CH2', (s) => chapFini(s, 2)],
+    ['NEWY_HISTOIRE_CH3', (s) => chapFini(s, 3)],
+    ['NEWY_HISTOIRE_CH4', (s) => chapFini(s, 4)],
+    ['NEWY_HISTOIRE_CH5', (s) => chapFini(s, 5)],
+    ['NEWY_HISTOIRE_CH6', (s) => chapFini(s, 6)],
+    ['NEWY_HISTOIRE_CH7', (s) => chapFini(s, 7)],
+    ['NEWY_HISTOIRE_CH8', (s) => chapFini(s, 8)],
+    ['NEWY_HISTOIRE_FIN', (s) => !!finHist(s)],
+    ['NEWY_FIN_AUBE', (s) => finHist(s) === 'aube'],
+    ['NEWY_FIN_CENDRE', (s) => finHist(s) === 'cendre'],
   ];
   const IDS = new Set(LISTE.map(([a]) => a));
   // l'histoire : numéro de chapitre → succès ; fin → succès (en plus de NEWY_HISTOIRE_FIN)
   const HISTOIRE = {
-    chapitres: { 1: 'NEWY_HISTOIRE_CH1', 2: 'NEWY_HISTOIRE_CH2', 3: 'NEWY_HISTOIRE_CH3', 4: 'NEWY_HISTOIRE_CH4' },
-    fins: { a: 'NEWY_HISTOIRE_FIN_A', b: 'NEWY_HISTOIRE_FIN_B' },
+    chapitres: { 1: 'NEWY_HISTOIRE_CH1', 2: 'NEWY_HISTOIRE_CH2', 3: 'NEWY_HISTOIRE_CH3', 4: 'NEWY_HISTOIRE_CH4',
+      5: 'NEWY_HISTOIRE_CH5', 6: 'NEWY_HISTOIRE_CH6', 7: 'NEWY_HISTOIRE_CH7', 8: 'NEWY_HISTOIRE_CH8' },
+    fins: { aube: 'NEWY_FIN_AUBE', cendre: 'NEWY_FIN_CENDRE' },
     fin: 'NEWY_HISTOIRE_FIN',
   };
 
@@ -154,26 +165,45 @@ const succes = (() => {
   }
 
   // ---------------------------------------------------------------- les événements
+  // le numéro d'un chapitre : 'c3' (l'histoire) ou 3
+  const numChap = (c) => { const m = /^c?(\d+)$/.exec(String(c == null ? '' : c)); return m ? parseInt(m[1], 10) : 0; };
   function surHistoire(d) {
     if (!d || typeof d !== 'object') return;
-    const c = parseInt(d.chapitre, 10);
-    if (c > 0) {
-      for (let k = 1; k < c; k++) if (HISTOIRE.chapitres[k]) debloque(HISTOIRE.chapitres[k]);
-      if ((d.termine === true || d.etape === 'fin') && HISTOIRE.chapitres[c]) debloque(HISTOIRE.chapitres[c]);
-    }
-    if (d.fin) surFin(d);
+    const su = typeof d.succes === 'string' ? d.succes : '';
+    let m;
+    if ((m = /^histoire_c(\d+)$/.exec(su))) { const k = HISTOIRE.chapitres[m[1]]; if (k) debloque(k); }
+    else if ((m = /^histoire_fin_(\w+)$/.exec(su))) surFin(m[1]);
+    else if (d.type === 'chapitre') { const k = HISTOIRE.chapitres[numChap(d.chapitre)]; if (k) debloque(k); }
+    else if (d.type === 'fin') surFin(d.fin);
+    // un chapitre qui s'ouvre (ou qu'on achève) : ceux d'avant sont achevés
+    const c = numChap(d.chapitre);
+    if (c > 1 && (d.type === 'debut' || d.type === 'chapitre')) for (let k = 1; k < c; k++) if (HISTOIRE.chapitres[k]) debloque(HISTOIRE.chapitres[k]);
   }
-  function surFin(d) {
-    for (const k in HISTOIRE.chapitres) debloque(HISTOIRE.chapitres[k]);
+  function surFin(f) {
+    f = f != null ? String(f).toLowerCase() : '';
+    if (!HISTOIRE.fins[f]) return;
     debloque(HISTOIRE.fin);
-    const f = d && d.fin != null ? String(d.fin).toLowerCase() : '';
-    if (HISTOIRE.fins[f]) debloque(HISTOIRE.fins[f]);
+    debloque(HISTOIRE.fins[f]);
   }
   if (typeof window !== 'undefined') {
     window.addEventListener('prairie:succes', (e) => { if (e && e.detail && typeof e.detail.api === 'string') debloque(e.detail.api); });
     window.addEventListener('prairie:histoire', (e) => { try { surHistoire(e && e.detail); } catch (err) { /* rien */ } });
-    window.addEventListener('prairie:histoire-fin', (e) => { try { surFin((e && e.detail) || {}); } catch (err) { /* rien */ } });
-    window.addEventListener('prairie:fin', (e) => { try { surFin((e && e.detail) || {}); } catch (err) { /* rien */ } });
+  }
+  // une partie chargée : ce que son histoire a déjà gagné (sans attendre la vérification suivante)
+  function depuisHistoire() {
+    const s = st(), g = lire();
+    if (!s || !hist(s)) return 0;
+    let n = 0;
+    for (const [api, regle] of LISTE) {
+      if (!/^NEWY_(HISTOIRE|FIN)_/.test(api) || g[api]) continue;
+      let ok = false;
+      try { ok = !!regle(s); } catch (e) { ok = false; }
+      if (ok && debloque(api)) n++;
+    }
+    return n;
+  }
+  if (typeof HOOKS !== 'undefined' && Array.isArray(HOOKS.load)) {
+    HOOKS.load.push(() => { try { if (typeof game === 'undefined' || game.kind === 'farm') depuisHistoire(); } catch (e) { /* rien */ } });
   }
   if (typeof HOOKS !== 'undefined' && Array.isArray(HOOKS.death)) {
     HOOKS.death.push(() => { try { if (typeof game === 'undefined' || game.kind === 'farm') debloque('NEWY_MORT'); } catch (e) { /* rien */ } return false; });
@@ -187,7 +217,7 @@ const succes = (() => {
   }, 4000);
 
   return {
-    LISTE, HISTOIRE, IDS, debloque, verifier, nQuetes, nPages,
+    LISTE, HISTOIRE, IDS, debloque, verifier, depuisHistoire, nQuetes, nPages,
     estDebloque: (api) => !!lire()[api],
     liste: () => Object.keys(lire()).filter((a) => IDS.has(a)),
   };

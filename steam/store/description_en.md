@@ -20,6 +20,9 @@ You inherit Anselme Varenne's old farm, deep in a forgotten valley: a house, a f
 
 But the valley is not at peace. At first, almost nothing: a door that wasn't open, a bird that stops singing. Then, day after day, less and less subtle. Nights are long, the forest is dark, and you only have one life: when you die, your save is gone… and the valley will remember.
 
+[h2]A story in eight chapters[/h2]
+Anselme, the old farmer, left a letter and a strange instruction: lock the door every evening, and never open it to his voice. Follow his trail, from a grave with no date to a temple beneath the mountain, from stones carved in forgotten languages to the Great Gate, and beyond. Eight chapters, each opening with a cutscene, that move at your own pace while the farm carries on beside them; and two endings, depending on what you decide.
+
 [h2]A world that lives without you[/h2]
 Twenty-two named villagers and many more live through their twelve-day week: market, mass, washing day, the hunt, the evening gathering, the day of the dead. Each has a story, told chapter by chapter as you grow closer, quests, a shop, and memories of you. There is no reputation meter: they remember.
 
@@ -28,6 +31,7 @@ No health bar, no minimap. Your hunger, health and state of mind are things you 
 
 [h2]Features[/h2]
 [list]
+[*][b]The main story[/b]: eight chapters, cutscenes, two endings.
 [*][b]A large hand-crafted valley[/b] (3 km across): the farm on its hill, a walled town with drawbridges, hamlets, a river, a great lake and its marsh, the old forest, the moor, alpine pastures and snowy peaks — or a random valley.
 [*][b]Sixty-four crops[/b] and their varieties, animals to raise, fishing, foraging, cooking, crafting, and alchemy.
 [*][b]Villagers with lives of their own[/b]: routines, stories, friendships, quests, marriage and a household.
@@ -36,7 +40,7 @@ No health bar, no minimap. Your hunger, health and state of mind are things you 
 [*][b]A retro look[/b]: 90s-style pixels, angular characters, a dithered palette, banded lighting (all adjustable in Options).
 [*][b]Over forty original music tracks[/b] and 3D ambient sound.
 [*][b]Creative mode[/b]: a world editor to build your own valley.
-[*][b]Steam Achievements[/b] and Steam Cloud saves.
+[*][b]Forty Steam Achievements[/b] and Steam Cloud saves.
 [/list]
 
 ## Languages

@@ -591,13 +591,13 @@
 		{
 			"name"
 			{
-				"english"	"Chapter I"
-				"french"	"Chapitre I"
+				"english"	"Chapter I — The Inheritance"
+				"french"	"Chapitre I — L’héritage"
 			}
 			"desc"
 			{
-				"english"	"Complete the first chapter of the story."
-				"french"	"Achever le premier chapitre de l’histoire."
+				"english"	"Complete the first chapter of the story, “The Inheritance”."
+				"french"	"Achever le premier chapitre de l’histoire, « L’héritage »."
 			}
 		}
 	}
@@ -611,13 +611,13 @@
 		{
 			"name"
 			{
-				"english"	"Chapter II"
-				"french"	"Chapitre II"
+				"english"	"Chapter II — In Anselme’s Footsteps"
+				"french"	"Chapitre II — Les traces d’Anselme"
 			}
 			"desc"
 			{
-				"english"	"Complete the second chapter of the story."
-				"french"	"Achever le deuxième chapitre de l’histoire."
+				"english"	"Complete the second chapter of the story, “In Anselme’s Footsteps”."
+				"french"	"Achever le deuxième chapitre de l’histoire, « Les traces d’Anselme »."
 			}
 		}
 	}
@@ -631,13 +631,13 @@
 		{
 			"name"
 			{
-				"english"	"Chapter III"
-				"french"	"Chapitre III"
+				"english"	"Chapter III — The Three"
+				"french"	"Chapitre III — Les Trois"
 			}
 			"desc"
 			{
-				"english"	"Complete the third chapter of the story."
-				"french"	"Achever le troisième chapitre de l’histoire."
+				"english"	"Complete the third chapter of the story, “The Three”."
+				"french"	"Achever le troisième chapitre de l’histoire, « Les Trois »."
 			}
 		}
 	}
@@ -651,17 +651,97 @@
 		{
 			"name"
 			{
-				"english"	"Chapter IV"
-				"french"	"Chapitre IV"
+				"english"	"Chapter IV — Words of Before"
+				"french"	"Chapitre IV — Les mots d’avant"
 			}
 			"desc"
 			{
-				"english"	"Complete the fourth chapter of the story."
-				"french"	"Achever le quatrième chapitre de l’histoire."
+				"english"	"Complete the fourth chapter of the story, “Words of Before”."
+				"french"	"Achever le quatrième chapitre de l’histoire, « Les mots d’avant »."
 			}
 		}
 	}
 	"34"
+	{
+		"apiname"	"NEWY_HISTOIRE_CH5"
+		"hidden"	"1"
+		"icon"	"256/NEWY_HISTOIRE_CH5.png"
+		"icon_gray"	"256/NEWY_HISTOIRE_CH5_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Chapter V — The Speaking Stones"
+				"french"	"Chapitre V — Les pierres qui parlent"
+			}
+			"desc"
+			{
+				"english"	"Complete the fifth chapter of the story, “The Speaking Stones”."
+				"french"	"Achever le cinquième chapitre de l’histoire, « Les pierres qui parlent »."
+			}
+		}
+	}
+	"35"
+	{
+		"apiname"	"NEWY_HISTOIRE_CH6"
+		"hidden"	"1"
+		"icon"	"256/NEWY_HISTOIRE_CH6.png"
+		"icon_gray"	"256/NEWY_HISTOIRE_CH6_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Chapter VI — The Great Gate"
+				"french"	"Chapitre VI — La Grande Porte"
+			}
+			"desc"
+			{
+				"english"	"Complete the sixth chapter of the story, “The Great Gate”."
+				"french"	"Achever le sixième chapitre de l’histoire, « La Grande Porte »."
+			}
+		}
+	}
+	"36"
+	{
+		"apiname"	"NEWY_HISTOIRE_CH7"
+		"hidden"	"1"
+		"icon"	"256/NEWY_HISTOIRE_CH7.png"
+		"icon_gray"	"256/NEWY_HISTOIRE_CH7_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Chapter VII — The Lands of Before"
+				"french"	"Chapitre VII — Les Terres d’Avant"
+			}
+			"desc"
+			{
+				"english"	"Complete the seventh chapter of the story, “The Lands of Before”."
+				"french"	"Achever le septième chapitre de l’histoire, « Les Terres d’Avant »."
+			}
+		}
+	}
+	"37"
+	{
+		"apiname"	"NEWY_HISTOIRE_CH8"
+		"hidden"	"1"
+		"icon"	"256/NEWY_HISTOIRE_CH8.png"
+		"icon_gray"	"256/NEWY_HISTOIRE_CH8_locked.png"
+		"display"
+		{
+			"name"
+			{
+				"english"	"Chapter VIII — The Watch"
+				"french"	"Chapitre VIII — Le Guet"
+			}
+			"desc"
+			{
+				"english"	"Complete the eighth chapter of the story, “The Watch”."
+				"french"	"Achever le huitième chapitre de l’histoire, « Le Guet »."
+			}
+		}
+	}
+	"38"
 	{
 		"apiname"	"NEWY_HISTOIRE_FIN"
 		"hidden"	"1"
@@ -671,53 +751,53 @@
 		{
 			"name"
 			{
-				"english"	"The End of the Story"
-				"french"	"La fin de l’histoire"
+				"english"	"What It Kept"
+				"french"	"Ce qu’il gardait"
 			}
 			"desc"
 			{
-				"english"	"Reach an ending of the story."
-				"french"	"Voir une fin de l’histoire."
+				"english"	"Bring the story to one of its two endings."
+				"french"	"Mener l’histoire jusqu’à l’une de ses deux fins."
 			}
 		}
 	}
-	"35"
+	"39"
 	{
-		"apiname"	"NEWY_HISTOIRE_FIN_A"
+		"apiname"	"NEWY_FIN_AUBE"
 		"hidden"	"1"
-		"icon"	"256/NEWY_HISTOIRE_FIN_A.png"
-		"icon_gray"	"256/NEWY_HISTOIRE_FIN_A_locked.png"
+		"icon"	"256/NEWY_FIN_AUBE.png"
+		"icon_gray"	"256/NEWY_FIN_AUBE_locked.png"
 		"display"
 		{
 			"name"
 			{
-				"english"	"One Ending"
-				"french"	"Une fin"
+				"english"	"Dawn"
+				"french"	"L’aube"
 			}
 			"desc"
 			{
-				"english"	"Reach ending A."
-				"french"	"Voir la fin A de l’histoire."
+				"english"	"See the ending of the story called “Dawn”."
+				"french"	"Voir la fin de l’histoire appelée « L’aube »."
 			}
 		}
 	}
-	"36"
+	"40"
 	{
-		"apiname"	"NEWY_HISTOIRE_FIN_B"
+		"apiname"	"NEWY_FIN_CENDRE"
 		"hidden"	"1"
-		"icon"	"256/NEWY_HISTOIRE_FIN_B.png"
-		"icon_gray"	"256/NEWY_HISTOIRE_FIN_B_locked.png"
+		"icon"	"256/NEWY_FIN_CENDRE.png"
+		"icon_gray"	"256/NEWY_FIN_CENDRE_locked.png"
 		"display"
 		{
 			"name"
 			{
-				"english"	"Another Ending"
-				"french"	"Une autre fin"
+				"english"	"Ash"
+				"french"	"La cendre"
 			}
 			"desc"
 			{
-				"english"	"Reach ending B."
-				"french"	"Voir la fin B de l’histoire."
+				"english"	"See the ending of the story called “Ash”."
+				"french"	"Voir la fin de l’histoire appelée « La cendre »."
 			}
 		}
 	}
