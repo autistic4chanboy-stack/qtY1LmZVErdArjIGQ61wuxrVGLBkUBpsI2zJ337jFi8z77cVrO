@@ -974,11 +974,129 @@ function recits(X, H) {
 }
 
 // ============================================================================ P18 : LES CASCADES, LES GROTTES, LES COINS DE PARADIS
-// La cinquième part de la vague (les cascades, le réseau de grottes derrière la Grande Chute, les coins de paradis :
-// modules *P18*) n'est pas encore fusionnée : cette fonction ne rend rien. Le jour venu, elle écrira ici la fiche
-// sys:cascades (avec SP(…, fichiers /P18-/) pour que ses modules n'aient pas de fiche générique, et used.add() pour ses
-// tables), ce que voient les lieux concernés, et sections() rangera la section « Les cascades et les grottes » (voir
-// SECTION_P18, plus bas).
+// ---- extract(G, w, DB, O) : dans la machine virtuelle, la vallée générée et le Dessous construit (tools/wiki-build.js
+// l'appelle juste après le plan du Dessous). Ce que la passe P18 a fait (w.p18) : les chutes (leur hauteur vraie, leur
+// bassin), les coins, ce qu'elle a posé (objets, objets posés, interactions), les salles (sol et voûte relus dans la
+// grille du jeu), les nids, les trouvailles ; la marche depuis l'arrivée (cases de deux mètres, comme
+// tools/equilibrage/P18.js) ; et le plan des Grottes de la Chute, peint comme celui du Dessous. Tout va dans DB.world.p18.
+function extract(G, w, DB, O) {
+  if (!G.has('p18Grotte') || !G.has('P18_GROTTE') || !G.run('!!(game.world && game.world.p18 && game.world.p18.grotte)')) { (DB.log || []).push('wiki-v18.js : pas de w.p18 (les cascades) dans la vallée générée'); return; }
+  const J = (code) => JSON.parse(G.run(`JSON.stringify(${code})`));
+  const D = J(`(() => {
+    const w = game.world, R = w.p18, Gr = R.grotte, S = souterrain, WL = w.waterLevel, r1 = (v) => Math.round(v * 10) / 10;
+    const salleDe = (x, z) => p18Grotte.salle(x, z) || (p18Grotte.dans(x, z) ? 'galerie' : '');
+    const out = { wl: WL, soutWl: SOUT_WL };
+    out.chutes = R.chutes.map((C) => ({ k: C.k, sorte: C.sorte, sous: C.sous ? 1 : 0, x: r1(C.x), z: r1(C.z), a: Math.round(C.a * 1000) / 1000, h: r1(C.y0 - C.y1), bas: r1(C.y1 - (C.sous ? SOUT_WL : WL)), l: C.l,
+      bassin: C.bassin ? { x: r1(C.bassin.x), z: r1(C.bassin.z), rx: r1(C.bassin.rx), rz: r1(C.bassin.rz), r: r1(C.bassin.r) } : null, perte: C.perte ? 1 : 0, mare: C.mare ? 1 : 0, bouche: C.bouche ? 1 : 0, amont: (C.amont || []).length, aval: (C.aval || []).length }));
+    out.minis = {}; for (const M of R.minis) { const k = M.k || '?'; out.minis[k] = (out.minis[k] || 0) + 1; }
+    out.coins = R.coins.map((Q) => ({ k: Q.k, sorte: Q.sorte, x: r1(Q.x), z: r1(Q.z), r: Q.r, y: r1(Q.y - WL), repos: Q.repos ? 1 : 0, bain: Q.bain ? 1 : 0, papillons: Q.papillons || 0, lucioles: Q.lucioles ? 1 : 0, vapeur: Q.vapeur ? 1 : 0 }));
+    // ce que la passe a ajouté, au bout des listes : [sorte, x, z, y (dessous) ou null, v]
+    const n0 = R.n0, n = R.n, oT = (o) => (OBJ_TYPES[o.t] || {}).id || String(o.t);
+    out.objets = []; for (let i = n0.o; i < n0.o + n.o; i++) { const o = w.objects[i]; if (!o || o.gone) continue; out.objets.push([oT(o), r1(o.x), r1(o.z), o.y !== undefined && o.y < -30 ? r1(o.y) : null, o.v !== undefined ? o.v : null]); }
+    // [id, x, z, y, ce qu'il donne (it / m / k), repousse (every), combien (n)]
+    out.props = []; for (let i = n0.p; i < n0.p + n.p; i++) { const q = w.props[i]; if (!q || q.gone) continue; const d = q.data || {}; out.props.push([q.id, r1(q.x), r1(q.z), r1(q.y || 0), d.it || d.m || (q.id === 'p18_peinture' || q.id === 'p18_signe' ? d.k : '') || '', d.every !== undefined ? d.every : null, d.n || null]); }
+    // [sorte, id, libellé, x, y, z, clé]
+    out.inter = []; for (let i = n0.i; i < n0.i + n.i; i++) { const it = w.inter[i]; if (!it) continue; const d = it.data || {}; out.inter.push([it.kind, it.id, it.name || '', r1(it.x), r1(it.y || 0), r1(it.z), String(d.k || d.coin || d.item || '')]); }
+    // les salles : [clé, sol, hauteur sous la voûte, rx, rz, la vallée au-dessus] (au centre) ; le lac : le fond, l'eau
+    out.salles = P18_GROTTE.salles.map(([k, x, z, rx, rz]) => [k, r1(S.floorAt(x, z)), r1(S.vaultAt(x, z) - S.floorAt(x, z)), rx, rz, r1(w.heightAt(x, z) - WL)]);
+    out.lacs = P18_GROTTE.lacs.map(([k, x, z, rx, rz]) => [k, r1(S.floorAt(x, z)), r1(S.vaultAt(x, z) - SOUT_WL), rx, rz, r1(w.heightAt(x, z) - WL)]);
+    out.galeries = (p18Grotte._gal || []).map(([k, pts, a, b]) => { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return [k, a, b, Math.round(L)]; });
+    out.boyaux = (p18Grotte._br || []).map((b) => (b.fin ? 1 : 0));
+    out.nids = (Gr.nids || []).map(([k, x, y, z, m]) => [k, salleDe(x, z), m]);
+    out.trouvailles = (Gr.trouvailles || []).map((T) => ({ id: T.id, items: T.items }));
+    out.peintures = Gr.peintures || []; out.signes = Gr.signes || []; out.fleches = Gr.fleches || 0;
+    out.sortie = Gr.sortie ? [r1(Gr.sortie[0]), r1(Gr.sortie[2])] : null;
+    out.aven = Gr.aven ? { bas: [r1(Gr.aven.bas[0]), r1(Gr.aven.bas[2])], haut: [r1(Gr.aven.haut[0]), r1(Gr.aven.haut[2])], prof: r1(Gr.aven.haut[1] - Gr.aven.bas[1]) } : null;
+    out.carnet = typeof P18_CARNET === 'string' ? P18_CARNET : '';
+    // (la salle de ce qui est dessous : props [7], objets [5], interactions [7])
+    for (const q of out.props) q.push(q[3] < -30 ? salleDe(q[1], q[2]) : '');
+    for (const o of out.objets) o.push(o[3] !== null ? salleDe(o[1], o[2]) : '');
+    for (const it of out.inter) it.push(it[4] < -30 ? salleDe(it[3], it[5]) : '');
+    // à pied depuis l'arrivée (cases de deux mètres ; 1,7 m sous la voûte ; une marche de 1,25 m au plus ; on nage dans l'eau d'en bas)
+    const F = S.F, V = S.V, W = SOUT_W, C = SOUT_CELL, B = P18_GROTTE.boite;
+    const ok = (k) => V[k] - F[k] > 1.7 && F[k] < SOUT_ROCK - 1;
+    const idx = (x, z) => Math.round(z / C) * W + Math.round(x / C);
+    const dist = new Int32Array(W * W).fill(-1), file = new Int32Array(W * W);
+    const s0 = idx(P18_GROTTE.arrivee[0], P18_GROTTE.arrivee[2]);
+    let a = 0, b = 0; dist[s0] = 0; file[b++] = s0;
+    while (a < b) { const k = file[a++], i = k % W, j = (k / W) | 0; for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const q = (j + dj) * W + i + di; if (dist[q] >= 0 || !ok(q)) continue; if (i + di < B[0] / C || i + di > B[2] / C || j + dj < B[1] / C || j + dj > B[3] / C) continue; if (Math.max(F[q], SOUT_WL - 1.2) - Math.max(F[k], SOUT_WL - 1.2) > 1.25) continue; dist[q] = dist[k] + 1; file[b++] = q; } }
+    const proche = (x, z) => { const k0 = idx(x, z); if (dist[k0] >= 0) return dist[k0]; for (let r = 1; r < 4; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { const q = k0 + dj * W + di; if (q >= 0 && q < W * W && dist[q] >= 0) return dist[q]; } return -1; };
+    out.marche = {};
+    for (const [k, x, z] of P18_GROTTE.salles) out.marche[k] = proche(x, z) * C;
+    for (const [k, x, z] of P18_GROTTE.lacs) out.marche[k] = proche(x, z) * C;
+    { const T = P18_GROTTE.torrent; out.marche.torrent = proche(T[4][0] + T[4][3] * 0.75, T[4][1]) * C; }
+    let aire = 0; for (let k = 0; k < dist.length; k++) if (dist[k] >= 0) aire++;
+    out.aire = aire * C * C;
+    return out;
+  })()`);
+  try { D.plan = planGrottes(G, DB, O); } catch (e) { (DB.log || []).push('wiki-v18.js (plan des grottes) : ' + (e && e.message)); }
+  DB.world.p18 = D;
+  if (O && O.say) O.say(`les cascades : ${D.chutes.length} chutes, ${D.coins.length} coins, ${D.salles.length + D.lacs.length} salles dessous${D.plan ? ` ; plan des grottes (${D.plan.img.w} × ${D.plan.img.h} px)` : ''}`);
+}
+
+// le plan des Grottes de la Chute : la grille du Dessous (sol, voûte, matière), dans la boîte des grottes, peinte comme le plan du
+// Dessous (tools/wiki-build.js, planDessous) ; les nappes d'en bas plus hautes que son eau (les gours, la vasque du Tonnerre, la
+// rivière) en bleu, et, vus de dessus, les objets posés au sol (pas ce qui pend de la voûte) et la dalle du Sanctuaire
+function planGrottes(G, DB, O) {
+  G.run('souterrain.construire()');
+  const C = O.jclone(G.run('({ N: SOUT_N, W: SOUT_W, cell: SOUT_CELL, WL: SOUT_WL, ROCK: SOUT_ROCK, MAT: SOUT_MAT, B: P18_GROTTE.boite, VER: VER_SOUS })'));
+  const F = G.run('souterrain.F'), V = G.run('souterrain.V'), FM = G.run('souterrain.FM');
+  const [X0, Z0, X1, Z1] = C.B, ppm = 1, P = new O.Plan(X0, Z0, X1, Z1, ppm, [54, 49, 45]), w = P.w, h = P.h;
+  const MATK = {}; for (const [k, i] of Object.entries(C.MAT || {})) MATK[i] = k;
+  const tri = (A, x, z) => {
+    const gx = Math.min(C.N - 1e-4, Math.max(0, x / C.cell)), gz = Math.min(C.N - 1e-4, Math.max(0, z / C.cell)), i = Math.floor(gx), j = Math.floor(gz), fx = gx - i, fz = gz - j, k = j * C.W + i;
+    const ha = A[k], hb = A[k + 1], hc = A[k + C.W], hd = A[k + C.W + 1];
+    return fx + fz <= 1 ? ha + (hb - ha) * fx + (hc - ha) * fz : hd + (hc - hd) * (1 - fx) + (hb - hd) * (1 - fz);
+  };
+  // l'eau : celle du Dessous (SOUT_WL), et les nappes d'en bas de la passe ([x, z, hx, hz, a, y])
+  const N = JSON.parse(G.run('JSON.stringify(game.world.p18.eaux.filter((E) => E.sous).map((E) => [E.x, E.z, E.hx, E.hz, Math.cos(E.a), Math.sin(E.a), E.y, Math.hypot(E.hx, E.hz)]))'));
+  const eauAt = (x, z) => { let y = C.WL; for (const [ex, ez, hx, hz, co, si, ey, R] of N) { const dx = x - ex, dz = z - ez; if (ey <= y || Math.abs(dx) > R || Math.abs(dz) > R) continue; if (Math.abs(dx * co + dz * si) < hx && Math.abs(-dx * si + dz * co) < hz) y = ey; } return y; };
+  const fl = new Float32Array(w * h), haut = new Float32Array(w * h), eau = new Float32Array(w * h), op = new Uint8Array(w * h), mt = new Array(w * h);
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const x = X0 + (i + 0.5) / ppm, z = Z0 + (j + 0.5) / ppm, k = j * w + i, f = tri(F, x, z), v = tri(V, x, z);
+    fl[k] = f; haut[k] = v - f;
+    op[k] = f < C.ROCK - 1 && v - f > 0.3 ? 1 : 0;
+    if (op[k]) { mt[k] = MATK[FM[Math.min(C.N, Math.round(z / C.cell)) * C.W + Math.min(C.N, Math.round(x / C.cell))]] || 'roche'; eau[k] = eauAt(x, z); }
+  }
+  const SOL = { roche: [182, 170, 150], calcite: [214, 211, 198], argile: [198, 164, 122], humus: [146, 136, 104], soufre: [208, 190, 112] };
+  const EAU0 = [108, 140, 160], EAU1 = [34, 54, 84], BORD = [30, 26, 24], RIVE = [92, 82, 72], q = (v, n) => Math.round(v * n) / n;
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const k = j * w + i;
+    if (!op[k]) {
+      let near = false; for (let dj = -2; dj <= 2 && !near; dj++) for (let di = -2; di <= 2 && !near; di++) { const ii = i + di, jj = j + dj; if (ii >= 0 && jj >= 0 && ii < w && jj < h && op[jj * w + ii] && di * di + dj * dj <= 5) near = true; }
+      if (near) P.set(i, j, RIVE);
+      continue;
+    }
+    let bord = false; for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const ii = i + di, jj = j + dj; if (ii < 0 || jj < 0 || ii >= w || jj >= h || !op[jj * w + ii]) bord = true; }
+    if (bord) { P.set(i, j, BORD); continue; }
+    const f = fl[k], e = eau[k];
+    let c;
+    if (f < e - 0.05) { const t = q(Math.min(1, (e - f) / 7), 6); c = [0, 1, 2].map((ch) => EAU0[ch] + (EAU1[ch] - EAU0[ch]) * t); }
+    else {
+      const b = SOL[mt[k]] || SOL.roche, t = q(Math.max(0, Math.min(1, (f + 160) / 115)), 8);
+      const gx = (fl[Math.min(w * h - 1, k + 1)] - fl[Math.max(0, k - 1)]) * ppm / 2, gz = (fl[Math.min(w * h - 1, k + w)] - fl[Math.max(0, k - w)]) * ppm / 2, n = [-gx * 1.6, 1, -gz * 1.6], nl = Math.hypot(...n);
+      const s = q(Math.max(0.55, Math.min(1.15, 0.5 + 0.62 * (n[0] * O.PLAN_L[0] + n[1] * O.PLAN_L[1] + n[2] * O.PLAN_L[2]) / nl)), 7);
+      const kk = (0.7 + 0.36 * t) * s;
+      c = b.map((v) => v * kk);
+      if (haut[k] < 2.05 && (i + j) % 4 === 0) c = c.map((v) => v * 0.72); // un boyau bas : on s'y baisse
+    }
+    P.set(i, j, c.map(Math.round));
+  }
+  const faces = [];
+  try {
+    const flat = G.run(`(${O.CAPTURE_BOXES})(() => {
+      const w = game.world, T = { t: 1.3, hour: 12, night: 1, day: 0, wind: 0.2, rain: 0 }, SKIP = new Set(['sout_stalac', 'sout_racines', 'sout_vers', 'sout_barreaux', 'sout_echelle_racines', 'p18_draperie', 'p18_rayon', 'p18_jour', 'p18_peinture']);
+      for (const q of w.props) { if (!(q.ver & VER_SOUS) || SKIP.has(q.id) || !PROP_MODELS[q.id] || !p18Grotte.dans(q.x, q.z)) continue; PE.frame(q.x, q.y, q.z, q.r, q.s || 1); try { PROP_MODELS[q.id](PE, q, T); } catch (e) { /* rien */ } }
+    })`);
+    O.facesOfBoxes(flat, faces);
+    const mats = DB.derived.mats || [];
+    const bl = O.jclone(G.run('game.world.blocks.filter((b) => (b.ver & VER_SOUS) && !b.hidden && p18Grotte.dans(b.x, b.z)).map((b) => [b.x, b.y, b.z, b.sx, b.sy, b.sz, b.r || 0, b.m])')) || [];
+    for (const [x, y, z, sx, sy, sz, r, m] of bl) O.boxTopFaces(O.blocM(x, y, z, sx, sy, sz, r), (mats[m] && mats[m].avg) || [140, 130, 120], false, faces);
+  } catch (e) { (DB.log || []).push('wiki-v18.js (plan des grottes, objets) : ' + (e && e.message)); }
+  O.paintFaces(P, faces, true);
+  return { x0: X0, z0: Z0, x1: X0 + w / ppm, z1: Z0 + h / ppm, ppm, img: P.png(), faces: faces.length, open: op.reduce((a, v) => a + v, 0) };
+}
+
 function cascades(X, H) {
   void X; void H;
 }
@@ -1124,4 +1242,9 @@ function sections(cats, X) {
   if (nv && nv.d && !/dettes de la ferme/.test(nv.d)) nv.d = nv.d.replace(' : ', ' : les dettes de la ferme, le Grand Hôtel des Cimes, le Grand Cercle, les récits des proches, ');
 }
 
-module.exports = { build, sections };
+// le plan des Grottes de la Chute (l'onglet « grottes » des cartes), appelé par tools/wiki-build.js (buildPlansData)
+function plans(DB, wiki, out) {
+  void DB; void wiki; void out;
+}
+
+module.exports = { build, sections, extract, plans };
