@@ -290,11 +290,11 @@ function c18Generer(w, seed) {
 
   // ------------------------------------------------------------- la suite Impériale
   const yE = Y.etage;
-  // le salon : la cheminée, le portrait du baron au-dessus, les fauteuils, le secrétaire, le lustre
+  // le salon : la cheminée, les fauteuils, le secrétaire et le portrait du baron au-dessus, le lustre
   P('c18_tapis', -1.2, yE, -3.6, 0, { w: 8.5, d: 5.0, c: '#3a2448' });
   P('cheminee', -IX + 0.35, yE, -3.5, PI2, { lit: true });
-  P('c18_portrait', -IX + 0.06, yE + 1.75, -3.5, PI2, { voile: false });
-  I('c18_suite', 'c18:portrait', -IX + 0.6, yE + 2.3, -3.5, 'Le portrait', { quoi: 'portrait' });
+  P('c18_portrait', -2.3, yE + 1.55, -0.08, PI, { voile: false });                       // au-dessus du secrétaire
+  I('c18_suite', 'c18:portrait', -2.3, yE + 2.25, -0.75, 'Le portrait', { quoi: 'portrait' });
   P('c18_gueridon', -4.4, yE, -3.5, 0);
   P('fauteuil', -4.4, yE, -4.5, 0, { col: '#5a2a5a' }); P('fauteuil', -4.4, yE, -2.5, PI, { col: '#5a2a5a' }); P('fauteuil', -3.3, yE, -3.5, -PI2, { col: '#5a2a5a' });
   P('secretaire', -2.3, yE, -0.4, PI);

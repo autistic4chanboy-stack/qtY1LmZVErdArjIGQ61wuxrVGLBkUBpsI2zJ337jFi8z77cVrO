@@ -463,7 +463,7 @@ const c18 = {
     const W = (lx, ly, lz) => this.W(lx, ly, lz), yE = C18_Y.etage;
     h17Cine.jouer([
       { dur: 6.5, chemin: [{ pos: W(4.6, yE + 1.7, 3.0), look: W(-1.0, yE + 1.1, -3.6) }, { pos: W(2.2, yE + 1.8, -1.6), look: W(-2.0, yE + 1.0, -5.5) }, { pos: W(0.6, yE + 1.7, -4.6), look: W(0, yE + 1.4, -12) }], texte: 'La suite Impériale. L’Empereur n’y a jamais dormi. Le baron de Lancry, si : onze ans, sans jamais rendre la clé.' },
-      { dur: 5.5, de: { pos: W(-5.0, yE + 1.75, -3.0), look: W(-7.8, yE + 2.4, -3.5) }, a: { pos: W(-5.8, yE + 1.85, -3.4), look: W(-7.8, yE + 2.45, -3.5) }, texte: S.quete.e >= 5 ? 'Le cadre est vide. Personne ne se souvient de ce qu’il y avait dedans.' : 'Personne n’a jamais décroché son portrait. Personne n’a jamais essayé.' },
+      { dur: 5.5, de: { pos: W(-1.4, yE + 1.7, -3.2), look: W(-2.3, yE + 2.2, 0) }, a: { pos: W(-2.0, yE + 1.85, -2.2), look: W(-2.3, yE + 2.25, 0) }, texte: S.quete.e >= 5 ? 'Le cadre est vide. Personne ne se souvient de ce qu’il y avait dedans.' : 'Personne n’a jamais décroché son portrait. Personne n’a jamais essayé.' },
     ], { passer: true });
     this.decouvrir('li:casino', 'suite');
   },
