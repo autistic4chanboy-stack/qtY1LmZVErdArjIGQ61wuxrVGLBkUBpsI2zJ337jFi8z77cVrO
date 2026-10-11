@@ -35,7 +35,6 @@ function d18Formes(n) {
   add(0, 'rect', { x: 132, y: haut, w: 56, h: 100 - haut, f: mur });
   add(0, 'poly', { p: `126,${haut} 160,${haut - 24} 194,${haut}`, f: toit });
   add(0, 'rect', { x: 172, y: haut - 20, w: 7, h: 14, f: '#8a4a3a' });
-  add(0, 'rect', { x: 155, y: 82, w: 10, h: 18, f: '#5a3a24' });
   // 1 : le toit d'ardoise (en pointillé : le toit), un banc, des pots
   add(1, 'poly', { p: `126,${haut} 160,${haut - 24} 194,${haut}`, f: '#4c5462' });
   add(1, 'rect', { x: 136, y: 94, w: 14, h: 4, f: '#7a5a3a' });
@@ -65,6 +64,7 @@ function d18Formes(n) {
   add(8, 'poly', { p: '94,78 114,64 134,78', f: '#4c5462' });
   add(8, 'rect', { x: 0, y: 97, w: 150, h: 3, f: '#8a8a7a' });
   add(8, 'rect', { x: 170, y: 97, w: 150, h: 3, f: '#8a8a7a' });
+  add(0, 'rect', { x: 155, y: 82, w: 10, h: 18, f: '#5a3a24' }); // la porte, par-dessus les murs
   return F;
 }
 function d18Silhouette(n) {

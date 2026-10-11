@@ -49,17 +49,17 @@ const D18_BATIR = {
       B.propRel(f, 'chandelier', 1.95, 0.15, -1.6, 0);
     }
   },
-  // la serre : un soubassement de pierre, des parois et un toit de verre, des carrés de culture
+  // la serre : un soubassement de pierre, des parois et un toit de verre dépoli (la pluie y passe : M_FROSTED n'abrite pas), des carrés de culture
   serre(B, f) {
     B.block(f, 0, -0.3, 0, 7, 0.55, 4.5, M_STONE);
-    B.block(f, 0, 0.25, 2.15, 7, 2.0, 0.1, M_GLASS);
+    B.block(f, 0, 0.25, 2.15, 7, 2.0, 0.1, M_FROSTED);
     for (const s of [-1, 1]) {
-      B.block(f, s * 3.45, 0.25, 0, 0.1, 2.0, 4.2, M_GLASS);
-      B.block(f, s * 2.05, 0.25, -2.2, 2.9, 2.0, 0.1, M_GLASS);
+      B.block(f, s * 3.45, 0.25, 0, 0.1, 2.0, 4.2, M_FROSTED);
+      B.block(f, s * 2.05, 0.25, -2.2, 2.9, 2.0, 0.1, M_FROSTED);
       for (const z of [-2.2, 2.15]) B.block(f, s * 3.45, 0.25, z, 0.14, 2.0, 0.14, M_LOGS);
     }
-    B.block(f, 0, 1.95, -2.2, 1.2, 0.3, 0.1, M_GLASS);
-    B.block(f, 0, 2.25, 0, 7.3, 1.3, 4.8, M_GLASS, 0, 1);
+    B.block(f, 0, 1.95, -2.2, 1.2, 0.3, 0.1, M_FROSTED);
+    B.block(f, 0, 2.25, 0, 7.3, 1.3, 4.8, M_FROSTED, 0, 1);
     B.propRel(f, 'potager', -1.8, 0.25, 1.1, 0);
     B.propRel(f, 'potager', 1.8, 0.25, 1.1, 0);
     B.propRel(f, 'jardiniere', -2.6, 0.25, -1.3, Math.PI / 2);
