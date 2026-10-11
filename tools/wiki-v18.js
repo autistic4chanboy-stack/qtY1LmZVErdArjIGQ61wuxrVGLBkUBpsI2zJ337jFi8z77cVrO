@@ -512,7 +512,7 @@ function cercle(X, H) {
   const { h3, ul, tbl, kv, lieu, pg, log } = H;
   const GENS = T('C18_GENS', null), PAR = T('C18_PAROLES', {}) || {}, MIN = T('C18_MIN', {}) || {}, MAX = T('C18_MAX', {}) || {};
   const JETONS = T('C18_JETONS', [5, 10, 25, 50, 100]) || [], TROIS = T('C18_BANDIT_TROIS', {}) || {}, SYMB = T('C18_SYMBOLES', {}) || {}, NOMS = T('C18_NOMS_JEUX', {}) || {};
-  const BOISSONS = T('C18_BOISSONS', []) || [], HEURES = T('C18_HEURES', [18, 3]) || [18, 3], SUITE = T('C18_SUITE', { nuit: 350, achat: 30000 }) || {}, ARMES = T('C18_ARMES', []) || [], TXT = T('C18_TEXTES', {}) || {};
+  const BOISSONS = T('C18_BOISSONS', []) || [], HEURES = T('C18_HEURES', [18, 3]) || [18, 3], SUITE = T('C18_SUITE', { nuit: 350, achat: 30000 }) || {};
   if (!GENS) { log('C18_GENS introuvable : pas de fiche du Grand Cercle'); return; }
   const files = Object.keys(MF || {}).filter((f) => /C18-/.test(f));
   const scal = (f, k, d) => { const M = MF && MF[f]; return M && M.scal && M.scal[k] && typeof M.scal[k].v === 'number' ? M.scal[k].v : d; };
@@ -569,14 +569,15 @@ function cercle(X, H) {
         ['Un brelan (trois dés pareils)', '33 pour 1', ch((C) => vers(C.des.brelan.p), '2,8 %'), ch((C) => vers(C.des.brelan.edge), '5,6 %')],
         ['Sur un point (de 1 à 6)', '1 pour 1 par dé qui le montre (2 pour 1 sur deux dés, 3 pour 1 sur trois)', ch((C) => vers(C.des.point.p), '42,1 %'), ch((C) => vers(C.des.point.edge), '7,9 %')],
       ]);
-      s += `<p class="small">À l’auberge, on joue aussi aux dés, entre clients : ${pg('act:des', 'les dés')}.</p>`;
+      s += `<p class="small">À l’auberge, le passe-dix se joue aussi, entre clients : ${pg('act:des', 'Les dés')}.</p>`;
       return s;
     },
     bandit: () => {
       const m = MIN.bandit || 5;
       let s = `<p>Trois machines américaines contre la façade, sans croupier : « Glisser un jeton de ${m} et tirer le bras ». Trois rouleaux de dix cases (des fers à cheval, des carreaux, des piques, des cœurs, des cloches, des étoiles) ; on gagne sur la ligne du milieu. Ce qu’elle rend, c’est tant de fois la mise.</p>`;
-      const sym = (k) => esc(SYMB[k] || k);
-      const L = Object.entries(TROIS).sort((a, b) => b[1] - a[1]).map(([k, g]) => [`Trois ${sym(k)}${k === 'fer' ? 's à cheval' : 's'}`, `${g} fois la mise (${g * m} jetons)`, ch((C) => vers(C.bandit.p['trois:' + k] || 0), '—')]);
+      const PLUR = { fer: 'fers à cheval', carreau: 'carreaux', pique: 'piques', coeur: 'cœurs', cloche: 'cloches', etoile: 'étoiles' };
+      const sym = (k) => esc(PLUR[k] || (SYMB[k] || k) + 's');
+      const L = Object.entries(TROIS).sort((a, b) => b[1] - a[1]).map(([k, g]) => [`Trois ${sym(k)}`, `${g} fois la mise (${g * m} jetons)`, ch((C) => vers(C.bandit.p['trois:' + k] || 0), '—')]);
       L.push(['Deux fers à cheval', `4 fois la mise (${4 * m} jetons)`, ch((C) => vers(C.bandit.p.deuxfers || 0), '—')]);
       L.push(['Les deux premiers rouleaux pareils', 'la mise rendue', ch((C) => vers(C.bandit.p.deux || 0), '—')]);
       L.push(['Un fer à cheval au premier rouleau', 'la mise rendue', ch((C) => vers(C.bandit.p.fer || 0), '—')]);
@@ -601,7 +602,7 @@ function cercle(X, H) {
   {
     let h = `<p class="lead">Le Grand Cercle de ${esc(ville)}, fondé en 1852 « pour l’agrément des honnêtes gens » : un casino en pleine ville, au sud-est de la place, entre la grand-rue et la maison Delorme, adossé au rempart sud. La façade regarde le marché ; une marquise, une enseigne, une grande porte entre deux étals. Deux niveaux sous un toit d’ardoise : la grande salle et ses jeux au rez-de-chaussée, la suite Impériale à l’étage.</p>`;
     h += kv([
-      ['Où', `${lieu('casino', 'le Grand Cercle')}, à ${lieu('place', 'la place')} de ${esc(ville)} ${mapBtn('li:casino')}`],
+      ['Où', `à ${esc(ville)}, au sud-est de ${lieu('place', 'la place')}, face au ${lieu('marche', 'marché')} ${mapBtn('li:casino')}`],
       ['Ouvert', `${hh(HEURES[0], HEURES[1])} (« On ne dit pas casino, ici, on dit le Cercle »)`],
       ['L’entrée', `le droit de cercle, ${ENTREE} pièces la soirée ; ou la carte de membre, ${CARTE} pièces, une fois pour toutes`],
       ['Les jetons', `un jeton vaut une pièce, à l’achat comme au change ; ${nfmt(PLAFOND)} jetons au plus par soirée`],
@@ -610,7 +611,7 @@ function cercle(X, H) {
     ]);
     h += h3('La porte') + ul([
       `${gens('portier', 'Siméon')}, le portier, tient la porte ${hh(HEURES[0], HEURES[1])} : il l’ouvre quand on arrive, la referme derrière. Le droit de cercle, ${ENTREE} pièces pour la soirée (une soirée court de midi à midi) ; ou ${IL('c18_carte_membre')}, ${CARTE} pièces une fois pour toutes : on entre sans payer, et il vous reconnaît. Qui loue la suite, pour sa nuit, ou la possède, entre sans payer.`,
-      `On n’entre pas une arme ou un outil à la main (${ARMES.filter((k) => !/_acier$|_if$/.test(k)).map((k) => IL(k)).join(', ')}) : « Rangez-moi ça. »`,
+      'On n’entre pas une arme ou un outil à la main (un fusil, un arc, une épée, une lance, un sabre, une hache, une fourche, une faux, une pioche, une pelle, une houe, un couteau, une serpe, un gourdin, une baïonnette) : « Rangez-moi ça. »',
       `Fermé, une plaque de cuivre le dit : « Ouvert de six heures du soir à trois heures du matin. Tenue correcte exigée. La maison ne fait pas crédit. » À trois heures moins dix, la directrice annonce la fermeture. Le propriétaire de la suite entre à toute heure ; le reste de la maison, après trois heures, n’est à personne.`,
       'Quelqu’un qui ne tient plus debout, les croupiers le renvoient : « Revenez demain, la table vous attendra. »',
     ]);
@@ -628,13 +629,13 @@ function cercle(X, H) {
       [jeu('bandit', 'Le bandit manchot'), '— (trois machines)', `un jeton de ${MIN.bandit || 5}`, ch((C) => vers(1 - C.bandit.rend), '6,1 %')],
     ]) + `<p class="small">Toujours un peu, jamais beaucoup : chaque mise perd en moyenne entre 2 et 8 % de ce qu’on y met. Les tables sont ouvertes quand leur croupier est là, aux heures du Cercle.</p>`;
     for (const k of ORDRE_J) h += `<h3>${jeu(k, NOMS[k] || k)}</h3>` + sections[k];
-    h += h3('Le bar') + `<p>${gens('theodule', 'Théodule')}, au bar, contre le mur du fond, aux heures du Cercle.</p>` + tbl(['Ce qu’on boit', 'Prix', ''], BOISSONS.map((b) => [esc(b.nom), `${b.prix} pièce${b.prix > 1 ? 's' : ''}`, b.u ? `de l’alcool (${String(b.u).replace('.', ',')} verre${b.u >= 2 ? 's' : ''})` : 'réveille, et l’esprit va mieux'])) + `<p class="small">Quand on a misé 400 jetons dans la soirée, le verre suivant est « pour la maison », une fois. L’alcool : ${pg('sys:alcool', 'sa fiche')}.</p>`;
+    h += h3('Le bar') + `<p>${gens('theodule', 'Théodule')}, au bar, contre le mur du fond, aux heures du Cercle.</p>` + tbl(['Ce qu’on boit', 'Prix', ''], BOISSONS.map((b) => [esc(b.nom), `${b.prix} pièce${b.prix > 1 ? 's' : ''}`, b.u ? `de l’alcool (${String(b.u).replace('.', ',')} unité${b.u >= 2 ? 's' : ''})` : 'réveille, et l’esprit va mieux'])) + `<p class="small">Quand on a misé 400 jetons dans la soirée, le verre suivant est « pour la maison », une fois. L’alcool : ${pg('sys:alcool', 'sa fiche')}.</p>`;
     // les gens
     const pub = Object.keys(GENS).filter((id) => id !== 'gris');
     h += h3('Les gens du Cercle') + tbl(['Qui', 'Ce qu’il fait', 'Heures', 'Où'], pub.map((id) => { const Gn = GENS[id]; return [gens(id), esc(Gn.role || ''), hh(Gn.h[0], Gn.h[1]), esc(C18_OU[id] || '')]; }));
     h += `<p class="small">On leur parle (<kbd>E</kbd>) : un mot, chacun le sien ; la première fois, ils se présentent, et l’on retient leur nom.</p>`;
     h += h3('La suite Impériale') + `<p>À l’étage, par le grand escalier, au fond à droite : le salon et son balcon sur la grand-rue, la chambre et son lit à baldaquin, la salle de bains et sa baignoire de cuivre. ${nfmt(SUITE.nuit)} pièces la nuit, ${nfmt(SUITE.achat)} à l’achat : ${lk('sys:c18_suite', 'la suite Impériale')}.</p>`;
-    h += h3('Le baron') + `<p>Dans le secrétaire de la suite, un carnet de maroquin noir : celui du baron Edgar de Lancry, qui loua la suite en 1879. Une petite quête en cinq temps, dans la maison même : ${lk('sys:c18_baron', 'le baron de la suite Impériale')}.</p>`;
+    h += h3('Le baron') + `<p>Au mur du salon de la suite, le portrait d’un homme en noir ; dans le secrétaire, un carnet de maroquin noir, plein de colonnes de chiffres : celui du baron Edgar de Lancry, joueur de roulette, en 1879. Une petite quête en cinq temps, dans la maison même : ${lk('sys:c18_baron', 'le baron de la suite Impériale')}.</p>`;
     h += h3('Les scènes') + `<p>La première fois qu’on entre dans la grande salle, Cercle ouvert ; la première fois qu’on entre dans la suite ; et la fin du baron. Sur le moteur des cinématiques : on les passe en maintenant <kbd>Espace</kbd> ou <kbd>Échap</kbd>. Le balcon de la suite : un regard sur la ville.</p>`;
     h += SEC(h3('Ce qui se passe la nuit') + ul([
       `Dans la grande salle, « on n’y voit aucune horloge ». ${gens('odile', 'Odile')} sait des choses qu’elle ne devrait pas savoir : le nom de vos bêtes, ce qu’elles ont mangé près de la clôture, la lampe qu’on a laissée allumée chez vous. « Je suis à cette table depuis toujours. C’est-à-dire depuis hier soir. »`,
