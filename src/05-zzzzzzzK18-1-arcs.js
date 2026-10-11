@@ -334,11 +334,11 @@ K18_ARCS.push({
   },
   rituel: { tous: 7, don: { fleur: 2 }, texte: ['Tiens ! Des fleurs. Deux. Pas trois : trois, c’est pour les morts.', 'J’ai cueilli ça pour toi. Lise a aidé. Enfin, elle a regardé.'] },
   scenes: {
-    puits: { titre: 'La nuit de la clochette', lieu: 'vieux_puits', h: 20.4, musique: 'nuit_berceuse', angle: 4.0,
+    puits: { titre: 'La nuit de la clochette', lieu: 'vieux_puits', h: 20.4, musique: 'nuit_berceuse', angle: 4.0, lum: [[0, 1.6, 1.7, 9], [0.6, -9, 1.6, 6, [0.72, 0.82, 1.0]]],
       gens: [
         { id: 'fillette', x: 0, z: 0, cap: 'dos', chemin: { de: [-1.2, 6], a: [0, 1.4], t0: 2, t1: 16 } },
         { look: 'blanc', x: 0.6, z: -9, cap: 'cam', chemin: { de: [0.6, -9], a: [0.6, -14], t0: 30, t1: 44 } },
-        { joueur: true, x: -1.0, z: 2.6, cap: 'centre', chemin: { de: [-3.5, 7], a: [-0.7, 2.0], t0: 14, t1: 24 } },
+        { joueur: true, x: -1.6, z: 2.0, cap: 'centre', chemin: { de: [-4.5, 5.5], a: [-1.5, 1.9], t0: 14, t1: 24 } },
       ],
       paroles: [
         ['', 'Le vieux puits, la nuit. Une clochette sonne, sans vent, à la ceinture de quelqu’un qui ne dort pas.', 'clochette'],

@@ -237,7 +237,9 @@ const k18 = {
       const L = w.lm[E.lieu];
       if (!L) { A.l[E.id] = 1; if (E.aller) this.faire(D.id); continue; }
       if (!this.heureOk(E.moment, h)) { E._stay = 0; continue; }
-      if (Math.hypot(p.pos[0] - L.x, p.pos[2] - L.z) < Math.max(12, Math.min(L.r || 0, 40))) {
+      // (une maison : devant sa porte compte aussi)
+      const B = w.bld && w.bld[E.lieu], porte = B && B.out && Math.hypot(p.pos[0] - B.out[0], p.pos[2] - B.out[1]) < 10;
+      if (porte || Math.hypot(p.pos[0] - L.x, p.pos[2] - L.z) < Math.max(12, Math.min(L.r || 0, 40))) {
         E._stay = (E._stay || 0) + 1;
         if (E._stay >= 2) {
           E._stay = 0;
