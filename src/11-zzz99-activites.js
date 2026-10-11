@@ -816,32 +816,9 @@ const activites = {
       { label: 'Écouter, simplement', fn: () => ui.close() },
     ]);
   },
-  // le violon : une mélodie jouée tant qu'on est à portée (volume selon la distance)
-  jouerMusique(dt) {
-    const V = game.world.act && game.world.act.violon, p = game.player;
-    const d = V ? Math.hypot(p.pos[0] - V.x, p.pos[2] - V.z) : 1e9;
-    const present = !!V && this.violonPresent() && d < 34 && !p.underground;
-    // l'écouter apaise
-    if (present && d < 9) {
-      const A = this.S();
-      A.ecoute = (A.ecoute || 0) + dt;
-      if (A.ecoute >= 20 && !this.fait('ecoute1')) { this.marquer('ecoute1'); this.esprit(1, 'musique', 2); ui.subtitle('', '(La musique vous détend les épaules.)', 3); if (strange.fear) strange.fear = Math.max(0, strange.fear * 0.5); }
-      if (A.ecoute >= 60 && !this.fait('ecoute2')) { this.marquer('ecoute2'); this.esprit(1, 'musique', 2); }
-    }
-    const on = present && sound.ok && sound.ctx;
-    const M = this.musique;
-    if (!on) { if (M && M.g) { try { M.g.gain.setTargetAtTime(0, sound.ctx.currentTime, 0.3); } catch (e) { /* rien */ } } this.musique = null; return; }
-    let m = M;
-    if (!m) { const g = sound.ctx.createGain(); g.gain.value = 0; g.connect(sound.sfx); m = this.musique = { g, t: sound.ctx.currentTime + 0.1, i: 0, air: this.air || 'gigue' }; }
-    m.g.gain.setTargetAtTime(clamp(1 - d / 34, 0, 1) * 0.85, sound.ctx.currentTime, 0.2);
-    const AIR = ACT_AIRS[m.air] || ACT_AIRS.gigue, now = sound.ctx.currentTime;
-    while (m.t < now + 0.3) {
-      const [f, n] = AIR.notes[m.i], dur = n * AIR.tempo;
-      if (f) sound.voice(m.t, 'sawtooth', f, f * 1.002, dur * 0.95, 0.05, m.g, { vib: 5.5, vibDepth: f * 0.012, lp: 2600 });
-      m.t += dur; m.i++;
-      if (m.i >= AIR.notes.length) { m.i = 0; m.t += 0.8; if (m.air === 'complainte') { m.air = 'gigue'; this.air = 'gigue'; } }
-    }
-  },
+  // le violon : le vieux Tiennot joue ses séances — son répertoire, ses airs, ses pauses, son violon qu'il accorde ; l'écouter
+  // apaise (11-zzzzzzzzzA18-musiciens.js)
+  jouerMusique(dt) { if (typeof musiciensA18 !== 'undefined') musiciensA18.violoneux(this, dt); },
 
   // ================================================================ le clocher
   clocher() {
@@ -1358,10 +1335,6 @@ const activites = {
     HOOKS.interPre.f2 = (it) => { if (activites.etalOuvert(it)) { activites.etal(it); return true; } return _pre ? _pre(it) : false; };
   },
   dedans(n, k) { return fouilles.dedans(n, k); },
-};
-const ACT_AIRS = {
-  gigue: { tempo: 0.17, notes: [[659, 1], [587, 1], [523, 1], [587, 1], [659, 2], [659, 1], [659, 1], [587, 2], [587, 1], [523, 1], [494, 2], [523, 1], [587, 1], [659, 2], [784, 1], [659, 1], [587, 1], [523, 1], [494, 2], [440, 3], [0, 1], [523, 1], [587, 1], [659, 1], [523, 1], [440, 2], [494, 1], [523, 1], [587, 3]] },
-  complainte: { tempo: 0.34, notes: [[440, 2], [523, 1], [494, 1], [440, 2], [392, 2], [349, 2], [392, 1], [440, 1], [494, 3], [440, 1], [392, 2], [330, 4], [349, 2], [392, 1], [349, 1], [330, 2], [294, 2], [330, 6]] },
 };
 
 // ---------------------------------------------------------------- branchements
