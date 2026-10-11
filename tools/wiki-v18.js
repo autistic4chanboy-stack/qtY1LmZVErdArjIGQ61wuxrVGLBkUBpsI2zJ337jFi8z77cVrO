@@ -86,7 +86,7 @@ function dettes(X, H) {
     ['Au carnet', 'Carnet → « La ferme »'],
   ]);
   h += h3('Comment ça marche') + ul([
-    `La première lettre, « L’échéancier », arrive le deuxième jour : le premier terme, ${nfmt(TERMES[0].montant)} pièces, est à régler en ${TERMES[0].delai} jours. <b>Une partie d’avant</b> reçoit tout de suite « Une dette retrouvée » : son premier terme n’est dû que ${R.grace || 24} jours plus tard.`,
+    `La première lettre, « L’échéancier », arrive le deuxième jour : le premier terme, ${nfmt(TERMES[0].montant)} pièces, est dû le jour ${jourDu}, ${enLettres(TERMES[0].delai)} jours après l’arrivée à la ferme. <b>Une partie d’avant</b> reçoit tout de suite « Une dette retrouvée » : son premier terme n’est dû que ${R.grace || 24} jours plus tard.`,
     `<b>Payer à l’étude</b> : une plaque de cuivre ternie, et sa fente, à gauche de la porte close de ${lieu('vide5', 'la maison Delorme')} (l’écriteau « À louer » est à droite) : « Maître Delorme, notaire. Règlements par la boîte. » <kbd>E</kbd> dessus : « Glisser le terme dans la boîte », ou, si la bourse n’y suffit pas, « Glisser ce que j’ai » — un versement partiel compte. (Sans maison Delorme, la boîte serait à la porte de la mairie.)`,
     `<b>Payer par mandat</b>, à ${lieu('poste', 'la poste')} : ${pnj('postiere', 'la postière')}, « Un mandat pour l’étude Delorme » ; ${R.mandat || 3} pièces de frais. On envoie le terme entier, ou ce qu’on a.`,
     'Le terme payé, une quittance arrive à la boîte aux lettres, avec le montant du suivant et son échéance : le suivant s’ouvre le jour même, son délai court à partir de là.',
@@ -164,11 +164,11 @@ const L18_OU = {
 const L18_PART = { directeur: ['firmin', 'symphonie'], gaspard: ['treize', 'symphonie', 'firmin'], firmin: ['firmin'], chef: ['treize', 'symphonie'], odile: ['firmin'], comtesse: ['lucien'], wolanski: ['symphonie'], treize: ['treize'] };
 
 function hotel(X, H) {
-  const { T, SP, P, SEC, esc, IL, lk, nfmt, MF, pages, mapBtn } = X;
+  const { T, SP, P, SEC, esc, IL, lk, MF, pages, mapBtn } = X;
   const { h3, ul, tbl, kv, lieu, aLieu, pnj, pg, log } = H;
   const GENS = T('L18_GENS', null), ORDRE = T('L18_ORDRE_GENS', []) || [], ARCS = T('L18_ARCS', {}) || {}, ORDRE_A = T('L18_ORDRE_ARCS', []) || [];
   const RANGS = T('L18_RANGS', []) || [], REGL = T('L18_REGL', {}) || {}, CLIENTS = T('L18_CLIENTS', []) || [], DEM = T('L18_DEMANDES', {}) || {};
-  const CINES = T('L18_CINES', {}) || {}, OCINES = T('L18_ORDRE_CINES', []) || [], PAROLES = T('L18_PAROLES', {}) || {}, TX = T('L18_TEXTES', {}) || {};
+  const CINES = T('L18_CINES', {}) || {}, PAROLES = T('L18_PAROLES', {}) || {}, TX = T('L18_TEXTES', {}) || {};
   const GOUTS = T('L18_GOUTS', {}) || {}, QUER = T('L18_QUERELLES', []) || [], SECR = T('L18_SECRETS', []) || [], DIN = T('L18_DINERS', []) || [];
   const VALLEE = T('L18_VALLEE', []) || [], PERDUS = T('L18_PERDUS', []) || [], OU = T('L18_OU', []) || [];
   if (!GENS || !ORDRE.length) { log('L18_GENS introuvable : pas de fiches de l’hôtel'); return; }
@@ -660,7 +660,7 @@ function cercle(X, H) {
     let h = `<p class="lead">À l’étage du Grand Cercle, au-dessus de la grande salle. « Elle porte ce nom depuis que l’Empereur ne l’a pas visitée, en cinquante-huit. »</p>`;
     h += kv([
       ['Louer', `${nfmt(SUITE.nuit)} pièces la nuit, à la caisse ou à ${gens('directrice', 'la directrice')}, aux heures du Cercle ; elle est à vous jusqu’au lendemain midi`],
-      ['Acheter', `${nfmt(SUITE.achat)} pièces, comptant, à la directrice (« On ne loue pas un rêve à crédit ») : un acte de vente arrive à la boîte aux lettres, et ${IL('c18_cle_suite')}`],
+      ['Acheter', `${nfmt(SUITE.achat)} pièces, comptant, à la directrice (« On ne loue pas un rêve à crédit »)  : on reçoit ${IL('c18_cle_suite')}, et l’acte de vente arrive à la boîte aux lettres`],
       ['Y monter', 'le grand escalier, au fond à droite : <kbd>E</kbd> au pied ou en haut, on monte d’un trait'],
     ]);
     h += h3('Ce qu’il y a') + ul([
@@ -707,16 +707,18 @@ function cercle(X, H) {
     const secret = id === 'gris';
     let h = kv([['Rôle', esc((Gn.role === '—' ? 'un homme en gris, au bout du bar' : Gn.role) + ', au Grand Cercle')]]);
     h += `<p class="lead">${secret ? 'On ne le voit qu’après minuit, et de loin, au bout du bar.' : `${esc(cap(Gn.titre || ''))}, ${hh(Gn.h[0], Gn.h[1])}${C18_OU[id] ? ' : ' + esc(C18_OU[id]) : ''}.`}</p>`;
+    // ses mots, une rubrique par moment (ce qui tient à la nuit, à part)
     const pubL = [], secL = [];
     for (const [k, L] of Object.entries(Pp)) {
-      (L || []).forEach((t, i) => {
-        const cache = !secret && (nuit.includes(k) || nuit.includes(k + ':' + i));
-        (cache ? secL : pubL).push(`<h5>${esc(LIB[k] || cap(k))}</h5><ul class="qs"><li>${fmt(t)}</li></ul>`);
-      });
+      const pu = [], se = [];
+      (L || []).forEach((t, i) => { (!secret && (nuit.includes(k) || nuit.includes(k + ':' + i)) ? se : pu).push(`<li>${fmt(t)}</li>`); });
+      const tete = `<h5>${esc(LIB[k] || cap(k))}</h5>`;
+      if (pu.length) pubL.push(tete + `<ul class="qs">${pu.join('')}</ul>`);
+      if (se.length) secL.push(tete + `<ul class="qs">${se.join('')}</ul>`);
     }
     if (pubL.length) h += h3('Ce qu’on l’entend dire') + `<details><summary>Ses mots</summary>${pubL.join('')}</details>`;
-    if (secL.length) h += SEC(`<h5>La nuit, ce qu’elle sait</h5>${secL.join('')}`, 'Ce qu’on l’entend dire la nuit : masqué (secrets).');
-    if (id === 'odile' || id === 'portier' || id === 'directrice') h += `<p class="small">Dans ${lk('sys:c18_baron', 'le baron de la suite Impériale')}.</p>`;
+    if (secL.length) h += SEC(h3('Ce qui tient à la nuit') + secL.join(''), 'Ce qu’on l’entend dire, la nuit ou à la longue : masqué (secrets).');
+    if (id === 'odile' || id === 'portier' || id === 'directrice') h += `<p class="small">À voir aussi : ${lk('sys:c18_baron', 'le baron de la suite Impériale')}.</p>`;
     if (secret) h += `<p>${lk('sys:c18_baron', 'Le baron de la suite Impériale')} ; ${cercleL('Le Grand Cercle')}.</p>`;
     else h += `<p>${cercleL('Le Grand Cercle')}${Gn.jeu ? ' · ' + jeu(Gn.jeu, NOMS[Gn.jeu] || Gn.jeu) : ''}</p>`;
     P('pnj:c18_' + id, { t: secret ? 'L’homme en gris' : nom(id), s: secret ? 'Au bout du bar, après minuit' : (Gn.role || ''), c: ['grand-cercle'], g: 'Le Grand Cercle', i: '☺', x: secret ? 1 : 0, h });
@@ -834,6 +836,8 @@ function recits(X, H) {
     return /^[aeéèêiîoôuh]/i.test(r) ? 'l’' + r : (d && d.gender === 'f' ? 'la ' : 'le ') + r;
   };
   const qui = (id) => pnj(id, leRole(id));
+  // « au forgeron », « à la guérisseuse », « à l’aubergiste »
+  const aQui = (id) => { const r = leRole(id); return /^le /.test(r) ? 'au ' + pnj(id, r.slice(3)) : /^les /.test(r) ? 'aux ' + pnj(id, r.slice(4)) : 'à ' + pnj(id, r); };
   const its = (o) => (o && typeof o === 'object' ? Object.entries(o).map(([k, n]) => IL(k, n > 1 ? n : '')).join(', ') : '');
   const quete = (qid) => { for (const d of NPCS) for (const q of d.quests || []) if (q.id === qid) return [d, q]; return null; };
   const branche = (D, E) => !!(K18_SI[D.id] && K18_SI[D.id][E.id]);
@@ -843,8 +847,8 @@ function recits(X, H) {
     const q = E.qui || D.npc;
     let t;
     if (E.aller) t = `aller ${aLieu(E.lieu)}${E.moment ? ', ' + K18_MOMENT[E.moment] : ''}`;
-    else if (E.need && typeof E.need === 'object') t = `apporter ${its(E.need)} à ${qui(q)}`;
-    else t = q === D.npc ? 'lui parler' : `parler à ${qui(q)}`;
+    else if (E.need && typeof E.need === 'object') t = `apporter ${its(E.need)} ${aQui(q)}`;
+    else t = q === D.npc ? 'lui parler' : `parler ${aQui(q)}`;
     const c = [];
     if (E.min) c.push(`amitié ${E.min}`);
     if (E.minQui) c.push(`amitié ${E.minQui} avec ${leRole(q)}`);
@@ -944,13 +948,13 @@ function recits(X, H) {
     const p = pages.get('pnj:' + id);
     if (!p || /k18-pnj/.test(p.h || '')) continue;
     let b = '';
-    const D = ARCS.find((x) => x.npc === id);
+    const D = ARCS.find((x) => x.npc === id), fem = (npcD(id) || {}).gender === 'f';
     if (D) {
-      b += `<h3 class="k18-pnj">Son récit : « ${esc(D.titre)} »</h3><p>${premisse(D)}</p><p class="small">Il commence à l’${debut(D)} ; ${pub(D).length} chapitres${pub(D).length < D.etapes.length ? ', et la suite selon un choix' : ''} ; ${fins(D)} fins possibles. ${lk('sys:recits', 'Les récits des proches')}</p>`;
+      b += `<h3 class="k18-pnj">Son récit : « ${esc(D.titre)} »</h3><p>${premisse(D)}</p><p class="small">Le récit commence à l’${debut(D)} ; ${pub(D).length} chapitres${pub(D).length < D.etapes.length ? ', et la suite selon un choix' : ''} ; ${fins(D)} fins possibles. ${lk('sys:recits', 'Les récits des proches')}</p>`;
     }
     if (croise[id]) {
       const L = [...croise[id]].map((a) => ARCS.find((x) => x.id === a)).filter(Boolean);
-      b += `<p class="small${D ? '' : ' k18-pnj'}">On ${D ? 'le croise aussi' : 'le croise'} dans ${L.map((A) => `« ${esc(A.titre)} » (${leRole(A.npc)})`).join(', ')} : ${lk('sys:recits', 'les récits des proches')}.</p>`;
+      b += `<p class="small${D ? '' : ' k18-pnj'}">On ${fem ? 'la' : 'le'} croise${D ? ' aussi' : ''} dans ${L.map((A) => `« ${esc(A.titre)} » (${leRole(A.npc)})`).join(', ')} : ${lk('sys:recits', 'les récits des proches')}.</p>`;
     }
     const V = VOIX[id];
     if (V) {
@@ -964,7 +968,7 @@ function recits(X, H) {
       if (Pt.length > 1) b += SEC(ul(Pt.slice(1).map(([n, t]) => `<small>amitié ${n} :</small> ${F(t)}`)), 'Ce que le portrait révèle, à mesure : masqué (secrets).');
     }
     const AQ = Object.keys(APRES).filter((q) => { const r = quete(q); return r && r[0].id === id; });
-    if (AQ.length) b += (D || V ? '<h4>Après ses quêtes</h4>' : '<h3 class="k18-pnj">Après ses quêtes</h3>') + `<p class="small">Quelques jours après chacune, un mot de plus, une fois.</p>` + SEC(`<ul class="qs">${AQ.map((q) => `<li><b>« ${esc(quete(q)[1].title)} »</b> — ${F(APRES[q])}</li>`).join('')}</ul>`, 'Ce qu’il en dit : masqué (secrets).');
+    if (AQ.length) b += (D || V ? '<h4>Après ses quêtes</h4>' : '<h3 class="k18-pnj">Après ses quêtes</h3>') + `<p class="small">Quelques jours après chacune, un mot de plus, une fois.</p>` + SEC(`<ul class="qs">${AQ.map((q) => `<li><b>« ${esc(quete(q)[1].title)} »</b> — ${F(APRES[q])}</li>`).join('')}</ul>`, `Ce qu’${fem ? 'elle' : 'il'} en dit : masqué (secrets).`);
     if (b) p.h = (p.h || '') + b;
   }
 }
@@ -986,7 +990,7 @@ function liens(X, H) {
   const ajoute = (id, test, html, debut) => { const p = pages.get(id); if (p && !test.test(p.h || '')) p.h = debut ? html + (p.h || '') : (p.h || '') + html; };
   // ---- la ferme, la maison Delorme, la poste
   if (has('sys:dettes')) {
-    ajoute('li:ferme', /d18-ferme/, `<h3 class="d18-ferme">Les dettes, et les travaux</h3><p>La ferme est grevée d’une dette ancienne : huit termes à l’étude de Maître Delorme. Chaque terme payé, les ouvriers viennent le lendemain matin — un toit d’ardoise, une cour pavée et ses réverbères, des murs de pierre, un verger, une aile neuve, une serre, une écurie, un étage — et la vieille ferme devient un domaine : ${lk('sys:dettes', 'les dettes de la ferme')}.</p>${has('sys:recits') ? `<p>Les proches viennent parfois la voir, l’après-midi, et apportent des cadeaux : ${lk('sys:recits', 'les récits des proches')}.</p>` : ''}`);
+    ajoute('li:ferme', /d18-ferme/, `<h3 class="d18-ferme">Les dettes, et les travaux</h3><p>La ferme est grevée d’une dette ancienne : huit termes à l’étude de Maître Delorme. Chaque terme payé, les ouvriers viennent le lendemain matin — un toit d’ardoise, une allée pavée, des murs de pierre, un verger, deux ailes neuves, une serre, une écurie, un étage, un portail entre deux piliers — et la vieille ferme devient un domaine : ${lk('sys:dettes', 'les dettes de la ferme')}.</p>${has('sys:recits') ? `<p>Les proches viennent parfois la voir, l’après-midi, et apportent des cadeaux : ${lk('sys:recits', 'les récits des proches')}.</p>` : ''}`);
     ajoute('li:vide5', /d18-plaque/, `<p class="note d18-plaque">C’est la maison Delorme. Sur sa porte, à gauche, la plaque de cuivre de l’étude de Maître Delorme, notaire, et sa fente : on y paie ${lk('sys:dettes', 'les dettes de la ferme')}.</p>`, true);
     ajoute('li:poste', /d18-mandat/, `<p class="note d18-mandat">On y envoie aussi des mandats pour l’étude Delorme (trois pièces de frais) : ${lk('sys:dettes', 'les dettes de la ferme')}.</p>`);
     ajoute('pnj:postiere', /d18-mandat/, `<p class="note d18-mandat">« Un mandat pour l’étude Delorme » : elle fait partir les termes des ${lk('sys:dettes', 'dettes de la ferme')} (trois pièces de frais).</p>`);
@@ -1110,7 +1114,12 @@ function sections(cats, X) {
   if (SECTION_P18) apres(SECTION_P18, ['grand-cercle']);
   // un mot dans « Quêtes » et dans « Nouveautés »
   const cq = pages.get('cat:quetes');
-  if (cq && pages.has('sys:recits') && !cq.h.includes('sys%3Arecits')) cq.h = `<p class="note">Et les longues histoires : ${link('sys:recits', 'les récits des proches')} (onze habitants, un choix chacun) ; ${link('sys:l18_hotel', 'les histoires du Grand Hôtel des Cimes')} (quatre) ; ${link('sys:c18_baron', 'le baron de la suite Impériale')}, au Grand Cercle.</p>` + cq.h;
+  if (cq && pages.has('sys:recits') && !cq.h.includes('sys%3Arecits')) {
+    // (après les mots des vagues d’avant, avant le tableau)
+    const mot = `<p class="note">Les longues histoires : ${link('sys:recits', 'les récits des proches')} (onze habitants, un choix chacun) ; ${link('sys:l18_hotel', 'les quatre histoires du Grand Hôtel des Cimes')} ; ${link('sys:c18_baron', 'le baron de la suite Impériale')}, au Grand Cercle.</p>`;
+    const i = cq.h.indexOf('<p class="lead">');
+    cq.h = i >= 0 ? cq.h.slice(0, i) + mot + cq.h.slice(i) : mot + cq.h;
+  }
   const nv = cats[at('nouveautes')];
   if (nv && nv.d && !/dettes de la ferme/.test(nv.d)) nv.d = nv.d.replace(' : ', ' : les dettes de la ferme, le Grand Hôtel des Cimes, le Grand Cercle, les récits des proches, ');
 }
