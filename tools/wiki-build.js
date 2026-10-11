@@ -3644,7 +3644,7 @@ function buildWiki(DB) {
     const ACT = (k) => U(k, null);
     const JEU = ACT('ACT_JEU') || {}, TRI = ACT('ACT_TRICHE') || [], BRAS = ACT('ACT_BRAS') || {}, TOUR = ACT('ACT_TOURNEE') || [], CONTES = ACT('ACT_CONTES') || [], APP = ACT('ACT_APPORTER') || [], LIV = ACT('ACT_LIVRER') || [];
     const VOE = ACT('ACT_VOEU') || {}, MASQ = ACT('ACT_MASQUE') || {}, ARC = ACT('ACT_ARCANES') || [], DIS = ACT('ACT_DISEUSE') || {}, PERDU = ACT('ACT_PERDU') || [], VIO = ACT('ACT_VIOLON') || [], EPI = ACT('ACT_EPITAPHES') || [], TIR = ACT('ACT_TIR') || {}, PEC = ACT('ACT_PECHE') || {}, ETA = ACT('ACT_ETALS') || [], NOMS = ACT('ACT_NOMS') || {};
-    U('ACT_LOOKS'); U('ACT_AIRS');
+    U('ACT_LOOKS');
     const act = (W.misc && W.misc.act) || {};
     const at = (kind) => INTER.filter((it) => it.kind === kind);
     const ou = (kinds, spot) => { const L = [].concat(...kinds.map(at)); if (L.length) return ouTexte(L[0].x, L[0].z) + (L.length > 1 ? ` <small>(${L.length})</small>` : ''); if (spot && act[spot]) { const S = Array.isArray(act[spot]) ? act[spot][0] : act[spot]; if (S && isFinite(S.x)) return ouTexte(S.x, S.z); } return ''; };
