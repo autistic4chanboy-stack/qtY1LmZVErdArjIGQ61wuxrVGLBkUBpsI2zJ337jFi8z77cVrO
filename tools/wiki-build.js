@@ -4444,6 +4444,10 @@ function buildWiki(DB) {
   let W16 = null;
   try { W16 = require('./wiki-v16.js'); } catch (e) { (DB.log || []).push('wiki-v16.js : ' + e.message); }
   if (W16) try { W16.build({ DB, T, P, SP, SEC, esc, lk, IL, FILL, quotes, npcLink, placeLink, link, pages, used, nfmt, MF, ITEMS, NAMES }); } catch (e) { (DB.log || []).push('wiki-v16.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
+  // ==== LA DIX-SEPTIÈME VAGUE : l'histoire, « Le Guet », et les options de la version de bureau (tools/wiki-v17.js)
+  let W17 = null;
+  try { W17 = require('./wiki-v17.js'); } catch (e) { (DB.log || []).push('wiki-v17.js : ' + e.message); }
+  if (W17) try { W17.build({ DB, T, P, SP, SEC, esc, lk, IL, link, placeLink, pages, used, MF, ITEMS }); } catch (e) { (DB.log || []).push('wiki-v17.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
   for (const f of [FILE.vol, FILE.prison, FILE.sentiments]) if (f) genericPage(f, 'prison', 'Prison, vol et sentiments');
   for (const f of Object.keys(MF)) if (!MODPAGE[f] && !/^07-/.test(f)) genericPage(f, 'nouveautes-autres', 'Autres nouveautés');
   // ce qui reste des tables de chaque module : en bas de sa fiche principale
@@ -4558,6 +4562,7 @@ function buildWiki(DB) {
   if (W15 && W15.sections) try { W15.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v15.js (sections) : ' + e.message); }
   if (W15B && W15B.sections) try { W15B.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v15b.js (sections) : ' + e.message); }
   if (W16 && W16.sections) try { W16.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v16.js (sections) : ' + e.message); }
+  if (W17 && W17.sections) try { W17.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v17.js (sections) : ' + e.message); }
   // semaine : page d'ensemble
   if (SEM.length) P('cat:semaine', { t: 'La semaine', s: `${SEM.length} jours`, c: [], i: '📅', h: `<p class="lead">Dans la vallée, la semaine compte ${SEM.length} jours${DB.derived.jour ? `, et une journée dure ${Math.round(DB.derived.jour / 60)} minutes` : ''}.</p><table class="t">${SEM.map((J, k) => `<tr><th>${link('sem:' + k)}</th><td>${esc((J.annonce || '').replace(/^\(|\)$/g, ''))}</td></tr>`).join('')}</table>` });
 

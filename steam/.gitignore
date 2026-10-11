@@ -1,0 +1,7 @@
+# sorties de construction (scripts/prepare.js, electron-builder, SteamPipe) et dépendances
+node_modules/
+dist/
+app/
+steampipe/output/
+*.log
+store/captures/
