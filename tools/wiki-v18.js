@@ -28,6 +28,9 @@ const heure = (h) => { h = ((h % 24) + 24) % 24; let H = Math.floor(h), m = Math
 const fenetre = (F) => (Array.isArray(F) ? `de ${heure(F[0])} à ${heure(F[1])}` : '');
 // une part, en pour cent, à la française
 const pct = (x, d) => (x * 100).toFixed(d === undefined ? (x < 0.01 ? 2 : 1) : d).replace('.', ',') + ' %';
+// un petit nombre en lettres : 8 → « huit »
+const LETTRES = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf', 'vingt'];
+const enLettres = (n) => (Number.isInteger(n) && n >= 0 && n < LETTRES.length ? LETTRES[n] : String(n));
 
 // ============================================================================ D18 : LES DETTES DE LA FERME
 // ce que les travaux ajoutent (D18_PLAN), quand ce n'est pas un simple objet posé
@@ -75,9 +78,9 @@ function dettes(X, H) {
   };
   const jourDu = 1 + (TERMES[0].delai || 0);
 
-  let h = `<p class="lead">« Elle est à vous. Avec ses dettes, ses murs, et ce qui vient avec. » La succession d’Anselme Varenne est grevée d’une dette ancienne : ${TERMES.length} termes, de plus en plus lourds, à verser à l’étude de Maître Delorme, notaire. Chaque terme acquitté, l’étude fait exécuter les travaux qu’Anselme avait commandés de son vivant : la vieille ferme s’agrandit, se pare, devient un domaine. Le retard coûte ; il ne tue pas.</p>`;
+  let h = `<p class="lead">« Elle est à vous. Avec ses dettes, ses murs, et ce qui vient avec. » La succession d’Anselme Varenne est grevée d’une dette ancienne : ${enLettres(TERMES.length)} termes, de plus en plus lourds, à verser à l’étude de Maître Delorme, notaire. Chaque terme acquitté, l’étude fait exécuter les travaux qu’Anselme avait commandés de son vivant : la vieille ferme s’agrandit, se pare, devient un domaine. Le retard coûte ; il ne tue pas.</p>`;
   h += kv([
-    ['En tout', `${nfmt(total)} pièces, en ${TERMES.length} termes`],
+    ['En tout', `${nfmt(total)} pièces, en ${enLettres(TERMES.length)} termes`],
     ['Le premier', `${nfmt(TERMES[0].montant)} pièces, dû le jour ${jourDu} d’une partie neuve`],
     ['Où l’on paie', `la boîte de l’étude, sur la porte de ${lieu('vide5', 'la maison Delorme')}, en ville ; ou par mandat, à ${lieu('poste', 'la poste')}`],
     ['Au carnet', 'Carnet → « La ferme »'],
@@ -99,7 +102,7 @@ function dettes(X, H) {
     travaux(i + 1).join(' ; '),
     esc(t.avantage || ''),
   ]);
-  rows.push(['<b>En tout</b>', `<b>${nfmt(total)} pièces</b>`, `${TERMES.reduce((a, t) => a + (t.delai || 0), 0)} jours`, '', '']);
+  rows.push(['<b>En tout</b>', `<b>${nfmt(total)} pièces</b>`, '—', '', '']);
   h += h3('Les huit termes') + `<p class="note">Le délai court du jour où le terme s’ouvre (le précédent payé). Les montants comprennent les intérêts.</p>` + tbl(['Terme', 'Montant', 'Délai', 'Les travaux', 'Ce qu’ils apportent'], rows);
 
   // ---- ce que les travaux apportent
@@ -109,7 +112,7 @@ function dettes(X, H) {
     `<b>La pompe</b> (terme ${n('pompe')}) : près du champ, l’arrosoir s’y remplit.`,
     `<b>L’armoire</b> (terme ${n('armoire')}) : un coffre de plus dans la maison ; l’aile neuve en ajoute un autre, dans la chambre.`,
     `<b>Le verger</b> (terme ${n('verger')}) : six pommiers adultes, plantés dans les cultures, et deux ruches : des pommes et du miel sans rien semer.`,
-    `<b>Les arroseurs</b> (terme ${n('arroseurs')}) : deux ${IL('arroseur_fer')} gardent le champ humide.`,
+    `<b>Les arroseurs</b> (terme ${n('arroseurs')}) : deux arroseurs (${IL('arroseur_fer')}) gardent le champ humide.`,
     `<b>L’écurie</b> (terme ${n('ecurie')}) : chaque matin, les bêtes de la ferme gagnent un peu de contentement ; la fontaine donne de l’eau.`,
     `<b>La réputation du domaine</b> (terme ${n('reputation')}) : la coopérative paie ${pc(B.reputation || 0.05)} de plus sur ce qu’on expédie.`,
     'Sous scellés (après une saisie), le toit sec, la chambre, l’écurie et la réputation ne jouent plus, jusqu’au paiement du terme ; le reste demeure.',
@@ -120,14 +123,14 @@ function dettes(X, H) {
   h += h3('Le retard') + ul([
     `Un rappel, ${R.rappel || 5} jours avant l’échéance.`,
     `Il faut avoir payé avant le matin de l’échéance : ce matin-là, la <b>mise en demeure</b>, et une pénalité de ${pc(R.demeure)} du terme. Puis ${pc(R.semaine)} de plus par semaine de retard (douze jours) — jamais plus de ${pc(R.plafond)} en tout.`,
-    `<b>Les huissiers</b> (Maître Fouquet) : ${R.saisie || 6} jours après l’échéance, une saisie, puis une autre tous les ${R.reprise || 12} jours, ${R.saisies || 3} au plus par terme. Ils emportent ce qui se vend — ${SAISIS.map((c) => vendable[c] || c).join(', ')} —, dans les coffres de la ferme puis dans la sacoche, le plus cher d’abord ; jamais un outil, une clé, un livre, un trésor, un objet de quête, ni ce qu’on a en main. De quoi faire au plus ${pc(R.part)} du terme, vendu à la criée aux ${pc(R.criee)} de son prix : c’est déduit du terme. Un procès-verbal le dit (s’il n’y a rien à prendre, un procès-verbal de carence) ; en revenant à la ferme, une scène : deux hommes en noir qui repartent par le chemin.`,
+    `<b>Les huissiers</b> (Maître Fouquet) : ${R.saisie || 6} jours après l’échéance, une saisie, puis une autre tous les ${R.reprise || 12} jours, ${R.saisies || 3} au plus par terme. Ils emportent ce qui se vend — ${SAISIS.map((c) => vendable[c] || c).join(', ')} —, dans les coffres de la ferme puis dans la sacoche, le plus cher d’abord ; jamais un outil, une clé, un livre, un trésor, un objet de quête, ni ce qu’on a en main. De quoi faire au plus ${pc(R.part)} du terme, vendu à la criée ${R.criee === 0.75 ? 'aux trois quarts' : 'à ' + pc(R.criee)} de son prix : c’est déduit du terme. Un procès-verbal le dit (s’il n’y a rien à prendre, un procès-verbal de carence) ; en revenant à la ferme, une scène : deux hommes en noir qui repartent par le chemin.`,
     'Après une saisie, <b>les scellés</b> sont posés sur les privilèges du domaine, jusqu’à complet paiement du terme ; la quittance les lève.',
     'Jamais de fin de partie : on peut toujours payer, chaque saisie paie une part du terme ; mais la dette ne s’éteint pas d’elle-même.',
   ]);
-  h += h3('Les lettres') + `<p>De ${pg('sys:savoir', 'la boîte aux lettres')} : « L’échéancier » (ou « Une dette retrouvée »), « Rappel », « Mise en demeure », « Pénalité de retard », les « Quittance » de chaque terme, « Les travaux » (quand un objet a été déplacé), le « Procès-verbal » des huissiers ; et, le huitième terme payé, l’« Acte de mainlevée » : la ferme, ses terres et ses murs sont quittes de toute dette.</p>`;
+  h += h3('Les lettres') + `<p>De ${pg('sys:savoir', 'la boîte aux lettres')} : « L’échéancier » (ou « Une dette retrouvée »), « Rappel », « Mise en demeure », « Pénalité de retard », une « Quittance » à chaque terme, « Les travaux » (quand un objet a été déplacé), le « Procès-verbal » des huissiers ; et, le huitième terme payé, l’« Acte de mainlevée » : la ferme, ses terres et ses murs sont quittes de toute dette.</p>`;
   h += SEC(`<p>Le post-scriptum de la mainlevée : « Les travaux que vous avez vus s’élever, feu M. Varenne les avait commandés il y a quarante ans. Personne avant vous n’était allé plus loin que le troisième terme. »</p><p>À la poste : « Un mandat pour l’étude ? Ils sont où, ces gens-là ? On n’a jamais vu personne y entrer. Mais les mandats partent, et les quittances reviennent. » Derrière la porte close de la maison Delorme, quand on glisse le dernier sou d’un terme dans la fente, une plume gratte.</p>`, 'Le post-scriptum de la dernière lettre, et ce qu’on dit de l’étude : masqué (secrets).');
   h += `<p>${pg('li:ferme', 'La vieille ferme')} · ${pg('sys:recits', 'Les récits des proches')} · ${pg('sys:savoir', 'La sacoche et le carnet')}</p>`;
-  SP('sys:dettes', { t: 'Les dettes de la ferme', s: `${TERMES.length} termes à l’étude Delorme ; chaque terme payé, des travaux : la ferme devient un domaine`, c: ['dettes'], i: '⚖', h }, files);
+  SP('sys:dettes', { t: 'Les dettes de la ferme', s: `${cap(enLettres(TERMES.length))} termes à l’étude Delorme ; chaque terme payé, des travaux : la ferme devient un domaine`, c: ['dettes'], i: '⚖', h }, files);
 }
 
 // ============================================================================ L18 : LE GRAND HÔTEL DES CIMES
@@ -207,7 +210,7 @@ function hotel(X, H) {
     const pub = ORDRE.filter((id) => id !== 'treize');
     h += h3('Les gens de l’hôtel') + tbl(['Qui', 'Ce qu’il fait', 'Où le trouver'], pub.map((id) => [gens(id), esc(cap(GENS[id].role || '')), esc(L18_OU[id] || '')]));
     h += `<p class="small">On leur parle (<kbd>E</kbd>, de près) : ce qu’ils disent dépend de l’heure, de l’amitié, de l’histoire en cours ; le premier mot du jour rapproche un peu. Au carnet : « on se salue », puis « de la sympathie », « de la confiance », « un ami ». Leurs journées : sur leurs fiches. Des clients de passage, de quatre à six chaque jour : ${metier('le métier de concierge')}.</p>`;
-    h += h3('Le métier de concierge') + `<p>Le directeur cherche un concierge : on se fait engager, et chaque jour on peut prendre un service de ${SV.duree} heures à la loge — les clients demandent, on porte, on cherche, on arrange, on se tait. Des gages selon le rang, des pourboires, une réputation qui fait monter en grade, venir de meilleurs clients, et qui ouvre les histoires. Tout est dans ${metier('« Le métier de concierge »')}.</p>`;
+    h += h3('Le métier de concierge') + `<p>Le directeur cherche un concierge : on se fait engager, et chaque jour on peut prendre un service de ${enLettres(SV.duree)} heures à la loge — les clients demandent, on porte, on cherche, on arrange, on se tait. Des gages selon le rang, des pourboires, une réputation qui fait monter en grade, venir de meilleurs clients, et qui ouvre les histoires. Tout est dans ${metier('« Le métier de concierge »')}.</p>`;
     // les histoires
     h += h3('Ses histoires') + tbl(['Histoire', 'Qui la propose', 'À partir de', 'Étapes'], ORDRE_A.filter((id) => ARCS[id]).map((id) => {
       const A = ARCS[id];
@@ -242,17 +245,17 @@ function hotel(X, H) {
       `Gaspard, l’ancien chef concierge devenu veilleur de nuit, tient la loge quand on n’y est pas ; la nuit, elle est à lui.`,
     ]);
     h += h3('Le service') + ul([
-      `Un par jour, pris à la loge entre ${heure(SV.debut)} et ${heure(SV.fin)} (« Prendre son service ») ; il dure ${SV.duree} heures. « Rendre son service » avant l’heure : la moitié des gages. S’éloigner à plus de 900 m de l’hôtel pendant une heure, c’est quitter son service.`,
-      `Les clients viennent à la loge l’un après l’autre : le premier un quart d’heure après, puis toutes les ${Math.round((DM.ecart || [0.6, 1])[0] * 60)} à ${Math.round((DM.ecart || [0.6, 1])[1] * 60)} minutes de jeu ; ${DM.max || 6} demandes au plus par service, deux clients au plus qui attendent. Un client qu’on fait attendre plus d’une heure s’en va (et la réputation baisse un peu).`,
+      `Un par jour, pris à la loge entre ${heure(SV.debut)} et ${heure(SV.fin)} (« Prendre son service ») ; il dure ${enLettres(SV.duree)} heures. « Rendre son service » avant l’heure : la moitié des gages. S’éloigner à plus de 900 m de l’hôtel pendant une heure, c’est quitter son service.`,
+      `Les clients viennent à la loge l’un après l’autre : le premier un quart d’heure après, puis toutes les ${Math.round((DM.ecart || [0.6, 1])[0] * 60)} à ${Math.round((DM.ecart || [0.6, 1])[1] * 60)} minutes de jeu ; ${enLettres(DM.max || 6)} demandes au plus par service, deux clients au plus qui attendent. Un client qu’on fait attendre plus d’une heure s’en va (et la réputation baisse un peu).`,
       '« Écouter », puis « Accepter » — la demande devient une commission, au carnet — ou s’excuser : « Je suis désolé : ce n’est pas possible aujourd’hui. » (rien n’est perdu).',
       'Une commission se fait avant la fin du service (et une heure de grâce) ; une commission dans la vallée, avant le lendemain soir. Oubliée, elle coûte de la réputation.',
     ]);
     // les demandes
     const D = (k) => (DEM[k] ? esc(DEM[k].titre) : k);
     const rows = [
-      [D('bagages'), `On prend ${IL('l18_valise')} ; à la porte de la chambre dite, <kbd>E</kbd> : « Déposer la valise ».`],
-      [D('lettre'), `On prend ${IL('l18_pli')} : le glisser sous la porte de la chambre dite.`],
-      [D('reserve'), `Descendre aux caves (l’escalier au fond de la cuisine) chercher ${IL('l18_bouteille')}, ${IL('l18_draps')} ou ${IL('l18_epicerie')}, et le remettre à la loge.`],
+      [D('bagages'), `On reçoit ${IL('l18_valise')} : à la porte de la chambre dite, <kbd>E</kbd>, « Déposer la valise ».`],
+      [D('lettre'), `On reçoit ${IL('l18_pli')} : à la porte de la chambre dite, <kbd>E</kbd>, « Glisser le pli sous la porte ».`],
+      [D('reserve'), `Descendre aux caves (l’escalier au fond de la cuisine) chercher ce qu’on demande (${IL('l18_bouteille')}, ${IL('l18_draps')} ou ${IL('l18_epicerie')}), et le remettre à la loge.`],
       [D('vallee'), `Rapporter à la loge, avant le lendemain soir, une chose de la vallée : ${VALLEE.map((k) => IL(k)).join(', ')}. Le pourboire compte en plus une fois et demie son prix.`],
       [D('voiture'), `Le dire à ${gens('cocher', 'Baptiste')}, à la remise (au nord de la cour) : « Faire atteler pour… ».`],
       [D('perdu'), `Un objet égaré (${PERDUS.map((p) => esc(p[0])).join(', ')}), là où le client dit l’avoir laissé (${OU.map((o) => esc(o[1])).join(' ; ')}) : un petit éclat doré ; <kbd>E</kbd> dessus, puis le rapporter à la loge (${IL('l18_objet_perdu')}).`],
@@ -351,12 +354,12 @@ function hotel(X, H) {
       ],
     },
   };
-  const SOUS = { lucien: 'La comtesse de Saint-Aubin cherche son fils', firmin: 'Le groom rêve des Grands Boulevards', symphonie: 'Un compositeur qui ne peut plus marcher, et les sons de la vallée', treize: 'Une sonnette de trop, une chambre qui n’existe pas' };
+  const SOUS = { lucien: 'la comtesse de Saint-Aubin cherche son fils', firmin: 'le groom rêve des Grands Boulevards', symphonie: 'un compositeur qui ne peut plus marcher, et les sons de la vallée', treize: 'une sonnette de trop, une chambre qui n’existe pas' };
   for (const id of ORDRE_A) {
     const A = ARCS[id], I = HIST[id];
     if (!A || !I) continue;
     const etape = (E) => {
-      const ou = E.lieu ? (E.lieu === 'grande_porte' ? ` <small>(${lieu('grande_porte', 'la Grande Porte')})</small>` : ` <small>(${aLieu(E.lieu)})</small>`) : '';
+      const ou = E.lieu ? ` <small>(${aLieu(E.lieu)})</small>` : '';
       const quand = E.quand ? ` <small>${fenetre(E.quand)}</small>` : '';
       return `<b>${esc(E.texte)}</b>${ou}${quand}${I.notes[E.id] ? `<br><span class="small">${I.notes[E.id]}</span>` : ''}`;
     };
@@ -607,7 +610,7 @@ function cercle(X, H) {
     ]);
     h += h3('La porte') + ul([
       `${gens('portier', 'Siméon')}, le portier, tient la porte ${hh(HEURES[0], HEURES[1])} : il l’ouvre quand on arrive, la referme derrière. Le droit de cercle, ${ENTREE} pièces pour la soirée (une soirée court de midi à midi) ; ou ${IL('c18_carte_membre')}, ${CARTE} pièces une fois pour toutes : on entre sans payer, et il vous reconnaît. Qui loue la suite, pour sa nuit, ou la possède, entre sans payer.`,
-      `On n’entre pas une arme ou un outil à la main (${ARMES.slice(0, 8).map((k) => IL(k)).join(', ')}…) : « Rangez-moi ça. »`,
+      `On n’entre pas une arme ou un outil à la main (${ARMES.filter((k) => !/_acier$|_if$/.test(k)).map((k) => IL(k)).join(', ')}) : « Rangez-moi ça. »`,
       `Fermé, une plaque de cuivre le dit : « Ouvert de six heures du soir à trois heures du matin. Tenue correcte exigée. La maison ne fait pas crédit. » À trois heures moins dix, la directrice annonce la fermeture. Le propriétaire de la suite entre à toute heure ; le reste de la maison, après trois heures, n’est à personne.`,
       'Quelqu’un qui ne tient plus debout, les croupiers le renvoient : « Revenez demain, la table vous attendra. »',
     ]);
@@ -832,7 +835,6 @@ function recits(X, H) {
   const qui = (id) => pnj(id, leRole(id));
   const its = (o) => (o && typeof o === 'object' ? Object.entries(o).map(([k, n]) => IL(k, n > 1 ? n : '')).join(', ') : '');
   const quete = (qid) => { for (const d of NPCS) for (const q of d.quests || []) if (q.id === qid) return [d, q]; return null; };
-  const ROM = T('K18_ROMAINS', null) || ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
   const branche = (D, E) => !!(K18_SI[D.id] && K18_SI[D.id][E.id]);
   const aChoix = (D, E) => (Array.isArray(E.choix) && E.choix.length) || K18_CHOIX_FN[D.id] === E.id;
   // ce qu'un chapitre demande, en clair (sans rien dire de l'histoire)
@@ -841,7 +843,7 @@ function recits(X, H) {
     let t;
     if (E.aller) t = `aller ${aLieu(E.lieu)}${E.moment ? ', ' + K18_MOMENT[E.moment] : ''}`;
     else if (E.need && typeof E.need === 'object') t = `apporter ${its(E.need)} à ${qui(q)}`;
-    else t = q === D.npc ? `${D.npc === 'fillette' ? 'lui' : 'lui'} parler` : `parler à ${qui(q)}`;
+    else t = q === D.npc ? 'lui parler' : `parler à ${qui(q)}`;
     const c = [];
     if (E.min) c.push(`amitié ${E.min}`);
     if (E.minQui) c.push(`amitié ${E.minQui} avec ${leRole(q)}`);
@@ -953,7 +955,7 @@ function recits(X, H) {
     if (V) {
       b += `<h4>En visite</h4><p>À l’amitié ${REGL.visiteNiveau || 6}, ${leRole(id)} vient parfois voir la ferme, l’après-midi, et apporte ${its(V.don)}.</p>`;
       const lignes = Object.entries(LIB).map(([k, t]) => { const x = V[k]; const L = Array.isArray(x) ? x : x ? [x] : []; return L.length ? `<h5>${esc(t)}</h5><ul class="qs">${L.map((l) => `<li>${F(String(l).replace(/\{objet\}/g, '‹ce cadeau›').replace(/\{quete\}/g, '‹la quête›'))}</li>`).join('')}</ul>` : ''; }).join('');
-      if (lignes) b += `<details><summary>Ce qu’il dit à ses proches</summary>${lignes}</details>`;
+      if (lignes) b += `<details><summary>Ce qu’on l’entend dire, en proche</summary>${lignes}</details>`;
     }
     const Pt = PORTR[id];
     if (Pt && Pt.length) {
@@ -964,7 +966,6 @@ function recits(X, H) {
     if (AQ.length) b += (D || V ? '<h4>Après ses quêtes</h4>' : '<h3 class="k18-pnj">Après ses quêtes</h3>') + `<p class="small">Quelques jours après chacune, un mot de plus, une fois.</p>` + SEC(`<ul class="qs">${AQ.map((q) => `<li><b>« ${esc(quete(q)[1].title)} »</b> — ${F(APRES[q])}</li>`).join('')}</ul>`, 'Ce qu’il en dit : masqué (secrets).');
     if (b) p.h = (p.h || '') + b;
   }
-  void ROM;
 }
 
 // ============================================================================ P18 : LES CASCADES, LES GROTTES, LES COINS DE PARADIS
@@ -979,7 +980,7 @@ function cascades(X, H) {
 
 // ============================================================================ UN MOT AILLEURS
 function liens(X, H) {
-  const { T, pages, lk, esc, IL } = X;
+  const { T, pages, lk, esc } = X;
   const has = (id) => pages.has(id);
   const ajoute = (id, test, html, debut) => { const p = pages.get(id); if (p && !test.test(p.h || '')) p.h = debut ? html + (p.h || '') : (p.h || '') + html; };
   // ---- la ferme, la maison Delorme, la poste
@@ -1043,7 +1044,6 @@ function liens(X, H) {
       }
     }
   }
-  void IL;
 }
 
 // ============================================================================ LES OUTILS, ET LE TOUT
@@ -1088,7 +1088,8 @@ function sections(cats, X) {
   const { pages, link } = X;
   const at = (id) => cats.findIndex((c) => c.id === id);
   const apres = (cat, ancres) => {
-    if (at(cat.id) >= 0 || !cat.groups.some((g) => g.ids.length)) return;
+    cat.groups = cat.groups.filter((g) => g.ids.length);
+    if (at(cat.id) >= 0 || !cat.groups.length) return;
     let i = -1;
     for (const a of ancres) { i = at(a); if (i >= 0) break; }
     cats.splice(i >= 0 ? i + 1 : cats.length, 0, cat);
@@ -1104,7 +1105,7 @@ function sections(cats, X) {
   if (pages.has('sys:dettes')) apres({ id: 'dettes', t: 'Les dettes de la ferme', d: 'Huit termes à l’étude de Maître Delorme ; chaque terme payé, des travaux : la vieille ferme devient un domaine. Le retard, les huissiers, les scellés.', nouveau: true, groups: [{ t: 'Les dettes de la ferme', ids: ['sys:dettes'] }, { t: 'La ferme', ids: ids(['li:ferme']) }] }, ['recits', 'quetes16', 'principales']);
   // l'hôtel et le Cercle : après les runes (les grands lieux)
   if (pages.has('sys:l18_hotel')) apres({ id: 'grand-hotel', t: 'Le Grand Hôtel des Cimes', d: 'Un palace de 1868 sur le replat des monts de l’Est : le funiculaire, le métier de concierge (les clients, les gages, la réputation), quatre histoires, ses gens, ses lieux — et une chambre qui n’existe pas.', nouveau: true, groups: [{ t: 'L’hôtel', ids: ids(['sys:l18_hotel', 'sys:l18_concierge']) }, { t: 'Ses histoires', ids: ids(['sys:l18_firmin', 'sys:l18_lucien', 'sys:l18_symphonie', 'sys:l18_treize']) }, { t: 'Ses gens', ids: par(/^pnj:l18_/) }, { t: 'Ses lieux', ids: tri(par(/^li:l18_/)) }] }, ['runes', 'terres']);
-  if (pages.has('sys:cercle')) apres({ id: 'grand-cercle', t: 'Le Grand Cercle', d: 'Le casino de Valbrume : la porte et la caisse, cinq jeux et leurs chances, le bar, les habitués ; la suite Impériale à l’étage, et le baron qui ne l’a jamais quittée.', nouveau: true, groups: [{ t: 'Le Cercle', ids: ids(['sys:cercle', 'sys:c18_suite', 'sys:c18_baron']) }, { t: 'Les jeux', ids: ids(['sys:c18_roulette', 'sys:c18_vingt', 'sys:c18_baccara', 'sys:c18_des', 'sys:c18_bandit']) }, { t: 'Ses gens', ids: par(/^pnj:c18_/) }, { t: 'Le lieu', ids: ids(['li:casino']) }] }, ['grand-hotel', 'runes', 'terres']);
+  if (pages.has('sys:cercle')) apres({ id: 'grand-cercle', t: 'Le Grand Cercle', d: 'Le casino de Valbrume : la porte et la caisse, cinq jeux et leurs chances, le bar, les habitués ; la suite Impériale à l’étage, et le carnet du baron de Lancry.', nouveau: true, groups: [{ t: 'Le Cercle', ids: ids(['sys:cercle', 'sys:c18_suite', 'sys:c18_baron']) }, { t: 'Les jeux', ids: ids(['sys:c18_roulette', 'sys:c18_vingt', 'sys:c18_baccara', 'sys:c18_des', 'sys:c18_bandit']) }, { t: 'Ses gens', ids: par(/^pnj:c18_/) }, { t: 'Le lieu', ids: ids(['li:casino']) }] }, ['grand-hotel', 'runes', 'terres']);
   if (SECTION_P18) apres(SECTION_P18, ['grand-cercle']);
   // un mot dans « Quêtes » et dans « Nouveautés »
   const cq = pages.get('cat:quetes');

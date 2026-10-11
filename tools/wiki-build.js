@@ -4448,6 +4448,11 @@ function buildWiki(DB) {
   let W17 = null;
   try { W17 = require('./wiki-v17.js'); } catch (e) { (DB.log || []).push('wiki-v17.js : ' + e.message); }
   if (W17) try { W17.build({ DB, T, P, SP, SEC, esc, lk, IL, link, placeLink, pages, used, MF, ITEMS }); } catch (e) { (DB.log || []).push('wiki-v17.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
+  // ==== LA DIX-HUITIÈME VAGUE : les dettes de la ferme, le Grand Hôtel des Cimes, le Grand Cercle et la suite Impériale, les
+  // récits des proches (tools/wiki-v18.js ; la cinquième part, les cascades et les grottes, y a sa place, vide pour l'instant)
+  let W18 = null;
+  try { W18 = require('./wiki-v18.js'); } catch (e) { (DB.log || []).push('wiki-v18.js : ' + e.message); }
+  if (W18) try { W18.build({ DB, T, P, SP, SEC, esc, lk, IL, FILL, link, placeLink, npcLink, pages, used, nfmt, MF, ITEMS, NAMES, mapBtn }); } catch (e) { (DB.log || []).push('wiki-v18.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
   for (const f of [FILE.vol, FILE.prison, FILE.sentiments]) if (f) genericPage(f, 'prison', 'Prison, vol et sentiments');
   for (const f of Object.keys(MF)) if (!MODPAGE[f] && !/^07-/.test(f)) genericPage(f, 'nouveautes-autres', 'Autres nouveautés');
   // ce qui reste des tables de chaque module : en bas de sa fiche principale
@@ -4563,6 +4568,7 @@ function buildWiki(DB) {
   if (W15B && W15B.sections) try { W15B.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v15b.js (sections) : ' + e.message); }
   if (W16 && W16.sections) try { W16.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v16.js (sections) : ' + e.message); }
   if (W17 && W17.sections) try { W17.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v17.js (sections) : ' + e.message); }
+  if (W18 && W18.sections) try { W18.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v18.js (sections) : ' + e.message); }
   // semaine : page d'ensemble
   if (SEM.length) P('cat:semaine', { t: 'La semaine', s: `${SEM.length} jours`, c: [], i: '📅', h: `<p class="lead">Dans la vallée, la semaine compte ${SEM.length} jours${DB.derived.jour ? `, et une journée dure ${Math.round(DB.derived.jour / 60)} minutes` : ''}.</p><table class="t">${SEM.map((J, k) => `<tr><th>${link('sem:' + k)}</th><td>${esc((J.annonce || '').replace(/^\(|\)$/g, ''))}</td></tr>`).join('')}</table>` });
 
