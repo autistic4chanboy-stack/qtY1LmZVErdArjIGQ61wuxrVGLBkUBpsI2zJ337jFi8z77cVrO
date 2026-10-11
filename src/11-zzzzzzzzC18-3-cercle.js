@@ -227,8 +227,10 @@ const c18 = {
       E.locked = !ok; E.forced = false;
       const dE = Math.hypot(p[0] - E.x, p[2] - E.z);
       if (!ok && E.open && dE > 2) { E.open = 0; }
-      // le portier vous ouvre quand vous arrivez (et referme derrière vous)
-      if (ok && !inside && this.present('portier') && dE < 3.2 && !E.open && !E.playerClosed) { E.open = 1; sound.door && sound.door(true); }
+      // le portier vous ouvre quand vous arrivez ou repartez, et referme quand vous êtes loin
+      if (ok && this.present('portier') && dE < 3.2 && !E.open && !E.playerClosed) { E.open = 1; sound.door && sound.door(true); }
+      else if (E.open && dE > 7 && this.present('portier')) E.open = 0;
+      if (dE > 7) E.playerClosed = false;
     }
     if (U) {
       const ok = this.droitSuite() || this.dansSuite();
@@ -563,9 +565,16 @@ const c18 = {
     // les portes du Cercle : la porte d'entrée (le portier), la porte de la suite (la clé de la directrice)
     const _ud = game.useDoor.bind(game);
     game.useDoor = function (dr) { if (dr && dr.c18 && c18.porte(dr)) return; return _ud(dr); };
-    // (les portes des habitants se ferment la nuit : celles du Cercle suivent ses heures)
+    // (les portes des habitants se ferment la nuit : celles du Cercle suivent ses heures, et c'est le portier qui les ouvre)
     const _upd = npcs.updateDoors.bind(npcs);
-    npcs.updateDoors = function (w, instant) { const r = _upd(w, instant); try { c18.majPortes(); } catch (e) { console.error('C18 portes', e); } return r; };
+    npcs.updateDoors = function (w, instant) {
+      const C = c18.C(), garde = [];
+      if (C && w === game.world) for (const k in C.portes) { const d = w.doors[C.portes[k]]; if (d) garde.push([d, d.open, d.locked]); }
+      const r = _upd(w, instant);
+      for (const [d, o, l] of garde) { d.open = o; d.locked = l; }
+      try { c18.majPortes(); } catch (e) { console.error('C18 portes', e); }
+      return r;
+    };
     // après une nuit dans la suite : ce que la nuit a laissé
     const _sl = game.sleep.bind(game);
     game.sleep = async function (where) {
