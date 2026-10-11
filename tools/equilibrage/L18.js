@@ -203,12 +203,17 @@ module.exports = {
           hotelService.prendre();
           // le joueur fait 85 % des demandes (les autres ratent) ; il ne rate jamais un conseil, un secret
           let n = 0;
-          while (S.service && !S.service.fini && n < 30) {
+          while (S.service && !S.service.fini && n < 60) {
             n++;
-            farm.s.hours += 0.5;
+            farm.s.hours += 0.25;
+            // (comme hotelService.tic : un client à l'heure dite, six au plus par service)
+            if (farm.s.hours >= S.service.fin) { hotelService.finir(false); break; }
+            if (farm.s.hours < S.service.prochaine || S.service.n >= L18_REGL.demande.max) continue;
+            const r = mulberry32((jour * 977 + S.service.n * 31) >>> 0)();
+            S.service.prochaine = farm.s.hours + L18_REGL.demande.ecart[0] + r * (L18_REGL.demande.ecart[1] - L18_REGL.demande.ecart[0]);
             const d = hotelService.tirer();
             if (d) {
-              if (d.type === 'secret') { const tip = Math.round((d.pourboire || 20) * 1.6); farm.earn(tip); hotelService.reputation(L18_REGL.repSecret); continue; }
+              if (d.type === 'secret') { const tip = Math.round((d.pourboire || 20) * 1.6); farm.earn(tip); hotelService.reputation(L18_REGL.repSecret * (S.rep >= 55 ? 0.5 : 1)); continue; }
               const c = Object.assign({}, d, { etat: 'accepte' });
               if (c.type === 'vallee') farm.give(c.objet, 1);
               if (c.type === 'reserve') farm.give(c.quoi === 'vin' ? 'l18_bouteille' : c.quoi === 'linge' ? 'l18_draps' : 'l18_epicerie', 1);
@@ -218,7 +223,6 @@ module.exports = {
               // (l'objet de la vallée, on l'a payé ou trouvé : son prix est retiré du gain)
               if (c.type === 'vallee') farm.s.money -= ITEMS[c.objet].price;
             }
-            if (farm.s.hours >= S.service.fin) hotelService.finir(false);
           }
           if (S.service && !S.service.fini) hotelService.finir(false);
           out.par.push(farm.s.money - m0);
@@ -236,6 +240,7 @@ module.exports = {
       if (moy(fin) < 150 || moy(fin) > 520) ko(`un service, plus tard : ${Math.round(moy(fin))} pièces (150 à 520 attendues)`);
       if (Math.max(...E.par) > 700) ko(`un service à ${Math.max(...E.par)} pièces (700 au plus)`);
       if (E.rang[9] === 'clefs') ko('les clefs d’or en dix jours : trop vite');
+      if (E.rang[99] !== 'clefs') ko('les clefs d’or jamais atteintes en cent services');
       if (E.rang[99] === 'stagiaire') ko('toujours stagiaire après cent services : trop lent');
     }
     // ---------------------------------------------------------------- les histoires : ce qu'elles paient (lu dans le code des fins)

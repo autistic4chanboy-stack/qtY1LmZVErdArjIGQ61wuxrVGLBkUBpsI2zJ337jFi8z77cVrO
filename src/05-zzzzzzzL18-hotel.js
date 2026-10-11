@@ -52,7 +52,7 @@ const L18_REGL = {
   service: { debut: 7, fin: 19, duree: 5 },     // on prend son service entre 7 h et 19 h ; il dure cinq heures
   demande: { premier: 0.25, ecart: [0.6, 1.0], max: 6, attente: 1.2 }, // en heures de jeu (une heure : 50 s)
   pourboire: [6, 38],                            // le pourboire d'une demande bien faite (avant la réputation)
-  repBien: [2, 4], repMal: 3, repSecret: 5,       // réputation gagnée, perdue
+  repBien: [1, 2], repMal: 2, repSecret: 4,       // réputation gagnée (la moitié au-delà de 55), perdue
   demiGage: 0.5,                                 // un service quitté avant l'heure : la moitié des gages
   voiture: 6, funiculaire: 2,                    // prix d'une course
   vallee: 30,                                    // une commission dans la vallée : jusqu'au soir du lendemain (heures)
@@ -122,7 +122,7 @@ const L18_GENS = {
     look: { skin: '#e4c8b4', hair: '#b8b0a8', hairStyle: 'long', beard: 'courte', top: '#1e2430', bottom: '#1a1e26', shoe: '#141414', coat: true, held: 'canne', build: 'mince', old: true },
     bio: 'Cinquante-sept ans, né à Lublin, exilé depuis l’insurrection de 1863 : Paris, Genève, Vienne, des pensions de famille. Phtisique, il ne peut plus marcher loin. Il est monté aux Cimes « pour respirer, ou pour finir », et pour écrire une dernière symphonie qu’il n’arrive pas à commencer.',
     traits: ['irascible', 'drôle', 'déraciné'],
-    horaire: [[9, 'ch_208', 'assis'], [11, 'balcon2', 'debout'], [12.5, 'resto_10', 'assis'], [14, 'ch_208', 'dort'], [16, 'terrasse_t2', 'assis'], [18, 'salon_lecture', 'assis'], [19.5, 'resto_11', 'assis'], [21, 'piano', 'assis'], [0.5, 'ch_208', 'dort']],
+    horaire: [[0.5, 'ch_208', 'dort'], [9, 'ch_208', 'assis'], [11, 'balcon2', 'debout'], [12.5, 'resto_10', 'assis'], [14, 'ch_208', 'dort'], [16, 'terrasse_t2', 'assis'], [18, 'salon_lecture', 'assis'], [19.5, 'resto_11', 'assis'], [21, 'piano', 'assis']],
   },
   treize: {
     nom: 'Étienne Rouvière', court: 'l’homme de la treize', role: 'berger, monté au col des Treize en 1854', h: true,

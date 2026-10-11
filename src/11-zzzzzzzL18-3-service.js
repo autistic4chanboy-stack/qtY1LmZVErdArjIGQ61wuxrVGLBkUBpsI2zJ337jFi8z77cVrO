@@ -175,7 +175,7 @@ const hotelService = {
     farm.earn(tip);
     S.stats.pourboires += tip; S.stats.faites++;
     if (sv && sv.jour === farm.s.day) { sv.gains += tip; sv.faites++; }
-    const gain = L18_REGL.repBien[0] + Math.floor(Math.random() * (L18_REGL.repBien[1] - L18_REGL.repBien[0] + 1));
+    const gain = (L18_REGL.repBien[0] + Math.floor(Math.random() * (L18_REGL.repBien[1] - L18_REGL.repBien[0] + 1))) * (S.rep >= 55 ? 0.5 : 1);
     this.reputation(gain);
     const D = L18_DEMANDES[c.type], nom = this.nomClient(c.client);
     try { sound.coin && sound.coin(); } catch (e) { /* */ }
