@@ -30,7 +30,7 @@ const P18_EAU_FS = SH.waterFS.replace('uniform float uWater;', 'uniform float uW
   .replace('outCol = vec4(applyFog(col, p), alpha);', 'col = mix(col, vec3(0.62, 0.7, 0.66) * light, uChaud * 0.22);\n  outCol = vec4(applyFog(col, p), alpha);');
 
 const p18Rendu = {
-  prog: null, U: null, attente: false, dedans: false,
+  prog: null, U: null, dedans: false, cache: new WeakMap(),
   stats: { nappes: 0, boites: 0, minis: 0, chutes: 0 },
   // ------------------------------------------------------------ le programme, une fois
   installer() {
@@ -43,29 +43,29 @@ const p18Rendu = {
       set('uHeight', TEX_H); set('uMat', TEX_M); set('uShade', TEX_S); set('uTex', TEX_A); set('uCover', TEX_C);
       this.prog = pr;
     } catch (e) { console.error('P18 eau', e); this.prog = false; return; }
+    // les nappes se dessinent juste avant l'eau du jeu, quand le rendu prend son programme : l'état de GL y est déjà
+    // celui de l'eau (mélange, sans écriture de profondeur, sans tri des faces), rien à lire ni à remettre
     const S = this, _use = R.use.bind(R);
     R.use = function (pr, U) {
-      if (S.attente && !S.dedans && pr !== this.progs.water) { S.attente = false; S.dedans = true; try { S.nappes(this); } catch (e) { if (!S._err) { S._err = true; console.error('P18 nappes', e); } } finally { S.dedans = false; } }
-      if (pr === this.progs.water && !S.dedans) { S.U = U; S.attente = true; }
+      if (pr === this.progs.water && !S.dedans) { S.U = U; S.dedans = true; try { S.nappes(this); } catch (e) { if (!S._err) { S._err = true; console.error('P18 nappes', e); } } finally { S.dedans = false; } }
       return _use(pr, U);
     };
   },
-  // ------------------------------------------------------------ les nappes (juste après l'eau du jeu)
+  // ------------------------------------------------------------ les nappes (juste avant l'eau du jeu)
   nappes(R) {
     const w = game.world, P = w && w.p18, U = this.U;
     this.stats.nappes = 0;
     if (!P || !P.eaux.length || !U || !this.prog) return;
     const sous = !!(souterrain.actif && souterrain.image), cam = U.uCamPos, far = (U.uFog ? U.uFog[1] : 200) + 30;
     const pr = this.prog;
-    const blend = gl.isEnabled(gl.BLEND), cull = gl.isEnabled(gl.CULL_FACE), dm = gl.getParameter(gl.DEPTH_WRITEMASK), vao = gl.getParameter(gl.VERTEX_ARRAY_BINDING);
     let pret = false;
-    const V = this._v || (this._v = { f: [0, 0, 0] });
     for (const E of P.eaux) {
       if (!!E.sous !== sous) continue;
       const dx = E.x - cam[0], dz = E.z - cam[2], r = Math.hypot(E.hx, E.hz), d = Math.hypot(dx, dz);
       if (d - r > far || Math.abs(E.y - cam[1]) > far) continue;
       if (!pret) {
         pret = true;
+        // (l'état est déjà celui de l'eau ; on le pose sans le lire : lire l'état de GL fait attendre la carte)
         gl.useProgram(pr.p);
         const O = sous && souterrain.gl ? Object.assign({}, U, souterrain.gl.ovr) : U;
         for (const k in O) if (k !== 'uRect' && k !== 'uWater' && k !== 'uWaterV') R.setU(pr, k, O[k]);
@@ -73,15 +73,11 @@ const p18Rendu = {
         gl.bindVertexArray(R.emptyVAO);
       }
       R.setU(pr, 'uWater', E.y); R.setU(pr, 'uWaterV', E.y); R.setU(pr, 'uProf', E.prof || P18_PROF); R.setU(pr, 'uChaud', E.chaud ? 1 : 0);
-      R.setU(pr, 'uQuad', [E.x, E.z, E.hx, E.hz]); R.setU(pr, 'uAxe', [Math.cos(E.a), Math.sin(E.a)]);
+      let Q = this.cache.get(E);
+      if (!Q) this.cache.set(E, Q = { q: new Float32Array([E.x, E.z, E.hx, E.hz]), a: new Float32Array([Math.cos(E.a), Math.sin(E.a)]) });
+      R.setU(pr, 'uQuad', Q.q); R.setU(pr, 'uAxe', Q.a);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       this.stats.nappes++;
-    }
-    if (pret) {
-      if (!blend) gl.disable(gl.BLEND);
-      if (cull) gl.enable(gl.CULL_FACE);
-      gl.depthMask(dm);
-      gl.bindVertexArray(vao);
     }
   },
 

@@ -137,6 +137,11 @@ const p18Gen = {
         const q = T.ellipse(E, x, z, 0.12);
         if (q >= 1 && q < 1.35 && T.H[k] > sol + 2) T.peindre(k, M_CLIFF);
       });
+      // derrière le rideau : la corniche est de roche mouillée, pas de sable
+      if (C.corniche) {
+        const [x0, x1, z0, z1] = C.corniche;
+        T.sommets(x0 - 1.5, z0 - 1.5, x1 + 1.5, z1 + 1.5, (k) => T.peindre(k, M_ROCK));
+      }
     }
     // 3. le bassin
     if (C.bassin) D.bassin = this.bassin(w, T, R, C.bassin, yB, { rive: sol });
@@ -276,10 +281,10 @@ const p18Gen = {
     for (const P of P18_COINS) R.coins.push(this.coin(w, B, R, P, rnd));
     // ---- les grottes (la décoration, ce qu'on y trouve)
     try { R.grotte = p18Grotte.garnir(w, B, rnd); } catch (e) { console.error('P18 grottes', e); }
-    // ---- les zones où l'on ne bâtit pas
-    w.noBuild = w.noBuild || [];
-    for (const D of R.chutes) w.noBuild.push({ x: D.bassin ? D.bassin.x : D.x, z: D.bassin ? D.bassin.z : D.z, r: D.bassin ? D.bassin.r + 14 : 20, why: LIEU_NAMES['p18_' + D.k] });
-    for (const P of P18_COINS) if (!P.chute) w.noBuild.push({ x: P.c[0], z: P.c[1], r: P.r + 6, why: LIEU_NAMES['p18_' + P.k] });
+    // ---- les zones où l'on ne bâtit pas (à part : w.noBuild garde les siennes, où poussent déjà des plantes)
+    R.zones = [];
+    for (const D of R.chutes) if (!D.sous) R.zones.push({ x: D.bassin ? D.bassin.x : D.x, z: D.bassin ? D.bassin.z : D.z, r: D.bassin ? D.bassin.r + 14 : 20, why: LIEU_NAMES['p18_' + D.k] });
+    for (const P of P18_COINS) if (!P.chute) R.zones.push({ x: P.c[0], z: P.c[1], r: P.r + 6, why: LIEU_NAMES['p18_' + P.k] });
     R.routes = [...T.route].filter((k) => !T.avant.has(k) || Math.abs(T.avant.get(k) - w.heights[k]) > 0.15).length;
     R.n = { o: w.objects.length - R.n0.o, p: w.props.length - R.n0.p, i: w.inter.length - R.n0.i, b: w.blocks.length - R.n0.b, eaux: R.eaux.length, minis: R.minis.length, sommets: T.avant.size };
     R.ms = Math.round(performance.now() - t0);

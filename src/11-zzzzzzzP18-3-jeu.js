@@ -311,6 +311,18 @@ const p18Jeu = {
   },
 };
 
+// ---------------------------------------------------------------- on ne bâtit pas au bord des chutes ni dans les coins de paradis
+{
+  const _idb = interditDeBatir;
+  interditDeBatir = function (x, z, r) {
+    const P = _idb(x, z, r);
+    if (P) return P;
+    const W = game.world && game.world.p18;
+    if (W && W.zones) for (const Z of W.zones) if (Math.hypot(x - Z.x, z - Z.z) < Z.r + (r || 0)) return Z;
+    return null;
+  };
+}
+
 // ---------------------------------------------------------------- les interactions
 HOOKS.inter.p18_grotte = () => p18Jeu.entrer();
 HOOKS.inter.p18_sortie = () => p18Jeu.sortir();
@@ -410,6 +422,19 @@ HOOKS.lights.push((eye) => {
   const Lc = P18_GROTTE.lacs[0];
   if (Math.hypot(eye[0] - Lc[1], eye[2] - Lc[2]) < 110) for (const [dx, dz] of [[-50, -20], [40, 30], [10, -45]]) out.push({ x: Lc[1] + dx, y: SOUT_WL + 1.5, z: Lc[2] + dz, r: 16, c: [0.06, 0.2, 0.18], d: 0.1 });
   return out;
+});
+// derrière le rideau de la Grande Chute : le jour passe à travers l'eau, une clarté pâle qui tremble
+HOOKS.lights.push((eye) => {
+  const W = game.world && game.world.p18;
+  if (!W || souterrain.actif) return [];
+  const G = p18Jeu.chute('grande');
+  if (!G || !G.bouche) return [];
+  const [bx, by, bz] = G.bouche;
+  if (Math.hypot(eye[0] - bx, eye[2] - bz) > 40) return [];
+  const t = game.world.time || 0, jour = clamp(Math.min((t - 0.26) / 0.06, (0.76 - t) / 0.06), 0, 1);
+  if (jour <= 0) return [];
+  const k = jour * (0.85 + 0.15 * Math.sin(performance.now() / 260));
+  return [{ x: bx + Math.cos(G.a) * 2.6, y: by + 2.4, z: bz + Math.sin(G.a) * 2.6, r: 10, c: [0.3 * k, 0.35 * k, 0.38 * k], d: 0.03 }];
 });
 
 // ---------------------------------------------------------------- branchements
