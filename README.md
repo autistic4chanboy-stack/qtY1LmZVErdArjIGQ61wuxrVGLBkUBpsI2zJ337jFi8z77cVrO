@@ -1181,6 +1181,101 @@ Les commandes sont dans le menu **Commandes** (Échap).
 - **Dans le wiki** : la section « L'histoire » (les chapitres et leurs étapes, les fins et les paroles sous « révéler les
   secrets »), la fiche « Les options » ; `tools/wiki-v17.js`.
 
+**Les dettes de la ferme, le Grand Hôtel des Cimes, le Grand Cercle, les récits des proches, les cascades et les grottes**
+- **Les dettes de la ferme** : la succession d'Anselme est grevée d'une dette ancienne, huit termes de plus en plus
+  lourds (de 500 à 12 500 pièces, 38 800 en tout) à verser à l'étude de Maître Delorme, notaire : dans la boîte de
+  l'étude (une plaque de cuivre sur la porte de la maison Delorme, en ville) ou par mandat, à la poste (trois pièces
+  de frais). La première lettre arrive le deuxième jour ; le premier terme est dû le jour 19 (une partie d'avant
+  reçoit « Une dette retrouvée », et vingt-quatre jours de grâce). Un versement partiel compte.
+- **Les travaux** : chaque terme payé, les ouvriers viennent le lendemain matin, et une courte scène les montre quand
+  on revient à la ferme — le toit d'ardoise, la cour pavée et sa pompe, la maison de pierre, le verger (six pommiers,
+  deux ruches), l'aile neuve, la serre et ses arroseurs, les dépendances (une écurie, une fontaine), le domaine (un
+  étage, une seconde aile, le portail). Ils apportent de meilleures nuits, de l'eau près du champ, des coffres, des
+  pommes et du miel, des bêtes plus contentes, une coopérative qui paie 5 % de plus. Un objet posé qui gêne est
+  déplacé de quelques pas (une lettre le dit) ; rien n'est touché hors de la ferme.
+- **Le retard coûte, sans tuer** : un rappel cinq jours avant ; à l'échéance, la mise en demeure (8 % du terme), puis
+  5 % par semaine de retard, jamais plus de 25 % ; six jours après, les huissiers saisissent ce qui se vend (jamais un
+  outil, une clé, un livre ni un objet de quête ; trois saisies au plus par terme), et des scellés suspendent les
+  avantages du domaine jusqu'au paiement. Jamais de fin de partie.
+- **Le Grand Hôtel des Cimes** : un palace de 1868 sur le replat des monts de l'Est, en face du château, à 1,3 km de
+  Valbrume. On y monte par un funiculaire (deux pièces, de 6 h à 21 h ; la cabine roule pour de vrai), par le chemin
+  muletier, ou dans la voiture des Cimes (six pièces, depuis l'arrêt au nord de Valbrume). Le hall et la loge du
+  concierge, la salle à manger, le salon, deux étages de chambres (il n'y a pas de 13), les combles, la salle de bal
+  du Veilledi, les caves, et l'aile Nord, fermée depuis l'hiver 1871. Ses gens (le directeur, le veilleur de nuit, le
+  groom, le chef, la gouvernante, le cocher, le mécanicien du funiculaire, le maître d'hôtel, une comtesse, un
+  compositeur) ont chacun leur journée, leurs mots et leur page dans le wiki du jeu ; deux airs ne se jouent que là.
+- **Le métier de concierge** : le directeur engage ; chaque jour, un service de cinq heures à la loge (pris entre 7 h
+  et 19 h). Les clients de passage (douze sortes, de quatre à six par jour) demandent : monter une valise, glisser un
+  pli, chercher à la cave, rapporter une chose de la vallée, faire atteler, retrouver un objet perdu, apaiser une
+  querelle, garder un secret, arranger un dîner, donner un conseil. Des gages selon le rang (de 70 à 150 pièces), des
+  pourboires, une réputation qui fait monter en grade (jusqu'aux clefs d'or) et venir de meilleurs clients ; une
+  mansarde à soi, le funiculaire gratuit. Un service rapporte à peu près une journée de travail honnête.
+- **Quatre histoires à l'hôtel**, de six ou sept étapes, avec leurs choix, leurs fins et leurs scènes : « Lucien » (la
+  comtesse cherche son fils), « Firmin veut voir Paris » (le groom), « La symphonie de la vallée » (un compositeur qui
+  ne peut plus marcher), « La treize » (une sonnette de trop). Elles se suivent au carnet, avec les quêtes.
+- **Le Grand Cercle**, le casino de Valbrume, au sud-est de la place, ouvert de 18 h à 3 h : le portier et le droit de
+  cercle (dix pièces la soirée, ou la carte de membre, trois cents), la caisse (un jeton vaut une pièce, à l'achat
+  comme au change ; 1 500 jetons au plus par soirée), cinq jeux — la roulette à un seul zéro, le vingt-et-un, le
+  baccara, le passe-dix, trois bandits manchots —, le bar, les croupiers et les habitués, chacun ses mots. La maison
+  gagne un peu : de 2,2 à 7,9 % de chaque mise selon le jeu et la mise (6,1 % aux bandits) ; aucune mise n'est
+  gagnante en moyenne.
+- **La suite Impériale**, à l'étage : 350 pièces la nuit, ou 30 000 pour l'acheter — le salon et son balcon sur la
+  grand-rue, le lit à baldaquin, une commode (un coffre), la baignoire de cuivre (l'esprit s'apaise, quinze points de
+  santé). Dans le secrétaire, le carnet du baron de Lancry : une petite quête en cinq temps, dans la maison même.
+- **Les récits des proches** : onze habitants (la boulangère, le forgeron, la petite, la grainetière, l'aubergiste,
+  le pêcheur, la guérisseuse, l'éleveuse, le garde des ponts, le maire, la postière) ont chacun un long récit, de six
+  à huit chapitres sur des semaines, qui s'ouvrent avec l'amitié et les jours : leur histoire révélée peu à peu, un
+  vrai choix qui en change la fin (deux à cinq fins chacun), des lettres, des cadeaux, une ou deux scènes. Les récits
+  se croisent ; à la fin, la vallée change parfois (une noce, une boutique qui vend autre chose, une lumière au
+  phare). Personne ne reste coincé : si l'habitant meurt, son récit s'arrête là ; si celui à qui il fallait parler
+  manque, le chapitre est sauté. Dans une partie d'avant, les récits commencent au début.
+- **Les proches** : les saluts changent avec l'amitié, le dernier cadeau, la dernière quête, le temps qu'il fait ; à
+  l'amitié 6, un proche vient parfois voir la ferme l'après-midi, un cadeau à la main (ou laisse un mot à la boîte) ;
+  un récit fini, un petit présent de temps en temps ; quelques jours après une quête d'avant, un mot de plus.
+- **Les cascades** : cinq chutes d'eau, loin des chemins, chacune à sa place — la Grande Chute, un rideau large de
+  treize mètres sous les monts de l'ouest ; la Cascade des Saules, un îlot dans son bassin, son ruisseau jusqu'au grand
+  lac ; les Cascatelles, six gradins dans le bois ; le Saut du Loup, un ruban de près de quarante mètres ; le Voile de
+  la Mariée, au-dessus de l'abbaye. Au pied, un cirque de roche et un bassin ; la brume, l'arc-en-ciel quand on a le
+  soleil bas dans le dos, un grondement qu'on entend avant de les voir. On ne bâtit pas au bord.
+- **Les Grottes de la Chute** : derrière le rideau de la Grande Chute, une bouche noire ; dessous, douze salles, un lac
+  et une rivière, de 54 à 162 m sous l'eau de la vallée — la Galerie des Mains et ses peintures, la Salle des Cristaux,
+  la Galerie des Fossiles, la Cathédrale et ses chauves-souris, le Lac aux Lueurs et ses champignons qui luisent (on y
+  pêche), la Salle du Tonnerre où l'eau de la chute retombe de la voûte, l'Aven ouvert sur le ciel, les Gours, les
+  Draperies, l'Éboulis… Il y faut une lanterne ; des cairns et des flèches ramènent vers la sortie ; on ressort par la
+  chute ou par les racines de l'Aven (où l'on descend du dehors avec une corde). De l'ocre à gratter, des fossiles, des
+  perles des cavernes, du cristal de roche, des filons, des plantes d'en bas ; au fond de la Cathédrale, une dalle qui
+  ne bouge pas.
+- **Les coins de paradis** : six endroits où l'on oublie l'heure — le Pré aux Papillons, la Source Tiède et son bain
+  chaud, l'Îlot du Saule, le Bassin des Fées et ses lucioles, le Belvédère, le Verger sauvage. On les trouve en y
+  allant ; les habitants en parlent à demi-mot. S'y asseoir, une fois par jour et par coin : douze points de santé, le
+  souffle, la tête plus claire ; le bain tiède, vingt-cinq. Deux airs qu'on n'entend que là.
+- **Quinze scènes** : la première fois qu'on trouve une chute, qu'on passe derrière le rideau de la Grande Chute, qu'on
+  entre dans trois grandes salles des grottes, et dans chaque coin ; elles rejoignent les Souvenirs du carnet.
+- **Au carnet** : Carnet → **La ferme** (le terme en cours, les huit termes, la silhouette de la ferme et ce que paiera
+  le suivant), Carnet → **Le Grand Hôtel** (le rang, le service, les commissions, les histoires, les souvenirs de
+  l'hôtel), Carnet → **Proches** (ce qu'on est pour eux, un portrait qui s'étoffe, le dernier souvenir partagé, leurs
+  scènes à revoir), Carnet → **Les Grottes de la Chute** (le plan des salles où l'on est entré, les sorties, où l'on
+  est), et, en tête de Carnet → Quêtes, les récits en cours.
+- **Pour les succès** : le jeu émet `prairie:dettes` sur `window` (`detail` : l'état de la dette — `palier`, `du`,
+  `echeance`, `retard`, `scelles`, `quitte`… ; API `window.dettes18`) et `prairie:recits` (`detail.type` = `etape`,
+  `fin`, `cinematique` ou `visite` ; API `window.prairieRecits`).
+- **Rien ne bouge dans la vallée d'avant** : les cascades se creusent après les runes, par une passe à graine fixe
+  qui ne déplace rien (seuls des herbes, des arbres et des cailloux sont ôtés là où l'eau passe ; les grottes, sous les
+  monts de l'ouest, ne touchent pas au Dessous) ; puis l'hôtel et le Cercle s'ajoutent au bout des listes, avec leur
+  propre tirage ; les dettes et les récits n'ont pas de passe de génération. Les anciennes parties retrouvent tout.
+- **Équilibrage** : `node tools/equilibrage.js D18 L18 C18 K18 P18` — les termes au regard du revenu (on peut toujours
+  payer, sans impasse), les travaux qui trouvent leur place ; l'hôtel posé sans rien déranger, un service qui paie
+  comme une journée de travail ; les chances exactes des cinq jeux, la suite très chère ; chaque récit mené au bout
+  par tous ses chemins, même quand quelqu'un meurt ; les chutes et les coins à leur place sans rien déranger (deux
+  graines), chaque salle des grottes et les deux sorties atteintes à pied, ce qu'on y gagne qui reste petit.
+- **Dans le wiki** : cinq sections nouvelles — « Les dettes de la ferme » (les huit termes, leurs travaux, le
+  retard), « Le Grand Hôtel des Cimes » (l'hôtel, le métier de concierge, les quatre histoires, ses gens, ses lieux),
+  « Le Grand Cercle » (chaque jeu et ses chances, la suite Impériale, le baron, ses gens), « Les récits des proches »
+  (un récit par habitant, et un mot dans la fiche de chacun), « Les cascades et les grottes » (les cinq chutes, les
+  Grottes de la Chute salle par salle, avec leur plan parmi les cartes, les six coins de paradis) ; les fins, ce que
+  changent les choix, ce que cachent l'hôtel et le Cercle la nuit, ce que garde la dalle des grottes et où sont les
+  coins de paradis : sous « révéler les secrets » ; `tools/wiki-v18.js`.
+
 ### Mode Création
 
 Éditeur de monde séparé : relief, peinture du sol, objets, animaux, blocs. **Exporter** télécharge un fichier
@@ -1189,20 +1284,21 @@ Les commandes sont dans le menu **Commandes** (Échap).
 ## Équilibrage
 
 Le jeu a été équilibré d'un bloc, en mesurant d'abord : chaque système avait été écrit avec ses propres nombres, et
-la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Trente et un domaines, chacun avec sa
+la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Quarante domaines, chacun avec sa
 mesure et ses vérifications dans `tools/equilibrage/` : le jeu entier est chargé dans une machine virtuelle node (sans
 navigateur, `tools/equilibrage/vm.js`), ses propres fonctions calculent les rendements, les espérances et les
 fréquences, et la commande échoue si l'on recasse un équilibre :
 
 ```bash
-node tools/equilibrage.js                 # les trente et un domaines (≈ 38 min)
-node tools/equilibrage.js commerce        # ou un seul : commerce, ferme, risques, survie, hasard, commandes, carte, nature, batiments
-node tools/equilibrage.js S D1 E2         # ou plusieurs ; ceux de la douzième vague : S, D1, D2, E1, E2, E3, F, G
-node tools/equilibrage.js R P Q T         # ceux de la treizième vague : R, P, Q, T
-node tools/equilibrage.js Y X U Z         # ceux de la quatorzième vague : Y, X, U, Z…
-node tools/equilibrage.js V1 V2 V3 V4 V5  # … et ceux des Terres d'Avant : V1 à V5
-node tools/equilibrage.js R15             # celui de la quinzième vague : les runes
-node tools/equilibrage.js H17             # celui de la dix-septième vague : l'histoire
+node tools/equilibrage.js                     # les quarante domaines (plus d’une heure)
+node tools/equilibrage.js commerce            # ou un seul : commerce, ferme, risques, survie, hasard, commandes, carte, nature, batiments
+node tools/equilibrage.js S D1 E2             # ou plusieurs ; ceux de la douzième vague : S, D1, D2, E1, E2, E3, F, G
+node tools/equilibrage.js R P Q T             # ceux de la treizième vague : R, P, Q, T
+node tools/equilibrage.js Y X U Z             # ceux de la quatorzième vague : Y, X, U, Z…
+node tools/equilibrage.js V1 V2 V3 V4 V5      # … et ceux des Terres d'Avant : V1 à V5
+node tools/equilibrage.js R15                 # celui de la quinzième vague : les runes
+node tools/equilibrage.js H17                 # celui de la dix-septième vague : l'histoire
+node tools/equilibrage.js D18 L18 C18 K18 P18 # ceux de la dix-huitième vague : les dettes, l'hôtel, le Cercle, les récits, les cascades
 ```
 
 Aucun réglage ne touche à la génération de la vallée : les anciennes parties retrouvent leurs objets (l'empreinte des
@@ -1726,6 +1822,11 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `05-zzzzzzzH17-histoire.js`, `11-zzzzzzzH17-1-moteur.js`, `11-zzzzzzzH17-2-histoire.js`, `12-zzzzzzzH17-carnet.js` | l'histoire : les chapitres, les fins, les paroles et le générique (`H17_CHAPITRES`, `H17_FINS`, `H17_CINES`) ; le moteur des cinématiques en plus du socle (`h17Cine` : chemins de caméra, figurants, cartes, générique, passer en maintenant Espace ou Échap, la partie tenue pendant la scène) ; le jeu (API `histoire`, état `farm.s.histoire`, les scènes `H17_SCENES`, l'événement `prairie:histoire`) ; les pages Histoire et Souvenirs du carnet |
 | `13-zzzzzzS17-bureau.js`, `13-zzzzzzS17-succes.js` | la version de bureau : le bouton « Quitter » (seulement quand `window.steamBridge` existe), les options « Plein écran » et « Qualité graphique » (`bureau`) ; les succès, lus dans l'état de la partie et envoyés au pont de l'application quand il existe (`succes` ; leurs titres dans `steam/achievements.json`) |
 | `05-zzzzzR15-runes.js`, `09-zzzzzR15-runes.js`, `11-zzzzzR15-1-pose.js`, `11-zzzzzR15-2-jeu.js`, `12-zzzzzR15-runes.js` | les runes : les données (`R15_RUNES`, `R15_REGL`, `R15_PORTES`, les butins des dalles), les sons, la pose (la dernière passe de la vallée, avec son propre tirage, et `zone.passe('R15')` dans les Terres d'Avant : rien de ce qui était posé ne bouge), le jeu (`farm.s.runes`, API `runes` : les tablettes, l'assemblage, les effets, les dalles, le dessin) et le panneau (la page Runes du menu, `runesUI`) |
+| `05-zzzzzzzD18-dettes.js`, `11-zzzzzzzzD18-1-dettes.js`, `11-zzzzzzzzD18-2-travaux.js`, `12-zzzzzzzzD18-carnet.js` | les dettes de la ferme : les données (les huit termes, le retard, les lettres : `D18_TERMES`, `D18_RETARD`) ; le jeu (`farm.s.dettes18`, API `window.dettes18`, l'événement `prairie:dettes` : payer à la boîte de l'étude ou par mandat, les pénalités, les saisies, les scellés) ; les travaux (`D18_PLAN`), posés terme après terme là où rien ne gêne, sans passe de génération ; la page « La ferme » du carnet |
+| `05-zzzzzzzL18-hotel.js`, `07-zzzzzzzzzzzzzL18-hotel.js`, `09-zzzzzzL18-musique.js`, `11-zzzzzzzL18-1-plan.js` à `11-zzzzzzzL18-5-scenes.js`, `12-zzzzzzzL18-carnet.js` | le Grand Hôtel des Cimes : les données et les textes (`L18_GENS`, `L18_ARCS`, `L18_CLIENTS`, `L18_DEMANDES`, `L18_RANGS`) ; une matière (la façade) et les modèles ; deux airs (groupe « hotel ») ; le plan et la passe (`l18Generer`, la dernière de l'époque, avec son propre tirage ; `w.l18`) ; l'état et les gens (`hotel18`, `hotelGens`, `farm.s.hotel18`), le service à la loge (`hotelService`), ce qu'ils disent et les quatre histoires (`hotelParler`, `hotelHistoires`), les scènes, le funiculaire et la voiture (`hotelScenes`) ; la page « Le Grand Hôtel » du carnet et les fiches du wiki du jeu |
+| `07-zzzzzzzzzzzzzC18-casino.js`, `11-zzzzzzzzC18-1-batiment.js`, `11-zzzzzzzzC18-2-jeux.js`, `11-zzzzzzzzC18-3-cercle.js` | le Grand Cercle : les modèles (les tables, les bandits manchots, la caisse, le bar, les lustres, la suite) ; le bâtiment (`c18Generer`, `w.c18` : il ne se bâtit que si rien n'est dans son emprise) ; les jeux, la caisse et le bar (`C18_REGLES`, `c18Jeux`) ; les gens, la porte, la suite Impériale et le baron (`c18`, `farm.s.casino`) |
+| `05-zzzzzzzK18-0-donnees.js`, `05-zzzzzzzK18-1-arcs.js` à `05-zzzzzzzK18-3-arcs.js`, `11-zzzzzzzK18-1-recits.js`, `11-zzzzzzzK18-2-scenes.js`, `12-zzzzzzzK18-carnet.js` | les récits des proches : les voix des proches, les portraits, la suite des quêtes d'avant (`K18_VOIX`, `K18_PORTRAITS`, `K18_APRES`), puis les onze récits (`K18_ARCS` : étapes, choix, fins, scènes) ; le moteur (`k18` et ses réglages `K18_REGL`, `window.prairieRecits`, `farm.s.k18`, l'événement `prairie:recits` ; les visites à la ferme, les deuils) ; les scènes, sur le moteur de l'histoire (`k18Scenes`) ; les pages « Proches » et « Quêtes » du carnet |
+| `05-zzzzzzzP18-lieux.js`, `07-zzzzzzzzzzzzP18-modeles.js`, `09-zzzzzP18-sons.js`, `11-zzzzzzzI-P18-0-passe.js`, `11-zzzzzzzP18-1-gen.js` à `11-zzzzzzzP18-5-scenes.js`, `12-zzzzzzzP18-carnet.js` | les cascades, les Grottes de la Chute et les coins de paradis : le plan et les textes (`P18_CHUTES`, `P18_COINS`, `P18_GROTTE`, `P18_SALLES_NOMS`, `P18_PEINTURES`, `P18_RUMEURS`) ; les modèles (rochers, bouche de la grotte, source, perte, bancs, peintures, signes de la dalle, flèches) ; le grondement des chutes et deux airs (groupe « paradis ») ; la passe (`p18Gen.passe`, branchée sur `generateValley` après les runes et avant le Grand Hôtel, graine fixe ; `w.p18`), qui creuse les cirques, les bassins, les ruisseaux en gradins et garnit les coins ; le réseau sous les monts de l'ouest (`p18Grotte` : des creuseurs de plus pour le moteur du Dessous, loin des siens, et ce qu'on y trouve) ; le jeu (`p18Jeu`, `farm.s.p18` : entrer, sortir, les salles, la dalle du Sanctuaire, s'asseoir, le bain, les rumeurs) ; le rendu (`p18Rendu` : les nappes d'eau, les rideaux, la brume, l'arc-en-ciel, les papillons et les lucioles) ; les scènes (`p18Scenes`, sur le moteur de l'histoire, dans les Souvenirs) ; la page « Les Grottes de la Chute » du carnet |
 | `11-zzz00b-pensees.js`, `tools/pensees.js` | dire peu : `penser.une` (une règle dite une fois par vie), `penser.pas` (un avertissement espacé), `farm.s.pensees` ; l'inventaire des pensées (`node tools/pensees.js`) |
 | `11-zzvallee0-gel.js` | le gel en altitude : la jauge `farm.s.gel`, le givre à l'écran, la mort de froid |
 | `11-zzzz7-carte*.js`, `07-zzzzzzzzzz-carte.js` | un lieu tous les 200 m (catalogue, textes, lettres, inscriptions, petits secrets), les deux peuples de surface et leurs parlers (`farm.s.carte2`, API `carte2`) |
@@ -1734,7 +1835,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `11-zzzz4-ferme-temps.js`, `11-zzzz4-meubles.js`, `07-zzzzzzzz-meubles.js` | portée des arroseurs, petites bêtes sous la pluie ; acheter et meubler sa maison (meubles, garde-meuble) |
 | `11-zzzz1-butin.js`, `11-zzzz2-objets.js`, `11-zzzz3-depouilles.js` | menu de butin, meubles fouillables, encart de la boutique ; ramasser les petits objets, tout casser avec le bon outil ; les morts qui restent au sol |
 | `14-i18n.js`, `14-i18n-en.js` | traduction anglaise (bascule à chaud) et ses données |
-| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html` ; les fiches de chaque vague dans `wiki-v12.js` à `wiki-v17.js`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js`, `Q.js` et `T.js`, la quatorzième `Y.js`, `X.js`, `U.js`, `Z.js` et `V1.js` à `V5.js`, la quinzième `R15.js`, la dix-septième `H17.js` — et `risques.js` y reprend la maison la nuit de `U.js`) |
+| `tools/` | `i18n-extract.js`, `i18n-delta.js`, `i18n-build.js` (vagues de traduction) ; `wiki-build.js` (génère `Prairie-Wiki.html` ; les fiches de chaque vague dans `wiki-v12.js` à `wiki-v18.js`) ; `equilibrage.js` (mesures et vérifications d'équilibrage, voir plus haut ; un fichier par domaine dans `equilibrage/`, pris de lui-même — la douzième vague y a ajouté `S.js`, `D1.js`, `D2.js`, `E1.js`, `E2.js`, `E3.js`, `F.js` et `G.js`, la treizième `R.js`, `P.js`, `Q.js` et `T.js`, la quatorzième `Y.js`, `X.js`, `U.js`, `Z.js` et `V1.js` à `V5.js`, la quinzième `R15.js`, la dix-septième `H17.js`, la dix-huitième `D18.js`, `L18.js`, `C18.js`, `K18.js` et `P18.js` — et `risques.js` y reprend la maison la nuit de `U.js`) |
 | `shell.html` | HTML + CSS |
 | `index.html`, `.nojekyll`, `tools/beta-code.js` | la bêta en ligne : la page d'accueil et ses deux codes (le jeu, le wiki), le site servi tel quel par GitHub Pages, changer un code |
 | `libre/` | la partie sans code : sa page d'accueil (`libre/index.html`), le jeu et le wiki sans leur porte (écrits par `node build.js` et `node tools/wiki-build.js`) |

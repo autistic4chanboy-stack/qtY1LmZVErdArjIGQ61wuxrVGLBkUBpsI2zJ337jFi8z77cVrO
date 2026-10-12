@@ -163,24 +163,7 @@ if (typeof chasse !== 'undefined') {
 }
 
 // ---------------------------------------------------------------- le violoneux : sa musique vient de lui
-if (typeof activites !== 'undefined' && activites.jouerMusique) {
-  const _jm = activites.jouerMusique.bind(activites);
-  activites.jouerMusique = function (dt) {
-    const r = _jm(dt);
-    try {
-      const m = this.musique, V = game.world.act && game.world.act.violon;
-      if (m && V && m.g && !m.em && sound.ctx) {
-        m.em = sound.tenir([V.x, (V.y || 0) + 1.3, V.z], sound.B.sfx.inp, { att: 'aucune' });
-        m.g.disconnect(); m.g.connect(m.em.inp);
-        const em = m.em, g = m.g;
-        // quand la musique s'arrête, on rend la source (après le fondu)
-        const libere = () => { if (activites.musique === m) { setTimeout(libere, 1500); return; } setTimeout(() => { try { g.disconnect(); } catch (e) { /* rien */ } sound.lacher(em); }, 1500); };
-        setTimeout(libere, 1500);
-      }
-    } catch (e) { /* rien */ }
-    return r;
-  };
-}
+// (placée par ses séances : 11-zzzzzzzzzA18-musiciens.js, une source tenue sur lui)
 
 // ---------------------------------------------------------------- la tornade : le grondement vient d'elle
 if (typeof tornade !== 'undefined' && tornade.sonMaj) {

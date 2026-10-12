@@ -218,7 +218,7 @@ const hotelService = {
         const d = this.tirer();
         const r = mulberry32((s.day * 977 + sv.n * 31) >>> 0)();
         sv.prochaine = s.hours + L18_REGL.demande.ecart[0] + r * (L18_REGL.demande.ecart[1] - L18_REGL.demande.ecart[0]);
-        if (d) { S.demandes.push(d); if (hotel18.dedans()) { try { sound.bell ? sound.bell() : sound.tick(); } catch (e) { /* */ } } }
+        if (d) { S.demandes.push(d); if (hotel18.dedans()) { try { sound.sonnette ? sound.sonnette() : sound.tick(); } catch (e) { /* */ } } }
       }
       // un service quitté : loin de l'hôtel trop longtemps (plus de 900 m pendant une heure de jeu)
       if (hotel18.distance() > 900) { sv.loin = (sv.loin || 0) + 1; if (sv.loin > 50) { this.finir(true); hotel18.dire('', '(Vous avez quitté votre service.)', 3); } } else sv.loin = 0;
