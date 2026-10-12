@@ -11,11 +11,18 @@ function glInit(canvas) {
 }
 
 // Définitions glissées dans chaque programme juste après « #version » (la qualité du rendu : « #define QUALITE 2 »).
-// Un programme compilé garde celles de son heure : après un changement, le rendu recompile les siens (Renderer.qualite).
+// Le rendu compile les siens avec les définitions de chaque qualité (defs) ; les autres programmes (les nappes des
+// cascades…) prennent celles de la qualité en cours.
 let GL_DEFINES = '';
-function glCompile(type, src, name) {
+function glDefs(src, defs) {
+  const d = defs === undefined ? GL_DEFINES : defs;
+  if (!d || !src.startsWith('#version')) return src;
+  const i = src.indexOf('\n') + 1;
+  return src.slice(0, i) + d + src.slice(i);
+}
+function glCompile(type, src, name, defs) {
   const sh = gl.createShader(type);
-  if (GL_DEFINES && src.startsWith('#version')) { const i = src.indexOf('\n') + 1; src = src.slice(0, i) + GL_DEFINES + src.slice(i); }
+  src = glDefs(src, defs);
   gl.shaderSource(sh, src);
   gl.compileShader(sh);
   if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
@@ -27,14 +34,36 @@ function glCompile(type, src, name) {
   return sh;
 }
 
-function glProgram(vs, fs, name) {
-  const p = gl.createProgram();
-  gl.attachShader(p, glCompile(gl.VERTEX_SHADER, vs, name + '.vs'));
-  gl.attachShader(p, glCompile(gl.FRAGMENT_SHADER, fs, name + '.fs'));
+// Un programme en deux temps : glProgramLancer envoie tout à la carte sans rien attendre (elle compile pendant ce
+// temps, plusieurs à la fois avec KHR_parallel_shader_compile) ; glProgramFinir attend le résultat et lit les
+// uniformes. glProgramPret dit, sans attendre, si c'est fini (toujours oui sans l'extension : finir attendra).
+let GL_PARALLELE;
+function glParallele() { if (GL_PARALLELE === undefined) GL_PARALLELE = gl.getExtension('KHR_parallel_shader_compile') || null; return GL_PARALLELE; }
+function glProgramLancer(vs, fs, name, defs) {
+  const p = gl.createProgram(), v = gl.createShader(gl.VERTEX_SHADER), f = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(v, glDefs(vs, defs)); gl.compileShader(v);
+  gl.shaderSource(f, glDefs(fs, defs)); gl.compileShader(f);
+  gl.attachShader(p, v); gl.attachShader(p, f);
   gl.linkProgram(p);
+  return { p, v, f, name, vs, fs, defs };
+}
+function glProgramPret(L) { const e = glParallele(); return !e || !!gl.getProgramParameter(L.p, e.COMPLETION_STATUS_KHR); }
+function glProgramFinir(L) {
+  const p = L.p;
   if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
-    throw new Error('Programme ' + name + ' : ' + gl.getProgramInfoLog(p));
+    let log = '';
+    for (const [s, src, n] of [[L.v, L.vs, '.vs'], [L.f, L.fs, '.fs']]) {
+      if (gl.getShaderParameter(s, gl.COMPILE_STATUS)) continue;
+      const lines = glDefs(src, L.defs).split('\n').map((l, i) => (i + 1) + ': ' + l).join('\n');
+      console.error('Erreur shader [' + L.name + n + ']\n' + gl.getShaderInfoLog(s) + '\n' + lines);
+      log += L.name + n + ' : ' + gl.getShaderInfoLog(s) + ' ';
+    }
+    if (!log) log = gl.getProgramInfoLog(p);
+    gl.deleteProgram(p); gl.deleteShader(L.v); gl.deleteShader(L.f);
+    throw new Error('Programme ' + L.name + ' : ' + log);
   }
+  // (les shaders ne servent plus : le programme lié garde son code, ils partiront avec lui)
+  gl.deleteShader(L.v); gl.deleteShader(L.f);
   const u = {};
   const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
   for (let i = 0; i < n; i++) {
@@ -42,8 +71,9 @@ function glProgram(vs, fs, name) {
     const nm = info.name.replace(/\[0\]$/, '');
     u[nm] = gl.getUniformLocation(p, info.name);
   }
-  return { p, u, name };
+  return { p, u, name: L.name };
 }
+function glProgram(vs, fs, name, defs) { return glProgramFinir(glProgramLancer(vs, fs, name, defs)); }
 
 function glBuffer(target, data, usage) {
   const b = gl.createBuffer();

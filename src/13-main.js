@@ -165,9 +165,10 @@ const game = {
     if (this.renderer) { this.renderer.qualite(settings.effets ?? 1); this.renderer.grain = !!settings.grain; }
   },
   // le tapis d'herbe et de fleurs autour du joueur : son rayon (Options, « Distance de l'herbe et des fleurs »)
-  // et la grille qui le couvre (n × n touffes, une tous les 0,56 m)
+  // et la grille qui le couvre (n × n touffes, une tous les 0,56 m) ; 0 : pas de tapis du tout (machines modestes)
   grassGrid() {
-    const R = clamp(settings.grassDist || 40, 20, 80);
+    if (settings.grassDist === 0) return null;
+    const R = clamp(settings.grassDist || 40, 5, 80);
     if (!this._grass || this._grass.radius !== R) this._grass = { n: Math.ceil(2 * R / 0.56) + 8, spacing: 0.56, radius: R };
     return this._grass;
   },

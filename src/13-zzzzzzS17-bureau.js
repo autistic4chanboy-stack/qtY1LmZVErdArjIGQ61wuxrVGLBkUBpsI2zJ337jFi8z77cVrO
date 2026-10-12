@@ -65,15 +65,18 @@ const bureau = (() => {
     }
     return 'perso';
   }
-  function appliquer(k) {
+  // auto : posé par le garde-fou du rendu (la machine peinait), pas un choix du joueur (« input » met chaque réglage à
+  // jour sans le compter comme un choix)
+  function appliquer(k, auto) {
     const P = PRESETS[k];
     if (!P || typeof settings === 'undefined') return;
-    try { effetsMarquer(); } catch (e) { /* rien */ }
+    if (!auto) { try { effetsMarquer(); } catch (e) { /* rien */ } }
     for (const c in P) {
       const el = $id(CTRL[c]);
-      if (el) { el.value = String(P[c]); el.dispatchEvent(new Event('change')); } else settings[c] = P[c];
+      if (el) { el.value = String(P[c]); el.dispatchEvent(new Event(auto ? 'input' : 'change')); } else settings[c] = P[c];
     }
     try { store.set('prairie.settings', settings); if (typeof game !== 'undefined' && game.applySettings) game.applySettings(); } catch (e) { /* rien */ }
+    if (auto) { try { majOptions(); } catch (e) { /* rien */ } }
   }
 
   // ---------------------------------------------------------------- l'interface

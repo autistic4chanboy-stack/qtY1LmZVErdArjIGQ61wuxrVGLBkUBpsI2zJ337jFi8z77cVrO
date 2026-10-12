@@ -1,13 +1,14 @@
 // ============================================================================
 //  SHADERS GLSL (WebGL2)
-//  Le rendu se règle par QUALITE (0 à 3), glissé par glCompile (voir Renderer.qualite et l'option « Effets
+//  Le rendu se règle par QUALITE (0 à 3), glissé après « #version » (voir Renderer.variante et l'option « Effets
 //  visuels ») ; chaque morceau ci-dessous garde, sous QUALITE 0, le dessin d'avant tel quel (rien n'y coûte plus) :
 //   0 (Basse)       : le rendu d'avant ;
 //   1 (Moyenne)     : ciel de Rayleigh et de Mie (halo, crépuscule, ombre de la Terre, voie lactée), brume des
 //                     vallées et perspective aérienne tirée vers le soleil, lumière du ciel et du sol, ombres des
 //                     nuages, liseré à contre-jour, feuilles traversées par le soleil, vent en rafales, eau (Fresnel,
 //                     reflets du ciel, éclats du soleil, rides, écume, ronds de pluie), sol mouillé, neige qui
-//                     scintille ; image en HDR puis exposition, courbe filmique et étalonnage (passe « resolve ») ;
+//                     scintille ; paliers de lumière adoucis ; image en HDR puis exposition, courbe filmique douce,
+//                     étalonnage (passe « resolve »), agrandissement net et lisse, tramage fin ;
 //   2 (Haute)       : en plus : halo des lumières (bloom), rayons du soleil, anticrénelage, flou de profondeur des
 //                     cinématiques, flaques, nuages reflétés dans l'eau ;
 //   3 (Très haute)  : les mêmes, avec plus de prises.
@@ -36,7 +37,7 @@ float vnoise(vec2 p) {
 #endif
 `;
 
-// Ombres des nuages (une petite carte refaite à chaque image autour de la caméra) et rafales de vent
+// Ombres des nuages (une petite carte autour de la caméra, refaite une image sur quatre) et rafales de vent
 const GLSL_CLOUD = `
 #ifndef G_NUAGES
 #define G_NUAGES
@@ -203,7 +204,8 @@ vec3 applyFog(vec3 col, vec3 p) {
     float I = abs(dh) > 0.05 && abs(e0 - e1) > 1e-4 ? (e0 - e1) / (k * dh) : 0.5 * (e0 + e1);
     f = 1.0 - (1.0 - f) * exp(-uMist.y * d * I);
   }
-  if (uBands > 0.0) f = floor(f * 24.0 + 0.5) / 24.0;
+  // (les paliers du brouillard, adoucis : pas d'arête entre deux marches)
+  if (uBands > 0.0) { float x = f * 24.0, fl = floor(x); f = (fl + smoothstep(0.25, 0.75, x - fl)) / 24.0; }
 #else
   f = floor(f * 24.0 + 0.5) / 24.0;
 #endif
@@ -237,14 +239,20 @@ float bayer4(vec2 fc) { ivec2 p = ivec2(fc) & 3; return (BAY[p.y * 4 + p.x] + 0.
 vec3 bandLight(vec3 l) {
   if (uBands <= 0.0) return l;
   float m = max(max(l.r, l.g), max(l.b, 1e-4));
+#if QUALITE >= 1
+  // (des paliers adoucis : la lumière garde ses marches, sans arête dure entre elles)
+  float x = m * uBands, fl = floor(x);
+  float q = max(fl + smoothstep(0.3, 0.7, x - fl), 1.0) / uBands;
+#else
   float q = max(floor(m * uBands + 0.5), 1.0) / uBands;
+#endif
   return l * (q / m);
 }
 #if QUALITE >= 1
 // la lumière du ciel en haut, celle renvoyée par le sol en bas
 vec3 hemiAmb(vec3 n) { return mix(uAmbGround, uAmbSky, clamp(n.y * 0.5 + 0.5, 0.0, 1.0)); }
 // le soleil « enveloppé » : la frontière de l'ombre propre est plus douce
-float wrapNL(vec3 n, vec3 l) { return clamp((dot(n, l) + 0.12) / 1.12, 0.0, 1.0); }
+float wrapNL(vec3 n, vec3 l) { return clamp((dot(n, l) + 0.16) / 1.16, 0.0, 1.0); }
 // le liseré : les bords des volumes s'allument à contre-jour
 vec3 rimLight(vec3 n, vec3 vd) {
   float r = 1.0 - clamp(dot(n, -vd), 0.0, 1.0);
@@ -271,8 +279,10 @@ vec3 cloudLayer(vec3 d, vec3 col) {
   float cov = smoothstep(0.53 - uCloudCover * 0.38, 0.68 - uCloudCover * 0.3, c) * smoothstep(0.0, 0.18 - uCloudCover * 0.12, d.y);
   float lit = clamp((c - 0.53) * 3.0 + dot(normalize(vec3(uSunDir.x, 0.0, uSunDir.z) + 0.001), normalize(vec3(d.x, 0.0, d.z))) * 0.25, 0.0, 1.0);
 #if QUALITE >= 1
-  cov = floor(cov * 5.0 + 0.5) / 5.0;
-  vec3 cc = mix(uCloudDark, uCloudLit, floor(lit * 4.0 + 0.5) / 4.0);
+  // (des paliers adoucis : les nuages gardent leurs marches, sans arêtes dures)
+  float x = cov * 5.0, y = lit * 4.0;
+  cov = (floor(x) + smoothstep(0.3, 0.7, fract(x))) / 5.0;
+  vec3 cc = mix(uCloudDark, uCloudLit, (floor(y) + smoothstep(0.3, 0.7, fract(y))) / 4.0);
   // le soleil traverse les bords des nuages qui l'approchent (liseré d'argent) et les éclaire par-derrière
   float s = max(dot(d, uSunDir), 0.0), edge = cov * (1.0 - cov) * 4.0;
   cc += uSunDisk * uSunVis * (pow(s, 10.0) * (0.22 + edge * 0.8) + pow(s, 48.0) * edge * 1.3);
@@ -344,7 +354,7 @@ void main() {
 #if QUALITE >= 1
   // les ombres portées : trois prises le long de la lumière, mêlées (bords plus doux, ombres longues au soleil bas)
   float s1 = shadeAt(wp + uShadowOff * 0.3), s2 = shadeAt(wp + uShadowOff * 0.6), s3 = shadeAt(wp + uShadowOff * 0.9);
-  float shd = max(sh0 * 0.8, max(max(s1, s2), s3) * 0.6 + (s1 + s2 + s3) * 0.1333);
+  float shd = max(sh0 * 0.8, max(max(s1, s2), s3) * 0.45 + (s1 + s2 + s3) * 0.1833);
   float occl = (1.0 - shd * uShadowK) * (1.0 - cov);
   float cs = cloudShade(wp);
   vec3 L = hemiAmb(n) * (1.0 - sh0 * 0.45) * (1.0 - 0.62 * cov)
@@ -806,10 +816,10 @@ void main() {
   col += uSunCol * cs * (pow(sl, 600.0) * 7.0 + pow(sl, 60.0) * spark * 2.2);
   col += uMoonCol * (pow(ml, 400.0) * 9.0 + pow(ml, 60.0) * spark * 5.0);
   // l'écume au bord : des franges qui vont et viennent
-  float fz = 1.0 - smoothstep(0.0, 0.32, depth);
+  float fz = 1.0 - smoothstep(0.0, 0.22, depth);
   float fn = vnoise(p.xz * 2.6 + vec2(t * 0.25, -t * 0.2));
-  float foam = smoothstep(0.42, 0.62, fz * 0.9 + fn * 0.35 + 0.12 * sin(t * 1.4 + depth * 22.0 + fn * 4.0) - 0.28);
-  col = mix(col, vec3(0.86, 0.91, 0.92) * light, foam * 0.72);
+  float foam = smoothstep(0.5, 0.66, fz * 0.9 + fn * 0.35 + 0.12 * sin(t * 1.4 + depth * 30.0 + fn * 4.0) - 0.28);
+  col = mix(col, vec3(0.86, 0.91, 0.92) * light, foam * 0.66);
   float alpha = mix(0.5, 0.94, 1.0 - exp(-depth * 1.3));
   alpha = clamp(max(alpha, fres * 0.95) + foam * 0.3, 0.0, 0.97);
 #else
@@ -1245,6 +1255,9 @@ vec3 rgb2hsv(vec3 c) { vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0); vec4 p =
 vec3 hsv2rgb(vec3 c) { vec3 p = abs(fract(c.xxx + vec3(1.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0); return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y); }
 void main() {
   vec2 px = floor(gl_FragCoord.xy / uScale);
+#if QUALITE >= 1
+  vec2 px0 = px;
+#endif
   if (uUnder > 0.5) px.x += floor(sin(px.y * 0.18 + uTimeP * 3.0) * 1.5);
   if (uFx.z > 0.0) px += floor(vec2(sin(px.y * 0.07 + uTimeP * 2.1), cos(px.x * 0.05 + uTimeP * 1.7)) * 3.0 * uFx.z);
   if (uFx2.x > 0.0) px += floor(vec2(sin(px.y * 0.045 + uTimeP * 1.2), cos(px.x * 0.035 + uTimeP * 0.9)) * 2.2 * uFx2.x);
@@ -1256,7 +1269,16 @@ void main() {
     if (r < uGlitch.x * 0.6) px.x += floor((h11(band + 3.1) - 0.5) * 60.0 * uGlitch.x);
   }
   px = clamp(px, vec2(0.0), uRes - 1.0);
+#if QUALITE >= 1
+  // l'agrandissement « net et lisse » (Moyenne et plus) : chaque gros pixel reste net, son bord se fond sur un pixel
+  // d'écran environ (au lieu d'une marche dure) ; les déformations décalent la lecture d'autant
+  vec2 fp = gl_FragCoord.xy / uScale + (px - px0);
+  float sc = max(uScale / 1.2, 1.0), rr = 0.5 - 0.5 / sc;
+  vec2 fr = fract(fp) - 0.5;
+  vec3 c = texture(uScene, (floor(fp) + (fr - clamp(fr, -rr, rr)) * sc + 0.5) / uRes).rgb;
+#else
   vec3 c = fetchC(px);
+#endif
   if (uGlitch.y > 0.0) { float o = floor(uGlitch.y * 4.0 + 1.0); c.r = fetchC(px + vec2(o, 0.0)).r; c.b = fetchC(px - vec2(o, 0.0)).b; }
   if (uGlitch.z > 0.0) {
     vec2 blk = floor(px / vec2(12.0, 6.0));
@@ -1300,9 +1322,17 @@ void main() {
   // le grain de pellicule : fin (à la taille de l'écran), plus marqué dans les tons moyens, qui bouge à chaque image
   if (uGrain > 0.0) { float g = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233)) + uSeed * 3.7) * 43758.5453) - 0.5; float l = dot(c, vec3(0.3, 0.55, 0.15)); c += g * uGrain * (0.35 + 0.65 * 4.0 * l * (1.0 - l)); }
   if (uLevels > 0.0) {
+#if QUALITE >= 1
+    // (Moyenne et plus : des marches plus fines, et un tramage à la taille de l'écran, sans motif, au lieu des gros
+    // carrés ordonnés)
+    float th = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+    float lv = uLevels * 1.5;
+    c = floor(c * lv + th) / lv;
+#else
     int bx = int(px.x) & 3, by = int(px.y) & 3;
     float th = (B[by * 4 + bx] + 0.5) / 16.0;
     c = floor(c * uLevels + th) / uLevels;
+#endif
   }
   outCol = vec4(c, 1.0);
 }`;
@@ -1319,6 +1349,7 @@ uniform vec2 uRes;
 uniform float uExpo;
 uniform vec4 uGradeA;   // rgb : teinte des ombres, a : saturation
 uniform vec4 uGradeB;   // rgb : teinte des lumières, a : contraste
+uniform vec4 uGradeC;   // x : relèvement des noirs
 uniform vec4 uPostK;    // x : halo, y : rayons, z : flou de profondeur (0 : non), w : anticrénelage (0 / 1)
 uniform vec3 uRaysCol;
 uniform vec2 uNearFar;
@@ -1326,10 +1357,10 @@ uniform vec4 uGlare;     // (Moyenne) xy : le soleil à l'écran, z : force, w :
 uniform vec3 uGlareCol;
 out vec4 outCol;
 vec3 filmic(vec3 c) {
-  // linéaire jusqu'au genou (le jeu garde ses couleurs), puis une épaule qui tend vers le blanc ; les très clairs
-  // pâlissent un peu, comme sur la pellicule
+  // linéaire jusqu'au genou (le jeu garde ses couleurs), puis une épaule longue et douce qui tend vers le blanc ; les
+  // très clairs pâlissent un peu, comme sur la pellicule
   float m = max(max(c.r, c.g), c.b);
-  const float k = 0.8, W = 1.06;
+  const float k = 0.72, W = 1.12;
   if (m <= k) return c;
   float mm = min(k + (W - k) * (1.0 - exp(-(m - k) / (W - k))), 1.0);
   vec3 r = c * (mm / m);
@@ -1342,17 +1373,22 @@ vec3 grade(vec3 c) {
   c = max(mix(vec3(l), c, sat), 0.0);
   c = max((c - 0.42) * uGradeB.a + 0.42, 0.0);
   float t = smoothstep(0.04, 0.85, l);
-  return c * mix(uGradeA.rgb, uGradeB.rgb, t);
+  c *= mix(uGradeA.rgb, uGradeB.rgb, t);
+  // les noirs les plus profonds, à peine relevés (les tons moyens ne bougent pas)
+  vec3 b = 1.0 - clamp(c, 0.0, 1.0);
+  b *= b;
+  return c + uGradeC.x * b * b;
 }
 #if QUALITE >= 2
 float lumaC(vec3 c) { float l = dot(c, vec3(0.299, 0.587, 0.114)); return l / (1.0 + l); }
-// anticrénelage (FXAA 3.11 « console », sur l'image HDR à luminance comprimée)
+// anticrénelage (FXAA 3.11 « console », sur l'image HDR à luminance comprimée) : les arêtes franches seulement (le
+// grain des textures reste net)
 vec3 fxaa(vec2 uv, vec2 px, vec3 cM) {
   vec3 cNW = texture(uScene, uv + vec2(-0.5, -0.5) * px).rgb, cNE = texture(uScene, uv + vec2(0.5, -0.5) * px).rgb;
   vec3 cSW = texture(uScene, uv + vec2(-0.5, 0.5) * px).rgb, cSE = texture(uScene, uv + vec2(0.5, 0.5) * px).rgb;
   float lM = lumaC(cM), lNW = lumaC(cNW), lNE = lumaC(cNE), lSW = lumaC(cSW), lSE = lumaC(cSE);
   float lMin = min(lM, min(min(lNW, lNE), min(lSW, lSE))), lMax = max(lM, max(max(lNW, lNE), max(lSW, lSE)));
-  if (lMax - lMin < max(0.03, lMax * 0.12)) return cM;
+  if (lMax - lMin < max(0.06, lMax * 0.16)) return cM;
   vec2 dir = vec2(-((lNW + lNE) - (lSW + lSE)), (lNW + lSW) - (lNE + lSE));
   float red = max((lNW + lNE + lSW + lSE) * 0.03125, 1.0 / 128.0);
   dir = clamp(dir / (min(abs(dir.x), abs(dir.y)) + red), -6.0, 6.0) * px;
@@ -1388,7 +1424,8 @@ void main() {
   vec2 uv = gl_FragCoord.xy * px;
   vec3 c = texelFetch(uScene, ivec2(gl_FragCoord.xy), 0).rgb;
 #if QUALITE >= 2
-  if (uPostK.w > 0.5) c = fxaa(uv, px, c);
+  // (pas sur le ciel : les étoiles et le disque du soleil restent nets)
+  if (uPostK.w > 0.5 && texelFetch(uDepth, ivec2(gl_FragCoord.xy), 0).r < 0.99999) c = fxaa(uv, px, c);
   if (uPostK.z > 0.0) c = dof(uv, px, c);
   c += texture(uBloom, uv).rgb * uPostK.x;
   c += texture(uRays, uv).r * uRaysCol * uPostK.y;
