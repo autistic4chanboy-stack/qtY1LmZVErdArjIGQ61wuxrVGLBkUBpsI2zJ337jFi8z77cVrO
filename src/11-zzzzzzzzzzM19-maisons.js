@@ -13,6 +13,9 @@
 //    d'égout, ou la gouttière de zinc et ses descentes ; des épis de faîtage sur
 //    les toits d'ardoise ;
 //  - la souche de la cheminée : un bandeau, une dalle, un ou deux pots.
+//  La fontaine de la place (Builder.fountain) est habillée de même : la margelle
+//  débordante du bassin, les moulures du pilier, le bord de la vasque, la
+//  colonnette et sa pomme, quatre becs de bronze et leurs filets d'eau.
 //  Le décor ne touche pas au monde : pas de bloc, pas d'objet, pas de tirage, rien
 //  pour les collisions ni les abris ; la maison est notée au passage (w.m19M) et
 //  son décor est dessiné quand les objets posés le sont (play.buildProps). Une
@@ -36,6 +39,14 @@
         wall: o.wall ?? M_TIMBER, roof, found: o.found ?? M_STONE, chimney: !!o.chimney, toit, R: Math.hypot(W, D) / 2 + 1.5,
       });
     } catch (e) { console.warn('M19 : maisons', e); }
+    return res;
+  };
+  // la fontaine de la place (Builder.fountain) : notée de même, habillée de même
+  const _fountain = Builder.prototype.fountain;
+  Builder.prototype.fountain = function (f) {
+    const B = this.w.blocks, n0 = B.length;
+    const res = _fountain.call(this, f);
+    try { (this.w.m19F || (this.w.m19F = [])).push({ f: { x: f.x, y: f.y, z: f.z, r: f.r || 0 }, bloc: B[n0] || null }); } catch (e) { console.warn('M19 : fontaine', e); }
     return res;
   };
 }
@@ -115,21 +126,45 @@ const M19M = {
       if (v > 0.5) bx(x + 0.15, top + 0.09, z + 0.05, 0.15, 0.2, 0.15, M19M.pot, m19F(TL.terracotta, TF.pTronc));
     }
   },
+  // la fontaine (repère de la fontaine ; bassin de 5 m, murs de 0,45 m jusqu'à 0,7 m, l'eau à 0,36 m, le pilier de
+  // 0,8 m jusqu'à 1,9 m, la vasque de 1,9 m jusqu'à 2,25 m) : la margelle débordante, les moulures du pilier, le bord
+  // de la vasque, la colonnette et sa pomme, quatre becs de bronze et leurs filets d'eau
+  fontaine(E) {
+    const P = mt(M_STONE), C = [1.2, 1.16, 1.08], C2 = [1.06, 1.03, 0.97], Wt = mt(M_WATERB), eau = [0.85, 0.95, 1.05], bronze = [0.62, 0.5, 0.3];
+    E.bx(0, 0.7, -2.275, 5.12, 0.1, 0.57, C, P); E.bx(0, 0.7, 2.275, 5.12, 0.1, 0.57, C, P);
+    E.bx(-2.275, 0.7, 0, 0.57, 0.1, 3.98, C, P); E.bx(2.275, 0.7, 0, 0.57, 0.1, 3.98, C, P);
+    E.bx(0, 0.3, 0, 1.06, 0.24, 1.06, C2, P); E.bx(0, 1.12, 0, 0.9, 0.08, 0.9, C2, P); E.bx(0, 1.72, 0, 1.16, 0.18, 1.16, C, P);
+    E.bx(0, 2.25, -0.9, 1.96, 0.09, 0.16, C, P); E.bx(0, 2.25, 0.9, 1.96, 0.09, 0.16, C, P);
+    E.bx(-0.9, 2.25, 0, 0.16, 0.09, 1.64, C, P); E.bx(0.9, 2.25, 0, 0.16, 0.09, 1.64, C, P);
+    E.bx(0, 2.25, 0, 0.26, 0.55, 0.26, C2, P); E.bx(0, 2.8, 0, 0.38, 0.06, 0.38, C, P);
+    E.box(0, 3.0, 0, 0.24, 0.24, 0.24, C2, P, Math.PI / 4, 0.62);
+    for (const [sx, sz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      E.box(sx * 1.06, 2.1, sz * 1.06, sx ? 0.24 : 0.06, 0.06, sz ? 0.24 : 0.06, bronze, TL.metal);
+      E.bx(sx * 1.19, 0.34, sz * 1.19, 0.05, 1.74, 0.05, eau, Wt);
+    }
+  },
   // les maisons proches (rayon R) : leur décor, dans le tampon des objets posés
   dessinerTout(buf, cam, R) {
-    const w = game.world, L = w && w.m19M;
-    if (!L || !L.length) return 0;
+    const w = game.world, L = (w && w.m19M) || [], F = (w && w.m19F) || [];
+    if (!L.length && !F.length) return 0;
     if (typeof souterrain !== 'undefined' && souterrain.actif) return 0;
     PE.buf = buf; PE.fl = 0; PE.tint = null; PE.recol = null;
     let n = 0;
     const R2 = R * R;
+    const vu = (t, f) => {
+      if (t && (t.hidden || (t.ver && !(t.ver & w.curVer)))) return false;
+      const dx = f.x - cam[0], dz = f.z - cam[2];
+      return dx * dx + dz * dz <= R2;
+    };
     for (const M of L) {
-      const t = M.toit;
-      if (t && (t.hidden || (t.ver && !(t.ver & w.curVer)))) continue;
-      const dx = M.f.x - cam[0], dz = M.f.z - cam[2];
-      if (dx * dx + dz * dz > R2) continue;
+      if (!vu(M.toit, M.f)) continue;
       PE.frame(M.f.x, M.f.y, M.f.z, M.f.r, 1);
       try { M19M.dessiner(PE, M); n++; } catch (e) { console.error('M19 : décor', e); }
+    }
+    for (const M of F) {
+      if (!vu(M.bloc, M.f)) continue;
+      PE.frame(M.f.x, M.f.y, M.f.z, M.f.r, 1);
+      try { M19M.fontaine(PE); n++; } catch (e) { console.error('M19 : fontaine', e); }
     }
     return n;
   },
