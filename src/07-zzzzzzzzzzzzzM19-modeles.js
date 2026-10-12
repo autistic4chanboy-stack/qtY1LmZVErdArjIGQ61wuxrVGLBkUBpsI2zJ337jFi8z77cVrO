@@ -143,8 +143,9 @@ const M19LOD = {
   // pour un modèle posé par PE : la position est celle du repère courant (E.M)
   loin(E, cle, D) { return !!(E && E.M) && this.loinXZ(this.cam, E.M[3], E.M[11], D, cle); },
   // les objets posés sont refaits quand on s'est éloigné de pas() mètres (le moteur attend 30 m) : un objet dessiné
-  // « au loin » ne s'approche pas à moins de D − pas (27 m en qualité moyenne, 13 m en basse)
-  pas() { return clamp(0.4 * Math.min(this.D.objets, this.D.cultures) * this.k(), 8, 30); },
+  // « au loin » ne s'approche pas à moins de D − pas (22 m en qualité moyenne ; en basse, 15 m de pas : pas plus
+  // de reconstructions qu'il ne faut sur une petite machine, l'ancien modèle jusqu'à 7 m)
+  pas() { return clamp(0.5 * Math.min(this.D.objets, this.D.cultures) * this.k(), 15, 30); },
 };
 
 // ---------------------------------------------------------------- l'émission des squelettes, plus rapide
