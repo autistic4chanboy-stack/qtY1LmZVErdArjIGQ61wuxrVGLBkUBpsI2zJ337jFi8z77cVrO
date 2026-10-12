@@ -23,10 +23,12 @@
 //  Plus bas, les retouches de la vague M19 qui doivent passer après les modules
 //  qu'elles reprennent : le niveau de détail au loin (M19LOD, 07-…M19-modeles.js :
 //  la caméra donnée au moteur pendant qu'il refait les objets posés et les objets
-//  animés ; les bêtes au loin, M19B), les roues de la charrette (attelage), le
-//  chat sauvage, les bêtes qui parlent et les oiseaux du module de la nature.
+//  animés ; les bêtes au loin, M19B ; les bêtes hors de la vue, M19Vue), les
+//  roues de la charrette (attelage), le chat sauvage, les bêtes qui parlent et
+//  les oiseaux du module de la nature.
 //  Le décor des maisons et de la fontaine n'est dessiné qu'à moins de
-//  M19LOD.D.maisons (70 m en qualité moyenne, 35 m en basse).
+//  M19LOD.D.maisons (70 m en qualité moyenne, 35 m en basse) ; au-delà de
+//  M19LOD.D.maisonsFin (45 m, 22 m en basse), le décor fin est fondu.
 // ============================================================================
 {
   const _house = Builder.prototype.house;
@@ -57,8 +59,10 @@
 
 const M19M = {
   sombre: rgbf('#4a3626'), zinc: rgbf('#8a9096'), plomb: rgbf('#4e5258'), fer: rgbf('#2e2e33'), pot: rgbf('#b8683a'),
-  // le décor d'une maison (repère de la maison : la porte regarde -z, le sol à y = 0)
-  dessiner(E, M) {
+  // le décor d'une maison (repère de la maison : la porte regarde -z, le sol à y = 0) ; mi (à mi-distance : au-delà de
+  // M19LOD.D.maisonsFin) : les chaînes d'angle fondues en deux longues pierres par angle, les descentes sans leur col
+  // de cygne, pas d'épis de faîtage (le décor fin ne se voit plus ; 34 boîtes au lieu de 82 pour une maison de ville)
+  dessiner(E, M, mi) {
     const { W, D, H, rh, wall, roof } = M, hw = W / 2, hd = D / 2;
     const pierreMur = wall === M_STONE || wall === M_MOSSY || wall === M_ROCK || wall === M_STONEWIN;
     const bois = wall === M_TIMBER || wall === M_TIMBERWIN || wall === M_PLANKS || wall === M_LOGS;
@@ -78,6 +82,11 @@ const M19M = {
     if (bois) {
       const c = v3.scale(M19M.sombre, 0.9 + v * 0.2), w2 = wall === M_LOGS ? 0.3 : 0.22;
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) bx(sx * (hw - w2 / 2 + 0.04), 0, sz * (hd - w2 / 2 + 0.04), w2, H, w2, c, TL.darkwood);
+    } else if (mi) {
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+        bx(sx * (hw - 0.31 + 0.035), 0, sz * (hd - 0.165 + 0.035), 0.62, H - 0.025, 0.33, clair, P);
+        bx(sx * (hw - 0.165 + 0.035), 0, sz * (hd - 0.31 + 0.035), 0.33, H - 0.025, 0.62, clair, P);
+      }
     } else {
       const n = Math.max(2, Math.floor(H / 0.5)), hh = H / n;
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (let k = 0; k < n; k++) {
@@ -106,6 +115,7 @@ const M19M = {
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
         const x = sx * (hw - 0.22), zw = sz * (hd + 0.07);
         bx(x, 0.05, zw, 0.08, H - 0.45, 0.08, M19M.zinc, TL.metal);
+        if (mi) continue;
         const dz = sz * (hz - hd - 0.07), dy = 0.42;
         E.box(x, H - 0.4 + dy / 2 - 0.02, zw + dz / 2, 0.08, Math.hypot(dz, dy), 0.08, M19M.zinc, TL.metal, 0, Math.atan2(dz, dy), 0);
       }
@@ -117,7 +127,7 @@ const M19M = {
       E.box(0, H + rh + 0.06, 0, W + 1.06, 0.12, 0.3, [0.62, 0.58, 0.52], mt(M_THATCH));
     } else if (ardoise) {
       E.box(0, H + rh, 0, W + 0.98, 0.12, 0.12, M19M.plomb, TL.metal, 0, Math.PI / 4);
-      for (const s of [-1, 1]) { bx(s * (hx - 0.05), H + rh, 0, 0.07, 0.42, 0.07, M19M.fer, TL.iron); E.box(s * (hx - 0.05), H + rh + 0.46, 0, 0.11, 0.11, 0.11, M19M.fer, TL.iron, Math.PI / 4, Math.PI / 4); }
+      if (!mi) for (const s of [-1, 1]) { bx(s * (hx - 0.05), H + rh, 0, 0.07, 0.42, 0.07, M19M.fer, TL.iron); E.box(s * (hx - 0.05), H + rh + 0.46, 0, 0.11, 0.11, 0.11, M19M.fer, TL.iron, Math.PI / 4, Math.PI / 4); }
     } else {
       E.box(0, H + rh, 0, W + 0.98, 0.17, 0.17, tuiles ? [0.82, 0.74, 0.7] : [0.8, 0.8, 0.8], mt(roof), 0, Math.PI / 4);
     }
@@ -164,7 +174,8 @@ const M19M = {
     for (const M of L) {
       if (!vu(M.toit, M.f, M)) continue;
       PE.frame(M.f.x, M.f.y, M.f.z, M.f.r, 1);
-      try { M19M.dessiner(PE, M); n++; } catch (e) { console.error('M19 : décor', e); }
+      // (à mi-distance, le décor fin fondu : l'état du battement est gardé sur M.f)
+      try { M19M.dessiner(PE, M, M19LOD.loinXZ(cam, M.f.x, M.f.z, M19LOD.D.maisonsFin, M.f)); n++; } catch (e) { console.error('M19 : décor', e); }
     }
     for (const M of F) {
       if (!vu(M.bloc, M.f, M)) continue;
@@ -174,12 +185,14 @@ const M19M = {
     return n;
   },
 };
-// le dessin : quand le moteur reconstruit les objets posés (tous les 30 m, ou quand quelque chose change)
+// le dessin : quand le moteur reconstruit les objets posés (quand on s'est déplacé, ou que quelque chose change)
 {
   // (la caméra est connue du niveau de détail le temps de refaire les objets posés et les cultures)
   const _bp = play.buildProps.bind(play);
   play.buildProps = function (cam, sky) {
-    const buf = this.propBuf, v0 = buf ? buf.ver : 0;
+    const buf = this.propBuf, v0 = buf ? buf.ver : 0, c = this.propCenter;
+    // (le détail de près se décide quand les objets sont refaits : refaits tous les M19LOD.pas() mètres, pas 30)
+    if (c && cam && !M19LOD.force) { const P = M19LOD.pas(), dx = cam[0] - c[0], dz = cam[2] - c[1]; if (P < 30 && dx * dx + dz * dz >= P * P) this.propCenter = null; }
     M19LOD.cam = cam;
     try {
       const r = _bp(cam, sky);
@@ -200,7 +213,7 @@ const M19M = {
 // ============================================================================
 //  LES BÊTES AU LOIN (vague M19) : les bêtes sont posées et dessinées à chaque
 //  image ; au-delà de M19LOD.D.betes (40 m en qualité moyenne, 20 m en basse),
-//  celles du gabarit refait (quadrupèdes, corps d'oiseau) ne posent et n'émettent
+//  celles du gabarit refait (quadrupèdes, corps d'oiseau) ne calculent et n'émettent
 //  que leur silhouette, avec autant de boîtes qu'avant la vague M19, ou moins :
 //  - quadrupèdes : le tronc, le cou, la tête, la queue, la selle, quatre pattes
 //    d'une seule boîte (la cuisse allongée jusqu'au sol : le canon et le sabot ne
@@ -212,17 +225,19 @@ const M19M = {
 // ============================================================================
 const M19B = {
   R: new Float32Array(12),
+  // les tables, rangées à part (le squelette n'est pas touché : sa forme pour le moteur JS ne change pas en route)
+  T: new WeakMap(),
   OISEAU: /^(body|neckB?|head|tail|legF[LR]|wing[LR])$/,
   QUAD: /^(body|neck|head|tail|leg[FB][LR]|saddle|blanketS)$/,
   PETITES: /^(leg[FB][LR][bh]|tail[bc]|oeil|pupille)/,
-  // r.m19F[i] : 1 = émise au loin, 2 = posée seulement (un ancêtre d'une pièce émise), 4 = patte d'une seule boîte
-  // (sa hauteur et son décalage au loin : r.m19FS, r.m19FO) ; null : rien à gagner
+  // { F, FS, FO } : F[i] : 1 = émise au loin, 2 = posée seulement (un ancêtre d'une pièce émise), 4 = patte d'une
+  // seule boîte (sa hauteur et son décalage au loin : FS[i], FO[i]) ; null : rien à gagner
   table(r) {
     const P = r.parts, n = P.length;
     if (n < 12) return null;
     let S = 0;
     for (const q of P) if (q.s && !q.hide) S = Math.max(S, q.s[0], q.s[1], q.s[2]);
-    const F = new Uint8Array(n), oiseau = r.kind === 'bird', L = (q) => Math.max(q.s[0], q.s[1], q.s[2]), autres = [];
+    const F = new Uint8Array(n), FS = new Float32Array(n), FO = new Float32Array(n), oiseau = r.kind === 'bird', L = (q) => Math.max(q.s[0], q.s[1], q.s[2]), autres = [];
     for (let i = 0; i < n; i++) {
       const q = P[i];
       if (!q.s) continue;
@@ -239,19 +254,18 @@ const M19B = {
         const j = r.idx[q.name + 'b'];
         if (j === undefined || !P[j].s) continue;
         const haut = q.o[1] + q.s[1] / 2, bas = P[j].p[1] + P[j].o[1] - P[j].s[1] / 2;
-        if (!r.m19FS) { r.m19FS = new Float32Array(n); r.m19FO = new Float32Array(n); }
-        r.m19FS[i] = haut - bas; r.m19FO[i] = (haut + bas) / 2; F[i] |= 4;
+        FS[i] = haut - bas; FO[i] = (haut + bas) / 2; F[i] |= 4;
       }
     }
     let nb = 0;
     for (let i = 0; i < n; i++) if (F[i] & 1) nb++;
     if (nb > n - 3) return null;
     for (let i = 0; i < n; i++) if (F[i] & 1) for (let j = P[i].pi; j >= 0; j = P[j].pi) { if (F[j] & 2) break; F[j] |= 2; }
-    return F;
+    return { F, FS, FO };
   },
   // comme Rig.emit (07-zzzzz-personnages.js : les formes effilées), pour les pièces de la table seulement
-  emettre(r, F, buf, root, flags) {
-    const P = r.parts;
+  emettre(r, T, buf, root, flags) {
+    const P = r.parts, F = T.F, FS = T.FS, FO = T.FO;
     for (let i = 0, n = P.length; i < n; i++) {
       const f = F[i];
       if (!f) continue;
@@ -261,22 +275,82 @@ const M19B = {
       if (!(f & 1) || !q.s || q.hide) continue;
       let code = withFlags(q.tex, (q.fl || 0) | flags);
       if (q.shp) code = code < 0 ? code - 512 * q.shp : code | (q.shp << 18);
-      if (f & 4) buf.box(q.W, q.o[0], r.m19FO[i], q.o[2], q.s[0], r.m19FS[i], q.s[2], q.col, code);
+      if (f & 4) buf.box(q.W, q.o[0], FO[i], q.o[2], q.s[0], FS[i], q.s[2], q.col, code);
       else buf.box(q.W, q.o[0], q.o[1], q.o[2], q.s[0], q.s[1], q.s[2], q.col, code);
     }
   },
 };
+// ============================================================================
+//  LES BÊTES HORS DE LA VUE (vague M19) : le jeu pose et dessine à chaque image
+//  toutes les bêtes à moins de 90 m, celles qui sont derrière soi comme les
+//  autres. Celles du gabarit refait (quadrupèdes, corps d'oiseau) qui sont hors
+//  du champ de la vue ne sont plus ni posées ni dessinées. Le champ : la
+//  diagonale de l'image d'avant (le rendu), élargie de 20° (la vue tourne d'une
+//  image à l'autre) et de la taille de la bête ; la vue des yeux du joueur compte
+//  aussi. On garde toujours celles à moins de 8 m, les dépouilles, le chien qui
+//  ronge son os (l'os suit sa tête), les bêtes montées. On ne trie pas quand la
+//  caméra n'est pas aux yeux du joueur (cinématique, lunette, caméra déplacée,
+//  vue qui a tourné de plus de 30° depuis l'image d'avant).
+//  Le dessin (et les modules qui l'emballent : ombres, visions…) parcourt alors
+//  la liste triée : les bêtes au-delà de la distance de dessin (que le jeu ne
+//  dessine pas) n'y sont pas, celles du monde entier ne sont plus passées en
+//  revue cinq fois par image.
+// ============================================================================
+const M19Vue = {
+  L: [], laissees: 0,
+  // la liste des bêtes à dessiner (réutilisée : rien n'est alloué), ou null si on ne trie pas
+  trier(list, cam, maxD) {
+    const R = game.renderer, p = game.player, VP = R && R.viewProj, PR = R && R.proj;
+    if (!VP || !PR || !(PR[0] > 0) || !(PR[5] > 0) || !p || !cam || M19LOD.force || !(maxD > 0)) return null;
+    if ((typeof cine !== 'undefined' && cine.on) || (typeof camLibre !== 'undefined' && camLibre.on)) return null;
+    if (typeof chasse !== 'undefined' && chasse.f && chasse.f.lunette) return null;
+    const eye = p.eyePos();
+    if (Math.abs(eye[0] - cam[0]) + Math.abs(eye[1] - cam[1]) + Math.abs(eye[2] - cam[2]) > 0.6) return null;
+    // l'axe de la vue d'avant (4e ligne de la matrice vue-projection : la profondeur), celui des yeux du joueur
+    const fx = VP[3], fy = VP[7], fz = VP[11];
+    const pit = p.pitch + (p.kickPitch || 0), cp = Math.cos(pit), gx = -Math.sin(p.yaw) * cp, gy = Math.sin(pit), gz = -Math.cos(p.yaw) * cp;
+    if (fx * gx + fy * gy + fz * gz < 0.86) return null;
+    const a = Math.min(1.45, Math.atan(Math.hypot(1 / PR[0], 1 / PR[5])) + 0.35), ca = Math.cos(a), sa = Math.sin(a);
+    const L = this.L, m2 = maxD * maxD;
+    L.length = 0;
+    let n = 0;
+    for (const e of list) {
+      // (au-delà de la distance de dessin : le jeu ne la dessine pas, comme avant)
+      const ex = e.x - cam[0], ez = e.z - cam[2];
+      if (ex * ex + ez * ez > m2) continue;
+      const r = e.rig;
+      if (r && (r.q2 || r.e1P === 'oiseau') && !e.corpse && !e.ronge && !e.ridden && !e.hidden) {
+        const k = e.scale || 1, h = (e.h || 1) * k, R0 = ((e.cfg && e.cfg.radius) || 0.5) * 2 * k + h * 0.5 + 1.5;
+        const vx = e.x - cam[0], vy = e.y + h * 0.5 - cam[1], vz = e.z - cam[2], d = Math.sqrt(vx * vx + vy * vy + vz * vz);
+        if (d > Math.max(8, R0 + 2)) {
+          const sr = R0 / d, cl = (ca * Math.sqrt(1 - sr * sr) - sa * sr) * d; // d · cos(a + asin(R0 / d))
+          if (vx * fx + vy * fy + vz * fz < cl && vx * gx + vy * gy + vz * gz < cl) { n++; continue; }
+        }
+      }
+      L.push(e);
+    }
+    this.laissees = n;
+    return L.length < list.length ? L : null;
+  },
+};
 {
   const _ed = entities.draw;
-  entities.draw = function (buf, sbuf, cam) {
+  entities.draw = function (buf, sbuf, cam, maxD) {
     M19LOD.camE = cam;
-    try { return _ed.apply(this, arguments); } finally { M19LOD.camE = null; }
+    const L0 = this.list, V = Array.isArray(L0) ? M19Vue.trier(L0, cam, maxD) : null, nV = V ? V.length : 0;
+    if (V) this.list = V;
+    try { return _ed.apply(this, arguments); } finally {
+      M19LOD.camE = null;
+      // (une bête ajoutée pendant le dessin rejoint la vraie liste)
+      if (V && this.list === V) { for (let i = nV; i < V.length; i++) L0.push(V[i]); this.list = L0; }
+    }
   };
   const _dr = drawRig;
   drawRig = function (buf, rig, x, y, z, heading, s, flags) {
     if (rig && (rig.q2 || rig.e1P === 'oiseau') && (M19LOD.camE || M19LOD.force) && M19LOD.loinXZ(M19LOD.camE, x, z, M19LOD.D.betes, rig)) {
-      const F = rig.m19F === undefined ? (rig.m19F = M19B.table(rig)) : rig.m19F;
-      if (F) { m34Root(M19B.R, x, y, z, heading, s || 1); M19B.emettre(rig, F, buf, M19B.R, flags || 0); return; }
+      let T = M19B.T.get(rig);
+      if (T === undefined) { T = M19B.table(rig); M19B.T.set(rig, T); }
+      if (T) { m34Root(M19B.R, x, y, z, heading, s || 1); M19B.emettre(rig, T, buf, M19B.R, flags || 0); return; }
     }
     return _dr(buf, rig, x, y, z, heading, s, flags);
   };

@@ -118,16 +118,18 @@ function m19Tuiles() {
 // ---------------------------------------------------------------- le niveau de détail selon la distance
 // Les modèles refaits ont deux à quatre fois plus de boîtes : on ne les dessine en entier que de près.
 // - les bêtes (dessinées à chaque image) : au-delà de D.betes, seules les grandes pièces (tronc, tête, pattes,
-//   queue…) sont posées et émises (voir m19Lointain, 11-zzzzzzzzzzM19-maisons.js) ;
+//   queue…) sont calculées et émises (M19B, 11-zzzzzzzzzzM19-maisons.js) ; hors du champ de la vue, elles ne
+//   sont plus ni posées ni dessinées (M19Vue, même fichier) ;
 // - les objets posés et les cultures (refaits quand on a fait 30 m ou que quelque chose change) : au-delà de
 //   D.objets / D.cultures, l'ancien modèle (celui d'avant la vague M19, aussi léger qu'avant) ;
-// - le décor des maisons et de la fontaine : au-delà de D.maisons, rien (la maison seule, comme avant).
+// - le décor des maisons et de la fontaine : au-delà de D.maisonsFin, le décor fin fondu (chaînes d'angle en deux
+//   pierres par angle, ni col de cygne ni épis) ; au-delà de D.maisons, rien (la maison seule, comme avant).
 // Distances à la qualité « moyenne » ; elles suivent la distance de l'herbe (le réglage des petits détails :
 // 20 m en qualité basse, soit la moitié ; 60 et 80 m en haute et très haute). Un battement de ±12 % évite les
 // va-et-vient au seuil. M19LOD.force : 'pres' ou 'loin' (planches, mesures) ; sans caméra, tout est de près.
 const M19LOD = {
   cam: null, camE: null, force: null, etat: new WeakMap(),
-  D: { betes: 40, objets: 45, cultures: 45, maisons: 70 },
+  D: { betes: 40, objets: 45, cultures: 45, maisons: 70, maisonsFin: 45 },
   k() { const g = typeof settings !== 'undefined' ? +settings.grassDist : 40; return clamp((g || 40) / 40, 0.5, 2); },
   // vrai si le point (x, z) est « loin » de la caméra c pour la distance D ; cle : l'objet dont on garde l'état
   loinXZ(c, x, z, D, cle) {
@@ -140,6 +142,9 @@ const M19LOD = {
   },
   // pour un modèle posé par PE : la position est celle du repère courant (E.M)
   loin(E, cle, D) { return !!(E && E.M) && this.loinXZ(this.cam, E.M[3], E.M[11], D, cle); },
+  // les objets posés sont refaits quand on s'est éloigné de pas() mètres (le moteur attend 30 m) : un objet dessiné
+  // « au loin » ne s'approche pas à moins de D − pas (27 m en qualité moyenne, 13 m en basse)
+  pas() { return clamp(0.4 * Math.min(this.D.objets, this.D.cultures) * this.k(), 8, 30); },
 };
 
 // ---------------------------------------------------------------- quadrupèdes : le gabarit refait
@@ -214,7 +219,7 @@ quadRig = function (o) {
   }
   const rig = new Rig(P);
   rig.kind = 'quad'; rig.cfg = o;
-  rig.q2 = { by: o.bodyY, bh, hock, big: bh >= 0.4, sway: !!o.swish, np: o.np || null, hp: o.hp || null, tl: o.tailLift || 0 };
+  rig.q2 = { by: o.bodyY, bh, hock, big: bh >= 0.4, sway: !!o.swish, np: o.np || null, hp: o.hp || null, tl: o.tailLift || 0, bob: 0 };
   return rig;
 };
 // (les bêtes mises à l'échelle gardent leur balancement : la hauteur du corps suit)
