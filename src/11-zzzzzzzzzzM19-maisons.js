@@ -21,8 +21,12 @@
 //  son décor est dessiné quand les objets posés le sont (play.buildProps). Une
 //  maison dont le toit est caché (blocs masqués, autre version du monde) n'en a pas.
 //  Plus bas, les retouches de la vague M19 qui doivent passer après les modules
-//  qu'elles reprennent : les roues de la charrette (attelage), le chat sauvage et
-//  les oiseaux du module de la nature.
+//  qu'elles reprennent : le niveau de détail au loin (M19LOD, 07-…M19-modeles.js :
+//  la caméra donnée au moteur pendant qu'il refait les objets posés et les objets
+//  animés ; les bêtes au loin, M19B), les roues de la charrette (attelage), le
+//  chat sauvage, les bêtes qui parlent et les oiseaux du module de la nature.
+//  Le décor des maisons et de la fontaine n'est dessiné qu'à moins de
+//  M19LOD.D.maisons (70 m en qualité moyenne, 35 m en basse).
 // ============================================================================
 {
   const _house = Builder.prototype.house;
@@ -151,18 +155,19 @@ const M19M = {
     PE.buf = buf; PE.fl = 0; PE.tint = null; PE.recol = null;
     let n = 0;
     const R2 = R * R;
-    const vu = (t, f) => {
+    // (au-delà de M19LOD.D.maisons, pas de décor : la maison seule, comme avant ; le battement évite les va-et-vient)
+    const vu = (t, f, M) => {
       if (t && (t.hidden || (t.ver && !(t.ver & w.curVer)))) return false;
       const dx = f.x - cam[0], dz = f.z - cam[2];
-      return dx * dx + dz * dz <= R2;
+      return dx * dx + dz * dz <= R2 && !M19LOD.loinXZ(cam, f.x, f.z, M19LOD.D.maisons, M);
     };
     for (const M of L) {
-      if (!vu(M.toit, M.f)) continue;
+      if (!vu(M.toit, M.f, M)) continue;
       PE.frame(M.f.x, M.f.y, M.f.z, M.f.r, 1);
       try { M19M.dessiner(PE, M); n++; } catch (e) { console.error('M19 : décor', e); }
     }
     for (const M of F) {
-      if (!vu(M.bloc, M.f)) continue;
+      if (!vu(M.bloc, M.f, M)) continue;
       PE.frame(M.f.x, M.f.y, M.f.z, M.f.r, 1);
       try { M19M.fontaine(PE); n++; } catch (e) { console.error('M19 : fontaine', e); }
     }
@@ -171,14 +176,109 @@ const M19M = {
 };
 // le dessin : quand le moteur reconstruit les objets posés (tous les 30 m, ou quand quelque chose change)
 {
+  // (la caméra est connue du niveau de détail le temps de refaire les objets posés et les cultures)
   const _bp = play.buildProps.bind(play);
   play.buildProps = function (cam, sky) {
     const buf = this.propBuf, v0 = buf ? buf.ver : 0;
-    const r = _bp(cam, sky);
-    if (buf && buf.ver !== v0 && farm.on) {
-      try { if (M19M.dessinerTout(buf, cam, (this.propR || 200) + 20)) buf.ver = (buf.ver || 0) + 1; } catch (e) { console.error('M19 : maisons', e); }
+    M19LOD.cam = cam;
+    try {
+      const r = _bp(cam, sky);
+      if (buf && buf.ver !== v0 && farm.on) {
+        try { if (M19M.dessinerTout(buf, cam, (this.propR || 200) + 20)) buf.ver = (buf.ver || 0) + 1; } catch (e) { console.error('M19 : maisons', e); }
+      }
+      return r;
+    } finally { M19LOD.cam = null; }
+  };
+  // et le temps des objets animés (ailes du moulin, charrettes…), refaits à chaque image
+  const _bd = play.buildDynamic;
+  play.buildDynamic = function (cam) {
+    M19LOD.cam = cam;
+    try { return _bd.apply(this, arguments); } finally { M19LOD.cam = null; }
+  };
+}
+
+// ============================================================================
+//  LES BÊTES AU LOIN (vague M19) : les bêtes sont posées et dessinées à chaque
+//  image ; au-delà de M19LOD.D.betes (40 m en qualité moyenne, 20 m en basse),
+//  celles du gabarit refait (quadrupèdes, corps d'oiseau) ne posent et n'émettent
+//  que leur silhouette, avec autant de boîtes qu'avant la vague M19, ou moins :
+//  - quadrupèdes : le tronc, le cou, la tête, la queue, la selle, quatre pattes
+//    d'une seule boîte (la cuisse allongée jusqu'au sol : le canon et le sabot ne
+//    sont plus posés), et les deux plus longues pièces parmi les grandes (bois du
+//    cerf, crinière, panache…) ;
+//  - oiseaux : le tronc, le cou, la tête, la queue, les pattes, les ailes (en vol),
+//    et les deux plus longues pièces parmi les grandes (ailes repliées, ventre…).
+//  Les yeux, les museaux, les oreilles, les petits détails ne sont plus calculés.
+// ============================================================================
+const M19B = {
+  R: new Float32Array(12),
+  OISEAU: /^(body|neckB?|head|tail|legF[LR]|wing[LR])$/,
+  QUAD: /^(body|neck|head|tail|leg[FB][LR]|saddle|blanketS)$/,
+  PETITES: /^(leg[FB][LR][bh]|tail[bc]|oeil|pupille)/,
+  // r.m19F[i] : 1 = émise au loin, 2 = posée seulement (un ancêtre d'une pièce émise), 4 = patte d'une seule boîte
+  // (sa hauteur et son décalage au loin : r.m19FS, r.m19FO) ; null : rien à gagner
+  table(r) {
+    const P = r.parts, n = P.length;
+    if (n < 12) return null;
+    let S = 0;
+    for (const q of P) if (q.s && !q.hide) S = Math.max(S, q.s[0], q.s[1], q.s[2]);
+    const F = new Uint8Array(n), oiseau = r.kind === 'bird', L = (q) => Math.max(q.s[0], q.s[1], q.s[2]), autres = [];
+    for (let i = 0; i < n; i++) {
+      const q = P[i];
+      if (!q.s) continue;
+      if ((oiseau ? this.OISEAU : this.QUAD).test(q.name)) F[i] = 1;
+      else if (!q.hide && !this.PETITES.test(q.name) && L(q) >= S * 0.25) autres.push(i);
     }
-    return r;
+    autres.sort((a, b) => L(P[b]) - L(P[a]));
+    for (const i of autres.slice(0, 2)) F[i] = 1;
+    if (!oiseau) {
+      // les pattes : la cuisse descend jusqu'au bas du canon (genou droit, au loin cela ne se voit pas)
+      for (let i = 0; i < n; i++) {
+        const q = P[i];
+        if (!(F[i] & 1) || !/^leg[FB][LR]$/.test(q.name)) continue;
+        const j = r.idx[q.name + 'b'];
+        if (j === undefined || !P[j].s) continue;
+        const haut = q.o[1] + q.s[1] / 2, bas = P[j].p[1] + P[j].o[1] - P[j].s[1] / 2;
+        if (!r.m19FS) { r.m19FS = new Float32Array(n); r.m19FO = new Float32Array(n); }
+        r.m19FS[i] = haut - bas; r.m19FO[i] = (haut + bas) / 2; F[i] |= 4;
+      }
+    }
+    let nb = 0;
+    for (let i = 0; i < n; i++) if (F[i] & 1) nb++;
+    if (nb > n - 3) return null;
+    for (let i = 0; i < n; i++) if (F[i] & 1) for (let j = P[i].pi; j >= 0; j = P[j].pi) { if (F[j] & 2) break; F[j] |= 2; }
+    return F;
+  },
+  // comme Rig.emit (07-zzzzz-personnages.js : les formes effilées), pour les pièces de la table seulement
+  emettre(r, F, buf, root, flags) {
+    const P = r.parts;
+    for (let i = 0, n = P.length; i < n; i++) {
+      const f = F[i];
+      if (!f) continue;
+      const q = P[i];
+      m34TR(_mT, q.p[0], q.p[1], q.p[2], q.r[0], q.r[1], q.r[2]);
+      m34Mul(q.W, q.pi < 0 ? root : P[q.pi].W, _mT);
+      if (!(f & 1) || !q.s || q.hide) continue;
+      let code = withFlags(q.tex, (q.fl || 0) | flags);
+      if (q.shp) code = code < 0 ? code - 512 * q.shp : code | (q.shp << 18);
+      if (f & 4) buf.box(q.W, q.o[0], r.m19FO[i], q.o[2], q.s[0], r.m19FS[i], q.s[2], q.col, code);
+      else buf.box(q.W, q.o[0], q.o[1], q.o[2], q.s[0], q.s[1], q.s[2], q.col, code);
+    }
+  },
+};
+{
+  const _ed = entities.draw;
+  entities.draw = function (buf, sbuf, cam) {
+    M19LOD.camE = cam;
+    try { return _ed.apply(this, arguments); } finally { M19LOD.camE = null; }
+  };
+  const _dr = drawRig;
+  drawRig = function (buf, rig, x, y, z, heading, s, flags) {
+    if (rig && (rig.q2 || rig.e1P === 'oiseau') && (M19LOD.camE || M19LOD.force) && M19LOD.loinXZ(M19LOD.camE, x, z, M19LOD.D.betes, rig)) {
+      const F = rig.m19F === undefined ? (rig.m19F = M19B.table(rig)) : rig.m19F;
+      if (F) { m34Root(M19B.R, x, y, z, heading, s || 1); M19B.emettre(rig, F, buf, M19B.R, flags || 0); return; }
+    }
+    return _dr(buf, rig, x, y, z, heading, s, flags);
   };
 }
 
@@ -188,18 +288,21 @@ const M19M = {
 //  au passage par une vraie roue (jante en huit pièces, huit rayons, moyeu),
 //  qui tourne du même angle. Le reste du modèle ne change pas.
 // ============================================================================
+// (dessinée à chaque image : la boîte de remplacement est faite une fois ; au loin, les roues d'avant)
 {
   const _ch = PROP_MODELS.charrette;
+  let boxAvant = null;
+  const boxRoues = function (cx, cy, cz, sx, sy, sz, col, code, ry, rx, rz) {
+    if (sy === 1.0 && sz === 1.0 && cy === 0.5 && Math.abs(Math.abs(cx) - 0.86) < 1e-6 && (sx === 0.1 || sx === 0.12)) {
+      if (sx === 0.1) m19Roue(this, cx, cy, cz, 0.5, 0.1, rx || 0, col, 4);
+      return;
+    }
+    return boxAvant.call(this, cx, cy, cz, sx, sy, sz, col, code, ry, rx, rz);
+  };
   if (_ch) PROP_MODELS.charrette = function (E, o, t) {
-    const box = E.box;
-    E.box = function (cx, cy, cz, sx, sy, sz, col, code, ry, rx, rz) {
-      if (sy === 1.0 && sz === 1.0 && cy === 0.5 && Math.abs(Math.abs(cx) - 0.86) < 1e-6 && (sx === 0.1 || sx === 0.12)) {
-        if (sx === 0.1) m19Roue(this, cx, cy, cz, 0.5, 0.1, rx || 0, col, 4);
-        return;
-      }
-      return box.call(this, cx, cy, cz, sx, sy, sz, col, code, ry, rx, rz);
-    };
-    try { return _ch.call(this, E, o, t); } finally { E.box = box; }
+    if (boxAvant || M19LOD.loin(E, o, M19LOD.D.objets)) return _ch.call(this, E, o, t);
+    boxAvant = E.box; E.box = boxRoues;
+    try { return _ch.call(this, E, o, t); } finally { E.box = boxAvant; boxAvant = null; }
   };
 }
 

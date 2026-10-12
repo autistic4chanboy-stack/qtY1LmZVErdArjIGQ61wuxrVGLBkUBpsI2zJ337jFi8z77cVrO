@@ -115,6 +115,33 @@ function m19Tuiles() {
   };
 }
 
+// ---------------------------------------------------------------- le niveau de détail selon la distance
+// Les modèles refaits ont deux à quatre fois plus de boîtes : on ne les dessine en entier que de près.
+// - les bêtes (dessinées à chaque image) : au-delà de D.betes, seules les grandes pièces (tronc, tête, pattes,
+//   queue…) sont posées et émises (voir m19Lointain, 11-zzzzzzzzzzM19-maisons.js) ;
+// - les objets posés et les cultures (refaits quand on a fait 30 m ou que quelque chose change) : au-delà de
+//   D.objets / D.cultures, l'ancien modèle (celui d'avant la vague M19, aussi léger qu'avant) ;
+// - le décor des maisons et de la fontaine : au-delà de D.maisons, rien (la maison seule, comme avant).
+// Distances à la qualité « moyenne » ; elles suivent la distance de l'herbe (le réglage des petits détails :
+// 20 m en qualité basse, soit la moitié ; 60 et 80 m en haute et très haute). Un battement de ±12 % évite les
+// va-et-vient au seuil. M19LOD.force : 'pres' ou 'loin' (planches, mesures) ; sans caméra, tout est de près.
+const M19LOD = {
+  cam: null, camE: null, force: null, etat: new WeakMap(),
+  D: { betes: 40, objets: 45, cultures: 45, maisons: 70 },
+  k() { const g = typeof settings !== 'undefined' ? +settings.grassDist : 40; return clamp((g || 40) / 40, 0.5, 2); },
+  // vrai si le point (x, z) est « loin » de la caméra c pour la distance D ; cle : l'objet dont on garde l'état
+  loinXZ(c, x, z, D, cle) {
+    if (this.force) return this.force === 'loin';
+    if (!c) return false;
+    const dx = x - c[0], dz = z - c[2], Dk = D * this.k(), avant = cle ? this.etat.get(cle) : undefined;
+    const lim = avant === undefined ? Dk : avant ? Dk * 0.88 : Dk * 1.12, loin = dx * dx + dz * dz > lim * lim;
+    if (cle) this.etat.set(cle, loin);
+    return loin;
+  },
+  // pour un modèle posé par PE : la position est celle du repère courant (E.M)
+  loin(E, cle, D) { return !!(E && E.M) && this.loinXZ(this.cam, E.M[3], E.M[11], D, cle); },
+};
+
 // ---------------------------------------------------------------- quadrupèdes : le gabarit refait
 // options d'avant (col, col2, dark, body, bodyY, bodyTex, leg [l, h], legD, legIn, legCol, legTex, hoof, neck, neckS, neckO, headP,
 // head, headCol, headTex, face, snout [l, h, L, y], snoutCol, snoutTex, ears, earCol, horns, tail, tailCol) et en plus :
@@ -197,31 +224,31 @@ quadRig = function (o) {
 }
 
 // ---------------------------------------------------------------- la pose : genoux, jarrets, corps qui berce, tête, queue
+// (appelée à chaque image pour chaque bête : rien n'y est alloué)
 {
   const _pq = poseQuad;
+  const HAUT = ['legFL', 'legFR', 'legBL', 'legBR'], BAS = ['legFLb', 'legFRb', 'legBLb', 'legBRb'], PIED = ['legFLh', 'legFRh', 'legBLh', 'legBRh'];
   poseQuad = function (rig, st) {
     _pq(rig, st);
     const Q = rig.q2;
     if (!Q) return;
     const P = rig.parts, I = rig.idx, mv = st.move || 0, ph = st.phase || 0, run = !!st.run, t = st.t || 0, sd = st.seed || 0;
-    const R = (n) => (I[n] === undefined ? null : P[I[n]].r);
     const B = P[I.body];
     if (st.lie) {
       // couchée : les canons repliés sous le corps
-      for (const n of ['legFL', 'legFR']) { const r = R(n + 'b'); if (r) { r[0] = 2.35; r[1] = 0; r[2] = 0; } }
-      for (const n of ['legBL', 'legBR']) { const r = R(n + 'b'); if (r) { r[0] = -2.35; r[1] = 0; r[2] = 0; } }
+      for (let j = 0; j < 4; j++) { const i = I[BAS[j]]; if (i !== undefined) { const r = P[i].r; r[0] = j < 2 ? 2.35 : -2.35; r[1] = 0; r[2] = 0; } }
       if (B && Math.abs(B.p[1] - (Q.by + (Q.bob || 0))) < 1e-6) { B.p[1] = Q.by; Q.bob = 0; }
       return;
     }
     // les canons plient pendant que la patte revient en avant (le pied se lève) ; au trot comme au galop
+    // (avant gauche et arrière droite ensemble, les deux autres décalées de off)
     const off = run ? 0.9 : Math.PI, K = (run ? 1.3 : 0.9) * mv;
-    const flex = (o2) => Math.max(0, -Math.cos(ph + o2)) * K;
-    const f = { legFL: flex(0), legBR: flex(0), legFR: flex(off), legBL: flex(off) };
-    for (const n in f) {
-      const back = n[3] === 'B', up = R(n), lo = R(n + 'b'), ho = R(n + 'h');
-      if (up && back && Q.hock) up[0] += Q.hock;
-      if (lo) { lo[0] = (back ? -Q.hock : 0) + f[n] * (back ? 0.85 : 1.15); lo[1] = 0; lo[2] = 0; }
-      if (ho) { ho[0] = -f[n] * 0.45; ho[1] = 0; ho[2] = 0; }
+    for (let j = 0; j < 4; j++) {
+      const f = Math.max(0, -Math.cos(ph + (j === 0 || j === 3 ? 0 : off))) * K, back = j >= 2;
+      const iu = I[HAUT[j]], il = I[BAS[j]], ih = I[PIED[j]];
+      if (iu !== undefined && back && Q.hock) P[iu].r[0] += Q.hock;
+      if (il !== undefined) { const lo = P[il].r; lo[0] = (back ? -Q.hock : 0) + f * (back ? 0.85 : 1.15); lo[1] = 0; lo[2] = 0; }
+      if (ih !== undefined) { const ho = P[ih].r; ho[0] = -f * 0.45; ho[1] = 0; ho[2] = 0; }
     }
     // le corps berce (deux fois par foulée), les grands hochent la tête en marchant
     if (B) {
@@ -229,20 +256,21 @@ quadRig = function (o) {
       if (Math.abs(B.p[1] - (Q.by + (Q.bob || 0))) < 1e-6) { B.p[1] = Q.by + bob; Q.bob = bob; }
     }
     // l'encolure et la tête : au repos, en broutant (graze), le regard (lookP) ; les grands hochent la tête en marchant
-    const nk = R('neck'), hd = R('head'), g = st.graze || 0;
+    const iN = I.neck, iH = I.head, nk = iN === undefined ? null : P[iN].r, hd = iH === undefined ? null : P[iH].r, g = st.graze || 0;
     if (nk && Q.np) nk[0] = Q.np[0] + g * Q.np[1] + (st.lookP || 0);
     if (hd && Q.hp) hd[0] = Q.hp[0] + g * Q.hp[1];
     if (nk && Q.big && mv > 0.01) nk[0] += Math.sin(ph * 2) * (run ? 0.07 : 0.05) * mv;
     // la queue : balance à la marche ; au repos, les vaches et les chevaux chassent les mouches
-    const tq = R('tail'), tb = R('tailb');
+    const iT = I.tail, iTb = I.tailb, tq = iT === undefined ? null : P[iT].r, tb = iTb === undefined ? null : P[iTb].r;
     if (tq) {
       if (Q.tl) tq[0] += Q.tl;
       tq[1] += mv > 0.01 ? Math.sin(ph) * 0.14 * mv : (Q.sway ? Math.sin(t * 1.9 + sd) * 0.3 * Math.max(0, Math.sin(t * 0.37 + sd * 2)) : 0);
       if (tb) { tb[0] = 0.08 + (run ? 0.25 * mv : 0) + Math.sin(t * 1.3 + sd) * 0.04; tb[1] = tq[1] * 0.6; tb[2] = 0; }
     }
     // les oreilles : un battement de temps en temps (autour de leur pose de repos)
-    const fl = Math.pow(Math.max(0, Math.sin(t * 0.8 + sd * 3)), 12) * 0.35;
-    for (const [n, sg] of [['earL', 1], ['earR', -1]]) { const q = I[n] === undefined ? null : P[I[n]]; if (q && q.r0) q.r[2] = q.r0[2] + sg * fl; }
+    const fl = Math.pow(Math.max(0, Math.sin(t * 0.8 + sd * 3)), 12) * 0.35, iL = I.earL, iR = I.earR;
+    if (iL !== undefined && P[iL].r0) P[iL].r[2] = P[iL].r0[2] + fl;
+    if (iR !== undefined && P[iR].r0) P[iR].r[2] = P[iR].r0[2] - fl;
   };
 }
 
@@ -619,6 +647,8 @@ const m19Mul = (a, b) => (b ? [a[0] * b[0], a[1] * b[1], a[2] * b[2]] : a);
   };
 }
 const M19V = { feuille: [0.42, 0.7, 0.32], feuilleS: [0.34, 0.6, 0.26], tige: [0.4, 0.62, 0.3], fane: [0.36, 0.66, 0.3], terre: [0.4, 0.3, 0.2] };
+// (les modèles d'avant, gardés pour le lointain : M19LOD)
+const M19_CULTURES_ANC = Object.assign({}, CROP_MODELS), M19_GABARITS_ANC = Object.assign({}, CROP_TPL);
 Object.assign(CROP_MODELS, {
   // radis : trois rosettes de feuilles rondes, le collet rouge qui sort de terre
   radis(E, k, ripe) {
@@ -858,12 +888,35 @@ CROP_TPL.buisson = function (E, k, ripe, c, C, col, p) {
     else { E.box(x, y, z, b, b, b, col, TL.plain, a); if (p.star) E.box(x, y + b * 0.55, z, b * 1.4, 0.01, b * 1.4, hexf('#3a6a2a'), TL.plain, a + 0.4); }
   }
 };
+// au loin (M19LOD.D.cultures), la culture reprend son modèle d'avant (et les gabarits d'avant), aussi léger qu'avant :
+// dans le champ (cropDraw) comme dans les potagers des villes (drawCropAt)
+function m19AnciennesCultures(id, fn) {
+  const neuf = CROP_MODELS[id], anc = M19_CULTURES_ANC[id], A = M19_GABARITS_ANC;
+  const ga = CROP_TPL.aromate, gt = CROP_TPL.tuteur, gb = CROP_TPL.buisson;
+  if (anc) CROP_MODELS[id] = anc;
+  CROP_TPL.aromate = A.aromate || ga; CROP_TPL.tuteur = A.tuteur || gt; CROP_TPL.buisson = A.buisson || gb;
+  try { return fn(); } finally { if (anc) CROP_MODELS[id] = neuf; CROP_TPL.aromate = ga; CROP_TPL.tuteur = gt; CROP_TPL.buisson = gb; }
+}
+{
+  const _cd = cropDraw;
+  cropDraw = function (E, c, k, ripe) {
+    if (!c || !M19LOD.loin(E, c, M19LOD.D.cultures)) return _cd(E, c, k, ripe);
+    return m19AnciennesCultures(c.dead ? 'mort' : c.c, () => _cd(E, c, k, ripe));
+  };
+  if (typeof drawCropAt === 'function') {
+    const _dca = drawCropAt;
+    drawCropAt = function (E, id, dx, dy, dz, k, ripe, vr) {
+      if (!M19LOD.loin(E, null, M19LOD.D.cultures)) return _dca(E, id, dx, dy, dz, k, ripe, vr);
+      return m19AnciennesCultures(id, () => _dca(E, id, dx, dy, dz, k, ripe, vr));
+    };
+  }
+}
 
 // ============================================================================
 //  LES OBJETS POSÉS LES PLUS VUS, redessinés (mêmes noms, mêmes collisions,
 //  même encombrement ; l'avant regarde +z, l'origine au sol au centre)
 // ============================================================================
-const M19P = { bois: rgbf('#a8805a'), boisC: rgbf('#c09468'), sombre: rgbf('#5a4028'), fer: rgbf('#4a4c52'), paille: rgbf('#d8b870'), pierre: [0.92, 0.9, 0.86] };
+const M19P = { bois: rgbf('#a8805a'), boisC: rgbf('#c09468'), sombre: rgbf('#5a4028'), fer: rgbf('#4a4c52'), paille: rgbf('#d8b870'), pierre: [0.92, 0.9, 0.86], toile: rgbf('#e8dcc0') };
 // un tonneau : deux moitiés évasées vers le ventre (section octogonale), trois cercles de fer, le fond
 function m19Tonneau(E, h, r, col, couv) {
   const d = r * 2, hb = h / 2;
@@ -882,7 +935,9 @@ function m19Roue(E, x, y, z, r, w, a, col, nr) {
   for (let k = 0; k < n; k++) E.box(x, y, z, w * 0.45, 2 * rm, w * 0.55, col, TL.wood, 0, a + k * Math.PI / n);
   E.box(x, y, z, w * 1.6, r * 0.32, r * 0.32, M19P.fer, TL.iron, 0, a);
 }
-Object.assign(PROP_MODELS, {
+// (les modèles d'avant, gardés pour le lointain : M19LOD ; les nouveaux sont posés plus bas, après M19_OBJETS)
+const M19_OBJETS_ANC = Object.assign({}, PROP_MODELS);
+const M19_OBJETS = ({
   // chaise paillée : pieds tournés (effilés), fond de paille tressée, dossier à barreaux cintrés, traverses
   chaise(E) {
     const B = M19P.bois;
@@ -1166,20 +1221,26 @@ Object.assign(PROP_MODELS, {
     E.bx(0, 1.12, 0, 0.3, 0.24, 0.3, WHITE, m19F(TL.leaves, TF.pPyramide), 0.7);
   },
   // ailes du moulin : l'arbre, la croisée, les vergues, le treillis et la toile de chaque aile
+  // (dessinées à chaque image : rien n'y est alloué)
   moulin_ailes(E, o, t) {
-    const a = (t ? t.t * 0.4 : 0) * ((o.data && o.data.stop) ? 0 : 1) + (o.data && o.data.phase || 0), S = M19P.sombre, toile = rgbf('#e8dcc0');
+    const a = (t ? t.t * 0.4 : 0) * ((o.data && o.data.stop) ? 0 : 1) + (o.data && o.data.phase || 0), S = M19P.sombre, toile = M19P.toile;
     E.box(0, 0, -0.25, 0.5, 0.5, 0.9, S, TL.darkwood, 0, 0, 0); E.box(0, 0, -0.25, 0.5, 0.5, 0.9, S, TL.darkwood, 0, 0, Math.PI / 4);
     E.box(0, 0, 0.25, 0.3, 0.3, 0.14, M19P.fer, TL.iron);
     for (let k = 0; k < 4; k++) {
-      const b = a + k * Math.PI / 2, sb = Math.sin(b), cb = Math.cos(b), px = (r, d) => [sb * r + cb * d, cb * r - sb * d];
-      const [x0, y0] = px(4.2, 0); E.box(x0, y0, 0.08, 0.26, 8.4, 0.16, S, TL.darkwood, 0, 0, -b);
-      const [x1, y1] = px(4.7, 0.55); E.box(x1, y1, 0.12, 0.05, 6.2, 0.05, S, TL.darkwood, 0, 0, -b);
-      const [x2, y2] = px(4.7, 1.05); E.box(x2, y2, 0.12, 0.06, 6.2, 0.06, S, TL.darkwood, 0, 0, -b);
-      for (let j = 0; j < 7; j++) { const [x3, y3] = px(1.9 + j * 0.92, 0.55); E.box(x3, y3, 0.13, 1.1, 0.05, 0.04, S, TL.darkwood, 0, 0, -b); }
-      const [x4, y4] = px(4.75, 0.58); E.box(x4, y4, 0.15, 0.96, 6.0, 0.02, toile, TL.cloth, 0, 0, -b);
+      const b = a + k * Math.PI / 2, sb = Math.sin(b), cb = Math.cos(b);
+      E.box(sb * 4.2, cb * 4.2, 0.08, 0.26, 8.4, 0.16, S, TL.darkwood, 0, 0, -b);
+      E.box(sb * 4.7 + cb * 0.55, cb * 4.7 - sb * 0.55, 0.12, 0.05, 6.2, 0.05, S, TL.darkwood, 0, 0, -b);
+      E.box(sb * 4.7 + cb * 1.05, cb * 4.7 - sb * 1.05, 0.12, 0.06, 6.2, 0.06, S, TL.darkwood, 0, 0, -b);
+      for (let j = 0; j < 7; j++) { const r = 1.9 + j * 0.92; E.box(sb * r + cb * 0.55, cb * r - sb * 0.55, 0.13, 1.1, 0.05, 0.04, S, TL.darkwood, 0, 0, -b); }
+      E.box(sb * 4.75 + cb * 0.58, cb * 4.75 - sb * 0.58, 0.15, 0.96, 6.0, 0.02, toile, TL.cloth, 0, 0, -b);
     }
   },
 });
+// les nouveaux modèles, chacun avec son lointain : au-delà de M19LOD.D.objets, le modèle d'avant (aussi léger qu'avant)
+for (const id of Object.keys(M19_OBJETS)) {
+  const neuf = M19_OBJETS[id], anc = M19_OBJETS_ANC[id];
+  PROP_MODELS[id] = anc ? function (E, o, t) { return (M19LOD.loin(E, o, M19LOD.D.objets) ? anc : neuf).call(this, E, o, t); } : neuf;
+}
 // un tonneau couché sur une étagère (étagère « tonneaux » : un petit fût)
 function m19SubTonneau(E, x, y, z, h) { E.box(x, y + h / 2, z + 0.02, h * 0.62, h * 0.72, h * 0.62, WHITE, TL.barrel, 0, Math.PI / 2); E.box(x, y + h / 2, z + 0.02, h * 0.62, h * 0.72, h * 0.62, WHITE, TL.barrel, 0, Math.PI / 2, Math.PI / 4); }
 
