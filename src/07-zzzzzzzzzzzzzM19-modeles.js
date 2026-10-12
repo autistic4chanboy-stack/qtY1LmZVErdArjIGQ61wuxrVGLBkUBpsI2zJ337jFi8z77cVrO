@@ -583,6 +583,19 @@ ANIMAL_RIGS.squirrel = () => {
     M19X('pinceauR', 'earR', [0, 0.05, 0], [0.012, 0.025, 0.01], rgbf('#5a2e18'), TL.fur, TF.pointe),
   ]);
 };
+// hérisson : le manteau d'épines en dôme, qui déborde sur les flancs et couvre le front, le museau pointu et sa truffe
+// noire, la face claire ; roulé en boule (pose couchée), le manteau seul se voit
+ANIMAL_RIGS.hedgehog = () => {
+  const r = quadRig({ col: rgbf('#7a6450'), body: [0.18, 0.12, 0.24], bodyY: 0.09, bodyTex: TL.fur, leg: [0.03, 0.05], legCol: rgbf('#4a3a2e'),
+    neck: [0, 0.0], head: [0.085, 0.075, 0.08], headCol: rgbf('#b09878'), face: TL.fur,
+    snout: [0.05, 0.045, 0.06, -0.014], snoutCol: rgbf('#a08868'), snoutTex: TL.fur, snoutShp: TF.qMuseauFin, snoutTip: [[0.08, 0.06, 0.05], TL.plain],
+    ears: [0.022, 0.02, 0.012], earTilt: 0.5, eyes: [0.06, 0.05, 0.05], eyeY: 0.22, eyeZ: 0.66, eyeS: 0.016, np: [0.1, 0.4], hp: [0, 0.2] });
+  return rigPlus(r, [
+    M19X('epines', 'body', [0, 0.018, -0.02], [0.25, 0.11, 0.3], rgbf('#5a4a3a'), TL.hair, TF.bonnet),
+    M19X('epinesH', 'body', [0, 0.083, -0.03], [0.17, 0.06, 0.21], rgbf('#625040'), TL.hair, TF.calotte),
+    M19X('epinesF', 'body', [0, 0.05, 0.11], [0.15, 0.07, 0.07], rgbf('#5a4a3a'), TL.hair, TF.bonnet),
+  ]);
+};
 
 // ============================================================================
 //  LES CULTURES : les feuilles en pointe (toutes les plantes à gabarit), les
