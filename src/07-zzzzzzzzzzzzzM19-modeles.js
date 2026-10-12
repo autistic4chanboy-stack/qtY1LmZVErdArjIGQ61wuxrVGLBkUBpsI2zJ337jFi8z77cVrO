@@ -956,6 +956,44 @@ Object.assign(PROP_MODELS, {
     E.box(-0.2, 1.0, 0, 0.12, 0.07, 0.07, Z, TL.metal);
     for (const y of [1.5, 2.3]) E.bx(-0.37, y, 0, 0.1, 0.03, 0.1, M19P.fer, TL.iron);
   },
+  // vieux coffre (ruines, chapelles, cryptes) : bois gris, bandes de fer rouillé, couvercle bombé ; ouvert et vide, on
+  // voit le fond noir
+  coffre_vieux(E, o) {
+    const vide = o.data && o.data.vide, C = [0.75, 0.7, 0.62], R = [0.46, 0.32, 0.24];
+    E.bx(0, 0, 0, 0.8, 0.42, 0.5, C, tx(TL.darkwood, TL.chest));
+    for (const s of [-0.27, 0.27]) E.bx(s, 0, 0, 0.05, 0.43, 0.52, R, TL.iron);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) E.bx(sx * 0.39, 0, sz * 0.24, 0.04, 0.1, 0.04, R, TL.iron);
+    if (vide) {
+      E.bx(0, 0.42, 0, 0.7, 0.006, 0.4, [0.08, 0.06, 0.05], TL.plain);
+      // (le couvercle tourne autour de la charnière, en haut à l'arrière du coffre : y 0,42, z −0,25)
+      E.box(0, 0.672, -0.222, 0.84, 0.08, 0.52, C, TL.darkwood, 0, -1.3);
+      for (const s of [-0.27, 0.27]) E.box(s, 0.672, -0.222, 0.05, 0.088, 0.53, R, TL.iron, 0, -1.3);
+    } else {
+      E.bx(0, 0.42, 0, 0.84, 0.08, 0.54, C, TL.darkwood); E.bx(0, 0.5, 0, 0.8, 0.06, 0.4, C, m19F(TL.darkwood, TF.bonnet));
+      for (const s of [-0.27, 0.27]) E.bx(s, 0.42, 0, 0.05, 0.15, 0.56, R, TL.iron);
+      E.bx(0, 0.26, 0.255, 0.09, 0.12, 0.02, R, TL.iron);
+    }
+  },
+  // sacs de grain : trois sacs debout, tassés, noués, un quatrième couché devant
+  sacs(E) {
+    const C = rgbf('#c8b088'), L = rgbf('#8a6a3a');
+    for (const [x, z, r, k] of [[-0.3, 0, 0.2, 1], [0.25, 0.08, -0.3, 0.94], [0, -0.3, 0.9, 1.06]]) {
+      E.bx(x, 0, z, 0.5 * k, 0.34 * k, 0.36 * k, C, m19F(TL.cloth, TF.calotteH), r);
+      E.bx(x, 0.34 * k, z, 0.465 * k, 0.16 * k, 0.335 * k, C, m19F(TL.cloth, TF.bonnet), r);
+      E.bx(x, 0.49 * k, z, 0.13 * k, 0.05 * k, 0.1 * k, L, TL.rope, r);
+      E.bx(x, 0.53 * k, z, 0.17 * k, 0.08 * k, 0.12 * k, v3.scale(C, 0.95), m19F(TL.cloth, TF.pTronc), r);
+    }
+    E.box(0.1, 0.36, 0.3, 0.45, 0.3, 0.6, rgbf('#b8a078'), m19F(TL.cloth, TF.qCorps), 0.3, 0, 1.35);
+  },
+  // tombe fraîche : la croix de bois et son écriteau, le tertre de terre remuée, une couronne de fleurs
+  tombe_neuve(E) {
+    const B = M19P.sombre;
+    E.bx(0, -0.1, 0, 0.09, 1.22, 0.07, B, TL.darkwood); E.bx(0, 0.76, 0, 0.56, 0.08, 0.06, B, TL.darkwood);
+    E.bx(0, 0.5, 0.04, 0.2, 0.11, 0.012, rgbf('#d8ccb0'), TL.paper);
+    E.bx(0, 0, 0.6, 0.74, 0.16, 1.14, WHITE, mt(M_DIRT) - 512 * TF.bonnet);
+    E.bx(0, 0.15, 0.6, 0.5, 0.07, 0.86, [0.92, 0.9, 0.88], mt(M_DIRT) - 512 * TF.bonnet);
+    E.bx(0, 0.19, 0.2, 0.26, 0.05, 0.22, WHITE, m19F(TL.flowers, TF.qCorps), 0.4);
+  },
   // caisse d'expédition : planches, battants en Z, couvercle soulevé ; du foin quand elle est pleine
   caisse_expedition(E, o) {
     const B = M19P.bois, S = M19P.sombre;
