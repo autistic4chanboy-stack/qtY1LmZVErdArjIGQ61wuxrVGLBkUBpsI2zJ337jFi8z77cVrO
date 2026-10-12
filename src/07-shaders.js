@@ -1,5 +1,17 @@
 // ============================================================================
 //  SHADERS GLSL (WebGL2)
+//  Le rendu se règle par QUALITE (0 à 3), glissé après « #version » (voir Renderer.variante et l'option « Effets
+//  visuels ») ; chaque morceau ci-dessous garde, sous QUALITE 0, le dessin d'avant tel quel (rien n'y coûte plus) :
+//   0 (Basse)       : le rendu d'avant ;
+//   1 (Moyenne)     : ciel de Rayleigh et de Mie (halo, crépuscule, ombre de la Terre, voie lactée), brume des
+//                     vallées et perspective aérienne tirée vers le soleil, lumière du ciel et du sol, ombres des
+//                     nuages, liseré à contre-jour, feuilles traversées par le soleil, vent en rafales, eau (Fresnel,
+//                     reflets du ciel, éclats du soleil, rides, écume, ronds de pluie), sol mouillé, neige qui
+//                     scintille ; paliers de lumière adoucis ; image en HDR puis exposition, courbe filmique douce,
+//                     étalonnage (passe « resolve »), agrandissement net et lisse, tramage fin ;
+//   2 (Haute)       : en plus : halo des lumières (bloom), rayons du soleil, anticrénelage, flou de profondeur des
+//                     cinématiques, flaques, nuages reflétés dans l'eau ;
+//   3 (Très haute)  : les mêmes, avec plus de prises.
 // ============================================================================
 
 const GLSL_HEAD = `#version 300 es
@@ -7,6 +19,45 @@ precision highp float;
 precision highp int;
 precision highp sampler2D;
 precision highp sampler2DArray;
+#ifndef QUALITE
+#define QUALITE 0
+#endif
+`;
+
+// Bruit (une seule fois par programme, même si plusieurs morceaux le demandent)
+const GLSL_NOISE = `
+#ifndef G_BRUIT
+#define G_BRUIT
+float hash21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vnoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  float a = hash21(i), b = hash21(i + vec2(1.0, 0.0)), c = hash21(i + vec2(0.0, 1.0)), d = hash21(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+#endif
+`;
+
+// Ombres des nuages (une petite carte autour de la caméra, refaite une image sur quatre) et rafales de vent
+const GLSL_CLOUD = `
+#ifndef G_NUAGES
+#define G_NUAGES
+uniform sampler2D uNuages;
+uniform vec4 uNuagesO;   // xy : coin de la carte (m), z : 1 / sa taille, w : force de l'ombre (0 : aucune)
+uniform vec2 uWindD;     // direction du vent (unitaire)
+float cloudShade(vec2 p) {
+#if QUALITE >= 1
+  if (uNuagesO.w <= 0.0) return 1.0;
+  return mix(1.0, texture(uNuages, (p - uNuagesO.xy) * uNuagesO.z).r, uNuagesO.w);
+#else
+  return 1.0;
+#endif
+}
+// les rafales : des bandes de vent qui descendent la vallée (0 : accalmie, 1 : rafale) ; k : force du vent
+float windGust(vec2 p, float t, float k) {
+  vec2 q = vec2(dot(p, uWindD), dot(p, vec2(-uWindD.y, uWindD.x)));
+  return clamp(0.5 + 0.5 * sin(q.x * 0.045 - t * (0.9 + 0.35 * k)) * (0.65 + 0.35 * sin(q.y * 0.031 + t * 0.23)), 0.0, 1.0);
+}
+#endif
 `;
 
 // Relief : lecture de la carte des hauteurs (+ montagnes hors du monde)
@@ -15,12 +66,7 @@ uniform sampler2D uHeight;
 uniform sampler2D uMat;
 uniform int uN;
 uniform float uCell;
-float hash21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
-float vnoise(vec2 p) {
-  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
-  float a = hash21(i), b = hash21(i + vec2(1.0, 0.0)), c = hash21(i + vec2(0.0, 1.0)), d = hash21(i + vec2(1.0, 1.0));
-  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-}
+` + GLSL_NOISE + `
 float vertH(ivec2 v) {
   ivec2 c = clamp(v, ivec2(0), ivec2(uN));
   float h = texelFetch(uHeight, c, 0).r;
@@ -40,6 +86,17 @@ float terrainH(vec2 p) {
   vec2 f = g - fl;
   float ha = vertH(i), hb = vertH(i + ivec2(1, 0)), hc = vertH(i + ivec2(0, 1)), hd = vertH(i + ivec2(1, 1));
   if (f.x + f.y <= 1.0) return ha + (hb - ha) * f.x + (hc - ha) * f.y;
+  return hd + (hc - hd) * (1.0 - f.x) + (hb - hd) * (1.0 - f.y);
+}
+// la même, avec la pente du triangle (sa normale) : sans lecture de plus
+float terrainHN(vec2 p, out vec3 n) {
+  vec2 g = p / uCell;
+  vec2 fl = floor(g);
+  ivec2 i = ivec2(fl);
+  vec2 f = g - fl;
+  float ha = vertH(i), hb = vertH(i + ivec2(1, 0)), hc = vertH(i + ivec2(0, 1)), hd = vertH(i + ivec2(1, 1));
+  if (f.x + f.y <= 1.0) { n = normalize(vec3(ha - hb, uCell, ha - hc)); return ha + (hb - ha) * f.x + (hc - ha) * f.y; }
+  n = normalize(vec3(hc - hd, uCell, hb - hd));
   return hd + (hc - hd) * (1.0 - f.x) + (hb - hd) * (1.0 - f.y);
 }
 int matAtV(ivec2 v) {
@@ -83,26 +140,75 @@ uniform float uTime;
 uniform float uShadowK;
 uniform float uWet;
 uniform float uFrost;
-
+uniform vec3 uAmbSky;     // lumière du ciel (hémisphère du haut)
+uniform vec3 uAmbGround;  // lumière renvoyée par le sol (hémisphère du bas)
+uniform vec4 uMist;       // x : fond de la brume (m), y : densité, z : 1 / épaisseur, w : perspective aérienne (1/m)
+uniform vec4 uSunGlowC;   // rgb : le soleil dans la brume (diffusion vers l'avant), a : force
+uniform float uSpec;      // reflets du sol mouillé (0 : non)
+` + GLSL_NOISE + GLSL_CLOUD + `
+#if QUALITE >= 1
+// soleil bas : l'horizon chauffe de son côté et refroidit à l'opposé (aube, crépuscule)
+float lowSun() { return smoothstep(0.42, 0.02, uSunDir.y) * smoothstep(-0.32, -0.05, uSunDir.y); }
+#endif
 vec3 skyGradient(vec3 d) {
   float h = d.y;
+#if QUALITE >= 1
+  float hc = clamp(h, 0.0, 1.0);
+  float az = dot(normalize(d.xz + 1e-5), normalize(uSunDir.xz + 1e-5));
+  vec3 hor = uHorizon * mix(vec3(1.0), mix(vec3(0.8, 0.77, 1.0), vec3(1.1, 1.0, 0.88), az * 0.5 + 0.5), lowSun());
+  // Rayleigh : l'horizon clair et laiteux, le zénith profond ; la teinte descend en exponentielle
+  vec3 col = mix(hor, uZenith, 1.0 - exp(-hc * 3.4));
+  col += hor * 0.08 * exp(-hc * 22.0);
+  if (h < 0.0) col = mix(hor, hor * 0.6, clamp(-h * 5.0, 0.0, 1.0));
+  // l'ombre de la Terre et la ceinture de Vénus, à l'opposé du soleil qui se couche (ou se lève)
+  float tw = smoothstep(0.1, -0.02, uSunDir.y) * smoothstep(-0.3, -0.06, uSunDir.y) * max(-az, 0.0);
+  col = mix(col, col * vec3(0.74, 0.76, 0.93), tw * (1.0 - smoothstep(0.0, 0.06, hc)) * 0.8);
+  col += uGlow * vec3(0.9, 0.55, 0.75) * tw * smoothstep(0.03, 0.08, hc) * (1.0 - smoothstep(0.1, 0.24, hc)) * 0.35;
+  // Mie : le halo autour du soleil, large et doux, plus serré près du disque
+  float s = max(dot(d, uSunDir), 0.0);
+  col += uGlow * (pow(s, 6.0) * 0.42 + pow(s, 48.0) * 0.5 + pow(s, 420.0) * 1.1) * (1.0 - hc * 0.65);
+  return col;
+#else
   vec3 col = mix(uHorizon, uZenith, pow(clamp(h, 0.0, 1.0), 0.5));
   if (h < 0.0) col = mix(uHorizon, uHorizon * 0.6, clamp(-h * 5.0, 0.0, 1.0));
   float s = max(dot(d, uSunDir), 0.0);
   col += uGlow * (pow(s, 5.0) * 0.55 + pow(s, 40.0) * 0.5) * (1.0 - clamp(h, 0.0, 1.0) * 0.7);
   return col;
+#endif
 }
 // Brume atmosphérique : couleur vers laquelle tout s'estompe (identique aux montagnes du ciel)
 vec3 hazeColor(vec3 d) {
   vec2 a = normalize(d.xz + 1e-5), b = normalize(uSunDir.xz + 1e-5);
   float s = max(dot(a, b), 0.0);
+#if QUALITE >= 1
+  vec3 hz = uHaze * mix(vec3(1.0), mix(vec3(0.82, 0.8, 1.0), vec3(1.08, 1.0, 0.9), dot(a, b) * 0.5 + 0.5), lowSun());
+  // la diffusion vers l'avant : la brume s'allume du côté du soleil
+  float sd = max(dot(d, uSunDir), 0.0);
+  hz += uSunGlowC.rgb * (pow(sd, 5.0) * 0.6 + pow(sd, 24.0) * 0.4) * uSunGlowC.a;
+  return hz + uGlow * pow(s, 6.0) * 0.3 * (1.0 - clamp(uSunDir.y * 2.5, 0.0, 1.0));
+#else
   return uHaze + uGlow * pow(s, 6.0) * 0.3 * (1.0 - clamp(uSunDir.y * 2.5, 0.0, 1.0));
+#endif
 }
 vec3 applyFog(vec3 col, vec3 p) {
   vec3 v = p - uCamPos;
   float d = length(v);
   float f = smoothstep(uFog.x, uFog.y, d);
+#if QUALITE >= 1
+  // perspective aérienne : un voile léger dès les premières dizaines de mètres
+  f = max(f, (1.0 - exp(-d * uMist.w)) * 0.3);
+  // la brume des vallées (le matin, les jours de brouillard) : dense au ras du fond, plus mince en montant
+  if (uMist.y > 0.0) {
+    float k = uMist.z, h0 = uCamPos.y - uMist.x, h1 = p.y - uMist.x;
+    float e0 = exp(-k * max(h0, 0.0)), e1 = exp(-k * max(h1, 0.0)), dh = h1 - h0;
+    float I = abs(dh) > 0.05 && abs(e0 - e1) > 1e-4 ? (e0 - e1) / (k * dh) : 0.5 * (e0 + e1);
+    f = 1.0 - (1.0 - f) * exp(-uMist.y * d * I);
+  }
+  // (les paliers du brouillard, adoucis : pas d'arête entre deux marches)
+  if (uBands > 0.0) { float x = f * 24.0, fl = floor(x); f = (fl + smoothstep(0.25, 0.75, x - fl)) / 24.0; }
+#else
   f = floor(f * 24.0 + 0.5) / 24.0;
+#endif
   return mix(col, hazeColor(v / max(d, 0.001)), f);
 }
 vec3 dynLights(vec3 p, vec3 n, float useN) {
@@ -133,8 +239,58 @@ float bayer4(vec2 fc) { ivec2 p = ivec2(fc) & 3; return (BAY[p.y * 4 + p.x] + 0.
 vec3 bandLight(vec3 l) {
   if (uBands <= 0.0) return l;
   float m = max(max(l.r, l.g), max(l.b, 1e-4));
+#if QUALITE >= 1
+  // (des paliers adoucis : la lumière garde ses marches, sans arête dure entre elles)
+  float x = m * uBands, fl = floor(x);
+  float q = max(fl + smoothstep(0.3, 0.7, x - fl), 1.0) / uBands;
+#else
   float q = max(floor(m * uBands + 0.5), 1.0) / uBands;
+#endif
   return l * (q / m);
+}
+#if QUALITE >= 1
+// la lumière du ciel en haut, celle renvoyée par le sol en bas
+vec3 hemiAmb(vec3 n) { return mix(uAmbGround, uAmbSky, clamp(n.y * 0.5 + 0.5, 0.0, 1.0)); }
+// le soleil « enveloppé » : la frontière de l'ombre propre est plus douce
+float wrapNL(vec3 n, vec3 l) { return clamp((dot(n, l) + 0.16) / 1.16, 0.0, 1.0); }
+// le liseré : les bords des volumes s'allument à contre-jour
+vec3 rimLight(vec3 n, vec3 vd) {
+  float r = 1.0 - clamp(dot(n, -vd), 0.0, 1.0);
+  r = r * r * r;
+  return (uSunCol * smoothstep(-0.2, 0.9, dot(vd, uSunDir)) * 0.5 + uAmbSky * 0.2) * r;
+}
+// les sources très claires (lampes, braises, vitres la nuit) débordent un peu : le halo des lumières les prend
+vec3 emitK(vec3 c) { return c * (1.0 + 1.6 * smoothstep(0.55, 0.95, max(max(c.r, c.g), c.b))); }
+#endif
+`;
+
+// Les nuages du ciel (couverture et lumière), pour le ciel et pour l'eau qui les reflète
+const GLSL_SKYCLOUDS = `
+uniform vec3 uCloudLit;
+uniform vec3 uCloudDark;
+uniform float uCloudCover;
+uniform float uCloudT;
+uniform vec3 uSunDisk;
+uniform float uSunVis;
+vec3 cloudLayer(vec3 d, vec3 col) {
+  vec2 cp = d.xz / (d.y + 0.1) * 1.6 + vec2(uCloudT * 0.008, uCloudT * 0.003);
+  cp = floor(cp * 48.0) / 48.0;
+  float c = vnoise(cp * 1.2) * 0.55 + vnoise(cp * 2.7 + 3.0) * 0.3 + vnoise(cp * 6.3 + 9.0) * 0.15;
+  float cov = smoothstep(0.53 - uCloudCover * 0.38, 0.68 - uCloudCover * 0.3, c) * smoothstep(0.0, 0.18 - uCloudCover * 0.12, d.y);
+  float lit = clamp((c - 0.53) * 3.0 + dot(normalize(vec3(uSunDir.x, 0.0, uSunDir.z) + 0.001), normalize(vec3(d.x, 0.0, d.z))) * 0.25, 0.0, 1.0);
+#if QUALITE >= 1
+  // (des paliers adoucis : les nuages gardent leurs marches, sans arêtes dures)
+  float x = cov * 5.0, y = lit * 4.0;
+  cov = (floor(x) + smoothstep(0.3, 0.7, fract(x))) / 5.0;
+  vec3 cc = mix(uCloudDark, uCloudLit, (floor(y) + smoothstep(0.3, 0.7, fract(y))) / 4.0);
+  // le soleil traverse les bords des nuages qui l'approchent (liseré d'argent) et les éclaire par-derrière
+  float s = max(dot(d, uSunDir), 0.0), edge = cov * (1.0 - cov) * 4.0;
+  cc += uSunDisk * uSunVis * (pow(s, 10.0) * (0.22 + edge * 0.8) + pow(s, 48.0) * edge * 1.3);
+#else
+  cov = floor(cov * 4.0 + 0.5) / 4.0;
+  vec3 cc = mix(uCloudDark, uCloudLit, floor(lit * 3.0 + 0.5) / 3.0);
+#endif
+  return mix(col, cc, cov * 0.92);
 }
 `;
 
@@ -195,12 +351,44 @@ void main() {
   alb *= 1.0 - uWet * 0.22 * (1.0 - cov);
   if (uFrost > 0.0) alb = mix(alb, vec3(0.82, 0.86, 0.9), uFrost * 0.6 * smoothstep(0.55, 0.9, n.y) * (1.0 - cov) * (0.7 + 0.3 * vnoise(wp * 2.0)));
   float sh0 = shadeAt(wp);
+#if QUALITE >= 1
+  // les ombres portées : trois prises le long de la lumière, mêlées (bords plus doux, ombres longues au soleil bas)
+  float s1 = shadeAt(wp + uShadowOff * 0.3), s2 = shadeAt(wp + uShadowOff * 0.6), s3 = shadeAt(wp + uShadowOff * 0.9);
+  float shd = max(sh0 * 0.8, max(max(s1, s2), s3) * 0.45 + (s1 + s2 + s3) * 0.1833);
+  float occl = (1.0 - shd * uShadowK) * (1.0 - cov);
+  float cs = cloudShade(wp);
+  vec3 L = hemiAmb(n) * (1.0 - sh0 * 0.45) * (1.0 - 0.62 * cov)
+         + (uSunCol * cs * wrapNL(n, uSunDir) + uMoonCol * max(dot(n, uMoonDir), 0.0)) * occl
+         + dynLights(vPos, n, 1.0);
+  vec3 col = alb * bandLight(L);
+  vec3 vd = normalize(vPos - uCamPos);
+  // le sol mouillé : il renvoie le ciel et le soleil (et, en Haute, des flaques dans les creux plats)
+  if (uWet > 0.02 && uSpec > 0.0 && cov < 0.5) {
+    float wk = uWet * smoothstep(0.6, 0.95, n.y) * (m <= 3 ? 0.16 : 0.45); // (l'herbe mouillée brille peu, la terre et la pierre davantage)
+#if QUALITE >= 2
+    float pud = smoothstep(0.6, 0.68, vnoise(wp * 0.45 + 3.7)) * smoothstep(0.95, 0.99, n.y) * ((m == 4 || m == 7) ? 1.0 : 0.0) * smoothstep(0.2, 0.7, uWet);
+    col *= 1.0 - pud * 0.45;
+    wk = max(wk, pud * 1.6);
+#endif
+    vec3 rd = reflect(vd, n);
+    float fr = 0.04 + 0.96 * pow(1.0 - max(dot(-vd, n), 0.0), 5.0);
+    col += (skyGradient(vec3(rd.x, abs(rd.y), rd.z)) * fr + uSunCol * cs * pow(max(dot(rd, uSunDir), 0.0), 90.0) * 3.0 * occl) * wk * uSpec;
+  }
+  // la neige et le givre scintillent au soleil (des éclats qui changent avec le regard)
+  if ((m == ${M_SNOW} || m == ${M_ICE} || uFrost > 0.3) && cov < 0.5) {
+    vec2 sc = floor(wp * 14.0);
+    float g = hash21(sc + floor(vd.xz * 36.0) * 7.31);
+    float glit = step(0.986, g) * smoothstep(0.3, 0.8, n.y) * (m == ${M_SNOW} || m == ${M_ICE} ? 1.0 : uFrost * 0.6) * (1.0 - smoothstep(22.0, 55.0, length(vPos - uCamPos)));
+    col += (uSunCol * cs * occl * 2.6 + uMoonCol * 3.0) * glit;
+  }
+#else
   float shd = max(sh0 * 0.8, max(shadeAt(wp + uShadowOff * 0.45), shadeAt(wp + uShadowOff * 0.9)));
   float occl = (1.0 - shd * uShadowK) * (1.0 - cov);
   vec3 L = uAmbient * (0.65 + 0.35 * n.y) * (1.0 - sh0 * 0.45) * (1.0 - 0.62 * cov)
          + (uSunCol * max(dot(n, uSunDir), 0.0) + uMoonCol * max(dot(n, uMoonDir), 0.0)) * occl
          + dynLights(vPos, n, 1.0);
   vec3 col = alb * bandLight(L);
+#endif
   if (vPos.y < uWater) col *= mix(vec3(1.0), vec3(0.5, 0.72, 0.78), clamp((uWater - vPos.y) * 0.8, 0.0, 1.0));
   col = applyFog(col, vPos);
   if (uBrush.w > 0.0) {
@@ -222,22 +410,16 @@ void main() {
   gl_Position = vec4(p, 0.9999, 1.0);
 }`;
 
-SH.skyFS = GLSL_HEAD + GLSL_TERRAIN + GLSL_LIGHT + `
+SH.skyFS = GLSL_HEAD + GLSL_TERRAIN + GLSL_LIGHT + GLSL_SKYCLOUDS + `
 uniform vec3 uCamR;
 uniform vec3 uCamU;
 uniform vec2 uTan;
 uniform float uStars;
 uniform float uPixAng;
 uniform mat3 uStarRot;
-uniform vec3 uSunDisk;
-uniform float uSunVis;
 uniform float uMoonVis;
-uniform vec3 uCloudLit;
-uniform vec3 uCloudDark;
-uniform float uCloudCover;
 uniform vec3 uMoonTint;
 uniform float uMoon2;
-uniform float uCloudT;
 in vec2 vNdc;
 out vec4 outCol;
 float ridge(float az, float sc, float seed) {
@@ -264,9 +446,21 @@ void main() {
       vec3 sc = mix(vec3(0.75, 0.82, 1.0), vec3(1.0, 0.92, 0.78), hash21(gi + 9.9));
       if (dist < uPixAng * 0.7) col += sc * uStars * tw * (0.3 + br * 0.9) * smoothstep(-0.02, 0.12, d.y);
     }
+#if QUALITE >= 1
+    // la voie lactée : une bande de poussière d'étoiles, plus dense au cœur, fendue d'une traînée sombre
+    float bx = sd.x * 3.0 + sd.y * 0.5;
+    float band = exp(-bx * bx * 2.0);
+    float mw = band * (0.5 + 0.5 * vnoise(g * 0.05)) * (0.55 + 0.45 * vnoise(g * 0.14 + 9.0));
+    float lane = 1.0 - 0.55 * exp(-pow(bx * 5.0 + (vnoise(g * 0.025 + 3.0) - 0.5) * 2.5, 2.0));
+    col += vec3(0.085, 0.09, 0.13) * mw * lane * uStars * smoothstep(0.0, 0.3, d.y);
+    // et la poussière : de petites étoiles pâles, plus nombreuses dans la bande
+    float h2 = hash21(gi * 1.37 + 71.0);
+    if (h2 > 0.93 - band * 0.05 && length(gf - 0.5) * cs < uPixAng * 0.55) col += vec3(0.5, 0.55, 0.7) * uStars * (h2 - 0.88) * 2.2 * (0.7 + 0.3 * sin(uTime * 3.1 + h2 * 50.0)) * smoothstep(0.02, 0.2, d.y);
+#else
     // voie lactée discrète
     float band = exp(-pow(sd.x * 3.0 + sd.y * 0.5, 2.0) * 2.0);
     col += vec3(0.07, 0.08, 0.12) * band * vnoise(g * 0.08) * uStars * smoothstep(0.0, 0.3, d.y);
+#endif
   }
   // lune
   float md = dot(d, uMoonDir);
@@ -279,6 +473,9 @@ void main() {
     q = floor(q * 6.0) / 6.0;
     float cr = vnoise(q * 2.5 + 4.0) * 0.6 + vnoise(q * 6.0 + 1.0) * 0.4;
     vec3 mc = mix(vec3(0.66, 0.69, 0.74), vec3(0.97, 0.96, 0.9), smoothstep(0.38, 0.62, cr)) * uMoonTint;
+#if QUALITE >= 1
+    mc *= 1.35; // (un peu plus claire que le blanc : le halo la prend)
+#endif
     col = mix(col, mc, uMoonVis);
   }
   if (uMoon2 > 0.0) {
@@ -289,19 +486,16 @@ void main() {
   // soleil
   float sdt = dot(d, uSunDir);
   float sunR = 0.045;
+#if QUALITE >= 1
+  // la couronne, douce, puis le disque (plus sombre au bord) bien plus clair que le blanc
+  col += uSunDisk * uSunVis * pow(smoothstep(cos(sunR * 3.2), cos(sunR), sdt), 2.0) * 0.35;
+  if (sdt > cos(sunR)) { float r = clamp((1.0 - sdt) / (1.0 - cos(sunR)), 0.0, 1.0); col = mix(col, uSunDisk * (3.2 - 1.2 * r * r), uSunVis); }
+#else
   if (sdt > cos(sunR)) col = mix(col, uSunDisk, uSunVis);
   else if (sdt > cos(sunR * 2.2)) col += uSunDisk * 0.35 * uSunVis * floor(smoothstep(cos(sunR * 2.2), cos(sunR), sdt) * 3.0) / 3.0;
+#endif
   // nuages pixelisés
-  if (d.y > 0.0) {
-    vec2 cp = d.xz / (d.y + 0.1) * 1.6 + vec2(uCloudT * 0.008, uCloudT * 0.003);
-    cp = floor(cp * 48.0) / 48.0;
-    float c = vnoise(cp * 1.2) * 0.55 + vnoise(cp * 2.7 + 3.0) * 0.3 + vnoise(cp * 6.3 + 9.0) * 0.15;
-    float cov = smoothstep(0.53 - uCloudCover * 0.38, 0.68 - uCloudCover * 0.3, c) * smoothstep(0.0, 0.18 - uCloudCover * 0.12, d.y);
-    cov = floor(cov * 4.0 + 0.5) / 4.0;
-    float lit = clamp((c - 0.53) * 3.0 + dot(normalize(vec3(uSunDir.x, 0.0, uSunDir.z) + 0.001), normalize(vec3(d.x, 0.0, d.z))) * 0.25, 0.0, 1.0);
-    vec3 cc = mix(uCloudDark, uCloudLit, floor(lit * 3.0 + 0.5) / 3.0);
-    col = mix(col, cc, cov * 0.92);
-  }
+  if (d.y > 0.0) col = cloudLayer(d, col);
   // montagnes lointaines (façon ciel de Doom)
   float az = atan(d.z, d.x);
   float m1 = 0.03 + ridge(az, 2.6, 3.0) * 0.08;
@@ -313,7 +507,7 @@ void main() {
 }`;
 
 // ---------------------------------------------------------------- sprites (objets)
-SH.spriteVS = GLSL_HEAD + GLSL_TERRAIN + GLSL_COVER + `
+SH.spriteVS = GLSL_HEAD + GLSL_TERRAIN + GLSL_COVER + GLSL_CLOUD + `
 layout(location = 0) in vec2 aCorner;
 layout(location = 1) in vec3 iPos;
 layout(location = 2) in vec2 iSize;
@@ -333,12 +527,28 @@ out float vY;
 out float vCov;
 out float vBurn;
 out float vT;
+#if QUALITE >= 1
+out vec3 vTintS;
+out float vVeg;
+out float vCloud;
+#endif
 void main() {
   float sw = iMisc.x * aCorner.y * aCorner.y * uWindV;
   vec3 p = iPos + uCamRight * (aCorner.x * iSize.x) + vec3(0.0, aCorner.y * iSize.y, 0.0);
   float ph = uTimeV * 1.4 + iPos.x * 0.21 + iPos.z * 0.17;
+#if QUALITE >= 1
+  // le vent : il couche les plantes dans sa direction, plus fort dans les rafales, et elles frémissent
+  float gu = windGust(iPos.xz, uTimeV, uWindV);
+  vec2 bend = uWindD * (0.3 + 0.7 * gu) * 0.85 + vec2(sin(ph) + sin(ph * 2.3) * 0.3, cos(ph * 0.8) * 0.5) * (0.4 + 0.45 * gu);
+  p.xz += bend * sw;
+  float hv = hash21(iPos.xz * 0.37 + 1.3), hv2 = hash21(iPos.xz * 0.71 + 8.1);
+  vVeg = iMisc.x > 0.0 ? 1.0 : 0.0;
+  vTintS = mix(vec3(1.0), vec3(1.0 + (hv - 0.5) * 0.16, 1.0 + (hv2 - 0.5) * 0.1, 1.0 - (hv - 0.5) * 0.14), vVeg);
+  vCloud = cloudShade(iPos.xz);
+#else
   p.x += (sin(ph) + sin(ph * 2.3) * 0.3) * sw;
   p.z += cos(ph * 0.8) * sw * 0.5;
+#endif
   int flags = int(iMisc.z + 0.5);
   vBurn = (flags & 8) != 0 ? 1.0 : 0.0;
   vT = uTimeV;
@@ -367,6 +577,11 @@ in float vY;
 in float vCov;
 in float vBurn;
 in float vT;
+#if QUALITE >= 1
+in vec3 vTintS;
+in float vVeg;
+in float vCloud;
+#endif
 out vec4 outCol;
 void main() {
   vec4 t = texture(uAtlas, vUV);
@@ -375,11 +590,27 @@ void main() {
   vec3 col = t.rgb;
   if (t.a > 0.9) {
     float ao = mix(0.7, 1.0, clamp(vY * 3.0, 0.0, 1.0));
+#if QUALITE >= 1
+    // le pied reçoit la lumière du sol, la cime celle du ciel ; face au soleil la plante est éclairée, à contre-jour
+    // elle s'assombrit, mais ses feuilles laissent passer le soleil
+    vec3 vd = normalize(vPos - uCamPos);
+    float vs = dot(vd, uSunDir), front = 1.0 - 0.36 * smoothstep(0.0, 1.0, vs) * vVeg;
+    vec3 amb = mix(uAmbGround, uAmbSky, clamp(0.3 + vY * 0.7, 0.0, 1.0));
+    float sunOcc = (1.0 - vShade * 0.35 * uShadowK) * (1.0 - vCov) * vCloud;
+    vec3 L = amb * (1.0 - vShade * 0.3) * ao * (1.0 - 0.62 * vCov) + (uSunCol * 0.78 * front * vCloud + uMoonCol * 0.7) * (1.0 - vShade * 0.35 * uShadowK) * (1.0 - vCov) + dynLights(vPos, vec3(0.0), 0.0);
+    L += uSunCol * pow(max(vs, 0.0), 3.0) * 0.8 * vVeg * sunOcc * smoothstep(0.1, 0.5, vY);
+    col *= bandLight(L) * vTintS;
+#else
     vec3 L = uAmbient * (1.0 - vShade * 0.3) * ao * (1.0 - 0.62 * vCov) + (uSunCol * 0.78 + uMoonCol * 0.7) * (1.0 - vShade * 0.35 * uShadowK) * (1.0 - vCov) + dynLights(vPos, vec3(0.0), 0.0);
     col *= bandLight(L);
+#endif
     col = applyFog(col, vPos);
   } else {
+#if QUALITE >= 1
+    col = mix(emitK(col) * 1.15, applyFog(col, vPos), 0.35);
+#else
     col = mix(col * 1.15, applyFog(col, vPos), 0.35);
+#endif
   }
   // en feu : le feuillage rougeoie et vacille (braises en bas, flammes en haut)
   if (vBurn > 0.5) {
@@ -391,7 +622,7 @@ void main() {
 }`;
 
 // ---------------------------------------------------------------- champ d'herbe (GPU, suit la caméra)
-SH.grassVS = GLSL_HEAD + GLSL_TERRAIN + GLSL_COVER + `
+SH.grassVS = GLSL_HEAD + GLSL_TERRAIN + GLSL_COVER + GLSL_CLOUD + `
 layout(location = 0) in vec2 aCorner;
 uniform mat4 uViewProj;
 uniform vec3 uCamPosV;
@@ -411,6 +642,12 @@ out float vShade;
 out float vY;
 out float vTint;
 out float vCov;
+#if QUALITE >= 1
+uniform vec3 uSunDir;
+out vec3 vTintG;
+out float vCloud;
+out float vSunN;
+#endif
 void main() {
   int G = uGridN;
   vec2 base = vec2(float(gl_InstanceID % G), float(gl_InstanceID / G));
@@ -429,7 +666,16 @@ void main() {
   else if (m == 2) { dens = 0.9; flowerP = 0.42; }
   else if (m == 3) { dens = 0.75; flowerP = 0.01; dry = true; }
   else if (m == 4 || m == 7) { dens = 0.03; }
+  // (pas de touffe ici : trop loin, ou un sol sans herbe ; on s'arrête avant de lire le relief et les abris)
+  if (!ok || h3 > dens) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
+#if QUALITE >= 1
+  // (la pente du pré : l'herbe d'un versant tourné vers le soleil s'allume, l'autre reste dans l'ombre du relief)
+  vec3 tn;
+  float h = terrainHN(wp, tn);
+  vSunN = clamp((dot(tn, uSunDir) + 0.1) / 1.1, 0.0, 1.0);
+#else
   float h = terrainH(wp);
+#endif
   if (h < uWaterV + 0.05 || h3 > dens || coveredAt(vec3(wp.x, h + 0.3, wp.y)) > 0.5) ok = false;
   int v;
   if (h4 < flowerP) v = 6 + int(fract(h4 * 97.13 + h1) * 6.0);
@@ -442,8 +688,16 @@ void main() {
   float sw = aCorner.y * aCorner.y * 0.14 * size.y * uWindV;
   float ph = uTimeV * (1.8 + uWindV * 0.6) + wp.x * 0.35 + wp.y * 0.27;
   vCov = coveredAt(vec3(wp.x, h + 0.2, wp.y));
+#if QUALITE >= 1
+  // le vent couche l'herbe dans sa direction ; les rafales passent en vagues sur le pré
+  float gu = windGust(wp, uTimeV, uWindV);
+  p.xz += (uWindD * (0.2 + 0.9 * gu) + vec2(sin(ph), cos(ph * 0.7) * 0.6) * (0.45 + 0.35 * gu)) * sw;
+  vTintG = vec3(1.0 + (h4 - 0.5) * 0.1, 1.0 + (h3 - 0.5) * 0.06, 1.0 - (h4 - 0.5) * 0.12);
+  vCloud = cloudShade(wp);
+#else
   p.x += sin(ph) * sw;
   p.z += cos(ph * 0.7) * sw * 0.6;
+#endif
   vec4 uv = uGUV[v];
   float u = aCorner.x + 0.5;
   if (h1 > 0.5) u = 1.0 - u;
@@ -463,13 +717,28 @@ in float vShade;
 in float vY;
 in float vTint;
 in float vCov;
+#if QUALITE >= 1
+in vec3 vTintG;
+in float vCloud;
+in float vSunN;
+#endif
 out vec4 outCol;
 void main() {
   vec4 t = texture(uAtlas, vUV);
   if (t.a < 0.5) discard;
   float ao = mix(0.62, 1.0, clamp(vY * 1.6, 0.0, 1.0));
+#if QUALITE >= 1
+  // les brins : la lumière du sol en bas, du ciel en haut ; le soleil selon le versant ; à contre-jour, il passe au travers
+  vec3 amb = mix(uAmbGround, uAmbSky, clamp(0.25 + vY * 0.75, 0.0, 1.0));
+  float sunOcc = (1.0 - vShade * 0.7 * uShadowK) * (1.0 - vCov) * vCloud;
+  vec3 L = amb * (1.0 - vShade * 0.45) * ao * (1.0 - 0.62 * vCov) + (uSunCol * 0.86 * (0.4 + 0.6 * vSunN) * vCloud + uMoonCol * 0.7) * (1.0 - vShade * 0.7 * uShadowK) * ao * (1.0 - vCov) + dynLights(vPos, vec3(0.0), 0.0);
+  float vs = max(dot(normalize(vPos - uCamPos), uSunDir), 0.0);
+  L += uSunCol * vs * vs * vs * 0.85 * vY * sunOcc;
+  vec3 col = t.rgb * vTint * vTintG;
+#else
   vec3 L = uAmbient * (1.0 - vShade * 0.45) * ao * (1.0 - 0.62 * vCov) + (uSunCol * 0.8 + uMoonCol * 0.7) * (1.0 - vShade * 0.7 * uShadowK) * ao * (1.0 - vCov) + dynLights(vPos, vec3(0.0), 0.0);
   vec3 col = t.rgb * vTint;
+#endif
   if (uFrost > 0.0) col = mix(col, vec3(0.8, 0.85, 0.9), uFrost * 0.55 * clamp(vY * 1.5, 0.0, 1.0) * (1.0 - vCov));
   col *= bandLight(L);
   outCol = vec4(applyFog(col, vPos), 1.0);
@@ -488,17 +757,73 @@ void main() {
   gl_Position = uViewProj * vec4(vPos, 1.0);
 }`;
 
-SH.waterFS = GLSL_HEAD + GLSL_TERRAIN + GLSL_LIGHT + `
+// (les nappes des cascades, 11-zzzzzzzP18-4-rendu.js, en sont tirées par remplacement : les lignes « uniform float
+// uWater; », « if (depth < 0.0) discard; » et « outCol = vec4(applyFog(col, p), alpha); », avec col et light, restent)
+SH.waterFS = GLSL_HEAD + GLSL_TERRAIN + GLSL_LIGHT + GLSL_SKYCLOUDS + `
 uniform float uWater;
+uniform float uWindV;
 in vec3 vPos;
 out vec4 outCol;
+#if QUALITE >= 1
+// une vague : sa pente (dérivée de sin) le long de sa direction
+vec2 wv(vec2 p, vec2 d, float k, float sp, float t) { return d * (cos(dot(p, d) * k - t * sp) * k); }
+// un rond de pluie par case : il s'élargit et s'efface ; renvoie la pente
+vec2 rond(vec2 p, float t, float sz, float sd) {
+  vec2 c = floor(p / sz), f = p / sz - c;
+  float h = hash21(c + sd);
+  vec2 dv = f - (vec2(hash21(c + sd + 3.1), hash21(c + sd + 7.7)) * 0.5 + 0.25);
+  float r = length(dv), ti = fract(t * (0.7 + h * 0.6) + h);
+  float x = r - ti * 0.45;
+  return dv / max(r, 1e-3) * cos(x * 42.0) * exp(-x * x * 900.0) * (1.0 - ti) * 1.6;
+}
+#endif
 void main() {
   vec3 p = vPos;
   float th = terrainH(p.xz);
   float depth = uWater - th;
   if (depth < 0.0) discard;
-  vec2 q = floor(p.xz * 6.0) / 6.0;
   float t = uTime;
+#if QUALITE >= 1
+  vec2 q = floor(p.xz * 8.0) / 8.0;
+  // la houle : trois trains de vagues qui suivent le vent, et des rides fines ; plus creusée par grand vent, plus
+  // calme au bord
+  vec2 wd = uWindD, wd2 = vec2(wd.x * 0.8 - wd.y * 0.6, wd.x * 0.6 + wd.y * 0.8), wd3 = vec2(wd.x * 0.8 + wd.y * 0.6, -wd.x * 0.6 + wd.y * 0.8);
+  vec2 gr = (wv(q, wd, 1.7, 1.4, t) * 0.018 + wv(q, wd2, 2.9, 2.1, t) * 0.012 + wv(q, wd3, 4.3, 2.7, t) * 0.007) * (0.6 + 0.25 * uWindV);
+  gr += (vec2(vnoise(q * 3.1 + t * 0.6), vnoise(q * 3.1 - t * 0.5 + 17.0)) - 0.5) * 0.05;
+  gr *= clamp(depth * 2.0, 0.35, 1.0);
+  // les ronds de pluie
+  if (uWet > 0.05) gr += (rond(p.xz, t, 0.9, 0.0) + rond(p.xz + 0.37, t * 1.13, 0.7, 5.0)) * 0.06 * uWet;
+  vec3 n = normalize(vec3(-gr.x, 1.0, -gr.y));
+  vec3 v = normalize(p - uCamPos);
+  vec3 r = reflect(v, n);
+  r.y = abs(r.y);
+  vec3 refl = skyGradient(r);
+#if QUALITE >= 2
+  refl = cloudLayer(r, refl);
+#endif
+  float cosv = max(dot(-v, n), 0.0);
+  float fres = 0.04 + 0.96 * pow(1.0 - cosv, 5.0);
+  fres = mix(fres, 1.0, 0.12) * 0.92;
+  float cs = cloudShade(p.xz);
+  vec3 light = uAmbient + uSunCol * cs * max(uSunDir.y, 0.0) + uMoonCol * 0.8 + dynLights(p, vec3(0.0, 1.0, 0.0), 1.0);
+  // l'eau elle-même : claire et verte sur le gravier, sombre et bleue au fond (absorption)
+  float ab = 1.0 - exp(-depth * 0.9);
+  vec3 deep = mix(vec3(0.17, 0.36, 0.31), vec3(0.025, 0.09, 0.15), ab) * light;
+  vec3 col = mix(deep, refl, fres);
+  // les éclats du soleil et de la lune : un reflet net, et des paillettes qui scintillent autour
+  float sl = max(dot(r, uSunDir), 0.0), ml = max(dot(r, uMoonDir), 0.0);
+  float spark = step(0.6, hash21(floor(p.xz * 9.0) + floor(t * 5.0)) * (0.6 + 0.6 * sl));
+  col += uSunCol * cs * (pow(sl, 600.0) * 7.0 + pow(sl, 60.0) * spark * 2.2);
+  col += uMoonCol * (pow(ml, 400.0) * 9.0 + pow(ml, 60.0) * spark * 5.0);
+  // l'écume au bord : des franges qui vont et viennent
+  float fz = 1.0 - smoothstep(0.0, 0.22, depth);
+  float fn = vnoise(p.xz * 2.6 + vec2(t * 0.25, -t * 0.2));
+  float foam = smoothstep(0.5, 0.66, fz * 0.9 + fn * 0.35 + 0.12 * sin(t * 1.4 + depth * 30.0 + fn * 4.0) - 0.28);
+  col = mix(col, vec3(0.86, 0.91, 0.92) * light, foam * 0.66);
+  float alpha = mix(0.5, 0.94, 1.0 - exp(-depth * 1.3));
+  alpha = clamp(max(alpha, fres * 0.95) + foam * 0.3, 0.0, 0.97);
+#else
+  vec2 q = floor(p.xz * 6.0) / 6.0;
   float w1 = sin(q.x * 1.9 + t * 1.2) * cos(q.y * 1.6 - t * 0.9);
   float w2 = sin((q.x + q.y) * 2.7 - t * 1.7);
   vec3 n = normalize(vec3(w1 * 0.07, 1.0, w2 * 0.07));
@@ -516,11 +841,12 @@ void main() {
   float foam = step(depth, 0.16 + 0.07 * sin(t * 1.5 + q.x * 2.0 + q.y));
   col = mix(col, vec3(0.85, 0.9, 0.9) * light, foam * 0.55);
   float alpha = clamp(0.62 + depth * 0.15, 0.62, 0.9);
+#endif
   outCol = vec4(applyFog(col, p), alpha);
 }`;
 
 // ---------------------------------------------------------------- blocs
-SH.blockVS = GLSL_HEAD + `
+SH.blockVS = GLSL_HEAD + GLSL_NOISE + GLSL_CLOUD + `
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNrm;
 layout(location = 2) in vec3 iPos;
@@ -532,6 +858,9 @@ out vec3 vPos;
 out vec3 vNrm;
 out vec2 vUV;
 flat out int vMat;
+#if QUALITE >= 1
+out float vCloud;
+#endif
 void main() {
   vec3 lp = aPos * iSize;
   float c = cos(iRM.x), s = sin(iRM.x);
@@ -552,6 +881,9 @@ void main() {
   vUV = uv;
   vMat = m;
   vPos = wp;
+#if QUALITE >= 1
+  vCloud = cloudShade(wp.xz);
+#endif
   gl_Position = uViewProj * vec4(wp, 1.0);
 }`;
 
@@ -562,6 +894,9 @@ in vec3 vPos;
 in vec3 vNrm;
 in vec2 vUV;
 flat in int vMat;
+#if QUALITE >= 1
+in float vCloud;
+#endif
 out vec4 outCol;
 void main() {
   vec3 n = normalize(vNrm);
@@ -570,15 +905,29 @@ void main() {
   alb *= 1.0 - uWet * 0.18 * (1.0 - cov) * max(n.y, 0.3);
   if (uFrost > 0.0) alb = mix(alb, vec3(0.85, 0.88, 0.92), uFrost * 0.5 * smoothstep(0.6, 0.95, n.y) * (1.0 - cov));
   float faceK = 1.0 - abs(n.x) * 0.12;
+#if QUALITE >= 1
+  vec3 L = hemiAmb(n) * (0.92 + 0.08 * max(n.y, 0.0)) * faceK * (1.0 - 0.62 * cov)
+         + (uSunCol * vCloud * wrapNL(n, uSunDir) + uMoonCol * max(dot(n, uMoonDir), 0.0)) * (1.0 - cov) + dynLights(vPos, n, 1.0);
+  vec3 col = alb * bandLight(L);
+  // pierres et toits mouillés : un reflet du soleil
+  if (uWet > 0.02 && uSpec > 0.0 && cov < 0.5) {
+    vec3 vd = normalize(vPos - uCamPos), rd = reflect(vd, n);
+    col += uSunCol * vCloud * pow(max(dot(rd, uSunDir), 0.0), 60.0) * 1.6 * uWet * uSpec * max(n.y, 0.25);
+  }
+  col = applyFog(col, vPos);
+#else
   vec3 L = uAmbient * (0.7 + 0.3 * max(n.y, 0.0)) * faceK * (1.0 - 0.62 * cov)
          + (uSunCol * max(dot(n, uSunDir), 0.0) + uMoonCol * max(dot(n, uMoonDir), 0.0)) * (1.0 - cov) + dynLights(vPos, n, 1.0);
   vec3 col = applyFog(alb * bandLight(L), vPos);
+#endif
   if (uGhost.a > 0.0) { outCol = vec4(mix(col, uGhost.rgb, 0.5), uGhost.a); return; }
   outCol = vec4(col, 1.0);
 }`;
 
 // ---------------------------------------------------------------- modèles 3D (boîtes instanciées)
-SH.modelVS = GLSL_HEAD + `
+// (07-zzzzz-personnages.js y glisse ses boîtes effilées par remplacement : « void main() {\n  vec4 p = vec4(aPos, 1.0); »
+// et « vec3 ln = aNrm / s2; » restent tels quels)
+SH.modelVS = GLSL_HEAD + GLSL_NOISE + GLSL_CLOUD + `
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNrm;
 layout(location = 2) in vec2 aUV;
@@ -597,6 +946,9 @@ out vec2 vUV;
 out vec3 vCol;
 out float vShade;
 flat out ivec4 vTex;
+#if QUALITE >= 1
+out float vCloud;
+#endif
 void main() {
   vec4 p = vec4(aPos, 1.0);
   vec3 wp = vec3(dot(iM0, p), dot(iM1, p), dot(iM2, p));
@@ -622,6 +974,9 @@ void main() {
   vCol = iCol.rgb;
   vPos = wp;
   vShade = texture(uShade, (vec2(iM0.w, iM2.w) / uCell + 0.5) / float(uN + 1)).r;
+#if QUALITE >= 1
+  vCloud = cloudShade(vec2(iM0.w, iM2.w));
+#endif
   gl_Position = uViewProj * vec4(wp, 1.0);
 }`;
 
@@ -636,6 +991,9 @@ in vec2 vUV;
 in vec3 vCol;
 in float vShade;
 flat in ivec4 vTex;
+#if QUALITE >= 1
+in float vCloud;
+#endif
 out vec4 outCol;
 void main() {
   if (uShadowPass > 0.5) {
@@ -652,21 +1010,41 @@ void main() {
     alb = texelFetch(uSkin, tp, 0).rgb;
   }
   alb *= vCol;
+#if QUALITE >= 1
+  if ((vTex.z & 1) != 0) { outCol = vec4(applyFog(emitK(alb), vPos), 1.0); return; }
+#else
   if ((vTex.z & 1) != 0) { outCol = vec4(applyFog(alb, vPos), 1.0); return; }
+#endif
   vec3 n = normalize(vNrm);
   float cov = coveredAt(vPos + n * 0.08);
   float faceK = 1.0 - abs(n.x) * 0.1;
   alb *= 1.0 - uWet * 0.15 * (1.0 - cov) * max(n.y, 0.3);
+#if QUALITE >= 1
+  // (les dessous restent un peu éclairés : des boîtes trop sombres en bas se liraient mal)
+  vec3 vd = normalize(vPos - uCamPos);
+  vec3 L = mix(hemiAmb(n), uAmbient * 0.86, 0.3) * faceK * (1.0 - vShade * 0.3) * (1.0 - 0.62 * cov)
+         + (uSunCol * vCloud * wrapNL(n, uSunDir) + uMoonCol * max(dot(n, uMoonDir), 0.0)) * (1.0 - vShade * 0.5 * uShadowK) * (1.0 - cov)
+         + dynLights(vPos, n, 1.0)
+         + rimLight(n, vd) * vCloud * (1.0 - cov) * (1.0 - vShade * 0.5);
+  vec3 col = alb * bandLight(L);
+  if (uWet > 0.02 && uSpec > 0.0 && cov < 0.5) col += uSunCol * vCloud * pow(max(dot(reflect(vd, n), uSunDir), 0.0), 50.0) * 0.9 * uWet * uSpec;
+#else
   vec3 L = uAmbient * (0.72 + 0.28 * max(n.y, 0.0)) * faceK * (1.0 - vShade * 0.3) * (1.0 - 0.62 * cov)
          + (uSunCol * max(dot(n, uSunDir), 0.0) + uMoonCol * max(dot(n, uMoonDir), 0.0)) * (1.0 - vShade * 0.5 * uShadowK) * (1.0 - cov)
          + dynLights(vPos, n, 1.0);
   vec3 col = alb * bandLight(L);
+#endif
   if ((vTex.z & 2) != 0) col += vec3(0.11, 0.1, 0.07) * (0.55 + 0.45 * sin(uTime * 5.0));
   outCol = vec4(applyFog(col, vPos), 1.0);
 }`;
 
 // ---------------------------------------------------------------- pluie (traits autour de la caméra)
+// (les gouttes prennent la lumière : lanternes, éclair, soleil à contre-jour)
 SH.rainVS = GLSL_HEAD + GLSL_TERRAIN + GLSL_COVER + `
+#if QUALITE >= 1
+` + GLSL_LIGHT + `
+out vec3 vLit;
+#endif
 uniform mat4 uViewProj;
 uniform vec3 uCamPosV;
 uniform float uTimeV;
@@ -683,15 +1061,33 @@ void main() {
   if (gl_VertexID - d * 2 == 1) p += normalize(vec3(uRainWind.x, -speed, uRainWind.y)) * (0.5 + h.x * 0.4);
   bool hidden = p.y < terrainH(p.xz) || coveredAt(p) > 0.5;
   vA = hidden ? 0.0 : 0.5;
+#if QUALITE >= 1
+  vec3 vd = normalize(p - uCamPosV);
+  vLit = dynLights(p, vec3(0.0), 0.0) * 0.9 + uSunCol * pow(max(dot(vd, uSunDir), 0.0), 6.0) * 0.7;
+#endif
   gl_Position = hidden ? vec4(2.0, 2.0, 2.0, 1.0) : uViewProj * vec4(p, 1.0);
 }`;
 SH.rainFS = GLSL_HEAD + `
 uniform vec3 uRainCol;
 in float vA;
+#if QUALITE >= 1
+in vec3 vLit;
+#endif
 out vec4 outCol;
-void main() { outCol = vec4(uRainCol, vA); }`;
+void main() {
+#if QUALITE >= 1
+  float l = max(max(vLit.r, vLit.g), vLit.b);
+  outCol = vec4(uRainCol + vLit, vA * (1.0 + min(l, 1.0)));
+#else
+  outCol = vec4(uRainCol, vA);
+#endif
+}`;
 // neige : des flocons (points) qui tombent lentement en tournoyant, poussés par le vent
 SH.snowVS = GLSL_HEAD + GLSL_TERRAIN + GLSL_COVER + `
+#if QUALITE >= 1
+` + GLSL_LIGHT + `
+out vec3 vLit;
+#endif
 uniform mat4 uViewProj;
 uniform vec3 uCamPosV;
 uniform float uTimeV;
@@ -709,14 +1105,27 @@ void main() {
   bool hidden = p.y < terrainH(p.xz) || coveredAt(p) > 0.5;
   vec4 cp = uViewProj * vec4(p, 1.0);
   vA = hidden ? 0.0 : 0.9;
+#if QUALITE >= 1
+  // près d'une lanterne, les flocons s'allument ; certains accrochent le soleil en tournoyant
+  vLit = dynLights(p, vec3(0.0), 0.0) * 0.8 + uSunCol * step(0.82, fract(h.x * 31.7 + uTimeV * (0.6 + h.y))) * 0.6;
+#endif
   gl_Position = hidden ? vec4(2.0, 2.0, 2.0, 1.0) : cp;
   gl_PointSize = clamp(0.055 * uPxScale / max(cp.w, 0.1), 1.0, 4.0);
 }`;
 SH.snowFS = GLSL_HEAD + `
 uniform vec3 uSnowCol;
 in float vA;
+#if QUALITE >= 1
+in vec3 vLit;
+#endif
 out vec4 outCol;
-void main() { outCol = vec4(uSnowCol, vA); }`;
+void main() {
+#if QUALITE >= 1
+  outCol = vec4(uSnowCol + vLit, vA);
+#else
+  outCol = vec4(uSnowCol, vA);
+#endif
+}`;
 
 // ---------------------------------------------------------------- particules (CPU)
 SH.partVS = GLSL_HEAD + `
@@ -766,7 +1175,11 @@ void main() {
   if (uMode < 0.5) {
     y = gy + 0.5 + h.z * 2.2 + sin(t * 2.1) * 0.35;
     float blink = pow(max(sin(uTimeV * (0.8 + h.y * 1.7) + h.x * 30.0), 0.0), 3.0);
+#if QUALITE >= 1
+    vCol = vec4(vec3(0.72, 1.0, 0.32) * (0.25 + blink * 2.2) * fade * ok * uAmount, 1.0);
+#else
     vCol = vec4(vec3(0.72, 1.0, 0.32) * (0.25 + blink * 1.4) * fade * ok * uAmount, 1.0);
+#endif
   } else {
     y = gy + 0.35 + h.z * 1.1 + abs(sin(t * 5.0)) * 0.35;
     vec3 c = h.y < 0.3 ? vec3(1.0, 0.95, 0.9) : (h.y < 0.6 ? vec3(1.0, 0.85, 0.2) : (h.y < 0.8 ? vec3(0.95, 0.5, 0.15) : vec3(0.5, 0.65, 1.0)));
@@ -806,7 +1219,11 @@ void main() {
   if (uBandsG > 0.0) { float m = max(max(l.r, l.g), max(l.b, 1e-4)); l *= (max(floor(m * uBandsG + 0.5), 1.0) / uBandsG) / m; }
   vec3 c = t.rgb * l;
   if (t.a > 0.66 && t.a < 0.74) c = t.rgb * uTintG * (0.55 + 0.6 * max(max(l.r, l.g), l.b));
+#if QUALITE >= 1
+  else if (t.a > 0.75 && t.a < 0.9) c = t.rgb * (1.1 + 0.9 * smoothstep(0.55, 0.95, max(max(t.r, t.g), t.b)));
+#else
   else if (t.a > 0.75 && t.a < 0.9) c = t.rgb * 1.1;
+#endif
   outCol = vec4(c, 1.0);
 }`;
 
@@ -829,6 +1246,7 @@ uniform vec4 uGlitch;   // x: déchirures, y: décalage RVB, z: blocs de bruit, 
 uniform float uSeed;
 uniform vec4 uFx;       // x: épuisement, y: nuit rouge, z: nausée, w: l'Envers
 uniform vec4 uFx2;      // autres mondes : x: bonbons, y: ténèbres, z: cauchemar, w: enfers
+uniform float uGrain;   // grain de pellicule (option)
 out vec4 outCol;
 const float B[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
 float h11(float n) { return fract(sin(n * 12.9898 + uSeed * 78.233) * 43758.5453); }
@@ -837,6 +1255,9 @@ vec3 rgb2hsv(vec3 c) { vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0); vec4 p =
 vec3 hsv2rgb(vec3 c) { vec3 p = abs(fract(c.xxx + vec3(1.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0); return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y); }
 void main() {
   vec2 px = floor(gl_FragCoord.xy / uScale);
+#if QUALITE >= 1
+  vec2 px0 = px;
+#endif
   if (uUnder > 0.5) px.x += floor(sin(px.y * 0.18 + uTimeP * 3.0) * 1.5);
   if (uFx.z > 0.0) px += floor(vec2(sin(px.y * 0.07 + uTimeP * 2.1), cos(px.x * 0.05 + uTimeP * 1.7)) * 3.0 * uFx.z);
   if (uFx2.x > 0.0) px += floor(vec2(sin(px.y * 0.045 + uTimeP * 1.2), cos(px.x * 0.035 + uTimeP * 0.9)) * 2.2 * uFx2.x);
@@ -848,7 +1269,16 @@ void main() {
     if (r < uGlitch.x * 0.6) px.x += floor((h11(band + 3.1) - 0.5) * 60.0 * uGlitch.x);
   }
   px = clamp(px, vec2(0.0), uRes - 1.0);
+#if QUALITE >= 1
+  // l'agrandissement « net et lisse » (Moyenne et plus) : chaque gros pixel reste net, son bord se fond sur un pixel
+  // d'écran environ (au lieu d'une marche dure) ; les déformations décalent la lecture d'autant
+  vec2 fp = gl_FragCoord.xy / uScale + (px - px0);
+  float sc = max(uScale / 1.2, 1.0), rr = 0.5 - 0.5 / sc;
+  vec2 fr = fract(fp) - 0.5;
+  vec3 c = texture(uScene, (floor(fp) + (fr - clamp(fr, -rr, rr)) * sc + 0.5) / uRes).rgb;
+#else
   vec3 c = fetchC(px);
+#endif
   if (uGlitch.y > 0.0) { float o = floor(uGlitch.y * 4.0 + 1.0); c.r = fetchC(px + vec2(o, 0.0)).r; c.b = fetchC(px - vec2(o, 0.0)).b; }
   if (uGlitch.z > 0.0) {
     vec2 blk = floor(px / vec2(12.0, 6.0));
@@ -889,10 +1319,210 @@ void main() {
   vec2 q = px / uRes - 0.5;
   c *= 1.0 - dot(q, q) * (0.4 + uFx.x * 2.6 + uFx2.y * 2.4 + uFx2.z * 2.8 + uFx2.w * 1.2);
   c = mix(c, uTint.rgb, uTint.a);
+  // le grain de pellicule : fin (à la taille de l'écran), plus marqué dans les tons moyens, qui bouge à chaque image
+  if (uGrain > 0.0) { float g = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233)) + uSeed * 3.7) * 43758.5453) - 0.5; float l = dot(c, vec3(0.3, 0.55, 0.15)); c += g * uGrain * (0.35 + 0.65 * 4.0 * l * (1.0 - l)); }
   if (uLevels > 0.0) {
+#if QUALITE >= 1
+    // (Moyenne et plus : des marches plus fines, et un tramage à la taille de l'écran, sans motif, au lieu des gros
+    // carrés ordonnés)
+    float th = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+    float lv = uLevels * 1.5;
+    c = floor(c * lv + th) / lv;
+#else
     int bx = int(px.x) & 3, by = int(px.y) & 3;
     float th = (B[by * 4 + bx] + 0.5) / 16.0;
     c = floor(c * uLevels + th) / uLevels;
+#endif
   }
   outCol = vec4(c, 1.0);
+}`;
+
+// ---------------------------------------------------------------- l'image en HDR, rendue à l'écran (Moyenne et plus)
+// exposition (l'œil s'habitue au noir des maisons et des grottes), courbe filmique (les très clairs s'arrondissent au
+// lieu de brûler), étalonnage (heure, temps, lieu) ; en Haute : anticrénelage, halo, rayons, flou des cinématiques
+SH.resolveFS = GLSL_HEAD + `
+uniform sampler2D uScene;
+uniform sampler2D uDepth;
+uniform sampler2D uBloom;
+uniform sampler2D uRays;
+uniform vec2 uRes;
+uniform float uExpo;
+uniform vec4 uGradeA;   // rgb : teinte des ombres, a : saturation
+uniform vec4 uGradeB;   // rgb : teinte des lumières, a : contraste
+uniform vec4 uGradeC;   // x : relèvement des noirs
+uniform vec4 uPostK;    // x : halo, y : rayons, z : flou de profondeur (0 : non), w : anticrénelage (0 / 1)
+uniform vec3 uRaysCol;
+uniform vec2 uNearFar;
+uniform vec4 uGlare;     // (Moyenne) xy : le soleil à l'écran, z : force, w : rapport largeur / hauteur
+uniform vec3 uGlareCol;
+out vec4 outCol;
+vec3 filmic(vec3 c) {
+  // linéaire jusqu'au genou (le jeu garde ses couleurs), puis une épaule longue et douce qui tend vers le blanc ; les
+  // très clairs pâlissent un peu, comme sur la pellicule
+  float m = max(max(c.r, c.g), c.b);
+  const float k = 0.72, W = 1.12;
+  if (m <= k) return c;
+  float mm = min(k + (W - k) * (1.0 - exp(-(m - k) / (W - k))), 1.0);
+  vec3 r = c * (mm / m);
+  return mix(r, vec3(mm), clamp((m - 1.0) * 0.25, 0.0, 0.55));
+}
+vec3 grade(vec3 c) {
+  float l = dot(c, vec3(0.299, 0.587, 0.114));
+  // (la saturation gagne surtout les couleurs ternes : les verts déjà vifs ne virent pas au fluo)
+  float sat = uGradeA.a > 1.0 ? mix(uGradeA.a, 1.0, clamp((max(max(c.r, c.g), c.b) - min(min(c.r, c.g), c.b)) * 1.6, 0.0, 1.0)) : uGradeA.a;
+  c = max(mix(vec3(l), c, sat), 0.0);
+  c = max((c - 0.42) * uGradeB.a + 0.42, 0.0);
+  float t = smoothstep(0.04, 0.85, l);
+  c *= mix(uGradeA.rgb, uGradeB.rgb, t);
+  // les noirs les plus profonds, à peine relevés (les tons moyens ne bougent pas)
+  vec3 b = 1.0 - clamp(c, 0.0, 1.0);
+  b *= b;
+  return c + uGradeC.x * b * b;
+}
+#if QUALITE >= 2
+float lumaC(vec3 c) { float l = dot(c, vec3(0.299, 0.587, 0.114)); return l / (1.0 + l); }
+// anticrénelage (FXAA 3.11 « console », sur l'image HDR à luminance comprimée) : les arêtes franches seulement (le
+// grain des textures reste net)
+vec3 fxaa(vec2 uv, vec2 px, vec3 cM) {
+  vec3 cNW = texture(uScene, uv + vec2(-0.5, -0.5) * px).rgb, cNE = texture(uScene, uv + vec2(0.5, -0.5) * px).rgb;
+  vec3 cSW = texture(uScene, uv + vec2(-0.5, 0.5) * px).rgb, cSE = texture(uScene, uv + vec2(0.5, 0.5) * px).rgb;
+  float lM = lumaC(cM), lNW = lumaC(cNW), lNE = lumaC(cNE), lSW = lumaC(cSW), lSE = lumaC(cSE);
+  float lMin = min(lM, min(min(lNW, lNE), min(lSW, lSE))), lMax = max(lM, max(max(lNW, lNE), max(lSW, lSE)));
+  if (lMax - lMin < max(0.06, lMax * 0.16)) return cM;
+  vec2 dir = vec2(-((lNW + lNE) - (lSW + lSE)), (lNW + lSW) - (lNE + lSE));
+  float red = max((lNW + lNE + lSW + lSE) * 0.03125, 1.0 / 128.0);
+  dir = clamp(dir / (min(abs(dir.x), abs(dir.y)) + red), -6.0, 6.0) * px;
+  vec3 a = 0.5 * (texture(uScene, uv + dir * (1.0 / 3.0 - 0.5)).rgb + texture(uScene, uv + dir * (2.0 / 3.0 - 0.5)).rgb);
+  vec3 b = a * 0.5 + 0.25 * (texture(uScene, uv - dir * 0.5).rgb + texture(uScene, uv + dir * 0.5).rgb);
+  float lB = lumaC(b);
+  return (lB < lMin || lB > lMax) ? a : b;
+}
+float linZ(float z) { float n = uNearFar.x, f = uNearFar.y; return 2.0 * n * f / (f + n - (z * 2.0 - 1.0) * (f - n)); }
+const vec2 DISQUE[12] = vec2[12](vec2(-0.326, -0.406), vec2(-0.840, -0.074), vec2(-0.696, 0.457), vec2(-0.203, 0.621), vec2(0.962, -0.195), vec2(0.473, -0.480),
+  vec2(0.519, 0.767), vec2(0.185, -0.893), vec2(0.507, 0.064), vec2(0.896, 0.412), vec2(-0.322, -0.933), vec2(-0.792, -0.598));
+// le flou des cinématiques : net là où regarde la caméra (le centre), flou devant et derrière
+vec3 dof(vec2 uv, vec2 px, vec3 c) {
+  float fz = (linZ(texture(uDepth, vec2(0.5)).r) * 2.0 + linZ(texture(uDepth, vec2(0.46, 0.5)).r) + linZ(texture(uDepth, vec2(0.54, 0.5)).r)
+    + linZ(texture(uDepth, vec2(0.5, 0.45)).r) + linZ(texture(uDepth, vec2(0.5, 0.55)).r)) / 6.0;
+  float z = linZ(texture(uDepth, uv).r);
+  float k = uPostK.z;
+  float coc = clamp(abs(1.0 - fz / max(z, 0.05)) * 1.25, 0.0, 1.0);
+  if (coc < 0.04) return c;
+  vec3 acc = c; float ws = 1.0;
+  for (int i = 0; i < 12; i++) {
+    vec2 tu = uv + DISQUE[i] * coc * k * px;
+    float tz = linZ(texture(uDepth, tu).r);
+    float tc = clamp(abs(1.0 - fz / max(tz, 0.05)) * 1.25, 0.0, 1.0);
+    float w = tz < z ? tc : 1.0;
+    acc += texture(uScene, tu).rgb * w; ws += w;
+  }
+  return acc / ws;
+}
+#endif
+void main() {
+  vec2 px = 1.0 / uRes;
+  vec2 uv = gl_FragCoord.xy * px;
+  vec3 c = texelFetch(uScene, ivec2(gl_FragCoord.xy), 0).rgb;
+#if QUALITE >= 2
+  // (pas sur le ciel : les étoiles et le disque du soleil restent nets)
+  if (uPostK.w > 0.5 && texelFetch(uDepth, ivec2(gl_FragCoord.xy), 0).r < 0.99999) c = fxaa(uv, px, c);
+  if (uPostK.z > 0.0) c = dof(uv, px, c);
+  c += texture(uBloom, uv).rgb * uPostK.x;
+  c += texture(uRays, uv).r * uRaysCol * uPostK.y;
+#endif
+#if QUALITE == 1
+  // l'éblouissement du soleil (sans halo des lumières) : une lueur large autour de lui, éteinte s'il est caché
+  if (uGlare.z > 0.0) {
+    float vis = 0.0;
+    for (int i = 0; i < 5; i++) {
+      vec2 o = i == 0 ? vec2(0.0) : vec2(i == 1 ? 0.012 : (i == 2 ? -0.012 : 0.0), i == 3 ? 0.02 : (i == 4 ? -0.02 : 0.0));
+      vis += texture(uDepth, uGlare.xy + o).r > 0.99999 ? 0.2 : 0.0;
+    }
+    float d = length((uv - uGlare.xy) * vec2(uGlare.w, 1.0));
+    c += uGlareCol * (exp(-d * 9.0) * 0.55 + exp(-d * 2.6) * 0.22) * vis * uGlare.z;
+  }
+#endif
+  c = grade(filmic(max(c, 0.0) * uExpo));
+  outCol = vec4(c, 1.0);
+}`;
+
+// ---------------------------------------------------------------- le halo des lumières (bloom, Haute et plus)
+// descente : seuil doux au premier pas (pondéré pour éviter les points qui clignotent), puis moyennes ;
+// remontée : filtre en tente, ajouté au niveau du dessus
+SH.bloomDownFS = GLSL_HEAD + `
+uniform sampler2D uSrc;
+uniform vec2 uTexel;
+uniform vec2 uDstRes;
+uniform vec3 uSeuil;    // x : seuil, y : genou, z : 1 au premier pas
+out vec4 outCol;
+vec3 seuil(vec3 c) {
+  float br = max(max(c.r, c.g), c.b);
+  float rq = clamp(br - uSeuil.x + uSeuil.y, 0.0, 2.0 * uSeuil.y);
+  rq = rq * rq / (4.0 * uSeuil.y + 1e-4);
+  return c * max(rq, br - uSeuil.x) / max(br, 1e-4);
+}
+void main() {
+  vec2 uv = gl_FragCoord.xy / uDstRes, o = uTexel;
+  vec3 a = texture(uSrc, uv + vec2(-o.x, -o.y)).rgb, b = texture(uSrc, uv + vec2(o.x, -o.y)).rgb;
+  vec3 c = texture(uSrc, uv + vec2(-o.x, o.y)).rgb, d = texture(uSrc, uv + vec2(o.x, o.y)).rgb;
+  if (uSeuil.z > 0.5) {
+    a = seuil(a); b = seuil(b); c = seuil(c); d = seuil(d);
+    float wa = 1.0 / (1.0 + max(max(a.r, a.g), a.b)), wb = 1.0 / (1.0 + max(max(b.r, b.g), b.b));
+    float wc = 1.0 / (1.0 + max(max(c.r, c.g), c.b)), wd = 1.0 / (1.0 + max(max(d.r, d.g), d.b));
+    outCol = vec4((a * wa + b * wb + c * wc + d * wd) / (wa + wb + wc + wd), 1.0);
+  } else outCol = vec4((a + b + c + d) * 0.25, 1.0);
+}`;
+SH.bloomUpFS = GLSL_HEAD + `
+uniform sampler2D uSrc;
+uniform vec2 uTexel;
+uniform vec2 uDstRes;
+uniform float uK;
+out vec4 outCol;
+void main() {
+  vec2 uv = gl_FragCoord.xy / uDstRes, o = uTexel;
+  vec3 s = texture(uSrc, uv).rgb * 4.0;
+  s += (texture(uSrc, uv + vec2(o.x, 0.0)).rgb + texture(uSrc, uv - vec2(o.x, 0.0)).rgb + texture(uSrc, uv + vec2(0.0, o.y)).rgb + texture(uSrc, uv - vec2(0.0, o.y)).rgb) * 2.0;
+  s += texture(uSrc, uv + o).rgb + texture(uSrc, uv - o).rgb + texture(uSrc, uv + vec2(o.x, -o.y)).rgb + texture(uSrc, uv + vec2(-o.x, o.y)).rgb;
+  outCol = vec4(s * (uK / 16.0), 1.0);
+}`;
+// les rayons du soleil (Haute et plus) : du soleil vers chaque point, la part de ciel qu'on traverse (les troncs, les
+// feuillages et les toits font des ombres dans la lumière)
+SH.raysFS = GLSL_HEAD + `
+uniform sampler2D uDepth;
+uniform vec2 uDstRes;
+uniform vec3 uSunUV;    // xy : le soleil à l'écran (0..1, peut sortir), z : rapport largeur / hauteur
+out vec4 outCol;
+void main() {
+  vec2 uv = gl_FragCoord.xy / uDstRes;
+  vec2 dv = uSunUV.xy - uv;
+#if QUALITE >= 3
+  const int N = 40;
+#else
+  const int N = 24;
+#endif
+  vec2 st = dv / float(N);
+  vec2 p = uv + st * fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+  float acc = 0.0, w = 1.0, ws = 0.0;
+  for (int i = 0; i < N; i++) {
+    float sky = texture(uDepth, p).r > 0.99999 ? 1.0 : 0.0;
+    acc += sky * w; ws += w;
+    w *= 0.96;
+    p += st;
+  }
+  float d = length(dv * vec2(uSunUV.z, 1.0));
+  float r = acc / ws * exp(-d * 2.4);
+  outCol = vec4(r, r, r, 1.0);
+}`;
+// la carte des ombres de nuages (Moyenne et plus) : 1 au soleil, moins sous un nuage
+SH.nuagesFS = GLSL_HEAD + GLSL_NOISE + `
+uniform vec2 uDstRes;
+uniform vec4 uNuagesP;   // xy : coin du monde (m), z : taille (m), w : seuil (selon la couverture)
+uniform vec2 uDerive;    // dérive des nuages avec le vent
+out vec4 outCol;
+void main() {
+  vec2 wp = uNuagesP.xy + gl_FragCoord.xy / uDstRes * uNuagesP.z;
+  vec2 q = wp * 0.0068 + uDerive;
+  float c = vnoise(q) * 0.6 + vnoise(q * 2.3 + 5.1) * 0.28 + vnoise(q * 5.9 + 1.7) * 0.12;
+  float s = 1.0 - smoothstep(uNuagesP.w, uNuagesP.w + 0.14, c);
+  outCol = vec4(s, s, s, 1.0);
 }`;
