@@ -66,7 +66,7 @@ const M19M = {
     } else {
       const n = Math.max(2, Math.floor(H / 0.5)), hh = H / n;
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (let k = 0; k < n; k++) {
-        const long = (k + (sx * sz > 0 ? 0 : 1)) % 2 === 0, lx = long ? 0.62 : 0.36, lz = long ? 0.36 : 0.62;
+        const long = (k + (sx * sz > 0 ? 0 : 1)) % 2 === 0, lx = long ? 0.62 : 0.33, lz = long ? 0.33 : 0.62;
         bx(sx * (hw - lx / 2 + 0.035), k * hh, sz * (hd - lz / 2 + 0.035), lx, hh - 0.025, lz, clair, P);
       }
     }
