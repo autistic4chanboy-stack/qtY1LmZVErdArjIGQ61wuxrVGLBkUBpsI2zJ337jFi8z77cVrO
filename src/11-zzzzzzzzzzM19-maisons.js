@@ -17,6 +17,9 @@
 //  pour les collisions ni les abris ; la maison est notée au passage (w.m19M) et
 //  son décor est dessiné quand les objets posés le sont (play.buildProps). Une
 //  maison dont le toit est caché (blocs masqués, autre version du monde) n'en a pas.
+//  Plus bas, les retouches de la vague M19 qui doivent passer après les modules
+//  qu'elles reprennent : les roues de la charrette (attelage), le chat sauvage et
+//  les oiseaux du module de la nature.
 // ============================================================================
 {
   const _house = Builder.prototype.house;
