@@ -192,6 +192,37 @@ const M19M = {
 }
 
 // ============================================================================
+//  LES BÊTES QUI PARLENT (vague M19) : Tibert, Hermeline et Bayard sont faits du
+//  gabarit des quadrupèdes, et leurs détails étaient posés pour des pattes et des
+//  queues d'une seule boîte : le bout de la queue va au bout du second segment,
+//  les fanons de Bayard au bas des canons (ils suivent le genou), le moignon
+//  d'Hermeline au bout de son canon, à la place de la patte qui lui manque.
+// ============================================================================
+{
+  // une pièce rattachée à une autre (qui la précède dans la liste : les pièces en plus sont au bout)
+  const reprendre = (r, n, par, p) => { const q = r.part(n); if (!q || r.idx[par] === undefined || r.idx[par] > r.idx[n]) return null; q.parent = par; q.pi = r.idx[par]; q.p = p; return q; };
+  const bout = (r) => {
+    const tb = r.part('tailb');
+    if (!tb) return;
+    const flat = tb.s[2] > tb.s[1];
+    reprendre(r, 'bout', 'tailb', flat ? [0, 0, -tb.s[2] + 0.03] : [0, -tb.s[1] + 0.025, 0]);
+  };
+  const W = (id, fn) => {
+    const _f = ANIMAL_RIGS[id];
+    if (_f) ANIMAL_RIGS[id] = function (...a) { const r = _f.apply(this, a); try { fn(r); } catch (e) { console.warn('M19 : ' + id, e); } return r; };
+  };
+  W('p_chat', bout);
+  W('p_renarde', (r) => {
+    bout(r);
+    const lo = r.part('legFLb');
+    if (lo && reprendre(r, 'moignon', 'legFLb', [0, -(lo.s[1] - 0.03) + 0.02, 0.004])) { const pw = r.part('legFLh'); if (pw) pw.hide = true; }
+  });
+  W('p_cheval', (r) => {
+    for (const n of ['legFL', 'legFR', 'legBL', 'legBR']) { const lo = r.part(n + 'b'); if (lo) reprendre(r, 'fanon' + n, n + 'b', [0, -(lo.s[1] - 0.03) + 0.14, 0]); }
+  });
+}
+
+// ============================================================================
 //  LES OISEAUX DES BOIS, DES PRÉS ET DES EAUX (vague M19) : ceux du module de la
 //  nature (11-zzzz8) étaient faits d'une boîte, de deux planches et de deux
 //  bâtons ; les voici avec les corps d'oiseau (ailes repliées au repos,
