@@ -164,3 +164,26 @@ const M19M = {
     try { return _ch.call(this, E, o, t); } finally { E.box = box; }
   };
 }
+
+// ============================================================================
+//  LE CHAT SAUVAGE (vague M19) : il est fait d'un chat domestique grossi, et sa
+//  queue d'avant (une seule boîte) avait son bout noir à 0,4 m du pivot ; avec
+//  la queue en deux segments, le bout va au bout du second, la queue est épaisse
+//  d'un bout à l'autre et portée basse, presque à l'horizontale.
+// ============================================================================
+{
+  const _cs = ANIMAL_RIGS.chat_sauvage;
+  if (_cs) ANIMAL_RIGS.chat_sauvage = function (...a) {
+    const r = _cs.apply(this, a);
+    try {
+      const tb = r.part('tailb'), bt = r.part('bout'), tq = r.part('tail');
+      if (tb && bt && tq) {
+        tq.s = [tq.s[0], Math.abs(tb.p[1]) + 0.012, tq.s[2]]; tq.o = [0, -tq.s[1] / 2 + 0.006, tq.o[2]];
+        tb.s = [tq.s[0] * 0.95, tb.s[1], tq.s[2] * 0.95];
+        bt.parent = 'tailb'; bt.pi = r.idx.tailb; bt.p = [0, -tb.s[1] + 0.03, 0];
+      }
+      if (r.q2) r.q2.tl = 0.9;
+    } catch (e) { console.warn('M19 : chat sauvage', e); }
+    return r;
+  };
+}

@@ -120,7 +120,8 @@ function m19Tuiles() {
 // head, headCol, headTex, face, snout [l, h, L, y], snoutCol, snoutTex, ears, earCol, horns, tail, tailCol) et en plus :
 //   simpleLegs (une seule boîte par patte), paw (couleur des pattes larges), earPoint (oreilles pointues), earTilt,
 //   earDroop (oreilles tombantes), snoutTip ([couleur, tuile] : le bout du museau), tuft (couleur du toupet de la queue),
-//   tailK (part de la queue dans le premier segment), eyes (couleur des yeux posés sur les côtés de la tête), bodyShp
+//   tailK (part de la queue dans le premier segment), tailLift (la queue relevée : un angle de plus vers l'arrière et le
+//   haut), eyes (couleur des yeux posés sur les côtés de la tête), bodyShp
 const _m19QuadRig0 = quadRig;
 quadRig = function (o) {
   const { P, add } = rigParts();
@@ -186,7 +187,7 @@ quadRig = function (o) {
   }
   const rig = new Rig(P);
   rig.kind = 'quad'; rig.cfg = o;
-  rig.q2 = { by: o.bodyY, bh, hock, big: bh >= 0.4, sway: !!o.swish, np: o.np || null, hp: o.hp || null };
+  rig.q2 = { by: o.bodyY, bh, hock, big: bh >= 0.4, sway: !!o.swish, np: o.np || null, hp: o.hp || null, tl: o.tailLift || 0 };
   return rig;
 };
 // (les bêtes mises à l'échelle gardent leur balancement : la hauteur du corps suit)
@@ -235,6 +236,7 @@ quadRig = function (o) {
     // la queue : balance à la marche ; au repos, les vaches et les chevaux chassent les mouches
     const tq = R('tail'), tb = R('tailb');
     if (tq) {
+      if (Q.tl) tq[0] += Q.tl;
       tq[1] += mv > 0.01 ? Math.sin(ph) * 0.14 * mv : (Q.sway ? Math.sin(t * 1.9 + sd) * 0.3 * Math.max(0, Math.sin(t * 0.37 + sd * 2)) : 0);
       if (tb) { tb[0] = 0.08 + (run ? 0.25 * mv : 0) + Math.sin(t * 1.3 + sd) * 0.04; tb[1] = tq[1] * 0.6; tb[2] = 0; }
     }
@@ -444,7 +446,7 @@ Object.assign(ANIMAL_RIGS, {
     const r = quadRig({ col: c, body: [0.18, 0.19, 0.44], bodyY: 0.31, leg: [0.055, 0.27], paw: clair, bodyTex: k === 1 ? TL.stripes : TL.fur,
       neck: [0, 0.08], head: [0.15, 0.14, 0.13], face: TL.fur, snout: [0.07, 0.06, 0.04, -0.035], snoutCol: clair, snoutTex: TL.fur, snoutShp: TF.calotte, snoutTip: [rgbf('#e8a0a0'), TL.plain],
       ears: [0.035, 0.07, 0.03], earPoint: true, earTilt: 0.32, earZ: 0.3, eyes: [1.05, 1.15, 0.75], eyeFront: true, eyeY: 0.12, eyeX: 0.24, eyeS: 0.032,
-      tail: [0.03, 0.44, 0.03], tailK: 0.5, np: [0.0, 0.8], hp: [-0.05, 0.4] });
+      tail: [0.03, 0.44, 0.03], tailK: 0.5, tailLift: 1.75, np: [0.0, 0.8], hp: [-0.05, 0.4] });
     return rigPlus(r, [
       M19X('jouesL', 'head', [-0.06, -0.035, 0.08], [0.04, 0.06, 0.07], c, TL.fur),
       M19X('jouesR', 'head', [0.06, -0.035, 0.08], [0.04, 0.06, 0.07], c, TL.fur),
@@ -1122,6 +1124,24 @@ function m19SubTonneau(E, x, y, z, h) { E.box(x, y + h / 2, z + 0.02, h * 0.62, 
 
 // ---------------------------------------------------------------- les oiseaux : des corps d'oiseau (e1Oiseau)
 // ailes repliées au repos, déployées en vol (e1Pose) ; yeux sur les côtés pour la basse-cour
+// (les pièces en plus d'e1Oiseau ne prenaient leur rotation de repos, leur forme, leur drapeau qu'à travers « extra » :
+// celles qui les donnent directement, comme les autres pièces, les gardent maintenant)
+{
+  const _e1o = e1Oiseau;
+  e1Oiseau = function (o) {
+    if (o && o.plus) {
+      o = Object.assign({}, o, {
+        plus: o.plus.map((x) => {
+          if (!x || x.extra || (x.r0 === undefined && x.shp === undefined && x.hide === undefined && x.fl === undefined)) return x;
+          const e = {};
+          for (const k of ['r0', 'shp', 'hide', 'fl']) if (x[k] !== undefined) e[k] = x[k];
+          return Object.assign({}, x, { extra: e });
+        }),
+      });
+    }
+    return _e1o(o);
+  };
+}
 const m19YeuxCote = (hd, y, z, k, col) => [-1, 1].map((s) => ({ name: 'oeil' + s, parent: 'head', p: [s * (hd[0] / 2 + 0.002), hd[1] * (y ?? 0.62), hd[2] * (z ?? 0.38)], s: [0.004, hd[1] * 0.22 * (k || 1), hd[2] * 0.2 * (k || 1)], o: [0, 0, 0], col: col || [1, 1, 1], tex: TL.m19Oeil }));
 Object.assign(ANIMAL_RIGS, {
   // poule : crête dentelée, barbillons, queue relevée en éventail, cuisses emplumées, pattes jaunes et doigts
@@ -1205,6 +1225,100 @@ Object.assign(ANIMAL_RIGS, {
       leg: [0.008, 0.036], legCol: rgbf('#8a6a5a'), batF: 20, batA: 0.9,
       plus: [{ name: 'barre', parent: 'body', p: [0, body[1] * 0.18, 0], s: [body[0] * 1.12, body[1] * 0.12, body[2] * 0.4], o: [0, 0, 0], col: rgbf(b), tex: TL.plain },
         ...e1Yeux(head, [0.12, 0.1, 0.08], 1.0, 0.62, 0.6)],
+    });
+  },
+});
+// les oiseaux sauvages d'avant (une boîte, deux planches pour ailes, deux bâtons) refaits avec les mêmes corps
+Object.assign(ANIMAL_RIGS, {
+  // héron cendré : dos gris, cou blanc strié de noir, sourcil et huppe noirs, long bec jaune, rémiges noires
+  heron: () => {
+    const gris = rgbf('#8e949c'), clair = rgbf('#e4e8ec'), noir = rgbf('#24262a'), body = [0.2, 0.22, 0.4], head = [0.075, 0.08, 0.11];
+    return e1Oiseau({
+      body, bodyY: 0.72, dos: gris, bodyTex: TL.m19Plumes, ventre: rgbf('#c8ccd2'), ventreTex: TL.m19Plumes, ventreS: 0.6, head, headCol: clair, face: TL.fur,
+      neck: [0.05, 0.36, 0.05], neckR: [0.35, 0, 0], neckCol: clair, beak: [0.026, 0.026, 0.19], beakCol: rgbf('#d8b030'), beakY: 0.4,
+      tail: [0.12, 0.03, 0.1], tailCol: gris, tailUp: -0.15, wing: [0.75, 0.018, 0.3], wingCol: gris, wingTip: noir, dessous: rgbf('#9aa0a8'),
+      pliCol: rgbf('#7e848c'), pliL: 1.0, leg: [0.022, 0.6], legCol: rgbf('#9a8a5a'), batF: 4, batA: 0.5,
+      plus: [...e1Yeux(head, [0.95, 0.85, 0.2], 0.9, 0.62, 0.6),
+        { name: 'sourcil', parent: 'head', p: [0, head[1] * 0.8, -0.004], s: [head[0] * 1.06, head[1] * 0.18, head[2] * 0.72], col: noir, tex: TL.plain },
+        { name: 'huppe', parent: 'head', p: [0, head[1] * 0.8, -head[2] * 0.28], s: [0.012, 0.01, 0.13], o: [0, 0, -0.06], col: noir, tex: TL.plain, r0: [-0.25, 0, 0] },
+        { name: 'strie', parent: 'neckB', p: [0, 0.05, 0.026], s: [0.014, 0.24, 0.004], o: [0, 0.1, 0], col: noir, tex: TL.plain }],
+    });
+  },
+  // cigogne blanche : toute blanche, le bout et l'arrière des ailes noirs, bec et pattes rouges
+  stork: () => {
+    const blanc = rgbf('#f2f2ee'), noir = rgbf('#1c1c20'), rouge = rgbf('#d04020'), body = [0.22, 0.24, 0.42], head = [0.08, 0.085, 0.11];
+    return e1Oiseau({
+      body, bodyY: 0.75, dos: blanc, bodyTex: TL.m19Plumes, ventre: rgbf('#ececea'), ventreTex: TL.m19Plumes, ventreS: 0.6, head, headCol: blanc, face: TL.fur,
+      neck: [0.06, 0.3, 0.06], neckR: [0.2, 0, 0], beak: [0.03, 0.032, 0.22], beakCol: rouge, beakY: 0.4,
+      tail: [0.14, 0.03, 0.1], tailCol: blanc, wing: [0.8, 0.02, 0.32], wingCol: blanc, wingTip: noir, dessous: blanc, pliCol: blanc, pliTip: noir, pliL: 1.0,
+      leg: [0.026, 0.62], legCol: rouge, batF: 3.5, batA: 0.45,
+      plus: [...e1Yeux(head, [0.12, 0.1, 0.08], 0.8, 0.62, 0.6)],
+    });
+  },
+  // cygne : grand corps bas, le dos relevé par les ailes, long cou, bec orange à la base noire
+  swan: () => {
+    const blanc = rgbf('#f6f6f2'), body = [0.32, 0.24, 0.62], head = [0.08, 0.085, 0.12];
+    return e1Oiseau({
+      body, bodyY: 0.14, dos: blanc, bodyTex: TL.m19Plumes, ventre: rgbf('#eeeeea'), ventreTex: TL.m19Plumes, ventreS: 0.7, head, headCol: blanc, face: TL.fur,
+      neck: [0.07, 0.42, 0.07], neckR: [-0.1, 0, 0], beak: [0.045, 0.03, 0.1], beakCol: rgbf('#e87a20'), beakY: 0.35, cire: rgbf('#1a1a1a'),
+      tail: [0.16, 0.06, 0.12], tailUp: 0.25, tailCol: blanc, wing: [1.0, 0.024, 0.36], wingCol: blanc, dessous: rgbf('#ecece8'), pliCol: rgbf('#f0f0ea'), pliL: 0.9,
+      leg: [0.02, 0.02], legCol: rgbf('#2a2a2a'), batF: 3, batA: 0.4,
+      plus: [...e1Yeux(head, [0.1, 0.08, 0.06], 0.7, 0.62, 0.55),
+        { name: 'dosArque', parent: 'body', p: [0, body[1] * 0.42, -body[2] * 0.08], s: [body[0] * 0.75, body[1] * 0.3, body[2] * 0.6], col: blanc, tex: TL.m19Plumes }],
+    });
+  },
+  // faisan (le coq) : cuivré, tête vert sombre, caroncules rouges, collier blanc, aigrettes, très longue queue barrée
+  pheasant: () => {
+    const vert = rgbf('#1e4a3a'), rouge = rgbf('#d02a20'), body = [0.16, 0.16, 0.3], head = [0.07, 0.08, 0.085];
+    return e1Oiseau({
+      body, bodyY: 0.24, dos: rgbf('#a0522a'), bodyTex: TL.m19Plumes, ventre: rgbf('#6a321a'), ventreTex: TL.m19Plumes, ventreS: 0.6, head, headCol: vert, face: TL.fur,
+      neck: [0.055, 0.07, 0.055], neckR: [0.25, 0, 0], neckCol: vert, beak: [0.022, 0.02, 0.03], beakCol: rgbf('#d8c8a0'), beakY: 0.42,
+      tail: [0.05, 0.02, 0.46], tailCol: rgbf('#9a7a50'), tailUp: 0.22, bande: rgbf('#3a2a1c'), wing: [0.34, 0.014, 0.16], wingCol: rgbf('#b8946a'), wingTip: rgbf('#6a5a44'),
+      pliCol: rgbf('#b8946a'), pliL: 0.85, leg: [0.018, 0.12], legCol: rgbf('#8a8a80'), batF: 14, batA: 0.85,
+      plus: [
+        { name: 'caronculeL', parent: 'head', p: [-head[0] / 2 - 0.0005, head[1] * 0.5, head[2] * 0.45], s: [0.003, head[1] * 0.42, head[2] * 0.42], col: rouge, tex: TL.plain },
+        { name: 'caronculeR', parent: 'head', p: [head[0] / 2 + 0.0005, head[1] * 0.5, head[2] * 0.45], s: [0.003, head[1] * 0.42, head[2] * 0.42], col: rouge, tex: TL.plain },
+        ...m19YeuxCote(head, 0.6, 0.45, 0.9, [1, 0.92, 0.6]),
+        { name: 'collier', parent: 'neckB', p: [0, 0.004, 0], s: [0.062, 0.016, 0.062], col: [0.96, 0.96, 0.94], tex: TL.plain },
+        { name: 'aigretteL', parent: 'head', p: [-head[0] * 0.3, head[1], -head[2] * 0.1], s: [0.012, 0.03, 0.012], o: [0, 0.012, 0], col: vert, tex: TL.fur, r0: [-0.4, 0, 0.2] },
+        { name: 'aigretteR', parent: 'head', p: [head[0] * 0.3, head[1], -head[2] * 0.1], s: [0.012, 0.03, 0.012], o: [0, 0.012, 0], col: vert, tex: TL.fur, r0: [-0.4, 0, -0.2] }],
+    });
+  },
+  // perdrix grise : dos brun, poitrine grise, face orangée, le fer à cheval marron, queue rousse
+  partridge: () => {
+    const body = [0.14, 0.13, 0.2], head = [0.062, 0.065, 0.07];
+    return e1Oiseau({
+      body, bodyY: 0.14, dos: rgbf('#7a6a56'), bodyTex: TL.m19Plumes, ventre: rgbf('#8a8478'), ventreTex: TL.m19Plumes, ventreS: 0.7, head, headCol: rgbf('#c8783a'), face: TL.fur,
+      beak: [0.018, 0.016, 0.022], beakCol: rgbf('#6a6a60'), beakY: 0.42, tail: [0.07, 0.016, 0.05], tailCol: rgbf('#a8582a'), tailUp: 0.1,
+      wing: [0.22, 0.012, 0.11], wingCol: rgbf('#7a6a56'), wingTip: rgbf('#5a4e40'), pliCol: rgbf('#86745c'), pliL: 0.85, leg: [0.014, 0.07], legCol: rgbf('#c89070'), batF: 20, batA: 0.9,
+      plus: [...m19YeuxCote(head, 0.62, 0.45, 1.0, [0.9, 0.8, 0.6]),
+        { name: 'fer', parent: 'body', p: [0, -body[1] * 0.12, body[2] * 0.47], s: [body[0] * 0.5, body[1] * 0.3, 0.012], col: rgbf('#5a2a1a'), tex: TL.plain },
+        ...e1Taches('body', 6, body[0], body[1], body[2], rgbf('#4a3a2a'), 71)],
+    });
+  },
+  // chouette hulotte : grosse tête ronde, disque facial clair, yeux noirs, sourcils pâles, ventre strié, posée droite
+  owl: () => {
+    const brun = rgbf('#8a6a48'), body = [0.2, 0.28, 0.19], head = [0.18, 0.15, 0.15];
+    return e1Oiseau({
+      body, bodyY: 0.2, dos: brun, bodyTex: TL.m19Plumes, ventre: rgbf('#c8aa84'), ventreTex: TL.stripes, ventreS: 0.75, head, headCol: rgbf('#9a7a58'), headTex: TL.m19Plumes, face: TL.catF,
+      beak: [0.022, 0.026, 0.018], beakCol: rgbf('#d8c8a0'), beakY: 0.32, tail: [0.1, 0.014, 0.07], tailCol: brun, tailUp: 0.4,
+      wing: [0.5, 0.016, 0.22], wingCol: brun, dessous: rgbf('#d8c4a4'), pliCol: rgbf('#7a5c3e'), leg: [0.025, 0.05], legCol: rgbf('#c8b090'), chouette: true, batF: 6, batA: 0.6,
+      plus: [{ name: 'disque', parent: 'head', p: [0, head[1] * 0.45, head[2] * 0.7 + 0.001], s: [head[0] * 0.9, head[1] * 0.72, 0.004], col: rgbf('#b8946a'), tex: TL.fur },
+        ...e1Yeux(head, [0.08, 0.06, 0.05], 1.5, 0.5, 0.55, head[0] * 0.22),
+        { name: 'sourcils', parent: 'head', p: [0, head[1] * 0.74, head[2] * 0.7 + 0.004], s: [head[0] * 0.8, head[1] * 0.1, 0.006], col: rgbf('#e8dcc4'), tex: TL.plain },
+        ...e1Taches('body', 8, body[0], body[1], body[2], [0.95, 0.9, 0.8], 81)],
+    });
+  },
+  // pie bavarde : noire à reflets bleus, ventre et épaules blancs, longue queue verdâtre, le bout des ailes blanc en vol
+  magpie: () => {
+    const blanc = rgbf('#f2f2ee'), body = [0.11, 0.12, 0.22], head = [0.075, 0.078, 0.085];
+    return e1Oiseau({
+      body, bodyY: 0.16, dos: rgbf('#16181e'), bodyTex: TL.m19Plumes, ventre: blanc, ventreS: 0.55, head, headCol: rgbf('#16181e'), face: TL.crowF, beak: [0.02, 0.02, 0.045], beakCol: rgbf('#121214'), beakY: 0.42,
+      tail: [0.05, 0.014, 0.3], tailCol: rgbf('#1a2a3a'), tailUp: 0.2, wing: [0.26, 0.012, 0.12], wingCol: rgbf('#1a2030'), wingTip: blanc, dessous: rgbf('#2a2e36'),
+      pliCol: rgbf('#1a2030'), pliL: 0.9, leg: [0.012, 0.075], legCol: rgbf('#141416'), batF: 13, batA: 0.8,
+      plus: [...e1Yeux(head, [0.12, 0.1, 0.1], 1.0, 0.6, 0.6),
+        { name: 'epauleL', parent: 'pliL', p: [-0.009, body[1] * 0.1, -body[2] * 0.06], s: [0.004, body[1] * 0.3, body[2] * 0.42], col: blanc, tex: TL.plain },
+        { name: 'epauleR', parent: 'pliR', p: [0.009, body[1] * 0.1, -body[2] * 0.06], s: [0.004, body[1] * 0.3, body[2] * 0.42], col: blanc, tex: TL.plain }],
     });
   },
 });
