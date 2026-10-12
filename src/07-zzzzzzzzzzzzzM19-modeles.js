@@ -946,6 +946,16 @@ Object.assign(PROP_MODELS, {
   // tonneau : ventru, cerclé de fer, fermé
   tonneau(E) { m19Tonneau(E, 0.9, 0.29, [0.86, 0.72, 0.58]); },
   tonneau_vieux(E) { m19Tonneau(E, 0.85, 0.275, [0.66, 0.6, 0.52]); E.box(0.18, 0.62, 0.16, 0.2, 0.04, 0.02, [0.18, 0.14, 0.1], TL.plain, 0.6); },
+  // tonneau de pluie : ouvert, l'eau à ras bord, la descente de zinc et son coude
+  tonneau_pluie(E) {
+    const Z = [0.55, 0.57, 0.6];
+    m19Tonneau(E, 0.95, 0.31, [0.8, 0.68, 0.56], false);
+    for (const a of [0, Math.PI / 4]) E.bx(0, 0.946, 0, 0.4, 0.012, 0.4, rgbf('#3a5a6a'), mt(M_WATERB), a);
+    E.bx(-0.37, 1.12, 0, 0.075, 1.75, 0.075, Z, TL.metal);
+    E.box(-0.3, 1.06, 0, 0.075, 0.2, 0.075, Z, TL.metal, 0, 0, 0.9);
+    E.box(-0.2, 1.0, 0, 0.12, 0.07, 0.07, Z, TL.metal);
+    for (const y of [1.5, 2.3]) E.bx(-0.37, y, 0, 0.1, 0.03, 0.1, M19P.fer, TL.iron);
+  },
   // caisse d'expédition : planches, battants en Z, couvercle soulevé ; du foin quand elle est pleine
   caisse_expedition(E, o) {
     const B = M19P.bois, S = M19P.sombre;
