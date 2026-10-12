@@ -48,6 +48,11 @@ const TF = {
   capuche: trForme(-0.14, -0.14, 0, 0.35), pointe: trForme(-0.85, -0.85), voile: trForme(-0.28, -0.25, 0, 0.3), drape: trForme(-0.25, 0),
   // silhouettes pâles
   membrePale: trForme(0.6, 0.6), tetePale: trForme(0.3, 0.2, 0.1, -0.4),
+  // bêtes, objets et cultures (07-zzzzzzzzzzzzzM19-modeles.js) : ventre plus étroit que le dos, sabot évasé, museau
+  // effilé et oreille pointue (boîtes couchées vers l'avant : rx = π/2), tronc de pyramide, pot plus étroit en bas,
+  // feuilles en pointe (la longueur de la feuille sur y)
+  qCorps: trForme(0.14, 0.06), qSabot: trForme(-0.15, -0.2, 0.06), qMuseauFin: trForme(-0.55, -0.5), qOreille: trForme(-0.75, -0.4),
+  pPyramide: trForme(-0.6, -0.6), pTronc: trForme(0.25, 0.25), pFeuille: trForme(-0.7, 0), pFeuilleLarge: trForme(-0.45, 0), pLame: trForme(-0.92, 0),
 };
 // le vertex shader des modèles : la boîte est déformée avant la matrice d'instance,
 // la normale suit (cofacteurs de la jacobienne), les faces restent nettes
