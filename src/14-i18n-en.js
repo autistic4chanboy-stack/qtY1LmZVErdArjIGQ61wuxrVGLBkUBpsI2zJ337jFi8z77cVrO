@@ -14065,6 +14065,7 @@ const I18N_EN = {"v":1,"exact":[
 ["QUI VA LÀ ? Ne bougez plus, je suis armé ! … C’est vous ? Non, ne dites rien. Reculez vers la porte, doucement, les mains bien en vue. Je vous crois. Je veux vous croire. Sortez.","WHO GOES THERE? Don’t move, I’m armed! … Is it you? No, don’t say anything. Back towards the door, slowly, hands where I can see them. I believe you. I want to believe you. Get out."],
 ["QU’IL GARDE.\nQUE RIEN NE SORTE.\nQUE NUL NE LE DÉLIE.","LET IT KEEP GUARD.\nLET NOTHING GET OUT.\nLET NONE UNBIND IT."],
 ["Qualité graphique","Graphics quality"],
+["Qualité graphique abaissée : la machine peinait.","Graphics quality lowered: the machine was struggling."],
 ["Quand Joseph se réveille","When Joseph wakes up"],
 ["Quand il n’est pas revenu, j’ai jeté mon anneau à la Dauna. On fait ça, ici. On donne, pour qu’elle rende. Elle n’a rien rendu. Maintenant, je voudrais l’anneau.","When he didn’t come back, I threw my ring to the Dauna. That’s what we do here. We give, so that she’ll give back. She gave nothing back. Now I would like the ring back."],
 ["Quand il pleut, les gens écrivent plus. Moi, je cours plus. Tout le monde y trouve son compte.","When it rains, people write more. And I run more. Everybody gets something out of it."],
