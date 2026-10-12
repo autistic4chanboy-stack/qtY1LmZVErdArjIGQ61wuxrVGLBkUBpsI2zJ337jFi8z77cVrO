@@ -263,15 +263,23 @@ const M19B = {
     for (let i = 0; i < n; i++) if (F[i] & 1) for (let j = P[i].pi; j >= 0; j = P[j].pi) { if (F[j] & 2) break; F[j] |= 2; }
     return { F, FS, FO };
   },
-  // comme Rig.emit (07-zzzzz-personnages.js : les formes effilées), pour les pièces de la table seulement
+  // comme Rig.emit (m19Emettre, 07-…M19-modeles.js : les formes effilées, les pièces sans rotation), pour les
+  // pièces de la table seulement
   emettre(r, T, buf, root, flags) {
-    const P = r.parts, F = T.F, FS = T.FS, FO = T.FO;
+    const P = r.parts, F = T.F, FS = T.FS, FO = T.FO, fr = Math.fround;
     for (let i = 0, n = P.length; i < n; i++) {
       const f = F[i];
       if (!f) continue;
-      const q = P[i];
-      m34TR(_mT, q.p[0], q.p[1], q.p[2], q.r[0], q.r[1], q.r[2]);
-      m34Mul(q.W, q.pi < 0 ? root : P[q.pi].W, _mT);
+      const q = P[i], rr = q.r, p = q.p, W = q.W, A = q.pi < 0 ? root : P[q.pi].W;
+      if (rr[0] === 0 && rr[1] === 0 && rr[2] === 0) {
+        const px = fr(p[0]), py = fr(p[1]), pz = fr(p[2]);
+        W[0] = A[0]; W[1] = A[1]; W[2] = A[2]; W[3] = A[0] * px + A[1] * py + A[2] * pz + A[3];
+        W[4] = A[4]; W[5] = A[5]; W[6] = A[6]; W[7] = A[4] * px + A[5] * py + A[6] * pz + A[7];
+        W[8] = A[8]; W[9] = A[9]; W[10] = A[10]; W[11] = A[8] * px + A[9] * py + A[10] * pz + A[11];
+      } else {
+        m34TR(_mT, p[0], p[1], p[2], rr[0], rr[1], rr[2]);
+        m34Mul(W, A, _mT);
+      }
       if (!(f & 1) || !q.s || q.hide) continue;
       let code = withFlags(q.tex, (q.fl || 0) | flags);
       if (q.shp) code = code < 0 ? code - 512 * q.shp : code | (q.shp << 18);

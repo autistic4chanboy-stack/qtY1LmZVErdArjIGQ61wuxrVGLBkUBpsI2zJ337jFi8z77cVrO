@@ -147,6 +147,32 @@ const M19LOD = {
   pas() { return clamp(0.4 * Math.min(this.D.objets, this.D.cultures) * this.k(), 8, 30); },
 };
 
+// ---------------------------------------------------------------- l'émission des squelettes, plus rapide
+// Rig.emit (07-zzzzz-personnages.js : les formes effilées) à l'identique, au bit près, pour toutes les bêtes et
+// tous les habitants : une pièce sans rotation (les détails posés sur une autre : yeux, nez, cheveux, garrot,
+// pis…) n'a besoin ni des six sinus et cosinus ni du produit de matrices entier ; son repère est celui de son
+// parent, déplacé de son pivot (arrondi en simple précision, comme dans _mT).
+function m19Emettre(P, root, buf, flags) {
+  const fr = Math.fround;
+  for (let i = 0, n = P.length; i < n; i++) {
+    const q = P[i], r = q.r, p = q.p, W = q.W, A = q.pi < 0 ? root : P[q.pi].W;
+    if (r[0] === 0 && r[1] === 0 && r[2] === 0) {
+      const px = fr(p[0]), py = fr(p[1]), pz = fr(p[2]);
+      W[0] = A[0]; W[1] = A[1]; W[2] = A[2]; W[3] = A[0] * px + A[1] * py + A[2] * pz + A[3];
+      W[4] = A[4]; W[5] = A[5]; W[6] = A[6]; W[7] = A[4] * px + A[5] * py + A[6] * pz + A[7];
+      W[8] = A[8]; W[9] = A[9]; W[10] = A[10]; W[11] = A[8] * px + A[9] * py + A[10] * pz + A[11];
+    } else {
+      m34TR(_mT, p[0], p[1], p[2], r[0], r[1], r[2]);
+      m34Mul(W, A, _mT);
+    }
+    if (!q.s || q.hide) continue;
+    let code = withFlags(q.tex, (q.fl || 0) | flags);
+    if (q.shp) code = code < 0 ? code - 512 * q.shp : code | (q.shp << 18);
+    buf.box(W, q.o[0], q.o[1], q.o[2], q.s[0], q.s[1], q.s[2], q.col, code);
+  }
+}
+Rig.prototype.emit = function (buf, root, flags) { m19Emettre(this.parts, root, buf, flags); };
+
 // ---------------------------------------------------------------- quadrupèdes : le gabarit refait
 // options d'avant (col, col2, dark, body, bodyY, bodyTex, leg [l, h], legD, legIn, legCol, legTex, hoof, neck, neckS, neckO, headP,
 // head, headCol, headTex, face, snout [l, h, L, y], snoutCol, snoutTex, ears, earCol, horns, tail, tailCol) et en plus :
