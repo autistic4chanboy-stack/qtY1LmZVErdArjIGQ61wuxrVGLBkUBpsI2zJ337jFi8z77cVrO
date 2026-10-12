@@ -187,3 +187,109 @@ const M19M = {
     return r;
   };
 }
+
+// ============================================================================
+//  LES OISEAUX DES BOIS, DES PRÉS ET DES EAUX (vague M19) : ceux du module de la
+//  nature (11-zzzz8) étaient faits d'une boîte, de deux planches et de deux
+//  bâtons ; les voici avec les corps d'oiseau (ailes repliées au repos,
+//  déployées en vol, yeux, plumes). Mêmes noms, mêmes tailles ; les pièces que
+//  les comportements font bouger (neckB, head, wingL/R) sont là. La grue garde
+//  son modèle (ses poses de vol lui sont propres).
+// ============================================================================
+Object.assign(ANIMAL_RIGS, {
+  // pic vert : vert, croupion jaune, calotte rouge, moustache noire, long bec
+  pic_vert: () => {
+    const body = [0.08, 0.11, 0.16], head = [0.058, 0.06, 0.068];
+    return e1Oiseau({
+      body, bodyY: 0.1, dos: rgbf('#6a9a40'), bodyTex: TL.m19Plumes, ventre: rgbf('#c8d090'), ventreS: 0.6, head, headCol: rgbf('#7aaa48'), beak: [0.012, 0.012, 0.05], beakCol: rgbf('#5a5a50'), beakY: 0.42,
+      tail: [0.05, 0.012, 0.07], tailCol: rgbf('#4a6a2a'), tailUp: -0.3, wing: [0.2, 0.01, 0.09], wingCol: rgbf('#5a8a34'), wingTip: rgbf('#3a3a2a'), pliCol: rgbf('#5a8a34'), pliL: 0.85,
+      leg: [0.012, 0.04], legCol: rgbf('#6a6a60'), droit: -0.5, batF: 12, batA: 0.85,
+      plus: [...e1Yeux(head, [0.95, 0.95, 0.9], 1.0, 0.6, 0.6),
+        { name: 'calotte', parent: 'head', p: [0, head[1] * 0.95, -head[2] * 0.05], s: [head[0] * 0.8, head[1] * 0.18, head[2] * 0.9], col: rgbf('#d02a20'), tex: TL.fur },
+        { name: 'moustL', parent: 'head', p: [-head[0] / 2 - 0.001, head[1] * 0.25, head[2] * 0.45], s: [0.003, head[1] * 0.16, head[2] * 0.4], col: rgbf('#1a1a1a'), tex: TL.plain },
+        { name: 'moustR', parent: 'head', p: [head[0] / 2 + 0.001, head[1] * 0.25, head[2] * 0.45], s: [0.003, head[1] * 0.16, head[2] * 0.4], col: rgbf('#1a1a1a'), tex: TL.plain },
+        { name: 'croupion', parent: 'body', p: [0, body[1] * 0.42, -body[2] * 0.38], s: [body[0] * 0.8, 0.012, body[2] * 0.25], col: rgbf('#d8d040'), tex: TL.fur }],
+    });
+  },
+  // coucou : gris, ventre barré, longue queue, ailes pointues, l'œil cerclé de jaune
+  coucou: () => {
+    const body = [0.07, 0.08, 0.16], head = [0.05, 0.05, 0.058];
+    return e1Oiseau({
+      body, bodyY: 0.1, dos: rgbf('#8a8e94'), bodyTex: TL.m19Plumes, ventre: rgbf('#d8d8d0'), ventreTex: TL.stripes, ventreS: 0.6, head, headCol: rgbf('#8a8e94'), beak: [0.012, 0.01, 0.022], beakCol: rgbf('#3a3a30'),
+      tail: [0.04, 0.012, 0.14], tailCol: rgbf('#5a5e64'), wing: [0.22, 0.01, 0.08], wingCol: rgbf('#7a7e84'), wingTip: rgbf('#4a4e54'), pliCol: rgbf('#6a6e74'), pliL: 1.05,
+      leg: [0.01, 0.03], legCol: rgbf('#d8b040'), batF: 11, batA: 0.75,
+      plus: [...e1Yeux(head, [0.95, 0.75, 0.15], 1.0, 0.6, 0.6)],
+    });
+  },
+  // geai des chênes : rose-brun, moustache noire, queue noire, croupion blanc, le miroir bleu barré sur l'aile
+  geai: () => {
+    const body = [0.09, 0.1, 0.18], head = [0.065, 0.065, 0.07];
+    return e1Oiseau({
+      body, bodyY: 0.11, dos: rgbf('#b09080'), bodyTex: TL.m19Plumes, ventre: rgbf('#c8aa98'), ventreS: 0.6, head, headCol: rgbf('#c0a090'), beak: [0.014, 0.014, 0.028], beakCol: rgbf('#2a2a2a'),
+      tail: [0.05, 0.012, 0.1], tailCol: rgbf('#141416'), wing: [0.26, 0.012, 0.11], wingCol: rgbf('#2a2a2e'), miroir: rgbf('#3a6ad0'), dessous: rgbf('#8a7a70'), pliCol: rgbf('#6a5a50'), pliL: 0.9,
+      leg: [0.012, 0.05], legCol: rgbf('#a08070'), batF: 12, batA: 0.85,
+      plus: [...e1Yeux(head, [0.85, 0.85, 0.95], 1.0, 0.6, 0.6),
+        { name: 'moustache', parent: 'head', p: [0, head[1] * 0.2, head[2] * 0.5], s: [head[0] * 1.06, head[1] * 0.14, head[2] * 0.3], col: rgbf('#141416'), tex: TL.plain },
+        { name: 'miroirL', parent: 'pliL', p: [-0.007, 0.006, 0.01], s: [0.004, body[1] * 0.22, body[2] * 0.22], col: rgbf('#3a6ad0'), tex: TL.stripes },
+        { name: 'miroirR', parent: 'pliR', p: [0.007, 0.006, 0.01], s: [0.004, body[1] * 0.22, body[2] * 0.22], col: rgbf('#3a6ad0'), tex: TL.stripes },
+        { name: 'croupion', parent: 'body', p: [0, body[1] * 0.3, -body[2] * 0.46], s: [body[0] * 0.7, body[1] * 0.4, 0.012], col: rgbf('#f2f0ec'), tex: TL.fur }],
+    });
+  },
+  // alouette des champs : brun strié, ventre clair, une petite huppe
+  alouette: () => {
+    const body = [0.07, 0.07, 0.14], head = [0.05, 0.05, 0.055];
+    return e1Oiseau({
+      body, bodyY: 0.08, dos: rgbf('#9a8060'), bodyTex: TL.m19Plumes, ventre: rgbf('#d8c8a8'), ventreS: 0.6, head, headCol: rgbf('#9a8060'), beak: [0.01, 0.01, 0.018], beakCol: rgbf('#8a8070'),
+      tail: [0.04, 0.01, 0.07], tailCol: rgbf('#6a5440'), wing: [0.17, 0.008, 0.07], wingCol: rgbf('#8a7050'), pliCol: rgbf('#86704e'), pliL: 0.9, leg: [0.009, 0.035], legCol: rgbf('#c0a080'), batF: 20, batA: 0.9,
+      plus: [...e1Yeux(head, [0.12, 0.1, 0.08], 1.0, 0.6, 0.6), ...e1Taches('body', 7, body[0], body[1], body[2], rgbf('#4a3a28'), 91),
+        { name: 'huppe', parent: 'head', p: [0, head[1], -head[2] * 0.05], s: [0.014, 0.022, 0.028], o: [0, 0.008, 0], col: rgbf('#7a6048'), tex: TL.fur, r0: [-0.5, 0, 0] }],
+    });
+  },
+  // effraie des clochers : dos doré, dessous et face blancs, disque en cœur, yeux noirs, posée droite
+  effraie: () => {
+    const body = [0.2, 0.28, 0.19], head = [0.17, 0.15, 0.14];
+    return e1Oiseau({
+      body, bodyY: 0.22, dos: rgbf('#d8b880'), bodyTex: TL.m19Plumes, ventre: rgbf('#f4f0e8'), ventreS: 0.78, head, headCol: rgbf('#d8b880'), headTex: TL.m19Plumes, face: TL.catF,
+      beak: [0.02, 0.026, 0.016], beakCol: rgbf('#e8d8c0'), beakY: 0.3, tail: [0.1, 0.014, 0.06], tailCol: rgbf('#d0b080'), tailUp: 0.4,
+      wing: [0.5, 0.016, 0.22], wingCol: rgbf('#d0b080'), dessous: rgbf('#f4f0e8'), pliCol: rgbf('#c8a874'), leg: [0.025, 0.08], legCol: rgbf('#f0ece0'), chouette: true, batF: 6, batA: 0.6,
+      plus: [{ name: 'disque', parent: 'head', p: [0, head[1] * 0.42, head[2] * 0.7 + 0.001], s: [head[0] * 0.92, head[1] * 0.8, 0.004], col: rgbf('#f6f2ea'), tex: TL.plain },
+        { name: 'arete', parent: 'head', p: [0, head[1] * 0.42, head[2] * 0.7 + 0.003], s: [0.006, head[1] * 0.62, 0.003], col: rgbf('#c8a070'), tex: TL.plain },
+        ...e1Yeux(head, [0.06, 0.05, 0.05], 1.2, 0.5, 0.55, head[0] * 0.2),
+        ...e1Taches('body', 8, body[0], body[1], body[2], [0.5, 0.45, 0.42], 92)],
+    });
+  },
+  // cincle plongeur : brun sombre, la bavette blanche, la tête chocolat, la queue relevée
+  cincle: () => {
+    const body = [0.07, 0.07, 0.11], head = [0.05, 0.05, 0.052];
+    return e1Oiseau({
+      body, bodyY: 0.08, dos: rgbf('#3a2a24'), bodyTex: TL.m19Plumes, head, headCol: rgbf('#5a3a2a'), beak: [0.01, 0.01, 0.018], beakCol: [0.1, 0.1, 0.1],
+      tail: [0.035, 0.01, 0.04], tailCol: rgbf('#2a201c'), tailUp: 0.6, wing: [0.14, 0.008, 0.06], wingCol: rgbf('#2e2420'), pliCol: rgbf('#33261f'), pliL: 0.9, leg: [0.011, 0.04], legCol: rgbf('#8a7a60'), batF: 22, batA: 0.9,
+      plus: [...e1Yeux(head, [0.12, 0.1, 0.08], 1.0, 0.6, 0.6),
+        { name: 'bavette', parent: 'body', p: [0, body[1] * 0.12, body[2] * 0.47], s: [body[0] * 0.86, body[1] * 0.6, 0.012], col: [0.95, 0.95, 0.92], tex: TL.fur }],
+    });
+  },
+  // grèbe huppé : posé bas sur l'eau, cou et face blancs, huppe noire, collerette rousse, bec rosé
+  grebe: () => {
+    const body = [0.14, 0.1, 0.3], head = [0.05, 0.05, 0.07], blanc = [0.95, 0.95, 0.93];
+    return e1Oiseau({
+      body, bodyY: 0.1, dos: rgbf('#6a5a4a'), bodyTex: TL.m19Plumes, ventre: blanc, ventreS: 0.55, head, headCol: blanc, neck: [0.04, 0.16, 0.04], neckR: [-0.15, 0, 0], neckCol: blanc,
+      beak: [0.012, 0.012, 0.06], beakCol: rgbf('#c07070'), beakY: 0.4, tail: [0.04, 0.02, 0.02], tailCol: rgbf('#5a4a3a'), wing: [0.24, 0.01, 0.1], wingCol: rgbf('#5a4a3a'), dessous: blanc,
+      pliCol: rgbf('#5e4e3e'), pliL: 0.8, leg: [0.01, 0.01], legCol: rgbf('#5a6a40'), batF: 14, batA: 0.8,
+      plus: [...e1Yeux(head, [0.8, 0.2, 0.15], 0.9, 0.6, 0.6),
+        { name: 'crete', parent: 'head', p: [0, head[1] * 0.98, -head[2] * 0.12], s: [head[0] * 0.8, head[1] * 0.5, head[2] * 0.6], col: [0.1, 0.08, 0.07], tex: TL.fur },
+        { name: 'collerette', parent: 'head', p: [0, head[1] * 0.25, -head[2] * 0.1], s: [head[0] * 1.5, head[1] * 0.6, head[2] * 0.6], col: rgbf('#c86030'), tex: TL.fur }],
+    });
+  },
+  // butor étoilé : roux strié de brun, cou épais, bec jaunâtre, pattes vertes ; il se fige le bec au ciel
+  butor: () => {
+    const body = [0.18, 0.22, 0.3], head = [0.07, 0.07, 0.09];
+    return e1Oiseau({
+      body, bodyY: 0.4, dos: rgbf('#9a7a4a'), bodyTex: TL.m19Plumes, ventre: rgbf('#c8a870'), ventreTex: TL.stripes, ventreS: 0.6, head, headCol: rgbf('#7a5a34'),
+      neck: [0.07, 0.22, 0.07], neckR: [0.1, 0, 0], neckCol: rgbf('#b8945a'), beak: [0.022, 0.022, 0.12], beakCol: rgbf('#c8b050'), beakY: 0.4,
+      tail: [0.08, 0.02, 0.06], tailCol: rgbf('#8a6a40'), wing: [0.5, 0.016, 0.22], wingCol: rgbf('#9a7a4a'), wingTip: rgbf('#5a4a34'), pliCol: rgbf('#8e7044'), pliL: 0.95,
+      leg: [0.022, 0.3], legCol: rgbf('#8a9a40'), batF: 5, batA: 0.55,
+      plus: [...e1Yeux(head, [0.95, 0.85, 0.2], 0.9, 0.62, 0.6), ...e1Taches('body', 8, body[0], body[1], body[2], rgbf('#3a2a1a'), 93),
+        { name: 'calotte', parent: 'head', p: [0, head[1] * 0.92, 0], s: [head[0] * 1.02, head[1] * 0.2, head[2] * 0.9], col: rgbf('#2a2018'), tex: TL.fur }],
+    });
+  },
+});
