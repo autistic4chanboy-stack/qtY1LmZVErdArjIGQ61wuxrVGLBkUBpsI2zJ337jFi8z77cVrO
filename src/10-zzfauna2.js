@@ -1,7 +1,21 @@
 // ============================================================================
 //  FAUNE (suite) : pigeons des villes, chevaux sauvages (harde des prés)
 // ============================================================================
-ANIMAL_RIGS.pigeon = () => birdParts({ col: rgbf('#8a8e98'), body: [0.12, 0.12, 0.2], bodyY: 0.13, head: [0.07, 0.07, 0.08], headCol: rgbf('#6a7080'), beak: [0.02, 0.02, 0.03], beakCol: rgbf('#d8c8b0'), tail: [0.07, 0.02, 0.1], wingCol: rgbf('#7a7e88'), leg: [0.015, 0.06], legCol: rgbf('#c86a6a') });
+// pigeon : gris bleuté, gorge irisée, deux barres noires sur l'aile repliée, pattes rouges (un corps d'oiseau : e1Oiseau)
+ANIMAL_RIGS.pigeon = () => {
+  const body = [0.11, 0.11, 0.2], head = [0.065, 0.065, 0.07];
+  return e1Oiseau({
+    body, bodyY: 0.13, dos: rgbf('#8a8e98'), bodyTex: TL.m19Plumes, ventre: rgbf('#9a9ea8'), ventreS: 0.6, head, headCol: rgbf('#6a7080'), beak: [0.014, 0.012, 0.022], beakCol: rgbf('#d8c8b0'),
+    tail: [0.07, 0.012, 0.1], tailCol: rgbf('#6a6e78'), wing: [0.27, 0.012, 0.11], wingCol: rgbf('#7a7e88'), wingTip: rgbf('#2a2c32'), pliCol: rgbf('#7a7e88'),
+    leg: [0.012, 0.045], legCol: rgbf('#c86a6a'), batF: 15, batA: 0.85,
+    plus: [{ name: 'gorge', parent: 'body', p: [0, body[1] * 0.25, body[2] * 0.4], s: [body[0] * 0.9, body[1] * 0.5, 0.05], o: [0, 0, 0], col: rgbf('#5a7a6a'), tex: TL.m19Plumes },
+      { name: 'barreL', parent: 'pliL', p: [-0.003, 0, -0.01], s: [0.004, body[1] * 0.5, 0.015], o: [0, 0, 0], col: [0.12, 0.12, 0.14], tex: TL.plain },
+      { name: 'barreL2', parent: 'pliL', p: [-0.003, 0, -0.045], s: [0.004, body[1] * 0.5, 0.015], o: [0, 0, 0], col: [0.12, 0.12, 0.14], tex: TL.plain },
+      { name: 'barreR', parent: 'pliR', p: [0.003, 0, -0.01], s: [0.004, body[1] * 0.5, 0.015], o: [0, 0, 0], col: [0.12, 0.12, 0.14], tex: TL.plain },
+      { name: 'barreR2', parent: 'pliR', p: [0.003, 0, -0.045], s: [0.004, body[1] * 0.5, 0.015], o: [0, 0, 0], col: [0.12, 0.12, 0.14], tex: TL.plain },
+      ...e1Yeux(head, [0.9, 0.5, 0.2], 0.9, 0.6, 0.6)],
+  });
+};
 Object.assign(CREATURES, {
   pigeon: { walk: 0.55, run: 2.2, range: 7, flee: 3.2, radius: 0.08, idle: [1, 4], rig: 'pigeon', h: 0.25, oiseau: true, city: true },
   // cheval sauvage : plus vif, erre loin ; la fuite est gérée par le dressage (11-zzhorses)
