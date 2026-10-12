@@ -160,7 +160,10 @@ const game = {
     this.lockErrors++;
     if (this.kind === 'creative') ui.toast(this.lockErrors > 2 ? 'Souris non capturable : maintenez un clic et glissez pour regarder' : "Cliquez dans l'écran pour capturer la souris");
   },
-  applySettings() { sound.setVolume(settings.volume); sound.setAmbient(settings.ambVolume); },
+  applySettings() {
+    sound.setVolume(settings.volume); sound.setAmbient(settings.ambVolume);
+    if (this.renderer) { this.renderer.qualite(settings.effets ?? 1); this.renderer.grain = !!settings.grain; }
+  },
   // le tapis d'herbe et de fleurs autour du joueur : son rayon (Options, « Distance de l'herbe et des fleurs »)
   // et la grille qui le couvre (n × n touffes, une tous les 0,56 m)
   grassGrid() {
@@ -837,7 +840,7 @@ const game = {
 
   // ------------------------------------------------------------- lumières dynamiques
   gatherLights(eye, basis) {
-    const w = this.world, sky = this.sky, L = [], flick = strange.flickerT > 0;
+    const w = this.world, sky = this.sky, L = [], flick = strange.flickerT > 0, vivantes = this.renderer.q >= 1;
     for (const l of w.lights) {
       let k = 1.1;
       if (l.night) k = sky.nightLit ? 1.3 : 0;
@@ -847,6 +850,8 @@ const game = {
       if (!k) continue;
       const d = Math.hypot(l.x - eye[0], l.y - eye[1], l.z - eye[2]);
       if (d > sky.fog[1] + l.r) continue;
+      // (effets Moyenne et plus) les flammes des lampes et des chandelles vivent un peu, elles aussi
+      if (vivantes && !l.flicker && !l.power && l.c[0] > l.c[2] * 1.4) k *= 1 + Math.sin(this.time * 8.3 + (l.seed || 0)) * 0.03 + Math.sin(this.time * 19.1 + (l.seed || 0) * 1.7) * 0.02;
       L.push({ x: l.x, y: l.y, z: l.z, r: l.r, c: v3.scale(l.c, k), d });
     }
     if (this.kind === 'farm') { for (const l of strange.lights(eye)) L.push(l); for (const fn of HOOKS.lights) for (const l of fn(eye)) L.push(l); }

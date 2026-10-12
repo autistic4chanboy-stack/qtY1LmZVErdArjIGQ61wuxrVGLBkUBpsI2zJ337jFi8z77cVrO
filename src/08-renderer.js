@@ -7,6 +7,9 @@ const RING = 3;        // morceaux de montagnes autour du monde
 // une valeur d'objet pour la comparer (absente : une valeur que rien d'autre ne prend ; NaN ne s'égale pas lui-même)
 const objNum = (v) => (v === undefined || v !== v ? -1e300 : +v);
 const TEX_H = 0, TEX_M = 1, TEX_S = 2, TEX_A = 3, TEX_ATLAS = 4, TEX_SCENE = 5, TEX_C = 6, TEX_SKIN = 7, TEX_VM = 8;
+// (rendu en HDR : profondeur de la scène, halo, rayons, ombres des nuages ; 14 : source des passes du halo, et unité
+// libre pour créer les textures — 12 est celle du dessous, 11-zzzz9-souterrain0.js)
+const TEX_DEPTH = 9, TEX_BLOOM = 10, TEX_RAYS = 11, TEX_NUAGES = 13, TEX_SRC = 14;
 const MAX_LIGHTS = 12;
 // L'Envers : les arbres sont morts, les fleurs ont disparu (null = masqué)
 const ENVERS_SPRITES = {
@@ -147,6 +150,18 @@ function cubeGeometry() {
   return { v: new Float32Array(V), i: new Uint16Array(I) };
 }
 
+// ---------------------------------------------------------------- la qualité des effets, choisie une fois pour toutes
+// par l'utilisateur (Options : effets ou qualité graphique), sinon par la machine : un rendu logiciel (pas de carte
+// graphique) garde les effets d'avant ; si les premières images peinent vraiment, aussi (Renderer.surveiller)
+function rendLogiciel() {
+  try {
+    const e = gl.getExtension('WEBGL_debug_renderer_info');
+    return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(String(e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)));
+  } catch (e) { return false; }
+}
+function effetsChoisis() { return typeof store !== 'undefined' && !!store.get('prairie.effetsAuto', null); }
+function effetsMarquer() { if (typeof store !== 'undefined') store.set('prairie.effetsAuto', 1); }
+
 // ---------------------------------------------------------------- moteur de rendu
 const INT_UNIFORMS = new Set(['uN', 'uNumLights', 'uGridN', 'uCoverW']);
 
@@ -167,28 +182,18 @@ class Renderer {
   }
 
   init() {
-    const P = (vs, fs, n) => glProgram(vs, fs, n);
-    this.progs = {
-      terrain: P(SH.terrainVS, SH.terrainFS, 'terrain'),
-      sky: P(SH.fullVS, SH.skyFS, 'sky'),
-      sprite: P(SH.spriteVS, SH.spriteFS, 'sprite'),
-      grass: P(SH.grassVS, SH.grassFS, 'grass'),
-      water: P(SH.waterVS, SH.waterFS, 'water'),
-      block: P(SH.blockVS, SH.blockFS, 'block'),
-      model: P(SH.modelVS, SH.modelFS, 'model'),
-      part: P(SH.partVS, SH.partFS, 'part'),
-      flies: P(SH.fliesVS, SH.fliesFS, 'flies'),
-      gun: P(SH.gunVS, SH.gunFS, 'gun'),
-      post: P(SH.postVS, SH.postFS, 'post'),
-      rain: P(SH.rainVS, SH.rainFS, 'rain'),
-      snow: P(SH.snowVS, SH.snowFS, 'snow'),
-    };
-    for (const k in this.progs) {
-      const pr = this.progs[k];
-      gl.useProgram(pr.p);
-      const set = (n, v) => { if (pr.u[n]) gl.uniform1i(pr.u[n], v); };
-      set('uHeight', TEX_H); set('uMat', TEX_M); set('uShade', TEX_S); set('uTex', TEX_A); set('uAtlas', TEX_ATLAS); set('uScene', TEX_SCENE); set('uCover', TEX_C);
-      set('uSkin', TEX_SKIN); set('uVM', TEX_VM);
+    // la qualité des effets (settings.effets : 0 Basse … 3 Très haute) ; la première fois, sans choix enregistré, un rendu
+    // logiciel (pas de carte graphique) garde les effets d'avant
+    let q = typeof settings !== 'undefined' && settings.effets !== undefined ? settings.effets : 1;
+    if (!effetsChoisis() && rendLogiciel()) { q = 0; if (typeof settings !== 'undefined') settings.effets = 0; }
+    this.q = clamp(q | 0, 0, 3);
+    GL_DEFINES = this.q ? '#define QUALITE ' + this.q + '\n' : '';
+    // (EXT_color_buffer_float : une image en virgule flottante ; sans elle, l'image HDR se replie en 8 bits)
+    this.hdrOk = !!gl.getExtension('EXT_color_buffer_float');
+    try { this.compiler(); } catch (e) {
+      if (!this.q) throw e;
+      console.error('rendu : effets indisponibles sur cette carte, retour au rendu simple', e);
+      this.q = 0; GL_DEFINES = ''; this.compiler();
     }
     // textures communes
     gl.activeTexture(gl.TEXTURE0 + TEX_A);
@@ -288,6 +293,67 @@ class Renderer {
       this.gUV.set([s.u0, s.v0, s.u1, s.v1], i * 4);
       this.gSize.set([h * s.aspect, h], i * 2);
     });
+  }
+
+  // ---------------------------------------------------------------- programmes (selon la qualité)
+  compiler() {
+    const P = (vs, fs, n) => glProgram(vs, fs, n);
+    const progs = {
+      terrain: P(SH.terrainVS, SH.terrainFS, 'terrain'),
+      sky: P(SH.fullVS, SH.skyFS, 'sky'),
+      sprite: P(SH.spriteVS, SH.spriteFS, 'sprite'),
+      grass: P(SH.grassVS, SH.grassFS, 'grass'),
+      water: P(SH.waterVS, SH.waterFS, 'water'),
+      block: P(SH.blockVS, SH.blockFS, 'block'),
+      model: P(SH.modelVS, SH.modelFS, 'model'),
+      part: P(SH.partVS, SH.partFS, 'part'),
+      flies: P(SH.fliesVS, SH.fliesFS, 'flies'),
+      gun: P(SH.gunVS, SH.gunFS, 'gun'),
+      post: P(SH.postVS, SH.postFS, 'post'),
+      rain: P(SH.rainVS, SH.rainFS, 'rain'),
+      snow: P(SH.snowVS, SH.snowFS, 'snow'),
+    };
+    // l'image en HDR, rendue à l'écran ; les ombres des nuages (Moyenne et plus) ; le halo et les rayons (Haute et plus)
+    if (this.q >= 1) { progs.resolve = P(SH.postVS, SH.resolveFS, 'resolve'); progs.nuages = P(SH.postVS, SH.nuagesFS, 'nuages'); }
+    if (this.q >= 2) { progs.bloomDown = P(SH.postVS, SH.bloomDownFS, 'bloomDown'); progs.bloomUp = P(SH.postVS, SH.bloomUpFS, 'bloomUp'); progs.rays = P(SH.postVS, SH.raysFS, 'rays'); }
+    for (const k in progs) Renderer.lierUnites(progs[k]);
+    const old = this.progs;
+    this.progs = progs;
+    if (old) for (const k in old) gl.deleteProgram(old[k].p);
+  }
+  // les unités de texture de chaque programme (fixes : les textures restent attachées à leur unité)
+  static lierUnites(pr) {
+    gl.useProgram(pr.p);
+    const set = (n, v) => { if (pr.u[n]) gl.uniform1i(pr.u[n], v); };
+    set('uHeight', TEX_H); set('uMat', TEX_M); set('uShade', TEX_S); set('uTex', TEX_A); set('uAtlas', TEX_ATLAS); set('uScene', TEX_SCENE); set('uCover', TEX_C);
+    set('uSkin', TEX_SKIN); set('uVM', TEX_VM); set('uDepth', TEX_DEPTH); set('uBloom', TEX_BLOOM); set('uRays', TEX_RAYS); set('uNuages', TEX_NUAGES); set('uSrc', TEX_SRC);
+  }
+  // changer la qualité des effets : tout est recompilé (et les nappes des cascades, tirées de l'eau du jeu)
+  qualite(q) {
+    q = clamp(q | 0, 0, 3);
+    if (q === this.q || !this.progs) return;
+    const q0 = this.q;
+    try { this.q = q; GL_DEFINES = q ? '#define QUALITE ' + q + '\n' : ''; this.compiler(); }
+    catch (e) {
+      console.error('rendu : qualité ' + q + ' indisponible', e);
+      this.q = q0; GL_DEFINES = q0 ? '#define QUALITE ' + q0 + '\n' : '';
+      try { this.compiler(); } catch (e2) { this.q = 0; GL_DEFINES = ''; this.compiler(); }
+    }
+    try {
+      if (typeof p18Rendu !== 'undefined' && p18Rendu.prog && typeof P18_EAU_FS !== 'undefined') {
+        const old = p18Rendu.prog;
+        p18Rendu.prog = glProgram(P18_EAU_VS, P18_EAU_FS, 'p18eau');
+        Renderer.lierUnites(p18Rendu.prog);
+        gl.deleteProgram(old.p);
+      }
+    } catch (e) { console.error('rendu : nappes des cascades', e); }
+    this.libererCibles();
+    this.amb19 = null;
+  }
+  libererCibles() {
+    for (const k of ['target', 'ldr', 'rays']) { if (this[k]) glDeleteTarget(this[k]); this[k] = null; }
+    if (this.bloom) for (const t of this.bloom) glDeleteTarget(t);
+    this.bloom = null; this.cibleCle = '';
   }
 
   // ---------------------------------------------------------------- monde
@@ -504,18 +570,40 @@ class Renderer {
 
   // ---------------------------------------------------------------- taille
   resize(pixelTarget) {
+    this.pixelTarget = pixelTarget;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const W = Math.max(1, Math.floor(this.canvas.clientWidth * dpr)), H = Math.max(1, Math.floor(this.canvas.clientHeight * dpr));
     if (this.canvas.width !== W || this.canvas.height !== H) { this.canvas.width = W; this.canvas.height = H; }
     const scale = Math.max(1, Math.round(H / pixelTarget));
     const rw = Math.ceil(W / scale), rh = Math.ceil(H / scale);
-    if (!this.target || this.target.w !== rw || this.target.h !== rh) {
-      glDeleteTarget(this.target);
-      gl.activeTexture(gl.TEXTURE0 + TEX_SCENE);
-      this.target = glTarget(rw, rh);
-    }
+    const cle = rw + 'x' + rh + ':' + this.q;
+    if (!this.target || this.cibleCle !== cle) this.allouerCibles(rw, rh, cle);
     this.scale = scale;
     this.res = [rw, rh];
+  }
+  // les images intermédiaires : Basse, celle d'avant (8 bits) ; au-dessus, la scène en HDR (16 bits flottants, ou 8 bits
+  // si la carte ne sait pas y dessiner) avec sa profondeur lisible, l'image rendue (8 bits), la chaîne du halo et les
+  // rayons (Haute et plus)
+  allouerCibles(rw, rh, cle) {
+    this.libererCibles();
+    this.cibleCle = cle;
+    if (!this.q) { gl.activeTexture(gl.TEXTURE0 + TEX_SCENE); this.target = glTarget(rw, rh); this.hdr = false; return; }
+    gl.activeTexture(gl.TEXTURE0 + TEX_SRC);
+    for (const fmt of this.hdrOk ? ['RGBA16F', 'RGBA8'] : ['RGBA8']) {
+      const t = glTargetEx(rw, rh, { fmt, linear: true, depth: 'tex' });
+      if (t.ok) { this.target = t; break; }
+      glDeleteTarget(t);
+    }
+    if (!this.target) this.target = glTargetEx(rw, rh, { fmt: 'RGBA8', linear: true, depth: 'rb' });
+    this.hdr = this.target.fmt !== 'RGBA8';
+    this.ldr = glTargetEx(rw, rh, { fmt: 'RGBA8' });
+    if (this.q >= 2) {
+      const bf = this.hdr ? 'RGBA16F' : 'RGBA8';
+      this.bloom = [];
+      let w = rw, h = rh;
+      for (let i = 0; i < (this.q >= 3 ? 5 : 4); i++) { w = Math.max(2, w >> 1); h = Math.max(2, h >> 1); this.bloom.push(glTargetEx(w, h, { fmt: bf, linear: true })); }
+      this.rays = glTargetEx(Math.max(2, rw >> 1), Math.max(2, rh >> 1), { fmt: 'RGBA8', linear: true });
+    }
   }
 
   // ---------------------------------------------------------------- uniformes
@@ -542,6 +630,7 @@ class Renderer {
   // ---------------------------------------------------------------- image
   render(F) {
     const w = this.world, sky = F.sky, cam = F.cam;
+    if (!this.target) this.resize(this.pixelTarget || 270); // (la qualité vient de changer : les images sont à refaire)
     this.syncWorld();
     // fenêtre de la carte des abris et objets actifs : suivent la caméra
     if (!w.coverO || Math.hypot(cam.pos[0] - (w.coverO[0] + 128), cam.pos[2] - (w.coverO[1] + 128)) > 64) this.uploadCover(cam.pos[0], cam.pos[2]);
@@ -572,6 +661,13 @@ class Renderer {
       uN: w.N, uCell: w.cell, uWater: w.waterLevel, uWaterV: w.waterLevel, uNightLit: sky.nightLit,
       uWet: sky.wet, uWindV: sky.wind, uCoverW: w.coverW, uCoverO: w.coverO, uPowerV: F.power === undefined ? 1 : F.power, uFrost: sky.frost || 0,
     };
+    // les nuages du ciel (aussi pour l'eau, qui les reflète)
+    const skyU = {
+      uSunDisk: sky.sunDisk, uSunVis: sky.sunVis, uCloudLit: sky.cloudLit, uCloudDark: sky.cloudDark, uCloudCover: sky.cloudCover, uCloudT: F.cloudT ?? F.time,
+    };
+    // Moyenne et plus : lumière du ciel et du sol, brume, vent, ombres des nuages, éclair (voir ambiance)
+    const A = this.q >= 1 ? this.ambiance(F, sky, basis) : null;
+    if (A) { Object.assign(U, A.U); this.passeNuages(A); }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.target.fb);
     gl.viewport(0, 0, rw, rh);
@@ -579,10 +675,9 @@ class Renderer {
 
     // ciel
     gl.disable(gl.DEPTH_TEST); gl.depthMask(false); gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE);
-    this.use(this.progs.sky, Object.assign({}, U, {
+    this.use(this.progs.sky, Object.assign({}, U, skyU, {
       uCamR: basis.r, uCamU: basis.u, uTan: [tanX, tanY], uStars: sky.stars, uPixAng: 2 * tanY / rh, uStarRot: sky.starRot,
-      uSunDisk: sky.sunDisk, uSunVis: sky.sunVis, uMoonVis: sky.moonVis, uCloudLit: sky.cloudLit, uCloudDark: sky.cloudDark,
-      uCloudCover: sky.cloudCover, uMoonTint: sky.moonTint || [1, 1, 1], uMoon2: F.moon2 || 0, uCloudT: F.cloudT ?? F.time,
+      uMoonVis: sky.moonVis, uMoonTint: sky.moonTint || [1, 1, 1], uMoon2: F.moon2 || 0, uMoonDir: sky.moonDir, uMoonCol: sky.moonCol,
     }));
     gl.bindVertexArray(this.emptyVAO);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -658,7 +753,7 @@ class Renderer {
       gl.disable(gl.POLYGON_OFFSET_FILL);
     }
     const S = w.size, m = 400;
-    this.use(this.progs.water, Object.assign({}, U, { uRect: [-m, -m, S + m, S + m] }));
+    this.use(this.progs.water, Object.assign({}, U, skyU, { uRect: [-m, -m, S + m, S + m] }));
     gl.bindVertexArray(this.emptyVAO);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
@@ -736,21 +831,219 @@ class Renderer {
     if (F.gunL) drawHand(F.gunL, true);
     if (F.gun) drawHand(F.gun, false);
 
+    // Moyenne et plus : l'image HDR rendue (halo, rayons, flou des cinématiques, exposition, courbe, étalonnage)
+    gl.disable(gl.DEPTH_TEST);
+    let image = this.target.tex;
+    if (A && this.ldr) { this.rendre(A, F, rw, rh); image = this.ldr.tex; }
+
     // post-traitement vers l'écran
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-    gl.disable(gl.DEPTH_TEST);
     gl.activeTexture(gl.TEXTURE0 + TEX_SCENE);
-    gl.bindTexture(gl.TEXTURE_2D, this.target.tex);
+    gl.bindTexture(gl.TEXTURE_2D, image);
     this.use(this.progs.post, {
       uRes: [rw, rh], uScale: this.scale, uLevels: F.levels, uUnder: F.underwater ? 1 : 0, uTimeP: F.time,
       uGamma: F.gamma, uTint: F.tint || [0, 0, 0, 0], uGlitch: F.glitch || [0, 0, 0, 0], uSeed: F.seed || 0, uFx: F.fx || [0, 0, 0, 0], uFx2: F.fx2 || [0, 0, 0, 0],
+      uGrain: this.grain ? 0.075 : 0,
     });
     gl.bindVertexArray(this.emptyVAO);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.bindVertexArray(null);
     gl.enable(gl.DEPTH_TEST);
     this.lastBasis = basis; this.lastTan = [tanX, tanY];
+    if (A) this.surveiller();
+  }
+
+  // ---------------------------------------------------------------- ambiance (Moyenne et plus) : ce que l'image demande
+  // à chaque instant, calculé une fois ici (pas une valeur de jeu : sky.amb, sky.sunCol… restent ceux du jeu)
+  ambiance(F, sky, basis) {
+    const now = performance.now(), dt = clamp(this.ambT ? (now - this.ambT) / 1000 : 0.016, 0, 0.25);
+    this.ambT = now;
+    const w = this.world, cam = F.cam.pos, q = this.q;
+    const sous = typeof souterrain !== 'undefined' && !!souterrain.actif;
+    const A = this.amb19 || (this.amb19 = { expo: 1, grade: null, dof: 0, U: {}, probeT: 0, enclos: 0 });
+    const lum = (c) => c[0] * 0.3 + c[1] * 0.55 + c[2] * 0.15;
+    const amb = sky.amb, sun = sky.sunCol;
+    // la lumière du ciel (teintée par le ciel) et celle renvoyée par le sol (chaude, un peu du soleil)
+    const sk = v3.lerp(sky.zen, sky.hor, 0.35), sl = Math.max(lum(sk), 1e-3);
+    const ambSky = [0, 1, 2].map((i) => amb[i] * lerp(1, clamp(sk[i] / sl, 0.6, 1.5), 0.32));
+    const ambGround = [amb[0] * 0.36 + sun[0] * 0.05, amb[1] * 0.33 + sun[1] * 0.045, amb[2] * 0.25 + sun[2] * 0.028];
+    // l'œil : il s'habitue au noir d'une maison (lentement), à la lumière en sortant (vite) ; pas la nuit dehors
+    if ((A.probeT -= dt) <= 0) {
+      A.probeT = 0.2;
+      let n = 0;
+      if (!sous && w.covered(cam[0], cam[1], cam[2])) {
+        n = 1;
+        for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; for (const r of [2.5, 5]) if (w.covered(cam[0] + Math.cos(a) * r, cam[1], cam[2] + Math.sin(a) * r)) n++; }
+        n /= 17;
+      }
+      A.enclos = n;
+    }
+    let cible = 1 + A.enclos * (0.22 + 0.58 * sky.day);
+    if (sous) cible = 1.22;
+    if (F.underwater) cible = 1.08;
+    A.expo += (cible - A.expo) * (1 - Math.exp(-dt / (cible > A.expo ? 1.5 : 0.45)));
+    // l'étalonnage : l'heure (aube et soir dorés, heure bleue, nuit froide et pâle), le temps, le lieu
+    const e = sky.e === undefined ? 0.5 : sky.e;
+    const W = typeof weather !== 'undefined' && weather.cur ? weather.cur : {};
+    const gold = smoothstep(0.34, 0.07, e) * smoothstep(-0.06, 0.03, e), bleu = smoothstep(0.04, -0.05, e) * smoothstep(-0.3, -0.1, e), nuit = smoothstep(-0.1, -0.28, e);
+    let sat = 1.07, con = 1.04, ombre = [0.97, 0.99, 1.04], lumi = [1.03, 1.01, 0.97];
+    const mixT = (a, b, k) => v3.lerp(a, b, clamp(k, 0, 1));
+    ombre = mixT(ombre, [0.93, 0.96, 1.09], gold); lumi = mixT(lumi, [1.1, 0.99, 0.85], gold); sat = lerp(sat, 1.13, gold); con = lerp(con, 1.07, gold);
+    ombre = mixT(ombre, [0.9, 0.95, 1.13], bleu); lumi = mixT(lumi, [0.99, 0.96, 1.05], bleu); sat = lerp(sat, 0.95, bleu); con = lerp(con, 1.0, bleu);
+    ombre = mixT(ombre, [0.88, 0.96, 1.16], nuit); lumi = mixT(lumi, [0.93, 0.98, 1.08], nuit); sat = lerp(sat, 0.74, nuit); con = lerp(con, 1.0, nuit);
+    const gris = Math.max(W.rain || 0, clamp(((W.cloud || 0) - 0.55) * 2.2, 0, 1));
+    sat *= 1 - 0.22 * gris; con -= 0.04 * gris;
+    ombre = mixT(ombre, [0.98, 1.0, 1.03], gris * 0.6); lumi = mixT(lumi, [0.98, 1.0, 1.02], gris * 0.6);
+    if (W.storm) { con += 0.05 * W.storm; lumi = mixT(lumi, [0.94, 0.98, 1.06], W.storm * 0.5); }
+    let brume = sky.mist || 0;
+    sat *= 1 - 0.12 * brume; con -= 0.04 * brume;
+    // les nuits rouges et les nuits noires : une brume basse qui rampe au ras des prés (sa couleur est celle du ciel)
+    const fx0 = F.fx || [0, 0, 0, 0];
+    const noire = typeof evenements !== 'undefined' && evenements.noirK ? evenements.noirK : 0;
+    // (et, les nuits claires, un voile léger dans les creux)
+    if (!sous) brume = Math.max(brume, (fx0[1] || 0) * 0.75, noire * 0.6, (sky.night || 0) * 0.3 * (1 - (W.rain || 0)));
+    if (!sous && typeof game !== 'undefined' && game.biomeAt && game.kind === 'farm') {
+      const b = game.biomeAt(cam);
+      if (b === 'foret' || b === 'bouleaux') ombre = [ombre[0] * 0.97, ombre[1] * 1.03, ombre[2] * 0.98];
+      else if (b === 'marais') { sat *= 0.88; ombre = [ombre[0], ombre[1] * 1.02, ombre[2] * 0.95]; }
+      if (w.snowLine && cam[1] > w.snowLine - 25) { con += 0.03; ombre = [ombre[0] * 0.97, ombre[1] * 0.99, ombre[2] * 1.05]; }
+    }
+    if (sous) { sat = 0.88; con = 1.05; ombre = [0.92, 0.96, 1.1]; lumi = [1.05, 1.0, 0.93]; }
+    if (typeof zone !== 'undefined' && zone.dedans) { sat *= 0.84; lumi = [lumi[0] * 1.02, lumi[1] * 1.02, lumi[2] * 0.93]; }
+    // nuits rouges, l'Envers, les autres mondes : leur couleur est la leur (l'étalonnage s'efface)
+    const fx = F.fx || [0, 0, 0, 0], fx2 = F.fx2 || [0, 0, 0, 0];
+    const neutre = clamp(Math.max(fx[1], fx[3], fx2[0], fx2[1], fx2[2], fx2[3]) * 1.5, 0, 1);
+    if (neutre > 0) { sat = lerp(sat, 1, neutre); con = lerp(con, 1, neutre); ombre = mixT(ombre, [1, 1, 1], neutre); lumi = mixT(lumi, [1, 1, 1], neutre); }
+    const G = [ombre[0], ombre[1], ombre[2], sat, lumi[0], lumi[1], lumi[2], con];
+    if (!A.grade) A.grade = G.slice();
+    const kg = 1 - Math.exp(-dt / 1.8);
+    for (let i = 0; i < 8; i++) A.grade[i] += (G[i] - A.grade[i]) * kg;
+    // la brume des vallées, la perspective aérienne, le soleil dans la brume
+    const sunR = v3.add(sun, v3.scale(sky.moonCol, 0.6));
+    // le vent (sa direction : celle de l'orage, sinon une brise qui tourne lentement)
+    const wa = typeof weather !== 'undefined' && weather.windAngle !== undefined ? weather.windAngle : 0.6;
+    // les ombres des nuages (pas sous terre, pas par ciel couvert : le soleil y est déjà voilé)
+    const o = sky.cloudCover || 0;
+    const ombreN = sous ? 0 : 0.46 * smoothstep(0.02, 0.14, o) * (1 - smoothstep(0.74, 0.96, o)) * smoothstep(-0.02, 0.15, e);
+    const T = 640, ox = Math.floor((cam[0] - T / 2) / 5) * 5, oz = Math.floor((cam[2] - T / 2) / 5) * 5;
+    A.nuages = { ox, oz, T, seuil: 0.56 - o * 0.34, derive: [(F.cloudT ?? F.time) * 0.019, (F.cloudT ?? F.time) * 0.0072], k: ombreN };
+    // l'éclair : une lumière blanche venue d'en haut, le temps d'un éclat (la lune est cachée par l'orage)
+    let moonDir = sky.moonDir, moonCol = sky.moonCol;
+    const fl = typeof weather !== 'undefined' && !sous ? weather.flash || 0 : 0;
+    if (fl > 0.02 && F.rain > 0.05) { moonDir = v3.norm([Math.cos(wa + 1.3) * 0.4, 0.85, Math.sin(wa + 1.3) * 0.4]); moonCol = v3.add(moonCol, v3.scale([0.78, 0.84, 1.0], fl * 0.7)); }
+    // (la brume du matin est une brume claire : elle prend la lumière)
+    const haze = brume > 0 && !sous ? v3.lerp(sky.haze, v3.add(v3.scale(sky.haze, 1.12), v3.scale(sun, 0.07)), brume) : sky.haze;
+    A.U = {
+      uAmbSky: ambSky, uAmbGround: ambGround, uMoonDir: moonDir, uMoonCol: moonCol, uHaze: haze,
+      uMist: [w.waterLevel + 1.5, sous ? 0 : 0.026 * brume, 1 / 9, sous ? 0 : 1 / 700],
+      uSunGlowC: [sunR[0], sunR[1], sunR[2], 0.24 + 0.6 * brume], uSpec: 1,
+      uWindD: [Math.cos(wa), Math.sin(wa)], uNuagesO: [ox, oz, 1 / T, ombreN],
+    };
+    // le flou des cinématiques (Haute et plus), qui vient doucement
+    const cineOn = typeof cine !== 'undefined' && cine.on;
+    A.dof += ((cineOn && q >= 2 ? 1 : 0) - A.dof) * (1 - Math.exp(-dt / 0.5));
+    return A;
+  }
+  // la carte des ombres de nuages autour de la caméra (128 × 128, 5 m par point)
+  passeNuages(A) {
+    const N = A.nuages;
+    if (!this.nuagesT) { gl.activeTexture(gl.TEXTURE0 + TEX_SRC); this.nuagesT = glTargetEx(128, 128, { fmt: 'RGBA8', linear: true }); }
+    gl.activeTexture(gl.TEXTURE0 + TEX_NUAGES);
+    if (N.k <= 0) { gl.bindTexture(gl.TEXTURE_2D, this.nuagesT.tex); return; }
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.nuagesT.fb);
+    gl.viewport(0, 0, 128, 128);
+    gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE);
+    this.use(this.progs.nuages, { uDstRes: [128, 128], uNuagesP: [N.ox, N.oz, N.T, N.seuil], uDerive: N.derive });
+    gl.bindVertexArray(this.emptyVAO);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.bindTexture(gl.TEXTURE_2D, this.nuagesT.tex);
+  }
+  // une passe plein écran vers une cible
+  plein(pr, U, cible) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, cible ? cible.fb : null);
+    gl.viewport(0, 0, cible.w, cible.h);
+    this.use(pr, U);
+    gl.bindVertexArray(this.emptyVAO);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+  // de l'image HDR à l'image rendue (Moyenne et plus)
+  rendre(A, F, rw, rh) {
+    const sky = F.sky, q = this.q, T = this.target;
+    gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE); gl.depthMask(false);
+    let bloomK = 0, raysK = 0, raysCol = [0, 0, 0], glare = [0, 0, 0, 0], glareCol = [0, 0, 0];
+    const depthOk = !!T.depthTex;
+    // le soleil à l'écran : bas, dans le champ (ou juste à côté), pas sous un ciel couvert ni sous terre
+    let soleil = 0, su = 0, sv = 0;
+    const sd = sky.sunDir, VP = this.viewProj, sous = typeof souterrain !== 'undefined' && souterrain.actif;
+    const cw = VP[3] * sd[0] + VP[7] * sd[1] + VP[11] * sd[2];
+    if (depthOk && cw > 0.05 && !sous && sky.sunVis > 0.05) {
+      su = (VP[0] * sd[0] + VP[4] * sd[1] + VP[8] * sd[2]) / cw * 0.5 + 0.5; sv = (VP[1] * sd[0] + VP[5] * sd[1] + VP[9] * sd[2]) / cw * 0.5 + 0.5;
+      const dans = 1 - smoothstep(0.25, 0.75, Math.max(Math.abs(su - 0.5), Math.abs(sv - 0.5)) - 0.5);
+      const e = sky.e === undefined ? 0.5 : sky.e;
+      soleil = dans * sky.sunVis * (0.35 + 0.65 * smoothstep(0.45, 0.05, e)) * (1 - 0.85 * (sky.cloudCover || 0)) * (0.8 + 0.6 * (sky.mist || 0));
+    }
+    const s = sky.sunCol, sc = [s[0] * 0.55 + 0.04, s[1] * 0.5 + 0.035, s[2] * 0.42 + 0.03];
+    if (q === 1 && soleil > 0.01) { glare = [su, sv, soleil * 0.9, rw / rh]; glareCol = sc; }
+    if (q >= 2 && this.bloom) {
+      // le halo : seuil doux, quatre ou cinq marches vers le bas, puis la remontée (ajoutée marche à marche)
+      const B = this.bloom;
+      gl.activeTexture(gl.TEXTURE0 + TEX_SRC);
+      let src = T;
+      for (let i = 0; i < B.length; i++) {
+        gl.bindTexture(gl.TEXTURE_2D, src.tex);
+        this.plein(this.progs.bloomDown, { uTexel: [1 / src.w, 1 / src.h], uDstRes: [B[i].w, B[i].h], uSeuil: [this.hdr ? 1.05 : 0.82, this.hdr ? 0.45 : 0.15, i === 0 ? 1 : 0] }, B[i]);
+        src = B[i];
+      }
+      gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+      for (let i = B.length - 1; i > 0; i--) {
+        gl.bindTexture(gl.TEXTURE_2D, B[i].tex);
+        this.plein(this.progs.bloomUp, { uTexel: [1 / B[i].w, 1 / B[i].h], uDstRes: [B[i - 1].w, B[i - 1].h], uK: 1 }, B[i - 1]);
+      }
+      gl.disable(gl.BLEND);
+      bloomK = q >= 3 ? 0.075 : 0.065;
+      // les rayons du soleil, à travers les feuillages et entre les toits
+      if (this.rays && soleil > 0.01) {
+        gl.activeTexture(gl.TEXTURE0 + TEX_DEPTH); gl.bindTexture(gl.TEXTURE_2D, T.depthTex);
+        this.plein(this.progs.rays, { uDstRes: [this.rays.w, this.rays.h], uSunUV: [su, sv, rw / rh] }, this.rays);
+        raysK = soleil * (q >= 3 ? 0.5 : 0.42); raysCol = sc;
+      }
+      gl.activeTexture(gl.TEXTURE0 + TEX_BLOOM); gl.bindTexture(gl.TEXTURE_2D, B[0].tex);
+      gl.activeTexture(gl.TEXTURE0 + TEX_RAYS); gl.bindTexture(gl.TEXTURE_2D, raysK > 0 ? this.rays.tex : null);
+    }
+    if (depthOk) { gl.activeTexture(gl.TEXTURE0 + TEX_DEPTH); gl.bindTexture(gl.TEXTURE_2D, T.depthTex); }
+    gl.activeTexture(gl.TEXTURE0 + TEX_SCENE); gl.bindTexture(gl.TEXTURE_2D, T.tex);
+    const g = A.grade;
+    this.plein(this.progs.resolve, {
+      uRes: [rw, rh], uExpo: A.expo, uGradeA: [g[0], g[1], g[2], g[3]], uGradeB: [g[4], g[5], g[6], g[7]],
+      uPostK: [bloomK, raysK, depthOk && A.dof > 0.02 ? (q >= 3 ? 5 : 4) * A.dof : 0, q >= 2 ? 1 : 0], uRaysCol: raysCol, uNearFar: [0.06, sky.fog[1] + 80],
+      uGlare: glare, uGlareCol: glareCol,
+    }, this.ldr);
+    gl.depthMask(true);
+  }
+  // les premières images (une fois, sans choix de l'utilisateur) : si la machine peine vraiment, les effets d'avant
+  surveiller() {
+    if (this.surv === false) return;
+    const S = this.surv || (this.surv = { n: 0, L: [], t: 0 });
+    const now = performance.now(), d = S.t ? now - S.t : 0;
+    S.t = now;
+    if (typeof game === 'undefined' || game.mode !== 'play' || game.sleeping || d <= 0 || d > 400) return;
+    if (++S.n < 90) return;
+    S.L.push(d);
+    if (S.L.length < 240) return;
+    this.surv = false;
+    try {
+      if (effetsChoisis()) return;
+      effetsMarquer();
+      const L = S.L.sort((a, b) => a - b), med = L[L.length >> 1];
+      if (med > 42 && this.q >= 1) {
+        settings.effets = 0;
+        store.set('prairie.settings', settings);
+        if (game.applySettings) game.applySettings();
+        if (typeof ui !== 'undefined' && ui.toast) ui.toast('Effets visuels allégés : la machine peinait.');
+      }
+    } catch (e) { /* rien */ }
   }
 
   visibleChunks(pos, b, tanX, tanY, far) {

@@ -23,14 +23,22 @@ const bureau = (() => {
     tres: ['Très haute', 'Very high'],
   };
   const t = (k) => TXT[k][en() ? 1 : 0];
-  // pixel (lignes), viewDist (m), fogDist (×), grassDist (m)
+  // pixel (lignes), viewDist (m), fogDist (×), grassDist (m), effets (0 à 3 : les effets de lumière et d'image, voir
+  // 07-shaders.js — Basse garde le rendu d'avant, qui ne coûte rien de plus)
   const PRESETS = {
-    basse: { pixel: 270, viewDist: 220, fogDist: 0.8, grassDist: 20 },
-    moyenne: { pixel: 270, viewDist: 340, fogDist: 1, grassDist: 40 },
-    haute: { pixel: 360, viewDist: 500, fogDist: 1.3, grassDist: 60 },
-    tres: { pixel: 540, viewDist: 500, fogDist: 1.6, grassDist: 80 },
+    basse: { pixel: 270, viewDist: 220, fogDist: 0.8, grassDist: 20, effets: 0 },
+    moyenne: { pixel: 270, viewDist: 340, fogDist: 1, grassDist: 40, effets: 1 },
+    haute: { pixel: 360, viewDist: 500, fogDist: 1.3, grassDist: 60, effets: 2 },
+    tres: { pixel: 540, viewDist: 500, fogDist: 1.6, grassDist: 80, effets: 3 },
   };
-  const CTRL = { pixel: 'o-pixel', viewDist: 'o-view', fogDist: 'o-fog', grassDist: 'o-grass' };
+  const CTRL = { pixel: 'o-pixel', viewDist: 'o-view', fogDist: 'o-fog', grassDist: 'o-grass', effets: 'o-effets' };
+  // (réglages d'avant les effets : un préréglage choisi alors garde ses effets)
+  try {
+    const avant = typeof store !== 'undefined' ? store.get('prairie.settings', null) : null;
+    if (avant && avant.effets === undefined && typeof settings !== 'undefined') {
+      for (const k in PRESETS) { const P = PRESETS[k]; if (['pixel', 'viewDist', 'fogDist', 'grassDist'].every((c) => Math.abs((+avant[c] || 0) - P[c]) < 1e-6)) { settings.effets = P.effets; break; } }
+    }
+  } catch (e) { /* rien */ }
   const $id = (id) => document.getElementById(id);
 
   // ---------------------------------------------------------------- le plein écran
@@ -60,6 +68,7 @@ const bureau = (() => {
   function appliquer(k) {
     const P = PRESETS[k];
     if (!P || typeof settings === 'undefined') return;
+    try { effetsMarquer(); } catch (e) { /* rien */ }
     for (const c in P) {
       const el = $id(CTRL[c]);
       if (el) { el.value = String(P[c]); el.dispatchEvent(new Event('change')); } else settings[c] = P[c];

@@ -153,7 +153,7 @@ Object.assign(menus, {
 
   // ---------------------------------------------------------------- les options, en sections
   SECTIONS: [
-    ['Image', ['o-fov', 'o-pixel', 'o-view', 'o-fog', 'o-grass', 'o-gamma', 'o-dither', 'o-bands', 'o-fps']],
+    ['Image', ['o-fov', 'o-pixel', 'o-view', 'o-fog', 'o-grass', 'o-effets', 'o-gamma', 'o-dither', 'o-bands', 'o-grain', 'o-fps']],
     ['Son', ['o-volume', 'o-amb', 'o-musique-vol', 'o-musique', 'o-son3d', 'o-subs']],
     ['Commandes', ['o-sens', 'o-invert', 'o-hotbar', 'o-dot']],
     ['Jeu', ['o-lang', 'o-wiki']],

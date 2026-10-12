@@ -10,8 +10,12 @@ function glInit(canvas) {
   return true;
 }
 
+// Définitions glissées dans chaque programme juste après « #version » (la qualité du rendu : « #define QUALITE 2 »).
+// Un programme compilé garde celles de son heure : après un changement, le rendu recompile les siens (Renderer.qualite).
+let GL_DEFINES = '';
 function glCompile(type, src, name) {
   const sh = gl.createShader(type);
+  if (GL_DEFINES && src.startsWith('#version')) { const i = src.indexOf('\n') + 1; src = src.slice(0, i) + GL_DEFINES + src.slice(i); }
   gl.shaderSource(sh, src);
   gl.compileShader(sh);
   if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
@@ -141,5 +145,44 @@ function glDeleteTarget(t) {
   if (!t) return;
   gl.deleteFramebuffer(t.fb);
   gl.deleteTexture(t.tex);
-  gl.deleteRenderbuffer(t.depth);
+  if (t.depth) gl.deleteRenderbuffer(t.depth);
+  if (t.depthTex) gl.deleteTexture(t.depthTex);
+}
+// Tampon de rendu au choix : couleur 'RGBA8' | 'RGBA16F' | 'R11F_G11F_B10F' (lissée ou non), profondeur : 'tex' (une texture
+// qu'on peut relire : flou de profondeur, rayons), 'rb' (un tampon) ou rien. ok : faux si la carte refuse ce mélange.
+// (crée ses textures sur l'unité active : l'appelant en choisit une libre)
+function glTargetEx(w, h, o) {
+  o = o || {};
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  if (o.fmt === 'RGBA16F') gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, w, h, 0, gl.RGBA, gl.HALF_FLOAT, null);
+  else if (o.fmt === 'R11F_G11F_B10F') gl.texImage2D(gl.TEXTURE_2D, 0, gl.R11F_G11F_B10F, w, h, 0, gl.RGB, gl.HALF_FLOAT, null);
+  else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  const f = o.linear ? gl.LINEAR : gl.NEAREST;
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, f);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, f);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  let depth = null, depthTex = null;
+  if (o.depth === 'tex') {
+    depthTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, depthTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, w, h, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  } else if (o.depth === 'rb') {
+    depth = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depth);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, w, h);
+  }
+  const fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  if (depthTex) gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTex, 0);
+  else if (depth) gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depth);
+  const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  return { fb, tex, depth, depthTex, w, h, ok, fmt: o.fmt || 'RGBA8' };
 }
