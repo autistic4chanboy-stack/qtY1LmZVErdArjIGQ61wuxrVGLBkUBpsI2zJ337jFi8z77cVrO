@@ -100,7 +100,15 @@ const Q20C = {
   // un point de sol libre autour d'un lieu (à d mètres, dans la direction a)
   autour(c, L, a, d, rad) { if (!L) return null; const P = Array.isArray(L) ? L : L.P; return Q20H.libre(c, c.devant(P, a || 0, d || 0), 0, 6, rad || 0.6); },
   // l'habitant chez lui à son poste (sinon assis, sinon au milieu) — dedans
-  chez(c, qui, o) { const M = c.maison(qui); if (!M) return null; return Q20H.poste(c, qui, Object.assign({ ou: M.poste ? 'poste' : M.assis ? 'assis' : undefined }, o || {})); },
+  // (une maison sans poste de travail : la place assise ; debout, on se tient devant la chaise, pas dessus)
+  chez(c, qui, o) {
+    o = o || {};
+    const M = c.maison(qui);
+    if (!M) return null;
+    const ou = o.ou || (M.poste ? 'poste' : M.assis ? 'assis' : undefined);
+    const assis = JSON.stringify(o.geste || '').includes('assis');
+    return Q20H.poste(c, qui, Object.assign({}, o, { ou, decale: o.decale || ((ou === 'assis' || ou === 'lit') && !assis ? [0.85, 0] : undefined) }));
+  },
   // une chose posée sur un meuble (dy : sa hauteur), ou devant l'acteur, à hauteur de main
   surMeuble(c, cle, id, dy, pres) { const m = Q20H.meuble(c, cle, id, pres); return m ? { P: c.haut(m.P, dy ?? 0.8), r: m.r } : null; },
   enMain(c, A, dy, d) { return A ? c.haut(c.devant(A.P, A.cap, d ?? 0.34, 0.06, true), dy ?? 1.0) : null; },
@@ -480,7 +488,7 @@ q20.scenes('planches_vanniere_1', {
     const elle = bord && c.habitant('planches_vanniere', bord, { face: Pe, geste: ['baisse', 'tend'], lanterne: true });
     return [
       c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.4, d: 1.8, buste: true }), acteurs: [moi, pe], dit: ['Elle est belle. Je la porterai ce soir au gourg.'], court: true }),
-      c.plan({ dur: 6.2, cam: elle ? c.camActeur(elle, { cote: 1.4, d: 4.2, haut: 1.4 }) : c.camLieu(D), acteurs: [elle], heure: 21.2, son: 'eau', dit: ['Tenez, ce bracelet, en peau de sègue. On ne se noie pas, avec ça. Enfin, on se noie moins vite.', '@planches_vanniere'] }),
+      c.plan({ dur: 6.2, cam: elle ? c.camActeur(elle, { cote: 1.4, d: 4.2, haut: 1.4 }) : c.camLieu(D), acteurs: [elle], heure: 17.9, son: 'eau', dit: ['Tenez, ce bracelet, en peau de sègue. On ne se noie pas, avec ça. Enfin, on se noie moins vite.', '@planches_vanniere'] }),
     ];
   },
 });
@@ -541,7 +549,7 @@ q20.scenes('estive_baile_2', {
     const so = moi2 && c.chose(Q20C_DESSINS.sonnaille, Q20C.enMain(c, moi2, 1.05, 0.36), { r: moi2.cap });
     return [
       c.plan({ dur: 6.2, cam: noire ? c.camChose(noire, { d: 8, haut: 1.8, dy: 1.0, a: 0.4 }) : c.camActeur(moi2), acteurs: tr, son: 'clochette', dit: ['C’est elle. Écoute : pas une autre ne sonne comme ça.', '@estive_baile'], court: true }),
-      c.plan({ dur: 5.8, cam: c.camActeur(moi2, { cote: 0.5, d: 2.2, buste: true }), acteurs: [moi2, so], dit: ['Tiens, une des miennes. Accroche-la où tu veux : on saura que tu es passé.'] }),
+      c.plan({ dur: 5.8, cam: c.camActeur(moi2, { cote: 0.45, d: 2.7 }), acteurs: [moi2, so], dit: ['Tiens, une des miennes. Accroche-la où tu veux : on saura que tu es passé.'] }),
     ];
   },
 });
@@ -580,7 +588,7 @@ q20.scenes('estive_patre_1', {
     const Pl = c.lieu('place');
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.6, d: 2.2 }), acteurs: [moi], heure: Math.max(c.h, 17.8), dit: ['Rapportez-moi quelque chose d’en bas ! Une image, avec des couleurs. Et de la confiture.'], court: true }),
-      c.plan({ dur: 5.8, cam: P0 && Pl ? c.camRegard(c.devant(P0, c.cap(P0, Pl.P), -1.5), c.haut(Pl.P, 4), { haut: 1.3 }) : c.camLieu(Pl, { d: 60, haut: 12 }), acteurs: [moi], heure: 21.6, dit: ['Je n’en ai mangé qu’une fois. Je garderai l’image au-dessus de ma paillasse.'] }),
+      c.plan({ dur: 5.8, cam: P0 && Pl ? c.camRegard(c.devant(P0, c.cap(P0, Pl.P), -1.5), c.haut(Pl.P, 4), { haut: 1.3 }) : c.camLieu(Pl, { d: 60, haut: 12 }), acteurs: [moi], heure: 17.7, dit: ['Je n’en ai mangé qu’une fois. Je garderai l’image au-dessus de ma paillasse.'] }),
     ];
   },
   fin(c) {

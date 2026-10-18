@@ -363,7 +363,7 @@ q20.scenes('q20c_cle_porte', {
       const moi2 = q20cComptoir(c, { geste: ['baisse'] });
       return [
         c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.4, d: 2.2, buste: true }), acteurs: [moi, pi], son: 'piece', dit: ['« À l’heure. »'], court: true }),
-        c.plan({ dur: 6, cam: c.camActeur(moi2, { cote: 1.1, d: 2.4 }), acteurs: [moi2], dit: ['Il range la clé sans la regarder. Il ne demande pas ce qu’il y a de l’autre côté.', ''] }),
+        c.plan({ dur: 6, cam: c.camActeur(moi2, { cote: 0.7, d: 3.0, haut: 1.5 }), acteurs: [moi2], dit: ['Il range la clé sans la regarder. Il ne demande pas ce qu’il y a de l’autre côté.', ''] }),
       ];
     },
     vol(c) {
@@ -469,7 +469,7 @@ q20.scenes('q20c_petits', {
       const So = q20cSouche(c) || (c.lieu('gob_souche') && c.lieu('gob_souche').P);
       const file = So ? [0, 1, 2, 3, 4].map((k) => { const P = Q20H.libre(c, c.devant(So, 2.6, 4 + k * 2.4, (k % 2) * 0.8), 0, 2, 0.4); return c.bete('x_gobelin', P, { cap: 2.6, vers: c.devant(P, 2.6, 6), t0: k * 0.4, t1: 6 + k * 0.4 }); }) : [];
       return [
-        c.plan({ dur: 6.8, cam: So ? c.camChose(c.devant(So, 2.6, 8), { d: 13, haut: 1.8, dy: 0.4, a: 1.0 }) : c.camLieu('place'), acteurs: file, heure: c.heure('nuit'), son: 'murmure', dit: ['(Une file de petites ombres, de la souche vers les monts. Elles ne se retournent pas.)', ''], court: true }),
+        c.plan({ dur: 6.8, cam: So ? c.camChose(c.devant(So, 2.6, 9), { d: 7.5, haut: 1.1, dy: 0.3, a: 1.0 }) : c.camLieu('place'), acteurs: file, heure: 5.7, lum: So ? [c.lueur(c.devant(So, 2.6, 9), 7, [0.5, 0.55, 0.7], 1.5)] : [], son: 'murmure', dit: ['(Une file de petites ombres, de la souche vers les monts. Elles ne se retournent pas.)', ''], court: true }),
         c.plan({ dur: 5.4, cam: c.camLieu(c.lieu('place'), { d: 26, haut: 5 }), heure: 6.4, dit: ['(Au matin, il n’y a plus de marques nulle part.)', ''] }),
       ];
     },
@@ -736,8 +736,8 @@ q20.scenes('q20c_commande', {
     const pa = vo && vo.P && c.devant(vo.P, vo.cap + 2.4, 9);
     const ch = pa && c.bete('horse', pa, { cap: vo.cap + 2.4, v: 1, vers: c.devant(pa, vo.cap + 2.4, 5), t0: 2, t1: 6 });
     return [
-      c.plan({ dur: 6.2, cam: vo ? c.camActeur(vo, { cote: 0.6, d: 2.8, avec: Lv, k: 0.4 }) : c.camChose(Lv), acteurs: [vo, c.chose(Q20_DESSINS.colis, Lv, { s: 1.8, r: 0.5 })], heure: 7.2, dit: ['Pour vous. C’est réglé d’avance. La tournée m’attend.', 'Le voiturier'], court: true }),
-      c.plan({ dur: 5.8, cam: c.camChose(Lv, { d: 3.2, haut: 1.3, dy: 0.2, a: 2.2 }), acteurs: [c.chose(Q20_DESSINS.colis, Lv, { s: 1.8, r: 0.5 }), ch], heure: 7.4, son: 'cheval', dit: ['(Le colis, posé dans l’herbe, un peu humide de rosée.)', ''] }),
+      c.plan({ dur: 6.2, cam: vo ? c.camActeur(vo, { cote: 0.9, d: 3.6, avec: Lv, k: 0.35 }) : c.camChose(Lv), acteurs: [vo, c.chose(Q20_DESSINS.colis, Lv, { s: 1.3, r: 0.5 })], heure: 7.2, dit: ['Pour vous. C’est réglé d’avance. La tournée m’attend.', 'Le voiturier'], court: true }),
+      c.plan({ dur: 5.8, cam: c.camChose(Lv, { d: 2.4, haut: 1.8, dy: 0.15, a: 2.2 }), acteurs: [c.chose(Q20_DESSINS.colis, Lv, { s: 1.3, r: 0.5 }), ch], heure: 7.4, son: 'cheval', dit: ['(Le colis, posé dans l’herbe, un peu humide de rosée.)', ''] }),
     ];
   },
 });

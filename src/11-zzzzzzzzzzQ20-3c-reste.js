@@ -111,7 +111,7 @@ q20.scenes('t2', {
     const Ph = q20cPhare(c), F = c.lieu('ferme');
     return [
       c.plan({ dur: 6.6, cam: t ? c.camChose(c.haut(t.P, 0.79), { d: 1.4, a: (t.r || 0) + 0.4 }) : c.camLieu(F), acteurs: [J, t && c.chose(Q20C_D3.lettre, c.haut(t.P, 0.79), { r: t.r || 0, s: 1.2 })], son: 'page', dit: ['Mon mari gardait ce feu. Une nuit de novembre, il est descendu voir la barque, et il n’est pas remonté.', 'Marie Lemarié'], court: true }),
-      c.plan({ dur: 6.2, cam: Ph ? c.camLieu(Ph, { d: 60, haut: 4, dy: 14 }) : c.camLieu('lac'), heure: 23, lum: Ph ? [c.lueur(c.haut(Ph, 16), 9, [1.0, 0.75, 0.4], 0)] : [], dit: ['Depuis dix-neuf ans, personne n’a porté d’huile là-haut. Il brûle quand même. Je voudrais seulement savoir qui l’allume.', 'Marie Lemarié'] }),
+      c.plan({ dur: 6.2, cam: Ph ? c.camLieu(Ph, { d: 60, haut: 4, dy: 14 }) : c.camLieu('lac'), heure: 18.1, lum: Ph ? [c.lueur(c.haut(Ph, 16), 9, [1.0, 0.75, 0.4], 0)] : [], dit: ['Depuis dix-neuf ans, personne n’a porté d’huile là-haut. Il brûle quand même. Je voudrais seulement savoir qui l’allume.', 'Marie Lemarié'] }),
     ];
   },
   fins: {
@@ -160,7 +160,7 @@ q20.scenes('t3', {
       const J = moi && Q20H.face(c, moi, 1.4, 0.3);
       const E = c.maison('eglise');
       return [
-        c.plan({ dur: 6.2, cam: moi ? c.camActeur(moi, { cote: 0.5, d: 2.6, avec: J, k: 0.3 }) : c.camLieu('eglise'), acteurs: [moi, J], son: 'piece', dit: ['Pour le tronc des pauvres. Ou pour vous.', '@cure'], court: true }),
+        c.plan({ dur: 6.2, cam: moi ? Q20C.cam(c, () => c.camActeur(moi, { cote: 1.3, d: 2.8, avec: J, k: 0.3 }), () => c.camActeur(moi, { cote: -1.3, d: 2.8, avec: J, k: 0.3 })) : c.camLieu('eglise'), acteurs: [moi, J], son: 'piece', dit: ['Pour le tronc des pauvres. Ou pour vous.', '@cure'], court: true }),
         c.plan({ dur: 6, cam: E ? c.camDedans('eglise', c.haut(E.local(0, -E.B.D * 0.22), 0.8), { pref: E.cap + Math.PI, d: 3.6 }) : c.camLieu('eglise'), heure: 10.5, dit: ['(Le dimanche suivant, personne ne s’assoit plus au dernier rang.)', ''] }),
       ];
     },
