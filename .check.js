@@ -140363,6 +140363,10 @@ const q20 = {
     if (m === 'fin' ? !(D.fin || (D.fins && Object.keys(D.fins).length)) : !this.constructeur(id, m)) return false;
     const S = this.S();
     if (S.fait[this.cle(id, m)] || S.file.some((e) => e.id === id && e.m === m)) return false;
+    // une fin déjà passée ('fin' ou l'une des fins à choix 'fin:k', vue ou rangée aux souvenirs, ou qui attend) ne revient
+    // pas par un 'fin' redemandé : un guet qui voit la quête finie la redemande, et le dénouement se rejouerait sans fin
+    if (base === 'fin' && (this.moments(id).some((k) => k.split(':')[0] === 'fin' && S.fait[this.cle(id, k)])
+      || S.file.some((e) => e.id === id && e.m.split(':')[0] === 'fin'))) return false;
     // un moment plus avancé de la même quête : les précédents qui attendent n'ont plus de sens (ils rejoignent les souvenirs)
     const rang = Q20_MOMENTS.indexOf(base);
     for (let i = S.file.length - 1; i >= 0; i--) {
@@ -146818,6 +146822,1178 @@ for (const id of MYTH_ORDER) {
   };
 }
 
+// ---- 11-zzzzzzzzzzQ20-4-ailleurs.js
+// ============================================================================
+//  LES SCÈNES DES QUÊTES (agent Q20D, vingtième vague, lot 4) — 4. AILLEURS
+//  Les quêtes qui se mènent hors de la vallée et qui n'avaient pas encore de
+//  scènes (le recensement de Q20C, section D, les avait laissées de côté) :
+//  - celui-ci : ce que partagent les trois fichiers du lot (l'état, le guet,
+//    les donneurs des Souvenirs, les caméras dans une pièce, sous terre là où
+//    le monde ne l'est pas), et le château de Hautguet (dans la Zone) : le
+//    château vu de loin et son silence, les clés jusqu'au donjon, le feu du
+//    Guet, le pont-levis, la Dame de la tour ;
+//  - 4b : le Dessous (le Hameau d'En-Bas : entrer sans nom, les onze de 1631 ;
+//    la Chambre des Gouttes : le onzième, la perle des dormeurs ; la porte des
+//    Aëlim) et la niche scellée des Galeries (les runes) ;
+//  - 4c : la pierre ronde et la cité des Maisons-d'Étoile (le seul voyage, le
+//    Cœur), et les Terres d'Avant (sous chaque tertre un roi, le tertre scellé).
+//  Elles ne passent ni par `quests` ni par `q16` : chacune a son état (etat(),
+//  lu dans ce que son module retient déjà) et ses déclencheurs (un guet toutes
+//  les deux secondes, dans la vallée comme dans la Zone, et quelques emballages
+//  qui notent seulement ce qui vient de se passer). Leur monde (def.monde, les
+//  outils de Q20B : 11-zzzzzzzzzzQ20-2a-outils.js) : chaque scène attend que le
+//  joueur y soit. Rien n'est généré, rien ne change dans les quêtes elles-mêmes.
+//  Ce que Q20D retient : farm.s.q20d (petites notes ; une partie d'avant n'en a
+//  pas, et rien ne s'y rejoue). API : q20d (S, note, guetter), Q20D (outils).
+// ============================================================================
+
+// ---------------------------------------------------------------- les donneurs qui ne sont ni des habitants ni des Q16_PNJ
+const Q20D_QUI = {
+  'q20d:hautguet': 'Hautguet — le château des Hauts',
+  'q20d:dessous': 'Le Dessous',
+  'q20d:pierre': 'La pierre ronde',
+  'q20d:zone': 'Les Terres d’Avant',
+};
+{
+  const _quiDe = q20.quiDe.bind(q20), _nomDe = q20.nomDe.bind(q20);
+  q20.quiDe = function (id) { const D = this.defs[id]; if (D && !D.qui && D.souv && Q20D_QUI[D.souv]) return D.souv; return _quiDe(id); };
+  q20.nomDe = function (qui) { if (qui && Q20D_QUI[qui]) return Q20D_QUI[qui]; return _nomDe(qui); };
+}
+// (dans la Zone, q20B.ici() rend 'hautguet' partout où l'on est plus bas que la cour du château : zone.chateau.dedans()
+// compte « sous le château » tout ce qui est sous son niveau. Loin du château — plus de V4_RAYON mètres —, c'est le reste
+// de la Zone : les scènes de Hautguet attendent qu'on y soit, celles des Tertres peuvent se jouer. Contrat, section Q20D.)
+if (typeof q20B !== 'undefined' && q20B.ici) {
+  const _ici = q20B.ici.bind(q20B);
+  q20B.ici = function () {
+    const r = _ici();
+    if (r !== 'hautguet') return r;
+    try { const V = chateauV4.Z, p = game.player.pos; if (V && Math.hypot(p[0] - V.cx, p[2] - V.cz) > V4_RAYON) return 'zone'; } catch (e) { /* rien */ }
+    return r;
+  };
+}
+// (une fin déjà passée ne revient pas par un 'fin' redemandé : c'est le cadre qui le garde, q20.declencher)
+// les Galeries (le labyrinthe de la vieille mine, sous la vallée) : un monde sous terre de plus pour la file de Q20B
+if (typeof Q20B_SOUS !== 'undefined' && !Q20B_SOUS.galeries) Q20B_SOUS.galeries = { lm: 'galeries', r: 86 };
+
+// ---------------------------------------------------------------- l'état, le guet
+const q20d = {
+  t: 2, guets: [],
+  S() { const s = farm.s; if (!s) return {}; return s.q20d && typeof s.q20d === 'object' ? s.q20d : (s.q20d = { v: 1 }); },
+  note(k, v) { const S = this.S(); if (!S[k]) S[k] = Object.assign({ j: farm.s ? farm.s.day : 0 }, v || {}); return S[k]; },
+  // un guet : f() rend le moment à déclencher maintenant ('demande', 'tournant', 'fin'), ou rien
+  guetter(id, f) { this.guets.push({ id, f }); },
+  update(dt) {
+    if (!farm.s || !game.started) return;
+    this.t -= dt;
+    if (this.t > 0) return;
+    this.t = 2;
+    for (const G of this.guets) {
+      try { const m = G.f(); if (m && !this.passe(G.id, m)) q20.declencher(G.id, m); } catch (e) { if (!G.err) { G.err = 1; console.error('q20d ' + G.id, e); } }
+    }
+  },
+  // un moment déjà passé (vu, sauté, rangé aux souvenirs) : pour une fin, l'une quelconque de ses fins
+  passe(id, m) {
+    const S = q20.S();
+    if (!S) return true;
+    if (m !== 'fin') return !!S.fait[q20.cle(id, m)];
+    return q20.moments(id).some((k) => k.startsWith('fin') && S.fait[q20.cle(id, k)]);
+  },
+};
+if (typeof window !== 'undefined') window.prairieQ20D = q20d;
+{
+  // (dans la vallée comme dans la Zone, la cité, le Dessous)
+  const f = (dt) => q20d.update(dt);
+  f.zone = true;
+  HOOKS.update.push(f);
+}
+// l'état d'une quête d'ici : { q, Q, qui, actif, fini, pret, choix } (qui : null — pas de contrôle « habitant mort »)
+function q20dE(titre, Q, actif, fini, choix, pret) { return { q: { title: titre }, Q: Q || null, qui: null, actif: !!actif && !fini, fini: !!fini, pret: !!actif && !!pret, choix: choix === undefined ? null : choix }; }
+
+// ---------------------------------------------------------------- sous terre là où le monde ne l'est pas (la crypte, une chambre sous un tertre)
+// (c.sous = true le temps de quelques plans : les caméras de Q20B, qui se cherchent entre les blocs)
+{
+  const D0 = Object.getOwnPropertyDescriptor(Q20Scene.prototype, 'sous');
+  Object.defineProperty(Q20Scene.prototype, 'sous', {
+    get() { return this._sous !== undefined ? this._sous : !!(D0 && D0.get && D0.get.call(this)); },
+    set(v) { this._sous = v; },
+    configurable: true,
+  });
+}
+
+// (sous terre, dans une galerie ou une salle étroite, les caméras des scènes du lot gardent 0,6 m de libre autour d'elles :
+// une poutre, un linteau, un pan de cabane collé à l'objectif bouchent l'image sans couper le regard)
+{
+  const _ls = Q20Scene.prototype.libreSous;
+  if (_ls) Q20Scene.prototype.libreSous = function (L, P) { if (this.id && this.id.startsWith('q20d_') && qtDansBloc(L, P, 0.6)) return false; return _ls.call(this, L, P); };
+}
+
+// ---------------------------------------------------------------- de petits objets (dans le repère de la chose)
+const Q20D_DESSINS = {
+  // une clé noire, courte (la poterne) ; une clé ouvragée (la sacristie) ; la grande clé du donjon ; la petite clé de la tour
+  cle_noire(PE) { const r = [0.2, 0.2, 0.22]; PE.box(0, 0.01, 0, 0.018, 0.02, 0.16, r, TL.iron); PE.box(0, 0.01, -0.09, 0.05, 0.02, 0.04, r, TL.iron); PE.box(0.02, 0.01, 0.07, 0.03, 0.02, 0.03, r, TL.iron); },
+  cle_croix(PE) { const r = [0.62, 0.55, 0.4]; PE.box(0, 0.01, 0, 0.018, 0.02, 0.18, r, TL.iron); PE.box(0, 0.01, -0.1, 0.06, 0.02, 0.05, r, TL.iron); PE.box(0, 0.022, -0.1, 0.012, 0.006, 0.04, [0.3, 0.26, 0.2], TL.plain); PE.box(0.025, 0.01, 0.08, 0.035, 0.02, 0.03, r, TL.iron); },
+  grande_cle(PE) { const r = [0.4, 0.4, 0.44]; PE.box(0, 0.015, 0, 0.03, 0.03, 0.46, r, TL.iron); PE.box(0, 0.015, -0.27, 0.12, 0.03, 0.09, r, TL.iron); PE.box(0.04, 0.015, 0.2, 0.06, 0.03, 0.06, r, TL.iron); PE.box(0.04, 0.015, 0.13, 0.04, 0.03, 0.03, r, TL.iron); },
+  petite_cle(PE) { const r = [1.05, 0.9, 0.5]; PE.box(0, 0.008, 0, 0.012, 0.014, 0.1, r, TL.gold); PE.box(0, 0.008, -0.055, 0.035, 0.014, 0.03, r, TL.gold); PE.box(0.014, 0.008, 0.04, 0.02, 0.014, 0.02, r, TL.gold); },
+  // le registre du portier, ouvert ; une feuille roulée
+  registre(PE) { PE.box(0, 0.02, 0, 0.36, 0.04, 0.26, [0.4, 0.28, 0.18], TL.leather); PE.box(0, 0.042, 0, 0.34, 0.006, 0.24, [1.0, 0.94, 0.78], TL.paper); for (let k = 0; k < 7; k++) PE.box(-0.08 + (k % 2) * 0.16, 0.047, -0.08 + Math.floor(k / 2) * 0.05, 0.12, 0.003, 0.006, [0.25, 0.2, 0.15], TL.plain); },
+  feuille(PE) { PE.box(0, 0.012, 0, 0.05, 0.024, 0.24, [1.0, 0.94, 0.8], TL.paper); },
+  // la couverture de Thibaud, pliée (de la laine grise, une bande sombre)
+  couverture(PE) { PE.box(0, 0.05, 0, 0.56, 0.1, 0.36, [0.86, 0.82, 0.74], TL.cloth || TL.plain); PE.box(0, 0.101, 0, 0.56, 0.004, 0.05, [0.4, 0.3, 0.22], TL.plain); PE.box(0.2, 0.101, 0, 0.04, 0.004, 0.36, [0.4, 0.3, 0.22], TL.plain); },
+  // une jarre d'huile ; la lettre d'Ysolde, pliée
+  jarre(PE) { PE.box(0, 0.16, 0, 0.24, 0.32, 0.24, [0.7, 0.5, 0.32], TL.plain); PE.box(0, 0.34, 0, 0.12, 0.05, 0.12, [0.6, 0.42, 0.28], TL.plain); },
+  lettre(PE) { PE.box(0, 0.004, 0, 0.15, 0.006, 0.2, [1.05, 0.98, 0.84], TL.paper, 0.2); PE.box(0, 0.008, 0.0, 0.14, 0.003, 0.004, [0.6, 0.55, 0.45], TL.plain, 0.2); },
+  // une flamme qui monte dans la corbeille du Guet (elle danse)
+  flamme(PE, t) { PE.fl = FX_EMIT; for (let k = 0; k < 5; k++) { const a = k * 1.3 + (t || 0) * 2.1; PE.box(Math.sin(a) * 0.5, 0.4 + ((t || 0) * 0.9 + k * 0.21) % 1 * 1.1, Math.cos(a) * 0.5, 0.45, 0.6, 0.45, [1.6, 0.7 + k * 0.05, 0.2], TL.flame || TL.plain, a); } PE.fl = 0; },
+};
+
+// ---------------------------------------------------------------- les outils du lot
+const Q20D = {
+  // une interaction du monde (w.inter), par son identifiant : [x, y, z] (ou null)
+  inter(c, id) { const I = (c.w.inter || []).find((i) => i.id === id); return I ? [I.x, I.y, I.z] : null; },
+  // la première caméra qui ne tombe pas sur le repli, parmi plusieurs façons de cadrer (sinon la dernière)
+  cam(c, ...fns) {
+    let cam = null;
+    for (let i = 0; i < fns.length; i++) {
+      const r0 = c.repli;
+      try { cam = fns[i](); } catch (e) { cam = null; }
+      if (cam && !cam.repli) return cam;
+      if (i < fns.length - 1) c.repli = r0;
+    }
+    return cam;
+  },
+  // quelques plans comme sous terre (la crypte, une chambre sous un tertre) : f() les fait ; c.sous rendu ensuite
+  sous(c, f) { const s0 = c._sous; c._sous = true; try { return f(); } finally { c._sous = s0; } },
+  // une flamme (bougie, brasero, lanterne posée) ; une lueur froide (la pierre qui luit, la lune)
+  flamme(c, P, r, dy) { return c.lueur(P, r || 4, [1.0, 0.64, 0.3], dy ?? 0.4); },
+  froide(c, P, r, dy) { return c.lueur(P, r || 4, [0.42, 0.7, 0.55], dy ?? 0.3); },
+  lune(c, P, r) { return c.lueur(P, r || 18, [0.3, 0.34, 0.46], 6); },
+  // une caméra DANS UNE PIÈCE close (le monde n'a pas de bâtiment w.bld : une salle du château, la tour, une chambre de
+  // pierre) : P à hauteur he au-dessus du plancher y0, autour de T (en partant de l'angle a0, à d mètres), ni dans un bloc,
+  // sous un plafond, au-dessus du plancher, dans la salle (o.dans(P) : un rectangle, un cercle), rien entre elle et T
+  piece(c, T, o) {
+    o = o || {};
+    const w = c.w, L = c.blocs(T, (o.d || 2.6) * 2 + 10), y0 = o.y0 ?? T[1] - 1.2, he = o.he ?? 1.55, a0 = o.a ?? 0;
+    const Ds = o.ds || [o.d || 2.6, (o.d || 2.6) * 0.8, (o.d || 2.6) * 1.25, (o.d || 2.6) * 0.62, (o.d || 2.6) * 1.5];
+    for (const hh of [he, he + 0.35, he - 0.3]) for (let k = 0; k < 36; k++) {
+      const a = a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * TAU / 36;
+      for (const dd of Ds) {
+        const P = [T[0] + Math.sin(a) * dd, y0 + hh, T[2] + Math.cos(a) * dd];
+        try {
+          if (o.dans && !o.dans(P)) continue;
+          if (qtDansBloc(L, P, 0.32) || !qtSousToit(w, L, P)) continue;
+          const g = w.groundAt(P[0], P[2], y0 + 0.4, 0.8);
+          if (!(g > -1e8) || Math.abs(g - y0) > 0.7) continue;
+          const v = [T[0] - P[0], T[1] - P[1], T[2] - P[2]], dv = Math.hypot(v[0], v[1], v[2]) || 1;
+          if (qtRayon(w, L, P, [v[0] / dv, v[1] / dv, v[2] / dv], dv - 0.3)) continue;
+          if (o.aussi && o.aussi.some((Q) => { const u = [Q[0] - P[0], Q[1] - P[1], Q[2] - P[2]], du = Math.hypot(u[0], u[1], u[2]) || 1; return !!qtRayon(w, L, P, [u[0] / du, u[1] / du, u[2] / du], du - 0.3); })) continue;
+        } catch (e) { continue; }
+        // (le travelling : un peu vers la cible, s'il reste libre)
+        const k2 = o.recul ?? 0.1, Q2 = [P[0] + (T[0] - P[0]) * k2, P[1] + (o.monte || 0), P[2] + (T[2] - P[2]) * k2];
+        let ok2 = true;
+        try { ok2 = !qtDansBloc(L, Q2, 0.3) && (!o.dans || o.dans(Q2)); } catch (e) { ok2 = false; }
+        return { de: { pos: P, look: T }, a: { pos: ok2 ? Q2 : P, look: o.vise2 || T }, dedans: null, vise: [T], toit: true };
+      }
+    }
+    c.repli++;
+    return { de: { pos: c.haut(T, 0.6), look: T }, a: { pos: c.haut(T, 0.6), look: T }, dedans: null, vise: [T], repli: true, toit: true };
+  },
+  // sur un acteur, dans une pièce : la tête (ou le buste), à d mètres, du côté cote (0 : de face)
+  pieceActeur(c, A, o) {
+    o = o || {};
+    if (!A) return null;
+    let T = c.tete(A, o.buste ? -0.42 : 0);
+    if (o.avec) { const B = o.avec.k ? c.tete(o.avec, -0.2) : o.avec; T = c.vers(T, B, o.k ?? 0.4); }
+    return Q20D.piece(c, T, Object.assign({ a: (A.cap || 0) + (o.cote ?? 0.45), y0: (A.vers || A.P)[1] }, o));
+  },
+  // le feu du Guet vu d'en haut (au-dessus du château, dans l'air) : G (le fanal), a (d'où), d (à quelle distance)
+  dessus(c, G, a, d) { return Q20D.cam(c, () => c.camChose(c.haut(G, 1.2), { d: d || 16, haut: (G[1] - c.sol(G[0], G[2])) + 11, a, dy: 0, recul: 0.06 }), () => c.camChose(c.haut(G, 1.2), { d: (d || 16) * 1.3, haut: (G[1] - c.sol(G[0], G[2])) + 16, a: a + 0.8, dy: 0 })); },
+  // un rectangle (salle) en coordonnées du monde, une marge m : pour piece({ dans })
+  rect(x0, x1, z0, z1, m) { m = m ?? 0.35; return (P) => P[0] > x0 + m && P[0] < x1 - m && P[2] > z0 + m && P[2] < z1 - m; },
+  rond(cx, cz, r) { return (P) => Math.hypot(P[0] - cx, P[2] - cz) < r; },
+};
+
+// ============================================================================
+//  HAUTGUET (le château des Hauts, dans la Zone : monde 'hautguet')
+// ============================================================================
+// le château généré (chateauV4.Z) et un point du plan, en mètres locaux (x vers l'est, z vers le sud, y au-dessus du
+// sol de la cour) : [x, y, z] du monde
+function q20dHG() { return typeof chateauV4 !== 'undefined' && chateauV4.Z ? chateauV4.Z : null; }
+function q20dL(V, x, y, z) { return [V.cx + x, V.y0 + y, V.cz + z]; }
+function q20dV4() { try { return chateauV4.S(); } catch (e) { return null; } }
+// les voix écrites du château (le registre, une feuille, une pierre) : pas de marmonnement
+const Q20D_HG = {
+  borne: 'Une borne, au bord du fossé',
+  registre: 'Le registre de la porte',
+  craie: 'À la craie, près de l’âtre',
+  senechal: 'Hugues, sénéchal',
+  fanal: 'Gravé sur le fût du fanal',
+  lettre: 'Ysolde, « à qui ouvrira »',
+};
+// Thibaud, assis près du brasero de la salle du treuil (sa silhouette : Q20_LOOKS.thibaud, de Q20B), ou debout à une
+// meurtrière ; o : options de l'acteur
+function q20dThibaud(c, o, debout) {
+  const V = q20dHG(), T = V && V.thibaud;
+  if (!T) return null;
+  c.masquer('thibaud');
+  const P = debout ? q20dL(V, -105.4, 7, -3.5) : [T.x, T.y + 0.04, T.z];
+  const look = Q20_LOOKS.thibaud || { skin: '#c8b49c', hair: '#c8c4bc', top: '#4a4238', bottom: '#3a342c', beard: 'longue', old: true, build: 'mince' };
+  const A = c.gens(look, P, Object.assign({ cap: debout ? -Math.PI / 2 : T.r, geste: debout ? ['raide', { lookP: 0.1 }] : ['assis', 'penche', { lookP: 0.3 }] }, o));
+  const br = q20dL(V, -99.0, 7, 4.6);
+  return { V, A, P, br, lum: [Q20D.flamme(c, br, 5, 0.9)], nom: (typeof Q20B !== 'undefined' && Q20B.nom('thibaud')) || 'Thibaud', dans: Q20D.rect(V.cx - 106.3, V.cx - 92.3, V.cz - 9.3, V.cz + 9.3, 0.2) };
+}
+// la salle du treuil : une caméra sur Thibaud
+function q20dCamThibaud(c, Th, o) {
+  return Q20D.cam(c, () => Q20D.pieceActeur(c, Th.A, Object.assign({ cote: 0.5, d: 2.3, dans: Th.dans }, o)), () => Q20D.pieceActeur(c, Th.A, Object.assign({ cote: -0.7, d: 2.6, dans: Th.dans }, o)), () => c.camActeur(Th.A, Object.assign({ cote: 0.5, d: 2.4 }, o)));
+}
+
+// ---------------------------------------------------------------- LE CHÂTEAU DES HAUTS : vu de loin ; son silence
+q20.scenes('q20d_hg_chateau', {
+  souv: 'q20d:hautguet', titre: 'Le château des Hauts',
+  monde: 'hautguet',
+  delais: { fin: 9 },
+  etat() {
+    const S = q20dV4();
+    if (!S || !farm.s) return q20dE('Le château des Hauts', null, false, false);
+    return q20dE('Le château des Hauts', S.vus.arrivee || S.fin ? S : null, !!S.vus.arrivee, !!S.fin);
+  },
+  demande(c) {
+    const V = q20dHG();
+    if (!V) return null;
+    const bo = Q20D.inter(c, 'v4_lire_borne') || q20dL(V, -124.4, 1.4, 7);
+    const ch = q20dL(V, -20, 12, 0), pont = q20dL(V, -108, 4, 0);
+    return [
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camLieu(ch, { d: 150, haut: 9, dy: 0, a: -Math.PI / 2 + 0.25, recul: 0.06, stop: 40 }), () => c.camLieu(ch, { d: 120, haut: 14, dy: 0, a: -Math.PI / 2 - 0.3, stop: 40 }), () => c.camLieu(ch, { d: 170, haut: 20, dy: 0 })), acteurs: [], son: 'corbeau', dit: c.parole('(Des tours, et pas une lumière. On dirait qu’il attend quelqu’un.)', '') }),
+      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camLieu(pont, { d: 22, haut: 2.0, dy: 0, a: -Math.PI / 2 + 0.32, recul: 0.08, stop: 2, aussi: [c.haut(bo, -0.5)] }), () => c.camLieu(pont, { d: 26, haut: 2.6, dy: 0, a: -Math.PI / 2 + 0.2, stop: 2 })), acteurs: [], dit: c.parole('HAUTGUET. ICI L’ON VEILLE, POUR QUE LA VILLE DORME.', Q20D_HG.borne), court: true }),
+    ];
+  },
+  fin(c) {
+    const V = q20dHG();
+    if (!V) return null;
+    const G = V.guet ? [V.guet.x, V.guet.y, V.guet.z] : q20dL(V, 49, 26, 5), pont = q20dL(V, -108, 0.6, 0);
+    const feu = [c.lueur(G, 30, [1.0, 0.55, 0.22], 2), c.lueur(G, 12, [1.0, 0.7, 0.35], 1)];
+    const fl = c.chose(Q20D_DESSINS.flamme, c.haut(G, 1.6), { s: 1.3 });
+    return [
+      c.plan({ dur: 7, cam: Q20D.dessus(c, G, -Math.PI / 2 + 0.5, 16), acteurs: [fl], lum: feu.concat([Q20D.lune(c, c.haut(G, -14), 30)]), dit: c.parole('Hautguet se tait.', ''), court: true }),
+      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camLieu(pont, { d: 14, haut: 2.6, dy: 0, a: -Math.PI / 2 - 0.5, recul: 0.1, stop: 2 }), () => c.camLieu(pont, { d: 20, haut: 4, dy: 0, a: -Math.PI / 2 + 0.6, stop: 2 })), acteurs: [], lum: [Q20D.lune(c, pont, 22), c.lueur(c.haut(pont, 2), 10, [0.4, 0.42, 0.5], 1)], dit: c.parole('Pour la première fois, le silence ressemble à du sommeil.', '') }),
+    ];
+  },
+});
+q20d.guetter('q20d_hg_chateau', () => { const S = q20dV4(); if (!S || !farm.s.v4) return null; return S.fin ? 'fin' : S.vus.arrivee ? 'demande' : null; });
+
+// ---------------------------------------------------------------- LES CLÉS DE HAUTGUET : la première clé ; la grande clé, dans la crypte ; le donjon
+// (la première clé : celle du portier — la poterne — ou celle de la cuisinière — la sacristie, sur le chemin du donjon)
+function q20dPris(id) { const S = q20dV4(); return S ? S.pris['o:' + id] || 0 : 0; }
+q20.scenes('q20d_hg_cles', {
+  souv: 'q20d:hautguet', titre: 'Les clés de Hautguet',
+  monde: 'hautguet',
+  delais: { demande: 2, tournant: 2.5, fin: 2 },
+  etat() {
+    const S = q20dV4();
+    if (!S || !farm.s) return q20dE('Les clés de Hautguet', null, false, false);
+    const prem = q20dPris('cle_poterne') || q20dPris('cle_chapelle'), N = q20d.S().terrasse;
+    return q20dE('Les clés de Hautguet', prem || N ? { premier: q20d.S().cle1 || (q20dPris('cle_chapelle') && !q20dPris('cle_poterne') ? 'chapelle' : 'poterne') } : null, !!prem, !!N, null, !!q20dPris('cle_donjon'));
+  },
+  tournantSi() { return !!q20dPris('cle_donjon'); },
+  demande(c) {
+    const V = q20dHG();
+    if (!V) return null;
+    const pr = (c.Q && c.Q.premier) || 'poterne';
+    if (pr === 'chapelle') {
+      // les cuisines : la cuisinière morte contre l'âtre, la huche, les comptes à la craie
+      const dans = Q20D.rect(V.cx - 25, V.cx - 4.5, V.cz - 58.2, V.cz - 41, 0.3);
+      const hu = q20dL(V, -23.2, 0, -51.8), J = c.joueur(q20dL(V, -21.9, 0, -51.6), { face: hu, geste: 'penche', lanterne: true });
+      const cle = c.chose(Q20D_DESSINS.cle_croix, c.haut(c.devant(J.P, J.cap, 0.32, 0.06, true), 1.05), { s: 1.5, r: J.cap, lueur: true });
+      const mo = q20dL(V, -15.6, 0, -54.0), cr = q20dL(V, -20.4, 1.5, -55.4);
+      return [
+        c.plan({ dur: 6.4, cam: Q20D.cam(c, () => Q20D.pieceActeur(c, J, { cote: 1.1, d: 2.2, buste: true, dans, avec: cle.P, k: 0.3 }), () => Q20D.pieceActeur(c, J, { cote: -1.0, d: 2.4, dans })), acteurs: [J, cle], lum: [Q20D.flamme(c, J.P, 5, 1.2)], son: 'porte', dit: c.parole('Pain : quarante. Pain : trente. Pain : douze.', Q20D_HG.craie), court: true }),
+        c.plan({ dur: 6.2, cam: Q20D.cam(c, () => Q20D.piece(c, c.haut(mo, 0.7), { a: 0.3, d: 2.4, y0: mo[1], dans, aussi: [cr] }), () => Q20D.piece(c, c.haut(mo, 0.7), { a: -0.8, d: 2.6, y0: mo[1], dans })), acteurs: [Object.assign({}, J, { vu: false })], lum: [Q20D.flamme(c, J.P, 5, 1.2), c.lueur(mo, 3.5, [0.7, 0.62, 0.55], 1)], dit: c.parole('Pain : un, pour la tour. Que le sire n’en sache rien.', Q20D_HG.craie) }),
+      ];
+    }
+    // la loge du portier : Gaucher mort à sa table, son registre ; la clé au clou
+    const dans = Q20D.rect(V.cx - 106.4, V.cx - 92.2, V.cz - 9.4, V.cz - 3.5, 0.25);
+    const clou = q20dL(V, -106.2, 1.55, -6.0), J = c.joueur(q20dL(V, -105.1, 0, -6.1), { face: clou, geste: 'leve' });
+    const cle = c.chose(Q20D_DESSINS.cle_noire, c.haut(c.devant(J.P, J.cap, 0.34, 0.05, true), 1.12), { s: 1.6, r: J.cap, lueur: true });
+    const tb = q20dL(V, -101.6, 0.8, -7.6), mo = q20dL(V, -101.5, 0, -6.5);
+    return [
+      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => Q20D.pieceActeur(c, J, { cote: 1.2, d: 2.3, buste: true, dans, avec: clou, k: 0.35 }), () => Q20D.pieceActeur(c, J, { cote: -1.2, d: 2.4, dans })), acteurs: [J, cle], lum: [c.lueur(J.P, 4, [0.62, 0.6, 0.58], 1.4)], son: 'porte', dit: c.parole('(Une étiquette de cuir, au clou : « poterne de l’est ».)', ''), court: true }),
+      c.plan({ dur: 6.2, cam: Q20D.cam(c, () => Q20D.piece(c, tb, { a: Math.PI + 0.5, d: 1.9, y0: mo[1], dans, aussi: [c.haut(mo, 1.1)] }), () => Q20D.piece(c, tb, { a: 0.6, d: 2.1, y0: mo[1], dans })), acteurs: [Object.assign({}, J, { vu: false })], lum: [c.lueur(tb, 3.5, [0.75, 0.66, 0.55], 0.6)], son: 'page', dit: c.parole('Ordre du sire : le pont reste levé. … Je ne note plus les entrées. Il n’en vient plus.', Q20D_HG.registre) }),
+    ];
+  },
+  tournant(c) {
+    const V = q20dHG();
+    if (!V) return null;
+    // la crypte (sept mètres sous la cour) : le sénéchal adossé au pilier, la grande clé ; le tombeau vide d'Aymon
+    const y = -7, dans = Q20D.rect(V.cx - 9.6, V.cx + 13.6, V.cz + 42.4, V.cz + 51.6, 0.3);
+    return Q20D.sous(c, () => {
+      const se = q20dL(V, 8, y, 50.0), J = c.joueur(q20dL(V, 10.2, y, 50.9), { face: se, geste: 'baisse', lanterne: true });
+      const cle = c.chose(Q20D_DESSINS.grande_cle, c.haut(c.devant(J.P, J.cap, 0.36, 0.08, true), 1.0), { s: 1.3, r: J.cap, lueur: true });
+      const gis = q20dL(V, 5, y, 47), bg = [q20dL(V, -7, y + 0.97, 48.4), q20dL(V, 5, y + 0.97, 48.6)];
+      const lum = bg.map((P) => Q20D.flamme(c, P, 3.2, 0.3));
+      return [
+        c.plan({ dur: 6.6, cam: Q20D.cam(c, () => Q20D.piece(c, c.haut(se, 0.8), { a: 1.6, d: 2.4, y0: se[1], dans, aussi: [c.tete(J)] }), () => Q20D.piece(c, c.haut(se, 0.8), { a: 2.4, d: 2.2, y0: se[1], dans })), acteurs: [J, cle], lum, son: 'goutte', dit: c.parole('J’ai enfermé le sire dans son donjon, pour qu’il ne redescende plus.', Q20D_HG.senechal), court: true }),
+        c.plan({ dur: 6.2, cam: Q20D.cam(c, () => Q20D.piece(c, c.haut(gis, 0.6), { a: 0.2, d: 2.6, y0: gis[1], dans }), () => Q20D.piece(c, c.haut(gis, 0.6), { a: -1.2, d: 2.8, y0: gis[1], dans })), acteurs: [Object.assign({}, J, { vu: false })], lum, dit: c.parole('Je garde la clé ici, avec ses pères. Dieu fera le reste.', Q20D_HG.senechal) }),
+      ];
+    });
+  },
+  fin(c) {
+    const V = q20dHG();
+    if (!V) return null;
+    // la terrasse du donjon : le sire assis devant le fanal froid, la petite clé sous sa main ; puis la ville d'en bas
+    const H = 26, G = V.guet ? [V.guet.x, V.guet.y, V.guet.z] : q20dL(V, 49, H, 5), sire = q20dL(V, 49.2, H, 8.6);
+    const J = c.joueur(q20dL(V, 47.0, H, 10.8), { face: sire, geste: 'baisse' });
+    const S = q20dV4(), feu = S && S.guet;
+    return [
+      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camChose(c.haut(sire, 0.9), { d: 3.0, haut: 1.6, a: Math.PI * 0.25, dy: 0 }), () => c.camChose(c.haut(sire, 0.9), { d: 3.4, haut: 2, a: -Math.PI * 0.4, dy: 0 })), acteurs: [J], lum: feu ? [c.lueur(G, 9, [1.0, 0.6, 0.28], 1.6)] : [], son: 'corbeau', dit: c.parole('TANT QUE LE FEU DU GUET BRÛLE, LA VILLE DORT.', Q20D_HG.fanal), court: true }),
+      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camRegard(q20dL(V, 44, H, 15), q20dL(V, -600, -70, 760), { haut: 2.7, recul: 0.04 }), () => c.camLieu(G, { d: 14, haut: 4, dy: 1.2 })), acteurs: [], dit: c.parole('(D’ici, on voit toute la ville d’en bas. Elle ne dort pas, elle.)', '') }),
+    ];
+  },
+});
+q20d.guetter('q20d_hg_cles', () => {
+  const S = q20dV4();
+  if (!S || !farm.s.v4) return null;
+  // (la première clé, celle par où l'on a commencé ; la terrasse, la première fois qu'on y monte, la porte haute ouverte)
+  const N = q20d.S();
+  if (!N.cle1 && (q20dPris('cle_poterne') || q20dPris('cle_chapelle'))) N.cle1 = q20dPris('cle_chapelle') && (!q20dPris('cle_poterne') || q20dPris('cle_chapelle') < q20dPris('cle_poterne')) ? 'chapelle' : 'poterne';
+  if (!N.terrasse && S.portes.donjon === 'ouverte' && typeof zone !== 'undefined' && zone.dedans) { const s = chateauV4.salle(); if (s && s.id === 'terrasse') q20d.note('terrasse'); }
+  if (N.terrasse) return 'fin';
+  if (q20dPris('cle_donjon')) return null;
+  return N.cle1 ? 'demande' : null;
+});
+
+// ---------------------------------------------------------------- LE FEU DU GUET (Thibaud en parle ; trois huiles, et il brûle)
+q20.scenes('q20d_hg_guet', {
+  qui: 'thibaud', titre: 'Le feu du Guet',
+  monde: 'hautguet',
+  delais: { demande: 1.5, fin: 6 },
+  etat() {
+    const S = q20dV4();
+    if (!S || !farm.s) return q20dE('Le feu du Guet', null, false, false);
+    return q20dE('Le feu du Guet', S.parle.t_guet || S.guet ? S : null, !!S.parle.t_guet, !!S.guet);
+  },
+  demande(c) {
+    const Th = q20dThibaud(c, { geste: ['assis', 'penche', 'parle', { lookP: 0.2 }] });
+    if (!Th) return null;
+    const V = Th.V, G = V.guet ? [V.guet.x, V.guet.y, V.guet.z] : q20dL(V, 49, 26, 5);
+    return [
+      c.plan({ dur: 6.6, cam: q20dCamThibaud(c, Th), acteurs: [Th.A], lum: Th.lum, dit: c.parole('Le feu du Guet ? Il faut de l’huile. Beaucoup. Il n’y en a plus. Et il n’y a plus personne pour la monter.', Th.nom, 0.7), court: true }),
+      c.plan({ dur: 6.2, cam: Q20D.cam(c, () => c.camLieu(G, { d: 46, haut: 4, dy: -3, a: -Math.PI / 2 + 0.3, vise2: c.haut(G, 1.5), recul: 0.08, stop: 4 }), () => c.camLieu(G, { d: 60, haut: 8, dy: -3, a: Math.PI * 0.8, stop: 4 })), acteurs: [], son: 'corbeau', dit: c.parole('On le voyait de la ville d’en bas. Tant qu’il brûlait, ils dormaient.', Th.nom, 0.7) }),
+    ];
+  },
+  fin(c) {
+    const V = q20dHG();
+    if (!V) return null;
+    const H = 26, G = V.guet ? [V.guet.x, V.guet.y, V.guet.z] : q20dL(V, 49, H, 5);
+    const fl = c.chose(Q20D_DESSINS.flamme, c.haut(G, 1.6), { s: 1.3 });
+    const J = c.joueur(q20dL(V, 46.6, H, 7.6), { face: G, geste: 'leve' });
+    const feu = [c.lueur(G, 14, [1.0, 0.56, 0.24], 2.2), c.lueur(G, 6, [1.0, 0.74, 0.4], 1.2)];
+    const T = chateauV4.thibaudEtat ? chateauV4.thibaudEtat() : 'treuil', vit = T === 'treuil' || T === 'baisse';
+    return [
+      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.5, d: 3.4, haut: 1.5, avec: c.haut(G, 1.6), k: 0.35, recul: 0.04 }), () => c.camChose(c.haut(G, 2), { d: 4.5, haut: 2, a: 0.8, dy: 0 })), acteurs: [J, fl], lum: feu, son: 'grondement', dit: c.parole('TANT QUE LE FEU DU GUET BRÛLE, LA VILLE DORT.', Q20D_HG.fanal), court: true }),
+      c.plan({ dur: 6.4, cam: Q20D.dessus(c, G, Math.PI * 0.75, 18), acteurs: [fl], lum: [c.lueur(G, 30, [1.0, 0.52, 0.2], 3), c.lueur(G, 12, [1.0, 0.7, 0.35], 1), Q20D.lune(c, c.haut(G, -14), 30)], dit: vit ? c.parole('Il brûle. … En bas, ils vont pouvoir dormir.', (typeof Q20B !== 'undefined' && Q20B.nom('thibaud')) || 'Thibaud', 0.7) : c.parole('(Toute la Zone, en bas, doit le voir.)', '') }),
+    ];
+  },
+});
+q20d.guetter('q20d_hg_guet', () => { const S = q20dV4(); if (!S || !farm.s.v4) return null; return S.guet ? 'fin' : S.parle.t_guet ? 'demande' : null; });
+
+// ---------------------------------------------------------------- LE PONT-LEVIS (« n'y touchez pas » ; baissé ; le lendemain, au bout du pont)
+q20.scenes('q20d_hg_pont', {
+  qui: 'thibaud', titre: 'Le pont-levis',
+  monde: 'hautguet',
+  delais: { demande: 1.5, tournant: 10, fin: 2 },
+  etat() {
+    const S = q20dV4();
+    if (!S || !farm.s) return q20dE('Le pont-levis', null, false, false);
+    const T = S.thibaud || {}, bout = T.etat === 'bout' || (T.etat === 'baisse' && farm.s.day > (T.jour || 0)) || T.etat === 'parti';
+    return q20dE('Le pont-levis', S.parle.t_treuil || S.leviers.pont ? S : null, !!S.parle.t_treuil || !!S.leviers.pont, bout && !!q20d.S().bout, null, !!S.leviers.pont);
+  },
+  tournantSi() { const S = q20dV4(); return !!(S && S.leviers.pont); },
+  demande(c) {
+    const Th = q20dThibaud(c, { geste: ['assis', 'penche', { lookP: 0.15 }] });
+    if (!Th) return null;
+    const V = Th.V, tr = q20dL(V, -104.4, 7.9, 0), fo = q20dL(V, -110.4, -5.6, 0.2);
+    return [
+      c.plan({ dur: 6.6, cam: q20dCamThibaud(c, Th, { avec: tr, k: 0.25 }), acteurs: [Th.A], lum: Th.lum, dit: c.parole('N’y touchez pas. S’il baisse, ils monteront tous.', Th.nom, 0.7), court: true }),
+      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camChose(fo, { d: 7, haut: 6.2, a: -Math.PI / 2 - 0.4, dy: 0 }), () => c.camChose(fo, { d: 9, haut: 7.5, a: -Math.PI / 2 + 0.5, dy: 0 }), () => c.camLieu(q20dL(V, -108, 0, 0), { d: 18, haut: 4 })), acteurs: [], son: 'murmure', dit: c.parole('Ils attendent au fossé. Ils attendent depuis si longtemps.', Th.nom, 0.7) }),
+    ];
+  },
+  tournant(c) {
+    const Th = q20dThibaud(c, { geste: ['raide', { lookP: 0.05 }] }, true);
+    if (!Th) return null;
+    const V = Th.V, mt = q20dL(V, -106.4, 8.6, -3.5), pont = q20dL(V, -114, 0.4, 0);
+    return [
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => Q20D.pieceActeur(c, Th.A, { cote: -2.3, d: 2.8, he: 1.5, dans: Th.dans, avec: mt, k: 0.2 }), () => Q20D.pieceActeur(c, Th.A, { cote: -1.6, d: 2.6, he: 1.5, dans: Th.dans }), () => Q20D.pieceActeur(c, Th.A, { cote: 1.9, d: 2.9, he: 1.45, dans: Th.dans })), acteurs: [Th.A], lum: Th.lum, dit: c.parole('Personne ne monte. Vous voyez ? Personne.', Th.nom, 0.7), court: true }),
+      c.plan({ dur: 6.2, cam: Q20D.cam(c, () => c.camLieu(pont, { d: 26, haut: 5, dy: 0.5, a: -Math.PI / 2 - 0.25, recul: 0.06, stop: 3 }), () => c.camLieu(pont, { d: 34, haut: 8, dy: 0.5, a: -Math.PI / 2 + 0.6, stop: 3 })), acteurs: [], son: 'corbeau' }),
+    ];
+  },
+  fin(c) {
+    const V = q20dHG();
+    if (!V || !V.thibaudBout) return null;
+    const B = [V.thibaudBout.x, V.thibaudBout.y, V.thibaudBout.z], r = V.thibaudBout.r;
+    // (sa couverture pliée sur le banc, dans la salle du treuil, vide)
+    const bc = q20dL(V, -97.6, 7, 6.6), co = c.chose(Q20D_DESSINS.couverture, c.haut(bc, 0.49), { r: Math.PI / 2, s: 1.3 });
+    const dans = Q20D.rect(V.cx - 106.3, V.cx - 92.3, V.cz - 9.3, V.cz + 9.3, 0.2);
+    return [
+      c.plan({ dur: 7, cam: Q20D.cam(c, () => c.camChose(c.haut(B, 0.8), { d: 3.4, haut: 1.4, a: r + 0.55, dy: 0 }), () => c.camChose(c.haut(B, 0.8), { d: 4, haut: 1.8, a: r - 0.7, dy: 0 })), acteurs: [], son: 'corbeau', dit: c.parole('(Il est assis au bout du pont, face aux Degrés. Il a l’air d’attendre encore.)', ''), court: true }),
+      c.plan({ dur: 6, cam: Q20D.cam(c, () => Q20D.piece(c, c.haut(bc, 0.5), { a: 2.6, d: 2.2, y0: bc[1], dans }), () => Q20D.piece(c, c.haut(bc, 0.5), { a: -2.2, d: 2.4, y0: bc[1], dans })), acteurs: [co], lum: [Q20D.flamme(c, q20dL(V, -99.0, 7, 4.6), 4, 0.9)], dit: c.parole('(Sa couverture est pliée sur le banc.)', '') }),
+    ];
+  },
+});
+q20d.guetter('q20d_hg_pont', () => {
+  const S = q20dV4();
+  if (!S || !farm.s.v4) return null;
+  // (le lendemain du pont baissé : quand on revient au château et qu'il est au bout du pont)
+  if (S.leviers.pont && typeof zone !== 'undefined' && zone.dedans && q20B.ici() === 'hautguet' && chateauV4.thibaudEtat() === 'bout') { q20d.note('bout'); return 'fin'; }
+  if (q20d.S().bout) return 'fin';
+  return S.parle.t_treuil && !S.leviers.pont ? 'demande' : null;
+});
+
+// ---------------------------------------------------------------- LA DAME DE LA TOUR (la nuit, derrière sa porte ; la clé qu'elle entend ; la chambre)
+// la porte de la tour (dehors, devant), l'endroit où l'on frappe, sa fenêtre là-haut, la chambre
+function q20dTour(c) {
+  const V = q20dHG(), Pt = V && V.pts && V.pts.tour_dame;
+  if (!Pt) return null;
+  const ad = 7 * Math.PI / 4, cx = V.cx + 72, cz = V.cz - 60, ri = 5;
+  const porte = [cx + Math.sin(ad) * 5.6, V.y0, cz + Math.cos(ad) * 5.6];
+  return { V, ad, cx, cz, ri, P: [Pt.x, Pt.y, Pt.z], porte, haut: V.dame ? [V.dame.x, V.dame.y + 1.2, V.dame.z] : [cx, V.y0 + 25, cz], yt: V.y0 + 24,
+    lum: [c.lueur(porte, 2.6, [1.0, 0.6, 0.28], 0.12), c.lueur(porte, 7, [0.26, 0.26, 0.32], 2.4)],
+    dans: Q20D.rond(cx, cz, ri - 0.45) };
+}
+const Q20D_DAME = 'Ysolde, derrière la porte';
+q20.scenes('q20d_hg_dame', {
+  qui: 'dame', titre: 'La Dame de la tour',
+  monde: 'hautguet',
+  delais: { demande: 1.2, tournant: 1.2, fin: 3 },
+  etat() {
+    const S = q20dV4();
+    if (!S || !farm.s) return q20dE('La Dame de la tour', null, false, false);
+    const D = S.dame || {}, N = q20d.S().dame;
+    return q20dE('La Dame de la tour', D.n || D.fin ? D : null, !!D.n, !!D.fin, D.fin ? (N ? (N.pont ? 0 : 1) : (S.leviers.pont ? 0 : 1)) : null, !!q20d.S().dameCle);
+  },
+  tournantSi() { return !!q20d.S().dameCle; },
+  demande(c) {
+    const T = q20dTour(c);
+    if (!T) return null;
+    const J = c.joueur(T.P, { face: T.porte, geste: 'leve' });
+    return [
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.3, d: 3.4, avec: c.haut(T.porte, 1.3), k: 0.5 }), () => c.camActeur(J, { cote: -2.3, d: 3.6, avec: c.haut(T.porte, 1.3), k: 0.5 })), acteurs: [J], lum: T.lum, son: 'coups', dit: c.parole('Qui est là ? … Ce n’est pas son pas. Ce n’est pas le pas d’Aymon.', Q20D_DAME, 1.2), court: true }),
+      c.plan({ dur: 6.2, cam: Q20D.cam(c, () => c.camChose(c.haut(T.porte, 0.25), { d: 2.0, haut: 0.95, a: T.ad + 0.35, dy: 0, recul: 0.1 }), () => c.camChose(c.haut(T.porte, 0.25), { d: 2.4, haut: 1.0, a: T.ad - 0.35, dy: 0 })), acteurs: [Object.assign({}, J, { vu: false })], lum: T.lum.concat([c.lueur(T.porte, 1.6, [1.0, 0.62, 0.3], 0.05)]), dit: c.parole('Aude. Elle avait neuf ans. Elle voulait voir la foire.', Q20D_DAME, 1.2) }),
+    ];
+  },
+  tournant(c) {
+    const T = q20dTour(c);
+    if (!T) return null;
+    const J = c.joueur(c.devant(T.P, T.ad + Math.PI, -0.9, 0), { face: T.porte, geste: 'tend' });
+    const cle = c.chose(Q20D_DESSINS.petite_cle, c.haut(c.devant(J.P, J.cap, 0.34, 0.02, true), 1.1), { s: 2, r: J.cap, lueur: true });
+    return [
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 1.6, d: 2.0, buste: true, avec: cle.P, k: 0.3 }), () => c.camActeur(J, { cote: -1.6, d: 2.2, buste: true })), acteurs: [J, cle], lum: T.lum, son: 'clochette', dit: c.parole('Tu as la clé. Je l’entends tinter.', Q20D_DAME, 1.2), court: true }),
+      c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.6, d: 3.4, avec: c.haut(T.porte, 1.2), k: 0.35, recul: 0.04 }), () => c.camChose(c.haut(T.porte, 1.0), { d: 2.6, haut: 1.4, a: T.ad + 0.5, dy: 0 })), acteurs: [J], lum: T.lum, dit: c.parole('Ouvre, si tu veux. Il n’y a plus ici qu’une vieille femme.', Q20D_DAME, 1.2) }),
+    ];
+  },
+  fins: {
+    // le pont était baissé quand on a ouvert : « alors je peux dormir »
+    0(c) { return q20dDameFin(c, 'Si le pont est baissé quand tu liras ceci, alors je peux dormir.', 'Je l’ai regardée descendre les Degrés depuis ma fenêtre, jusqu’à ce que la brume la prenne.'); },
+    // il ne l'était pas : « il n'a pas voulu baisser le pont »
+    1(c) { return q20dDameFin(c, 'Il n’a pas voulu baisser le pont. Il a fermé ma porte, et il a emporté la clé.', 'Le soir, j’ai vu les torches monter. J’ai entendu sa voix au fossé, ou j’ai cru l’entendre.'); },
+  },
+});
+// la chambre en haut de la tour : elle, morte, assise à sa fenêtre ; sa lettre près des bougies ; dehors, la Ville Basse
+function q20dDameFin(c, t1, t2) {
+  const T = q20dTour(c);
+  if (!T) return null;
+  const V = T.V, fz = V.dame ? [V.dame.x, T.yt, V.dame.z] : [T.cx, T.yt, T.cz];
+  const bg = [T.cx - 2.2, T.yt + 0.75, T.cz + 1.0], le = [T.cx - 2.0, T.yt + 0.77, T.cz + 0.8];
+  const J = c.joueur([T.cx + 0.8, T.yt, T.cz + 1.4], { face: fz, geste: 'baisse' });
+  const lum = [Q20D.flamme(c, bg, 4.5, 0.3), c.lueur(fz, 3, [0.5, 0.52, 0.6], 1.2)];
+  const fen = c.devant(fz, T.ad, 2.2, 0);
+  fen[1] = T.yt + 1.2;
+  const loin = [fz[0] + Math.sin(T.ad) * 300, V.y0 - 40, fz[2] + Math.cos(T.ad) * 300];
+  return [
+    c.plan({ dur: 7, cam: Q20D.cam(c, () => Q20D.piece(c, c.haut(fz, 1.0), { a: T.ad + Math.PI + 0.5, d: 2.4, y0: T.yt, dans: T.dans, aussi: [c.tete(J)] }), () => Q20D.piece(c, c.haut(fz, 1.0), { a: T.ad + Math.PI - 0.6, d: 2.2, y0: T.yt, dans: T.dans })), acteurs: [J], lum, son: 'page', dit: c.parole(t1, Q20D_HG.lettre), court: true }),
+    c.plan({ dur: 6.4, cam: Q20D.cam(c, () => Q20D.piece(c, fen, { a: T.ad + Math.PI, d: 2.0, y0: T.yt, dans: T.dans, vise2: c.vers(fen, loin, 0.02) }), () => Q20D.piece(c, c.haut(le, 0.1), { a: 0.8, d: 1.6, y0: T.yt, dans: T.dans })), acteurs: [Object.assign({}, J, { vu: false })], lum, dit: c.parole(t2, Q20D_HG.lettre) }),
+  ];
+}
+q20d.guetter('q20d_hg_dame', () => { const S = q20dV4(); if (!S || !farm.s.v4) return null; const D = S.dame || {}; return D.fin ? 'fin' : D.n ? 'demande' : null; });
+// (ce que la Dame entend : la petite clé ; la porte ouverte, le pont baissé ou non à ce moment-là)
+HOOKS.load.push(() => {
+  if (typeof chateauV4 === 'undefined' || chateauV4._q20d) return;
+  chateauV4._q20d = true;
+  const _pd = chateauV4.parlerDame.bind(chateauV4);
+  chateauV4.parlerDame = function () {
+    try { const D = this.S().dame; if (!D.fin && D.n && this.nuit() && farm.count('v4_cle_tour') && !q20d.S().dameCle) q20d.note('dameCle'); } catch (e) { console.error('q20d', e); }
+    return _pd();
+  };
+  const _dv = chateauV4.deverrouiller.bind(chateauV4);
+  chateauV4.deverrouiller = function (dr, comment) {
+    try { const v = dr && dr.v4; if (v && v.id === 'tour_dame' && !q20d.S().dame) q20d.note('dame', { pont: this.S().leviers.pont ? 1 : 0 }); } catch (e) { console.error('q20d', e); }
+    return _dv(dr, comment);
+  };
+});
+
+// ---- 11-zzzzzzzzzzQ20-4b-ailleurs.js
+// ============================================================================
+//  LES SCÈNES DES QUÊTES (agent Q20D, lot 4) — 4b. LE DESSOUS ET LES GALERIES
+//  - le Hameau d'En-Bas (monde 'dessous') : entrer sans nom (la pierre d'appel,
+//    le guetteur, les trois façons d'être admis) ; les onze de 1631 (le pain
+//    rompu en onze, la peau pliée, la question du vieux et sa réponse) ;
+//  - la Chambre des Gouttes : le onzième (le carnet de la cabane vide, le mort
+//    qui porte des bottes) ; la perle des dormeurs (prise, puis rendue) ;
+//  - la porte des Aëlim, dans la Ville engloutie (l'œil, la lumière, le coffre) ;
+//  - la niche scellée des Galeries (monde 'galeries' : le labyrinthe de la vieille
+//    mine, sous la vallée), celle des runes.
+//  Les gens d'en bas : leurs silhouettes, leurs places, leur parler (Q20BD, de Q20B).
+// ============================================================================
+Object.assign(Q20D_DESSINS, {
+  // la peau pliée (des noms à l'encre brune, des encoches dessous) ; le bâton à encoches ; le carnet gonflé d'eau
+  peau(PE) { PE.box(0, 0.01, 0, 0.34, 0.016, 0.26, [0.92, 0.84, 0.68], TL.leather, 0.1); for (let k = 0; k < 11; k++) { PE.box(-0.07, 0.02, -0.11 + k * 0.021, 0.12, 0.003, 0.006, [0.32, 0.2, 0.12], TL.plain, 0.1); PE.box(0.07, 0.02, -0.11 + k * 0.021, 0.08 - (k === 10 ? 0.07 : 0), 0.003, 0.006, [0.22, 0.16, 0.1], TL.plain, 0.1); } },
+  baton(PE) { PE.box(0, 0.02, 0, 0.035, 0.035, 0.9, [0.58, 0.46, 0.32], TL.wood, 0.05); for (let k = 0; k < 9; k++) PE.box(0.018, 0.025, -0.36 + k * 0.09, 0.006, 0.02, 0.012, [0.22, 0.16, 0.1], TL.plain); },
+  carnet(PE) { PE.box(0, 0.02, 0, 0.13, 0.04, 0.19, [0.36, 0.3, 0.24], TL.leather, 0.2); PE.box(0.004, 0.022, 0, 0.12, 0.034, 0.18, [0.9, 0.84, 0.66], TL.paper, 0.2); },
+  // une part de pain sur la pierre ; une perle des cavernes ; le miroir des Aëlim
+  part(PE) { PE.box(0, 0.025, 0, 0.09, 0.05, 0.07, [1.05, 0.74, 0.42], TL.bread || TL.plain, 0.4); },
+  perle(PE) { PE.fl = FX_HI; PE.box(0, 0.02, 0, 0.032, 0.032, 0.032, [1.4, 1.36, 1.28], TL.plain); PE.fl = 0; },
+  miroir(PE) { PE.box(0, 0.012, 0, 0.2, 0.024, 0.26, [0.9, 0.8, 0.5], TL.gold); PE.box(0, 0.026, 0, 0.16, 0.006, 0.22, [0.75, 0.85, 1.05], TL.glass); },
+  // un point de lumière (la flamme ramassée par le cristal)
+  point(PE) { PE.fl = FX_EMIT; PE.box(0, 0, 0, 0.05, 0.05, 0.05, [1.8, 1.5, 1.0], TL.plain); PE.fl = 0; },
+});
+
+// ---------------------------------------------------------------- les gens d'en bas, là où la scène les veut
+// (k : leur nombre ; le vrai est caché le temps de la scène ; o : options de l'acteur)
+function q20dPale(c, k, P, o) {
+  if (typeof soutTerres === 'undefined' || !P) return null;
+  const e = (soutTerres.list || []).find((q) => q.k === k && !q.mort);
+  if (!e) return null;
+  c.masquer('sout:' + k);
+  const look = Object.assign({}, e.g.look), A = c.gens(look, P, o || {});
+  if (A) A.s = look.height || 1;
+  return A ? { A, e, nom: Q20B.nom('sout:' + k), voix: e.g.voix || 1 } : null;
+}
+// le hameau : la place, la pierre d'appel (et la face aux entailles), l'entrée, les cabanes, la maison des encoches
+function q20dHameau(c) {
+  const V = Q20BD.V(c);
+  if (!V || !V.appel) return null;
+  const ap = c.ptSous(V.appel[0], V.appel[2], V.appel[1] + 0.3), rA = V.appel[3];
+  return { V, place: Q20BD.place(c), ap, rA, garde: V.garde ? c.ptSous(V.garde[0], V.garde[1], ap[1] + 0.3) : ap, entree: V.entree ? c.ptSous(V.entree[0], V.entree[1], ap[1] + 0.3) : ap };
+}
+// les lueurs du hameau, pour un plan large : les portes des cabanes, la place
+function q20dLueursHameau(c, Hm) { return Hm.V.huttes.slice(0, 6).map((H) => c.lueur(c.ptSous(H.porte[0], H.porte[1]), 8, [0.55, 0.86, 0.7], 1.2)).concat([c.lueur(Hm.place, 14, [0.6, 0.9, 0.75], 3), c.lueur(Hm.place, 6, [0.5, 0.8, 0.66], 1)]); }
+// le joueur devant la pierre d'appel (là où il était, s'il est là : la scène se joue sur place)
+function q20dDevantAppel(c, Hm) { const p = game.player; if (!c.rejeu && p && Math.hypot(p.pos[0] - Hm.ap[0], p.pos[2] - Hm.ap[2]) < 6) return c.ptSous(p.pos[0], p.pos[2], p.pos[1] + 0.3); return Q20B.libre(c, Q20B.devant(c, Hm.ap, Hm.rA, 1.3, 0), 0, 2, 0.4); }
+// la Chambre des Gouttes : les dormeurs ; ses vasques (la première prise, sinon la première)
+function q20dDormeurs(c) {
+  const X = c.w.soutSecrets, L = X && X.dormeurs;
+  if (!L || !L.length) return null;
+  const vas = (c.w.soutCueillettes || []).map((i) => c.w.props[i]).filter((q) => q && q.id === 'sout_vasque' && souterrain.salleIci(q.x, q.z) === 'dormeurs');
+  const pr = vas.find((q) => q.data && q.data.pris) || vas[0] || null;
+  const salle = typeof SOUT_PLAN !== 'undefined' && SOUT_PLAN.salles.find((q) => q[0] === 'dormeurs');
+  // (une chambre sans vasque : la goutte qui tombe sur le petit, toujours au même endroit)
+  const petit = L[5] ? c.ptSous(L[5][0], L[5][2], L[5][1] + 0.3) : null;
+  return { L, bottes: c.ptSous(L[0][0], L[0][2], L[0][1] + 0.3), petit, vasque: pr ? [pr.x, pr.y, pr.z] : petit || c.ptSous(L[0][0], L[0][2], L[0][1] + 0.3), C: salle ? c.ptSous(salle[1], salle[2]) : c.ptSous(L[0][0], L[0][2]) };
+}
+
+// ---------------------------------------------------------------- SANS NOM : la pierre d'appel, le guetteur ; admis (en se taisant, « frè », « onz »)
+q20.scenes('q20d_so_appel', {
+  qui: 'sout:se', titre: 'Sans nom',
+  monde: 'dessous',
+  delais: { demande: 1.5, tournant: 4, fin: 9 },
+  etat() {
+    if (!farm.s || typeof soutTerres === 'undefined') return q20dE('Sans nom', null, false, false);
+    const T = soutTerres.S(), vu = souterrain.S().vu.hameau, N = q20d.S().appel;
+    return q20dE('Sans nom', vu || T.appelVu || T.admis ? T : null, !!(vu || T.appelVu), !!T.admis, T.admis ? (N ? N.c : 0) : null, !!T.refus);
+  },
+  tournantSi() { return !!(typeof soutTerres !== 'undefined' && soutTerres.S().refus); },
+  demande(c) {
+    const Hm = q20dHameau(c);
+    if (!Hm) return null;
+    const Se = q20dPale(c, 'se', Hm.garde, { face: Hm.entree, geste: ['raide', { lookP: 0.05 }] });
+    const huttes = q20dLueursHameau(c, Hm);
+    const a = c.cap(Hm.place, Hm.ap);
+    return [
+      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camLieu(Hm.place, { d: 12, haut: 2.6, dy: 1.2, a, recul: 0.06, stop: 3 }), () => c.camLieu(Hm.place, { d: 10, haut: 2.2, dy: 1.2, a: a + 0.6, stop: 3 })), acteurs: [Se && Object.assign(Se.A, { vu: false })], lum: huttes, son: 'goutte', dit: Se ? c.parole('Nenn.', Se.nom, Se.voix) : c.parole('(Des cabanes de pierre, en ruche. Une lueur verte, dedans.)', ''), court: true }),
+      c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camChose(c.haut(Hm.ap, 0.85), { d: 1.7, haut: 1.25, a: Hm.rA + 0.35, dy: 0, recul: 0.1 }), () => c.camChose(c.haut(Hm.ap, 0.85), { d: 2.2, haut: 1.4, a: Hm.rA - 0.5, dy: 0 })), acteurs: [], lum: [c.lueur(Q20B.devant(c, Hm.ap, Hm.rA, 1.0, 0.3), 7, [0.7, 1.0, 0.85], 1.0), c.lueur(Q20B.devant(c, Hm.ap, Hm.rA, 2.2, -0.6), 6, [0.5, 0.78, 0.66], 1.6)], dit: c.parole('(Une pierre, à l’entrée. Trois entailles.)', '') }),
+    ];
+  },
+  tournant(c) {
+    const Hm = q20dHameau(c);
+    if (!Hm) return null;
+    const JP = q20dDevantAppel(c, Hm), J = c.joueur(JP, { face: Hm.ap, geste: 'baisse' });
+    const sP = Q20B.devant(c, JP, c.cap(JP, Hm.garde), 1.1, 0);
+    const Se = q20dPale(c, 'se', sP, { face: JP, geste: ['parle', { lookP: 0.1 }] });
+    if (!Se) return null;
+    const Se2 = q20dPale(c, 'se', sP, { vers: Hm.garde, t0: 0.6, t1: 5.2, capFin: c.cap(Hm.garde, Hm.entree) });
+    return [
+      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camActeur(Se.A, { cote: 1.35, d: 2.2 }), () => c.camActeur(Se.A, { cote: -1.35, d: 2.3 })), acteurs: [Se.A, Object.assign({}, J, { vu: false })], lum: [Q20D.froide(c, sP, 4.5, 1.4), Q20D.froide(c, JP, 4, 1.2)], son: 'murmure', dit: c.parole('Nom… d’sû. Va.', Se.nom, Se.voix), court: true }),
+      Se2 && c.plan({ dur: 5.8, cam: Q20D.cam(c, () => c.camActeur(Se2.A, { cote: 2.0, d: 3.2 }), () => c.camActeur(Se2.A, { cote: -2.0, d: 3.2 })), acteurs: [Se2.A, Object.assign({}, J, { vu: false })], lum: [c.lueur(Hm.garde, 8, [0.6, 0.9, 0.75], 1.4), c.lueur(c.vers(sP, Hm.garde, 0.5), 7, [0.55, 0.85, 0.7], 1.4)] }),
+    ];
+  },
+  fins: {
+    0(c) { return q20dAdmis(c, '… Bô. San nom. Bô.'); },
+    1(c) { return q20dAdmis(c, 'Frè ? … Frè.'); },
+    2(c) { return q20dAdmis(c, 'Onz ? … Onz.'); },
+  },
+});
+// admis : le guetteur, puis ils sortent des cabanes et viennent voir ; le vieux vous touche l'épaule
+function q20dAdmis(c, t1) {
+  const Hm = q20dHameau(c);
+  if (!Hm) return null;
+  const JP = q20dDevantAppel(c, Hm), J = c.joueur(JP, { face: Hm.place, geste: 'baisse' });
+  const Se = q20dPale(c, 'se', Q20B.devant(c, JP, c.cap(JP, Hm.garde), 1.1, 0), { face: JP, geste: ['hoche'] });
+  if (!Se) return null;
+  const vers = c.cap(JP, Hm.place);
+  const Un = q20dPale(c, 'un', Q20B.devant(c, JP, vers, 1.0, 0.25), { face: JP, geste: ['offre', { lookP: 0.2 }] });
+  const autour = ['deu', 'tre', 'ui', 'neu'].map((k, i) => q20dPale(c, k, Q20B.libre(c, Q20B.devant(c, JP, vers + (i - 1.5) * 0.7, 2.6 + (i % 2) * 0.6, 0), 0, 1.5, 0.4), { face: JP, geste: k === 'neu' ? ['peur'] : ['raide'] })).filter(Boolean).map((x) => x.A);
+  const lum = [c.lueur(JP, 8, [0.6, 0.9, 0.75], 1.6), c.lueur(Q20B.devant(c, JP, vers, 2.5, 0), 8, [0.55, 0.85, 0.7], 1.4), c.lueur(Hm.place, 12, [0.5, 0.8, 0.66], 2.5)];
+  return [
+    c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camActeur(Se.A, { cote: 1.35, d: 2.2 }), () => c.camActeur(Se.A, { cote: -1.35, d: 2.3 })), acteurs: [Se.A, Object.assign({}, J, { vu: false })], lum, son: 'murmure', dit: c.parole(t1, Se.nom, Se.voix), court: true }),
+    Un && c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(Un.A, { cote: 0.9, d: 2.3, avec: J, k: 0.35 }), () => c.camActeur(Un.A, { cote: -0.9, d: 2.5 })), acteurs: [Un.A, J, ...autour], lum, dit: c.parole('Onz.', Un.nom, Un.voix) }),
+  ];
+}
+q20d.guetter('q20d_so_appel', () => {
+  if (!farm.s || !farm.s.souterrain || typeof soutTerres === 'undefined') return null;
+  const T = soutTerres.S();
+  if (T.admis) return 'fin';
+  return souterrain.S().vu.hameau || T.appelVu ? 'demande' : null;
+});
+
+// ---------------------------------------------------------------- LES ONZE : le pain rompu en onze ; la peau pliée ; « pèst… d'sû ? »
+// le vieux, dans la maison des encoches (sa place : assis), ou là où il est
+function q20dUn(c, o) { return Q20BD.gens(c, 'un', o); }
+q20.scenes('q20d_so_onze', {
+  qui: 'sout:un', titre: 'Les onze',
+  monde: 'dessous',
+  delais: { demande: 1.5, tournant: 1.5, fin: 5 },
+  etat() {
+    if (!farm.s || typeof soutTerres === 'undefined') return q20dE('Les onze', null, false, false);
+    const T = soutTerres.S(), N = q20d.S().pest, fini = !!(N || T.pest);
+    return q20dE('Les onze', T.dons || T.liste || fini ? T : null, !!(T.dons || T.liste), fini, fini ? (N ? N.c : 0) : null, !!T.liste);
+  },
+  tournantSi() { return !!(typeof soutTerres !== 'undefined' && soutTerres.S().liste); },
+  demande(c) {
+    const Hm = q20dHameau(c);
+    if (!Hm) return null;
+    const pl = Hm.place, pa = c.chose(Q20D_DESSINS.part, c.haut(Q20B.devant(c, pl, Hm.rA + 0.4, 0.35, 0), 0.82), { s: 1.4, r: 0.4 });
+    const autour = ['tre', 'deu', 'si'].map((k, i) => q20dPale(c, k, Q20B.libre(c, Q20B.devant(c, pl, Hm.rA + 1.8 + i * 1.1, 1.9, 0), 0, 1.2, 0.4), { face: pl, geste: ['baisse'] })).filter(Boolean).map((x) => x.A);
+    const U = q20dUn(c, { geste: ['assis', { lookP: 0.05 }] });
+    if (!U) return null;
+    return [
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camChose(c.haut(pl, 0.85), { d: 2.4, haut: 1.55, a: Hm.rA + 0.3, dy: 0, recul: 0.1 }), () => c.camChose(c.haut(pl, 0.85), { d: 3, haut: 1.8, a: Hm.rA - 0.8, dy: 0 })), acteurs: [pa, ...autour], lum: [Q20D.froide(c, pl, 4.5, 1.2)], son: 'murmure', dit: c.parole('Pan. Onz.', U.nom, U.voix), court: true }),
+      c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camActeur(U.A, { cote: 0.4, d: 2.0 }), () => c.camActeur(U.A, { cote: -0.6, d: 2.2 })), acteurs: [U.A], lum: Q20BD.lum(c, U.P), dit: c.parole('Onz ?', U.nom, U.voix) }),
+    ];
+  },
+  tournant(c) {
+    const U = q20dUn(c, { geste: ['assis', 'baisse'] });
+    if (!U) return null;
+    const pe = c.chose(Q20D_DESSINS.peau, c.haut(c.devant(U.P, U.cap, 0.36, 0, true), 0.5), { s: 1.3, r: U.cap });
+    return [
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(U.A, { cote: 0.5, d: 1.9, buste: true }), () => c.camActeur(U.A, { cote: -0.6, d: 2.1 })), acteurs: [U.A, pe], lum: Q20BD.lum(c, U.P), son: 'page', dit: c.parole('Onz. Mûr. Pan nenn. D’sou.', U.nom, U.voix), court: true }),
+      c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camChose(pe.P, { d: 1.3, haut: 0.95, a: U.cap + 0.9, dy: 0.02 }), () => c.camChose(pe.P, { d: 1.6, haut: 1.1, a: U.cap - 0.9, dy: 0.02 })), acteurs: [U.A, pe], lum: Q20BD.lum(c, pe.P), dit: c.parole('(Sous chaque nom, des encoches. Sous le dernier, elles s’arrêtent.)', '') }),
+    ];
+  },
+  fins: {
+    // « nenn » : la peste n'est plus là-haut ; le bâton à encoches
+    0(c) {
+      const U = q20dUn(c, { geste: ['assis', 'offre', { lookP: 0.1 }] });
+      if (!U) return null;
+      const ba = c.chose(Q20D_DESSINS.baton, c.haut(c.devant(U.P, U.cap, 0.42, 0.06, true), 0.68), { s: 0.9, r: U.cap + Math.PI / 2 });
+      return [
+        c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(U.A, { cote: 0.6, d: 2.0, buste: true }), () => c.camActeur(U.A, { cote: -0.7, d: 2.2 })), acteurs: [U.A, ba], lum: Q20BD.lum(c, U.P), son: 'murmure', dit: c.parole('Pèst nenn… D’sû. Va.', U.nom, U.voix), court: true }),
+        c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camChose(ba.P, { d: 1.3, haut: 1.0, a: U.cap + 0.8, dy: 0.02 }), () => c.camChose(ba.P, { d: 1.6, haut: 1.1, a: U.cap - 0.8, dy: 0.02 })), acteurs: [U.A, ba], lum: Q20BD.lum(c, U.P).concat([Q20D.froide(c, ba.P, 3, 0.5)]), son: 'goutte' }),
+      ];
+    },
+    // « ouï » : elle y est toujours
+    1(c) {
+      const U = q20dUn(c, { geste: ['assis', 'baisse', 'hoche'] });
+      if (!U) return null;
+      const Hm = q20dHameau(c);
+      return [
+        c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(U.A, { cote: 0.4, d: 2.0 }), () => c.camActeur(U.A, { cote: -0.6, d: 2.2 })), acteurs: [U.A], lum: Q20BD.lum(c, U.P), son: 'murmure', dit: c.parole('… Ouï. D’sû mo. Tojor.', U.nom, U.voix), court: true }),
+        Hm && c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camLieu(Hm.place, { d: 10, haut: 2.4, dy: 1, a: c.cap(Hm.place, U.P), recul: 0.05, stop: 3 }), () => c.camLieu(Hm.place, { d: 12, haut: 2.6, dy: 1, stop: 3 })), acteurs: [Object.assign({}, U.A, { vu: false })], lum: q20dLueursHameau(c, Hm), dit: c.parole('Tojor.', U.nom, U.voix) }),
+      ];
+    },
+  },
+});
+q20d.guetter('q20d_so_onze', () => {
+  if (!farm.s || !farm.s.souterrain || typeof soutTerres === 'undefined') return null;
+  const T = soutTerres.S(), N = q20d.S();
+  if (T.pest && !N.pest) q20d.note('pest', { c: 0 });
+  if (N.pest) return 'fin';
+  return T.dons && !T.liste ? 'demande' : null;
+});
+
+// ---------------------------------------------------------------- LE ONZIÈME : le carnet de la cabane vide ; le mort qui porte des bottes
+q20.scenes('q20d_so_onzieme', {
+  souv: 'q20d:dessous', titre: 'Le onzième',
+  monde: 'dessous',
+  delais: { demande: 2, fin: 3 },
+  etat() {
+    if (!farm.s || typeof souterrain === 'undefined') return q20dE('Le onzième', null, false, false);
+    const S = souterrain.S(), N = q20d.S().bottes;
+    return q20dE('Le onzième', S.carnet ? S : null, !!S.carnet, !!(S.carnet && N));
+  },
+  demande(c) {
+    const V = Q20BD.V(c), H = V && V.huttes[7];
+    if (!H || !V.carnet) return null;
+    const ca = c.ptSous(V.carnet[0], V.carnet[2], V.carnet[1] + 0.3), Hp = Q20BD.hutte(c, H);
+    const J = c.joueur(Q20B.libre(c, Q20B.devant(c, ca, c.cap(ca, Hp.D), 0.8, 0), 0, 1.2, 0.35), { face: ca, geste: 'baisse' });
+    const cn = c.chose(Q20D_DESSINS.carnet, c.haut(c.devant(J.P, J.cap, 0.34, 0.04, true), 0.95), { s: 1.4, r: J.cap });
+    return [
+      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camChose(c.haut(J.P, 0.9), { d: Math.hypot(Hp.P[0] - J.P[0], Hp.P[2] - J.P[2]) * 0.8, haut: 1.5, a: c.cap(J.P, Hp.P), dy: 0, recul: 0.06 }), () => c.camActeur(J, { cote: 0.9, d: 1.8, buste: true }), () => c.camChose(ca, { d: 1.6, haut: 1.2 })), acteurs: [J, cn], lum: [Q20D.froide(c, ca, 3.5, 1.0), Q20D.froide(c, Hp.D, 4, 1.4)], son: 'page', dit: c.parole('Le vieux compte sur ses doigts jusqu’à onze, et il s’arrête sur moi.', 'Le carnet du géomètre'), court: true }),
+      c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camLieu(Hp.P, { d: 7, haut: 1.6, dy: 1.0, a: Hp.cap + 0.3, stop: 1 }), () => c.camLieu(Hp.P, { d: 9, haut: 2, dy: 1.0, a: Hp.cap - 0.5, stop: 1 })), acteurs: [Object.assign({}, J, { vu: false })], lum: [Q20D.froide(c, Hp.P, 5, 1.2), Q20D.froide(c, Hp.D, 4, 1.2)], dit: c.parole('d’sû bô ? onz dôr', 'Le carnet du géomètre') }),
+    ];
+  },
+  fin(c) {
+    const D = q20dDormeurs(c);
+    if (!D) return null;
+    const B = D.bottes, a0 = c.cap(B, D.C);
+    const J = c.joueur(Q20B.libre(c, Q20B.devant(c, B, a0, 1.1, 0.3), 0, 1.2, 0.35), { face: B, geste: 'baisse', lanterne: true });
+    return [
+      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 1.4, d: 2.2, avec: B, k: 0.45 }), () => c.camChose(c.haut(B, 0.2), { d: 1.8, haut: 1.2, a: a0 + 0.6, dy: 0 })), acteurs: [J], lum: [Q20D.flamme(c, J.P, 4.5, 1.2)], son: 'goutte', dit: c.parole('Le vieux m’a touché l’épaule. Onz. J’ai répondu.', 'Le carnet du géomètre'), court: true }),
+      c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camLieu(B, { d: 6.5, haut: 2.2, dy: 0.3, a: a0 + 0.9, recul: 0.06, stop: 1 }), () => c.camLieu(B, { d: 5, haut: 2, dy: 0.3, a: a0 - 0.9, stop: 1 })), acteurs: [Object.assign({}, J, { vu: false })], lum: [Q20D.flamme(c, J.P, 6, 1.2), c.lueur(B, 8, [0.42, 0.66, 0.6], 2.4)].concat(D.petit ? [Q20D.froide(c, D.petit, 4, 1)] : []), son: 'goutte' }),
+    ];
+  },
+});
+q20d.guetter('q20d_so_onzieme', () => { if (!farm.s || !farm.s.souterrain) return null; const S = souterrain.S(); if (!S.carnet) return null; return q20d.S().bottes ? 'fin' : 'demande'; });
+
+// ---------------------------------------------------------------- LA PERLE DES DORMEURS : prise ; rendue
+q20.scenes('q20d_so_perle', {
+  qui: 'sout:neu', titre: 'La perle des dormeurs',
+  monde: 'dessous',
+  delais: { demande: 2, fin: 2 },
+  etat() {
+    if (!farm.s || typeof soutTerres === 'undefined') return q20dE('La perle des dormeurs', null, false, false);
+    const T = soutTerres.S();
+    return q20dE('La perle des dormeurs', T.profane || T.rendue ? T : null, !!T.profane, !!T.rendue && !T.profane);
+  },
+  demande(c) {
+    const D = q20dDormeurs(c);
+    if (!D || !D.vasque) return null;
+    const v = D.vasque, ch = Q20H.emet(c.haut(v, 2.6), { n: 1.2, col: [0.7, 0.8, 0.85, 0.8], taille: 0.025, vie: 1.3, v: 0.01, vy: -0.2, grav: 1.6, r: 0.02 });
+    // (l'enfant, au hameau, qui vous tourne le dos)
+    const G = Q20BD.gens(c, 'neu'), N = G && q20dPale(c, 'neu', G.P, { cap: G.cap + Math.PI * 0.85, geste: ['peur', { lookP: -0.1 }] });
+    return [
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camChose(c.haut(v, 0.15), { d: 1.6, haut: 1.0, a: 0.6, dy: 0, recul: 0.12 }), () => c.camChose(c.haut(v, 0.15), { d: 2, haut: 1.2, a: -1.2, dy: 0 })), acteurs: [], lum: [Q20D.froide(c, v, 3, 0.6)], chaque: ch, son: 'goutte', dit: c.parole('(La goutte tombe dans une vasque vide.)', ''), court: true }),
+      N && c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camActeur(N.A, { cote: 2.6, d: 2.2 }), () => c.camActeur(N.A, { cote: -2.6, d: 2.4 })), acteurs: [N.A], lum: Q20BD.lum(c, N.A.P), dit: c.parole('Gout… d’dôr !', N.nom, N.voix) }),
+    ];
+  },
+  fin(c) {
+    const D = q20dDormeurs(c);
+    if (!D || !D.vasque) return null;
+    const v = D.vasque, pe = c.chose(Q20D_DESSINS.perle, c.haut(v, 0.12), { s: 1.6 });
+    const ch = Q20H.emet(c.haut(v, 2.6), { n: 1.2, col: [0.7, 0.8, 0.85, 0.8], taille: 0.025, vie: 1.3, v: 0.01, vy: -0.2, grav: 1.6, r: 0.02 });
+    const G = Q20BD.gens(c, 'neu'), N = G && q20dPale(c, 'neu', G.P, { cap: G.cap, geste: [{ reach: 0.15, lookP: 0.2 }] });
+    return [
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camChose(c.haut(v, 0.15), { d: 1.5, haut: 1.0, a: 0.6, dy: 0, recul: 0.12 }), () => c.camChose(c.haut(v, 0.15), { d: 2, haut: 1.2, a: -1.2, dy: 0 })), acteurs: [pe], lum: [Q20D.froide(c, v, 3, 0.6)], chaque: ch, son: 'goutte', dit: c.parole('(La goutte retombe sur la perle. Toujours au même endroit.)', ''), court: true }),
+      N && c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camActeur(N.A, { cote: 0.3, d: 1.8, haut: 1.1 }), () => c.camActeur(N.A, { cote: -0.5, d: 2.0, haut: 1.1 })), acteurs: [N.A], lum: Q20BD.lum(c, N.A.P), dit: c.parole('Gout… bô.', N.nom, N.voix) }),
+    ];
+  },
+});
+q20d.guetter('q20d_so_perle', () => { if (!farm.s || !farm.s.souterrain || typeof soutTerres === 'undefined') return null; const T = soutTerres.S(); return T.profane ? 'demande' : T.rendue ? 'fin' : null; });
+
+// ---------------------------------------------------------------- LA PORTE DES AËLIM : l'œil ; la lumière y entre ; le coffre
+function q20dTombeau(c) {
+  const X = c.w.soutSecrets, T = X && X.tombeau;
+  if (!T) return null;
+  const P = c.ptSous(T.x, T.z, T.y + 0.3), po = c.ptSous(T.porte[0], T.porte[1], T.y + 0.3), dehors = c.cap(P, po);
+  const co = X.coffre !== undefined && c.w.props[X.coffre];
+  return { T, P, po, dehors, oeil: c.haut(po, 1.62), coffre: co ? [co.x, co.y, co.z] : c.haut(P, 0) };
+}
+q20.scenes('q20d_so_aelim', {
+  souv: 'q20d:dessous', titre: 'La porte des Aëlim',
+  monde: 'dessous',
+  delais: { demande: 1.5, tournant: 3, fin: 2 },
+  etat() {
+    if (!farm.s || typeof soutSecrets === 'undefined') return q20dE('La porte des Aëlim', null, false, false);
+    const X = soutSecrets.X(), N = q20d.S().aelim;
+    return q20dE('La porte des Aëlim', N || X.vuePorte || X.porte ? X : null, !!(N || X.vuePorte || X.porte), !!(X.coffre || X.tablette), null, !!X.porte);
+  },
+  tournantSi() { return !!(typeof soutSecrets !== 'undefined' && soutSecrets.X().porte); },
+  demande(c) {
+    const Tb = q20dTombeau(c);
+    if (!Tb) return null;
+    return [
+      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camLieu(Tb.oeil, { d: 9, haut: 1.9, dy: 0, a: Tb.dehors + 0.4, recul: 0.06, stop: 0.6 }), () => c.camLieu(Tb.oeil, { d: 7, haut: 1.7, dy: 0, a: Tb.dehors - 0.5, stop: 0.6 })), acteurs: [], lum: [c.lueur(Q20B.devant(c, Tb.po, Tb.dehors, 2.5, 0), 9, [0.45, 0.7, 0.6], 2.2), Q20D.froide(c, Tb.P, 5, 2.5)], son: 'goutte', dit: c.parole('« dal na-aelim , mir ael , tora »', 'Gravé sur la façade du tombeau'), court: true }),
+      c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camChose(Tb.oeil, { d: 1.6, haut: 1.4, a: Tb.dehors + 0.25, dy: 0, recul: 0.12 }), () => c.camChose(Tb.oeil, { d: 2.0, haut: 1.5, a: Tb.dehors - 0.3, dy: 0 })), acteurs: [], lum: [Q20D.froide(c, Tb.po, 3, 1.4)], dit: c.parole('(Au milieu de la dalle, un œil taillé. Creux, et profond.)', '') }),
+    ];
+  },
+  tournant(c) {
+    const Tb = q20dTombeau(c);
+    if (!Tb) return null;
+    // (le joueur de côté, la lanterne tendue ; la dalle, redessinée fermée, l'œil où entre le point de lumière, puis
+    // elle descend dans le sol)
+    const J = c.joueur(Q20B.libre(c, Q20B.devant(c, Tb.po, Tb.dehors + 0.5, 1.4, 0), 0, 1.0, 0.35), { face: Tb.oeil, geste: 'tend', lanterne: true });
+    const pt = c.chose(Q20D_DESSINS.point, c.vers(c.haut(J.P, 1.3), Tb.oeil, 0.3), { s: 1, vers: c.devant(Tb.oeil, Tb.dehors, 0.08, 0, true), t0: 0.8, t1: 3.2 });
+    const q = c.w.soutSecrets && c.w.props[c.w.soutSecrets.porte];
+    const da = q ? c.chose('sout_porte_aelim', [q.x, q.y, q.z], { r: q.r || 0, data: {}, vers: [q.x, q.y - 2.25, q.z], t0: 3.4, t1: 6.2 }) : null;
+    const lum = [Q20D.flamme(c, J.P, 5, 1.3), c.lueur(Tb.oeil, 2.2, [1.0, 0.9, 0.7], 0), c.lueur(Q20B.devant(c, Tb.po, Tb.dehors, 2.5, 0), 8, [0.45, 0.7, 0.6], 2)];
+    return [
+      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camChose(Tb.oeil, { d: 3.2, haut: 1.7, a: Tb.dehors - 0.35, dy: -0.3, recul: 0.05 }), () => c.camChose(Tb.oeil, { d: 2.6, haut: 1.6, a: Tb.dehors - 0.6, dy: -0.3 })), acteurs: [J, pt, da], lum, son: 'clochette' }),
+      c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camChose(c.haut(Tb.po, 1.0), { d: 3.4, haut: 1.6, a: Tb.dehors - 0.2, dy: 0 }), () => c.camLieu(Tb.P, { d: 8, haut: 2, dy: 1, a: Tb.dehors, stop: 1 })), acteurs: [Object.assign({}, J, { vu: false })], lum: [Q20D.flamme(c, J.P, 5, 1.3), Q20D.froide(c, Tb.P, 4, 1)], son: 'grondement' }),
+    ];
+  },
+  fin(c) {
+    const Tb = q20dTombeau(c);
+    if (!Tb) return null;
+    // (le joueur de côté, le miroir levé à la lumière ; la caméra dans l'ouverture)
+    const Ko = Tb.coffre, a1 = c.cap(Ko, Tb.po), J = c.joueur(Q20B.libre(c, Q20B.devant(c, Ko, a1 + 1.2, 0.9, 0), 0, 0.8, 0.3), { face: c.vers(Ko, Tb.po, 0.5), geste: 'tend', lanterne: true });
+    const mi = c.chose(Q20D_DESSINS.miroir, c.haut(c.devant(J.P, J.cap, 0.34, 0.03, true), 1.08), { s: 1.3, r: J.cap, lueur: true });
+    return [
+      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 0.5, d: 2.2, buste: true, avec: mi.P, k: 0.25 }), () => c.camActeur(J, { cote: -0.5, d: 2.2, buste: true }), () => c.camChose(c.haut(Ko, 0.6), { d: 2.4, haut: 1.5, a: a1, dy: 0 })), acteurs: [J, mi], lum: [Q20D.flamme(c, J.P, 5, 1.3)], son: 'piece', dit: c.parole('« aelim fala , hemim ulen , ael rim neth thal »', 'Une tablette, dans le tombeau'), court: true }),
+      c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camLieu(Tb.P, { d: 7, haut: 2, dy: 1.2, a: Tb.dehors - 0.4, recul: 0.06, stop: 1 }), () => c.camLieu(Tb.P, { d: 6, haut: 2, dy: 1.2, a: Tb.dehors + 0.6, stop: 1 })), acteurs: [Object.assign({}, J, { vu: false })], lum: [Q20D.flamme(c, J.P, 6, 1.3), c.lueur(Q20B.devant(c, Tb.po, Tb.dehors, 2.5, 0), 9, [0.45, 0.7, 0.6], 2.2)], dit: c.parole('(Le fond du coffre est poli, comme par des mains.)', '') }),
+    ];
+  },
+});
+q20d.guetter('q20d_so_aelim', () => { if (!farm.s || !farm.s.souterrain || typeof soutSecrets === 'undefined') return null; const X = soutSecrets.X(); if (X.coffre || X.tablette) return 'fin'; if (X.porte) return null; return q20d.S().aelim || X.vuePorte ? 'demande' : null; });
+
+// ---------------------------------------------------------------- les emballages du Dessous (ils notent, puis laissent faire)
+HOOKS.load.push(() => {
+  if (game._q20dSout) return;
+  game._q20dSout = true;
+  // admis : comment (en se taisant, « frè », « onz »)
+  if (typeof soutTerres !== 'undefined' && soutTerres.accepter) {
+    const _ac = soutTerres.accepter.bind(soutTerres);
+    soutTerres.accepter = function (se, comment) { try { if (!this.S().admis && !q20d.S().appel) q20d.note('appel', { c: comment === 'onz' ? 2 : comment === 'frè' ? 1 : 0 }); } catch (e) { console.error('q20d', e); } return _ac(se, comment); };
+  }
+  // la réponse à « pèst… d'sû ? » : « ouï » (la première)
+  if (typeof soutTerres !== 'undefined' && soutTerres.panneau) {
+    const _pn = soutTerres.panneau.bind(soutTerres);
+    soutTerres.panneau = function (e, L, ...a) { try { if (L && L[1] === 'pest_ouï' && !q20d.S().pest) q20d.note('pest', { c: 1 }); } catch (er) { console.error('q20d', er); } return _pn(e, L, ...a); };
+  }
+  // le mort aux bottes (après le carnet) ; la dalle à l'œil, la première fois qu'on la touche
+  if (typeof soutSecrets !== 'undefined') {
+    const _do = soutSecrets.dormeur.bind(soutSecrets);
+    soutSecrets.dormeur = function (it) { try { if (it && it.data && it.data.n === 0 && souterrain.S().carnet) q20d.note('bottes'); } catch (e) { console.error('q20d', e); } return _do(it); };
+    const _po = soutSecrets.porte.bind(soutSecrets);
+    soutSecrets.porte = function () { try { q20d.note('aelim'); } catch (e) { console.error('q20d', e); } return _po(); };
+  }
+});
+
+// ============================================================================ LA NICHE DES GALERIES (une dalle gravée, les runes ; monde 'galeries')
+function q20dDalle(c, id) {
+  const W = c.w.r15, D = W && W.portes && W.portes[id];
+  if (!D) return null;
+  const sol = (x, z, y) => (c.sous ? c.solSous(x, z, y) : c.sol(x, z));
+  const dv = D.devant ? [D.devant[0], sol(D.devant[0], D.devant[2], D.y + 0.3), D.devant[2]] : null;
+  const co = D.coffre !== undefined && c.w.props[D.coffre];
+  // (la face gravée regarde vers « devant » ; le coffre est derrière la dalle)
+  const L = D.dalle || D, face = dv ? c.cap([L.x, 0, L.z], dv) : (D.r || 0);
+  return { D, P: [L.x, D.y, L.z], T: [L.x, D.y + Math.min(1.3, ((L.sy || 1.85) * 0.68)), L.z], dv, face, coffre: co ? [co.x, co.y, co.z] : null };
+}
+function q20dR15() { try { return typeof runes !== 'undefined' && farm.s ? runes.S() : null; } catch (e) { return null; } }
+q20.scenes('q20d_r15_niche', {
+  souv: 'q20c:vallee', titre: 'La niche des Galeries',
+  monde: 'galeries',
+  delais: { demande: 1.2, tournant: 3, fin: 1.5 },
+  etat() { const R = q20dR15(), N = q20d.S().niche; return q20dE('La niche des Galeries', N || (R && R.p.niche) ? (R || {}) : null, !!N || !!(R && R.p.niche), !!(R && R.c.niche), null, !!(R && R.p.niche)); },
+  tournantSi() { const R = q20dR15(); return !!(R && R.p.niche); },
+  demande(c) {
+    const K = q20dDalle(c, 'niche');
+    if (!K || !K.dv) return null;
+    const J = c.joueur(Q20B.libre(c, Q20B.devant(c, K.dv, K.face + Math.PI / 2, 0.7, 0), 0, 0.6, 0.3), { face: K.T, geste: 'leve', lanterne: true });
+    return [
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camChose(K.T, { d: 3.0, haut: 1.6, a: K.face - 0.15, dy: 0, recul: 0.06 }), () => c.camChose(K.T, { d: 2.6, haut: 1.5, a: K.face + 0.15, dy: 0 }), () => c.camActeur(J, { cote: 2.6, d: 2.2, avec: K.T, k: 0.5 })), acteurs: [J], lum: [Q20D.flamme(c, J.P, 5, 1.3)], son: 'goutte', dit: c.parole('(Au plus loin de l’échelle, une dalle. Trois signes ; l’un s’efface.)', ''), court: true }),
+      c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camChose(K.T, { d: 1.6, haut: 1.3, a: K.face + 0.3, dy: 0, recul: 0.1 }), () => c.camChose(K.T, { d: 1.9, haut: 1.4, a: K.face - 0.3, dy: 0 })), acteurs: [], lum: [Q20D.flamme(c, K.dv, 5, 1.3), c.lueur(K.T, 2.6, [0.5, 0.72, 1.0], 0)] }),
+    ];
+  },
+  tournant(c) {
+    const K = q20dDalle(c, 'niche');
+    if (!K || !K.dv) return null;
+    // (le joueur de côté, contre la paroi ; la caméra dans la galerie, face à la niche qui s'ouvre)
+    const J = c.joueur(Q20B.libre(c, Q20B.devant(c, K.dv, K.face + Math.PI / 2, 0.75, 0), 0, 0.6, 0.3), { face: K.T, geste: 'baisse', lanterne: true });
+    const pous = Q20H.emet(c.haut(K.P, 0.2), { n: 6, col: [0.62, 0.58, 0.52, 0.6], taille: 0.07, vie: 2.2, v: 0.5, vy: 0.2, r: 1.2 });
+    return [
+      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camChose(K.T, { d: 3.4, haut: 1.6, a: K.face - 0.12, dy: 0, recul: 0.06 }), () => c.camChose(K.T, { d: 2.8, haut: 1.5, a: K.face + 0.15, dy: 0 })), acteurs: [Object.assign({}, J, { vu: false })], lum: [Q20D.flamme(c, J.P, 5, 1.3)], chaque: pous, son: 'grondement' }),
+      K.coffre && c.plan({ dur: 5.8, cam: Q20D.cam(c, () => c.camChose(c.haut(K.coffre, 0.4), { d: 2.0, haut: 1.4, a: K.face, dy: 0 }), () => c.camChose(c.haut(K.coffre, 0.4), { d: 2.6, haut: 1.6, a: K.face + 0.5, dy: 0 })), acteurs: [Object.assign({}, J, { vu: false })], lum: [Q20D.flamme(c, K.dv, 5, 1.3)] }),
+    ];
+  },
+  fin(c) {
+    const K = q20dDalle(c, 'niche');
+    if (!K || !K.coffre) return null;
+    // (le joueur à côté du coffre ; la caméra dans l'ouverture de la niche)
+    const J = c.joueur(Q20B.libre(c, Q20B.devant(c, K.coffre, K.face + Math.PI / 2, 0.85, 0), 0, 0.6, 0.3), { face: K.coffre, geste: 'penche', lanterne: true });
+    const or = c.chose(Q20_DESSINS.lingots || Q20D_DESSINS.point, c.haut(K.coffre, 0.62), { s: 1.2, r: K.face, lueur: true });
+    return [
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: Math.PI / 2 + 0.3, d: 2.2, avec: c.haut(K.coffre, 0.5), k: 0.45 }), () => c.camChose(c.haut(K.coffre, 0.5), { d: 2.3, haut: 1.5, a: K.face, dy: 0 }), () => c.camActeur(J, { cote: -1.6, d: 2.1, buste: true })), acteurs: [J, or], lum: [Q20D.flamme(c, J.P, 4.5, 1.2)], son: 'piece', dit: c.parole('(Personne ne descend si loin. C’était fait pour ça.)', ''), court: true }),
+      c.plan({ dur: 5.8, cam: Q20D.cam(c, () => c.camRegard(Q20B.devant(c, K.dv, K.face, 1.0, 0), Q20B.devant(c, K.dv, K.face, 12, 0), { haut: 1.55, recul: 0.05 }), () => c.camChose(K.T, { d: 2.4, haut: 1.5, a: K.face, dy: 0 })), acteurs: [Object.assign({}, J, { vu: false })], lum: [Q20D.flamme(c, J.P, 5, 1.2)], son: 'goutte' }),
+    ];
+  },
+});
+q20d.guetter('q20d_r15_niche', () => { const R = q20dR15(); if (!R) return null; if (R.c.niche) return 'fin'; if (R.p.niche) return null; return q20d.S().niche ? 'demande' : null; });
+// (la première fois qu'on regarde une dalle : la niche des Galeries, le tertre scellé des Terres d'Avant)
+{
+  const _f = HOOKS.inter.r15_porte;
+  if (_f) {
+    const f = (it) => { try { const p = it && it.data && it.data.porte; if ((p === 'niche' || p === 'tertre') && !q20d.S()[p]) q20d.note(p); } catch (e) { console.error('q20d', e); } return _f(it); };
+    // (l'emballage de Q20C, posé au chargement, se reconnaît à sa marque : il emballe celui-ci une fois, pas à chaque partie)
+    if (_f._q20c) f._q20c = true;
+    f._q20d = true;
+    HOOKS.inter.r15_porte = f;
+  }
+}
+
+// ---- 11-zzzzzzzzzzQ20-4c-ailleurs.js
+// ============================================================================
+//  LES SCÈNES DES QUÊTES (agent Q20D, lot 4) — 4c. LA CITÉ ET LES TERRES D'AVANT
+//  - la pierre ronde : le seul voyage (le papier d'Anselme, dans la vallée ;
+//    l'arrivée au Seuil de la cité ; le retour, ou la veilleuse qui vous rend à
+//    la vallée) ;
+//  - le Cœur de la cité (monde 'vaisseau') : il dort ; rallumé ; éteint, par vous
+//    ou par la veilleuse ;
+//  - les Terres d'Avant (monde 'zone') : sous chaque tertre un roi (la pierre
+//    dressée, la chambre sous le tertre, les trois rois) ; le tertre scellé (les
+//    runes).
+// ============================================================================
+
+// ---------------------------------------------------------------- LA PIERRE RONDE : le papier ; le Seuil ; le retour (ou la dernière lumière)
+const Q20D_ANSELME = 'Anselme Varenne';
+function q20dPierre(c) {
+  const P = c.w.vg;
+  if (!P) return null;
+  const pap = Q20D.inter(c, 'vg_papier_anselme');
+  const C = [P.x, P.y, P.z], devant = c.pt(P.ix + Math.sin(P.r) * 2.2, P.iz + Math.cos(P.r) * 2.2);
+  return { P, C, devant, pap: pap ? c.pt(pap[0], pap[2]) : null, haut: c.haut(C, 1.85), lum: [c.lueur(C, 9, [0.32, 0.6, 1.15], 1.85), c.lueur(C, 4, [0.45, 0.75, 1.2], 1.2)] };
+}
+function q20dVG() { try { return typeof VG !== 'undefined' && farm.s ? VG.S() : null; } catch (e) { return null; } }
+q20.scenes('q20d_vg_seuil', {
+  souv: 'q20d:pierre', titre: 'Le seuil de l’étoile',
+  monde: { demande: 'vallee', tournant: 'vaisseau', fin: 'vallee' },
+  delais: { demande: 1.2, tournant: 2.5, fin: 7 },
+  etat() {
+    const V = q20dVG();
+    if (!V) return q20dE('Le seuil de l’étoile', null, false, false);
+    return q20dE('Le seuil de l’étoile', V.lus.anselme || V.etat ? V : null, !!V.lus.anselme || V.etat === 1, V.etat >= 2, V.etat >= 2 ? (V.mort ? 1 : 0) : null, V.etat >= 1);
+  },
+  tournantSi() { const V = q20dVG(); return !!(V && V.etat === 1 && V.nommee); },
+  demande(c) {
+    const Pi = q20dPierre(c);
+    if (!Pi) return null;
+    const a = Pi.P.r + 0.7, JP = Pi.pap ? Q20H.libre(c, c.devant(Pi.pap, c.cap(Pi.C, Pi.pap), 0.8), 0, 1.2, 0.4) : Pi.devant;
+    const J = c.joueur(JP, { face: Pi.pap || Pi.C, geste: 'baisse' });
+    const le = c.chose(Q20D_DESSINS.lettre, c.haut(c.devant(J.P, J.cap, 0.32, 0.04, true), 1.05), { s: 1.4, r: J.cap });
+    return [
+      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camLieu(Pi.C, { d: 10, haut: 2.2, dy: 1.6, a, recul: 0.1, stop: 1.2 }), () => c.camLieu(Pi.C, { d: 13, haut: 2.8, dy: 1.6, a: a + 1.2, stop: 1.2 })), acteurs: [], lum: Pi.lum, son: 'clochette', dit: c.parole('J’ai trouvé la pierre ronde. Elle chante quand il n’y a pas de lune.', Q20D_ANSELME), court: true }),
+      c.plan({ dur: 6.2, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 1.2, d: 2.2, buste: true, avec: le.P, k: 0.25 }), () => c.camActeur(J, { cote: -1.2, d: 2.4, buste: true })), acteurs: [J, le], lum: Pi.lum, son: 'page', dit: c.parole('On n’y va qu’une fois : ça se sent.', Q20D_ANSELME) }),
+    ];
+  },
+  tournant(c) {
+    if (typeof vgCite === 'undefined') return null;
+    const f = vgCite.f(), anneau = vgCite.pos(0, 1.6, -15.6), dep = vgCite.pos(0, 0, -9.5);
+    const J = c.joueur([dep[0], c.solSous(dep[0], dep[2], f.y + 0.3), dep[2]], { face: vgCite.pos(0, 0, 10), geste: 'leve' });
+    const lum = [c.lueur(anneau, 8, [0.35, 0.6, 1.1], 0), c.lueur(vgCite.pos(-6, 0, -12), 5, [0.3, 0.5, 0.95], 1.4)];
+    const cou = vgCite.pos(0, 1.6, 5), nef = vgCite.pos(0, 6, 60);
+    return [
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 0.25, d: 4.2, haut: 1.7, avec: anneau, k: 0.3, recul: 0.06 }), () => c.camActeur(J, { cote: -0.35, d: 3.6, haut: 1.7, avec: anneau, k: 0.3 }), () => c.camChose(anneau, { d: 6, haut: 1.8, a: 0, dy: 0 })), acteurs: [J], lum, son: 'clochette' }),
+      c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camRegard(cou, nef, { haut: 1.6, recul: 0.12 }), () => c.camLieu(nef, { d: 30, haut: 3, dy: 0, a: Math.PI, stop: 4 })), acteurs: [Object.assign({}, J, { vu: false })], lum: [c.lueur(cou, 6, [0.25, 0.4, 0.8], 1)] }),
+    ];
+  },
+  fins: {
+    // revenu par le seuil : la pierre éteinte, fendue
+    0(c) {
+      const Pi = q20dPierre(c);
+      if (!Pi) return null;
+      const J = c.joueur(Pi.devant, { face: Pi.C, geste: 'baisse' });
+      const T = c.w.townInfo || c.w.lm.place || null, loin = T ? c.pt(T.x, T.z) : c.devant(Pi.C, Pi.P.r, 300);
+      return [
+        c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.2, d: 3.0, avec: Pi.haut, k: 0.3 }), () => c.camActeur(J, { cote: -2.2, d: 3.2, avec: Pi.haut, k: 0.3 })), acteurs: [J], son: 'grondement', dit: c.parole('J’ai laissé la place à un autre.', Q20D_ANSELME), court: true }),
+        c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camRegard(c.devant(Pi.devant, Pi.P.r, 1.5), c.haut(loin, 30), { haut: 1.6, recul: 0.04 }), () => c.camLieu(Pi.C, { d: 30, haut: 6, dy: 1 })), acteurs: [Object.assign({}, J, { vu: false })] }),
+      ];
+    },
+    // mort là-haut : la veilleuse a dépensé la dernière lumière du seuil
+    1(c) {
+      const Pi = q20dPierre(c);
+      if (!Pi) return null;
+      const JP = c.devant(Pi.C, Pi.P.r, 1.0), J = c.joueur(JP, { cap: Pi.P.r, geste: ['assis', 'baisse'] });
+      return [
+        c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 0.6, d: 2.4, haut: 1.2 }), () => c.camActeur(J, { cote: -0.7, d: 2.6, haut: 1.2 })), acteurs: [J], son: 'murmure', dit: c.parole('Au revoir. Dites-leur, en bas… Non. Ne leur dites rien.', 'La veilleuse', 1.3), court: true }),
+        c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camLieu(Pi.C, { d: 8, haut: 2.2, dy: 1.4, a: Pi.P.r + 0.5, recul: 0.08, stop: 1 }), () => c.camLieu(Pi.C, { d: 10, haut: 2.6, dy: 1.4, a: Pi.P.r - 0.6, stop: 1 }), () => c.camLieu(Pi.C, { d: 14, haut: 4, dy: 1.4, stop: 1 })), acteurs: [Object.assign({}, J, { vu: false })], dit: c.parole('(La pierre est froide.)', '') }),
+      ];
+    },
+  },
+});
+q20d.guetter('q20d_vg_seuil', () => { const V = q20dVG(); if (!V || !farm.s.vaisseau) return null; if (V.etat >= 2) return 'fin'; if (V.etat === 1) return null; return V.lus.anselme ? 'demande' : null; });
+
+// ---------------------------------------------------------------- LE CŒUR DE LA CITÉ : il dort ; rallumé ; éteint (par vous, ou par la veilleuse)
+const Q20D_VEILLEUSE = () => (typeof Q20B !== 'undefined' ? Q20B.nom('veilleuse') : 'La veilleuse');
+function q20dCoeur(c) {
+  if (typeof vgCite === 'undefined') return null;
+  const C = vgCite.pos(0, -16, 42), pu = vgCite.pos(0, -16, 35.6);
+  return { C, pu, haut: c.haut(C, 3.2), braise: c.lueur(C, 7, [0.55, 0.12, 0.06], 1.5), blanc: [c.lueur(C, 30, [0.6, 0.85, 1.3], 7), c.lueur(C, 10, [0.75, 0.9, 1.2], 2.5)], nef: vgCite.pos(0, 1.6, 64), ciel: vgCite.pos(0, 30, 96) };
+}
+// (le Cœur allumé une première fois, puis éteint : par vous, ou par elle — gardé dès qu'on le sait)
+function q20dCoeurEtat() {
+  const V = q20dVG();
+  if (!V) return null;
+  const N = q20d.S().coeur || {}, on = !!(N.on || V.dits.coeur_on), off = N.off || (on && !V.m.coeur ? (V.dits.coeur_off ? 'joueur' : 'veilleuse') : null);
+  return { V, N, on, off };
+}
+q20.scenes('q20d_vg_coeur', {
+  qui: 'veilleuse', titre: 'Le Cœur',
+  monde: 'vaisseau',
+  delais: { demande: 6, tournant: 6, fin: 6 },
+  etat() {
+    const E = q20dCoeurEtat();
+    if (!E) return q20dE('Le Cœur', null, false, false);
+    return q20dE('Le Cœur', E.V.dits.machinerie || E.on ? E.V : null, !!(E.V.dits.machinerie || E.on), !!E.off, E.off ? (E.off === 'veilleuse' ? 1 : 0) : null, E.on);
+  },
+  tournantSi() { const E = q20dCoeurEtat(); return !!(E && E.on); },
+  demande(c) {
+    const K = q20dCoeur(c);
+    if (!K) return null;
+    const nom = Q20D_VEILLEUSE();
+    return [
+      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camLieu(K.haut, { d: 12, haut: 1.8, dy: 0, a: Math.PI + 0.35, recul: 0.06, stop: 2.5 }), () => c.camLieu(K.haut, { d: 9, haut: 1.6, dy: 0, a: Math.PI - 0.6, stop: 2.5 })), acteurs: [], lum: [K.braise], son: 'grondement', dit: c.parole('Il dort depuis que Thalvor est descendu.', nom, 1.3), court: true }),
+      c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camChose(c.haut(K.pu, 1.0), { d: 1.7, haut: 1.4, a: Math.PI + 0.5, dy: 0, recul: 0.1 }), () => c.camChose(c.haut(K.pu, 1.0), { d: 2.1, haut: 1.5, a: Math.PI - 0.5, dy: 0 })), acteurs: [], lum: [K.braise, c.lueur(K.pu, 3, [0.3, 0.45, 0.9], 1.2)], dit: c.parole('Si vous le rallumez, je compterai.', nom, 1.3) }),
+    ];
+  },
+  tournant(c) {
+    const K = q20dCoeur(c);
+    if (!K) return null;
+    const J = c.joueur(Q20B.libre(c, Q20B.devant(c, K.pu, Math.PI, 0.9, 0), 0, 1, 0.35), { face: K.haut, geste: 'leve' });
+    return [
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.5, d: 3.2, avec: c.haut(K.C, 1.8), k: 0.25, recul: 0 }), () => c.camActeur(J, { cote: -2.5, d: 3.2, avec: c.haut(K.C, 1.8), k: 0.25, recul: 0 })), acteurs: [J], lum: K.blanc, son: 'grondement' }),
+      c.plan({ dur: 6.2, cam: Q20D.cam(c, () => c.camRegard(K.nef, K.ciel, { haut: 1.4, recul: 0.05 }), () => c.camLieu(K.nef, { d: 20, haut: 4, dy: 2, stop: 3 })), acteurs: [Object.assign({}, J, { vu: false })], lum: [c.lueur(K.nef, 16, [0.7, 0.8, 1.0], 4)], dit: c.parole('Les fenêtres s’allument, là-bas, dans les tours. Elles aussi avaient oublié.', Q20D_VEILLEUSE(), 1.3) }),
+    ];
+  },
+  fins: {
+    // vous l'avez éteint
+    0(c) {
+      const K = q20dCoeur(c);
+      if (!K) return null;
+      const J = c.joueur(Q20B.libre(c, Q20B.devant(c, K.pu, Math.PI, 0.9, 0), 0, 1, 0.35), { face: K.pu, geste: 'baisse' });
+      return [
+        c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.2, d: 3.0, avec: c.haut(K.C, 1.6), k: 0.15, recul: 0 }), () => c.camActeur(J, { cote: -2.2, d: 3.0, avec: c.haut(K.C, 1.6), k: 0.15, recul: 0 })), acteurs: [J], lum: [K.braise, c.lueur(K.pu, 3, [0.3, 0.45, 0.9], 1.2)], dit: c.parole('Merci. Elle n’a pas eu le temps de regarder.', Q20D_VEILLEUSE(), 1.3), court: true }),
+        c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camLieu(K.haut, { d: 14, haut: 2.4, dy: 0, a: Math.PI + 0.9, recul: 0.06, stop: 2.5 }), () => c.camLieu(K.haut, { d: 10, haut: 2, dy: 0, stop: 2.5 })), acteurs: [Object.assign({}, J, { vu: false })], lum: [K.braise], son: 'murmure' }),
+      ];
+    },
+    // elle l'a éteint elle-même
+    1(c) {
+      const K = q20dCoeur(c);
+      if (!K) return null;
+      return [
+        c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camLieu(K.haut, { d: 11, haut: 1.8, dy: 0, a: Math.PI - 0.4, recul: 0.08, stop: 2.5 }), () => c.camLieu(K.haut, { d: 8, haut: 1.6, dy: 0, stop: 2.5 })), acteurs: [], lum: [K.braise], son: 'grondement', dit: c.parole('Il brûlait trop fort. On l’aurait vu de trop loin.', Q20D_VEILLEUSE(), 1.3), court: true }),
+        c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camRegard(K.nef, K.ciel, { haut: 1.4, recul: 0.04 }), () => c.camLieu(K.nef, { d: 20, haut: 4, dy: 2, stop: 3 })), acteurs: [], lum: [c.lueur(K.nef, 8, [0.2, 0.32, 0.65], 2)] }),
+      ];
+    },
+  },
+});
+q20d.guetter('q20d_vg_coeur', () => {
+  const E = q20dCoeurEtat();
+  if (!E || !farm.s.vaisseau) return null;
+  // (on garde ce qu'on a vu : allumé, puis éteint — par qui —, une fois)
+  if (E.on && !E.N.on) q20d.note('coeur').on = farm.s.day;
+  if (E.off && !(q20d.S().coeur || {}).off) q20d.note('coeur').off = E.off;
+  if (E.off) return 'fin';
+  return E.on ? null : E.V.dits.machinerie ? 'demande' : null;
+});
+
+// ============================================================================ LES TERRES D'AVANT (monde 'zone')
+function q20dZS() { try { return typeof zone !== 'undefined' && farm.s ? zone.S() : null; } catch (e) { return null; } }
+// ---------------------------------------------------------------- SOUS CHAQUE TERTRE, UN ROI : la pierre dressée ; la chambre ; les trois rois
+const Q20D_TERTRES = 'Une pierre dressée, aux Tertres';
+function q20dTertres(c) {
+  const Z = c.w, ins = Q20D.inter(c, 'inscr_tertres'), L = Z.lm && Z.lm.zone_tertres;
+  const ch = [0, 1, 2].map((k) => ({ k, roi: Q20D.inter(c, 'tertre_' + k + '_roi'), sortie: Q20D.inter(c, 'tertre_' + k + '_sortie'), dalle: Q20D.inter(c, 'tertre_' + k) })).filter((x) => x.roi && x.sortie);
+  if (!ins && !ch.length) return null;
+  const C = L ? c.pt(L.x, L.z) : (ins ? c.pt(ins[0], ins[2]) : c.pt(ch[0].dalle[0], ch[0].dalle[2]));
+  const gros = (Z.v1 && Z.v1.tertres ? Z.v1.tertres.slice().sort((a, b) => b.R0 - a.R0).slice(0, 3) : []).map((T) => c.pt(T.x, T.z));
+  const st = ins && (Z.props || []).find((q) => q.id === 'v1_stele' && Math.hypot(q.x - ins[0], q.z - ins[2]) < 0.8);
+  return { ins: ins ? c.pt(ins[0], ins[2]) : null, face: st ? (st.r || 0) + Math.PI : null, ch, C, gros };
+}
+// la pierre dressée, de face (sa face gravée), à d mètres
+function q20dCamStele(c, T, d) {
+  const a = T.face ?? c.cap(T.ins, T.C), P = c.haut(T.ins, 1.3);
+  return Q20D.cam(c, () => c.camChose(P, { d, haut: 1.5, a: a + 0.25, dy: 0, recul: 0.06 }), () => c.camChose(P, { d, haut: 1.5, a: a - 0.3, dy: 0 }), () => c.camChose(P, { d: d * 1.3, haut: 1.7, a: a + 0.6, dy: 0 }));
+}
+q20.scenes('q20d_z_tertres', {
+  souv: 'q20d:zone', titre: 'Sous chaque tertre, un roi',
+  monde: 'zone',
+  delais: { demande: 1.2, tournant: 1.5, fin: 2.5 },
+  etat() {
+    const S = q20dZS();
+    if (!S) return q20dE('Sous chaque tertre, un roi', null, false, false);
+    const ouv = [0, 1, 2].some((k) => S.ouverts['tertre_' + k]), rois = [0, 1, 2].filter((k) => S.pris['tertre_' + k + '_roi']).length;
+    return q20dE('Sous chaque tertre, un roi', S.lus.inscr_tertres || ouv ? S : null, !!(S.lus.inscr_tertres || ouv), rois >= 3, null, ouv);
+  },
+  tournantSi() { const S = q20dZS(); return !!(S && [0, 1, 2].some((k) => S.ouverts['tertre_' + k])); },
+  demande(c) {
+    const T = q20dTertres(c);
+    if (!T || !T.ins) return null;
+    const vers = T.gros[0] || T.C;
+    return [
+      c.plan({ dur: 6.6, cam: q20dCamStele(c, T, 2.8), acteurs: [], lum: [c.lueur(c.devant(T.ins, T.face ?? 0, 1.2), 6, [0.62, 0.64, 0.74], 1.4)], son: 'corbeau', dit: c.parole('SOUS CHAQUE TERTRE, UN ROI.', Q20D_TERTRES), court: true }),
+      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camLieu(vers, { d: c.nuit() ? 20 : 32, haut: c.nuit() ? 5 : 7, dy: 2, a: c.cap(vers, T.ins) + 0.3, recul: 0.05, stop: 6 }), () => c.camLieu(vers, { d: 26, haut: 9, dy: 2, stop: 6 })), acteurs: [], lum: T.gros.map((P) => c.lueur(P, 30, [0.42, 0.46, 0.6], 8)).concat([c.lueur(vers, 14, [0.5, 0.54, 0.68], 3)]) }),
+    ];
+  },
+  tournant(c) {
+    const T = q20dTertres(c);
+    if (!T || !T.ch.length) return null;
+    const S = q20dZS(), k0 = (q20d.S().tertre1 || {}).k, Ch = T.ch.find((x) => x.k === k0) || T.ch.find((x) => S && S.ouverts['tertre_' + x.k]) || T.ch[0];
+    return Q20D.sous(c, () => {
+      const so = c.ptSous(Ch.sortie[0], Ch.sortie[2], Ch.sortie[1] - 1.0), roi = [Ch.roi[0], so[1], Ch.roi[2]], lit = [Ch.roi[0], so[1] + 0.95, Ch.roi[2]];
+      const J = c.joueur(Q20B.libre(c, c.vers(so, roi, 0.45), 0, 0.8, 0.3), { face: roi, geste: 'baisse', lanterne: true });
+      const lum = [Q20D.flamme(c, J.P, 5, 1.3)];
+      return [
+        c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 1.5, d: 2.0, avec: c.haut(roi, 0.9), k: 0.35 }), () => c.camActeur(J, { cote: -1.5, d: 2.0, avec: c.haut(roi, 0.9), k: 0.35 })), acteurs: [J], lum, son: 'murmure' }),
+        c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camChose(lit, { d: 1.5, haut: 1.75, a: c.cap(roi, so) + 0.6, dy: 0 }), () => c.camChose(lit, { d: 1.8, haut: 1.8, a: c.cap(roi, so) - 0.6, dy: 0 })), acteurs: [Object.assign({}, J, { vu: false })], lum, dit: c.parole('(Sur un lit de pierre, des os, et ce qu’on avait enterré avec lui.)', '') }),
+      ];
+    });
+  },
+  fin(c) {
+    const T = q20dTertres(c);
+    if (!T) return null;
+    const vers = T.ins || T.C;
+    return [
+      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camLieu(T.gros[0] || T.C, { d: c.nuit() ? 20 : 34, haut: c.nuit() ? 5 : 9, dy: 2, a: c.cap(T.gros[0] || T.C, vers) - 0.4, recul: 0.05, stop: 6 }), () => c.camLieu(T.gros[0] || T.C, { d: 26, haut: 9, dy: 2, stop: 6 })), acteurs: [], lum: T.gros.map((P) => c.lueur(P, 30, [0.42, 0.46, 0.6], 8)).concat([c.lueur(T.gros[0] || T.C, 14, [0.5, 0.54, 0.68], 3)]), son: 'corbeau', dit: c.parole('SOUS CHAQUE ROI, UN AUTRE TERTRE.', Q20D_TERTRES), court: true }),
+      T.ins && c.plan({ dur: 6, cam: q20dCamStele(c, T, 3.6), acteurs: [], lum: [c.lueur(c.devant(T.ins, T.face ?? 0, 1.2), 6, [0.62, 0.64, 0.74], 1.4)], dit: c.parole('(Et sous celui-là ?)', '') }),
+    ];
+  },
+});
+q20d.guetter('q20d_z_tertres', () => {
+  const S = q20dZS();
+  if (!S || !farm.s.zone) return null;
+  const N = q20d.S();
+  if (!N.tertre1) for (const k of [0, 1, 2]) if (S.ouverts['tertre_' + k]) { q20d.note('tertre1', { k }); break; }
+  if ([0, 1, 2].every((k) => S.pris['tertre_' + k + '_roi'])) return 'fin';
+  if (N.tertre1) return null;
+  return S.lus.inscr_tertres ? 'demande' : null;
+});
+
+// ---------------------------------------------------------------- LE TERTRE SCELLÉ (une dalle gravée, les runes)
+q20.scenes('q20d_r15_tertre', {
+  souv: 'q20d:zone', titre: 'Le tertre scellé',
+  monde: 'zone',
+  delais: { demande: 1.2, tournant: 3, fin: 1.5 },
+  etat() { const R = q20dR15(), N = q20d.S().tertre; return q20dE('Le tertre scellé', N || (R && R.p.tertre) ? (R || {}) : null, !!N || !!(R && R.p.tertre), !!(R && R.c.tertre), null, !!(R && R.p.tertre)); },
+  tournantSi() { const R = q20dR15(); return !!(R && R.p.tertre); },
+  demande(c) {
+    const K = q20dDalle(c, 'tertre');
+    if (!K) return null;
+    return [
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camLieu(K.P, { d: 12, haut: 2.4, dy: 1.2, a: K.face + 0.5, recul: 0.08, stop: 1.5 }), () => c.camLieu(K.P, { d: 15, haut: 3, dy: 1.2, a: K.face - 0.6, stop: 1.5 })), acteurs: [], son: 'corbeau', dit: c.parole('(Un tertre à l’écart des autres, fermé d’une dalle. On ne l’a pas pillé.)', ''), court: true }),
+      K.dv && c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camChose(K.T, { d: 1.8, haut: 1.4, a: K.face + 0.3, dy: 0, recul: 0.1 }), () => c.camChose(K.T, { d: 2.2, haut: 1.5, a: K.face - 0.3, dy: 0 })), acteurs: [], dit: c.parole('(Trois signes ; l’un s’efface.)', '') }),
+    ];
+  },
+  tournant(c) {
+    const K = q20dDalle(c, 'tertre');
+    if (!K) return null;
+    const pous = Q20H.emet(c.haut(K.P, 0.2), { n: 6, col: [0.62, 0.58, 0.52, 0.6], taille: 0.07, vie: 2.2, v: 0.5, vy: 0.2, r: 1.2 });
+    const J = K.dv && c.joueur(Q20H.libre(c, c.devant(K.dv, K.face, 0.6), 0, 1.2, 0.4), { face: K.T, geste: 'baisse' });
+    return [
+      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => (J ? c.camActeur(J, { cote: 2.5, d: 3.2, avec: K.T, k: 0.55 }) : null), () => c.camLieu(K.P, { d: 9, haut: 2, dy: 1, a: K.face })), acteurs: [J], chaque: pous, son: 'grondement' }),
+      c.plan({ dur: 5.8, cam: Q20D.cam(c, () => c.camLieu(K.P, { d: 10, haut: 2.2, dy: 1.0, a: K.face - 0.7, stop: 1.5 }), () => c.camLieu(K.P, { d: 13, haut: 3, dy: 1, stop: 1.5 })), acteurs: [J && Object.assign({}, J, { vu: false })] }),
+    ];
+  },
+  fin(c) {
+    const K = q20dDalle(c, 'tertre');
+    if (!K) return null;
+    const Ko = K.coffre || K.P;
+    const J = c.joueur(Q20H.libre(c, c.devant(Ko, K.face + Math.PI / 2, 0.8), 0, 0.6, 0.3), { face: Ko, geste: 'penche' });
+    const pi = c.chose(Q20_DESSINS.piece || Q20D_DESSINS.point, c.haut(Ko, 0.62), { s: 1.6, r: K.face, lueur: true });
+    return [
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camChose(c.haut(Ko, 0.5), { d: 2.4, haut: 1.5, a: K.face - 0.15, dy: 0 }), () => c.camActeur(J, { cote: 1.6, d: 2.2, buste: true }), () => c.camLieu(K.P, { d: 8, haut: 2 })), acteurs: [J, pi], lum: [c.lueur(Ko, 3, [1.0, 0.8, 0.5], 0.6)], son: 'piece', dit: c.parole('(Personne n’avait touché à ceci depuis qu’on l’avait scellé.)', ''), court: true }),
+      c.plan({ dur: 5.8, cam: Q20D.cam(c, () => c.camLieu(K.P, { d: 22, haut: 4, dy: 1.2, a: K.face + 2.2, recul: 0.05, stop: 1.5 }), () => c.camLieu(K.P, { d: 28, haut: 6, dy: 1.2, stop: 1.5 })), acteurs: [Object.assign({}, J, { vu: false })], son: 'corbeau' }),
+    ];
+  },
+});
+q20d.guetter('q20d_r15_tertre', () => { const R = q20dR15(); if (!R) return null; if (R.c.tertre) return 'fin'; if (R.p.tertre) return null; return q20d.S().tertre ? 'demande' : null; });
+
 // ---- 12-ui.js
 // ============================================================================
 //  INTERFACE : menus, options, panneau de l'éditeur, HUD, fichiers
@@ -153101,10 +154277,12 @@ const I18N_EN = {"v":1,"exact":[
 ["(Au matin, le lit est fait au carré. Les souliers sont propres.)","(By morning, the bed is made up neat and square. The shoes are clean.)"],
 ["(Au matin, une charrette, par la route.)","(In the morning, a cart, along the road.)"],
 ["(Au matin, une de vos poules manque ; il ne reste qu’une plume, et l’empreinte d’une main dans la paille.)","(In the morning, one of your hens is missing; all that is left is a feather, and the print of a hand in the straw.)"],
+["(Au milieu de la dalle, un œil taillé. Creux, et profond.)","(In the middle of the slab, a carved eye. Hollow, and deep.)"],
 ["(Au milieu des Demoiselles, une borne de cadastre, numéro effacé, de la mousse dessus comme si elle était là depuis toujours.)","(Among the Maidens, a land-registry boundary stone, its number worn away, moss on it as if it had always been there.)"],
 ["(Au milieu du lac, la lanterne s’arrête, puis s’enfonce lentement, toujours allumée, là où dort le clocher.)","(In the middle of the lake the lantern stops, then slowly sinks, still lit, down to where the bell tower sleeps.)"],
 ["(Au moment où vous approchez, le treizième timbre tinte, tout seul, deux fois. Le fil qui devrait monter vers les étages est coupé net, depuis longtemps.)","(As you approach, the thirteenth bell chimes, all by itself, twice. The wire that should run up to the floors has been cut clean through for a long time.)"],
 ["(Au nord, le ciel s’allume. Des voiles verts qui ondulent, lentement, sans un bruit.)","(In the north, the sky lights up. Green veils rippling, slowly, without a sound.)"],
+["(Au plus loin de l’échelle, une dalle. Trois signes ; l’un s’efface.)","(Farthest from the ladder, a slab. Three signs; one is fading away.)"],
 ["(Au plus noir de la nuit, quelqu’un frappe trois coups à une porte, quelque part dans la ville. Personne ne l’entend : on chante trop fort.)","(At the darkest point of the night, someone knocks three times at a door, somewhere in the town. No one hears it: everyone is singing too loudly.)"],
 ["(Au registre des lecteurs : « L. de Saint-Aubin », six fois, toujours le même livre : « Des Portes de la vallée ». Entre deux pages, une feuille arrachée à un carnet : la Grande Porte, dessinée avec soin. En bas : « J’y serai à la Saint-Jean. L. »)","(In the readers’ register: “L. de Saint-Aubin”, six times, always the same book: “On the Gates of the Valley”. Between two pages, a torn-out notebook page: the Great Gate, carefully drawn. At the bottom: “I’ll be there on St John’s Day. L.”)"],
 ["(Au réveil, il vous faut longtemps pour être sûr que c’est bien votre maison.)","(On waking, it takes you a long time to be sure this really is your house.)"],
@@ -153225,6 +154403,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Des bandes qui collent toutes seules, une piqûre qui ne fait pas mal. Vous vous sentez… réparé.)","(Bandages that stick on their own, a jab that doesn’t hurt. You feel… repaired.)"],
 ["(Des bottes de gardien, en cuir graissé. Elles sont mouillées jusqu’au genou, et pleines d’une eau très froide. Au loin, le feu du phare brûle sans trembler.)","(A keeper’s boots, of greased leather. They are wet up to the knee, and full of very cold water. Far off, the lighthouse fire burns without flickering.)"],
 ["(Des bouteilles par centaines, couchées dans le sable. Des millésimes que personne ne boira. Le sommelier compte chaque bouteille.)","(Bottles by the hundred, lying in the sand. Vintages that nobody will drink. The sommelier counts every bottle.)"],
+["(Des cabanes de pierre, en ruche. Une lueur verte, dedans.)","(Stone huts, beehive-like. A green glimmer inside.)"],
 ["(Des chiffons, des plumes, des cheveux. C’est encore tiède.)","(Rags, feathers, hair. It’s still warm.)"],
 ["(Des cloques rouges sont venues sur vos mains, là où la sève de la berce a coulé au soleil.)","(Red blisters have come up on your hands, where the hogweed sap ran in the sun.)"],
 ["(Des coliques vous tordent le ventre. Mieux vaudrait rester près d’un buisson.)","(Colic wrings your belly. You had best stay near a bush.)"],
@@ -153274,6 +154453,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Des soldats parlent d’un siège. L’un d’eux a froid. Il a froid depuis trois cents ans.)","(Soldiers are talking about a siege. One of them is cold. He has been cold for three hundred years.)"],
 ["(Des souliers d’homme, ferrés, crottés d’une vase grise où brillent de petites coquilles. La vase est encore humide.)","(A man’s shoes, hobnailed, caked with grey silt in which tiny shells glint. The silt is still damp.)"],
 ["(Des tours, dans la brume. Pas une lumière.)","(Towers, in the mist. Not a single light.)"],
+["(Des tours, et pas une lumière. On dirait qu’il attend quelqu’un.)","(Towers, and not a single light. It looks as if it’s waiting for someone.)"],
 ["(Des voix, très loin, comptent jusqu’à treize. Puis elles recommencent.)","(Voices, very far away, count up to thirteen. Then they start again.)"],
 ["(Des éboulis, et dessous une grosse pierre. Il en sort un souffle froid. Elle ne bouge pas d’ici.)","(Rubble, and under it a big stone. A cold breath rises from it. It won’t budge from here.)"],
 ["(Dessous, sept petits traits : quelqu’un a trouvé ça juste.)","(Underneath, seven small strokes: someone found that right.)"],
@@ -153291,6 +154471,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Dételez-la d’abord.)","(Unhitch it first.)"],
 ["(D’en bas, la même voix, plus lente : « Je vous ai dit de la reposer. »)","(From below, the same voice, slower: “I told you to put it back.”)"],
 ["(D’ici, la ville tient dans la main. Les toits, la place, les ponts, et les douves qui brillent.)","(From up here, the town fits in the palm of your hand. The roofs, the square, the bridges, and the gleaming moat.)"],
+["(D’ici, on voit toute la ville d’en bas. Elle ne dort pas, elle.)","(From here, you can see the whole town down below. It isn’t asleep, that one.)"],
 ["(D’un trait, sans respirer.) Vous soulevez les barrières comme on soulève un enfant, d’un seul coup, sans effort, et c’est la plus belle chose que j’aie vue depuis Madagascar, et je ne sais pas parler, alors j’écris, voilà.","(All in one breath, without stopping.) You lift the gates the way one lifts a child, in a single movement, effortlessly, and it’s the most beautiful thing I’ve seen since Madagascar, and I can’t talk, so I write, and there you have it."],
 ["(Elle a déjà donné, aujourd’hui.)","(It has already given, today.)"],
 ["(Elle a mordu. Ce n’est rien, mais ça saigne un peu.)","(It bit you. It’s nothing, but it bleeds a little.)"],
@@ -153382,6 +154563,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Entre deux racines, un trou où passe à peine le bras. Il en sort de l’air froid, qui sent la cave.)","(Between two roots, a hole that an arm can barely pass through. Cold air comes out of it, smelling of the cellar.)"],
 ["(Et plus loin, la vallée. Les champs, les bois, la ligne sombre des Monts.)","(And further off, the valley. The fields, the woods, the dark line of the Peaks.)"],
 ["(Et puis, dans le silence, une voix. Pas une voix : un fredonnement, très bas, qui monte des pierres. Quatre notes, une phrase qui ne finit pas.)","(And then, in the silence, a voice. Not a voice: a humming, very low, rising from the stones. Four notes, a phrase that never ends.)"],
+["(Et sous celui-là ?)","(And under that one?)"],
 ["(Face contre terre. Ne relevez pas la tête avant que les chiens se taisent.)","(Face down on the ground. Do not raise your head until the hounds fall silent.)"],
 ["(Ferdi. La forge sonnera tard ce soir.)","(Ferdi. The forge will ring late tonight.)"],
 ["(Fermé à clé.)","(Locked.)"],
@@ -153412,6 +154594,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Il en manque. « Brûle les huit pages. Toutes. »)","(Some are missing. “Burn the eight pages. All of them.”)"],
 ["(Il entre. La porte reste ouverte, et on entend, pour la première fois depuis des années, la grainetière rire.)","(He goes in. The door stays open, and for the first time in years you can hear the seed merchant laughing.)"],
 ["(Il essuie un verre déjà sec.) Rendez-moi un service. Portez la soupe du dimanche à {npc:pecheur}, au ponton. D’habitude, il vient la manger ici, et je la lui sers sans le regarder. Cette fois, je n’ai pas le courage.","(He wipes a glass that is already dry.) Do me a favour. Take the Sunday soup to {npc:pecheur}, at the jetty. Usually he comes to eat it here, and I serve it to him without looking at him. This time, I haven’t the courage."],
+["(Il est assis au bout du pont, face aux Degrés. Il a l’air d’attendre encore.)","(He is sitting at the end of the bridge, facing the Steps. He still seems to be waiting.)"],
 ["(Il est encore nerveux. Laissez-le se calmer un peu.)","(It is still nervous. Let it calm down a little.)"],
 ["(Il est encore nerveux.)","(It is still nervous.)"],
 ["(Il est entré dans le mur. Pas derrière : dedans.)","(It went into the wall. Not behind it: into it.)"],
@@ -153695,6 +154878,8 @@ const I18N_EN = {"v":1,"exact":[
 ["(La glace tient la corne comme un poing. Il faudrait une pioche.)","(The ice grips the horn like a fist. You would need a pickaxe.)"],
 ["(La glace tient la corne. Il faudrait une pioche.)","(The ice grips the horn. You would need a pickaxe.)"],
 ["(La goutte d’or bat avec votre cœur. Quand vous la regardez, il fait un peu plus jour.)","(The drop of gold beats with your heart. When you look at it, the day grows a little brighter.)"],
+["(La goutte retombe sur la perle. Toujours au même endroit.)","(The drop falls on the pearl again. Always in the same spot.)"],
+["(La goutte tombe dans une vasque vide.)","(The drop falls into an empty basin.)"],
 ["(La grande ombre s’enfonce sans un bruit.)","(The great shadow sinks without a sound.)"],
 ["(La grange est debout. Il y a de la place pour les bêtes.)","(The barn is up. There’s room for the animals.)"],
 ["(La grille est levée.)","(The grille is raised.)"],
@@ -153750,6 +154935,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(La pierre est encore brûlante. L’herbe fume tout autour.)","(The stone is still scorching. The grass is smoking all around.)"],
 ["(La pierre est encore brûlante.)","(The stone is still scorching.)"],
 ["(La pierre est froide. L’œil taillé au milieu est creux, profond.)","(The stone is cold. The eye carved in the middle is hollow, deep.)"],
+["(La pierre est froide.)","(The stone is cold.)"],
 ["(La pierre est tiède sous la main. La porte est ouverte.)","(The stone is warm under your hand. The door is open.)"],
 ["(La pierre est tiède, comme si quelqu’un venait de s’y asseoir.)","(The stone is warm, as if someone had just been sitting on it.)"],
 ["(La pierre gronde tout bas, comme un dormeur qui soupire.)","(The stone rumbles very low, like a sleeper sighing.)"],
@@ -153914,6 +155100,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Le feu ne brûle pas ce qui est déjà mort. Mais il fait mal. Vous êtes de nouveau sur la rive, sans savoir comment.)","(Fire does not burn what is already dead. But it hurts. You are back on the bank, without knowing how.)"],
 ["(Le feu ne brûle pas ce qui est déjà mort. Vous êtes de nouveau sur la rive.)","(Fire does not burn what is already dead. You are back on the bank.)"],
 ["(Le feu ne vous donnera rien de plus aujourd’hui.)","(The fire will give you nothing more today.)"],
+["(Le fond du coffre est poli, comme par des mains.)","(The bottom of the chest is polished, as though by hands.)"],
 ["(Le fond est moins profond que le meuble. Un double fond.)","(The inside is shallower than the piece of furniture. A false bottom.)"],
 ["(Le four banal chauffe pour tout le hameau, jour de foire. Vous enfournez.)","(On fair day, the communal oven is fired for the whole hamlet. You slide your loaves in.)"],
 ["(Le four est froid. Il faudrait une bûche pour le chauffer.)","(The oven is cold. You’d need a log to heat it.)"],
@@ -154255,9 +155442,11 @@ const I18N_EN = {"v":1,"exact":[
 ["(Pendant un instant, tout ce qui pousse autour de vous semble se tourner vers vous, comme vers le soleil.)","(For a moment, everything growing around you seems to turn towards you, as if towards the sun.)"],
 ["(Pendant un instant, vous avez la certitude tranquille d’avoir été entendu.)","(For a moment, you feel the quiet certainty that you have been heard.)"],
 ["(Pendant une seconde, vous voyez la vallée à l’envers.)","(For a second, you see the valley upside down.)"],
+["(Personne ne descend si loin. C’était fait pour ça.)","(No one goes down this far. That is what it was made for.)"],
 ["(Personne ne répond. Sur l’eau, rien ne bouge.)","(Nobody answers. On the water, nothing moves.)"],
 ["(Personne ne répond.)","(Nobody answers.)"],
 ["(Personne ne vous regarde. C’est pire.)","(No one is looking at you. That’s worse.)"],
+["(Personne n’avait touché à ceci depuis qu’on l’avait scellé.)","(No one had touched this since it was sealed.)"],
 ["(Personne pour jouer. Le jeu de cartes attend, corné, sur la table.)","(Nobody to play with. The pack of cards waits on the table, dog-eared.)"],
 ["(Personne pour jouer. Les dés attendent dans leur gobelet.)","(Nobody to play with. The dice wait in their cup.)"],
 ["(Personne pour jouer.)","(No one to play with.)"],
@@ -154355,6 +155544,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Rompre)","(Break it off)"],
 ["(Sa besace est vide. Une besace où vous tiendriez tout entier.)","(The bag is empty. A bag you could fit inside, whole.)"],
 ["(Sa besace est vide.)","(The bag is empty.)"],
+["(Sa couverture est pliée sur le banc.)","(His blanket is folded on the bench.)"],
 ["(Sa crinière sent le sucre brûlé.)","(Her mane smells of burnt sugar.)"],
 ["(Sans crochets, ce cadenas n’est qu’un morceau de fer.)","(Without picks, this padlock is just a piece of iron.)"],
 ["(Sans élever la voix, d’en bas, quelqu’un dit : « Reposez-la. »)","(Without raising his voice, someone below says: “Put it back.”)"],
@@ -154362,6 +155552,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Ses poches sont vides. Il faudrait une pelle pour lui creuser une tombe.)","(The pockets are empty. You would need a shovel to dig a grave.)"],
 ["(Ses poches sont vides.)","(The pockets are empty.)"],
 ["(Son ventre gargouille.)","(His stomach rumbles.)"],
+["(Sous chaque nom, des encoches. Sous le dernier, elles s’arrêtent.)","(Under each name, notches. Under the last one, they stop.)"],
 ["(Sous la couche, un carnet enveloppé de toile cirée.)","(Under the bed, a notebook wrapped in oilcloth.)"],
 ["(Sous la main, on sent les côtes.)","(Under your hand, you can feel his ribs.)"],
 ["(Sous la pierre, un carnet de croquis gonflé d’humidité. Des pages entières de la même coiffe blanche, de dos, de profil, de plus en plus près. Sur la dernière page, un visage, et il est vide.)","(Under the stone, a sketchbook swollen with damp. Whole pages of the same white coif, from behind, in profile, ever closer. On the last page, a face, and it is empty.)"],
@@ -154397,6 +155588,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Sur l’eau, très loin, quelqu’un siffle en retour. Les mêmes notes.)","(Far away on the water, someone whistles back. The same notes.)"],
 ["(Sur l’oreiller, un creux. Comme si quelqu’un venait de se lever pour vous laisser la place.)","(A hollow on the pillow. As if someone had just got up to make room for you.)"],
 ["(Sur son front, la pierre est restée. Elle se détache sous vos doigts, froide et terne.)","(The stone has stayed on his forehead. It comes away under your fingers, cold and dull.)"],
+["(Sur un lit de pierre, des os, et ce qu’on avait enterré avec lui.)","(On a bed of stone, bones, and what had been buried with him.)"],
 ["(Tout au fond, l’eau ne reflète rien. Pas même le ciel.)","(Far below, the water reflects nothing. Not even the sky.)"],
 ["(Tout au fond, quelque chose rit. Doucement. Puis plus rien.)","(Far down at the bottom, something laughs. Softly. Then nothing.)"],
 ["(Tout au fond, quelque chose tourne. Quand vous le regardez, ça s’arrête, et ça vous regarde.)","(Deep inside, something turns. When you look at it, it stops, and looks back at you.)"],
@@ -154417,6 +155609,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Tout tourne. Si vous ne mangez pas, vous allez tomber.)","(Everything is spinning. If you don’t eat, you’ll collapse.)"],
 ["(Tout tourne. Vous allez tomber.)","(Everything is spinning. You are going to fall.)"],
 ["(Tout tourne. Vous riez tout seul, puis plus du tout.)","(Everything is spinning. You laugh to yourself, then not at all.)"],
+["(Toute la Zone, en bas, doit le voir.)","(The whole Zone, down below, must be able to see it.)"],
 ["(Toutes les flammes des lustres se couchent du même côté, comme sous un souffle. Personne n’a ouvert la porte.)","(All the flames in the chandeliers lean to the same side, as if blown by a breath. No one has opened the door.)"],
 ["(Toutes les reliques. Pas à cette heure-ci.)","(All the relics. Not at this hour.)"],
 ["(Treize pierres. Toutes tournées vers vous.)","(Thirteen stones. All turned towards you.)"],
@@ -154431,6 +155624,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Trois jours, pour la rapporter.)","(Three days to bring it back.)"],
 ["(Trois parties, c’est assez pour aujourd’hui.)","(Three games is enough for today.)"],
 ["(Trois parties, c’est assez. Les quilles aussi ont besoin de repos.)","(Three games is enough. The skittles need their rest too.)"],
+["(Trois signes ; l’un s’efface.)","(Three signs; one is fading.)"],
 ["(Trop fragiles pour être dépliés ici. Il faut les emprunter.)","(Too fragile to be unfolded here. You must borrow them.)"],
 ["(Trop loin de la ferme : il faut bâtir sur vos terres.)","(Too far from the farm: you must build on your own land.)"],
 ["(Trop profond pour sauter. Avec une corde, peut-être.)","(Too deep to jump. With a rope, perhaps.)"],
@@ -154528,6 +155722,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Un soupirail, trop haut, trop étroit.)","(A cellar window, too high, too narrow.)"],
 ["(Un tas de pierres, et une croix de deux bâtons liés. Les bêtes n’y toucheront pas.)","(A cairn, and a cross of two sticks bound together. The animals won’t touch it.)"],
 ["(Un tertre de terre fraîche, et une croix de deux bâtons liés. Ce n’est pas grand-chose. C’est mieux que rien.)","(A mound of fresh earth, and a cross of two sticks bound together. It isn’t much. It’s better than nothing.)"],
+["(Un tertre à l’écart des autres, fermé d’une dalle. On ne l’a pas pillé.)","(A mound set apart from the others, closed with a slab. It was never looted.)"],
 ["(Un tintement clair, sans écho. Le silence qui suit est plus propre.)","(A clear chime, without an echo. The silence that follows is cleaner.)"],
 ["(Un tintement sans écho. Au bord de votre vue, des formes se défont, comme de la buée.)","(A chime without an echo. At the edge of your sight, shapes come apart, like mist on glass.)"],
 ["(Un tonneau marqué d’une croix. Vide. Il sent encore la poudre.)","(A barrel marked with a cross. Empty. It still smells of powder.)"],
@@ -154640,6 +155835,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Une pierre descellée.)","(A loose stone.)"],
 ["(Une pierre se détache de la voûte et vous frappe l’épaule. La montagne n’aime pas qu’on se trompe.)","(A stone breaks loose from the vault and strikes your shoulder. The mountain does not like mistakes.)"],
 ["(Une pierre se détache de la voûte.)","(A stone comes loose from the vault.)"],
+["(Une pierre, à l’entrée. Trois entailles.)","(A stone at the entrance. Three notches.)"],
 ["(Une pilule. Juste une. Pour que ça s’arrête.)","(A pill. Just one. To make it stop.)"],
 ["(Une piqûre froide. Pendant un moment, vous ne savez plus du tout où vous êtes, ni pourquoi vous teniez cette seringue.)","(A cold jab. For a moment, you have no idea at all where you are, or why you were holding this syringe.)"],
 ["(Une piqûre froide. Pendant un moment, vous ne savez plus où vous êtes.)","(A cold jab. For a moment, you have no idea where you are.)"],
@@ -154670,6 +155866,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Une voix, tout près, a dit votre nom. Il n’y a personne.)","(A voice, very close, said your name. There is no one there.)"],
 ["(Une vraie nuit, profonde, sans rêve.)","(A real night’s sleep, deep and dreamless.)"],
 ["(Une écuelle de soupe, sous la grille.)","(A bowl of soup, under the cell door.)"],
+["(Une étiquette de cuir, au clou : « poterne de l’est ».)","(A leather tag, on the nail: “east postern”.)"],
 ["(Une étoile file. Puis une autre. Puis des dizaines. Le ciel entier se met à pleuvoir.)","(A star shoots across the sky. Then another. Then dozens. The whole sky starts to rain.)"],
 ["(Veilledi. On contera ce soir à l’auberge.)","(Veilledi. Tales will be told at the inn tonight.)"],
 ["(Vert. Un instant.)","(Green. For a moment.)"],
@@ -155743,6 +156940,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Au revoir ! Fais attention au monsieur !","Bye-bye! Watch out for the man!"],
 ["Au revoir ! Pas le temps, pas le temps !","Goodbye! No time, no time!"],
 ["Au revoir.","Goodbye."],
+["Au revoir. Dites-leur, en bas… Non. Ne leur dites rien.","Goodbye. Tell them, down below… No. Tell them nothing."],
 ["Au revoir. Dites-leur, en bas… Non. Ne leur dites rien. Ils ont fini par oublier ; c’est ce qu’ils voulaient.","Goodbye. Tell them, down below… No. Tell them nothing. They ended up forgetting; it’s what they wanted."],
 ["Au revoir. Faites attention aux planches mouillées.","Goodbye. Mind the wet planks."],
 ["Au revoir… Moi, je voudrais juste savoir s’il a eu froid, mon père. Il est parti sans son manteau, c’est bête, hein ?","Goodbye… Me, I’d just like to know if he was cold, my father. He left without his coat. Silly, isn’t it?"],
@@ -155813,6 +157011,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Aucune. Les pierres gravées se lisent avec E.","None. Carved stones are read with E."],
 ["Aucune. Les plantes sauvages qu’on cueille n’ont pas de nom tant qu’on ne les a pas montrées à l’alchimiste de la ville.","None. The wild plants you pick have no name until you’ve shown them to the alchemist in town."],
 ["Aude voulait voir la foire. Rapporte-moi quelque chose qui sente la foire.","Aude wanted to see the fair. Bring me something that smells of the fair."],
+["Aude. Elle avait neuf ans. Elle voulait voir la foire.","Aude. She was nine years old. She wanted to see the fair."],
 ["Auguste","Auguste"],
 ["Auguste Delorme","Auguste Delorme"],
 ["Auguste Mercadier","Auguste Mercadier"],
@@ -159563,6 +160762,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Gourde de fer-blanc","Tin flask"],
 ["Gout bô.","Gout bô."],
 ["Goutte-de-sang","Blood drop"],
+["Gout… bô.","Gout… bô."],
 ["Gout… d’dôr !","Gout… d’dôr !"],
 ["Gout… tsi.","Gout… tsi."],
 ["Goûtez ce sel. Il vient de la mer. Personne ici n’a vu la mer. Moi si.","Taste this salt. It comes from the sea. No one here has seen the sea. I have."],
@@ -159646,6 +160846,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Gravé dans le bois d’un châlit","Carved into the wood of a bedstead"],
 ["Gravé dans le linteau de la poterne","Carved in the lintel of the postern"],
 ["Gravé dans l’os d’un front, en lettres serrées :\n\nILS NE SONT PAS PARTIS.\nILS SONT COMPTÉS.","Carved into the bone of a brow, in cramped letters:\n\nTHEY HAVE NOT GONE.\nTHEY ARE COUNTED."],
+["Gravé sur la façade du tombeau","Carved on the tomb’s façade"],
 ["Gravé sur le fût du fanal","Carved on the shaft of the beacon"],
 ["Gravé sur l’anneau de la trappe","Carved on the ring of the trapdoor"],
 ["Gravé sur un linteau tombé, sous la mousse : « Mon or n’est ni dans ma tour, ni dans ma tombe. Va où douze pierres se tiennent debout en rond. Compte depuis celle qui regarde le lac, dans le sens du soleil. Sous la troisième, j’ai laissé ce que les morts n’emportent pas. » Au-dessous, une main plus récente a ajouté au couteau : « Pas la troisième. La treizième. »","Carved on a fallen lintel, under the moss: “My gold is neither in my tower nor in my tomb. Go where twelve stones stand in a ring. Count from the one that faces the lake, sunwise. Beneath the third, I have left what the dead do not take with them.” Below, a more recent hand has added with a knife: “Not the third. The thirteenth.”"],
@@ -159722,6 +160923,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Géode","Geode"],
 ["HAUTE JUSTICE DE VALMONT\nQUATRE PILIERS","HIGH JUSTICE OF VALMONT\nFOUR PILLARS"],
 ["HAUTGUET.\nICI L’ON VEILLE, POUR QUE LA VILLE DORME.","HAUTGUET.\nHERE WE KEEP WATCH, THAT THE TOWN MAY SLEEP."],
+["HAUTGUET. ICI L’ON VEILLE, POUR QUE LA VILLE DORME.","HAUTGUET. HERE WE KEEP WATCH, SO THAT THE TOWN MAY SLEEP."],
 ["HEURE","TIME"],
 ["Ha ! Ce sont les grenouilles qui ont appris le carillon. Mange ta soupe, va, elle refroidit.","Ha! That’s the frogs learning to ring the chimes. Eat your soup, go on, it’s getting cold."],
 ["Ha ! Celle-là, même la Poste ne saurait pas l’acheminer : il faudrait un miracle, et un timbre spécial.","Ha! Not even the Post Office could deliver that one: it would take a miracle, and a special stamp."],
@@ -159802,7 +161004,9 @@ const I18N_EN = {"v":1,"exact":[
 ["Hauteur","Height"],
 ["Hauteur prélevée :","Height sampled:"],
 ["Hautguet","Hautguet"],
+["Hautguet se tait.","Hautguet falls silent."],
 ["Hautguet se tait. Pour la première fois, le silence ressemble à du sommeil.","Hautguet falls silent. For the first time, the silence feels like sleep."],
+["Hautguet — le château des Hauts","Hautguet — the castle of the Heights"],
 ["Hauts épis pourpres des berges","Tall purple spikes of the riverbanks"],
 ["Hector","Hector"],
 ["Hein ? Qui frappe ? … Le gendarme est de garde, il est dehors, allez le voir ! Moi, je dors. Procès-verbal de sommeil.","Eh? Who’s knocking? … The gendarme is on duty, he’s outside, go and see him! I’m asleep. Report of sleep."],
@@ -160085,6 +161289,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Il arrive qu’une barque revienne seule, au petit jour, et s’échoue doucement au ponton, les rames rentrées, le filet plié, le panier plein de poissons encore vivants. Personne dedans.\n\nLes vieux pêcheurs ne la touchent pas. Ils attendent que le soleil soit haut, puis ils tirent la barque sur la grève et rendent le poisson à l’eau, un par un. On ne mange pas ce que la Dame a pêché pour quelqu’un d’autre.\n\nUne fois, un jeune l’a fait. Il a trouvé dans une tanche une alliance d’or, avec une date gravée à l’intérieur : 1791. Il l’a portée au curé. Le curé l’a rendue au lac, lui aussi.","Sometimes a boat comes back alone, at first light, and runs gently aground at the jetty, the oars shipped, the net folded, the basket full of fish still alive. No one in it.\n\nThe old fishermen do not touch it. They wait until the sun is high, then they haul the boat up onto the shore and put the fish back in the water, one by one. One does not eat what the Lady has fished for someone else.\n\nOnce, a young man did. In a tench he found a gold wedding ring, with a date engraved inside it: 1791. He took it to the priest. The priest, too, gave it back to the lake."],
 ["Il arrive, une ou deux fois l’an, que la lune se lève rouge et le reste toute la nuit, sans éclipse pour l’expliquer. Ces nuits-là, dit-on, les portes ne ferment plus, les bêtes ne dorment pas, et ce qui est dessous remonte.\n\nL’abonné de l’Observatoire a écrit à Paris pour signaler le phénomène. On lui a répondu qu’il n’existait pas. Il a gardé la lettre. Il la relit les nuits rouges, à la lumière de la lune, et il dit que l’encre, alors, n’est plus tout à fait la même.","It happens, once or twice a year, that the moon rises red and stays so all night, with no eclipse to explain it. On those nights, it is said, doors will no longer shut, the beasts do not sleep, and what lies below comes back up.\n\nThe subscriber to the Observatory wrote to Paris to report the phenomenon. He was told that it did not exist. He kept the letter. He rereads it on the red nights, by the light of the moon, and he says that the ink, then, is no longer quite the same."],
 ["Il avait pourtant fermé sa porte.","And yet he had locked his door."],
+["Il brûlait trop fort. On l’aurait vu de trop loin.","It burned too brightly. It could have been seen from too far off."],
+["Il brûle. … En bas, ils vont pouvoir dormir.","It’s burning. … Down below, they’ll be able to sleep."],
 ["Il chasse les souris et fixe parfois les coins vides d’une pièce, longtemps.","It hunts mice, and sometimes stares at the empty corners of a room, for a long time."],
 ["Il comptait ses pas, ce comte. Toujours par quatre, et il gravait ce qu’il comptait. Les hommes appellent cela des bornes. Moi, j’appelle cela de la peur.","He counted his steps, that count. Always in fours, and he carved what he counted. Men call those boundary stones. I call it fear."],
 ["Il court la nuit dans les herbes et sous les feuilles, en bonds brusques, et se fige. De grands yeux noirs, de grandes oreilles, une longue queue.","It runs at night through the grass and under the leaves, in sudden bounds, and freezes. Big black eyes, big ears, a long tail."],
@@ -160093,6 +161299,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Il demande sa mutation au bureau de {ville}. Ça prendra un an, l’administration. Un an, ce n’est rien. J’ai attendu six ans dans une marge.","He’s applying for a transfer to the post office in {ville}. The administration will take a year. A year is nothing. I waited six years in a margin."],
 ["Il dit que la soupe est trop salée.","He says the soup is too salty."],
 ["Il dort contre ma botte. Il ronfle. (Il le regarde.) Il faut que je vous dise pourquoi j’ai pâli.","He sleeps against my boot. He snores. (He looks at him.) I have to tell you why I went pale."],
+["Il dort depuis que Thalvor est descendu.","It has been asleep since Thalvor went down."],
 ["Il dort la tête tournée vers la Porte.","It sleeps with its head turned towards the Gate."],
 ["Il dort par terre, le monsieur… Pourquoi il se réveille pas ?","He’s sleeping on the ground, the man… Why won’t he wake up?"],
 ["Il dort sept mois de l’année et vit la nuit le reste du temps, dans les arbres creux. On l’entend grogner dans les greniers. Les Romains l’engraissaient pour le manger.","It sleeps seven months of the year and lives by night the rest of the time, in hollow trees. You hear it grunting in the attics. The Romans fattened it up to eat it."],
@@ -160250,6 +161457,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Il n’a pas compté les pierres.","He did not count the stones."],
 ["Il n’a pas eu froid","He Wasn’t Cold"],
 ["Il n’a pas froid. Là où il est, il sent ton four, chaque matin à quatre heures, et il sait que c’est toi.","He isn’t cold. Where he is, he feels your oven, every morning at four, and he knows it’s you."],
+["Il n’a pas voulu baisser le pont. Il a fermé ma porte, et il a emporté la clé.","He would not lower the bridge. He locked my door, and he took the key away."],
 ["Il n’a plus quitté l’écurie depuis. Je crois qu’il a eu peur de vous. Merci quand même. — L’éleveuse","He hasn’t left the stable since. I think he was afraid of you. Thanks all the same. — The stockbreeder"],
 ["Il n’a rien dit ? Pauvre homme.","He said nothing? Poor man."],
 ["Il n’a rien dit ? Pauvre homme. Tenez, les plans d’une caisse d’expédition. Vos envois à vous, au moins, auront un expéditeur.","He said nothing? Poor man. Here, plans for a shipping crate. Your own parcels, at least, will have a sender."],
@@ -160501,6 +161709,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Il était un fermier qui répondit, une nuit noire, à la voix qui l’appelait. On lui donna tout ce qu’il voulut : la pluie à point, le blé haut, l’or dans le puits. Le jour où il voulut rendre, il n’y avait plus personne à qui rendre. On dit qu’il cherche encore.","There was once a farmer who, on a black night, answered the voice that called him. He was given all he wished for: rain at the right time, tall wheat, gold in the well. The day he wished to give it back, there was no one left to give it back to. They say he is searching still."],
 ["Ilaeth","Ilaeth"],
 ["Ilaeth. La capitaine. Elle regardait souvent par là, les mains dans le dos.","Ilaeth. The captain. She often looked that way, hands behind her back."],
+["Ils attendent au fossé. Ils attendent depuis si longtemps.","They wait at the moat. They’ve been waiting for so long."],
 ["Ils chantent les jours de la semaine, et ils s’arrêtent avant le dernier.","They sing the days of the week, and they stop before the last."],
 ["Ils chassent en meute, la nuit, dans les grands bois. Ils encerclent avant d’attaquer. Le feu et la lanterne les tiennent à distance.","They hunt in packs, at night, in the deep woods. They circle before they attack. Fire and lanterns keep them at bay."],
 ["Ils emportent ce qui se vend.","They take away whatever can be sold."],
@@ -160662,6 +161871,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Je fermerai le bureau un peu plus tôt, ce soir. Merci. Vraiment.","I’ll close the office a little earlier tonight. Thank you. Truly."],
 ["Je garde ce brin pour l’herbier. Vous permettez. Vous permettez.","I’m keeping this sprig for the herbarium. You don’t mind. You don’t mind."],
 ["Je garde cette bibliothèque depuis cinquante ans. Avant moi, un autre. Avant lui, un autre. Nous ne sommes jamais partis. Nous ne le pouvons pas.","I have kept this library for fifty years. Before me, another. Before him, another. We have never left. We cannot."],
+["Je garde la clé ici, avec ses pères. Dieu fera le reste.","I keep the key here, with his fathers. God will do the rest."],
 ["Je garde la clé, et je ne la garde pas : elle se garde. Je la range au milieu de ce qu’on ne lit pas. Je la prête à qui revient, jamais à qui part. Je ne la donne pas. Je ne la vends pas. Je ne m’en sers pas.\n\nQuand elle sort, j’écris le nom. Quand elle revient, je ne l’efface pas.","I keep the key, and I do not keep it: it keeps itself. I put it away among what no one reads. I lend it to whoever comes back, never to whoever goes away. I do not give it. I do not sell it. I do not use it.\n\nWhen it goes out, I write the name. When it comes back, I do not erase it."],
 ["Je garde la croûte pour Lise. Elle aime pas la mie, elle dit que ça ressemble à la vase.","I’m saving the crust for Lise. She doesn’t like the soft inside, she says it looks like sludge."],
 ["Je garde la dernière dans mon tablier. Elle sent encore la violette. Ça partira. Tout part. Tenez. Un fromage. Pour le facteur que vous avez été.","I keep the last one in my apron. It still smells of violets. It will fade. Everything fades. Here. A cheese. For the postman you’ve been."],
@@ -160700,6 +161910,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Je lui écris encore. Je ne poste plus. Je lis la lettre à la vallée, le soir ; la vallée la lui portera.","I still write to him. I no longer post them. I read the letter to the valley, in the evening; the valley will carry it to him."],
 ["Je l’ai encore entendue, hier soir. Derrière la roulotte.","I heard it again last night. Behind the caravan."],
 ["Je l’ai enfermée pour qu’elle ne descende pas au treuil.\nOn m’a enfermé pour que je ne descende plus. C’est juste.\nLe feu du Guet restera éteint. Il n’y a plus personne en bas à qui dire de dormir.","I shut her in so that she would not go down to the winch.\nThey have shut me in so that I never go down again. That’s only right.\nThe Watch-fire will stay out. There is no one left down below to tell to sleep."],
+["Je l’ai regardée descendre les Degrés depuis ma fenêtre, jusqu’à ce que la brume la prenne.","I watched her go down the Steps from my window, until the mist took her."],
 ["Je l’ai suivi dans le marais, l’homme du champ, celui qui ne bouge que lorsqu’on ne le regarde pas. Il marchait sur l’eau noire sans s’y enfoncer. Au bout d’une heure, il s’est retourné. Il avait mon visage, en plus vieux, et il pleurait. Il m’a dit : « Pas encore. » Je suis rentré en courant, et ma porte était déjà ouverte.","I followed him into the marsh, the man in the field, the one who only moves when you are not looking at him. He walked on the black water without sinking. After an hour, he turned round. He had my face, only older, and he was weeping. He said to me: “Not yet.” I ran all the way home, and my door was already open."],
 ["Je l’ai toujours sur moi, vous savez. L’arrêté. Il s’use. Je le recopierai, le jour où il ne sera plus lisible. Ou je le signerai. On verra lequel vient d’abord.","I always have it on me, you know. The decree. It’s wearing out. I shall copy it out afresh the day it is no longer legible. Or I shall sign it. We’ll see which comes first."],
 ["Je l’ai trouvée sous un tonneau. Les pièces n’intéressent pas les chats.","I found this one under a barrel. Coins don’t interest cats."],
@@ -161245,6 +162456,7 @@ const I18N_EN = {"v":1,"exact":[
 ["J’ai encore le bleu, {fermier}. Je le regarde dans le miroir de la guérite, et je me demande ce que j’ai fait pour le mériter.","I’ve still got the bruise, {fermier}. I look at it in the sentry-box mirror and wonder what I did to deserve it."],
 ["J’ai encore le bleu. Je raconte que je me suis cognée à un sac de lentilles : c’est la première fois de ma vie que je mens pour quelqu’un qui ne le mérite pas.","I’ve still got the bruise. I tell people I bumped into a sack of lentils: it’s the first time in my life I’ve lied for someone who doesn’t deserve it."],
 ["J’ai encore une lettre pour {victime}. Elle est arrivée ce matin. Je ne sais pas à qui la remettre. Ni qui l’a écrite.","I’ve still got a letter for {victime}. It came this morning. I don’t know who to give it to. Or who wrote it."],
+["J’ai enfermé le sire dans son donjon, pour qu’il ne redescende plus.","I shut the lord in his keep, so that he never comes down again."],
 ["J’ai entendu Jacques m’appeler, depuis l’aigue. J’ai fermé les volets. Il n’appelait pas comme lui.","I heard Jacques calling me, from the aigue. I closed the shutters. It didn’t call like him."],
 ["J’ai entendu chanter, sous la pierre du plan d’en haut.","I heard singing, under the stone on the upper Plan."],
 ["J’ai entendu murmurer sous ma fenêtre toute la nuit. Je n’ai pas ouvert.","I heard whispering under my window all night long. I didn’t open up."],
@@ -161279,6 +162491,7 @@ const I18N_EN = {"v":1,"exact":[
 ["J’ai inventé un plat en pensant à toi. Il n’a pas encore de nom. Il est un peu trop salé. Comme toutes mes choses importantes.","I invented a dish thinking of you. It doesn’t have a name yet. It’s a bit too salty. Like all my important things."],
 ["J’ai inventé un plat pour vous, comme promis. Personne n’a su dire ce que c’était, moi non plus. Vous goûtez ?","I’ve invented a dish for you, as promised. Nobody could say what it was, and neither could I. Care for a taste?"],
 ["J’ai la chanson dans le ventre, ce matin ! Ou la faim : chez moi, c’est souvent la même chose.","I’ve got a song in my belly this morning! Or hunger: with me, it’s often the same thing."],
+["J’ai laissé la place à un autre.","I made way for another."],
 ["J’ai les yeux qui piquent : trop regardé l’eau. Je le dis à tout le monde, et je ne m’écoute jamais.","My eyes are stinging: too much staring at the water. I tell everyone not to, and I never listen to myself."],
 ["J’ai levé les ponts, comme chaque soir, tout était en ordre, et quelqu’un est mort quand même. À quoi je sers, {fermier} ? Dites-le-moi.","I raised the bridges, same as every evening, everything was in order, and someone died anyway. What good am I, {fermier}? Tell me."],
 ["J’ai levé les ponts, comme chaque soir. J’ai fait mon devoir. Alors pourquoi {victime} n’est plus là ? À quoi ça a servi ?","I raised the bridges, same as every night. I did my duty. So why is {victime} gone? What good did it do?"],
@@ -161364,6 +162577,7 @@ const I18N_EN = {"v":1,"exact":[
 ["J’ai trié du courrier pour la vieille ferme, avant vous. Il y en a qui est revenu, « destinataire inconnu ». Le vôtre, je le garde au sec.","I sorted post for the old farm, before you. Some of it came back, “addressee unknown”. Yours, I keep dry."],
 ["J’ai trouvé dans mon rapport de la semaine une phrase que je n’ai pas écrite. De mon écriture. « Rien à signaler, sauf nous. »","I found a sentence in this week’s report that I didn’t write. In my handwriting. “Nothing to report, except us.”"],
 ["J’ai trouvé des grenouilles dans ma soupière. Vivantes.","I found frogs in my soup tureen. Alive."],
+["J’ai trouvé la pierre ronde. Elle chante quand il n’y a pas de lune.","I found the round stone. It sings when there is no moon."],
 ["J’ai trouvé sur une pierre du plateau une suite de douze signes en cupules, rangés en cercle, et un treizième hors du cercle, plus grand, creusé plus profond. J’ai la conviction que les Gorr, qui dressèrent nos pierres, comptaient déjà par douze, et que le treizième n’était pas un jour, mais autre chose : ce qui vient quand on a fini de compter.\n\nMes collègues de la société savante ont souri. L’un d’eux m’a demandé, à la sortie, à voix basse, de ne pas publier ce mémoire. Je le dépose donc à la bibliothèque, où personne ne le lira, et où il sera bien gardé.","I found on a stone of the plateau a series of twelve signs made of cup-marks, arranged in a circle, and a thirteenth outside the circle, larger, hollowed deeper. I am convinced that the Gorr, who raised our stones, already counted by twelves, and that the thirteenth was not a day, but something else: what comes when one has finished counting.\n\nMy colleagues of the learned society smiled. One of them asked me, on the way out, in a low voice, not to publish this paper. I therefore deposit it in the library, where no one will read it, and where it will be well kept."],
 ["J’ai trouvé un bouton jaune sur la place. Je l’ai gardé pour toi, puisque t’aimes le jaune.","I found a yellow button in the square. I kept it for you, since you like yellow."],
 ["J’ai trouvé une lettre sans adresse, ce matin. Je l’ai reniflée : ce n’était pas vous. Dommage.","I found a letter with no address this morning. I sniffed it: it wasn’t you. Pity."],
@@ -161489,6 +162703,7 @@ const I18N_EN = {"v":1,"exact":[
 ["La Clé","The Key"],
 ["La Cruche","The Jug"],
 ["La Dame","The Lady"],
+["La Dame de la tour","The Lady of the Tower"],
 ["La Dame du Lac","The Lady of the Lake"],
 ["La Dame n’est pas de ceux d’en bas, ne confondez jamais. Elle, elle garde. Eux, ils prennent, et ils ne rendent que ce qu’ils ont abîmé.","The Lady isn’t one of Those Below; don’t ever mix them up. She keeps. They take, and all they ever give back is what they’ve spoiled."],
 ["La Dauna est contente. Les sègues sont venues d’elles-mêmes.","The Dauna is pleased. The sègues came of their own accord."],
@@ -161971,6 +163186,7 @@ const I18N_EN = {"v":1,"exact":[
 ["La neige… Je devrais dormir sous la terre. Je ne dors plus beaucoup, depuis la petite.","Snow… I should be sleeping underground. I don’t sleep much any more, since the little girl."],
 ["La niche","The niche"],
 ["La niche des Frappeurs","The Knockers’ niche"],
+["La niche des Galeries","The niche in the Galleries"],
 ["La niche est vide. Dans la poussière, la trace d’une petite statue. On a fleuri quand même.","The niche is empty. In the dust, the mark of a small statue. Flowers were left all the same."],
 ["La nielle des blés, la couronne-des-blés : ses graines noires, moulues avec le grain, donnent un pain amer qui brûle la gorge et tord le ventre. Les meuniers la trient à la main.","Corncockle, the crown of the wheat: its black seeds, ground with the grain, make a bitter bread that burns the throat and twists the belly. The millers pick it out by hand."],
 ["La noce","The Wedding"],
@@ -162046,6 +163262,7 @@ const I18N_EN = {"v":1,"exact":[
 ["La pauvre bête est toujours couchée là-bas. Ça fait mal au cœur.","The poor thing is still lying over there. It makes your heart ache."],
 ["La pelle heurte du bois, puis du fer. Le coffre des Valmont est lourd comme un remords, et quand vous soulevez le couvercle, une odeur de cuir et de poudre à perruque s’en échappe, plus de cent ans après. Sur l’or, posé bien en évidence, il y a le sceau de la famille, comme si le comte avait tenu à ce qu’on sache qui avait tout laissé là.","The shovel strikes wood, then iron. The Valmont chest is as heavy as remorse, and when you lift the lid, a smell of leather and wig powder escapes, more than a hundred years on. On top of the gold, laid out in plain sight, is the family seal, as if the count had wanted it known who had left all this behind."],
 ["La perdrix des rochers : grise et rose, la gorge blanche cerclée d’un collier noir bien net, les flancs zébrés. Elle remonte la pente en courant, et ne s’envole qu’au dernier moment, toujours vers le bas, en criant.","The rock partridge: grey and pink, the white throat ringed by a crisp black collar, the flanks barred. It runs up the slope, and takes wing only at the last moment, always downhill, crying out."],
+["La perle des dormeurs","The sleepers’ pearl"],
 ["La perle… Je l’ai portée au gourg. J’attends.","The pearl… I took it to the gourg. I’m waiting."],
 ["La petite","Little"],
 ["La petite Aubert","Little Aubert"],
@@ -162141,6 +163358,7 @@ const I18N_EN = {"v":1,"exact":[
 ["La porte de la sacristie","The door of the sacristy"],
 ["La porte de la tour","The door of the tower"],
 ["La porte des","The door of the"],
+["La porte des Aëlim","The door of the Aëlim"],
 ["La porte des Aëlim. À l’œil, la lumière : elle s’ouvre.","The door of the Aëlim. To the eye, light: it opens."],
 ["La porte du","The door of the"],
 ["La porte du four","The oven door"],
@@ -162467,6 +163685,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le Cœur","The Heart"],
 ["Le Cœur brûle depuis longtemps. Éteignez-le bientôt. S’il vous plaît.","The Heart has been burning for a long time. Put it out soon. Please."],
 ["Le Cœur dort. Thalvor l’a éteint de ses mains. Si vous le rallumez, ne le laissez pas trop longtemps : la lumière se voit de loin.","The Heart is asleep. Thalvor put it out with his own hands. If you relight it, don’t leave it on too long: the light can be seen from far away."],
+["Le Dessous","The Below"],
 ["Le Dormeur","The Sleeper"],
 ["Le Dormeur a perdu un caillou, contre son flanc. Il ne l’a pas encore remarqué.","The Sleeper has lost a pebble, against his flank. He hasn’t noticed yet."],
 ["Le Fermier","The Farmer"],
@@ -162618,6 +163837,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le carnet des bonnes nouvelles a une page de plus. Elle est presque pleine.","The notebook of good news has one more page. It is nearly full."],
 ["Le carnet du Guet","The notebook of the Watch"],
 ["Le carnet du baron","The baron’s notebook"],
+["Le carnet du géomètre","The surveyor’s notebook"],
 ["Le carnet d’un mineur","A miner’s notebook"],
 ["Le casier","The locker"],
 ["Le casier à bouteilles","The bottle rack"],
@@ -162668,6 +163888,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le chien noir des carrefours ? Il vous suit, il ne mord pas. Il vous raccompagne. Le jour où il vous précède, c’est autre chose.","The black dog of the crossroads? It follows you, it doesn’t bite. It sees you home. The day it walks ahead of you, that’s another matter."],
 ["Le château","The Castle"],
 ["Le château de la butte fut bâti, rebâti et agrandi au gré des fortunes de la famille. Au XVIIe siècle, il comptait quatre tours, une chapelle, des écuries pour trente chevaux et un chenil plus grand que le logis. Les caves, creusées dans le roc, communiquaient, dit-on, avec des souterrains plus anciens que la famille elle-même ; un inventaire de 1702 mentionne « une porte de fer, au fond de la cave basse, dont personne n’a la clé, et qu’on ne force pas ».\n\nCette porte n’a jamais été retrouvée. Il ne reste aujourd’hui du château qu’un pan de mur, des fondations sous les ronces, et des caves retournées cent fois par les chercheurs d’or.","The castle on the knoll was built, rebuilt and enlarged as the family’s fortunes rose and fell. In the seventeenth century it had four towers, a chapel, stables for thirty horses and a kennel larger than the living quarters. The cellars, hewn out of the rock, were said to communicate with passages older than the family itself; an inventory of 1702 mentions “an iron door, at the back of the lower cellar, of which no one has the key, and which is not forced”.\n\nThat door has never been found again. Of the castle there remains today only a stretch of wall, foundations beneath the brambles, and cellars turned over a hundred times by gold-seekers."],
+["Le château des Hauts","The Castle of the Heights"],
 ["Le château ne répond plus. Personne ne monte. Personne ne descend.","The castle no longer answers. No one goes up. No one comes down."],
 ["Le château, au nord. Il y avait de l’or, et un comte qui avait peur. L’or est sous la terre, et les bornes regardent toutes le même endroit. Je ne sais pas lire, mais je sais suivre un regard.","The castle, to the north. There was gold, and a count who was afraid. The gold is under the ground, and the boundary stones all face the same spot. I can’t read, but I can follow a gaze."],
 ["Le château, ses tours mangées de lierre. Une fenêtre, en haut, qui n’a plus de vitre.","The Castle, its towers eaten away by ivy. A window, high up, with no glass left."],
@@ -162868,6 +164089,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le feu de veille","The watch fire"],
 ["Le feu de veille vous a gardé. Il en est mort.","The watch fire kept you. It died of it."],
 ["Le feu du Guet","The Watch-fire"],
+["Le feu du Guet ? Il faut de l’huile. Beaucoup. Il n’y en a plus. Et il n’y a plus personne pour la monter.","The Watch-fire? It needs oil. A lot of it. There’s none left. And no one left to carry it up."],
 ["Le feu du Guet brûle. Il brûlera longtemps.","The Watch-fire burns. It will burn for a long time."],
 ["Le feu du compte","The fire of the tally"],
 ["Le feu du compte s’est éteint sous la cendre froide. Les autres l’ont suivi, rue après rue.\n\nLes gens d’en bas se sont couchés là où ils étaient, auprès de leurs morts, et ne se sont plus relevés. On n’a plus compté.\n\nBasse-Fosse est noire, et elle se tait.","The fire of the tally went out beneath the cold ash. The others followed it, street after street.\n\nThe folk below lay down where they stood, beside their dead, and did not rise again. No one counted any more.\n\nBasse-Fosse is black, and it is silent."],
@@ -163169,6 +164391,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le nèble se lève. On pourra passer dans une heure.","The nèble is lifting. We’ll be able to cross in an hour."],
 ["Le nénuphar jaune, le jaunet d’eau : sa fleur sent l’eau-de-vie. Sa grosse racine, longue comme un bras, se mange en temps de disette ; elle a servi à tanner, et à teindre en noir.","The yellow water-lily, the brandy-bottle: its flower smells of brandy. Its thick root, as long as an arm, is eaten in times of scarcity; it has been used for tanning, and for dyeing black."],
 ["Le nœud sans fin","The endless knot"],
+["Le onzième","The eleventh"],
 ["Le pain cuit…","The bread is baking…"],
 ["Le pain de la boulangère, encore tiède. Elle n’oublie jamais.","The baker’s bread, still warm. She never forgets."],
 ["Le pain de {npc:boulangere}, encore tiède. Elle n’oublie jamais. Dites-lui qu’il n’a pas froid, là où il est. Elle saura de qui je parle.","Bread from {npc:boulangere}, still warm. She never forgets. Tell her he isn’t cold, where he is. She’ll know who I mean."],
@@ -163259,6 +164482,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le pont nord, abaissé, à minuit. Le garde jure l’avoir levé.","The north bridge, lowered, at midnight. The warden swears he raised it."],
 ["Le pont nord, la nuit. Le garde fait sa ronde, sa lanterne à la main, et un chiot dans les bras, faute de savoir le faire marcher au pas.","The north bridge, at night. The guard is doing his rounds, lantern in hand, and a puppy in his arms, for want of knowing how to make him walk to heel."],
 ["Le pont reste levé, disiez-vous. J’ai pensé à vous cette nuit, quand ça a frappé, et j’ai tenu bon. Merci.","The bridge stays up, you said. I thought of you last night, when it knocked, and I held firm. Thank you."],
+["Le pont-levis","The drawbridge"],
 ["Le pont-levis est levé. De ce côté, ni corde ni chaîne : on ne le baisse que de l’intérieur.","The drawbridge is raised. On this side there is neither rope nor chain: it can only be lowered from the inside."],
 ["Le ponton","The jetty"],
 ["Le portier","The Gatekeeper"],
@@ -163338,6 +164562,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le refuge du col est ouvert à tous. C’est pour ça que tout le monde y est mort, une fois ou l’autre.","The pass refuge is open to all. That’s why everyone has died there, at one time or another."],
 ["Le registre","The Register"],
 ["Le registre de Ménard est cloué dans sa caisse. À l’aube, les pieds dans l’eau de la source aux rubans, une plaie se ferme ; il ne faut rien demander de plus.","Ménard’s register is nailed up in its crate. At dawn, feet in the water of the ribbon spring, a wound closes; one must ask for nothing more."],
+["Le registre de la porte","The gate register"],
 ["Le registre de la porte de Hautguet, tenu par Gaucher, portier. Clic : le lire.","The register of the Hautguet gate, kept by Gaucher, the porter. Click: read it."],
 ["Le registre de l’abbé Mauduit","Father Mauduit’s register"],
 ["Le registre de l’état civil","The civil register"],
@@ -163418,6 +164643,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le service que vous m’avez rendu, je l’ai mis dans mes prières du soir, entre ma mère et le toit de l’église. Vous êtes en bonne compagnie.","The service you did me, I have put into my evening prayers, between my mother and the church roof. You are in good company."],
 ["Le service à la loge","Service at the lodge"],
 ["Le seuil","The threshold"],
+["Le seuil de l’étoile","The threshold of the star"],
 ["Le seuil de l’étoile : une fois on ouvre, une fois on ferme.","The threshold of the star: one time it opens, one time it closes."],
 ["Le seuil est prêt. Je l’ai tenu prêt longtemps. Quand vous le passerez, je pourrai enfin me reposer.","The threshold is ready. I kept it ready for a long time. When you go through it, I’ll finally be able to rest."],
 ["Le seul conifère qui perd ses aiguilles en hiver.","The only conifer that loses its needles in winter."],
@@ -163463,6 +164689,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le soir, je relève les nasses. Les sègues sortent avec l’escur.","In the evening, I haul up the fish traps. The sègues come out with the escur."],
 ["Le soir, je rentre à la roulotte. Les chemins, la nuit, ce n’est pas pour les honnêtes gens. Ni pour les autres.","In the evening, I head back to the caravan. The roads at night are no place for honest folk. Nor for the other sort."],
 ["Le soir, je tresse près du calèu. Ma mère disait qu’on voit mieux les nœuds à la flamme.","In the evening, I weave by the calèu. My mother said you see the knots better by the flame."],
+["Le soir, j’ai vu les torches monter. J’ai entendu sa voix au fossé, ou j’ai cru l’entendre.","That evening, I saw the torches climb. I heard her voice at the moat, or thought I did."],
 ["Le soir, la forge chante. Écoute, et tais-toi.","In the evening, the forge sings. Listen, and keep quiet."],
 ["Le soir, la vapeur fait des formes. Je les dessine.","In the evening, the steam makes shapes. I draw them."],
 ["Le soir, les bêtes viennent boire. Regardez, là-bas. Un chevreuil. Je ne tirerai pas.","In the evening, the animals come down to drink. Look, over there. A roe deer. I won’t shoot."],
@@ -163531,6 +164758,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le temps, le corps, la matière, les essences, les astres, les mécaniques. De quoi comprendre un peu le monde, ou s’en donner l’impression.","Time and weather, the body, matter, essences, the heavens, mechanics. Enough to understand the world a little, or at least to feel as if you do."],
 ["Le terme suivant paiera","The next instalment will pay for"],
 ["Le tertre","The mound"],
+["Le tertre scellé","The sealed mound"],
 ["Le thym des landes et des rochers. Il parfume les viandes et soigne la toux.","The thyme of heaths and rocks. It flavours meat and soothes coughs."],
 ["Le thé de cet hôtel est déplorable. Je le bois quand même : c’est une habitude, comme l’espoir.","The tea in this hotel is deplorable. I drink it all the same: it’s a habit, like hope."],
 ["Le tiroir de la table","The table drawer"],
@@ -163594,9 +164822,11 @@ const I18N_EN = {"v":1,"exact":[
 ["Le vieux cheval","The old horse"],
 ["Le vieux cheval, endormi","The old horse, asleep"],
 ["Le vieux chêne","The Old Oak"],
+["Le vieux compte sur ses doigts jusqu’à onze, et il s’arrête sur moi.","The old man counts on his fingers up to eleven, and stops on me."],
 ["Le vieux la replie sans un mot. Puis il vous regarde.","The old man folds it up again without a word. Then he looks at you."],
 ["Le vieux moulin","The old mill"],
 ["Le vieux moulin, au nord de ta ferme. Ses ailes tournent quelquefois sans vent. Le meunier est parti avant ma naissance.","The old mill, north of your farm. Its sails sometimes turn without any wind. The miller left before I was born."],
+["Le vieux m’a touché l’épaule. Onz. J’ai répondu.","The old man touched my shoulder. Onz. I answered."],
 ["Le vieux puits","The old well"],
 ["Le vieux puits de la ferme descend jusqu’ici, disent les damnés. On y jetait des pièces, autrefois, treize à la fois, pour payer une nuit de silence.\n\nPersonne n’y jette plus rien. Écoutez : on entend les noms remonter.","The old well on the farm goes all the way down here, the damned say. People used to throw coins into it, thirteen at a time, to pay for a night of silence.\n\nNo one throws anything in any more. Listen: you can hear the names coming back up."],
 ["Le vieux puits du hameau mort descend plus loin que l’eau. Une enfant y est descendue. Elle remonte, quelquefois, mais pas tout à fait.","The old well of the dead hamlet goes down further than the water. A child went down into it. She comes back up, sometimes, but not entirely."],
@@ -163804,6 +165034,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Les cloches ont sonné toutes seules, hier. Le curé a trouvé la corde nouée en haut, là où personne ne monte.","The bells rang all by themselves yesterday. The priest found the rope knotted at the top, where nobody ever climbs."],
 ["Les cloches sonnent. Sur le parvis, une robe tachée de farine, et un homme qui ne sait pas où mettre ses mains.","The bells are ringing. On the church square, a dress stained with flour, and a man who doesn’t know where to put his hands."],
 ["Les clés","The keys"],
+["Les clés de Hautguet","The keys of Hautguet"],
 ["Les clés, le registre, les sonnettes. Et les clients : ce sont eux qui sonnent.","The keys, the register, the bells. And the guests: they’re the ones who ring."],
 ["Les colis","The parcels"],
 ["Les colporteurs passent tous les deux ou trois jours. Jouvet rougit encore. Carrez, plus du tout.","The pedlars come by every two or three days. Jouvet still blushes. Carrez doesn’t, not any more."],
@@ -163858,6 +165089,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Les fea sont déjà sorties. Toi, tu es en retard.","The fea are already out. You, you’re late."],
 ["Les fea sont sorties avant moi, ce matin. Elles n’ont honte de rien, ces bêtes.","The fea were out before me this morning. They’ve no shame, those beasts."],
 ["Les femmes de chambre chantent en faisant les lits. Je le leur interdis. Elles chantent plus bas.","The chambermaids sing while making the beds. I forbid it. They sing more quietly."],
+["Les fenêtres s’allument, là-bas, dans les tours. Elles aussi avaient oublié.","The windows are lighting up, over there, in the towers. They too had forgotten."],
 ["Les fers sortent de la trempe tordus. Dans le mauvais sens. Je recommence. Je ne dis rien.","The irons come out of the quench bent. The wrong way. I start again. I say nothing."],
 ["Les feux follets du marais sont des gens qui se sont trompés de chemin en rentrant. Ils cherchent encore. Ne les aide pas.","The will-o’-the-wisps of the marsh are people who took the wrong path on their way home. They’re still searching. Don’t help them."],
 ["Les feux qui marchent sur le marais, là-bas, au sud : ce ne sont pas les nôtres. Les nôtres restent sur l’aigue.","The lights that walk on the marsh, over there, to the south: they aren’t ours. Ours stay on the aigue."],
@@ -164044,6 +165276,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Les oiseaux de nuit","Night Birds"],
 ["Les oiseaux ne chantent plus depuis deux jours. Vous avez remarqué ? Tout le monde fait comme si de rien n’était.","The birds haven’t sung for two days. Have you noticed? Everyone’s carrying on as if nothing were wrong."],
 ["Les oiseaux, ça existe ?","Do birds really exist?"],
+["Les onze","The eleven"],
 ["Les origines","Origins"],
 ["Les orties montent jusqu’aux fenêtres.","Nettles climb up to the windows."],
 ["Les os","The bones"],
@@ -165182,6 +166415,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Merci. C’est délicat.","Thank you. How thoughtful."],
 ["Merci. C’est gentil. Le lac vous le rendra.","Thanks. That’s kind. The lake will repay you."],
 ["Merci. Elle est sous le lit, chez moi. Prenez-en soin : c’est tout ce qui reste de lui.","Thank you. It’s under the bed, at my house. Look after it: it’s all that’s left of him."],
+["Merci. Elle n’a pas eu le temps de regarder.","Thank you. She didn’t have time to look."],
 ["Merci. Elle vous le rendra. Enfin, elle vous mordra moins.","Thank you. She’ll pay you back. Well, she’ll bite you less."],
 ["Merci. Et ne vous asseyez pas sur les pierres. Personne ne s’assoit sur les pierres.","Thank you. And don’t sit on the stones. Nobody sits on the stones."],
 ["Merci. Et pas un mot à la postière !","Thank you. And not a word to the postmistress!"],
@@ -166059,6 +167293,7 @@ const I18N_EN = {"v":1,"exact":[
 ["N’ouvre pas le feu : la nuit appelle.","Do not open the fire: the night calls."],
 ["N’ouvrez jamais. Ce n’est pas elle.","Never open the door. It isn’t her."],
 ["N’y touchez pas ! Ici, on ne touche pas aux morts.","Don’t touch it! Here, we don’t touch the dead."],
+["N’y touchez pas. S’il baisse, ils monteront tous.","Don’t touch it. If it comes down, they’ll all come up."],
 ["N’ébruitons pas l’affaire. Merci.","Let’s keep this quiet. Thank you."],
 ["OBSERVÉE, puis plus rien depuis le jour","OBSERVED, then nothing further since day"],
 ["OBSERVÉE. Des pages griffonnées ont été signalées dans les bois. NE LES RAMASSEZ PAS. Si c’est déjà fait : restez près du feu.","OBSERVED. Scribbled pages have been reported in the woods. DO NOT PICK THEM UP. If you already have: stay near the fire."],
@@ -166258,6 +167493,7 @@ const I18N_EN = {"v":1,"exact":[
 ["On le dit vieux de cent ans. Il vit dans les douves depuis le siège.","They say it is a hundred years old. It has lived in the moat since the siege."],
 ["On le prend pour un serpent : c’est un lézard sans pattes, lent, doux, couleur de cuivre. Il ne mord pas. Il perd sa queue si on la lui tient.","People take it for a snake: it’s a legless lizard, slow, gentle, copper-coloured. It doesn’t bite. It sheds its tail if you take hold of it."],
 ["On le sait jusqu’aux Sources, ce que vous avez fait. Je ne vous vends plus rien.","They know what you did, all the way to the Springs. I won’t sell you anything any more."],
+["On le voyait de la ville d’en bas. Tant qu’il brûlait, ils dormaient.","You could see it from the town down below. As long as it burned, they slept."],
 ["On les brûle ensemble, un soir, au ponton.","We burn them together, one evening, at the jetty."],
 ["On leur a laissé au cou ce qu’ils avaient volé.","What they stole was left around their necks."],
 ["On lui avait noué un ruban bleu autour du cou. Il a tenu plus longtemps que ceux qui l’avaient noué.","A blue ribbon had been tied around its neck. It lasted longer than those who tied it."],
@@ -166356,6 +167592,7 @@ const I18N_EN = {"v":1,"exact":[
 ["On n’entend pas l’eau, au fond.","You can’t hear the water, down below."],
 ["On n’est jamais vu ; on est remarqué. Ce qui se remarque, c’est ce qui change : une lumière qui s’allume, un bruit qui commence, une forme qui bouge contre un fond qui ne bouge pas. L’œil des hommes et des bêtes est fait pour cela.\n\nLe guetteur le plus attentif ne voit pas un homme immobile dans l’ombre d’un mur ; il voit très bien un homme qui court sous la lune, même de loin, même de dos.","One is never seen; one is noticed. What is noticed is what changes: a light that kindles, a sound that begins, a shape that moves against a background that does not. The eye of men and beasts is made for this.\n\nThe most attentive lookout does not see a man standing still in the shadow of a wall; he sees very well a man running under the moon, even from afar, even from behind."],
 ["On n’est pas tombés. Vous voyez.","We didn’t fall in. You see."],
+["On n’y va qu’une fois : ça se sent.","You only go once: you can feel it."],
 ["On n’y voit plus à dix pas. Restez sur le chemin.","You can’t see ten paces. Stay on the path."],
 ["On parle de votre ferme, au comptoir. En bien. Si on en parlait en mal, je saurais quoi faire de mon torchon.","They talk about your farm, at the bar. Kindly. If they talked about it unkindly, I’d know what to do with my dishcloth."],
 ["On parle de vous, à l’auberge. Pas en bien. Moi, je trouve cela plutôt intéressant.","They talk about you at the inn. Not kindly. I find it rather interesting."],
@@ -166423,6 +167660,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Ordonnance de la guérisseuse","Healer’s prescription"],
 ["Ordonnance sur le guet","Ordinance on the watch"],
 ["Ordonné qu’elle sera conduite le lendemain au siège du bailliage pour y être jugée plus avant.\n\nLe lendemain, les sergents ont trouvé la maison vide, la fenêtre ouverte, et sur le rouet un fil blanc, très fin, qui ne fondait pas au soleil. On l’a porté au greffe. Il est toujours dans le dossier, enroulé sur un bout de bois. Il fait froid dans la pièce où on le garde.","Ordered that she be conducted on the morrow to the seat of the bailiwick, there to be tried further.\n\nOn the morrow, the sergeants found the house empty, the window open, and on the spinning wheel a white thread, very fine, that did not melt in the sun. It was carried to the registry. It is still in the file, wound on a piece of wood. It is cold in the room where it is kept."],
+["Ordre du sire : le pont reste levé. … Je ne note plus les entrées. Il n’en vient plus.","The lord’s order: the bridge stays raised. … I no longer write down who comes in. Nobody comes."],
 ["Ordre d’affectation","Posting order"],
 ["Oreillard roux","Brown long-eared bat"],
 ["Oreille-de-Judas","Judas’s ear"],
@@ -166507,6 +167745,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Ouvert","Open"],
 ["Ouvert à la dernière page. Naissances : aucune depuis deux ans. Décès : une colonne.\n\nUne troisième colonne, tracée à la règle, n’a pas d’en-tête. Elle est pleine.","Open at the last page. Births: none in two years. Deaths: a column.\n\nA third column, ruled with a straightedge, has no heading. It is full."],
 ["Ouvre toutes les portes fermées à clé. Clic, en la tournant dans le vide : ouvrir le seuil du temple sous la montagne (une fois par jour) ; tournée dans le temple, elle ramène à la cascade.","Opens every locked door. Click, turning it in thin air: open the threshold of the temple beneath the mountain (once a day); turned inside the temple, it brings you back to the waterfall."],
+["Ouvre, si tu veux. Il n’y a plus ici qu’une vieille femme.","Open it, if you like. There’s only an old woman here now."],
 ["Ouvrir","Open"],
 ["Ouvrir avec la clé de la Grande Porte","Open with the key to the Great Gate"],
 ["Ouvrir la boîte aux lettres","Open the letterbox"],
@@ -166598,6 +167837,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Paie, et on s’en va !","Pay up, and we’re off!"],
 ["Pain","Bread"],
 ["Pain : quarante.\nPain : trente.\nPain : douze.\nPain : quatre.\nPain : un, pour la tour. Que le sire n’en sache rien.","Bread: forty.\nBread: thirty.\nBread: twelve.\nBread: four.\nBread: one, for the tower. Let the lord know nothing of it."],
+["Pain : quarante. Pain : trente. Pain : douze.","Bread: forty. Bread: thirty. Bread: twelve."],
+["Pain : un, pour la tour. Que le sire n’en sache rien.","Bread: one, for the tower. The lord is not to know."],
 ["Pain au levain, brioches, farine.\nOuvert dès l’aube.","Sourdough bread, brioches, flour.\nOpen from dawn."],
 ["Pain de cire d’abeille","Cake of beeswax"],
 ["Pain de maïs","Cornbread"],
@@ -166952,6 +168193,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Personne encore. Parlez aux habitants, revenez les voir : on ne devient proche qu’à la longue.","No one yet. Talk to the residents, come back to see them: you only become close over time."],
 ["Personne ne frappe plus. Je dors. C’est étrange, de dormir.","Nobody knocks any more. I sleep. It’s strange, sleeping."],
 ["Personne ne garde plus la Porte.","No one guards the Gate any more."],
+["Personne ne monte. Vous voyez ? Personne.","No one is coming up. See? No one."],
 ["Personne ne m’a cherché. Personne ne me cherchera.","No one came looking for me. No one ever will."],
 ["Personne ne m’envoie jamais de vraie lettre, avec mon nom sur l’enveloppe. Alors, une fois par mois, je m’envoie une carte postale, avec une Semeuse et une vue de la mer, et je la distribue à mon propre guichet en faisant semblant d’être surprise. Je la signe « une amie ». Des fois, je me demande si la lettre de chaque année, celle qui me défend d’aller au puits, ce n’est pas moi aussi, un soir où je dormais debout.","Nobody ever sends me a real letter, with my name on the envelope. So once a month I send myself a postcard, with a Sower stamp and a view of the sea, and I hand it over at my own counter, pretending to be surprised. I sign it “a friend”. Sometimes I wonder whether the yearly letter, the one that forbids me to go to the well, isn’t from me too, some evening when I was asleep on my feet."],
 ["Personne ne sait ce que c’est. Pas même vous.","Nobody knows what it is. Not even you."],
@@ -167322,6 +168564,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Pour la fortune","For fortune"],
 ["Pour la pharmacie","For the dispensary"],
 ["Pour la première fois, je ne me souviens de rien. Rien du tout. Et mes herbes ont poussé la tête en bas, dans leurs pots. Ça ne présage rien de bon.","For the first time, I remember nothing. Nothing at all. And my herbs have grown upside down in their pots. That bodes no good."],
+["Pour la première fois, le silence ressemble à du sommeil.","For the first time, the silence is like sleep."],
 ["Pour la santé","For health"],
 ["Pour la tombe d’Émile…","For Émile’s grave…"],
 ["Pour la tour : un pain par le guichet, après minuit. Frapper deux fois.\nElle ne prend plus le pain depuis la Toussaint. Elle parle encore.","For the tower: one loaf through the hatch, after midnight. Knock twice.\nShe has not taken the bread since All Saints’ Day. She still speaks."],
@@ -167794,6 +169037,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Qui est là ? Au nom du Christ, dites votre nom ! … C’est vous ? Seigneur, j’ai cru que… Sortez, je vous en prie, et n’entrez plus jamais ici à cette heure. La nuit, je ne réponds plus de rien, pas même de moi.","Who is there? In the name of Christ, say your name! … Is it you? Lord, I thought… Leave, I beg you, and never come in here again at this hour. At night, I can answer for nothing, not even for myself."],
 ["Qui est là ? Comment avez-vous ouvert ? J’avais fermé à double tour, j’en suis certain… Restez où vous êtes : j’ai un tisonnier, une écharpe tricolore, et la loi pour moi.","Who’s there? How did you get in? I double-locked the door, I am certain of it… Stay where you are: I have a poker, a tricolour sash, and the law on my side."],
 ["Qui est là ? J’ai la fourche ! … Vous ? En pleine nuit, chez moi ? Brigand aurait pu vous sauter à la gorge. Sortez, et ne refaites jamais ça. Jamais.","Who’s there? I’ve got the pitchfork! … You? In my house, in the middle of the night? Brigand could have gone for your throat. Get out, and don’t ever do that again. Ever."],
+["Qui est là ? … Ce n’est pas son pas. Ce n’est pas le pas d’Aymon.","Who’s there? … That’s not his tread. That’s not Aymon’s tread."],
 ["Qui est là ? … Vous ? Par tous les saints, j’ai failli vous assommer avec la louche ! Vous n’avez pas frappé trois fois, au moins ? Non ? Bon. Bon. Asseyez-vous, je ne dormais pas.","Who’s there? … You? By all the saints, I nearly brained you with the ladle! You didn’t knock three times, did you? No? Right. Right. Sit down, I wasn’t asleep."],
 ["Qui est là ?! Qui défonce ma porte ?! Au garde !","Who’s there?! Who’s smashing my door in?! Fetch the warden!"],
 ["Qui est là ?! … La clé ! Au voleur !","Who’s there?! … The key! Stop, thief!"],
@@ -168542,6 +169786,8 @@ const I18N_EN = {"v":1,"exact":[
 ["SIX DEGRÉS JUSQU’AUX HAUTS.\nLE SEPTIÈME, TU LE DESCENDRAS SEUL.","SIX STEPS TO THE HEIGHTS.\nTHE SEVENTH, YOU WILL DESCEND ALONE."],
 ["SOURCE SAINTE-AGATHE\nPOUR LE LAIT DES MÈRES","SAINTE-AGATHE SPRING\nFOR THE MILK OF MOTHERS"],
 ["SOUS CELUI-CI, UN AUTRE ENCORE.\nNE CREUSE PLUS.","BENEATH THIS ONE, ANOTHER STILL.\nDIG NO MORE."],
+["SOUS CHAQUE ROI, UN AUTRE TERTRE.","UNDER EVERY KING, ANOTHER MOUND."],
+["SOUS CHAQUE TERTRE, UN ROI.","UNDER EVERY MOUND, A KING."],
 ["SOUS CHAQUE TERTRE, UN ROI.\nSOUS CHAQUE ROI, UN AUTRE TERTRE.","UNDER EVERY BARROW, A KING.\nUNDER EVERY KING, ANOTHER BARROW."],
 ["Sa boussole… L’aiguille ne montre pas le nord. Elle montre le lac. Toujours le lac.","His compass… The needle doesn’t point north. It points at the lake. Always the lake."],
 ["Sa boussole… L’aiguille ne montre pas le nord. Elle montre le lac. Toujours le lac. Tenez, les plans de sa canne. La meilleure de la vallée.","His compass… The needle doesn’t point north. It points to the lake. Always the lake. Here, the plans for his rod. The best in the valley."],
@@ -168765,6 +170011,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Si la veilleuse vous parle, soyez gentil avec elle.","If the night light speaks to you, be kind to her."],
 ["Si le lac vous rendait une chose, une seule, parmi tout ce que vous avez perdu… vous lui demanderiez quoi ?","If the lake gave you back one thing, just one, out of everything you’ve lost… what would you ask it for?"],
 ["Si le maire passe, vous direz que je surveille le pré. Je surveille : vous.","If the mayor comes by, tell him I’m keeping watch on the meadow. I am keeping watch: on you."],
+["Si le pont est baissé quand tu liras ceci, alors je peux dormir.","If the bridge is down when you read this, then I can sleep."],
 ["Si le pont s’abaisse la nuit, c’est qu’on le descend d’en face.","If the bridge comes down at night, someone is lowering it from the far side."],
 ["Si l’on frappe trois fois, n’ouvre pas, même si c’est ma voix.","If someone knocks three times, do not open, even if it is my voice."],
 ["Si on me trouve : je suis Louis Varenne, le frère d’Anselme. Je suis monté chercher ce qu’il a caché, puisqu’il ne voulait pas le dire. Il fait très froid. Je vais m’asseoir un moment.\n\nDites à Anselme que je ne lui en veux pas.","If anyone finds me: I am Louis Varenne, Anselme’s brother. I climbed up to look for what he hid, since he wouldn’t say. It is very cold. I’m going to sit down for a moment.\n\nTell Anselme I don’t blame him."],
@@ -168790,6 +170037,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Si vous avez faim la nuit, cassez un carreau, mais ne frappez pas. Un carreau, ça se remplace.","If you’re hungry at night, break a windowpane, but don’t knock. A windowpane can be replaced."],
 ["Si vous avez faim, l’auberge fait la soupe, vous savez.","If you’re hungry, the inn does soup, you know."],
 ["Si vous chassez, restez à la lisière. Le gibier est plus gros au fond des bois, mais on en revient moins souvent.","If you hunt, stay near the edge of the woods. The game is bigger deep in the forest, but folk come back from there less often."],
+["Si vous le rallumez, je compterai.","If you light it again, I will count."],
 ["Si vous montez le soir, restez près du feu. Ce qui marche la nuit, là-haut, n’aime pas le feu.","If you come up in the evening, stay by the fire. What walks at night, up here, doesn’t like fire."],
 ["Si vous ne savez pas à qui donner ces fleurs, portez-les sur {lieu:pierre_dame} : elle ne dit jamais merci, mais elle les prend toujours.","If you don’t know who to give those flowers to, lay them on {lieu:pierre_dame}: she never says thank you, but she always takes them."],
 ["Si vous passez au moulin une nuit sans vent et que vous entendez moudre, ne montez pas. Posez une poignée de grain sur la première marche, dites « pour la noce », et allez-vous-en sans courir. Le lendemain, le grain aura disparu, et la marche sera blanche.\n\nLes anciens disent qu’elle moud pour son repas de noces, qu’elle n’a jamais mangé, et qu’elle attend qu’on vienne enfin s’asseoir à sa table. Il ne faut pas s’y asseoir. Ceux qui s’y sont assis ont eu très faim tout le reste de leur vie.","If you pass the mill on a windless night and hear grinding, do not go up. Set a handful of grain on the first step, say “for the wedding”, and go away without running. The next day the grain will be gone, and the step will be white.\n\nThe elders say she grinds for her wedding feast, which she never ate, and that she waits for someone to come at last and sit at her table. You must not sit down at it. Those who sat there went terribly hungry for the rest of their lives."],
@@ -168897,6 +170145,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Soupe à l’oignon","Onion soup"],
 ["Source, je noue ce ruban à ta branche : dénoue ce qui me serre. Que le mal s’en aille avec ton eau, vers le bas, loin, et qu’il ne remonte pas.","Spring, I tie this ribbon to your branch: untie what binds me. Let the ill flow away with your water, downhill, far off, and never climb back up."],
 ["Souris non capturable : maintenez un clic et glissez pour regarder","Mouse cannot be captured: hold a click and drag to look around"],
+["Sous chaque tertre, un roi","Under every mound, a king"],
 ["Sous la barre, une serrure.","Beneath the bar, a lock."],
 ["Sous la bibliothèque, un coffre garde un livre qui n’a pas de dernière page.","Beneath the library, a chest keeps a book that has no last page."],
 ["Sous la bâche pourrie, ce que les bêtes n’ont pas voulu.","Under the rotten tarpaulin, what the beasts did not want."],
@@ -169693,6 +170942,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Tu as faim ? Moi aussi. Depuis le jour {jour}.","Are you hungry? So am I. Since day {jour}."],
 ["Tu as fait quelque chose qui ne se fait pas. L’aigue le sait déjà.","You’ve done something that isn’t done. The aigue already knows."],
 ["Tu as frappé comme nous. Peu de grands savent. {nom} du Seuil, ancien du peuple d’en bas. Parle doucement, ne touche à rien, et ne dis à personne où est la porte.","You knocked the way we knock. Few big folk know how. {nom} du Seuil, elder of the folk below. Speak softly, touch nothing, and tell no one where the door is."],
+["Tu as la clé. Je l’entends tinter.","You have the key. I can hear it jingle."],
 ["Tu as le pas de quelqu’un d’ici, maintenant. Ne le dis pas en ville.","You walk like someone from here now. Don’t say so in town."],
 ["Tu as le souffle court, l’homme d’en bas. Assieds-toi, ou tombe, mais choisis.","You’re short of breath, lowlander. Sit down, or fall, but choose."],
 ["Tu as l’air d’avoir un secret.","You look like you’ve got a secret."],
@@ -171328,6 +172578,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Une pierre debout, plus haute qu’un homme, seule dans l’herbe.","A standing stone, taller than a man, alone in the grass."],
 ["Une pierre descellée","A loose stone"],
 ["Une pierre dressée","A standing stone"],
+["Une pierre dressée, aux Tertres","A standing stone, at the Mounds"],
 ["Une pierre du mur sonne creux sous les doigts.","One stone in the wall sounds hollow under your fingers."],
 ["Une pierre du temple a parlé, hier. Nous ne répéterons pas ce qu’elle a dit.","A stone in the temple spoke yesterday. We will not repeat what it said."],
 ["Une pierre est tombée du ciel, cette nuit. On dit qu’elle fume encore. Personne n’ose y aller.","A stone fell from the sky last night. They say it’s still smoking. Nobody dares go near it."],
@@ -171501,6 +172752,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Une tablette","A tablet"],
 ["Une tablette de pierre fine couverte de Hautes Lettres, trouvée dans le tombeau de la Ville engloutie. Clic : la lire.","A tablet of fine stone covered in High Letters, found in the tomb of the Sunken City. Click: read it."],
 ["Une tablette de pierre noire gravée de treize points disposés en cercle, dont un plus profond que les autres. Elle est froide, et plus lourde la nuit que le jour.","A tablet of black stone engraved with thirteen dots arranged in a circle, one of them deeper than the rest. It is cold, and heavier by night than by day."],
+["Une tablette, dans le tombeau","A tablet, in the tomb"],
 ["Une tarte ! Pour moi ? Je la consigne au registre, et puis je la mange. Dans cet ordre.","A tart! For me? I’ll log it in the register, and then I’ll eat it. In that order."],
 ["Une tarte qui s’enfuit ! Ma grand-mère aurait dit que c’est un rêve d’argent ; moi, je dis que vous avez faim. Tenez, une noix.","A runaway tart! My grandmother would have said it’s a dream of money; I say you’re hungry. Here, have a walnut."],
 ["Une tartine de confiture, une tartine de confiture, et une tartine de… confiture.","A slice of bread and jam, a slice of bread and jam, and a slice of bread and… jam."],
@@ -172474,6 +173726,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Y poser une bougie allumée","Place a lit candle inside"],
 ["Yeux de soleil","Sun eyes"],
 ["Ysolde","Ysolde"],
+["Ysolde, derrière la porte","Ysolde, behind the gate"],
+["Ysolde, « à qui ouvrira »","Ysolde, “To whoever opens”"],
 ["Ysse","Ysse"],
 ["Yves a aboyé trois fois, cette nuit. Pour un hérisson. Je lui ai dit « tout doux ». Je dis très bien « tout doux ».","Yves barked three times last night. At a hedgehog. I told him “easy now”. I say “easy now” very well."],
 ["Yves. (Il devient tout pâle.) Pourquoi Yves ? … Non. Ne dites rien. C’est un bon nom. C’est un bon nom pour quelqu’un qu’on a le droit de garder.","Yves. (He goes quite pale.) Why Yves? … No. Say nothing. It’s a good name. It’s a good name for someone you’re allowed to keep."],
@@ -175013,6 +176267,8 @@ const I18N_EN = {"v":1,"exact":[
 ["« Vu trois feux sur la montagne. Personne n’y monte l’hiver. » Signé d’un seul mot : « Veilleur ».","“Saw three fires on the mountain. Nobody goes up there in winter.” Signed with a single word: “Watcher”."],
 ["« Vyin ! »","“Vyin!”"],
 ["« Yves ». Ça lui va bien.","“Yves”. It suits him."],
+["« aelim fala , hemim ulen , ael rim neth thal »","“aelim fala , hemim ulen , ael rim neth thal”"],
+["« dal na-aelim , mir ael , tora »","“dal na-aelim , mir ael , tora”"],
 ["« fermiers de la vieille ferme »","“farmers of the old farm”"],
 ["« kel neth sera luin, ne sera sae » : la clé est sous le lac bleu, là où dort le lac. Une clé de pierre bleue, longue comme la main et sans dents : elle ne s’ajuste pas à la serrure, c’est la serrure qui s’ajuste à elle. Les Aëlim s’en servaient pour ouvrir les seuils — et pas seulement ceux des maisons.","“kel neth sera luin, ne sera sae”: the key is beneath the blue lake, where the lake sleeps. A key of blue stone, as long as a hand and without teeth: it does not fit the lock, the lock fits itself to it. The Aëlim used it to open thresholds — and not only those of houses."],
 ["« {forme} » ? {Sens}. On ne le dit qu’ici.","“{forme}”? {Sens}. We only say it here."],
@@ -175086,6 +176342,7 @@ const I18N_EN = {"v":1,"exact":[
 ["À la brasserie de la ville d’en bas : quatre fûts de cervoise, deux de cidre, et plus de ce vin « qui ne tourne pas ».\n\nLe dernier fût est reparti plein. Personne n’a voulu y goûter. Il chantait.","To the brewery in the town down the valley: four casks of ale, two of cider, and no more of that wine “that never turns”.\n\nThe last cask was sent back full. Nobody would taste it. It was singing."],
 ["À la cloche, il rentre encore. C’est la seule chose qu’il n’a pas oubliée.","At the bell, it still comes in. It is the one thing it has not forgotten."],
 ["À la communale, Anselme était assis derrière moi, et il glissait des grains de blé dans ma natte ; le maître le mettait au coin, il recommençait le lendemain. Après mon non, il n’a plus jamais reparlé de mariage. Il a fait pire : chaque automne, pendant quarante ans, une citrouille sur mon seuil, sans un mot, sans une carte. Je les ai toutes mangées, et j’ai ressemé chaque graine : le potager derrière la boutique n’est plein que de ses citrouilles. Cet automne, il n’y aura rien sur mon seuil. Je le sais déjà, et je me lèverai quand même pour aller voir.","At the village school, Anselme sat behind me, and he slipped grains of wheat into my plait; the schoolmaster stood him in the corner, and he started again the next day. After I said no, he never spoke of marriage again. He did worse: every autumn, for forty years, a pumpkin on my doorstep, not a word, not a card. I ate every one of them, and I sowed every seed again: the kitchen garden behind the shop is full of nothing but his pumpkins. This autumn, there’ll be nothing on my doorstep. I already know it, and I’ll get up to go and look all the same."],
+["À la craie, près de l’âtre","In chalk, by the hearth"],
 ["À la ferme","On the farm"],
 ["À la foire de Bresse, un raton laveur tient boutique. Il vous vend une maison à crédit, puis une plus grande, et vous remboursez toute votre vie. Il sourit tout le temps.","At the Bresse fair, a raccoon keeps a shop. He sells you a house on credit, then a bigger one, and you pay him back all your life. He smiles the whole time."],
 ["À la grande bibliothèque, le registre est ouvert à votre nom.","At the great library, the register lies open at your name."],

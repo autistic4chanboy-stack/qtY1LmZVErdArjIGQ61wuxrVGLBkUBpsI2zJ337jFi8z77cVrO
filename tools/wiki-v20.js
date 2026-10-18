@@ -153,6 +153,14 @@ const FICHES = [
   ['qp:qt-t3', ['t3'], 'l’avis, au panneau de la [place|li:place], et la [mairie|li:mairie] ; un dénouement pour chaque fin, avec le [maire|pnj:maire] ou à l’[église|li:eglise].'],
   ['qp:qt-t4', ['t4'], 'la crécelle, devant le [relais de chasse|li:relais_chasse], le soir ; un dénouement pour chaque fin, avec le [chasseur|pnj:chasseur].'],
   ['qp:qt-t5', ['t5'], 'chez le [docteur des Sources|pnj:naturiste_b], et la caisse sous son lit ; un dénouement pour chaque fin.'],
+  // les quêtes d'ailleurs (lot 4) : elles se jouent sur place, dans leur monde
+  ['sys:hautguet', ['q20d_hg_chateau', 'q20d_hg_cles', 'q20d_hg_guet', 'q20d_hg_pont', 'q20d_hg_dame'], 'le château vu de loin, et la borne devant le pont levé ; les clés, une à une, jusqu’au donjon ; Thibaud près du brasero, et le feu du Guet ; le pont-levis et le fossé ; la voix de la Dame derrière sa porte, la nuit ; un dénouement pour chaque fin.'],
+  ['li:sout_hameau', ['q20d_so_appel', 'q20d_so_onze', 'q20d_so_perle'], 'la pierre d’appel, et la façon d’être admis (un dénouement pour chacune) ; le pain rompu en onze, chez Un le vieux ; la perle de Neu ; à la lueur des pierres ou de la lanterne.'],
+  ['li:sout_dormeurs', ['q20d_so_onzieme'], 'le carnet de la cabane vide, au Hameau d’En-Bas ; ((au bout de la longue galerie, la Chambre des Gouttes)).'],
+  ['sys:dessous', ['q20d_so_aelim'], 'la porte des Aëlim : la dalle à l’œil, regardée ; elle s’ouvre ; ce qu’elle gardait.'],
+  ['li:galeries', ['q20d_r15_niche'], 'la niche scellée : la dalle gravée, regardée ; elle s’enfonce ; ce qu’elle gardait.'],
+  ['monde:vaisseau', ['q20d_vg_seuil', 'q20d_vg_coeur'], 'le papier d’Anselme, à la [ferme|li:ferme], puis l’arrivée au Seuil ; la veilleuse et la Machinerie ; un dénouement pour chaque fin.'],
+  ['zone:tertres', ['q20d_z_tertres', 'q20d_r15_tertre'], 'la pierre dressée ; ((la chambre sous un tertre, et ce qu’elle garde)) ; le tertre scellé : la dalle gravée, regardée, qui s’enfonce.'],
 ];
 // (les reliques des Anciens n'ont pas de fiche à elles : leur ligne est dans la fiche d'ensemble)
 const SANS_FICHE = ['q20c_reliques'];
