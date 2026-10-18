@@ -31,6 +31,12 @@ globalThis.__q20Bbanc = function (graine, w) {
   q16._gen = null; q16._idx = null;
   if (w) { game.world = w; farm.w = w; w.time = 0.45; const F = w.farm.f; game.player = { pos: [F.x, w.heightAt(F.x, F.z), F.z], yaw: 0.4, pitch: 0, hp: 100, food: 80, vel: [0, 0, 0], onGround: true, breath: 1, eyePos() { return [this.pos[0], this.pos[1] + 1.6, this.pos[2]]; } }; }
   q20.S();
+  // (pour l'essai : la caméra d'un plan sur quelqu'un retient sur qui elle est, qu'on vérifie qu'il est dans le cadre)
+  if (!Q20Scene.prototype.camActeur.__q20B) {
+    const f0 = Q20Scene.prototype.camActeur;
+    Q20Scene.prototype.camActeur = function (A, o) { const R = f0.call(this, A, o); if (R && R.de && A) R.de.sur = A; return R; };
+    Q20Scene.prototype.camActeur.__q20B = true;
+  }
 };
 // la quête au point voulu du moment : en cours (l'objet trouvé, le message porté…), ou finie (le choix retenu)
 globalThis.__q20Betat = function (id, m) {
@@ -84,6 +90,15 @@ globalThis.__q20Bvoit = function (w, A, T, D) {
   return qtScenes.voit(w, L, A, T, 0.35);
 };
 // construire et contrôler chaque moment de chaque quête de la liste ; rend { e, r }
+// le point Q est-il dans le champ d'une caméra en C qui regarde L ? (75° de large ; 16/9 : ±23° en hauteur ; un peu de marge)
+globalThis.__q20Bcadre = function (C, L, Q) {
+  const f = [L[0] - C[0], L[1] - C[1], L[2] - C[2]], v = [Q[0] - C[0], Q[1] - C[1], Q[2] - C[2]];
+  if (Math.hypot(v[0], v[1], v[2]) < 0.3) return false;
+  let da = Math.atan2(v[0], v[2]) - Math.atan2(f[0], f[2]);
+  while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
+  const dp = Math.atan2(v[1], Math.hypot(v[0], v[2])) - Math.atan2(f[1], Math.hypot(f[0], f[2]));
+  return Math.abs(da) < 0.6 && Math.abs(dp) < 0.38;
+};
 globalThis.__q20Bscenes = function (w, ids, mondes) {
   const e = [], r = { n: 0, plans: 0, t: 0, tmax: 0, lent: '', durees: [Infinity, 0], courtes: [Infinity, 0], dedans: 0, sous: 0, mondes: {} };
   const fini = (v) => Array.isArray(v) && v.length === 3 && v.every(Number.isFinite);
@@ -131,6 +146,14 @@ globalThis.__q20Bscenes = function (w, ids, mondes) {
               const s = A.s || 1, Q = A.vers || A.P;
               const tete = [Q[0], Q[1] + 1.45 * s * (String(JSON.stringify(A.geste || '') || '').includes('assis') ? 0.72 : 1), Q[2]], buste = [Q[0], Q[1] + 1.0 * s, Q[2]];
               if (!__q20Bvoit(w, cams[0], tete, D) && !__q20Bvoit(w, cams[0], buste, D)) e.push(id + ' ' + m + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : ' + (A.id || A.cle || (A.joueur ? 'le joueur' : 'la personne')) + ' caché(e) de la caméra');
+            }
+            // (celui sur qui est la caméra est dans le cadre : au début du plan et à la fin, la tête ou le buste dans le
+            // champ — 75° de large, 16/9)
+            const S = P.de && P.de.sur;
+            if (S) for (const [K, Q2] of [[P.de, S.P], [P.a, S.vers || S.P]]) {
+              if (!K || !fini(K.pos) || !fini(K.look) || !fini(Q2)) continue;
+              const s = S.s || 1, dans = (y) => __q20Bcadre(K.pos, K.look, [Q2[0], Q2[1] + y * s, Q2[2]]);
+              if (!dans(1.45) && !dans(1.0) && !dans(0.6)) { e.push(id + ' ' + m + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : ' + (S.id || S.cle || (S.joueur ? 'le joueur' : 'la personne')) + ' hors du cadre' + (K === P.a ? ' (à la fin)' : '')); break; }
             }
           }
         }

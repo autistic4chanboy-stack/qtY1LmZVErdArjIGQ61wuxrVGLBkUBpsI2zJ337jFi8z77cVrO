@@ -114,8 +114,8 @@ q20.scenes('q16_diseuse_1', {
     const jeu = c.chose(Q20_DESSINS.jeu_cartes, c.haut(c.devant(T.P, T.D.h, 0.45, 0.1, true), 0.62), { s: 1.4, r: T.D.h });
     const Ci = c.lieu('cimetiere');
     return [
-      c.plan({ dur: 6.4, cam: c.camActeur(T.moi, { cote: 0.15, d: 2.1, buste: true }), acteurs: [T.moi, jeu], lum: T.lum, dit: c.parole('Mon jeu a soixante-dix-sept cartes. Il en avait soixante-dix-huit.', nom, 0.8), court: true }),
-      Ci && c.plan({ dur: 6.2, cam: c.camLieu(Ci, { d: 22, haut: 3, dy: 1 }), heure: Math.max(c.h, 19.6), dit: c.parole('Le Pendu, je l’ai perdu au cimetière, le soir où j’ai tiré les cartes pour une morte. Il ne faut pas lui laisser le Pendu.', nom, 0.8) }),
+      c.plan({ dur: 6.4, cam: c.camActeur(T.moi, { cote: 0.1, d: 2.8, haut: 1.3 }), acteurs: [T.moi, jeu], lum: T.lum, dit: c.parole('Mon jeu a soixante-dix-sept cartes. Il en avait soixante-dix-huit.', nom, 0.8), court: true }),
+      Ci && c.plan({ dur: 6.2, cam: c.camLieu(Ci, { d: 22, haut: 3, dy: 1 }), heure: c.h > 18.8 && c.h < 21 ? c.h : 18.8, dit: c.parole('Le Pendu, je l’ai perdu au cimetière, le soir où j’ai tiré les cartes pour une morte. Il ne faut pas lui laisser le Pendu.', nom, 0.8) }),
     ];
   },
   tournant(c) { return Q20H.trouvaille(c, Q20_DESSINS.carte_dos, { s: 2.0, son: 'murmure', dy2: 1 }); },
@@ -235,7 +235,7 @@ q20.scenes('q16_crieur_1', {
     const enf = loin && c.gens('enfant_perdu', loin, { face: moi2.P, geste: 'raide', vu: false });
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.4, d: 2.2, buste: true }), acteurs: [moi, av], dit: ['« Avis. On a perdu un enfant, un soir de 1868. Qui l’a trouvé est prié de le rendre. »', '@garde_champetre'] }),
-      moi2 && c.plan({ dur: 6, cam: c.camActeur(moi2, { cote: 2.7, d: 4.4, avec: loin, k: 0.25 }), heure: Math.max(c.h, 18.8), acteurs: [moi2, tam, enf], son: 'tambour', dit: ['C’est le même chaque année. Je le bats quand même. On ne sait jamais qui écoute.', '@garde_champetre'] }),
+      moi2 && c.plan({ dur: 6, cam: c.camActeur(moi2, { cote: Math.PI + 0.25, d: 2.9, haut: 1.75 }), heure: Math.max(c.h, 18.8), acteurs: [moi2, tam, enf], son: 'tambour', dit: ['C’est le même chaque année. Je le bats quand même. On ne sait jamais qui écoute.', '@garde_champetre'] }),
     ];
   },
   fin(c) {
@@ -318,7 +318,7 @@ q20.scenes('q16_bete_chat_1', {
     const Ci = c.lieu('cimetiere');
     return [
       c.plan({ dur: 6.4, cam: c.camChose(T.P, { d: 1.7, haut: 1.0, dy: 0.25, a: (T.L.cap || 0) + 0.5, recul: 0.12 }), heure: Math.max(c.h, 20.5), acteurs: [T.A], lum: [Q20B.flamme(c, T.P, 4, 1.4)], dit: c.parole('Les chats de la ville se réunissent au cimetière, les nuits sans lune. Je n’y vais plus, depuis… une affaire.', nom), court: true }),
-      Ci && c.plan({ dur: 6, cam: c.camLieu(Ci, { d: 20, haut: 2.6, dy: 1 }), heure: c.heure('nuit'), dit: c.parole('Allez voir s’ils m’attendent encore. Comptez-les. S’ils sont treize, partez.', nom) }),
+      Ci && c.plan({ dur: 6, cam: c.camLieu(Ci, { d: 20, haut: 2.6, dy: 1 }), heure: c.h > 20.5 && c.h < 21.4 ? c.h : 21.2, dit: c.parole('Allez voir s’ils m’attendent encore. Comptez-les. S’ils sont treize, partez.', nom) }),
     ];
   },
   tournant(c) {
@@ -366,7 +366,7 @@ q20.scenes('q16_bete_hulotte_1', {
     const ni = c.chose('nichoir', c.haut(pn, 2.0), { r: c.cap(pn, T.P) });
     const pl = c.chose(Q20_DESSINS.plume_hulotte, c.haut(Q20B.devant(c, pn, (T.L.cap || 0) + 2.4, 0.9, 0), 0.01), { s: 1.6, r: 0.6 });
     return [
-      c.plan({ dur: 6.4, cam: c.camChose(c.haut(pn, 1.9), { d: 3.0, haut: 0.2, dy: 0, a: (T.L.cap || 0) + 0.2, ign: Ch ? [Ch.x, Ch.z] : null }), heure: c.heure('nuit'), acteurs: [poteau, ni, T.A], dit: c.parole('Pas mal. Pour une main.', nom), court: true }),
+      c.plan({ dur: 6.4, cam: c.camChose(c.haut(pn, 1.9), { d: 3.2, haut: 0.2, dy: 0, a: c.cap(T.P, pn) + 0.35 }), heure: c.heure('nuit'), acteurs: [poteau, ni, T.A], dit: c.parole('Pas mal. Pour une main.', nom), court: true }),
       c.plan({ dur: 5.6, cam: c.camChose(pl.P, { d: 1.6, haut: 0.95, dy: 0.02 }), heure: c.heure('nuit'), acteurs: [pl, poteau], son: 'hibou', chaque: Q20H.emet(c.haut(pl.P, 1.6), { n: 2, col: [0.62, 0.46, 0.3, 0.9], taille: 0.03, vie: 2.2, v: 0.15, vy: -0.6, grav: 0.3 }), dit: c.parole('Je ne dirai à personne que j’ai demandé.', nom) }),
     ];
   },

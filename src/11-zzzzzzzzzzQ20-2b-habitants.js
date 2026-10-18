@@ -73,7 +73,7 @@ const Q20BH = {
     return c.pt(x, z, B.P[1] + 0.3);
   },
   // la vapeur d'un bassin
-  vapeur(B, n) { return Q20H.emet(c20h(B.P, 0.15), { n: n || 9, col: [0.86, 0.86, 0.84, 0.32], taille: 0.22, vie: 3.2, v: 0.25, vy: 0.35, r: Math.min(B.w, B.d) * 0.8 }); },
+  vapeur(B, n) { return Q20H.emet(c20h(B.P, 0.15), { n: (n || 9) * 1.6, col: [0.9, 0.9, 0.88, 0.38], taille: 0.07, vie: 3.2, v: 0.25, vy: 0.35, r: Math.min(B.w, B.d) * 0.8 }); },
   // une lueur de lanterne au sol (les six lanternes des Sources)
   lanternes(c, P, R, n) { return qtProps(c.w, P[0], P[2], R || 16, (q) => q.id === 'lanterne_sol' || q.id === 'lanterne_suspendue' || q.id === 'lampadaire').slice(0, n || 3).map((q) => c.lueur([q.x, q.y, q.z], 6, [1.0, 0.72, 0.38], 0.8)); },
   // la porte d'un pont (le côté de la ville) : pour la poterne, le pont du sud
@@ -92,7 +92,7 @@ q20.scenes('naturiste_a_1', {
     const moi2 = c.habitant('naturiste_a', P0, { cap: c.cap(B.P, P0), geste: ['bras', 'parle'] });
     const F = c.lieu('ferme');
     return [
-      c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 0.8, d: 3.2, avec: B.P, k: 0.35 }), acteurs: [moi], chaque: Q20BH.vapeur(B), dit: ['Le docteur dit que l’eau soigne mieux quand elle sent bon. Moi, je dis qu’elle sent l’œuf pourri et la montagne.'], court: true }),
+      c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 1.5, d: 2.6, buste: true }), acteurs: [moi], chaque: Q20BH.vapeur(B), dit: ['Le docteur dit que l’eau soigne mieux quand elle sent bon. Moi, je dis qu’elle sent l’œuf pourri et la montagne.'], court: true }),
       c.plan({ dur: 6, cam: c.camActeur(moi2, { cote: 0.3, d: 2.4 }), acteurs: [moi2], chaque: Q20BH.vapeur(B), dit: ['Trois brins de lavande, deux grappes de reine-des-prés. Et on verra qui a raison.'] }),
       F && c.plan({ dur: 5, cam: c.camLieu(F, { d: 34, haut: 6, dy: 2, recul: 0.12 }), dit: ['La lavande pousse chez ceux qui ont un jardin. Vous en avez un, il paraît.'] }),
     ];
@@ -124,7 +124,7 @@ q20.scenes('naturiste_c_1', {
     const Ca = c.lieu('cascade');
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 1.4, d: 2.6, buste: true, avec: B.P, k: 0.25 }), heure: Math.max(c.h, 18.8), acteurs: [moi], chaque: Q20BH.vapeur(B), dit: ['Je dessine la vapeur. Toujours les mêmes formes : une grande main, un œil, trois traits.'], court: true }),
-      Ca && c.plan({ dur: 6.2, cam: c.camLieu(Ca, { d: 18, haut: 2.4, dy: 2.5, recul: 0.15 }), heure: c.heure('aube'), chaque: Q20H.emet(c.haut(Ca.P, 1.2), { n: 10, col: [0.9, 0.9, 0.9, 0.3], taille: 0.3, vie: 3.4, v: 0.5, vy: 0.5, r: 3 }), dit: ['Allez à la cascade, demain à l’aube. Ne me dites pas ce que je dessine : dites-moi ce que vous voyez.'] }),
+      Ca && c.plan({ dur: 6.2, cam: c.camLieu(Ca, { d: 18, haut: 2.4, dy: 2.5, recul: 0.15 }), heure: c.heure('aube'), chaque: Q20H.emet(c.haut(Ca.P, 1.2), { n: 10, col: [0.92, 0.92, 0.92, 0.36], taille: 0.08, vie: 3.4, v: 0.5, vy: 0.5, r: 3 }), dit: ['Allez à la cascade, demain à l’aube. Ne me dites pas ce que je dessine : dites-moi ce que vous voyez.'] }),
     ];
   },
   tournant(c) {
@@ -133,7 +133,7 @@ q20.scenes('naturiste_c_1', {
     const a = c.cap(Ca.P, c.devant(Ca.P, 0.5, 10)), ici = Q20H.ici(c, Ca, 11, 0.5);
     const J = ici && c.joueur(ici, { face: Ca.P, geste: 'leve' });
     const main = c.chose(Q20_DESSINS.main_vapeur, c.haut(Ca.P, 1.0), { r: c.cap(Ca.P, ici || c.devant(Ca.P, a, 8)), s: 1.6 });
-    const brume = Q20H.emet(c.haut(Ca.P, 1.5), { n: 18, col: [0.92, 0.92, 0.92, 0.28], taille: 0.4, vie: 3.6, v: 0.6, vy: 0.4, r: 3.4 });
+    const brume = Q20H.emet(c.haut(Ca.P, 1.5), { n: 18, col: [0.94, 0.94, 0.94, 0.36], taille: 0.09, vie: 3.6, v: 0.6, vy: 0.4, r: 3.4 });
     return [
       c.plan({ dur: 6.6, cam: c.camLieu(Ca, { d: 14, haut: 1.8, dy: 2.6, a: ici ? c.cap(Ca.P, ici) + 0.25 : undefined, recul: 0.2 }), heure: c.heure('aube'), acteurs: [main, J], chaque: brume }),
       J && c.plan({ dur: 5.2, cam: c.camActeur(J, { cote: 0.6, d: 3.0, buste: true }), heure: c.heure('aube'), acteurs: [J, main], chaque: brume, son: 'murmure' }),
@@ -297,7 +297,7 @@ q20.scenes('chevalier_guet_2', {
     const moi2 = Q20H.seuil(c, 'chevalier_guet', { d: 1.2, vise: E.porte, geste: ['baisse', 'bras'] });
     return [
       c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 0.6, d: 2.6 }), acteurs: [moi], dit: ['Dimanche… Je resterai au fond. Merci.'], court: true }),
-      c.plan({ dur: 6, cam: c.camActeur(moi2, { cote: 2.6, d: 4.0, avec: E.porte, k: 0.3 }), heure: Math.max(c.h, 18.6), acteurs: [moi2], son: 'cloche', dit: ['Cinquante ans que je portais cette feuille. Elle pèse moins, d’un coup.'] }),
+      c.plan({ dur: 6, cam: c.camActeur(moi2, { cote: Math.PI + 0.3, d: 3.0, haut: 1.8 }), heure: Math.max(c.h, 18.6), acteurs: [moi2], son: 'cloche', dit: ['Cinquante ans que je portais cette feuille. Elle pèse moins, d’un coup.'] }),
     ];
   },
 });
@@ -533,7 +533,7 @@ q20.scenes('colporteur_2', {
     const J2 = c.joueur(de, { face: R.P, geste: 'raide' });
     return [
       c.plan({ dur: 6.4, cam: c.camChose(P, { d: 1.9, haut: 1.0, dy: 0.1, recul: 0.15 }), acteurs: [bols, J] }),
-      c.plan({ dur: 5.4, cam: c.camActeur(J2, { cote: 2.4, d: 4.2, avec: R.P, k: 0.5 }), acteurs: [J2], chaque: Q20H.emet(c.haut(de, 1.6), { n: 10, col: [0.95, 0.95, 0.98, 0.7], taille: 0.04, vie: 1.6, v: 2.2, vy: -0.4, r: 4 }) }),
+      c.plan({ dur: 5.4, cam: c.camActeur(J2, { cote: Math.PI + 0.3, d: 3.2, haut: 1.8 }), acteurs: [J2], chaque: Q20H.emet(c.haut(de, 1.6), { n: 10, col: [0.95, 0.95, 0.98, 0.7], taille: 0.04, vie: 1.6, v: 2.2, vy: -0.4, r: 4 }) }),
     ];
   },
   fin(c) {

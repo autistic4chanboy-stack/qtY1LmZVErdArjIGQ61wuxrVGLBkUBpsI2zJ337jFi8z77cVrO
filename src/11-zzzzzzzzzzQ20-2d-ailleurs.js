@@ -193,7 +193,9 @@ function q20Porte(c) {
   const V = q20Hautguet(), Pt = V && V.pts && V.pts.tour_dame;
   if (!Pt) return null;
   const ad = Pt.yaw + Math.PI, P = c.pt(Pt.x, Pt.z, Pt.y), porte = [Pt.x - Math.sin(ad) * 2.4, Pt.y, Pt.z - Math.cos(ad) * 2.4];
-  return { V, Pt, ad, P, porte, haut: V.dame ? [V.dame.x, V.dame.y + 1.4, V.dame.z] : c.haut(porte, 24) };
+  // (la nuit, un fil de chandelle sous la porte : elle ne dort pas)
+  const lum = [c.lueur(porte, 2.6, [1.0, 0.6, 0.28], 0.12), c.lueur(porte, 6, [0.24, 0.22, 0.26], 2.2)];
+  return { V, Pt, ad, P, porte, lum, haut: V.dame ? [V.dame.x, V.dame.y + 1.4, V.dame.z] : c.haut(porte, 24) };
 }
 q20.scenes('q16_dame_1', {
   qui: 'dame',
@@ -204,8 +206,8 @@ q20.scenes('q16_dame_1', {
     const nom = typeof Q16_PNJ !== 'undefined' ? q16.cap(Q16_PNJ.dame.nom) : 'Dame Ysolde';
     const J = c.joueur(D.P, { face: D.porte, geste: 'leve' });
     return [
-      c.plan({ dur: 6.4, cam: c.camActeur(J, { cote: 2.4, d: 3.6, avec: c.haut(D.porte, 1.2), k: 0.5 }), heure: c.heure('nuit'), acteurs: [J], son: 'murmure', dit: c.parole('Aude voulait voir la foire. Rapporte-moi quelque chose qui sente la foire.', nom, 1.2), court: true }),
-      c.plan({ dur: 6, cam: c.camRegard(Q20B.devant(c, D.P, D.ad, 3, 0.8), D.haut, { haut: 1.5, recul: 0.04 }), heure: c.heure('nuit'), acteurs: [J], dit: c.parole('Des fleurs nouées. Glisse-les sous la porte. Je ne dors pas. Je ne dors plus.', nom, 1.2) }),
+      c.plan({ dur: 6.4, cam: c.camActeur(J, { cote: 2.4, d: 3.6, avec: c.haut(D.porte, 1.2), k: 0.5 }), heure: c.heure('nuit'), acteurs: [J], lum: D.lum, son: 'murmure', dit: c.parole('Aude voulait voir la foire. Rapporte-moi quelque chose qui sente la foire.', nom, 1.2), court: true }),
+      c.plan({ dur: 6, cam: c.camChose(D.porte, { d: 2.0, haut: 0.95, dy: 0.2, a: D.ad + 0.35 }), heure: c.heure('nuit'), acteurs: [J], lum: D.lum, dit: c.parole('Des fleurs nouées. Glisse-les sous la porte. Je ne dors pas. Je ne dors plus.', nom, 1.2) }),
     ];
   },
   fin(c) {
@@ -217,8 +219,8 @@ q20.scenes('q16_dame_1', {
     const bj = c.chose(Q20_DESSINS.bijou, dedans, { vers: Q20B.devant(c, D.porte, D.ad, 0.7, -0.1), t0: 2.4, t1: 4.6, s: 1.6 });
     const J = c.joueur(Q20B.devant(c, D.porte, D.ad, 1.3, 0), { face: D.porte, geste: ['penche', { reach: 0.3 }] });
     return [
-      c.plan({ dur: 6.4, cam: c.camChose(seuil, { d: 1.7, haut: 0.95, dy: 0.05, a: D.ad + 0.6 }), heure: c.heure('nuit'), acteurs: [bq, J], dit: c.parole('Elle sent la foire.', nom, 1.2), court: true }),
-      c.plan({ dur: 6, cam: c.camChose(seuil, { d: 1.9, haut: 0.95, dy: 0.05, a: D.ad - 0.5 }), heure: c.heure('nuit'), acteurs: [bj, J], son: 'piece', dit: null }),
+      c.plan({ dur: 6.4, cam: c.camChose(seuil, { d: 1.7, haut: 0.95, dy: 0.05, a: D.ad + 0.6 }), heure: c.heure('nuit'), acteurs: [bq, J], lum: D.lum, dit: c.parole('Elle sent la foire.', nom, 1.2), court: true }),
+      c.plan({ dur: 6, cam: c.camChose(seuil, { d: 1.9, haut: 0.95, dy: 0.05, a: D.ad - 0.5 }), heure: c.heure('nuit'), acteurs: [bj, J], lum: D.lum, son: 'piece', dit: null }),
     ];
   },
 });
@@ -399,7 +401,7 @@ q20Sout('q16_sout_katr_1', 'katr', {
     eau[1] = SOUT_WL;
     return [
       c.plan({ dur: 6, cam: c.camActeur(K.A, { cote: 0.9, d: 2.4 }), acteurs: [K.A], lum: Q20BD.lum(c, K.P), son: 'eau', dit: c.parole('Gout… tsi.', K.nom, K.voix), court: true }),
-      c.plan({ dur: 6.2, cam: c.camRegard(K.P, eau, { haut: 1.4, recul: 0.04 }), acteurs: [K2.A], lum: Q20BD.lum(c, K.P), dit: c.parole('Kord ?', K.nom, K.voix) }),
+      c.plan({ dur: 6.2, cam: c.camActeur(K2.A, { cote: -0.6, d: 2.0, buste: true }), acteurs: [K2.A], lum: Q20BD.lum(c, K.P).concat([Q20B.froide(c, eau, 6, 0.4)]), dit: c.parole('Kord ?', K.nom, K.voix) }),
     ];
   },
   fin(c) {

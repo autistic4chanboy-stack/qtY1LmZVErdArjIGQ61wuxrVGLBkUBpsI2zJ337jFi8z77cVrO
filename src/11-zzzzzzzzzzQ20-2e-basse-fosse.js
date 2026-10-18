@@ -237,7 +237,7 @@ q20.scenes('q16_v5_veilleuse_1', {
     V2.A.regard = 'camera';
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(V.A, { cote: 1.1, d: 2.6, avec: V.F, k: 0.4 }), acteurs: [V.A, hu], lum: V.lum, dit: null }),
-      c.plan({ dur: 5.6, cam: c.camActeur(V2.A, { cote: 0.2, d: 2.0 }), acteurs: [V2.A], lum: V2.lum, dit: c.parole('Tu vois ? Ils n’en ont pas besoin. Merci quand même.', V.nom, 1.2), court: true }),
+      c.plan({ dur: 5.6, cam: c.camActeur(V2.A, { cote: 1.4, d: 2.1, buste: true }), acteurs: [V2.A], lum: V2.lum, dit: c.parole('Tu vois ? Ils n’en ont pas besoin. Merci quand même.', V.nom, 1.2), court: true }),
     ];
   },
 });
