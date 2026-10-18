@@ -37,7 +37,7 @@ q20.scenes('q20d_vg_seuil', {
     const J = c.joueur(JP, { face: Pi.pap || Pi.C, geste: 'baisse' });
     const le = c.chose(Q20D_DESSINS.lettre, c.haut(c.devant(J.P, J.cap, 0.32, 0.04, true), 1.05), { s: 1.4, r: J.cap });
     return [
-      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camLieu(Pi.C, { d: 17, haut: 2.6, dy: 1.6, a, recul: 0.08, stop: 1.2 }), () => c.camLieu(Pi.C, { d: 22, haut: 3.5, dy: 1.6, a: a + 1.2, stop: 1.2 })), acteurs: [], lum: Pi.lum, son: 'clochette', dit: c.parole('J’ai trouvé la pierre ronde. Elle chante quand il n’y a pas de lune.', Q20D_ANSELME), court: true }),
+      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camLieu(Pi.C, { d: 10, haut: 2.2, dy: 1.6, a, recul: 0.1, stop: 1.2 }), () => c.camLieu(Pi.C, { d: 13, haut: 2.8, dy: 1.6, a: a + 1.2, stop: 1.2 })), acteurs: [], lum: Pi.lum, son: 'clochette', dit: c.parole('J’ai trouvé la pierre ronde. Elle chante quand il n’y a pas de lune.', Q20D_ANSELME), court: true }),
       c.plan({ dur: 6.2, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 1.2, d: 2.2, buste: true, avec: le.P, k: 0.25 }), () => c.camActeur(J, { cote: -1.2, d: 2.4, buste: true })), acteurs: [J, le], lum: Pi.lum, son: 'page', dit: c.parole('On n’y va qu’une fois : ça se sent.', Q20D_ANSELME) }),
     ];
   },
@@ -48,7 +48,7 @@ q20.scenes('q20d_vg_seuil', {
     const lum = [c.lueur(anneau, 8, [0.35, 0.6, 1.1], 0), c.lueur(vgCite.pos(-6, 0, -12), 5, [0.3, 0.5, 0.95], 1.4)];
     const cou = vgCite.pos(0, 1.6, 5), nef = vgCite.pos(0, 6, 60);
     return [
-      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.4, d: 3.2, avec: anneau, k: 0.45 }), () => c.camActeur(J, { cote: -2.4, d: 3.2, avec: anneau, k: 0.45 }), () => c.camChose(anneau, { d: 5, haut: 1.8, a: 0, dy: 0 })), acteurs: [J], lum, son: 'clochette' }),
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 0.25, d: 4.2, haut: 1.7, avec: anneau, k: 0.3, recul: 0.06 }), () => c.camActeur(J, { cote: -0.35, d: 3.6, haut: 1.7, avec: anneau, k: 0.3 }), () => c.camChose(anneau, { d: 6, haut: 1.8, a: 0, dy: 0 })), acteurs: [J], lum, son: 'clochette' }),
       c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camRegard(cou, nef, { haut: 1.6, recul: 0.12 }), () => c.camLieu(nef, { d: 30, haut: 3, dy: 0, a: Math.PI, stop: 4 })), acteurs: [Object.assign({}, J, { vu: false })], lum: [c.lueur(cou, 6, [0.25, 0.4, 0.8], 1)] }),
     ];
   },
@@ -71,7 +71,7 @@ q20.scenes('q20d_vg_seuil', {
       const JP = c.devant(Pi.C, Pi.P.r, 1.0), J = c.joueur(JP, { cap: Pi.P.r, geste: ['assis', 'baisse'] });
       return [
         c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 0.6, d: 2.4, haut: 1.2 }), () => c.camActeur(J, { cote: -0.7, d: 2.6, haut: 1.2 })), acteurs: [J], son: 'murmure', dit: c.parole('Au revoir. Dites-leur, en bas… Non. Ne leur dites rien.', 'La veilleuse', 1.3), court: true }),
-        c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camLieu(Pi.C, { d: 14, haut: 3, dy: 1.4, a: Pi.P.r + 0.5, recul: 0.06, stop: 1 }), () => c.camLieu(Pi.C, { d: 18, haut: 4, dy: 1.4, stop: 1 })), acteurs: [Object.assign({}, J, { vu: false })], dit: c.parole('(La pierre est froide.)', '') }),
+        c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camLieu(Pi.C, { d: 8, haut: 2.2, dy: 1.4, a: Pi.P.r + 0.5, recul: 0.08, stop: 1 }), () => c.camLieu(Pi.C, { d: 10, haut: 2.6, dy: 1.4, a: Pi.P.r - 0.6, stop: 1 }), () => c.camLieu(Pi.C, { d: 14, haut: 4, dy: 1.4, stop: 1 })), acteurs: [Object.assign({}, J, { vu: false })], dit: c.parole('(La pierre est froide.)', '') }),
       ];
     },
   },
@@ -116,7 +116,7 @@ q20.scenes('q20d_vg_coeur', {
     if (!K) return null;
     const J = c.joueur(Q20B.libre(c, Q20B.devant(c, K.pu, Math.PI, 0.9, 0), 0, 1, 0.35), { face: K.haut, geste: 'leve' });
     return [
-      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.5, d: 3.2, avec: c.haut(K.C, 1.8), k: 0.25, recul: 0.05 }), () => c.camActeur(J, { cote: -2.5, d: 3.2, avec: c.haut(K.C, 1.8), k: 0.25, recul: 0.05 })), acteurs: [J], lum: K.blanc, son: 'grondement' }),
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.5, d: 3.2, avec: c.haut(K.C, 1.8), k: 0.25, recul: 0 }), () => c.camActeur(J, { cote: -2.5, d: 3.2, avec: c.haut(K.C, 1.8), k: 0.25, recul: 0 })), acteurs: [J], lum: K.blanc, son: 'grondement' }),
       c.plan({ dur: 6.2, cam: Q20D.cam(c, () => c.camRegard(K.nef, K.ciel, { haut: 1.4, recul: 0.05 }), () => c.camLieu(K.nef, { d: 20, haut: 4, dy: 2, stop: 3 })), acteurs: [Object.assign({}, J, { vu: false })], lum: [c.lueur(K.nef, 16, [0.7, 0.8, 1.0], 4)], dit: c.parole('Les fenêtres s’allument, là-bas, dans les tours. Elles aussi avaient oublié.', Q20D_VEILLEUSE(), 1.3) }),
     ];
   },

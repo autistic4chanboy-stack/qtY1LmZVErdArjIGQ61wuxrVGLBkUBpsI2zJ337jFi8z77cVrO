@@ -82,6 +82,13 @@ function q20dE(titre, Q, actif, fini, choix, pret) { return { q: { title: titre 
   });
 }
 
+// (sous terre, dans une galerie ou une salle étroite, les caméras des scènes du lot gardent 0,6 m de libre autour d'elles :
+// une poutre, un linteau, un pan de cabane collé à l'objectif bouchent l'image sans couper le regard)
+{
+  const _ls = Q20Scene.prototype.libreSous;
+  if (_ls) Q20Scene.prototype.libreSous = function (L, P) { if (this.id && this.id.startsWith('q20d_') && qtDansBloc(L, P, 0.6)) return false; return _ls.call(this, L, P); };
+}
+
 // ---------------------------------------------------------------- de petits objets (dans le repère de la chose)
 const Q20D_DESSINS = {
   // une clé noire, courte (la poterne) ; une clé ouvragée (la sacristie) ; la grande clé du donjon ; la petite clé de la tour
