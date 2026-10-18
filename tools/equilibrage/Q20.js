@@ -167,6 +167,9 @@ module.exports = {
             for (let k = 0; k < (m === 'tournant' && q && q.type === 'trouver' ? 5 : 1); k++) essais.push([m, k ? (k % 2 ? 22.6 : 10.5) : h, court]);
           }
           for (const [m, h, court] of essais) {
+            // (un moment qui se joue ailleurs — sous terre, au Dessous, dans la Zone : def.monde — est vérifié dans son monde
+            // par Q20B.js ; sa caméra n'a pas à passer les contrôles de la vallée)
+            if (q20.horsVallee && q20.horsVallee(id, m)) continue;
             // l'état de la quête au moment : en cours (l'objet caché posé), ou finie
             farm.s.quests = {};
             if (q && quests.byId(id)) {
@@ -210,6 +213,19 @@ module.exports = {
                 const X = sc.ctx.objetDevant(cams[0], [Ch.P[0], Ch.P[1] + 0.1, Ch.P[2]], qtProps(w, Ch.P[0], Ch.P[2], 12));
                 if (X) e.push(id + ' ' + m + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : un objet posé (' + X.id + ') devant la chose montrée');
               }
+              // (celui sur qui est la caméra — camActeur — dans le champ, au début et à la fin du plan : 66° de large, 46° de haut,
+              // moins que l'angle de vue le plus étroit des Options)
+              const Ci = P._q20.cible;
+              if (Ci && Ci.vu !== false && P.de && P.a) {
+                r.cibles = (r.cibles || 0) + 1;
+                const Q = Ci.vers || Ci.P, s = Ci.s || 1, tete = [Q[0], Q[1] + 1.45 * s * (JSON.stringify(Ci.geste || '').includes('assis') ? 0.72 : 1), Q[2]];
+                for (const K of [P.de, P.a]) {
+                  if (!fini(K.pos) || !fini(K.look)) continue;
+                  const v = [K.look[0] - K.pos[0], K.look[1] - K.pos[1], K.look[2] - K.pos[2]], u = [tete[0] - K.pos[0], tete[1] - K.pos[1], tete[2] - K.pos[2]];
+                  const dyaw = Math.abs(angDiff(Math.atan2(v[0], v[2]), Math.atan2(u[0], u[2]))), dpit = Math.abs(Math.atan2(v[1], Math.hypot(v[0], v[2])) - Math.atan2(u[1], Math.hypot(u[0], u[2])));
+                  if (dyaw > 0.58 || dpit > 0.4) { e.push(id + ' ' + m + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : ' + (Ci.id || (Ci.joueur ? 'le joueur' : 'la personne')) + ' hors du champ (' + Math.round(dyaw * 57.3) + '° de côté, ' + Math.round(dpit * 57.3) + '° en hauteur)'); break; }
+                }
+              }
               // la personne qu'on montre se voit (la première du plan qu'il faut voir)
               const A = P._q20.acteurs.find((x) => x.k === 'h' && x.vu !== false);
               if (A && cams.length && fini(cams[0])) {
@@ -231,7 +247,7 @@ module.exports = {
         return JSON.stringify({ e, r });
       })()`));
       const R = L.r;
-      log(`vallée ${graine} : ${R.n} scènes construites (${R.plans} plans : ${R.dedans} dedans, ${R.toit} sous un toit sans bâtiment) en ${(R.t / 1000).toFixed(1)} s (la plus lente ${R.tmax} ms : ${R.lent}) ; durées ${R.durees[0].toFixed(1)}–${R.durees[1].toFixed(1)} s, en court ${R.courtes[0].toFixed(1)}–${R.courtes[1].toFixed(1)} s`);
+      log(`vallée ${graine} : ${R.n} scènes construites (${R.plans} plans : ${R.dedans} dedans, ${R.toit} sous un toit sans bâtiment, ${R.cibles || 0} sur quelqu'un, qui est dans le champ) en ${(R.t / 1000).toFixed(1)} s (la plus lente ${R.tmax} ms : ${R.lent}) ; durées ${R.durees[0].toFixed(1)}–${R.durees[1].toFixed(1)} s, en court ${R.courtes[0].toFixed(1)}–${R.courtes[1].toFixed(1)} s`);
       const vus = new Set();
       for (const m of L.e) { const k = m.replace(/\\(\\d+(\\.\\d+)? h[^)]*\\)/, ''); if (vus.has(k)) continue; vus.add(k); ko(`vallée ${graine} : ${m}`); }
     }
