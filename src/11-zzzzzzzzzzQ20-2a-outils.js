@@ -284,7 +284,8 @@ Object.assign(Q20Scene.prototype, {
   solSous(x, z, y) {
     const w = this.w;
     if (this.monde === 'dessous' && typeof souterrain !== 'undefined') return souterrain.floorAt(x, z);
-    if (y !== undefined && this.sous && y < w.heightAt(x, z) - 2) { const g = w.groundAt(x, z, y + 0.6, 0.9); return g > -1e8 ? g : y; }
+    // (le plus haut dessus de bloc à moins de 0,6 m au-dessus de y : le sol d'une cave basse, pas sa voûte)
+    if (y !== undefined && this.sous && y < w.heightAt(x, z) - 2) { const g = w.groundAt(x, z, y + 0.3, 0.3); return g > -1e8 ? g : y; }
     return this.sol(x, z, y);
   },
   ptSous(x, z, y) { return [x, this.solSous(x, z, y), z]; },
@@ -328,12 +329,14 @@ Object.assign(Q20Scene.prototype, {
     o = o || {};
     const L = this.blocs(T, d * 1.6 + 12), n = o.n || 36, pas = o.pas || TAU / 36;
     const Ds = o.ds || [d, d * 0.82, d * 1.22, d * 0.66, d * 1.5, d * 0.5];
+    // (le sol sous la cible, puis, autour, le sol à hauteur de pas de celui-là)
+    const f0 = this.solSous(T[0], T[2], T[1]);
     for (const hh of [haut, Math.max(1.1, haut * 0.7), haut * 1.35]) {
       for (let k = 0; k < n; k++) {
         const a = a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * pas;
         for (const dd of Ds) {
           const x = T[0] + Math.sin(a) * dd, z = T[2] + Math.cos(a) * dd;
-          const P = [x, this.solSous(x, z, T[1] + 0.4) + hh, z];
+          const P = [x, this.solSous(x, z, f0 + 0.5) + hh, z];
           try {
             if (!this.libreSous(L, P) || !this.voitSous(L, P, T, o.stop ?? 0.35)) continue;
             if (o.aussi && !o.aussi.every((Q) => this.voitSous(L, P, Q, 0.35))) continue;
@@ -366,6 +369,24 @@ Object.assign(Q20Scene.prototype, {
     if (!ok) return this.camLieu(T, { d: o.d || 8, haut: 1.6 });
     const Q2 = this.glisse(Q, T, { recul: o.recul ?? 0.06, monte: o.monte });
     return { de: { pos: Q, look: T }, a: { pos: Q2, look: o.vise2 || T }, dedans: null, vise: [], toit: true };
+  };
+  // les lumières d'un plan sous terre : pas de lune ; une lueur sur ce qu'on montre (la chandelle, la pierre qui luit,
+  // le feu de la forge : la couleur du monde) et une douce derrière la caméra ; les lanternes tenues, et le reste
+  const _lu = Q20Scene.prototype.lumieres;
+  const Q20B_TEINTES = { dessous: [[0.34, 0.56, 0.44], [0.14, 0.2, 0.17]], vaisseau: [[0.42, 0.56, 0.86], [0.16, 0.2, 0.28]], gobeliniere: [[0.82, 0.56, 0.3], [0.22, 0.17, 0.12]], nains: [[0.62, 0.66, 0.82], [0.2, 0.2, 0.24]] };
+  Q20Scene.prototype.lumieres = function (h, cam, acteurs, extra) {
+    if (!this.sous || cam.dedans) return _lu.call(this, h, cam, acteurs, extra);
+    const T = (cam.vise && cam.vise[0]) || (cam.de && cam.de.look) || (cam.chemin && cam.chemin[0].look);
+    const Pc = (cam.de && cam.de.pos) || (cam.chemin && cam.chemin[0].pos);
+    const [cA, cB] = Q20B_TEINTES[this.monde] || [[0.86, 0.6, 0.34], [0.24, 0.19, 0.14]];
+    const out = [];
+    if (T) out.push({ x: T[0], y: T[1] + 0.7, z: T[2], r: 4.6, c: cA, d: 0 });
+    if (Pc) out.push({ x: Pc[0], y: Pc[1] + 0.3, z: Pc[2], r: 5, c: cB, d: 0 });
+    for (const A of acteurs || []) if (A.lanterne || A.main === 'lanterne' || (A.look && A.look.held === 'lanterne' && A.tient !== false)) {
+      const P = A.vers || A.P;
+      out.push({ x: P[0], y: P[1] + 1.25, z: P[2], r: 7, c: [1.0, 0.72, 0.38], d: 0 });
+    }
+    return out.concat((extra || []).filter(Boolean));
   };
   Q20Scene.prototype.camChemin = function (cles, o) {
     if (!this.sous) return _cc.call(this, cles, o);

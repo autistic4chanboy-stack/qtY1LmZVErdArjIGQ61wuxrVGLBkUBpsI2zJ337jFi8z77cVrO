@@ -108,7 +108,7 @@ globalThis.__q20Bscenes = function (w, ids, mondes) {
           B[0] = Math.min(B[0], sc.duree); B[1] = Math.max(B[1], sc.duree);
           const [d0, d1] = court ? Q20_REGL.court : Q20_REGL.duree;
           if (sc.duree < d0 - 0.01 || sc.duree > d1 + 0.01) e.push(id + ' ' + m + (court ? ' (court)' : '') + ' : ' + sc.duree.toFixed(1) + ' s');
-          if (sc.repli) e.push(id + ' ' + m + ' (' + h + ' h) : ' + sc.repli + ' cadrage(s) de repli');
+          if (sc.repli) e.push(id + ' ' + m + ' (' + h + ' h) : ' + sc.repli + ' cadrage(s) de repli (plans ' + sc.plans.map((P, i) => (P._q20 && P._q20.repli ? i : -1)).filter((i) => i >= 0).join(', ') + ')' + (q16.def(id) && q16.def(id).title ? ' — ' + q16.def(id).title : ''));
           const vrais = sc.plans.filter((P) => P._q20);
           if (!court && vrais.length < 2) e.push(id + ' ' + m + ' : ' + vrais.length + ' plan');
           if (vrais.length && !vrais.some((P) => P.texte) && m !== 'tournant') e.push(id + ' ' + m + ' : pas une réplique');
@@ -129,7 +129,7 @@ globalThis.__q20Bscenes = function (w, ids, mondes) {
             const A = P._q20.acteurs.find((x) => x.k === 'h' && x.vu !== false);
             if (A && cams.length && fini(cams[0])) {
               const s = A.s || 1, Q = A.vers || A.P;
-              const tete = [Q[0], Q[1] + 1.45 * s * (JSON.stringify(A.geste || '').includes('assis') ? 0.72 : 1), Q[2]], buste = [Q[0], Q[1] + 1.0 * s, Q[2]];
+              const tete = [Q[0], Q[1] + 1.45 * s * (String(JSON.stringify(A.geste || '') || '').includes('assis') ? 0.72 : 1), Q[2]], buste = [Q[0], Q[1] + 1.0 * s, Q[2]];
               if (!__q20Bvoit(w, cams[0], tete, D) && !__q20Bvoit(w, cams[0], buste, D)) e.push(id + ' ' + m + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : ' + (A.id || A.cle || (A.joueur ? 'le joueur' : 'la personne')) + ' caché(e) de la caméra');
             }
           }
@@ -184,10 +184,26 @@ module.exports = {
     for (const m of D.e) ko(m);
     const ids = D.ids.filter((id) => !filtre || filtre.includes(id));
 
-    // ---------------------------------------------------------------- dans la vallée (dehors, sous terre, au Dessous)
+    // ---------------------------------------------------------------- les mondes, chacun construit comme en jeu
+    const rapport = (titre, L) => {
+      const R = L.r;
+      log(`${titre} : ${R.n} scènes construites (${R.plans} plans : ${R.dedans} dedans, ${R.sous} sous terre ; moments ${Object.entries(R.mondes).map(([k, n]) => k + ' ' + n).join(', ') || 'aucun'}) en ${(R.t / 1000).toFixed(1)} s (la plus lente ${R.tmax} ms : ${R.lent}) ; durées ${R.n ? R.durees[0].toFixed(1) + '–' + R.durees[1].toFixed(1) : '-'} s, en court ${R.n ? R.courtes[0].toFixed(1) + '–' + R.courtes[1].toFixed(1) : '-'} s`);
+      const vus = new Set();
+      for (const m of L.e) { const k = m.replace(/\(\d+(\.\d+)? h[^)]*\)/, ''); if (vus.has(k)) continue; vus.add(k); ko(`${titre} : ${m}`); }
+    };
+    // (deux résultats en un)
+    J.ev(`globalThis.__q20Bjoindre = function (a, b) {
+      a.e.push(...b.e); for (const k of ['n', 'plans', 't', 'dedans', 'sous']) a.r[k] += b.r[k];
+      for (const k in b.r.mondes) a.r.mondes[k] = (a.r.mondes[k] || 0) + b.r.mondes[k];
+      if (b.r.tmax > a.r.tmax) { a.r.tmax = b.r.tmax; a.r.lent = b.r.lent; }
+      a.r.durees = [Math.min(a.r.durees[0], b.r.durees[0]), Math.max(a.r.durees[1], b.r.durees[1])];
+      a.r.courtes = [Math.min(a.r.courtes[0], b.r.courtes[0]), Math.max(a.r.courtes[1], b.r.courtes[1])];
+      return a;
+    };`);
     for (const graine of graines) {
       const w = await vallee(J, graine);
       J.ctx.__w = w;
+      // la vallée : dehors, sous terre (les nains, la cave des Murés, la Gobelinière), le Dessous ; puis la cité, les bonbons
       const L = JSON.parse(J.avec({ ids }, `(() => {
         const w = __w;
         __q20Bbanc(${graine}, w);
@@ -195,20 +211,47 @@ module.exports = {
         const ver0 = w.curVer;
         try {
           const a = __q20Bscenes(w, __v.ids, ['vallee', 'nains', 'cave', 'gobeliniere']);
-          // (au Dessous : ce qui n'existe que dessous existe)
+          // (au Dessous : ce qui n'existe que dessous existe, et ceux d'en bas sont à leur place)
           w.curVer |= VER_SOUS;
-          const b = __q20Bscenes(w, __v.ids, ['dessous']);
-          a.e.push(...b.e); for (const k of ['n', 'plans', 't', 'dedans', 'sous']) a.r[k] += b.r[k];
-          Object.assign(a.r.mondes, b.r.mondes);
-          a.r.durees = [Math.min(a.r.durees[0], b.r.durees[0]), Math.max(a.r.durees[1], b.r.durees[1])];
-          a.r.courtes = [Math.min(a.r.courtes[0], b.r.courtes[0]), Math.max(a.r.courtes[1], b.r.courtes[1])];
+          try { soutTerres.construire(); } catch (er) { a.e.push('le Dessous : ' + er.message); }
+          __q20Bjoindre(a, __q20Bscenes(w, __v.ids, ['dessous']));
+          w.curVer = ver0;
+          // la cité (bâtie très bas sous la lisière est, comme quand on y entre)
+          try { vgCite.maisons = []; vgCite.machines = {}; vgCite.choses = {}; vgCite.batir(); vgCite.peupler(); mondes.cur = 'vaisseau'; __q20Bjoindre(a, __q20Bscenes(w, __v.ids, ['vaisseau'])); }
+          catch (er) { a.e.push('la cité : ' + er.message); }
+          // le pays des bonbons (dressé autour du joueur, à la ferme)
+          try { mondes.cur = null; MONDES.bonbons.entrer({ pilule: true }); mondes.cur = 'bonbons'; __q20Bjoindre(a, __q20Bscenes(w, __v.ids, ['bonbons'])); }
+          catch (er) { a.e.push('les bonbons : ' + er.message); }
           return JSON.stringify(a);
-        } finally { Math.random = rnd0; w.curVer = ver0; farm.s = null; }
+        } finally { Math.random = rnd0; w.curVer = ver0; mondes.cur = null; farm.s = null; }
       })()`));
-      const R = L.r;
-      log(`vallée ${graine} : ${R.n} scènes construites (${R.plans} plans : ${R.dedans} dedans, ${R.sous} sous terre ; moments ${Object.entries(R.mondes).map(([k, n]) => k + ' ' + n).join(', ')}) en ${(R.t / 1000).toFixed(1)} s (la plus lente ${R.tmax} ms : ${R.lent}) ; durées ${R.durees[0].toFixed(1)}–${R.durees[1].toFixed(1)} s, en court ${R.courtes[0].toFixed(1)}–${R.courtes[1].toFixed(1)} s`);
-      const vus = new Set();
-      for (const m of L.e) { const k = m.replace(/\(\d+(\.\d+)? h[^)]*\)/, ''); if (vus.has(k)) continue; vus.add(k); ko(`vallée ${graine} : ${m}`); }
+      rapport(`vallée ${graine}`, L);
+      // la Zone : Basse-Fosse et Hautguet ; chaque modèle de Basse-Fosse, joué par une personne tirée
+      J.ev(`__q20Bbanc(${graine}, __w);`);
+      const Z = await J.ev('zoneGen.generer(zone.graine(), () => {})');
+      J.ctx.__Z = Z;
+      const LZ = JSON.parse(J.avec({ ids }, `(() => {
+        const Z = __Z;
+        const rnd0 = Math.random; Math.random = mulberry32(${graine} ^ 0x2053);
+        try {
+          zone.Z = Z; game.world = Z; habitantsV5.cle = null; habitantsV5.creer();
+          const T = Z.v5 && Z.v5.temple;
+          if (T) game.player.pos = [T.f.x, Z.v5.F, T.f.z];
+          const a = __q20Bscenes(Z, __v.ids, ['basse_fosse', 'hautguet']);
+          a.modeles = 0;
+          for (const role in Q16_V5_MODELES) Q16_V5_MODELES[role].forEach((M, i) => {
+            const A = Q16_V5_ANONYMES.find((q) => q.role === role);
+            const G = q16.generer(), k = 'v5:' + A.id;
+            G[k].quetes[0] = Object.assign({}, M, { id: 'q16_v5_' + A.id });
+            q16._idx = null; q20BV5.majDefs();
+            a.modeles++;
+            __q20Bjoindre(a, __q20Bscenes(Z, ['q16_v5_' + A.id], ['basse_fosse']));
+          });
+          q16._gen = null; q16._idx = null;
+          return JSON.stringify(a);
+        } finally { Math.random = rnd0; zone.Z = null; game.world = __w; farm.s = null; }
+      })()`));
+      rapport(`Zone ${graine} (${LZ.modeles} modèles de Basse-Fosse)`, LZ);
     }
     return { echecs };
   },
