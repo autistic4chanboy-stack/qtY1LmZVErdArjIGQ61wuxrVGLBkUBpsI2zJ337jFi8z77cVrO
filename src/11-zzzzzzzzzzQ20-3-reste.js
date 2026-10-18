@@ -588,7 +588,7 @@ q20.scenes('estive_patre_1', {
     const Pl = c.lieu('place');
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.6, d: 2.2 }), acteurs: [moi], heure: Math.max(c.h, 17.8), dit: ['Rapportez-moi quelque chose d’en bas ! Une image, avec des couleurs. Et de la confiture.'], court: true }),
-      c.plan({ dur: 5.8, cam: P0 && Pl ? c.camRegard(c.devant(P0, c.cap(P0, Pl.P), -1.5), c.haut(Pl.P, 4), { haut: 1.3 }) : c.camLieu(Pl, { d: 60, haut: 12 }), acteurs: [moi], heure: 17.7, dit: ['Je n’en ai mangé qu’une fois. Je garderai l’image au-dessus de ma paillasse.'] }),
+      c.plan({ dur: 5.8, cam: P0 && Pl ? c.camRegard(c.devant(P0, c.cap(P0, Pl.P), -1.2, 1.3), c.haut(Pl.P, 4), { haut: 1.5 }) : c.camLieu(Pl, { d: 60, haut: 12 }), acteurs: [moi], heure: 17.7, dit: ['Je n’en ai mangé qu’une fois. Je garderai l’image au-dessus de ma paillasse.'] }),
     ];
   },
   fin(c) {
