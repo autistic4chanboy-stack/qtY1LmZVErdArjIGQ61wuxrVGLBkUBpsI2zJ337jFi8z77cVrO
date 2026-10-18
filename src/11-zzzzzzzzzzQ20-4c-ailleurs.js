@@ -60,7 +60,7 @@ q20.scenes('q20d_vg_seuil', {
       const J = c.joueur(Pi.devant, { face: Pi.C, geste: 'baisse' });
       const T = c.w.townInfo || c.w.lm.place || null, loin = T ? c.pt(T.x, T.z) : c.devant(Pi.C, Pi.P.r, 300);
       return [
-        c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.2, d: 3.0, avec: Pi.haut, k: 0.45 }), () => c.camActeur(J, { cote: -2.2, d: 3.2, avec: Pi.haut, k: 0.45 })), acteurs: [J], son: 'grondement', dit: c.parole('J’ai laissé la place à un autre.', Q20D_ANSELME), court: true }),
+        c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.2, d: 3.0, avec: Pi.haut, k: 0.3 }), () => c.camActeur(J, { cote: -2.2, d: 3.2, avec: Pi.haut, k: 0.3 })), acteurs: [J], son: 'grondement', dit: c.parole('J’ai laissé la place à un autre.', Q20D_ANSELME), court: true }),
         c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camRegard(c.devant(Pi.devant, Pi.P.r, 1.5), c.haut(loin, 30), { haut: 1.6, recul: 0.04 }), () => c.camLieu(Pi.C, { d: 30, haut: 6, dy: 1 })), acteurs: [Object.assign({}, J, { vu: false })] }),
       ];
     },
@@ -127,7 +127,7 @@ q20.scenes('q20d_vg_coeur', {
       if (!K) return null;
       const J = c.joueur(Q20B.libre(c, Q20B.devant(c, K.pu, Math.PI, 0.9, 0), 0, 1, 0.35), { face: K.pu, geste: 'baisse' });
       return [
-        c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.2, d: 3.0, avec: c.haut(K.C, 1.6), k: 0.22, recul: 0.05 }), () => c.camActeur(J, { cote: -2.2, d: 3.0, avec: c.haut(K.C, 1.6), k: 0.22, recul: 0.05 })), acteurs: [J], lum: [K.braise, c.lueur(K.pu, 3, [0.3, 0.45, 0.9], 1.2)], dit: c.parole('Merci. Elle n’a pas eu le temps de regarder.', Q20D_VEILLEUSE(), 1.3), court: true }),
+        c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.2, d: 3.0, avec: c.haut(K.C, 1.6), k: 0.15, recul: 0 }), () => c.camActeur(J, { cote: -2.2, d: 3.0, avec: c.haut(K.C, 1.6), k: 0.15, recul: 0 })), acteurs: [J], lum: [K.braise, c.lueur(K.pu, 3, [0.3, 0.45, 0.9], 1.2)], dit: c.parole('Merci. Elle n’a pas eu le temps de regarder.', Q20D_VEILLEUSE(), 1.3), court: true }),
         c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camLieu(K.haut, { d: 14, haut: 2.4, dy: 0, a: Math.PI + 0.9, recul: 0.06, stop: 2.5 }), () => c.camLieu(K.haut, { d: 10, haut: 2, dy: 0, stop: 2.5 })), acteurs: [Object.assign({}, J, { vu: false })], lum: [K.braise], son: 'murmure' }),
       ];
     },
@@ -199,7 +199,7 @@ q20.scenes('q20d_z_tertres', {
       const J = c.joueur(Q20B.libre(c, c.vers(so, roi, 0.45), 0, 0.8, 0.3), { face: roi, geste: 'baisse', lanterne: true });
       const lum = [Q20D.flamme(c, J.P, 5, 1.3)];
       return [
-        c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 1.5, d: 2.0, avec: c.haut(roi, 0.9), k: 0.5 }), () => c.camActeur(J, { cote: -1.5, d: 2.0, avec: c.haut(roi, 0.9), k: 0.5 })), acteurs: [J], lum, son: 'murmure' }),
+        c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 1.5, d: 2.0, avec: c.haut(roi, 0.9), k: 0.35 }), () => c.camActeur(J, { cote: -1.5, d: 2.0, avec: c.haut(roi, 0.9), k: 0.35 })), acteurs: [J], lum, son: 'murmure' }),
         c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camChose(lit, { d: 1.5, haut: 1.75, a: c.cap(roi, so) + 0.6, dy: 0 }), () => c.camChose(lit, { d: 1.8, haut: 1.8, a: c.cap(roi, so) - 0.6, dy: 0 })), acteurs: [Object.assign({}, J, { vu: false })], lum, dit: c.parole('(Sur un lit de pierre, des os, et ce qu’on avait enterré avec lui.)', '') }),
       ];
     });

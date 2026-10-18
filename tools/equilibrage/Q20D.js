@@ -186,6 +186,15 @@ globalThis.__q20Dscenes = function (w, ids, mondes, variantes) {
             if (!K || !fini(K.pos) || !fini(K.look) || !fini(Q2)) continue;
             const s = S.s || 1, dans = (y) => __q20Dcadre(K.pos, K.look, [Q2[0], Q2[1] + y * s, Q2[2]]);
             if (!dans(1.45) && !dans(1.0) && !dans(0.6)) { e.push(nom + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : ' + (S.id || S.cle || (S.joueur ? 'le joueur' : 'la personne')) + ' hors du cadre' + (K === P.a ? ' (à la fin)' : '')); break; }
+            // (comme l'essai Q20 de la vallée : la tête dans le champ, au début et à la fin — 66° de large, 46° de haut)
+            if (S.vu !== false) {
+              const tete = [Q2[0], Q2[1] + 1.45 * s * (String(JSON.stringify(S.geste || '') || '').includes('assis') ? 0.72 : 1), Q2[2]];
+              const v = [K.look[0] - K.pos[0], K.look[1] - K.pos[1], K.look[2] - K.pos[2]], u = [tete[0] - K.pos[0], tete[1] - K.pos[1], tete[2] - K.pos[2]];
+              let da = Math.atan2(v[0], v[2]) - Math.atan2(u[0], u[2]);
+              while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
+              const dp = Math.atan2(v[1], Math.hypot(v[0], v[2])) - Math.atan2(u[1], Math.hypot(u[0], u[2]));
+              if (Math.abs(da) > 0.58 || Math.abs(dp) > 0.4) { e.push(nom + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : ' + (S.id || S.cle || (S.joueur ? 'le joueur' : 'la personne')) + ' hors du champ (' + Math.round(Math.abs(da) * 57.3) + '° de côté, ' + Math.round(Math.abs(dp) * 57.3) + '° en hauteur)' + (K === P.a ? ' (à la fin)' : '')); break; }
+            }
           }
         }
       }
