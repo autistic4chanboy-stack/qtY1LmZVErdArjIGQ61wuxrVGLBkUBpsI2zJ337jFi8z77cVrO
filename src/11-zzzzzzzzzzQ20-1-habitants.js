@@ -612,7 +612,7 @@ q20.scenes('aubergiste_2', {
     const fr = moi2 && c.chose(Q20_DESSINS.fromage, c.haut(c.devant(moi2.P, moi2.cap, 0.45, 0.1, true), 1.0));
     return [
       c.plan({ dur: 5.8, cam: c.camActeur(moi, { cote: 0.5, d: 2.0, buste: true }), acteurs: [moi, verre], dit: ['Le goût du lac ! Le goût du lac !'], court: true }),
-      c.plan({ dur: 6, cam: c.camActeur(moi2, { cote: -0.3, d: 2.2 }), acteurs: [moi2, fr, Q20H.face(c, moi2, 1.4, 0.2)], dit: ['Bon. Il n’a peut-être pas tout à fait tort. Tenez, un fromage. Et pas un mot.'] }),
+      c.plan({ dur: 6, cam: c.camActeur(moi2, { cote: -0.75, d: 2.6 }), acteurs: [moi2, fr, Q20H.face(c, moi2, 1.3, 0.55)], dit: ['Bon. Il n’a peut-être pas tout à fait tort. Tenez, un fromage. Et pas un mot.'] }),
     ];
   },
 });
@@ -885,28 +885,32 @@ function q20Pont(c, cle) {
 function q20SurPont(c, Po, avance) {
   const ax = Po.s > 0 ? 0 : Math.PI;
   if (!Po.br.up) { const P = c.devant([Po.G.x, Po.br.y || c.w.waterLevel + 2, Po.G.z], ax, avance || 2.6, 0.7, true); P[1] = c.w.groundAt(P[0], P[2], (Po.br.y || 6) + 0.6, 0.8); if (P[1] > c.w.waterLevel + 0.5) return P; }
-  return c.devant(Po.porte, ax + Math.PI, 1.2, 0.8);
+  const P = c.devant(Po.porte, ax + Math.PI, 1.2, 0.8);
+  P.leve = true;
+  return P;
 }
 q20.scenes('garde_1', {
   qui: 'garde',
   demande(c) {
     const Po = q20Pont(c, 'pont_nord');
     if (!Po) return null;
+    // (sur le tablier, tourné vers le dehors : on le voit depuis le pont, la porte de la ville derrière lui ; le pont
+    // levé, devant la porte, tourné vers la ville)
     const P0 = q20SurPont(c, Po, 2.8), ax = Po.s > 0 ? 0 : Math.PI;
-    const moi = c.habitant('garde', P0, { cap: ax, geste: ['penche', 'montre'] });
+    const moi = c.habitant('garde', P0, { cap: P0.leve ? ax + Math.PI : ax, geste: ['penche', 'montre'] });
     return [
-      c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 1.2, d: 3.0 }), acteurs: [moi], dit: ['Le tablier du pont nord a des planches pourries. Grignotées. Par en dessous.'], court: true }),
-      c.plan({ dur: 6, cam: c.camLieu(Po.milieu, { d: 8, haut: 5.5, dy: -0.4, a: ax + Math.PI / 2 + 0.5, recul: 0.1 }), son: 'eau', dit: ['Vingt brassées de bois, deux lingots de fer. Et faites vite. Je n’aime pas penser à ce qui grignote.'] }),
+      c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.35, d: 3.4 }), acteurs: [moi], dit: ['Le tablier du pont nord a des planches pourries. Grignotées. Par en dessous.'], court: true }),
+      c.plan({ dur: 6, cam: c.camLieu(Po.milieu, { d: 12, haut: 5, dy: -0.4, a: ax + 0.45, recul: 0.1 }), son: 'eau', dit: ['Vingt brassées de bois, deux lingots de fer. Et faites vite. Je n’aime pas penser à ce qui grignote.'] }),
     ];
   },
   fin(c) {
     const Po = q20Pont(c, 'pont_nord');
     if (!Po) return null;
     const P0 = q20SurPont(c, Po, 2.0);
-    const moi = c.habitant('garde', P0, { cap: (Po.s > 0 ? 0 : Math.PI) + 0.5, main: 'marteau', geste: 'travaille' });
+    const moi = c.habitant('garde', P0, { cap: (Po.s > 0 ? 0 : Math.PI) + (P0.leve ? Math.PI : 0) + 0.5, main: 'marteau', geste: 'travaille' });
     const pp = Q20H.libre(c, c.pt(Po.G.x + 3.2, Po.G.z + 1.2), 0, 3, 0.4);
     return [
-      c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 1.0, d: 2.8 }), acteurs: [moi], son: 'enclume', dit: ['Du bon bois, du bon fer. Le pont tiendra.'], court: true }),
+      c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.3, d: 3.0 }), acteurs: [moi], son: 'enclume', dit: ['Du bon bois, du bon fer. Le pont tiendra.'], court: true }),
       c.plan({ dur: 6, cam: c.camChose(pp, { d: 2.2, haut: 1.0, dy: 0.1 }), acteurs: [c.chose('piege', pp)], dit: ['Les plans d’un piège. Pour ce qui grignote. Ou pour les renards, si ce sont des renards.'] }),
     ];
   },
