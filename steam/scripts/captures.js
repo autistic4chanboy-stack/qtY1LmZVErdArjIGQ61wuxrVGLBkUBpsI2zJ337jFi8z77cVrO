@@ -88,7 +88,7 @@ const VUES = [
       if (o.ecran) {
         await p.evaluate(() => { game.player.hp = 100; play.hurtFlash = 0; __render(true); __step(3); play.hurtFlash = 0; });
         await p.waitForTimeout(300);
-        data = await p.screenshot({ type: 'jpeg', quality: 90 });
+        data = await p.screenshot({ type: 'jpeg', quality: 90, timeout: 180000 });
       } else {
         const url = await p.evaluate(() => { game.player.hp = 100; play.hurtFlash = 0; __render(true); __step(3); return document.querySelector('#gl').toDataURL('image/jpeg', 0.92); });
         data = Buffer.from(url.split(',')[1], 'base64');
