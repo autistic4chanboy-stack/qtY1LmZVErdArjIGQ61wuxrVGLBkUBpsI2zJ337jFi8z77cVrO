@@ -204,12 +204,20 @@ module.exports = {
               // (la caméra jamais contre une personne ni une bête du plan : un bloc sombre qui mange l'image)
               for (const C of cams) { const X = fini(C) && sc.ctx.contre(C, P._q20.acteurs); if (X) { e.push(id + ' ' + m + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : caméra contre ' + (X.id || (X.joueur ? 'le joueur' : X.rig || 'une silhouette')) + ' (' + Math.hypot(C[0] - (X.vers || X.P)[0], C[2] - (X.vers || X.P)[2]).toFixed(2) + ' m)'); break; } }
               for (const l of P._q20.lum) if (!fini([l.x, l.y, l.z]) || !(l.r > 0)) e.push(id + ' ' + m + ' : lumière');
+              // (une chose montrée de près — la trouvaille — : aucun objet posé devant elle, une autre tombe, un tonneau)
+              const Ch = P._q20.acteurs[0];
+              if (Ch && Ch.k === 'c' && cams.length && fini(cams[0]) && Math.hypot(cams[0][0] - Ch.P[0], cams[0][2] - Ch.P[2]) < 5) {
+                const X = sc.ctx.objetDevant(cams[0], [Ch.P[0], Ch.P[1] + 0.1, Ch.P[2]], qtProps(w, Ch.P[0], Ch.P[2], 12));
+                if (X) e.push(id + ' ' + m + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : un objet posé (' + X.id + ') devant la chose montrée');
+              }
               // la personne qu'on montre se voit (la première du plan qu'il faut voir)
               const A = P._q20.acteurs.find((x) => x.k === 'h' && x.vu !== false);
               if (A && cams.length && fini(cams[0])) {
                 const s = A.s || 1, Q = A.vers || A.P;
                 const tete = [Q[0], Q[1] + 1.45 * s * (JSON.stringify(A.geste || '').includes('assis') ? 0.72 : 1), Q[2]], buste = [Q[0], Q[1] + 1.0 * s, Q[2]];
                 if (!voit(cams[0], tete, P._q20.dedans) && !voit(cams[0], buste, P._q20.dedans)) e.push(id + ' ' + m + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : ' + (A.id || (A.joueur ? 'le joueur' : 'la personne')) + ' caché(e) de la caméra');
+                // (ni un objet posé devant sa tête : une tombe, une clôture, une étagère)
+                else if (!P._q20.dedans && Math.hypot(cams[0][0] - Q[0], cams[0][2] - Q[2]) < 8) { const X = sc.ctx.objetDevant(cams[0], tete, qtProps(w, Q[0], Q[2], 14)); if (X) e.push(id + ' ' + m + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : un objet posé (' + X.id + ') devant ' + (A.id || (A.joueur ? 'le joueur' : 'la personne'))); }
                 // (et personne d'autre du plan devant elle : ni le joueur, ni une bête)
                 const ev = P._q20.acteurs.filter((X) => X !== A && X.k !== 'c' && !(X.id && X.id === A.id && !X.joueur && !A.joueur));
                 const dev = ev.find((X) => sc.ctx.cache(cams[0], tete, [X]));

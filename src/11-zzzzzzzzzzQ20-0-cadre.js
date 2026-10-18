@@ -278,6 +278,7 @@ class Q20Scene {
             if (o.aussi && !o.aussi.every((Q) => qtScenes.voit(w, L, P, Q, 0.35))) continue;
             if (o.evite && (this.cache(P, T, o.evite) || (o.tete && this.cache(P, o.tete, o.evite)))) continue;
             if (this.contre(P)) continue;
+            if (o.objets && this.objetDevant(P, T, o.objets)) continue;
           } catch (e) { continue; }
           // (un lieu : parmi les premiers points libres, celui où rien n'encombre le devant de l'objectif)
           if (o.propre) {
@@ -320,6 +321,22 @@ class Q20Scene {
     }
     return false;
   }
+  // un objet posé (une tombe, un tonneau, une clôture : sa boîte de collision, tournée comme lui) entre P et T ?
+  // Celui sur lequel ou contre lequel est T ne compte pas (la chose posée sur le coffre).
+  objetDevant(P, T, props) {
+    const w = this.w, v = [T[0] - P[0], T[1] - P[1], T[2] - P[2]], D = Math.hypot(v[0], v[1], v[2]) || 1, dir = [v[0] / D, v[1] / D, v[2] / D];
+    for (const q of props || []) {
+      const b = q && q.blk;
+      if (!b) continue;
+      try {
+        const [lx, lz] = World.blockLocal(b, T[0], T[2]);
+        if (Math.abs(lx) < b.sx / 2 + 0.12 && Math.abs(lz) < b.sz / 2 + 0.12) continue;
+        const h = w.raycastBlock(b, P, dir);
+        if (h && h.t >= 0 && h.t < D - 0.1) return q;
+      } catch (e) { /* une boîte sans forme */ }
+    }
+    return null;
+  }
   // les acteurs qui pourraient cacher A (ou T) : les autres, de chair, à moins de 10 m
   autres(A, T, avec) {
     return this.tous.filter((X) => X && X !== A && X !== avec && X.k !== 'c' && !(A && X.id && X.id === A.id && !X.joueur && !A.joueur) && Math.hypot((X.vers || X.P)[0] - T[0], (X.vers || X.P)[2] - T[2]) < 10);
@@ -356,7 +373,9 @@ class Q20Scene {
     const Bt = this.batiment(A.vers || A.P);
     const tete = this.tete(A);
     if (Bt) return Object.assign(this.camDedans(Bt, T, Object.assign({ pref: a0, d: o.d || 2.5, he: assis ? 1.25 : 1.6 }, o, { evite, tete })), { cible: A, avec: o.avec, evite, refaire: (ev) => this.camActeur(A, Object.assign({}, o, { evite: ev })) });
-    const R = this.cherche(T, o.d || 3.2, o.haut ?? (assis ? 1.25 : 1.6), a0, { aussi: o.aussi, stop: 0.3, ign: o.ign, evite, tete });
+    let objets = null;
+    try { objets = qtProps(this.w, T[0], T[2], (o.d || 3.2) * 1.6 + 3); } catch (e) { objets = null; }
+    const R = this.cherche(T, o.d || 3.2, o.haut ?? (assis ? 1.25 : 1.6), a0, { aussi: o.aussi, stop: 0.3, ign: o.ign, evite, tete, objets });
     const P2 = this.glisse(R.P, T, Object.assign({}, o, { toit: R.toit }));
     return { de: { pos: R.P, look: T }, a: { pos: P2, look: o.vise2 || T }, dedans: null, vise: [T], repli: !!R.repli, toit: !!R.toit, cible: A, avec: o.avec, evite, refaire: (ev) => this.camActeur(A, Object.assign({}, o, { evite: ev })) };
   }
@@ -391,8 +410,11 @@ class Q20Scene {
     if (!P) return null;
     const T = this.haut(P, o.dy ?? 0.1), Bt = this.batiment(P);
     if (Bt) return Object.assign(this.camDedans(Bt, T, Object.assign({ pref: o.a ?? 0, d: o.d || 1.6, he: o.he ?? 1.35 }, o)), { refaire: (ev) => this.camChose(P, Object.assign({}, o, { evite: ev })) });
-    // (au-dessus de l'herbe : 0,95 m au moins)
-    const d = o.d || 1.9, R = this.cherche(T, d, Math.max(0.95, o.haut ?? 1.15), o.a ?? 0.8, { stop: 0.15, ign: o.ign, evite: o.evite || this.autres(null, T, null), ds: [d, d * 1.3, d * 0.7, d * 1.7, d * 0.5, d * 2.2] });
+    // (au-dessus de l'herbe : 0,95 m au moins ; et aucun objet posé — une autre tombe, un tonneau — devant la chose)
+    const d = o.d || 1.9;
+    let objets = null;
+    try { objets = qtProps(this.w, T[0], T[2], d * 2.2 + 2); } catch (e) { objets = null; }
+    const R = this.cherche(T, d, Math.max(0.95, o.haut ?? 1.15), o.a ?? 0.8, { stop: 0.15, ign: o.ign, evite: o.evite || this.autres(null, T, null), objets, ds: [d, d * 1.3, d * 0.7, d * 1.7, d * 0.5, d * 2.2] });
     const P2 = this.glisse(R.P, T, { recul: o.recul ?? 0.18, glisse: o.glisse, monte: o.monte, toit: R.toit });
     return { de: { pos: R.P, look: T }, a: { pos: P2, look: T }, dedans: null, vise: [T], repli: !!R.repli, toit: !!R.toit, refaire: (ev) => this.camChose(P, Object.assign({}, o, { evite: ev })) };
   }
