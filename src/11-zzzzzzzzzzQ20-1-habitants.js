@@ -431,7 +431,11 @@ q20.scenes('forgeron_2', {
   fin(c) {
     const en = Q20H.meuble(c, 'forge', 'enclume');
     const moi = Q20H.poste(c, 'forgeron', { vise: en && en.P, geste: ['tend'] });
-    const M = c.maison('forgeron'), hp = [M.B.out[0] - M.f[0] * 0.55, M.sol + 2.35, M.B.out[1] - M.f[1] * 0.55];
+    // (le fer contre le mur, au-dessus de la porte : le mur cherché à cette hauteur, au-dessus de l'ouverture)
+    const M = c.maison('forgeron'), O = [M.B.out[0] + M.f[0] * 2, M.sol + 2.35, M.B.out[1] + M.f[1] * 2];
+    let mur = 1.5;
+    try { const R = qtRayon(c.w, qtBlocs(c.w, M.B.out[0], M.B.out[1], 8), O, [-M.f[0], 0, -M.f[1]], 6); if (R && R.t > 2) mur = R.t - 2; } catch (e) { /* le mur des maisons du bourg */ }
+    const hp = [M.B.out[0] - M.f[0] * (mur - 0.1), M.sol + 2.35, M.B.out[1] - M.f[1] * (mur - 0.1)];
     const fer = c.chose(Q20_DESSINS.fer_porte, hp, { r: M.cap, s: 2.4, lueur: true });
     const moi2 = Q20H.seuil(c, 'forgeron', { d: 1.6, lat: 1.3, cap: M.cap + Math.PI, geste: ['leve'] });
     return [
