@@ -163,6 +163,8 @@ module.exports = {
           const essais = [];
           for (const m of q20.moments(id)) for (const h of [10.5, 22.6]) for (const court of [false, true]) {
             if (court && m === 'tournant') continue;
+            // (un moment qui se joue ailleurs — sous terre, au Dessous, dans la Zone… : vérifié dans son monde, Q20B.js)
+            if (q20.horsVallee && q20.horsVallee(id, m)) continue;
             for (let k = 0; k < (m === 'tournant' && q && q.type === 'trouver' ? 5 : 1); k++) essais.push([m, k ? (k % 2 ? 22.6 : 10.5) : h, court]);
           }
           for (const [m, h, court] of essais) {
