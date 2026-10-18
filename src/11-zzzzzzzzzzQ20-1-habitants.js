@@ -191,7 +191,8 @@ const Q20H = {
     const a = L ? Math.atan2(P[0] - L.x, P[2] - L.z) : 0.6;
     // (la nuit, la lanterne qu'on tient : une lueur chaude sur la chose)
     const lum = (o.lum || []).concat(c.nuit() || c.h >= 18.4 ? [c.lueur(c.devant(P, a, 0.6), 3.6, [1.0, 0.72, 0.4], 0.9)] : []);
-    const plans = [c.plan({ dur: o.dur || 5.6, cam: c.camChose(P, { a: a + 0.9, d: 1.6, haut: 1.3 }), acteurs: [ch], dit: o.dit, son: o.son, chaque: o.chaque, lum })];
+    // (de près, en plongée : l'herbe haute ne la cache pas)
+    const plans = [c.plan({ dur: o.dur || 5.6, cam: c.camChose(P, { a: a + 0.9, d: 1.45, haut: 1.55 }), acteurs: [ch], dit: o.dit, son: o.son, chaque: o.chaque, lum })];
     if (L && o.lieu !== false) plans.push(c.plan({ dur: o.dur2 || 5, cam: c.camLieu(L, { a: a + Math.PI * 0.8, d: o.d2, dy: o.dy2 }), acteurs: [c.joueur(P, { face: L.P, geste: 'baisse', vu: false })], dit: o.dit2, son: o.son2 }));
     return plans;
   },
@@ -1175,20 +1176,23 @@ q20.scenes('guerisseuse_1', {
   qui: 'guerisseuse',
   demande(c) {
     const t = Q20H.meuble(c, 'hutte_ermite', 'table');
-    const moi = Q20H.poste(c, 'guerisseuse', { vise: t && t.P, geste: ['travaille', 'baisse'] });
+    // (une botte d'herbes dans les mains, qu'elle regarde : le bras levé cachait son visage)
+    const moi = Q20H.poste(c, 'guerisseuse', { vise: t && t.P, geste: ['tend', 'baisse'] });
+    const herbe = moi && c.chose(Q20_DESSINS.fleurs, c.haut(c.devant(moi.P, moi.cap, 0.38, 0, true), 1.0), { s: 0.32, r: moi.cap });
     const H = c.lieu('hutte_ermite'), sol = Q20H.libre(c, c.devant(H.P, 0.9, 9), 0, 6, 0.5);
     const ec = c.bete(ANIMAL_RIGS.squirrel ? 'squirrel' : 'rabbit', sol, { cap: 2.2, geste: { graze: 0.5 } });
     return [
-      c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 1.0, d: 2.0, buste: true }), acteurs: [moi], lum: q20Bougies(c), dit: ['L’hiver sera long. Je le sais, les écureuils le savent.'], court: true }),
+      c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.7, d: 2.1, buste: true }), acteurs: [moi, herbe], lum: q20Bougies(c), dit: ['L’hiver sera long. Je le sais, les écureuils le savent.'], court: true }),
       c.plan({ dur: 5.8, cam: c.camChose(sol, { d: 2.6, haut: 0.95, dy: 0.15 }), heure: 6.2, acteurs: [ec], dit: ['Huit bottes d’herbes, cinq champignons. Cueillez à l’aube, quand la plante dort encore.'] }),
     ];
   },
   fin(c) {
     const t = Q20H.meuble(c, 'hutte_ermite', 'table');
-    const moi = Q20H.poste(c, 'guerisseuse', { vise: t && t.P, geste: ['eleve'] });
+    const moi = Q20H.poste(c, 'guerisseuse', { vise: t && t.P, geste: ['tend', 'parle'] });
+    const herbe = moi && c.chose(Q20_DESSINS.fleurs, c.haut(c.devant(moi.P, moi.cap, 0.38, 0, true), 1.0), { s: 0.32, r: moi.cap });
     const M = c.maison('guerisseuse'), pp = Q20H.libre(c, M.dehors(2.6, 2.0), 0, 4, 0.8);
     return [
-      c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.9, d: 2.0 }), acteurs: [moi], lum: q20Bougies(c), dit: ['Belles herbes. Vous avez la main verte. Ou la main heureuse.'], court: true }),
+      c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.6, d: 2.1 }), acteurs: [moi, herbe], lum: q20Bougies(c), dit: ['Belles herbes. Vous avez la main verte. Ou la main heureuse.'], court: true }),
       c.plan({ dur: 5.8, cam: c.camChose(pp, { d: 2.8, haut: 1.2, dy: 0.2 }), acteurs: [c.chose('parterre', pp, { r: M.cap })], dit: ['Les plans d’un parterre. Faites pousser vos propres remèdes.'] }),
     ];
   },
@@ -1289,7 +1293,7 @@ q20.scenes('fillette_2', {
       c.plan({ dur: 5.8, cam: c.camLieu(Ha, { d: 26, haut: 2.6, dy: 1.4 }), heure: Math.max(c.h, 18.8), dit: ['Moi, j’ai pas le droit d’y aller. Toi, t’es une grande personne.'] }),
     ];
   },
-  tournant(c) { return Q20H.trouvaille(c, 'poupee', { s: 1.0, son: 'murmure' }); },
+  tournant(c) { return Q20H.trouvaille(c, 'poupee', { s: 1.4, son: 'murmure' }); },
   fin(c) {
     const M = c.maison('fillette');
     const moi = Q20H.seuil(c, 'fillette', { d: 0.9, geste: ['porte', 'baisse'] });
