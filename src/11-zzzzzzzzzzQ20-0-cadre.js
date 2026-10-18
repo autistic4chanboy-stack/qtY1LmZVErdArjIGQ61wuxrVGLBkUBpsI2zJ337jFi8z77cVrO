@@ -239,7 +239,7 @@ class Q20Scene {
   // la tête (ou le buste, ou le milieu) d'un acteur
   tete(A, dy) {
     const P = A.vers || A.P, s = A.s || 1;
-    if (A.k === 'h') return [P[0], P[1] + (A.look && A.look.height ? 1.48 : 1.5) * s * (A.geste === 'assis' ? 0.72 : 1) + (dy || 0), P[2]];
+    if (A.k === 'h') return [P[0], P[1] + (A.look && A.look.height ? 1.48 : 1.5) * s * (/assis/.test(JSON.stringify(A.geste || '')) ? 0.72 : 1) + (dy || 0), P[2]];
     if (A.k === 'b') { const R = { horse: 1.9, cow: 1.35, sheep: 0.9, pig: 0.6, dog: 0.6, hen: 0.35, duck: 0.3, crow: 0.3, cat: 0.35, deer: 1.5 }; return [P[0], P[1] + (R[A.rig] || 0.8) + (dy || 0), P[2]]; }
     return [P[0], P[1] + 0.12 + (dy || 0), P[2]];
   }
