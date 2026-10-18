@@ -450,7 +450,7 @@ q20.scenes('q20d_hg_dame', {
     const J = c.joueur(T.P, { face: T.porte, geste: 'leve' });
     return [
       c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.3, d: 3.4, avec: c.haut(T.porte, 1.3), k: 0.5 }), () => c.camActeur(J, { cote: -2.3, d: 3.6, avec: c.haut(T.porte, 1.3), k: 0.5 })), acteurs: [J], lum: T.lum, son: 'coups', dit: c.parole('Qui est là ? … Ce n’est pas son pas. Ce n’est pas le pas d’Aymon.', Q20D_DAME, 1.2), court: true }),
-      c.plan({ dur: 6.2, cam: Q20D.cam(c, () => c.camChose(c.haut(T.porte, 0.25), { d: 1.6, haut: 0.95, a: T.ad + Math.PI + 0.45, dy: 0, recul: 0.1 }), () => c.camChose(c.haut(T.porte, 0.25), { d: 2.0, haut: 1.0, a: T.ad + Math.PI - 0.45, dy: 0 })), acteurs: [Object.assign({}, J, { vu: false })], lum: T.lum.concat([c.lueur(T.porte, 1.6, [1.0, 0.62, 0.3], 0.05)]), dit: c.parole('Aude. Elle avait neuf ans. Elle voulait voir la foire.', Q20D_DAME, 1.2) }),
+      c.plan({ dur: 6.2, cam: Q20D.cam(c, () => c.camChose(c.haut(T.porte, 0.25), { d: 2.0, haut: 0.95, a: T.ad + 0.35, dy: 0, recul: 0.1 }), () => c.camChose(c.haut(T.porte, 0.25), { d: 2.4, haut: 1.0, a: T.ad - 0.35, dy: 0 })), acteurs: [Object.assign({}, J, { vu: false })], lum: T.lum.concat([c.lueur(T.porte, 1.6, [1.0, 0.62, 0.3], 0.05)]), dit: c.parole('Aude. Elle avait neuf ans. Elle voulait voir la foire.', Q20D_DAME, 1.2) }),
     ];
   },
   tournant(c) {
@@ -460,7 +460,7 @@ q20.scenes('q20d_hg_dame', {
     const cle = c.chose(Q20D_DESSINS.petite_cle, c.haut(c.devant(J.P, J.cap, 0.34, 0.02, true), 1.1), { s: 2, r: J.cap, lueur: true });
     return [
       c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 1.6, d: 2.0, buste: true, avec: cle.P, k: 0.3 }), () => c.camActeur(J, { cote: -1.6, d: 2.2, buste: true })), acteurs: [J, cle], lum: T.lum, son: 'clochette', dit: c.parole('Tu as la clé. Je l’entends tinter.', Q20D_DAME, 1.2), court: true }),
-      c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.6, d: 3.4, avec: c.haut(T.porte, 1.2), k: 0.35, recul: 0.04 }), () => c.camChose(c.haut(T.porte, 1.0), { d: 2.6, haut: 1.4, a: T.ad + Math.PI + 0.5, dy: 0 })), acteurs: [J], lum: T.lum, dit: c.parole('Ouvre, si tu veux. Il n’y a plus ici qu’une vieille femme.', Q20D_DAME, 1.2) }),
+      c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.6, d: 3.4, avec: c.haut(T.porte, 1.2), k: 0.35, recul: 0.04 }), () => c.camChose(c.haut(T.porte, 1.0), { d: 2.6, haut: 1.4, a: T.ad + 0.5, dy: 0 })), acteurs: [J], lum: T.lum, dit: c.parole('Ouvre, si tu veux. Il n’y a plus ici qu’une vieille femme.', Q20D_DAME, 1.2) }),
     ];
   },
   fins: {

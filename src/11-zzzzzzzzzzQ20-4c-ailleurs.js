@@ -162,7 +162,13 @@ function q20dTertres(c) {
   if (!ins && !ch.length) return null;
   const C = L ? c.pt(L.x, L.z) : (ins ? c.pt(ins[0], ins[2]) : c.pt(ch[0].dalle[0], ch[0].dalle[2]));
   const gros = (Z.v1 && Z.v1.tertres ? Z.v1.tertres.slice().sort((a, b) => b.R0 - a.R0).slice(0, 3) : []).map((T) => c.pt(T.x, T.z));
-  return { ins: ins ? c.pt(ins[0], ins[2]) : null, ch, C, gros };
+  const st = ins && (Z.props || []).find((q) => q.id === 'v1_stele' && Math.hypot(q.x - ins[0], q.z - ins[2]) < 0.8);
+  return { ins: ins ? c.pt(ins[0], ins[2]) : null, face: st ? (st.r || 0) + Math.PI : null, ch, C, gros };
+}
+// la pierre dressée, de face (sa face gravée), à d mètres
+function q20dCamStele(c, T, d) {
+  const a = T.face ?? c.cap(T.ins, T.C), P = c.haut(T.ins, 1.3);
+  return Q20D.cam(c, () => c.camChose(P, { d, haut: 1.5, a: a + 0.25, dy: 0, recul: 0.06 }), () => c.camChose(P, { d, haut: 1.5, a: a - 0.3, dy: 0 }), () => c.camChose(P, { d: d * 1.3, haut: 1.7, a: a + 0.6, dy: 0 }));
 }
 q20.scenes('q20d_z_tertres', {
   souv: 'q20d:zone', titre: 'Sous chaque tertre, un roi',
@@ -180,8 +186,8 @@ q20.scenes('q20d_z_tertres', {
     if (!T || !T.ins) return null;
     const vers = T.gros[0] || T.C;
     return [
-      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camChose(c.haut(T.ins, 1.0), { d: 2.8, haut: 1.5, a: c.cap(T.ins, vers) + Math.PI + 0.3, dy: 0, recul: 0.08 }), () => c.camChose(c.haut(T.ins, 1.0), { d: 3.2, haut: 1.6, a: c.cap(T.ins, vers) + 0.5, dy: 0 })), acteurs: [], lum: [c.lueur(T.ins, 6, [0.55, 0.58, 0.68], 1.4)], son: 'corbeau', dit: c.parole('SOUS CHAQUE TERTRE, UN ROI.', Q20D_TERTRES), court: true }),
-      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camLieu(vers, { d: 34, haut: 7, dy: 2, a: c.cap(vers, T.ins) + 0.3, recul: 0.05, stop: 6 }), () => c.camLieu(vers, { d: 28, haut: 9, dy: 2, stop: 6 })), acteurs: [], lum: T.gros.map((P) => Q20D.lune(c, P, 22)) }),
+      c.plan({ dur: 6.6, cam: q20dCamStele(c, T, 2.8), acteurs: [], lum: [c.lueur(c.devant(T.ins, T.face ?? 0, 1.2), 6, [0.62, 0.64, 0.74], 1.4)], son: 'corbeau', dit: c.parole('SOUS CHAQUE TERTRE, UN ROI.', Q20D_TERTRES), court: true }),
+      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camLieu(vers, { d: c.nuit() ? 20 : 32, haut: c.nuit() ? 5 : 7, dy: 2, a: c.cap(vers, T.ins) + 0.3, recul: 0.05, stop: 6 }), () => c.camLieu(vers, { d: 26, haut: 9, dy: 2, stop: 6 })), acteurs: [], lum: T.gros.map((P) => c.lueur(P, 30, [0.42, 0.46, 0.6], 8)).concat([c.lueur(vers, 14, [0.5, 0.54, 0.68], 3)]) }),
     ];
   },
   tournant(c) {
@@ -203,8 +209,8 @@ q20.scenes('q20d_z_tertres', {
     if (!T) return null;
     const vers = T.ins || T.C;
     return [
-      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camLieu(T.gros[0] || T.C, { d: 36, haut: 9, dy: 2, a: c.cap(T.gros[0] || T.C, vers) - 0.4, recul: 0.05, stop: 6 }), () => c.camLieu(T.gros[0] || T.C, { d: 30, haut: 12, dy: 2, stop: 6 })), acteurs: [], lum: T.gros.map((P) => Q20D.lune(c, P, 24)), son: 'corbeau', dit: c.parole('SOUS CHAQUE ROI, UN AUTRE TERTRE.', Q20D_TERTRES), court: true }),
-      T.ins && c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camChose(c.haut(T.ins, 1.0), { d: 3.4, haut: 1.4, a: c.cap(T.ins, T.C) + 2.6, dy: 0 }), () => c.camChose(c.haut(T.ins, 1.0), { d: 4, haut: 1.8, a: 0.4, dy: 0 })), acteurs: [], lum: [c.lueur(T.ins, 6, [0.55, 0.58, 0.68], 1.4)], dit: c.parole('(Et sous celui-là ?)', '') }),
+      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camLieu(T.gros[0] || T.C, { d: c.nuit() ? 20 : 34, haut: c.nuit() ? 5 : 9, dy: 2, a: c.cap(T.gros[0] || T.C, vers) - 0.4, recul: 0.05, stop: 6 }), () => c.camLieu(T.gros[0] || T.C, { d: 26, haut: 9, dy: 2, stop: 6 })), acteurs: [], lum: T.gros.map((P) => c.lueur(P, 30, [0.42, 0.46, 0.6], 8)).concat([c.lueur(T.gros[0] || T.C, 14, [0.5, 0.54, 0.68], 3)]), son: 'corbeau', dit: c.parole('SOUS CHAQUE ROI, UN AUTRE TERTRE.', Q20D_TERTRES), court: true }),
+      T.ins && c.plan({ dur: 6, cam: q20dCamStele(c, T, 3.6), acteurs: [], lum: [c.lueur(c.devant(T.ins, T.face ?? 0, 1.2), 6, [0.62, 0.64, 0.74], 1.4)], dit: c.parole('(Et sous celui-là ?)', '') }),
     ];
   },
 });
