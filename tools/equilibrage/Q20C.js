@@ -40,10 +40,12 @@ globalThis.__q20cPrep = {
   q20c_commande: { f(m) { q20c.S().cmd = { j: farm.s.day, id: 'c1', livre: m.startsWith('fin') ? farm.s.day : 0 }; commandes.S().cmds = [{ id: 'c1', j: farm.s.day, st: m.startsWith('fin') ? 'livre' : 'attente', L: [] }]; } },
   q20c_tresor: { f(m) { farm.s.maps = []; const mp = dig.newMap(); if (mp) mp.found = m.startsWith('fin'); } },
   q20c_reliques: { f(m) { farm.s.flags.got_relique_calice = 1; farm.s.flags.apaisee = m.startsWith('fin') ? farm.s.day : 0; } },
+  q20c_leg_: { n: 2, f(m, k, id) { const S = myths.st(), L = id.slice(9); S.heard[L] = { day: farm.s.day, who: k ? '' : 'guerisseuse' }; q20c.S().leg = { [L]: { j: farm.s.day, qui: k ? '' : 'guerisseuse' } }; if (m.startsWith('fin')) S.found[L] = farm.s.day; else delete S.found[L]; } },
   t1: { f(m) { q20cTPrep('t1', m); } }, t2: { f(m) { q20cTPrep('t2', m); } }, t3: { f(m) { q20cTPrep('t3', m); } }, t4: { f(m) { q20cTPrep('t4', m); } }, t5: { f(m) { q20cTPrep('t5', m); } },
   q20c_caveau: { f(m) { q20c.S().caveau = { j: farm.s.day }; const R = runes.S(); R.p.caveau = m !== 'demande' ? farm.s.day : 0; R.c.caveau = m.startsWith('fin') ? 1 : 0; } },
 };`;
 const T = ['t1', 't2', 't3', 't4', 't5'];
+const LEGENDES = ['cerf_blanc', 'dame_du_lac', 'cloche_noyee', 'treize_pierres', 'tresor_valmont', 'bete_des_combes', 'feux_follets', 'moine_sans_visage', 'frappeurs', 'chene_des_ancetres', 'puits_aux_souhaits', 'chasse_volante', 'mere_des_moissons', 'lise'].map((k) => 'q20c_leg_' + k);
 
 // le banc : des habitants sans partie (et, w donné, le monde et un joueur à la ferme)
 const BANC = `globalThis.__q20cBanc = function (graine, w) {
@@ -69,7 +71,7 @@ module.exports = {
     const ko = (m) => { echecs++; log('ÉCHEC : ' + m); };
     const filtre = process.env.Q20C_IDS ? process.env.Q20C_IDS.split(',') : null;
     const graines = process.env.Q20C_GRAINES ? process.env.Q20C_GRAINES.split(',').map(Number) : [1234, 77];
-    const tous = HABITANTS.concat(AUTRES, T);
+    const tous = HABITANTS.concat(AUTRES, T, LEGENDES);
     const ids = filtre ? tous.filter((id) => filtre.includes(id)) : tous;
     // ---------------------------------------------------------------- pas de génération
     const dir = path.join(__dirname, '..', '..', 'src');
@@ -82,7 +84,7 @@ module.exports = {
     J.ev(BANC);
 
     // ---------------------------------------------------------------- les données : chaque quête retenue a ses scènes
-    const D = JSON.parse(J.avec({ habitants: HABITANTS, autres: AUTRES, t: T }, `(() => {
+    const D = JSON.parse(J.avec({ habitants: HABITANTS, autres: AUTRES, t: T.concat(LEGENDES) }, `(() => {
       const e = [], out = { n: 0, moments: 0 };
       for (const id of __v.habitants) {
         const q = quests.byId(id), D = q20.defs[id];
@@ -145,7 +147,8 @@ module.exports = {
           for (const m of q20.moments(id)) for (const h of [10.5, 22.6]) for (const court of [false, true]) {
             if (court && m === 'tournant') continue;
             for (let k = 0; k < (m === 'tournant' && q && q.type === 'trouver' ? 4 : 1); k++) essais.push([m, k ? (k % 2 ? 22.6 : 10.5) : h, court, 0]);
-            if (prep[id] && prep[id].n > 1) for (let v = 1; v < prep[id].n; v++) essais.push([m, h, court, v]);
+            const pr = prep[id] || (id.startsWith('q20c_leg_') ? prep.q20c_leg_ : null);
+            if (pr && pr.n > 1) for (let v = 1; v < pr.n; v++) essais.push([m, h, court, v]);
           }
           for (const [m, h, court, v] of essais) {
             if (!q) { farm.s.q20c = { v: 1 }; strange.s = strange0; }
@@ -155,7 +158,7 @@ module.exports = {
               const Q = farm.s.quests[id];
               if (Q && m !== 'demande') Q.step = 1;
               if (Q && m.startsWith('fin')) { Q.st = 'fait'; Q.done = 3; }
-            } else if (prep[id]) { try { prep[id].f(m, v); } catch (er) { e.push(id + ' ' + m + ' : préparer ' + er.message); } }
+            } else if (prep[id] || id.startsWith('q20c_leg_')) { try { (prep[id] || prep.q20c_leg_).f(m, v, id); } catch (er) { e.push(id + ' ' + m + ' : préparer ' + er.message); } }
             const t0 = Date.now();
             let sc = null;
             try { sc = q20.construire(id, m, { h, court }); } catch (er) { e.push(id + ' ' + m + ' : ' + er.message); continue; }
@@ -252,6 +255,14 @@ module.exports = {
             if (quetes.aJouer && quetes.aJouer.id === 't1' && quetes.aJouer.t < 3) e.push('T : la scène de la première étape passe avant la demande');
             quetes.finir('t1', 'b');
             if (!enFile('t1', 'fin') || q20.resoudre('t1', 'fin') !== 'fin:b') e.push('T : le dénouement de la fin b n’est pas en file');
+          });
+          // une légende : racontée, puis vue de ses yeux
+          essai('légende', () => {
+            const S = myths.st(); delete S.heard.lise; delete S.found.lise;
+            myths.hear('lise', 'postiere');
+            if (!enFile('q20c_leg_lise', 'demande')) e.push('légende : pas de demande en file');
+            myths.found('lise');
+            if (!enFile('q20c_leg_lise', 'fin')) e.push('légende : pas de dénouement en file');
           });
           // l'option Aucune : rien ne se joue, tout rejoint les souvenirs
           essai('aucune', () => {
