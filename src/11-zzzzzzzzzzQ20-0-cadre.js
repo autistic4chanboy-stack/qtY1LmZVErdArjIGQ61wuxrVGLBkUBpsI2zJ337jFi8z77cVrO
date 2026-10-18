@@ -695,6 +695,10 @@ const q20 = {
     if (m === 'fin' ? !(D.fin || (D.fins && Object.keys(D.fins).length)) : !this.constructeur(id, m)) return false;
     const S = this.S();
     if (S.fait[this.cle(id, m)] || S.file.some((e) => e.id === id && e.m === m)) return false;
+    // une fin déjà passée ('fin' ou l'une des fins à choix 'fin:k', vue ou rangée aux souvenirs, ou qui attend) ne revient
+    // pas par un 'fin' redemandé : un guet qui voit la quête finie la redemande, et le dénouement se rejouerait sans fin
+    if (base === 'fin' && (this.moments(id).some((k) => k.split(':')[0] === 'fin' && S.fait[this.cle(id, k)])
+      || S.file.some((e) => e.id === id && e.m.split(':')[0] === 'fin'))) return false;
     // un moment plus avancé de la même quête : les précédents qui attendent n'ont plus de sens (ils rejoignent les souvenirs)
     const rang = Q20_MOMENTS.indexOf(base);
     for (let i = S.file.length - 1; i >= 0; i--) {
