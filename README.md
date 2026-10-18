@@ -1276,6 +1276,32 @@ Les commandes sont dans le menu **Commandes** (Échap).
   changent les choix, ce que cachent l'hôtel et le Cercle la nuit, ce que garde la dalle des grottes et où sont les
   coins de paradis : sous « révéler les secrets » ; `tools/wiki-v18.js`.
 
+**Un monde plus beau, des modèles refaits, un jeu plus léger**
+- **La lumière et l'image** (Options › Image › **Effets visuels** : Minimaux, Normaux, Riches, Maximaux, pris dans les
+  préréglages de la qualité graphique) : dès Moyenne, un ciel qui diffuse la lumière comme le vrai (halo du soleil,
+  crépuscule, ombre de la Terre, voie lactée), la brume des vallées et le lointain qui bleuit, les ombres des nuages
+  qui passent, les feuilles et les herbes traversées par le soleil, le vent en rafales ; l'eau qui reflète le ciel,
+  scintille, se ride selon le vent et sous la pluie ; sols et toits mouillés, neige qui scintille, éclairs qui
+  éclairent ; l'œil qui s'habitue au noir des maisons et des grottes, une courbe d'image douce et un étalonnage
+  selon l'heure, le temps et le lieu. En Haute et Très haute : halo des lumières, rayons du soleil, anticrénelage,
+  flaques, nuages reflétés dans l'eau, flou des cinématiques. Un **grain de pellicule** à allumer soi-même ; les
+  lampes et les chandelles vacillent. L'image est un peu moins contrastée et plus lisse qu'avant (les gros pixels
+  restent nets, leur bord se fond). **Basse garde le rendu d'avant, à l'identique.**
+- **Les modèles refaits** : les bêtes à quatre pattes et les oiseaux (corps, ailes repliées ou déployées, yeux,
+  marques de chaque espèce), les bêtes qui parlent, le hérisson, le chat ; les maisons habillées (pierres d'angle,
+  descentes et tonneaux de pluie, épis), la fontaine de la place, le vieux coffre, les sacs de grain, la tombe
+  fraîche… Mêmes noms, mêmes tailles, mêmes collisions : les parties en cours ne changent pas. Ils ne sont dessinés en
+  entier que de près (niveaux de détail selon la distance de l'herbe) : au loin, une silhouette plus légère qu'avant.
+- **Pour que le jeu tourne bien partout** : la première fois, une machine sans vraie carte graphique prend d'elle-même
+  le préréglage Basse, les autres Moyenne (jamais plus) ; en jeu, si les images peinent vraiment (plus de 25 ms
+  pendant quatre secondes), la qualité descend d'un cran, et revient si cela n'aidait pas — seulement si l'on n'a rien
+  choisi soi-même. Les programmes de chaque qualité sont compilés une fois (changer de qualité ne recompile rien),
+  les bêtes hors de la vue ne sont plus posées, les uniformes inchangés ne sont plus renvoyés (60 % d'appels en
+  moins), et chaque image alloue 20 à 26 % de mémoire en moins (moins de pauses du ramasse-miettes, donc moins
+  d'à-coups). « Distance de l'herbe et des fleurs » peut aller jusqu'à 0.
+- **Rien ne bouge dans la vallée** : aucune passe de génération nouvelle ; les anciennes parties retrouvent tout.
+  `node tools/equilibrage.js` (les quarante domaines) passe tel quel.
+
 ### Mode Création
 
 Éditeur de monde séparé : relief, peinture du sol, objets, animaux, blocs. **Exporter** télécharge un fichier
@@ -1821,6 +1847,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `05-zzzzzzQ16-quetes.js`, `11-zzzzzzQ16-quetes.js`, `12-zzzzzzQ16-quetes.js` | des quêtes pour tout le monde : les quêtes en plus des habitants (`Q16_HABITANTS`, ajoutées à leur liste ; les sortes `aller` et `chasse`, les fins à choix `choix`), celles des autres (`Q16_PNJ`) et les modèles des anonymes de Basse-Fosse (`Q16_V5_MODELES`, tirés par partie) ; le jeu (API `q16`, état `farm.s.q16`), les lignes glissées dans les panneaux de chacun, le carnet |
 | `05-zzzzzzzH17-histoire.js`, `11-zzzzzzzH17-1-moteur.js`, `11-zzzzzzzH17-2-histoire.js`, `12-zzzzzzzH17-carnet.js` | l'histoire : les chapitres, les fins, les paroles et le générique (`H17_CHAPITRES`, `H17_FINS`, `H17_CINES`) ; le moteur des cinématiques en plus du socle (`h17Cine` : chemins de caméra, figurants, cartes, générique, passer en maintenant Espace ou Échap, la partie tenue pendant la scène) ; le jeu (API `histoire`, état `farm.s.histoire`, les scènes `H17_SCENES`, l'événement `prairie:histoire`) ; les pages Histoire et Souvenirs du carnet |
 | `13-zzzzzzS17-bureau.js`, `13-zzzzzzS17-succes.js` | la version de bureau : le bouton « Quitter » (seulement quand `window.steamBridge` existe), les options « Plein écran » et « Qualité graphique » (`bureau`) ; les succès, lus dans l'état de la partie et envoyés au pont de l'application quand il existe (`succes` ; leurs titres dans `steam/achievements.json`) |
+| `07-zzzzzzzzzzzzzM19-modeles.js`, `11-zzzzzzzzzzM19-maisons.js` | les modèles refaits : le gabarit des quadrupèdes et les corps d'oiseau, leurs niveaux de détail selon la distance, les bêtes hors de la vue qui ne sont ni posées ni dessinées (`M19Vue`) ; l'habillage des maisons et de la fontaine (pierres d'angle, descentes, épis), seulement de près |
 | `05-zzzzzR15-runes.js`, `09-zzzzzR15-runes.js`, `11-zzzzzR15-1-pose.js`, `11-zzzzzR15-2-jeu.js`, `12-zzzzzR15-runes.js` | les runes : les données (`R15_RUNES`, `R15_REGL`, `R15_PORTES`, les butins des dalles), les sons, la pose (la dernière passe de la vallée, avec son propre tirage, et `zone.passe('R15')` dans les Terres d'Avant : rien de ce qui était posé ne bouge), le jeu (`farm.s.runes`, API `runes` : les tablettes, l'assemblage, les effets, les dalles, le dessin) et le panneau (la page Runes du menu, `runesUI`) |
 | `05-zzzzzzzD18-dettes.js`, `11-zzzzzzzzD18-1-dettes.js`, `11-zzzzzzzzD18-2-travaux.js`, `12-zzzzzzzzD18-carnet.js` | les dettes de la ferme : les données (les huit termes, le retard, les lettres : `D18_TERMES`, `D18_RETARD`) ; le jeu (`farm.s.dettes18`, API `window.dettes18`, l'événement `prairie:dettes` : payer à la boîte de l'étude ou par mandat, les pénalités, les saisies, les scellés) ; les travaux (`D18_PLAN`), posés terme après terme là où rien ne gêne, sans passe de génération ; la page « La ferme » du carnet |
 | `05-zzzzzzzL18-hotel.js`, `07-zzzzzzzzzzzzzL18-hotel.js`, `09-zzzzzzL18-musique.js`, `11-zzzzzzzL18-1-plan.js` à `11-zzzzzzzL18-5-scenes.js`, `12-zzzzzzzL18-carnet.js` | le Grand Hôtel des Cimes : les données et les textes (`L18_GENS`, `L18_ARCS`, `L18_CLIENTS`, `L18_DEMANDES`, `L18_RANGS`) ; une matière (la façade) et les modèles ; deux airs (groupe « hotel ») ; le plan et la passe (`l18Generer`, la dernière de l'époque, avec son propre tirage ; `w.l18`) ; l'état et les gens (`hotel18`, `hotelGens`, `farm.s.hotel18`), le service à la loge (`hotelService`), ce qu'ils disent et les quatre histoires (`hotelParler`, `hotelHistoires`), les scènes, le funiculaire et la voiture (`hotelScenes`) ; la page « Le Grand Hôtel » du carnet et les fiches du wiki du jeu |

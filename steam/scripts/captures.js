@@ -56,6 +56,8 @@ const VUES = [
       window.__meteo = 'clear';
       HOOKS.sky.push((sky) => { if (window.__clair) { sky.fog = [window.__clair * 0.4, window.__clair]; sky.mist = 0; } });
       settings.subs = false; settings.showFps = false;
+      // la plus belle qualité (le rendu logiciel prendrait sinon la Basse d'office), et pas de garde-fou
+      try { bureau.appliquer('tres'); game.renderer.gardeE.off = true; } catch (e) { /* rien */ }
       play.hurt = function () {}; game.die = function () {};
       window.V = {
         h(h) { const w = game.world; w.time = h / 24; game.lastT = w.time; },
