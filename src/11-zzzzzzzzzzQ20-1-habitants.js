@@ -85,7 +85,9 @@ const Q20_DESSINS = {
   // des fleurs dans une jardinière (posées sur celles de la mairie)
   fleurs(PE) { const C = [[1.45, 0.42, 0.4], [1.45, 1.25, 0.5], [1.35, 1.3, 1.25], [1.0, 0.55, 1.25]]; for (let k = 0; k < 7; k++) { PE.box(-0.6 + k * 0.2, 0.2, 0, 0.16, 0.2, 0.18, C[k % 4], TL.flowers); PE.box(-0.6 + k * 0.2, 0.08, 0, 0.12, 0.14, 0.14, [0.45, 0.8, 0.35], TL.leaves); } },
   // une tache de farine, et la lanterne posée
-  farine(PE) { PE.box(0, 0.004, 0, 0.5, 0.006, 0.4, [1.35, 1.32, 1.25], TL.plain, 0.4); },
+  farine(PE) { const P = [[0.08, 0.05, 0.16, 0.12], [-0.12, 0.1, 0.1, 0.08], [0.02, -0.14, 0.12, 0.09], [0.2, -0.06, 0.07, 0.06], [-0.2, -0.1, 0.08, 0.05]]; for (const [x, z, a, b] of P) PE.box(x, 0.003, z, a, 0.004, b, [1.25, 1.22, 1.15], TL.plain, x * 3); },
+  // un pas de pied nu, mouillé
+  pas(PE) { const c = [0.16, 0.15, 0.14]; PE.box(0, 0.003, 0, 0.09, 0.005, 0.17, c, TL.soilWet); for (let k = 0; k < 5; k++) PE.box(-0.035 + k * 0.018, 0.003, 0.105, 0.016, 0.005, 0.022, c, TL.soilWet); },
   // une chose qui n'est qu'une lueur (une fenêtre allumée)
   fenetre(PE) { PE.fl = FX_EMIT; PE.box(0, 0, 0, 0.7, 0.9, 0.04, [1.5, 1.05, 0.55], TL.plain); PE.fl = 0; PE.box(0, 0, 0.025, 0.05, 0.9, 0.02, [0.12, 0.1, 0.08], TL.darkwood); PE.box(0, 0, 0.025, 0.7, 0.05, 0.02, [0.12, 0.1, 0.08], TL.darkwood); },
 };
@@ -158,7 +160,7 @@ const Q20H = {
     o = o || {};
     if (!Pu) return null;
     const w = c.w, C = Array.isArray(Pu) ? Pu : Pu.P, L = c.blocs(C, 10), T = c.haut(C, o.fond ?? -2.2);
-    for (const r of [1.15, 1.5, 0.85, 1.9]) for (let k = 0; k < 16; k++) {
+    for (const r of o.r || [1.15, 1.5, 0.85, 1.9]) for (let k = 0; k < 16; k++) {
       const a = (o.a || 0) + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * TAU / 16, x = C[0] + Math.sin(a) * r, z = C[2] + Math.cos(a) * r;
       const P = [x, c.sol(x, z) + (o.haut ?? 1.75), z];
       try { if (qtDansBloc(L, P, 0.25) || !w.inside(x, z, 6)) continue; } catch (e) { continue; }
@@ -187,8 +189,9 @@ const Q20H = {
     const ch = c.chose(dessin, P, { s: o.s || 1.7, r: o.r || 0.6, lueur: true });
     const L = Q20H.lieuQuete(c);
     const a = L ? Math.atan2(P[0] - L.x, P[2] - L.z) : 0.6;
-    const J = c.joueur(c.devant(P, a, 0.95, 0.15), { face: P, geste: { reach: 0.25, lean: 0.4, lookP: 0.4 }, vu: false });
-    const plans = [c.plan({ dur: o.dur || 5.6, cam: c.camChose(P, { a: a + 0.9, d: 1.7, haut: 0.95 }), acteurs: [ch, J], dit: o.dit, son: o.son, chaque: o.chaque, lum: o.lum })];
+    // (la nuit, la lanterne qu'on tient : une lueur chaude sur la chose)
+    const lum = (o.lum || []).concat(c.nuit() || c.h >= 18.4 ? [c.lueur(c.devant(P, a, 0.6), 3.6, [1.0, 0.72, 0.4], 0.9)] : []);
+    const plans = [c.plan({ dur: o.dur || 5.6, cam: c.camChose(P, { a: a + 0.9, d: 1.6, haut: 1.3 }), acteurs: [ch], dit: o.dit, son: o.son, chaque: o.chaque, lum })];
     if (L && o.lieu !== false) plans.push(c.plan({ dur: o.dur2 || 5, cam: c.camLieu(L, { a: a + Math.PI * 0.8, d: o.d2, dy: o.dy2 }), acteurs: [c.joueur(P, { face: L.P, geste: 'baisse', vu: false })], dit: o.dit2, son: o.son2 }));
     return plans;
   },
@@ -215,7 +218,7 @@ q20.scenes('maire_1', {
     const assis = c.habitant('maire', c.devant(pb, c.cap(pb, M.porte), 0.05), { cap: c.cap(pb, M.porte), geste: ['assis', 'parle'] });
     return [
       c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 2.6, d: 4.4, buste: true, avec: M.porte, k: 0.4, monte: 0.4 }), acteurs: [moi, ...fl], dit: ['Splendide. La place respire enfin.'], court: true }),
-      c.plan({ dur: 6.4, cam: c.camActeur(assis, { cote: 0.5, d: 4.2 }), acteurs: [banc, assis, ...fl, Q20H.face(c, assis, 1.8, 0.6)], dit: ['Un banc ici, pour le préfet. En attendant, je m’y assieds.'], son: 'piece' }),
+      c.plan({ dur: 6.4, cam: c.camActeur(assis, { cote: 0.9, d: 3.8 }), acteurs: [banc, assis, ...fl, Q20H.face(c, assis, 1.9, -1.1)], dit: ['Un banc ici, pour le préfet. En attendant, je m’y assieds.'], son: 'piece' }),
     ];
   },
 });
@@ -237,7 +240,7 @@ q20.scenes('maire_2', {
     const J = Q20H.face(c, moi, 1.6, 0.4);
     const loin = c.pt(G.x, G.z - 40);
     return [
-      c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.6, d: 3.4, avec: J, k: 0.3 }), acteurs: [moi, J], dit: ['La manivelle ne quitte pas ma ceinture. Jamais.', '@garde'] }),
+      c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 1.3, d: 3.4, avec: J, k: 0.35 }), acteurs: [moi, J], dit: ['La manivelle ne quitte pas ma ceinture. Jamais.', '@garde'] }),
       c.plan({ dur: 6.2, cam: c.camRegard(P0, c.haut(loin, 1.5), { recul: 0.04 }), heure: Math.max(c.h, 19.5), acteurs: [], dit: ['Si le pont s’abaisse la nuit, c’est qu’on le descend d’en face.', '@garde'] }),
     ];
   },
@@ -255,7 +258,7 @@ q20.scenes('maire_2', {
 q20.scenes('maire_3', {
   qui: 'maire',
   demande(c) {
-    const moi = Q20H.poste(c, 'maire', { geste: ['assis', 'baisse', { reach: 0.15 }] });
+    const moi = Q20H.poste(c, 'maire', { geste: ['assis', 'tend'] });
     const T = c.lieu('tour');
     return [
       c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: -0.4, d: 2.0 }), acteurs: [moi], dit: ['Le sceau de la commune. Égaré. Sans lui, aucun acte ne vaut rien.'], court: true }),
@@ -264,7 +267,7 @@ q20.scenes('maire_3', {
   },
   tournant(c) { return Q20H.trouvaille(c, Q20_DESSINS.bague, { s: 2.2, son: 'clochette', dy2: 6 }); },
   fin(c) {
-    const moi = Q20H.seuil(c, 'maire', { d: 1.0, geste: ['tend', 'leve'] });
+    const moi = Q20H.seuil(c, 'maire', { d: 1.0, geste: ['eleve'] });
     const P = c.lieu('place'), ps = Q20H.libre(c, c.devant(P.P, Math.PI / 2, -3, -3), 0, 6, 1.0);
     const socle = c.chose((PE) => { PE.box(0, 0.4, 0, 1.0, 0.8, 1.0, [0.9, 0.88, 0.84], TL.stone); PE.box(0, 0.86, 0, 1.15, 0.12, 1.15, [0.85, 0.83, 0.8], TL.stone); }, ps);
     const st = c.gens('statue', c.haut(ps, 0.92), { cap: c.cap(ps, P.P) + 0.8, geste: ['montre', 'leve'], vu: false });
@@ -326,7 +329,7 @@ q20.scenes('boulangere_1', {
     const lum = four ? [c.lueur(four.P, 4.5, [1.0, 0.55, 0.25], 0.6)] : [];
     const fille = c.habitant('fillette', c.devant(moi.P, moi.cap, -0.6, 1.0, true), { cap: moi.cap + 0.6, geste: 'leve' });
     return [
-      c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.4, d: 2.3, avec: J, k: 0.3 }), acteurs: [moi, J], lum, dit: ['Regardez-moi ce grain, bien doré ! Il y a des années qu’on n’en a pas vu.'], court: true }),
+      c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 1.3, d: 2.6, avec: J, k: 0.35 }), acteurs: [moi, J], lum, dit: ['Regardez-moi ce grain, bien doré ! Il y a des années qu’on n’en a pas vu.'], court: true }),
       c.plan({ dur: 5.8, cam: c.camActeur(moi, { cote: -0.5, d: 2.2, buste: true }), acteurs: [moi, fille, pain], lum, dit: ['Deux pains tout chauds. Revenez quand vous voulez, mon chou.'], son: 'piece' }),
     ];
   },
@@ -348,13 +351,13 @@ q20.scenes('boulangere_2', {
     const bois = moi && c.devant(moi.P, moi.cap + 2.0, 20, 0);
     const moi2 = moi && c.habitant('guerisseuse', moi.P, { cap: c.cap(moi.P, bois), main: 'panier', geste: ['porte', 'parle'] });
     return [
-      c.plan({ dur: 5.6, cam: c.camActeur(moi, { cote: 0.5, d: 3.0, avec: J, k: 0.3 }), acteurs: [moi, J], dit: ['Le pain de la boulangère, encore tiède. Elle n’oublie jamais.', '@guerisseuse'] }),
+      c.plan({ dur: 5.6, cam: c.camActeur(moi, { cote: 1.3, d: 3.2, avec: J, k: 0.35 }), acteurs: [moi, J], dit: ['Le pain de la boulangère, encore tiède. Elle n’oublie jamais.', '@guerisseuse'] }),
       c.plan({ dur: 6.2, cam: c.camActeur(moi2, { cote: 0.4, d: 2.6 }), acteurs: [moi2, J], dit: ['Dites-lui qu’il n’a pas froid, là où il est. Elle saura de qui je parle.', '@guerisseuse'] }),
     ];
   },
   fin(c) {
     const four = Q20H.meuble(c, 'boulangerie', 'four');
-    const moi = Q20H.poste(c, 'boulangere', { geste: ['baisse', { reach: 0.1 }] });
+    const moi = Q20H.poste(c, 'boulangere', { geste: ['coeur', 'baisse'] });
     const moi2 = four ? c.habitant('boulangere', c.devant(four.P, c.cap(four.P, moi.P), 1.0, 0, true), { cap: c.cap(moi.P, four.P), geste: ['baisse'] }) : moi;
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.3, d: 2.0 }), acteurs: [moi], dit: ['Elle a dit ça ? Qu’il n’a pas froid ?'], court: true }),
@@ -368,15 +371,16 @@ q20.scenes('boulangere_3', {
   demande(c) {
     const moi = Q20H.poste(c, 'boulangere', { geste: ['raide'], cap: c.maison('boulangere').cap + 0.9 });
     const R = c.lieu('ruines'), pierre = Q20H.libre(c, c.devant(R.P, 1.2, 3), 0, 6, 0.6);
-    const emile = c.gens('emile', c.devant(pierre, 2.2, 1.6), { cap: c.cap(c.devant(pierre, 2.2, 1.6), pierre) + 0.3, geste: ['baisse'], lanterne: true });
+    const pe = c.devant(pierre, 2.2, 1.3);
+    const emile = c.gens('emile', pe, { cap: c.cap(pe, pierre), geste: ['baisse', 'offre'], lanterne: true, vu: false });
     return [
       c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.9, d: 2.2 }), acteurs: [moi], dit: ['Cette nuit, j’ai rêvé d’Émile.'], court: true }),
-      c.plan({ dur: 6.4, cam: c.camLieu(pierre, { d: 15, haut: 2.2, dy: 1, recul: 0.2 }), heure: 5.8, acteurs: [emile, c.chose(Q20_DESSINS.pierre_bague, pierre, { s: 1.6 })], dit: ['Il me montrait son alliance, posée sur une pierre, dans les ruines. Ce n’est qu’un rêve, je le sais bien.'] }),
+      c.plan({ dur: 6.4, cam: c.camLieu(c.vers(pierre, pe, 0.5), { d: 8, haut: 1.8, dy: 0.9, a: c.cap(pe, pierre) + 1.3, recul: 0.18 }), heure: 5.8, acteurs: [emile, c.chose(Q20_DESSINS.pierre_bague, pierre, { s: 1.6 })], lum: [c.lueur(pe, 4.5, [1.0, 0.72, 0.4], 1.1)], dit: ['Il me montrait son alliance, posée sur une pierre, dans les ruines. Ce n’est qu’un rêve, je le sais bien.'] }),
     ];
   },
   tournant(c) { return Q20H.trouvaille(c, Q20_DESSINS.pierre_bague, { s: 1.4, son: 'murmure' }); },
   fin(c) {
-    const moi = Q20H.poste(c, 'boulangere', { geste: ['tend', 'leve'] });
+    const moi = Q20H.poste(c, 'boulangere', { geste: ['eleve'] });
     const tb = Q20H.libre(c, c.maison('boulangere').dehors(3, -2.5), 0, 4, 0.9);
     const table = c.chose('table', tb, { r: c.maison('boulangere').cap });
     return [
@@ -396,7 +400,7 @@ q20.scenes('forgeron_1', {
     const etin = en ? Q20H.emet(c.haut(en.P, 0.85), { n: 14, col: [1.6, 0.9, 0.35, 1], taille: 0.025, vie: 0.6, v: 1.6, vy: 0.9, grav: 4, eclat: true }) : null;
     const Mi = c.lieu('mine');
     return [
-      c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 1.3, d: 2.4 }), acteurs: [moi], lum, son: 'enclume', chaque: etin, dit: ['Des clous pour le toit de l’église. Pas assez de fer.'], court: true }),
+      c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.9, d: 2.6, avec: en ? c.haut(en.P, 0.8) : undefined, k: 0.35 }), acteurs: [moi], lum, son: 'enclume', chaque: etin, dit: ['Des clous pour le toit de l’église. Pas assez de fer.'], court: true }),
       c.plan({ dur: 6, cam: c.camLieu(Mi, { d: 22, haut: 3, dy: 1.5 }), dit: ['Huit minerais, cinq charbons. Le fer, c’est à la mine. Prenez une lanterne.'] }),
     ];
   },
@@ -426,10 +430,10 @@ q20.scenes('forgeron_2', {
   tournant(c) { return Q20H.trouvaille(c, Q20_DESSINS.fer, { s: 1.5, son: 'grondement' }); },
   fin(c) {
     const en = Q20H.meuble(c, 'forge', 'enclume');
-    const moi = Q20H.poste(c, 'forgeron', { vise: en && en.P, geste: ['tend', 'baisse'] });
+    const moi = Q20H.poste(c, 'forgeron', { vise: en && en.P, geste: ['tend'] });
     const M = c.maison('forgeron'), hp = [M.B.out[0] - M.f[0] * 0.55, M.sol + 2.35, M.B.out[1] - M.f[1] * 0.55];
-    const fer = c.chose(Q20_DESSINS.fer_porte, hp, { r: M.cap, s: 1.4 });
-    const moi2 = Q20H.seuil(c, 'forgeron', { d: 1.2, cap: M.cap + Math.PI, geste: ['leve'] });
+    const fer = c.chose(Q20_DESSINS.fer_porte, hp, { r: M.cap, s: 2.4, lueur: true });
+    const moi2 = Q20H.seuil(c, 'forgeron', { d: 1.6, lat: 1.3, cap: M.cap + Math.PI, geste: ['leve'] });
     return [
       c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.9, d: 2.0, buste: true }), acteurs: [moi], dit: ['C’est le sien. Mais les clous sont neufs.'], court: true }),
       c.plan({ dur: 6, cam: c.camChose(hp, { d: 4.2, haut: 1.4, dy: -0.6, a: M.cap + 0.4 }), acteurs: [fer, moi2], dit: ['Quelqu’un l’a raccroché. Récemment… Tenez. Les plans d’une brouette.'] }),
@@ -450,7 +454,7 @@ q20.scenes('forgeron_3', {
   },
   fin(c) {
     const en = Q20H.meuble(c, 'forge', 'enclume'), four = Q20H.meuble(c, 'forge', 'four');
-    const moi = Q20H.poste(c, 'forgeron', { vise: four ? four.P : en && en.P, geste: ['baisse', { reach: 0.12 }] });
+    const moi = Q20H.poste(c, 'forgeron', { vise: four ? four.P : en && en.P, geste: ['tend'] });
     const Mb = c.maison('boulangere');
     const lum = four ? [c.lueur(four.P, 4.5, [1.0, 0.45, 0.18], 0.6)] : [];
     return [
@@ -472,7 +476,7 @@ q20.scenes('grainetiere_1', {
     ];
   },
   fin(c) {
-    const moi = Q20H.poste(c, 'grainetiere', { geste: ['tend', 'baisse'] });
+    const moi = Q20H.poste(c, 'grainetiere', { geste: ['tend'] });
     const chou = c.chose(Q20_DESSINS.chou, c.haut(c.devant(moi.P, moi.cap, 0.42, 0.12, true), 1.05), { s: 1.2 });
     const ep = Q20H.pres(c, c.lieu('ferme').P, 'epouvantail', 40);
     const F = c.lieu('ferme');
@@ -501,7 +505,7 @@ q20.scenes('grainetiere_2', {
     const ch = pen && c.bete('horse', c.devant(pen, 0.4, 2), { v: 1, cap: 2.2, geste: { graze: 1 } });
     const J = Q20H.face(c, moi, 1.6, 0.3);
     return [
-      c.plan({ dur: 5.8, cam: c.camActeur(moi, { cote: 0.6, d: 3.4, avec: J, k: 0.3 }), acteurs: [moi, sac, ch, J], dit: ['L’avoine ! Enfin. Les chevaux allaient venir la chercher eux-mêmes.', '@eleveuse'] }),
+      c.plan({ dur: 5.8, cam: c.camActeur(moi, { cote: 1.3, d: 3.4, avec: J, k: 0.35 }), acteurs: [moi, sac, ch, J], dit: ['L’avoine ! Enfin. Les chevaux allaient venir la chercher eux-mêmes.', '@eleveuse'] }),
       c.plan({ dur: 5.8, cam: c.camActeur(moi, { cote: 0.2, d: 2.2 }), acteurs: [moi, sac, ch], dit: ['Dites-lui de la mettre sur mon ardoise. Elle va râler. Comme d’habitude.', '@eleveuse'] }),
     ];
   },
@@ -560,15 +564,18 @@ q20.scenes('aubergiste_1', {
     ];
   },
   fin(c) {
-    const B = c.w.bld.auberge, T = qtPropsDans(c.w, 'auberge', (q, lx, lz, h) => q.id === 'chaise' && h < 1).slice(0, 4);
-    const gens = [['forgeron', 0], ['garde', 1], ['postiere', 2], ['grainetiere', 3]].map(([id, i]) => T[i] && npcs.alive(id) ? c.habitant(id, [T[i].x, T[i].y, T[i].z], { cap: (T[i].r || 0) + Math.PI, geste: ['assis', i % 2 ? 'parle' : 'hoche'] }) : null);
-    const moi = Q20H.poste(c, 'aubergiste', { geste: ['porte', 'parle'] });
+    const M = c.maison('aubergiste'), poste = M.poste || M.centre;
+    const t = Q20H.meuble(c, 'auberge', 'table', poste);
+    // (les chaises de cette table-là : les habitués y sont assis)
+    const ch2 = t ? qtPropsDans(c.w, 'auberge', (q, lx, lz, h) => q.id === 'chaise' && h < 1 && Math.hypot(q.x - t.P[0], q.z - t.P[2]) < 1.6) : [];
+    const gens = [['forgeron', 0], ['garde', 1]].map(([id, i]) => ch2[i] && npcs.alive(id) ? c.habitant(id, [ch2[i].x, ch2[i].y, ch2[i].z], { cap: c.cap([ch2[i].x, 0, ch2[i].z], t.P), geste: ['assis', i % 2 ? 'parle' : 'hoche'] }) : null);
+    const pres = t ? c.devant(t.P, c.cap(t.P, poste), 0.9, 0.3, true) : poste;
+    const moi = c.habitant('aubergiste', pres, { cap: t ? c.cap(pres, t.P) : M.cap, geste: ['porte', 'parle'] });
     const ch = Q20H.meuble(c, 'auberge', 'cheminee');
     const lum = ch ? [c.lueur(ch.P, 5.5, [1.0, 0.55, 0.25], 0.6)] : [];
-    const t = Q20H.meuble(c, 'auberge', 'table', moi && moi.P);
     return [
-      c.plan({ dur: 6.4, cam: t ? c.camDedans('auberge', c.haut(t.P, 0.9), { pref: c.maison('aubergiste').cap + 0.4, d: 3.8 }) : c.camActeur(moi), acteurs: [moi, ...gens], lum, dit: ['Magnifique ! Ça va sentir jusqu’à l’église.'], court: true }),
-      c.plan({ dur: 5.6, cam: c.camActeur(moi, { cote: 0.2, d: 2.2, buste: true }), acteurs: [moi, ...gens], lum, dit: ['Deux portions pour vous, et quelques sous. À la bonne vôtre !'], son: 'piece' }),
+      c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.8, d: 3.0, avec: t ? c.haut(t.P, 0.8) : undefined, k: 0.4 }), acteurs: [moi, ...gens], lum, dit: ['Magnifique ! Ça va sentir jusqu’à l’église.'], court: true }),
+      c.plan({ dur: 5.6, cam: c.camActeur(moi, { cote: 0.2, d: 2.2, buste: true }), acteurs: [Object.assign({}, moi, { geste: ['trinque'] }), ...gens], lum, dit: ['Deux portions pour vous, et quelques sous. À la bonne vôtre !'], son: 'piece' }),
     ];
   },
 });
@@ -595,7 +602,7 @@ q20.scenes('aubergiste_2', {
     ];
   },
   fin(c) {
-    const moi = Q20H.poste(c, 'aubergiste', { geste: [{ reach: 0.5 }, 'leve'] });
+    const moi = Q20H.poste(c, 'aubergiste', { geste: ['trinque'] });
     const verre = moi && c.chose(Q20_DESSINS.verre, c.haut(c.devant(moi.P, moi.cap, 0.38, 0.16, true), 1.35));
     const moi2 = Q20H.poste(c, 'aubergiste', { geste: ['offre', 'parle'] });
     const fr = moi2 && c.chose(Q20_DESSINS.fromage, c.haut(c.devant(moi2.P, moi2.cap, 0.45, 0.1, true), 1.0));
@@ -609,7 +616,7 @@ q20.scenes('aubergiste_2', {
 q20.scenes('aubergiste_3', {
   qui: 'aubergiste',
   demande(c) {
-    const moi = Q20H.poste(c, 'aubergiste', { geste: ['baisse', { reach: 0.15 }] });
+    const moi = Q20H.poste(c, 'aubergiste', { geste: ['tend'] });
     const Ci = c.lieu('cimetiere');
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.4, d: 2.0 }), acteurs: [moi], dit: ['On a enterré l’oncle Anatole avec sa pipe. Hier matin, son étui traînait vide sur mon comptoir.'], court: true }),
@@ -650,11 +657,10 @@ q20.scenes('cure_1', {
     const enf = moi ? [['enfant_a', 1.4, -0.9], ['enfant_b', 1.7, 0.4], ['enfant_c', 1.2, 1.2]].map(([k, d, l]) => c.gens(k, c.devant(moi.P, moi.cap, d, l), { face: moi.P, geste: 'leve' })) : [];
     const fille = moi && npcs.alive('fillette') ? c.habitant('fillette', c.devant(moi.P, moi.cap, 1.9, -0.2), { face: moi.P, geste: 'leve' }) : null;
     const M = c.maison('cure'), pn = Q20H.libre(c, M.dehors(3, 5), 0, 5, 0.5);
-    const poteau = c.chose((PE) => { PE.box(0, 0.75, 0, 0.09, 1.5, 0.09, [0.55, 0.42, 0.28], TL.wood); }, pn);
-    const nich = c.chose('nichoir', c.haut(pn, 1.5), { r: M.cap });
+    const nich = c.chose('nichoir', pn, { r: M.cap });
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.5, d: 4.2, buste: true }), acteurs: [moi, ...enf, fille], dit: ['Douze beaux œufs. Deo gratias. Les enfants seront heureux. Ceux qui viendront.'], court: true }),
-      c.plan({ dur: 5.6, cam: c.camChose(c.haut(pn, 1.5), { d: 2.6, haut: 1.4, dy: 0 }), acteurs: [poteau, nich], son: 'hibou', dit: ['Un nichoir. Les oiseaux chantent mieux près d’une maison bénie.'] }),
+      c.plan({ dur: 5.6, cam: c.camChose(pn, { d: 2.8, haut: 1.5, dy: 1.2 }), acteurs: [nich], son: 'hibou', dit: ['Un nichoir. Les oiseaux chantent mieux près d’une maison bénie.'] }),
     ];
   },
 });
@@ -672,7 +678,7 @@ q20.scenes('cure_2', {
   tournant(c) { return Q20H.trouvaille(c, Q20_DESSINS.chapelet, { s: 1.8, son: 'murmure', dy2: 2.5 }); },
   fin(c) {
     const cierges = qtPropsDans(c.w, 'eglise', (q) => q.id === 'bougie').slice(0, 2).map((q) => c.lueur([q.x, q.y, q.z], 3.5, [1.0, 0.7, 0.35], 0.3));
-    const moi = Q20H.poste(c, 'cure', { geste: ['tend', 'baisse'] });
+    const moi = Q20H.poste(c, 'cure', { geste: ['tend'] });
     const ch = moi && c.chose(Q20_DESSINS.chapelet, c.haut(c.devant(moi.P, moi.cap, 0.42, 0.05, true), 1.25), { s: 1.4, r: moi.cap + Math.PI / 2 });
     const moi2 = Q20H.poste(c, 'cure', { geste: 'prie', tient: true, cap: c.maison('cure').cap + Math.PI });
     return [
@@ -701,7 +707,7 @@ q20.scenes('cure_3', {
     const ici = !c.rejeu && p && Math.hypot(p.pos[0] - B.out[0], p.pos[2] - B.out[1]) < 30 && !c.batiment(p.pos) ? c.pt(p.pos[0], p.pos[2]) : M.dehors(9, 2);
     const J = c.joueur(ici, { face: haut, tient: 'lanterne', geste: 'leve' });
     return [
-      c.plan({ dur: 6.4, cam: c.camRegard(c.devant(ici, c.cap(ici, B.out ? [B.out[0], 0, B.out[1]] : haut), -1.2, 0.6), haut, { haut: 1.4, monte: 0.8 }), acteurs: [J] }),
+      c.plan({ dur: 6.4, cam: c.camRegard(M.dehors(14, 1.5), haut, { haut: 1.5, monte: 0.8 }), acteurs: [J] }),
       c.plan({ dur: 5.6, cam: c.camActeur(J, { cote: 0.6, d: 3.4, buste: true }), acteurs: [J] }),
     ];
   },
@@ -729,11 +735,11 @@ q20.scenes('postiere_1', {
     ];
   },
   tournant(c) {
-    const moi = Q20H.seuil(c, 'maire', { d: 0.9, geste: ['tend', 'baisse'] });
+    const moi = Q20H.seuil(c, 'maire', { d: 0.9, geste: ['tend'] });
     const pli = moi && c.chose(Q20_DESSINS.pli, c.haut(c.devant(moi.P, moi.cap, 0.38, 0.05), 1.15), { s: 1.4, r: moi.cap });
     const J = Q20H.face(c, moi, 1.5, 0.4);
     return [
-      c.plan({ dur: 5.6, cam: c.camActeur(moi, { cote: 0.7, d: 3.0, avec: J, k: 0.3 }), acteurs: [moi, pli, J], son: 'page', dit: ['La préfecture ! Enfin, une réponse !', '@maire'] }),
+      c.plan({ dur: 5.6, cam: c.camActeur(moi, { cote: 1.3, d: 3.2, avec: J, k: 0.35 }), acteurs: [moi, pli, J], son: 'page', dit: ['La préfecture ! Enfin, une réponse !', '@maire'] }),
       c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.2, d: 1.9, buste: true }), acteurs: [moi, pli], dit: ['… Le cachet date d’il y a vingt ans. Mais c’est une réponse.', '@maire'] }),
     ];
   },
@@ -749,7 +755,7 @@ q20.scenes('postiere_1', {
 q20.scenes('postiere_2', {
   qui: 'postiere',
   demande(c) {
-    const moi = Q20H.poste(c, 'postiere', { geste: ['tend', 'leve'] });
+    const moi = Q20H.poste(c, 'postiere', { geste: ['eleve'] });
     const l = moi && c.chose(Q20_DESSINS.violette, c.haut(c.devant(moi.P, moi.cap, 0.36, 0.02, true), 1.5), { s: 1.4, r: moi.cap });
     const Ha = c.lieu('ranch') || c.lieu('hameau');
     return [
@@ -759,9 +765,9 @@ q20.scenes('postiere_2', {
   },
   tournant(c) {
     const M = c.maison('eleveuse');
-    const moi = Q20H.seuil(c, 'eleveuse', { d: 1.0, geste: ['tend', 'baisse'] });
+    const moi = Q20H.seuil(c, 'eleveuse', { d: 1.0, geste: ['tend'] });
     const l = moi && c.chose(Q20_DESSINS.violette, c.haut(c.devant(moi.P, moi.cap, 0.36, 0.02), 1.25), { s: 1.4, r: moi.cap });
-    const dos = Q20H.seuil(c, 'eleveuse', { d: 1.0, cap: M.cap + Math.PI * 0.85, geste: ['tend', 'baisse'] });
+    const dos = Q20H.seuil(c, 'eleveuse', { d: 1.0, cap: M.cap + Math.PI * 0.85, geste: ['tend'] });
     const l2 = dos && c.chose(Q20_DESSINS.violette, c.haut(c.devant(dos.P, dos.cap, 0.36, 0.02), 1.25), { s: 1.4, r: dos.cap });
     return [
       c.plan({ dur: 5.6, cam: c.camActeur(moi, { cote: 0.4, d: 2.2, buste: true }), acteurs: [moi, l], dit: ['Encore une ! Même écriture, même violette… Qui, là-bas, oserait ?', '@eleveuse'] }),
@@ -804,7 +810,7 @@ q20.scenes('postiere_3', {
 q20.scenes('postiere_4', {
   qui: 'postiere',
   demande(c) {
-    const moi = Q20H.poste(c, 'postiere', { geste: ['tend', 'raide'] });
+    const moi = Q20H.poste(c, 'postiere', { geste: ['loin', 'raide'] });
     const co = moi && c.haut(c.devant(moi.P, moi.cap, 0.5, 0, true), 1.15);
     const Po = c.lieu('ponton');
     return [
@@ -834,7 +840,7 @@ q20.scenes('postiere_4', {
 q20.scenes('postiere_5', {
   qui: 'postiere',
   demande(c) {
-    const moi = Q20H.poste(c, 'postiere', { geste: ['raide', { reach: 0.08, lookP: 0.35 }] });
+    const moi = Q20H.poste(c, 'postiere', { geste: ['raide', 'baisse'] });
     const fp = moi && c.chose(Q20_DESSINS.fairepart, c.haut(c.devant(moi.P, moi.cap, 0.55, 0, true), 1.02), { s: 1.5 });
     const H = c.lieu('hutte_ermite');
     return [
@@ -844,7 +850,7 @@ q20.scenes('postiere_5', {
   },
   tournant(c) {
     const t = Q20H.meuble(c, 'hutte_ermite', 'table');
-    const moi = Q20H.poste(c, 'guerisseuse', { vise: t && t.P, geste: ['baisse', { reach: 0.15 }] });
+    const moi = Q20H.poste(c, 'guerisseuse', { vise: t && t.P, geste: ['tend'] });
     const fp = t && c.chose(Q20_DESSINS.fairepart, c.haut(t.P, 0.78), { s: 1.4 });
     const bg = qtPropsDans(c.w, 'hutte_ermite', (q) => q.id === 'bougie').slice(0, 1).map((q) => c.lueur([q.x, q.y, q.z], 3, [1.0, 0.65, 0.3], 0.3));
     const moi2 = Q20H.poste(c, 'guerisseuse', { geste: ['raide'], regard: 'camera' });
@@ -855,7 +861,7 @@ q20.scenes('postiere_5', {
   },
   fin(c) {
     const M = c.maison('postiere');
-    const moi = Q20H.seuil(c, 'postiere', { d: 0.5, cap: M.cap + Math.PI, geste: [{ reach: 0.35 }] });
+    const moi = Q20H.seuil(c, 'postiere', { d: 0.5, cap: M.cap + Math.PI, geste: ['offre'] });
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: Math.PI - 0.6, d: 3.0 }), acteurs: [moi], heure: Math.max(c.h, 18.4), dit: ['« Rien n’est décidé », elle a dit ? … Bon.'], court: true }),
       c.plan({ dur: 5.6, cam: c.camLieu(M.porte, { d: 10, haut: 2.4, dy: 1.6, a: M.cap + 0.6 }), acteurs: [moi], heure: Math.max(c.h, 18.6), dit: ['Je fermerai le bureau un peu plus tôt, ce soir. Merci. Vraiment.'], son: 'porte' }),
@@ -871,24 +877,29 @@ function q20Pont(c, cle) {
   const dz = br.z - G.z, s = Math.sign(dz) || 1;
   return { br, G, porte: c.pt(G.x, G.z), milieu: [br.x, (br.y || w.waterLevel + 2) + 0.05, br.z], dehors: c.pt(G.x, G.z + s * 26), s };
 }
+// sur le tablier (le pont baissé, de jour), ou devant la porte de la ville (le pont levé)
+function q20SurPont(c, Po, avance) {
+  const ax = Po.s > 0 ? 0 : Math.PI;
+  if (!Po.br.up) { const P = c.devant([Po.G.x, Po.br.y || c.w.waterLevel + 2, Po.G.z], ax, avance || 2.6, 0.7, true); P[1] = c.w.groundAt(P[0], P[2], (Po.br.y || 6) + 0.6, 0.8); if (P[1] > c.w.waterLevel + 0.5) return P; }
+  return c.devant(Po.porte, ax + Math.PI, 1.2, 0.8);
+}
 q20.scenes('garde_1', {
   qui: 'garde',
   demande(c) {
     const Po = q20Pont(c, 'pont_nord');
     if (!Po) return null;
-    const P0 = c.pt(Po.G.x + 0.8, Po.G.z - Po.s * 1.5);
-    const moi = c.habitant('garde', P0, { cap: Po.s > 0 ? 0 : Math.PI, geste: ['penche', 'montre'] });
-    const sous = [Po.br.x + 6, c.w.waterLevel + 1.3, Po.br.z];
+    const P0 = q20SurPont(c, Po, 2.8), ax = Po.s > 0 ? 0 : Math.PI;
+    const moi = c.habitant('garde', P0, { cap: ax, geste: ['penche', 'montre'] });
     return [
       c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 1.2, d: 3.0 }), acteurs: [moi], dit: ['Le tablier du pont nord a des planches pourries. Grignotées. Par en dessous.'], court: true }),
-      c.plan({ dur: 6, cam: c.camLieu(Po.milieu, { d: 11, haut: 0.6, dy: -0.6, a: Math.PI / 2 + 0.3, recul: 0.15 }), son: 'eau', dit: ['Vingt brassées de bois, deux lingots de fer. Et faites vite. Je n’aime pas penser à ce qui grignote.'] }),
+      c.plan({ dur: 6, cam: c.camLieu(Po.milieu, { d: 8, haut: 5.5, dy: -0.4, a: ax + Math.PI / 2 + 0.5, recul: 0.1 }), son: 'eau', dit: ['Vingt brassées de bois, deux lingots de fer. Et faites vite. Je n’aime pas penser à ce qui grignote.'] }),
     ];
   },
   fin(c) {
     const Po = q20Pont(c, 'pont_nord');
     if (!Po) return null;
-    const P0 = c.pt(Po.G.x - 0.8, Po.G.z - Po.s * 2);
-    const moi = c.habitant('garde', P0, { cap: Po.s > 0 ? 0 : Math.PI, main: 'marteau', geste: 'travaille' });
+    const P0 = q20SurPont(c, Po, 2.0);
+    const moi = c.habitant('garde', P0, { cap: (Po.s > 0 ? 0 : Math.PI) + 0.5, main: 'marteau', geste: 'travaille' });
     const pp = Q20H.libre(c, c.pt(Po.G.x + 3.2, Po.G.z + 1.2), 0, 3, 0.4);
     return [
       c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 1.0, d: 2.8 }), acteurs: [moi], son: 'enclume', dit: ['Du bon bois, du bon fer. Le pont tiendra.'], court: true }),
@@ -915,7 +926,7 @@ q20.scenes('garde_2', {
     const Po = q20Pont(c, 'pont_sud');
     if (!Po) return null;
     const P0 = c.pt(Po.G.x + 1.4, Po.G.z - Po.s * 1.2);
-    const moi = c.habitant('garde', P0, { cap: Po.s > 0 ? -0.4 : Math.PI + 0.4, geste: ['tend', 'baisse'] });
+    const moi = c.habitant('garde', P0, { cap: Po.s > 0 ? -0.4 : Math.PI + 0.4, geste: ['tend'] });
     const cl = c.chose(Q20_DESSINS.cle, c.haut(c.devant(P0, moi.cap, 0.4, 0.1), 1.1), { s: 1.3, r: moi.cap });
     const pc = Q20H.libre(c, c.pt(Po.G.x - 4, Po.G.z - Po.s * 3), 0, 4, 0.6);
     return [
@@ -939,14 +950,15 @@ q20.scenes('garde_3', {
     ];
   },
   tournant(c) {
-    const Ps = q20Pont(c, 'pont_sud'), w = c.w;
+    const Ps = q20Pont(c, 'pont_sud');
     if (!Ps) return null;
-    const tr = qtProps(w, Ps.G.x, Ps.G.z, 20, (q) => q.id === 'traces').sort((a, b) => b.x - a.x);
-    const T0 = tr.length ? [tr[0].x, tr[0].y, tr[0].z] : Ps.porte;
-    const J = c.joueur(c.devant(T0, 0, -1.4, 0.8), { face: Ps.milieu, tient: 'lanterne', geste: 'baisse' });
+    const ax = Ps.s > 0 ? 0 : Math.PI, pas = [];
+    for (let k = 0; k < 7; k++) { const P = c.devant(Ps.porte, ax, 0.4 + k * 0.62, k % 2 ? 0.13 : -0.13); pas.push(c.chose(Q20_DESSINS.pas, c.haut(P, 0.01), { r: ax, s: 1.15 })); }
+    const J = c.joueur(c.devant(Ps.porte, ax, -1.3, 0.9), { face: Ps.milieu, tient: 'lanterne', geste: 'baisse', vu: false });
+    const lum = [c.lueur(c.devant(Ps.porte, ax, 1.4), 4.5, [1.0, 0.72, 0.4], 1.2)];
     return [
-      c.plan({ dur: 5.8, cam: c.camChose(T0, { d: 2.4, haut: 0.9, a: 2.6, recul: 0.2 }), acteurs: [J] }),
-      c.plan({ dur: 6, cam: c.camRegard(c.devant(Ps.porte, Ps.s > 0 ? 0 : Math.PI, -1.5), c.haut(Ps.milieu, 7), { haut: 1.4, monte: 0.5 }), acteurs: [J] }),
+      c.plan({ dur: 5.8, cam: c.camChose(c.devant(Ps.porte, ax, 1.6), { d: 2.6, haut: 1.1, a: ax + Math.PI + 0.35, recul: 0.25 }), acteurs: [...pas, J], lum }),
+      c.plan({ dur: 6, cam: c.camRegard(c.devant(Ps.porte, ax, -1.5), c.haut(Ps.milieu, 7), { haut: 1.4, monte: 0.5 }), acteurs: [...pas, J], lum }),
     ];
   },
   fin(c) {
@@ -1007,7 +1019,7 @@ q20.scenes('eleveuse_2', {
     const Ce = c.lieu('cercle'), M = c.maison('eleveuse');
     const P0 = M.dehors(2.6, 1.6);
     const vache = c.bete('cow', P0, { cap: c.cap(P0, Ce.P) + 0.6 });
-    const moi = c.habitant('eleveuse', c.devant(P0, vache.cap, 1.1, 0.5), { face: vache.P, geste: ['penche', { reach: 0.3 }] });
+    const moi = c.habitant('eleveuse', c.devant(P0, vache.cap, 1.1, 0.5), { face: vache.P, geste: ['penche', 'offre'] });
     const vache2 = c.bete('cow', P0, { cap: c.cap(P0, Ce.P), geste: { lookP: -0.15 } });
     return [
       c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 1.0, d: 3.4, avec: vache, k: 0.5 }), acteurs: [moi, vache], dit: ['Sa cloche ! Elle est froide comme la glace…'], court: true }),
@@ -1025,18 +1037,22 @@ q20.scenes('eleveuse_3', {
     const betes = [['cow', 0, 0], ['horse', 2.6, 1.4], ['cow', -2.4, 2.2], ['horse', 1.2, -2.6]].map(([r, lx, lz], i) => c.bete(r, c.devant(E, cap + Math.PI / 2, lx, lz), { cap: cap + (i - 1.5) * 0.04, v: i }));
     const moi = c.habitant('eleveuse', c.devant(E, cap + Math.PI, 4.2, 1.2), { cap, main: 'lanterne', geste: ['raide'] });
     return [
-      c.plan({ dur: 6.4, cam: c.camLieu(E, { d: 12, haut: 2.4, dy: 1.2, a: cap + 0.9 }), heure: Math.max(c.h, 21), acteurs: [...betes, moi], dit: ['Certaines nuits, toutes mes bêtes se tournent vers le hameau abandonné. Toutes ensemble. Jusqu’à l’aube.'], court: true }),
+      c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: Math.PI - 0.5, d: 3.6, haut: 2.0 }), heure: Math.max(c.h, 21), acteurs: [moi, ...betes], dit: ['Certaines nuits, toutes mes bêtes se tournent vers le hameau abandonné. Toutes ensemble. Jusqu’à l’aube.'], court: true }),
       c.plan({ dur: 5.8, cam: c.camLieu(Ha, { d: 40, haut: 4, dy: 2 }), heure: c.heure('nuit'), dit: ['Allez voir ce qu’elles regardent. Si vous voyez une lumière, ne marchez pas vers elle.'] }),
     ];
   },
   tournant(c) {
     const L = c.lieu('hameau_abandonne'), w = c.w;
     const F = [L.x + 8, c.sol(L.x + 8, L.z + 5), L.z + 5];
-    const fig = c.gens('fenetre', F, { face: 'camera', geste: 'salue', vu: false });
+    // (d'où l'on vient : le joueur, ou le chemin du hameau)
+    const p = game.player, de = !c.rejeu && p && Math.hypot(p.pos[0] - F[0], p.pos[2] - F[2]) < 60 ? p.pos : c.devant(F, 0.7, 12);
+    const a = c.cap(F, de), win = c.chose(Q20_DESSINS.fenetre, c.devant(F, a, 0.35, 0, true), { r: a });
+    win.P[1] = F[1] + 1.45;
+    const fig = c.gens('fenetre', c.devant(F, a, -0.25), { cap: a, geste: 'salue', vu: false });
     const lum = [c.lueur(F, 6, [1.0, 0.7, 0.4], 1.5)];
     return [
-      c.plan({ dur: 6.4, cam: c.camLieu(F, { d: 16, haut: 1.8, dy: 1.4, recul: 0.25 }), acteurs: [fig], lum }),
-      c.plan({ dur: 5.4, cam: c.camLieu(F, { d: 7, haut: 1.6, dy: 1.4, recul: 0.12 }), acteurs: [fig], lum }),
+      c.plan({ dur: 6.4, cam: c.camLieu(F, { d: 16, haut: 1.8, dy: 1.4, a, recul: 0.25 }), acteurs: [win, fig], lum }),
+      c.plan({ dur: 5.4, cam: c.camLieu(F, { d: 7, haut: 1.6, dy: 1.4, a: a + 0.2, recul: 0.12 }), acteurs: [win, fig], lum }),
     ];
   },
   fin(c) {
@@ -1064,7 +1080,7 @@ q20.scenes('pecheur_1', {
     const eau = c.devant(P0, c.cap(P0, lac.P), 12);
     return [
       c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 0.9, d: 2.6, buste: true }), acteurs: [moi, fi], dit: ['Mes filets sont en loques. Quelque chose les a déchirés, cette nuit. Quelque chose de gros.'], court: true }),
-      c.plan({ dur: 5.8, cam: c.camRegard(P0, [eau[0], c.w.waterLevel, eau[2]], { haut: 1.3, recul: 0.04 }), son: 'eau', acteurs: [moi, fi], dit: ['Quinze bottes de fibre, et je les ravaude. Le lac n’est pas pressé. Moi, un peu.'] }),
+      c.plan({ dur: 5.8, cam: c.camRegard(c.devant(P0, c.cap(P0, lac.P) + Math.PI, 1.3, 0.5, true), [eau[0], c.w.waterLevel, eau[2]], { haut: 1.3, recul: 0.04 }), son: 'eau', acteurs: [moi, fi], dit: ['Quinze bottes de fibre, et je les ravaude. Le lac n’est pas pressé. Moi, un peu.'] }),
     ];
   },
   fin(c) {
@@ -1095,7 +1111,7 @@ q20.scenes('pecheur_2', {
   fin(c) {
     const P0 = q20Ponton(c), lac = c.lieu('lac');
     if (!P0) return null;
-    const moi = c.habitant('pecheur', P0, { cap: c.cap(P0, lac.P) + 2.4, geste: ['tend', 'baisse'] });
+    const moi = c.habitant('pecheur', P0, { cap: c.cap(P0, lac.P) + 2.4, geste: ['tend'] });
     const bo = c.chose(Q20_DESSINS.boussole, c.haut(c.devant(P0, moi.cap, 0.4, 0.05, true), 1.08), { s: 1.6, r: c.cap(P0, lac.P) });
     const moi2 = c.habitant('pecheur', P0, { cap: c.cap(P0, lac.P), geste: ['raide'] });
     return [
@@ -1124,10 +1140,11 @@ q20.scenes('pecheur_3', {
     const S = [lac.x, w.waterLevel + 8.6, lac.z];
     const clocher = c.chose((PE) => { PE.bx(0, -3, 0, 3, 9, 3, [1, 1, 1], mt(M_MOSSY)); PE.bx(0, 6, 0, 3.4, 5, 3.4, [1, 1, 1], mt(M_SLATE), 0.78); PE.fl = FX_EMIT; PE.bx(0, 3, 1.52, 0.8, 1.2, 0.05, [1.2, 0.9, 0.5], 0); PE.fl = 0; }, [lac.x, w.waterLevel - 3, lac.z]);
     const jules = c.gens('jules', [lac.x + 1.1, w.waterLevel + 8.2, lac.z + 1.1], { face: P0, geste: 'salue', vu: false });
-    const vers = c.devant(P0, c.cap(P0, S), 6);
+    // (comme un regard qui s'approche, au ras de l'eau : de trente mètres, puis de quinze)
+    const a = c.cap(S, P0), loin = [lac.x + Math.sin(a) * 32, w.waterLevel + 0.6, lac.z + Math.cos(a) * 32], pres = [lac.x + Math.sin(a + 0.5) * 15, w.waterLevel + 0.6, lac.z + Math.cos(a + 0.5) * 15];
     return [
-      c.plan({ dur: 6.4, cam: c.camRegard(c.devant(P0, c.cap(P0, S), 1), c.haut(S, -3), { haut: 1.2, recul: 0.15 }), acteurs: [clocher, jules], son: 'clochette' }),
-      c.plan({ dur: 5.4, cam: c.camRegard(vers, c.haut(S, -1.5), { haut: 0.9, recul: 0.3 }), acteurs: [clocher, jules], son: 'cloche' }),
+      c.plan({ dur: 6.4, cam: c.camRegard(loin, c.haut(S, -3.5), { haut: 1.4, recul: 0.2 }), acteurs: [clocher, jules], son: 'clochette' }),
+      c.plan({ dur: 5.4, cam: c.camRegard(pres, c.haut(S, -1.2), { haut: 1.0, recul: 0.15, monte: 0.4 }), acteurs: [clocher, jules], son: 'cloche' }),
     ];
   },
   fin(c) {
@@ -1159,7 +1176,7 @@ q20.scenes('guerisseuse_1', {
   },
   fin(c) {
     const t = Q20H.meuble(c, 'hutte_ermite', 'table');
-    const moi = Q20H.poste(c, 'guerisseuse', { vise: t && t.P, geste: ['leve', { reach: 0.5 }] });
+    const moi = Q20H.poste(c, 'guerisseuse', { vise: t && t.P, geste: ['eleve'] });
     const M = c.maison('guerisseuse'), pp = Q20H.libre(c, M.dehors(2.6, 2.0), 0, 4, 0.8);
     return [
       c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.9, d: 2.0 }), acteurs: [moi], lum: q20Bougies(c), dit: ['Belles herbes. Vous avez la main verte. Ou la main heureuse.'], court: true }),
@@ -1183,8 +1200,8 @@ q20.scenes('guerisseuse_2', {
     return Q20H.trouvaille(c, Q20_DESSINS.dent, { s: 1.6, son: 'loup', lieu: false }).concat(Ch ? [c.plan({ dur: 5.4, cam: c.camLieu(Ch, { d: 30, haut: 2.6, dy: 6, ign: [Ch.x, Ch.z] }), son: 'grondement' })] : []);
   },
   fin(c) {
-    const moi = Q20H.seuil(c, 'guerisseuse', { d: 0.8, geste: ['tend', 'leve'] });
-    const de = moi && c.chose(Q20_DESSINS.dent, c.haut(c.devant(moi.P, moi.cap, 0.3, 0.05), 1.38), { s: 0.9 });
+    const moi = Q20H.seuil(c, 'guerisseuse', { d: 0.8, geste: ['eleve'] });
+    const de = moi && c.chose(Q20_DESSINS.dent, c.haut(c.devant(moi.P, moi.cap, 0.12, 0.24), 2.05), { s: 0.9 });
     const M = c.maison('guerisseuse'), pa = Q20H.libre(c, M.dehors(3, -2.5), 0, 4, 1.0);
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.4, d: 1.8, buste: true }), acteurs: [moi, de], dit: ['La voilà. Elle est chaude… Quelqu’un l’a tenue avant vous, ce matin.'], court: true }),
@@ -1210,7 +1227,7 @@ q20.scenes('guerisseuse_3', {
     if (!Pu) return null;
     const bord = c.devant(Pu.P, 0.7, 1.3);
     return [
-      c.plan({ dur: 6.4, cam: Q20H.puits(c, Pu, { a: 0.7, fond: -3 }), son: 'murmure', acteurs: [] }),
+      c.plan({ dur: 6.4, cam: Q20H.puits(c, Pu, { a: 0.7, fond: -1.2, r: [2.0, 2.5, 1.6, 3.0], haut: 2.0 }), son: 'murmure', acteurs: [] }),
       c.plan({ dur: 5.2, cam: c.camLieu(Pu, { d: 7, haut: 1.6, dy: 0.8, a: 3.4 }), acteurs: [c.joueur(bord, { face: Pu.P, tient: 'lanterne', geste: 'penche' })] }),
     ];
   },
@@ -1242,7 +1259,7 @@ q20.scenes('fillette_1', {
     const bord = c.devant(Pu.P, 2.2, 0.95, 0, true);
     bord[1] = c.w.groundAt(bord[0], bord[2], Pu.P[1] + 0.2, 1.4) + 0.02;
     const P0 = c.devant(Pu.P, 2.2, 1.9);
-    const moi = c.habitant('fillette', P0, { face: Pu.P, geste: ['tend', 'penche'] });
+    const moi = c.habitant('fillette', P0, { face: Pu.P, geste: ['penche', 'offre'] });
     const co = c.chose(Q20_DESSINS.couronne, bord, { s: 1.1 });
     const lise = c.gens('lise', c.devant(Pu.P, 3.6, 1.9), { face: bord, geste: ['raide', 'baisse'], vu: false });
     return [
@@ -1256,10 +1273,10 @@ q20.scenes('fillette_2', {
   qui: 'fillette',
   demande(c) {
     const M = c.maison('fillette');
-    const moi = Q20H.seuil(c, 'fillette', { d: 0.8, lat: 0.6, cap: M.cap + 0.9, geste: ['parle', { lookY: -0.6 }] });
+    const moi = Q20H.seuil(c, 'fillette', { d: 1.0, lat: 0.6, geste: ['parle', { lookY: -0.7 }] });
     const Ha = c.lieu('hameau_abandonne');
     return [
-      c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 0.4, d: 2.0 }), acteurs: [moi], dit: ['Lise a perdu sa poupée. Elle dit qu’elle est dans la maison sans toit.'], court: true }),
+      c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 0.15, d: 2.0 }), acteurs: [moi], dit: ['Lise a perdu sa poupée. Elle dit qu’elle est dans la maison sans toit.'], court: true }),
       c.plan({ dur: 5.8, cam: c.camLieu(Ha, { d: 26, haut: 2.6, dy: 1.4 }), heure: Math.max(c.h, 18.8), dit: ['Moi, j’ai pas le droit d’y aller. Toi, t’es une grande personne.'] }),
     ];
   },
@@ -1293,7 +1310,7 @@ q20.scenes('fillette_3', {
     const J = Q20H.face(c, moi, 1.6, 0.4);
     const moi2 = Q20H.seuil(c, 'guerisseuse', { d: 0.9, geste: ['raide'], regard: 'camera' });
     return [
-      c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 0.7, d: 3.0, avec: J, k: 0.3 }), acteurs: [moi, J], dit: ['La lune ne change pas. C’est nous qui passons de l’autre côté.', '@guerisseuse'] }),
+      c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 1.3, d: 3.2, avec: J, k: 0.35 }), acteurs: [moi, J], dit: ['La lune ne change pas. C’est nous qui passons de l’autre côté.', '@guerisseuse'] }),
       c.plan({ dur: 5.8, cam: c.camActeur(moi2, { cote: 0.2, d: 2.0 }), acteurs: [moi2, J], dit: ['Dites-lui qu’elle continue de faire semblant de dormir.', '@guerisseuse'] }),
     ];
   },

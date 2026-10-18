@@ -5,8 +5,9 @@
 //  - LES SCÈNES (graines 1234 et 77, de jour et de nuit, en entier et en court) : chaque moment de chaque quête
 //    inscrite (celles des autres lots comprises) se construit sans erreur, aux positions finies ; caméras : ni dans un
 //    mur, ni sous le sol, ni sous un toit dehors (dedans : dans la pièce, sous le plafond) ; pas de cadrage de repli ;
-//    l'habitant (ou la personne) qu'on montre se voit depuis la caméra ; durées dans les bornes (8 à 20 s ; 5 à 8 s
-//    en court) ;
+//    l'habitant (ou la personne) qu'on montre se voit depuis la caméra, et aucun autre acteur du plan (le joueur, une
+//    bête) ne se met devant ; la caméra n'est jamais contre un corps (0,75 m d'une personne, 1,15 m d'une bête) ;
+//    durées dans les bornes (8 à 20 s ; 5 à 8 s en court) ;
 //  - LA FILE : accepter, rendre, devenir rendable mettent le bon moment en file ; l'option Aucune n'en joue aucune
 //    (et Courtes, aucun tournant) ; une scène vue ne revient pas ;
 //  - UNE ANCIENNE PARTIE (sans farm.s.q20 : des quêtes finies, une en cours déjà rendable) se charge sans rien
@@ -200,6 +201,8 @@ module.exports = {
               if (P._q20.dedans) r.dedans++; if (P._q20.toit) r.toit++;
               for (const C of cams) { const why = fini(C) ? camOk(C, P._q20) : 'non finie'; if (why) { e.push(id + ' ' + m + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : caméra ' + why + ' ' + C.map((x) => x.toFixed(1)).join(',')); break; } }
               for (const A of P._q20.acteurs) { const Q = A.vers || A.P; if (!fini(A.P) || (A.vers && !fini(A.vers)) || !Number.isFinite(A.cap || 0)) e.push(id + ' ' + m + ' : acteur aux positions non finies'); }
+              // (la caméra jamais contre une personne ni une bête du plan : un bloc sombre qui mange l'image)
+              for (const C of cams) { const X = fini(C) && sc.ctx.contre(C, P._q20.acteurs); if (X) { e.push(id + ' ' + m + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : caméra contre ' + (X.id || (X.joueur ? 'le joueur' : X.rig || 'une silhouette')) + ' (' + Math.hypot(C[0] - (X.vers || X.P)[0], C[2] - (X.vers || X.P)[2]).toFixed(2) + ' m)'); break; } }
               for (const l of P._q20.lum) if (!fini([l.x, l.y, l.z]) || !(l.r > 0)) e.push(id + ' ' + m + ' : lumière');
               // la personne qu'on montre se voit (la première du plan qu'il faut voir)
               const A = P._q20.acteurs.find((x) => x.k === 'h' && x.vu !== false);
@@ -207,6 +210,10 @@ module.exports = {
                 const s = A.s || 1, Q = A.vers || A.P;
                 const tete = [Q[0], Q[1] + 1.45 * s * (JSON.stringify(A.geste || '').includes('assis') ? 0.72 : 1), Q[2]], buste = [Q[0], Q[1] + 1.0 * s, Q[2]];
                 if (!voit(cams[0], tete, P._q20.dedans) && !voit(cams[0], buste, P._q20.dedans)) e.push(id + ' ' + m + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : ' + (A.id || (A.joueur ? 'le joueur' : 'la personne')) + ' caché(e) de la caméra');
+                // (et personne d'autre du plan devant elle : ni le joueur, ni une bête)
+                const ev = P._q20.acteurs.filter((X) => X !== A && X.k !== 'c' && !(X.id && X.id === A.id && !X.joueur && !A.joueur));
+                const dev = ev.find((X) => sc.ctx.cache(cams[0], tete, [X]));
+                if (dev) e.push(id + ' ' + m + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : ' + (dev.id || (dev.joueur ? 'le joueur' : dev.rig || 'une silhouette')) + ' devant ' + (A.id || (A.joueur ? 'le joueur' : 'la personne')));
               }
             }
           }
