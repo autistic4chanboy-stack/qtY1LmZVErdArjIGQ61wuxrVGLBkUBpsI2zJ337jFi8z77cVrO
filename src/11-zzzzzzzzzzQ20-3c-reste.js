@@ -85,7 +85,7 @@ q20.scenes('t1', {
       const bo = moi && c.chose(Q20C_D2.piecess, Q20C.enMain(c, moi, 1.0, 0.36), { s: 1.6, r: moi.cap });
       const Au = c.lieu('auberge');
       return [
-        c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.5, d: 2.4, avec: J, k: 0.3 }), acteurs: [moi, J, bo], son: 'piece', dit: ['La sept est à vous, quand vous voudrez. Pour rien.'], court: true }),
+        c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 1.3, d: 2.6, avec: J, k: 0.3, evite: J ? [J] : undefined }), acteurs: [moi, J, bo], son: 'piece', dit: ['La sept est à vous, quand vous voudrez. Pour rien.'], court: true }),
         c.plan({ dur: 5.8, cam: c.camLieu(Au, { d: 18, haut: 4.5, dy: 4.5 }), heure: 6.6, dit: ['(Au matin, le lit est fait au carré. Les souliers sont propres.)', ''] }),
       ];
     },
