@@ -215,6 +215,16 @@ HOOKS.load.push(() => {
     const _d = pilules.dessinerMarchand.bind(pilules);
     pilules.dessinerMarchand = function (...a) { if (q20B.cache('marchand_joie')) return; return _d(...a); };
   }
+  // le voiturier, sa charrette, sa jument (sa tournée du matin) : la scène les montre elle-même
+  if (typeof commandes !== 'undefined' && commandes.dessiner) {
+    const _d = commandes.dessiner.bind(commandes);
+    commandes.dessiner = function (...a) {
+      if (!q20B.cache('voiturier') || !this.tour) return _d(...a);
+      const T = this.tour;
+      this.tour = null;
+      try { return _d(...a); } finally { this.tour = T; }
+    };
+  }
   // Thibaud, au treuil
   if (typeof chateauV4 !== 'undefined' && chateauV4.dessiner) {
     const _d = chateauV4.dessiner.bind(chateauV4);

@@ -61,6 +61,7 @@ const Q20BA = {
   // le voiturier, sa charrette, sa jument : là où il est (sa tournée), sinon au point de livraison
   voiturier(c) {
     const T = typeof commandes !== 'undefined' && commandes.tour;
+    c.masquer('voiturier');
     let car = null, h = null;
     if (T && T.car && T.h && !c.rejeu) { car = [T.car.x, T.car.y, T.car.z, T.car.r]; h = [T.h.x, T.h.y, T.h.z, T.h.r]; }
     else {
@@ -164,7 +165,7 @@ q20.scenes('q16_diseuse_2', {
     const jeu = c.chose(Q20_DESSINS.jeu_cartes, c.haut(c.devant(T.P, T.D.h, 0.45, 0.1, true), 0.62), { s: 1.4, r: T.D.h });
     return [
       c.plan({ dur: 6, cam: c.camActeur(T.moi, { cote: 0.25, d: 2.0 }), acteurs: [T.moi, jeu], lum: T.lum, dit: c.parole('Brûlée ? Alors elle est arrivée.', nom, 0.8), court: true }),
-      c.plan({ dur: 6, cam: c.camChose(c.haut(c.devant(T.P, T.D.h, 0.45, 0.1, true), 0.62), { d: 1.4, dy: 0.05, a: T.D.h + 0.4 }), acteurs: [T2.moi, jeu], lum: T2.lum, son: 'page', dit: c.parole('Elle tire la première carte, et la repose sans la retourner.', '') }),
+      c.plan({ dur: 6, cam: c.camChose(c.haut(c.devant(T.P, T.D.h, 0.45, 0.1, true), 0.62), { d: 1.4, dy: 0.05, a: T.D.h + 0.4 }), acteurs: [T2.moi, jeu], lum: T2.lum, son: 'page', dit: null }),
     ];
   },
 });
@@ -243,7 +244,7 @@ q20.scenes('q16_crieur_1', {
     const moi2 = Q20BA.figure(c, 'crieur', 'crieur', ['travaille', { lookP: 0.4 }]);
     return [
       c.plan({ dur: 5.8, cam: c.camActeur(moi, { cote: 0.4, d: 2.4 }), acteurs: [moi], dit: c.parole('Il l’a battu ? Bien.', nom, 0.85), court: true }),
-      moi2 && c.plan({ dur: 6.2, cam: c.camActeur(moi2, { cote: 1.0, d: 2.2, buste: true }), acteurs: [moi2], son: 'tambour', dit: c.parole('Il resserre la peau de son tambour. « Un jour, quelqu’un répondra. »', '') }),
+      moi2 && c.plan({ dur: 6.2, cam: c.camActeur(moi2, { cote: 1.0, d: 2.2, buste: true }), acteurs: [moi2], son: 'tambour', dit: c.parole('Un jour, quelqu’un répondra.', nom, 0.85) }),
     ];
   },
 });
@@ -268,7 +269,7 @@ q20.scenes('q16_voiturier_1', {
     const moi2 = c.gens('voiturier', Q20B.devant(c, V.H, V.cap + Math.PI / 2, 1.6, 0.6), { face: 'camera', geste: ['offre', 'parle'] });
     const cl = c.chose(Q20_DESSINS.fer_cheval, c.haut(c.devant(moi2.P, moi2.cap, 0.36, 0.06, true), 1.05), { s: 1.3 });
     return [
-      c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 1.1, d: 2.8, avec: V.H, k: 0.4 }), heure: c.heure('matin'), acteurs: [moi, V.jument, V.ch], son: 'enclume', dit: c.parole('Il ferre la jument sur place, en sifflant entre ses dents.', ''), court: true }),
+      c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 1.1, d: 2.8, avec: V.H, k: 0.4 }), heure: c.heure('matin'), acteurs: [moi, V.jument, V.ch], son: 'enclume', dit: c.parole('Bouge pas, ma belle. Là. Te voilà d’aplomb.', nom, 0.9), court: true }),
       c.plan({ dur: 5.6, cam: c.camActeur(moi2, { cote: 0.3, d: 2.4, buste: true }), heure: c.heure('matin'), acteurs: [moi2, cl, V.jument], son: 'piece', dit: c.parole('Merci bien. Tenez, des clous, pour la peine.', nom, 0.9) }),
     ];
   },
@@ -302,7 +303,7 @@ q20.scenes('q16_marchand_joie_1', {
     const pi = c.chose(Q20_DESSINS.piece, c.haut(c.devant(P, 0, 0.38, 0.08, true), 1.08), { s: 1.6 });
     return [
       c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.15, d: 2.2 }), heure: Math.max(c.h, 19.6), acteurs: [moi], dit: c.parole('Fermée. Bien sûr. Elle l’était déjà.', nom, 1.1), court: true }),
-      c.plan({ dur: 5.8, cam: c.camActeur(moi2, { cote: 0.6, d: 2.6, buste: true }), heure: Math.max(c.h, 19.8), acteurs: [moi2, pi, Q20H.face(c, moi2, 1.5, 0.3)], son: 'piece', dit: c.parole('Il sourit de toutes ses dents. « Tenez, pour la commission. »', '') }),
+      c.plan({ dur: 5.8, cam: c.camActeur(moi2, { cote: 0.6, d: 2.6, buste: true }), heure: Math.max(c.h, 19.8), acteurs: [moi2, pi, Q20H.face(c, moi2, 1.5, 0.3)], son: 'piece', dit: c.parole('Tenez, pour la commission.', nom, 1.1) }),
     ];
   },
 });
@@ -365,8 +366,8 @@ q20.scenes('q16_bete_hulotte_1', {
     const ni = c.chose('nichoir', c.haut(pn, 2.0), { r: c.cap(pn, T.P) });
     const pl = c.chose(Q20_DESSINS.plume_hulotte, c.haut(Q20B.devant(c, pn, (T.L.cap || 0) + 2.4, 0.9, 0), 0.01), { s: 1.6, r: 0.6 });
     return [
-      c.plan({ dur: 6.4, cam: c.camChose(c.haut(pn, 1.9), { d: 3.0, haut: 0.2, dy: 0, a: (T.L.cap || 0) + 0.2, ign: Ch ? [Ch.x, Ch.z] : null }), heure: c.heure('nuit'), acteurs: [poteau, ni, T.A], dit: c.parole('Elle la regarde d’un œil, puis de l’autre. « Pas mal. Pour une main. »', ''), court: true }),
-      c.plan({ dur: 5.6, cam: c.camChose(pl.P, { d: 1.6, haut: 0.95, dy: 0.02 }), heure: c.heure('nuit'), acteurs: [pl, poteau], son: 'hibou', chaque: Q20H.emet(c.haut(pl.P, 1.6), { n: 2, col: [0.62, 0.46, 0.3, 0.9], taille: 0.03, vie: 2.2, v: 0.15, vy: -0.6, grav: 0.3 }), dit: c.parole('Elle laisse tomber une plume à vos pieds.', '') }),
+      c.plan({ dur: 6.4, cam: c.camChose(c.haut(pn, 1.9), { d: 3.0, haut: 0.2, dy: 0, a: (T.L.cap || 0) + 0.2, ign: Ch ? [Ch.x, Ch.z] : null }), heure: c.heure('nuit'), acteurs: [poteau, ni, T.A], dit: c.parole('Pas mal. Pour une main.', nom), court: true }),
+      c.plan({ dur: 5.6, cam: c.camChose(pl.P, { d: 1.6, haut: 0.95, dy: 0.02 }), heure: c.heure('nuit'), acteurs: [pl, poteau], son: 'hibou', chaque: Q20H.emet(c.haut(pl.P, 1.6), { n: 2, col: [0.62, 0.46, 0.3, 0.9], taille: 0.03, vie: 2.2, v: 0.15, vy: -0.6, grav: 0.3 }), dit: c.parole('Je ne dirai à personne que j’ai demandé.', nom) }),
     ];
   },
 });
@@ -391,8 +392,8 @@ q20.scenes('q16_bete_corbeau_1', {
       const de = c.chose(Q20_DESSINS.de_argent, c.devant(T.P, (T.L.cap || 0), 0.25, 0, true), { s: 1.4 });
       const pis = [0, 1].map((k) => c.chose(Q20_DESSINS.piece, c.devant(T.P, (T.L.cap || 0) + 0.3 * (k ? 1 : -1), 0.45, 0, true), { s: 1.5 }));
       return [
-        c.plan({ dur: 6, cam: c.camChose(T.P, { d: 1.9, haut: 0.5, dy: 0.15, a: (T.L.cap || 0) + 0.6 }), acteurs: [T.A, de], dit: c.parole('Il le prend au bec, le cache sous son aile. « Tu es moins bête qu’un homme. Un peu. »', ''), court: true }),
-        c.plan({ dur: 5.8, cam: c.camChose(T.P, { d: 2.4, haut: 0.4, dy: 0.05, a: (T.L.cap || 0) - 0.5 }), acteurs: [T.A, ...pis], son: 'piece', dit: c.parole('Il pousse deux pièces vers vous.', '') }),
+        c.plan({ dur: 6, cam: c.camChose(T.P, { d: 1.9, haut: 0.5, dy: 0.15, a: (T.L.cap || 0) + 0.6 }), acteurs: [T.A, de], dit: c.parole('Tu es moins bête qu’un homme. Un peu.', nom), court: true }),
+        c.plan({ dur: 5.8, cam: c.camChose(T.P, { d: 2.4, haut: 0.4, dy: 0.05, a: (T.L.cap || 0) - 0.5 }), acteurs: [T.A, ...pis], son: 'piece', dit: null }),
       ];
     },
     1: (c) => {

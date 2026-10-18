@@ -176,13 +176,107 @@ module.exports = {
       for (const k in Q16_PNJ) for (const q of Q16_PNJ[k].quetes) voir(q.id, q, k);
       // les gens de Basse-Fosse : chacun sa quête, d'un modèle tiré pour la partie ; chaque modèle a sa scène
       for (const A of Q16_V5_ANONYMES) voir('q16_v5_' + A.id, q16.P('v5:' + A.id).quetes[0], 'v5:' + A.id);
-      for (const role in Q16_V5_MODELES) Q16_V5_MODELES[role].forEach((M, i) => { out.modeles++; if (!(typeof q20BV5 !== 'undefined' && q20BV5.scene(role, i))) e.push('modèle ' + role + ' ' + i + ' (' + M.title + ') : pas de scènes'); });
+      for (const role in Q16_V5_MODELES) Q16_V5_MODELES[role].forEach((M, i) => {
+        out.modeles++;
+        const S = typeof q20BV5 !== 'undefined' && q20BV5.scene(role, i);
+        if (!S) { e.push('modèle ' + role + ' ' + i + ' (' + M.title + ') : pas de scènes'); return; }
+        if (typeof S.demande !== 'function' || typeof S.fin !== 'function') e.push('modèle ' + role + ' ' + i + ' : demande ou dénouement manquant');
+        if (M.type !== 'apporter' && typeof S.tournant !== 'function') e.push('modèle ' + role + ' ' + i + ' : pas de tournant (' + M.type + ')');
+      });
       out.e = e;
       return JSON.stringify(out);
     })()`));
     log(`${D.ids.length} quêtes de Q16, ${D.quetes} avec leurs scènes (${D.moments} moments : ${Object.entries(D.mondes).map(([k, n]) => k + ' ' + n).join(', ')}) ; ${D.modeles} modèles de Basse-Fosse`);
     for (const m of D.e) ko(m);
     const ids = D.ids.filter((id) => !filtre || filtre.includes(id));
+
+    // ---------------------------------------------------------------- la file : chaque scène dans son monde
+    const F = JSON.parse(J.ev(`(() => {
+      const e = [], joues = [];
+      __q20Bbanc(1234, null);
+      game.world = { lm: {}, bld: { auberge: {}, eglise: {} }, inter: [], props: [], heightAt: () => 10, waterLevel: 4 };
+      game.player = { pos: [0, 10, 0], underground: false, vel: [0, 0, 0], eyePos() { return [0, 11.6, 0]; } };
+      const _jouer = q20.jouer, _emp = q20.empeche, _ici = q20B.ici, _sub = ui.subtitle;
+      let ici = 'vallee';
+      q20B.ici = () => ici;
+      q20.jouer = (id, m, o) => { joues.push(id + '|' + m + (o && o.court ? '|court' : '') + (o && o.rejeu ? '|rejeu' : '')); if (!(o && o.rejeu)) { q20.souvenir(id, m, o && o.h); q20.S().vus[q20.cle(id, m)] = farm.s.day; } return Promise.resolve(true); };
+      // (le calme, sauf le monde : c'est lui qu'on essaie)
+      q20.empeche = function () { return this.dansVallee() ? null : 'ailleurs'; };
+      const tour = (n) => { for (let i = 0; i < (n || 12); i++) { q20.guetter(); q20.avancer(0.5); } };
+      const a = (id) => joues.filter((x) => x.startsWith(id + '|'));
+      try {
+        settings.quetesCine = 'toutes';
+        // une quête du Dessous acceptée (son moment attend qu'on y soit) ; une de la vallée, en même temps
+        q16.accepter('q16_sout_deu_1'); q16.accepter('q16_diseuse_1');
+        const f0 = q20.S().file.map((x) => x.id);
+        if (!f0.includes('q16_sout_deu_1') || !f0.includes('q16_diseuse_1')) e.push('accepter : pas en file (' + f0.join(', ') + ')');
+        tour();
+        if (!a('q16_diseuse_1').length) e.push('la demande de la vallée ne se joue pas dans la vallée');
+        if (a('q16_sout_deu_1').length) e.push('une demande du Dessous jouée dans la vallée');
+        // descendre : elle se joue là-bas
+        ici = 'dessous'; game.player.underground = true;
+        tour();
+        if (!a('q16_sout_deu_1').includes('q16_sout_deu_1|demande')) e.push('la demande du Dessous ne se joue pas au Dessous');
+        // deux qui attendent : au Dessous, celle d'en bas passe devant celle de la vallée
+        ici = 'dessous';
+        q16.accepter('q16_violoneux_1'); q16.accepter('q16_sout_tre_1');
+        const j0 = joues.length; tour();
+        const J1 = joues.slice(j0);
+        if (J1[0] !== 'q16_sout_tre_1|demande') e.push('au Dessous, celle d’en bas ne passe pas devant : ' + J1.join(', '));
+        if (J1.some((x) => x.startsWith('q16_violoneux_1'))) e.push('une demande de la vallée jouée au Dessous');
+        ici = 'vallee'; game.player.underground = false; tour();
+        if (!a('q16_violoneux_1').length) e.push('remontée : la demande de la vallée ne se joue pas');
+        // le tournant d'une quête du Dessous qui se voit dans la vallée (le vieux puits) : là-haut seulement
+        q16.accepter('q16_sout_se_1'); ici = 'dessous'; game.player.underground = true; tour();
+        q16.Q('q16_sout_se_1').step = 1; tour();
+        if (a('q16_sout_se_1').includes('q16_sout_se_1|tournant')) e.push('le tournant du vieux puits joué au Dessous');
+        ici = 'vallee'; game.player.underground = false; tour();
+        if (!a('q16_sout_se_1').includes('q16_sout_se_1|tournant')) e.push('le tournant du vieux puits ne se joue pas dans la vallée');
+        // revoir une scène du Dessous depuis la vallée : non ; au Dessous : oui
+        let dit = '';
+        ui.subtitle = (q, t) => { dit = t; };
+        const nR = joues.length; q20.rejouer('q16_sout_deu_1', 'demande');
+        if (joues.length !== nR) e.push('revoir une scène du Dessous depuis la vallée');
+        if (dit !== Q20_TEXTES.pasIci) e.push('revoir d’ailleurs : pas de « Pas d’ici »');
+        ici = 'dessous'; game.player.underground = true; q20.rejouer('q16_sout_deu_1', 'demande');
+        if (!joues.includes('q16_sout_deu_1|demande|rejeu')) e.push('revoir au Dessous une scène du Dessous : rien');
+        // l'option Aucune : rien ne se joue, tout rejoint les souvenirs
+        settings.quetesCine = 'aucune';
+        const nA = joues.length;
+        q16.accepter('q16_sout_ui_1'); tour();
+        farm.give('bobine_fil', 2); q16.finir('q16_sout_ui_1'); tour();
+        if (joues.length !== nA) e.push('option Aucune : ' + (joues.length - nA) + ' scène(s) jouée(s)');
+        if (!q20.S().fait['q16_sout_ui_1|demande'] || !q20.S().fait['q16_sout_ui_1|fin']) e.push('option Aucune : pas aux souvenirs');
+        settings.quetesCine = 'toutes';
+        // une fin à choix : la sienne (le corbeau : le garder)
+        ici = 'vallee'; game.player.underground = false;
+        q16.accepter('q16_bete_corbeau_1'); tour(); farm.give('q16_de_argent', 1); tour(); q16.finir('q16_bete_corbeau_1', 1); tour();
+        if (!a('q16_bete_corbeau_1').includes('q16_bete_corbeau_1|fin:1')) e.push('fin à choix : ' + a('q16_bete_corbeau_1').join(', '));
+        // dans la Zone, la file avance et les acteurs se dessinent (crochets de la Zone seule)
+        // (les listes de crochets ne rendent, à l'itération, que ce qui tourne là où l'on est : on les lit une à une)
+        const tous = (L) => { const o = []; for (let i = 0; i < L.length; i++) o.push(L[i]); return o; };
+        const zU = tous(HOOKS.update).some((fn) => fn && fn.zoneSeule && /q20\\.update/.test(String(fn)));
+        const zD = tous(HOOKS.draw).some((fn) => fn && fn.zoneSeule && /q20\\.dessiner/.test(String(fn)));
+        if (!zU || !zD) e.push('Zone : la file ou le dessin ne tournent pas (' + zU + ', ' + zD + ')');
+        // une ancienne partie : des quêtes de Q16 finies, une en cours déjà rendable ; rien en file, rien de rejoué
+        const s = farm.blank(77); s.day = 9; s.npcs = farm.s.npcs;
+        s.q16 = { v: 1, Q: { q16_crieur_1: { st: 'fait', day: 2, done: 3, step: 1 }, q16_sout_si_1: { st: 'actif', day: 4, step: 1 }, q16_v5_greffier_1: { st: 'actif', day: 5, step: 0 } }, vu: {} };
+        farm.s = s;
+        const j2 = joues.length;
+        for (const fn of HOOKS.load) { try { fn(JSON.parse(JSON.stringify(s))); } catch (er) { /* d'autres modules veulent le monde */ } }
+        const S = q20.S();
+        if (!S.anc) e.push('ancienne partie : pas reconnue');
+        if (S.file.length) e.push('ancienne partie : ' + S.file.length + ' scène(s) en file');
+        for (const k of ['q16_crieur_1|demande', 'q16_crieur_1|tournant', 'q16_crieur_1|fin', 'q16_sout_si_1|demande', 'q16_sout_si_1|tournant', 'q16_v5_greffier_1|demande']) if (!S.fait[k]) e.push('ancienne partie : ' + k + ' pas aux souvenirs');
+        if (S.fait['q16_sout_si_1|fin'] || S.fait['q16_v5_greffier_1|fin']) e.push('ancienne partie : un dénouement à venir marqué passé');
+        ici = 'dessous'; game.player.underground = true; tour(30); ici = 'basse_fosse'; tour(30);
+        if (joues.length !== j2) e.push('ancienne partie : ' + (joues.length - j2) + ' scène(s) rejouée(s) : ' + joues.slice(j2).join(', '));
+      } catch (er) { e.push('EXC ' + er.stack); }
+      q20.jouer = _jouer; q20.empeche = _emp; q20B.ici = _ici; ui.subtitle = _sub; farm.s = null;
+      return JSON.stringify({ e, joues: joues.length });
+    })()`));
+    log(`la file : ${F.joues} scènes jouées dans l’essai (la vallée, le Dessous, la remontée, revoir, Aucune, une fin à choix, une ancienne partie)`);
+    for (const m of F.e) ko(m);
 
     // ---------------------------------------------------------------- les mondes, chacun construit comme en jeu
     const rapport = (titre, L) => {

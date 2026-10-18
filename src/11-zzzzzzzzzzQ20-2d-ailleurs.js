@@ -75,8 +75,8 @@ q20.scenes('q16_roi_sucre_1', {
     const roi2 = c.rigActeur('roi', () => MONDES_RIGS.roi(), R.P, { cap: R.cap, s: R.s, geste: ['raide', 'offre'] });
     const tete = c.haut(R.P, 1.95 * R.s);
     return [
-      c.plan({ dur: 6.4, cam: c.camActeur(roi, { cote: 0.7, d: 3.4, haut: 1.7, buste: true }), acteurs: [roi, po], dit: c.parole('Il la tient longtemps au creux de sa main de pain d’épice. Elle ne pourrit pas.', ''), court: true }),
-      c.plan({ dur: 6, cam: c.camActeur(roi2, { cote: 0.1, d: 3.0, haut: 1.9 }), acteurs: [roi2, po], chaque: Q20H.emet(c.devant(tete, R.cap, 0.18, 0, true), { n: 3, col: [1.0, 0.45, 0.7, 0.95], taille: 0.03, vie: 1.2, v: 0.02, vy: -0.4, grav: 2, r: 0.12 }), dit: c.parole('Il pleure du sirop. « Prends des dragées. Prends. »', nom, 0.7) }),
+      c.plan({ dur: 6.4, cam: c.camActeur(roi, { cote: 0.7, d: 3.4, haut: 1.7, buste: true }), acteurs: [roi, po], dit: c.parole('Elle ne pourrit pas. Pourquoi est-ce qu’elle ne pourrit pas ?', nom, 0.7), court: true }),
+      c.plan({ dur: 6, cam: c.camActeur(roi2, { cote: 0.1, d: 3.0, haut: 1.9 }), acteurs: [roi2, po], chaque: Q20H.emet(c.devant(tete, R.cap, 0.18, 0, true), { n: 3, col: [1.0, 0.45, 0.7, 0.95], taille: 0.03, vie: 1.2, v: 0.02, vy: -0.4, grav: 2, r: 0.12 }), dit: c.parole('Prends des dragées. Prends.', nom, 0.7) }),
     ];
   },
 });
@@ -113,7 +113,7 @@ q20.scenes('q16_aieule_1', {
     const pis = [0, 1].map((k) => c.chose(Q20_DESSINS.piece, c.haut(Q20B.devant(c, V.P, V.Sg.r, 0.55, k ? 0.06 : -0.06), 0.62), { s: 1.6 }));
     return [
       c.plan({ dur: 6, cam: c.camChose(V.tete, { d: 2.2, haut: 1.3, dy: 0, a: V.Sg.r - 0.3 }), acteurs: [V.A, tr], lum: V.lum, dit: c.parole('Tout revient.', q20Voix('d’une voix d’enfant'), 1.5), court: true }),
-      c.plan({ dur: 6.2, cam: c.camChose(c.haut(V.P, 0.6), { d: 1.9, haut: 1.1, dy: 0, a: V.Sg.r + 0.6, recul: 0.12 }), acteurs: [V.A, ...pis], lum: V.lum, son: 'piece', dit: c.parole('Elle fouille l’argent du tas sans regarder, et vous tend deux pièces anciennes.', '') }),
+      c.plan({ dur: 6.2, cam: c.camChose(c.haut(V.P, 0.6), { d: 1.9, haut: 1.1, dy: 0, a: V.Sg.r + 0.6, recul: 0.12 }), acteurs: [V.A, ...pis], lum: V.lum, son: 'piece', dit: null }),
     ];
   },
 });
@@ -183,7 +183,7 @@ q20.scenes('q16_thibaud_1', {
     const hu = c.chose(Q20_DESSINS.huile, c.haut(c.devant(P, T.r, 0.4, 0.08, true), 0.72), { s: 1.3 });
     const br = Q20H.pres(c, P, 'brasero', 6), lum = br ? [c.lueur(br.P, 4.5, [1.0, 0.55, 0.25], 0.8)] : [];
     return [
-      c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.6, d: 2.4, avec: bc ? bc.P : undefined, k: 0.15 }), acteurs: [moi, co], lum, dit: c.parole('Il ne la met pas sur ses épaules. « Pour quand ils monteront. Il fera froid, sur le pont. »', ''), court: true }),
+      c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.6, d: 2.4, avec: bc ? bc.P : undefined, k: 0.15 }), acteurs: [moi, co], lum, dit: c.parole('Pour quand ils monteront. Il fera froid, sur le pont.', nom, 0.7), court: true }),
       c.plan({ dur: 5.8, cam: c.camActeur(moi2, { cote: 0.3, d: 2.2, buste: true }), acteurs: [moi2, hu, co], lum, dit: c.parole('Pour le Guet. Il en faut trois.', nom, 0.7) }),
     ];
   },
@@ -218,7 +218,7 @@ q20.scenes('q16_dame_1', {
     const J = c.joueur(Q20B.devant(c, D.porte, D.ad, 1.3, 0), { face: D.porte, geste: ['penche', { reach: 0.3 }] });
     return [
       c.plan({ dur: 6.4, cam: c.camChose(seuil, { d: 1.7, haut: 0.95, dy: 0.05, a: D.ad + 0.6 }), heure: c.heure('nuit'), acteurs: [bq, J], dit: c.parole('Elle sent la foire.', nom, 1.2), court: true }),
-      c.plan({ dur: 6, cam: c.camChose(seuil, { d: 1.9, haut: 0.95, dy: 0.05, a: D.ad - 0.5 }), heure: c.heure('nuit'), acteurs: [bj, J], son: 'piece', dit: c.parole('Un long silence. Sous la porte, quelque chose glisse vers vous.', '') }),
+      c.plan({ dur: 6, cam: c.camChose(seuil, { d: 1.9, haut: 0.95, dy: 0.05, a: D.ad - 0.5 }), heure: c.heure('nuit'), acteurs: [bj, J], son: 'piece', dit: null }),
     ];
   },
 });
@@ -250,8 +250,8 @@ q20.scenes('q16_veilleuse_1', {
     const L0 = c.lueur(C.P, 5, [0.3, 0.5, 0.95], 1.4), L1 = Object.assign({}, L0);
     const gr = c.chose(Q20_DESSINS.graine, c.haut(Q20B.devant(c, C.P, 0.6, 0.6, 0), 1.0), { s: 1.6 });
     return [
-      c.plan({ dur: 6.6, cam: c.camActeur(J, { cote: 1.6, d: 2.8, avec: c.haut(C.P, 1.0), k: 0.5 }), acteurs: [J], lum: [L0], chaque: (t) => { const k = 0.55 + 0.45 * Math.cos(Math.min(t, 6) * 1.05); L0.r = 5 * k + 0.5; }, dit: c.parole('Vous lisez à voix haute. La lumière baisse, puis remonte.', ''), court: true }),
-      c.plan({ dur: 6, cam: c.camChose(c.haut(C.P, 1.0), { d: 2.4, haut: 1.5, dy: 0, a: 0.9 }), acteurs: [J, gr], lum: [L1], dit: c.parole('Il écrivait mal. Il écrivait tout. Garde son cahier. Prends ceci : il l’avait gardé pour la vallée.', nom, 1.3) }),
+      c.plan({ dur: 6.6, cam: c.camActeur(J, { cote: 1.6, d: 2.8, avec: c.haut(C.P, 1.0), k: 0.5 }), acteurs: [J], lum: [L0], chaque: (t) => { const k = 0.55 + 0.45 * Math.cos(Math.min(t, 6) * 1.05); L0.r = 5 * k + 0.5; }, dit: null }),
+      c.plan({ dur: 6, cam: c.camChose(c.haut(C.P, 1.0), { d: 2.4, haut: 1.5, dy: 0, a: 0.9 }), acteurs: [J, gr], lum: [L1], dit: c.parole('Il écrivait mal. Il écrivait tout. Garde son cahier. Prends ceci : il l’avait gardé pour la vallée.', nom, 1.3), court: true }),
     ];
   },
 });
@@ -301,7 +301,7 @@ q20Sout('q16_sout_un_1', 'un', {
     const pe = c.chose(Q20_DESSINS.perle, c.haut(c.devant(U.P, U.cap, 0.35, 0.05, true), 0.62), { s: 2 });
     return [
       H && c.plan({ dur: 6.4, cam: c.camLieu(H.P, { d: 5.5, haut: 1.3, dy: 0.6, a: H.cap + 0.3, recul: 0.15 }), acteurs: [pi], lum: [Q20B.froide(c, H.D, 3.5, 0.6), Q20B.froide(c, H.P, 2.5, 0.2)], dit: c.parole('Onz. Bô.', U.nom, U.voix), court: true }),
-      c.plan({ dur: 5.6, cam: c.camActeur(U.A, { cote: 0.2, d: 2.0, buste: true }), acteurs: [U.A, pe], lum: Q20BD.lum(c, U.P), dit: c.parole('Il vous donne une perle des cavernes.', '') }),
+      c.plan({ dur: 5.6, cam: c.camActeur(U.A, { cote: 0.2, d: 2.0, buste: true }), acteurs: [U.A, pe], lum: Q20BD.lum(c, U.P), dit: null }),
     ];
   },
 });
@@ -339,7 +339,7 @@ q20Sout('q16_sout_un_2', 'un', {
     if (!U) return null;
     const lu = [0, 1].map((k) => c.chose(Q20_DESSINS.luisante, c.devant(U.P, U.cap, 0.6, k ? 0.12 : -0.12, true), { s: 1.1 }));
     return [
-      c.plan({ dur: 6.4, cam: c.camActeur(U.A, { cote: 0.5, d: 2.0 }), acteurs: [U.A], lum: Q20BD.lum(c, U.P), dit: c.parole('Il écoute vos mains, longtemps. « Onz. Tojor onz. »', ''), court: true }),
+      c.plan({ dur: 6.4, cam: c.camActeur(U.A, { cote: 0.5, d: 2.0 }), acteurs: [U.A], lum: Q20BD.lum(c, U.P), dit: c.parole('Onz. Tojor onz.', U.nom, U.voix), court: true }),
       c.plan({ dur: 5.6, cam: c.camChose(c.devant(U.P, U.cap, 0.6, 0, true), { d: 1.5, haut: 0.95, dy: 0.05, a: U.cap + 0.6 }), acteurs: [U.A, ...lu], lum: Q20BD.lum(c, U.P), dit: c.parole('Tojor.', U.nom, U.voix) }),
     ];
   },
@@ -361,7 +361,7 @@ q20Sout('q16_sout_deu_1', 'deu', {
     const bo = c.chose(Q20_DESSINS.bol, c.haut(c.devant(D.P, D.cap, 0.3, 0.02, true), 1.25), { s: 1.2 });
     const D2 = Q20BD.gens(c, 'deu', { geste: ['offre'] });
     return [
-      c.plan({ dur: 6.4, cam: c.camActeur(D.A, { cote: 0.5, d: 1.9, buste: true }), acteurs: [D.A, bo], lum: Q20BD.lum(c, D.P), chaque: Q20H.emet(c.haut(bo.P, 0.1), { n: 3, col: [0.9, 0.9, 0.9, 0.3], taille: 0.05, vie: 1.6, v: 0.04, vy: 0.25 }), dit: c.parole('Elle boit à petites gorgées, les yeux fermés. « Chô… »', ''), court: true }),
+      c.plan({ dur: 6.4, cam: c.camActeur(D.A, { cote: 0.5, d: 1.9, buste: true }), acteurs: [D.A, bo], lum: Q20BD.lum(c, D.P), chaque: Q20H.emet(c.haut(bo.P, 0.1), { n: 3, col: [0.9, 0.9, 0.9, 0.3], taille: 0.05, vie: 1.6, v: 0.04, vy: 0.25 }), dit: c.parole('Chô…', D.nom, D.voix), court: true }),
       c.plan({ dur: 5.6, cam: c.camActeur(D2.A, { cote: -0.3, d: 2.2 }), acteurs: [D2.A], lum: Q20BD.lum(c, D2.P), dit: c.parole('Bô.', D.nom, D.voix) }),
     ];
   },
@@ -385,7 +385,7 @@ q20Sout('q16_sout_tre_1', 'tre', {
     const T2 = Q20BD.gens(c, 'tre', { geste: ['offre'] });
     return [
       c.plan({ dur: 6.2, cam: c.camActeur(T.A, { cote: 0.4, d: 1.8, buste: true }), acteurs: [T.A, se], lum: Q20BD.lum(c, T.P), dit: c.parole('Sèl !', T.nom, T.voix), court: true }),
-      c.plan({ dur: 5.8, cam: c.camActeur(T2.A, { cote: -0.4, d: 2.0, buste: true }), acteurs: [T2.A, lu], lum: Q20BD.lum(c, T2.P).concat([Q20B.froide(c, lu.P, 1.4, 0.05)]), dit: c.parole('Elle vous donne une pierre qui luit.', '') }),
+      c.plan({ dur: 5.8, cam: c.camActeur(T2.A, { cote: -0.4, d: 2.0, buste: true }), acteurs: [T2.A, lu], lum: Q20BD.lum(c, T2.P).concat([Q20B.froide(c, lu.P, 1.4, 0.05)]), dit: c.parole('Bô.', T.nom, T.voix) }),
     ];
   },
 });
@@ -408,7 +408,7 @@ q20Sout('q16_sout_katr_1', 'katr', {
     const ha = c.chose(Q20_DESSINS.hamecon, c.haut(c.devant(K.P, K.cap, 0.3, 0.04, true), 1.1), { s: 1.4, r: K.cap });
     const K2 = Q20BD.gens(c, 'katr', { geste: ['peche'] });
     return [
-      c.plan({ dur: 6.2, cam: c.camActeur(K.A, { cote: 0.5, d: 1.8, buste: true }), acteurs: [K.A, ha], lum: Q20BD.lum(c, K.P), dit: c.parole('Il plie un clou en hameçon entre ses dents, et noue la corde.', ''), court: true }),
+      c.plan({ dur: 6.2, cam: c.camActeur(K.A, { cote: 0.5, d: 1.8, buste: true }), acteurs: [K.A, ha], lum: Q20BD.lum(c, K.P), dit: c.parole('Kord… bô.', K.nom, K.voix), court: true }),
       c.plan({ dur: 5.8, cam: c.camActeur(K2.A, { cote: 1.2, d: 2.6 }), acteurs: [K2.A], lum: Q20BD.lum(c, K2.P), son: 'eau', dit: c.parole('Gout bô.', K.nom, K.voix) }),
     ];
   },
@@ -435,7 +435,7 @@ q20Sout('q16_sout_sin_1', 'sin', {
     const la = c.chose(Q20_DESSINS.couverture, nP, { r: S.cap + Math.PI / 2, s: 1.4 });
     const enf = N && c.gens(Object.assign({}, N.e.g.look), c.haut(nP, 0.12), { cap: S.cap + Math.PI, geste: ['assis', { lookP: 0.4 }], s: N.e.g.look.height || 0.66, vu: false });
     return [
-      c.plan({ dur: 6.4, cam: c.camActeur(S.A, { cote: 0.9, d: 2.2, avec: nP, k: 0.4 }), acteurs: [S.A, la, enf], lum: Q20BD.lum(c, S.P), dit: c.parole('Elle étale la laine sous l’enfant, la lisse longtemps. « Neu dôr. »', ''), court: true }),
+      c.plan({ dur: 6.4, cam: c.camActeur(S.A, { cote: 0.9, d: 2.2, avec: nP, k: 0.4 }), acteurs: [S.A, la, enf], lum: Q20BD.lum(c, S.P), dit: c.parole('Neu dôr.', S.nom, S.voix), court: true }),
       c.plan({ dur: 5.6, cam: c.camChose(nP, { d: 1.6, haut: 0.95, dy: 0.2, a: S.cap + 0.8 }), acteurs: [la, enf], lum: Q20BD.lum(c, nP), son: 'murmure', dit: c.parole('Dôr.', S.nom, S.voix) }),
     ];
   },
@@ -459,7 +459,7 @@ q20Sout('q16_sout_si_1', 'si', {
     const ec = c.chose(Q20_DESSINS.echeveau, c.haut(c.devant(U.P, U.cap, 0.4, 0.04, true), 0.62), { s: 1.4, r: U.cap });
     const U2 = Q20BD.gens(c, 'ui', { geste: ['raide'] });
     return [
-      c.plan({ dur: 6.2, cam: c.camActeur(U.A, { cote: 0.6, d: 1.9, buste: true }), acteurs: [U.A, ec], lum: Q20BD.lum(c, U.P), dit: c.parole('Des cheveux blancs, longs, roulés en écheveau.', '') }),
+      c.plan({ dur: 6.2, cam: c.camActeur(U.A, { cote: 0.6, d: 1.9, buste: true }), acteurs: [U.A, ec], lum: Q20BD.lum(c, U.P), dit: null }),
       c.plan({ dur: 5.6, cam: c.camActeur(U2.A, { cote: 0.1, d: 1.8 }), acteurs: [U2.A, ec], lum: Q20BD.lum(c, U2.P), dit: c.parole('Frè.', U.nom, U.voix) }),
     ];
   },
@@ -469,7 +469,7 @@ q20Sout('q16_sout_si_1', 'si', {
     const S2 = Q20BD.gens(c, 'si', { geste: ['offre'] });
     return [
       c.plan({ dur: 6, cam: c.camActeur(S.A, { cote: 0.4, d: 2.2 }), acteurs: [S.A], lum: Q20BD.lum(c, S.P), dit: c.parole('Va. Bô.', S.nom, S.voix), court: true }),
-      c.plan({ dur: 5.8, cam: c.camActeur(S2.A, { cote: -0.5, d: 2.0, buste: true }), acteurs: [S2.A], lum: Q20BD.lum(c, S2.P), dit: c.parole('Il vous donne des pieds-de-pierre grillés.', '') }),
+      c.plan({ dur: 5.8, cam: c.camActeur(S2.A, { cote: -0.5, d: 2.0, buste: true }), acteurs: [S2.A], lum: Q20BD.lum(c, S2.P), dit: null }),
     ];
   },
 });
@@ -502,7 +502,7 @@ q20Sout('q16_sout_se_1', 'se', {
     S.A.regard = 'camera';
     const lu = c.chose(Q20_DESSINS.luisante, c.haut(c.devant(S.P, S.cap, 0.36, 0.05, true), 1.1), { s: 1 });
     return [
-      c.plan({ dur: 6.4, cam: c.camActeur(S.A, { cote: 0.15, d: 2.0 }), acteurs: [S.A], lum: Q20BD.lum(c, S.P), son: 'coups', dit: c.parole('Il sourit, pour la première fois. « Onz. Bô. »', ''), court: true }),
+      c.plan({ dur: 6.4, cam: c.camActeur(S.A, { cote: 0.15, d: 2.0 }), acteurs: [S.A], lum: Q20BD.lum(c, S.P), son: 'coups', dit: c.parole('Onz. Bô.', S.nom, S.voix), court: true }),
       c.plan({ dur: 5.4, cam: c.camChose(lu.P, { d: 1.4, haut: 1.2, dy: 0, a: S.cap + 0.7 }), acteurs: [S.A, lu], lum: [Q20B.froide(c, lu.P, 1.6, 0.05)].concat(Q20BD.lum(c, S.P)), dit: c.parole('Bô.', S.nom, S.voix) }),
     ];
   },
@@ -515,7 +515,7 @@ q20Sout('q16_sout_ui_1', 'ui', {
     const fu = c.chose(Q20_DESSINS.fuseau, Q20B.devant(c, U.P, U.cap, 0.6, 0.2), { s: 1.4 });
     return [
       c.plan({ dur: 6, cam: c.camActeur(U.A, { cote: 0.5, d: 2.0, buste: true }), acteurs: [U.A, fu], lum: Q20BD.lum(c, U.P), dit: c.parole('Fil ?', U.nom, U.voix), court: true }),
-      c.plan({ dur: 6, cam: c.camChose(c.haut(fu.P, 0.15), { d: 1.4, haut: 0.95, dy: 0, a: U.cap + 1.2 }), acteurs: [U.A, fu], lum: Q20BD.lum(c, fu.P), dit: c.parole('Le fuseau tourne à vide.', '') }),
+      c.plan({ dur: 6, cam: c.camChose(c.haut(fu.P, 0.15), { d: 1.4, haut: 0.95, dy: 0, a: U.cap + 1.2 }), acteurs: [U.A, fu], lum: Q20BD.lum(c, fu.P), dit: null }),
     ];
   },
   fin(c) {
@@ -524,7 +524,7 @@ q20Sout('q16_sout_ui_1', 'ui', {
     const U2 = Q20BD.gens(c, 'ui', { geste: ['assis', 'offre'] });
     const pe = c.chose(Q20_DESSINS.perle, c.haut(c.devant(U2.P, U2.cap, 0.35, 0.05, true), 0.55), { s: 2 });
     return [
-      c.plan({ dur: 6.2, cam: c.camActeur(U.A, { cote: 0.7, d: 1.9, buste: true }), acteurs: [U.A], lum: Q20BD.lum(c, U.P), dit: c.parole('Elle roule le fil entre ses doigts, le sent. « D’sû. Bô. »', ''), court: true }),
+      c.plan({ dur: 6.2, cam: c.camActeur(U.A, { cote: 0.7, d: 1.9, buste: true }), acteurs: [U.A], lum: Q20BD.lum(c, U.P), dit: c.parole('D’sû. Bô.', U.nom, U.voix), court: true }),
       c.plan({ dur: 5.6, cam: c.camActeur(U2.A, { cote: -0.3, d: 1.9 }), acteurs: [U2.A, pe], lum: Q20BD.lum(c, U2.P), dit: c.parole('Bô.', U.nom, U.voix) }),
     ];
   },
@@ -544,7 +544,7 @@ q20Sout('q16_sout_neu_1', 'neu', {
     if (!N) return null;
     const fl = c.chose(Q20_DESSINS.bouquet, c.haut(c.devant(N.P, N.cap, 0.22, 0, true), 0.82), { s: 0.7, r: N.cap });
     return [
-      c.plan({ dur: 6.4, cam: c.camActeur(N.A, { cote: 0.5, d: 1.6, haut: 1.0, buste: true }), acteurs: [N.A, fl], lum: Q20BD.lum(c, N.P), dit: c.parole('Il sent la fleur longtemps. Il ne sait pas ce que c’est. Il la cache sous sa chemise.', ''), court: true }),
+      c.plan({ dur: 6.4, cam: c.camActeur(N.A, { cote: 0.5, d: 1.6, haut: 1.0, buste: true }), acteurs: [N.A, fl], lum: Q20BD.lum(c, N.P), dit: c.parole('D’sû…', N.nom, N.voix), court: true }),
       c.plan({ dur: 5.6, cam: c.camActeur(N.A, { cote: -0.2, d: 1.5, haut: 0.9 }), acteurs: [N.A], lum: Q20BD.lum(c, N.P), dit: c.parole('Lum…', N.nom, N.voix) }),
     ];
   },
@@ -584,7 +584,7 @@ q20Sout('q16_sout_di_1', 'di', {
     const lu = c.chose(Q20_DESSINS.luisante, c.haut(c.devant(D.P, D.cap, 0.36, 0.05, true), 1.1), { s: 1 });
     const D2 = Q20BD.gens(c, 'di', { geste: ['offre'] });
     return [
-      c.plan({ dur: 6.2, cam: c.camActeur(D.A, { cote: 0.2, d: 2.0 }), acteurs: [D.A], lum: Q20BD.lum(c, D.P), dit: c.parole('Il rit sans bruit. « Onz. »', ''), court: true }),
+      c.plan({ dur: 6.2, cam: c.camActeur(D.A, { cote: 0.2, d: 2.0 }), acteurs: [D.A], lum: Q20BD.lum(c, D.P), dit: c.parole('Onz.', D.nom, D.voix), court: true }),
       c.plan({ dur: 5.6, cam: c.camActeur(D2.A, { cote: -0.4, d: 2.0, buste: true }), acteurs: [D2.A, lu], lum: Q20BD.lum(c, D2.P).concat([Q20B.froide(c, lu.P, 1.4, 0.05)]), dit: c.parole('Onz.', D.nom, D.voix) }),
     ];
   },
