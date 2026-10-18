@@ -223,8 +223,8 @@ q20.scenes('q20c_banc', {
     const cap = bc.r + Math.PI;
     const lui = c.habitant(ass, c.devant(bc.P, cap, 0.05, 0, true), { cap, geste: ['assis', 'hoche'] });
     return [
-      c.plan({ dur: 6.2, cam: Q20C.cam(c, ...[0.5, -0.5, 1.0, -1.0].map((k) => () => c.camActeur(lui, { cote: k, d: 2.6 }))), acteurs: [lui], heure: 18.4, dit: ['Il ne grince plus. Quelqu’un s’est enfin donné la peine.', '@' + ass], court: true }),
-      q20cMaire(c, 'La commune paie, pour une fois. Et le banc tiendra jusqu’aux élections.', { heure: 18.8 }),
+      c.plan({ dur: 6.2, cam: Q20C.cam(c, ...[0.5, -0.5, 1.0, -1.0].map((k) => () => c.camActeur(lui, { cote: k, d: 2.6 }))), acteurs: [lui], heure: 17.4, dit: ['Il ne grince plus. Quelqu’un s’est enfin donné la peine.', '@' + ass], court: true }),
+      q20cMaire(c, 'La commune paie, pour une fois. Et le banc tiendra jusqu’aux élections.', { heure: 17.6 }),
     ];
   },
 });
@@ -245,7 +245,7 @@ q20.scenes('q20c_parvis', {
     const Pv = E ? E.dehors(2.2) : null;
     return [
       c.plan({ dur: 6.4, cam: lui ? c.camActeur(lui, { cote: 0.5, d: 3.0 }) : c.camChose(Pv, { d: 5, haut: 2 }), acteurs: [lui], heure: 17.8, chaque: Pv ? Q20H.emet(c.haut(Pv, 2.6), { n: 0.6, col: [0.85, 0.5, 0.2, 1], taille: 0.06, vie: 4, v: 0.3, vy: -0.2, grav: 0.3, r: 3 }) : null, dit: ['Propre. Elles reviendront cette nuit. Elles reviennent toujours.', '@cure'], court: true }),
-      q20cMaire(c, 'La commune paie, pour une fois. Monsieur le curé vous remercie. À sa manière.', { heure: 18 }),
+      q20cMaire(c, 'La commune paie, pour une fois. Monsieur le curé vous remercie. À sa manière.', { heure: 17.6 }),
     ];
   },
 });
@@ -318,7 +318,7 @@ q20.scenes('q20c_emprunt', {
       const moi = q20cComptoir(c, { geste: ['raide', 'baisse'], regard: 'camera' });
       const moi2 = q20cComptoir(c, { geste: ['travaille', 'baisse'] });
       return [
-        c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 0.1, d: 2.0 }), acteurs: [moi], heure: Math.max(c.h, 18.6), dit: ['En retard.'], court: true }),
+        c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 0.1, d: 2.0 }), acteurs: [moi], heure: Math.max(c.h, 17.5), dit: ['En retard.'], court: true }),
         c.plan({ dur: 5.8, cam: c.camActeur(moi2, { cote: 0.9, d: 2.2, buste: true }), acteurs: [moi2], son: 'page', dit: ['Le registre s’en souviendra. Il se souvient de tout.'] }),
       ];
     },
@@ -353,7 +353,7 @@ q20.scenes('q20c_cle_porte', {
       vol
         ? c.plan({ dur: 6.2, cam: et ? c.camChose(c.haut(et.P, 1.1), { d: 1.6, a: (et.r || 0) + 0.4 }) : c.camLieu('bibliotheque'), acteurs: [lc], heure: c.nuit() ? c.h : 23.2, son: 'murmure', dit: ['(Le papier creusé, la clé dedans. Le registre l’inscrira quand même, d’une encre qui ne sèche pas.)', ''], court: true })
         : c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.4, d: 2.2, buste: true }), acteurs: [moi, cle], son: 'piece', dit: ['La caution au registre. Rendue au retour, à l’heure. Pas une minute de plus.'], court: true }),
-      c.plan({ dur: 6, cam: c.camLieu(G, { d: 46, haut: 5, dy: 8, monte: 2 }), heure: 18.8, dit: vol ? ['(Trois jours, pour la rapporter.)', ''] : ['Ce qu’elle ouvre ne se referme pas tout seul. Souvenez-vous-en, là-bas.'] }),
+      c.plan({ dur: 6, cam: c.camLieu(G, { d: 46, haut: 5, dy: 8, monte: 2 }), heure: 17.6, dit: vol ? ['(Trois jours, pour la rapporter.)', ''] : ['Ce qu’elle ouvre ne se referme pas tout seul. Souvenez-vous-en, là-bas.'] }),
     ];
   },
   fins: {
@@ -494,7 +494,7 @@ q20.scenes('q20c_baron', {
     const ro = Q20H.meuble(c, 'casino', 'c18_roulette');
     const od = ro && c.gens('q20c_odile', c.devant(ro.P, ro.r || 0, 1.1, 0, true), { face: ro.P, geste: ['parle'] });
     return [
-      c.plan({ dur: 6, cam: c.camLieu('casino', { d: 26, haut: 3.2, dy: 3 }), heure: 22.5, dit: ['(Le carnet du baron de Lancry. Des colonnes de chiffres, et partout, le zéro.)', ''], court: true }),
+      c.plan({ dur: 6, cam: c.camLieu(c.maison('casino') ? c.maison('casino').porte : 'casino', { d: 15, haut: 2.4, dy: 3.2 }), heure: 22.5, dit: ['(Le carnet du baron de Lancry. Des colonnes de chiffres, et partout, le zéro.)', ''], court: true }),
       c.plan({ dur: 6.4, cam: od ? c.camActeur(od, { cote: 0.5, d: 2.6, avec: gris || undefined, k: 0.3 }) : c.camLieu('casino'), acteurs: [od, gris], heure: 23.5, dit: ['Le baron ? Il jouait le zéro. Il le joue encore. Demandez à Siméon, il tient le registre.', 'Odile'] }),
     ];
   },
@@ -546,7 +546,7 @@ q20.scenes('q20c_loge', {
       const J = br && Q20H.face(c, br, 1.5, 0.2);
       return [
         c.plan({ dur: 6.2, cam: br ? c.camActeur(br, { cote: 0.5, d: 2.6, avec: J, k: 0.3 }) : c.camLieu(K.T), acteurs: [br, J], heure: 17.6, son: 'piece', dit: ['Vos gages. Et le pourboire, puisque vous l’avez mérité.', 'M. Brissac'], court: true }),
-        c.plan({ dur: 5.8, cam: c.camLieu(K.T, { d: 30, haut: 6, dy: 2 }), heure: 18.6, dit: ['Demain, à la même heure. Et pas un mot de ce que vous avez vu.', 'M. Brissac'] }),
+        c.plan({ dur: 5.8, cam: c.camLieu(K.T, { d: 30, haut: 6, dy: 2 }), heure: 17.5, dit: ['Demain, à la même heure. Et pas un mot de ce que vous avez vu.', 'M. Brissac'] }),
       ];
     },
     1(c) {
@@ -582,8 +582,8 @@ q20.scenes('q20c_avis', {
     const prime = (R && R.prime) || ((q20cRecherche() || {}).prime) || 0;
     const qui = moi && moi.id === 'maire' ? '@maire' : '@garde';
     return [
-      c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 1.0, d: 2.8, avec: Pa && Pa.P, k: 0.35 }), acteurs: [moi, af], son: 'coups', dit: [prime ? `On cloue votre portrait à chaque porte. ${prime} pièces, c’est le prix.` : 'On cloue votre portrait à chaque porte.', qui], court: true }),
-      c.plan({ dur: 6, cam: gens.length ? c.camActeur(gens[0], { cote: 1.5, d: 3.6, avec: c.haut(Pa.P, 1.0), k: 0.5, aussi: gens[1] ? [c.tete(gens[1])] : undefined }) : c.camChose(Pa.P, { d: 3 }), acteurs: [...gens, af], dit: gens.length ? ['C’est {fermier}, de la vieille ferme… Qui l’aurait cru.', '@' + gens[0].id] : ['(Votre visage, mal dessiné, et pourtant c’est bien vous.)', ''] }),
+      c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 2.4, d: 2.8, avec: Pa && c.haut(Pa.P, 1.0), k: 0.35 }), acteurs: [moi, af], son: 'coups', dit: [prime ? `On cloue votre portrait à chaque porte. ${prime} pièces, c’est le prix.` : 'On cloue votre portrait à chaque porte.', qui], court: true }),
+      c.plan({ dur: 6, cam: gens.length ? c.camActeur(gens[0], { cote: 2.5, d: 3.6, avec: c.haut(Pa.P, 1.0), k: 0.5, aussi: gens[1] ? [c.tete(gens[1])] : undefined }) : c.camChose(Pa.P, { d: 3 }), acteurs: [...gens, af], dit: gens.length ? ['C’est {fermier}, de la vieille ferme… Qui l’aurait cru.', '@' + gens[0].id] : ['(Votre visage, mal dessiné, et pourtant c’est bien vous.)', ''] }),
     ];
   },
   fins: {
@@ -592,8 +592,8 @@ q20.scenes('q20c_avis', {
       const moi = Pa && c.habitant(npcs.alive('garde') ? 'garde' : 'maire', c.devant(Pa.P, Pa.r + Math.PI, 0.8), { face: Pa.P, geste: { reach: 0.6, lookP: -0.2 } });
       const qui = moi && moi.id === 'maire' ? '@maire' : '@garde';
       return [
-        c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 0.9, d: 2.8, avec: Pa && Pa.P, k: 0.35 }), acteurs: [moi], dit: ['C’est réglé. On retire les affiches. Que je ne vous y reprenne pas.', qui], court: true }),
-        c.plan({ dur: 5.8, cam: c.camChose(Pa.P, { d: 3.4, haut: 1.6, dy: 1.0, a: Pa.r + Math.PI + 0.4 }), heure: 19, dit: ['(Une trace plus claire sur le bois, là où était votre visage.)', ''] }),
+        c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 1.7, d: 3.0, avec: Pa && c.haut(Pa.P, 1.0), k: 0.3 }), acteurs: [moi], dit: ['C’est réglé. On retire les affiches. Que je ne vous y reprenne pas.', qui], court: true }),
+        c.plan({ dur: 5.8, cam: c.camChose(Pa.P, { d: 3.4, haut: 1.6, dy: 1.0, a: Pa.r + Math.PI + 0.4 }), heure: 17.7, dit: ['(Une trace plus claire sur le bois, là où était votre visage.)', ''] }),
       ];
     },
     cachot(c) {
@@ -762,7 +762,7 @@ q20.scenes('q20c_tresor', {
     const J = t ? c.joueur(c.devant(t.P, (t.r || 0) + Math.PI, 0.8, 0, true), { face: t.P, geste: 'penche' }) : null;
     return [
       c.plan({ dur: 6, cam: t ? c.camChose(c.haut(t.P, 0.79), { d: 1.3, a: (t.r || 0) + 0.3 }) : c.camLieu('ferme'), acteurs: [J, t && c.chose(Q20C_D2.carte_croix, c.haut(t.P, 0.79), { r: t.r || 0, s: 1.3 })], dit: ['(Une croix, à l’encre rousse. Autour, des arbres qui ne sont peut-être plus là.)', ''], court: true }),
-      c.plan({ dur: 6, cam: c.camLieu(X, { d: 30, haut: 5, dy: 1 }), heure: 18.8, dit: ['(Quelque part par là. Trois coups de pelle, peut-être quatre.)', ''] }),
+      c.plan({ dur: 6, cam: c.camLieu(X, { d: 30, haut: 5, dy: 1 }), heure: 17.6, dit: ['(Quelque part par là. Trois coups de pelle, peut-être quatre.)', ''] }),
     ];
   },
   fin(c) {
@@ -842,7 +842,7 @@ q20.scenes('q20c_caveau', {
     const J = K.devant && c.joueur(K.devant, { cap: K.r, geste: 'penche' });
     return [
       c.plan({ dur: 6.4, cam: K.devant ? c.camActeur(J, { cote: 2.6, d: 3.0, haut: 1.5 }) : c.camLieu(K.P), acteurs: [J], lum: [c.lueur(K.P, 3, [1.0, 0.8, 0.5], 0.6)], son: 'piece', dit: ['(Ce qu’on avait mis là n’était pas pour vous. Ni pour personne.)', ''], court: true }),
-      c.plan({ dur: 5.6, cam: c.camLieu(K.P, { d: 14, haut: 2.6, dy: 1.2 }), heure: 18.6, dit: ['(Le bois s’est tu. Il écoute, lui aussi.)', ''] }),
+      c.plan({ dur: 5.6, cam: c.camLieu(K.P, { d: 14, haut: 2.6, dy: 1.2 }), heure: 17.5, dit: ['(Le bois s’est tu. Il écoute, lui aussi.)', ''] }),
     ];
   },
 });

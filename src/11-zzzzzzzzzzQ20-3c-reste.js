@@ -143,7 +143,7 @@ q20.scenes('t3', {
     const M = c.maison('maire');
     return [
       c.plan({ dur: 6.6, cam: J ? c.camActeur(J, { cote: 0.8, d: 2.4, avec: c.haut(Pa.P, 1.1), k: 0.55, buste: true }) : c.camLieu('place'), acteurs: [J], son: 'page', dit: ['« Le peintre Félix Ardoin, de Lyon, a séjourné dans la commune l’été 1878, et l’a quittée sans ses toiles. »', ''], court: true }),
-      c.plan({ dur: 6, cam: c.camLieu(M ? M.porte : c.lieu('mairie'), { d: 15, haut: 5, dy: 4.5 }), heure: 18.4, dit: ['« L’une d’elles est au grenier de la mairie, sous un drap. Sa sœur offre une récompense. »', ''] }),
+      c.plan({ dur: 6, cam: c.camLieu(M ? M.porte : c.lieu('mairie'), { d: 15, haut: 5, dy: 4.5 }), heure: 17.4, dit: ['« L’une d’elles est au grenier de la mairie, sous un drap. Sa sœur offre une récompense. »', ''] }),
     ];
   },
   fins: {
@@ -152,7 +152,7 @@ q20.scenes('t3', {
       const moi = M && c.habitant('maire', M.dehors(1.0, -0.6), { face: P0, geste: ['bras', 'parle'] });
       return [
         c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.8, d: 3.0, avec: P0, k: 0.4 }), acteurs: [moi, P0 && c.chose(Q20C_D3.caisse_toiles, P0, { r: M.cap })], dit: ['Pour Lyon, avec un mot de votre main. La commune se charge du port. Pour une fois.', '@maire'], court: true }),
-        c.plan({ dur: 6, cam: c.camLieu(c.lieu('eglise'), { d: 26, haut: 4, dy: 3 }), heure: 18.6, dit: ['Félix n’est jamais revenu à Lyon. Pendant dix ans, il m’a écrit comme s’il y était.', 'Mlle Ardoin'] }),
+        c.plan({ dur: 6, cam: c.camLieu(c.lieu('eglise'), { d: 26, haut: 4, dy: 3 }), heure: 17.5, dit: ['Félix n’est jamais revenu à Lyon. Pendant dix ans, il m’a écrit comme s’il y était.', 'Mlle Ardoin'] }),
       ];
     },
     b(c) {
@@ -175,7 +175,7 @@ q20.scenes('t4', {
     const M = c.maison('chasseur'), P0 = M ? Q20H.libre(c, M.dehors(2.4, 1.2), 0, 3, 0.4) : c.lieu('relais_chasse').P;
     return [
       c.plan({ dur: 6.4, cam: c.camChose(P0, { d: 1.6, haut: 0.95, dy: 0.05, a: M ? M.cap + 0.8 : 0.6 }), acteurs: [c.chose(Q20C_D3.crecelle, P0, { s: 1.6, r: 0.8 })], heure: 17.6, dit: ['(Une crécelle de rabatteur. Sur le manche, gravé au couteau : « BASTIEN ». Posée là comme si on venait de la poser.)', ''], court: true }),
-      c.plan({ dur: 6, cam: c.camLieu(c.lieu('relais_chasse'), { d: 26, haut: 3, dy: 1.5 }), heure: 18.4, son: 'corbeau', dit: ['(Du côté du relais, le soir, on entend parfois claquer une crécelle. Personne ne chasse plus, à cette heure.)', ''] }),
+      c.plan({ dur: 6, cam: c.camLieu(c.lieu('relais_chasse'), { d: 26, haut: 3, dy: 1.5 }), heure: 17.4, son: 'corbeau', dit: ['(Du côté du relais, le soir, on entend parfois claquer une crécelle. Personne ne chasse plus, à cette heure.)', ''] }),
     ];
   },
   fins: {
@@ -186,7 +186,7 @@ q20.scenes('t4', {
       const ch = Q20H.meuble(c, 'relais_chasse', 'cheminee'), lum = ch ? [c.lueur(ch.P, 4.5, [1.0, 0.55, 0.25], 0.6)] : [];
       const moi2 = Q20C.chez(c, 'chasseur', { vise: t && t.P, geste: ['travaille'] });
       return [
-        c.plan({ dur: 6.6, cam: c.camActeur(moi, { cote: 0.5, d: 1.9 }), acteurs: [moi, cr], heure: 20, lum, dit: ['Mon père ne chassait plus, après. Il venait là-bas le dimanche, avec une serpe. Je croyais qu’il allait prier.', '@chasseur'], court: true }),
+        c.plan({ dur: 6.6, cam: c.camActeur(moi, { cote: 0.7, d: 2.5, haut: 1.4 }), acteurs: [moi, cr], heure: 20, lum, dit: ['Mon père ne chassait plus, après. Il venait là-bas le dimanche, avec une serpe. Je croyais qu’il allait prier.', '@chasseur'], court: true }),
         c.plan({ dur: 5.8, cam: c.camActeur(moi2, { cote: 1.0, d: 2.2, buste: true }), acteurs: [moi2, t && c.chose(Q20C_D3.appeau, c.haut(t.P, 0.79), { s: 1.6 })], heure: 20.4, lum, dit: ['Un appeau, dans un os. Comme il me l’avait appris.', '@chasseur'] }),
       ];
     },
@@ -194,7 +194,7 @@ q20.scenes('t4', {
       const T = q20cTLieu(c, 't4:3') || (Q20C.lieu(c, 'chapelle', 'relais_chasse') || c.lieu('ferme')).P;
       const M = c.maison('chasseur'), so = M && Q20H.libre(c, M.dehors(3.0, -1.4), 0, 3, 0.4);
       return [
-        c.plan({ dur: 6.4, cam: c.camChose(T, { d: 2.4, haut: 1.1, dy: 0.3, a: 0.7 }), acteurs: [c.chose(Q20C_D3.crecelle, c.haut(T, 0.35), { s: 1.6, r: 1.4 })], heure: 18.6, son: 'clochette', dit: ['(Le vent la fait tourner d’un cran, une seule fois.)', ''], court: true }),
+        c.plan({ dur: 6.4, cam: c.camChose(T, { d: 2.4, haut: 1.1, dy: 0.3, a: 0.7 }), acteurs: [c.chose(Q20C_D3.crecelle, c.haut(T, 0.35), { s: 1.6, r: 1.4 })], heure: 17.5, son: 'clochette', dit: ['(Le vent la fait tourner d’un cran, une seule fois.)', ''], court: true }),
         c.plan({ dur: 5.8, cam: so ? c.camChose(so, { d: 1.6, haut: 0.95, dy: 0.05 }) : c.camLieu('relais_chasse'), acteurs: [so && c.chose(Q20C_D3.appeau, so, { s: 1.8 })], heure: 6.8, dit: ['(Le lendemain, sur la souche devant le relais, un appeau taillé dans un os, que personne ne réclame.)', ''] }),
       ];
     },

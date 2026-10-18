@@ -179,7 +179,7 @@ q20.scenes('alchimiste_2', {
     const R = c.lieu('ruines');
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.5, d: 2.0 }), acteurs: [moi, li], dit: ['Mon premier herbier, je l’ai perdu il y a trente ans, aux ruines de l’est. En fuyant un orage.'], court: true }),
-      c.plan({ dur: 6, cam: c.camLieu(R, { d: 26, haut: 3, dy: 1.5, recul: 0.18 }), heure: 19.4, son: 'grondement', dit: ['Je n’ai jamais osé y retourner. Vous, si ? Il était en cuir vert. Enfin, il l’était.'] }),
+      c.plan({ dur: 6, cam: c.camLieu(R, { d: 26, haut: 3, dy: 1.5, recul: 0.18 }), heure: 17.8, son: 'grondement', dit: ['Je n’ai jamais osé y retourner. Vous, si ? Il était en cuir vert. Enfin, il l’était.'] }),
     ];
   },
   tournant(c) { return Q20C.trouvaille(c, Q20C_DESSINS.herbier, { s: 1.5, son: 'page' }); },
@@ -204,7 +204,7 @@ q20.scenes('libraire_1', {
     const A = c.lieu('abbaye');
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.4, d: 2.4 }), acteurs: [moi], dit: ['Il manque une page à un registre de Montrevel. Les moines l’ont arrachée, dit-on, pour la cacher dans l’abbaye.'], court: true }),
-      c.plan({ dur: 6, cam: c.camLieu(A, { d: 34, haut: 4, dy: 3, monte: 1.5 }), heure: 18.6, son: 'cloche', dit: ['Elle est couverte de Hautes Lettres. Cherchez là où l’on n’a pas envie de chercher.'] }),
+      c.plan({ dur: 6, cam: c.camLieu(A, { d: 34, haut: 4, dy: 3, monte: 1.5 }), heure: 17.5, son: 'cloche', dit: ['Elle est couverte de Hautes Lettres. Cherchez là où l’on n’a pas envie de chercher.'] }),
     ];
   },
   tournant(c) { return Q20C.trouvaille(c, Q20C_DESSINS.feuillet, { s: 1.6, son: 'murmure', dy2: 2 }); },
@@ -309,8 +309,8 @@ q20.scenes('chasseur_2', {
     const moi = pp ? c.habitant('chasseur', c.devant(pp, M.cap + 1.1 + Math.PI, 1.1), { face: pp, geste: ['penche', 'montre'] }) : Q20H.seuil(c, 'chasseur', { geste: 'montre' });
     const pg = pp && c.chose(Q20C_DESSINS.piege_mousse, pp, { s: 1.4, r: M.cap });
     return [
-      c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.8, d: 2.6, avec: pp, k: 0.4 }), acteurs: [moi, pg], heure: Math.max(c.h, 18.8), dit: ['Quelque chose vide mes pièges, la nuit. Pas un renard : ils se referment sur de la mousse.'], court: true }),
-      c.plan({ dur: 5.8, cam: pp ? c.camChose(pp, { d: 1.6, haut: 0.95, dy: 0.05 }) : c.camActeur(moi), acteurs: [pg], heure: Math.max(c.h, 18.8), dit: ['Veillez une nuit près du relais. Ne tirez sur rien que vous n’ayez vu.'] }),
+      c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.8, d: 2.6, avec: pp, k: 0.4 }), acteurs: [moi, pg], heure: Math.max(c.h, 17.6), dit: ['Quelque chose vide mes pièges, la nuit. Pas un renard : ils se referment sur de la mousse.'], court: true }),
+      c.plan({ dur: 5.8, cam: pp ? c.camChose(pp, { d: 1.6, haut: 0.95, dy: 0.05 }) : c.camActeur(moi), acteurs: [pg], heure: Math.max(c.h, 17.6), dit: ['Veillez une nuit près du relais. Ne tirez sur rien que vous n’ayez vu.'] }),
     ];
   },
   tournant(c) {
@@ -362,8 +362,9 @@ q20.scenes('naturiste_b_1', {
 function q20cNain(c, o) {
   const Fe = Q20C.fente(c);
   if (!Fe) return { Fe: null };
-  const A = c.habitant('nain_ancien', c.devant(Fe.F, Fe.cap, 0.35, 0, true), Object.assign({ cap: Fe.cap }, o || {}));
-  return { Fe, A, lum: [c.lueur(c.haut(Fe.F, 0.3), 3.2, [1.0, 0.7, 0.35], 0.8)] };
+  const A = c.habitant('nain_ancien', c.devant(Fe.F, Fe.cap, 0.35, 0, true), Object.assign({ cap: Fe.cap, lanterne: true }, o || {}));
+  // (la lueur des halles, qui monte de la fente, et sa lanterne)
+  return { Fe, A, lum: [c.lueur(c.haut(Fe.F, 0.3), 6, [1.0, 0.7, 0.35], 0.8), c.lueur(c.devant(Fe.F, Fe.cap, 1.4, 0, true), 4, [1.0, 0.75, 0.45], 1.4)] };
 }
 q20.scenes('nain_ancien_1', {
   qui: 'nain_ancien',
@@ -371,7 +372,7 @@ q20.scenes('nain_ancien_1', {
     const { Fe, A, lum } = q20cNain(c, { geste: ['bras', 'parle'] });
     const Bo = c.maison('boulangere');
     return [
-      c.plan({ dur: 6.4, cam: Fe ? c.camActeur(A, { cote: 0.4, d: 2.8, haut: 1.2 }) : c.camLieu('place'), acteurs: [A], heure: Math.max(c.h, 19), lum, dit: ['Nos fours ne font que des galettes. Rapporte-nous du pain d’en haut. Six. Et deux pots de miel.'], court: true }),
+      c.plan({ dur: 6.4, cam: Fe ? c.camActeur(A, { cote: 0.4, d: 2.8, haut: 1.2 }) : c.camLieu('place'), acteurs: [A], heure: Math.max(c.h, 17.7), lum, dit: ['Nos fours ne font que des galettes. Rapporte-nous du pain d’en haut. Six. Et deux pots de miel.'], court: true }),
       c.plan({ dur: 5.8, cam: c.camLieu(Bo ? Bo.porte : c.lieu('place'), { d: 14, haut: 2.6, dy: 2 }), heure: 7, dit: ['Tu auras nos mots, et du verre.'] }),
     ];
   },
@@ -392,7 +393,7 @@ q20.scenes('nain_ancien_2', {
     const { Fe, A, lum } = q20cNain(c, { geste: ['bras', 'baisse'] });
     const Mi = c.lieu('mine');
     return [
-      c.plan({ dur: 6.4, cam: Fe ? c.camActeur(A, { cote: -0.5, d: 2.8, haut: 1.2 }) : c.camLieu('place'), acteurs: [A], heure: Math.max(c.h, 19), lum, dit: ['Un des nôtres a perdu son marteau dans la mine des grands, il y a trente de vos années.'], court: true }),
+      c.plan({ dur: 6.4, cam: Fe ? c.camActeur(A, { cote: -0.5, d: 2.8, haut: 1.2 }) : c.camLieu('place'), acteurs: [A], heure: Math.max(c.h, 17.7), lum, dit: ['Un des nôtres a perdu son marteau dans la mine des grands, il y a trente de vos années.'], court: true }),
       c.plan({ dur: 5.8, cam: c.camLieu(Mi, { d: 24, haut: 3, dy: 1.5 }), dit: ['Il est trop fier pour y retourner. Toi, tu n’as pas de fierté.'] }),
     ];
   },
@@ -420,7 +421,7 @@ q20.scenes('planches_doyenne_1', {
     const cal = Pe ? [0, 1, 2].map((k) => c.chose(Q20C_DESSINS.caleu, c.devant(Pe, 2.6 + k * 0.5, 1.4 + k * 0.8, (k - 1) * 0.9, true), { s: 1.8, lueur: true })) : [];
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.6, d: 2.0 }), acteurs: [moi], lum: bo ? [c.lueur(bo.P, 3, [1.0, 0.66, 0.3], 0.3)] : [], dit: ['Le Vorndi approche, et je n’ai plus de cire. Quatre bougies de la ville. Je les couperai en calèus.'], court: true }),
-      c.plan({ dur: 6, cam: c.camLieu(D, { d: 9, haut: 2.0, dy: 0.5, a: 0.2, stop: 1.2 }), acteurs: cal, heure: 21.4, lum: Pe ? [c.lueur(Pe, 6, [1.0, 0.7, 0.35], 0.4)] : [], dit: ['Un par maison d’en bas. Pas des cierges d’église : ils sentent l’encens, la Dauna n’aime pas.'] }),
+      c.plan({ dur: 6, cam: c.camLieu(D, { d: 9, haut: 2.0, dy: 0.5, a: 0.2, stop: 1.2 }), acteurs: cal, heure: 21.4, lum: cal.filter(Boolean).map((A) => c.lueur(A.P, 2.4, [1.0, 0.68, 0.32], 0.25)), dit: ['Un par maison d’en bas. Pas des cierges d’église : ils sentent l’encens, la Dauna n’aime pas.'] }),
     ];
   },
   fin(c) {
@@ -527,8 +528,8 @@ q20.scenes('estive_baile_2', {
     const Cr = Q20C.lieu(c, 'estive_crete', 'estive');
     const moi = Q20H.seuil(c, 'estive_baile', { d: 1.2, vise: Cr && Cr.P, geste: ['montre', 'parle'] });
     return [
-      c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.9, d: 3.2, avec: Cr ? c.haut(Cr.P, 4) : undefined, k: 0.3 }), acteurs: [moi], heure: Math.max(c.h, 18.4), dit: ['La Noire, c’est la meneuse. Elle a perdu sa sonnaille sur la crête, le soir où le drac a soufflé.'], court: true }),
-      c.plan({ dur: 5.8, cam: c.camLieu(Cr, { d: 22, haut: 3, dy: 1.5 }), heure: 18.8, son: 'grondement', dit: ['Sans sa sonnaille, les autres ne la suivent plus. En tôle, avec trois traits. Retrouve-la.'] }),
+      c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.9, d: 3.2, avec: Cr ? c.haut(Cr.P, 4) : undefined, k: 0.3 }), acteurs: [moi], heure: Math.max(c.h, 17.4), dit: ['La Noire, c’est la meneuse. Elle a perdu sa sonnaille sur la crête, le soir où le drac a soufflé.'], court: true }),
+      c.plan({ dur: 5.8, cam: c.camLieu(Cr, { d: 22, haut: 3, dy: 1.5 }), heure: 17.6, son: 'grondement', dit: ['Sans sa sonnaille, les autres ne la suivent plus. En tôle, avec trois traits. Retrouve-la.'] }),
     ];
   },
   tournant(c) { return Q20C.trouvaille(c, Q20C_DESSINS.sonnaille, { s: 1.6, son: 'clochette' }); },
@@ -578,7 +579,7 @@ q20.scenes('estive_patre_1', {
     const moi = P0 ? c.habitant('estive_patre', P0, { cap: c.cap(P0, c.lieu('place') ? c.lieu('place').P : M.porte), geste: ['assis', 'leve'] }) : Q20C.chez(c, 'estive_patre');
     const Pl = c.lieu('place');
     return [
-      c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.6, d: 2.2 }), acteurs: [moi], heure: Math.max(c.h, 19.5), dit: ['Rapportez-moi quelque chose d’en bas ! Une image, avec des couleurs. Et de la confiture.'], court: true }),
+      c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.6, d: 2.2 }), acteurs: [moi], heure: Math.max(c.h, 17.8), dit: ['Rapportez-moi quelque chose d’en bas ! Une image, avec des couleurs. Et de la confiture.'], court: true }),
       c.plan({ dur: 5.8, cam: P0 && Pl ? c.camRegard(c.devant(P0, c.cap(P0, Pl.P), -1.5), c.haut(Pl.P, 4), { haut: 1.3 }) : c.camLieu(Pl, { d: 60, haut: 12 }), acteurs: [moi], heure: 21.6, dit: ['Je n’en ai mangé qu’une fois. Je garderai l’image au-dessus de ma paillasse.'] }),
     ];
   },
