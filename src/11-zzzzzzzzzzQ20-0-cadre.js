@@ -44,6 +44,7 @@ const Q20_REGL = {
   vieux: { demande: 1, tournant: 1, fin: 2 },        // au-delà de tant de jours d'attente, la scène n'a plus de sens
   duree: [8, 20],                                   // un moment, en secondes (version complète)
   court: [5, 8],                                    // un moment, en version courte
+  contre: [0.75, 1.15],                             // la caméra jamais plus près d'un corps (une personne, une bête), en mètres
 };
 const Q20_TEXTES = {
   option: 'Scènes des quêtes',
@@ -57,10 +58,21 @@ const Q20_SOUV_KEY = 'prairie.q20souvenirs';
 // des silhouettes pour les scènes (Object.assign(Q20_LOOKS, { … }) depuis les tables de scènes ; K18_LOOKS aussi)
 const Q20_LOOKS = {};
 // les gestes d'un acteur (poseHuman) : un nom, une liste de noms, un objet, ou une fonction (t) → objet
+// (_bras : des angles posés après poseHuman, pour les gestes qu'il ne sait pas faire : { armL: [rx, ry, rz], foreR: … })
 const Q20_GESTES = {
   parle: { talk: 1 }, travaille: { work: 1 }, salue: { wave: 1 }, prie: { pray: 1 }, bras: { cross: 1 }, assis: { sit: 1 },
-  peche: { fish: 1 }, porte: { carry: 1 }, tend: { reach: 0.45 }, offre: { reach: 0.2 }, montre: { attack: 0.33 }, peur: { cower: 1 },
+  peche: { fish: 1 }, porte: { carry: 1 }, montre: { attack: 0.33 }, peur: { cower: 1 }, loin: { reach: 0.05 },
   hoche: { nod: 1 }, baisse: { lookP: 0.42 }, leve: { lookP: -0.38 }, penche: { lean: 0.32, lookP: 0.32 }, raide: { pale: 1 },
+  // tenir une chose devant soi, des deux mains, et la regarder
+  tend: { lookP: 0.32, _bras: { armL: [-0.5, 0, 0.14], armR: [-0.5, 0, -0.14], foreL: [-1.35, 0.45, 0], foreR: [-1.35, -0.45, 0] } },
+  // donner : une main tendue
+  offre: { _bras: { armR: [-0.95, 0, -0.08], foreR: [-0.5, 0, 0] } },
+  // lever une chose à la lumière
+  eleve: { lookP: -0.3, _bras: { armR: [-2.35, 0, -0.12], foreR: [-0.3, 0, 0] } },
+  // lever son verre
+  trinque: { _bras: { armR: [-1.05, 0, -0.1], foreR: [-1.6, 0, 0] } },
+  // la main sur le cœur
+  coeur: { lookP: 0.25, _bras: { armR: [-0.4, 0, -0.05], foreR: [-1.95, -0.7, 0] } },
 };
 // les sons d'un plan (son: 'cle' ou une fonction)
 const Q20_SONS = {
@@ -91,11 +103,12 @@ class Q20Scene {
     this.repli = 0;            // cadrages tombés sur le repli (l'équilibrage les compte)
     this._L = [];              // blocs déjà lus : [{ x, z, r, L }]
     this._rigs = {};
+    this.tous = [];            // tous les acteurs de la scène
   }
   // ---------------------------------------------------------------- l'heure
   nuit(h) { h = h === undefined ? this.h : h; return h >= 20.2 || h < 5.6; }
   // l'heure d'un moment de la journée ('nuit', 'aube', 'soir', 'jour') ou l'heure du moment, à défaut
-  heure(m) { return { nuit: 23.6, aube: 5.9, soir: 19.2, jour: 11, matin: 8.5 }[m] ?? this.h; }
+  heure(m) { return { nuit: 23.6, aube: 5.9, soir: 18.4, jour: 11, matin: 8.5 }[m] ?? this.h; }
 
   // ---------------------------------------------------------------- les répliques
   // qui : '@' (l'habitant de la quête, par défaut), '@id' (un autre habitant), '' (une pensée), un nom
@@ -185,6 +198,7 @@ class Q20Scene {
   //       'marteau'…), lanterne (une lueur chaude, la nuit), vu (false : pas besoin qu'on le voie) }
   acteur(o) {
     const A = Object.assign({ s: 1, cap: 0 }, o);
+    this.tous.push(A);
     if (A.face && !A.vers && A.face !== 'camera') { const F = A.face.P || A.face; A.cap = Math.atan2(F[0] - A.P[0], F[2] - A.P[2]); }
     if (A.vers && A.capFin === undefined && A.face && A.face !== 'camera') { const F = A.face.P || A.face; A.capFin = Math.atan2(F[0] - A.vers[0], F[2] - A.vers[2]); }
     return A;
@@ -225,7 +239,7 @@ class Q20Scene {
   // la tête (ou le buste, ou le milieu) d'un acteur
   tete(A, dy) {
     const P = A.vers || A.P, s = A.s || 1;
-    if (A.k === 'h') return [P[0], P[1] + (A.look && A.look.height ? 1.48 : 1.5) * s * (A.geste === 'assis' ? 0.72 : 1) + (dy || 0), P[2]];
+    if (A.k === 'h') return [P[0], P[1] + (A.look && A.look.height ? 1.48 : 1.5) * s * (/assis/.test(JSON.stringify(A.geste || '')) ? 0.72 : 1) + (dy || 0), P[2]];
     if (A.k === 'b') { const R = { horse: 1.9, cow: 1.35, sheep: 0.9, pig: 0.6, dog: 0.6, hen: 0.35, duck: 0.3, crow: 0.3, cat: 0.35, deer: 1.5 }; return [P[0], P[1] + (R[A.rig] || 0.8) + (dy || 0), P[2]]; }
     return [P[0], P[1] + 0.12 + (dy || 0), P[2]];
   }
@@ -249,7 +263,9 @@ class Q20Scene {
     const Ds = o.ds || [d, d * 0.82, d * 1.22, d * 1.5, d * 0.66];
     // (deux passes : dehors, à l'air libre ; puis, pour un lieu couvert sans bâtiment — une chapelle, un moulin, le
     // phare —, sous un toit, pourvu qu'on ne soit pas dans un mur)
+    const cands = [];
     for (const toit of o.toit === false ? [false] : [false, true]) {
+      if (cands.best) break;
       for (let k = 0; k < n; k++) {
         const a = a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * pas;
         for (const dd of Ds) {
@@ -260,13 +276,110 @@ class Q20Scene {
             if (toit ? (P[1] < this.sol(x, z) + 0.9 || qtDansBloc(L, P, 0.3) || this.batiment(P)) : !qtScenes.libreDehors(w, L, P)) continue;
             if (!qtScenes.voit(w, L, P, T, o.stop ?? 0.35)) continue;
             if (o.aussi && !o.aussi.every((Q) => qtScenes.voit(w, L, P, Q, 0.35))) continue;
+            if (o.evite && (this.cache(P, T, o.evite) || (o.tete && this.cache(P, o.tete, o.evite)))) continue;
+            if (this.contre(P)) continue;
+            if (o.evite && this.gene(P, T, o.evite)) continue;
+            if (o.objets && this.objetDevant(P, T, o.objets)) continue;
+            if (o.degage && !toit && !this.degage(P)) continue;
           } catch (e) { continue; }
+          // (un lieu : parmi les premiers points libres, celui où rien n'encombre le devant de l'objectif)
+          if (o.propre) {
+            let pen = 0;
+            try { pen = qtScenes.encombre(w, L, P, T, o.propre); } catch (e) { pen = 0; }
+            if (!cands.best || pen < cands.best.pen) cands.best = { P, a, d: dd, toit, pen };
+            cands.push(1);
+            if (pen < 0.05 || cands.length >= 6) return cands.best;
+            continue;
+          }
           return { P, a, d: dd, toit };
         }
       }
     }
+    if (cands.best) return cands.best;
     this.repli++;
     return { P: [T[0] + Math.sin(a0) * d, Math.max(T[1], this.sol(T[0], T[2])) + haut + 8, T[2] + Math.cos(a0) * d], a: a0, d, repli: true };
+  }
+  // la caméra contre un acteur (ou dedans) ? (ev : ceux-là ; sinon tous ceux de la scène)
+  contre(P, ev) {
+    for (const X of ev || this.tous) {
+      if (!X || X.k === 'c') continue;
+      const s = X.s || 1;
+      for (const Q of X.vers ? [X.P, X.vers] : [X.P]) {
+        const r = X.k === 'b' ? Q20_REGL.contre[1] : Q20_REGL.contre[0] * Math.max(0.8, s);
+        if (Math.abs(P[0] - Q[0]) < r && Math.abs(P[2] - Q[2]) < r && Math.hypot(P[0] - Q[0], P[2] - Q[2]) < r && P[1] > Q[1] - 0.4 && P[1] < Q[1] + (X.k === 'b' ? 2.2 : 2.1 * s)) return X;
+      }
+    }
+    return null;
+  }
+  // un acteur (son corps : un cylindre) entre P et T ?
+  cache(P, T, ev) {
+    const dx = T[0] - P[0], dz = T[2] - P[2], L2 = dx * dx + dz * dz || 1e-9;
+    for (const X of ev || []) {
+      const Q = X.vers || X.P, s = X.s || 1, rr = X.k === 'b' ? 0.75 : 0.36 * s, hh = X.k === 'b' ? 1.9 : 1.9 * s;
+      const t = ((Q[0] - P[0]) * dx + (Q[2] - P[2]) * dz) / L2;
+      if (t < 0 || t > 0.96) continue;
+      const x = P[0] + dx * t, z = P[2] + dz * t, y = P[1] + (T[1] - P[1]) * t;
+      if (Math.hypot(x - Q[0], z - Q[2]) < rr + 0.14 && y > Q[1] - 0.2 && y < Q[1] + hh) return true;
+    }
+    return false;
+  }
+  // un acteur tout contre l'objectif, dans le champ (à moins de 1,5 m — 2,2 m d'une bête —, à moins de 46° de l'axe) :
+  // un pan de corps sombre qui mange l'image (le joueur à qui l'on donne, celui par-dessus l'épaule de qui l'on regarde).
+  // Celui qu'on vise (à moins de 0,5 m du point visé) ne compte pas.
+  gene(P, T, ev) {
+    const ax = Math.atan2(T[0] - P[0], T[2] - P[2]);
+    for (const X of ev || this.tous) {
+      if (!X || X.k === 'c') continue;
+      const Q = X.vers || X.P, s = X.s || 1, dx = Q[0] - P[0], dz = Q[2] - P[2], d = Math.hypot(dx, dz);
+      if (d > (X.k === 'b' ? 2.2 : 1.5) || Math.hypot(Q[0] - T[0], Q[2] - T[2]) < 0.5) continue;
+      if (P[1] < Q[1] - 0.3 || P[1] > Q[1] + (X.k === 'b' ? 2.4 : 2.2 * s)) continue;
+      if (Math.abs(angDiff(Math.atan2(dx, dz), ax)) < 0.8) return X;
+    }
+    return null;
+  }
+  // un objet posé (une tombe, un tonneau, une clôture : sa boîte de collision, tournée comme lui) entre P et T ?
+  // Celui sur lequel ou contre lequel est T ne compte pas (la chose posée sur le coffre).
+  objetDevant(P, T, props) {
+    const w = this.w, v = [T[0] - P[0], T[1] - P[1], T[2] - P[2]], D = Math.hypot(v[0], v[1], v[2]) || 1, dir = [v[0] / D, v[1] / D, v[2] / D];
+    for (const q of props || []) {
+      const b = q && q.blk;
+      if (!b) continue;
+      try {
+        const [lx, lz] = World.blockLocal(b, T[0], T[2]);
+        if (Math.abs(lx) < b.sx / 2 + 0.12 && Math.abs(lz) < b.sz / 2 + 0.12) continue;
+        const h = w.raycastBlock(b, P, dir);
+        if (h && h.t >= 0 && h.t < D - 0.1) return q;
+      } catch (e) { /* une boîte sans forme */ }
+    }
+    return null;
+  }
+  // une caméra rapprochée dégagée : ni une pente qui monte à sa hauteur tout contre elle (un talus, un flanc rocheux),
+  // ni une grosse chose du monde (un rocher, un tronc, un buisson haut) collée à l'objectif
+  degage(P) {
+    const w = this.w;
+    for (let k = 0; k < 8; k++) {
+      const a = k * TAU / 8, s = Math.sin(a), co = Math.cos(a);
+      if (w.heightAt(P[0] + s * 0.8, P[2] + co * 0.8) > P[1] - 0.35) return false;
+      if (w.heightAt(P[0] + s * 1.8, P[2] + co * 1.8) > P[1] + 0.2) return false;
+    }
+    try {
+      const G = w.objectsGrid(), K = G.C;
+      for (let gz = Math.floor((P[2] - 2.5) / K); gz <= Math.floor((P[2] + 2.5) / K); gz++) for (let gx = Math.floor((P[0] - 2.5) / K); gx <= Math.floor((P[0] + 2.5) / K); gx++) {
+        const cell = gx >= 0 && gz >= 0 && gx < G.gw && gz < G.gw ? G.cells[gz * G.gw + gx] : null;
+        if (!cell) continue;
+        for (const i of cell) {
+          const o = w.objects[i], Tt = o && OBJ_TYPES[o.t];
+          if (!Tt || Tt.animal || !w.live(o) || o.h < 0.9 || Tt.cat === 'Fleurs' || Tt.cat === 'Champignons') continue;
+          const oy = w.objectY ? w.objectY(o) : w.heightAt(o.x, o.z), r = Math.max(0.3, objRadius(Tt, o) || o.h * 0.4) + 0.45;
+          if (Math.hypot(o.x - P[0], o.z - P[2]) < r && P[1] < oy + o.h + 0.2 && P[1] > oy - 0.5) return false;
+        }
+      }
+    } catch (e) { /* sans grille */ }
+    return true;
+  }
+  // les acteurs qui pourraient cacher A (ou T) : les autres, de chair, à moins de 10 m
+  autres(A, T, avec) {
+    return this.tous.filter((X) => X && X !== A && X !== avec && X.k !== 'c' && !(A && X.id && X.id === A.id && !X.joueur && !A.joueur) && Math.hypot((X.vers || X.P)[0] - T[0], (X.vers || X.P)[2] - T[2]) < 10);
   }
   // un second point de caméra (le travelling) : k vers la cible, glisse mètres de côté, monte mètres plus haut ;
   // il doit être libre lui aussi (sinon la caméra reste fixe)
@@ -282,6 +395,7 @@ class Q20Scene {
       else if (o.toit) { if (qtDansBloc(L, Q, 0.3) || Q[1] < this.sol(Q[0], Q[2]) + 0.9 || !qtScenes.voit(w, L, Q, T, o.stop ?? 0.35)) return P; }
       else { if (!qtScenes.libreDehors(w, L, Q) || !qtScenes.voit(w, L, Q, T, o.stop ?? 0.35)) return P; }
     } catch (e) { return P; }
+    if (this.contre(Q) || (!this.gene(P, T) && this.gene(Q, T))) return P;
     return Q;
   }
   // sur un acteur, à hauteur d'homme : o.d (3,2 m), o.cote (l'angle depuis son regard : 0 = de face), o.haut,
@@ -291,12 +405,19 @@ class Q20Scene {
     if (!A) return null;
     let T = o.vise || this.tete(A, o.buste ? -0.42 : 0);
     if (o.avec) { const B = o.avec.k ? this.tete(o.avec, -0.2) : o.avec; T = this.vers(T, B, o.k ?? 0.5); }
-    const cap = A.vers ? (A.capFin ?? A.cap) : A.cap, a0 = (cap || 0) + (o.cote ?? 0.45);
+    // (à deux : la caméra de côté, pour que l'un ne cache pas l'autre ; l'habitant de trois quarts)
+    const cap = A.vers ? (A.capFin ?? A.cap) : A.cap, a0 = (cap || 0) + (o.cote ?? (o.avec && o.avec.k ? 1.25 : 0.45));
+    // (assis : l'objectif à la hauteur de son visage ; les autres acteurs ne se mettent pas devant)
+    const assis = /assis/.test(JSON.stringify(A.geste || ''));
+    const evite = o.evite || this.autres(A, T, o.avec);
     const Bt = this.batiment(A.vers || A.P);
-    if (Bt) return this.camDedans(Bt, T, Object.assign({ pref: a0, d: o.d || 2.5 }, o));
-    const R = this.cherche(T, o.d || 3.2, o.haut ?? 1.6, a0, { aussi: o.aussi, stop: 0.3, ign: o.ign });
+    const tete = this.tete(A);
+    if (Bt) return Object.assign(this.camDedans(Bt, T, Object.assign({ pref: a0, d: o.d || 2.5, he: assis ? 1.25 : 1.6 }, o, { evite, tete })), { cible: A, avec: o.avec, evite, refaire: (ev) => this.camActeur(A, Object.assign({}, o, { evite: ev })) });
+    let objets = null;
+    try { objets = qtProps(this.w, T[0], T[2], (o.d || 3.2) * 1.6 + 3); } catch (e) { objets = null; }
+    const R = this.cherche(T, o.d || 3.2, o.haut ?? (assis ? 1.25 : 1.6), a0, { aussi: o.aussi, stop: 0.3, ign: o.ign, evite, tete, objets, degage: true });
     const P2 = this.glisse(R.P, T, Object.assign({}, o, { toit: R.toit }));
-    return { de: { pos: R.P, look: T }, a: { pos: P2, look: o.vise2 || T }, dedans: null, vise: [T], repli: !!R.repli, toit: !!R.toit };
+    return { de: { pos: R.P, look: T }, a: { pos: P2, look: o.vise2 || T }, dedans: null, vise: [T], repli: !!R.repli, toit: !!R.toit, cible: A, avec: o.avec, evite, refaire: (ev) => this.camActeur(A, Object.assign({}, o, { evite: ev })) };
   }
   // un lieu, de loin : L (un lieu de c.lieu, une clé, ou un point) ; o.d (sinon : selon sa taille), o.haut, o.a
   // (l'angle d'où l'on regarde ; sinon : la lumière de côté), o.dy (hauteur visée), o.recul, o.monte, o.glisse,
@@ -315,21 +436,28 @@ class Q20Scene {
     }
     // (on vise le cœur du lieu : un moulin, une tour, le milieu d'une place ; le regard s'arrête à ses abords)
     const stop = o.stop ?? (Array.isArray(L) ? 1.0 : clamp(r * 0.45, 1.2, 8));
-    const R = this.cherche(C, d, haut, a0, { aussi: o.aussi, ign: o.ign, stop, ds: [d, d * 0.85, d * 1.2, d * 0.7, d * 1.45] });
+    let propre = null;
+    try { propre = qtProps(this.w, C[0], C[2], d * 1.5 + 8); } catch (e) { propre = null; }
+    const evite = o.evite || this.autres(null, C, null).filter((X) => Math.hypot((X.vers || X.P)[0] - C[0], (X.vers || X.P)[2] - C[2]) > 2.5);
+    const R = this.cherche(C, d, haut, a0, { aussi: o.aussi, ign: o.ign, stop, propre, evite, ds: [d, d * 0.85, d * 1.2, d * 0.7, d * 1.45] });
     const T2 = o.vise2 || C;
     const P2 = this.glisse(R.P, T2, { recul: o.recul ?? 0.14, glisse: o.glisse, monte: o.monte, toit: R.toit, stop });
-    return { de: { pos: R.P, look: C }, a: { pos: P2, look: T2 }, dedans: null, vise: [C], repli: !!R.repli, toit: !!R.toit };
+    return { de: { pos: R.P, look: C }, a: { pos: P2, look: T2 }, dedans: null, vise: [C], repli: !!R.repli, toit: !!R.toit, evite, refaire: (ev) => this.camLieu(Lx, Object.assign({}, o, { evite: ev })) };
   }
   // une chose, de près (un objet posé, l'endroit d'une trouvaille) : o.d (1,8 m), o.haut (au-dessus du sol), o.a
   camChose(P, o) {
     o = o || {};
     if (!P) return null;
     const T = this.haut(P, o.dy ?? 0.1), Bt = this.batiment(P);
-    if (Bt) return this.camDedans(Bt, T, Object.assign({ pref: o.a ?? 0, d: o.d || 1.6, he: o.he ?? 1.35 }, o));
-    // (au-dessus de l'herbe : 0,95 m au moins)
-    const d = o.d || 1.9, R = this.cherche(T, d, Math.max(0.95, o.haut ?? 1.15), o.a ?? 0.8, { stop: 0.15, ign: o.ign, ds: [d, d * 1.3, d * 0.7, d * 1.7, d * 0.5, d * 2.2] });
+    if (Bt) return Object.assign(this.camDedans(Bt, T, Object.assign({ pref: o.a ?? 0, d: o.d || 1.6, he: o.he ?? 1.35 }, o)), { refaire: (ev) => this.camChose(P, Object.assign({}, o, { evite: ev })) });
+    // (au-dessus de l'herbe : 0,95 m au moins ; aucun objet posé — une autre tombe, un tonneau — devant la chose ; parmi
+    // les premiers points libres, celui qu'aucun pan de mur n'encombre)
+    const d = o.d || 1.9;
+    let objets = null;
+    try { objets = qtProps(this.w, T[0], T[2], d * 2.2 + 2); } catch (e) { objets = null; }
+    const R = this.cherche(T, d, Math.max(0.95, o.haut ?? 1.15), o.a ?? 0.8, { stop: 0.15, ign: o.ign, evite: o.evite || this.autres(null, T, null), objets, degage: true, propre: objets || [], ds: [d, d * 1.3, d * 0.7, d * 1.7, d * 0.5, d * 2.2] });
     const P2 = this.glisse(R.P, T, { recul: o.recul ?? 0.18, glisse: o.glisse, monte: o.monte, toit: R.toit });
-    return { de: { pos: R.P, look: T }, a: { pos: P2, look: T }, dedans: null, vise: [T], repli: !!R.repli, toit: !!R.toit };
+    return { de: { pos: R.P, look: T }, a: { pos: P2, look: T }, dedans: null, vise: [T], repli: !!R.repli, toit: !!R.toit, refaire: (ev) => this.camChose(P, Object.assign({}, o, { evite: ev })) };
   }
   // dedans : une caméra dans la pièce du bâtiment B (ou sa clé), qui voit T ; o.pref (l'angle voulu), o.d, o.he
   camDedans(Bk, T, o) {
@@ -353,6 +481,8 @@ class Q20Scene {
           if (!qtScenes.dansPiece(w, lieu, P) || qtDansBloc(L, P, 0.25) || !qtSousToit(w, L, P) || !qtScenes.horsMeubles(w, P, y0, props)) continue;
           const v = [T[0] - P[0], T[1] - P[1], T[2] - P[2]], dv = Math.hypot(v[0], v[1], v[2]) || 1;
           if (qtRayon(w, L, P, [v[0] / dv, v[1] / dv, v[2] / dv], dv - 0.25)) continue;
+          if (o.evite && (this.cache(P, T, o.evite) || (o.tete && this.cache(P, o.tete, o.evite)) || this.gene(P, T, o.evite))) continue;
+          if (this.contre(P)) continue;
         } catch (e) { continue; }
         const sc = -Math.abs(dd - d0) - Math.abs(angDiff(a, a0)) * (o.kp ?? 0.7);
         if (!best || sc > best.sc) best = { sc, P, a };
@@ -378,6 +508,12 @@ class Q20Scene {
   camRegard(P, T, o) {
     o = o || {};
     const Q = [P[0], Math.max(P[1], this.sol(P[0], P[2])) + (o.haut ?? 1.6), P[2]];
+    // (quelqu'un se tient là : on recule d'un pas, derrière son épaule)
+    const X = this.contre(Q);
+    if (X) { const R = X.vers || X.P, dx = T[0] - R[0], dz = T[2] - R[2], d = Math.hypot(dx, dz) || 1, k = (X.k === 'b' ? Q20_REGL.contre[1] : Q20_REGL.contre[0]) + 0.35; Q[0] = R[0] - dx / d * k + dz / d * 0.45; Q[2] = R[2] - dz / d * k - dx / d * 0.45; }
+    // (et pas collée à son dos : on s'en écarte jusqu'à 1,8 m, il reste au bord de l'image)
+    const Y = this.gene(Q, T);
+    if (Y) { const R = Y.vers || Y.P, ex = Q[0] - R[0], ez = Q[2] - R[2], e = Math.hypot(ex, ez), k = Y.k === 'b' ? 2.5 : 1.8; if (e > 0.05) { Q[0] = R[0] + ex / e * k; Q[2] = R[2] + ez / e * k; } else { const a = Math.atan2(T[0] - R[0], T[2] - R[2]); Q[0] = R[0] - Math.sin(a) * k; Q[2] = R[2] - Math.cos(a) * k; } }
     const L = this.blocs(Q, 14);
     let ok = true;
     try { ok = qtScenes.libreDehors(this.w, L, Q); } catch (e) { ok = false; }
@@ -391,7 +527,13 @@ class Q20Scene {
   //       version courte), carte, chaque(t, dt), debut(), fin() }
   plan(o) {
     o = o || {};
-    const cam = o.cam || {}, P = { dur: o.dur || 5, texte: '', qui: '' };
+    let cam = o.cam || {};
+    const P = { dur: o.dur || 5, texte: '', qui: '' };
+    if (cam.refaire && cam.de && cam.vise && cam.vise[0] && (o.acteurs || []).length) {
+      const C = cam.cible, ev = o.acteurs.filter((X) => X && X.k !== 'c' && X !== C && X !== cam.avec && !(C && X.id && X.id === C.id && !X.joueur && !C.joueur));
+      const contre = o.acteurs.some((X) => X && this.contre(cam.de.pos, [X])) || (cam.a && o.acteurs.some((X) => X && this.contre(cam.a.pos, [X])));
+      if (contre || (ev.length && (this.cache(cam.de.pos, cam.vise[0], ev) || (C && this.cache(cam.de.pos, this.tete(C), ev)) || this.gene(cam.de.pos, cam.vise[0], ev)))) { try { const c2 = cam.refaire(ev.concat(cam.evite || [])); if (c2 && !c2.repli) cam = c2; } catch (e) { /* on garde le premier */ } }
+    }
     if (cam.chemin) P.chemin = cam.chemin; else if (cam.de) { P.de = cam.de; P.a = cam.a || cam.de; }
     let voix = null;
     if (o.dit) { const D = Array.isArray(o.dit) ? this.dit(o.dit[0], o.dit[1]) : o.dit; P.texte = D.texte; P.qui = D.qui; voix = D.voix; }
@@ -399,7 +541,7 @@ class Q20Scene {
     const heure = o.heure ?? this.h, dedans = cam.dedans || null, acteurs = (o.acteurs || []).filter(Boolean);
     const lum = this.lumieres(heure, cam, acteurs, o.lum);
     const son = typeof o.son === 'function' ? o.son : o.son && Q20_SONS[o.son];
-    P._q20 = { acteurs, heure, dedans, lum, vise: cam.vise || [], court: !!o.court, repli: !!cam.repli, toit: !!cam.toit, son: !!son };
+    P._q20 = { acteurs, heure, dedans, lum, vise: cam.vise || [], court: !!o.court, repli: !!cam.repli, toit: !!cam.toit, son: !!son, cible: cam.cible || null, avec: cam.avec && cam.avec.k ? cam.avec : null };
     P.debut = () => {
       if (typeof qtScenes !== 'undefined') qtScenes.lumiere({ h: heure, dedans: !!dedans, lum });
       if (q20._passe) return;
@@ -419,13 +561,25 @@ class Q20Scene {
     const nuit = this.nuit(h), out = [];
     const T = (cam.vise && cam.vise[0]) || (cam.de && cam.de.look) || (cam.chemin && cam.chemin[0].look);
     const Pc = (cam.de && cam.de.pos) || (cam.chemin && cam.chemin[0].pos);
+    const D = T && Pc ? Math.hypot(T[0] - Pc[0], T[2] - Pc[2]) : 0;
     if (cam.dedans) {
-      if (T) out.push(nuit ? { x: T[0], y: T[1] + 0.5, z: T[2], r: 4.8, c: [0.85, 0.54, 0.27], d: 0 } : { x: T[0], y: T[1] + 0.6, z: T[2], r: 5.5, c: [0.95, 0.77, 0.52], d: 0 });
-      if (Pc) out.push({ x: Pc[0], y: Pc[1] + 0.3, z: Pc[2], r: nuit ? 4.5 : 6.5, c: nuit ? [0.28, 0.21, 0.15] : [0.46, 0.45, 0.43], d: 0 });
+      // (au-dessus de la tête, et pas trop fort : les petites pièces s'éblouissent vite)
+      if (T) out.push(nuit ? { x: T[0], y: T[1] + 0.9, z: T[2], r: 4.6, c: [0.72, 0.46, 0.24], d: 0 } : { x: T[0], y: T[1] + 1.0, z: T[2], r: 5, c: [0.74, 0.6, 0.42], d: 0 });
+      if (Pc) out.push({ x: Pc[0], y: Pc[1] + 0.3, z: Pc[2], r: nuit ? 4.5 : 6, c: nuit ? [0.26, 0.2, 0.14] : [0.4, 0.39, 0.37], d: 0 });
     } else if (nuit) {
       if (T) out.push({ x: T[0], y: T[1] + 2.2, z: T[2], r: 11, c: [0.22, 0.25, 0.34], d: 0 });
+      // (de loin : la lune éclaire le lieu du côté de la caméra)
+      if (T && D > 8) out.push({ x: T[0] + (Pc[0] - T[0]) * 0.3, y: T[1] + D * 0.3 + 2, z: T[2] + (Pc[2] - T[2]) * 0.3, r: D * 0.95 + 4, c: [0.24, 0.27, 0.36], d: 0 });
     } else if (h >= 17.6 || h < 6.6) {
-      if (T) out.push({ x: T[0], y: T[1] + 2.4, z: T[2], r: 9, c: [0.3, 0.27, 0.25], d: 0 });
+      if (T) out.push({ x: T[0], y: T[1] + 2.4, z: T[2], r: 9, c: [0.36, 0.32, 0.29], d: 0 });
+      if (T && D > 8) out.push({ x: T[0] + (Pc[0] - T[0]) * 0.3, y: T[1] + D * 0.3 + 2, z: T[2] + (Pc[2] - T[2]) * 0.3, r: D * 0.9 + 4, c: [0.2, 0.19, 0.19], d: 0 });
+    }
+    // dehors, le soir et la nuit : la personne qu'on montre garde un peu de lumière de face (une fenêtre, une lanterne
+    // hors du champ), douce
+    const A = (acteurs || []).find((x) => x.k === 'h' && x.vu !== false);
+    if (A && !cam.dedans && Pc && (nuit || h >= 17.6 || h < 6.6)) {
+      const Q = A.vers || A.P, dx = Pc[0] - Q[0], dz = Pc[2] - Q[2], d = Math.hypot(dx, dz) || 1;
+      out.push({ x: Q[0] + dx / d * 1.3, y: Q[1] + 1.9 * (A.s || 1), z: Q[2] + dz / d * 1.3, r: 5.5, c: nuit ? [0.5, 0.4, 0.3] : [0.48, 0.42, 0.36], d: 0 });
     }
     for (const A of acteurs || []) if (A.lanterne || A.main === 'lanterne' || (A.look && A.look.held === 'lanterne' && A.tient !== false)) {
       const P = A.vers || A.P;
@@ -470,6 +624,15 @@ const q20 = {
     for (const k in D.fins || {}) out.push('fin:' + k);
     return out;
   },
+  // où se joue un moment : def.monde (une clé ; { demande: clé, 'fin:1': clé, tout: clé } ; ou fn(moment)), 'vallee'
+  // par défaut. (Les lieux d'ailleurs, et l'attente qu'on y soit, sont l'affaire de Q20B : q20B.ici.)
+  monde(id, m) {
+    const M = this.defs[id] && this.defs[id].monde;
+    let k = null;
+    try { k = typeof M === 'function' ? M(m) : M && typeof M === 'object' ? M[m] ?? M[String(m).split(':')[0]] ?? M.tout : M; } catch (e) { k = null; }
+    return k || 'vallee';
+  },
+  horsVallee(id, m) { return this.monde(id, m) !== 'vallee'; },
 
   // ------------------------------------------------------------- l'état sauvegardé
   S() {
@@ -605,6 +768,8 @@ const q20 = {
   update(dt) {
     if (!farm.s || !game.started) return;
     if (this.dangerT > 0) this.dangerT -= dt;
+    // (un coup reçu se guette à chaque image : la rougeur ne dure qu'un instant, moins qu'un tour de guet)
+    if (typeof play !== 'undefined' && play.hurtFlash > 0.02) this.dangerT = Q20_REGL.danger;
     if (cine.on) return;
     if (this.joue) { this.montrer(); this.joue = null; }
     this.t -= dt;
@@ -827,6 +992,7 @@ const q20 = {
           continue;
         }
         poseHuman(r, st);
+        if (st._bras) for (const k in st._bras) { const v = st._bras[k]; if (r.idx && r.idx[k] !== undefined) r.set(k, v[0], v[1] || 0, v[2] || 0); }
         const it = r.part && r.part('it0');
         if (it) { const vu = !!(A.tient || A.main); it.hide = !vu; const it1 = r.part('it1'); if (it1) it1.hide = !vu; }
         drawRig(buf, r, x, y, z, cap, A.s || 1, 0);
@@ -875,6 +1041,22 @@ if (typeof q16 !== 'undefined') {
 {
   const _pa = cine.passer.bind(cine);
   cine.passer = function () { q20._passe = true; try { return _pa(); } finally { q20._passe = false; } };
+}
+// pendant une scène : un habitant qui ne joue pas, planté près de ceux qui jouent ou de ce qu'on montre, s'efface le
+// temps du plan (il revient après)
+{
+  const _d = npcs.draw.bind(npcs);
+  npcs.draw = function (buf, sbuf, cam, t, maxD) {
+    const P = q20.joue && cine.on && cine.plans && cine.plans[cine.i], D = P && P._q20;
+    if (!D) return _d(buf, sbuf, cam, t, maxD);
+    const pts = D.acteurs.filter((A) => A.k !== 'c').map((A) => A.vers || A.P).concat(D.vise || []);
+    const caches = [];
+    for (const n of this.list) {
+      if (n.vanished || n.state === 'gone' || !isFinite(n.x)) continue;
+      if (pts.some((Q) => Math.abs(Q[0] - n.x) < 3.2 && Math.abs(Q[2] - n.z) < 3.2 && Math.hypot(Q[0] - n.x, Q[2] - n.z) < 3.2)) { n.vanished = true; caches.push(n); }
+    }
+    try { return _d(buf, sbuf, cam, t, maxD); } finally { for (const n of caches) n.vanished = false; }
+  };
 }
 HOOKS.update.push((dt) => q20.update(dt));
 HOOKS.draw.push((buf, sbuf, cam, t) => { if (q20.joue && cine.on) q20.dessiner(buf, sbuf, cam, t); });
