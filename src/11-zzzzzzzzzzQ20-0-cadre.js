@@ -450,11 +450,12 @@ class Q20Scene {
     if (!P) return null;
     const T = this.haut(P, o.dy ?? 0.1), Bt = this.batiment(P);
     if (Bt) return Object.assign(this.camDedans(Bt, T, Object.assign({ pref: o.a ?? 0, d: o.d || 1.6, he: o.he ?? 1.35 }, o)), { refaire: (ev) => this.camChose(P, Object.assign({}, o, { evite: ev })) });
-    // (au-dessus de l'herbe : 0,95 m au moins ; et aucun objet posé — une autre tombe, un tonneau — devant la chose)
+    // (au-dessus de l'herbe : 0,95 m au moins ; aucun objet posé — une autre tombe, un tonneau — devant la chose ; parmi
+    // les premiers points libres, celui qu'aucun pan de mur n'encombre)
     const d = o.d || 1.9;
     let objets = null;
     try { objets = qtProps(this.w, T[0], T[2], d * 2.2 + 2); } catch (e) { objets = null; }
-    const R = this.cherche(T, d, Math.max(0.95, o.haut ?? 1.15), o.a ?? 0.8, { stop: 0.15, ign: o.ign, evite: o.evite || this.autres(null, T, null), objets, degage: true, ds: [d, d * 1.3, d * 0.7, d * 1.7, d * 0.5, d * 2.2] });
+    const R = this.cherche(T, d, Math.max(0.95, o.haut ?? 1.15), o.a ?? 0.8, { stop: 0.15, ign: o.ign, evite: o.evite || this.autres(null, T, null), objets, degage: true, propre: objets || [], ds: [d, d * 1.3, d * 0.7, d * 1.7, d * 0.5, d * 2.2] });
     const P2 = this.glisse(R.P, T, { recul: o.recul ?? 0.18, glisse: o.glisse, monte: o.monte, toit: R.toit });
     return { de: { pos: R.P, look: T }, a: { pos: P2, look: T }, dedans: null, vise: [T], repli: !!R.repli, toit: !!R.toit, refaire: (ev) => this.camChose(P, Object.assign({}, o, { evite: ev })) };
   }
