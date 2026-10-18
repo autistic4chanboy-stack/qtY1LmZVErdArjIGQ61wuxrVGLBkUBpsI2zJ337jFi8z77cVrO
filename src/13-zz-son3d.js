@@ -85,8 +85,9 @@ const son3d = {
   update(dt) {
     if (!sound.ok || !farm.s || !game.world) return;
     const w = game.world, p = game.player;
-    // pas
-    for (const n of npcs.list) {
+    // pas (à chaque image, toutes les bêtes et tous les habitants : des boucles par indice, qui n'allouent rien)
+    for (let i = 0, NL = npcs.list; i < NL.length; i++) {
+      const n = NL[i];
       if (!(n.dist < 22) || !n.st || !n.st.alive || n.vanished || n.state !== 'walk' || !(n.move > 0.4) || n.hunting) { n._pasK = undefined; continue; }
       const k = Math.floor(n.phase / Math.PI);
       if (n._pasK === undefined) { n._pasK = k; continue; }
@@ -96,7 +97,8 @@ const son3d = {
       try { sound.step(this.sol(w, n.x, n.y || 0, n.z), n.run ? 5 : 2.5); } finally { sound.sortir(t); }
     }
     // sabots des grosses bêtes qui marchent tout près (chevaux, vaches, ânes, cerfs, chèvres, moutons)
-    for (const e of entities.list) {
+    for (let i = 0, EL = entities.list; i < EL.length; i++) {
+      const e = EL[i];
       const S = SON3D_SABOTS[e.kind];
       if (!S || !(e.dist < 16) || e.hidden || e.dead || e.ridden || !(e.move > 0.35)) { e._pasK = undefined; continue; }
       const k = Math.floor(e.phase / (Math.PI / 2));

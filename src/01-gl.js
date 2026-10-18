@@ -10,8 +10,19 @@ function glInit(canvas) {
   return true;
 }
 
-function glCompile(type, src, name) {
+// Définitions glissées dans chaque programme juste après « #version » (la qualité du rendu : « #define QUALITE 2 »).
+// Le rendu compile les siens avec les définitions de chaque qualité (defs) ; les autres programmes (les nappes des
+// cascades…) prennent celles de la qualité en cours.
+let GL_DEFINES = '';
+function glDefs(src, defs) {
+  const d = defs === undefined ? GL_DEFINES : defs;
+  if (!d || !src.startsWith('#version')) return src;
+  const i = src.indexOf('\n') + 1;
+  return src.slice(0, i) + d + src.slice(i);
+}
+function glCompile(type, src, name, defs) {
   const sh = gl.createShader(type);
+  src = glDefs(src, defs);
   gl.shaderSource(sh, src);
   gl.compileShader(sh);
   if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
@@ -23,14 +34,36 @@ function glCompile(type, src, name) {
   return sh;
 }
 
-function glProgram(vs, fs, name) {
-  const p = gl.createProgram();
-  gl.attachShader(p, glCompile(gl.VERTEX_SHADER, vs, name + '.vs'));
-  gl.attachShader(p, glCompile(gl.FRAGMENT_SHADER, fs, name + '.fs'));
+// Un programme en deux temps : glProgramLancer envoie tout à la carte sans rien attendre (elle compile pendant ce
+// temps, plusieurs à la fois avec KHR_parallel_shader_compile) ; glProgramFinir attend le résultat et lit les
+// uniformes. glProgramPret dit, sans attendre, si c'est fini (toujours oui sans l'extension : finir attendra).
+let GL_PARALLELE;
+function glParallele() { if (GL_PARALLELE === undefined) GL_PARALLELE = gl.getExtension('KHR_parallel_shader_compile') || null; return GL_PARALLELE; }
+function glProgramLancer(vs, fs, name, defs) {
+  const p = gl.createProgram(), v = gl.createShader(gl.VERTEX_SHADER), f = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(v, glDefs(vs, defs)); gl.compileShader(v);
+  gl.shaderSource(f, glDefs(fs, defs)); gl.compileShader(f);
+  gl.attachShader(p, v); gl.attachShader(p, f);
   gl.linkProgram(p);
+  return { p, v, f, name, vs, fs, defs };
+}
+function glProgramPret(L) { const e = glParallele(); return !e || !!gl.getProgramParameter(L.p, e.COMPLETION_STATUS_KHR); }
+function glProgramFinir(L) {
+  const p = L.p;
   if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
-    throw new Error('Programme ' + name + ' : ' + gl.getProgramInfoLog(p));
+    let log = '';
+    for (const [s, src, n] of [[L.v, L.vs, '.vs'], [L.f, L.fs, '.fs']]) {
+      if (gl.getShaderParameter(s, gl.COMPILE_STATUS)) continue;
+      const lines = glDefs(src, L.defs).split('\n').map((l, i) => (i + 1) + ': ' + l).join('\n');
+      console.error('Erreur shader [' + L.name + n + ']\n' + gl.getShaderInfoLog(s) + '\n' + lines);
+      log += L.name + n + ' : ' + gl.getShaderInfoLog(s) + ' ';
+    }
+    if (!log) log = gl.getProgramInfoLog(p);
+    gl.deleteProgram(p); gl.deleteShader(L.v); gl.deleteShader(L.f);
+    throw new Error('Programme ' + L.name + ' : ' + log);
   }
+  // (les shaders ne servent plus : le programme lié garde son code, ils partiront avec lui)
+  gl.deleteShader(L.v); gl.deleteShader(L.f);
   const u = {};
   const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
   for (let i = 0; i < n; i++) {
@@ -38,8 +71,9 @@ function glProgram(vs, fs, name) {
     const nm = info.name.replace(/\[0\]$/, '');
     u[nm] = gl.getUniformLocation(p, info.name);
   }
-  return { p, u, name };
+  return { p, u, name: L.name };
 }
+function glProgram(vs, fs, name, defs) { return glProgramFinir(glProgramLancer(vs, fs, name, defs)); }
 
 function glBuffer(target, data, usage) {
   const b = gl.createBuffer();
@@ -141,5 +175,44 @@ function glDeleteTarget(t) {
   if (!t) return;
   gl.deleteFramebuffer(t.fb);
   gl.deleteTexture(t.tex);
-  gl.deleteRenderbuffer(t.depth);
+  if (t.depth) gl.deleteRenderbuffer(t.depth);
+  if (t.depthTex) gl.deleteTexture(t.depthTex);
+}
+// Tampon de rendu au choix : couleur 'RGBA8' | 'RGBA16F' | 'R11F_G11F_B10F' (lissée ou non), profondeur : 'tex' (une texture
+// qu'on peut relire : flou de profondeur, rayons), 'rb' (un tampon) ou rien. ok : faux si la carte refuse ce mélange.
+// (crée ses textures sur l'unité active : l'appelant en choisit une libre)
+function glTargetEx(w, h, o) {
+  o = o || {};
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  if (o.fmt === 'RGBA16F') gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, w, h, 0, gl.RGBA, gl.HALF_FLOAT, null);
+  else if (o.fmt === 'R11F_G11F_B10F') gl.texImage2D(gl.TEXTURE_2D, 0, gl.R11F_G11F_B10F, w, h, 0, gl.RGB, gl.HALF_FLOAT, null);
+  else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  const f = o.linear ? gl.LINEAR : gl.NEAREST;
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, f);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, f);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  let depth = null, depthTex = null;
+  if (o.depth === 'tex') {
+    depthTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, depthTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, w, h, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  } else if (o.depth === 'rb') {
+    depth = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depth);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, w, h);
+  }
+  const fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  if (depthTex) gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTex, 0);
+  else if (depth) gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depth);
+  const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  return { fb, tex, depth, depthTex, w, h, ok, fmt: o.fmt || 'RGBA8' };
 }

@@ -1270,14 +1270,16 @@ if (typeof ALIMENTS_EFFETS !== 'undefined') Object.assign(ALIMENTS_EFFETS, { esc
   };
   // au dessin : l'ombre est à leur taille, et seulement quand elles touchent le sol (pas sous un faucon en vol)
   const MIENNES = Object.keys(CREATURES).filter((k) => CREATURES[k].e1).map((k) => CREATURES[k]);
+  // (C.ombreAPart : le dessin commun tait leur ombre — une marque posée une fois, au lieu de « fly » mis puis ôté à chaque
+  // image)
+  for (const C of MIENNES) C.ombreAPart = true;
   // (l'ombre commune a deux centimètres d'épaisseur, trois au-dessus du sol : sous un grillon, elle flotterait au-dessus
   //  de lui ; la nôtre est plate et basse, à la mesure de la bête)
   const _M = new Float32Array(12);
   const ombre = (sb, x, y, z, r) => { m34Root(_M, x, y + Math.min(0.03, r * 0.3), z, 0, 1); sb.box(_M, 0, 0, 0, r * 2, Math.min(0.02, r * 0.15), r * 2, [0, 0, 0], 0); };
   const _draw = entities.draw.bind(entities);
   entities.draw = function (buf, sbuf, cam, maxD, t, flags) {
-    for (const C of MIENNES) C.fly = true; // (dans le dessin, « fly » ne sert qu'à taire l'ombre commune)
-    try { _draw(buf, sbuf, cam, maxD, t, flags); } finally { for (const C of MIENNES) delete C.fly; }
+    _draw(buf, sbuf, cam, maxD, t, flags);
     const w = game.world;
     if (!sbuf || !w) return;
     const m2 = Math.min(maxD, 60) ** 2;

@@ -539,7 +539,8 @@ const souterrain = {
       for (let i = 0; i < this.objTotal; i++) {
         const dx = xz[i * 2] - cam[0], dz = xz[i * 2 + 1] - cam[2];
         if (dx * dx + dz * dz > R2 || all[i * 13 + 1] > SOUT_TOP) continue;
-        act.set(all.subarray(i * 13, i * 13 + 13), n * 13); n++;
+        for (let j = i * 13, k = n * 13, e = j + 13; j < e; j++, k++) act[k] = all[j];
+        n++;
       }
       gl.bindBuffer(gl.ARRAY_BUFFER, this.objBuf);
       gl.bufferData(gl.ARRAY_BUFFER, act.subarray(0, Math.max(1, n) * 13), gl.DYNAMIC_DRAW);

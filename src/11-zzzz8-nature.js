@@ -1040,11 +1040,12 @@ const NAT_COMPORTE = {
 // l'alouette qui monte) ; les grands oiseaux battent des ailes lentement, et planent (rig.lent = [vitesse, ampleur]).
 {
   const MIENNES = [];
-  for (const [kind] of NAT_BETES) { const C = CREATURES[kind]; if (C && !C.fly) { C.ombreNat = C.radius <= 0.12 ? C.radius * 1.3 : Math.max(0.2, C.radius * 1.1); MIENNES.push(C); } }
+  // (C.ombreAPart : le dessin commun tait leur ombre — une marque posée une fois, au lieu de « fly » mis puis ôté à chaque
+  // image)
+  for (const [kind] of NAT_BETES) { const C = CREATURES[kind]; if (C && !C.fly) { C.ombreNat = C.radius <= 0.12 ? C.radius * 1.3 : Math.max(0.2, C.radius * 1.1); C.ombreAPart = true; MIENNES.push(C); } }
   const _draw = entities.draw.bind(entities);
   entities.draw = function (buf, sbuf, cam, maxD, t, flags) {
-    for (const C of MIENNES) C.fly = true; // (dans le dessin, « fly » ne sert qu'à taire l'ombre commune)
-    try { _draw(buf, sbuf, cam, maxD, t, flags); } finally { for (const C of MIENNES) delete C.fly; }
+    _draw(buf, sbuf, cam, maxD, t, flags);
     const w = game.world;
     if (!sbuf || !w) return;
     const m2 = maxD * maxD;
