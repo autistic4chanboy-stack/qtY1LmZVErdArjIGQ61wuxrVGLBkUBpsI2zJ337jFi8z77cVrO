@@ -270,6 +270,7 @@ module.exports = {
             const s = farm.blank(${graine}); s.day = 9; s.npcs = farm.s.npcs; s.money = 100; s.hours = 8 * 24 + 10;
             s.deliveries = { day: 9, list: [{ to: 'boulangere', pay: 25, done: true }, { to: 'pecheur', pay: 55, done: false }] };
             s.quetes = { v: 1, Q: { t2: { st: 'fini', fin: 'a', e: 3, tr: {}, vu: {} } } };
+            s.commandes = { v: 1, pose: false, pt: { k: 'ferme' }, cmds: [{ id: 'c1', j: 8, h: 9, due: 9, st: 'attente', L: [], port: 3, total: 10 }], colis: [], n: 1 };
             farm.s = s;
             const G = gobelins.S(); G.connu.signe = 3; G.connu.village = 5;
             const sauve = JSON.parse(JSON.stringify(s));
@@ -278,7 +279,7 @@ module.exports = {
             guet(); q20.guetter();
             const F = q20.S().file.map((x) => x.id + '|' + x.m);
             if (F.length) e.push('ancienne partie : en file ' + F.join(', '));
-            for (const k of ['q20c_tournee|demande', 't2|demande', 't2|fin:a', 'q20c_petits|demande', 'q20c_petits|tournant']) if (!q20.S().fait[k]) e.push('ancienne partie : ' + k + ' pas aux souvenirs');
+            for (const k of ['q20c_tournee|demande', 't2|demande', 't2|fin:a', 'q20c_petits|demande', 'q20c_petits|tournant', 'q20c_commande|demande']) if (!q20.S().fait[k]) e.push('ancienne partie : ' + k + ' pas aux souvenirs');
             // et ce qui vient ensuite se joue : la tournée finie
             s.deliveries.list[1].done = true; guet();
             if (!enFile('q20c_tournee', 'fin')) e.push('ancienne partie : la fin de la tournée ne vient pas');

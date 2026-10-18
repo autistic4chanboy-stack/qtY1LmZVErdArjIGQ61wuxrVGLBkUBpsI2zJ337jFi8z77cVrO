@@ -572,7 +572,8 @@ q20.scenes('q20c_avis', {
   qui: 'garde', titre: 'Avis de recherche',
   etat() {
     const R = q20cRecherche(), A = q20c.S().avis;
-    return q20cE('Avis de recherche', A || null, !!R, !!A && !!A.fin && !R, A && A.fin ? A.fin : null);
+    // (une partie d'avant, déjà recherchée : l'avis est en cours sans la note de Q20C — sa demande rejoint les souvenirs)
+    return q20cE('Avis de recherche', A || (R ? { prime: R.prime } : null), !!R, !!A && !!A.fin && !R, A && A.fin ? A.fin : null);
   },
   demande(c) {
     const Pa = q20cPanneau(c), R = c.Q || {};
@@ -715,7 +716,9 @@ q20.scenes('q20c_commande', {
   qui: 'voiturier', titre: 'Le carnet de commandes',
   etat() {
     const C = q20cCmd(), N = q20c.S().cmd, k = N && C && C.cmds.find((x) => x.id === N.id);
-    return q20cE('Le carnet de commandes', N, !!N && !N.livre && !!k && (k.st === 'attente' || k.st === 'route'), !!N && !!N.livre);
+    // (une partie d'avant, une commande en route : elle est en cours sans la note de Q20C)
+    const enCours = C && !N ? C.cmds.find((x) => x.st === 'attente' || x.st === 'route') : null;
+    return q20cE('Le carnet de commandes', N || enCours, (!!N && !N.livre && !!k && (k.st === 'attente' || k.st === 'route')) || !!enCours, !!N && !!N.livre);
   },
   demande(c) {
     const t = Q20H.meuble(c, 'ferme', 'table');
