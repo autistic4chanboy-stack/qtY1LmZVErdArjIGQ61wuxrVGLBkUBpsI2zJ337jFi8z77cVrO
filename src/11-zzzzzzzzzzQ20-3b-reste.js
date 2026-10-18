@@ -58,7 +58,8 @@ const q20c = {
 };
 HOOKS.update.push((dt) => q20c.update(dt));
 // l'état d'une quête d'ici : { q, Q, qui, actif, fini, pret, choix }
-function q20cE(titre, Q, actif, fini, choix) { return { q: { title: titre }, Q: Q || null, qui: null, actif: !!actif, fini: !!fini, pret: false, choix: choix === undefined ? null : choix }; }
+// (pret : le tournant est passé — une partie d'avant le range aux souvenirs sans le rejouer)
+function q20cE(titre, Q, actif, fini, choix, pret) { return { q: { title: titre }, Q: Q || null, qui: null, actif: !!actif, fini: !!fini, pret: !!actif && !!pret, choix: choix === undefined ? null : choix }; }
 const q20cJour = () => (farm.s ? farm.s.day : 0);
 
 // ---------------------------------------------------------------- des silhouettes
@@ -199,23 +200,30 @@ q20.scenes('q20c_pli', {
   },
 });
 
+// le banc à réparer (celui du tableau ; sinon le plus proche de la place)
+function q20cBanc(c) {
+  const R = c.Q, P = c.lieu('place');
+  if (R && isFinite(R.x)) { const b = Q20H.pres(c, [R.x, R.y, R.z], 'banc', 3); if (b) return b; }
+  const b = P && Q20H.pres(c, P.P, 'banc', 45);
+  return b || (P ? { P: Q20C.autour(c, P, 0.6, 9), r: 0 } : null);
+}
 q20.scenes('q20c_banc', {
   qui: 'maire', titre: 'Réparer un banc',
   etat() { return q20cEtatTravail('reparer', 'Réparer un banc'); },
   demande(c) {
-    const R = c.Q, P0 = R && isFinite(R.x) ? [R.x, R.y, R.z] : c.lieu('place').P, bc = Q20H.pres(c, P0, 'banc', 3);
+    const bc = q20cBanc(c);
     return [
       q20cLireTableau(c, '« Réparer un banc de la ville : le dossier ne tient plus. »'),
-      c.plan({ dur: 6, cam: c.camChose(bc ? bc.P : P0, { d: 3.2, haut: 1.4, dy: 0.5, a: bc ? bc.r + 0.6 : 0.6 }), acteurs: [], dit: ['Deux bûches, un peu d’huile de coude. La commune fournit l’huile de coude.', '@maire'] }),
+      c.plan({ dur: 6, cam: Q20C.cam(c, ...[0.6, 2.2, -1.0, 3.6].map((a) => () => c.camChose(bc.P, { d: 3.2, haut: 1.4, dy: 0.5, a: bc.r + a }))), acteurs: [], dit: ['Deux bûches, un peu d’huile de coude. La commune fournit l’huile de coude.', '@maire'] }),
     ];
   },
   fin(c) {
-    const R = c.Q, P0 = R && isFinite(R.x) ? [R.x, R.y, R.z] : c.lieu('place').P, bc = Q20H.pres(c, P0, 'banc', 3);
+    const bc = q20cBanc(c);
     const ass = ['cure', 'postiere', 'grainetiere', 'forgeron'].find((id) => npcs.alive(id)) || 'maire';
-    const cap = bc ? bc.r + Math.PI : 0;
-    const lui = c.habitant(ass, bc ? c.devant(bc.P, cap, 0.05, 0, true) : P0, { cap, geste: ['assis', 'hoche'] });
+    const cap = bc.r + Math.PI;
+    const lui = c.habitant(ass, c.devant(bc.P, cap, 0.05, 0, true), { cap, geste: ['assis', 'hoche'] });
     return [
-      c.plan({ dur: 6.2, cam: c.camActeur(lui, { cote: 0.5, d: 2.6 }), acteurs: [lui], heure: 18.4, dit: ['Il ne grince plus. Quelqu’un s’est enfin donné la peine.', '@' + ass], court: true }),
+      c.plan({ dur: 6.2, cam: Q20C.cam(c, ...[0.5, -0.5, 1.0, -1.0].map((k) => () => c.camActeur(lui, { cote: k, d: 2.6 }))), acteurs: [lui], heure: 18.4, dit: ['Il ne grince plus. Quelqu’un s’est enfin donné la peine.', '@' + ass], court: true }),
       q20cMaire(c, 'La commune paie, pour une fois. Et le banc tiendra jusqu’aux élections.', { heure: 18.8 }),
     ];
   },
@@ -380,7 +388,8 @@ q20.scenes('q20c_lavandiere', {
   etat() {
     if (typeof lavandiere === 'undefined' || !farm.s) return q20cE('Un visage, la nuit', null, false, false);
     const S = lavandiere.S();
-    return q20cE('Un visage, la nuit', S.n > 0 ? S : null, S.n > 0 && !S.apaise, !!S.apaise);
+    const N = q20c.S().lav;
+    return q20cE('Un visage, la nuit', S.n > 0 ? S : null, S.n > 0 && !S.apaise, !!S.apaise, null, !!(N && N.drap));
   },
   tournantSi() { const N = q20c.S().lav; return !!(N && N.drap); },
   delais: { tournant: 1.2 },
@@ -425,7 +434,7 @@ q20.scenes('q20c_petits', {
     const S = q20cGob();
     if (!S) return q20cE('Les Petits', null, false, false);
     const pacte = S.pacte > 0 && !S.pacteRompu, partis = gobelins.partis();
-    return q20cE('Les Petits', S.connu && S.connu.signe ? S : null, !!(S.connu && S.connu.signe) && !pacte && !partis, pacte || partis, partis ? 'partis' : pacte ? 'pacte' : null);
+    return q20cE('Les Petits', S.connu && S.connu.signe ? S : null, !!(S.connu && S.connu.signe) && !pacte && !partis, pacte || partis, partis ? 'partis' : pacte ? 'pacte' : null, !!(S.connu && S.connu.village));
   },
   tournantSi(E) { return !!(E.Q && E.Q.connu && E.Q.connu.village); },
   demande(c) {
@@ -477,7 +486,7 @@ q20c.guetter('q20c_petits', () => {
 function q20cBaron() { try { return typeof c18 !== 'undefined' && farm.s ? c18.S().quete : null; } catch (e) { return null; } }
 q20.scenes('q20c_baron', {
   souv: 'q20c:cercle', titre: 'Le baron de Lancry',
-  etat() { const Q = q20cBaron(); return q20cE('Le baron de Lancry', Q && Q.e >= 1 ? Q : null, !!Q && Q.e >= 1 && Q.e < 5, !!Q && Q.e >= 5); },
+  etat() { const Q = q20cBaron(); return q20cE('Le baron de Lancry', Q && Q.e >= 1 ? Q : null, !!Q && Q.e >= 1 && Q.e < 5, !!Q && Q.e >= 5, null, !!Q && Q.e >= 4); },
   tournantSi(E) { return !!(E.Q && E.Q.e >= 4); },
   demande(c) {
     const ba = Q20H.meuble(c, 'casino', 'c18_bar');
@@ -504,7 +513,14 @@ q20.scenes('q20c_baron', {
 if (typeof hotelService !== 'undefined') {
   const _pr = hotelService.prendre.bind(hotelService), _fi = hotelService.finir.bind(hotelService);
   hotelService.prendre = function () { const r = _pr(); try { if (!q20c.S().loge) { q20c.note('loge'); q20.declencher('q20c_loge', 'demande'); } } catch (e) { console.error('q20c', e); } return r; };
-  hotelService.finir = function (tot) { const r = _fi(tot); try { const L = q20c.S().loge; if (L && !L.fini) { L.fini = farm.s.day; L.tot = tot ? 1 : 0; q20.declencher('q20c_loge', 'fin'); } } catch (e) { console.error('q20c', e); } return r; };
+  hotelService.finir = function (tot) {
+    // (le service entier, ou quitté avant l'heure : la moitié des gages)
+    let entier = 1;
+    try { const sv = hotel18.S().service; entier = !sv || !tot || farm.s.hours >= sv.fin - 0.05 ? 1 : 0; } catch (e) { entier = 1; }
+    const r = _fi(tot);
+    try { const L = q20c.S().loge; if (L && !L.fini) { L.fini = farm.s.day; L.entier = entier; q20.declencher('q20c_loge', 'fin'); } } catch (e) { console.error('q20c', e); }
+    return r;
+  };
 }
 function q20cHotel(c) {
   const V = c.w.l18, T = c.lieu('l18_terrasse'), H = c.lieu('l18_hotel');
@@ -513,7 +529,7 @@ function q20cHotel(c) {
 }
 q20.scenes('q20c_loge', {
   souv: 'q20c:hotel', titre: 'Le service à la loge',
-  etat() { const L = q20c.S().loge; let sv = null; try { sv = typeof hotel18 !== 'undefined' && farm.s ? hotel18.S().service : null; } catch (e) { sv = null; } return q20cE('Le service à la loge', L, !!L && !L.fini && !!sv && sv.jour === q20cJour(), !!L && !!L.fini, L && L.fini ? (L.tot ? 0 : 1) : null); },
+  etat() { const L = q20c.S().loge; let sv = null; try { sv = typeof hotel18 !== 'undefined' && farm.s ? hotel18.S().service : null; } catch (e) { sv = null; } return q20cE('Le service à la loge', L, !!L && !L.fini && !!sv && sv.jour === q20cJour(), !!L && !!L.fini, L && L.fini ? (L.entier ? 0 : 1) : null); },
   demande(c) {
     const K = q20cHotel(c);
     const br = K.P && c.gens('q20c_brissac', K.P, { cap: K.cap + Math.PI * 0.5, geste: ['bras', 'parle'] });
@@ -619,7 +635,7 @@ q20.scenes('q20c_masque', {
     const S = q20cTueur();
     if (!S) return q20cE('L’homme au masque', null, false, false);
     const v = (S.victims || []).length;
-    return q20cE('L’homme au masque', v ? S : null, v > 0 && !S.kCaught && !S.kDead, !!(S.kCaught || S.kDead), S.kCaught ? 'pris' : S.kDead ? 'mort' : null);
+    return q20cE('L’homme au masque', v ? S : null, v > 0 && !S.kCaught && !S.kDead, !!(S.kCaught || S.kDead), S.kCaught ? 'pris' : S.kDead ? 'mort' : null, farm.count('masque') > 0);
   },
   tournantSi() { return farm.count('masque') > 0; },
   demande(c) {
@@ -754,7 +770,7 @@ q20.scenes('q20c_tresor', {
     const J = X && c.joueur(Q20H.libre(c, c.devant(X, 0.8, 1.3), 0, 2, 0.4), { face: X, tient: 'pelle', geste: 'penche' });
     return [
       c.plan({ dur: 6.2, cam: c.camChose(X, { d: 2.4, haut: 1.4, dy: 0.1, a: 2.4 }), acteurs: [J, c.chose('coffre_tresor', c.haut(X, -0.15), { r: 0.6, data: { vide: true } })], son: 'piece', dit: ['(La croix ne mentait pas.)', ''], court: true }),
-      c.plan({ dur: 5.8, cam: c.camLieu(X, { d: 24, haut: 4, dy: 1 }), acteurs: [J], dit: ['(Quelqu’un l’avait enterré là. Quelqu’un qui comptait revenir.)', ''] }),
+      c.plan({ dur: 5.8, cam: c.camLieu(X, { d: 24, haut: 4, dy: 1 }), acteurs: [J && Object.assign({}, J, { vu: false })], dit: ['(Quelqu’un l’avait enterré là. Quelqu’un qui comptait revenir.)', ''] }),
     ];
   },
 });
@@ -765,7 +781,7 @@ function q20cReliques() { try { return typeof RELICS !== 'undefined' && farm.s ?
 function q20cCercle(c) { const I = (c.w.inter || []).find((i) => i.kind === 'altar'); return I ? c.pt(I.x, I.z) : c.lieu('cercle') && c.lieu('cercle').P; }
 q20.scenes('q20c_reliques', {
   souv: 'q20c:vallee', titre: 'Les reliques des Anciens',
-  etat() { const n = q20cReliques(), fini = !!(farm.s && farm.s.flags && farm.s.flags.apaisee); return q20cE('Les reliques des Anciens', n || fini ? { n } : null, n > 0 && !fini, fini); },
+  etat() { const n = q20cReliques(), fini = !!(farm.s && farm.s.flags && farm.s.flags.apaisee); let tout = false; try { tout = myths.relicsHeld().length === RELICS.length; } catch (e) { tout = false; } return q20cE('Les reliques des Anciens', n || fini ? { n } : null, n > 0 && !fini, fini, null, tout); },
   tournantSi() { try { return myths.relicsHeld().length === RELICS.length; } catch (e) { return false; } },
   demande(c) {
     const Au = q20cCercle(c), Ce = c.lieu('cercle');
@@ -802,7 +818,7 @@ function q20cCaveau(c) {
 function q20cRunes() { try { return typeof runes !== 'undefined' && farm.s ? runes.S() : null; } catch (e) { return null; } }
 q20.scenes('q20c_caveau', {
   souv: 'q20c:vallee', titre: 'Le caveau du bois',
-  etat() { const R = q20cRunes(), N = q20c.S().caveau; return q20cE('Le caveau du bois', N || (R && R.p.caveau ? R.p : null), !!N && !(R && R.c.caveau), !!(R && R.c.caveau)); },
+  etat() { const R = q20cRunes(), N = q20c.S().caveau; return q20cE('Le caveau du bois', N || (R && R.p.caveau ? R.p : null), (!!N || !!(R && R.p.caveau)) && !(R && R.c.caveau), !!(R && R.c.caveau), null, !!(R && R.p.caveau)); },
   tournantSi() { const R = q20cRunes(); return !!(R && R.p.caveau); },
   demande(c) {
     const K = q20cCaveau(c);

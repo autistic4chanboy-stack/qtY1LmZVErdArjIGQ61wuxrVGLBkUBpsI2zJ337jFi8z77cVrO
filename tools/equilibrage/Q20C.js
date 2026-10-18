@@ -33,7 +33,7 @@ globalThis.__q20cPrep = {
   q20c_lavandiere: { f(m) { const S = lavandiere.S(); S.n = 1; S.apaise = m.startsWith('fin') ? farm.s.day : 0; q20c.S().lav = { j: farm.s.day, qui: 'boulangere', drap: m === 'tournant' ? farm.s.day : 0 }; } },
   q20c_petits: { f(m) { const S = gobelins.S(); S.connu.signe = farm.s.day; S.connu.village = m !== 'demande' ? farm.s.day : 0; S.pacte = m === 'fin:pacte' ? farm.s.day : 0; S.pacteRompu = 0; S.partis = m === 'fin:partis' ? farm.s.day : 0; } },
   q20c_baron: { f(m) { c18.S().quete = { e: m === 'demande' ? 1 : m === 'tournant' ? 4 : 5 }; } },
-  q20c_loge: { f(m) { q20c.S().loge = { j: farm.s.day, fini: m.startsWith('fin') ? farm.s.day : 0, tot: m === 'fin:0' ? 1 : 0 }; try { hotel18.S().service = { jour: farm.s.day, fini: false }; } catch (e) { /* rien */ } } },
+  q20c_loge: { f(m) { q20c.S().loge = { j: farm.s.day, fini: m.startsWith('fin') ? farm.s.day : 0, entier: m === 'fin:1' ? 0 : 1 }; try { hotel18.S().service = { jour: farm.s.day, fini: false }; } catch (e) { /* rien */ } } },
   q20c_avis: { f(m) { q20c.S().avis = { j: farm.s.day, prime: 80, fin: m.startsWith('fin:') ? m.slice(4) : m === 'fin' ? 'autre' : 0 }; } },
   q20c_masque: { f(m) { strange.s = Object.assign({}, strange.s || {}, { victims: ['boulangere'], killer: 'forgeron', kCaught: m === 'fin:pris', kDead: m === 'fin:mort' }); if (m === 'tournant') farm.give('masque', 1); } },
   q20c_malediction: { n: 2, f(m, k) { q20c.S().mal = { j: farm.s.day, qui: (m === 'demande' || m === 'fin') && k ? 'guerisseuse' : 'cure', leve: m.startsWith('fin') ? farm.s.day : 0 }; malediction.S().liste = m.startsWith('fin') ? {} : { malchance: { j: farm.s.day, cause: 'cygne' } }; } },
@@ -197,6 +197,98 @@ module.exports = {
         return JSON.stringify({ e, r });
       })()`));
       const R = L.r;
+      // les déclencheurs, une fois par essai (dans la première vallée) : ce que fait le jeu met le bon moment en file
+      if (graine === graines[0] && !filtre) {
+        const T = JSON.parse(J.ev(`(() => {
+          const w = __w, e = [], vu = [];
+          __q20cBanc(${graine}, w);
+          farm.s.money = 5000; farm.s.hours = (farm.s.day - 1) * 24 + 10;
+          settings.quetesCine = 'toutes';
+          const enFile = (id, m) => q20.S().file.some((x) => x.id === id && x.m === m);
+          const guet = () => { for (const G of q20c.guets) { try { const m = G.f(); if (m) q20.declencher(G.id, m); } catch (er) { e.push('guet ' + G.id + ' : ' + er.message); } } };
+          const vider = () => { q20.S().file = []; };
+          const essai = (nom, f) => { try { vider(); f(); vu.push(nom); } catch (er) { e.push(nom + ' : ' + er.message); } };
+          // la tournée : la postière la propose ; tout remis : le dénouement
+          essai('tournée', () => {
+            deliveries.offer(npcs.byId.postiere); guet();
+            if (!enFile('q20c_tournee', 'demande')) e.push('tournée : pas de demande en file');
+            for (const p of farm.s.deliveries.list) p.done = true;
+            guet();
+            if (!enFile('q20c_tournee', 'fin')) e.push('tournée : pas de dénouement en file');
+            q20.souvenir('q20c_tournee', 'fin'); vider(); guet();
+            if (q20.S().file.length) e.push('tournée : un moment passé revient en file');
+          });
+          // les petits travaux : prendre le pli, le remettre
+          essai('travaux', () => {
+            const J0 = activites.travauxDuJour(), jl = J0.find((j) => j.t === 'livrer') || J0[0];
+            activites.accepter(jl);
+            const id = Q20C_TRAVAUX[jl.t];
+            if (!enFile(id, 'demande')) e.push('travaux : pas de demande en file (' + jl.t + ')');
+            activites.payer(jl);
+            if (!enFile(id, 'fin')) e.push('travaux : pas de dénouement en file (' + jl.t + ')');
+          });
+          // la bibliothèque : emprunter, rendre
+          essai('emprunt', () => {
+            const E0 = biblio.catalogue()[0];
+            const r = biblio.emprunter(E0, 3);
+            if (r !== 'ok') e.push('emprunt : ' + r);
+            if (!enFile('q20c_emprunt', 'demande')) e.push('emprunt : pas de demande en file');
+            biblio.rendre(biblio.S().prets.findIndex((p) => p.id === E0.item));
+            if (!enFile('q20c_emprunt', 'fin')) e.push('emprunt : pas de dénouement en file');
+            if (q20.resoudre('q20c_emprunt', 'fin') !== 'fin:0') e.push('emprunt : rendu à l’heure, mais la fin est ' + q20.resoudre('q20c_emprunt', 'fin'));
+          });
+          // la clé de la Grande Porte : prêtée, rendue
+          essai('clé', () => {
+            bibliotheque2.sortir('pret', { jours: 3, caution: 150 });
+            if (!enFile('q20c_cle_porte', 'demande')) e.push('clé : pas de demande en file');
+            bibliotheque2.rendre({});
+            if (!enFile('q20c_cle_porte', 'fin') || q20.resoudre('q20c_cle_porte', 'fin') !== 'fin:pret') e.push('clé : le dénouement du prêt n’est pas en file');
+          });
+          // une quête T : accepter, finir
+          essai('T', () => {
+            const S = quetes.S(); S.Q.t1 = Object.assign({}, S.Q.t1, { st: 'propose' });
+            quetes.accepter('t1');
+            if (!enFile('t1', 'demande')) e.push('T : pas de demande en file');
+            if (quetes.aJouer && quetes.aJouer.id === 't1' && quetes.aJouer.t < 3) e.push('T : la scène de la première étape passe avant la demande');
+            quetes.finir('t1', 'b');
+            if (!enFile('t1', 'fin') || q20.resoudre('t1', 'fin') !== 'fin:b') e.push('T : le dénouement de la fin b n’est pas en file');
+          });
+          // l'option Aucune : rien ne se joue, tout rejoint les souvenirs
+          essai('aucune', () => {
+            const _j = q20.jouer, _e = q20.empeche; let n = 0;
+            q20.jouer = () => { n++; return Promise.resolve(true); }; q20.empeche = () => null;
+            settings.quetesCine = 'aucune';
+            farm.s.q20c = { v: 1 }; delete q20.S().fait['q20c_tresor|demande'];
+            farm.s.maps = []; dig.newMap(); guet();
+            for (let i = 0; i < 12; i++) q20.avancer(0.5);
+            q20.jouer = _j; q20.empeche = _e; settings.quetesCine = 'toutes';
+            if (n) e.push('aucune : ' + n + ' scène(s) jouée(s)');
+            if (!q20.S().fait['q20c_tresor|demande']) e.push('aucune : la demande n’a pas rejoint les souvenirs');
+          });
+          // une partie d'avant : rien ne se rejoue (une tournée en cours, une quête T finie, les Petits connus jusqu'à leur village)
+          essai('ancienne', () => {
+            const s = farm.blank(${graine}); s.day = 9; s.npcs = farm.s.npcs; s.money = 100; s.hours = 8 * 24 + 10;
+            s.deliveries = { day: 9, list: [{ to: 'boulangere', pay: 25, done: true }, { to: 'pecheur', pay: 55, done: false }] };
+            s.quetes = { v: 1, Q: { t2: { st: 'fini', fin: 'a', e: 3, tr: {}, vu: {} } } };
+            farm.s = s;
+            const G = gobelins.S(); G.connu.signe = 3; G.connu.village = 5;
+            const sauve = JSON.parse(JSON.stringify(s));
+            const L0 = q20.S().file.length;
+            for (const fn of HOOKS.load) { try { fn(sauve); } catch (er) { /* d'autres modules veulent l'écran */ } }
+            guet(); q20.guetter();
+            const F = q20.S().file.map((x) => x.id + '|' + x.m);
+            if (F.length) e.push('ancienne partie : en file ' + F.join(', '));
+            for (const k of ['q20c_tournee|demande', 't2|demande', 't2|fin:a', 'q20c_petits|demande', 'q20c_petits|tournant']) if (!q20.S().fait[k]) e.push('ancienne partie : ' + k + ' pas aux souvenirs');
+            // et ce qui vient ensuite se joue : la tournée finie
+            s.deliveries.list[1].done = true; guet();
+            if (!enFile('q20c_tournee', 'fin')) e.push('ancienne partie : la fin de la tournée ne vient pas');
+          });
+          farm.s = null;
+          return JSON.stringify({ e, vu });
+        })()`));
+        log(`déclencheurs essayés : ${T.vu.join(', ')}`);
+        for (const m of T.e) ko(m);
+      }
       log(`vallée ${graine} : ${R.n} scènes construites (${R.plans} plans : ${R.dedans} dedans, ${R.toit} sous un toit sans bâtiment) en ${(R.t / 1000).toFixed(1)} s (la plus lente ${R.tmax} ms : ${R.lent}) ; durées ${R.durees[0].toFixed(1)}–${R.durees[1].toFixed(1)} s, en court ${R.courtes[0].toFixed(1)}–${R.courtes[1].toFixed(1)} s`);
       const vus = new Set();
       for (const m of L.e) { const k = m.replace(/\(\d+(\.\d+)? h[^)]*\)/, ''); if (vus.has(k)) continue; vus.add(k); ko(`vallée ${graine} : ${m}`); }

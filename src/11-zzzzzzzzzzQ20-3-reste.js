@@ -134,7 +134,9 @@ const Q20C = {
     const L = Q20H.lieuQuete(c);
     const a = L ? Math.atan2(P[0] - L.x, P[2] - L.z) : 0.6;
     const J = c.joueur(c.devant(P, a, 0.95, 0.15), { face: P, geste: { reach: 0.25, lean: 0.4, lookP: 0.4 }, vu: false });
-    const cam1 = this.cam(c, ...[0.9, 2.4, -0.9, Math.PI, -2.4].map((da) => () => c.camChose(P, { a: a + da, d: 1.7, haut: 0.95 })));
+    // (de près ; puis d'un peu plus haut, par-dessus un mur ; enfin le lieu, de loin)
+    const cam1 = this.cam(c, () => c.camChose(P, { a: a + 0.9, d: 1.7, haut: 0.95 }), () => c.camChose(P, { a: a + 0.9, d: 2.4, haut: 2.2 }), () => c.camChose(P, { a: a + 2.6, d: 3.4, haut: 3.4 }),
+      () => (L ? c.camLieu(L, { d: 14, haut: 4, vise2: c.haut(P, 0.2) }) : null));
     const plans = [c.plan({ dur: o.dur || 5.6, cam: cam1, acteurs: [ch, J], dit: o.dit, son: o.son, chaque: o.chaque, lum: o.lum })];
     if (L && o.lieu !== false) {
       const cam2 = this.cam(c, ...[0.8, 0.4, 1.2, 0, 1.6].map((k) => () => c.camLieu(L, { a: a + Math.PI * k, d: o.d2, dy: o.dy2 })));
