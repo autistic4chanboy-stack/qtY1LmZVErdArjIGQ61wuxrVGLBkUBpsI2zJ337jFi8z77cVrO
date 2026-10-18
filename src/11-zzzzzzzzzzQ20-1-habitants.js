@@ -1090,7 +1090,7 @@ q20.scenes('pecheur_1', {
     const eau = c.devant(P0, c.cap(P0, lac.P), 12);
     return [
       c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 0.9, d: 2.6, buste: true }), acteurs: [moi, fi], dit: ['Mes filets sont en loques. Quelque chose les a déchirés, cette nuit. Quelque chose de gros.'], court: true }),
-      c.plan({ dur: 5.8, cam: c.camRegard(c.devant(P0, c.cap(P0, lac.P) + Math.PI, 1.3, 0.5, true), [eau[0], c.w.waterLevel, eau[2]], { haut: 1.3, recul: 0.04 }), son: 'eau', acteurs: [moi, fi], dit: ['Quinze bottes de fibre, et je les ravaude. Le lac n’est pas pressé. Moi, un peu.'] }),
+      c.plan({ dur: 5.8, cam: c.camRegard(c.devant(P0, c.cap(P0, lac.P) + Math.PI, 1.3, 0.5, true), [eau[0], c.w.waterLevel, eau[2]], { haut: 1.75, recul: 0.02 }), son: 'eau', acteurs: [moi, fi], dit: ['Quinze bottes de fibre, et je les ravaude. Le lac n’est pas pressé. Moi, un peu.'] }),
     ];
   },
   fin(c) {

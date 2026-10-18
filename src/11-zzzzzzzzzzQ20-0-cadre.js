@@ -323,7 +323,7 @@ class Q20Scene {
     }
     return false;
   }
-  // un acteur tout contre l'objectif, dans le champ (à moins de 1,5 m — 2,2 m d'une bête —, à moins de 38° de l'axe) :
+  // un acteur tout contre l'objectif, dans le champ (à moins de 1,5 m — 2,2 m d'une bête —, à moins de 46° de l'axe) :
   // un pan de corps sombre qui mange l'image (le joueur à qui l'on donne, celui par-dessus l'épaule de qui l'on regarde).
   // Celui qu'on vise (à moins de 0,5 m du point visé) ne compte pas.
   gene(P, T, ev) {
@@ -333,7 +333,7 @@ class Q20Scene {
       const Q = X.vers || X.P, s = X.s || 1, dx = Q[0] - P[0], dz = Q[2] - P[2], d = Math.hypot(dx, dz);
       if (d > (X.k === 'b' ? 2.2 : 1.5) || Math.hypot(Q[0] - T[0], Q[2] - T[2]) < 0.5) continue;
       if (P[1] < Q[1] - 0.3 || P[1] > Q[1] + (X.k === 'b' ? 2.4 : 2.2 * s)) continue;
-      if (Math.abs(angDiff(Math.atan2(dx, dz), ax)) < 0.66) return X;
+      if (Math.abs(angDiff(Math.atan2(dx, dz), ax)) < 0.8) return X;
     }
     return null;
   }
@@ -395,7 +395,7 @@ class Q20Scene {
       else if (o.toit) { if (qtDansBloc(L, Q, 0.3) || Q[1] < this.sol(Q[0], Q[2]) + 0.9 || !qtScenes.voit(w, L, Q, T, o.stop ?? 0.35)) return P; }
       else { if (!qtScenes.libreDehors(w, L, Q) || !qtScenes.voit(w, L, Q, T, o.stop ?? 0.35)) return P; }
     } catch (e) { return P; }
-    if (this.contre(Q)) return P;
+    if (this.contre(Q) || (!this.gene(P, T) && this.gene(Q, T))) return P;
     return Q;
   }
   // sur un acteur, à hauteur d'homme : o.d (3,2 m), o.cote (l'angle depuis son regard : 0 = de face), o.haut,
