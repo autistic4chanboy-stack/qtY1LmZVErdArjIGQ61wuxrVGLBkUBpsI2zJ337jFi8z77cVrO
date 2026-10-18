@@ -34,6 +34,18 @@ const Q20D_QUI = {
   q20.quiDe = function (id) { const D = this.defs[id]; if (D && !D.qui && D.souv && Q20D_QUI[D.souv]) return D.souv; return _quiDe(id); };
   q20.nomDe = function (qui) { if (qui && Q20D_QUI[qui]) return Q20D_QUI[qui]; return _nomDe(qui); };
 }
+// (dans la Zone, q20B.ici() rend 'hautguet' partout où l'on est plus bas que la cour du château : zone.chateau.dedans()
+// compte « sous le château » tout ce qui est sous son niveau. Loin du château — plus de V4_RAYON mètres —, c'est le reste
+// de la Zone : les scènes de Hautguet attendent qu'on y soit, celles des Tertres peuvent se jouer. Contrat, section Q20D.)
+if (typeof q20B !== 'undefined' && q20B.ici) {
+  const _ici = q20B.ici.bind(q20B);
+  q20B.ici = function () {
+    const r = _ici();
+    if (r !== 'hautguet') return r;
+    try { const V = chateauV4.Z, p = game.player.pos; if (V && Math.hypot(p[0] - V.cx, p[2] - V.cz) > V4_RAYON) return 'zone'; } catch (e) { /* rien */ }
+    return r;
+  };
+}
 // les Galeries (le labyrinthe de la vieille mine, sous la vallée) : un monde sous terre de plus pour la file de Q20B
 if (typeof Q20B_SOUS !== 'undefined' && !Q20B_SOUS.galeries) Q20B_SOUS.galeries = { lm: 'galeries', r: 86 };
 
@@ -99,6 +111,8 @@ const Q20D_DESSINS = {
   // le registre du portier, ouvert ; une feuille roulée
   registre(PE) { PE.box(0, 0.02, 0, 0.36, 0.04, 0.26, [0.4, 0.28, 0.18], TL.leather); PE.box(0, 0.042, 0, 0.34, 0.006, 0.24, [1.0, 0.94, 0.78], TL.paper); for (let k = 0; k < 7; k++) PE.box(-0.08 + (k % 2) * 0.16, 0.047, -0.08 + Math.floor(k / 2) * 0.05, 0.12, 0.003, 0.006, [0.25, 0.2, 0.15], TL.plain); },
   feuille(PE) { PE.box(0, 0.012, 0, 0.05, 0.024, 0.24, [1.0, 0.94, 0.8], TL.paper); },
+  // la couverture de Thibaud, pliée (de la laine grise, une bande sombre)
+  couverture(PE) { PE.box(0, 0.05, 0, 0.56, 0.1, 0.36, [0.86, 0.82, 0.74], TL.cloth || TL.plain); PE.box(0, 0.101, 0, 0.56, 0.004, 0.05, [0.4, 0.3, 0.22], TL.plain); PE.box(0.2, 0.101, 0, 0.04, 0.004, 0.36, [0.4, 0.3, 0.22], TL.plain); },
   // une jarre d'huile ; la lettre d'Ysolde, pliée
   jarre(PE) { PE.box(0, 0.16, 0, 0.24, 0.32, 0.24, [0.7, 0.5, 0.32], TL.plain); PE.box(0, 0.34, 0, 0.12, 0.05, 0.12, [0.6, 0.42, 0.28], TL.plain); },
   lettre(PE) { PE.box(0, 0.004, 0, 0.15, 0.006, 0.2, [1.05, 0.98, 0.84], TL.paper, 0.2); PE.box(0, 0.008, 0.0, 0.14, 0.003, 0.004, [0.6, 0.55, 0.45], TL.plain, 0.2); },
@@ -165,6 +179,8 @@ const Q20D = {
     if (o.avec) { const B = o.avec.k ? c.tete(o.avec, -0.2) : o.avec; T = c.vers(T, B, o.k ?? 0.4); }
     return Q20D.piece(c, T, Object.assign({ a: (A.cap || 0) + (o.cote ?? 0.45), y0: (A.vers || A.P)[1] }, o));
   },
+  // le feu du Guet vu d'en haut (au-dessus du château, dans l'air) : G (le fanal), a (d'où), d (à quelle distance)
+  dessus(c, G, a, d) { return Q20D.cam(c, () => c.camChose(c.haut(G, 1.2), { d: d || 16, haut: (G[1] - c.sol(G[0], G[2])) + 11, a, dy: 0, recul: 0.06 }), () => c.camChose(c.haut(G, 1.2), { d: (d || 16) * 1.3, haut: (G[1] - c.sol(G[0], G[2])) + 16, a: a + 0.8, dy: 0 })); },
   // un rectangle (salle) en coordonnées du monde, une marge m : pour piece({ dans })
   rect(x0, x1, z0, z1, m) { m = m ?? 0.35; return (P) => P[0] > x0 + m && P[0] < x1 - m && P[2] > z0 + m && P[2] < z1 - m; },
   rond(cx, cz, r) { return (P) => Math.hypot(P[0] - cx, P[2] - cz) < r; },
@@ -221,18 +237,18 @@ q20.scenes('q20d_hg_chateau', {
     const ch = q20dL(V, -20, 12, 0), pont = q20dL(V, -108, 4, 0);
     return [
       c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camLieu(ch, { d: 150, haut: 9, dy: 0, a: -Math.PI / 2 + 0.25, recul: 0.06, stop: 40 }), () => c.camLieu(ch, { d: 120, haut: 14, dy: 0, a: -Math.PI / 2 - 0.3, stop: 40 }), () => c.camLieu(ch, { d: 170, haut: 20, dy: 0 })), acteurs: [], son: 'corbeau', dit: c.parole('(Des tours, et pas une lumière. On dirait qu’il attend quelqu’un.)', '') }),
-      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camChose(c.haut(bo, -0.6), { d: 2.2, haut: 1.4, a: -Math.PI / 2 - 0.6, vise2: pont }), () => c.camChose(c.haut(bo, -0.6), { d: 2.8, haut: 1.7, a: -Math.PI / 2 + 0.7 })), acteurs: [], dit: c.parole('HAUTGUET. ICI L’ON VEILLE, POUR QUE LA VILLE DORME.', Q20D_HG.borne), court: true }),
+      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camLieu(pont, { d: 22, haut: 2.0, dy: 0, a: -Math.PI / 2 + 0.32, recul: 0.08, stop: 2, aussi: [c.haut(bo, -0.5)] }), () => c.camLieu(pont, { d: 26, haut: 2.6, dy: 0, a: -Math.PI / 2 + 0.2, stop: 2 })), acteurs: [], dit: c.parole('HAUTGUET. ICI L’ON VEILLE, POUR QUE LA VILLE DORME.', Q20D_HG.borne), court: true }),
     ];
   },
   fin(c) {
     const V = q20dHG();
     if (!V) return null;
-    const S = q20dV4(), G = V.guet ? [V.guet.x, V.guet.y, V.guet.z] : q20dL(V, 49, 26, 5);
-    const ch = q20dL(V, 0, 14, 0), pont = q20dL(V, -108, 0.6, 0);
-    const feu = S && S.guet ? [c.lueur(G, 26, [1.0, 0.55, 0.22], 2), c.lueur(G, 9, [1.0, 0.7, 0.35], 1)] : [];
+    const G = V.guet ? [V.guet.x, V.guet.y, V.guet.z] : q20dL(V, 49, 26, 5), pont = q20dL(V, -108, 0.6, 0);
+    const feu = [c.lueur(G, 30, [1.0, 0.55, 0.22], 2), c.lueur(G, 12, [1.0, 0.7, 0.35], 1)];
+    const fl = c.chose(Q20D_DESSINS.flamme, c.haut(G, 1.6), { s: 1.3 });
     return [
-      c.plan({ dur: 7, cam: Q20D.cam(c, () => c.camLieu(ch, { d: 140, haut: 16, dy: 4, a: -Math.PI / 2 + 0.35, vise2: c.haut(G, 2), recul: 0.05, stop: 40 }), () => c.camLieu(ch, { d: 110, haut: 22, dy: 4, a: -Math.PI / 2 - 0.4, stop: 40 })), acteurs: [], lum: feu, dit: c.parole('Hautguet se tait.', ''), court: true }),
-      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camLieu(pont, { d: 16, haut: 3.2, dy: 0, a: -Math.PI / 2 - 0.5, recul: 0.1, stop: 2 }), () => c.camLieu(pont, { d: 22, haut: 5, dy: 0, a: -Math.PI / 2 + 0.6, stop: 2 })), acteurs: [], dit: c.parole('Pour la première fois, le silence ressemble à du sommeil.', '') }),
+      c.plan({ dur: 7, cam: Q20D.dessus(c, G, -Math.PI / 2 + 0.5, 16), acteurs: [fl], lum: feu.concat([Q20D.lune(c, c.haut(G, -14), 30)]), dit: c.parole('Hautguet se tait.', ''), court: true }),
+      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camLieu(pont, { d: 14, haut: 2.6, dy: 0, a: -Math.PI / 2 - 0.5, recul: 0.1, stop: 2 }), () => c.camLieu(pont, { d: 20, haut: 4, dy: 0, a: -Math.PI / 2 + 0.6, stop: 2 })), acteurs: [], lum: [Q20D.lune(c, pont, 22), c.lueur(c.haut(pont, 2), 10, [0.4, 0.42, 0.5], 1)], dit: c.parole('Pour la première fois, le silence ressemble à du sommeil.', '') }),
     ];
   },
 });
@@ -302,7 +318,7 @@ q20.scenes('q20d_hg_cles', {
     const S = q20dV4(), feu = S && S.guet;
     return [
       c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camChose(c.haut(sire, 0.9), { d: 3.0, haut: 1.6, a: Math.PI * 0.25, dy: 0 }), () => c.camChose(c.haut(sire, 0.9), { d: 3.4, haut: 2, a: -Math.PI * 0.4, dy: 0 })), acteurs: [J], lum: feu ? [c.lueur(G, 9, [1.0, 0.6, 0.28], 1.6)] : [], son: 'corbeau', dit: c.parole('TANT QUE LE FEU DU GUET BRÛLE, LA VILLE DORT.', Q20D_HG.fanal), court: true }),
-      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camRegard(q20dL(V, 44.2, H, 6), q20dL(V, -500, -60, 400), { haut: 1.65, recul: 0.04 }), () => c.camLieu(G, { d: 14, haut: 4, dy: 1.2 })), acteurs: [], dit: c.parole('(D’ici, on voit toute la ville d’en bas. Elle ne dort pas, elle.)', '') }),
+      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camRegard(q20dL(V, 44, H, 15), q20dL(V, -600, -70, 760), { haut: 2.7, recul: 0.04 }), () => c.camLieu(G, { d: 14, haut: 4, dy: 1.2 })), acteurs: [], dit: c.parole('(D’ici, on voit toute la ville d’en bas. Elle ne dort pas, elle.)', '') }),
     ];
   },
 });
@@ -345,10 +361,9 @@ q20.scenes('q20d_hg_guet', {
     const J = c.joueur(q20dL(V, 46.6, H, 7.6), { face: G, geste: 'leve' });
     const feu = [c.lueur(G, 14, [1.0, 0.56, 0.24], 2.2), c.lueur(G, 6, [1.0, 0.74, 0.4], 1.2)];
     const T = chateauV4.thibaudEtat ? chateauV4.thibaudEtat() : 'treuil', vit = T === 'treuil' || T === 'baisse';
-    const ch = q20dL(V, 10, 14, 0);
     return [
       c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.5, d: 3.4, haut: 1.5, avec: c.haut(G, 1.6), k: 0.35, recul: 0.04 }), () => c.camChose(c.haut(G, 2), { d: 4.5, haut: 2, a: 0.8, dy: 0 })), acteurs: [J, fl], lum: feu, son: 'grondement', dit: c.parole('TANT QUE LE FEU DU GUET BRÛLE, LA VILLE DORT.', Q20D_HG.fanal), court: true }),
-      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camLieu(ch, { d: 150, haut: 14, dy: 6, a: -Math.PI / 2 + 0.3, vise2: c.haut(G, 3), recul: 0.05, stop: 40 }), () => c.camLieu(ch, { d: 120, haut: 24, dy: 6, stop: 40 })), acteurs: [fl], lum: [c.lueur(G, 30, [1.0, 0.52, 0.2], 3)], dit: vit ? c.parole('Il brûle. … En bas, ils vont pouvoir dormir.', (typeof Q20B !== 'undefined' && Q20B.nom('thibaud')) || 'Thibaud', 0.7) : c.parole('(Toute la Zone, en bas, doit le voir.)', '') }),
+      c.plan({ dur: 6.4, cam: Q20D.dessus(c, G, Math.PI * 0.75, 18), acteurs: [fl], lum: [c.lueur(G, 30, [1.0, 0.52, 0.2], 3), c.lueur(G, 12, [1.0, 0.7, 0.35], 1), Q20D.lune(c, c.haut(G, -14), 30)], dit: vit ? c.parole('Il brûle. … En bas, ils vont pouvoir dormir.', (typeof Q20B !== 'undefined' && Q20B.nom('thibaud')) || 'Thibaud', 0.7) : c.parole('(Toute la Zone, en bas, doit le voir.)', '') }),
     ];
   },
 });
@@ -380,7 +395,7 @@ q20.scenes('q20d_hg_pont', {
     if (!Th) return null;
     const V = Th.V, mt = q20dL(V, -106.4, 8.6, -3.5), pont = q20dL(V, -114, 0.4, 0);
     return [
-      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => Q20D.pieceActeur(c, Th.A, { cote: 2.4, d: 2.2, dans: Th.dans, avec: mt, k: 0.3 }), () => Q20D.pieceActeur(c, Th.A, { cote: -2.4, d: 2.4, dans: Th.dans })), acteurs: [Th.A], lum: Th.lum, dit: c.parole('Personne ne monte. Vous voyez ? Personne.', Th.nom, 0.7), court: true }),
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => Q20D.pieceActeur(c, Th.A, { cote: -2.3, d: 2.8, he: 1.5, dans: Th.dans, avec: mt, k: 0.2 }), () => Q20D.pieceActeur(c, Th.A, { cote: -1.6, d: 2.6, he: 1.5, dans: Th.dans }), () => Q20D.pieceActeur(c, Th.A, { cote: 1.9, d: 2.9, he: 1.45, dans: Th.dans })), acteurs: [Th.A], lum: Th.lum, dit: c.parole('Personne ne monte. Vous voyez ? Personne.', Th.nom, 0.7), court: true }),
       c.plan({ dur: 6.2, cam: Q20D.cam(c, () => c.camLieu(pont, { d: 26, haut: 5, dy: 0.5, a: -Math.PI / 2 - 0.25, recul: 0.06, stop: 3 }), () => c.camLieu(pont, { d: 34, haut: 8, dy: 0.5, a: -Math.PI / 2 + 0.6, stop: 3 })), acteurs: [], son: 'corbeau' }),
     ];
   },
@@ -389,7 +404,7 @@ q20.scenes('q20d_hg_pont', {
     if (!V || !V.thibaudBout) return null;
     const B = [V.thibaudBout.x, V.thibaudBout.y, V.thibaudBout.z], r = V.thibaudBout.r;
     // (sa couverture pliée sur le banc, dans la salle du treuil, vide)
-    const bc = q20dL(V, -97.6, 7, 6.6), co = c.chose(Q20_DESSINS.couverture || Q20D_DESSINS.lettre, c.haut(bc, 0.45), { r: Math.PI / 2 });
+    const bc = q20dL(V, -97.6, 7, 6.6), co = c.chose(Q20D_DESSINS.couverture, c.haut(bc, 0.49), { r: Math.PI / 2, s: 1.3 });
     const dans = Q20D.rect(V.cx - 106.3, V.cx - 92.3, V.cz - 9.3, V.cz + 9.3, 0.2);
     return [
       c.plan({ dur: 7, cam: Q20D.cam(c, () => c.camChose(c.haut(B, 0.8), { d: 3.4, haut: 1.4, a: r + 0.55, dy: 0 }), () => c.camChose(c.haut(B, 0.8), { d: 4, haut: 1.8, a: r - 0.7, dy: 0 })), acteurs: [], son: 'corbeau', dit: c.parole('(Il est assis au bout du pont, face aux Degrés. Il a l’air d’attendre encore.)', ''), court: true }),
@@ -435,7 +450,7 @@ q20.scenes('q20d_hg_dame', {
     const J = c.joueur(T.P, { face: T.porte, geste: 'leve' });
     return [
       c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 2.3, d: 3.4, avec: c.haut(T.porte, 1.3), k: 0.5 }), () => c.camActeur(J, { cote: -2.3, d: 3.6, avec: c.haut(T.porte, 1.3), k: 0.5 })), acteurs: [J], lum: T.lum, son: 'coups', dit: c.parole('Qui est là ? … Ce n’est pas son pas. Ce n’est pas le pas d’Aymon.', Q20D_DAME, 1.2), court: true }),
-      c.plan({ dur: 6.2, cam: Q20D.cam(c, () => c.camRegard(c.devant(T.P, T.ad, 2.5, 0.6), T.haut, { haut: 1.4, recul: 0.03 }), () => c.camLieu(T.haut, { d: 30, haut: 2, dy: 0, a: T.ad, stop: 2 })), acteurs: [Object.assign({}, J, { vu: false })], lum: [c.lueur(T.haut, 3, [1.0, 0.6, 0.28], 0.2)], dit: c.parole('Aude. Elle avait neuf ans. Elle voulait voir la foire.', Q20D_DAME, 1.2) }),
+      c.plan({ dur: 6.2, cam: Q20D.cam(c, () => c.camChose(c.haut(T.porte, 0.25), { d: 1.6, haut: 0.95, a: T.ad + Math.PI + 0.45, dy: 0, recul: 0.1 }), () => c.camChose(c.haut(T.porte, 0.25), { d: 2.0, haut: 1.0, a: T.ad + Math.PI - 0.45, dy: 0 })), acteurs: [Object.assign({}, J, { vu: false })], lum: T.lum.concat([c.lueur(T.porte, 1.6, [1.0, 0.62, 0.3], 0.05)]), dit: c.parole('Aude. Elle avait neuf ans. Elle voulait voir la foire.', Q20D_DAME, 1.2) }),
     ];
   },
   tournant(c) {

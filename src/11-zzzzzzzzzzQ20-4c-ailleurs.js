@@ -180,8 +180,8 @@ q20.scenes('q20d_z_tertres', {
     if (!T || !T.ins) return null;
     const vers = T.gros[0] || T.C;
     return [
-      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camChose(c.haut(T.ins, 1.0), { d: 2.6, haut: 1.5, a: c.cap(T.ins, vers) + 0.5, dy: 0, vise2: c.haut(vers, 2) }), () => c.camChose(c.haut(T.ins, 1.0), { d: 3.2, haut: 1.7, a: c.cap(T.ins, vers) - 0.7, dy: 0 })), acteurs: [], son: 'corbeau', dit: c.parole('SOUS CHAQUE TERTRE, UN ROI.', Q20D_TERTRES), court: true }),
-      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camLieu(T.C, { d: 70, haut: 14, dy: 2, a: c.cap(T.C, T.ins) + 0.3, recul: 0.05, stop: 20 }), () => c.camLieu(T.C, { d: 55, haut: 18, dy: 2, stop: 20 })), acteurs: [] }),
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camChose(c.haut(T.ins, 1.0), { d: 2.8, haut: 1.5, a: c.cap(T.ins, vers) + Math.PI + 0.3, dy: 0, recul: 0.08 }), () => c.camChose(c.haut(T.ins, 1.0), { d: 3.2, haut: 1.6, a: c.cap(T.ins, vers) + 0.5, dy: 0 })), acteurs: [], lum: [c.lueur(T.ins, 6, [0.55, 0.58, 0.68], 1.4)], son: 'corbeau', dit: c.parole('SOUS CHAQUE TERTRE, UN ROI.', Q20D_TERTRES), court: true }),
+      c.plan({ dur: 6.4, cam: Q20D.cam(c, () => c.camLieu(vers, { d: 34, haut: 7, dy: 2, a: c.cap(vers, T.ins) + 0.3, recul: 0.05, stop: 6 }), () => c.camLieu(vers, { d: 28, haut: 9, dy: 2, stop: 6 })), acteurs: [], lum: T.gros.map((P) => Q20D.lune(c, P, 22)) }),
     ];
   },
   tournant(c) {
@@ -189,12 +189,12 @@ q20.scenes('q20d_z_tertres', {
     if (!T || !T.ch.length) return null;
     const S = q20dZS(), k0 = (q20d.S().tertre1 || {}).k, Ch = T.ch.find((x) => x.k === k0) || T.ch.find((x) => S && S.ouverts['tertre_' + x.k]) || T.ch[0];
     return Q20D.sous(c, () => {
-      const roi = c.ptSous(Ch.roi[0], Ch.roi[2], Ch.roi[1] - 1.1), so = c.ptSous(Ch.sortie[0], Ch.sortie[2], Ch.sortie[1] - 1.0);
+      const so = c.ptSous(Ch.sortie[0], Ch.sortie[2], Ch.sortie[1] - 1.0), roi = [Ch.roi[0], so[1], Ch.roi[2]], lit = [Ch.roi[0], so[1] + 0.95, Ch.roi[2]];
       const J = c.joueur(Q20B.libre(c, c.vers(so, roi, 0.45), 0, 0.8, 0.3), { face: roi, geste: 'baisse', lanterne: true });
       const lum = [Q20D.flamme(c, J.P, 5, 1.3)];
       return [
         c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 1.5, d: 2.0, avec: c.haut(roi, 0.9), k: 0.5 }), () => c.camActeur(J, { cote: -1.5, d: 2.0, avec: c.haut(roi, 0.9), k: 0.5 })), acteurs: [J], lum, son: 'murmure' }),
-        c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camChose(c.haut(roi, 0.95), { d: 1.6, haut: 1.25, a: c.cap(roi, so) + 0.6, dy: 0 }), () => c.camChose(c.haut(roi, 0.95), { d: 1.9, haut: 1.3, a: c.cap(roi, so) - 0.6, dy: 0 })), acteurs: [Object.assign({}, J, { vu: false })], lum, dit: c.parole('(Sur un lit de pierre, des os, et ce qu’on avait enterré avec lui.)', '') }),
+        c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camChose(lit, { d: 1.5, haut: 1.75, a: c.cap(roi, so) + 0.6, dy: 0 }), () => c.camChose(lit, { d: 1.8, haut: 1.8, a: c.cap(roi, so) - 0.6, dy: 0 })), acteurs: [Object.assign({}, J, { vu: false })], lum, dit: c.parole('(Sur un lit de pierre, des os, et ce qu’on avait enterré avec lui.)', '') }),
       ];
     });
   },
@@ -203,8 +203,8 @@ q20.scenes('q20d_z_tertres', {
     if (!T) return null;
     const vers = T.ins || T.C;
     return [
-      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camLieu(T.C, { d: 80, haut: 22, dy: 2, a: c.cap(T.C, vers) - 0.4, recul: 0.05, stop: 20 }), () => c.camLieu(T.C, { d: 60, haut: 26, dy: 2, stop: 20 })), acteurs: [], son: 'corbeau', dit: c.parole('SOUS CHAQUE ROI, UN AUTRE TERTRE.', Q20D_TERTRES), court: true }),
-      T.ins && c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camChose(c.haut(T.ins, 1.0), { d: 3.4, haut: 1.4, a: c.cap(T.ins, T.C) + 2.6, dy: 0 }), () => c.camChose(c.haut(T.ins, 1.0), { d: 4, haut: 1.8, a: 0.4, dy: 0 })), acteurs: [], dit: c.parole('(Et sous celui-là ?)', '') }),
+      c.plan({ dur: 6.8, cam: Q20D.cam(c, () => c.camLieu(T.gros[0] || T.C, { d: 36, haut: 9, dy: 2, a: c.cap(T.gros[0] || T.C, vers) - 0.4, recul: 0.05, stop: 6 }), () => c.camLieu(T.gros[0] || T.C, { d: 30, haut: 12, dy: 2, stop: 6 })), acteurs: [], lum: T.gros.map((P) => Q20D.lune(c, P, 24)), son: 'corbeau', dit: c.parole('SOUS CHAQUE ROI, UN AUTRE TERTRE.', Q20D_TERTRES), court: true }),
+      T.ins && c.plan({ dur: 6, cam: Q20D.cam(c, () => c.camChose(c.haut(T.ins, 1.0), { d: 3.4, haut: 1.4, a: c.cap(T.ins, T.C) + 2.6, dy: 0 }), () => c.camChose(c.haut(T.ins, 1.0), { d: 4, haut: 1.8, a: 0.4, dy: 0 })), acteurs: [], lum: [c.lueur(T.ins, 6, [0.55, 0.58, 0.68], 1.4)], dit: c.parole('(Et sous celui-là ?)', '') }),
     ];
   },
 });
@@ -247,10 +247,10 @@ q20.scenes('q20d_r15_tertre', {
     const K = q20dDalle(c, 'tertre');
     if (!K) return null;
     const Ko = K.coffre || K.P;
-    const J = c.joueur(Q20H.libre(c, c.devant(Ko, K.face, 0.95), 0, 0.8, 0.3), { face: Ko, geste: 'penche' });
-    const pi = c.chose(Q20_DESSINS.piece || Q20D_DESSINS.point, c.haut(c.devant(J.P, J.cap, 0.34, 0.05, true), 1.0), { s: 1.6, r: J.cap, lueur: true });
+    const J = c.joueur(Q20H.libre(c, c.devant(Ko, K.face + Math.PI / 2, 0.8), 0, 0.6, 0.3), { face: Ko, geste: 'penche' });
+    const pi = c.chose(Q20_DESSINS.piece || Q20D_DESSINS.point, c.haut(Ko, 0.62), { s: 1.6, r: K.face, lueur: true });
     return [
-      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camActeur(J, { cote: 1.6, d: 2.2, buste: true }), () => c.camActeur(J, { cote: -1.6, d: 2.4, buste: true }), () => c.camLieu(K.P, { d: 8, haut: 2 })), acteurs: [J, pi], lum: [c.lueur(Ko, 3, [1.0, 0.8, 0.5], 0.6)], son: 'piece', dit: c.parole('(Personne n’avait touché à ceci depuis qu’on l’avait scellé.)', ''), court: true }),
+      c.plan({ dur: 6.6, cam: Q20D.cam(c, () => c.camChose(c.haut(Ko, 0.5), { d: 2.4, haut: 1.5, a: K.face - 0.15, dy: 0 }), () => c.camActeur(J, { cote: 1.6, d: 2.2, buste: true }), () => c.camLieu(K.P, { d: 8, haut: 2 })), acteurs: [J, pi], lum: [c.lueur(Ko, 3, [1.0, 0.8, 0.5], 0.6)], son: 'piece', dit: c.parole('(Personne n’avait touché à ceci depuis qu’on l’avait scellé.)', ''), court: true }),
       c.plan({ dur: 5.8, cam: Q20D.cam(c, () => c.camLieu(K.P, { d: 22, haut: 4, dy: 1.2, a: K.face + 2.2, recul: 0.05, stop: 1.5 }), () => c.camLieu(K.P, { d: 28, haut: 6, dy: 1.2, stop: 1.5 })), acteurs: [Object.assign({}, J, { vu: false })], son: 'corbeau' }),
     ];
   },

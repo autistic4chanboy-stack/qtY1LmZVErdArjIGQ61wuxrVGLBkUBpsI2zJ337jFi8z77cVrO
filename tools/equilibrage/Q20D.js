@@ -251,6 +251,16 @@ module.exports = {
       game.world = { lm: {}, bld: { auberge: {}, eglise: {} }, inter: [], props: [], heightAt: () => 10, waterLevel: 4 };
       game.player = { pos: [0, 10, 0], underground: false, vel: [0, 0, 0], eyePos() { return [0, 11.6, 0]; } };
       game.started = true;
+      // (dans la Zone, loin du château et plus bas que sa cour : le reste de la Zone ; au château : Hautguet)
+      {
+        const Z0 = chateauV4.Z, zd = zone.dedans, gp = game.player;
+        try {
+          chateauV4.Z = { cx: 0, cz: 0, y0: 120 }; zone.dedans = true;
+          game.player = { pos: [900, 20, 900], vel: [0, 0, 0] }; const loin = q20B.ici();
+          game.player = { pos: [10, 121, 5], vel: [0, 0, 0] }; const pres = q20B.ici();
+          if (loin !== 'zone' || pres !== 'hautguet') e.push('où est le joueur, dans la Zone : loin du château ' + loin + ', au château ' + pres);
+        } finally { chateauV4.Z = Z0; zone.dedans = zd; game.player = gp; }
+      }
       const _jouer = q20.jouer, _emp = q20.empeche, _ici = q20B.ici, _sub = ui.subtitle;
       let ici = 'vallee';
       q20B.ici = () => ici;
