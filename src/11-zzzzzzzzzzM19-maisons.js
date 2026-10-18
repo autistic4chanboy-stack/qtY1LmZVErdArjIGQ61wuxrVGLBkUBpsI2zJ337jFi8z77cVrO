@@ -320,9 +320,11 @@ const M19Vue = {
     if (fx * gx + fy * gy + fz * gz < 0.86) return null;
     const a = Math.min(1.45, Math.atan(Math.hypot(1 / PR[0], 1 / PR[5])) + 0.35), ca = Math.cos(a), sa = Math.sin(a);
     const L = this.L, m2 = maxD * maxD;
-    L.length = 0;
-    let n = 0;
-    for (const e of list) {
+    // (la liste garde sa place d'une image à l'autre : remplie par indice, puis coupée à sa longueur — la vider puis la
+    // remplir la faisait refaire à chaque image ; parcours par indice : rien n'est alloué)
+    let n = 0, m = 0;
+    for (let i = 0; i < list.length; i++) {
+      const e = list[i];
       // (au-delà de la distance de dessin : le jeu ne la dessine pas, comme avant)
       const ex = e.x - cam[0], ez = e.z - cam[2];
       if (ex * ex + ez * ez > m2) continue;
@@ -335,8 +337,9 @@ const M19Vue = {
           if (vx * fx + vy * fy + vz * fz < cl && vx * gx + vy * gy + vz * gz < cl) { n++; continue; }
         }
       }
-      L.push(e);
+      L[m++] = e;
     }
+    L.length = m;
     this.laissees = n;
     return L.length < list.length ? L : null;
   },

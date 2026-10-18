@@ -470,7 +470,9 @@ const chasse = {
   },
   // les dépouilles se ciblent avec E
   cible(eye, f, cand) {
-    for (const e of entities.list) {
+    // (à chaque image, les 1 200 bêtes : une boucle par indice, qui n'alloue rien)
+    for (let i = 0, L = entities.list; i < L.length; i++) {
+      const e = L[i];
       if (!e.corpse || e.removed || e.hidden) continue;
       const dx = e.x - eye[0], dy = e.y + 0.3 - eye[1], dz = e.z - eye[2], d = Math.hypot(dx, dy, dz);
       if (d > 2.8) continue;

@@ -365,7 +365,7 @@ const game = {
     const c = play.cellAt(eye, f);
     if (c && c.t < 3.2) { const cr = farm.crop(c.x, c.z); if (cr && cr.c && (farm.ripe(cr) || cr.dead)) cand({ kind: 'crop', x: c.x, z: c.z, c: cr }, c.t); }
     for (const a of play.arrows) if (a.stuck && Math.hypot(a.x - eye[0], a.y - eye[1], a.z - eye[2]) < 2.2) cand({ kind: 'arrow', a }, Math.hypot(a.x - eye[0], a.y - eye[1], a.z - eye[2]));
-    for (const fn of HOOKS.target) fn(eye, f, cand);
+    for (let i = 0, H = HOOKS.target; i < H.length; i++) { const fn = H[i]; fn(eye, f, cand); }
     const oh = w.raycastObjects(eye, f, 2.6, true);
     if (oh) {
       const tid = OBJ_TYPES[oh.obj.t].id, H = HARVEST[tid];
@@ -841,8 +841,14 @@ const game = {
 
   // ------------------------------------------------------------- lumières dynamiques
   gatherLights(eye, basis) {
-    const w = this.world, sky = this.sky, L = [], flick = strange.flickerT > 0, vivantes = this.renderer.q >= 1;
-    for (const l of w.lights) {
+    const w = this.world, sky = this.sky, flick = strange.flickerT > 0, vivantes = this.renderer.q >= 1;
+    // (les lumières du monde — plusieurs centaines — ne deviennent des objets que si elles sont parmi les plus proches :
+    // on note leur rang, leur force, leur distance ; les autres, comme avant)
+    const WL = w.lights, G = this._gl || (this._gl = { i: new Int32Array(64), k: new Float64Array(64), d: new Float64Array(64), x: [], o: [], m: 0 });
+    if (G.i.length < WL.length) { const n = Math.max(WL.length, G.i.length * 2); G.i = new Int32Array(n); G.k = new Float64Array(n); G.d = new Float64Array(n); }
+    let nW = 0;
+    for (let li = 0; li < WL.length; li++) {
+      const l = WL[li];
       let k = 1.1;
       if (l.night) k = sky.nightLit ? 1.3 : 0;
       else if (l.flicker) k = 1.25 + Math.sin(this.time * 13 + l.seed) * 0.12 + Math.sin(this.time * 31 + l.seed * 3) * 0.08;
@@ -853,20 +859,51 @@ const game = {
       if (d > sky.fog[1] + l.r) continue;
       // (effets Moyenne et plus) les flammes des lampes et des chandelles vivent un peu, elles aussi
       if (vivantes && !l.flicker && !l.power && l.c[0] > l.c[2] * 1.4) k *= 1 + Math.sin(this.time * 8.3 + (l.seed || 0)) * 0.03 + Math.sin(this.time * 19.1 + (l.seed || 0) * 1.7) * 0.02;
-      L.push({ x: l.x, y: l.y, z: l.z, r: l.r, c: v3.scale(l.c, k), d });
+      G.i[nW] = li; G.k[nW] = k; G.d[nW] = d; nW++;
     }
-    if (this.kind === 'farm') { for (const l of strange.lights(eye)) L.push(l); for (const fn of HOOKS.lights) for (const l of fn(eye)) L.push(l); }
-    L.sort((a, b) => a.d - b.d);
-    if (L.length > MAX_LIGHTS - 1) L.length = MAX_LIGHTS - 1;
+    const X = G.x; X.length = 0;
+    if (this.kind === 'farm') { for (const l of strange.lights(eye)) X.push(l); for (const fn of HOOKS.lights) for (const l of fn(eye)) X.push(l); }
+    // les MAX_LIGHTS - 1 plus proches, à égalité dans l'ordre d'arrivée (ce que donnait le tri stable de toute la liste)
+    const K = MAX_LIGHTS - 1, O = G.o; O.length = 0;
+    let L;
+    let finis = true;
+    for (let j = 0; j < nW && finis; j++) if (G.d[j] !== G.d[j]) finis = false;
+    for (let j = 0; j < X.length && finis; j++) if (!(typeof X[j].d === 'number' && X[j].d === X[j].d)) finis = false;
+    if (!finis) { // (une distance qui n'en est pas une : le tri d'avant, tel quel)
+      L = [];
+      for (let j = 0; j < nW; j++) { const l = WL[G.i[j]]; L.push({ x: l.x, y: l.y, z: l.z, r: l.r, c: v3.scale(l.c, G.k[j]), d: G.d[j] }); }
+      for (let j = 0; j < X.length; j++) L.push(X[j]);
+      L.sort((a, b) => a.d - b.d);
+      if (L.length > K) L.length = K;
+    } else {
+      // O : les rangs retenus (0…nW-1 : lumières du monde ; nW + j : X[j]), triés par distance puis par arrivée
+      const dist = (q) => (q < nW ? G.d[q] : X[q - nW].d);
+      for (let q = 0, nq = nW + X.length; q < nq; q++) {
+        const d = dist(q);
+        if (O.length === K && !(d < dist(O[K - 1]))) continue;
+        let p = O.length;
+        while (p > 0 && dist(O[p - 1]) > d) p--;
+        O.splice(p, 0, q);
+        if (O.length > K) O.length = K;
+      }
+      L = [];
+      for (let j = 0; j < O.length; j++) {
+        const q = O[j];
+        if (q < nW) { const l = WL[G.i[q]], k = G.k[q]; L.push({ x: l.x, y: l.y, z: l.z, r: l.r, c: v3.scale(l.c, k), d: G.d[q] }); } else L.push(X[q - nW]);
+      }
+    }
+    X.length = 0;
     if (this.kind === 'farm' && this.lantern && farm.count('lanterne')) {
       const fl = 1 + Math.sin(this.time * 11) * 0.05 + Math.sin(this.time * 23) * 0.03;
       L.unshift({ x: eye[0] - basis.r[0] * 0.3, y: eye[1] - 0.35, z: eye[2] - basis.r[2] * 0.3, r: 12, c: [1.05 * fl, 0.78 * fl, 0.46 * fl], d: 0 });
     }
     if (L.length > MAX_LIGHTS) L.length = MAX_LIGHTS;
     const n = L.length;
+    const LP = this.lightPos;
     for (let i = 0; i < n; i++) {
-      this.lightPos.set([L[i].x, L[i].y, L[i].z, L[i].r], i * 4);
-      this.lightCol.set(L[i].c, i * 3);
+      const l = L[i];
+      LP[i * 4] = l.x; LP[i * 4 + 1] = l.y; LP[i * 4 + 2] = l.z; LP[i * 4 + 3] = l.r;
+      this.lightCol.set(l.c, i * 3);
     }
     let gl3 = v3.add(v3.add(sky.amb, v3.scale(sky.sunCol, 0.6)), v3.scale(sky.moonCol, 0.8));
     if (w.covered(eye[0], eye[1], eye[2])) gl3 = v3.scale(gl3, 0.4);
@@ -1000,7 +1037,7 @@ const game = {
       camPos = p.eyePos(); yaw = p.yaw; pitch = p.pitch + p.kickPitch;
       if (this.shakeT > 0) { this.shakeT = Math.min(this.shakeT, 1) - dt; const k = Math.max(0, this.shakeT) * 0.05, t = this.time; camPos = [camPos[0] + Math.sin(t * 37) * k, camPos[1] + Math.sin(t * 43 + 1) * k, camPos[2] + Math.sin(t * 31 + 2) * k]; }
       if (F && play.nausea > 0) yaw += Math.sin(this.time * 1.3) * Math.min(0.025, 0.004 * play.nausea);
-      if (F) for (const fn of HOOKS.camera) { const c = fn(dt, camPos, yaw, pitch); if (c) { camPos = c.pos; yaw = c.yaw; pitch = c.pitch; } }
+      if (F) for (let i = 0, H = HOOKS.camera; i < H.length; i++) { const fn = H[i], c = fn(dt, camPos, yaw, pitch); if (c) { camPos = c.pos; yaw = c.yaw; pitch = c.pitch; } }
     }
     weather.update(dt, w);
     const wc = weather.cur;
@@ -1013,7 +1050,7 @@ const game = {
       red: F ? strange.redK : 0, envers: F ? strange.enversK : 0,
     }, clamp(settings.fogDist || 1, 0.5, 2));
     if (F && p.underground) { sky.wet = 0; }
-    if (F) for (const fn of HOOKS.sky) fn(sky);
+    if (F) for (let i = 0, H = HOOKS.sky; i < H.length; i++) { const fn = H[i]; fn(sky); }
     const basis = cameraBasis(yaw, pitch);
     const eye = p.eyePos();
 
@@ -1051,7 +1088,8 @@ const game = {
 
     // feux : étincelles + fumée ; audio
     let fire = 0, firePan = 0;
-    for (const l of w.lights) {
+    for (let li = 0, WL = w.lights; li < WL.length; li++) {
+      const l = WL[li];
       if (!l.flicker) continue;
       const d = Math.hypot(l.x - camPos[0], l.z - camPos[2]);
       if (d < 45 && (!l.prop || l.prop.id === 'feu_camp')) {
@@ -1084,7 +1122,7 @@ const game = {
       fx = [Math.max(fat * 0.8, p.hp < 30 ? (30 - p.hp) / 60 : 0, p.food < 5 ? 0.25 : 0), sfx.red, play.nausea > 0 ? Math.min(1, play.nausea / 5) : 0, sfx.envers];
       if (play.hurtFlash > 0) tint = [0.55, 0, 0, Math.min(0.55, play.hurtFlash * 0.6)];
       glitch = sfx.glitch;
-      for (const fn of HOOKS.fx) fn(fx, tint, sky);
+      for (let i = 0, H = HOOKS.fx; i < H.length; i++) { const fn = H[i]; fn(fx, tint, sky); }
     }
 
     this.renderer.resize(settings.pixel);
@@ -1097,7 +1135,7 @@ const game = {
       entities.draw(play.dynBuf, play.shadowBuf, camPos, Math.min(90, sky.fog[1] + 10), this.time, 0);
       npcs.draw(play.dynBuf, play.shadowBuf, camPos, this.time, Math.min(110, sky.fog[1] + 20));
       strange.draw(play.dynBuf, play.shadowBuf, camPos, this.time);
-      for (const fn of HOOKS.draw) fn(play.dynBuf, play.shadowBuf, camPos, this.time);
+      for (let i = 0, H = HOOKS.draw; i < H.length; i++) { const fn = H[i]; fn(play.dynBuf, play.shadowBuf, camPos, this.time); }
       if (p.riding) { const e = p.riding; poseQuad(e.rig, { move: Math.min(1, Math.hypot(p.vel[0], p.vel[2]) / 4), phase: (e.phase += dt * Math.hypot(p.vel[0], p.vel[2]) * 0.9), run: p.sprinting, t: this.time, lookP: 0.55 }); drawRig(play.dynBuf, e.rig, p.pos[0], p.pos[1], p.pos[2], p.yaw + Math.PI, 1, 0); e.x = p.pos[0]; e.z = p.pos[2]; e.y = p.pos[1]; }
       props = play.propBuf; dyn = play.dynBuf; shadows = play.shadowBuf;
     } else {
@@ -1144,9 +1182,11 @@ const game = {
     }
     // cible de E, maintien sur une porte (verrou)
     this.target = playing ? this.findTarget(eye, f.f) : null;
-    for (const d of w.doors) d.hi = false;
-    for (const n of npcs.list) n.hi = false;
-    for (const e of entities.list) e.highlight = false;
+    // (à chaque image, sur des listes longues — 1 200 bêtes — : des boucles par indice, qui n'allouent rien)
+    { const D = w.doors, N = npcs.list, E = entities.list;
+      for (let i = 0; i < D.length; i++) D[i].hi = false;
+      for (let i = 0; i < N.length; i++) N[i].hi = false;
+      for (let i = 0; i < E.length; i++) E[i].highlight = false; }
     this.hiProp = null; this.hiCrop = null;
     if (this.target) {
       const t = this.target;
@@ -1205,8 +1245,8 @@ const game = {
     deliveries.update();
     this.crowRaid();
     this.machineFx(dt);
-    for (const fn of HOOKS.update) fn(dt, eye, basis, sky, playing);
-    for (const e of entities.list) if (e.lifeT !== undefined) { e.lifeT -= dt; if (e.lifeT <= 0 && !e.land) entities.remove(e); }
+    { const H = HOOKS.update; for (let i = 0; i < H.length; i++) { const fn = H[i]; fn(dt, eye, basis, sky, playing); } }
+    { const E = entities.list; for (let i = 0; i < E.length; i++) { const e = E[i]; if (e.lifeT !== undefined) { e.lifeT -= dt; if (e.lifeT <= 0 && !e.land) entities.remove(e); } } }
   },
   // Petites particules d'ambiance : feuilles en forêt, brume au marais, pollen dans les prés, neige de cendre dans l'Envers
   biomeParticles(dt, b, cam, sky) {

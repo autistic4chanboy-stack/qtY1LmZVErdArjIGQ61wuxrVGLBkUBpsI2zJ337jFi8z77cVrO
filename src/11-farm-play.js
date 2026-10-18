@@ -729,14 +729,16 @@ const play = {
       D.props = w.props; D.n = w.props.length; D.t = t; D.l = [];
       for (const p of w.props) if (p && DYN_PROPS.has(p.id)) D.l.push(p);
     }
-    for (const p of D.l) {
+    // (à chaque image : des boucles par indice, qui n'allouent rien)
+    for (let i = 0, DL = D.l; i < DL.length; i++) {
+      const p = DL[i];
       if (!DYN_PROPS.has(p.id) || !w.live(p)) continue;
       if (Math.abs(p.x - cam[0]) > 160 || Math.abs(p.z - cam[2]) > 160) continue;
       PE.frame(p.x, p.y, p.z, p.r, p.s || 1);
       PROP_MODELS[p.id](PE, p, T);
     }
-    for (const d of w.doors) if (Math.abs(d.x - cam[0]) < 110 && Math.abs(d.z - cam[2]) < 110) emitDoor(buf, d, d.hi ? FX_HI : 0);
-    for (const b of w.bridges) if (Math.abs(b.x - cam[0]) < 220 && Math.abs(b.z - cam[2]) < 220) emitBridge(buf, b);
+    for (let i = 0, DR = w.doors; i < DR.length; i++) { const d = DR[i]; if (Math.abs(d.x - cam[0]) < 110 && Math.abs(d.z - cam[2]) < 110) emitDoor(buf, d, d.hi ? FX_HI : 0); }
+    for (let i = 0, BR = w.bridges; i < BR.length; i++) { const b = BR[i]; if (Math.abs(b.x - cam[0]) < 220 && Math.abs(b.z - cam[2]) < 220) emitBridge(buf, b); }
     // objet visé : légère lueur (aucun texte à l'écran)
     const hp = game.hiProp;
     if (hp && PROP_MODELS[hp.id] && !DYN_PROPS.has(hp.id)) { PE.fl = FX_HI; PE.frame(hp.x, hp.y, hp.z, hp.r, hp.s || 1); PROP_MODELS[hp.id](PE, hp, T); PE.fl = 0; }
