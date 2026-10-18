@@ -545,7 +545,7 @@ q20.scenes('q20c_loge', {
       const br = K.P && c.gens('q20c_brissac', K.P, { cap: K.cap + Math.PI * 0.5, geste: ['offre', 'parle'] });
       const J = br && Q20H.face(c, br, 1.5, 0.2);
       return [
-        c.plan({ dur: 6.2, cam: br ? c.camActeur(br, { cote: 0.5, d: 2.6, avec: J, k: 0.3 }) : c.camLieu(K.T), acteurs: [br, J], heure: 17.6, son: 'piece', dit: ['Vos gages. Et le pourboire, puisque vous l’avez mérité.', 'M. Brissac'], court: true }),
+        c.plan({ dur: 6.2, cam: br ? c.camActeur(br, { cote: 1.3, d: 3.0, avec: J, k: 0.3 }) : c.camLieu(K.T), acteurs: [br, J], heure: 17.6, son: 'piece', dit: ['Vos gages. Et le pourboire, puisque vous l’avez mérité.', 'M. Brissac'], court: true }),
         c.plan({ dur: 5.8, cam: c.camLieu(K.T, { d: 30, haut: 6, dy: 2 }), heure: 17.5, dit: ['Demain, à la même heure. Et pas un mot de ce que vous avez vu.', 'M. Brissac'] }),
       ];
     },

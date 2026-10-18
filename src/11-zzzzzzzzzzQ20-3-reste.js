@@ -488,7 +488,7 @@ q20.scenes('planches_vanniere_1', {
     const elle = bord && c.habitant('planches_vanniere', bord, { face: Pe, geste: ['baisse', 'tend'], lanterne: true });
     return [
       c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.4, d: 1.8, buste: true }), acteurs: [moi, pe], dit: ['Elle est belle. Je la porterai ce soir au gourg.'], court: true }),
-      c.plan({ dur: 6.2, cam: elle ? c.camActeur(elle, { cote: 1.4, d: 4.2, haut: 1.4 }) : c.camLieu(D), acteurs: [elle], heure: 17.9, son: 'eau', dit: ['Tenez, ce bracelet, en peau de sègue. On ne se noie pas, avec ça. Enfin, on se noie moins vite.', '@planches_vanniere'] }),
+      c.plan({ dur: 6.2, cam: elle ? c.camActeur(elle, { cote: 0.7, d: 3.2, haut: 1.5 }) : c.camLieu(D), acteurs: [elle], heure: 17.9, son: 'eau', dit: ['Tenez, ce bracelet, en peau de sègue. On ne se noie pas, avec ça. Enfin, on se noie moins vite.', '@planches_vanniere'] }),
     ];
   },
 });
@@ -583,7 +583,8 @@ q20.scenes('estive_patre_1', {
   demande(c) {
     const bc = Q20H.meuble(c, 'es_patre', 'banc');
     const M = c.maison('estive_patre');
-    const P0 = M && Q20H.libre(c, M.dehors(1.6, 1.2), 0, 3, 0.5);
+    // (du côté de la cabane qui regarde la vallée)
+    const Pl0 = c.lieu('place'), P0 = M && Pl0 ? Q20H.libre(c, c.devant(M.centre, c.cap(M.centre, Pl0.P), Math.max(M.B.W, M.B.D) / 2 + 2.2), 0, 3, 0.5) : M && M.dehors(1.6, 1.2);
     const moi = P0 ? c.habitant('estive_patre', P0, { cap: c.cap(P0, c.lieu('place') ? c.lieu('place').P : M.porte), geste: ['assis', 'leve'] }) : Q20C.chez(c, 'estive_patre');
     const Pl = c.lieu('place');
     return [
@@ -592,7 +593,7 @@ q20.scenes('estive_patre_1', {
     ];
   },
   fin(c) {
-    const moi = Q20C.chez(c, 'estive_patre', { ou: 'lit', geste: ['leve', { reach: 0.55 }] });
+    const moi = Q20C.chez(c, 'estive_patre', { ou: 'centre', geste: ['leve', { reach: 0.55 }] });
     const im = moi && c.chose(Q20C_DESSINS.image, Q20C.enMain(c, moi, 1.35, 0.3), { r: moi.cap, s: 1.3 });
     const moi2 = Q20H.seuil(c, 'estive_patre', { d: 0.9, geste: ['offre', 'parle'] });
     const pl = moi2 && c.chose(Q20C_DESSINS.plumes_aigle, Q20C.enMain(c, moi2, 1.0, 0.36), { r: moi2.cap });
