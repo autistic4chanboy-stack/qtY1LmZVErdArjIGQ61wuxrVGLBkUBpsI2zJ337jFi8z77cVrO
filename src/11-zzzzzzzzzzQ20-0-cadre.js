@@ -693,6 +693,8 @@ const q20 = {
   update(dt) {
     if (!farm.s || !game.started) return;
     if (this.dangerT > 0) this.dangerT -= dt;
+    // (un coup reçu se guette à chaque image : la rougeur ne dure qu'un instant, moins qu'un tour de guet)
+    if (typeof play !== 'undefined' && play.hurtFlash > 0.02) this.dangerT = Q20_REGL.danger;
     if (cine.on) return;
     if (this.joue) { this.montrer(); this.joue = null; }
     this.t -= dt;
