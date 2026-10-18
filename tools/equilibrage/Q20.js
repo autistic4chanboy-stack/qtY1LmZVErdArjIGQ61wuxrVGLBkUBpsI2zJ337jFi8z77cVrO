@@ -207,6 +207,12 @@ module.exports = {
               // (la caméra jamais contre une personne ni une bête du plan : un bloc sombre qui mange l'image)
               for (const C of cams) { const X = fini(C) && sc.ctx.contre(C, P._q20.acteurs); if (X) { e.push(id + ' ' + m + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : caméra contre ' + (X.id || (X.joueur ? 'le joueur' : X.rig || 'une silhouette')) + ' (' + Math.hypot(C[0] - (X.vers || X.P)[0], C[2] - (X.vers || X.P)[2]).toFixed(2) + ' m)'); break; } }
               for (const l of P._q20.lum) if (!fini([l.x, l.y, l.z]) || !(l.r > 0)) e.push(id + ' ' + m + ' : lumière');
+              // (personne tout contre l'objectif, dans le champ : un pan de corps sombre qui mange l'image ; sauf celui qu'on
+              // filme et celui qu'on veut avec lui dans le plan)
+              if (cams.length && looks.length && fini(cams[0]) && fini(looks[0])) {
+                const G = sc.ctx.gene(cams[0], looks[0], P._q20.acteurs.filter((X) => X && X !== P._q20.cible && X !== P._q20.avec));
+                if (G) e.push(id + ' ' + m + ' (' + h + ' h) plan ' + sc.plans.indexOf(P) + ' : ' + (G.id || (G.joueur ? 'le joueur' : G.rig || 'une silhouette')) + ' tout contre l’objectif (' + Math.hypot(cams[0][0] - (G.vers || G.P)[0], cams[0][2] - (G.vers || G.P)[2]).toFixed(2) + ' m)');
+              }
               // (une chose montrée de près — la trouvaille — : aucun objet posé devant elle, une autre tombe, un tonneau)
               const Ch = P._q20.acteurs[0];
               if (Ch && Ch.k === 'c' && cams.length && fini(cams[0]) && Math.hypot(cams[0][0] - Ch.P[0], cams[0][2] - Ch.P[2]) < 5) {
