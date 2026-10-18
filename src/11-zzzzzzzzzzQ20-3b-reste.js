@@ -730,7 +730,7 @@ q20.scenes('q20c_commande', {
     const ch = ro && c.bete('horse', c.devant(ro, c.cap(ro, Lv), 1.6, 1.2), { face: Lv, v: 1 });
     return [
       c.plan({ dur: 6, cam: J ? c.camActeur(J, { cote: 1.0, d: 2.0, avec: t.P, k: 0.5 }) : c.camLieu(F), acteurs: [J, bon], son: 'page', dit: ['« Roulage Bardin. Livré le lendemain matin, au point de livraison. Payé d’avance. »', ''], court: true }),
-      c.plan({ dur: 6, cam: vo ? c.camActeur(vo, { cote: 0.8, d: 7, haut: 2, avec: ch || undefined, k: 0.3 }) : c.camLieu(F), acteurs: [vo, ch], heure: 6.8, dit: ['(Au matin, une charrette, par la route.)', ''] }),
+      c.plan({ dur: 6, cam: vo ? c.camActeur(vo, { cote: -0.9, d: 7, haut: 2, avec: ch || undefined, k: 0.3, evite: ch ? [ch] : undefined }) : c.camLieu(F), acteurs: [vo, ch], heure: 6.8, dit: ['(Au matin, une charrette, par la route.)', ''] }),
     ];
   },
   fin(c) {

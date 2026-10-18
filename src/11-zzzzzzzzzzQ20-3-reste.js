@@ -524,7 +524,7 @@ q20.scenes('estive_baile_1', {
     const moi2 = Q20H.seuil(c, 'estive_baile', { d: 0.9, geste: ['offre', 'parle'] });
     const to = moi2 && c.chose(Q20C_DESSINS.tommes, Q20C.enMain(c, moi2, 1.0, 0.38), { r: moi2.cap, s: 0.7 });
     return [
-      c.plan({ dur: 6.2, cam: sel ? c.camChose(sel, { d: 6, haut: 1.6, dy: 0.4 }) : c.camActeur(moi), acteurs: [c.chose(Q20C_DESSINS.sel, sel, { s: 2.2 }), ...vaches, moi], son: 'vache', dit: ['Bien. Les fea te diront merci à leur façon : elles ne te fonceront plus dedans.'], court: true }),
+      c.plan({ dur: 6.2, cam: c.camActeur(moi, sel ? { cote: -1.35, d: 5, haut: 1.7, avec: c.haut(sel, 0.2), k: 0.55 } : {}), acteurs: [c.chose(Q20C_DESSINS.sel, sel, { s: 2.2 }), ...vaches, moi], son: 'vache', dit: ['Bien. Les fea te diront merci à leur façon : elles ne te fonceront plus dedans.'], court: true }),
       c.plan({ dur: 5.8, cam: c.camActeur(moi2, { cote: 0.4, d: 2.4 }), acteurs: [moi2, to], dit: ['Tiens, une tomme de l’an passé.'] }),
     ];
   },
@@ -536,7 +536,7 @@ q20.scenes('estive_baile_2', {
     const Cr = Q20C.lieu(c, 'estive_crete', 'estive');
     const moi = Q20H.seuil(c, 'estive_baile', { d: 1.2, vise: Cr && Cr.P, geste: ['montre', 'parle'] });
     return [
-      c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.9, d: 3.2, avec: Cr ? c.haut(Cr.P, 4) : undefined, k: 0.3 }), acteurs: [moi], heure: Math.max(c.h, 17.4), dit: ['La Noire, c’est la meneuse. Elle a perdu sa sonnaille sur la crête, le soir où le drac a soufflé.'], court: true }),
+      c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.9, d: 3.6, avec: Cr && moi ? c.haut(c.devant(moi.P, c.cap(moi.P, Cr.P), 6, 0, true), 2.6) : undefined, k: 0.2 }), acteurs: [moi], heure: Math.max(c.h, 17.4), dit: ['La Noire, c’est la meneuse. Elle a perdu sa sonnaille sur la crête, le soir où le drac a soufflé.'], court: true }),
       c.plan({ dur: 5.8, cam: c.camLieu(Cr, { d: 22, haut: 3, dy: 1.5 }), heure: 17.6, son: 'grondement', dit: ['Sans sa sonnaille, les autres ne la suivent plus. En tôle, avec trois traits. Retrouve-la.'] }),
     ];
   },
