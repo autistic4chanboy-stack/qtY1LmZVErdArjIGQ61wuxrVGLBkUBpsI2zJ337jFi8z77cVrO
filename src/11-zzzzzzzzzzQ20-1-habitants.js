@@ -181,7 +181,8 @@ const Q20H = {
   // le lieu d'une quête, et l'heure à laquelle on doit y être (la nuit, l'aube) ou celle d'aujourd'hui
   lieuQuete(c) { return c.q && c.q.lieu ? c.lieu(c.q.lieu) : null; },
   heureQuete(c) { return c.q && c.q.moment ? c.heure(c.q.moment) : c.h; },
-  // la trouvaille : la chose posée là où elle était, le joueur penché dessus ; un plan rapproché, puis le lieu
+  // la trouvaille : la chose posée là où elle était, le joueur penché dessus ; un plan rapproché, puis le lieu (o.d2,
+  // o.haut2, o.dy2 : le lieu de plus loin, de plus haut — par-dessus les arbres)
   trouvaille(c, dessin, o) {
     o = o || {};
     const P = c.cachette();
@@ -193,7 +194,7 @@ const Q20H = {
     const lum = (o.lum || []).concat(c.nuit() || c.h >= 18.4 ? [c.lueur(c.devant(P, a, 0.6), 3.6, [1.0, 0.72, 0.4], 0.9)] : []);
     // (de près, en plongée : l'herbe haute ne la cache pas)
     const plans = [c.plan({ dur: o.dur || 5.6, cam: c.camChose(P, { a: a + 0.9, d: 1.45, haut: 1.55 }), acteurs: [ch], dit: o.dit, son: o.son, chaque: o.chaque, lum })];
-    if (L && o.lieu !== false) plans.push(c.plan({ dur: o.dur2 || 5, cam: c.camLieu(L, { a: a + Math.PI * 0.8, d: o.d2, dy: o.dy2 }), acteurs: [c.joueur(P, { face: L.P, geste: 'baisse', vu: false })], dit: o.dit2, son: o.son2 }));
+    if (L && o.lieu !== false) plans.push(c.plan({ dur: o.dur2 || 5, cam: c.camLieu(L, { a: a + Math.PI * 0.8, d: o.d2, dy: o.dy2, haut: o.haut2 }), acteurs: [c.joueur(P, { face: L.P, geste: 'baisse', vu: false })], dit: o.dit2, son: o.son2 }));
     return plans;
   },
 };
@@ -680,7 +681,7 @@ q20.scenes('cure_2', {
       c.plan({ dur: 6, cam: c.camLieu(Ch, { d: 30, haut: 4, dy: 3 }), heure: c.heure('soir'), son: 'murmure', dit: ['Ne restez pas après le coucher du soleil. Et si vous entendez chanter, ne chantez pas avec eux.'] }),
     ];
   },
-  tournant(c) { return Q20H.trouvaille(c, Q20_DESSINS.chapelet, { s: 1.8, son: 'murmure', dy2: 2.5 }); },
+  tournant(c) { return Q20H.trouvaille(c, Q20_DESSINS.chapelet, { s: 1.8, son: 'murmure', dy2: 2.5, d2: 24, haut2: 8 }); },
   fin(c) {
     const cierges = qtPropsDans(c.w, 'eglise', (q) => q.id === 'bougie').slice(0, 2).map((q) => c.lueur([q.x, q.y, q.z], 3.5, [1.0, 0.7, 0.35], 0.3));
     const moi = Q20H.poste(c, 'cure', { geste: ['tend'] });
