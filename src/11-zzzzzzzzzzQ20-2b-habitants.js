@@ -353,7 +353,7 @@ q20.scenes('garde_champetre_2', {
     const Ma = c.lieu('marais');
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(C.moi, { cote: 0.7, d: 1.9, buste: true }), acteurs: [C.moi, pv], lum: C.lum, dit: ['Vingt ans de procès-verbaux, et un seul que je n’ai pas su ranger : l’homme qui marchait sur l’eau du marais.'], court: true }),
-      Ma && c.plan({ dur: 6, cam: c.camLieu(Ma, { d: 30, haut: 2.4, dy: 1 }), heure: c.heure('nuit'), son: 'eau', dit: ['Il me faut un témoin, et je suis trop vieux pour en être un. Ne l’appelez pas.'] }),
+      Ma && c.plan({ dur: 6, cam: c.camLieu(Ma, { d: 30, haut: 2.4, dy: 1 }), heure: c.heure('nuit'), lum: [Q20B.lune(c, Ma)], son: 'eau', dit: ['Il me faut un témoin, et je suis trop vieux pour en être un. Ne l’appelez pas.'] }),
     ];
   },
   tournant(c) {
@@ -369,7 +369,7 @@ q20.scenes('garde_champetre_2', {
     const lui = c.gens('sur_leau', E, { vers, t0: 0.4, t1: 6.2, face: ici || Ma.P, vu: false, vol: true });
     const lui2 = c.gens('sur_leau', vers, { face: 'camera', geste: 'raide', vu: false });
     return [
-      c.plan({ dur: 6.6, cam: c.camLieu(E, { d: 20, haut: 1.6, dy: 1.2, a: ici ? c.cap(E, ici) : undefined, recul: 0.12 }), heure: c.heure('nuit'), acteurs: [lui], son: 'eau' }),
+      c.plan({ dur: 6.6, cam: c.camLieu(E, { d: 20, haut: 1.6, dy: 1.2, a: ici ? c.cap(E, ici) : undefined, recul: 0.12 }), heure: c.heure('nuit'), acteurs: [lui], lum: [Q20B.lune(c, E)], son: 'eau' }),
       c.plan({ dur: 5.2, cam: c.camLieu(vers, { d: 12, haut: 1.5, dy: 1.3, a: ici ? c.cap(vers, ici) : undefined, recul: 0.18 }), heure: c.heure('nuit'), acteurs: [lui2] }),
     ];
   },
@@ -518,7 +518,7 @@ q20.scenes('colporteur_2', {
     const R = c.lieu('refuge');
     return [
       c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 0.6, d: 2.8 }), acteurs: [moi], dit: ['Un berger m’a dit qu’on voyait de la lumière au refuge du col, les nuits de neige. Personne n’y monte avant l’été.'], court: true }),
-      R && c.plan({ dur: 6.2, cam: c.camLieu(R, { d: 34, haut: 4, dy: 2, recul: 0.12 }), heure: c.heure('nuit'), lum: [c.lueur(R.P, 5, [1.0, 0.7, 0.4], 1.4)], dit: ['Allez voir, et racontez-moi. Couvrez-vous : là-haut, le vent ne vend rien, il prend.'] }),
+      R && c.plan({ dur: 6.2, cam: c.camLieu(R, { d: 34, haut: 4, dy: 2, recul: 0.12 }), heure: c.heure('nuit'), lum: [c.lueur(R.P, 5, [1.0, 0.7, 0.4], 1.4), Q20B.lune(c, R)], dit: ['Allez voir, et racontez-moi. Couvrez-vous : là-haut, le vent ne vend rien, il prend.'] }),
     ];
   },
   tournant(c) {
@@ -673,7 +673,7 @@ q20.scenes('estive_patre_2', {
     const mout = [0, 1, 2, 3].map((i) => c.bete('sheep', c.devant(P0, moi.cap + 0.4 + i * 0.5, 3 + i * 0.9, i % 2 ? 1 : -1), { cap: i * 1.3, v: i, geste: { graze: 1 } }));
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.7, d: 3.2 }), acteurs: [moi, ...mout], dit: ['Hier, deux cent sept. Ce matin, deux cent six. Ça change tous les jours, d’une bête.'], court: true }),
-      Cr && c.plan({ dur: 6, cam: c.camLieu(Cr, { d: 30, haut: 3, dy: 1.2, recul: 0.1 }), heure: c.heure('nuit'), acteurs: [0, 1, 2].map((i) => c.bete('sheep', Q20H.libre(c, c.devant(Cr.P, i * 2.1, 2.4), 0, 4, 0.5), { cap: c.cap(Cr.P, Es ? Es.P : P0) + Math.PI, v: i })), dit: ['La nuit, elles montent seules sur la crête, et restent là, à regarder en bas. Va voir ce qui les appelle.'] }),
+      Cr && c.plan({ dur: 6, cam: c.camLieu(Cr, { d: 30, haut: 3, dy: 1.2, recul: 0.1 }), heure: c.heure('nuit'), lum: [Q20B.lune(c, Cr)], acteurs: [0, 1, 2].map((i) => c.bete('sheep', Q20H.libre(c, c.devant(Cr.P, i * 2.1, 2.4), 0, 4, 0.5), { cap: c.cap(Cr.P, Es ? Es.P : P0) + Math.PI, v: i })), dit: ['La nuit, elles montent seules sur la crête, et restent là, à regarder en bas. Va voir ce qui les appelle.'] }),
     ];
   },
   tournant(c) {

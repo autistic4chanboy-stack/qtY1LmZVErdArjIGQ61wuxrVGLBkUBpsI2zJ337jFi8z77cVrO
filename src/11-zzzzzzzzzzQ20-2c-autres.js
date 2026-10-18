@@ -68,14 +68,23 @@ const Q20BA = {
       let L = null;
       try { L = commandes.lieu(); } catch (e) { L = null; }
       const B = c.w.bld.ferme, P0 = L ? c.pt(L.x, L.z) : B ? c.pt(B.out[0], B.out[1]) : c.lieu('ferme').P;
-      const P1 = Q20H.libre(c, c.devant(P0, 0.4, 5), 0, 8, 1.6);
-      const r = c.cap(P1, P0) + Math.PI / 2;
+      // (de la place pour la charrette, la jument devant elle, et lui à côté : pas contre un mur)
+      const P1 = Q20H.libre(c, c.devant(P0, 0.4, 6), 0, 12, 2.4);
+      const ok = (Q, rad) => { try { return qtSol(c.w, Q[0], Q[2], rad, { buissons: true }); } catch (e) { return true; } };
+      let r = c.cap(P1, P0) + Math.PI / 2;
+      for (let k = 0; k < 8; k++) {
+        const a = r + k * Math.PI / 4, H = Q20B.devant(c, P1, a, 2.6, 0);
+        if (ok(H, 1.1) && (ok(Q20B.devant(c, H, a + Math.PI / 2, 1.3, 0), 0.5) || ok(Q20B.devant(c, H, a - Math.PI / 2, 1.3, 0), 0.5))) { r = a; break; }
+      }
       h = [...Q20B.devant(c, P1, r, 2.6, 0), r];
       car = [P1[0], P1[1], P1[2], r];
     }
     const ch = c.chose('charrette', [car[0], car[1], car[2]], { r: car[3] });
     const jument = c.bete('horse', [h[0], h[1], h[2]], { v: 2, cap: h[3], geste: { lookP: 0.25 } });
-    return { ch, jument, H: [h[0], h[1], h[2]], cap: h[3], car: [car[0], car[1], car[2]] };
+    // (de quel côté de la jument il se tient : celui où il y a de la place)
+    let cote = 1;
+    try { const H = [h[0], h[1], h[2]], Q = Q20B.devant(c, H, h[3] + Math.PI / 2, 1.3, 0); if (!qtSol(c.w, Q[0], Q[2], 0.5, { buissons: true })) cote = -1; } catch (e) { cote = 1; }
+    return { ch, jument, H: [h[0], h[1], h[2]], cap: h[3], car: [car[0], car[1], car[2]], cote };
   },
   // le marchand de joie : au bord du chemin où il attend ce soir, sinon au bord d'un chemin près du joueur
   marchand(c) {
@@ -115,7 +124,7 @@ q20.scenes('q16_diseuse_1', {
     const Ci = c.lieu('cimetiere');
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(T.moi, { cote: 0.1, d: 2.8, haut: 1.3 }), acteurs: [T.moi, jeu], lum: T.lum, dit: c.parole('Mon jeu a soixante-dix-sept cartes. Il en avait soixante-dix-huit.', nom, 0.8), court: true }),
-      Ci && c.plan({ dur: 6.2, cam: c.camLieu(Ci, { d: 22, haut: 3, dy: 1 }), heure: c.h > 18.8 && c.h < 21 ? c.h : 18.8, dit: c.parole('Le Pendu, je l’ai perdu au cimetière, le soir où j’ai tiré les cartes pour une morte. Il ne faut pas lui laisser le Pendu.', nom, 0.8) }),
+      Ci && c.plan({ dur: 6.2, cam: c.camLieu(Ci, { d: 22, haut: 3, dy: 1 }), heure: c.h > 18.8 && c.h < 21 ? c.h : 18.8, lum: [Q20B.lune(c, Ci)], dit: c.parole('Le Pendu, je l’ai perdu au cimetière, le soir où j’ai tiré les cartes pour une morte. Il ne faut pas lui laisser le Pendu.', nom, 0.8) }),
     ];
   },
   tournant(c) { return Q20H.trouvaille(c, Q20_DESSINS.carte_dos, { s: 2.0, son: 'murmure', dy2: 1 }); },
@@ -182,7 +191,7 @@ q20.scenes('q16_violoneux_1', {
     return [
       c.plan({ dur: 6.4, cam: c.camActeur(moi, { cote: 0.5, d: 2.6 }), acteurs: [moi], son: 'violon', dit: c.parole('Il y a un air que je ne sais pas finir. Je l’ai entendu une fois, à la chapelle, la nuit.', nom, 0.75), court: true }),
       moi2 && c.plan({ dur: 5, cam: c.camActeur(moi2, { cote: -0.3, d: 2.0 }), acteurs: [moi2], dit: c.parole('Un violon, sans personne. Va l’écouter, et reviens me fredonner la fin.', nom, 0.75) }),
-      Ch && c.plan({ dur: 5, cam: c.camLieu(Ch, { d: 28, haut: 4, dy: 3 }), heure: c.heure('nuit'), son: 'violon_loin', dit: c.parole('Ne chante pas avec. Écoute seulement.', nom, 0.75) }),
+      Ch && c.plan({ dur: 5, cam: c.camLieu(Ch, { d: 28, haut: 4, dy: 3 }), heure: c.heure('nuit'), lum: [Q20B.lune(c, Ch)], son: 'violon_loin', dit: c.parole('Ne chante pas avec. Écoute seulement.', nom, 0.75) }),
     ];
   },
   tournant(c) {
@@ -254,19 +263,19 @@ q20.scenes('q16_voiturier_1', {
   qui: 'voiturier',
   demande(c) {
     const V = Q20BA.voiturier(c), nom = Q20B.nom('voiturier');
-    const P0 = Q20B.devant(c, V.H, V.cap + Math.PI / 2, 1.3, 0);
+    const P0 = Q20B.devant(c, V.H, V.cap + V.cote * Math.PI / 2, 1.3, 0);
     const moi = c.gens('voiturier', P0, { face: V.H, geste: ['penche', { reach: 0.3 }] });
     const sabot = c.devant(V.H, V.cap, -0.5, 0.2, true);
     return [
       c.plan({ dur: 6.2, cam: c.camActeur(moi, { cote: 0.9, d: 3.4, avec: V.H, k: 0.45 }), heure: c.heure('matin'), acteurs: [moi, V.jument, V.ch], son: 'cheval', dit: c.parole('Ma jument a perdu un fer sur la route, en venant. Elle boite, la pauvre.', nom, 0.9), court: true }),
-      c.plan({ dur: 5.8, cam: c.camChose(sabot, { d: 1.8, haut: 0.95, dy: 0.2, a: V.cap + 1.4 }), heure: c.heure('matin'), acteurs: [V.jument, moi], dit: c.parole('Un fer, si vous en avez un, et je repars d’aplomb. Je repasse demain, de toute façon.', nom, 0.9) }),
+      c.plan({ dur: 5.8, cam: c.camChose(sabot, { d: 1.8, haut: 0.95, dy: 0.2, a: V.cap + V.cote * 1.4 }), heure: c.heure('matin'), acteurs: [V.jument, moi], dit: c.parole('Un fer, si vous en avez un, et je repars d’aplomb. Je repasse demain, de toute façon.', nom, 0.9) }),
     ];
   },
   fin(c) {
     const V = Q20BA.voiturier(c), nom = Q20B.nom('voiturier');
-    const P0 = Q20B.devant(c, V.H, V.cap + Math.PI / 2, 1.0, -0.4);
+    const P0 = Q20B.devant(c, V.H, V.cap + V.cote * Math.PI / 2, 1.0, -0.4);
     const moi = c.gens('voiturier', P0, { face: V.H, geste: ['travaille'], main: 'marteau' });
-    const moi2 = c.gens('voiturier', Q20B.devant(c, V.H, V.cap + Math.PI / 2, 1.6, 0.6), { face: 'camera', geste: ['offre', 'parle'] });
+    const moi2 = c.gens('voiturier', Q20B.devant(c, V.H, V.cap + V.cote * Math.PI / 2, 1.6, 0.6), { face: 'camera', geste: ['offre', 'parle'] });
     const cl = c.chose(Q20_DESSINS.fer_cheval, c.haut(c.devant(moi2.P, moi2.cap, 0.36, 0.06, true), 1.05), { s: 1.3 });
     return [
       c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 1.1, d: 2.8, avec: V.H, k: 0.4 }), heure: c.heure('matin'), acteurs: [moi, V.jument, V.ch], son: 'enclume', dit: c.parole('Bouge pas, ma belle. Là. Te voilà d’aplomb.', nom, 0.9), court: true }),
@@ -318,7 +327,7 @@ q20.scenes('q16_bete_chat_1', {
     const Ci = c.lieu('cimetiere');
     return [
       c.plan({ dur: 6.4, cam: c.camChose(T.P, { d: 1.7, haut: 1.0, dy: 0.25, a: (T.L.cap || 0) + 0.5, recul: 0.12 }), heure: Math.max(c.h, 20.5), acteurs: [T.A], lum: [Q20B.flamme(c, T.P, 4, 1.4)], dit: c.parole('Les chats de la ville se réunissent au cimetière, les nuits sans lune. Je n’y vais plus, depuis… une affaire.', nom), court: true }),
-      Ci && c.plan({ dur: 6, cam: c.camLieu(Ci, { d: 20, haut: 2.6, dy: 1 }), heure: c.h > 20.5 && c.h < 21.4 ? c.h : 21.2, dit: c.parole('Allez voir s’ils m’attendent encore. Comptez-les. S’ils sont treize, partez.', nom) }),
+      Ci && c.plan({ dur: 6, cam: c.camLieu(Ci, { d: 20, haut: 2.6, dy: 1 }), heure: c.h > 20.5 && c.h < 21.4 ? c.h : 21.2, lum: [Q20B.lune(c, Ci)], dit: c.parole('Allez voir s’ils m’attendent encore. Comptez-les. S’ils sont treize, partez.', nom) }),
     ];
   },
   tournant(c) {
@@ -352,9 +361,11 @@ q20.scenes('q16_bete_hulotte_1', {
     const T = Q20BA.bete(c, 'hulotte', { parle: true }), nom = Q20B.nom('bete:hulotte');
     if (!T) return null;
     const Ch = c.lieu('chene');
+    // (la nuit tombée, pas la nuit noire : on la voit encore sur son chicot)
+    const hn = c.h >= 20.6 && c.h < 22 ? c.h : 21.2, lune = [c.lueur(T.P, 8, [0.56, 0.62, 0.82], 1.6)];
     return [
-      c.plan({ dur: 6.4, cam: c.camChose(T.P, { d: 2.4, haut: 0.4, dy: 0.2, a: (T.L.cap || 0) + 0.4, recul: 0.1, ign: Ch ? [Ch.x, Ch.z] : null }), heure: c.heure('nuit'), acteurs: [T.A], son: 'hibou', dit: c.parole('Mon chicot est pourri jusqu’au cœur. Il tombera avant l’hiver.', nom), court: true }),
-      c.plan({ dur: 6, cam: c.camChose(T.P, { d: 4.4, haut: 0.2, dy: -0.6, a: (T.L.cap || 0) + 1.2, ign: Ch ? [Ch.x, Ch.z] : null }), heure: c.heure('nuit'), acteurs: [T.A], dit: c.parole('Toi, tu sais faire des boîtes avec un trou rond. Fais-en une. Un trou large : je ne suis pas une mésange.', nom) }),
+      c.plan({ dur: 6.4, cam: c.camChose(T.P, { d: 2.4, haut: 0.4, dy: 0.2, a: (T.L.cap || 0) + 0.4, recul: 0.1, ign: Ch ? [Ch.x, Ch.z] : null }), heure: hn, acteurs: [T.A], lum: lune, son: 'hibou', dit: c.parole('Mon chicot est pourri jusqu’au cœur. Il tombera avant l’hiver.', nom), court: true }),
+      c.plan({ dur: 6, cam: c.camChose(T.P, { d: 4.4, haut: 0.2, dy: -0.6, a: (T.L.cap || 0) + 1.2, ign: Ch ? [Ch.x, Ch.z] : null }), heure: hn, acteurs: [T.A], lum: lune, dit: c.parole('Toi, tu sais faire des boîtes avec un trou rond. Fais-en une. Un trou large : je ne suis pas une mésange.', nom) }),
     ];
   },
   fin(c) {
@@ -362,12 +373,13 @@ q20.scenes('q16_bete_hulotte_1', {
     if (!T) return null;
     const Ch = c.lieu('chene');
     const pn = Q20H.libre(c, c.devant(c.pt(T.P[0], T.P[2]), (T.L.cap || 0) + 0.8, 2.2), 0, 3, 0.4);
-    const poteau = c.chose((PE) => { PE.box(0, 1.0, 0, 0.1, 2.0, 0.1, [0.5, 0.38, 0.26], TL.wood); }, pn);
-    const ni = c.chose('nichoir', c.haut(pn, 2.0), { r: c.cap(pn, T.P) });
+    // (le nichoir a son poteau : la boîte à hauteur d'homme, son trou rond de notre côté)
+    const ni = c.chose('nichoir', pn, { r: c.cap(T.P, pn) });
+    const hn = c.h >= 20.6 && c.h < 22 ? c.h : 21.2, lune = [c.lueur(Q20B.devant(c, pn, c.cap(T.P, pn), 1.4, 0), 8, [0.56, 0.62, 0.82], 2.2)];
     const pl = c.chose(Q20_DESSINS.plume_hulotte, c.haut(Q20B.devant(c, pn, (T.L.cap || 0) + 2.4, 0.9, 0), 0.01), { s: 1.6, r: 0.6 });
     return [
-      c.plan({ dur: 6.4, cam: c.camChose(c.haut(pn, 1.9), { d: 3.2, haut: 0.2, dy: 0, a: c.cap(T.P, pn) + 0.35 }), heure: c.heure('nuit'), acteurs: [poteau, ni, T.A], dit: c.parole('Pas mal. Pour une main.', nom), court: true }),
-      c.plan({ dur: 5.6, cam: c.camChose(pl.P, { d: 1.6, haut: 0.95, dy: 0.02 }), heure: c.heure('nuit'), acteurs: [pl, poteau], son: 'hibou', chaque: Q20H.emet(c.haut(pl.P, 1.6), { n: 2, col: [0.62, 0.46, 0.3, 0.9], taille: 0.03, vie: 2.2, v: 0.15, vy: -0.6, grav: 0.3 }), dit: c.parole('Je ne dirai à personne que j’ai demandé.', nom) }),
+      c.plan({ dur: 6.4, cam: c.camChose(c.haut(pn, 1.9), { d: 3.2, haut: 0.2, dy: 0, a: c.cap(T.P, pn) + 0.35 }), heure: hn, acteurs: [ni, T.A], lum: lune, dit: c.parole('Pas mal. Pour une main.', nom), court: true }),
+      c.plan({ dur: 5.6, cam: c.camChose(pl.P, { d: 1.6, haut: 0.95, dy: 0.02 }), heure: hn, acteurs: [pl, ni], lum: lune, son: 'hibou', chaque: Q20H.emet(c.haut(pl.P, 1.6), { n: 2, col: [0.62, 0.46, 0.3, 0.9], taille: 0.03, vie: 2.2, v: 0.15, vy: -0.6, grav: 0.3 }), dit: c.parole('Je ne dirai à personne que j’ai demandé.', nom) }),
     ];
   },
 });

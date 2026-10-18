@@ -240,7 +240,19 @@ q20B.cacheurs = {
     for (const e of L) e.cache = true;
     return L.length ? () => { for (const e of L) e.cache = false; } : null;
   },
+  // Mère Ysaure : sa tente ouverte le temps de la scène (elle y est assise), même si la scène se joue après sept heures
+  // du soir ; refermée après, si elle doit l'être
+  diseuse: () => {
+    if (typeof b1 === 'undefined' || !b1.tente || typeof activites === 'undefined' || !activites.diseusePresente || activites.diseusePresente()) return null;
+    q20B.tente = true;
+    b1.tente(true);
+    return () => { q20B.tente = false; b1.tente(true); };
+  },
 };
+if (typeof activites !== 'undefined' && activites.diseusePresente) {
+  const _dp = activites.diseusePresente;
+  activites.diseusePresente = function () { return !!q20B.tente || _dp.apply(this, arguments); };
+}
 q20B.rendre = [];
 {
   const _ca = q20.cacher, _mo = q20.montrer;
@@ -493,6 +505,8 @@ const Q20B = {
   act(k) { const w = game.world; return (w && w.act && w.act[k]) || null; },
   // les chandelles, une lueur chaude
   flamme(c, P, r, dy) { return c.lueur(P, r || 4, [1.0, 0.66, 0.32], dy ?? 0.4); },
+  // la lune sur un lieu montré de loin, la nuit (un cimetière, une crête) : L (un lieu, ou un point)
+  lune(c, L) { const P = Array.isArray(L) ? L : L && (L.P || [L.x, L.y, L.z]); return P ? c.lueur(P, 26, [0.34, 0.38, 0.5], 7) : null; },
   // une lueur froide (pierre qui luit, lune dans l'eau)
   froide(c, P, r, dy) { return c.lueur(P, r || 4, [0.42, 0.7, 0.55], dy ?? 0.3); },
 };
