@@ -681,7 +681,7 @@ q20.scenes('cure_2', {
       c.plan({ dur: 6, cam: c.camLieu(Ch, { d: 30, haut: 4, dy: 3 }), heure: c.heure('soir'), son: 'murmure', dit: ['Ne restez pas après le coucher du soleil. Et si vous entendez chanter, ne chantez pas avec eux.'] }),
     ];
   },
-  tournant(c) { return Q20H.trouvaille(c, Q20_DESSINS.chapelet, { s: 1.8, son: 'murmure', dy2: 2.5, d2: 24, haut2: 8 }); },
+  tournant(c) { return Q20H.trouvaille(c, Q20_DESSINS.chapelet, { s: 2.4, son: 'murmure', dy2: 2.5, d2: 24, haut2: 8 }); },
   fin(c) {
     const cierges = qtPropsDans(c.w, 'eglise', (q) => q.id === 'bougie').slice(0, 2).map((q) => c.lueur([q.x, q.y, q.z], 3.5, [1.0, 0.7, 0.35], 0.3));
     const moi = Q20H.poste(c, 'cure', { geste: ['tend'] });
