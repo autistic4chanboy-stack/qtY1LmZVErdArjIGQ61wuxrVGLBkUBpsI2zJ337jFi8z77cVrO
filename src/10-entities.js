@@ -110,7 +110,9 @@ const entities = {
   },
 
   update(dt, w, c) {
-    for (const e of this.list) {
+    // (la liste entière — 1 200 bêtes — à chaque image : une boucle par indice, sur la liste du début, comme for…of)
+    for (let i = 0, L = this.list; i < L.length; i++) {
+      const e = L[i];
       if (c.frozen && !e.cfg.fly) { // éditeur : chaque créature reste sur son point d'apparition
         e.x = e.hx; e.z = e.hz; e.state = 'idle'; e.hidden = false; e.move = 0; e.far = false;
         e.y = e.o && e.o.y !== undefined ? e.o.y : this.groundY(w, e, e.x, e.z);
@@ -142,7 +144,7 @@ const entities = {
     return true;
   },
   near(x, z, r, fn) {
-    for (const e of this.list) if (!e.dead && !e.far && !e.hidden && Math.hypot(e.x - x, e.z - z) < r) fn(e);
+    for (let i = 0, L = this.list; i < L.length; i++) { const e = L[i]; if (!e.dead && !e.far && !e.hidden && Math.hypot(e.x - x, e.z - z) < r) fn(e); }
   },
   startFlee(e, fx, fz) {
     e.state = 'flee';
@@ -337,7 +339,8 @@ const entities = {
 
   // Bruit : les créatures proches s'enfuient
   scare(x, z, r) {
-    for (const e of this.list) {
+    for (let i = 0, L = this.list; i < L.length; i++) {
+      const e = L[i];
       if (e.far || e.hidden || e.dead) continue;
       if (Math.hypot(e.x - x, e.z - z) > r) continue;
       if (e.cfg.fly) e.scaredT = 5;
@@ -347,7 +350,8 @@ const entities = {
 
   // Le joueur ne traverse pas les gros animaux
   pushPlayer(p) {
-    for (const e of this.list) {
+    for (let i = 0, L = this.list; i < L.length; i++) {
+      const e = L[i];
       if (!e.cfg.solid || e.hidden || e.far || e.dead || e.ridden || Math.abs(p.pos[1] - e.y) > 1.5) continue;
       const dx = p.pos[0] - e.x, dz = p.pos[2] - e.z, d = Math.hypot(dx, dz), min = e.cfg.radius + P_RADIUS;
       if (d < min && d > 1e-4) { p.pos[0] = e.x + dx / d * min; p.pos[2] = e.z + dz / d * min; }
@@ -357,7 +361,8 @@ const entities = {
   raycast(o, d, maxDist) {
     let best = null;
     const dh = Math.hypot(d[0], d[2]) || 1e-6;
-    for (const e of this.list) {
+    for (let i = 0, L = this.list; i < L.length; i++) {
+      const e = L[i];
       if (e.hidden || e.far || e.dead || e.ridden) continue;
       const r = Math.max(0.25, e.cfg.radius * 1.3 + (e.cfg.fly ? 0.2 : 0)), cx = e.x - o[0], cz = e.z - o[2];
       const tc = (cx * d[0] + cz * d[2]) / (dh * dh);
@@ -390,7 +395,8 @@ const entities = {
   // Rendu : squelettes des créatures visibles
   draw(buf, sbuf, cam, maxD, t, flags) {
     const max2 = maxD * maxD;
-    for (const e of this.list) {
+    for (let i = 0, L = this.list; i < L.length; i++) {
+      const e = L[i];
       if (e.hidden || e.far || (e.dead && !e.corpse) || !e.rig || e.ridden) continue;
       const dx = e.x - cam[0], dz = e.z - cam[2];
       if (dx * dx + dz * dz > max2) continue;
@@ -401,7 +407,8 @@ const entities = {
       let fl = e.hurtT > 0 ? FX_HI : 0;
       if (e.highlight) fl |= FX_HI;
       drawRig(buf, r, e.x, e.y + hop + (st.lie ? -e.h * 0.25 : 0), e.z, e.heading, e.scale, fl | flags);
-      if (!e.cfg.fly && sbuf && !e.corpse) drawShadow(sbuf, e.x, e.y, e.z, Math.max(0.2, e.cfg.radius * 1.1) * e.scale);
+      // (cfg.ombreAPart : des bêtes qui dessinent leur ombre elles-mêmes, à leur taille — E1, E2, E3, la nature)
+      if (!e.cfg.fly && !e.cfg.ombreAPart && sbuf && !e.corpse) drawShadow(sbuf, e.x, e.y, e.z, Math.max(0.2, e.cfg.radius * 1.1) * e.scale);
     }
   },
 };

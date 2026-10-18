@@ -1125,12 +1125,13 @@ function e2Pose(rig, st) {
     const C = CREATURES[B.id];
     if (!C || C.fly) continue;
     C.e2Ombre = C.water ? 0 : C.radius <= 0.12 ? C.radius * 1.3 : Math.max(0.18, C.radius * 1.1);
+    C.ombreAPart = true; // (le dessin commun tait son ombre : la nôtre est à sa taille — une marque posée une fois, au lieu
+    // de « fly » mis puis ôté à chaque image)
     MIENNES.push(C);
   }
   const _draw = entities.draw.bind(entities);
   entities.draw = function (buf, sbuf, cam, maxD, t, flags) {
-    for (const C of MIENNES) C.fly = true; // (au dessin, « fly » ne sert qu'à taire l'ombre commune)
-    try { _draw(buf, sbuf, cam, maxD, t, flags); } finally { for (const C of MIENNES) delete C.fly; }
+    _draw(buf, sbuf, cam, maxD, t, flags);
     const w = game.world;
     if (!sbuf || !w) return;
     const m2 = maxD * maxD;

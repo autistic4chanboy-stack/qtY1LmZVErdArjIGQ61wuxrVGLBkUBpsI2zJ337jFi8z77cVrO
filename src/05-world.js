@@ -250,22 +250,49 @@ class World {
     }
   }
   // Appelle cb(obj, idx) pour objets solides et cbB(block, idx) pour blocs proches
+  // (chaque bloc une seule fois : des marques gardées d'un appel à l'autre au lieu d'un ensemble neuf à chaque appel ;
+  // un appel imbriqué — un rappel qui interroge à son tour la grille — prend les siennes)
   query(x, z, r, cbO, cbB) {
     if (!this.grid || this._chgG) this.rebuildGrid();
     const { gw, cells } = this.grid;
     const gx0 = Math.floor((x - r) / GRID_CELL), gx1 = Math.floor((x + r) / GRID_CELL);
     const gz0 = Math.floor((z - r) / GRID_CELL), gz1 = Math.floor((z + r) / GRID_CELL);
-    const seenB = cbB ? new Set() : null;
-    for (let gz = Math.max(0, gz0); gz <= Math.min(gw - 1, gz1); gz++) {
-      for (let gx = Math.max(0, gx0); gx <= Math.min(gw - 1, gx1); gx++) {
-        const c = cells[gz * gw + gx];
-        if (!c) continue;
-        for (const it of c) {
-          if (it >= 0) { if (cbO) cbO(this.objects[it], it); }
-          else if (cbB) { const bi = -1 - it; if (!seenB.has(bi)) { seenB.add(bi); cbB(this.blocks[bi], bi); } }
+    const M = cbB ? World._marques(this.blocks ? this.blocks.length : 0) : null, g = M ? M.g : 0;
+    try {
+      for (let gz = Math.max(0, gz0); gz <= Math.min(gw - 1, gz1); gz++) {
+        for (let gx = Math.max(0, gx0); gx <= Math.min(gw - 1, gx1); gx++) {
+          const c = cells[gz * gw + gx];
+          if (!c) continue;
+          for (let k = 0; k < c.length; k++) {
+            const it = c[k];
+            if (it >= 0) { if (cbO) cbO(this.objects[it], it); }
+            else if (cbB) { const bi = -1 - it; if (World._vu(M, bi, g)) cbB(this.blocks[bi], bi); }
+          }
         }
       }
-    }
+    } finally { if (M) World._mq.n--; }
+  }
+  // les marques « déjà vu » des blocs d'une interrogation de la grille (réutilisées, une génération par appel ; un appel
+  // imbriqué prend le jeu suivant) ; à rendre (World._mq.n--) en fin d'appel
+  static _marques(nb) {
+    const P = World._mq || (World._mq = { L: [], n: 0 });
+    let M = P.L[P.n];
+    if (!M || M.a.length < nb) M = P.L[P.n] = { a: new Int32Array(Math.max(256, nb + 256, M ? M.a.length * 2 : 0)), g: 0, x: null };
+    P.n++;
+    M.g = (M.g + 1) | 0;
+    if (M.g === 0) { M.a.fill(0); M.g = 1; }
+    M.x = null;
+    return M;
+  }
+  // le bloc bi n'était pas encore vu dans cette interrogation (il l'est désormais) ; (au-delà des marques : un bloc
+  // ajouté pendant l'interrogation, un ensemble à part)
+  static _vu(M, bi, g) {
+    const A = M.a;
+    if (bi < A.length) { if (A[bi] === g) return false; A[bi] = g; return true; }
+    const X = M.x || (M.x = new Set());
+    if (X.has(bi)) return false;
+    X.add(bi);
+    return true;
   }
 
   // Coordonnées locales d'un point dans le repère d'un bloc
@@ -278,14 +305,16 @@ class World {
     return [lx * c + lz * s, -lx * s + lz * c];
   }
   // Hauteur du dessus d'un bloc (selon sa forme) au point local (lx, lz)
-  static blockTop(b, lx, lz) {
-    const hx = b.sx / 2, hz = b.sz / 2;
-    switch (b.sh | 0) {
-      case 1: return b.sy * clamp(1 - Math.abs(lz) / hz, 0, 1);
-      case 2: return b.sy * clamp((lz + hz) / b.sz, 0, 1);
-      case 3: return b.sy * clamp(1 - Math.max(Math.abs(lx) / hx, Math.abs(lz) / hz), 0, 1);
+  static blockTop(b, lx, lz) { return World._dessus(b.sh | 0, b.sx, b.sy, b.sz, lx, lz); }
+  // (la même, la boîte donnée par ses mesures)
+  static _dessus(sh, sx, sy, sz, lx, lz) {
+    const hx = sx / 2, hz = sz / 2;
+    switch (sh) {
+      case 1: return sy * clamp(1 - Math.abs(lz) / hz, 0, 1);
+      case 2: return sy * clamp((lz + hz) / sz, 0, 1);
+      case 3: return sy * clamp(1 - Math.max(Math.abs(lx) / hx, Math.abs(lz) / hz), 0, 1);
     }
-    return b.sy;
+    return sy;
   }
 
   // Pont-levis : bloc virtuel selon son état (tablier baissé ou pont dressé devant la porte)
@@ -297,7 +326,60 @@ class World {
   doorBox(d) { return { x: d.x, y: d.y, z: d.z, sx: d.w, sy: d.h, sz: 0.12, r: d.r }; }
 
   // Hauteur du sol (terrain + dessus de blocs accessibles)
+  // (appelée pour chaque bête, chaque habitant, à chaque pas : la grille est parcourue ici même, sans appel ni objet
+  // alloué par bloc ; un monde qui interroge sa grille autrement — celui d'en bas — passe par query, comme avant ;
+  // même résultat, au bit près)
   groundAt(x, z, feetY, stepUp, margin = 0.2) {
+    if (this.query !== World.prototype.query) return this._groundAtRappels(x, z, feetY, stepUp, margin);
+    let g = this.heightAt(x, z);
+    if (feetY < g - 2) g = -1e9; // sous terre : seuls les blocs portent
+    const BR = this.bridges;
+    for (let i = 0; i < BR.length; i++) {
+      const br = BR[i];
+      if (Math.abs(br.x - x) > br.L + 3 || Math.abs(br.z - z) > br.L + 3) continue;
+      const b = this.bridgeBox(br);
+      if (!b.deck) continue;
+      const c = Math.cos(b.r), s = Math.sin(b.r), dx = x - b.x, dz = z - b.z, lx = dx * c - dz * s, lz = dx * s + dz * c;
+      if (Math.abs(lx) > b.sx / 2 + margin || Math.abs(lz) > b.sz / 2 + margin) continue;
+      const top = b.y + b.sy;
+      if (top > g && top <= feetY + stepUp) g = top;
+    }
+    // (query(x, z, 1) : les blocs seulement, chacun une fois, dans l'ordre des cases)
+    if (!this.grid || this._chgG) this.rebuildGrid();
+    const { gw, cells } = this.grid, blocks = this.blocks, lim = feetY + stepUp;
+    const gx0 = Math.floor((x - 1) / GRID_CELL), gx1 = Math.floor((x + 1) / GRID_CELL);
+    const gz0 = Math.floor((z - 1) / GRID_CELL), gz1 = Math.floor((z + 1) / GRID_CELL);
+    const M = World._marques(blocks.length), mg = M.g;
+    try {
+      for (let gz = Math.max(0, gz0); gz <= Math.min(gw - 1, gz1); gz++) {
+        for (let gx = Math.max(0, gx0); gx <= Math.min(gw - 1, gx1); gx++) {
+          const cl = cells[gz * gw + gx];
+          if (!cl) continue;
+          for (let k = 0; k < cl.length; k++) {
+            const it = cl[k];
+            if (it >= 0 || !World._vu(M, -1 - it, mg)) continue;
+            const b = blocks[-1 - it];
+            const c = Math.cos(b.r), s = Math.sin(b.r), dx = x - b.x, dz = z - b.z, lx = dx * c - dz * s, lz = dx * s + dz * c;
+            const hx = b.sx / 2, hz = b.sz / 2;
+            if (Math.abs(lx) > hx + margin || Math.abs(lz) > hz + margin) continue;
+            // (World.blockTop, au point ramené dans la boîte)
+            const cx = lx < -hx ? -hx : lx > hx ? hx : lx, cz = lz < -hz ? -hz : lz > hz ? hz : lz, sy = b.sy;
+            let h = sy, v;
+            switch (b.sh | 0) {
+              case 1: v = 1 - Math.abs(cz) / hz; h = sy * (v < 0 ? 0 : v > 1 ? 1 : v); break;
+              case 2: v = (cz + hz) / b.sz; h = sy * (v < 0 ? 0 : v > 1 ? 1 : v); break;
+              case 3: v = 1 - Math.max(Math.abs(cx) / hx, Math.abs(cz) / hz); h = sy * (v < 0 ? 0 : v > 1 ? 1 : v); break;
+            }
+            const top = b.y + h;
+            if (top > g && top <= lim) g = top;
+          }
+        }
+      }
+    } finally { World._mq.n--; }
+    return g;
+  }
+  // (la même par query et ses rappels : pour un monde qui interroge sa grille à sa façon)
+  _groundAtRappels(x, z, feetY, stepUp, margin = 0.2) {
     let g = this.heightAt(x, z);
     if (feetY < g - 2) g = -1e9; // sous terre : seuls les blocs portent
     for (const br of this.bridges) {
@@ -337,9 +419,117 @@ class World {
     const [wx, wz] = World.blockToWorldDir(b, nlx, nlz);
     return [b.x + wx, b.z + wz];
   }
+  // (la même sans rien allouer, même dans le code optimisé à mi-chemin : la boîte b, le point dans P — un Float64Array
+  // [x, z], repoussé sur place — ; false : rien ne bouge ; ni appel ni nombre neuf : World.blockTop et Math.hypot y
+  // sont écrits en ligne, le même calcul)
+  static _pousse(b, P, feet, head, radius, stepUp) {
+    const by = b.y;
+    if (by >= head - 0.05) return false;
+    const bx = b.x, bz = b.z, br = b.r, c = Math.cos(br), s = Math.sin(br), dx = P[0] - bx, dz = P[1] - bz;
+    const lx = dx * c - dz * s, lz = dx * s + dz * c;
+    const sx = b.sx, sz = b.sz, sy = b.sy, hx = sx / 2, hz = sz / 2;
+    const cx = lx < -hx ? -hx : lx > hx ? hx : lx, cz = lz < -hz ? -hz : lz > hz ? hz : lz;
+    let h = sy, v;
+    switch (b.sh | 0) {
+      case 1: v = 1 - Math.abs(cz) / hz; h = sy * (v < 0 ? 0 : v > 1 ? 1 : v); break;
+      case 2: v = (cz + hz) / sz; h = sy * (v < 0 ? 0 : v > 1 ? 1 : v); break;
+      case 3: v = 1 - Math.max(Math.abs(cx) / hx, Math.abs(cz) / hz); h = sy * (v < 0 ? 0 : v > 1 ? 1 : v); break;
+    }
+    if (by + h <= feet + stepUp) return false;
+    const px = lx - cx, pz = lz - cz;
+    // d = Math.hypot(px, pz) (World.hyp)
+    const ap = Math.abs(px), aq = Math.abs(pz), hm = ap > aq ? ap : aq;
+    let d;
+    if (px !== px || pz !== pz || hm === Infinity) d = Math.hypot(px, pz);
+    else if (hm === 0) d = 0;
+    else { const n1 = ap / hm, n2 = aq / hm; d = Math.sqrt(n1 * n1 + n2 * n2) * hm; }
+    if (d >= radius) return false;
+    let nlx, nlz;
+    if (d > 1e-6) { nlx = cx + px / d * radius; nlz = cz + pz / d * radius; }
+    else {
+      const ex = hx - Math.abs(lx), ez = hz - Math.abs(lz);
+      if (ex < ez) { nlx = Math.sign(lx || 1) * (hx + radius); nlz = lz; } else { nlx = lx; nlz = Math.sign(lz || 1) * (hz + radius); }
+    }
+    P[0] = bx + (nlx * c + nlz * s); P[1] = bz + (-nlx * s + nlz * c);
+    return true;
+  }
+  // Math.hypot(a, b), le même calcul que le moteur (la plus grande des deux valeurs absolues, la somme des carrés
+  // ramenés à elle — la somme de Kahan, dont la compensation est nulle au premier terme —, la racine) : au bit près ;
+  // écrite en ligne dans les boucles chaudes (l'appel natif alloue à chaque fois dans le code optimisé à mi-chemin)
+  static hyp(a, b) {
+    const ap = Math.abs(a), aq = Math.abs(b), hm = ap > aq ? ap : aq;
+    if (a !== a || b !== b || hm === Infinity) return Math.hypot(a, b);
+    if (hm === 0) return 0;
+    const n1 = ap / hm, n2 = aq / hm;
+    return Math.sqrt(n1 * n1 + n2 * n2) * hm;
+  }
 
   // Collision d'un cylindre (joueur, animal) contre objets solides et blocs
+  // (pour chaque bête, chaque habitant, à chaque pas : sans rien allouer — les portes, la grille parcourue ici même, le
+  // point gardé dans un Float64Array ; les mêmes poussées, dans le même ordre, au bit près ; un monde qui interroge
+  // sa grille à sa façon passe par les rappels)
   collideCircle(x, z, feet, head, radius, stepUp, withObjects = true, ignoreDoors = false) {
+    if (this.query !== World.prototype.query) return this._collideRappels(x, z, feet, head, radius, stepUp, withObjects, ignoreDoors);
+    const P = World._p2 || (World._p2 = new Float64Array(2)), D = this.doors, BR = this.bridges;
+    // (la boîte d'une porte, comme doorBox, réutilisée)
+    const DB = World._boitePorte || (World._boitePorte = { x: 0.5, y: 0.5, z: 0.5, sx: 0.5, sy: 0.5, sz: 0.12, r: 0.5, sh: 0 });
+    P[0] = x; P[1] = z;
+    for (let it = 0; it < 3; it++) {
+      if (!ignoreDoors) for (let i = 0; i < D.length; i++) {
+        const d = D[i];
+        if (d.a > 0.4 || Math.abs(d.x - P[0]) > 3 || Math.abs(d.z - P[1]) > 3) continue;
+        DB.x = d.x; DB.y = d.y; DB.z = d.z; DB.sx = d.w; DB.sy = d.h; DB.r = d.r;
+        World._pousse(DB, P, feet, head, radius, stepUp);
+      }
+      for (let i = 0; i < BR.length; i++) {
+        const br = BR[i];
+        if (Math.abs(br.x - P[0]) > br.L + 3 || Math.abs(br.z - P[1]) > br.L + 3) continue;
+        const b = this.bridgeBox(br);
+        if (b.deck) continue;
+        World._pousse(b, P, feet, head, radius, stepUp);
+      }
+      // (query(x, z, 2.5 + radius) : objets et blocs dans l'ordre des cases, chaque bloc une fois)
+      if (!this.grid || this._chgG) this.rebuildGrid();
+      const { gw, cells } = this.grid, objs = this.objects, blocks = this.blocks, rq = 2.5 + radius;
+      const gx0 = Math.floor((P[0] - rq) / GRID_CELL), gx1 = Math.floor((P[0] + rq) / GRID_CELL);
+      const gz0 = Math.floor((P[1] - rq) / GRID_CELL), gz1 = Math.floor((P[1] + rq) / GRID_CELL);
+      const M = World._marques(blocks.length), mg = M.g;
+      try {
+        for (let gz = Math.max(0, gz0); gz <= Math.min(gw - 1, gz1); gz++) {
+          for (let gx = Math.max(0, gx0); gx <= Math.min(gw - 1, gx1); gx++) {
+            const cl = cells[gz * gw + gx];
+            if (!cl) continue;
+            for (let k = 0; k < cl.length; k++) {
+              const iv = cl[k];
+              if (iv >= 0) {
+                if (!withObjects) continue;
+                const o = objs[iv];
+                const t = OBJ_TYPES[o.t];
+                const r = t.colK ? t.colK * o.h : t.col; // (objRadius)
+                if (!r) continue;
+                // (la distance d'abord — la hauteur du sol sous l'objet ensuite, seulement s'il est assez près : le même
+                // résultat, les deux épreuves sont sans effet)
+                const ox = o.x, oz = o.z, dx = P[0] - ox, dz = P[1] - oz, min = r + radius;
+                const ap = Math.abs(dx), aq = Math.abs(dz), hm = ap > aq ? ap : aq;
+                if (hm >= min) continue; // (d = hypot(dx, dz) ≥ hm ≥ min)
+                let d; // d = Math.hypot(dx, dz) (World.hyp)
+                if (dx !== dx || dz !== dz || hm === Infinity) d = Math.hypot(dx, dz);
+                else if (hm === 0) d = 0;
+                else { const n1 = ap / hm, n2 = aq / hm; d = Math.sqrt(n1 * n1 + n2 * n2) * hm; }
+                if (!(d < min && d > 1e-5)) continue;
+                const oy = this.objectY(o);
+                if (feet > oy + o.h * 0.8 || head < oy) continue;
+                P[0] = ox + dx / d * min; P[1] = oz + dz / d * min;
+              } else if (World._vu(M, -1 - iv, mg)) World._pousse(blocks[-1 - iv], P, feet, head, radius, stepUp);
+            }
+          }
+        }
+      } finally { World._mq.n--; }
+    }
+    return [P[0], P[1]];
+  }
+  // (la même par query et ses rappels : pour un monde qui interroge sa grille à sa façon)
+  _collideRappels(x, z, feet, head, radius, stepUp, withObjects = true, ignoreDoors = false) {
     for (let it = 0; it < 3; it++) {
       if (!ignoreDoors) for (const d of this.doors) {
         if (d.a > 0.4 || Math.abs(d.x - x) > 3 || Math.abs(d.z - z) > 3) continue;

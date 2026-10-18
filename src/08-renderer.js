@@ -175,6 +175,9 @@ function qualiteFaible() {
 }
 // (des zéros, pour les uniformes des effets quand ils sont éteints)
 const REND_Z2 = new Float32Array(2), REND_Z3 = new Float32Array(3), REND_Z4 = new Float32Array(4);
+// (et les autres valeurs par défaut des passes, faites une fois)
+const REND_UN3 = new Float32Array([1, 1, 1]), REND_JAUNE = new Float32Array([1, 1, 0]), REND_NEIGE = new Float32Array([0.9, 0.92, 0.95]);
+const REND_VM = { aspect: VM_W / VM_H, u0: 0, v0: 0, u1: 1, v1: 1 };
 // les préréglages, du plus léger au plus riche (le garde-fou descend d'un cran)
 const REND_PRESETS = ['basse', 'moyenne', 'haute', 'tres'];
 // l'étalonnage (Renderer.ambiance) : teinte des ombres (G[0-2]) et des lumières (G[4-6]) vers une autre, de k
@@ -623,7 +626,7 @@ class Renderer {
     for (let i = 0; i < this.objTotal; i++) {
       const dx = xz[i * 2] - cam[0], dz = xz[i * 2 + 1] - cam[2];
       if (dx * dx + dz * dz > R2) continue;
-      act.set(all.subarray(i * 13, i * 13 + 13), n * 13);
+      for (let j = i * 13, k = n * 13, e = j + 13; j < e; j++, k++) act[k] = all[j]; // (sans une vue neuve par objet)
       n++;
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, this.objBuf);
@@ -713,23 +716,47 @@ class Renderer {
   }
 
   // ---------------------------------------------------------------- uniformes
+  // (le programme pris par use() garde la dernière valeur envoyée de chaque uniforme : une valeur qui n'a pas changé —
+  // à la précision de la carte — n'est pas renvoyée ; un programme pris autrement, par gl.useProgram, envoie tout)
   setU(pr, name, v) {
     const loc = pr.u[name];
     if (loc === undefined || loc === null) return;
-    if (typeof v === 'number') { if (INT_UNIFORMS.has(name)) gl.uniform1i(loc, v); else gl.uniform1f(loc, v); return; }
-    switch (name) {
-      case 'uViewProj': gl.uniformMatrix4fv(loc, false, v); return;
-      case 'uStarRot': gl.uniformMatrix3fv(loc, false, v); return;
-      case 'uLights': case 'uGUV': gl.uniform4fv(loc, v); return;
-      case 'uLightCols': gl.uniform3fv(loc, v); return;
-      case 'uGSize': case 'uMatInfo': gl.uniform2fv(loc, v); return;
+    const C = this._lie === pr ? pr.cv || (pr.cv = new Map()) : null;
+    if (typeof v === 'number') {
+      if (C) { if (C.get(name) === v) return; C.set(name, v); }
+      if (INT_UNIFORMS.has(name)) gl.uniform1i(loc, v); else gl.uniform1f(loc, v);
+      return;
     }
-    if (v.length === 2) gl.uniform2fv(loc, v);
-    else if (v.length === 3) gl.uniform3fv(loc, v);
-    else if (v.length === 4) gl.uniform4fv(loc, v);
+    let f;
+    switch (name) {
+      case 'uViewProj': f = 0; break;
+      case 'uStarRot': f = 1; break;
+      case 'uLights': case 'uGUV': f = 4; break;
+      case 'uLightCols': f = 3; break;
+      case 'uGSize': case 'uMatInfo': f = 2; break;
+      default: f = v.length; if (f !== 2 && f !== 3 && f !== 4) return;
+    }
+    if (C) {
+      const n = v.length;
+      let c = C.get(name);
+      if (c && typeof c !== 'number' && c.length === n) {
+        let i = 0;
+        while (i < n && c[i] === Math.fround(v[i])) i++;
+        if (i === n) return;
+      } else { c = new Float32Array(n); C.set(name, c); }
+      c.set(v);
+    }
+    switch (f) {
+      case 0: gl.uniformMatrix4fv(loc, false, v); return;
+      case 1: gl.uniformMatrix3fv(loc, false, v); return;
+      case 2: gl.uniform2fv(loc, v); return;
+      case 3: gl.uniform3fv(loc, v); return;
+      case 4: gl.uniform4fv(loc, v);
+    }
   }
   use(pr, U) {
     gl.useProgram(pr.p);
+    this._lie = pr;
     for (const k in U) this.setU(pr, k, U[k]);
   }
 
@@ -761,17 +788,19 @@ class Renderer {
     // Moyenne et plus : lumière du ciel et du sol, brume, vent, ombres des nuages, éclair (voir ambiance ; ses uniformes
     // sont toujours les mêmes tableaux, et des zéros quand les effets sont éteints : les programmes de Basse les ignorent)
     const A = this.q >= 1 ? this.ambiance(F, sky, basis) : null, AU = A ? A.U : null;
-    const U = {
-      uViewProj: this.viewProj, uCamPos: cam.pos, uCamPosV: cam.pos, uCamFwd: basis.f, uCamRight: basis.r,
-      uSunDir: sky.sunDir, uSunCol: sky.sunCol, uMoonDir: AU ? AU.uMoonDir : sky.moonDir, uMoonCol: AU ? AU.uMoonCol : sky.moonCol,
-      uAmbient: sky.amb, uAmbientV: sky.amb, uZenith: sky.zen, uHorizon: sky.hor, uGlow: sky.glow, uHaze: AU ? AU.uHaze : sky.haze, uFog: sky.fog,
-      uLights: F.lights.pos, uLightCols: F.lights.col, uNumLights: F.lights.n, uFlash: F.flash,
-      uBands: F.bands, uTime: F.time, uTimeV: F.time, uShadowK: sky.shadowK, uShadowOff: sky.shadowOff,
-      uN: w.N, uCell: w.cell, uWater: w.waterLevel, uWaterV: w.waterLevel, uNightLit: sky.nightLit,
-      uWet: sky.wet, uWindV: sky.wind, uCoverW: w.coverW, uCoverO: w.coverO, uPowerV: F.power === undefined ? 1 : F.power, uFrost: sky.frost || 0,
-      uAmbSky: AU ? AU.uAmbSky : REND_Z3, uAmbGround: AU ? AU.uAmbGround : REND_Z3, uMist: AU ? AU.uMist : REND_Z4, uSunGlowC: AU ? AU.uSunGlowC : REND_Z4,
-      uSpec: AU ? AU.uSpec : 0, uWindD: AU ? AU.uWindD : REND_Z2, uNuagesO: AU ? AU.uNuagesO : REND_Z4,
-    };
+    // (les objets d'uniformes de chaque passe sont gardés d'une image à l'autre : les mêmes clés, les valeurs de l'image)
+    const U = this._U || (this._U = {});
+    U.uViewProj = this.viewProj; U.uCamPos = cam.pos; U.uCamPosV = cam.pos; U.uCamFwd = basis.f; U.uCamRight = basis.r;
+    U.uSunDir = sky.sunDir; U.uSunCol = sky.sunCol; U.uMoonDir = AU ? AU.uMoonDir : sky.moonDir; U.uMoonCol = AU ? AU.uMoonCol : sky.moonCol;
+    U.uAmbient = sky.amb; U.uAmbientV = sky.amb; U.uZenith = sky.zen; U.uHorizon = sky.hor; U.uGlow = sky.glow; U.uHaze = AU ? AU.uHaze : sky.haze; U.uFog = sky.fog;
+    U.uLights = F.lights.pos; U.uLightCols = F.lights.col; U.uNumLights = F.lights.n; U.uFlash = F.flash;
+    U.uBands = F.bands; U.uTime = F.time; U.uTimeV = F.time; U.uShadowK = sky.shadowK; U.uShadowOff = sky.shadowOff;
+    U.uN = w.N; U.uCell = w.cell; U.uWater = w.waterLevel; U.uWaterV = w.waterLevel; U.uNightLit = sky.nightLit;
+    U.uWet = sky.wet; U.uWindV = sky.wind; U.uCoverW = w.coverW; U.uCoverO = w.coverO; U.uPowerV = F.power === undefined ? 1 : F.power; U.uFrost = sky.frost || 0;
+    U.uAmbSky = AU ? AU.uAmbSky : REND_Z3; U.uAmbGround = AU ? AU.uAmbGround : REND_Z3; U.uMist = AU ? AU.uMist : REND_Z4; U.uSunGlowC = AU ? AU.uSunGlowC : REND_Z4;
+    U.uSpec = AU ? AU.uSpec : 0; U.uWindD = AU ? AU.uWindD : REND_Z2; U.uNuagesO = AU ? AU.uNuagesO : REND_Z4;
+    const PU = this._pu || (this._pu = { tan: new Float32Array(2), rect: new Float32Array(4), res: new Float32Array(2) });
+    const passe = (nom, a, b) => { const o = PU[nom] || (PU[nom] = {}); Object.assign(o, a); if (b) Object.assign(o, b); return o; };
     // les nuages du ciel (aussi pour l'eau, qui les reflète)
     const skyU = this.skyU;
     skyU.uSunDisk = sky.sunDisk; skyU.uSunVis = sky.sunVis; skyU.uCloudLit = sky.cloudLit; skyU.uCloudDark = sky.cloudDark;
@@ -784,10 +813,11 @@ class Renderer {
 
     // ciel
     gl.disable(gl.DEPTH_TEST); gl.depthMask(false); gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE);
-    this.use(this.progs.sky, Object.assign({}, U, skyU, {
-      uCamR: basis.r, uCamU: basis.u, uTan: [tanX, tanY], uStars: sky.stars, uPixAng: 2 * tanY / rh, uStarRot: sky.starRot,
-      uMoonVis: sky.moonVis, uMoonTint: sky.moonTint || [1, 1, 1], uMoon2: F.moon2 || 0, uMoonDir: sky.moonDir, uMoonCol: sky.moonCol,
-    }));
+    { const o = passe('sky', U, skyU);
+      PU.tan[0] = tanX; PU.tan[1] = tanY;
+      o.uCamR = basis.r; o.uCamU = basis.u; o.uTan = PU.tan; o.uStars = sky.stars; o.uPixAng = 2 * tanY / rh; o.uStarRot = sky.starRot;
+      o.uMoonVis = sky.moonVis; o.uMoonTint = sky.moonTint || REND_UN3; o.uMoon2 = F.moon2 || 0; o.uMoonDir = sky.moonDir; o.uMoonCol = sky.moonCol;
+      this.use(this.progs.sky, o); }
     gl.bindVertexArray(this.emptyVAO);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
 
@@ -796,7 +826,7 @@ class Renderer {
     // terrain
     gl.enable(gl.CULL_FACE);
     const vis = this.visibleChunks(cam.pos, basis, tanX, tanY, far);
-    this.use(this.progs.terrain, Object.assign({}, U, { uBrush: F.brush || [0, 0, 0, 0], uBrushCol: F.brushCol || [1, 1, 0] }));
+    { const o = passe('terrain', U); o.uBrush = F.brush || REND_Z4; o.uBrushCol = F.brushCol || REND_JAUNE; this.use(this.progs.terrain, o); }
     gl.bindVertexArray(this.terrainVAO);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.chunkInstBuf);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, vis.data, 0, vis.n * 2);
@@ -805,8 +835,10 @@ class Renderer {
 
     // blocs (une passe par forme)
     if (this.blockCount) {
-      this.use(this.progs.block, Object.assign({}, U, { uMatInfo: this.matInfo, uGhost: [0, 0, 0, 0] }));
-      for (const S of this.shapes) {
+      const o = passe('block', U); o.uMatInfo = this.matInfo; o.uGhost = REND_Z4;
+      this.use(this.progs.block, o);
+      for (let k = 0; k < this.shapes.length; k++) {
+        const S = this.shapes[k];
         if (!S.n) continue;
         gl.bindVertexArray(S.vao);
         gl.drawElementsInstanced(gl.TRIANGLES, S.idx, gl.UNSIGNED_SHORT, 0, S.n);
@@ -814,18 +846,11 @@ class Renderer {
     }
 
     // modèles 3D (objets posés puis créatures, portes, ponts)
-    const MU = Object.assign({}, U, { uMatInfo: this.matInfo, uShadowPass: 0, uShadowA: 0 });
-    const drawModel = (M, buf, always) => {
-      if (!buf) return;
-      if (always || M.ver !== buf.ver) { gl.bindBuffer(gl.ARRAY_BUFFER, M.ib); gl.bufferData(gl.ARRAY_BUFFER, buf.data.subarray(0, Math.max(1, buf.n) * 16), gl.DYNAMIC_DRAW); M.ver = buf.ver; M.n = buf.n; }
-      if (!M.n) return;
-      gl.bindVertexArray(M.vao);
-      gl.drawElementsInstanced(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0, M.n);
-    };
     if ((F.props && F.props.n) || (F.dyn && F.dyn.n)) {
-      this.use(this.progs.model, MU);
-      drawModel(this.mProps, F.props, false);
-      drawModel(this.mDyn, F.dyn, true);
+      const o = passe('model', U); o.uMatInfo = this.matInfo; o.uShadowPass = 0; o.uShadowA = 0;
+      this.use(this.progs.model, o);
+      this.dessinModele(this.mProps, F.props, false);
+      this.dessinModele(this.mDyn, F.dyn, true);
     }
     gl.disable(gl.CULL_FACE);
 
@@ -846,7 +871,8 @@ class Renderer {
 
     // herbe
     if (F.grass) {
-      this.use(this.progs.grass, Object.assign({}, U, { uGridN: F.grass.n, uSpacing: F.grass.spacing, uRadius: F.grass.radius, uGUV: this.gUV, uGSize: this.gSize }));
+      const o = passe('grass', U); o.uGridN = F.grass.n; o.uSpacing = F.grass.spacing; o.uRadius = F.grass.radius; o.uGUV = this.gUV; o.uGSize = this.gSize;
+      this.use(this.progs.grass, o);
       gl.bindVertexArray(this.grassVAO);
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, F.grass.n * F.grass.n);
     }
@@ -857,18 +883,20 @@ class Renderer {
     // ombres des créatures (disques sombres au sol)
     if (F.shadows && F.shadows.n) {
       gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-2, -4);
-      this.use(this.progs.model, Object.assign({}, U, { uMatInfo: this.matInfo, uShadowPass: 1, uShadowA: F.shadowA ?? 0.3 }));
-      drawModel(this.mShadow, F.shadows, true);
+      const o = passe('ombres', U); o.uMatInfo = this.matInfo; o.uShadowPass = 1; o.uShadowA = F.shadowA ?? 0.3;
+      this.use(this.progs.model, o);
+      this.dessinModele(this.mShadow, F.shadows, true);
       gl.disable(gl.POLYGON_OFFSET_FILL);
     }
     const S = w.size, m = 400;
-    this.use(this.progs.water, Object.assign({}, U, skyU, { uRect: [-m, -m, S + m, S + m] }));
+    { const o = passe('water', U, skyU); PU.rect[0] = -m; PU.rect[1] = -m; PU.rect[2] = S + m; PU.rect[3] = S + m; o.uRect = PU.rect; this.use(this.progs.water, o); }
     gl.bindVertexArray(this.emptyVAO);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     // particules
     if (F.particles && F.particles.n) {
-      this.use(this.progs.part, Object.assign({}, U, { uPxScale: pxScale }));
+      const o = passe('part', U); o.uPxScale = pxScale;
+      this.use(this.progs.part, o);
       gl.bindVertexArray(this.partVAO);
       gl.bindBuffer(gl.ARRAY_BUFFER, this.partBuf);
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, F.particles.data, 0, F.particles.n * 8);
@@ -880,13 +908,15 @@ class Renderer {
     const fliesK = 1 - smoothstep(0.06, 0.4, Math.max(F.rain || 0, F.snow || 0));
     if (sky.day > 0.3 && fliesK > 0.01) {
       gl.disable(gl.BLEND); gl.depthMask(true);
-      this.use(this.progs.flies, Object.assign({}, U, { uMode: 1, uAmount: sky.day, uPxScale: pxScale }));
+      const o = passe('papillons', U); o.uMode = 1; o.uAmount = sky.day; o.uPxScale = pxScale;
+      this.use(this.progs.flies, o);
       gl.drawArrays(gl.POINTS, 0, Math.round(110 * fliesK));
       gl.enable(gl.BLEND); gl.depthMask(false);
     }
     if (sky.night > 0.05 && fliesK > 0.01) {
       gl.blendFunc(gl.ONE, gl.ONE);
-      this.use(this.progs.flies, Object.assign({}, U, { uMode: 0, uAmount: sky.night, uPxScale: pxScale }));
+      const o = passe('lucioles', U); o.uMode = 0; o.uAmount = sky.night; o.uPxScale = pxScale;
+      this.use(this.progs.flies, o);
       gl.drawArrays(gl.POINTS, 0, Math.round(380 * fliesK));
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     }
@@ -894,14 +924,16 @@ class Renderer {
     // pluie
     if (F.rain > 0.01) {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      this.use(this.progs.rain, Object.assign({}, U, { uRainWind: F.rainWind, uRainCol: F.rainCol }));
+      const o = passe('rain', U); o.uRainWind = F.rainWind; o.uRainCol = F.rainCol;
+      this.use(this.progs.rain, o);
       gl.bindVertexArray(this.emptyVAO);
       gl.drawArrays(gl.LINES, 0, Math.floor(2600 * F.rain) * 2);
     }
     // neige
     if (F.snow > 0.01) {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      this.use(this.progs.snow, Object.assign({}, U, { uRainWind: F.rainWind, uSnowCol: F.snowCol || [0.9, 0.92, 0.95], uPxScale: pxScale }));
+      const o = passe('snow', U); o.uRainWind = F.rainWind; o.uSnowCol = F.snowCol || REND_NEIGE; o.uPxScale = pxScale;
+      this.use(this.progs.snow, o);
       gl.bindVertexArray(this.emptyVAO);
       gl.drawArrays(gl.POINTS, 0, Math.floor(3200 * Math.min(1, F.snow)));
     }
@@ -920,25 +952,8 @@ class Renderer {
 
     // arme
     // objet en main (à droite) et lanterne (main gauche)
-    const drawHand = (g, left) => {
-      gl.disable(gl.DEPTH_TEST);
-      const vm = !!g.vm, s = vm ? { aspect: VM_W / VM_H, u0: 0, v0: 0, u1: 1, v1: 1 } : ATLAS.sprites[g.spr];
-      const unit = Math.min(rh, rw * 0.75);
-      const hPx = unit * 0.54 * (g.scale || 1), wPx = hPx * s.aspect;
-      const cx = left ? rw * 0.5 - unit * 0.52 + g.ox * unit : rw * 0.5 + unit * 0.17 + g.ox * unit, by = -unit * 0.03 + g.oy * unit;
-      const x0 = cx - wPx / 2, x1 = cx + wPx / 2, y0 = by, y1 = by + hPx;
-      const fw = s.u1 - s.u0, f = vm ? 0 : g.frame;
-      if (vm && g.dirty) { gl.activeTexture(gl.TEXTURE0 + TEX_VM); gl.bindTexture(gl.TEXTURE_2D, this.vmTex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, g.canvas); g.dirty = false; }
-      this.use(this.progs.gun, {
-        uRect: [x0 / rw * 2 - 1, y0 / rh * 2 - 1, x1 / rw * 2 - 1, y1 / rh * 2 - 1],
-        uUV: [s.u0 + fw * f, s.v0, s.u1 + fw * f, s.v1], uLight: g.light, uBandsG: F.bands, uTintG: g.tint || [1, 1, 1], uUseVM: vm ? 1 : 0,
-      });
-      gl.bindVertexArray(this.emptyVAO);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      gl.enable(gl.DEPTH_TEST);
-    };
-    if (F.gunL) drawHand(F.gunL, true);
-    if (F.gun) drawHand(F.gun, false);
+    if (F.gunL) this.dessinMain(F.gunL, true, F, rw, rh);
+    if (F.gun) this.dessinMain(F.gun, false, F, rw, rh);
 
     // Moyenne et plus : l'image HDR rendue (halo, rayons, flou des cinématiques, exposition, courbe, étalonnage)
     gl.disable(gl.DEPTH_TEST);
@@ -950,17 +965,48 @@ class Renderer {
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.activeTexture(gl.TEXTURE0 + TEX_SCENE);
     gl.bindTexture(gl.TEXTURE_2D, image);
-    this.use(this.progs.post, {
-      uRes: [rw, rh], uScale: this.scale, uLevels: F.levels, uUnder: F.underwater ? 1 : 0, uTimeP: F.time,
-      uGamma: F.gamma, uTint: F.tint || [0, 0, 0, 0], uGlitch: F.glitch || [0, 0, 0, 0], uSeed: F.seed || 0, uFx: F.fx || [0, 0, 0, 0], uFx2: F.fx2 || [0, 0, 0, 0],
-      uGrain: this.grain ? 0.075 : 0,
-    });
+    { const o = PU.post || (PU.post = {});
+      PU.res[0] = rw; PU.res[1] = rh;
+      o.uRes = PU.res; o.uScale = this.scale; o.uLevels = F.levels; o.uUnder = F.underwater ? 1 : 0; o.uTimeP = F.time;
+      o.uGamma = F.gamma; o.uTint = F.tint || REND_Z4; o.uGlitch = F.glitch || REND_Z4; o.uSeed = F.seed || 0; o.uFx = F.fx || REND_Z4; o.uFx2 = F.fx2 || REND_Z4;
+      o.uGrain = this.grain ? 0.075 : 0;
+      this.use(this.progs.post, o); }
     gl.bindVertexArray(this.emptyVAO);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.bindVertexArray(null);
     gl.enable(gl.DEPTH_TEST);
     this.lastBasis = basis; this.lastTan = [tanX, tanY];
+    this._lie = null; // (hors de l'image, un programme se reprend toujours par use())
     this.garde();
+  }
+
+  // un tampon de modèles (cube instancié) : envoyé s'il a changé (toujours pour ceux qui changent à chaque image), dessiné
+  dessinModele(M, buf, always) {
+    if (!buf) return;
+    if (always || M.ver !== buf.ver) { gl.bindBuffer(gl.ARRAY_BUFFER, M.ib); gl.bufferData(gl.ARRAY_BUFFER, buf.data.subarray(0, Math.max(1, buf.n) * 16), gl.DYNAMIC_DRAW); M.ver = buf.ver; M.n = buf.n; }
+    if (!M.n) return;
+    gl.bindVertexArray(M.vao);
+    gl.drawElementsInstanced(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0, M.n);
+  }
+  // l'objet en main (à droite) ou la lanterne (main gauche)
+  dessinMain(g, left, F, rw, rh) {
+    gl.disable(gl.DEPTH_TEST);
+    const vm = !!g.vm, s = vm ? REND_VM : ATLAS.sprites[g.spr];
+    const unit = Math.min(rh, rw * 0.75);
+    const hPx = unit * 0.54 * (g.scale || 1), wPx = hPx * s.aspect;
+    const cx = left ? rw * 0.5 - unit * 0.52 + g.ox * unit : rw * 0.5 + unit * 0.17 + g.ox * unit, by = -unit * 0.03 + g.oy * unit;
+    const x0 = cx - wPx / 2, x1 = cx + wPx / 2, y0 = by, y1 = by + hPx;
+    const fw = s.u1 - s.u0, f = vm ? 0 : g.frame;
+    if (vm && g.dirty) { gl.activeTexture(gl.TEXTURE0 + TEX_VM); gl.bindTexture(gl.TEXTURE_2D, this.vmTex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, g.canvas); g.dirty = false; }
+    const H = this._mains || (this._mains = [0, 1].map(() => ({ uRect: new Float32Array(4), uUV: new Float32Array(4), uLight: null, uBandsG: 0, uTintG: null, uUseVM: 0 })));
+    const o = H[left ? 0 : 1], R = o.uRect, V = o.uUV;
+    R[0] = x0 / rw * 2 - 1; R[1] = y0 / rh * 2 - 1; R[2] = x1 / rw * 2 - 1; R[3] = y1 / rh * 2 - 1;
+    V[0] = s.u0 + fw * f; V[1] = s.v0; V[2] = s.u1 + fw * f; V[3] = s.v1;
+    o.uLight = g.light; o.uBandsG = F.bands; o.uTintG = g.tint || REND_UN3; o.uUseVM = vm ? 1 : 0;
+    this.use(this.progs.gun, o);
+    gl.bindVertexArray(this.emptyVAO);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.enable(gl.DEPTH_TEST);
   }
 
   // ---------------------------------------------------------------- ambiance (Moyenne et plus) : ce que l'image demande
@@ -1181,12 +1227,14 @@ class Renderer {
   // seulement si la qualité suit un préréglage que le joueur n'a pas choisi. Si cela n'aide pas (l'image est bridée
   // ailleurs : écran à 30 Hz, économie d'énergie, le processeur), on remet comme avant et l'on n'y touche plus.
   // Un mot seulement à qui a gardé tous les textes (« Moins de texte » éteint).
+  // (une image de plus d'une seconde ne compte pas : une pause, un chargement ; celles d'un quart de seconde à une
+  // seconde comptent — une machine qui ne fait que quatre images par seconde ou moins est justement celle à soulager)
   garde() {
     const G = this.gardeE;
     if (G.off) return;
     const now = performance.now(), d = G.t ? now - G.t : 0;
     G.t = now;
-    if (d <= 0 || d > 250 || now < G.repos || typeof game === 'undefined' || game.mode !== 'play' || game.sleeping || document.hidden || (typeof cine !== 'undefined' && cine.on)) return;
+    if (d <= 0 || d > 1000 || now < G.repos || typeof game === 'undefined' || game.mode !== 'play' || game.sleeping || document.hidden || (typeof cine !== 'undefined' && cine.on)) return;
     G.n++; G.s += d; if (d > 25) G.lent++;
     if (G.s < 4000) return;
     const moy = G.s / G.n, lent = G.lent / G.n;

@@ -470,12 +470,14 @@ const chasse = {
   },
   // les dépouilles se ciblent avec E
   cible(eye, f, cand) {
-    for (const e of entities.list) {
+    // (à chaque image, les 1 200 bêtes : une boucle par indice, qui n'alloue rien)
+    for (let i = 0, L = entities.list; i < L.length; i++) {
+      const e = L[i];
       if (!e.corpse || e.removed || e.hidden) continue;
       const dx = e.x - eye[0], dy = e.y + 0.3 - eye[1], dz = e.z - eye[2], d = Math.hypot(dx, dy, dz);
       if (d > 2.8) continue;
       if ((dx * f[0] + dy * f[1] + dz * f[2]) / (d || 1) < 0.6) continue;
-      cand({ kind: 'hook', corpse: e, use: () => this.depecer(e) }, d + 0.05);
+      this._cibleDep(cand, e, d + 0.05);
     }
     // les pièges des chasseurs (ils ne se voient que de près)
     for (const t of this.S().pieges) {
@@ -485,6 +487,10 @@ const chasse = {
       cand({ kind: 'hook', piege: t, use: () => this.usePiege(t) }, d + 0.1);
     }
   },
+
+  // (la cible d'une dépouille : sa fonction faite ici, hors de la boucle — une fonction dans la boucle lui faisait
+  // allouer, à chaque bête et à chaque image, de quoi garder la bête)
+  _cibleDep(cand, e, d) { cand({ kind: 'hook', corpse: e, use: () => this.depecer(e) }, d); },
 
   // ============================================================== les pièges à loup
   // accès commun : un piège posé (w.props, données dans q.data) ou un piège de chasseur (farm.s.chasse.pieges)
