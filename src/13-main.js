@@ -365,7 +365,7 @@ const game = {
     const c = play.cellAt(eye, f);
     if (c && c.t < 3.2) { const cr = farm.crop(c.x, c.z); if (cr && cr.c && (farm.ripe(cr) || cr.dead)) cand({ kind: 'crop', x: c.x, z: c.z, c: cr }, c.t); }
     for (const a of play.arrows) if (a.stuck && Math.hypot(a.x - eye[0], a.y - eye[1], a.z - eye[2]) < 2.2) cand({ kind: 'arrow', a }, Math.hypot(a.x - eye[0], a.y - eye[1], a.z - eye[2]));
-    for (let i = 0, H = HOOKS.target; i < H.length; i++) { const fn = H[i]; fn(eye, f, cand); }
+    for (const fn of HOOKS.target) fn(eye, f, cand);
     const oh = w.raycastObjects(eye, f, 2.6, true);
     if (oh) {
       const tid = OBJ_TYPES[oh.obj.t].id, H = HARVEST[tid];
@@ -1037,7 +1037,7 @@ const game = {
       camPos = p.eyePos(); yaw = p.yaw; pitch = p.pitch + p.kickPitch;
       if (this.shakeT > 0) { this.shakeT = Math.min(this.shakeT, 1) - dt; const k = Math.max(0, this.shakeT) * 0.05, t = this.time; camPos = [camPos[0] + Math.sin(t * 37) * k, camPos[1] + Math.sin(t * 43 + 1) * k, camPos[2] + Math.sin(t * 31 + 2) * k]; }
       if (F && play.nausea > 0) yaw += Math.sin(this.time * 1.3) * Math.min(0.025, 0.004 * play.nausea);
-      if (F) for (let i = 0, H = HOOKS.camera; i < H.length; i++) { const fn = H[i], c = fn(dt, camPos, yaw, pitch); if (c) { camPos = c.pos; yaw = c.yaw; pitch = c.pitch; } }
+      if (F) for (const fn of HOOKS.camera) { const c = fn(dt, camPos, yaw, pitch); if (c) { camPos = c.pos; yaw = c.yaw; pitch = c.pitch; } }
     }
     weather.update(dt, w);
     const wc = weather.cur;
@@ -1050,7 +1050,7 @@ const game = {
       red: F ? strange.redK : 0, envers: F ? strange.enversK : 0,
     }, clamp(settings.fogDist || 1, 0.5, 2));
     if (F && p.underground) { sky.wet = 0; }
-    if (F) for (let i = 0, H = HOOKS.sky; i < H.length; i++) { const fn = H[i]; fn(sky); }
+    if (F) for (const fn of HOOKS.sky) fn(sky);
     const basis = cameraBasis(yaw, pitch);
     const eye = p.eyePos();
 
@@ -1122,7 +1122,7 @@ const game = {
       fx = [Math.max(fat * 0.8, p.hp < 30 ? (30 - p.hp) / 60 : 0, p.food < 5 ? 0.25 : 0), sfx.red, play.nausea > 0 ? Math.min(1, play.nausea / 5) : 0, sfx.envers];
       if (play.hurtFlash > 0) tint = [0.55, 0, 0, Math.min(0.55, play.hurtFlash * 0.6)];
       glitch = sfx.glitch;
-      for (let i = 0, H = HOOKS.fx; i < H.length; i++) { const fn = H[i]; fn(fx, tint, sky); }
+      for (const fn of HOOKS.fx) fn(fx, tint, sky);
     }
 
     this.renderer.resize(settings.pixel);
@@ -1135,7 +1135,7 @@ const game = {
       entities.draw(play.dynBuf, play.shadowBuf, camPos, Math.min(90, sky.fog[1] + 10), this.time, 0);
       npcs.draw(play.dynBuf, play.shadowBuf, camPos, this.time, Math.min(110, sky.fog[1] + 20));
       strange.draw(play.dynBuf, play.shadowBuf, camPos, this.time);
-      for (let i = 0, H = HOOKS.draw; i < H.length; i++) { const fn = H[i]; fn(play.dynBuf, play.shadowBuf, camPos, this.time); }
+      for (const fn of HOOKS.draw) fn(play.dynBuf, play.shadowBuf, camPos, this.time);
       if (p.riding) { const e = p.riding; poseQuad(e.rig, { move: Math.min(1, Math.hypot(p.vel[0], p.vel[2]) / 4), phase: (e.phase += dt * Math.hypot(p.vel[0], p.vel[2]) * 0.9), run: p.sprinting, t: this.time, lookP: 0.55 }); drawRig(play.dynBuf, e.rig, p.pos[0], p.pos[1], p.pos[2], p.yaw + Math.PI, 1, 0); e.x = p.pos[0]; e.z = p.pos[2]; e.y = p.pos[1]; }
       props = play.propBuf; dyn = play.dynBuf; shadows = play.shadowBuf;
     } else {
@@ -1245,7 +1245,8 @@ const game = {
     deliveries.update();
     this.crowRaid();
     this.machineFx(dt);
-    { const H = HOOKS.update; for (let i = 0; i < H.length; i++) { const fn = H[i]; fn(dt, eye, basis, sky, playing); } }
+    // for…of (pas d'index) : dans la Zone, HOOKS.update est une liste V1Crochets dont l'itération trie les crochets
+    for (const fn of HOOKS.update) fn(dt, eye, basis, sky, playing);
     { const E = entities.list; for (let i = 0; i < E.length; i++) { const e = E[i]; if (e.lifeT !== undefined) { e.lifeT -= dt; if (e.lifeT <= 0 && !e.land) entities.remove(e); } } }
   },
   // Petites particules d'ambiance : feuilles en forêt, brume au marais, pollen dans les prés, neige de cendre dans l'Envers
