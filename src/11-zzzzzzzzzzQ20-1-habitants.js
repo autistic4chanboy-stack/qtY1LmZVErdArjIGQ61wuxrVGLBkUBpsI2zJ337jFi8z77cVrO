@@ -900,7 +900,8 @@ q20.scenes('garde_1', {
     const moi = c.habitant('garde', P0, { cap: P0.leve ? ax + Math.PI : ax, geste: ['penche', 'montre'] });
     return [
       c.plan({ dur: 6, cam: c.camActeur(moi, { cote: 0.35, d: 3.4 }), acteurs: [moi], dit: ['Le tablier du pont nord a des planches pourries. Grignotées. Par en dessous.'], court: true }),
-      c.plan({ dur: 6, cam: c.camLieu(Po.milieu, { d: 12, haut: 5, dy: -0.4, a: ax + 0.45, recul: 0.1 }), son: 'eau', dit: ['Vingt brassées de bois, deux lingots de fer. Et faites vite. Je n’aime pas penser à ce qui grignote.'] }),
+      // (le pont baissé, vu d'en haut, depuis le dehors ; levé, la nuit : de plus loin, dressé devant la porte)
+      c.plan({ dur: 6, cam: Po.br.up || Po.br.a > 0.3 ? c.camLieu(Po.porte, { d: 16, haut: 6, dy: 2.5, a: ax + 0.5, recul: 0.1 }) : c.camLieu(Po.milieu, { d: 12, haut: 5, dy: -0.4, a: ax + 0.45, recul: 0.1 }), son: 'eau', dit: ['Vingt brassées de bois, deux lingots de fer. Et faites vite. Je n’aime pas penser à ce qui grignote.'] }),
     ];
   },
   fin(c) {
