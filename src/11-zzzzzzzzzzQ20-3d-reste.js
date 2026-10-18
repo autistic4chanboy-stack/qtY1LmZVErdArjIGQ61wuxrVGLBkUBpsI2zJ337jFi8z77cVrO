@@ -107,7 +107,7 @@ for (const id of MYTH_ORDER) {
       if (L.lise && Lx) { const P = Q20C.autour(c, Lx, 2.6, 7); if (P) ac.push(c.gens('lise', P, { face: Lx.P, vu: false })); }
       if (L.follets && Lx) for (let k = 0; k < 5; k++) lum.push(c.lueur(c.devant(Lx.P, k * 1.3, 2 + k * 1.1), 2.2, [0.45, 0.75, 1.0], 0.8 + (k % 2) * 0.4));
       const camL = L.chasse && Lx ? c.camRegard(Lx.P, c.haut(Lx.P, 60), { haut: 1.6 }) : c.camLieu(Lx, { d: Math.max(18, (Lx.r || 10) * 1.6), haut: 3.2, dy: 1.4, recul: 0.15 });
-      plans.push(c.plan({ dur: moi ? 6 : 7, cam: camL, acteurs: ac, heure: L.hD, lum, son: L.son, dit: moi ? ['(' + titre() + '.)', ''] : [L.dit, ''], court: !moi }));
+      plans.push(c.plan({ dur: moi ? 6 : 7, cam: camL, acteurs: ac, heure: L.hD, lum, son: L.son, chaque: L.follets && Lx ? Q20H.emet(c.haut(Lx.P, 0.8), { n: 3, col: [0.55, 0.85, 1.2, 0.9], taille: 0.12, vie: 3.5, v: 0.25, vy: 0.08, r: 6, eclat: true }) : null, dit: moi ? ['(' + titre() + '.)', ''] : [L.dit, ''], court: !moi }));
       if (!moi) plans.push(c.plan({ dur: 5.4, cam: c.camLieu(Lx, { d: Math.max(28, (Lx.r || 10) * 2.2), haut: 6, dy: 1.2 }), heure: L.hD, acteurs: [], dit: ['(' + titre() + '.)', ''] }));
       return plans;
     },
@@ -119,13 +119,13 @@ for (const id of MYTH_ORDER) {
       if (L.follets && P) { const X = Lx.P; ac.push(c.chose('coffre_tresor', c.haut(X, -0.1), { r: 1.2, data: { vide: false } })); for (let k = 0; k < 6; k++) lum.push(c.lueur(c.devant(X, k * 1.05, 1.6), 1.6, [0.45, 0.75, 1.0], 0.9)); }
       if (L.poupee && P) { ac.push(c.chose(Q20C_D4.poupee, c.haut(P, 0.62), { s: 1.6 })); }
       if (L.lise && P) { ac.push(c.chose(Q20C_D4.croix, P, { s: 1 }), c.chose(Q20_DESSINS.couronne, c.devant(P, 0, 0.35, 0, true), { s: 0.5 })); const G = Q20C.autour(c, Lx, 2.8, 6); if (G) ac.push(c.gens('lise', G, { face: P, vu: false })); }
-      if (L.chasse && P) { const X = Q20C.autour(c, Lx, 0.6, 3); P = X; ac.push(c.chose(Q20C_D4.fer, X, { s: 1.8 }), c.joueur(Q20H.libre(c, c.devant(X, 1.6, 1.0), 0, 2, 0.4), { face: X, geste: 'peur', vu: false })); }
+      if (L.chasse && P) { const X = Q20C.autour(c, Lx, 0.6, 3); P = X; lum.push(c.lueur(X, 5, [0.45, 0.5, 0.65], 2.5)); ac.push(c.chose(Q20C_D4.fer, X, { s: 1.8 }), c.joueur(Q20H.libre(c, c.devant(X, 1.6, 1.0), 0, 2, 0.4), { face: X, geste: 'peur', vu: false })); }
       if (L.dormir && P) { const X = Q20C.autour(c, Lx, 2.2, 3.2); ac.push(c.joueur(X, { face: Lx.P, geste: 'assis' })); P = X; }
       if (L.puits && Lx) cam = Q20H.puits(c, Lx, { fond: -3 });
       if (L.bete && P) lum.push(c.lueur(P, 4, [0.95, 0.95, 1.0], 0.4));
       // (un grand lieu sans chose à montrer — le lac — : de la rive ; sinon la chose, de près)
       if (!cam) cam = P && !(P === Lx.P && (Lx.r || 0) > 40) ? c.camChose(P, { d: L.coffre || L.chasse || L.poupee ? 2.6 : 5, haut: 1.4, dy: 0.4, a: 0.9 }) : c.camLieu(Lx, { d: 46, haut: 2.4, dy: 0.6, recul: 0.1 });
-      plans.push(c.plan({ dur: 6.6, cam, acteurs: ac, heure: L.hF, lum, son: L.son, dit: [L.vu, ''], court: true }));
+      plans.push(c.plan({ dur: 6.6, cam, acteurs: ac, heure: L.hF, lum, son: L.son, dit: [L.vu, ''], court: true, chaque: L.follets && P ? Q20H.emet(c.haut(P, 0.9), { n: 3, col: [0.55, 0.85, 1.2, 0.9], taille: 0.12, vie: 3, v: 0.15, vy: 0.05, r: 3, eclat: true }) : null }));
       plans.push(c.plan({ dur: 5.6, cam: c.camLieu(Lx, { d: Math.max(22, (Lx.r || 10) * 1.8), haut: 4, dy: 1.2, recul: 0.15 }), heure: L.hF, acteurs: [], dit: ['(' + titre() + ' : vu de vos yeux.)', ''] }));
       return plans;
     },
