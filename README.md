@@ -1302,6 +1302,53 @@ Les commandes sont dans le menu **Commandes** (Échap).
 - **Rien ne bouge dans la vallée** : aucune passe de génération nouvelle ; les anciennes parties retrouvent tout.
   `node tools/equilibrage.js` (les quarante domaines) passe tel quel.
 
+**Une cinématique pour chaque quête**
+- **Chaque quête a ses scènes, faites pour elle** :
+  - **la demande** : celui qui la donne, chez lui ou à son poste, à sa façon (la boulangère pétrit, le forgeron frappe
+    l'enclume, le curé prie), puis ce dont il parle, vu de loin ;
+  - **le tournant**, quand il y en a un : la trouvaille sur place, la remise d'un objet ou d'un message, la nuit
+    veillée ;
+  - **le dénouement** : sa réaction et ce qu'il donne ; chaque fin à choix a le sien.
+
+  Deux ou trois plans, une douzaine de secondes, quelques répliques dans sa voix, à la lumière de l'heure et aux vrais
+  lieux de la partie.
+- **Toutes les quêtes y passent** :
+  - les trente-neuf quêtes des habitants ;
+  - les quêtes de la seizième vague : secondes quêtes, Mère Ysaure, le vieux Tiennot, le crieur, le voiturier, le
+    marchand de joie, le roi Sucre, la vieille des gobelins, Thibaud et la Dame de Hautguet, la veilleuse de la cité,
+    les bêtes qui parlent, ceux du Dessous, et les gens de Basse-Fosse (la personne tirée pour la partie joue la scène
+    de son modèle) ;
+  - les premières quêtes des habitants ajoutés : l'alchimiste, le bibliothécaire, les colporteurs, le chasseur, les
+    nains, les Planches, l'estive ;
+  - les quêtes hors du carnet des habitants : la tournée de la poste, les travaux de la mairie, l'emprunt à la
+    bibliothèque, la clé de la Grande Porte, la lavandière, les Petits, le baron, la loge de l'hôtel, l'avis de
+    recherche, l'homme au masque, le carnet de commandes, la croix sur la carte, les reliques, le caveau ;
+  - les quatorze légendes de la vallée.
+
+  Les quêtes à lieux précis ont maintenant des gens à l'écran pour la demande et pour chaque fin. Au total : plus de
+  cent soixante quêtes, plus de quatre cents moments.
+- **Chacune chez elle** : une scène qui se passe sous terre, au Dessous, dans la Zone, au pays des bonbons ou dans la
+  cité attend qu'on y soit, et se joue à la lumière du lieu.
+- **Jamais lourd** :
+  - une scène attend le premier moment calme : pas de combat, de coup reçu, de bête qui charge, ni de panneau ouvert,
+    et ni sous l'eau ni en pleine chute ; elle saute si elle n'a plus de sens ;
+  - on la passe en **maintenant Espace ou Échap** ;
+  - une scène déjà vue ne revient pas.
+- **Options › Jeu › « Scènes des quêtes »** : *Toutes* (par défaut), *Courtes* (la demande et le dénouement seulement,
+  cinq à huit secondes) ou *Aucune*.
+- **Les Souvenirs** (Carnet › Souvenirs) : après les scènes de l'histoire, « Les quêtes », rangées par habitant ; chaque
+  moment se revoit, même ceux qu'on a passés.
+- **Rien ne change dans les quêtes** : mêmes étapes et mêmes récompenses, aucune passe de génération. Les anciennes
+  parties se chargent sans rien rejouer : ce qui est fait rejoint les Souvenirs, et une quête en cours ne rejoue pas sa
+  demande.
+- **Pour les succès** : le jeu émet `prairie:quetescine` sur `window`, avec `detail` = `{ quete, moment }`.
+- **Équilibrage** : `node tools/equilibrage.js Q20 Q20B Q20C`. Ces domaines vérifient :
+  - chaque scène se construit dans deux vallées, de jour et de nuit, et dans son monde ;
+  - la caméra n'est jamais dans un mur, sous le sol ni contre un personnage ;
+  - rien ni personne ne se met devant ce qu'on montre, et celui qu'on montre reste dans le champ ;
+  - les durées ;
+  - l'option Aucune ne joue rien, et une ancienne partie ne rejoue rien.
+
 ### Mode Création
 
 Éditeur de monde séparé : relief, peinture du sol, objets, animaux, blocs. **Exporter** télécharge un fichier
@@ -1848,6 +1895,8 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `05-zzzzzzzH17-histoire.js`, `11-zzzzzzzH17-1-moteur.js`, `11-zzzzzzzH17-2-histoire.js`, `12-zzzzzzzH17-carnet.js` | l'histoire : les chapitres, les fins, les paroles et le générique (`H17_CHAPITRES`, `H17_FINS`, `H17_CINES`) ; le moteur des cinématiques en plus du socle (`h17Cine` : chemins de caméra, figurants, cartes, générique, passer en maintenant Espace ou Échap, la partie tenue pendant la scène) ; le jeu (API `histoire`, état `farm.s.histoire`, les scènes `H17_SCENES`, l'événement `prairie:histoire`) ; les pages Histoire et Souvenirs du carnet |
 | `13-zzzzzzS17-bureau.js`, `13-zzzzzzS17-succes.js` | la version de bureau : le bouton « Quitter » (seulement quand `window.steamBridge` existe), les options « Plein écran » et « Qualité graphique » (`bureau`) ; les succès, lus dans l'état de la partie et envoyés au pont de l'application quand il existe (`succes` ; leurs titres dans `steam/achievements.json`) |
 | `07-zzzzzzzzzzzzzM19-modeles.js`, `11-zzzzzzzzzzM19-maisons.js` | les modèles refaits : le gabarit des quadrupèdes et les corps d'oiseau, leurs niveaux de détail selon la distance, les bêtes hors de la vue qui ne sont ni posées ni dessinées (`M19Vue`) ; l'habillage des maisons et de la fontaine (pierres d'angle, descentes, épis), seulement de près |
+| `11-zzzzzzzzzzQ20-0-cadre.js`, `12-zzzzzzzzzzQ20-souvenirs.js` | les scènes des quêtes : le cadre (`q20.scenes(id, { qui, demande, tournant, fin, fins, monde… })`, les déclencheurs de `quests` et de `q16`, la file qui attend le moment calme et le bon monde, le contexte `Q20Scene` : lieux, acteurs, caméras, plans, répliques), l'option « Scènes des quêtes », les Souvenirs rangés par habitant, l'événement `prairie:quetescine` |
+| `11-zzzzzzzzzzQ20-1-habitants.js`, `11-zzzzzzzzzzQ20-2a…2e-*.js`, `11-zzzzzzzzzzQ20-3…3d-reste.js` | les tables de scènes : les trente-neuf quêtes des habitants ; les quêtes Q16 (les outils des autres mondes `q20B`, les secondes quêtes, les autres, ailleurs, Basse-Fosse) ; le reste (premières quêtes des habitants ajoutés, quêtes hors du carnet, quêtes T, légendes) |
 | `05-zzzzzR15-runes.js`, `09-zzzzzR15-runes.js`, `11-zzzzzR15-1-pose.js`, `11-zzzzzR15-2-jeu.js`, `12-zzzzzR15-runes.js` | les runes : les données (`R15_RUNES`, `R15_REGL`, `R15_PORTES`, les butins des dalles), les sons, la pose (la dernière passe de la vallée, avec son propre tirage, et `zone.passe('R15')` dans les Terres d'Avant : rien de ce qui était posé ne bouge), le jeu (`farm.s.runes`, API `runes` : les tablettes, l'assemblage, les effets, les dalles, le dessin) et le panneau (la page Runes du menu, `runesUI`) |
 | `05-zzzzzzzD18-dettes.js`, `11-zzzzzzzzD18-1-dettes.js`, `11-zzzzzzzzD18-2-travaux.js`, `12-zzzzzzzzD18-carnet.js` | les dettes de la ferme : les données (les huit termes, le retard, les lettres : `D18_TERMES`, `D18_RETARD`) ; le jeu (`farm.s.dettes18`, API `window.dettes18`, l'événement `prairie:dettes` : payer à la boîte de l'étude ou par mandat, les pénalités, les saisies, les scellés) ; les travaux (`D18_PLAN`), posés terme après terme là où rien ne gêne, sans passe de génération ; la page « La ferme » du carnet |
 | `05-zzzzzzzL18-hotel.js`, `07-zzzzzzzzzzzzzL18-hotel.js`, `09-zzzzzzL18-musique.js`, `11-zzzzzzzL18-1-plan.js` à `11-zzzzzzzL18-5-scenes.js`, `12-zzzzzzzL18-carnet.js` | le Grand Hôtel des Cimes : les données et les textes (`L18_GENS`, `L18_ARCS`, `L18_CLIENTS`, `L18_DEMANDES`, `L18_RANGS`) ; une matière (la façade) et les modèles ; deux airs (groupe « hotel ») ; le plan et la passe (`l18Generer`, la dernière de l'époque, avec son propre tirage ; `w.l18`) ; l'état et les gens (`hotel18`, `hotelGens`, `farm.s.hotel18`), le service à la loge (`hotelService`), ce qu'ils disent et les quatre histoires (`hotelParler`, `hotelHistoires`), les scènes, le funiculaire et la voiture (`hotelScenes`) ; la page « Le Grand Hôtel » du carnet et les fiches du wiki du jeu |
