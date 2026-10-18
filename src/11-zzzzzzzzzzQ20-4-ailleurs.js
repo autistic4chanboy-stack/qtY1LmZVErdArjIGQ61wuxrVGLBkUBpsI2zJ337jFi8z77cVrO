@@ -46,6 +46,16 @@ if (typeof q20B !== 'undefined' && q20B.ici) {
     return r;
   };
 }
+// (une fin déjà passée — l'une de ses fins à choix, 'fin:k', vue ou rangée aux souvenirs — ne revient pas par un 'fin'
+// redemandé : un guet qui voit la quête finie la redemande toutes les deux secondes, et le dénouement se rejouerait sans
+// fin (l'homme au masque, l'avis de recherche, les Petits…). Contrat, section Q20D : à reprendre dans le cadre.)
+{
+  const _dc = q20.declencher.bind(q20);
+  q20.declencher = function (id, m, o) {
+    if (m === 'fin' && farm.s && this.defs[id]) { const S = this.S(); if (this.moments(id).some((k) => k.startsWith('fin') && S.fait[this.cle(id, k)])) return false; }
+    return _dc(id, m, o);
+  };
+}
 // les Galeries (le labyrinthe de la vieille mine, sous la vallée) : un monde sous terre de plus pour la file de Q20B
 if (typeof Q20B_SOUS !== 'undefined' && !Q20B_SOUS.galeries) Q20B_SOUS.galeries = { lm: 'galeries', r: 86 };
 

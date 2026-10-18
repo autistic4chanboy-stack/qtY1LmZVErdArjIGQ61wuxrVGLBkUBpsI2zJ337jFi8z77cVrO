@@ -288,6 +288,15 @@ module.exports = {
         q20d.note('dameCle'); tour();
         q20d.note('dame', { pont: 0 }); V4.dame.fin = true; tour();
         if (a('q20d_hg_dame').join() !== 'q20d_hg_dame|demande,q20d_hg_dame|tournant,q20d_hg_dame|fin:1') e.push('la Dame : ' + a('q20d_hg_dame').join(', '));
+        // une fin à choix vue ne revient pas, même redemandée (un guet la redemande toutes les deux secondes)
+        if (q20.declencher('q20d_hg_dame', 'fin')) e.push('la Dame : sa fin vue revient en file');
+        if (typeof q20c !== 'undefined' && q20.defs.q20c_masque) {
+          const s0 = strange.s;
+          strange.s = Object.assign({}, strange.s || {}, { victims: ['boulangere'], killer: 'forgeron', kCaught: true });
+          for (let i = 0; i < 30; i++) { q20c.t = 0; q20c.update(0.5); tour(1); }
+          strange.s = s0;
+          if (a('q20c_masque').length !== 1) e.push('l’homme au masque (lot 3) : la fin, redemandée par son guet, jouée ' + a('q20c_masque').length + ' fois');
+        }
         // le pont : Thibaud en parle, on le baisse ; le lendemain, au bout du pont (seulement à Hautguet)
         V4.parle.t_treuil = 1; tour(); V4.leviers.pont = 3; V4.thibaud = { n: 3, etat: 'baisse', jour: 3 }; tour(30);
         if (a('q20d_hg_pont').join() !== 'q20d_hg_pont|demande,q20d_hg_pont|tournant') e.push('le pont : ' + a('q20d_hg_pont').join(', '));
