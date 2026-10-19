@@ -978,6 +978,8 @@ html.m21-manette #butin .bu-aide { display: none; }
       const g = $q('.grid', body), h = g && g.previousElementSibling && g.previousElementSibling.tagName === 'H4' ? g.previousElementSibling : g;
       if (h) outils(body, Object.assign({}, LISTES.sac, { place: h }));
       for (const el of $$q('.barcfg [data-slot], .barcfg [data-tok]', body)) if (!el.hasAttribute('tabindex')) el.tabIndex = 0;
+      const ind = $$q(':scope > p.hint', body).pop();
+      if (ind && $q('.grid [data-it]', body) && !$q('.m21-pied', ind)) ind.insertAdjacentHTML('beforeend', ' <span class="m21-pied">Clic droit : le ranger dans une case de la barre d’outils.</span>');
     } else if (id === 'fab') {
       const r0 = $q(':scope > .rec', body);
       if (r0) outils(body, Object.assign({}, LISTES.fab, { place: r0 }));
@@ -1016,6 +1018,9 @@ html.m21-manette #butin .bu-aide { display: none; }
     const body = $q(':scope > .body', P);
     if (!body || body._m21) return;
     body._m21 = true;
+    // le pied : comment choisir le nombre (un texte à part : celui d'origine garde sa traduction)
+    const pied = $q(':scope > .foot', P);
+    if (pied && !$q('.m21-pied', pied)) pied.insertAdjacentHTML('beforeend', ' <span class="m21-pied">· clic droit : choisir le nombre</span>');
     outils(P, { cle: 'coffre', min: 14, place: body, items: (c) => $$q('.it[data-get], .it[data-put]', c), refaire: () => ui.renderStore(),
       tris: [{ id: 'ordre', nom: 'Dans l’ordre' }, { id: 'nom', nom: 'Par nom', cle: (el) => norm(itemName(el.dataset.get || el.dataset.put)) }, { id: 'qte', nom: 'Par nombre', desc: true, cle: (el) => +((el.querySelector('i') || {}).textContent || 0) }] });
   }
