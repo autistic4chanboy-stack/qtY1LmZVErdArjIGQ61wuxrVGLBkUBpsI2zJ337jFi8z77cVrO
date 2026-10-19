@@ -23,7 +23,43 @@
   --muted: #a9a08b;
   --danger: #ff6a4d;
   --ok: #8fe07a;
+  /* M21 : le système visuel des menus (palette d'époque, police de l'écran titre, espaces, mouvement, échelle) */
+  --m21-papier: #e8dfc8;
+  --m21-papier-clair: #f3ecda;
+  --m21-papier-fonce: #dcd0b4;
+  --m21-encre: #33291d;
+  --m21-encre-douce: #6a5436;
+  --m21-encre-pale: #8a7a5a;
+  --m21-sepia: #8a5a2a;
+  --m21-sepia-fonce: #6a4220;
+  --m21-sepia-voile: rgba(138, 90, 42, .14);
+  --m21-trait: rgba(90, 70, 40, .28);
+  --m21-rouge: #9a3a2a;
+  --m21-vert: #3a6a2a;
+  --m21-nuit: rgba(16, 13, 9, .92);
+  --m21-nuit-texte: #efe6cf;
+  --m21-or: #e8c070;
+  --m21-anneau: #c2701c;
+  --m21-voile: rgba(10, 8, 4, .35);
+  --m21-police: Georgia, 'Times New Roman', serif;
+  --m21-t-petit: 12px;
+  --m21-t-texte: 14px;
+  --m21-t-ligne: 15.5px;
+  --m21-t-titre: 20px;
+  --m21-t-grand: 26px;
+  --m21-e1: 4px;
+  --m21-e2: 8px;
+  --m21-e3: 12px;
+  --m21-e4: 16px;
+  --m21-e5: 24px;
+  --m21-rayon: 3px;
+  --m21-ombre: 0 18px 50px rgba(0, 0, 0, .65);
+  --m21-duree: 140ms;
+  --m21-courbe: cubic-bezier(.2, .7, .3, 1);
+  --m21-k: 1;
 }
+html.m21-calme { --m21-duree: 0ms; }
+@media (prefers-reduced-motion: reduce) { html:not(.m21-mouvement) { --m21-duree: 0ms; } }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: #000; overflow: hidden; color: var(--text);
   font-family: 'Trebuchet MS', 'Segoe UI', Verdana, sans-serif; user-select: none; -webkit-user-select: none; }
@@ -62,7 +98,7 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
 #hud-title.show { opacity: 1; }
 #hud-title .t1 { font-size: clamp(22px, 4vw, 40px); letter-spacing: .28em; font-weight: bold; }
 #hud-title .t2 { font-size: 13px; letter-spacing: .4em; color: var(--text); opacity: .8; margin-top: 4px; }
-#dlg-upgrade p { color: var(--text); line-height: 1.55; font-size: 14px; }
+#dlg-upgrade p { color: var(--m21-encre); line-height: 1.55; font-size: 14.5px; }
 #hud-help { position: absolute; right: 22px; top: 50%; transform: translateY(-50%); width: 290px; padding: 12px 16px;
   background: var(--panel-strong); border: 1px solid var(--line); border-radius: 12px; font-size: 13px; display: none; }
 #hud-help.open { display: block; }
@@ -93,9 +129,11 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
 #editor-panel label output { float: right; color: var(--text); }
 #editor-panel label.row { display: flex; align-items: center; gap: 8px; color: var(--text); }
 #editor-panel input[type=range] { width: 100%; accent-color: var(--amber); }
-#editor-panel input[type=text], #editor-panel select, .dialog input[type=text], .dialog select {
+#editor-panel input[type=text], #editor-panel select {
   width: 100%; margin-top: 4px; padding: 6px 8px; background: rgba(0,0,0,.45); color: var(--text);
   border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+.dialog input[type=text], .dialog select { width: 100%; margin-top: 4px; padding: 6px 8px; background: var(--m21-papier-clair); color: var(--m21-encre);
+  border: 1px solid rgba(90,70,40,.42); border-radius: var(--m21-rayon); font: 14.5px var(--m21-police); user-select: text; -webkit-user-select: text; }
 #editor-panel .hint { color: var(--muted); font-size: 12px; margin: 8px 0 2px; line-height: 1.4; }
 .tools { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
 .tool { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: 7px; background: rgba(255,255,255,.04);
@@ -130,37 +168,45 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
   text-shadow: 0 0 22px rgba(255,180,30,.35), 3px 3px 0 #3a2400; }
 #menu .titre2 { margin: 0 0 6px 6px; font: italic clamp(18px, 2.4vw, 30px) Georgia, 'Times New Roman', serif; letter-spacing: .14em;
   color: #e6d6ae; text-shadow: 0 0 14px rgba(255,180,30,.25), 2px 2px 0 #2a1a00; }
-#menu .sub { margin: 4px 0 34px 4px; color: var(--muted); letter-spacing: .08em; font-size: 15px; }
+#menu .sub { margin: 4px 0 34px 4px; color: var(--muted); letter-spacing: .08em; font: 15px var(--m21-police); }
 #menu nav { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-#menu nav button { background: none; border: none; padding: 7px 4px; font-size: 21px; color: var(--text); text-align: left;
-  letter-spacing: .03em; transition: color .15s, transform .15s, text-shadow .15s; }
-#menu nav button:hover, #menu nav button:focus-visible { color: var(--amber); transform: translateX(8px); text-shadow: 0 0 10px rgba(255,190,40,.5); outline: none; }
+#menu nav button { position: relative; background: none; border: none; padding: 6px 10px 6px 4px; font: 22px var(--m21-police); color: var(--m21-nuit-texte); text-align: left;
+  letter-spacing: .03em; text-shadow: 0 1px 3px rgba(0,0,0,.7); transition: color var(--m21-duree), transform var(--m21-duree), text-shadow var(--m21-duree); }
+#menu nav button::before { content: '❧'; position: absolute; left: -24px; top: 50%; translate: -6px -52%; opacity: 0; color: var(--m21-or); font-size: 19px; transition: opacity var(--m21-duree), translate var(--m21-duree); }
+#menu nav button:hover, #menu nav button:focus-visible, html.m21-clavier #menu nav button:focus { color: var(--m21-or); transform: translateX(8px); text-shadow: 0 0 10px rgba(232,192,112,.35), 0 1px 3px rgba(0,0,0,.7); outline: none; }
+#menu nav button:hover::before, #menu nav button:focus-visible::before, html.m21-clavier #menu nav button:focus::before { opacity: 1; translate: 0 -52%; }
 #menu nav .sep { height: 10px; }
 #menu[data-kind="farm"] .k-cre, #menu[data-kind="creative"] .k-farm { display: none; }
-#m-world { margin-top: 30px; color: var(--muted); font-size: 13px; }
+#m-world { margin-top: 30px; color: var(--muted); font: 13px var(--m21-police); }
 #m-world b { color: var(--text); }
-.foot { position: absolute; right: 18px; bottom: 14px; color: var(--muted); font-size: 12px; }
+.foot { position: absolute; right: 18px; bottom: 14px; color: var(--muted); font: 12px var(--m21-police); }
 
-.dialog { background: rgba(0,0,0,.55); align-items: center; justify-content: center; z-index: 5; }
-.dialog .box { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; padding: 20px 24px;
-  background: var(--panel-strong); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
-.dialog h2 { margin: 0 0 14px; color: var(--amber); letter-spacing: .1em; font-size: 20px; }
-.dialog label { display: block; margin: 10px 0; color: var(--muted); font-size: 14px; }
-.dialog label output { float: right; color: var(--text); }
-.dialog label.row { display: flex; gap: 8px; align-items: center; color: var(--text); }
-.dialog input[type=range] { width: 100%; accent-color: var(--amber); }
-.dialog .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
+.dialog { background: rgba(6,5,3,.58); align-items: center; justify-content: center; z-index: 5; }
+.dialog .box { position: relative; width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; padding: 20px 26px 16px;
+  background: var(--m21-papier); color: var(--m21-encre); font-family: var(--m21-police); border: 1px solid rgba(90,70,40,.38); border-radius: var(--m21-rayon);
+  box-shadow: var(--m21-ombre), inset 0 0 60px rgba(120,90,40,.22); animation: m21-entre var(--m21-duree) var(--m21-courbe) both; }
+.dialog h2 { margin: 0 0 14px; padding-bottom: 8px; color: var(--m21-encre); letter-spacing: .16em; font: normal 22px var(--m21-police); border-bottom: 1px solid var(--m21-trait); }
+.dialog label { display: block; margin: 10px 0; color: var(--m21-encre-douce); font-size: 14.5px; }
+.dialog label output { float: right; color: var(--m21-sepia-fonce); font-variant-numeric: tabular-nums; }
+.dialog label.row { display: flex; gap: 8px; align-items: center; color: var(--m21-encre); }
+.dialog input[type=range] { width: 100%; accent-color: var(--m21-sepia); }
+.dialog input[type=checkbox] { width: 16px; height: 16px; margin: 0; accent-color: var(--m21-sepia); flex: none; }
+.dialog .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; }
 .dialog .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
-.dialog .actions button, .seedrow button { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255,255,255,.05); }
-.dialog .actions .primary { background: var(--amber); color: #201600; border-color: var(--amber); font-weight: bold; }
+.dialog .actions button, .seedrow button { padding: 8px 16px; border-radius: var(--m21-rayon); border: 1px solid rgba(90,70,40,.42); background: rgba(255,255,255,.42); color: var(--m21-encre);
+  font-family: var(--m21-police); transition: background-color var(--m21-duree); }
+.dialog .actions button:hover, .seedrow button:hover { background: rgba(255,240,200,.92); }
+.dialog .actions .primary { background: var(--m21-sepia); color: #f4ead2; border-color: var(--m21-sepia-fonce); }
+.dialog .actions .primary:hover { background: var(--m21-sepia-fonce); }
+.dialog .box > p { color: var(--m21-encre); line-height: 1.55; font-size: 15px; }
 .seedrow { display: flex; gap: 8px; align-items: flex-end; }
 .seedrow label { flex: 1; margin: 10px 0 0; }
 .seedrow button { height: 34px; padding: 0 12px; }
 .keys { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 22px; font-size: 13px; }
-.keys h4 { grid-column: 1 / -1; margin: 12px 0 2px; color: var(--amber); font-size: 12px; letter-spacing: .12em; }
-.keys div { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.keys h4 { grid-column: 1 / -1; margin: 14px 0 2px; color: var(--m21-sepia); font: normal 12px var(--m21-police); letter-spacing: .14em; }
+.keys div { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-bottom: 1px solid rgba(90,70,40,.14); }
 .keys div span:first-child { white-space: nowrap; }
-.keys div span:last-child { color: var(--muted); text-align: right; }
+.keys div span:last-child { color: var(--m21-encre-douce); text-align: right; }
 @media (max-width: 620px) { .dialog .cols, .keys { grid-template-columns: 1fr; } }
 
 #loading { background: #07080a; align-items: center; justify-content: center; flex-direction: column; gap: 18px; z-index: 10; color: var(--amber); letter-spacing: .12em; }
@@ -168,11 +214,11 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
 #loading .bar::after { content: ''; display: block; width: 40%; height: 100%; background: var(--amber); animation: slide 1s infinite ease-in-out; }
 @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
 #fatal { z-index: 20; }
-#fatal p { color: var(--text); line-height: 1.5; }
+#fatal p { color: var(--m21-encre); line-height: 1.5; }
 
 #toasts { position: fixed; left: 50%; top: 48px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 30; pointer-events: none; }
-.toast { padding: 8px 16px; border-radius: 8px; background: var(--panel-strong); border: 1px solid var(--line); color: var(--amber); font-size: 14px; transition: opacity .5s, transform .5s; max-width: calc(100vw - 32px); }
-.toast.err { color: var(--danger); border-color: rgba(255,106,77,.4); }
+.toast { padding: 8px 16px; border-radius: var(--m21-rayon); background: var(--m21-nuit); border: 1px solid rgba(232,192,112,.32); color: var(--m21-nuit-texte); font: 14.5px var(--m21-police); box-shadow: 0 6px 20px rgba(0,0,0,.45); transition: opacity .5s, transform .5s; max-width: calc(100vw - 32px); }
+.toast.err { color: #f0a08a; border-color: rgba(200,90,60,.5); }
 .toast.out { opacity: 0; transform: translateY(-8px); }
 /* ------------------------------------------------------------ ferme : aucun HUD, panneaux papier à la demande */
 #fade { background: #000; opacity: 0; pointer-events: none; transition: opacity .9s; z-index: 15; align-items: center; justify-content: center; display: flex;
@@ -308,16 +354,16 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
 #reader .txt { font-size: 16px; line-height: 1.65; max-height: 58vh; overflow-y: auto; white-space: normal; }
 #reader .sign { text-align: right; font-style: italic; margin-top: 10px; color: #5a4a36; }
 #reader .close { margin-top: 14px; }
-#satchel, #shop, #store { height: min(640px, calc(100vh - 10vh)); }
+#satchel, #shop, #store { height: min(660px, calc(100vh - 8vh)); }
 #death { background: #000; flex-direction: column; align-items: center; justify-content: center; gap: 14px; z-index: 20; color: #cfc4ae;
   font-family: Georgia, 'Times New Roman', serif; text-align: center; padding: 20px; }
 #death h2 { margin: 0; font-size: clamp(34px, 6vw, 60px); font-weight: normal; letter-spacing: .2em; color: #8a1a14; }
 #death .cause { font-size: 20px; font-style: italic; }
 #death .days { color: #8a8070; }
-#death button { margin-top: 18px; padding: 10px 22px; background: none; border: 1px solid #6a5a44; color: #cfc4ae; font: inherit; font-size: 17px; }
-#death button:hover { background: rgba(255,255,255,.06); }
+#death button { margin-top: 18px; padding: 10px 22px; background: none; border: 1px solid #6a5a44; border-radius: var(--m21-rayon); color: #cfc4ae; font: inherit; font-size: 17px; transition: background-color var(--m21-duree), border-color var(--m21-duree); }
+#death button:hover { background: rgba(255,255,255,.06); border-color: #9a8a6a; }
 #menu[data-kind="farm"] h1 { color: #e8d8b0; text-shadow: 0 0 22px rgba(0,0,0,.6), 3px 3px 0 #2a1a08; font-family: Georgia, 'Times New Roman', serif; font-weight: normal; }
-#menu[data-kind="farm"] nav button:hover { color: #e8c98a; text-shadow: none; }
+#menu[data-kind="farm"] nav button:hover { color: var(--m21-or); }
 #m-versions { margin-top: 10px; color: var(--muted); font-size: 12px; font-style: italic; max-width: 440px; line-height: 1.5; }
 </style>
 </head>
@@ -351,6 +397,7 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
   </div>
 </div>
 <div id="subs"></div>
+<div id="m21-hud"></div>
 <div id="hotbar"></div>
 <div id="dot"></div>
 <div id="pickups"></div>
@@ -383,7 +430,7 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
 <div id="dlg-newgame" class="screen dialog">
   <div class="box">
     <h2>NOUVELLE PARTIE</h2>
-    <p style="color:var(--text);line-height:1.55;font-size:14px">Vous héritez d’une vieille ferme au fond d’une vallée. Une seule vie : si vous mourez, la partie s’arrête. La grande vallée est toujours la même, avec ses montagnes et ses secrets ; une vallée au hasard change à chaque fois.</p>
+    <p>Vous héritez d’une vieille ferme au fond d’une vallée. Une seule vie : si vous mourez, la partie s’arrête. La grande vallée est toujours la même, avec ses montagnes et ses secrets ; une vallée au hasard change à chaque fois.</p>
     <label>La vallée <select id="ng-map"><option value="3">la grande vallée (3 km, montagnes, glacier, galeries)</option><option value="2">une vallée au hasard (2 km)</option></select></label>
     <label>Vous êtes <select id="ng-who"><option value="m">le nouveau fermier</option><option value="f">la nouvelle fermière</option></select></label>
     <label>Votre prénom (les habitants l’emploieront quand ils vous connaîtront) <input type="text" id="ng-name" maxlength="20" placeholder="au hasard"></label>
@@ -488,7 +535,7 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
       <div><span><kbd>E</kbd> (autel, calvaire, pierre)</span><span>prier, déposer une offrande</span></div>
       <div><span><kbd>E</kbd> (alambic)</span><span>mêler 2 ou 3 ingrédients dans une fiole : potions</span></div>
       <div><span><kbd>E</kbd> (poteau, panneau)</span><span>directions, carte de la vallée</span></div>
-      <div><span><kbd>Tab</kbd></span><span>sacoche, atelier, carnet, wiki · <kbd>←</kbd> <kbd>→</kbd> : onglets</span></div>
+      <div><span><kbd>Tab</kbd></span><span>le menu : sacoche, atelier, carnet, wiki</span></div>
       <div><span><kbd>E</kbd> (boîte aux lettres)</span><span>lire et prendre le courrier</span></div>
       <div><span><kbd>F</kbd></span><span>lanterne</span></div>
       <div><span><kbd>G</kbd></span><span>siffler (cheval, chien)</span></div>
@@ -496,6 +543,20 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
       <div><span>Arc</span><span>maintenir le clic pour bander</span></div>
       <div><span>Pêche</span><span>clic : lancer ; au bouchon qui plonge, clic !</span></div>
       <div><span><kbd>M</kbd> · <kbd>Échap</kbd></span><span>son · menu</span></div>
+      <h4>DANS LES MENUS</h4>
+      <div><span><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> · <kbd>Entrée</kbd></span><span>se déplacer · valider</span></div>
+      <div><span><kbd>Échap</kbd></span><span>refermer, revenir d'un cran</span></div>
+      <div><span><kbd>Tab</kbd> · <kbd>Maj</kbd>+<kbd>Tab</kbd></span><span>onglet suivant · précédent</span></div>
+      <div><span><kbd>Pg↑</kbd> <kbd>Pg↓</kbd> · <kbd>Maj</kbd>+<kbd>←</kbd> <kbd>→</kbd></span><span>pages de l'onglet</span></div>
+      <div><span><kbd>Ctrl</kbd>+<kbd>F</kbd> · <kbd>/</kbd></span><span>chercher dans la liste</span></div>
+      <div><span><kbd>Maj</kbd>+<kbd>Entrée</kbd> · clic droit</span><span>choisir la quantité (coffre) · ranger dans la barre d'outils</span></div>
+      <div><span><kbd>1</kbd> … <kbd>9</kbd> sur un objet</span><span>le mettre dans cette case de la barre d'outils</span></div>
+      <h4>À LA MANETTE (MENUS)</h4>
+      <div><span>Croix ou stick gauche · A</span><span>se déplacer · valider</span></div>
+      <div><span>B · Start</span><span>retour · le menu</span></div>
+      <div><span>LB RB · LT RT</span><span>onglets · pages</span></div>
+      <div><span>X · Y</span><span>quantité, barre d'outils · chercher</span></div>
+      <div><span>Select (Vue) · stick droit</span><span>le menu Tab · faire défiler</span></div>
       <h4>MODE CRÉATION</h4>
       <div><span><kbd>E</kbd></span><span>jeu ⇄ éditeur</span></div>
       <div><span><kbd>V</kbd> · <kbd>T</kbd></span><span>vol libre · accélérer le temps</span></div>
