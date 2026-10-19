@@ -290,6 +290,8 @@ const p21 = {
     this.grinceT -= dt;
     if (C.T > 0.7 && this.grinceT <= 0) { this.grinceT = C.T >= 1 ? 0.12 : 0.3 - (C.T - 0.7); sound.p21Grince && sound.p21Grince(C.T); if (C.T >= 1) this.vibrer(60, 0.4); }
     this.bend += (Math.min(1.1, C.T) - this.bend) * Math.min(1, dt * 10);
+    // l'épuisette : on baisse les yeux vers le poisson, à la surface
+    if (C.epuisette && !Q.glace) { const p = game.player, e = p.eyePos(), want = Math.atan2(Q.wy - e[1], Math.max(0.6, Math.hypot(pos[0] - e[0], pos[2] - e[2]))); p.pitch += (Math.max(-1.2, want + 0.12) - p.pitch) * Math.min(1, dt * 3); }
     // les éclaboussures : le poisson se débat en surface quand il est près, ou épuisé
     if (C.coup.k === 'secoue' && Math.random() < dt * 6 && C.prof < 0.9) { this.anneau(pos[0], Q.wy, pos[2], 0.1, 0.8, 0.8); if (Math.random() < 0.4) this.eclabousse(pos[0], Q.wy, pos[2], 6); }
     if (C.fin) this.conclure(C.fin);
@@ -374,6 +376,7 @@ const p21 = {
       }
     }
     this.prise = { id, kg: mes.kg, cm: mes.cm, record, nouvelle, t: 0, poisson: !!FISH[id] };
+    this.msg = null;
     this.et = 'prise';
     if (record) sound.p21Record && sound.p21Record();
     this.vibrer(90, 0.4);
@@ -558,7 +561,7 @@ const p21 = {
     PE.buf = buf;
     if (B) {
       // la bouée : liège rouge et blanc, une antenne noire, une quille (on n'en voit que le haut quand elle plonge)
-      PE.frame(B.x, B.y, B.z, B.tilt, 1.25);
+      PE.frame(B.x, B.y, B.z, B.tilt, 1.9);
       const s = 1 - B.sous * 0.85;
       if (s > 0.2) {
         PE.box(0, 0.0, 0, 0.055, 0.05 * s, 0.055, [0.95, 0.94, 0.9], 0, 0, B.tilt);
@@ -571,19 +574,26 @@ const p21 = {
     // les ronds
     for (const A of this.anneaux) {
       if (Math.abs(A.x - cam[0]) > 90 || Math.abs(A.z - cam[2]) > 90) continue;
-      const k = A.t / A.life, r = A.r0 + (A.r1 - A.r0) * Math.sqrt(k), e = 0.03 * (1 - k) + 0.008, n = r > 0.8 ? 18 : 12;
-      const c = 0.72 + 0.2 * (1 - k);
+      const k = A.t / A.life, r = A.r0 + (A.r1 - A.r0) * Math.sqrt(k), e = 0.055 * (1 - k) + 0.015, n = r > 0.8 ? 18 : 12;
+      const c = 0.62 + 0.26 * (1 - k);
       PE.frame(A.x, A.y, A.z, 0, 1);
-      for (let i = 0; i < n; i++) { const a = i / n * TAU; PE.box(Math.cos(a) * r, 0, Math.sin(a) * r, e, 0.006, r * TAU / n * 0.9, [c, c + 0.06, c + 0.1], 0, -a); }
+      for (let i = 0; i < n; i++) { const a = i / n * TAU; PE.box(Math.cos(a) * r, 0, Math.sin(a) * r, e, 0.012, r * TAU / n * 0.92, [c, c + 0.05, c + 0.08], 0, -a); }
+    }
+    // le poisson épuisé, le dos hors de l'eau, près du bord
+    const C = this.C;
+    if (C && this.F && this.F.p21 && !this.F.p21.glace && C.saut <= 0 && (C.epuisette || (C.E <= 0.05 && C.D < 5)) && FISH[C.id]) {
+      const p = this.posPoisson(), Q = this.F.p21;
+      PE.frame(p[0], Q.wy - 0.06, p[2], Math.atan2(-Q.axe[0], -Q.axe[1]) + Math.sin(t * 3) * 0.15, 1);
+      this.poisson3d(Math.min(1.7, 0.25 + (C.kg ** 0.33) * 0.4), this.couleur(C.id), Math.sin(t * 5) * 0.12);
     }
     // le poisson qui saute (au bout de la ligne, ou un gobage)
     for (const S of this.sauts) {
       let x, y, z, a, L, col;
       if (S.x !== undefined) { const k = S.t / S.dur; x = S.x; z = S.z; y = S.y - 0.05 + Math.sin(k * Math.PI) * 0.35; a = S.a; L = S.L; col = S.col; }
       else {
-        if (!this.C || !this.F || this.C.saut <= 0) continue;
+        if (!this.C || !this.F || this.C.saut <= 0) continue; // (le poisson épuisé : plus bas)
         const p = this.posPoisson(), Q = this.F.p21;
-        x = p[0]; y = p[1]; z = p[2]; a = Math.atan2(Q.axe[0], Q.axe[1]) + Math.PI / 2; L = Math.min(1.4, 0.18 + (this.C.kg ** 0.33) * 0.32);
+        x = p[0]; y = p[1]; z = p[2]; a = Math.atan2(-Q.axe[0], -Q.axe[1]); L = Math.min(1.7, 0.25 + (this.C.kg ** 0.33) * 0.4); // (de profil)
         col = this.couleur(Q.id);
       }
       const k2 = S.dur ? S.t / S.dur : 1 - this.C.saut / (this.C.sautMax || 0.8);
@@ -704,7 +714,7 @@ Object.assign(SoundEngine.prototype, {
   };
   // pendant le combat, on ne marche pas (les flèches et ZQSD tirent la canne) ; Espace ferre au lieu de sauter
   const _down = input.down.bind(input);
-  input.down = function (code) { if (p21.F && p21.bloque(code)) return false; return _down(code); };
+  input.down = function (code) { if (p21.et && p21.bloque(code)) return false; return _down(code); };
   // les directions : chaque appui compte, même bref
   window.addEventListener('keydown', (e) => {
     if (e.repeat || !p21.C) return;

@@ -58,10 +58,10 @@
 #p21-hud .p21-invite .s { font-size: 12px; opacity: .78; margin-top: 2px; text-shadow: 0 1px 2px #000; }
 #p21-hud .p21-invite.ok .c { background: #cfe6b8; border-color: var(--m21-vert, #3a6a2a); }
 #p21-hud .p21-invite.ko .c { background: #e8b8a8; border-color: var(--m21-rouge, #9a3a2a); }
-#p21-hud .p21-msg { bottom: calc(17% + 108px); font-size: 15px; text-shadow: 0 1px 3px #000, 0 0 8px rgba(0,0,0,.6); white-space: nowrap; transition: opacity var(--m21-duree, 140ms); }
+#p21-hud .p21-msg { bottom: 26%; font-size: 15px; text-shadow: 0 1px 3px #000, 0 0 8px rgba(0,0,0,.6); white-space: nowrap; transition: opacity var(--m21-duree, 140ms); }
 #p21-hud .p21-msg.rate { color: #ffb08a; }
 #p21-hud .p21-msg.appat { color: var(--m21-or, #e8c070); }
-#p21-hud .p21-prise { bottom: 20%; min-width: 230px; text-align: center; padding: 9px 18px 10px; background: var(--m21-papier, #e8dfc8); color: var(--m21-encre, #33291d); border: 1px solid var(--m21-trait, rgba(90,70,40,.28)); border-radius: var(--m21-rayon, 3px); box-shadow: var(--m21-ombre, 0 18px 50px rgba(0,0,0,.65)); }
+#p21-hud .p21-prise { top: 13%; min-width: 230px; text-align: center; padding: 9px 18px 10px; background: var(--m21-papier, #e8dfc8); color: var(--m21-encre, #33291d); border: 1px solid var(--m21-trait, rgba(90,70,40,.28)); border-radius: var(--m21-rayon, 3px); box-shadow: var(--m21-ombre, 0 18px 50px rgba(0,0,0,.65)); }
 #p21-hud .p21-prise .n { font-size: 20px; }
 #p21-hud .p21-prise .m { font-size: 14px; color: var(--m21-encre-douce, #6a5436); margin-top: 2px; }
 #p21-hud .p21-prise .r { display: inline-block; margin-top: 5px; padding: 1px 9px; font-size: 13px; letter-spacing: .08em; color: #fff8e8; background: var(--m21-sepia, #8a5a2a); border-radius: 2px; }
@@ -169,11 +169,11 @@ const p21Main = {
     }
     const st = p21Tirage.espece(id)[0];
     const FORME = { fretin: 0.26, perche: 0.34, carpe: 0.4, truite: 0.28, saumon: 0.27, brochet: 0.2, anguille: 0.09, silure: 0.23, ecrevisse: 0.3, aveugle: 0.28, lune: 0.5, esturgeon: 0.18, reine: 0.42, vieux: 0.22, notaire: 0.21, ancien: 0.33 };
-    const L = Math.round(48 + 40 * Math.min(1, Math.log(1 + P.kg) / Math.log(40))), H = L * (FORME[st] || 0.3) / 2;
-    const cx = 54, cy = 60, x0 = cx - L / 2;
+    const L = Math.round(72 + 34 * Math.min(1, Math.log(1 + P.kg) / Math.log(40))), H = Math.max(5, L * (FORME[st] || 0.3) / 2);
+    const cx = 54, cy = 50, x0 = cx - L / 2;
     const base = hexToRgb((FISH[id] && FISH[id].col) || '#7a8a80');
     const pal = rampOf(base), ventre = rampOf(base.map((v) => Math.min(255, v * 0.55 + 120)));
-    vmArm(pb, 90, 92);
+    vmArm(pb, Math.min(108, Math.round(x0 + 0.8 * L)), Math.round(cy + 14));
     if (st === 'ecrevisse') { this.ecrevisse(pb, cx, cy, L * 0.8, pal); vmFist(pb, cx + L * 0.36, cy + 6); return; }
     // le profil : haut et bas du corps, de la tête (t = 0) au pédoncule (t = 0.8)
     const pique = st === 'brochet' || st === 'notaire' || st === 'esturgeon' ? 0.55 : 0.3;
@@ -292,7 +292,9 @@ const p21Hud = {
     this.voir('combat', !!combat);
     this.voir('invite', !!(combat && (C.invite || C.epuisette)) || (this.flash > 0 && !!combat));
     if (combat) {
-      this.texte('combatL', T.tension);
+      const Mc = p21.msg && p21.msg.k === 'coup' ? p21.msg : null;
+      this.texte('combatL', Mc ? Mc.txt : T.tension);
+      if (this.prev.mc !== !!Mc) { this.prev.mc = !!Mc; this.e.combatL.style.color = Mc ? 'var(--m21-or, #e8c070)' : ''; }
       this.texte('combatD', T.dist(Math.max(0, Math.round(C.D))));
       this.e.aiguille.style.left = Math.round(Math.min(1.04, C.T) * 100) + '%';
       const rouge = C.T >= 0.95;
@@ -324,7 +326,7 @@ const p21Hud = {
     this.flash = Math.max(0, (this.flash || 0) - dt);
     if (p21.evtInv) { this.flash = 0.35; this.etatInvite(p21.evtInv); p21.evtInv = null; }
     // le message
-    const M = p21.msg;
+    const M = p21.msg && !(combat && p21.msg.k === 'coup') ? p21.msg : null;
     this.voir('msg', !!M);
     if (M) { this.texte('msg', M.txt); if (this.prev.mk !== M.k) { this.e.msg.classList.remove('rate', 'appat'); if (M.k === 'rate' || M.k === 'appat') this.e.msg.classList.add(M.k); this.prev.mk = M.k; } this.e.msg.style.opacity = String(Math.min(1, (M.dur - M.t) * 3)); }
     // la prise
