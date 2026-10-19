@@ -1353,6 +1353,12 @@ Les commandes sont dans le menu **Commandes** (Échap).
   - les durées ;
   - l'option Aucune ne joue rien, et une ancienne partie ne rejoue rien.
 
+**Jamais coincé sous la carte**
+- Le jeu retient, au fil du jeu, les dernières places sûres du personnage (les pieds posés, ou à la nage). Passé sous
+  le sol avec rien dessous pour le porter (on tomberait sans fin), plus bas que mille mètres, ou si sa position devient
+  folle, on est remis à la dernière place sûre d'au moins une seconde avant la chute, sans dégâts. Les vraies chutes,
+  les grottes, le Dessous et les autres mondes ne changent pas. API : `garde_sol` (`src/11-zzzzzzzzzzzZ21-sol.js`).
+
 ### Mode Création
 
 Éditeur de monde séparé : relief, peinture du sol, objets, animaux, blocs. **Exporter** télécharge un fichier
