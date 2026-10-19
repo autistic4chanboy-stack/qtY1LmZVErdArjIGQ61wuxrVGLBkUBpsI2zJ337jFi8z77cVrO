@@ -158,15 +158,15 @@ const p21Main = {
     const id = P.id, f = (Math.floor(P.t * 4) & 1) ? 1 : -1;
     if (!FISH[id]) { // un coffre, une perle, des herbes : l'icône, en grand (le bras, l'icône, puis le poing par-dessus)
       const sp = ATLAS.sprites['it_' + id];
-      vmArm(pb, 88, 92); edgeDarken(pb, 0.8);
+      vmArm(pb, 82, 74); edgeDarken(pb, 0.8);
       const cv = pb.canvas(), ctx = cv.getContext('2d');
       ctx.imageSmoothingEnabled = false;
       if (sp && sp.canvas) {
         const c = sp.canvas, k = Math.max(1, Math.floor(46 / Math.max(c.width, c.height)));
-        ctx.drawImage(c, Math.round(58 - (c.width * k) / 2), Math.round(56 - (c.height * k) / 2), c.width * k, c.height * k);
+        ctx.drawImage(c, Math.round(54 - (c.width * k) / 2), Math.round(42 - (c.height * k) / 2), c.width * k, c.height * k);
       }
       const pf = new PixelBuf(VM_W, VM_H);
-      vmFist(pf, 88, 86); edgeDarken(pf, 0.8);
+      vmFist(pf, 76, 64); edgeDarken(pf, 0.8);
       ctx.drawImage(pf.canvas(), 0, 0);
       return cv;
     }
