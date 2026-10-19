@@ -432,6 +432,8 @@ html.m21-manette #butin .bu-aide { display: none; }
     const R = racine(el);
     if (!R) return;
     if (R.id === 'store' && (el.dataset.get || el.dataset.put)) { qteCoffre(el); return; }
+    // (la boutique : l'encart du marchand, avec sa quantité — jamais un achat par cinq sans le voir)
+    if (R.id === 'shop' && (el.dataset.buy || el.dataset.sell)) { el.click(); return; }
     if (R.id === 'satchel' && (el.dataset.it || el.dataset.tok)) { choisirCase(el.dataset.it || el.dataset.tok); return; }
     if (R.id === 'satchel' && el.dataset.slot !== undefined && typeof bar !== 'undefined') { bar.assign(+el.dataset.slot, null); ui.renderSatchel(); return; }
     el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, shiftKey: true }));
