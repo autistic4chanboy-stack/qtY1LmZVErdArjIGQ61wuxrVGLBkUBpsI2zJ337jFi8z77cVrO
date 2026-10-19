@@ -272,9 +272,10 @@ uniform float uCloudCover;
 uniform float uCloudT;
 uniform vec3 uSunDisk;
 uniform float uSunVis;
+uniform float uBrouillard;
 vec3 cloudLayer(vec3 d, vec3 col) {
-  vec2 cp = d.xz / (d.y + 0.1) * 1.6 + vec2(uCloudT * 0.008, uCloudT * 0.003);
-  cp = floor(cp * 48.0) / 48.0;
+  vec2 cp0 = d.xz / (d.y + 0.1) * 1.6 + vec2(uCloudT * 0.008, uCloudT * 0.003);
+  vec2 cp = floor(cp0 * 48.0) / 48.0;
   float c = vnoise(cp * 1.2) * 0.55 + vnoise(cp * 2.7 + 3.0) * 0.3 + vnoise(cp * 6.3 + 9.0) * 0.15;
   float cov = smoothstep(0.53 - uCloudCover * 0.38, 0.68 - uCloudCover * 0.3, c) * smoothstep(0.0, 0.18 - uCloudCover * 0.12, d.y);
   float lit = clamp((c - 0.53) * 3.0 + dot(normalize(vec3(uSunDir.x, 0.0, uSunDir.z) + 0.001), normalize(vec3(d.x, 0.0, d.z))) * 0.25, 0.0, 1.0);
@@ -286,6 +287,24 @@ vec3 cloudLayer(vec3 d, vec3 col) {
   // le soleil traverse les bords des nuages qui l'approchent (liseré d'argent) et les éclaire par-derrière
   float s = max(dot(d, uSunDir), 0.0), edge = cov * (1.0 - cov) * 4.0;
   cc += uSunDisk * uSunVis * (pow(s, 10.0) * (0.22 + edge * 0.8) + pow(s, 48.0) * edge * 1.3);
+  // la pluie (uWet) : le ciel se couvre d'un voile gris, lourd et uniforme — de grandes masses à peine plus claires ou
+  // plus sombres qui passent lentement, sans marches ni carrés (le bruit n'est pas pixelisé), sans nuage clair en tache,
+  // sans trouée de ciel bleu, sans soleil ; vers l'horizon, le ciel gris d'en dessous (sans le soleil). Le brouillard
+  // (uBrouillard) : le ciel se perd dans la brume, de sa couleur, un peu plus sombre en haut. Ils viennent avec la pluie
+  // et le brouillard et s'en vont avec eux (le temps change lentement : weather.cur)
+  float ov = smoothstep(0.03, 0.55, uWet), ob = smoothstep(0.35, 0.9, uBrouillard), kv = max(ov, ob);
+  if (kv > 0.0) {
+    vec2 vq = cp0 * 0.32;
+    float m = vnoise(vq) * 0.6 + vnoise(vq * 2.2 + 7.0) * 0.4;
+    vec3 v = mix(uCloudDark, uCloudLit, 0.06 + 0.44 * m) * mix(0.8, 0.72, smoothstep(0.25, 0.9, d.y));
+    v = mix(v, vec3(dot(v, vec3(0.3, 0.55, 0.15))), 0.35);
+    vec3 bas = skyGradient(d);
+    float lb = dot(bas, vec3(0.3, 0.55, 0.15));
+    v = mix(mix(bas, vec3(lb), 0.6), v, smoothstep(0.0, 0.3, d.y));
+    vec3 vb = mix(hazeColor(d), uHaze, smoothstep(0.04, 0.5, d.y)) * (mix(1.0, 0.86, smoothstep(0.05, 0.8, d.y)) * (0.97 + 0.06 * m));
+    float pb = ob * (1.0 - 0.4 * ov);
+    return mix(mix(col, cc, cov * 0.92), (v * ov + vb * pb) / (ov + pb), kv);
+  }
 #else
   cov = floor(cov * 4.0 + 0.5) / 4.0;
   vec3 cc = mix(uCloudDark, uCloudLit, floor(lit * 3.0 + 0.5) / 3.0);
@@ -503,6 +522,10 @@ void main() {
   vec3 hz = hazeColor(d);
   if (d.y < m1) col = mix(hz, skyGradient(d), 0.45);
   if (d.y < m2) col = hz;
+#if QUALITE >= 1
+  // (dans le brouillard, les montagnes se perdent dans la brume, comme le ciel au-dessus)
+  if (d.y < m1) col = mix(col, hz, smoothstep(0.35, 0.9, uBrouillard));
+#endif
   outCol = vec4(col, 1.0);
 }`;
 

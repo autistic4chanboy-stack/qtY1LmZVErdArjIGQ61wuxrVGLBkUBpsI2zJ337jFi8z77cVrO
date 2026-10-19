@@ -106,9 +106,10 @@ function m19Tuiles() {
 
 // ---------------------------------------------------------------- le niveau de détail selon la distance
 // Les modèles refaits ont deux à quatre fois plus de boîtes : on ne les dessine en entier que de près.
-// - les bêtes (dessinées à chaque image) : au-delà de D.betes, seules les grandes pièces (tronc, tête, pattes,
-//   queue…) sont calculées et émises (M19B, 11-zzzzzzzzzzM19-maisons.js) ; hors du champ de la vue, elles ne
-//   sont plus ni posées ni dessinées (M19Vue, même fichier) ;
+// - les bêtes (dessinées à chaque image) : au-delà de D.betes, seules les grandes pièces des corps d'oiseau (tronc,
+//   tête, pattes, queue…) sont calculées et émises (M19B, 11-zzzzzzzzzzM19-maisons.js ; les quadrupèdes d'avant,
+//   revenus à la vague 22, restent entiers) ; hors du champ de la vue, elles ne sont plus ni posées ni dessinées
+//   (M19Vue, même fichier) ;
 // - les objets posés et les cultures (refaits quand on a fait 30 m ou que quelque chose change) : au-delà de
 //   D.objets / D.cultures, l'ancien modèle (celui d'avant la vague M19, aussi léger qu'avant) ;
 // - le décor des maisons et de la fontaine : au-delà de D.maisonsFin, le décor fin fondu (chaînes d'angle en deux
