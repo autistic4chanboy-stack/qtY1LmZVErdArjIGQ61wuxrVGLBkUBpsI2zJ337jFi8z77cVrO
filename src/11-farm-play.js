@@ -455,9 +455,10 @@ const play = {
     });
     if (!cand.length) { sound.reel && sound.reel(0.3); return; }
     let tot = 0; for (const k of cand) tot += FISH[k].w * (FISH[k].rain && game.sky.wet > 0.3 ? 3 : 1);
-    let r = Math.random() * tot, pick = cand[0];
+    // (F.u : les deux tirages faits d'avance par la pêche à QTE, P21 — même loi que Math.random())
+    let r = (F.u ? F.u[0] : Math.random()) * tot, pick = cand[0];
     for (const k of cand) { r -= FISH[k].w * (FISH[k].rain && game.sky.wet > 0.3 ? 3 : 1); if (r <= 0) { pick = k; break; } }
-    const r0 = Math.random();
+    const r0 = F.u ? F.u[1] : Math.random();
     if (r0 < 0.05) { farm.give('fibre', 1); this.flyer('fibre', [F.x, F.y + 0.3, F.z], 1); sound.reel && sound.reel(0.5); return; }
     if (r0 < 0.06) { farm.give('coffre_peche', 1); this.flyer('coffre_peche', [F.x, F.y + 0.3, F.z], 1); splashAt(F.x, F.y, F.z); sound.catchFish && sound.catchFish(); return; }
     if (r0 < 0.075 && F.zone === 'lac') { farm.give('perle', 1); this.flyer('perle', [F.x, F.y + 0.3, F.z], 1); sound.catchFish && sound.catchFish(); return; }
