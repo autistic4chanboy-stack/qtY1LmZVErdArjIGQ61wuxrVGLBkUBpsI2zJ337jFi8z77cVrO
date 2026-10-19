@@ -99,7 +99,7 @@ function computeSky(t, viewDist, wx, fogMul = 1) {
     sunVis: smoothstep(-0.06, 0.0, e + 0.03) * (1 - o * 0.92) * (1 - fogK * 0.8) * (1 - env),
     moonVis: lerp(0.3, 1.0, night) * (1 - o * 0.85) * (1 - fogK * 0.7),
     starRot, nightLit: e < 0.03 || o > 0.85 || fogK > 0.8 || env > 0.5 ? 1 : 0,
-    cloudCover: o, wet: rain, wind: 1 + storm * 2.5 + o * 0.3, rain, storm, frost: (wx.frost || 0) * (1 - smoothstep(0.3, 0.42, t)),
+    cloudCover: o, wet: rain, wind: 1 + storm * 2.5 + o * 0.3, rain, storm, frost: (wx.frost || 0) * (1 - smoothstep(0.3, 0.42, t)), fogK,
   };
 }
 
@@ -208,7 +208,7 @@ class Renderer {
     // carte, la compilation en cours (en douce) et ce qui reste à faire
     this.variantes = []; this.p18Var = []; this.echec = []; this.pre = null; this.preOrdre = null;
     // (préparés une fois : rien de neuf à chaque image)
-    this.skyU = { uSunDisk: null, uSunVis: 0, uCloudLit: null, uCloudDark: null, uCloudCover: 0, uCloudT: 0 };
+    this.skyU = { uSunDisk: null, uSunVis: 0, uCloudLit: null, uCloudDark: null, uCloudCover: 0, uCloudT: 0, uBrouillard: 0 };
     this.gardeE = { t: 0, n: 0, s: 0, lent: 0, phase: 0, avant: 0, preset: '', repos: 0, off: false };
   }
 
@@ -804,7 +804,9 @@ class Renderer {
     // les nuages du ciel (aussi pour l'eau, qui les reflète)
     const skyU = this.skyU;
     skyU.uSunDisk = sky.sunDisk; skyU.uSunVis = sky.sunVis; skyU.uCloudLit = sky.cloudLit; skyU.uCloudDark = sky.cloudDark;
-    skyU.uCloudCover = sky.cloudCover; skyU.uCloudT = F.cloudT ?? F.time;
+    skyU.uCloudCover = sky.cloudCover; skyU.uCloudT = F.cloudT ?? F.time; skyU.uBrouillard = Math.min(sky.fogK || 0, typeof weather !== 'undefined' && weather.cur ? weather.cur.fog || 0 : 0);
+    // (le voile du brouillard, Moyenne et plus : le brouillard du temps seulement — pas la brume propre au marais ou au
+    // sous-bois, qui ne voile pas le ciel d'un beau jour)
     if (A) this.passeNuages(A);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.target.fb);
@@ -1064,7 +1066,7 @@ class Renderer {
     // ne doit pas durcir le jeu (peu de contraste en plus, des noirs à peine relevés, sauf la nuit qui reste noire ; la
     // saturation compense ce que l'agrandissement lisse ôte aux couleurs)
     const W = typeof weather !== 'undefined' && weather.cur ? weather.cur : null;
-    const wRain = W ? W.rain || 0 : 0, wCloud = W ? W.cloud || 0 : 0, wStorm = W ? W.storm || 0 : 0;
+    const wRain = W ? W.rain || 0 : 0, wCloud = W ? W.cloud || 0 : 0, wStorm = W ? W.storm || 0 : 0, wFog = W ? Math.min(W.fog || 0, sky.fogK || 0) : 0;
     const gold = smoothstep(0.34, 0.07, e) * smoothstep(-0.06, 0.03, e), bleu = smoothstep(0.04, -0.05, e) * smoothstep(-0.3, -0.1, e);
     let sat = 1.07, con = 1.02;
     G[0] = 0.97; G[1] = 0.99; G[2] = 1.04; G[4] = 1.03; G[5] = 1.01; G[6] = 0.97;
@@ -1107,10 +1109,10 @@ class Renderer {
     // le vent (sa direction : celle de l'orage, sinon une brise qui tourne lentement)
     const wa = typeof weather !== 'undefined' && weather.windAngle !== undefined ? weather.windAngle : 0.6;
     U.uWindD[0] = Math.cos(wa); U.uWindD[1] = Math.sin(wa);
-    // les ombres des nuages (pas sous terre, pas par ciel couvert : le soleil y est déjà voilé) ; la carte suit la
-    // caméra par pas de 5 m (passeNuages)
-    const o = sky.cloudCover || 0, N = A.nuages, ct = F.cloudT ?? F.time;
-    N.k = sous ? 0 : 0.46 * smoothstep(0.02, 0.14, o) * (1 - smoothstep(0.74, 0.96, o)) * smoothstep(-0.02, 0.15, e);
+    // les ombres des nuages (pas sous terre, pas par ciel couvert : le soleil y est déjà voilé ; pas sous la pluie ni
+    // dans le brouillard, dont le ciel est un voile uniforme) ; la carte suit la caméra par pas de 5 m (passeNuages)
+    const o = sky.cloudCover || 0, N = A.nuages, ct = F.cloudT ?? F.time, voile = Math.max(smoothstep(0.03, 0.4, sky.wet || 0), smoothstep(0.35, 0.9, wFog));
+    N.k = sous ? 0 : 0.46 * smoothstep(0.02, 0.14, o) * (1 - smoothstep(0.74, 0.96, o)) * smoothstep(-0.02, 0.15, e) * (1 - voile);
     N.ox = Math.floor((cam[0] - N.T / 2) / 5) * 5; N.oz = Math.floor((cam[2] - N.T / 2) / 5) * 5;
     N.seuil = 0.56 - o * 0.34; N.derive[0] = ct * 0.019; N.derive[1] = ct * 0.0072;
     U.uNuagesO[3] = N.k;

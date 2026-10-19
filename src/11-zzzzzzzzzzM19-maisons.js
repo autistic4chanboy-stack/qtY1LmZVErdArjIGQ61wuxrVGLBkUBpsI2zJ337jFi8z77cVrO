@@ -23,9 +23,10 @@
 //  Plus bas, les retouches de la vague M19 qui doivent passer après les modules
 //  qu'elles reprennent : le niveau de détail au loin (M19LOD, 07-…M19-modeles.js :
 //  la caméra donnée au moteur pendant qu'il refait les objets posés et les objets
-//  animés ; les bêtes au loin, M19B ; les bêtes hors de la vue, M19Vue), les
-//  roues de la charrette (attelage), le chat sauvage, les bêtes qui parlent et
-//  les oiseaux du module de la nature.
+//  animés ; les bêtes au loin, M19B ; les bêtes hors de la vue, M19Vue) et les
+//  roues de la charrette (attelage). (Le chat sauvage, les bêtes qui parlent et
+//  les oiseaux du module de la nature, retouchés ici pour les bêtes refaites, ont
+//  retrouvé leurs modèles d'avant à la vague 22, avec toutes les bêtes.)
 //  Le décor des maisons et de la fontaine n'est dessiné qu'à moins de
 //  M19LOD.D.maisons (70 m en qualité moyenne, 35 m en basse) ; au-delà de
 //  M19LOD.D.maisonsFin (45 m, 22 m en basse), le décor fin est fondu.
@@ -213,15 +214,16 @@ const M19M = {
 // ============================================================================
 //  LES BÊTES AU LOIN (vague M19) : les bêtes sont posées et dessinées à chaque
 //  image ; au-delà de M19LOD.D.betes (40 m en qualité moyenne, 20 m en basse),
-//  celles du gabarit refait (quadrupèdes, corps d'oiseau) ne calculent et n'émettent
-//  que leur silhouette, avec autant de boîtes qu'avant la vague M19, ou moins :
-//  - quadrupèdes : le tronc, le cou, la tête, la queue, la selle, quatre pattes
-//    d'une seule boîte (la cuisse allongée jusqu'au sol : le canon et le sabot ne
-//    sont plus posés), et les deux plus longues pièces parmi les grandes (bois du
-//    cerf, crinière, panache…) ;
+//  celles à corps d'oiseau (e1Oiseau : les oiseaux des bêtes E1, E2, E3) ne
+//  calculent et n'émettent que leur silhouette. (Les quadrupèdes d'avant, revenus
+//  à la vague 22, n'ont pas besoin de ce tri : ils ont peu de boîtes, autant que
+//  les bêtes refaites au loin, et ne changent pas avec la distance.) La table :
 //  - oiseaux : le tronc, le cou, la tête, la queue, les pattes, les ailes (en vol),
-//    et les deux plus longues pièces parmi les grandes (ailes repliées, ventre…).
-//  Les yeux, les museaux, les oreilles, les petits détails ne sont plus calculés.
+//    et les deux plus longues pièces parmi les grandes (ailes repliées, ventre…) ;
+//    les yeux, le bec, les petits détails ne sont plus calculés ;
+//  - (quadrupèdes à pattes en deux segments, s'il en revenait : le tronc, le cou,
+//    la tête, la queue, la selle, quatre pattes d'une seule boîte, et les deux plus
+//    longues pièces parmi les grandes).
 // ============================================================================
 const M19B = {
   R: new Float32Array(12),
@@ -291,7 +293,8 @@ const M19B = {
 // ============================================================================
 //  LES BÊTES HORS DE LA VUE (vague M19) : le jeu pose et dessine à chaque image
 //  toutes les bêtes à moins de 90 m, celles qui sont derrière soi comme les
-//  autres. Celles du gabarit refait (quadrupèdes, corps d'oiseau) qui sont hors
+//  autres. Celles du gabarit des quadrupèdes, des oiseaux de la basse-cour et des
+//  bois (rig.trieVue : 07-…M19-modeles.js) et celles à corps d'oiseau qui sont hors
 //  du champ de la vue ne sont plus ni posées ni dessinées. Le champ : la
 //  diagonale de l'image d'avant (le rendu), élargie de 20° (la vue tourne d'une
 //  image à l'autre) et de la taille de la bête ; la vue des yeux du joueur compte
@@ -329,7 +332,7 @@ const M19Vue = {
       const ex = e.x - cam[0], ez = e.z - cam[2];
       if (ex * ex + ez * ez > m2) continue;
       const r = e.rig;
-      if (r && (r.q2 || r.e1P === 'oiseau') && !e.corpse && !e.ronge && !e.ridden && !e.hidden) {
+      if (r && (r.trieVue || r.e1P === 'oiseau') && !e.corpse && !e.ronge && !e.ridden && !e.hidden) {
         const k = e.scale || 1, h = (e.h || 1) * k, R0 = ((e.cfg && e.cfg.radius) || 0.5) * 2 * k + h * 0.5 + 1.5;
         const vx = e.x - cam[0], vy = e.y + h * 0.5 - cam[1], vz = e.z - cam[2], d = Math.sqrt(vx * vx + vy * vy + vz * vz);
         if (d > Math.max(8, R0 + 2)) {
@@ -344,6 +347,16 @@ const M19Vue = {
     return L.length < list.length ? L : null;
   },
 };
+// les oiseaux que la vague M19 avait refaits en corps d'oiseau (et que ce tri écartait) ont retrouvé leurs modèles
+// d'avant à la vague 22 : ils sont marqués comme les quadrupèdes (rig.trieVue), sans rien changer à leur modèle
+{
+  const OISEAUX = ['hen', 'goose', 'duck', 'farmduck', 'crow', 'songbird', 'pigeon', 'heron', 'stork', 'swan', 'pheasant', 'partridge', 'owl', 'magpie',
+    'pic_vert', 'coucou', 'geai', 'alouette', 'effraie', 'cincle', 'grebe', 'butor'];
+  for (const id of OISEAUX) {
+    const _f = ANIMAL_RIGS[id];
+    if (_f) ANIMAL_RIGS[id] = function (...a) { const r = _f.apply(this, a); if (r && r.kind === 'bird') r.trieVue = true; return r; };
+  }
+}
 {
   const _ed = entities.draw;
   entities.draw = function (buf, sbuf, cam, maxD) {
@@ -358,7 +371,7 @@ const M19Vue = {
   };
   const _dr = drawRig;
   drawRig = function (buf, rig, x, y, z, heading, s, flags) {
-    if (rig && (rig.q2 || rig.e1P === 'oiseau') && (M19LOD.camE || M19LOD.force) && M19LOD.loinXZ(M19LOD.camE, x, z, M19LOD.D.betes, rig)) {
+    if (rig && rig.e1P === 'oiseau' && (M19LOD.camE || M19LOD.force) && M19LOD.loinXZ(M19LOD.camE, x, z, M19LOD.D.betes, rig)) {
       let T = M19B.T.get(rig);
       if (T === undefined) { T = M19B.table(rig); M19B.T.set(rig, T); }
       if (T) { m34Root(M19B.R, x, y, z, heading, s || 1); M19B.emettre(rig, T, buf, M19B.R, flags || 0); return; }
@@ -390,163 +403,3 @@ const M19Vue = {
     try { return _ch.call(this, E, o, t); } finally { E.box = boxAvant; boxAvant = null; }
   };
 }
-
-// ============================================================================
-//  LE CHAT SAUVAGE (vague M19) : il est fait d'un chat domestique grossi, et sa
-//  queue d'avant (une seule boîte) avait son bout noir à 0,4 m du pivot ; avec
-//  la queue en deux segments, le bout va au bout du second, la queue est épaisse
-//  d'un bout à l'autre et portée basse, presque à l'horizontale.
-// ============================================================================
-{
-  const _cs = ANIMAL_RIGS.chat_sauvage;
-  if (_cs) ANIMAL_RIGS.chat_sauvage = function (...a) {
-    const r = _cs.apply(this, a);
-    try {
-      const tb = r.part('tailb'), bt = r.part('bout'), tq = r.part('tail');
-      if (tb && bt && tq) {
-        tq.s = [tq.s[0], Math.abs(tb.p[1]) + 0.012, tq.s[2]]; tq.o = [0, -tq.s[1] / 2 + 0.006, tq.o[2]];
-        tb.s = [tq.s[0] * 0.95, tb.s[1], tq.s[2] * 0.95];
-        bt.parent = 'tailb'; bt.pi = r.idx.tailb; bt.p = [0, -tb.s[1] + 0.03, 0];
-      }
-      if (r.q2) r.q2.tl = 0.9;
-    } catch (e) { console.warn('M19 : chat sauvage', e); }
-    return r;
-  };
-}
-
-// ============================================================================
-//  LES BÊTES QUI PARLENT (vague M19) : Tibert, Hermeline et Bayard sont faits du
-//  gabarit des quadrupèdes, et leurs détails étaient posés pour des pattes et des
-//  queues d'une seule boîte : le bout de la queue va au bout du second segment,
-//  les fanons de Bayard au bas des canons (ils suivent le genou), le moignon
-//  d'Hermeline au bout de son canon, à la place de la patte qui lui manque.
-// ============================================================================
-{
-  // une pièce rattachée à une autre (qui la précède dans la liste : les pièces en plus sont au bout)
-  const reprendre = (r, n, par, p) => { const q = r.part(n); if (!q || r.idx[par] === undefined || r.idx[par] > r.idx[n]) return null; q.parent = par; q.pi = r.idx[par]; q.p = p; return q; };
-  const bout = (r) => {
-    const tb = r.part('tailb');
-    if (!tb) return;
-    const flat = tb.s[2] > tb.s[1];
-    reprendre(r, 'bout', 'tailb', flat ? [0, 0, -tb.s[2] + 0.03] : [0, -tb.s[1] + 0.025, 0]);
-  };
-  const W = (id, fn) => {
-    const _f = ANIMAL_RIGS[id];
-    if (_f) ANIMAL_RIGS[id] = function (...a) { const r = _f.apply(this, a); try { fn(r); } catch (e) { console.warn('M19 : ' + id, e); } return r; };
-  };
-  W('p_chat', bout);
-  W('p_renarde', (r) => {
-    bout(r);
-    const lo = r.part('legFLb');
-    if (lo && reprendre(r, 'moignon', 'legFLb', [0, -(lo.s[1] - 0.03) + 0.02, 0.004])) { const pw = r.part('legFLh'); if (pw) pw.hide = true; }
-  });
-  W('p_cheval', (r) => {
-    for (const n of ['legFL', 'legFR', 'legBL', 'legBR']) { const lo = r.part(n + 'b'); if (lo) reprendre(r, 'fanon' + n, n + 'b', [0, -(lo.s[1] - 0.03) + 0.14, 0]); }
-  });
-}
-
-// ============================================================================
-//  LES OISEAUX DES BOIS, DES PRÉS ET DES EAUX (vague M19) : ceux du module de la
-//  nature (11-zzzz8) étaient faits d'une boîte, de deux planches et de deux
-//  bâtons ; les voici avec les corps d'oiseau (ailes repliées au repos,
-//  déployées en vol, yeux, plumes). Mêmes noms, mêmes tailles ; les pièces que
-//  les comportements font bouger (neckB, head, wingL/R) sont là. La grue garde
-//  son modèle (ses poses de vol lui sont propres).
-// ============================================================================
-Object.assign(ANIMAL_RIGS, {
-  // pic vert : vert, croupion jaune, calotte rouge, moustache noire, long bec
-  pic_vert: () => {
-    const body = [0.08, 0.11, 0.16], head = [0.058, 0.06, 0.068];
-    return e1Oiseau({
-      body, bodyY: 0.1, dos: rgbf('#6a9a40'), bodyTex: TL.m19Plumes, ventre: rgbf('#c8d090'), ventreS: 0.6, head, headCol: rgbf('#7aaa48'), beak: [0.012, 0.012, 0.05], beakCol: rgbf('#5a5a50'), beakY: 0.42,
-      tail: [0.05, 0.012, 0.07], tailCol: rgbf('#4a6a2a'), tailUp: -0.3, wing: [0.2, 0.01, 0.09], wingCol: rgbf('#5a8a34'), wingTip: rgbf('#3a3a2a'), pliCol: rgbf('#5a8a34'), pliL: 0.85,
-      leg: [0.012, 0.04], legCol: rgbf('#6a6a60'), droit: -0.5, batF: 12, batA: 0.85,
-      plus: [...e1Yeux(head, [0.95, 0.95, 0.9], 1.0, 0.6, 0.6),
-        { name: 'calotte', parent: 'head', p: [0, head[1] * 0.95, -head[2] * 0.05], s: [head[0] * 0.8, head[1] * 0.18, head[2] * 0.9], col: rgbf('#d02a20'), tex: TL.fur },
-        { name: 'moustL', parent: 'head', p: [-head[0] / 2 - 0.001, head[1] * 0.25, head[2] * 0.45], s: [0.003, head[1] * 0.16, head[2] * 0.4], col: rgbf('#1a1a1a'), tex: TL.plain },
-        { name: 'moustR', parent: 'head', p: [head[0] / 2 + 0.001, head[1] * 0.25, head[2] * 0.45], s: [0.003, head[1] * 0.16, head[2] * 0.4], col: rgbf('#1a1a1a'), tex: TL.plain },
-        { name: 'croupion', parent: 'body', p: [0, body[1] * 0.42, -body[2] * 0.38], s: [body[0] * 0.8, 0.012, body[2] * 0.25], col: rgbf('#d8d040'), tex: TL.fur }],
-    });
-  },
-  // coucou : gris, ventre barré, longue queue, ailes pointues, l'œil cerclé de jaune
-  coucou: () => {
-    const body = [0.07, 0.08, 0.16], head = [0.05, 0.05, 0.058];
-    return e1Oiseau({
-      body, bodyY: 0.1, dos: rgbf('#8a8e94'), bodyTex: TL.m19Plumes, ventre: rgbf('#d8d8d0'), ventreTex: TL.stripes, ventreS: 0.6, head, headCol: rgbf('#8a8e94'), beak: [0.012, 0.01, 0.022], beakCol: rgbf('#3a3a30'),
-      tail: [0.04, 0.012, 0.14], tailCol: rgbf('#5a5e64'), wing: [0.22, 0.01, 0.08], wingCol: rgbf('#7a7e84'), wingTip: rgbf('#4a4e54'), pliCol: rgbf('#6a6e74'), pliL: 1.05,
-      leg: [0.01, 0.03], legCol: rgbf('#d8b040'), batF: 11, batA: 0.75,
-      plus: [...e1Yeux(head, [0.95, 0.75, 0.15], 1.0, 0.6, 0.6)],
-    });
-  },
-  // geai des chênes : rose-brun, moustache noire, queue noire, croupion blanc, le miroir bleu barré sur l'aile
-  geai: () => {
-    const body = [0.09, 0.1, 0.18], head = [0.065, 0.065, 0.07];
-    return e1Oiseau({
-      body, bodyY: 0.11, dos: rgbf('#b09080'), bodyTex: TL.m19Plumes, ventre: rgbf('#c8aa98'), ventreS: 0.6, head, headCol: rgbf('#c0a090'), beak: [0.014, 0.014, 0.028], beakCol: rgbf('#2a2a2a'),
-      tail: [0.05, 0.012, 0.1], tailCol: rgbf('#141416'), wing: [0.26, 0.012, 0.11], wingCol: rgbf('#2a2a2e'), miroir: rgbf('#3a6ad0'), dessous: rgbf('#8a7a70'), pliCol: rgbf('#6a5a50'), pliL: 0.9,
-      leg: [0.012, 0.05], legCol: rgbf('#a08070'), batF: 12, batA: 0.85,
-      plus: [...e1Yeux(head, [0.85, 0.85, 0.95], 1.0, 0.6, 0.6),
-        { name: 'moustache', parent: 'head', p: [0, head[1] * 0.2, head[2] * 0.5], s: [head[0] * 1.06, head[1] * 0.14, head[2] * 0.3], col: rgbf('#141416'), tex: TL.plain },
-        { name: 'miroirL', parent: 'pliL', p: [-0.007, 0.006, 0.01], s: [0.004, body[1] * 0.22, body[2] * 0.22], col: rgbf('#3a6ad0'), tex: TL.stripes },
-        { name: 'miroirR', parent: 'pliR', p: [0.007, 0.006, 0.01], s: [0.004, body[1] * 0.22, body[2] * 0.22], col: rgbf('#3a6ad0'), tex: TL.stripes },
-        { name: 'croupion', parent: 'body', p: [0, body[1] * 0.3, -body[2] * 0.46], s: [body[0] * 0.7, body[1] * 0.4, 0.012], col: rgbf('#f2f0ec'), tex: TL.fur }],
-    });
-  },
-  // alouette des champs : brun strié, ventre clair, une petite huppe
-  alouette: () => {
-    const body = [0.07, 0.07, 0.14], head = [0.05, 0.05, 0.055];
-    return e1Oiseau({
-      body, bodyY: 0.08, dos: rgbf('#9a8060'), bodyTex: TL.m19Plumes, ventre: rgbf('#d8c8a8'), ventreS: 0.6, head, headCol: rgbf('#9a8060'), beak: [0.01, 0.01, 0.018], beakCol: rgbf('#8a8070'),
-      tail: [0.04, 0.01, 0.07], tailCol: rgbf('#6a5440'), wing: [0.17, 0.008, 0.07], wingCol: rgbf('#8a7050'), pliCol: rgbf('#86704e'), pliL: 0.9, leg: [0.009, 0.035], legCol: rgbf('#c0a080'), batF: 20, batA: 0.9,
-      plus: [...e1Yeux(head, [0.12, 0.1, 0.08], 1.0, 0.6, 0.6), ...e1Taches('body', 7, body[0], body[1], body[2], rgbf('#4a3a28'), 91),
-        { name: 'huppe', parent: 'head', p: [0, head[1], -head[2] * 0.05], s: [0.014, 0.022, 0.028], o: [0, 0.008, 0], col: rgbf('#7a6048'), tex: TL.fur, r0: [-0.5, 0, 0] }],
-    });
-  },
-  // effraie des clochers : dos doré, dessous et face blancs, disque en cœur, yeux noirs, posée droite
-  effraie: () => {
-    const body = [0.2, 0.28, 0.19], head = [0.17, 0.15, 0.14];
-    return e1Oiseau({
-      body, bodyY: 0.22, dos: rgbf('#d8b880'), bodyTex: TL.m19Plumes, ventre: rgbf('#f4f0e8'), ventreS: 0.78, head, headCol: rgbf('#d8b880'), headTex: TL.m19Plumes, face: TL.catF,
-      beak: [0.02, 0.026, 0.016], beakCol: rgbf('#e8d8c0'), beakY: 0.3, tail: [0.1, 0.014, 0.06], tailCol: rgbf('#d0b080'), tailUp: 0.4,
-      wing: [0.5, 0.016, 0.22], wingCol: rgbf('#d0b080'), dessous: rgbf('#f4f0e8'), pliCol: rgbf('#c8a874'), leg: [0.025, 0.08], legCol: rgbf('#f0ece0'), chouette: true, batF: 6, batA: 0.6,
-      plus: [{ name: 'disque', parent: 'head', p: [0, head[1] * 0.42, head[2] * 0.7 + 0.001], s: [head[0] * 0.92, head[1] * 0.8, 0.004], col: rgbf('#f6f2ea'), tex: TL.plain },
-        { name: 'arete', parent: 'head', p: [0, head[1] * 0.42, head[2] * 0.7 + 0.003], s: [0.006, head[1] * 0.62, 0.003], col: rgbf('#c8a070'), tex: TL.plain },
-        ...e1Yeux(head, [0.06, 0.05, 0.05], 1.2, 0.5, 0.55, head[0] * 0.2),
-        ...e1Taches('body', 8, body[0], body[1], body[2], [0.5, 0.45, 0.42], 92)],
-    });
-  },
-  // cincle plongeur : brun sombre, la bavette blanche, la tête chocolat, la queue relevée
-  cincle: () => {
-    const body = [0.07, 0.07, 0.11], head = [0.05, 0.05, 0.052];
-    return e1Oiseau({
-      body, bodyY: 0.08, dos: rgbf('#3a2a24'), bodyTex: TL.m19Plumes, head, headCol: rgbf('#5a3a2a'), beak: [0.01, 0.01, 0.018], beakCol: [0.1, 0.1, 0.1],
-      tail: [0.035, 0.01, 0.04], tailCol: rgbf('#2a201c'), tailUp: 0.6, wing: [0.14, 0.008, 0.06], wingCol: rgbf('#2e2420'), pliCol: rgbf('#33261f'), pliL: 0.9, leg: [0.011, 0.04], legCol: rgbf('#8a7a60'), batF: 22, batA: 0.9,
-      plus: [...e1Yeux(head, [0.12, 0.1, 0.08], 1.0, 0.6, 0.6),
-        { name: 'bavette', parent: 'body', p: [0, body[1] * 0.12, body[2] * 0.47], s: [body[0] * 0.86, body[1] * 0.6, 0.012], col: [0.95, 0.95, 0.92], tex: TL.fur }],
-    });
-  },
-  // grèbe huppé : posé bas sur l'eau, cou et face blancs, huppe noire, collerette rousse, bec rosé
-  grebe: () => {
-    const body = [0.14, 0.1, 0.3], head = [0.05, 0.05, 0.07], blanc = [0.95, 0.95, 0.93];
-    return e1Oiseau({
-      body, bodyY: 0.1, dos: rgbf('#6a5a4a'), bodyTex: TL.m19Plumes, ventre: blanc, ventreS: 0.55, head, headCol: blanc, neck: [0.04, 0.16, 0.04], neckR: [-0.15, 0, 0], neckCol: blanc,
-      beak: [0.012, 0.012, 0.06], beakCol: rgbf('#c07070'), beakY: 0.4, tail: [0.04, 0.02, 0.02], tailCol: rgbf('#5a4a3a'), wing: [0.24, 0.01, 0.1], wingCol: rgbf('#5a4a3a'), dessous: blanc,
-      pliCol: rgbf('#5e4e3e'), pliL: 0.8, leg: [0.01, 0.01], legCol: rgbf('#5a6a40'), batF: 14, batA: 0.8,
-      plus: [...e1Yeux(head, [0.8, 0.2, 0.15], 0.9, 0.6, 0.6),
-        { name: 'crete', parent: 'head', p: [0, head[1] * 0.98, -head[2] * 0.12], s: [head[0] * 0.8, head[1] * 0.5, head[2] * 0.6], col: [0.1, 0.08, 0.07], tex: TL.fur },
-        { name: 'collerette', parent: 'head', p: [0, head[1] * 0.25, -head[2] * 0.1], s: [head[0] * 1.5, head[1] * 0.6, head[2] * 0.6], col: rgbf('#c86030'), tex: TL.fur }],
-    });
-  },
-  // butor étoilé : roux strié de brun, cou épais, bec jaunâtre, pattes vertes ; il se fige le bec au ciel
-  butor: () => {
-    const body = [0.18, 0.22, 0.3], head = [0.07, 0.07, 0.09];
-    return e1Oiseau({
-      body, bodyY: 0.4, dos: rgbf('#9a7a4a'), bodyTex: TL.m19Plumes, ventre: rgbf('#c8a870'), ventreTex: TL.stripes, ventreS: 0.6, head, headCol: rgbf('#7a5a34'),
-      neck: [0.07, 0.22, 0.07], neckR: [0.1, 0, 0], neckCol: rgbf('#b8945a'), beak: [0.022, 0.022, 0.12], beakCol: rgbf('#c8b050'), beakY: 0.4,
-      tail: [0.08, 0.02, 0.06], tailCol: rgbf('#8a6a40'), wing: [0.5, 0.016, 0.22], wingCol: rgbf('#9a7a4a'), wingTip: rgbf('#5a4a34'), pliCol: rgbf('#8e7044'), pliL: 0.95,
-      leg: [0.022, 0.3], legCol: rgbf('#8a9a40'), batF: 5, batA: 0.55,
-      plus: [...e1Yeux(head, [0.95, 0.85, 0.2], 0.9, 0.62, 0.6), ...e1Taches('body', 8, body[0], body[1], body[2], rgbf('#3a2a1a'), 93),
-        { name: 'calotte', parent: 'head', p: [0, head[1] * 0.92, 0], s: [head[0] * 1.02, head[1] * 0.2, head[2] * 0.9], col: rgbf('#2a2018'), tex: TL.fur }],
-    });
-  },
-});
