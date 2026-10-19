@@ -136,6 +136,7 @@ const p21 = {
   vibrer(ms, fort) { try { if (typeof m21 !== 'undefined' && m21.manette && m21.manette.vibrer && m21.manette.active && m21.manette.active()) m21.manette.vibrer(ms, fort); } catch (e) { /* rien */ } },
   bloque(code) {
     if (!P21_BLOQUE.has(code)) return false;
+    if (game.player && game.player.swimming) return false; // (à la nage, on garde ses jambes et ses bras)
     if (this.et === 'combat' || this.et === 'touche') return true;
     return code === 'Space' && (this.et === 'attente' || this.et === 'prise');
   },
