@@ -5,7 +5,8 @@
 //   0 (Basse)       : le rendu d'avant ;
 //   1 (Moyenne)     : ciel de Rayleigh et de Mie (halo, crépuscule, ombre de la Terre, voie lactée), brume des
 //                     vallées et perspective aérienne tirée vers le soleil, lumière du ciel et du sol, ombres des
-//                     nuages, liseré à contre-jour, feuilles traversées par le soleil, vent en rafales, eau (Fresnel,
+//                     nuages, ciel voilé et uniforme sous la pluie et dans le brouillard (vague 22 : cloudLayer),
+//                     liseré à contre-jour, feuilles traversées par le soleil, vent en rafales, eau (Fresnel,
 //                     reflets du ciel, éclats du soleil, rides, écume, ronds de pluie), sol mouillé, neige qui
 //                     scintille ; paliers de lumière adoucis ; image en HDR puis exposition, courbe filmique douce,
 //                     étalonnage (passe « resolve »), agrandissement net et lisse, tramage fin ;
