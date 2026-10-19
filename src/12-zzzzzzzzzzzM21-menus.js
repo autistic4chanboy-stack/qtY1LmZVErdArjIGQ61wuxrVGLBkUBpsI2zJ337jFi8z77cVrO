@@ -874,7 +874,7 @@ html.m21-manette #butin .bu-aide { display: none; }
   function outils(cont, o) {
     if (!cont || !o) return null;
     const items = typeof o.items === 'function' ? o.items(cont) : $$q(o.items, cont);
-    if (items.length < (o.min || 0)) return null;
+    if (!items.length || items.length < (o.min || 0)) return null;   // (rien à chercher : pas de barre)
     const cle = o.cle || 'liste';
     const tris = o.tris || [];
     const place = typeof o.place === 'function' ? o.place(cont) : o.place;
@@ -929,8 +929,8 @@ html.m21-manette #butin .bu-aide { display: none; }
         }
       }
       nEl.textContent = q || F ? `${n} / ${items.length}` : String(items.length);
-      if (!n && !vide) { vide = D.createElement('p'); vide.className = 'm21-vide'; vide.textContent = 'Rien ne correspond.'; barre.after(vide); }
-      else if (n && vide) { vide.remove(); vide = null; }
+      if (!n && (q || F) && !vide) { vide = D.createElement('p'); vide.className = 'm21-vide'; vide.textContent = 'Rien ne correspond.'; barre.after(vide); }
+      else if ((n || !(q || F)) && vide) { vide.remove(); vide = null; }
     };
     const refaire = o.refaire || (() => { if (typeof menus !== 'undefined') menus.rafraichir(); });
     const inp = barre.querySelector('.m21-cherche');
