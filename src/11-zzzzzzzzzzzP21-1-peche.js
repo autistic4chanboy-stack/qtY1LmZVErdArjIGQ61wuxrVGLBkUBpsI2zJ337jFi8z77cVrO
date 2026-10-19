@@ -291,7 +291,7 @@ const p21 = {
     if (C.T > 0.7 && this.grinceT <= 0) { this.grinceT = C.T >= 1 ? 0.12 : 0.3 - (C.T - 0.7); sound.p21Grince && sound.p21Grince(C.T); if (C.T >= 1) this.vibrer(60, 0.4); }
     this.bend += (Math.min(1.1, C.T) - this.bend) * Math.min(1, dt * 10);
     // l'épuisette : on baisse les yeux vers le poisson, à la surface
-    if (C.epuisette && !Q.glace) { const p = game.player, e = p.eyePos(), want = Math.atan2(Q.wy - e[1], Math.max(0.6, Math.hypot(pos[0] - e[0], pos[2] - e[2]))); p.pitch += (Math.max(-1.2, want + 0.12) - p.pitch) * Math.min(1, dt * 3); }
+    if (C.epuisette && !Q.glace) { const p = game.player, e = p.eyePos(), want = Math.atan2(Q.wy - e[1], Math.max(0.6, Math.hypot(pos[0] - e[0], pos[2] - e[2]))); p.pitch += (Math.max(-1.2, want - 0.15) - p.pitch) * Math.min(1, dt * 3); }
     // les éclaboussures : le poisson se débat en surface quand il est près, ou épuisé
     if (C.coup.k === 'secoue' && Math.random() < dt * 6 && C.prof < 0.9) { this.anneau(pos[0], Q.wy, pos[2], 0.1, 0.8, 0.8); if (Math.random() < 0.4) this.eclabousse(pos[0], Q.wy, pos[2], 6); }
     if (C.fin) this.conclure(C.fin);
@@ -569,15 +569,19 @@ const p21 = {
         PE.box(0, 0.075 * s, 0, 0.04, 0.03 * s, 0.04, [0.8, 0.12, 0.08], 0, 0, B.tilt);
       }
       PE.box(0, 0.09 + 0.05 * s, 0, 0.012, 0.11 * s + 0.02, 0.012, [0.12, 0.1, 0.08], 0, 0, B.tilt);
-      PE.box(0, 0.15 + 0.1 * s, 0, 0.018, 0.025, 0.018, [1, 0.55, 0.1], 0, 0, B.tilt);
+      // (la nuit, le bout de l'antenne, une plume blanche, se voit encore un peu)
+      const nuit = game.sky ? game.sky.night || 0 : 0;
+      if (nuit > 0.4) PE.fl = FX_EMIT;
+      PE.box(0, 0.15 + 0.1 * s, 0, 0.018, 0.025, 0.018, nuit > 0.4 ? [0.55, 0.5, 0.4] : [1, 0.55, 0.1], 0, 0, B.tilt);
+      PE.fl = 0;
     }
     // les ronds
     for (const A of this.anneaux) {
       if (Math.abs(A.x - cam[0]) > 90 || Math.abs(A.z - cam[2]) > 90) continue;
       const k = A.t / A.life, r = A.r0 + (A.r1 - A.r0) * Math.sqrt(k), e = 0.055 * (1 - k) + 0.015, n = r > 0.8 ? 18 : 12;
-      const c = 0.62 + 0.26 * (1 - k);
+      const c = 0.5 + 0.28 * (1 - k);
       PE.frame(A.x, A.y, A.z, 0, 1);
-      for (let i = 0; i < n; i++) { const a = i / n * TAU; PE.box(Math.cos(a) * r, 0, Math.sin(a) * r, e, 0.012, r * TAU / n * 0.92, [c, c + 0.05, c + 0.08], 0, -a); }
+      for (let i = 0; i < n; i++) { const a = i / n * TAU; PE.box(Math.cos(a) * r, 0, Math.sin(a) * r, e, 0.012, r * TAU / n * 0.92, [c, c + 0.08, c + 0.12], 0, -a); }
     }
     // le poisson épuisé, le dos hors de l'eau, près du bord
     const C = this.C;
