@@ -1323,10 +1323,14 @@ Les commandes sont dans le menu **Commandes** (Échap).
   - les quêtes hors du carnet des habitants : la tournée de la poste, les travaux de la mairie, l'emprunt à la
     bibliothèque, la clé de la Grande Porte, la lavandière, les Petits, le baron, la loge de l'hôtel, l'avis de
     recherche, l'homme au masque, le carnet de commandes, la croix sur la carte, les reliques, le caveau ;
-  - les quatorze légendes de la vallée.
+  - les quatorze légendes de la vallée ;
+  - les quêtes d'ailleurs : à Hautguet (le château, les clés jusqu'au donjon, le feu du Guet, le pont-levis, la Dame de
+    la tour), au Dessous (la façon d'être admis au Hameau d'En-Bas, les onze, le onzième, la perle des dormeurs, la
+    porte des Aëlim), dans les Galeries, à la cité (le seuil de l'étoile, le Cœur) et dans les Terres d'Avant (les
+    tertres et leurs rois, le tertre scellé) ; sous terre, toujours une lumière.
 
   Les quêtes à lieux précis ont maintenant des gens à l'écran pour la demande et pour chaque fin. Au total : plus de
-  cent soixante quêtes, plus de quatre cents moments.
+  cent soixante-quinze quêtes, près de cinq cents moments.
 - **Chacune chez elle** : une scène qui se passe sous terre, au Dessous, dans la Zone, au pays des bonbons ou dans la
   cité attend qu'on y soit, et se joue à la lumière du lieu.
 - **Jamais lourd** :
@@ -1342,7 +1346,7 @@ Les commandes sont dans le menu **Commandes** (Échap).
   parties se chargent sans rien rejouer : ce qui est fait rejoint les Souvenirs, et une quête en cours ne rejoue pas sa
   demande.
 - **Pour les succès** : le jeu émet `prairie:quetescine` sur `window`, avec `detail` = `{ quete, moment }`.
-- **Équilibrage** : `node tools/equilibrage.js Q20 Q20B Q20C`. Ces domaines vérifient :
+- **Équilibrage** : `node tools/equilibrage.js Q20 Q20B Q20C Q20D`. Ces domaines vérifient :
   - chaque scène se construit dans deux vallées, de jour et de nuit, et dans son monde ;
   - la caméra n'est jamais dans un mur, sous le sol ni contre un personnage ;
   - rien ni personne ne se met devant ce qu'on montre, et celui qu'on montre reste dans le champ ;
@@ -1357,13 +1361,13 @@ Les commandes sont dans le menu **Commandes** (Échap).
 ## Équilibrage
 
 Le jeu a été équilibré d'un bloc, en mesurant d'abord : chaque système avait été écrit avec ses propres nombres, et
-la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Quarante domaines, chacun avec sa
+la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Quarante-quatre domaines, chacun avec sa
 mesure et ses vérifications dans `tools/equilibrage/` : le jeu entier est chargé dans une machine virtuelle node (sans
 navigateur, `tools/equilibrage/vm.js`), ses propres fonctions calculent les rendements, les espérances et les
 fréquences, et la commande échoue si l'on recasse un équilibre :
 
 ```bash
-node tools/equilibrage.js                     # les quarante domaines (plus d’une heure)
+node tools/equilibrage.js                     # les quarante-quatre domaines (plus d’une heure)
 node tools/equilibrage.js commerce            # ou un seul : commerce, ferme, risques, survie, hasard, commandes, carte, nature, batiments
 node tools/equilibrage.js S D1 E2             # ou plusieurs ; ceux de la douzième vague : S, D1, D2, E1, E2, E3, F, G
 node tools/equilibrage.js R P Q T             # ceux de la treizième vague : R, P, Q, T
@@ -1896,7 +1900,7 @@ Les sources sont dans `src/` (triées par nom = ordre de chargement) :
 | `13-zzzzzzS17-bureau.js`, `13-zzzzzzS17-succes.js` | la version de bureau : le bouton « Quitter » (seulement quand `window.steamBridge` existe), les options « Plein écran » et « Qualité graphique » (`bureau`) ; les succès, lus dans l'état de la partie et envoyés au pont de l'application quand il existe (`succes` ; leurs titres dans `steam/achievements.json`) |
 | `07-zzzzzzzzzzzzzM19-modeles.js`, `11-zzzzzzzzzzM19-maisons.js` | les modèles refaits : le gabarit des quadrupèdes et les corps d'oiseau, leurs niveaux de détail selon la distance, les bêtes hors de la vue qui ne sont ni posées ni dessinées (`M19Vue`) ; l'habillage des maisons et de la fontaine (pierres d'angle, descentes, épis), seulement de près |
 | `11-zzzzzzzzzzQ20-0-cadre.js`, `12-zzzzzzzzzzQ20-souvenirs.js` | les scènes des quêtes : le cadre (`q20.scenes(id, { qui, demande, tournant, fin, fins, monde… })`, les déclencheurs de `quests` et de `q16`, la file qui attend le moment calme et le bon monde, le contexte `Q20Scene` : lieux, acteurs, caméras, plans, répliques), l'option « Scènes des quêtes », les Souvenirs rangés par habitant, l'événement `prairie:quetescine` |
-| `11-zzzzzzzzzzQ20-1-habitants.js`, `11-zzzzzzzzzzQ20-2a…2e-*.js`, `11-zzzzzzzzzzQ20-3…3d-reste.js` | les tables de scènes : les trente-neuf quêtes des habitants ; les quêtes Q16 (les outils des autres mondes `q20B`, les secondes quêtes, les autres, ailleurs, Basse-Fosse) ; le reste (premières quêtes des habitants ajoutés, quêtes hors du carnet, quêtes T, légendes) |
+| `11-zzzzzzzzzzQ20-1-habitants.js`, `11-zzzzzzzzzzQ20-2a…2e-*.js`, `11-zzzzzzzzzzQ20-3…3d-reste.js`, `11-zzzzzzzzzzQ20-4…4c-ailleurs.js` | les tables de scènes : les trente-neuf quêtes des habitants ; les quêtes Q16 (les outils des autres mondes `q20B`, les secondes quêtes, les autres, ailleurs, Basse-Fosse) ; le reste (premières quêtes des habitants ajoutés, quêtes hors du carnet, quêtes T, légendes) ; les quêtes d'ailleurs (Hautguet, le Dessous, les Galeries, la cité, les Terres d'Avant : `q20d`, ses guets et ses lumières) |
 | `05-zzzzzR15-runes.js`, `09-zzzzzR15-runes.js`, `11-zzzzzR15-1-pose.js`, `11-zzzzzR15-2-jeu.js`, `12-zzzzzR15-runes.js` | les runes : les données (`R15_RUNES`, `R15_REGL`, `R15_PORTES`, les butins des dalles), les sons, la pose (la dernière passe de la vallée, avec son propre tirage, et `zone.passe('R15')` dans les Terres d'Avant : rien de ce qui était posé ne bouge), le jeu (`farm.s.runes`, API `runes` : les tablettes, l'assemblage, les effets, les dalles, le dessin) et le panneau (la page Runes du menu, `runesUI`) |
 | `05-zzzzzzzD18-dettes.js`, `11-zzzzzzzzD18-1-dettes.js`, `11-zzzzzzzzD18-2-travaux.js`, `12-zzzzzzzzD18-carnet.js` | les dettes de la ferme : les données (les huit termes, le retard, les lettres : `D18_TERMES`, `D18_RETARD`) ; le jeu (`farm.s.dettes18`, API `window.dettes18`, l'événement `prairie:dettes` : payer à la boîte de l'étude ou par mandat, les pénalités, les saisies, les scellés) ; les travaux (`D18_PLAN`), posés terme après terme là où rien ne gêne, sans passe de génération ; la page « La ferme » du carnet |
 | `05-zzzzzzzL18-hotel.js`, `07-zzzzzzzzzzzzzL18-hotel.js`, `09-zzzzzzL18-musique.js`, `11-zzzzzzzL18-1-plan.js` à `11-zzzzzzzL18-5-scenes.js`, `12-zzzzzzzL18-carnet.js` | le Grand Hôtel des Cimes : les données et les textes (`L18_GENS`, `L18_ARCS`, `L18_CLIENTS`, `L18_DEMANDES`, `L18_RANGS`) ; une matière (la façade) et les modèles ; deux airs (groupe « hotel ») ; le plan et la passe (`l18Generer`, la dernière de l'époque, avec son propre tirage ; `w.l18`) ; l'état et les gens (`hotel18`, `hotelGens`, `farm.s.hotel18`), le service à la loge (`hotelService`), ce qu'ils disent et les quatre histoires (`hotelParler`, `hotelHistoires`), les scènes, le funiculaire et la voiture (`hotelScenes`) ; la page « Le Grand Hôtel » du carnet et les fiches du wiki du jeu |
