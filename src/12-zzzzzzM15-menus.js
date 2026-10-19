@@ -87,7 +87,7 @@ Object.assign(menus, {
     const L = this.liste(o);
     if (L.length > 1) {
       if (!pg) { pg = document.createElement('div'); pg.className = 'm15-pages'; tabs.after(pg); }
-      pg.innerHTML = L.map((p) => `<button data-m15p="${p.id}" class="${p.id === id ? 'on' : ''}">${esc(p.titre || p.id)}${sup(this.marques[p.id])}</button>`).join('');
+      pg.innerHTML = L.map((p) => `<button data-m15p="${p.id}" class="${p.id === id ? 'on' : ''}">${p.icone ? `<span class="m21-ic" aria-hidden="true">${esc(p.icone)}</span>` : ''}${esc(p.titre || p.id)}${sup(this.marques[p.id])}</button>`).join('');
       const on = pg.querySelector('.on');
       if (on && on.scrollIntoView && pg.scrollWidth > pg.clientWidth) pg.scrollLeft = Math.max(0, on.offsetLeft - 20);
     } else if (pg) pg.remove();

@@ -28,10 +28,9 @@ const m21 = (() => {
   const sauver = () => { try { store.set('prairie.settings', settings); } catch (e) { /* rien */ } };
 
   // ================================================================ réglages
-  if (settings.m21Echelle === undefined) settings.m21Echelle = 'auto';
-  if (settings.m21Bulles === undefined) settings.m21Bulles = true;
-  if (settings.m21Vibrer === undefined) settings.m21Vibrer = true;
-  // settings.m21Calme : undefined = comme le système ; true / false = choisi
+  // (dans DEFAULT_SETTINGS aussi : « Réinitialiser » les remet) ; m21Calme : null = comme le système, true / false = choisi
+  Object.assign(DEFAULT_SETTINGS, { m21Echelle: 'auto', m21Bulles: true, m21Vibrer: true, m21Calme: null });
+  for (const k of ['m21Echelle', 'm21Bulles', 'm21Vibrer', 'm21Calme']) if (settings[k] === undefined) settings[k] = DEFAULT_SETTINGS[k];
 
   // ================================================================ l'échelle de l'interface
   const ECHELLES = ['auto', 0.75, 0.85, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5];
@@ -83,7 +82,7 @@ const m21 = (() => {
 
   // ================================================================ la feuille de style
   const LOUPE = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Ccircle cx='6' cy='6' r='4.2' fill='none' stroke='%238a5a2a' stroke-width='1.6'/%3E%3Cpath d='M9.2 9.2 13 13' stroke='%238a5a2a' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E\")";
-  const CSS = `
+  const STYLE = `
 /* l'échelle : les calques des menus portent le zoom */
 #paper, .dialog, #menu, #subs, #toasts, #pickups, #hotbar, #death, #m21-hud { zoom: var(--m21-k, 1); }
 #m21-hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
@@ -153,6 +152,7 @@ html.m21-clavier #menu nav button:focus { outline: none !important; box-shadow: 
 .m21-sommaire button { padding: 2px 10px; background: rgba(255,255,255,.3); border: 1px solid var(--m21-trait); border-radius: 11px; font: 12.5px var(--m21-police); color: var(--m21-encre-douce); font-style: normal; cursor: pointer; }
 .m21-sommaire button:hover { background: rgba(255,240,200,.85); color: var(--m21-encre); }
 .m21-vide { margin: 10px 2px; font-style: italic; color: var(--m21-encre-pale); }
+.m15-pages .m21-ic, .m21-onglets .m21-ic { margin-right: 5px; font-size: .95em; opacity: .85; }
 
 /* ---- la ligne des raccourcis (au clavier et à la manette seulement) */
 .m21-aide { display: none; flex: none; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 6px 16px 8px; border-top: 1px solid rgba(90,70,40,.18); font: italic 12.5px var(--m21-police); color: var(--m21-encre-pale); }
@@ -225,7 +225,7 @@ html.m21-manette #butin .bu-aide { display: none; }
 `;
   let feuille = null;
   function installerStyle() {
-    if (!feuille) { feuille = D.createElement('style'); feuille.id = 'm21-css'; feuille.textContent = CSS; }
+    if (!feuille) { feuille = D.createElement('style'); feuille.id = 'm21-css'; feuille.textContent = STYLE; }
     if (D.head.lastElementChild !== feuille) D.head.appendChild(feuille);
   }
 
@@ -448,8 +448,16 @@ html.m21-manette #butin .bu-aide { display: none; }
     // Échap : d'un cran (la recherche, une fiche du wiki) avant de fermer
     if (c === 'Escape') {
       if (saisie) { e.preventDefault(); e.stopImmediatePropagation(); if (a.classList.contains('m21-cherche') && a.value) { a.value = ''; a.dispatchEvent(new Event('input', { bubbles: true })); } else a.blur(); return; }
-      const ret = R.id === 'satchel' || R.id === 'wiki15' ? $q('[data-w15retour]', R) : null;
-      if (ret && visible(ret)) { e.preventDefault(); e.stopImmediatePropagation(); ret.click(); const l = $q('.w15-e.on', R) || $q('.w15-e', R); if (l && nav.clavier) focus(l); return; }
+      // une fiche du wiki ouverte : on revient à la liste (la fiche reste choisie dans la liste)
+      const W = typeof decouvertes !== 'undefined' ? decouvertes : null;
+      if (W && W.vue && W.vue.id && W.cible && R.contains(W.cible) && $q('.w15-fiche h3', R)) {
+        e.preventDefault(); e.stopImmediatePropagation();
+        const id = W.vue.id;
+        W.vue.id = null; W.rendre(W.cible); son('page');
+        const l = $q(`.w15-e[data-w15="${CSS.escape(id)}"]`, R) || $q('.w15-gt', R);
+        if (l && nav.clavier) focus(l);
+        return;
+      }
       return;
     }
     // chercher : Ctrl+F ou /
@@ -592,6 +600,8 @@ html.m21-manette #butin .bu-aide { display: none; }
       if (!L) {
         // en jeu : Start, le menu ; Select, le menu Tab
         if (typeof game === 'undefined' || !game.world || game.dying) return;
+        // (pendant la pêche, la manette est au pêcheur : Select n'ouvre rien ; Start met toujours en pause)
+        if (k === 'Select' && typeof p21 !== 'undefined' && p21.actif && p21.actif()) return;
         if (k === 'Start') { this.marquer(true); nav.mode(true); touche('Escape'); }
         else if (k === 'Select' && game.kind === 'farm' && game.mode === 'play') { this.marquer(true); nav.mode(true); touche('Tab'); }
         return;
@@ -856,10 +866,11 @@ html.m21-manette #butin .bu-aide { display: none; }
     if (items.length < (o.min || 0)) return null;
     const cle = o.cle || 'liste';
     const tris = o.tris || [];
+    const place = typeof o.place === 'function' ? o.place(cont) : o.place;
     const st = ETATS[cle] || (ETATS[cle] = { q: '', tri: tris[0] ? tris[0].id : '', f: '' });
     const filtres = typeof o.filtres === 'function' ? o.filtres(items) : (o.filtres || []);
     if (st.f && !filtres.some((f) => f.id === st.f)) st.f = '';
-    const hote = o.place ? o.place.parentNode : cont;
+    const hote = place ? place.parentNode : cont;
     const vieille = hote && $q(`:scope > .m21-outils[data-m21-cle="${cle}"]`, hote);
     if (vieille) vieille.remove();
     // les titres de groupe (ceux qui précèdent une liste de ces éléments), relevés avant tout déplacement
@@ -871,7 +882,7 @@ html.m21-manette #butin .bu-aide { display: none; }
       + (tris.length > 1 ? `<label class="m21-sel"><span>Trier</span><select class="m21-tri" aria-label="Trier">${tris.map((t) => `<option value="${esc(t.id)}"${t.id === st.tri ? ' selected' : ''}>${esc(t.nom)}</option>`).join('')}</select></label>` : '')
       + (filtres.length ? `<label class="m21-sel"><span>Montrer</span><select class="m21-filtre" aria-label="Montrer"><option value="">Tout</option>${filtres.map((f) => `<option value="${esc(f.id)}"${f.id === st.f ? ' selected' : ''}>${esc(f.nom)}</option>`).join('')}</select></label>` : '')
       + '<span class="m21-n"></span>';
-    if (o.place) o.place.parentNode.insertBefore(barre, o.place); else cont.insertBefore(barre, cont.firstChild);
+    if (place) place.parentNode.insertBefore(barre, place); else cont.insertBefore(barre, cont.firstChild);
     for (const el of items) el._m21t = norm(o.texte ? o.texte(el) : el.textContent);
     // le tri : chaque liste dans son parent, ou toutes à plat dans le premier (o.plat)
     const T = tris.find((t) => t.id === st.tri);
@@ -883,9 +894,15 @@ html.m21-manette #butin .bu-aide { display: none; }
         for (const el of items.slice().sort(cmp)) g0.appendChild(el);
         for (const h of tetes) h.classList.add('m21-cache');
       } else {
+        // chaque liste reste à sa place dans son parent (on range devant une ancre posée au premier élément)
         const par = new Map();
         for (const el of items) { const p = el.parentNode; if (!par.has(p)) par.set(p, []); par.get(p).push(el); }
-        for (const [p, L] of par) for (const el of L.slice().sort(cmp)) p.appendChild(el);
+        for (const [p, L] of par) {
+          const ancre = D.createComment('m21');
+          p.insertBefore(ancre, L[0]);
+          for (const el of L.slice().sort(cmp)) p.insertBefore(el, ancre);
+          ancre.remove();
+        }
       }
     }
     const nEl = barre.querySelector('.m21-n');
@@ -934,6 +951,13 @@ html.m21-manette #butin .bu-aide { display: none; }
       },
     },
   };
+  // l'établi : ce que l'on sait faire
+  LISTES.fab = {
+    cle: 'fab', min: 8, items: (b) => $$q(':scope > .rec', b),
+    texte: (el) => el.textContent,
+    tris: [{ id: 'ordre', nom: 'Dans l’ordre' }, { id: 'nom', nom: 'Par nom', cle: (el) => norm((el.querySelector('b') || el).textContent) }],
+    filtres: [{ id: 'possible', nom: 'Faisable maintenant', test: (el) => el.classList.contains('ok') }],
+  };
   function decorerMenu(P) {
     const body = $q(':scope > .body', P);
     if (!body || body._m21) return;
@@ -944,6 +968,9 @@ html.m21-manette #butin .bu-aide { display: none; }
       const g = $q('.grid', body), h = g && g.previousElementSibling && g.previousElementSibling.tagName === 'H4' ? g.previousElementSibling : g;
       if (h) outils(body, Object.assign({}, LISTES.sac, { place: h }));
       for (const el of $$q('.barcfg [data-slot], .barcfg [data-tok]', body)) if (!el.hasAttribute('tabindex')) el.tabIndex = 0;
+    } else if (id === 'fab') {
+      const r0 = $q(':scope > .rec', body);
+      if (r0) outils(body, Object.assign({}, LISTES.fab, { place: r0 }));
     } else if (page && page.outils) {
       try { outils(body, page.outils); } catch (e) { console.error('m21 outils', e); }
     }
@@ -992,7 +1019,7 @@ html.m21-manette #butin .bu-aide { display: none; }
       P.appendChild(x);
     }
     // l'infobulle remplace le titre natif des objets
-    for (const el of $$q('[data-it][title], [data-buy][title], [data-sell][title], [data-get][title], [data-put][title]', P)) { el.dataset.m21Titre = el.title; el.removeAttribute('title'); }
+    if (settings.m21Bulles) for (const el of $$q('[data-it][title], [data-buy][title], [data-sell][title], [data-get][title], [data-put][title]', P)) { el.dataset.m21Titre = el.title; el.removeAttribute('title'); }
     if (P.id === 'satchel') decorerMenu(P);
     else if (P.id === 'shop') decorerBoutique(P);
     else if (P.id === 'store') decorerCoffre(P);
