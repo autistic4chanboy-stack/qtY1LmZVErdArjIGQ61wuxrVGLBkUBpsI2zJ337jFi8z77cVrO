@@ -53429,9 +53429,10 @@ const play = {
     });
     if (!cand.length) { sound.reel && sound.reel(0.3); return; }
     let tot = 0; for (const k of cand) tot += FISH[k].w * (FISH[k].rain && game.sky.wet > 0.3 ? 3 : 1);
-    let r = Math.random() * tot, pick = cand[0];
+    // (F.u : les deux tirages faits d'avance par la pêche à QTE, P21 — même loi que Math.random())
+    let r = (F.u ? F.u[0] : Math.random()) * tot, pick = cand[0];
     for (const k of cand) { r -= FISH[k].w * (FISH[k].rain && game.sky.wet > 0.3 ? 3 : 1); if (r <= 0) { pick = k; break; } }
-    const r0 = Math.random();
+    const r0 = F.u ? F.u[1] : Math.random();
     if (r0 < 0.05) { farm.give('fibre', 1); this.flyer('fibre', [F.x, F.y + 0.3, F.z], 1); sound.reel && sound.reel(0.5); return; }
     if (r0 < 0.06) { farm.give('coffre_peche', 1); this.flyer('coffre_peche', [F.x, F.y + 0.3, F.z], 1); splashAt(F.x, F.y, F.z); sound.catchFish && sound.catchFish(); return; }
     if (r0 < 0.075 && F.zone === 'lac') { farm.give('perle', 1); this.flyer('perle', [F.x, F.y + 0.3, F.z], 1); sound.catchFish && sound.catchFish(); return; }
@@ -148538,6 +148539,1340 @@ q20.scenes('q20d_r15_tertre', {
 });
 q20d.guetter('q20d_r15_tertre', () => { const R = q20dR15(); if (!R) return null; if (R.c.tertre) return 'fin'; if (R.p.tertre) return null; return q20d.S().tertre ? 'demande' : null; });
 
+// ---- 11-zzzzzzzzzzzP21-0-donnees.js
+// ============================================================================
+//  LA PÊCHE À QTE (agent P21, vingt et unième vague) — 0. LES DONNÉES ET LE MOTEUR
+//  - Les réglages (P21_REGL), la façon de se battre de chaque espèce (P21_STYLES,
+//    P21_ESPECES : taille et poids tirés selon l'espèce), les appâts (P21_APPATS),
+//    les textes (P21_TEXTES).
+//  - Le moteur du combat (p21Moteur) : pur, sans DOM ni farm.s ; le jeu
+//    (11-zzzzzzzzzzzP21-1-peche.js) le fait avancer à chaque image, et
+//    l'équilibrage (tools/equilibrage/P21.js) le rejoue avec des joueurs simulés.
+//  - Le tirage de la prise (p21Tirage) : la copie exacte de celui de
+//    play.catchFish, pour savoir AU FERRAGE quel poisson on va remonter (le
+//    combat en dépend) ; play.catchFish reçoit ensuite les deux tirages faits
+//    d'avance (F.u) et reste la fonction qui choisit et donne la prise.
+// ============================================================================
+
+// ---------------------------------------------------------------- réglages
+const P21_REGL = {
+  // l'attente (s) avant la vraie touche : (a + hasard × b) × vitesse de la canne × coin × appât
+  attente: [7, 13.6],
+  coin: 0.65,              // dans un coin à poissons, ça mord plus vite
+  appat: 0.85,             // un appât, quel qu'il soit : un peu plus vite aussi
+  leurres: [0, 3],         // petites touches (le bouchon frémit) pendant l'attente
+  annonce: 0.55,           // s : le bouchon s'enfonce une fois, puis plonge
+  // le ferrage : la fenêtre (s) après la plongée du bouchon ; trop tôt (pendant un frémissement, ou l'annonce), le
+  // poisson part ; trop tard aussi
+  fenetre: { complete: 0.75, simplifiee: 1.5, auto: 2.2 },
+  reprise: [3, 8],         // après un ferrage manqué : la touche suivante vient au bout de (s)
+  tardAppat: 0.5,          // trop tard : il emporte l'appât une fois sur deux (aide complète)
+  // le lancer
+  lancer: { min: 4, max: 17, charge: 1.05 }, // m ; s pour remplir la jauge (puis elle redescend, aide complète)
+  vol: [0.32, 0.62],       // s : le bouchon en l'air (près / loin)
+  // le combat
+  moulinet: 3.0,           // m/s de fil repris quand rien ne tire
+  casse: { complete: 0.4, simplifiee: 0.9 },  // s dans le rouge avant que la ligne casse
+  montee: 1.8,             // la tension ne monte pas plus vite que cela (par seconde) : la canne plie
+  mou: 3.0,                // s sans mouliner (ligne molle) avant que le poisson se décroche
+  fil: 32,                 // m de fil : au-delà, la ligne casse
+  invite: 1.0,             // s pour répondre à une invite (les plus vifs : moins, voir P21_STYLES)
+  sautDecroche: 0.35,      // un saut manqué (canne pas baissée) : il se décroche une fois sur trois
+  bord: 1.0,               // m : au bord, on le sort (ou l'épuisette)
+  epuisette: { kg: 1.2, fenetre: 1.4 },
+  // la canne : la tension monte moins avec une bonne canne (« fast », pour l'attente, reste celui de l'objet)
+  tenue: { canne: 1, canne_fer: 0.75, canne_dame: 0.6 },
+  rare: 0.5,               // poids w sous lequel une espèce est rare : les appâts n'y touchent pas
+  prise: 1.6,              // s : le poisson montré en main
+  // le poisson qui s'échappe revient mordre à la touche suivante (au même endroit, le même jour) : la rareté ne change
+  // pas en espérance
+};
+
+// ---------------------------------------------------------------- les façons de se battre
+// F : force ; S : endurance (s de moulinet sous tension pour l'épuiser) ; freq : coups par seconde ; coups : [coup, poids] ;
+// invite : la fenêtre des invites (s) ; phases (légendaires) : [[au-dessus de cette endurance, freq, coups]…]
+const P21_STYLES = {
+  fretin:    { F: 0.28, S: 1.0, freq: 0.3, coups: [['secoue', 1]] },
+  perche:    { F: 0.50, S: 2.6, freq: 0.5, coups: [['secoue', 2], ['cote', 2], ['file', 1]] },
+  carpe:     { F: 0.72, S: 6.0, freq: 0.38, coups: [['file', 4], ['cote', 2], ['plonge', 1]] },
+  truite:    { F: 0.58, S: 3.4, freq: 0.55, coups: [['saut', 3], ['file', 2], ['cote', 1]] },
+  saumon:    { F: 0.85, S: 8.0, freq: 0.5, coups: [['saut', 3], ['file', 3], ['cote', 1]] },
+  brochet:   { F: 0.95, S: 4.2, freq: 0.62, invite: 0.95, coups: [['secoue', 3], ['file', 2], ['saut', 1], ['cote', 1]] },
+  anguille:  { F: 0.55, S: 3.4, freq: 0.6, coups: [['tortille', 4], ['plonge', 1]] },
+  silure:    { F: 1.10, S: 8.0, freq: 0.32, coups: [['plonge', 3], ['file', 2], ['secoue', 1]] },
+  ecrevisse: { F: 0.22, S: 0.9, freq: 0.35, coups: [['recule', 1]] },
+  aveugle:   { F: 0.45, S: 3.0, freq: 0.35, coups: [['plonge', 2], ['cote', 1]] },
+  lune:      { F: 0.80, S: 9.0, freq: 0.45, coups: [['saut', 2], ['file', 2]] },
+  esturgeon: { F: 1.35, S: 14, freq: 0.32, invite: 1.0, coups: [['plonge', 3], ['file', 2]] },
+  // les légendaires : chacun son combat
+  reine:     { F: 1.15, S: 20, invite: 0.9, phases: [[0.66, 0.45, [['file', 3], ['cote', 2]]], [0.33, 0.6, [['tourne', 3], ['cote', 1]]], [0, 0.5, [['plonge', 2], ['file', 1]]]] },
+  vieux:     { F: 1.5, S: 24, invite: 0.95, phases: [[0.6, 0.35, [['plonge', 3], ['file', 2]]], [0.25, 0.3, [['cale', 3], ['plonge', 1]]], [0, 0.45, [['file', 2], ['secoue', 1]]]] },
+  notaire:   { F: 1.3, S: 14, invite: 0.8, freq: 0.75, coups: [['secoue', 3], ['saut', 2], ['file', 2], ['cote', 1]] },
+  ancien:    { F: 0.95, S: 16, invite: 0.75, freq: 0.5, coups: [['suite', 3], ['plonge', 1], ['file', 1]] },
+  // ce qui n'est pas un poisson : un poids mort
+  herbes:    { F: 0.15, S: 0, freq: 0, coups: [], mort: true },
+  coffre:    { F: 0.55, S: 0, freq: 0, coups: [], mort: true },
+  perle:     { F: 0.12, S: 0, freq: 0, coups: [], mort: true },
+};
+// les coups : durée (s), force (× F), invite (direction à presser : g gauche, d droite, h lever, b baisser)
+const P21_COUPS = {
+  nage:     { dur: [0, 0], k: 0.5 },
+  file:     { dur: [1.2, 2.2], k: 1.6 },
+  cote:     { dur: [1.0, 1.0], k: 1.0, invite: 'cote' },
+  plonge:   { dur: [1.4, 1.4], k: 1.25, invite: 'h' },
+  saut:     { dur: [0.9, 0.9], k: 0.3, invite: 'b', pic: 0.5 },
+  secoue:   { dur: [0.8, 1.1], k: 0.95, osc: 0.6 },
+  tortille: { dur: [1.7, 1.7], k: 0.9, suite: 2, alterne: true },
+  recule:   { dur: [1.0, 1.0], k: 0.7 },
+  cale:     { dur: [3.0, 3.0], k: 0.95, cale: true },
+  tourne:   { dur: [2.4, 2.4], k: 1.0, suite: 3, alterne: true },
+  suite:    { dur: [2.2, 2.2], k: 0.8, suite: 3 },
+};
+// id : [façon de se battre, cm min, cm max, kg min, kg max]
+const P21_ESPECES = {
+  vairon: ['fretin', 5, 10, 0.004, 0.02], ablette: ['fretin', 10, 18, 0.01, 0.05], goujon: ['fretin', 9, 16, 0.015, 0.06],
+  loche: ['fretin', 7, 12, 0.008, 0.025], chabot: ['fretin', 8, 14, 0.01, 0.035], vandoise: ['fretin', 15, 28, 0.05, 0.25],
+  gardon: ['fretin', 12, 30, 0.05, 0.5], rotengle: ['fretin', 15, 32, 0.08, 0.6], gremille: ['fretin', 10, 20, 0.03, 0.15],
+  blennie: ['fretin', 8, 15, 0.02, 0.08], poisson_source: ['fretin', 15, 30, 0.1, 0.6],
+  perche: ['perche', 15, 42, 0.1, 1.6], chevesne: ['perche', 25, 58, 0.3, 2.8],
+  carpe: ['carpe', 40, 90, 1.5, 16], carpe_miroir: ['carpe', 45, 85, 2, 14], carassin: ['carpe', 15, 35, 0.2, 1.2],
+  breme: ['carpe', 30, 62, 0.5, 4], tanche: ['carpe', 25, 55, 0.4, 3], barbeau: ['carpe', 30, 72, 0.5, 4.5],
+  truite: ['truite', 25, 55, 0.25, 2.5], truite_arc: ['truite', 25, 60, 0.3, 3], ombre: ['truite', 25, 45, 0.2, 1.2],
+  omble: ['truite', 25, 55, 0.3, 2.5], lavaret: ['truite', 25, 55, 0.3, 2], saumon: ['saumon', 60, 110, 3, 12],
+  brochet: ['brochet', 45, 110, 0.9, 10], sandre: ['brochet', 40, 85, 0.8, 6],
+  anguille: ['anguille', 40, 100, 0.2, 2], lamproie: ['anguille', 30, 50, 0.1, 0.35], anguille_argent: ['anguille', 50, 100, 0.3, 2],
+  silure: ['silure', 70, 200, 3, 40], poisson_chat: ['silure', 20, 40, 0.2, 1], lotte: ['silure', 30, 65, 0.4, 3],
+  ecrevisse: ['ecrevisse', 8, 14, 0.03, 0.12], ecrevisse_aveugle: ['ecrevisse', 7, 12, 0.02, 0.08],
+  poisson_aveugle: ['aveugle', 12, 25, 0.1, 0.5], poisson_roche: ['aveugle', 20, 40, 0.3, 2], truite_pierre: ['aveugle', 25, 50, 0.3, 2],
+  poisson_lune: ['lune', 40, 80, 2, 8], esturgeon: ['esturgeon', 100, 220, 10, 60],
+  reine_lac: ['reine', 92, 120, 18, 30], vieux_silure: ['vieux', 210, 280, 45, 95], brochet_douves: ['notaire', 120, 142, 12, 20],
+  poisson_ancien: ['ancien', 50, 75, 5, 12],
+  // ce qui n'est pas un poisson
+  fibre: ['herbes', 20, 60, 0.05, 0.2], coffre_peche: ['coffre', 30, 50, 4, 9], perle: ['perle', 6, 10, 0.05, 0.12],
+};
+
+// ---------------------------------------------------------------- les appâts (des objets du jeu)
+// esp : les espèces qu'il attire (× k, prises aux autres espèces communes : les rares ne bougent pas)
+const P21_APPATS = {
+  vers: { k: 1.8, esp: ['perche', 'truite', 'anguille', 'tanche', 'gardon', 'barbeau', 'goujon', 'chevesne', 'ombre', 'gremille', 'loche'] },
+  pain: { k: 1.8, esp: ['carpe', 'gardon', 'rotengle', 'breme', 'chevesne', 'carassin', 'ablette', 'carpe_miroir', 'vandoise'] },
+  mais: { k: 2.2, esp: ['carpe', 'carpe_miroir', 'tanche', 'breme', 'carassin'] },
+  sauterelle: { k: 1.6, esp: ['truite', 'truite_arc', 'ombre', 'chevesne', 'vandoise', 'omble'] },
+  hanneton: { k: 1.8, esp: ['chevesne', 'truite', 'truite_arc', 'ombre'] },
+  viande: { k: 1.8, esp: ['silure', 'anguille', 'poisson_chat', 'lotte', 'brochet', 'sandre', 'lamproie', 'ecrevisse'] },
+  vairon: { k: 2.0, esp: ['brochet', 'sandre', 'perche', 'silure', 'lotte'], vif: true },
+  ablette: { k: 2.0, esp: ['brochet', 'sandre', 'perche', 'silure'], vif: true },
+  goujon: { k: 2.0, esp: ['brochet', 'sandre', 'perche', 'barbeau'], vif: true },
+  grillon_pale: { k: 1.8, esp: ['poisson_aveugle', 'truite_pierre', 'ecrevisse_aveugle', 'poisson_roche', 'anguille_argent'] },
+};
+const P21_APPATS_ORDRE = ['vers', 'pain', 'mais', 'sauterelle', 'hanneton', 'viande', 'vairon', 'ablette', 'goujon', 'grillon_pale'];
+
+// ---------------------------------------------------------------- les textes (français ; le coordinateur traduit)
+const P21_TEXTES = {
+  option: 'Aide à la pêche',
+  aides: { complete: 'Complète', simplifiee: 'Simplifiée', auto: 'Automatique' },
+  aideDesc: {
+    complete: 'Le lancer dosé, le ferrage au bon moment, la tension et les invites du combat.',
+    simplifiee: 'Des fenêtres larges, sans invites pendant le combat.',
+    auto: 'Comme avant : on lance, on ferre quand ça plonge, le poisson vient.',
+  },
+  // la première fois, une canne en main
+  aide1: 'Maintenez le clic pour doser le lancer, relâchez pour envoyer la ligne. Clic droit : l’appât.',
+  aide2: 'Quand le bouchon plonge, ferrez (clic). Puis moulinez (clic maintenu) sans casser la ligne.',
+  // le HUD
+  lancer: 'Lancer',
+  ferrez: 'Ferrez !',
+  mouliner: 'Moulinez',
+  lacher: 'Lâchez du fil !',
+  tension: 'Tension',
+  endurance: 'Le poisson',
+  dist: (m) => `${m} m`,
+  invites: { g: 'Tirez à gauche', d: 'Tirez à droite', h: 'Levez la canne', b: 'Baissez la canne', e: 'L’épuisette !' },
+  coups: { file: 'Il file !', cote: 'Il part de côté.', plonge: 'Il plonge.', saut: 'Il saute !', secoue: 'Il secoue la tête.', tortille: 'Il se tortille.',
+    recule: 'Ça recule.', cale: 'Il se cale au fond. Tenez bon.', tourne: 'Elle tourne autour de la ligne.', suite: 'L’eau se trouble.', epuise: 'Il s’épuise.' },
+  // les fins
+  tot: 'Trop tôt.',
+  tard: 'Trop tard.',
+  tardAppat: 'Trop tard. L’appât est parti avec lui.',
+  casse: 'La ligne a cassé.',
+  casseAppat: 'La ligne a cassé. L’appât est perdu.',
+  decroche: 'Il s’est décroché.',
+  loin: 'Il a pris tout le fil.',
+  revenant: '(Il est encore là, quelque part sous l’eau.)',
+  sol: '(Pas d’eau là-bas.)',
+  // la prise
+  record: 'Record !',
+  nouvelle: 'Première prise',
+  taille: (cm, kg) => `${cm} cm · ${kg}`,
+  kg: (kg) => (kg >= 1 ? `${(Math.round(kg * 10) / 10).toLocaleString('fr-FR')} kg` : `${Math.max(1, Math.round(kg * 1000))} g`),
+  // l'appât
+  appat: (nom, n) => `Appât : ${nom} (${n})`,
+  sansAppat: 'Sans appât',
+  appatFini: (nom) => `(Plus de ${nom}.)`,
+  // la glace
+  glaceCanne: '(Il faudrait une canne à pêche.)',
+  glaceDescend: 'Vous laissez filer la ligne dans le trou.',
+  // le carnet
+  page: 'Pêche',
+  carnetTitre: 'Carnet de pêche',
+  carnetVide: 'Rien de pris pour l’instant. Le carnet attend sa première ligne.',
+  carnetPrises: (n, e, t) => `${n} prise${n > 1 ? 's' : ''}, ${e} espèce${e > 1 ? 's' : ''} sur ${t}.`,
+  carnetJamais: (n) => `${n} espèce${n > 1 ? 's' : ''} encore jamais prise${n > 1 ? 's' : ''}.`,
+  carnetVues: 'Vues, jamais pesées',
+  carnetEspeces: 'Espèces prises',
+  carnetPertes: (c, d) => `Lignes cassées : ${c}. Décrochés : ${d}.`,
+  carnetAppat: 'Appât',
+  carnetCanne: 'Canne',
+  carnetAide: 'Aide',
+  carnetQuand: (j, h) => `jour ${j}, ${h}`,
+  carnetN: (n) => `× ${n}`,
+  carnetRecord: 'Record',
+  carnetOu: 'Où',
+  carnetConcours: (kg) => `Concours du jour : votre prise la plus lourde, ${kg}.`,
+  carnetWiki: 'Fiche',
+  heures: ['la nuit', 'à l’aube', 'le matin', 'à midi', 'l’après-midi', 'le soir', 'la nuit'],
+  // le concours (par le poids)
+  concoursRegle: 'Concours de pêche, chaque Pêchedi. Inscriptions au ponton, de six heures à midi (cinq pièces). Ce qu’on tire du lac jusqu’à quatre heures compte ; on présente sa prise la plus lourde, pesée au ponton, entre quatre heures et huit heures du soir.\n\nPremier prix : cinquante pièces et un coffre de pêcheur. Deuxième : vingt-cinq pièces. Troisième : des vers, beaucoup de vers.',
+  concoursPour: (nom, kg) => `(Pour le concours : ${nom}, ${kg}. Votre prise la plus lourde.)`,
+  concoursAttente: (nom, kg) => `(Votre prise la plus lourde, pour l’instant : ${nom}, ${kg}. On pèse à quatre heures.)`,
+  concoursRien: '(Rien de pris pour l’instant. Il reste jusqu’à quatre heures.)',
+  concoursBilan: (moi, L) => `${moi ? 'Votre prise la plus lourde : ' + moi + '.' : 'Vous n’avez rien présenté.'}\n\nLa pesée : ${L}.`,
+  // les fiches du wiki
+  champEaux: 'Où il mord',
+  champHeure: 'Quand il mord',
+  champAppat: 'Ce qui le fait mordre',
+  champCombat: 'Au bout de la ligne',
+  heureVal: { jour: 'le jour', nuit: 'la nuit', tout: 'à toute heure' },
+  lune: ', les nuits de lune',
+  combats: {
+    fretin: 'Il se laisse remonter.', perche: 'Il secoue la tête et part de côté.', carpe: 'Elle file loin, longtemps.',
+    truite: 'Elle saute hors de l’eau.', saumon: 'Il saute, et file.', brochet: 'Il se débat violemment.',
+    anguille: 'Elle se tortille de droite et de gauche.', silure: 'Il plonge, lourd.', ecrevisse: 'Elle recule.',
+    aveugle: 'Il tire vers le fond.', lune: 'Il glisse et saute, sans bruit.', esturgeon: 'Il plonge et ne lâche rien.',
+    reine: 'Elle file, tourne, puis sonde.', vieux: 'Il se cale au fond.', notaire: 'Il saute et secoue la tête, rageur.',
+    ancien: 'Il tire en suites, comme on frappe à une porte.',
+  },
+};
+
+// ---------------------------------------------------------------- le tirage (copie de play.catchFish, en pur)
+const p21Tirage = {
+  // l'espèce, sa façon de se battre, sa taille
+  espece(id) {
+    if (P21_ESPECES[id]) return P21_ESPECES[id];
+    // une espèce ajoutée plus tard : une perche de sa taille (le prix dit à peu près la taille)
+    const p = (typeof ITEMS !== 'undefined' && ITEMS[id] && ITEMS[id].price) || 6, k = Math.min(4, Math.max(0.5, p / 10));
+    return ['perche', 15 * k, 40 * k, 0.1 * k * k, 1.5 * k * k];
+  },
+  style(id) { return P21_STYLES[this.espece(id)[0]] || P21_STYLES.perche; },
+  // la taille : la plupart moyens, quelques gros (rnd : une fonction 0..1)
+  mesure(id, rnd) {
+    const E = this.espece(id), R = rnd || Math.random;
+    const s = Math.pow(R(), 1.45) * 0.92 + (R() < 0.04 ? 0.08 : R() * 0.08);
+    const cm = E[1] + (E[2] - E[1]) * s;
+    const kg = E[3] + (E[4] - E[3]) * Math.pow(s, 2.5);
+    return { s, cm: Math.round(cm), kg: Math.round(kg * 1000) / 1000 };
+  },
+  // les candidats de play.catchFish : même ordre, mêmes filtres
+  candidats(zone, nuit, lune) {
+    return Object.keys(FISH).filter((k) => {
+      const q = FISH[k];
+      if (!q.where.includes(zone)) return false;
+      if (q.time === 'jour' && nuit) return false;
+      if (q.time === 'nuit' && !nuit) return false;
+      if (q.moon && !lune) return false;
+      return true;
+    });
+  },
+  // les poids w que verra play.catchFish une fois l'appât posé (FISH[k].w modifiés le temps de l'appel) : { k: w }
+  poidsAppat(cand, appat) {
+    const A = appat && P21_APPATS[appat], out = {};
+    for (const k of cand) out[k] = FISH[k].w;
+    if (!A) return out;
+    const com = cand.filter((k) => FISH[k].w >= P21_REGL.rare);
+    const W0 = com.reduce((a, k) => a + FISH[k].w, 0);
+    if (!com.some((k) => A.esp.includes(k)) || !(W0 > 0)) return out;
+    let W1 = 0;
+    for (const k of com) { out[k] = FISH[k].w * (A.esp.includes(k) ? A.k : 1); W1 += out[k]; }
+    for (const k of com) out[k] *= W0 / W1;
+    return out;
+  },
+  // les poids du tirage (o : { zone, nuit, lune, pluie, appat, dame }) → { cand, w: [..], tot }
+  table(o) {
+    const cand = this.candidats(o.zone, o.nuit, o.lune), P = this.poidsAppat(cand, o.appat);
+    const w = cand.map((k) => { let x = P[k]; if (o.dame && x < 2) x *= 3; return x * (FISH[k].rain && o.pluie ? 3 : 1); });
+    return { cand, w, tot: w.reduce((a, b) => a + b, 0) };
+  },
+  // ce que donnera play.catchFish avec ces deux tirages (u0 : l'espèce ; u1 : herbes, coffre, perle)
+  predire(o, u0, u1) {
+    const T = this.table(o);
+    if (!T.cand.length) return null;
+    let r = u0 * T.tot, pick = T.cand[0];
+    for (let i = 0; i < T.cand.length; i++) { r -= T.w[i]; if (r <= 0) { pick = T.cand[i]; break; } }
+    if (u1 < 0.05) return 'fibre';
+    if (u1 < 0.06) return 'coffre_peche';
+    if (u1 < 0.075 && o.zone === 'lac') return 'perle';
+    return pick;
+  },
+  // u0 qui fait tomber le tirage sur cette espèce (le poisson qui revient), ou null
+  viser(o, id) {
+    const T = this.table(o), i = T.cand.indexOf(id);
+    if (i < 0 || !(T.w[i] > 0)) return null;
+    let c0 = 0;
+    for (let j = 0; j < i; j++) c0 += T.w[j];
+    return (c0 + T.w[i] / 2) / T.tot;
+  },
+};
+
+// ---------------------------------------------------------------- le moteur du combat (pur)
+// creer({ id, kg, s, aide, canne, D, rnd }) → C ; pas(C, dt, { mouline, dir }) ; C.fin : null | 'prise' | 'casse' |
+// 'decroche' | 'loin'. Directions : 'g' gauche, 'd' droite, 'h' lever, 'b' baisser, 'e' l'épuisette.
+const p21Moteur = {
+  creer(o) {
+    const R = P21_REGL, E = p21Tirage.espece(o.id), st = P21_STYLES[E[0]] || P21_STYLES.perche;
+    const s = o.s ?? 0.4, aide = o.aide || 'complete';
+    const C = {
+      id: o.id, style: E[0], st, kg: o.kg || E[3], s, aide, rnd: o.rnd || Math.random,
+      F: st.F * (0.8 + 0.4 * s), S: st.S * (0.7 + 0.6 * s),
+      tenue: (R.tenue[o.canne] ?? 1) * (aide === 'simplifiee' ? 0.85 : 1),
+      T: 0.3, E: st.mort ? 0 : 1, D: o.D || 10, D0: o.D || 10, side: 0, sideV: 0, prof: 0.5,
+      coup: { k: 'nage', t: 0, dur: 0 }, coupT: 0.6 + (o.rnd || Math.random)() * 0.8,
+      invite: null, file: [], nInv: 0, nOk: 0, nRate: 0, breakT: 0, mouT: 0, t: 0, fin: null,
+      epuisette: null, saut: 0, sautMax: 0, evts: [], bolte: 0, auto: aide === 'auto',
+    };
+    if (C.auto) C.dureeAuto = 1.0 + 0.6 * Math.log2(1 + C.kg) + (st.mort ? 0.4 : 0);
+    return C;
+  },
+  // la phase (légendaires) : [freq, coups]
+  phase(C) {
+    const st = C.st;
+    if (!st.phases) return [st.freq || 0, st.coups || []];
+    for (const [e, f, L] of st.phases) if (C.E >= e) return [f, L];
+    const last = st.phases[st.phases.length - 1];
+    return [last[1], last[2]];
+  },
+  choisir(C, L) {
+    const tot = L.reduce((a, q) => a + q[1], 0);
+    let r = C.rnd() * tot;
+    for (const [k, w] of L) { r -= w; if (r <= 0) return k; }
+    return L[0][0];
+  },
+  // un coup du poisson : il commence
+  lancerCoup(C, k) {
+    const K = P21_COUPS[k] || P21_COUPS.nage;
+    C.coup = { k, t: 0, dur: K.dur[0] + C.rnd() * (K.dur[1] - K.dur[0]) };
+    C.evts.push({ e: 'coup', k });
+    if (k === 'cote') { C.sideV = C.side > 0.2 ? -1 : C.side < -0.2 ? 1 : (C.rnd() < 0.5 ? -1 : 1); }
+    if (k === 'saut') { C.saut = 0.8; C.sautMax = 0.8; C.evts.push({ e: 'saut' }); }
+    if (k === 'plonge') C.prof = 1.8;
+    // les invites : une seule, ou une suite
+    const inv = [];
+    if (K.invite === 'cote') inv.push(C.sideV < 0 ? 'd' : 'g');   // il part à gauche : on tire à droite
+    else if (K.invite) inv.push(K.invite);
+    if (K.suite) {
+      let d = C.rnd() < 0.5 ? 'g' : 'd';
+      for (let i = 0; i < K.suite; i++) {
+        if (K.alterne) { inv.push(d); d = d === 'g' ? 'd' : 'g'; } else inv.push(['g', 'd', 'h', 'b'][Math.floor(C.rnd() * 4)]);
+      }
+    }
+    C.file = inv;
+    this.inviteSuivante(C);
+  },
+  inviteSuivante(C) {
+    if (!C.file.length) { C.invite = null; return; }
+    const dir = C.file.shift(), dur = (C.st.invite || P21_REGL.invite) * (P21_COUPS[C.coup.k] && P21_COUPS[C.coup.k].suite ? 0.8 : 1);
+    C.nInv++;
+    if (C.aide !== 'complete') { // aide simplifiée : pas d'invites ; le coup est paré à moitié
+      C.E = Math.max(0, C.E - 0.05); C.nOk++; C.evts.push({ e: 'pare', dir });
+      if (C.file.length) this.inviteSuivante(C); else C.invite = null;
+      return;
+    }
+    C.invite = { dir, t: 0, dur };
+    C.evts.push({ e: 'invite', dir, dur });
+  },
+  reussir(C) {
+    const I = C.invite;
+    C.nOk++;
+    C.E = Math.max(0, C.E - (C.st.phases ? 0.07 : 0.12));
+    C.evts.push({ e: 'ok', dir: I.dir });
+    if (C.file.length) { this.inviteSuivante(C); return; }
+    C.invite = null;
+    C.coup.dur = Math.min(C.coup.dur, C.coup.t + 0.25); // il renonce
+  },
+  rater(C, mauvais) {
+    const I = C.invite, pic = (P21_COUPS[C.coup.k] && P21_COUPS[C.coup.k].pic) || 0.4;
+    C.nRate++;
+    C.T += pic; C.D += 1.2; C.E = Math.min(1, C.E + 0.04);
+    C.evts.push({ e: 'rate', dir: I.dir, mauvais: !!mauvais });
+    C.file.length = 0; C.invite = null;
+    if (C.coup.k === 'saut' && C.rnd() < P21_REGL.sautDecroche) { C.fin = 'decroche'; C.evts.push({ e: 'secoue' }); }
+  },
+  pas(C, dt, inp) {
+    if (C.fin) return C;
+    const R = P21_REGL, mouline = !!(inp && inp.mouline), dir = inp && inp.dir;
+    C.t += dt;
+    // aide automatique : il vient tout seul
+    if (C.auto) {
+      const k = Math.min(1, C.t / C.dureeAuto);
+      C.D = C.D0 * (1 - k); C.T = 0.38 + 0.08 * Math.sin(C.t * 9); C.E = Math.max(0, 1 - k * 1.3);
+      if (k >= 1) C.fin = 'prise';
+      return C;
+    }
+    // l'épuisette
+    if (C.epuisette) {
+      const P = C.epuisette;
+      P.t += dt; C.T = 0.2; C.prof = 0;
+      if (dir === 'e') { C.fin = 'prise'; C.evts.push({ e: 'epuisette', ok: true }); return C; }
+      if (P.t > P.dur) { C.epuisette = null; C.E = 0.35; C.D = 3.2; C.evts.push({ e: 'epuisette', ok: false }); this.lancerCoup(C, 'file'); }
+      return C;
+    }
+    // les coups du poisson
+    const c = C.coup;
+    c.t += dt;
+    if (c.k !== 'nage' && c.t >= c.dur && !C.invite) { C.coup = { k: 'nage', t: 0, dur: 0 }; C.prof = 0.5; C.sideV = 0; }
+    if (C.E > 0 && C.coup.k === 'nage' && !C.st.mort) {
+      C.coupT -= dt;
+      const [freq, L] = this.phase(C);
+      if (C.coupT <= 0 && freq > 0 && L.length) { this.lancerCoup(C, this.choisir(C, L)); C.coupT = (1 / freq) * (0.6 + C.rnd() * 0.8); }
+    }
+    // l'invite en cours
+    if (C.invite) {
+      C.invite.t += dt;
+      if (dir && dir !== 'e') { if (dir === C.invite.dir) this.reussir(C); else this.rater(C, true); }
+      else if (C.invite && C.invite.t >= C.invite.dur) this.rater(C, false);
+      if (C.fin) return C;
+    }
+    // la force du poisson
+    const K = P21_COUPS[C.coup.k] || P21_COUPS.nage;
+    let k = K.k;
+    if (K.osc) k += K.osc * Math.sin(C.t * 16);
+    if (C.saut > 0) { C.saut -= dt; k = 0.15; if (C.saut <= 0) { C.evts.push({ e: 'replonge' }); } }
+    let pull = C.st.mort ? C.F * 0.6 : C.E <= 0 ? 0.12 * C.F : C.F * k * (0.35 + 0.65 * C.E);
+    if (C.E <= 0 && !C.st.mort && C.coup.k !== 'nage') pull = C.F * 0.5;
+    // la tension visée
+    let Tt = mouline ? 0.22 + pull * 0.7 * C.tenue : 0.08 + pull * 0.22 * C.tenue;
+    if (C.D >= R.fil) Tt = 1.3;
+    // (la canne plie : la tension monte vite, mais pas d'un coup ; elle retombe dès qu'on lâche)
+    const dT = (Tt - C.T) * Math.min(1, dt * (Tt > C.T ? 8 : 10));
+    C.T += dT > 0 ? Math.min(dT, R.montee * dt) : dT;
+    C.T = Math.max(0, Math.min(1.35, C.T));
+    // le fil : repris, ou pris
+    if (mouline && !(K.cale && C.E > 0)) C.D -= R.moulinet * Math.max(0, 1 - pull * 0.7) * dt;
+    else if (!mouline) C.D += Math.max(0, pull - 0.35) * 2.6 * dt;
+    C.D = Math.max(0.3, C.D);
+    // de côté
+    if (C.sideV) C.side = Math.max(-1, Math.min(1, C.side + C.sideV * dt * 1.4));
+    else C.side *= Math.exp(-dt * 0.6);
+    // l'endurance : elle fond sous la tension
+    if (C.E > 0 && !C.st.mort) {
+      let d = mouline && C.T >= 0.25 ? (0.55 + C.T) : 0.2;
+      if (K.cale) d = mouline && C.T >= 0.55 && C.T < 0.95 ? 1.2 : 0;
+      C.E = Math.max(0, C.E - dt / C.S * d);
+      if (C.E <= 0) { C.evts.push({ e: 'epuise' }); C.file.length = 0; C.invite = null; C.coup = { k: 'nage', t: 0, dur: 0 }; }
+    }
+    // la casse
+    if (C.T >= 1) { C.breakT += dt; if (C.breakT >= (R.casse[C.aide] || R.casse.complete)) { C.fin = C.D >= R.fil ? 'loin' : 'casse'; return C; } }
+    else C.breakT = Math.max(0, C.breakT - dt * 1.5);
+    // la ligne molle
+    const actif = ['file', 'plonge', 'saut', 'cale'].includes(C.coup.k);
+    if (!mouline && C.E > 0.05 && !actif && !C.st.mort) { C.mouT += dt; if (C.mouT >= R.mou) { C.fin = 'decroche'; return C; } }
+    else C.mouT = Math.max(0, C.mouT - dt * 2);
+    // au bord
+    if (C.D <= R.bord) {
+      if (C.E > 0.3 && !C.st.mort) { if (C.t > C.bolte) { C.bolte = C.t + 2; C.D = 2.2; this.lancerCoup(C, 'file'); } }
+      else if (C.kg >= R.epuisette.kg && C.aide === 'complete' && !C.st.mort) { C.epuisette = { t: 0, dur: R.epuisette.fenetre }; C.evts.push({ e: 'invite', dir: 'e', dur: R.epuisette.fenetre }); }
+      else C.fin = 'prise';
+    }
+    return C;
+  },
+};
+
+// ---- 11-zzzzzzzzzzzP21-1-peche.js
+// ============================================================================
+//  LA PÊCHE À QTE (agent P21, vingt et unième vague) — 1. LE JEU
+//  Quatre temps, une canne en main :
+//  1. LE LANCER : on maintient le clic, la jauge monte (et redescend : on dose),
+//     on relâche ; le bouchon part en l'air et tombe là où l'on vise, à la
+//     distance dosée, avec des ronds dans l'eau.
+//  2. L'ATTENTE : le bouchon dandine ; de petites touches le font frémir (des
+//     leurres) ; la vraie touche s'annonce (il s'enfonce une fois) puis il plonge,
+//     avec son bruit et ses ronds.
+//  3. FERRER : une fenêtre courte après la plongée. Trop tôt (sur un frémissement,
+//     sur l'annonce), le poisson part ; trop tard aussi.
+//  4. LE COMBAT : on mouline (clic maintenu) sans casser la ligne ; le poisson
+//     tire, file, change de côté, plonge, saute ; à chaque coup, une invite (la
+//     touche affichée) ; son endurance fond ; à la fin, l'épuisette pour les gros.
+//     Le moteur : p21Moteur (11-zzzzzzzzzzzP21-0-donnees.js).
+//  Puis LA PRISE MONTRÉE : en main, en gros plan, avec sa taille et son poids,
+//  « Record ! » quand c'est le plus gros. play.catchFish(F) reste la fonction qui
+//  choisit et donne la prise (ses emballages marchent) : on l'appelle une fois, au
+//  bout du combat, avec les deux tirages faits au ferrage (F.u).
+//  Et : les appâts (clic droit), les cannes (la tenue), les coins à poissons
+//  (gobages, ronds : ça mord plus vite), le concours du Pêchedi au poids, la
+//  pêche sous la glace, les sons (moulinet, ligne qui grince, casse), le poisson
+//  qui saute, le carnet (12-zzzzzzzzzzzP21-hud.js).
+//  Aide à la pêche (Options › Jeu) : Complète / Simplifiée / Automatique.
+//  Clavier (clic, Espace, flèches ou ZQSD), souris (glisser la souris dans le
+//  sens de l'invite), manette (A ou RT, la croix ou le stick, B, X).
+//  État : farm.s.p21 = { v, appat, esp: { id: { n, kg, cm, j, h, lieu } }, pertes, vu }.
+// ============================================================================
+
+const P21_DIRS = { ArrowLeft: 'g', KeyA: 'g', ArrowRight: 'd', KeyD: 'd', ArrowUp: 'h', KeyW: 'h', ArrowDown: 'b', KeyS: 'b' };
+const P21_BLOQUE = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyC']);
+
+const p21 = {
+  F: null,            // la ligne à l'eau (= play.fish) ; ses données à moi : F.p21
+  et: null,           // 'charge' | 'vol' | 'attente' | 'touche' | 'combat' | 'prise' | 'sol' | null
+  C: null,            // le moteur du combat
+  prise: null,        // la prise montrée { id, kg, cm, record, nouvelle, t }
+  charge: 0, sens: 1, // la jauge du lancer
+  msg: null,          // le message court du HUD { txt, t, k }
+  tenu: false, avant: false, dirs: [], pad: null, padAvant: {}, yaw0: 0, pitch0: 0,
+  anneaux: [], sauts: [], coins: { cle: '', L: [], t: 0, proches: [] },
+  sonT: 0, grinceT: 0, t: 0, bend: 0, secousse: 0, coolT: 0, demande: false,
+
+  // ------------------------------------------------------------- réglages, état
+  aide() { const v = typeof settings !== 'undefined' && settings.pecheAide; return v === 'simplifiee' || v === 'auto' ? v : 'complete'; },
+  reglerAide(v) {
+    if (typeof settings === 'undefined') return;
+    settings.pecheAide = v === 'simplifiee' || v === 'auto' ? v : 'complete';
+    try { store.set('prairie.settings', settings); } catch (e) { /* rien */ }
+  },
+  S() {
+    const s = typeof farm !== 'undefined' && farm.s;
+    if (!s) return { v: 1, appat: null, esp: {}, pertes: {}, vu: {} };
+    let P = s.p21;
+    if (!P || typeof P !== 'object') P = s.p21 = { v: 1 };
+    for (const k of ['esp', 'pertes', 'vu']) if (!P[k] || typeof P[k] !== 'object') P[k] = {};
+    if (P.appat !== null && typeof P.appat !== 'string') P.appat = null;
+    P.v = 1;
+    return P;
+  },
+  journal() { return this.S().esp; },
+  mesure(id, rnd) { return p21Tirage.mesure(id, rnd); },
+  actif() { return !!this.et; },
+  etat() { return this.et === 'sol' ? 'vol' : this.et; },
+  canne() { const id = farm.s && farm.s.hand, it = ITEMS[id]; return id === 'canne' || (it && it.tool === 'canne') ? id : null; },
+  meilleureCanne() {
+    for (const id of ['canne_dame', 'canne_fer', 'canne']) if (farm.count(id) > 0 && ITEMS[id] && ITEMS[id].tool === 'canne') return id;
+    for (const id in farm.s.inv) if (farm.s.inv[id] > 0 && ITEMS[id] && ITEMS[id].tool === 'canne') return id;
+    return null;
+  },
+  dire(txt, k, dur) { this.msg = { txt, t: 0, k: k || '', dur: dur || 1.6 }; },
+  // l'appât choisi, s'il en reste
+  appat() { const a = this.S().appat; return a && P21_APPATS[a] && farm.count(a) > 0 ? a : null; },
+  changerAppat() {
+    const S = this.S(), L = [null].concat(P21_APPATS_ORDRE.filter((id) => ITEMS[id] && farm.count(id) > 0));
+    const i = L.indexOf(S.appat && farm.count(S.appat) > 0 ? S.appat : null);
+    S.appat = L[(i + 1) % L.length];
+    sound.click && sound.click();
+    this.dire(S.appat ? P21_TEXTES.appat(itemName(S.appat).toLowerCase(), farm.count(S.appat)) : P21_TEXTES.sansAppat, 'appat', 2);
+  },
+  // ce que voit play.catchFish : l'eau, l'heure, la lune, la pluie, l'appât, la canne de la Dame
+  contexte(F) {
+    const h = game.world.time * 24;
+    return {
+      zone: F.zone, nuit: h < 5.5 || h > 20.5, lune: !!(strange.redNight() || (farm.s.day % 7 === 0)),
+      pluie: !!(game.sky && game.sky.wet > 0.3), appat: this.appat(), dame: farm.s.hand === 'canne_dame',
+    };
+  },
+  lieu(zone) { return (typeof EAUX !== 'undefined' && EAUX[zone]) || zone || ''; },
+
+  // ------------------------------------------------------------- les entrées (souris, clavier, manette)
+  // appelée à chaque image : le bouton « principal » (clic, Espace pendant la pêche, A ou RT) et les directions
+  lire(dt) {
+    const pad = this.manette();
+    const souris = !!(input.locked && (input.buttons & 1));
+    const espace = this.et && this.et !== 'charge' && input.keys.has('Space');
+    const tenu = souris || espace || !!(pad && (pad.A > 0.5 || pad.RT > 0.4));
+    const appui = tenu && !this.avant;
+    const lache = !tenu && this.avant;
+    this.avant = tenu;
+    // les directions : clavier (file d'appuis), croix et stick (fronts), souris (un geste net)
+    let dir = this.dirs.shift() || null;
+    // (l'épuisette : un appui, d'où qu'il vienne, même en tenant déjà le moulinet)
+    let frappe = appui || !!(input.locked && (input.clicked & 1));
+    if (pad) {
+      const P = this.padAvant;
+      if (pad.A > 0.5 && !P.A) frappe = true;
+      P.A = pad.A > 0.5;
+      for (const [b, d] of [['gauche', 'g'], ['droite', 'd'], ['haut', 'h'], ['bas', 'b']]) { const v = pad[b] > 0.5; if (v && !P[b] && !dir) dir = d; P[b] = v; }
+      if (pad.X > 0.5 && !P.X && !this.F && !this.et) this.changerAppat();
+      P.X = pad.X > 0.5;
+      if (pad.B > 0.5 && !P.B && (this.et === 'attente' || this.et === 'touche')) this.rentrer();
+      P.B = pad.B > 0.5;
+    }
+    if (!dir && this.inviteEnCours()) {
+      const p = game.player, dy = p.yaw - this.yaw0, dp = p.pitch - this.pitch0;
+      if (Math.abs(dy) > 0.13 && Math.abs(dy) > Math.abs(dp)) dir = dy > 0 ? 'g' : 'd';
+      else if (Math.abs(dp) > 0.11) dir = dp > 0 ? 'h' : 'b';
+      if (dir) { this.yaw0 = p.yaw; this.pitch0 = p.pitch; }
+    }
+    if (this.C && this.C.epuisette && frappe) dir = 'e';
+    return { tenu, appui, lache, dir };
+  },
+  inviteEnCours() { return !!(this.C && (this.C.invite || this.C.epuisette)); },
+  manette() {
+    try {
+      if (typeof m21 !== 'undefined' && m21.manette && m21.manette.etat) {
+        const E = m21.manette.etat();
+        if (!E) return null;
+        const B = E.boutons || {}, g = E.gauche || [0, 0];
+        return { A: +B.A || 0, B: +B.B || 0, X: +B.X || 0, RT: +B.RT || 0, gauche: Math.max(+B.gauche || 0, -g[0]), droite: Math.max(+B.droite || 0, g[0]), haut: Math.max(+B.haut || 0, -g[1]), bas: Math.max(+B.bas || 0, g[1]) };
+      }
+      const L = navigator.getGamepads ? navigator.getGamepads() : null;
+      const G = L && Array.from(L).find((q) => q && q.connected);
+      if (!G) return null;
+      const b = (i) => (G.buttons[i] ? G.buttons[i].value || (G.buttons[i].pressed ? 1 : 0) : 0), ax = G.axes || [];
+      return { A: b(0), B: b(1), X: b(2), RT: b(7), gauche: Math.max(b(14), -(ax[0] || 0)), droite: Math.max(b(15), ax[0] || 0), haut: Math.max(b(12), -(ax[1] || 0)), bas: Math.max(b(13), ax[1] || 0) };
+    } catch (e) { return null; }
+  },
+  vibrer(ms, fort) { try { if (typeof m21 !== 'undefined' && m21.manette && m21.manette.vibrer && m21.manette.active && m21.manette.active()) m21.manette.vibrer(ms, fort); } catch (e) { /* rien */ } },
+  bloque(code) {
+    if (!P21_BLOQUE.has(code)) return false;
+    if (game.player && game.player.swimming) return false; // (à la nage, on garde ses jambes et ses bras)
+    if (this.et === 'combat' || this.et === 'touche') return true;
+    return code === 'Space' && (this.et === 'attente' || this.et === 'prise');
+  },
+
+  // ------------------------------------------------------------- 1. le lancer
+  commencer() {
+    if (this.F || this.coolT > 0) return;
+    if (this.aide() === 'auto') { this.lancer(null); return; }
+    this.et = 'charge'; this.charge = 0; this.sens = 1;
+    sound.bowDraw && sound.bowDraw();
+    const S = this.S();
+    if (!S.vu.aide1) { S.vu.aide1 = farm.s.day; ui.subtitle('', P21_TEXTES.aide1, 5); }
+  },
+  // k : la jauge (0..1) ; null : la visée seule (aide automatique)
+  lancer(k) {
+    const p = game.player, eye = p.eyePos(), b = cameraBasis(p.yaw, p.pitch), R = P21_REGL.lancer;
+    let dir = b.f;
+    const d = k === null ? null : R.min + (R.max - R.min) * k;
+    if (d !== null) {
+      // le point visé, à la distance dosée, droit devant ; la ligne descend vers le fond, sous ce point
+      const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
+      const x = eye[0] + fx * d, z = eye[2] + fz * d;
+      const y = (typeof souterrain !== 'undefined' && souterrain.avecMonde) ? souterrain.avecMonde(() => game.world.heightAt(x, z)) : game.world.heightAt(x, z);
+      const v = [x - eye[0], Math.min(y, eye[1] - 0.5) - eye[1], z - eye[2]], L = Math.hypot(...v) || 1;
+      dir = [v[0] / L, v[1] / L, v[2] / L];
+    }
+    play.fish = null;
+    play.fishClick(eye, dir);
+    const F = play.fish;
+    this.et = null;
+    if (!F) return;
+    sound.p21Fouet && sound.p21Fouet();
+    const dist = Math.hypot(F.x - eye[0], F.z - eye[2]);
+    const tip = this.bout(eye, b);
+    F.p21 = { vol: P21_REGL.vol[0] + (P21_REGL.vol[1] - P21_REGL.vol[0]) * Math.min(1, dist / 18), volT: 0, de: tip, dist, leurres: [], fr: 0, an: 0, bobT: Math.random() * 9, glace: false };
+    this.F = F;
+    if (F.state === 'ground') { this.et = 'sol'; F.p21.vol *= 0.8; return; }
+    this.et = 'vol';
+    this.armer(F, true);
+  },
+  // le bout de la canne, dans le monde (à peu près : devant, à droite, en haut)
+  bout(eye, b) { return [eye[0] + b.f[0] * 0.9 + b.r[0] * 0.38, eye[1] + 0.25, eye[2] + b.f[2] * 0.9 + b.r[2] * 0.38]; },
+  // l'attente jusqu'à la vraie touche, et les frémissements d'ici là
+  armer(F, premier) {
+    const R = P21_REGL, it = ITEMS[farm.s.hand] || {}, fast = it.fast || 1, Q = F.p21;
+    Q.coin = premier ? this.dansCoin(F.x, F.z) : Q.coin;
+    const base = premier ? (R.attente[0] + Math.random() * R.attente[1]) * fast * (Q.coin ? R.coin : 1) * (this.appat() ? R.appat : 1)
+      : R.reprise[0] + Math.random() * (R.reprise[1] - R.reprise[0]);
+    F.state = 'wait'; F.t = base; F.bob = 0;
+    const n = R.leurres[0] + Math.floor(Math.random() * (R.leurres[1] - R.leurres[0] + 1)) + (Q.coin ? 1 : 0);
+    Q.leurres = [];
+    for (let i = 0; i < n; i++) { const t = 1.3 + Math.random() * Math.max(0, base - 1.8); if (t < base - 0.2) Q.leurres.push(t); }
+    Q.leurres.sort((a, b) => b - a);
+    Q.fr = 0; Q.an = 0;
+  },
+  dansCoin(x, z) { return this.coins.L.some((c) => Math.hypot(c.x - x, c.z - z) < c.r); },
+  // on relève la ligne (sans rien)
+  rentrer() {
+    if (!this.F) return;
+    sound.reel && sound.reel(0.6);
+    this.fin();
+  },
+  fin() {
+    if (play.fish === this.F) play.fish = null;
+    this.F = null; this.C = null; this.et = null; this.coolT = 0.35;
+  },
+
+  // ------------------------------------------------------------- 2. l'attente ; 3. le ferrage
+  attendre(dt, E) {
+    const F = this.F, Q = F.p21, R = P21_REGL;
+    // un clic pendant l'attente : sur un frémissement ou l'annonce, c'est trop tôt ; sinon, on relève la ligne
+    if (E.appui) {
+      if (Q.fr > 0 || Q.an > 0) { this.rate('tot'); return; }
+      this.rentrer(); return;
+    }
+    F.t -= dt;
+    Q.fr = Math.max(0, Q.fr - dt); Q.an = Math.max(0, Q.an - dt);
+    while (Q.leurres.length && F.t <= Q.leurres[0]) {
+      Q.leurres.shift(); Q.fr = 0.55;
+      this.anneau(F.x, F.y, F.z, 0.08, 0.5, 0.9);
+      sound.ici([F.x, F.y, F.z], () => sound.p21Frisson && sound.p21Frisson());
+    }
+    if (F.t <= R.annonce && !Q.annonce) { Q.annonce = true; Q.an = R.annonce + 0.1; this.anneau(F.x, F.y, F.z, 0.1, 0.7, 1.1); }
+    if (F.t <= 0) {
+      Q.annonce = false;
+      this.et = 'touche'; F.state = 'bite'; Q.fen = R.fenetre[this.aide()] || R.fenetre.complete; Q.fenT = 0;
+      splashAt(F.x, F.y, F.z);
+      this.anneau(F.x, F.y, F.z, 0.15, 1.6, 1.4); this.anneau(F.x, F.y, F.z, 0.05, 1.1, 1.6);
+      sound.ici([F.x, F.y, F.z], () => { sound.bite && sound.bite(); sound.p21Plonge && sound.p21Plonge(); });
+      this.vibrer(120, 0.5);
+      this.bend = Math.max(this.bend, 0.45);
+    }
+  },
+  toucher(dt, E) {
+    const F = this.F, Q = F.p21;
+    if (E.appui) { this.ferrer(); return; }
+    Q.fenT += dt;
+    if (Q.fenT >= Q.fen) this.rate('tard');
+  },
+  rate(k) {
+    const F = this.F, S = this.S(), aide = this.aide();
+    S.pertes[k] = (S.pertes[k] || 0) + 1;
+    let txt = P21_TEXTES[k];
+    if (k === 'tard' && aide === 'complete' && this.appat() && Math.random() < P21_REGL.tardAppat) { farm.take(this.appat(), 1); txt = P21_TEXTES.tardAppat; }
+    this.dire(txt, 'rate');
+    sound.p21Rate && sound.p21Rate();
+    this.et = 'attente';
+    this.armer(F, false);
+    if (!S.vu.aide2) { S.vu.aide2 = farm.s.day; ui.subtitle('', P21_TEXTES.aide2, 5); }
+  },
+  // ferré : on sait ce qu'on va remonter (le poisson échappé revient d'abord) ; le combat commence
+  ferrer() {
+    const F = this.F, Q = F.p21, S = this.S(), o = this.contexte(F);
+    let u0 = Math.random();
+    const u1 = Math.random();
+    const Rv = S.revenant;
+    if (Rv && Rv.zone === F.zone && Rv.j === farm.s.day && u1 >= 0.075) {
+      const v = p21Tirage.viser(o, Rv.id);
+      if (v !== null) u0 = v;
+    }
+    if (Rv && (Rv.j !== farm.s.day || u1 >= 0.075)) S.revenant = null;
+    const id = p21Tirage.predire(o, u0, u1) || 'gardon';
+    const mes = p21Tirage.mesure(id);
+    const p = game.player;
+    const dx = F.x - p.pos[0], dz = F.z - p.pos[2], D = Q.glace ? 8 + Math.random() * 6 : Math.max(2.5, Math.hypot(dx, dz) - 0.8);
+    F.u = [u0, u1];
+    Q.id = id; Q.mes = mes; Q.o = o;
+    Q.axe = Q.glace ? [0, 0] : [dx / (Math.hypot(dx, dz) || 1), dz / (Math.hypot(dx, dz) || 1)];
+    Q.x0 = p.pos[0]; Q.z0 = p.pos[2]; Q.wy = F.y;
+    this.C = p21Moteur.creer({ id, kg: mes.kg, s: mes.s, aide: this.aide(), canne: farm.s.hand, D });
+    this.et = 'combat'; F.state = 'fight';
+    this.yaw0 = p.yaw; this.pitch0 = p.pitch;
+    sound.p21Ferre && sound.p21Ferre();
+    this.vibrer(160, 0.8);
+    this.bend = 0.8;
+  },
+
+  // ------------------------------------------------------------- 4. le combat
+  combattre(dt, E) {
+    const C = this.C, F = this.F, Q = F.p21;
+    p21Moteur.pas(C, dt, { mouline: E.tenu && !C.epuisette, dir: E.dir });
+    for (const ev of C.evts) this.evenement(ev);
+    C.evts.length = 0;
+    // le poisson, dans le monde : la bouée suit
+    const pos = this.posPoisson();
+    F.x = pos[0]; F.z = pos[2];
+    // les sons : le cliquet du moulinet, la ligne qui grince
+    this.sonT -= dt;
+    if (E.tenu && !C.epuisette && this.sonT <= 0) { this.sonT = 0.11; sound.p21Moulinet && sound.p21Moulinet(Math.max(0.25, 1 - C.T * 0.6)); }
+    this.grinceT -= dt;
+    if (C.T > 0.7 && this.grinceT <= 0) { this.grinceT = C.T >= 1 ? 0.12 : 0.3 - (C.T - 0.7); sound.p21Grince && sound.p21Grince(C.T); if (C.T >= 1) this.vibrer(60, 0.4); }
+    this.bend += (Math.min(1.1, C.T) - this.bend) * Math.min(1, dt * 10);
+    // l'épuisette : on baisse les yeux vers le poisson, à la surface
+    if (C.epuisette && !Q.glace) { const p = game.player, e = p.eyePos(), want = Math.atan2(Q.wy - e[1], Math.max(0.6, Math.hypot(pos[0] - e[0], pos[2] - e[2]))); p.pitch += (Math.max(-1.2, want - 0.15) - p.pitch) * Math.min(1, dt * 3); }
+    // les éclaboussures : le poisson se débat en surface quand il est près, ou épuisé
+    if (C.coup.k === 'secoue' && Math.random() < dt * 6 && C.prof < 0.9) { this.anneau(pos[0], Q.wy, pos[2], 0.1, 0.8, 0.8); if (Math.random() < 0.4) this.eclabousse(pos[0], Q.wy, pos[2], 6); }
+    if (C.fin) this.conclure(C.fin);
+  },
+  posPoisson() {
+    const C = this.C, F = this.F, Q = F.p21;
+    if (Q.glace) return [Q.it.x, Q.wy - Math.min(6, C.D * 0.5), Q.it.z];
+    const D = C.D, lat = C.side * Math.min(5, D * 0.45), ax = Q.axe;
+    let y = Q.wy - C.prof * 0.6;
+    if (C.saut > 0) { const k = 1 - C.saut / (C.sautMax || 0.8); y = Q.wy + Math.sin(k * Math.PI) * (0.6 + 0.4 * Math.min(1, C.kg / 4)); }
+    return [Q.x0 + ax[0] * D - ax[1] * lat, y, Q.z0 + ax[1] * D + ax[0] * lat];
+  },
+  evenement(ev) {
+    const C = this.C, F = this.F, T = P21_TEXTES;
+    if (ev.e === 'coup') { if (T.coups[ev.k] && ev.k !== 'nage') this.dire(T.coups[ev.k], 'coup', 1.4); if (ev.k === 'file') this.vibrer(200, 0.35); }
+    else if (ev.e === 'saut') { const p = this.posPoisson(); this.eclabousse(p[0], F.p21.wy, p[2], 18); sound.ici([p[0], F.p21.wy, p[2]], () => sound.splash && sound.splash()); this.sauts.push({ t: 0 }); }
+    else if (ev.e === 'replonge') { const p = this.posPoisson(); this.eclabousse(p[0], F.p21.wy, p[2], 22); this.anneau(p[0], F.p21.wy, p[2], 0.2, 1.8, 1.4); sound.ici([p[0], F.p21.wy, p[2]], () => sound.splash && sound.splash()); }
+    else if (ev.e === 'invite') { this.yaw0 = game.player.yaw; this.pitch0 = game.player.pitch; sound.p21Invite && sound.p21Invite(); this.vibrer(70, 0.3); }
+    else if (ev.e === 'ok') { sound.p21Ok && sound.p21Ok(); }
+    else if (ev.e === 'rate') { sound.p21Rate && sound.p21Rate(); this.vibrer(180, 0.7); this.secousse = 0.35; }
+    else if (ev.e === 'epuise') { this.dire(T.coups.epuise, 'coup', 1.6); }
+    else if (ev.e === 'epuisette' && ev.ok) { const p = this.posPoisson(); this.eclabousse(p[0], F.p21.wy, p[2], 10); }
+  },
+  // la fin du combat
+  conclure(fin) {
+    const F = this.F, Q = F.p21, S = this.S();
+    if (fin === 'prise') { this.prendre(); return; }
+    S.pertes[fin] = (S.pertes[fin] || 0) + 1;
+    // le poisson qui s'échappe reviendra mordre (même endroit, même jour)
+    if (FISH[Q.id]) S.revenant = { id: Q.id, zone: F.zone, j: farm.s.day };
+    const ap = this.appat();
+    if ((fin === 'casse' || fin === 'loin') && ap) farm.take(ap, 1);
+    if (fin === 'casse' || fin === 'loin') { sound.p21Casse && sound.p21Casse(); this.vibrer(260, 1); }
+    else sound.reel && sound.reel(0.4);
+    this.dire(fin === 'casse' ? (ap ? P21_TEXTES.casseAppat : P21_TEXTES.casse) : P21_TEXTES[fin] || P21_TEXTES.decroche, 'rate', 2.4);
+    if (FISH[Q.id] && FISH[Q.id].w < 0.5 && Math.random() < 0.6) setTimeout(() => ui.subtitle('', P21_TEXTES.revenant, 3), 1800);
+    this.fin();
+  },
+  // sorti de l'eau : play.catchFish choisit et donne (avec nos deux tirages), on regarde ce qui est venu
+  prendre() {
+    const F = this.F, Q = F.p21, S = this.S(), p = game.player;
+    const ap = this.appat(), o = Q.o;
+    const donne = [];
+    const _give = farm.give;
+    farm.give = function (id, n) { donne.push(id); return _give.apply(this, arguments); };
+    // l'appât : les poids du tirage, le temps de l'appel (les rares ne bougent pas)
+    const W = o && o.appat ? p21Tirage.poidsAppat(p21Tirage.candidats(o.zone, o.nuit, o.lune), o.appat) : null, W0 = {};
+    if (W) for (const k in W) { W0[k] = FISH[k].w; FISH[k].w = W[k]; }
+    // le concours : c'est le poids qui compte (on pèse nous-mêmes, plus bas)
+    const A = typeof activites !== 'undefined' && activites.S ? activites.S() : null;
+    const PC = A && A.peche && A.peche.j === farm.s.day && !A.peche.fini ? A.peche : null;
+    if (PC) PC.fini = true;
+    const vu0 = S.esp[Q.id] ? S.esp[Q.id].n : 0;
+    if (Q.glace) { F.x = Q.it.x; F.z = Q.it.z; } else { F.x = p.pos[0] + Q.axe[0]; F.z = p.pos[2] + Q.axe[1]; }
+    const vuSav = savoir.vu ? savoir.vu(Q.id) : 0;
+    try { play.catchFish(F); } catch (e) { console.error('p21 : prise', e); } finally {
+      farm.give = _give;
+      for (const k in W0) FISH[k].w = W0[k];
+      if (PC) PC.fini = false;
+    }
+    const id = donne.find((k) => FISH[k]) || donne[0] || null;
+    this.F = null; this.C = null; play.fish = null;
+    if (!id) { // décroché au dernier moment (une malédiction, une rune…) : il ne reviendra pas
+      this.dire(P21_TEXTES.decroche, 'rate', 2.2); S.pertes.decroche = (S.pertes.decroche || 0) + 1; this.fin(); return;
+    }
+    if (ap) farm.take(ap, 1);
+    if (S.revenant && S.revenant.id === id) S.revenant = null;
+    const mes = id === Q.id ? Q.mes : p21Tirage.mesure(id);
+    let record = false, nouvelle = false;
+    if (FISH[id]) {
+      const h = game.world.time * 24, E = S.esp[id] || (S.esp[id] = { n: 0, kg: 0, cm: 0 });
+      nouvelle = !vu0 && E.n === 0 && !(id === Q.id && vuSav > 0);
+      record = E.n > 0 && mes.kg > E.kg;
+      E.n++;
+      if (mes.kg > E.kg) Object.assign(E, { kg: mes.kg, cm: mes.cm, j: farm.s.day, h: Math.round(h * 10) / 10, lieu: F.zone });
+      if (record && typeof menus !== 'undefined' && menus.marque) menus.marque('peche', 1);
+      this.decouvrir(id, o);
+      // le concours du Pêchedi : au poids
+      if (PC && F.zone === 'lac' && npcs.hour() < 16 && mes.kg > (PC.bestKg || 0)) {
+        PC.bestKg = mes.kg; PC.best = { id, prix: ITEMS[id].price || 0, kg: mes.kg };
+        setTimeout(() => ui.subtitle('', P21_TEXTES.concoursPour(itemName(id).toLowerCase(), P21_TEXTES.kg(mes.kg)), 3), 1800);
+      }
+    }
+    this.prise = { id, kg: mes.kg, cm: mes.cm, record, nouvelle, t: 0, poisson: !!FISH[id] };
+    this.msg = null;
+    this.et = 'prise';
+    if (record) sound.p21Record && sound.p21Record();
+    this.vibrer(90, 0.4);
+    this.bend = 0;
+  },
+  // le carnet des découvertes (wiki du jeu) : ce qu'on vient d'apprendre de ce poisson
+  decouvrir(id, o) {
+    if (typeof decouvertes === 'undefined' || !decouvertes.voir) return;
+    try {
+      const pg = 'it:' + id;
+      decouvertes.voir(pg, 'eaux'); decouvertes.voir(pg, 'heure'); decouvertes.voir(pg, 'combat');
+      if (o && o.appat && P21_APPATS[o.appat] && P21_APPATS[o.appat].esp.includes(id)) decouvertes.voir(pg, 'appat');
+      decouvertes.voir('sys:peche');
+    } catch (e) { /* rien */ }
+  },
+
+  // ------------------------------------------------------------- la glace
+  glace(it) {
+    if (this.F && this.F.p21 && this.F.p21.glace) { this.rentrer(); return; }
+    const c = this.meilleureCanne();
+    if (!c) { ui.subtitle('', P21_TEXTES.glaceCanne, 2.5); return; }
+    if (!this.canne()) play.select(c);
+    if (this.F) this.fin();
+    const F = { x: it.x, y: it.y - 0.42, z: it.z, zone: 'lac_gele', state: 'wait', t: 1, bob: 0 };
+    F.p21 = { vol: 0.5, volT: 0, de: this.bout(game.player.eyePos(), cameraBasis(game.player.yaw, game.player.pitch)), dist: 2, leurres: [], fr: 0, an: 0, bobT: 0, glace: true, it };
+    play.fish = F; this.F = F; this.et = 'vol';
+    this.armer(F, true);
+    sound.splash && sound.splash();
+  },
+
+  // ------------------------------------------------------------- chaque image
+  maj(dt, eye, basis, sky, playing) {
+    if (!farm.s) return;
+    this.t += dt;
+    this.coolT = Math.max(0, this.coolT - dt);
+    this.secousse = Math.max(0, this.secousse - dt);
+    if (this.msg) { this.msg.t += dt; if (this.msg.t > this.msg.dur) this.msg = null; }
+    this.majAnneaux(dt);
+    this.majCoins(dt);
+    const canne = this.canne(), libre = playing && !(typeof cine !== 'undefined' && cine.on) && !game.dying && !game.sleeping;
+    // une canne en main : la manette est lue à chaque image (M21) ; sinon, comme avant
+    if (!!canne !== this.demande) {
+      this.demande = !!canne;
+      try { if (typeof m21 !== 'undefined' && m21.manette && m21.manette.demander) m21.manette.demander('peche', this.demande); } catch (e) { /* rien */ }
+    }
+    if (!canne) {
+      if (this.et && this.et !== 'prise') { if (this.C && this.F) this.conclure('decroche'); else this.fin(); }
+      if (this.et === 'prise') this.et = null;
+      this.avant = false; this.dirs.length = 0;
+      return;
+    }
+    // la ligne ôtée par ailleurs (la Zone, un monde à part…) : on oublie
+    if (this.F && play.fish !== this.F && this.et !== 'prise') { this.F = null; this.C = null; this.et = null; }
+    if (!libre) { this.avant = false; this.dirs.length = 0; return; } // (en pause : rien ne bouge)
+    const E = this.lire(dt);
+    const p = game.player;
+    // trop loin de la ligne : elle se relève
+    if (this.F && this.F.p21) {
+      const Q = this.F.p21, lim = Q.glace ? 6 : 26, ox = Q.glace ? Q.it.x : this.F.x, oz = Q.glace ? Q.it.z : this.F.z;
+      if (Math.hypot(ox - p.pos[0], oz - p.pos[2]) > lim + (this.C ? this.C.D : 0) * 0.2) { if (this.C) this.conclure('decroche'); else this.fin(); return; }
+    }
+    switch (this.et) {
+      case null:
+        if (E.appui && !ui.panel && play.cool <= 0) this.commencer();
+        break;
+      case 'charge': {
+        const R = P21_REGL.lancer, aide = this.aide();
+        this.charge += dt / R.charge * this.sens;
+        if (this.charge >= 1) { this.charge = 1; if (aide === 'complete') this.sens = -1; }
+        if (this.charge <= 0.12 && this.sens < 0) { this.charge = 0.12; this.sens = 1; }
+        if (!E.tenu) this.lancer(Math.max(0, Math.min(1, this.charge)));
+        break;
+      }
+      case 'vol': case 'sol': {
+        const Q = this.F.p21;
+        Q.volT += dt;
+        if (Q.volT >= Q.vol) {
+          if (this.et === 'sol') { puffAt(this.F.x, this.F.y, this.F.z, [110, 95, 70], 6, 1, false); this.dire(P21_TEXTES.sol, 'rate', 1.4); this.fin(); break; }
+          this.et = 'attente';
+          if (!Q.glace) { splashAt(this.F.x, this.F.y, this.F.z); this.anneau(this.F.x, this.F.y, this.F.z, 0.1, 1.4, 1.5); this.anneau(this.F.x, this.F.y, this.F.z, 0.05, 0.9, 1.8); }
+          sound.ici([this.F.x, this.F.y, this.F.z], () => sound.p21Plouf && sound.p21Plouf());
+        }
+        break;
+      }
+      case 'attente': this.attendre(dt, E); break;
+      case 'touche': this.toucher(dt, E); break;
+      case 'combat': this.combattre(dt, E); break;
+      case 'prise': {
+        const P = this.prise;
+        P.t += dt;
+        if (P.t >= P21_REGL.prise || (P.t > 0.45 && E.appui)) { this.et = null; this.prise = null; this.coolT = 0.25; }
+        break;
+      }
+    }
+    if (this.et !== 'combat') this.bend += ((this.et === 'touche' ? 0.35 : 0) - this.bend) * Math.min(1, dt * 6);
+    if (this.F && this.F.p21 && (this.et === 'attente' || this.et === 'touche')) this.F.p21.bobT += dt;
+  },
+  // la bouée : sa hauteur (dandine, frémit, s'annonce, plonge)
+  bouee() {
+    const F = this.F, Q = F && F.p21;
+    if (!Q) return null;
+    if (this.et === 'vol' || this.et === 'sol') {
+      const k = Math.min(1, Q.volT / Q.vol), a = Q.de;
+      const x = a[0] + (F.x - a[0]) * k, z = a[2] + (F.z - a[2]) * k, y = a[1] + (F.y - a[1]) * k + Math.sin(k * Math.PI) * (1.2 + Q.dist * 0.12);
+      return { x, y, z, tilt: 0, sous: 0 };
+    }
+    const t = Q.bobT;
+    let y = F.y + Math.sin(t * 2.1) * 0.012 + Math.sin(t * 3.4 + 1) * 0.006, tilt = Math.sin(t * 1.7) * 0.08, sous = 0;
+    if (Q.fr > 0) { const k = Q.fr / 0.55; y -= Math.abs(Math.sin(t * 38)) * 0.03 * k; tilt += Math.sin(t * 31) * 0.3 * k; }
+    if (Q.an > 0) { const k = Q.an / (P21_REGL.annonce + 0.1); y -= Math.sin(k * Math.PI) * 0.06; }
+    if (this.et === 'touche') { sous = 1; y = F.y - 0.13; }
+    if (this.et === 'combat') { sous = 0.6; y = F.y - 0.05 - (this.C ? Math.min(0.2, this.C.prof * 0.1) : 0); tilt = 0.5; }
+    return { x: F.x, y, z: F.z, tilt, sous };
+  },
+
+  // ------------------------------------------------------------- les ronds et les éclaboussures
+  anneau(x, y, z, r0, r1, life) { if (this.anneaux.length < 24) this.anneaux.push({ x, y: y + 0.015, z, r0, r1, t: 0, life }); },
+  eclabousse(x, y, z, n) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * TAU, s = 0.6 + Math.random() * 1.8;
+      particles.spawn(x, y + 0.05, z, Math.cos(a) * s, 1.5 + Math.random() * 2.8, Math.sin(a) * s, [0.78, 0.87, 0.95, 0.9], 0.06 + Math.random() * 0.04, 0.5 + Math.random() * 0.4, 11, false);
+    }
+  },
+  majAnneaux(dt) {
+    const A = this.anneaux;
+    for (let i = A.length - 1; i >= 0; i--) { A[i].t += dt; if (A[i].t >= A[i].life) A.splice(i, 1); }
+    for (let i = this.sauts.length - 1; i >= 0; i--) { const s = this.sauts[i]; s.t += dt; if (s.t > (s.dur || 1)) this.sauts.splice(i, 1); }
+  },
+
+  // ------------------------------------------------------------- les coins à poissons (gobages, ronds)
+  // tirés de la graine et du jour (rien n'est ajouté au monde) : dans chaque eau, un à trois coins, près d'une rive
+  calculerCoins() {
+    const w = game.world, s = farm.s;
+    const cle = (s.seed | 0) + ':' + s.day + ':' + ((w.fishZones || []).length);
+    if (this.coins.cle === cle) return;
+    this.coins.cle = cle; this.coins.L = [];
+    if (!w.fishZones || !w.heightAt) return;
+    const vus = [];
+    w.fishZones.forEach((Z, zi) => {
+      if (!Z || !Number.isFinite(Z.x)) return;
+      if (vus.some((v) => Math.hypot(v.x - Z.x, v.z - Z.z) < 40 && v.kind === Z.kind)) return; // (les petites mares du marais : un seul coin)
+      vus.push(Z);
+      const rnd = mulberry32(((s.seed | 0) ^ 0x5021 ^ (s.day * 977) ^ (zi * 7919)) >>> 0);
+      const n = Z.r > 100 ? 3 : Z.r > 50 ? 2 : 1;
+      for (let i = 0, essais = 0; i < n && essais < 40; essais++) {
+        const a = rnd() * TAU, d = Math.sqrt(rnd()) * Z.r * 0.95, x = Z.x + Math.cos(a) * d, z = Z.z + Math.sin(a) * d;
+        if (!(w.heightAt(x, z) < w.waterLevel - 0.8)) continue;
+        // une rive à portée de lancer
+        let rive = false;
+        for (let k = 0; k < 8 && !rive; k++) { const b = k / 8 * TAU; for (const r of [9, 13, 16]) if (w.heightAt(x + Math.cos(b) * r, z + Math.sin(b) * r) > w.waterLevel + 0.1) { rive = true; break; } }
+        if (!rive || this.coins.L.some((c) => Math.hypot(c.x - x, c.z - z) < 12)) continue;
+        this.coins.L.push({ x, z, y: w.waterLevel, r: 4, kind: Z.kind, t: rnd() * 4 });
+        i++;
+      }
+    });
+  },
+  majCoins(dt) {
+    const w = game.world, p = game.player;
+    if (!w || !p) return;
+    const C = this.coins;
+    C.t -= dt;
+    if (C.t <= 0) {
+      C.t = 1;
+      const ailleurs = (typeof souterrain !== 'undefined' && souterrain.actif) || (typeof zone !== 'undefined' && zone.dedans) || (typeof mondes !== 'undefined' && mondes.aPart && mondes.aPart()) || p.underground;
+      if (ailleurs) { C.proches = []; return; }
+      try { this.calculerCoins(); } catch (e) { C.L = []; }
+      C.proches = C.L.filter((c) => Math.hypot(c.x - p.pos[0], c.z - p.pos[2]) < 70);
+    }
+    for (const c of C.proches) {
+      c.t -= dt;
+      if (c.t > 0) continue;
+      c.t = 2.5 + Math.random() * 4.5;
+      const x = c.x + (Math.random() - 0.5) * 4, z = c.z + (Math.random() - 0.5) * 4;
+      this.anneau(x, c.y, z, 0.05, 0.9 + Math.random() * 0.6, 1.6);
+      if (Math.random() < 0.18) {
+        this.sauts.push({ x, y: c.y, z, t: 0, dur: 0.55, a: Math.random() * TAU, col: [0.55, 0.6, 0.62], L: 0.22 });
+        this.eclabousse(x, c.y, z, 5);
+        if (Math.hypot(x - p.pos[0], z - p.pos[2]) < 40) sound.ici([x, c.y, z], () => sound.p21Gobage && sound.p21Gobage());
+      }
+    }
+  },
+
+  // ------------------------------------------------------------- le rendu (bouée, ronds, poisson qui saute)
+  dessiner(buf, sbuf, cam, t) {
+    const B = this.F && (this.et === 'vol' || this.et === 'sol' || this.et === 'attente' || this.et === 'touche' || this.et === 'combat') ? this.bouee() : null;
+    if (!B && !this.anneaux.length && !this.sauts.length) return;
+    PE.buf = buf;
+    if (B) {
+      // la bouée : liège rouge et blanc, une antenne noire, une quille (on n'en voit que le haut quand elle plonge)
+      PE.frame(B.x, B.y, B.z, B.tilt, 1.9);
+      const s = 1 - B.sous * 0.85;
+      if (s > 0.2) {
+        PE.box(0, 0.0, 0, 0.055, 0.05 * s, 0.055, [0.95, 0.94, 0.9], 0, 0, B.tilt);
+        PE.box(0, 0.045 * s, 0, 0.065, 0.04 * s, 0.065, [0.86, 0.16, 0.09], 0, Math.PI / 4, B.tilt);
+        PE.box(0, 0.075 * s, 0, 0.04, 0.03 * s, 0.04, [0.8, 0.12, 0.08], 0, 0, B.tilt);
+      }
+      PE.box(0, 0.09 + 0.05 * s, 0, 0.012, 0.11 * s + 0.02, 0.012, [0.12, 0.1, 0.08], 0, 0, B.tilt);
+      // (la nuit, le bout de l'antenne, une plume blanche, se voit encore un peu)
+      const nuit = game.sky ? game.sky.night || 0 : 0;
+      if (nuit > 0.4) PE.fl = FX_EMIT;
+      PE.box(0, 0.15 + 0.1 * s, 0, 0.018, 0.025, 0.018, nuit > 0.4 ? [0.55, 0.5, 0.4] : [1, 0.55, 0.1], 0, 0, B.tilt);
+      PE.fl = 0;
+    }
+    // les ronds
+    for (const A of this.anneaux) {
+      if (Math.abs(A.x - cam[0]) > 90 || Math.abs(A.z - cam[2]) > 90) continue;
+      const k = A.t / A.life, r = A.r0 + (A.r1 - A.r0) * Math.sqrt(k), e = 0.055 * (1 - k) + 0.015, n = r > 0.8 ? 18 : 12;
+      const c = 0.5 + 0.28 * (1 - k);
+      PE.frame(A.x, A.y, A.z, 0, 1);
+      for (let i = 0; i < n; i++) { const a = i / n * TAU; PE.box(Math.cos(a) * r, 0, Math.sin(a) * r, e, 0.012, r * TAU / n * 0.92, [c, c + 0.08, c + 0.12], 0, -a); }
+    }
+    // le poisson épuisé, le dos hors de l'eau, près du bord
+    const C = this.C;
+    if (C && this.F && this.F.p21 && !this.F.p21.glace && C.saut <= 0 && (C.epuisette || (C.E <= 0.05 && C.D < 5)) && FISH[C.id]) {
+      const p = this.posPoisson(), Q = this.F.p21;
+      PE.frame(p[0], Q.wy - 0.06, p[2], Math.atan2(-Q.axe[0], -Q.axe[1]) + Math.sin(t * 3) * 0.15, 1);
+      this.poisson3d(Math.min(1.7, 0.25 + (C.kg ** 0.33) * 0.4), this.couleur(C.id), Math.sin(t * 5) * 0.12);
+    }
+    // le poisson qui saute (au bout de la ligne, ou un gobage)
+    for (const S of this.sauts) {
+      let x, y, z, a, L, col;
+      if (S.x !== undefined) { const k = S.t / S.dur; x = S.x; z = S.z; y = S.y - 0.05 + Math.sin(k * Math.PI) * 0.35; a = S.a; L = S.L; col = S.col; }
+      else {
+        if (!this.C || !this.F || this.C.saut <= 0) continue; // (le poisson épuisé : plus bas)
+        const p = this.posPoisson(), Q = this.F.p21;
+        x = p[0]; y = p[1]; z = p[2]; a = Math.atan2(-Q.axe[0], -Q.axe[1]); L = Math.min(1.7, 0.25 + (this.C.kg ** 0.33) * 0.4); // (de profil)
+        col = this.couleur(Q.id);
+      }
+      const k2 = S.dur ? S.t / S.dur : 1 - this.C.saut / (this.C.sautMax || 0.8);
+      PE.frame(x, y, z, a, 1);
+      this.poisson3d(L, col, (k2 - 0.5) * 1.6);
+    }
+  },
+  couleur(id) { const h = (FISH[id] && FISH[id].col) || '#7a8a80'; try { return rgbf(h); } catch (e) { return [0.5, 0.55, 0.5]; } },
+  // un poisson en boîtes (corps, ventre clair, queue, dorsale), long de L m, cambré de « arc »
+  poisson3d(L, col, arc) {
+    const h = L * 0.24, w = L * 0.14, ventre = [Math.min(1, col[0] * 0.6 + 0.4), Math.min(1, col[1] * 0.6 + 0.4), Math.min(1, col[2] * 0.6 + 0.38)];
+    PE.box(0, 0, 0, L * 0.62, h, w, col, 0, 0, arc * 0.6);
+    PE.box(0, -h * 0.25, 0, L * 0.5, h * 0.5, w * 0.92, ventre, 0, 0, arc * 0.6);
+    PE.box(L * 0.4, Math.sin(arc * 0.6) * L * 0.18, 0, L * 0.2, h * 0.7, w * 0.6, col, 0, 0, arc);
+    PE.box(L * 0.55, Math.sin(arc * 0.6) * L * 0.28, 0, L * 0.12, h * 1.2, w * 0.25, col, 0, 0, arc * 1.4);
+    PE.box(-L * 0.06, h * 0.55, 0, L * 0.22, h * 0.35, w * 0.2, col, 0, 0, arc * 0.6);
+    PE.box(-L * 0.33, 0, 0, L * 0.1, h * 0.75, w * 0.9, col, 0, 0, arc * 0.5);
+  },
+};
+
+// ---------------------------------------------------------------- le concours du Pêchedi : au poids
+const p21Concours = {
+  // les habitants : la plus lourde de leurs prises du jour (mêmes poissons du lac, de jour, que les vôtres)
+  NOMS: [['pecheur', 6], ['maire', 2], ['aubergiste', 3], ['fillette', 1], ['colporteur', 2]],
+  pesee() {
+    const s = farm.s, rnd = mulberry32(((s.seed | 0) * 17 + s.day * 71 + 2) >>> 0);
+    const o = { zone: 'lac', nuit: false, lune: false, pluie: false, appat: null, dame: false };
+    return this.NOMS.map(([id, n]) => {
+      let best = 0, bid = null;
+      for (let i = 0; i < n; i++) { const k = p21Tirage.predire(o, rnd(), 0.5); if (!k) continue; const m = p21Tirage.mesure(k, rnd); if (m.kg > best) { best = m.kg; bid = k; } }
+      return [id, best, bid];
+    }).filter(([id]) => (npcs.alive ? npcs.alive(id) : true));
+  },
+  // le panneau du ponton (remplace activites.peche : le classement se fait au poids)
+  peche() {
+    const s = farm.s, A = activites.S(), h = activites.h(), P = A.peche && A.peche.j === s.day ? A.peche : null, pe = npcs.byId.pecheur, T = P21_TEXTES;
+    if (!cal.is('peche')) { ui.read('Le concours de pêche', T.concoursRegle, 'Le ponton'); return; }
+    if (!P || P.fini || h < 16) {
+      if (P && !P.fini && h < 16) {
+        const b = P.bestKg ? P.best : null;
+        ui.subtitle('', b ? T.concoursAttente(itemName(b.id).toLowerCase(), T.kg(P.bestKg)) : T.concoursRien, 3.5);
+        return;
+      }
+      return this._peche();
+    }
+    if (h >= 20) return this._peche();
+    P.fini = true;
+    const L = this.pesee().map((q) => [q[0], q[1], q[2]]);
+    const moi = P.bestKg || 0;
+    L.push(['vous', moi, P.best ? P.best.id : null]); L.sort((a, b) => b[1] - a[1]);
+    const rang = L.findIndex((q) => q[0] === 'vous') + 1;
+    let prix = '';
+    if (moi && rang === 1) { farm.earn(50); farm.give('coffre_peche', 1); prix = 'Premier prix : cinquante pièces et un coffre de pêcheur.'; if (pe && pe.st.alive) { npcs.addAmitie(pe, 30); ui.subtitle(pe.st.met ? pe.name : 'Le pêcheur', ACT_PECHE.gagne, 4.5); } sound.applaudir && sound.applaudir(); activites.esprit(1.5, 'le concours', 1.5); }
+    else if (moi && rang === 2) { farm.earn(25); prix = 'Deuxième prix : vingt-cinq pièces.'; }
+    else if (moi && rang === 3) { farm.give('vers', 12); prix = 'Troisième prix : douze vers de terre, frétillants.'; }
+    else if (pe && pe.st.alive) ui.subtitle(pe.st.met ? pe.name : 'Le pêcheur', ACT_PECHE.perd, 4);
+    const nom = (id) => (id === 'vous' ? 'vous' : npcs.nameOf(id));
+    const ligne = L.map((q, i) => `${i + 1}. ${nom(q[0])}${q[1] ? ' (' + (q[2] && ITEMS[q[2]] ? itemName(q[2]).toLowerCase() + ', ' : '') + T.kg(q[1]) + ')' : ''}`).join(' ; ');
+    ui.read('Le concours de pêche', T.concoursBilan(P.best ? `${itemName(P.best.id).toLowerCase()}, ${T.kg(moi)}` : '', ligne) + (prix ? '\n\n' + prix : ''), 'Le jury du ponton');
+  },
+};
+
+// ---------------------------------------------------------------- les sons
+Object.assign(SoundEngine.prototype, {
+  p21Fouet() { if (!this.ok) return; const t = this.at(); this.noiseHit(t, 0.2, 'bandpass', 2600, 1.2, 0.03, null, 700, 0.02); this.noiseHit(t + 0.02, 0.35, 'bandpass', 900, 0.8, 0.012, null, 400, 0.05); },
+  p21Plouf() { if (!this.ok) return; this.jouer(this.tb('goutte'), this.at(), 0.035, this.sfx, 0.55 + Math.random() * 0.1); this.noiseHit(this.at(), 0.18, 'lowpass', 900, 0.7, 0.014); },
+  p21Frisson() { if (!this.ok) return; const t = this.at(); this.jouer(this.tb('goutte'), t, 0.012, this.sfx, 1.3 + Math.random() * 0.3); },
+  p21Plonge() { if (!this.ok) return; const t = this.at(); this.tone(t, 'sine', 150, 70, 0.16, 0.045, null, 0.004); this.jouer(this.tb('goutte'), t + 0.03, 0.04, this.sfx, 0.42); },
+  p21Ferre() { if (!this.ok) return; const t = this.at(); this.noiseHit(t, 0.12, 'bandpass', 1600, 1.5, 0.035, null, 3400, 0.004); this.tone(t, 'triangle', 190, 95, 0.1, 0.03, null, 0.003); },
+  p21Moulinet(k = 1) { if (!this.ok) return; const t = this.at(); for (let i = 0; i < 3; i++) this.tone(t + i * 0.034, 'triangle', 2300 - i * 60, 2100, 0.009, 0.011 * k, null, 0.001); },
+  p21Grince(T) {
+    if (!this.ok) return;
+    const t = this.at(), k = Math.min(1, Math.max(0, (T - 0.7) / 0.4));
+    this.voice(t, 'sawtooth', 260 + k * 520, 230 + k * 470, 0.14 + k * 0.08, 0.005 + 0.011 * k, this.sfx, { bp: 1700 + k * 900, q: 5, vib: 40, vibDepth: 18, lp: 3600 });
+  },
+  p21Casse() { if (!this.ok) return; const t = this.at(); this.noiseHit(t, 0.05, 'highpass', 3800, 0.7, 0.07); this.tone(t, 'sine', 980, 120, 0.3, 0.035, null, 0.002); this.tone(t, 'triangle', 1500, 300, 0.12, 0.012, null, 0.001); },
+  p21Invite() { if (!this.ok) return; this.tone(this.at(), 'sine', 880, 860, 0.05, 0.028, this.ui, 0.003); },
+  p21Ok() { if (!this.ok) return; const t = this.at(); this.tone(t, 'triangle', 660, 880, 0.09, 0.028, this.ui, 0.003); },
+  p21Rate() { if (!this.ok) return; this.tone(this.at(), 'sine', 220, 130, 0.14, 0.04, this.ui, 0.004); },
+  p21Record() { if (!this.ok) return; const t = this.at() + 0.25; this.tone(t, 'triangle', 660, 660, 0.18, 0.03, this.ui, 0.004); this.tone(t + 0.16, 'triangle', 990, 990, 0.3, 0.03, this.ui, 0.004); },
+  p21Gobage() { if (!this.ok) return; this.jouer(this.tb('goutte'), this.at(), 0.016, this.sfx, 0.8 + Math.random() * 0.4); },
+});
+
+// ---------------------------------------------------------------- les branchements
+// le clic gauche, une canne en main : c'est la pêche qui le lit (à chaque image, maintenu ou non)
+{
+  const prim = (eye, basis, held, it, id) => (id === 'canne' || (it && it.tool === 'canne'));
+  prim.zone = true;
+  HOOKS.primary.push(prim);
+  // le clic droit : relever la ligne, ou changer d'appât
+  const sec = (eye, basis, it, id) => {
+    if (!(id === 'canne' || (it && it.tool === 'canne'))) return false;
+    if (p21.et === 'attente' || p21.et === 'touche' || p21.et === 'vol') { p21.rentrer(); return true; }
+    if (p21.et === 'combat') return true;
+    p21.changerAppat();
+    return true;
+  };
+  sec.zone = true;
+  HOOKS.secondary.push(sec);
+  // chaque image
+  const maj = (dt, eye, basis, sky, playing) => { try { p21.maj(dt, eye, basis, sky, playing); } catch (e) { console.error('p21', e); p21.fin(); } };
+  maj.zone = true;
+  HOOKS.update.push(maj);
+  const dessin = (buf, sbuf, cam, t) => p21.dessiner(buf, sbuf, cam, t);
+  dessin.zone = true;
+  HOOKS.draw.push(dessin);
+  // la ligne à l'eau : c'est nous qui la faisons vivre (la pêche d'avant, sans nous, reste telle quelle)
+  const _uf = play.updateFish.bind(play);
+  play.updateFish = function (dt) { if (this.fish && this.fish.p21) return; return _uf(dt); };
+  // la bouée d'avant ne se dessine plus quand c'est la nôtre
+  const _bd = play.buildDynamic.bind(play);
+  play.buildDynamic = function (cam, sky, t) {
+    const F = this.fish;
+    if (!F || !F.p21) return _bd(cam, sky, t);
+    const st = F.state;
+    F.state = 'ground';
+    try { return _bd(cam, sky, t); } finally { F.state = st; }
+  };
+  // pendant le combat, on ne marche pas (les flèches et ZQSD tirent la canne) ; Espace ferre au lieu de sauter
+  const _down = input.down.bind(input);
+  input.down = function (code) { if (p21.et && p21.bloque(code)) return false; return _down(code); };
+  // les directions : chaque appui compte, même bref
+  window.addEventListener('keydown', (e) => {
+    if (e.repeat || !p21.C) return;
+    const d = P21_DIRS[e.code];
+    if (d && !p21.C.epuisette) p21.dirs.push(d);
+    else if (e.code === 'Space' && p21.C.epuisette) p21.dirs.push('e');
+  });
+  // la glace : le trou du lac gelé (n'importe quelle canne, en main ou dans la sacoche)
+  HOOKS.inter.peche_glace = (it) => p21.glace(it);
+}
+// le concours du Pêchedi se juge au poids
+HOOKS.load.push(() => {
+  if (typeof activites !== 'undefined' && activites.peche && !p21Concours._peche) {
+    p21Concours._peche = activites.peche.bind(activites);
+    activites.peche = function () { return p21Concours.peche(); };
+  }
+  if (typeof vallee !== 'undefined') vallee.fish = null;
+  p21.F = null; p21.C = null; p21.et = null; p21.prise = null; p21.anneaux.length = 0; p21.sauts.length = 0; p21.coins.cle = '';
+});
+
+// ---------------------------------------------------------------- le wiki du jeu : ce qu'on apprend d'un poisson en le prenant
+if (typeof decouvertes !== 'undefined' && decouvertes.ajouterChamps) {
+  decouvertes.ajouterChamps('it', (id) => {
+    const k = id.slice(3), q = FISH[k];
+    if (!q) return [];
+    const T = P21_TEXTES, out = [], eaux = q.where.map((z) => p21.lieu(z));
+    const motsEau = { lac: ['lac'], etang: ['etang'], marais: ['marais'], riviere: ['riviere', 'ruisseau'], lac_noir: ['noir'], lac_gele: ['gele', 'glace'], douves: ['douve'], bains: ['source', 'bain'], souterrain: ['souterrain', 'dessous', 'grotte'], temple: ['temple'], mine: ['mine', 'puits'], envers: ['envers'] };
+    out.push({ k: 'eaux', nom: T.champEaux, val: eaux.join(', '), test: (g) => q.where.some((z) => d15Un(g, motsEau[z] || [d15Norme(z)])) });
+    const hv = (T.heureVal[q.time] || T.heureVal.tout) + (q.moon ? T.lune : '');
+    out.push({ k: 'heure', nom: T.champHeure, val: hv, test: (g) => (q.time === 'nuit' ? d15Un(g, ['nuit', 'soir', 'nocturne']) : q.time === 'jour' ? d15Un(g, ['jour', 'matin', 'diurne']) && !d15Un(g, ['nuit']) : d15Un(g, ['tout', 'toujours', 'jour et nuit', 'n\'importe'])) });
+    const ap = P21_APPATS_ORDRE.filter((a) => P21_APPATS[a].esp.includes(k) && ITEMS[a]);
+    if (ap.length) { const N = ap.map((a) => itemName(a)); out.push({ k: 'appat', nom: T.champAppat, val: N.join(', '), test: (g) => d15Cite(g, N) }); }
+    const st = p21Tirage.espece(k)[0];
+    if (T.combats[st]) out.push({ k: 'combat', nom: T.champCombat, val: T.combats[st], test: (g) => d15Un(g, ['saut', 'tortill', 'file', 'plonge', 'secou', 'recul', 'lourd', 'fond', 'violent', 'tourne', 'remonte', 'debat', 'glisse', 'suite']) && d15Cite(g, [T.combats[st]]) });
+    return out;
+  });
+  decouvertes.declarer('sys:peche', {
+    titre: 'La pêche', sous: 'Savoir-faire', icone: '🎣', groupe: 'autres',
+    lead: 'On dose le lancer, on attend que le bouchon plonge — pas qu’il frémisse —, on ferre, puis on mouline sans casser la ligne, en tirant à l’opposé quand le poisson part de côté, en levant la canne quand il plonge, en la baissant quand il saute. Les gros se prennent à l’épuisette. Les appâts attirent certaines espèces ; là où l’eau se ride de ronds, ça mord plus vite.',
+    champs: [],
+  });
+}
+
+// ---- 11-zzzzzzzzzzzZ21-sol.js
+// ============================================================================
+//  LE GARDE-SOL : passé sous la carte, on est remis là où l'on était avant
+//  « si on passe en dessous de la map remettre à l'endroit avant non glitch »
+//  - on retient, au fil du jeu, les dernières places sûres (les pieds posés, ou à
+//    la nage) : une toutes les 0,4 s, les douze dernières ;
+//  - passé sous la carte : en chute sous la surface du sol, sans rien dessous
+//    qui porte (on tomberait sans fin), depuis plus de 0,8 s ; plus bas que mille
+//    mètres ; ou une position qui n'est plus un nombre — on est remis à la dernière place sûre
+//    d'au moins une seconde avant la chute (celle d'où l'on a glissé est souvent
+//    la place même du défaut), sans dégâts de chute ;
+//  - un saut de plus de trente mètres d'une image à l'autre (un voyage, un réveil,
+//    une porte vers un autre monde) ou un autre monde : on oublie les places
+//    d'avant, elles ne valent plus ;
+//  - rien pendant une scène, en vol, endormi, en mourant, dans un menu.
+//  API : garde_sol.remettre() (remettre maintenant), garde_sol.places (les places).
+// ============================================================================
+
+const GARDE_SOL = { pas: 0.4, garde: 12, chute: 0.8, avant: 1, saut: 30, fond: -1000 };
+
+const garde_sol = {
+  places: [],          // { pos, yaw, t } (t : l'horloge du garde-sol, en secondes de jeu)
+  t: 0, pasT: 0, chuteT: 0, chuteDebut: 0, der: null, sig: null, remis: 0,
+
+  // le monde où l'on est (un autre monde : les places d'avant ne valent plus)
+  signature() {
+    let m = '';
+    try { if (typeof mondes !== 'undefined' && mondes.actuel) m = String(mondes.actuel() || ''); } catch (e) { /* rien */ }
+    const z = typeof zone !== 'undefined' && zone.dedans ? 'z' : '';
+    return m + '|' + z;
+  },
+  oublier() { this.places.length = 0; this.chuteT = 0; },
+  tenu() {
+    const p = game.player;
+    return game.mode !== 'play' || !game.started || game.dying || game.sleeping || !p || p.fly
+      || (typeof cine !== 'undefined' && cine.on) || (typeof h17Cine !== 'undefined' && h17Cine.on)
+      || (typeof camLibre !== 'undefined' && camLibre.on) || (typeof corps !== 'undefined' && corps.hisse);
+  },
+
+  update(dt) {
+    const p = game.player, w = game.world;
+    if (!p || !w) return;
+    this.t += dt;
+    const pos = p.pos;
+    // une position qui n'est plus un nombre : on remet tout de suite
+    if (!(Number.isFinite(pos[0]) && Number.isFinite(pos[1]) && Number.isFinite(pos[2]))) { this.remettre(); return; }
+    const sig = this.signature();
+    if (sig !== this.sig) { this.sig = sig; this.oublier(); }
+    // un saut d'une image à l'autre : un voyage, pas une chute
+    if (this.der && Math.hypot(pos[0] - this.der[0], pos[1] - this.der[1], pos[2] - this.der[2]) > GARDE_SOL.saut) this.oublier();
+    this.der = this.der || [0, 0, 0];
+    this.der[0] = pos[0]; this.der[1] = pos[1]; this.der[2] = pos[2];
+    if (this.tenu()) { this.chuteT = 0; return; }
+
+    // les places sûres
+    if (p.onGround || p.swimming) {
+      this.chuteT = 0;
+      if ((this.pasT -= dt) <= 0) {
+        this.pasT = GARDE_SOL.pas;
+        this.places.push({ pos: pos.slice(), yaw: p.yaw, t: this.t });
+        if (this.places.length > GARDE_SOL.garde) this.places.shift();
+      }
+      return;
+    }
+    // en l'air : sous la carte ? (au Dessous, le monde d'en bas : souterrain.avecMonde)
+    if (pos[1] < GARDE_SOL.fond) { this.remettre(); return; }
+    const avec = (fn) => (typeof souterrain !== 'undefined' && souterrain.avecMonde ? souterrain.avecMonde(fn) : fn());
+    const sous = avec(() => pos[1] < game.world.heightAt(pos[0], pos[2]) - 2);
+    if (!sous || p.vel[1] >= 0) { this.chuteT = 0; return; }
+    if (this.chuteT === 0) this.chuteDebut = this.t;
+    this.chuteT += dt;
+    if (this.chuteT < GARDE_SOL.chute) return;
+    // (rien dessous qui porte : sinon, c'est une vraie chute qui finira sur ce sol)
+    let porte = -1e9;
+    try { porte = avec(() => game.world.groundAt(pos[0], pos[2], pos[1], 0)); } catch (e) { /* rien */ }
+    if (porte > -1e8) return;
+    this.remettre();
+  },
+
+  // remettre à la dernière place sûre d'au moins une seconde avant la chute (sinon la plus ancienne), sans dégâts
+  remettre() {
+    const p = game.player, w = game.world;
+    if (!p || !w) return false;
+    const limite = (this.chuteT > 0 ? this.chuteDebut : this.t) - GARDE_SOL.avant;
+    let P = null;
+    for (let i = this.places.length - 1; i >= 0; i--) if (this.places[i].t <= limite) { P = this.places[i]; break; }
+    if (!P) P = this.places[0] || null;
+    // (remis deux fois de suite à la même place en peu de temps : la place même est en cause, on prend la plus ancienne)
+    if (P && this.remis > 1 && this.places[0]) P = this.places[0];
+    let dest;
+    if (P) dest = P.pos.slice();
+    else {
+      // aucune place : sur le sol de la vallée, là où l'on est (ou au point de départ)
+      const x = Number.isFinite(p.pos[0]) ? p.pos[0] : w.spawn.x, z = Number.isFinite(p.pos[2]) ? p.pos[2] : w.spawn.z;
+      dest = [x, Math.max(w.heightAt(x, z), w.waterLevel ?? -1e9) + 0.5, z];
+    }
+    p.pos = dest; p.vel = [0, 0, 0]; p.onGround = false; p.fallSpeed = 0;
+    if (P && Number.isFinite(P.yaw)) p.yaw = P.yaw;
+    this.der = dest.slice();
+    this.chuteT = 0;
+    this.remis++;
+    setTimeout(() => { this.remis = Math.max(0, this.remis - 1); }, 10000);
+    try { if (typeof sound !== 'undefined' && sound.land) sound.land(0.3); } catch (e) { /* rien */ }
+    return true;
+  },
+};
+
+// après le pas du joueur (HOOKS.update suit play.update), dans la vallée comme dans la Zone
+{
+  const f = (dt) => garde_sol.update(dt);
+  f.zone = true;
+  HOOKS.update.push(f);
+}
+
 // ---- 12-ui.js
 // ============================================================================
 //  INTERFACE : menus, options, panneau de l'éditeur, HUD, fichiers
@@ -152816,6 +154151,494 @@ const q20Carnet = {
   };
 }
 
+// ---- 12-zzzzzzzzzzzP21-hud.js
+// ============================================================================
+//  LA PÊCHE À QTE (agent P21, vingt et unième vague) — 2. CE QUI SE VOIT
+//  - La canne en main (dessinée dans la petite image de l'objet tenu) : elle
+//    se lève au lancer, plie sous la tension, tremble quand le poisson secoue ;
+//    le moulinet tourne quand on mouline ; la prise est montrée en main, en gros
+//    plan (sa forme, ses couleurs, ses taches selon l'espèce).
+//  - La ligne, du bout de la canne au bouchon (ou au poisson) : un canevas
+//    plein écran (#p21-ligne), dessiné juste après l'image, seulement pendant la
+//    pêche ; elle pend quand elle est molle, se tend sous la tension.
+//  - Le HUD du QTE (#p21-hud, dans #m21-hud si M21 est là) : la jauge du
+//    lancer, le « ! » de la touche, la tension (zones), l'endurance du poisson,
+//    la distance, les invites (la touche affichée, l'anneau qui se referme), les
+//    messages courts, la carte de la prise (taille, poids, « Record ! »).
+//  - Le carnet de pêche (Carnet › Pêche) et l'option Jeu › « Aide à la pêche ».
+//  Le style : les variables --m21-* (contrat-v21), avec des valeurs de repli.
+// ============================================================================
+{
+  const st = document.createElement('style');
+  st.id = 'p21-css';
+  st.textContent = `
+#p21-ligne { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 4; pointer-events: none; display: none; }
+#p21-hud { position: absolute; inset: 0; pointer-events: none; z-index: 5; font-family: var(--m21-police, Georgia, 'Times New Roman', serif); color: var(--m21-nuit-texte, #efe6cf); }
+#p21-hud.p21-seul { position: fixed; zoom: var(--m21-k, 1); }
+#p21-hud > div { position: absolute; left: 50%; transform: translateX(-50%); display: none; }
+#p21-hud .on { display: block; }
+#p21-hud .p21-boite { background: rgba(16,13,9,.62); border: 1px solid rgba(232,192,112,.22); border-radius: var(--m21-rayon, 3px); padding: 7px 12px 8px; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+#p21-hud .p21-lancer { bottom: 21%; width: 260px; text-align: center; }
+#p21-hud .p21-lancer .t { font-size: 13px; letter-spacing: .06em; margin-bottom: 5px; color: var(--m21-or, #e8c070); }
+#p21-hud .p21-lancer .t i { font-style: normal; color: var(--m21-nuit-texte, #efe6cf); opacity: .8; }
+#p21-hud .p21-j { position: relative; height: 10px; background: rgba(220,208,180,.18); border-radius: 2px; overflow: hidden; }
+#p21-hud .p21-j > b { position: absolute; left: 0; top: 0; bottom: 0; background: var(--m21-or, #e8c070); }
+#p21-hud .p21-lancer .ap { font-size: 12px; margin-top: 5px; opacity: .78; }
+#p21-hud .p21-ferrez { top: 41%; text-align: center; }
+#p21-hud .p21-ferrez .rond { width: 34px; height: 34px; margin: 0 auto; border-radius: 50%; border: 2px solid var(--m21-or, #e8c070); color: var(--m21-or, #e8c070); font: bold 22px/30px var(--m21-police, Georgia, serif); background: rgba(16,13,9,.45); animation: p21-pouls .32s ease-in-out infinite alternate; }
+#p21-hud .p21-ferrez .t { margin-top: 6px; font-size: 15px; color: var(--m21-or, #e8c070); text-shadow: 0 1px 3px #000; }
+@keyframes p21-pouls { from { transform: scale(1); } to { transform: scale(1.18); } }
+#p21-hud .p21-combat { bottom: 17%; width: 340px; }
+#p21-hud .p21-combat .l { display: flex; justify-content: space-between; font-size: 12px; letter-spacing: .05em; margin: 0 1px 3px; opacity: .9; }
+#p21-hud .p21-tension { position: relative; height: 14px; border-radius: 2px; overflow: hidden;
+  background: linear-gradient(90deg, rgba(150,150,150,.35) 0 22%, rgba(90,140,70,.62) 22% 74%, rgba(200,140,40,.7) 74% 91%, rgba(170,50,35,.85) 91% 100%); }
+#p21-hud .p21-tension::after { content: ''; position: absolute; left: 91%; right: 0; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, rgba(0,0,0,.28) 0 3px, transparent 3px 6px); }
+#p21-hud .p21-tension > i { position: absolute; top: -2px; bottom: -2px; width: 3px; margin-left: -1px; background: #fff8e8; box-shadow: 0 0 4px #000; }
+#p21-hud .p21-tension.rouge { box-shadow: 0 0 0 2px var(--m21-rouge, #9a3a2a); animation: p21-tremble .09s linear infinite alternate; }
+@keyframes p21-tremble { from { transform: translateX(-1px); } to { transform: translateX(1px); } }
+#p21-hud .p21-endu { display: flex; align-items: center; gap: 6px; margin-top: 7px; }
+#p21-hud .p21-endu .p21-j { flex: 1; height: 7px; }
+#p21-hud .p21-endu .p21-j > b { background: #8ab4c8; }
+#p21-hud .p21-endu span { font-size: 12px; min-width: 36px; text-align: right; }
+#p21-hud .p21-endu svg { flex: none; }
+#p21-hud .p21-aide { margin-top: 6px; font-size: 12px; text-align: center; opacity: .82; min-height: 15px; }
+#p21-hud .p21-aide.alerte { color: #ffb08a; opacity: 1; font-weight: bold; }
+#p21-hud .p21-invite { bottom: calc(17% + 104px); text-align: center; }
+#p21-hud .p21-invite .k { position: relative; width: 70px; height: 70px; margin: 0 auto; }
+#p21-hud .p21-invite svg { position: absolute; inset: 0; }
+#p21-hud .p21-invite .c { position: absolute; inset: 11px; border-radius: 9px; background: var(--m21-papier-clair, #f3ecda); color: var(--m21-encre, #33291d); border: 2px solid var(--m21-sepia, #8a5a2a); box-shadow: 0 3px 0 var(--m21-sepia-fonce, #6a4220), 0 6px 14px rgba(0,0,0,.5); font: bold 30px/44px var(--m21-police, Georgia, serif); }
+#p21-hud .p21-invite .c.mot { font-size: 14px; line-height: 44px; }
+#p21-hud .p21-invite .t { margin-top: 6px; font-size: 16px; color: var(--m21-or, #e8c070); text-shadow: 0 1px 3px #000; }
+#p21-hud .p21-invite .s { font-size: 12px; opacity: .78; margin-top: 2px; text-shadow: 0 1px 2px #000; }
+#p21-hud .p21-invite.ok .c { background: #cfe6b8; border-color: var(--m21-vert, #3a6a2a); }
+#p21-hud .p21-invite.ko .c { background: #e8b8a8; border-color: var(--m21-rouge, #9a3a2a); }
+#p21-hud .p21-msg { bottom: 26%; font-size: 15px; text-shadow: 0 1px 3px #000, 0 0 8px rgba(0,0,0,.6); white-space: nowrap; transition: opacity var(--m21-duree, 140ms); }
+#p21-hud .p21-msg.rate { color: #ffb08a; }
+#p21-hud .p21-msg.appat { color: var(--m21-or, #e8c070); }
+#p21-hud .p21-prise { top: 13%; min-width: 230px; text-align: center; padding: 9px 18px 10px; background: var(--m21-papier, #e8dfc8); color: var(--m21-encre, #33291d); border: 1px solid var(--m21-trait, rgba(90,70,40,.28)); border-radius: var(--m21-rayon, 3px); box-shadow: var(--m21-ombre, 0 18px 50px rgba(0,0,0,.65)); }
+#p21-hud .p21-prise .n { font-size: 20px; }
+#p21-hud .p21-prise .m { font-size: 14px; color: var(--m21-encre-douce, #6a5436); margin-top: 2px; }
+#p21-hud .p21-prise .r { display: inline-block; margin-top: 5px; padding: 1px 9px; font-size: 13px; letter-spacing: .08em; color: #fff8e8; background: var(--m21-sepia, #8a5a2a); border-radius: 2px; }
+#p21-hud .p21-prise .r.rec { background: var(--m21-rouge, #9a3a2a); }
+/* le carnet de pêche */
+#satchel .p21-carnet .p21-res { margin: 2px 0 8px; }
+#satchel .p21-carnet .p21-eq { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--m21-encre-douce, #6a5436); margin-bottom: 10px; }
+#satchel .p21-carnet .p21-eq b { color: var(--m21-encre, #33291d); font-weight: normal; }
+#satchel .p21-carnet .p21-l { display: grid; grid-template-columns: 30px minmax(110px, 1.2fr) 44px minmax(110px, 1fr) minmax(130px, 1.4fr) auto; align-items: center; gap: 4px 10px; padding: 4px 6px; border-bottom: 1px solid var(--m21-trait, rgba(90,70,40,.18)); }
+#satchel .p21-carnet .p21-l:hover, #satchel .p21-carnet .p21-l:focus-within { background: var(--m21-sepia-voile, rgba(138,90,42,.14)); }
+#satchel .p21-carnet .p21-l img { width: 28px; height: 28px; image-rendering: pixelated; }
+#satchel .p21-carnet .p21-l .nm { font-size: 15px; }
+#satchel .p21-carnet .p21-l .n, #satchel .p21-carnet .p21-l .ou { font-size: 12.5px; color: var(--m21-encre-douce, #6a5436); }
+#satchel .p21-carnet .p21-l .rec { font-size: 13.5px; }
+#satchel .p21-carnet .p21-l .rec.vide { color: var(--m21-encre-pale, #8a7a5a); }
+#satchel .p21-carnet .p21-l button { padding: 2px 9px; font-size: 12.5px; background: rgba(255,255,255,.3); border: 1px solid var(--m21-trait, rgba(90,70,40,.3)); border-radius: var(--m21-rayon, 3px); color: var(--m21-encre, #33291d); cursor: pointer; }
+#satchel .p21-carnet .p21-l button:hover { background: var(--m21-papier-clair, #f3ecda); }
+@media (max-width: 620px) {
+  #satchel .p21-carnet .p21-l { grid-template-columns: 30px 1fr auto; }
+  #satchel .p21-carnet .p21-l .ou, #satchel .p21-carnet .p21-l .n { display: none; }
+  #p21-hud .p21-combat { width: 290px; }
+}`;
+  document.head.appendChild(st);
+}
+
+// ---------------------------------------------------------------- la canne en main, la prise en main
+const p21Main = {
+  cache: new Map(), cle: null, tip: [40, 10], actif: false,
+  // le bout de la canne, et ce qu'on dessine : une clé par image différente
+  dessiner(g, gm) {
+    const et = p21.et, canne = p21.canne();
+    const on = !!(canne && et && !gm.noHand);
+    if (!on) { if (this.actif) { this.actif = false; gm.vmKey = ''; } return; }
+    let cle;
+    const C = p21.C;
+    if (et === 'prise' && p21.prise) cle = 'p:' + p21.prise.id + ':' + (Math.floor(p21.prise.t * 4) & 1) + ':' + Math.round(Math.log2(1 + p21.prise.kg) * 3);
+    else {
+      const pose = et === 'charge' ? 'c' + Math.round(p21.charge * 5) : et === 'vol' || et === 'sol' ? 'v' + (p21.F && p21.F.p21.volT < 0.14 ? 0 : 1) : 'a';
+      const b = Math.round(Math.max(0, Math.min(1.1, p21.bend)) * 7);
+      const tourne = C && p21.avant && !C.epuisette ? Math.floor(p21.t * 14) & 3 : 0;
+      const sec = (C && C.coup.k === 'secoue') || p21.secousse > 0 ? (Math.floor(p21.t * 24) % 3) - 1 : 0;
+      cle = pose + ':' + b + ':' + tourne + ':' + sec + ':' + (canne === 'canne_fer' ? 'f' : canne === 'canne_dame' ? 'd' : 'b');
+    }
+    if (cle === this.cle && !g.dirty && this.actif) return;
+    this.actif = true; this.cle = cle;
+    let im = this.cache.get(cle);
+    if (!im) {
+      const pb = new PixelBuf(VM_W, VM_H);
+      let tip = null, cv = null;
+      if (cle[0] === 'p') cv = this.mainPoisson(pb, p21.prise);
+      else tip = this.canne(pb, cle);
+      if (!cv) { edgeDarken(pb, 0.8); cv = pb.canvas(); }
+      im = { cv, tip };
+      if (this.cache.size > 80) this.cache.delete(this.cache.keys().next().value);
+      this.cache.set(cle, im);
+    }
+    if (im.tip) this.tip = im.tip;
+    const ctx = g.canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, VM_W, VM_H);
+    ctx.drawImage(im.cv, 0, 0);
+    g.dirty = true;
+  },
+  // la canne : levée en arrière (on charge), fouettée en avant (le lancer), pliée (la tension)
+  canne(pb, cle) {
+    const [pose, b, tourne, sec, sorte] = cle.split(':');
+    const sx = +sec;
+    const gx = 86 + sx, gy = 88;
+    vmArm(pb, gx, gy);
+    let a0 = -0.42, bend = +b / 7;
+    if (pose[0] === 'c') { a0 = -0.42 + (+pose.slice(1)) / 5 * 0.5; bend = 0; }
+    else if (pose === 'v0') { a0 = -0.85; bend = 0.25; }
+    const pal = sorte === 'f' ? ramp(['#4a4e54', '#6a7078', '#8e959e', '#b4bac2']) : sorte === 'd' ? ramp(['#7a7a80', '#a8a8b0', '#d4d4dc', '#f2f2f8']) : PAL.wood;
+    // le manche (épais), puis le scion qui plie
+    const L = 92, n = 16;
+    let x = gx - Math.sin(a0) * 10, y = gy + Math.cos(a0) * 10;
+    let px = x, py = y;
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, a = a0 - bend * 1.25 * t * t, ds = L / n;
+      if (i > 0) { x += Math.sin(a) * ds; y -= Math.cos(a) * ds; thickLine(pb, px, py, x, y, i < 6 ? 3.5 : i < 11 ? 2.5 : 1.5, pal, 0.7); }
+      px = x; py = y;
+    }
+    // les anneaux du scion
+    // le moulinet
+    const mx = gx - 7 + Math.sin(a0) * 4, my = gy - 13;
+    drawSphere(pb, mx, my, 5, ramp(['#2a2a2e', '#45454c', '#62626a', '#8a8a92']), 3, { sq: 1 });
+    const ph = +tourne * Math.PI / 2;
+    drawLine(pb, Math.round(mx), Math.round(my), Math.round(mx + Math.cos(ph) * 6), Math.round(my + Math.sin(ph) * 6), [70, 52, 30], 2);
+    vmFist(pb, gx, gy - 2);
+    return [Math.round(x), Math.round(y)];
+  },
+  // la prise, tenue en main, de profil (la tête vers le milieu de l'écran)
+  mainPoisson(pb, P) {
+    const id = P.id, f = (Math.floor(P.t * 4) & 1) ? 1 : -1;
+    if (!FISH[id]) { // un coffre, une perle, des herbes : l'icône, en grand (le bras, l'icône, puis le poing par-dessus)
+      const sp = ATLAS.sprites['it_' + id];
+      vmArm(pb, 82, 74); edgeDarken(pb, 0.8);
+      const cv = pb.canvas(), ctx = cv.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      if (sp && sp.canvas) {
+        const c = sp.canvas, k = Math.max(1, Math.floor(46 / Math.max(c.width, c.height)));
+        ctx.drawImage(c, Math.round(54 - (c.width * k) / 2), Math.round(42 - (c.height * k) / 2), c.width * k, c.height * k);
+      }
+      const pf = new PixelBuf(VM_W, VM_H);
+      vmFist(pf, 76, 64); edgeDarken(pf, 0.8);
+      ctx.drawImage(pf.canvas(), 0, 0);
+      return cv;
+    }
+    const st = p21Tirage.espece(id)[0];
+    const FORME = { fretin: 0.26, perche: 0.34, carpe: 0.4, truite: 0.28, saumon: 0.27, brochet: 0.2, anguille: 0.09, silure: 0.23, ecrevisse: 0.3, aveugle: 0.28, lune: 0.5, esturgeon: 0.18, reine: 0.42, vieux: 0.22, notaire: 0.21, ancien: 0.33 };
+    const L = Math.round(72 + 34 * Math.min(1, Math.log(1 + P.kg) / Math.log(40))), H = Math.max(5, L * (FORME[st] || 0.3) / 2);
+    const cx = 54, cy = 50, x0 = cx - L / 2;
+    const base = hexToRgb((FISH[id] && FISH[id].col) || '#7a8a80');
+    const pal = rampOf(base), ventre = rampOf(base.map((v) => Math.min(255, v * 0.55 + 120)));
+    vmArm(pb, Math.min(108, Math.round(x0 + 0.8 * L)), Math.round(cy + 14));
+    if (st === 'ecrevisse') { this.ecrevisse(pb, cx, cy, L * 0.8, pal); vmFist(pb, cx + L * 0.36, cy + 6); return; }
+    // le profil : haut et bas du corps, de la tête (t = 0) au pédoncule (t = 0.8)
+    const pique = st === 'brochet' || st === 'notaire' || st === 'esturgeon' ? 0.55 : 0.3;
+    const haut = (t) => (t < 0.3 ? Math.pow(t / 0.3, pique) : 1 - Math.pow((t - 0.3) / 0.5, 1.5) * 0.7) * H;
+    const P1 = [], P2 = [];
+    for (let i = 0; i <= 20; i++) { const t = i / 20 * 0.8, x = x0 + t * L, wv = Math.sin(t * 6 + f) * (st === 'anguille' ? H * 0.8 : 0) * t; P1.push([x, cy - haut(t) + wv]); P2.unshift([x, cy + haut(t) * (st === 'anguille' ? 1 : 0.85) + wv]); }
+    fillPoly(pb, P1.concat(P2), pal, (x, y) => 0.85 - (y - (cy - H)) / (H * 2.4));
+    // le ventre, plus clair
+    const P3 = [];
+    for (let i = 2; i <= 17; i++) { const t = i / 20 * 0.8; P3.push([x0 + t * L, cy + haut(t) * 0.15]); }
+    for (let i = 17; i >= 2; i--) { const t = i / 20 * 0.8; P3.push([x0 + t * L, cy + haut(t) * 0.8]); }
+    if (st !== 'anguille') fillPoly(pb, P3, ventre, () => 0.75);
+    // la queue (fourchue ou ronde), qui bat
+    const qx = x0 + 0.8 * L, qh = H * (st === 'anguille' ? 0.6 : 1.05), qb = f * 2;
+    if (st === 'anguille') fillPoly(pb, [[qx - 2, cy - qh * 0.5], [x0 + L, cy + qb], [qx - 2, cy + qh * 0.5]], pal, () => 0.55);
+    else if (st === 'carpe' || st === 'silure' || st === 'vieux' || st === 'reine' || st === 'aveugle') fillPoly(pb, [[qx, cy - H * 0.25], [x0 + L, cy - qh + qb], [x0 + L - 3, cy + qb], [x0 + L, cy + qh + qb], [qx, cy + H * 0.25]], pal, () => 0.5);
+    else fillPoly(pb, [[qx, cy - H * 0.2], [x0 + L + 2, cy - qh + qb], [x0 + L - 6, cy + qb], [x0 + L + 2, cy + qh * 0.9 + qb], [qx, cy + H * 0.2]], pal, () => 0.5);
+    // la dorsale
+    if (st !== 'anguille') {
+      const d0 = st === 'brochet' || st === 'notaire' ? 0.62 : 0.3, d1 = st === 'brochet' || st === 'notaire' ? 0.74 : 0.55;
+      fillPoly(pb, [[x0 + d0 * L, cy - haut(d0) + 1], [x0 + (d0 + 0.04) * L, cy - haut(d0) - H * 0.55], [x0 + d1 * L, cy - haut(d1) + 1]], pal, () => 0.4);
+      if (st === 'perche') for (let i = 0; i < 5; i++) pb.set(Math.round(x0 + (d0 + 0.02 + i * 0.04) * L), Math.round(cy - haut(d0) - H * 0.4), [40, 30, 20]);
+    }
+    // les marques
+    const R = mulberry32(id.length * 977 + 13);
+    if (st === 'perche') for (let i = 0; i < 5; i++) { const x = x0 + (0.25 + i * 0.11) * L; drawLine(pb, Math.round(x), Math.round(cy - haut((x - x0) / L) + 1), Math.round(x - 1), Math.round(cy + H * 0.25), [40, 52, 30], 2); }
+    if (st === 'truite' || st === 'saumon') for (let i = 0; i < L / 3; i++) { const t = 0.12 + R() * 0.62, x = x0 + t * L, y = cy - haut(t) * (0.15 + R() * 0.7); pb.set(Math.round(x), Math.round(y), i % 4 === 0 && st === 'truite' ? [190, 40, 30] : [30, 26, 22]); }
+    if (st === 'brochet' || st === 'notaire') for (let i = 0; i < L / 2.5; i++) { const t = 0.15 + R() * 0.62, x = x0 + t * L, y = cy - haut(t) * (0.0 + R() * 0.75); pb.set(Math.round(x), Math.round(y), [200, 200, 150]); }
+    if (st === 'carpe' || st === 'reine') for (let i = 0; i < L * 1.2; i++) { const t = 0.12 + R() * 0.62, x = x0 + t * L, y = cy - haut(t) * (R() * 1.6 - 0.75); if (((x | 0) + (y | 0)) % 3 === 0) pb.shade(Math.round(x), Math.round(y), 0.78); }
+    if (st === 'esturgeon') for (let i = 0; i < 8; i++) { const t = 0.15 + i * 0.08; pb.set(Math.round(x0 + t * L), Math.round(cy - haut(t) - 1), [220, 214, 190]); pb.set(Math.round(x0 + t * L), Math.round(cy - 1), [220, 214, 190]); }
+    // l'œil, l'opercule, la nageoire de poitrine
+    const ex = Math.round(x0 + L * 0.07), ey = Math.round(cy - H * 0.25);
+    pb.set(ex, ey, [16, 14, 12]); pb.set(ex + 1, ey, [16, 14, 12]); pb.set(ex, ey - 1, [230, 210, 120]);
+    for (let k = -3; k <= 3; k++) pb.shade(Math.round(x0 + L * 0.15 - Math.abs(k) * 0.3), Math.round(cy + k * H * 0.12), 0.7);
+    fillPoly(pb, [[x0 + L * 0.2, cy + H * 0.2], [x0 + L * 0.3, cy + H * 0.65], [x0 + L * 0.26, cy + H * 0.2]], pal, () => 0.45);
+    // les barbillons
+    if (st === 'silure' || st === 'vieux' || st === 'esturgeon' || id === 'barbeau' || id === 'carpe' || id === 'reine_lac') { drawLine(pb, Math.round(x0 + 1), Math.round(cy + 1), Math.round(x0 - 4), Math.round(cy + H * 0.6), [50, 44, 36]); drawLine(pb, Math.round(x0 + 2), Math.round(cy + 2), Math.round(x0 - 2), Math.round(cy + H * 0.9), [50, 44, 36]); }
+    vmFist(pb, Math.round(qx - 3), Math.round(cy + 4));
+  },
+  ecrevisse(pb, cx, cy, L, pal) {
+    for (let i = 0; i < 6; i++) drawSphere(pb, cx + L * 0.12 * i - L * 0.25, cy, 6 - i * 0.5, pal, i + 1, { sq: 0.75 });
+    drawSphere(pb, cx - L * 0.45, cy - 5, 6, pal, 9, { sq: 0.7 }); drawSphere(pb, cx - L * 0.45, cy + 6, 5, pal, 8, { sq: 0.7 });
+    drawLine(pb, Math.round(cx - L * 0.35), Math.round(cy - 2), Math.round(cx - L * 0.7), Math.round(cy - 12), [90, 40, 30]);
+    drawLine(pb, Math.round(cx - L * 0.35), Math.round(cy + 1), Math.round(cx - L * 0.72), Math.round(cy + 8), [90, 40, 30]);
+  },
+};
+
+// ---------------------------------------------------------------- le HUD et la ligne
+const p21Hud = {
+  el: null, cv: null, ctx: null, vis: false, prev: {}, gun: null, couches: null,
+  creer() {
+    if (this.el) return;
+    const host = document.getElementById('m21-hud');
+    const el = document.createElement('div');
+    el.id = 'p21-hud';
+    if (!host) el.classList.add('p21-seul');
+    el.innerHTML = `<div class="p21-lancer p21-boite"><div class="t"></div><div class="p21-j"><b></b></div><div class="ap"></div></div>
+<div class="p21-ferrez"><div class="rond">!</div><div class="t"></div></div>
+<div class="p21-combat p21-boite"><div class="l"><span></span><span class="d"></span></div><div class="p21-tension"><i></i></div>
+<div class="p21-endu"><svg width="22" height="12" viewBox="0 0 22 12"><path d="M1 6 Q7 0 14 4 L21 1 L19 6 L21 11 L14 8 Q7 12 1 6Z" fill="#8ab4c8"/><circle cx="5" cy="5" r="1" fill="#1a1612"/></svg><div class="p21-j"><b></b></div><span></span></div><div class="p21-aide"></div></div>
+<div class="p21-invite"><div class="k"><svg viewBox="0 0 70 70"><circle cx="35" cy="35" r="32" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="4"/><circle class="anneau" cx="35" cy="35" r="32" fill="none" stroke="#e8c070" stroke-width="4" stroke-linecap="round" transform="rotate(-90 35 35)" stroke-dasharray="201" stroke-dashoffset="0"/></svg><div class="c"></div></div><div class="t"></div><div class="s"></div></div>
+<div class="p21-msg"></div>
+<div class="p21-prise"><div class="n"></div><div class="m"></div><div class="r"></div></div>`;
+    (host || document.body).appendChild(el);
+    this.el = el;
+    const q = (s) => el.querySelector(s);
+    this.e = {
+      lancer: q('.p21-lancer'), lancerT: q('.p21-lancer .t'), lancerB: q('.p21-lancer .p21-j b'), lancerAp: q('.p21-lancer .ap'),
+      ferrez: q('.p21-ferrez'), ferrezT: q('.p21-ferrez .t'),
+      combat: q('.p21-combat'), combatL: q('.p21-combat .l span'), combatD: q('.p21-combat .l .d'), tension: q('.p21-tension'), aiguille: q('.p21-tension i'),
+      endu: q('.p21-endu .p21-j b'), enduT: q('.p21-endu span'), aide: q('.p21-aide'),
+      invite: q('.p21-invite'), inviteC: q('.p21-invite .c'), inviteT: q('.p21-invite .t'), inviteS: q('.p21-invite .s'), anneau: q('.p21-invite .anneau'),
+      msg: q('.p21-msg'), prise: q('.p21-prise'), priseN: q('.p21-prise .n'), priseM: q('.p21-prise .m'), priseR: q('.p21-prise .r'),
+    };
+    const cv = document.createElement('canvas');
+    cv.id = 'p21-ligne';
+    const gl = document.getElementById('gl');
+    if (gl && gl.parentNode) gl.parentNode.insertBefore(cv, gl.nextSibling); else document.body.appendChild(cv);
+    this.cv = cv; this.ctx = cv.getContext('2d');
+    // les touches du clavier telles qu'elles sont écrites dessus (AZERTY : Q pour KeyA…)
+    this.lettres = { KeyA: 'A', KeyD: 'D', KeyW: 'W', KeyS: 'S' };
+    try { if (navigator.keyboard && navigator.keyboard.getLayoutMap) navigator.keyboard.getLayoutMap().then((m) => { for (const k of Object.keys(this.lettres)) { const v = m.get(k); if (v) this.lettres[k] = v.toUpperCase(); } }).catch(() => {}); } catch (e) { /* rien */ }
+  },
+  // un élément visible ou non (sans toucher au DOM si rien ne change)
+  voir(k, on) { if (this.prev[k] !== on) { this.prev[k] = on; this.e[k].classList.toggle('on', on); } },
+  texte(k, t) { if (this.prev['t' + k] !== t) { this.prev['t' + k] = t; this.e[k].textContent = t; } },
+  html(k, h) { if (this.prev['h' + k] !== h) { this.prev['h' + k] = h; this.e[k].innerHTML = h; } },
+  manette() { try { return typeof m21 !== 'undefined' && m21.manette && m21.manette.active && m21.manette.active(); } catch (e) { return false; } },
+  // la touche à montrer : celle de la manette si c'est elle qu'on tient, sinon celle du clavier ou de la souris
+  touche(bouton, clavier) {
+    if (!this.manette()) return clavier;
+    try { if (m21.manette.glyphe) { const g = m21.manette.glyphe(bouton); if (g) return String(g); } } catch (e) { /* rien */ }
+    return bouton;
+  },
+  maj(dt) {
+    const et = p21.et;
+    if (!et && !p21.msg && !this.priseT) { if (this.el && this.prev.tout) { this.prev.tout = false; for (const k of ['lancer', 'ferrez', 'combat', 'invite', 'msg', 'prise']) this.voir(k, false); } return; }
+    this.creer();
+    this.prev.tout = true;
+    const T = P21_TEXTES, aide = p21.aide();
+    // le lancer
+    this.voir('lancer', et === 'charge');
+    if (et === 'charge') {
+      const R = P21_REGL.lancer, m = Math.round(R.min + (R.max - R.min) * p21.charge);
+      this.html('lancerT', `${esc(T.lancer)} <i>— ${esc(T.dist(m))}</i>`);
+      this.e.lancerB.style.width = Math.round(p21.charge * 100) + '%';
+      const ap = p21.appat();
+      this.texte('lancerAp', ap ? T.appat(itemName(ap).toLowerCase(), farm.count(ap)) : T.sansAppat);
+    }
+    // la touche
+    const touche = et === 'touche';
+    this.voir('ferrez', touche);
+    if (touche) this.texte('ferrezT', aide === 'complete' ? '' : `${T.ferrez} (${this.touche('A', 'clic')})`);
+    // le combat
+    const C = p21.C, combat = et === 'combat' && C;
+    this.voir('combat', !!combat);
+    this.voir('invite', !!(combat && (C.invite || C.epuisette)) || (this.flash > 0 && !!combat));
+    if (combat) {
+      const Mc = p21.msg && p21.msg.k === 'coup' ? p21.msg : null;
+      this.texte('combatL', Mc ? Mc.txt : T.tension);
+      if (this.prev.mc !== !!Mc) { this.prev.mc = !!Mc; this.e.combatL.style.color = Mc ? 'var(--m21-or, #e8c070)' : ''; }
+      this.texte('combatD', T.dist(Math.max(0, Math.round(C.D))));
+      this.e.aiguille.style.left = Math.round(Math.min(1.04, C.T) * 100) + '%';
+      const rouge = C.T >= 0.95;
+      if (this.prev.rouge !== rouge) { this.prev.rouge = rouge; this.e.tension.classList.toggle('rouge', rouge); }
+      this.e.endu.style.width = Math.round(C.E * 100) + '%';
+      const a = C.epuisette ? '' : C.T > 0.9 ? T.lacher : C.mouT > 1.2 ? T.mouliner + ' !' : `${T.mouliner} : ${this.touche('RT', 'clic maintenu')}`;
+      this.texte('aide', a);
+      const al = C.T > 0.9 || C.mouT > 1.2;
+      if (this.prev.al !== al) { this.prev.al = al; this.e.aide.classList.toggle('alerte', al); }
+      // l'invite
+      const I = C.invite || (C.epuisette ? { dir: 'e', t: C.epuisette.t, dur: C.epuisette.dur } : null);
+      if (I) {
+        this.dernier = I;
+        const fl = { g: '←', d: '→', h: '↑', b: '↓' };
+        let c, s;
+        if (I.dir === 'e') { c = this.touche('A', 'Espace'); s = this.manette() ? '' : 'Espace ou clic'; }
+        else if (this.manette()) { c = fl[I.dir]; s = 'la croix ou le stick'; }
+        else { c = fl[I.dir]; const L = this.lettres, k = { g: L.KeyA, d: L.KeyD, h: L.KeyW, b: L.KeyS }[I.dir]; s = `${fl[I.dir]}, ${k} ou la souris`; }
+        this.texte('inviteC', c);
+        const mot = c.length > 2;
+        if (this.prev.mot !== mot) { this.prev.mot = mot; this.e.inviteC.classList.toggle('mot', mot); }
+        this.texte('inviteT', T.invites[I.dir] || '');
+        this.texte('inviteS', s);
+        this.e.anneau.setAttribute('stroke-dashoffset', String(Math.round(201 * Math.min(1, I.t / I.dur))));
+        this.etatInvite('');
+      }
+    }
+    // le résultat d'une invite : l'invite reste un instant, verte ou rouge
+    this.flash = Math.max(0, (this.flash || 0) - dt);
+    if (p21.evtInv) { this.flash = 0.35; this.etatInvite(p21.evtInv); p21.evtInv = null; }
+    // le message
+    const M = p21.msg && !(combat && p21.msg.k === 'coup') ? p21.msg : null;
+    this.voir('msg', !!M);
+    if (M) { this.texte('msg', M.txt); if (this.prev.mk !== M.k) { this.e.msg.classList.remove('rate', 'appat'); if (M.k === 'rate' || M.k === 'appat') this.e.msg.classList.add(M.k); this.prev.mk = M.k; } this.e.msg.style.opacity = String(Math.min(1, (M.dur - M.t) * 3)); }
+    // la prise
+    if (et === 'prise' && p21.prise && this.prev.pr !== p21.prise) {
+      const P = p21.prise; this.prev.pr = P; this.priseT = 2.6;
+      this.texte('priseN', itemName(P.id));
+      this.texte('priseM', P.poisson ? T.taille(P.cm, T.kg(P.kg)) : '');
+      this.texte('priseR', P.record ? T.record : P.nouvelle ? T.nouvelle : '');
+      this.e.priseR.style.display = P.record || P.nouvelle ? '' : 'none';
+      this.e.priseR.classList.toggle('rec', !!P.record);
+    }
+    if (this.priseT > 0) { this.priseT -= dt; this.voir('prise', this.priseT > 0); this.e.prise.style.opacity = String(Math.min(1, this.priseT * 2.5)); }
+  },
+  etatInvite(k) { if (this.prev.ik !== k) { this.prev.ik = k; this.e.invite.classList.toggle('ok', k === 'ok'); this.e.invite.classList.toggle('ko', k === 'ko'); } },
+
+  // ------------------------------------------------------------- la ligne (juste après l'image)
+  ligne(cam) {
+    const F = p21.F, et = p21.et;
+    const on = !!(cam && F && p21Main.actif && (et === 'vol' || et === 'sol' || et === 'attente' || et === 'touche' || et === 'combat'));
+    if (!on) { if (this.vis) { this.vis = false; this.cv.style.display = 'none'; this.ctx.clearRect(0, 0, this.cv.width, this.cv.height); } return; }
+    this.creer();
+    const W = window.innerWidth, H = window.innerHeight, cv = this.cv;
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    if (!this.vis) { this.vis = true; cv.style.display = 'block'; }
+    const ctx = this.ctx;
+    ctx.clearRect(0, 0, W, H);
+    const R = game.renderer, b = R && R.lastBasis, tn = R && R.lastTan;
+    if (!b || !tn) return;
+    // le bout de la canne : là où la petite image le place (13-main.js viewModel, 08-renderer.js dessinMain)
+    const g = this.gun || { ox: 0, oy: 0, scale: 1 };
+    const unit = Math.min(H, W * 0.75), hPx = unit * 0.54 * (g.scale || 1), wPx = hPx * VM_W / VM_H;
+    const cx = W * 0.5 + unit * 0.17 + (g.ox || 0) * unit, by = -unit * 0.03 + (g.oy || 0) * unit;
+    const top = H - (by + hPx), tip = p21Main.tip;
+    const x0 = cx - wPx / 2 + tip[0] / VM_W * wPx, y0 = top + tip[1] / VM_H * hPx;
+    // le bouchon (ou le poisson), projeté
+    const B = p21.bouee();
+    if (!B) return;
+    const P = et === 'combat' ? [B.x, B.y + 0.02, B.z] : [B.x, B.y + 0.12, B.z];
+    const d = [P[0] - cam.pos[0], P[1] - cam.pos[1], P[2] - cam.pos[2]];
+    const z = d[0] * b.f[0] + d[1] * b.f[1] + d[2] * b.f[2];
+    if (z < 0.1) return;
+    const nx = (d[0] * b.r[0] + d[1] * b.r[1] + d[2] * b.r[2]) / z / tn[0], ny = (d[0] * b.u[0] + d[1] * b.u[1] + d[2] * b.u[2]) / z / tn[1];
+    const x1 = (nx * 0.5 + 0.5) * W, y1 = (0.5 - ny * 0.5) * H;
+    // molle, elle pend ; tendue, elle file droit
+    const tens = et === 'combat' && p21.C ? Math.min(1, p21.C.T * 1.15) : et === 'vol' ? 0.6 : et === 'touche' ? 0.5 : 0.15;
+    const len = Math.hypot(x1 - x0, y1 - y0), sag = (1 - tens) * Math.min(160, len * 0.28) + 6;
+    const mx = (x0 + x1) / 2, my = Math.max(y0, y1) + sag * 0.6 + (y1 - y0) * 0.1;
+    const nuit = game.sky ? game.sky.night || 0 : 0, al = 0.75 - nuit * 0.4;
+    ctx.lineWidth = Math.max(1, Math.round(H / 700));
+    ctx.strokeStyle = et === 'combat' && p21.C && p21.C.T >= 0.95 ? `rgba(255,170,150,${al + 0.15})` : `rgba(232,232,222,${al})`;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(mx, my, x1, y1); ctx.stroke();
+  },
+};
+
+// ---------------------------------------------------------------- les branchements
+{
+  // le HUD suit chaque image (rien quand on ne pêche pas)
+  const maj = (dt) => { try { p21Hud.maj(dt); } catch (e) { console.error('p21 hud', e); } };
+  maj.zone = true;
+  HOOKS.update.push(maj);
+  // l'invite réussie ou ratée : la pêche le dit au HUD
+  const _ev = p21.evenement.bind(p21);
+  p21.evenement = function (ev) { if (ev.e === 'ok') this.evtInv = 'ok'; else if (ev.e === 'rate') this.evtInv = 'ko'; return _ev(ev); };
+}
+HOOKS.load.push(() => {
+  if (typeof game === 'undefined' || game._p21) return;
+  game._p21 = true;
+  // la canne en main : dessinée par nous pendant la pêche
+  const _vm = game.viewModel.bind(game);
+  game.viewModel = function (p, dt) {
+    const g = _vm(p, dt);
+    try { if (g) { p21Hud.gun = g; p21Main.dessiner(g, this); } } catch (e) { console.error('p21 main', e); }
+    return g;
+  };
+  // la ligne, juste après l'image
+  const R = game.renderer;
+  if (R && R.render && !R._p21) {
+    R._p21 = true;
+    const _r = R.render.bind(R);
+    R.render = function (Fr) { const r = _r(Fr); try { p21Hud.ligne(Fr && Fr.cam); } catch (e) { /* rien */ } return r; };
+  }
+});
+
+// ---------------------------------------------------------------- le carnet de pêche (Carnet › Pêche)
+const p21Carnet = {
+  heure(h) { const T = P21_TEXTES.heures; return h === undefined ? '' : T[Math.min(T.length - 1, Math.floor(((h + 1) % 24) / 4))]; },
+  rendre() {
+    if (typeof menus !== 'undefined' && menus.marque) menus.marque('peche', 0);
+    const S = p21.S(), T = P21_TEXTES, E = S.esp, tous = Object.keys(FISH).filter((k) => ITEMS[k]);
+    const pris = tous.filter((k) => E[k] && E[k].n > 0);
+    const vus = tous.filter((k) => !(E[k] && E[k].n > 0) && savoir.vu(k) > 0);
+    const n = (farm.s.stats && farm.s.stats.fish) || pris.reduce((a, k) => a + E[k].n, 0);
+    const ap = p21.appat(), canne = p21.meilleureCanne(), P = S.pertes || {};
+    let h = `<div class="p21-carnet"><h4>${esc(T.carnetTitre)}</h4>`;
+    h += `<p class="p21-res">${esc(T.carnetPrises(n, pris.length + vus.length, tous.length))} ${esc(T.carnetPertes(P.casse || 0, P.decroche || 0))}</p>`;
+    h += `<div class="p21-eq"><span>${esc(T.carnetAppat)} : <b>${esc(ap ? itemName(ap) + ' (' + farm.count(ap) + ')' : T.sansAppat)}</b></span>`
+      + `<span>${esc(T.carnetCanne)} : <b>${esc(canne ? itemName(canne) : '—')}</b></span>`
+      + `<span>${esc(T.carnetAide)} : <b>${esc(T.aides[p21.aide()])}</b></span></div>`;
+    const A = typeof activites !== 'undefined' && activites.S ? activites.S() : null, PC = A && A.peche && A.peche.j === farm.s.day ? A.peche : null;
+    if (PC && PC.bestKg) h += `<p class="hint">${esc(T.carnetConcours(T.kg(PC.bestKg)))}</p>`;
+    if (!pris.length && !vus.length) return h + `<p class="hint m15-vide">${esc(T.carnetVide)}</p></div>`;
+    const ligne = (k, rec) => {
+      const e = E[k] || {}, nom = itemName(k);
+      const r = rec ? `<span class="rec">${esc(T.taille(e.cm, T.kg(e.kg)))}</span>` : `<span class="rec vide">—</span>`;
+      const ou = rec ? `<span class="ou">${esc(p21.lieu(e.lieu))}${e.j ? ', ' + esc(T.carnetQuand(e.j, this.heure(e.h))) : ''}</span>` : '<span class="ou"></span>';
+      return `<div class="p21-l" data-it="${esc(k)}" data-nom="${esc(nom)}" data-kg="${rec ? e.kg : 0}" data-n="${e.n || 0}"><img src="${iconURL(k)}" alt=""><span class="nm">${esc(nom)}</span><span class="n">${rec ? esc(T.carnetN(e.n)) : ''}</span>${r}${ou}<button data-p21-wiki="${esc(k)}">${esc(T.carnetWiki)}</button></div>`;
+    };
+    pris.sort((a, b) => E[b].kg - E[a].kg);
+    h += `<h4>${esc(T.carnetEspeces)}</h4><div class="p21-liste">${pris.map((k) => ligne(k, true)).join('')}</div>`;
+    if (vus.length) h += `<h4>${esc(T.carnetVues)}</h4><div class="p21-liste">${vus.map((k) => ligne(k, false)).join('')}</div>`;
+    const reste = tous.length - pris.length - vus.length;
+    if (reste > 0) h += `<p class="hint">${esc(T.carnetJamais(reste))}</p>`;
+    return h + '</div>';
+  },
+  brancher(body) {
+    body.querySelectorAll('[data-p21-wiki]').forEach((b) => {
+      b.onclick = () => { const id = b.getAttribute('data-p21-wiki'); sound.page && sound.page(); if (typeof decouvertes !== 'undefined' && decouvertes.ouvrir) decouvertes.ouvrir('it:' + id); };
+    });
+  },
+};
+menus.page({
+  id: 'peche', onglet: 'carnet', titre: P21_TEXTES.page, ordre: 25, icone: '🎣', visible: () => !!farm.s,
+  rendre: () => p21Carnet.rendre(), apres: (body) => p21Carnet.brancher(body),
+  outils: {
+    cle: 'peche', items: '.p21-l', texte: (el) => el.getAttribute('data-nom') || '',
+    tris: [{ id: 'poids', nom: 'Poids', cle: (el) => +el.getAttribute('data-kg') || 0, desc: true }, { id: 'nom', nom: 'Nom', cle: (el) => el.getAttribute('data-nom') || '' }, { id: 'n', nom: 'Prises', cle: (el) => +el.getAttribute('data-n') || 0, desc: true }],
+  },
+});
+
+// ---------------------------------------------------------------- l'option (Jeu › « Aide à la pêche »)
+{
+  const _init = ui.init.bind(ui);
+  ui.init = function () {
+    const r = _init();
+    try {
+      if (!$('#o-pecheaide')) {
+        const T = P21_TEXTES, l = document.createElement('label');
+        l.className = 'row';
+        l.title = `${T.aides.complete} : ${T.aideDesc.complete}\n${T.aides.simplifiee} : ${T.aideDesc.simplifiee}\n${T.aides.auto} : ${T.aideDesc.auto}`;
+        l.innerHTML = `${esc(T.option)} <select id="o-pecheaide"><option value="complete">${esc(T.aides.complete)}</option><option value="simplifiee">${esc(T.aides.simplifiee)}</option><option value="auto">${esc(T.aides.auto)}</option></select>`;
+        if (typeof m21 !== 'undefined' && m21.option) m21.option('Jeu', l);
+        else { const cols = $('#dlg-options .cols'); if (cols) cols.appendChild(l); }
+        const s = $('#o-pecheaide');
+        if (s) {
+          s.value = p21.aide();
+          s.onchange = () => { p21.reglerAide(s.value); sound.click && sound.click(); };
+          const dlg = $('#dlg-options');
+          if (dlg && typeof MutationObserver === 'function') new MutationObserver(() => { const e = $('#o-pecheaide'); if (e && e.value !== p21.aide()) e.value = p21.aide(); }).observe(dlg, { attributes: true, attributeFilter: ['class', 'open', 'style'] });
+        }
+      }
+    } catch (e) { console.error('p21 : options', e); }
+    return r;
+  };
+}
+
 // ---- 13-main.js
 // ============================================================================
 //  JEU : modes (ferme / création), boucle principale, interactions, journées
@@ -155139,6 +156962,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Il entre. La porte reste ouverte, et on entend, pour la première fois depuis des années, la grainetière rire.)","(He goes in. The door stays open, and for the first time in years you can hear the seed merchant laughing.)"],
 ["(Il essuie un verre déjà sec.) Rendez-moi un service. Portez la soupe du dimanche à {npc:pecheur}, au ponton. D’habitude, il vient la manger ici, et je la lui sers sans le regarder. Cette fois, je n’ai pas le courage.","(He wipes a glass that is already dry.) Do me a favour. Take the Sunday soup to {npc:pecheur}, at the jetty. Usually he comes to eat it here, and I serve it to him without looking at him. This time, I haven’t the courage."],
 ["(Il est assis au bout du pont, face aux Degrés. Il a l’air d’attendre encore.)","(He is sitting at the end of the bridge, facing the Steps. He still seems to be waiting.)"],
+["(Il est encore là, quelque part sous l’eau.)","(It’s still there, somewhere under the water.)"],
 ["(Il est encore nerveux. Laissez-le se calmer un peu.)","(It is still nervous. Let it calm down a little.)"],
 ["(Il est encore nerveux.)","(It is still nervous.)"],
 ["(Il est entré dans le mur. Pas derrière : dedans.)","(It went into the wall. Not behind it: into it.)"],
@@ -155963,6 +157787,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Pas de mot. Des traces de pattes palmées autour du panier, et le cresson est encore mouillé.)","(No note. Webbed footprints around the basket, and the watercress is still wet.)"],
 ["(Pas de mot. Le panier sent la mousse. Personne, dans la vallée, ne tresse l’osier de cette façon.)","(No note. The basket smells of moss. Nobody in the valley weaves wicker like this.)"],
 ["(Pas devant la porte : il faut pouvoir passer.)","(Not in front of the door: there has to be room to pass.)"],
+["(Pas d’eau là-bas.)","(No water over there.)"],
 ["(Pas d’ici.)","(Not from here.)"],
 ["(Pas d’yeux. Une bouche, et deux grandes oreilles de peau qui tremblaient.)","(No eyes. A mouth, and two big ears of skin that trembled.)"],
 ["(Pas en ville : ces pavés-là ont un propriétaire.)","(Not in town: those cobbles belong to someone.)"],
@@ -156737,6 +158562,7 @@ const I18N_EN = {"v":1,"exact":[
 [", garde",", warden"],
 [", garde des ponts.",", bridge warden."],
 [", le garde",", the warden"],
+[", les nuits de lune",", on moonlit nights"],
 [", manque.",", low."],
 [", pas loin de",", not far from"],
 [", passe.",", high."],
@@ -156961,6 +158787,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Ah. Vous voilà enfin. Les feuilles de sauge me l’avaient annoncé. On m’appelle {nom}, la guérisseuse. Asseyez-vous, {fermier}. Pas sur cette souche : elle écoute.","Ah. There you are at last. The sage leaves foretold it. They call me {nom}, the healer. And you are {fermier}. Sit down. Not on that stump: it listens."],
 ["Ah. Vous. Le matin vous va bien. Il va bien à tout le monde, avant le soleil.","Ah. You. Morning suits you. It suits everyone, before the sun."],
 ["Ah… Beuh. Vous voulez faire tourner ma pâte ? Reprenez ça, s’il vous plaît.","Ah… Ugh. Do you want to turn my dough sour? Take that back, please."],
+["Aide","Assist"],
+["Aide à la pêche","Fishing assist"],
 ["Aider à la mise bas","Help with the birth"],
 ["Aider à redresser la voiture","Help set the coach upright"],
 ["Aidez-moi !","Help me!"],
@@ -157204,6 +159032,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Approchez votre chaise, baissez la lampe, et que personne ne tousse. Une histoire, ça se sert comme une soupe : bien chaude, et jusqu’à la dernière cuillère.","Pull up your chair, turn down the lamp, and let nobody cough. A story is served like soup: piping hot, and down to the last spoonful."],
 ["Approchez, approchez ! Tout est vrai, tout est bon, presque tout est neuf !","Step up, step up! It’s all true, it’s all good, and nearly all of it’s new!"],
 ["Approchez. Je ne mords pas. Je vends.","Come closer. I don’t bite. I sell."],
+["Appât","Bait"],
 ["Appât empoisonné","Poisoned bait"],
 ["Après la pluie, une charrette enlisée sur le chemin, un âne qui tirait en vain.","After the rain, a cart stuck in the mud on the road, a donkey pulling in vain."],
 ["Après la pluie, une charrette était enlisée jusqu’aux moyeux. J’ai poussé avec le paysan ; il m’a donné des pommes.","After the rain, a cart was stuck in the mud up to its hubs. I pushed with the peasant; he gave me apples."],
@@ -157335,6 +159164,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Au bord du lac, le soleil s’est couché sur un éclat vert. Une seconde, pas plus.","At the lakeside, the sun set in a flash of green. One second, no more."],
 ["Au bord du marais, quand il fait nuit, il y a quelqu’un qui fait la lessive. Ne lui demandez pas pour qui.","At the edge of the marsh, once night has fallen, there’s someone doing the washing. Don’t ask who it’s for."],
 ["Au bout de la Voie, une ville en ruine, plus grande que Valbrume, aux murs tombés. Les rues sont à leur place ; les maisons n’ont plus de toits. Dans l’une d’elles, une table était mise pour six.\n\nPar endroits, sous les dalles, on entend des cloches, très loin, très bas, comme si une autre ville sonnait ses offices sous celle-ci. Je n’ai pas trouvé par où l’on y descend. Je ne l’ai pas cherché longtemps.","At the end of the Way, a ruined town, larger than Valbrume, its walls fallen. The streets are in their places; the houses have no roofs left. In one of them, a table was laid for six.\n\nIn places, beneath the flagstones, one hears bells, very far off, very low, as if another town were ringing for its services beneath this one. I did not find the way down. I did not search for it long."],
+["Au bout de la ligne","At the end of the line"],
 ["Au bout de la route de Clairpré, dans la paroi de l’Est : la Grande Porte. Même d’ici, on dirait qu’elle regarde.","At the end of the Clairpré road, in the eastern rock face: the Great Gate. Even from here, it looks as if it is watching."],
 ["Au bout de la route de Clairpré, la Grande Porte. Vous l’avez passée, comme Anselme avant vous.","At the end of the Clairpré road, the Great Gate. You went through it, as Anselme did before you."],
 ["Au bout de la route de Clairpré, passé les ruines, il y a la Porte. Vous l’avez vue ? On ne peut pas la manquer.","At the end of the Clairpré road, past the ruins, there is the Gate. Have you seen it? You can’t miss it."],
@@ -157703,6 +159533,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Bail à ferme, pour neuf ans, de la ferme dite des Aulnes, au sieur Chabert. Le bailleur ne répond ni des incendies, ni des loups, ni de ce qui descend de la montagne.","Farm lease, for nine years, of the farm known as the Alders, to the Sieur Chabert. The lessor is answerable neither for fires, nor for wolves, nor for whatever comes down from the mountain."],
 ["Bail —","Lease —"],
 ["Baisse ça. Je ne fuis pas les hommes. Je fuis la bêtise.","Put that down. I do not flee men. I flee stupidity."],
+["Baissez la canne","Lower the rod"],
 ["Balayer le parvis","Sweep the forecourt"],
 ["Balayer le parvis de l’église. Le curé dit que les feuilles y reviennent toutes seules.","Sweep the church forecourt. The priest says the leaves come back all by themselves."],
 ["Balayé d’un revers de main par un géant","Swept aside by the back of a giant’s hand"],
@@ -158214,6 +160045,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Canard colvert","Mallard"],
 ["Cane","Duck"],
 ["Canicule","Heatwave"],
+["Canne","Rod"],
 ["Canne de la Dame du Lac","Rod of the Lady of the Lake"],
 ["Canne à pêche","Fishing rod"],
 ["Canne à pêche de fer","Iron fishing rod"],
@@ -158364,6 +160196,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Ce qui frappe sous la forge","What Knocks Beneath the Forge"],
 ["Ce qui frappe sous l’enclume","What strikes beneath the anvil"],
 ["Ce qui guette","What Lies in Wait"],
+["Ce qui le fait mordre","What makes it bite"],
 ["Ce qui lève","What comes up"],
 ["Ce qui m’a suivi","What Followed Me"],
 ["Ce qui n’a pas de nom","What Has No Name"],
@@ -158906,6 +160739,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Commande à la brasserie","Order to the brewery"],
 ["Commander","Order"],
 ["Commandes","Controls"],
+["Comme avant : on lance, on ferre quand ça plonge, le poisson vient.","Like before: you cast, set the hook when it dips, and the fish comes."],
 ["Comme c’est gentil ! Je le note dans mon carnet des bonnes nouvelles.","How kind! I’ll write it down in my good-news notebook."],
 ["Comme c’est gentil ! Ça ira très bien dans ma cuisine.","How kind! That’ll look lovely in my kitchen."],
 ["Comme moi ? Hi hi, alors on aime la même chose ! Je vais te faire un dessin tout jaune, avec un soleil qui a des yeux.","Like me? Hee hee, so we like the same thing! I’m going to draw you a picture all in yellow, with a sun that’s got eyes."],
@@ -158942,6 +160776,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Commun","Common"],
 ["Compagnons du Devoir","Compagnons du Devoir"],
 ["Complies. La porte. Le verrou. La corde à la cheville. Et puis, Seigneur, ce que vous voudrez.","Compline. The door. The bolt. The rope round my ankle. And then, Lord, whatever you will."],
+["Complète","Full"],
 ["Composteur","Composter"],
 ["Compris ! Restez où vous êtes, je m’éloigne.","Understood! Stay where you are, I’m moving off."],
 ["Compris. Pas de rancune. Les bêtes, elles, ne me font jamais ce coup-là.","Understood. No hard feelings. Animals never pull that one on me."],
@@ -158964,6 +160799,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Conclusion du juge","The Judge’s Conclusion"],
 ["Concombre","Cucumber"],
 ["Concours de pêche, chaque Pêchedi. Inscriptions au ponton, de six heures à midi (cinq pièces). Ce qu’on tire du lac jusqu’à quatre heures compte ; on présente sa plus belle prise entre quatre heures et huit heures du soir.\n\nPremier prix : cinquante pièces et un coffre de pêcheur. Deuxième : vingt-cinq pièces. Troisième : des vers, beaucoup de vers.","Fishing contest, every Pêchedi. Entries at the jetty, from six o’clock till noon (five coins). Whatever you pull from the lake before four o’clock counts; present your finest catch between four and eight in the evening.\n\nFirst prize: fifty coins and a fisherman’s chest. Second: twenty-five coins. Third: worms, a great many worms."],
+["Concours de pêche, chaque Pêchedi. Inscriptions au ponton, de six heures à midi (cinq pièces). Ce qu’on tire du lac jusqu’à quatre heures compte ; on présente sa prise la plus lourde, pesée au ponton, entre quatre heures et huit heures du soir.\n\nPremier prix : cinquante pièces et un coffre de pêcheur. Deuxième : vingt-cinq pièces. Troisième : des vers, beaucoup de vers.","Fishing contest, every Pêchedi. Sign-up at the jetty, from six o’clock to noon (five coins). Whatever you pull from the lake until four o’clock counts; you present your heaviest catch, weighed at the jetty, between four and eight in the evening.\n\nFirst prize: fifty coins and a fisherman’s chest. Second: twenty-five coins. Third: worms, plenty of worms."],
 ["Concours de tir, chaque Chassedi, de neuf heures à cinq heures. Trois coups à quinze pas, sur la cible de paille. Inscription : cinq pièces.\n\nPremier prix : soixante pièces et six cartouches. Deuxième : vingt-cinq pièces. Troisième : trois cartouches.\n\nPortez du rouge en forêt.","Shooting contest, every Chassedi, from nine o’clock to five. Three shots at fifteen paces, at the straw target. Entry: five coins.\n\nFirst prize: sixty coins and six cartridges. Second: twenty-five coins. Third: three cartridges.\n\nWear red in the forest."],
 ["Confessez-vous, et donnez pour les pauvres. Ou réparez la faute, si vous le pouvez.","Confess, and give to the poor. Or make amends for the wrong, if you can."],
 ["Confession d’un lecteur infidèle","Confession of a Faithless Reader"],
@@ -159770,6 +161606,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Des entailles dans le roc","Gouges in the rock"],
 ["Des entailles profondes dans la pierre, par quatre, chacune longue comme un homme couché.","Deep gouges in the stone, in sets of four, each as long as a man lying down."],
 ["Des esprits qui frappent, et de ceux qui répondent","Of Spirits That Knock, and of Those Who Answer"],
+["Des fenêtres larges, sans invites pendant le combat.","Wide timing windows, no prompts during the fight."],
 ["Des fermiers","Of the Farmers"],
 ["Des fers à cheval sur toutes les portes, ouverts vers le haut. Bien. Celui-là, non : je repasserai le retourner.","Horseshoes on every door, open end up. Good. Not that one: I’ll come back and turn it round."],
 ["Des feuilles couvertes de fusain : une grande main ouverte, un œil, trois traits parallèles. Les mêmes, cent fois.\n\nSur la dernière feuille, la main s’est refermée.","Sheets covered in charcoal: a large open hand, an eye, three parallel lines. The same ones, a hundred times.\n\nOn the last sheet, the hand has closed."],
@@ -160496,6 +162333,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Elle est à vous. Avec ses dettes, ses murs, et ce qui vient avec.","It is yours. With its debts, its walls, and whatever comes with them."],
 ["Elle existe. Elle est juste en bas. Tu lui en donnes une, dis ? Elle en a jamais eu, même avant.","She does exist. She’s just down below. You’ll give her one, won’t you? She never got any, not even before."],
 ["Elle fait la tourbe. On retire parfois de la tourbe des gens qui n’ont pas changé depuis mille ans.","It makes the peat. Sometimes people are pulled out of the peat who haven’t changed in a thousand years."],
+["Elle file loin, longtemps.","It runs far and long."],
+["Elle file, tourne, puis sonde.","It runs, turns, then goes deep."],
 ["Elle garde depuis vingt ans une lettre qui n’était pas pour elle. Chaque dimanche, elle répond « rien, mon oncle ».","She has kept a letter for twenty years that was never meant for her. Every Sunday, she answers, “Nothing, Uncle.”"],
 ["Elle garde la cour mieux qu’un chien : elle crie à la moindre ombre.","She guards the yard better than a dog: she honks at the slightest shadow."],
 ["Elle gardera ma flamme une nuit de plus. Ne le perds pas : il n’y en a qu’un par personne.","She’ll keep my flame one more night. Don’t lose it: there’s only one per person."],
@@ -160530,11 +162369,14 @@ const I18N_EN = {"v":1,"exact":[
 ["Elle pousse au bord de l’eau et sent frais. Bonne contre les maux de ventre.","It grows by the water and smells fresh. Good for stomach aches."],
 ["Elle pousse sur les toits et les pierres. On dit qu’elle protège de la foudre.","It grows on roofs and stones. They say it protects against lightning."],
 ["Elle prend le jeton, regarde l’empreinte du pouce. « Une nuit de plus. Dis-le-lui. »","She takes the token, looks at the thumbprint. “One more night. Tell him so.”"],
+["Elle recule.","It backs away."],
 ["Elle respire. Je l’emmène.","She’s breathing. I’m taking her in."],
 ["Elle respire. Mon Dieu, elle respire. Aidez-moi à la porter.","She’s breathing. Good Lord, she’s breathing. Help me carry her."],
 ["Elle reste. Au phare, si la commune veut bien. Le maire a dit oui avant que je finisse ma phrase. Ce soir, elle balancera la lanterne. Moi, je lèverai la main. Et cette fois, elle la verra.","She’s staying. At the lighthouse, if the commune agrees. The mayor said yes before I’d finished my sentence. Tonight, she’ll swing the lantern. And I’ll raise my hand. And this time, she’ll see it."],
 ["Elle reçoit des lettres à la violette, sans signature. Elle guette le courrier comme une gamine.","She receives violet-scented letters, unsigned. She watches for the post like a young girl."],
+["Elle saute hors de l’eau.","It leaps out of the water."],
 ["Elle se tient immobile dans l’herbe, les pattes jointes comme pour prier. Elle tourne la tête pour vous suivre des yeux. Aucune autre bête ne fait ça.","It stands motionless in the grass, its forelegs joined as if in prayer. It turns its head to follow you with its eyes. No other beast does that."],
+["Elle se tortille de droite et de gauche.","It wriggles from side to side."],
 ["Elle sent la foire.","It smells of the fair."],
 ["Elle sent l’herbe.","It smells of grass."],
 ["Elle siffle pour prévenir les autres et plonge dans son terrier. Elle dort six mois de l’année, dit-on.","It whistles to warn the others and dives into its burrow. It sleeps six months of the year, they say."],
@@ -160544,6 +162386,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Elle s’appelle Hélène. C’était la fille du pharmacien du bourg voisin, et elle était venue à la Saint-Aubin de 1877 voir à quoi ressemblait un village qui lève ses ponts à neuf heures. J’ai fait un discours sur l’estrade, et elle a ri, pas aux bons endroits : aux vrais. Nous nous sommes mariés au printemps suivant. Chaque premier dimanche de septembre, elle faisait une tarte aux mirabelles qu’elle m’interdisait de partager avec le conseil municipal.","Her name is Hélène. She was the daughter of the chemist in the neighbouring market town, and she had come to the Saint-Aubin fête of 1877 to see what a village that raises its bridges at nine o’clock looked like. I made a speech from the platform, and she laughed, not in the right places: in the true ones. We were married the following spring. Every first Sunday in September, she baked a mirabelle plum tart that she forbade me to share with the municipal council."],
 ["Elle tient la montre ouverte, au creux de la main, comme un oiseau. « Ne me mentez pas. Est-il mort ? »","She holds the watch open in the hollow of her hand, like a bird. “Don’t lie to me. Is he dead?”"],
 ["Elle tient un carnet des bonnes nouvelles. Votre arrivée y est soulignée deux fois.","She keeps a notebook of good news. Your arrival is underlined in it twice."],
+["Elle tourne autour de la ligne.","It circles the line."],
 ["Elle tourne en larges cercles au-dessus des prés en miaulant comme un chat, ou attend des heures sur un piquet, au bord du chemin, l’air de s’ennuyer. Brune, plus ou moins pâle, jamais deux pareilles. Les gardes la tirent comme une nuisible ; elle mange pourtant plus de campagnols que de poulets.","It wheels in wide circles over the meadows, mewing like a cat, or waits for hours on a post by the roadside, looking bored. Brown, more or less pale, never two alike. The gamekeepers shoot it as vermin; yet it eats more voles than chickens."],
 ["Elle t’a fait ça, regarde : c’est toi, en bois. Elle dit que tu vas en avoir besoin.","She made you this, look: it’s you, made of wood. She says you’re going to need it."],
 ["Elle va payer, elle va payer. Elle paie toujours à celle qui reste.","She’s going to pay, she’s going to pay. She always pays the one who stays."],
@@ -160734,8 +162577,10 @@ const I18N_EN = {"v":1,"exact":[
 ["Escargots à l’ail","Garlic snails"],
 ["Espace","Space"],
 ["Espace : passer","Space: skip"],
+["Espace ou clic","Space or click"],
 ["Espace · Maj · C","Space · Shift · C"],
 ["Esprit","Spirit"],
+["Espèces prises","Species caught"],
 ["Essayez de sauter","Try jumping"],
 ["Essayez quand même.","Try anyway."],
 ["Est-ce que ça va durer ?","Will it last?"],
@@ -160923,6 +162768,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Fermée. Bien sûr. Elle l’était déjà.","Closed. Of course. It already was."],
 ["Fernand","Fernand"],
 ["Ferraille","Scrap iron"],
+["Ferrez !","Set the hook!"],
 ["Feu","Fire"],
 ["Feu de camp","Campfire"],
 ["Feu du lac. Gardien : A. Lemarié.\n\n« 12 octobre. Allumé à six heures et demie. Vent d’ouest, faible. Éteint à l’aube. »\n« 13 octobre. Allumé. Brume sur l’eau jusqu’à dix heures. »\n« 2 novembre. Allumé. Lune rouge. Brûlé toute la nuit, comme il est écrit. Quelqu’un sur la grève, vers trois heures. Il n’a pas bougé. »\n« 3 novembre. Allumé. »\n« 4 novembre. Allumé. Il est revenu. Plus près. »\n\nEnsuite, page après page, d’une même main : « Allumé. » Les dates continuent. La dernière est celle d’hier.","Lake light. Keeper: A. Lemarié.\n\n“12 October. Lit at half past six. West wind, light. Put out at dawn.”\n“13 October. Lit. Mist on the water until ten.”\n“2 November. Lit. Red moon. Burned all night, as it is written. Someone on the shore, around three o’clock. He did not move.”\n“3 November. Lit.”\n“4 November. Lit. He has come back. Closer.”\n\nThen, page after page, in the same hand: “Lit.” The dates go on. The last is yesterday’s."],
@@ -160948,6 +162794,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Fibres","Fibres"],
 ["Fibule de bronze","Bronze fibula"],
 ["Ficelées, marquées à la craie d’une année. Les plus vieilles n’ont plus de chiffres : un cercle, barré d’un trait.\n\nSous la ficelle de l’une d’elles, un billet : « Ne pas ouvrir avant le retour du lecteur. »","Tied with string, each marked in chalk with a year. The oldest no longer bear a number: a circle, crossed by a single line.\n\nUnder the string of one of them, a note: “Do not open before the reader returns.”"],
+["Fiche","Card"],
 ["Fiche de terrain","Field sheet"],
 ["Fiche sur papier glacé","Glossy-paper sheet"],
 ["Fichier","File"],
@@ -161820,6 +163667,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Il a payé ! À l’auberge !","He’s paid! To the inn!"],
 ["Il a plu en plein soleil : des gouttes dorées, et la lumière comme un soir d’été.","It rained in full sunshine: golden drops, and the light like a summer evening."],
 ["Il a pris assez de monde. Pas besoin qu’il vienne jusque dans les verres. Sers-moi. Sur l’ardoise.","It’s taken enough people. No need for it to get into the glasses too. Pour me one. On the slate."],
+["Il a pris tout le fil.","It took all the line."],
 ["Il a pris un peu d’eau. Le dedans est sec.","It took a little water. The inside’s dry."],
 ["Il a rien dit. Il est resté là-bas, tout grand. Et puis il est parti en marchant à l’envers. Comme s’il rembobinait.","He didn’t say anything. He stayed over there, really tall. And then he went away walking backwards. Like he was rewinding."],
 ["Il a répondu ?","Did he answer?"],
@@ -161933,8 +163781,10 @@ const I18N_EN = {"v":1,"exact":[
 ["Il faut veiller la nuit, mon enfant. Le jour, elle se tait. Comme tout le reste.","You must keep watch at night, my child. By day, it is silent. Like everything else."],
 ["Il faut y aller la nuit, quand les bêtes regardent. Sinon, il n’y a rien à voir. Rien qui se laisse voir.","You have to go at night, when the animals are watching. Otherwise, there’s nothing to see. Nothing that lets itself be seen."],
 ["Il fend droit ; un piquet de châtaignier tient trente ans en terre.","It splits straight; a chestnut stake lasts thirty years in the ground."],
+["Il file !","It’s running!"],
 ["Il fouille la terre du groin et charge ce qui le dérange. Une laie qui protège ses petits ne recule jamais. Montez sur un rocher, ou priez.","It roots in the earth with its snout and charges whatever disturbs it. A sow protecting her young never backs down. Climb a rock, or pray."],
 ["Il fouille le fond des courants avec ses barbillons.","It rummages along the bottom of the current with its barbels."],
+["Il glisse et saute, sans bruit.","It glides and jumps, without a sound."],
 ["Il gèle au bord. Bientôt, une peau de verre sur le lac. Ne marchez jamais dessus, même si elle vous porte.","It is freezing at the edge. Soon there will be a skin of glass on the lake. Never walk on it, even if it bears you."],
 ["Il gèle. Le baïle a rentré les bêtes, sauf moi. Je ne rentre pas. Je ne suis à personne.","It’s freezing. The baïle has brought the animals in, all but me. I’m not coming in. I belong to nobody."],
 ["Il gèle. Le patron a mis une couverture sur le tonneau. Il croit que c’est pour le vin.","It’s freezing. The landlord has put a blanket on the barrel. He thinks it’s for the wine."],
@@ -162042,6 +163892,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Il paraît qu’un colporteur s’est tordu la cheville sur la route. Ils marchent trop, ces gens-là. Avec ce qu’ils portent…","Apparently a pedlar twisted his ankle on the road. They walk too much, those folk. With what they carry…"],
 ["Il paraît qu’une de vos bêtes courait les champs, hier. Les portillons, ça se ferme. Ça se ferme.","Apparently one of your beasts was roaming the fields yesterday. Gates, you shut them. You shut them."],
 ["Il parle surtout de votre pain. Et de vous, sans le dire.","He talks mostly about your bread. And about you, without saying so."],
+["Il part de côté.","It bolts sideways."],
 ["Il passe au-dessus du bois deux fois le jour, au matin et au soir. Jamais la nuit.\nJ’ai cessé de compter à mille.","It passes over the wood twice a day, morning and evening. Never at night.\nI stopped counting at a thousand."],
 ["Il passe deux fois le jour, une fois la nuit. Le matin, il vient de la montagne ; le soir, il y retourne. La nuit, je ne le vois pas : je l’entends, et la paille du toit bouge.\n\nIl ne regarde jamais en bas, sous les pierres. Il regarde ce qui bouge.\n\nJ’ai compté. En onze ans, il ne s’est posé que trois fois sur la Ville Basse. Les trois fois, c’était au-dessus de la tonnellerie. Il écoutait.\n\n(Les pages suivantes sont collées par l’humidité.)","It passes twice by day, once by night. In the morning it comes from the mountain; in the evening it goes back. At night I do not see it: I hear it, and the straw of the roof stirs.\n\nIt never looks down, beneath the stones. It looks at what moves.\n\nI have counted. In eleven years, it has settled only three times on the Lower Town. All three times, it was above the cooperage. It was listening.\n\n(The following pages are stuck together by damp.)"],
 ["Il passe un quart d’heure chaque matin à la boulangerie. Pour un seul pain.","He spends a quarter of an hour at the bakery every morning. For a single loaf."],
@@ -162066,6 +163917,9 @@ const I18N_EN = {"v":1,"exact":[
 ["Il pleut. Bonne pour la terre, mauvaise pour mes sacs. Je compte les gouttes au plafond. Sept.","Rain. Good for the land, bad for my sacks. I’m counting the drips from the ceiling. Seven."],
 ["Il pleut. Les champignons montent, et les morts aussi, un peu. Ne cueille que les premiers.","Rain. The mushrooms are coming up, and the dead too, a little. Only pick the first ones."],
 ["Il pleut. Lise aime la pluie. Elle dit que ça lui fait comme à la maison.","It’s raining. Lise likes the rain. She says it feels like home."],
+["Il plonge et ne lâche rien.","It dives and won’t let go."],
+["Il plonge, lourd.","It dives, heavy."],
+["Il plonge.","It dives."],
 ["Il porte une bague de fer sous sa chemise depuis seize ans.","He has worn an iron ring under his shirt for sixteen years."],
 ["Il pose sa louche. Longtemps. « Mon grand-père s’appelait Barthélemy Mercadier. En 1854, il est monté au col avec douze autres, pour chercher une petite qui s’était perdue dans la neige. Mariette. Douze sont redescendus. Le treizième, c’était le berger, Étienne Rouvière. On le recense encore. Il n’est pas mort : il n’est pas redescendu. Mon grand-père lui a monté à manger tant qu’il a pu marcher ; puis mon père ; puis moi. Quand ils ont bâti l’hôtel, ils l’ont bâti sur sa bergerie. L’aile Nord, c’est sa bergerie. En 1871, une cliente l’a vu. Ils ont fermé l’aile. » Il vous regarde. « Le directeur paie la treize, chaque année, de sa poche. Il croit que c’est un fou. Je ne l’ai jamais détrompé. »","He sets down his ladle. For a long while. “My grandfather was called Barthélemy Mercadier. In 1854 he went up to the pass with twelve others, to look for a little girl who had got lost in the snow. Mariette. Twelve came back down. The thirteenth was the shepherd, Étienne Rouvière. He is still on the census. He isn’t dead: he just didn’t come back down. My grandfather took him food for as long as he could walk; then my father; then me. When they built the hotel, they built it on his sheepfold. The North Wing is his sheepfold. In 1871, a lady guest saw him. They closed the wing.” He looks at you. “The director pays for Room 13 every year, out of his own pocket. He thinks it’s some madman. I have never put him right.”"],
 ["Il pose un bol de lait pour la Dame au bout du ponton, chaque dimanche.","He sets out a bowl of milk for the Lady at the end of the jetty, every Sunday."],
@@ -162086,13 +163940,23 @@ const I18N_EN = {"v":1,"exact":[
 ["Il reviendra, comme les autres.","He will come back, like the others."],
 ["Il rougit en automne.","It turns red in autumn."],
 ["Il rêve d’une noce dans sa grande salle, avec des vivants qui cassent ses chopes.","He dreams of a wedding in his big common room, with living folk breaking his mugs."],
+["Il saute !","It jumps!"],
 ["Il saute d’un rocher à l’autre comme s’il n’avait pas de poids. Deux petites cornes en crochet, une bande noire sur le visage.","It leaps from rock to rock as if it weighed nothing. Two small hooked horns, a black stripe across the face."],
+["Il saute et secoue la tête, rageur.","It jumps and shakes its head, furious."],
+["Il saute, et file.","It jumps, then runs."],
 ["Il savait. Pas pour le « chiche », non. Mais il avait sa propre histoire, la même, à l’envers : il était là, sur l’eau, à trente brasses, et il a viré de bord.","He knew. Not about the “chiche”, no. But he had his own story, the same one, in reverse: he was out there on the water, thirty fathoms off, and he turned the boat about."],
 ["Il se bande d’un geste, porte loin et droit, et frappe deux fois plus fort qu’un arc ordinaire. Les bêtes n’entendent pas sa corde.","It draws in a single motion, shoots far and true, and strikes twice as hard as an ordinary bow. Animals do not hear its string."],
+["Il se cale au fond.","It digs in at the bottom."],
+["Il se cale au fond. Tenez bon.","It digs in at the bottom. Hold tight."],
 ["Il se couche, les mains sur la poitrine, et il ferme les yeux.","He lies down, hands on his chest, and closes his eyes."],
 ["Il se couche, l’os entre les pattes, et le mâchonne longtemps, les yeux mi-clos.","He lies down, the bone between his paws, and gnaws at it for a long time, his eyes half closed."],
+["Il se débat violemment.","It thrashes violently."],
 ["Il se fait tard. Je ne parle plus beaucoup quand le soleil descend. Dis vite.","It’s getting late. I don’t talk much once the sun goes down. Make it quick."],
+["Il se laisse remonter.","It lets itself be reeled in."],
 ["Il se roule en boule quand on l’approche. On l’entend renifler la nuit dans les jardins, à la recherche de limaces.","It rolls itself into a ball when approached. At night you can hear it snuffling in gardens, looking for slugs."],
+["Il se tortille.","It wriggles."],
+["Il secoue la tête et part de côté.","It shakes its head and bolts sideways."],
+["Il secoue la tête.","It shakes its head."],
 ["Il sent le blé et le soleil.","It smells of wheat and sunshine."],
 ["Il sent le blé et le soleil. Prends : deux lentilles, et le glossaire des Hautes Lettres. Tu liras, maintenant.","It smells of wheat and sun. Take: two lenses, and the glossary of the High Letters. You will read, now."],
 ["Il sort de terre les soirs de beau temps et vole lourdement autour des arbres, en bourdonnant, et se cogne à tout. Les enfants l’attachent à un fil pour le faire tourner. Les années à hannetons, la mairie paie le hannetonnage : on secoue les arbres à l’aube, quand ils sont engourdis, et on les ramasse à pleins sacs.","It comes out of the ground on fine evenings and flies heavily around the trees, buzzing, bumping into everything. Children tie it to a thread to make it whirl. In cockchafer years, the Town Hall pays for the cockchafer-gathering: the trees are shaken at dawn, when the beetles are numb, and they are collected by the sackful."],
@@ -162102,9 +163966,13 @@ const I18N_EN = {"v":1,"exact":[
 ["Il s’appelait Augustin Chabert, et il n’était pas d’ici : un maquignon du Charolais, venu acheter des juments à la foire de la Saint-Michel. Il m’a vue soulever une barrière toute seule et il a ri ; je lui ai dit que s’il riait encore, je la lui soulevais sur la tête. Il est revenu le lendemain, puis toutes les semaines, puis il n’est plus reparti. Il ne m’a jamais offert de bague : il m’a offert une pouliche grise, Colombe, avec un ruban rouge noué dans la crinière. J’ai dit oui à la pouliche, et lui, il est venu avec.","His name was Augustin Chabert, and he wasn’t from round here: a horse dealer from the Charolais, come to buy mares at the Michaelmas fair. He saw me lift a gate all on my own and he laughed; I told him that if he laughed again, I’d bring it down on his head. He came back the next day, then every week, and then he never left. He never gave me a ring: he gave me a grey filly, Colombe, with a red ribbon tied in her mane. I said yes to the filly, and he came along with her."],
 ["Il s’appelle Octave. Il a une écriture de premier prix, et il fait des fautes exprès pour que je les corrige. Je ne l’ai jamais vu. Personne n’a jamais vu qui apporte le sac, d’ailleurs : il est sur la borne du pont sud, à l’aube, et c’est tout.","His name is Octave. He has prize-winning handwriting, and he makes mistakes on purpose so that I’ll correct them. I’ve never seen him. Nobody has ever seen who brings the sack, anyway: it’s there on the boundary stone of the south bridge, at dawn, and that’s all."],
 ["Il s’arrête de jouer. « Il y a un air que je ne sais pas finir. Je l’ai entendu une fois, à {lieu:chapelle}, la nuit. Un violon, sans personne. Va l’écouter, et reviens me fredonner la fin. »","He stops playing. “There’s a tune I can’t finish. I heard it once, at {lieu:chapelle}, at night. A violin, with no one there. Go and listen, and come back and hum me the end.”"],
+["Il s’est décroché.","It came off the hook."],
 ["Il s’est vu dans le miroir, et il est devenu ce qu’il faisait des autres.","It saw itself in the mirror, and became what it made of others."],
+["Il s’épuise.","It’s tiring."],
 ["Il te manque des choses, grand. Reviens quand tu auras tout. Je ne forge pas à moitié.","You’re missing things, tall one. Come back when you’ve got everything. I don’t forge by halves."],
 ["Il tient, dans un tiroir fermé, la liste des disparus des nuits rouges. Il voudrait tant l’arrêter.","In a locked drawer, he keeps the list of those who vanished on the red nights. He would so love to close the list."],
+["Il tire en suites, comme on frappe à une porte.","It tugs in bursts, like someone knocking at a door."],
+["Il tire vers le fond.","It pulls toward the bottom."],
 ["Il tombe des cordes ! Même les grenouilles cherchent un abri.","It’s bucketing down! Even the frogs are looking for shelter."],
 ["Il va faire froid. Ici, il fait toujours froid la nuit, même quand le jour a brûlé.","It’s going to be cold. Here it’s always cold at night, even after a scorching day."],
 ["Il va neiger. Partout, pas seulement là-haut. Rentrez du bois.","It’s going to snow. Everywhere, not just up high. Bring in some wood."],
@@ -163615,6 +165483,8 @@ const I18N_EN = {"v":1,"exact":[
 ["La lettre de la morte","The dead woman’s letter"],
 ["La lettre sent de moins en moins la violette. Dépêchez-vous !","The letter smells less and less of violets. Hurry up!"],
 ["La lettre sent de moins en moins la violette. Je la sens quand même, tous les soirs.","The letter smells less and less of violets. I can smell it all the same, every evening."],
+["La ligne a cassé.","The line snapped."],
+["La ligne a cassé. L’appât est perdu.","The line snapped. The bait is lost."],
 ["La linnée boréale, la fleur que Linné choisit pour porter son nom : humble, négligée, disait-il, et qui ne fleurit que peu de temps, comme lui.","The twinflower, Linnaea borealis, the flower Linnaeus chose to bear his name: lowly, neglected, he said, and in flower only a short time, like him."],
 ["La liste","The list"],
 ["La liste… Le curé l’a eue ?","The list… Did the priest get it?"],
@@ -163948,6 +165818,7 @@ const I18N_EN = {"v":1,"exact":[
 ["La pyrole à feuilles rondes, la verdure d’hiver. Ses feuilles restent vertes sous la neige ; pilées, elles ferment les plaies.","The round-leaved wintergreen, the green of winter. Its leaves stay green under the snow; pounded, they close wounds."],
 ["La pâte n’a pas levé, ce matin. Elle ne lève jamais quand… Non, rien. Des bêtises de bonne femme.","The dough didn’t rise this morning. It never rises when… No, nothing. Old wives’ nonsense."],
 ["La pédiculaire des marais, l’herbe aux poux : les bêtes qui en broutent, dit-on, se couvrent de vermine. Pilée dans l’eau, on en lave au contraire les chiens pouilleux.","The marsh lousewort, the louse herb: animals that graze on it, they say, become covered in vermin. Pounded in water, on the contrary, it is used to wash lousy dogs."],
+["La pêche","Fishing"],
 ["La quarante et unième","The Forty-First"],
 ["La racine porte des cicatrices rondes, comme des sceaux. Les baies noires font vomir ; la racine râpée efface les bleus.","The root bears round scars, like seals. The black berries make you vomit; the grated root wipes away bruises."],
 ["La raclée","The Thrashing"],
@@ -164174,6 +166045,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Lampe torche (F)","Torch (F)"],
 ["Lampe électrique","Electric torch"],
 ["Lamproie","Lamprey"],
+["Lancer","Cast"],
 ["Lancer la bille","Roll the ball"],
 ["Lancer les dés","Roll the dice"],
 ["Langue de chair rouge sur un vieux chêne","Tongue of red flesh on an old oak"],
@@ -164807,6 +166679,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le lait est gras ! Ça va faire de belles tommes.","The milk is rich! It’ll make fine tommes."],
 ["Le lait ne prend pas. Ça, c’est un signe.","The milk won’t set. That’s a sign."],
 ["Le laiton est tiède. On voit la vallée comme à travers une goutte d’eau.","The brass is warm. You see the valley as if through a drop of water."],
+["Le lancer dosé, le ferrage au bon moment, la tension et les invites du combat.","Gauged cast, well-timed hook-set, line tension and fight prompts."],
 ["Le lavoir","The wash-house"],
 ["Le lavoir, au petit matin","The wash-house, in the early morning"],
 ["Le lavoir, à l’heure de la toile. L’eau grise, le toit, la brume.","The wash-house, at the hour of the canvas. The grey water, the roof, the mist."],
@@ -165009,6 +166882,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Le poids","The weight"],
 ["Le poignet tordu au bras de fer","Wrist twisted at arm wrestling"],
 ["Le poignet, c’est comme le fusil : ça ne tremble pas, ou ça tremble.","A wrist is like a rifle: either it doesn’t shake, or it does."],
+["Le poisson","The fish"],
 ["Le poisson ! Toujours d’attaque pour l’eau ?","The fish! Still up for the water?"],
 ["Le poisson des Sources","The Springs fish"],
 ["Le poisson des lacs froids et profonds.","The fish of cold, deep lakes."],
@@ -166070,6 +167944,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Lever la main","Raise a Hand"],
 ["Lever le cliquet, laisser descendre le pont","Lift the pawl and let the bridge down"],
 ["Lever les ponts, ce n’est pas une idée du maire. C’est une vieille ordonnance, plus vieille que la mairie. Personne n’ose l’abroger.","Raising the bridges wasn’t the mayor’s idea. It’s an old ordinance, older than the town hall. Nobody dares repeal it."],
+["Levez la canne","Raise the rod"],
 ["Levée d’écrou","Release from custody"],
 ["Levée à quatre heures. Les bêtes sont nourries, le lait est tiré. Tu peux dormir, toi.","Up at four. The animals are fed, the milking’s done. You can sleep in."],
 ["Liane à vrilles et baies rouges","Vine with tendrils and red berries"],
@@ -166284,6 +168159,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Lâche-moi ! Lâche-moi, je te dis !","Let go of me! Let go, I’m telling you!"],
 ["Lâcher la longue-vue","Let go of the telescope"],
 ["Lâcher le drap et s’en aller","Let go of the sheet and walk away"],
+["Lâchez du fil !","Give it line!"],
 ["Lâchez ça. Tout de suite. De l’œnanthe safranée. Une racine, une seule, et l’on meurt en riant. Lavez-vous les mains, et ne vous touchez pas la bouche avant ce soir.","Drop that. Right now. Hemlock water-dropwort. One root, just one, and you die laughing. Wash your hands, and don’t touch your mouth before tonight."],
 ["Légendes","Legends"],
 ["Légendes de la vallée","Legends of the Valley"],
@@ -166449,6 +168325,7 @@ const I18N_EN = {"v":1,"exact":[
 ["L’eau qui parle","Water that talks"],
 ["L’eau recule quand vous marchez sur le ponton, regardez : elle se retire de vos pas. Elle ne fait ça pour personne. Qu’est-ce que vous leur avez donné, sur la lande ou au vieux puits ? Et qu’est-ce qu’ils vous ont promis ?","The water draws back when you walk on the jetty, look: she pulls away from your steps. She doesn’t do that for anyone. What did you give them, up on the moor or at the old well? And what did they promise you?"],
 ["L’eau se referme au-dessus de vous, et vous respirez.","The water closes over you, and you breathe."],
+["L’eau se trouble.","The water clouds over."],
 ["L’eau soigne. La patience aussi. Les deux ensemble, c’est la médecine.","Water heals. So does patience. The two together: that’s medicine."],
 ["L’eau sous la pierre : regarde, et toi, ne va pas.","Water under the stone: look, and you, do not go."],
 ["L’eau tiède","The Warm Water"],
@@ -166600,6 +168477,7 @@ const I18N_EN = {"v":1,"exact":[
 ["L’épitaphe","The epitaph"],
 ["L’épouvantail de la grand-route, hier, il regardait la ville. Aujourd’hui, il regarde ta ferme.","The scarecrow on the main road, yesterday, it was looking at the town. Today, it’s looking at your farm."],
 ["L’épouvantail… Depuis que vous l’avez veillé, j’y pense le soir. Anselme voulait que je vienne le regarder. Je ne suis jamais venue.","The scarecrow… Since you kept watch over it, I think about it in the evenings. Anselme wanted me to come and look at it. I never came."],
+["L’épuisette !","The net!"],
 ["L’établi d’assemblage","The assembly workbench"],
 ["L’établi est plein : cinq objets au plus.","The workbench is full: five items at most."],
 ["L’étage de la poste, le casier des lettres en souffrance","Upstairs at the post office, the dead-letter locker"],
@@ -166769,6 +168647,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Mai ? Je ne sais plus les jours. Ils ne disent pas les noms. Le vieux compte sur ses doigts jusqu’à onze, et il s’arrête sur moi.","May? I no longer know the days. They do not say names. The old man counts on his fingers up to eleven, and stops at me."],
 ["Mains nues","Bare hands"],
 ["Maintenant, va au cercle de pierres, à l’aube, et regarde la rosée sur la pierre couchée. Ne la touche pas. Ce que tu verras, tu me le diras. Ou pas.","Now go to the stone circle, at dawn, and look at the dew on the recumbent stone. Don’t touch it. What you see, you’ll tell me. Or not."],
+["Maintenez le clic pour doser le lancer, relâchez pour envoyer la ligne. Clic droit : l’appât.","Hold the click to power the cast, release to send the line out. Right click: bait."],
 ["Maintenir : effacer les objets dans le pinceau","Hold: erase objects under the brush"],
 ["Maintenir Espace ou Échap : passer","Hold Space or Esc: skip"],
 ["Maire","Mayor"],
@@ -167392,6 +169271,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Mouillé comme une soupe. Le képi tient, c’est l’essentiel.","Soaked to the skin. The képi is holding, that’s what matters."],
 ["Moulin : ailes enchaînées depuis des années (voir délibération). Farine retrouvée sur le seuil trois matins de suite.\n\nQui moud ? Pour quoi faire ?\n\nNe rien dire au conseil. Le conseil, c’est moi.","Mill: sails chained up for years (see council resolution). Flour found on the doorstep three mornings running.\n\nWho is grinding? And what for?\n\nSay nothing to the council. I am the council."],
 ["Moulin à bras","Hand mill"],
+["Moulinez","Reel in"],
 ["Mouron des oiseaux","Chickweed"],
 ["Mouron rouge","Scarlet pimpernel"],
 ["Mousse","Moss"],
@@ -168009,6 +169889,7 @@ const I18N_EN = {"v":1,"exact":[
 ["On dormira mieux à la porte.","We’ll sleep better at the door."],
 ["On dort mieux sous un toit sec : la nuit à la ferme soigne davantage.","You sleep better under a dry roof: a night on the farm heals more."],
 ["On dort, ici ! Revenez demain, les bassins vous attendront.","We’re sleeping here! Come back tomorrow; the pools will wait for you."],
+["On dose le lancer, on attend que le bouchon plonge — pas qu’il frémisse —, on ferre, puis on mouline sans casser la ligne, en tirant à l’opposé quand le poisson part de côté, en levant la canne quand il plonge, en la baissant quand il saute. Les gros se prennent à l’épuisette. Les appâts attirent certaines espèces ; là où l’eau se ride de ronds, ça mord plus vite.","You power the cast, wait for the float to dip — not merely tremble — set the hook, then reel in without snapping the line: pull the opposite way when the fish bolts sideways, raise the rod when it dives, lower it when it jumps. The big ones are landed with the net. Bait draws certain species; where the water ripples in rings, they bite sooner."],
 ["On en garnit les paillasses : les puces n’aiment pas.","Straw mattresses are stuffed with it: fleas don’t like it."],
 ["On en suce le bout, comme les enfants : c’est sucré.","You suck the tip, as children do: it’s sweet."],
 ["On entend tout, ici. Les merles, le vent. Vous qui respirez.","You can hear everything here. The blackbirds, the wind. You, breathing."],
@@ -168327,11 +170208,13 @@ const I18N_EN = {"v":1,"exact":[
 ["Ouï.","Ouï."],
 ["Oxalis","Wood sorrel"],
 ["Oyelaran","Oyelaran"],
+["Où","Where"],
 ["Où avez-vous pris cela ? C’est plus vieux que mon église, mon enfant. Ne l’approchez pas de l’autel, je vous en prie : je ne sais pas lequel des deux s’en offenserait.","Where did you get that? It is older than my church, my child. Keep it away from the altar, I beg you: I do not know which of the two would take offence."],
 ["Où avez-vous trouvé cela ? C’est ancien, c’est… Ce genre d’objet devrait être déclaré en mairie. Et puis non : gardez-le, et surtout ne le posez pas sur mon bureau.","Where did you find that? It’s old, it’s… That sort of object ought to be declared at the town hall. Then again, no: keep it, and whatever you do, don’t put it on my desk."],
 ["Où elle pousse","Where it grows"],
 ["Où elle vit","Where it lives"],
 ["Où est-ce que j’ai mis mes lunettes ?","Where did I put my glasses?"],
+["Où il mord","Where it bites"],
 ["Où il vit","Home"],
 ["Où j’étais ? En tournée. La nuit ? Non, bien sûr que non. Qui vous a parlé de la nuit ?","Where was I? On my round. At night? No, of course not. Who said anything about night?"],
 ["Où j’étais cette nuit ? À la mairie. À travailler. Seul. Vous me soupçonnez de quelque chose ? Moi ? Le maire ?","Where was I last night? At the town hall. Working. Alone. You suspect me of something? Me? The mayor?"],
@@ -168968,6 +170851,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Plus vite ! Au col, on danse comme on se réchauffe.","Faster! Up on the pass, we dance to keep warm."],
 ["Plus étonnant : au-dessus du lac, dans un banc de calcaire qui n’a rien à faire là, les carriers trouvent des coquilles, des poissons de pierre, des feuilles de fougère. La vallée a donc été un fond de mer. Les gens du pays disent que ce sont des bêtes qui se sont endormies trop longtemps.\n\nJ’ai trouvé moi-même, dans ce banc, un os de la longueur de mon bras, d’une bête dont je ne connais pas le nom, et qui n’est dans aucun des livres que j’ai pu consulter. Je l’ai donné à la bibliothèque.","More astonishing: above the lake, in a bed of limestone that has no business being there, the quarrymen find shells, fish of stone, fern leaves. The valley was therefore once the floor of a sea. The people of the country say these are beasts that slept too long.\n\nI myself found in this bed a bone as long as my arm, from a beast whose name I do not know, and which is in none of the books I have been able to consult. I gave it to the library."],
 ["Plusieurs essais, raturés, de la même ligne : « Mme Vasseur — décès. » « … disparition. » « … partie. »\n\nLa dernière version, recopiée au propre : « Départ volontaire. »\n\nEn dessous, plus petit : « Elle a laissé ses souliers devant la porte. Pointes vers la rue. Je n’ai rien dit au garde. »","Several attempts at the same line, all crossed out: “Madame Vasseur — death.” “… disappearance.” “… left.”\n\nThe final version, copied out neatly: “Voluntary departure.”\n\nBelow, in smaller writing: “She left her shoes outside the door. Toes pointing to the street. I said nothing to the warden.”"],
+["Poids","Weight"],
 ["Poignée de clous","Handful of nails"],
 ["Poil de lapin","Rabbit fur"],
 ["Point de départ enregistré","Starting point saved"],
@@ -169228,6 +171112,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Premier prix : soixante pièces et six cartouches.","First prize: sixty coins and six cartridges."],
 ["Première","First"],
 ["Première boule","First ball"],
+["Première prise","First catch"],
 ["Prendre","Take"],
 ["Prendre ce qui pend à la branche","Take what hangs from the branch"],
 ["Prendre la bobine de fil","Take the spool of thread"],
@@ -169298,6 +171183,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Pris dans un piège à loup, au fond des bois","Caught in a wolf trap, deep in the woods"],
 ["Pris par le Hoûm, dans le noir","Taken by the Hoûm, in the dark"],
 ["Prise de fonctions (1791)","Taking Office (1791)"],
+["Prises","Catches"],
 ["Prisonniers : un.\nNourriture : ce qui reste.\nOrdre : ne pas l’écouter.","Prisoners: one.\nFood: what is left.\nOrder: do not listen to him."],
 ["Prix","Price"],
 ["Prix de reprise, à l’unité","Buy-back price, each"],
@@ -169403,6 +171289,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Qualité graphique","Graphics quality"],
 ["Qualité graphique abaissée : la machine peinait.","Graphics quality lowered: the machine was struggling."],
 ["Quand Joseph se réveille","When Joseph wakes up"],
+["Quand il mord","When it bites"],
 ["Quand il n’est pas revenu, j’ai jeté mon anneau à la Dauna. On fait ça, ici. On donne, pour qu’elle rende. Elle n’a rien rendu. Maintenant, je voudrais l’anneau.","When he didn’t come back, I threw my ring to the Dauna. That’s what we do here. We give, so that she’ll give back. She gave nothing back. Now I would like the ring back."],
 ["Quand il pleut, les gens écrivent plus. Moi, je cours plus. Tout le monde y trouve son compte.","When it rains, people write more. And I run more. Everybody gets something out of it."],
 ["Quand il pleut, l’eau monte dans la mine. Les galeries du fond sont noyées. Avec eux.","When it rains, the water rises in the mine. The deep galleries flood. With them inside."],
@@ -169413,6 +171300,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Quand j’étais petite, on disait qu’ils sortent tous la nuit, même les vieux. Qu’ils laissent leur maison ouverte derrière eux. Qui irait voler des voleurs ?","When I was little, they used to say that they all go out at night, even the old ones. That they leave their houses open behind them. Who would steal from thieves?"],
 ["Quand la brume tombe sur Valbrume et qu’on entend une sirène au loin, rentrez chez vous. Ne demandez pas pourquoi.","When the fog settles over Valbrume and you hear a siren in the distance, go home. Don’t ask why."],
 ["Quand la cloche sonne seule, ne comptez pas les coups. Dieu seul sait compter jusqu’à treize sans que cela coûte à personne.","When the bell rings on its own, do not count the strokes. God alone can count to thirteen without it costing anyone."],
+["Quand le bouchon plonge, ferrez (clic). Puis moulinez (clic maintenu) sans casser la ligne.","When the float dips, set the hook (click). Then reel in (click and hold) without snapping the line."],
 ["Quand le glas sonne, on compte les coups. On a toujours peur d’entendre son propre âge.","When the knell tolls, you count the strokes. You’re always afraid of hearing your own age."],
 ["Quand le nèble reste trois jours, quelqu’un du village se met à entendre la campane. On l’écoute, et on attend.","When the nèble stays three days, someone in the village starts to hear the campane. We listen, and we wait."],
 ["Quand les crapauds vont à l’eau tous ensemble, c’est que l’hiver est fini pour eux. Pour nous, on verra.","When the toads all head for the water together, winter is over for them. For us, we’ll see."],
@@ -169680,6 +171568,7 @@ const I18N_EN = {"v":1,"exact":[
 ["RECHERCHÉ","WANTED"],
 ["RECHERCHÉE","WANTED"],
 ["REFUGE DU CLUB DES MARCHEURS\n1848\nQUI ENTRE FERME LA PORTE","REFUGE OF THE WALKERS’ CLUB\n1848\nWHOEVER ENTERS CLOSES THE DOOR"],
+["RT","RT"],
 ["RUCHER DE L’ABBAYE\nLES ABEILLES SONT À DIEU\nLE MIEL AUX FRÈRES","APIARY OF THE ABBEY\nTHE BEES BELONG TO GOD\nTHE HONEY TO THE BROTHERS"],
 ["Racine brune malodorante","Foul-smelling brown root"],
 ["Racine de bardane","Burdock root"],
@@ -169851,6 +171740,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Recommandé, accusé de réception, signature… Personne ne signe du premier coup, ici. Ils ont tous peur de laisser leur nom quelque part.","Registered, acknowledgement of receipt, signature… Nobody here signs on the first try. They’re all afraid of leaving their name somewhere."],
 ["Reconnaissance de dette","IOU"],
 ["Recopiée dans votre carnet.","Copied into your notebook."],
+["Record","Record"],
+["Record !","Record!"],
 ["Recueil des légendes de la vallée, annoté par plusieurs mains","Collected legends of the valley, annotated by several hands"],
 ["Recueillie à l’aube, sur l’herbe.","Gathered from the grass at dawn."],
 ["Recueillir l’essaim","Gather the swarm"],
@@ -170149,6 +172040,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Rien de bon n’en est sorti. Clic : vider la fiole. Clic droit : la boire, si vous y tenez.","Nothing good came of it. Click: empty the vial. Right click: drink it, if you insist."],
 ["Rien de plus. Revenez un autre jour.","Nothing more. Come back another day."],
 ["Rien de plus. Reviens un autre jour.","Nothing more. Come back another day."],
+["Rien de pris pour l’instant. Le carnet attend sa première ligne.","Nothing caught yet. The notebook is waiting for its first line."],
 ["Rien en cours.","Nothing under way."],
 ["Rien encore.","Nothing yet."],
 ["Rien encore. Le Grand Hôtel des Cimes est sur le replat des monts de l’Est ; le funiculaire part d’en bas, au bout de la route du château.","Nothing yet. The Grand Hôtel des Cimes is on a shelf of the eastern mountains; the funicular leaves from below, at the end of the castle road."],
@@ -170406,6 +172298,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Sangsue médicinale","Medicinal leech"],
 ["Sanicle","Sanicle"],
 ["Sanicle d’Europe","Wood sanicle"],
+["Sans appât","No bait"],
 ["Sans argent ? Ah non, ça, même moi, je ne peux pas.","Without money? Ah no, that even I can’t do."],
 ["Sans cette clé, je ne peux pas manœuvrer le pont sud. Et le besoin vient toujours la nuit.","Without that key, I can’t work the south bridge. And the need always comes at night."],
 ["Sans champignons, avec double lard ! Parole de Bonnefoy, tu vas reprendre des couleurs, mon vieux.","No mushrooms, double bacon! On Bonnefoy’s word, you’ll get some colour back in your cheeks, old chap."],
@@ -170442,6 +172335,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Sauvegarde automatique","Autosave"],
 ["Sauvegarde automatique impossible : pensez à exporter votre monde","Cannot autosave: remember to export your world"],
 ["Sauvegarde illisible","Unreadable save"],
+["Savoir-faire","Know-how"],
 ["Saxifrage","Saxifrage"],
 ["Saxifrage œil-de-bouc","Marsh saxifrage"],
 ["Saxifrages","Saxifrages"],
@@ -170613,6 +172507,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Silence, je vous prie. Merci.","Silence, if you please. Thank you."],
 ["Silex","Flint"],
 ["Silure","Catfish"],
+["Simplifiée","Simplified"],
 ["Siméon","Siméon"],
 ["Siméon, portier. Quarante ans à cette porte, et la porte n’a pas bougé.","Siméon, doorman. Forty years at this door, and the door hasn’t moved."],
 ["Sin","Sin"],
@@ -171039,6 +172934,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Tenez. Un fromage. Pour le témoin.","Here. A cheese. For the witness."],
 ["Tenez. Une médaille de la commune. Je l’avais fait frapper pour le préfet, qui ne vient jamais. Vous êtes venu{e}, vous.","Here. A medal from the municipality. I had it struck for the prefect, who never comes. But you, mon ami{e} — you came."],
 ["Tenez. Une truite, fumée ce matin. Elle ne sent plus l’eau. C’est mieux, pour une ferme.","Here. A trout, smoked this morning. It doesn’t smell of the water anymore. That’s better, for a farm."],
+["Tension","Tension"],
 ["Tente","Tent"],
 ["Tenu par","Run by"],
 ["Terme","Instalment"],
@@ -171120,6 +173016,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Tirer le ballot de la fente","Pull the bundle out of the crevice"],
 ["Tirer les verrous et pousser la grille","Draw the bolts and push the grate open"],
 ["Tirer une carte","Draw a card"],
+["Tirez à droite","Pull right"],
+["Tirez à gauche","Pull left"],
 ["Tisane au miel","Honey tisane"],
 ["Tissier","Tissier"],
 ["Titre","Titre"],
@@ -171427,6 +173325,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Trop salée, je sais.","Too salty, I know."],
 ["Trop tard.","Too late."],
 ["Trop tard. Je l’écrirai.","Too late. I’ll write it down."],
+["Trop tard. L’appât est parti avec lui.","Too late. The bait went with it."],
 ["Trop tard… Encore trop tard.","Too late… Too late again."],
 ["Trop tard… Mon Dieu.","Too late… My God."],
 ["Trop tôt.","Too soon."],
@@ -173723,6 +175622,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Votre peau durcit et grisonne, comme un vieux mur.","Your skin hardens and greys, like an old wall."],
 ["Votre pioche. Rouillée. Je le savais.","Your pickaxe. Rusty. I knew it."],
 ["Votre plus belle prise :","Your finest catch:"],
+["Votre prise la plus lourde :","Your heaviest catch:"],
 ["Votre prénom (les habitants l’emploieront quand ils vous connaîtront)","Your first name (the locals will use it once they know you)"],
 ["Votre seuil est bien vide, ce matin.","Your doorstep is very empty this morning."],
 ["Votre signalement partira ce soir.","Your description goes out tonight."],
@@ -173911,6 +175811,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Vous la portez dehors, à bras-le-corps, et vous lui creusez une fosse au pied du mur.","You carry her outside, arms wrapped around her, and dig her a grave at the foot of the wall."],
 ["Vous la retournez contre le mur, comme elle était. En sortant, vous ne regardez pas le dernier rang.","You turn it back against the wall, as it was. On your way out, you do not look at the back row."],
 ["Vous la retournez. La nef de cette église, les bancs, la lumière de biais. Au dernier rang, la jeune fille en coiffe blanche, assise, de face, les mains sur les genoux.\n\nElle n’a pas de visage. La toile est nue à cet endroit, d’un blanc sale, comme si le peintre n’avait pas osé.","You turn it around. The nave of this church, the pews, the slanting light. In the back row, the young girl in the white coif, seated, facing you, her hands in her lap.\n\nShe has no face. The canvas is bare at that spot, a dirty white, as if the painter had not dared."],
+["Vous laissez filer la ligne dans le trou.","You let the line slip down the hole."],
 ["Vous le portez dehors, à bras-le-corps, et vous lui creusez une fosse au pied du mur.","You carry him outside, arms wrapped around him, and dig him a grave at the foot of the wall."],
 ["Vous les connaissiez ?","Did you know them?"],
 ["Vous leur parlez toujours, à vos outils ? Moi, je dis bonsoir à la Vieille. Ne le répétez pas.","Still talking to your tools? I say goodnight to the Old Girl. Don’t tell anyone."],
@@ -174249,6 +176150,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Vu là-bas","Seen there"],
 ["Vu. Retourner voir","Seen. Go back to see"],
 ["Vue dans la vitrine de Morand : fleur de pierre, pétales de lichen fossile. Il dit qu’elle vient d’un temple « là-haut, derrière les neiges ». Trois pierres gardent la porte.\n\nSi j’avais vingt ans de moins, et deux jambes de plus, j’irais.","Seen in Morand’s display case: a stone flower, with petals of fossil lichen. He says it comes from a temple “up there, beyond the snows”. Three stones guard the door.\n\nIf I were twenty years younger, and had two more legs, I would go."],
+["Vues, jamais pesées","Seen, never weighed"],
 ["Vyin !","Vyin !"],
 ["Vyin.","Vyin."],
 ["Végétation","Vegetation"],
@@ -174447,6 +176349,7 @@ const I18N_EN = {"v":1,"exact":[
 ["clic : 1 · Maj : 10 · Ctrl : 100","click: 1 · Shift: 10 · Ctrl: 100"],
 ["clic : creuser (terre, trésors, éboulis) · clic droit : remblayer · accroupi : niveler à ses pieds","click: dig (earth, treasure, rubble) · right-click: fill in · crouching: level the ground at your feet"],
 ["clic : lancer ; au bouchon qui plonge, clic !","click: cast; when the float dips, click!"],
+["clic maintenu","click and hold"],
 ["cliente de la chambre 108","guest in room 108"],
 ["clé","key"],
 ["colis à porter :","parcel(s) to deliver:"],
@@ -174713,6 +176616,7 @@ const I18N_EN = {"v":1,"exact":[
 ["fouiller chez les disparus","searching the homes of the missing"],
 ["fouiller les ordures","rummaging through rubbish"],
 ["fouiller un mort","search a body"],
+["fr-FR","en-GB"],
 ["fragment aëlim traduit","a translated Aëlim fragment"],
 ["froid+lumiere","froid+lumiere"],
 ["froid+mort","froid+mort"],
@@ -174962,6 +176866,7 @@ const I18N_EN = {"v":1,"exact":[
 ["la croix des Pestiférés","the Plague Victims’ Cross"],
 ["la croix des Quarante","the Cross of the Forty"],
 ["la croix du col","the cross at the pass"],
+["la croix ou le stick","the D-pad or the stick"],
 ["la crossope","the water shrew"],
 ["la croupière","the croupier"],
 ["la crypte","the crypt"],
@@ -175430,6 +177335,7 @@ const I18N_EN = {"v":1,"exact":[
 ["le marchand de joie","the joy merchant"],
 ["le marché","the market"],
 ["le marché d’en bas","the market below"],
+["le matin","in the morning"],
 ["le meuble","the piece of furniture"],
 ["le meunier","the miller"],
 ["le minotaure","the minotaur beetle"],
@@ -175727,6 +177633,7 @@ const I18N_EN = {"v":1,"exact":[
 ["l’anémone","the anemone"],
 ["l’aperçoit","sees them"],
 ["l’apollon","the Apollo"],
+["l’après-midi","in the afternoon"],
 ["l’araignée","the spider"],
 ["l’arbre aux Clous","the Nail Tree"],
 ["l’arbre aux Vœux","the Wishing Tree"],
@@ -175897,6 +177804,10 @@ const I18N_EN = {"v":1,"exact":[
 ["p ( d5/4 b4/4 d5/4 | e5/2 d5/4 | b4/2 g4/4 | a4/2. ) | ( d5/4 b4/4 d5/4 | g5/2 e5/4 | e5/4 d5/4 c5/4 | d5/2. ) |","p ( d5/4 b4/4 d5/4 | e5/2 d5/4 | b4/2 g4/4 | a4/2. ) | ( d5/4 b4/4 d5/4 | g5/2 e5/4 | e5/4 d5/4 c5/4 | d5/2. ) |"],
 ["p ( d5/4 b4/4 d5/4 | e5/2 d5/4 | b4/2 g4/4 | a4/2. ) | ( d5/4 b4/4 d5/4 | g5/2 e5/4 | e5/4 d5/4 c5/4 | d5/2. ) | mp ( b4/4 c5/4 d5/4 | e5/2 g5/4 | d5/2 b4/4 | a4/2. ) | ( b4/4 c5/4 d5/4 | e5/2 c5/4 | c5/4 b4/4 a4/4 | a4/2. ) | p ( d5/4 b4/4 d5/4 | e5/2 d5/4 | b4/2 g4/4 | a4/2. ) | pp ( g4/4 a4/4 c5/4 | b4/2 a4/4 | g4/2.~ | g4/2. ) |","p ( d5/4 b4/4 d5/4 | e5/2 d5/4 | b4/2 g4/4 | a4/2. ) | ( d5/4 b4/4 d5/4 | g5/2 e5/4 | e5/4 d5/4 c5/4 | d5/2. ) | mp ( b4/4 c5/4 d5/4 | e5/2 g5/4 | d5/2 b4/4 | a4/2. ) | ( b4/4 c5/4 d5/4 | e5/2 c5/4 | c5/4 b4/4 a4/4 | a4/2. ) | p ( d5/4 b4/4 d5/4 | e5/2 d5/4 | b4/2 g4/4 | a4/2. ) | pp ( g4/4 a4/4 c5/4 | b4/2 a4/4 | g4/2.~ | g4/2. ) |"],
 ["p ( d5/4 b4/4 d5/4 | e5/2 d5/4 | b4/2 g4/4 | a4/2. ) | pp ( g4/4 a4/4 c5/4 | b4/2 a4/4 | g4/2.~ | g4/2. ) |","p ( d5/4 b4/4 d5/4 | e5/2 d5/4 | b4/2 g4/4 | a4/2. ) | pp ( g4/4 a4/4 c5/4 | b4/2 a4/4 | g4/2.~ | g4/2. ) |"],
+["p21 : options","p21 : options"],
+["p21 : prise","p21 : prise"],
+["p21 hud","p21 hud"],
+["p21 main","p21 main"],
 ["par Achille Brun, architecte voyer","by Achille Brun, architect and road surveyor"],
 ["par Isidore Vautrin, maître serrurier","by Isidore Vautrin, master locksmith"],
 ["par Mme veuve Clémence Sarrazin, herboriste","by Mme Clémence Sarrazin, widow, herbalist"],
@@ -177011,6 +178922,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Ça picote partout où vous avez mal. Les plaies se referment, lentement.","It tingles wherever you hurt. The wounds close, slowly."],
 ["Ça pique le nez !","It stings my nose!"],
 ["Ça pousse. Ça pousse ! Pardonnez-moi. Je n’avais rien vu pousser depuis si longtemps.","It’s growing. It’s growing! Forgive me. I hadn’t seen anything grow in so long."],
+["Ça recule.","It’s backing away."],
 ["Ça se versait sur les semis, pas dans la gorge.","That was for pouring on seedlings, not down your throat."],
 ["Ça sent bon, la pluie sur le crottin. Si, si. Il faut être d’ici pour comprendre.","It smells good, rain on horse dung. It does, it does. You have to be from here to understand."],
 ["Ça sent comment ?","What does it smell like?"],
@@ -177209,6 +179121,7 @@ const I18N_EN = {"v":1,"exact":[
 ["à l’usage des écoles, par Auguste Ferrière, instituteur","for the use of schools, by Auguste Ferrière, schoolmaster"],
 ["à main droite","to the right"],
 ["à main gauche","to the left"],
+["à midi","at noon"],
 ["à quelques centaines de pas","a few hundred paces"],
 ["à toute heure","at any hour"],
 ["à une bonne heure de marche","a good hour’s walk away"],
@@ -177451,6 +179364,8 @@ const I18N_EN = {"v":1,"exact":[
 ["(Pendu à la branche, à la place de votre nœud : {0}.)","(Hanging from the branch, in place of your knot: {0}.)"],
 ["(Personne. Le registre est ouvert à votre nom : {0}.)","(Nobody. The register lies open at your name: {0}.)"],
 ["(Personne. Les chandelles sont éteintes. Le registre est ouvert à votre nom, et une ligne attend, à l’encre fraîche : {0}.)","(Nobody. The candles are out. The register lies open at your name, and a line is waiting, in fresh ink: {0}.)"],
+["(Plus de {0}.)","(No more {0}.)"],
+["(Pour le concours : {0}, {1}. Votre prise la plus lourde.)","(For the contest: {0}, {1}. Your heaviest catch.)"],
 ["(Pour le concours : {0}. Votre plus belle prise.)","(For the contest: {0}. Your finest catch.)"],
 ["(Pour {0}. La flamme est petite, mais elle tient.)","(For {0}. The flame is small, but it holds.)"],
 ["(Sous la terre, {0} prononce votre nom. Une fois.)","(Under the earth, {0} speaks your name. Once.)"],
@@ -177469,6 +179384,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(Vos poches sont lourdes : {0} pièces. Elles sont froides comme la nuit.)","(Your pockets are heavy: {0} coins. They are as cold as the night.)"],
 ["(Vos poches sont lourdes : {0} pièces.)","(Your pockets are heavy: {0} coins.)"],
 ["(Votre plus belle prise, pour l’instant : {0}. On présente à quatre heures.)","(Your finest catch so far: {0}. Catches are presented at four o’clock.)"],
+["(Votre prise la plus lourde, pour l’instant : {0}, {1}. On pèse à quatre heures.)","(Your heaviest catch so far: {0}, {1}. Weighing starts at four o’clock.)"],
 ["(Vous avez déjà {0}. Il ne partagerait pas sa gamelle.)","(You already have {0}. He wouldn’t share his bowl.)"],
 ["(Vous avez tiré aujourd’hui : {0} points sur 30.)","(You’ve already shot today: {0} points out of 30.)"],
 ["(Vous comprenez chaque mot : « {0} »)","(You understand every word: “{0}”)"],
@@ -177616,6 +179532,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Ah ! Un élève ! « {0} » : le secret, c’est le beurre. Et le temps. Et encore du beurre.","Ah! A pupil! “{0}”: the secret is butter. And time. And more butter."],
 ["Ah ! Vous êtes au tableau, vous ! Pour {0}. {1} pièces de prime. On règle, ou on me suit, et sans histoires !","Ah! You’re on the notice board, you are! For {0}. A bounty of {1} coins. Settle up, or follow me, and no fuss!"],
 ["Apporter {0} à {1}.","Bring {0} to {1}."],
+["Appât : {0} ({1})","Bait: {0} ({1})"],
 ["Arrivages du jour :\n{0}","Today’s arrivals:\n{0}"],
 ["Aspect : {0}","Appearance: {0}"],
 ["Au cachot : encore {0}. Rançon : {1} pièces.","In the lock-up: {0} more. Ransom: {1} coins."],
@@ -177666,6 +179583,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Coffre — {0}","Chest — {0}"],
 ["Colis pour : {0} — avant six heures du soir.","Parcels for: {0} — before six in the evening."],
 ["Commande du {0}","Order of {0}"],
+["Concours du jour : votre prise la plus lourde, {0}.","Today’s contest: your heaviest catch, {0}."],
 ["Congé — {0}","Notice — {0}"],
 ["Conseiller {0}","Recommend {0}"],
 ["Contre {0}. Approchez-vous de vingt et un sans le dépasser. Les figures valent dix, l’as un ou onze. Vous avez {1} pièces.","Against {0}. Get as close to twenty-one as you can without going over. Face cards are worth ten, aces one or eleven. You have {1} coins."],
@@ -177873,6 +179791,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Les restes d’{0}, pris dans la glace bleue. Depuis combien d’hivers ?\nAu-dessus, le ciel n’est plus qu’un trait.","The remains of {0}, caught in the blue ice. For how many winters?\nAbove, the sky is no more than a thin line."],
 ["Les signes relevés ({0} / {1})","Signs recorded ({0} / {1})"],
 ["Les vivants l’appellent {0}.","The living call it {0}."],
+["Lignes cassées : {0}. Décrochés : {1}.","Lines snapped: {0}. Got away: {1}."],
 ["Lire la plaque : SCP-{0}","Read the plaque: SCP-{0}"],
 ["Livré. Retourner voir {0}.","Delivered. Return to {0}."],
 ["Louer la suite Impériale pour la nuit ({0} pièces)","Rent the Imperial Suite for the night ({0} coins)"],
@@ -178118,6 +180037,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Votre corps a déjà été repris {0}.","Your body has already been altered {0}."],
 ["Votre plus belle prise : {0}.","Your finest catch: {0}."],
 ["Votre poing touche la table. {0} a gagné.","Your fist hits the table. {0} wins."],
+["Votre prise la plus lourde : {0}.","Your heaviest catch: {0}."],
 ["Votre service est fini pour aujourd’hui. Gaspard reprendra la loge à la nuit.{0}","Your shift is over for today. Gaspard will take over the lodge at nightfall.{0}"],
 ["Votre service est terminé. {0} pièces de gages ; {1} de pourboires. {2}","Your shift is over. {0} coins in wages; {1} in tips. {2}"],
 ["Vous : {0} ({1}). {2} : {3} ({4}).","You: {0} ({1}). {2}: {3} ({4})."],
@@ -178187,6 +180107,7 @@ const I18N_EN = {"v":1,"exact":[
 ["halle:{0},{1}","halle:{0},{1}"],
 ["histoire : scène {0}","story: scene {0}"],
 ["illisible, relevée le jour {0}","illegible, copied down on day {0}"],
+["jour {0}, {1}","day {0}, {1}"],
 ["la mort de {0}","the death of {0}"],
 ["le Grand Hôtel des Cimes (chambre {0})","the Grand Hôtel des Cimes (room {0})"],
 ["le jour {0}","day {0}"],
@@ -178237,6 +180158,7 @@ const I18N_EN = {"v":1,"exact":[
 ["{0}\n\n(Il n’y a pas de fleurs. Il devrait y en avoir.)","{0}\n\n(There are no flowers. There ought to be.)"],
 ["{0}\n\n(Sur le dessus, une flèche gravée pointe vers {1}.)","{0}\n\n(On top, an engraved arrow points towards {1}.)"],
 ["{0}\n\nClassement : {1}.{2}","{0}\n\nStandings: {1}.{2}"],
+["{0}\n\nLa pesée : {1}.","{0}\n\nThe weigh-in: {1}."],
 ["{0}\n\nOn l’écrit en {1}. Ceux qui la parlaient : {2}.","{0}\n\nIt is written in {1}. Those who spoke it: {2}."],
 ["{0}\n\nVous avez {1} pièces et {2} jetons. Un jeton vaut une pièce.","{0}\n\nYou have {1} coins and {2} chips. A chip is worth one coin."],
 ["{0}\n\n{1} pièces la semaine (douze jours), payables d’avance. S’adresser à la mairie, ou glisser la somme dans la fente de l’écriteau : la commune passe la relever.","{0}\n\n{1} coins a week (twelve days), payable in advance. Apply at the town hall, or slip the money into the slot in the sign: the municipality comes by to collect it."],
@@ -178303,12 +180225,14 @@ const I18N_EN = {"v":1,"exact":[
 ["{0} a retrouvé son nonos. Il le garde près de sa niche, et réclame deux fois moins souvent à manger.","{0} has got his old bone back. He keeps it near his kennel, and asks for food half as often."],
 ["{0} bêtes autour de vous","{0} beasts around you"],
 ["{0} carte : {1}.\n{2}","{0} card: {1}.\n{2}"],
+["{0} cm · {1}","{0} cm · {1}"],
 ["{0} commission{1} en cours.","{0} errand{1} in progress."],
 ["{0} cœurs de verre","{0} glass hearts"],
 ["{0} de cachot encore. Rançon : {1} pièces ; vous en avez {2}.{3}","{0} more in the lock-up. Ransom: {1} coins; you have {2}.{3}"],
 ["{0} de cachot.","{0} in the lock-up."],
 ["{0} dort sous un petit tertre. La gamelle reste vide.","{0} sleeps under a little mound. The bowl stays empty."],
 ["{0} en bourse","{0} in purse"],
+["{0} espèce{1} encore jamais prise{2}.","{0} kind{1} never caught, no bite{2} yet."],
 ["{0} est là","{0} is here"],
 ["{0} est malade, {1}. La fièvre. On lui porte du bouillon.","{0} is ill, {1}. A fever. Neighbours are bringing broth."],
 ["{0} est {1}.","{0} is {1}."],
@@ -178340,6 +180264,7 @@ const I18N_EN = {"v":1,"exact":[
 ["{0} pièce{1}","{0} coin{1}"],
 ["{0} plan(s) restent à découvrir auprès des habitants.","{0} plan(s) still to be learned from the locals."],
 ["{0} pour {1}. La prime s’élève à {2} pièces. Vous pouvez la régler entre mes mains, ou me suivre.","{0} for {1}. The bounty amounts to {2} coins. You may pay it into my hands, or follow me."],
+["{0} prise{1}, {2} espèce{3} sur {4}.","{0} specimen{1}, {2} kind{3} out of {4}."],
 ["{0} rame vers l’est, par le bord. Une fois, il lève les rames et attend, sans rien dire, puis reprend. Au ponton, il vous laisse descendre.","{0} rows east, hugging the shore. Once, he lifts the oars and waits, saying nothing, then carries on. At the jetty, he lets you off."],
 ["{0} rame vers l’ouest, le long de la rive. Il ne regarde pas le milieu du lac. Au pied du phare, il vous laisse descendre et repart aussitôt.","{0} rows west, along the shore. He doesn’t look at the middle of the lake. At the foot of the lighthouse, he lets you off and heads straight back."],
 ["{0} réclame à manger.","{0} is begging for food."],
@@ -178392,6 +180317,7 @@ const I18N_EN = {"v":1,"exact":[
 ["{0}, version n° {1}","{0}, version No. {1}"],
 ["{0}, {1} : libre, {2} pièces la semaine, ou {3} pièces pour l’acheter.{4}","{0}, {1}: vacant, {2} coins a week, or {3} coins to buy it.{4}"],
 ["{0}, {1} : libre, {2} pièces la semaine.{3}","{0}, {1}: vacant, {2} coins a week.{3}"],
+["{0}, {1} ou la souris","{0}, {1} or the mouse"],
 ["{0}, {1} pièces, comptant : la somme dans la fente de l’écriteau, la commune passe la relever et vous envoie l’acte par la poste. La maison sera à vous pour toujours, sans loyer ni terme.{2}","{0}, {1} coins, cash down: the sum goes in the slot in the sign; the municipality comes by to collect it and sends you the deed by post. The house will be yours for ever, with no rent and no term.{2}"],
 ["{0}, {1}, est louée à la semaine de douze jours, pour {2} pièces, payables d’avance. La première semaine est réglée ce jour ; la suivante sera due le {3}.","{0}, {1}, is let by the week of twelve days, for {2} coins, payable in advance. The first week is paid as of this day; the next will be due on {3}."],
 ["{0}, {1}, est mort le {2}. {3}, à ce qu’on dit.","{0}, {1}, died on {2}. {3}, so they say."],

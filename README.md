@@ -1353,6 +1353,30 @@ Les commandes sont dans le menu **Commandes** (Échap).
   - les durées ;
   - l'option Aucune ne joue rien, et une ancienne partie ne rejoue rien.
 
+**La pêche, en quatre temps (un QTE)**
+- **Le lancer** : on maintient le clic, une jauge monte puis redescend, on relâche ; le bouchon tombe là où l'on vise,
+  à la distance dosée (4 à 17 m).
+- **L'attente** : le bouchon dandine, de petites touches le font frémir, puis la vraie touche (il s'enfonce, puis plonge,
+  avec son bruit et ses ronds).
+- **Ferrer** : un clic dans la courte fenêtre qui suit (un « ! » s'allume) ; trop tôt ou trop tard, le poisson part.
+- **Le combat** : on mouline sans casser la ligne (une jauge de tension et sa zone rouge) ; le poisson tire, file, plonge,
+  saute ; à ses coups, une invite montre la touche ou la direction à presser à temps ; son endurance fond ; les gros se
+  sortent à l'épuisette. Chaque espèce se bat à sa façon, et les quatre légendaires ont leur combat à eux.
+- **La prise** : le poisson en main, en gros plan, avec sa taille et son poids, « Record ! » ou « Première prise ».
+- **Autour** :
+  - la ligne visible, la canne qui plie, le bouchon de liège, le moulinet et la ligne qui grince ;
+  - les **appâts** (clic droit, la canne en main), qui attirent chacun leurs espèces, et la canne de fer qui tient mieux ;
+  - les **coins à poissons** (des gobages, qui changent chaque jour) et la pêche sous la glace ;
+  - le **carnet de pêche** (Carnet › Pêche : espèces, records, où et quand), et le concours du Pêchedi jugé au poids.
+- **Sans frustration** : Options › Jeu › « Aide à la pêche » — *Complète*, *Simplifiée* (fenêtres larges, sans invites)
+  ou *Automatique* (comme avant). Clavier, souris ou manette. Une ligne cassée coûte l'appât, jamais la canne ; un
+  poisson échappé revient mordre au même endroit.
+- **Même rythme qu'avant** : un joueur moyen prend autant de poissons à l'heure, un maladroit un peu moins, un adroit
+  un peu plus ; mêmes poissons, mêmes prix, mêmes raretés (`node tools/equilibrage.js P21`, trois joueurs simulés).
+- Code : `src/11-zzzzzzzzzzzP21-0-donnees.js` (espèces, appâts, moteur du combat), `-1-peche.js` (le jeu),
+  `src/12-zzzzzzzzzzzP21-hud.js` (la canne, la ligne, l'affichage, le carnet, l'option) ; `play.catchFish` reste la
+  fonction qui choisit et donne la prise.
+
 **Jamais coincé sous la carte**
 - Le jeu retient, au fil du jeu, les dernières places sûres du personnage (les pieds posés, ou à la nage). Passé sous
   le sol avec rien dessous pour le porter (on tomberait sans fin), plus bas que mille mètres, ou si sa position devient
@@ -1367,13 +1391,13 @@ Les commandes sont dans le menu **Commandes** (Échap).
 ## Équilibrage
 
 Le jeu a été équilibré d'un bloc, en mesurant d'abord : chaque système avait été écrit avec ses propres nombres, et
-la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Quarante-quatre domaines, chacun avec sa
+la journée de vingt minutes (dix de jour, dix de nuit) changeait tous les rythmes. Quarante-cinq domaines, chacun avec sa
 mesure et ses vérifications dans `tools/equilibrage/` : le jeu entier est chargé dans une machine virtuelle node (sans
 navigateur, `tools/equilibrage/vm.js`), ses propres fonctions calculent les rendements, les espérances et les
 fréquences, et la commande échoue si l'on recasse un équilibre :
 
 ```bash
-node tools/equilibrage.js                     # les quarante-quatre domaines (plus d’une heure)
+node tools/equilibrage.js                     # les quarante-cinq domaines (plus d’une heure)
 node tools/equilibrage.js commerce            # ou un seul : commerce, ferme, risques, survie, hasard, commandes, carte, nature, batiments
 node tools/equilibrage.js S D1 E2             # ou plusieurs ; ceux de la douzième vague : S, D1, D2, E1, E2, E3, F, G
 node tools/equilibrage.js R P Q T             # ceux de la treizième vague : R, P, Q, T
