@@ -211,6 +211,8 @@ html.m21-manette #butin .bu-aide { display: none; }
 #dlg-help .box { width: min(920px, calc(100vw - 32px)); }
 #dlg-options .cols { min-height: 300px; align-content: start; }
 #dlg-options .cols h4.m15-sec { display: none; }
+.dialog .cols button { padding: 7px 12px; background: rgba(255,255,255,.42); color: var(--m21-encre); border: 1px solid rgba(90,70,40,.42); border-radius: var(--m21-rayon); font-family: var(--m21-police); transition: background-color var(--m21-duree); }
+.dialog .cols button:hover { background: rgba(255,240,200,.92); }
 .dialog .m21-note { grid-column: 1 / -1; margin: 6px 0 0; font: italic 13px/1.45 var(--m21-police); color: var(--m21-encre-pale); }
 
 /* ---- les livres : sommaire et recherche */
