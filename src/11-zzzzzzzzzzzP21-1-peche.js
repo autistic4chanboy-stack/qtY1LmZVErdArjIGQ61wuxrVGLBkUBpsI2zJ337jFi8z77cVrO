@@ -39,7 +39,7 @@ const p21 = {
   msg: null,          // le message court du HUD { txt, t, k }
   tenu: false, avant: false, dirs: [], pad: null, padAvant: {}, yaw0: 0, pitch0: 0,
   anneaux: [], sauts: [], coins: { cle: '', L: [], t: 0, proches: [] },
-  sonT: 0, grinceT: 0, t: 0, bend: 0, secousse: 0, coolT: 0,
+  sonT: 0, grinceT: 0, t: 0, bend: 0, secousse: 0, coolT: 0, demande: false,
 
   // ------------------------------------------------------------- réglages, état
   aide() { const v = typeof settings !== 'undefined' && settings.pecheAide; return v === 'simplifiee' || v === 'auto' ? v : 'complete'; },
@@ -201,7 +201,6 @@ const p21 = {
   fin() {
     if (play.fish === this.F) play.fish = null;
     this.F = null; this.C = null; this.et = null; this.coolT = 0.35;
-    try { if (typeof m21 !== 'undefined' && m21.manette && m21.manette.demander) m21.manette.demander('peche', !!this.canne()); } catch (e) { /* rien */ }
   },
 
   // ------------------------------------------------------------- 2. l'attente ; 3. le ferrage
@@ -272,7 +271,6 @@ const p21 = {
     sound.p21Ferre && sound.p21Ferre();
     this.vibrer(160, 0.8);
     this.bend = 0.8;
-    try { if (typeof m21 !== 'undefined' && m21.manette && m21.manette.demander) m21.manette.demander('peche', true); } catch (e) { /* rien */ }
   },
 
   // ------------------------------------------------------------- 4. le combat
@@ -417,6 +415,11 @@ const p21 = {
     this.majAnneaux(dt);
     this.majCoins(dt);
     const canne = this.canne(), libre = playing && !(typeof cine !== 'undefined' && cine.on) && !game.dying && !game.sleeping;
+    // une canne en main : la manette est lue à chaque image (M21) ; sinon, comme avant
+    if (!!canne !== this.demande) {
+      this.demande = !!canne;
+      try { if (typeof m21 !== 'undefined' && m21.manette && m21.manette.demander) m21.manette.demander('peche', this.demande); } catch (e) { /* rien */ }
+    }
     if (!canne) {
       if (this.et && this.et !== 'prise') { if (this.C && this.F) this.conclure('decroche'); else this.fin(); }
       if (this.et === 'prise') this.et = null;
@@ -728,7 +731,7 @@ Object.assign(SoundEngine.prototype, {
   // la glace : le trou du lac gelé (n'importe quelle canne, en main ou dans la sacoche)
   HOOKS.inter.peche_glace = (it) => p21.glace(it);
 }
-// le concours du Pêchedi se juge au poids ; la canne en main : la manette est lue à chaque image
+// le concours du Pêchedi se juge au poids
 HOOKS.load.push(() => {
   if (typeof activites !== 'undefined' && activites.peche && !p21Concours._peche) {
     p21Concours._peche = activites.peche.bind(activites);
@@ -737,15 +740,6 @@ HOOKS.load.push(() => {
   if (typeof vallee !== 'undefined') vallee.fish = null;
   p21.F = null; p21.C = null; p21.et = null; p21.prise = null; p21.anneaux.length = 0; p21.sauts.length = 0; p21.coins.cle = '';
 });
-// (la canne prise ou posée : la manette lue à chaque image, ou non)
-{
-  const _sel = play.select.bind(play);
-  play.select = function (id) {
-    const r = _sel(id);
-    try { if (typeof m21 !== 'undefined' && m21.manette && m21.manette.demander) m21.manette.demander('peche', !!p21.canne()); } catch (e) { /* rien */ }
-    return r;
-  };
-}
 
 // ---------------------------------------------------------------- le wiki du jeu : ce qu'on apprend d'un poisson en le prenant
 if (typeof decouvertes !== 'undefined' && decouvertes.ajouterChamps) {

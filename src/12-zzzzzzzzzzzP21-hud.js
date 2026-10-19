@@ -49,7 +49,7 @@
 #p21-hud .p21-endu svg { flex: none; }
 #p21-hud .p21-aide { margin-top: 6px; font-size: 12px; text-align: center; opacity: .82; min-height: 15px; }
 #p21-hud .p21-aide.alerte { color: #ffb08a; opacity: 1; font-weight: bold; }
-#p21-hud .p21-invite { top: 54%; text-align: center; }
+#p21-hud .p21-invite { bottom: calc(17% + 104px); text-align: center; }
 #p21-hud .p21-invite .k { position: relative; width: 70px; height: 70px; margin: 0 auto; }
 #p21-hud .p21-invite svg { position: absolute; inset: 0; }
 #p21-hud .p21-invite .c { position: absolute; inset: 11px; border-radius: 9px; background: var(--m21-papier-clair, #f3ecda); color: var(--m21-encre, #33291d); border: 2px solid var(--m21-sepia, #8a5a2a); box-shadow: 0 3px 0 var(--m21-sepia-fonce, #6a4220), 0 6px 14px rgba(0,0,0,.5); font: bold 30px/44px var(--m21-police, Georgia, serif); }
