@@ -2,7 +2,9 @@
 //  LE MENU EN JEU, SIMPLIFIÉ (agent M15)
 //  - Tab : quatre onglets — Sacoche, Atelier, Carnet, Wiki — et, dessous, les
 //    pages de l'onglet quand il y en a plusieurs (registre : 05-zzzzzzM15) ;
-//    ⚙ ouvre les Options, ✕ referme. ← → : onglets ; Maj+← → : pages.
+//    ⚙ ouvre les Options, ✕ (ou Échap) referme. Dans le menu (M21) : Tab et
+//    Maj+Tab, les onglets ; Maj+← → ou Pg.préc/Pg.suiv, les pages ; les flèches
+//    se déplacent ; la manette aussi (12-zzzzzzzzzzzM21-menus.js).
 //    Ce fichier s'emballe en DERNIER autour de ui.renderSatchel : les autres
 //    emballages remplissent le corps comme avant ; on refait la barre.
 //  - Les lettres : on ne lit dans la sacoche que celles qu'on a sur soi ; les
@@ -80,12 +82,12 @@ Object.assign(menus, {
     tabs.classList.add('m15-tabs');
     tabs.setAttribute('role', 'tablist');
     tabs.innerHTML = this.ongletsVisibles().map(([k, n]) => `<button class="m15-o${k === o ? ' on' : ''}" data-m15o="${k}" role="tab" aria-selected="${k === o}">${esc(n)}${sup(this.nMarque(k))}</button>`).join('')
-      + `<button class="m15-opt" data-m15opt title="Options" aria-label="Options">⚙</button><button class="x" data-close title="Refermer (Tab)" aria-label="Refermer">✕</button>`;
+      + `<button class="m15-opt" data-m15opt title="Options" aria-label="Options">⚙</button><button class="x" data-close title="Refermer (Échap)" aria-label="Refermer">✕</button>`;
     let pg = el.querySelector(':scope > .m15-pages');
     const L = this.liste(o);
     if (L.length > 1) {
       if (!pg) { pg = document.createElement('div'); pg.className = 'm15-pages'; tabs.after(pg); }
-      pg.innerHTML = L.map((p) => `<button data-m15p="${p.id}" class="${p.id === id ? 'on' : ''}">${esc(p.titre || p.id)}${sup(this.marques[p.id])}</button>`).join('');
+      pg.innerHTML = L.map((p) => `<button data-m15p="${p.id}" class="${p.id === id ? 'on' : ''}">${p.icone ? `<span class="m21-ic" aria-hidden="true">${esc(p.icone)}</span>` : ''}${esc(p.titre || p.id)}${sup(this.marques[p.id])}</button>`).join('');
       const on = pg.querySelector('.on');
       if (on && on.scrollIntoView && pg.scrollWidth > pg.clientWidth) pg.scrollLeft = Math.max(0, on.offsetLeft - 20);
     } else if (pg) pg.remove();
@@ -253,9 +255,10 @@ window.addEventListener('keydown', (e) => {
   if (typeof game === 'undefined' || game.kind !== 'farm' || game.mode === 'menu') return;
   const a = document.activeElement;
   if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || a.isContentEditable)) return;
-  if (ui.panel === '#satchel' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
+  // (M21 : ← → seules se déplacent dans le menu ; Tab et Maj+Tab passent d'onglet en onglet ; Maj+← → : les pages)
+  if (ui.panel === '#satchel' && e.shiftKey && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
     e.preventDefault();
-    menus.voisin(e.code === 'ArrowLeft' ? -1 : 1, e.shiftKey);
+    menus.voisin(e.code === 'ArrowLeft' ? -1 : 1, true);
   } else if (ui.panel === '#m15-boite') {
     if (e.code === 'KeyE') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) { menus.eAvale = true; ui.close(); } }
     else if (/^Digit[1-9]$/.test(e.code) && !e.repeat) { e.stopImmediatePropagation(); menus.boiteKey(+e.code.slice(5)); }

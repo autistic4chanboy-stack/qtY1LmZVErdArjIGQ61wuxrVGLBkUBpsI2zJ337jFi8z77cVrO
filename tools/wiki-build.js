@@ -4464,6 +4464,10 @@ function buildWiki(DB) {
   let W20 = null;
   try { W20 = require('./wiki-v20.js'); } catch (e) { (DB.log || []).push('wiki-v20.js : ' + e.message); }
   if (W20) try { W20.build({ DB, T, P, SP, SEC, esc, lk, IL, link, placeLink, npcLink, pages, used, MF, ITEMS }); } catch (e) { (DB.log || []).push('wiki-v20.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
+  // ==== LA VINGT ET UNIÈME VAGUE : la pêche à QTE, les menus refaits, le garde-sol (tools/wiki-v21.js)
+  let W21 = null;
+  try { W21 = require('./wiki-v21.js'); } catch (e) { (DB.log || []).push('wiki-v21.js : ' + e.message); }
+  if (W21) try { W21.build({ DB, T, P, SP, SEC, esc, lk, IL, link, pages, used, MF, ITEMS, mapBtn }); } catch (e) { (DB.log || []).push('wiki-v21.js : ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' ') : e)); }
   for (const f of [FILE.vol, FILE.prison, FILE.sentiments]) if (f) genericPage(f, 'prison', 'Prison, vol et sentiments');
   for (const f of Object.keys(MF)) if (!MODPAGE[f] && !/^07-/.test(f)) genericPage(f, 'nouveautes-autres', 'Autres nouveautés');
   // ce qui reste des tables de chaque module : en bas de sa fiche principale
@@ -4581,6 +4585,7 @@ function buildWiki(DB) {
   if (W17 && W17.sections) try { W17.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v17.js (sections) : ' + e.message); }
   if (W18 && W18.sections) try { W18.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v18.js (sections) : ' + e.message); }
   if (W20 && W20.sections) try { W20.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v20.js (sections) : ' + e.message); }
+  if (W21 && W21.sections) try { W21.sections(cats, { byCat, sortT, isSys, pages, link, P }); } catch (e) { (DB.log || []).push('wiki-v21.js (sections) : ' + e.message); }
   // semaine : page d'ensemble
   if (SEM.length) P('cat:semaine', { t: 'La semaine', s: `${SEM.length} jours`, c: [], i: '📅', h: `<p class="lead">Dans la vallée, la semaine compte ${SEM.length} jours${DB.derived.jour ? `, et une journée dure ${Math.round(DB.derived.jour / 60)} minutes` : ''}.</p><table class="t">${SEM.map((J, k) => `<tr><th>${link('sem:' + k)}</th><td>${esc((J.annonce || '').replace(/^\(|\)$/g, ''))}</td></tr>`).join('')}</table>` });
 
@@ -4625,6 +4630,8 @@ function buildWiki(DB) {
     if (mech.length) h += `<h3>Les mécaniques</h3><ul class="nv">${mech.map((id) => `<li>${link(id)}${pages.get(id).s ? ` <small>— ${esc(pages.get(id).s)}</small>` : ''}</li>`).join('')}</ul>`;
     P('cat:commandes', { t: 'Commandes et mécaniques', s: 'Touches et gestes', c: [], i: '⌨', h });
   }
+  // la pêche (son QTE) et la manette en jeu, dans les commandes (tools/wiki-v21.js)
+  if (W21 && W21.commandes) try { W21.commandes({ pages, link, esc }); } catch (e) { (DB.log || []).push('wiki-v21.js (commandes) : ' + e.message); }
 
   return { pages: [...pages.values()], cats, other, used: [...used], SAFE_INTER, safeInter, VIE_MAP, ids: new Set(pages.keys()), titles: Object.fromEntries([...pages.values()].map((p) => [p.id, p.t])), C2T };
 }

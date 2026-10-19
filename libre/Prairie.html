@@ -15,7 +15,43 @@
   --muted: #a9a08b;
   --danger: #ff6a4d;
   --ok: #8fe07a;
+  /* M21 : le système visuel des menus (palette d'époque, police de l'écran titre, espaces, mouvement, échelle) */
+  --m21-papier: #e8dfc8;
+  --m21-papier-clair: #f3ecda;
+  --m21-papier-fonce: #dcd0b4;
+  --m21-encre: #33291d;
+  --m21-encre-douce: #6a5436;
+  --m21-encre-pale: #8a7a5a;
+  --m21-sepia: #8a5a2a;
+  --m21-sepia-fonce: #6a4220;
+  --m21-sepia-voile: rgba(138, 90, 42, .14);
+  --m21-trait: rgba(90, 70, 40, .28);
+  --m21-rouge: #9a3a2a;
+  --m21-vert: #3a6a2a;
+  --m21-nuit: rgba(16, 13, 9, .92);
+  --m21-nuit-texte: #efe6cf;
+  --m21-or: #e8c070;
+  --m21-anneau: #c2701c;
+  --m21-voile: rgba(10, 8, 4, .35);
+  --m21-police: Georgia, 'Times New Roman', serif;
+  --m21-t-petit: 12px;
+  --m21-t-texte: 14px;
+  --m21-t-ligne: 15.5px;
+  --m21-t-titre: 20px;
+  --m21-t-grand: 26px;
+  --m21-e1: 4px;
+  --m21-e2: 8px;
+  --m21-e3: 12px;
+  --m21-e4: 16px;
+  --m21-e5: 24px;
+  --m21-rayon: 3px;
+  --m21-ombre: 0 18px 50px rgba(0, 0, 0, .65);
+  --m21-duree: 140ms;
+  --m21-courbe: cubic-bezier(.2, .7, .3, 1);
+  --m21-k: 1;
 }
+html.m21-calme { --m21-duree: 0ms; }
+@media (prefers-reduced-motion: reduce) { html:not(.m21-mouvement) { --m21-duree: 0ms; } }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: #000; overflow: hidden; color: var(--text);
   font-family: 'Trebuchet MS', 'Segoe UI', Verdana, sans-serif; user-select: none; -webkit-user-select: none; }
@@ -54,7 +90,7 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
 #hud-title.show { opacity: 1; }
 #hud-title .t1 { font-size: clamp(22px, 4vw, 40px); letter-spacing: .28em; font-weight: bold; }
 #hud-title .t2 { font-size: 13px; letter-spacing: .4em; color: var(--text); opacity: .8; margin-top: 4px; }
-#dlg-upgrade p { color: var(--text); line-height: 1.55; font-size: 14px; }
+#dlg-upgrade p { color: var(--m21-encre); line-height: 1.55; font-size: 14.5px; }
 #hud-help { position: absolute; right: 22px; top: 50%; transform: translateY(-50%); width: 290px; padding: 12px 16px;
   background: var(--panel-strong); border: 1px solid var(--line); border-radius: 12px; font-size: 13px; display: none; }
 #hud-help.open { display: block; }
@@ -85,9 +121,11 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
 #editor-panel label output { float: right; color: var(--text); }
 #editor-panel label.row { display: flex; align-items: center; gap: 8px; color: var(--text); }
 #editor-panel input[type=range] { width: 100%; accent-color: var(--amber); }
-#editor-panel input[type=text], #editor-panel select, .dialog input[type=text], .dialog select {
+#editor-panel input[type=text], #editor-panel select {
   width: 100%; margin-top: 4px; padding: 6px 8px; background: rgba(0,0,0,.45); color: var(--text);
   border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+.dialog input[type=text], .dialog select { width: 100%; margin-top: 4px; padding: 6px 8px; background: var(--m21-papier-clair); color: var(--m21-encre);
+  border: 1px solid rgba(90,70,40,.42); border-radius: var(--m21-rayon); font: 14.5px var(--m21-police); user-select: text; -webkit-user-select: text; }
 #editor-panel .hint { color: var(--muted); font-size: 12px; margin: 8px 0 2px; line-height: 1.4; }
 .tools { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
 .tool { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: 7px; background: rgba(255,255,255,.04);
@@ -122,37 +160,45 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
   text-shadow: 0 0 22px rgba(255,180,30,.35), 3px 3px 0 #3a2400; }
 #menu .titre2 { margin: 0 0 6px 6px; font: italic clamp(18px, 2.4vw, 30px) Georgia, 'Times New Roman', serif; letter-spacing: .14em;
   color: #e6d6ae; text-shadow: 0 0 14px rgba(255,180,30,.25), 2px 2px 0 #2a1a00; }
-#menu .sub { margin: 4px 0 34px 4px; color: var(--muted); letter-spacing: .08em; font-size: 15px; }
+#menu .sub { margin: 4px 0 34px 4px; color: var(--muted); letter-spacing: .08em; font: 15px var(--m21-police); }
 #menu nav { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-#menu nav button { background: none; border: none; padding: 7px 4px; font-size: 21px; color: var(--text); text-align: left;
-  letter-spacing: .03em; transition: color .15s, transform .15s, text-shadow .15s; }
-#menu nav button:hover, #menu nav button:focus-visible { color: var(--amber); transform: translateX(8px); text-shadow: 0 0 10px rgba(255,190,40,.5); outline: none; }
+#menu nav button { position: relative; background: none; border: none; padding: 6px 10px 6px 4px; font: 22px var(--m21-police); color: var(--m21-nuit-texte); text-align: left;
+  letter-spacing: .03em; text-shadow: 0 1px 3px rgba(0,0,0,.7); transition: color var(--m21-duree), transform var(--m21-duree), text-shadow var(--m21-duree); }
+#menu nav button::before { content: '❧'; position: absolute; left: -24px; top: 50%; translate: -6px -52%; opacity: 0; color: var(--m21-or); font-size: 19px; transition: opacity var(--m21-duree), translate var(--m21-duree); }
+#menu nav button:hover, #menu nav button:focus-visible, html.m21-clavier #menu nav button:focus { color: var(--m21-or); transform: translateX(8px); text-shadow: 0 0 10px rgba(232,192,112,.35), 0 1px 3px rgba(0,0,0,.7); outline: none; }
+#menu nav button:hover::before, #menu nav button:focus-visible::before, html.m21-clavier #menu nav button:focus::before { opacity: 1; translate: 0 -52%; }
 #menu nav .sep { height: 10px; }
 #menu[data-kind="farm"] .k-cre, #menu[data-kind="creative"] .k-farm { display: none; }
-#m-world { margin-top: 30px; color: var(--muted); font-size: 13px; }
+#m-world { margin-top: 30px; color: var(--muted); font: 13px var(--m21-police); }
 #m-world b { color: var(--text); }
-.foot { position: absolute; right: 18px; bottom: 14px; color: var(--muted); font-size: 12px; }
+.foot { position: absolute; right: 18px; bottom: 14px; color: var(--muted); font: 12px var(--m21-police); }
 
-.dialog { background: rgba(0,0,0,.55); align-items: center; justify-content: center; z-index: 5; }
-.dialog .box { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; padding: 20px 24px;
-  background: var(--panel-strong); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
-.dialog h2 { margin: 0 0 14px; color: var(--amber); letter-spacing: .1em; font-size: 20px; }
-.dialog label { display: block; margin: 10px 0; color: var(--muted); font-size: 14px; }
-.dialog label output { float: right; color: var(--text); }
-.dialog label.row { display: flex; gap: 8px; align-items: center; color: var(--text); }
-.dialog input[type=range] { width: 100%; accent-color: var(--amber); }
-.dialog .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
+.dialog { background: rgba(6,5,3,.58); align-items: center; justify-content: center; z-index: 5; }
+.dialog .box { position: relative; width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; padding: 20px 26px 16px;
+  background: var(--m21-papier); color: var(--m21-encre); font-family: var(--m21-police); border: 1px solid rgba(90,70,40,.38); border-radius: var(--m21-rayon);
+  box-shadow: var(--m21-ombre), inset 0 0 60px rgba(120,90,40,.22); animation: m21-entre var(--m21-duree) var(--m21-courbe) both; }
+.dialog h2 { margin: 0 0 14px; padding-bottom: 8px; color: var(--m21-encre); letter-spacing: .16em; font: normal 22px var(--m21-police); border-bottom: 1px solid var(--m21-trait); }
+.dialog label { display: block; margin: 10px 0; color: var(--m21-encre-douce); font-size: 14.5px; }
+.dialog label output { float: right; color: var(--m21-sepia-fonce); font-variant-numeric: tabular-nums; }
+.dialog label.row { display: flex; gap: 8px; align-items: center; color: var(--m21-encre); }
+.dialog input[type=range] { width: 100%; accent-color: var(--m21-sepia); }
+.dialog input[type=checkbox] { width: 16px; height: 16px; margin: 0; accent-color: var(--m21-sepia); flex: none; }
+.dialog .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; }
 .dialog .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
-.dialog .actions button, .seedrow button { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255,255,255,.05); }
-.dialog .actions .primary { background: var(--amber); color: #201600; border-color: var(--amber); font-weight: bold; }
+.dialog .actions button, .seedrow button { padding: 8px 16px; border-radius: var(--m21-rayon); border: 1px solid rgba(90,70,40,.42); background: rgba(255,255,255,.42); color: var(--m21-encre);
+  font-family: var(--m21-police); transition: background-color var(--m21-duree); }
+.dialog .actions button:hover, .seedrow button:hover { background: rgba(255,240,200,.92); }
+.dialog .actions .primary { background: var(--m21-sepia); color: #f4ead2; border-color: var(--m21-sepia-fonce); }
+.dialog .actions .primary:hover { background: var(--m21-sepia-fonce); }
+.dialog .box > p { color: var(--m21-encre); line-height: 1.55; font-size: 15px; }
 .seedrow { display: flex; gap: 8px; align-items: flex-end; }
 .seedrow label { flex: 1; margin: 10px 0 0; }
 .seedrow button { height: 34px; padding: 0 12px; }
 .keys { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 22px; font-size: 13px; }
-.keys h4 { grid-column: 1 / -1; margin: 12px 0 2px; color: var(--amber); font-size: 12px; letter-spacing: .12em; }
-.keys div { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.keys h4 { grid-column: 1 / -1; margin: 14px 0 2px; color: var(--m21-sepia); font: normal 12px var(--m21-police); letter-spacing: .14em; }
+.keys div { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-bottom: 1px solid rgba(90,70,40,.14); }
 .keys div span:first-child { white-space: nowrap; }
-.keys div span:last-child { color: var(--muted); text-align: right; }
+.keys div span:last-child { color: var(--m21-encre-douce); text-align: right; }
 @media (max-width: 620px) { .dialog .cols, .keys { grid-template-columns: 1fr; } }
 
 #loading { background: #07080a; align-items: center; justify-content: center; flex-direction: column; gap: 18px; z-index: 10; color: var(--amber); letter-spacing: .12em; }
@@ -160,11 +206,11 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
 #loading .bar::after { content: ''; display: block; width: 40%; height: 100%; background: var(--amber); animation: slide 1s infinite ease-in-out; }
 @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
 #fatal { z-index: 20; }
-#fatal p { color: var(--text); line-height: 1.5; }
+#fatal p { color: var(--m21-encre); line-height: 1.5; }
 
 #toasts { position: fixed; left: 50%; top: 48px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 30; pointer-events: none; }
-.toast { padding: 8px 16px; border-radius: 8px; background: var(--panel-strong); border: 1px solid var(--line); color: var(--amber); font-size: 14px; transition: opacity .5s, transform .5s; max-width: calc(100vw - 32px); }
-.toast.err { color: var(--danger); border-color: rgba(255,106,77,.4); }
+.toast { padding: 8px 16px; border-radius: var(--m21-rayon); background: var(--m21-nuit); border: 1px solid rgba(232,192,112,.32); color: var(--m21-nuit-texte); font: 14.5px var(--m21-police); box-shadow: 0 6px 20px rgba(0,0,0,.45); transition: opacity .5s, transform .5s; max-width: calc(100vw - 32px); }
+.toast.err { color: #f0a08a; border-color: rgba(200,90,60,.5); }
 .toast.out { opacity: 0; transform: translateY(-8px); }
 /* ------------------------------------------------------------ ferme : aucun HUD, panneaux papier à la demande */
 #fade { background: #000; opacity: 0; pointer-events: none; transition: opacity .9s; z-index: 15; align-items: center; justify-content: center; display: flex;
@@ -300,16 +346,16 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
 #reader .txt { font-size: 16px; line-height: 1.65; max-height: 58vh; overflow-y: auto; white-space: normal; }
 #reader .sign { text-align: right; font-style: italic; margin-top: 10px; color: #5a4a36; }
 #reader .close { margin-top: 14px; }
-#satchel, #shop, #store { height: min(640px, calc(100vh - 10vh)); }
+#satchel, #shop, #store { height: min(660px, calc(100vh - 8vh)); }
 #death { background: #000; flex-direction: column; align-items: center; justify-content: center; gap: 14px; z-index: 20; color: #cfc4ae;
   font-family: Georgia, 'Times New Roman', serif; text-align: center; padding: 20px; }
 #death h2 { margin: 0; font-size: clamp(34px, 6vw, 60px); font-weight: normal; letter-spacing: .2em; color: #8a1a14; }
 #death .cause { font-size: 20px; font-style: italic; }
 #death .days { color: #8a8070; }
-#death button { margin-top: 18px; padding: 10px 22px; background: none; border: 1px solid #6a5a44; color: #cfc4ae; font: inherit; font-size: 17px; }
-#death button:hover { background: rgba(255,255,255,.06); }
+#death button { margin-top: 18px; padding: 10px 22px; background: none; border: 1px solid #6a5a44; border-radius: var(--m21-rayon); color: #cfc4ae; font: inherit; font-size: 17px; transition: background-color var(--m21-duree), border-color var(--m21-duree); }
+#death button:hover { background: rgba(255,255,255,.06); border-color: #9a8a6a; }
 #menu[data-kind="farm"] h1 { color: #e8d8b0; text-shadow: 0 0 22px rgba(0,0,0,.6), 3px 3px 0 #2a1a08; font-family: Georgia, 'Times New Roman', serif; font-weight: normal; }
-#menu[data-kind="farm"] nav button:hover { color: #e8c98a; text-shadow: none; }
+#menu[data-kind="farm"] nav button:hover { color: var(--m21-or); }
 #m-versions { margin-top: 10px; color: var(--muted); font-size: 12px; font-style: italic; max-width: 440px; line-height: 1.5; }
 </style>
 </head>
@@ -343,6 +389,7 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
   </div>
 </div>
 <div id="subs"></div>
+<div id="m21-hud"></div>
 <div id="hotbar"></div>
 <div id="dot"></div>
 <div id="pickups"></div>
@@ -375,7 +422,7 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
 <div id="dlg-newgame" class="screen dialog">
   <div class="box">
     <h2>NOUVELLE PARTIE</h2>
-    <p style="color:var(--text);line-height:1.55;font-size:14px">Vous héritez d’une vieille ferme au fond d’une vallée. Une seule vie : si vous mourez, la partie s’arrête. La grande vallée est toujours la même, avec ses montagnes et ses secrets ; une vallée au hasard change à chaque fois.</p>
+    <p>Vous héritez d’une vieille ferme au fond d’une vallée. Une seule vie : si vous mourez, la partie s’arrête. La grande vallée est toujours la même, avec ses montagnes et ses secrets ; une vallée au hasard change à chaque fois.</p>
     <label>La vallée <select id="ng-map"><option value="3">la grande vallée (3 km, montagnes, glacier, galeries)</option><option value="2">une vallée au hasard (2 km)</option></select></label>
     <label>Vous êtes <select id="ng-who"><option value="m">le nouveau fermier</option><option value="f">la nouvelle fermière</option></select></label>
     <label>Votre prénom (les habitants l’emploieront quand ils vous connaîtront) <input type="text" id="ng-name" maxlength="20" placeholder="au hasard"></label>
@@ -453,6 +500,21 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
       <label class="row"><input type="checkbox" id="o-grain"> Grain de pellicule</label>
       <label class="row"><input type="checkbox" id="o-invert"> Inverser l'axe vertical</label>
       <label class="row"><input type="checkbox" id="o-fps"> Afficher les images/s</label>
+      <label>Taille de l’interface <output id="o-m21-echelle-v"></output><select id="o-m21-echelle">
+        <option value="auto">Automatique (selon l’écran)</option>
+        <option value="0.75">75 %</option>
+        <option value="0.85">85 %</option>
+        <option value="1">100 %</option>
+        <option value="1.1">110 %</option>
+        <option value="1.25">125 %</option>
+        <option value="1.5">150 %</option>
+        <option value="1.75">175 %</option>
+        <option value="2">200 %</option>
+        <option value="2.5">250 %</option>
+      </select></label>
+      <label class="row"><input type="checkbox" id="o-m21-calme"> Réduire les animations</label>
+      <label class="row"><input type="checkbox" id="o-m21-bulles"> Infobulles des objets</label>
+      <label class="row"><input type="checkbox" id="o-m21-vibrer"> Vibrations de la manette</label>
     </div>
     <div class="actions"><button id="o-reset">Réinitialiser</button><button class="primary dlg-close">Fermer</button></div>
   </div>
@@ -480,14 +542,28 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
       <div><span><kbd>E</kbd> (autel, calvaire, pierre)</span><span>prier, déposer une offrande</span></div>
       <div><span><kbd>E</kbd> (alambic)</span><span>mêler 2 ou 3 ingrédients dans une fiole : potions</span></div>
       <div><span><kbd>E</kbd> (poteau, panneau)</span><span>directions, carte de la vallée</span></div>
-      <div><span><kbd>Tab</kbd></span><span>sacoche, atelier, carnet, wiki · <kbd>←</kbd> <kbd>→</kbd> : onglets</span></div>
+      <div><span><kbd>Tab</kbd></span><span>le menu : sacoche, atelier, carnet, wiki</span></div>
       <div><span><kbd>E</kbd> (boîte aux lettres)</span><span>lire et prendre le courrier</span></div>
       <div><span><kbd>F</kbd></span><span>lanterne</span></div>
       <div><span><kbd>G</kbd></span><span>siffler (cheval, chien)</span></div>
       <div><span><kbd>R</kbd></span><span>pivoter l'objet à poser</span></div>
       <div><span>Arc</span><span>maintenir le clic pour bander</span></div>
-      <div><span>Pêche</span><span>clic : lancer ; au bouchon qui plonge, clic !</span></div>
+      <div><span>Pêche</span><span>maintenir puis relâcher : lancer ; au bouchon qui plonge, clic : ferrer ; clic maintenu : mouliner, et les touches qui s’affichent</span></div>
       <div><span><kbd>M</kbd> · <kbd>Échap</kbd></span><span>son · menu</span></div>
+      <h4>DANS LES MENUS</h4>
+      <div><span><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> · <kbd>Entrée</kbd></span><span>se déplacer · valider</span></div>
+      <div><span><kbd>Échap</kbd></span><span>refermer, revenir d'un cran</span></div>
+      <div><span><kbd>Tab</kbd> · <kbd>Maj</kbd>+<kbd>Tab</kbd></span><span>onglet suivant · précédent</span></div>
+      <div><span><kbd>Pg↑</kbd> <kbd>Pg↓</kbd> · <kbd>Maj</kbd>+<kbd>←</kbd> <kbd>→</kbd></span><span>pages de l'onglet</span></div>
+      <div><span><kbd>Ctrl</kbd>+<kbd>F</kbd> · <kbd>/</kbd></span><span>chercher dans la liste</span></div>
+      <div><span><kbd>Maj</kbd>+<kbd>Entrée</kbd> · clic droit</span><span>choisir la quantité (coffre) · ranger dans la barre d'outils</span></div>
+      <div><span><kbd>1</kbd> … <kbd>9</kbd> sur un objet</span><span>le mettre dans cette case de la barre d'outils</span></div>
+      <h4>À LA MANETTE (MENUS)</h4>
+      <div><span>Croix ou stick gauche · A</span><span>se déplacer · valider</span></div>
+      <div><span>B · Start</span><span>retour · le menu</span></div>
+      <div><span>LB RB · LT RT</span><span>onglets · pages</span></div>
+      <div><span>X · Y</span><span>quantité, barre d'outils · chercher</span></div>
+      <div><span>Select (Vue) · stick droit</span><span>le menu Tab · faire défiler</span></div>
       <h4>MODE CRÉATION</h4>
       <div><span><kbd>E</kbd></span><span>jeu ⇄ éditeur</span></div>
       <div><span><kbd>V</kbd> · <kbd>T</kbd></span><span>vol libre · accélérer le temps</span></div>
@@ -81217,7 +81293,7 @@ const BU_OUTILS = {
   houe: 'Retourne la terre avant de semer.',
   arrosoir: 'Arrose les cultures ; il se remplit au puits, à la rivière ou à l’étang.',
   faux: 'Fauche les hautes herbes, dont on fait le foin.',
-  canne: 'Pour pêcher : lancez vers l’eau, et attendez que ça morde.',
+  canne: 'Pour pêcher : maintenez pour lancer, ferrez quand le bouchon plonge, puis moulinez sans casser la ligne.',
   arc: 'Tendez longtemps, puis relâchez : la flèche part.',
   marteau: 'Démonte ce que vous avez posé.',
   cisailles: 'Pour tondre les moutons.',
@@ -152965,7 +153041,9 @@ HOOKS.load.push(() => {
 //  LE MENU EN JEU, SIMPLIFIÉ (agent M15)
 //  - Tab : quatre onglets — Sacoche, Atelier, Carnet, Wiki — et, dessous, les
 //    pages de l'onglet quand il y en a plusieurs (registre : 05-zzzzzzM15) ;
-//    ⚙ ouvre les Options, ✕ referme. ← → : onglets ; Maj+← → : pages.
+//    ⚙ ouvre les Options, ✕ (ou Échap) referme. Dans le menu (M21) : Tab et
+//    Maj+Tab, les onglets ; Maj+← → ou Pg.préc/Pg.suiv, les pages ; les flèches
+//    se déplacent ; la manette aussi (12-zzzzzzzzzzzM21-menus.js).
 //    Ce fichier s'emballe en DERNIER autour de ui.renderSatchel : les autres
 //    emballages remplissent le corps comme avant ; on refait la barre.
 //  - Les lettres : on ne lit dans la sacoche que celles qu'on a sur soi ; les
@@ -153043,12 +153121,12 @@ Object.assign(menus, {
     tabs.classList.add('m15-tabs');
     tabs.setAttribute('role', 'tablist');
     tabs.innerHTML = this.ongletsVisibles().map(([k, n]) => `<button class="m15-o${k === o ? ' on' : ''}" data-m15o="${k}" role="tab" aria-selected="${k === o}">${esc(n)}${sup(this.nMarque(k))}</button>`).join('')
-      + `<button class="m15-opt" data-m15opt title="Options" aria-label="Options">⚙</button><button class="x" data-close title="Refermer (Tab)" aria-label="Refermer">✕</button>`;
+      + `<button class="m15-opt" data-m15opt title="Options" aria-label="Options">⚙</button><button class="x" data-close title="Refermer (Échap)" aria-label="Refermer">✕</button>`;
     let pg = el.querySelector(':scope > .m15-pages');
     const L = this.liste(o);
     if (L.length > 1) {
       if (!pg) { pg = document.createElement('div'); pg.className = 'm15-pages'; tabs.after(pg); }
-      pg.innerHTML = L.map((p) => `<button data-m15p="${p.id}" class="${p.id === id ? 'on' : ''}">${esc(p.titre || p.id)}${sup(this.marques[p.id])}</button>`).join('');
+      pg.innerHTML = L.map((p) => `<button data-m15p="${p.id}" class="${p.id === id ? 'on' : ''}">${p.icone ? `<span class="m21-ic" aria-hidden="true">${esc(p.icone)}</span>` : ''}${esc(p.titre || p.id)}${sup(this.marques[p.id])}</button>`).join('');
       const on = pg.querySelector('.on');
       if (on && on.scrollIntoView && pg.scrollWidth > pg.clientWidth) pg.scrollLeft = Math.max(0, on.offsetLeft - 20);
     } else if (pg) pg.remove();
@@ -153216,9 +153294,10 @@ window.addEventListener('keydown', (e) => {
   if (typeof game === 'undefined' || game.kind !== 'farm' || game.mode === 'menu') return;
   const a = document.activeElement;
   if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || a.isContentEditable)) return;
-  if (ui.panel === '#satchel' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
+  // (M21 : ← → seules se déplacent dans le menu ; Tab et Maj+Tab passent d'onglet en onglet ; Maj+← → : les pages)
+  if (ui.panel === '#satchel' && e.shiftKey && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
     e.preventDefault();
-    menus.voisin(e.code === 'ArrowLeft' ? -1 : 1, e.shiftKey);
+    menus.voisin(e.code === 'ArrowLeft' ? -1 : 1, true);
   } else if (ui.panel === '#m15-boite') {
     if (e.code === 'KeyE') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) { menus.eAvale = true; ui.close(); } }
     else if (/^Digit[1-9]$/.test(e.code) && !e.repeat) { e.stopImmediatePropagation(); menus.boiteKey(+e.code.slice(5)); }
@@ -154142,6 +154221,1339 @@ const q20Carnet = {
     return r;
   };
 }
+
+// ---- 12-zzzzzzzzzzzM21-menus.js
+// ============================================================================
+//  LES MENUS, REFAITS (agent M21)
+//  Un seul système pour tous les menus, posé PAR-DESSUS ce qui existe : chaque
+//  panneau garde son code, ses id et ses classes (le code et les tests s'en
+//  servent) ; on ajoute :
+//  - le style commun (variables CSS de src/shell.html, feuille #m21-css gardée en
+//    dernier dans <head>) : papier, encre, sépia, la police de l'écran titre, une
+//    seule croix ✕ en haut à droite, transitions courtes (« Réduire les
+//    animations » les coupe) ;
+//  - la navigation au clavier seul et à la MANETTE (Gamepad API) dans tous les
+//    menus, avec un anneau de focus visible ; mêmes raccourcis partout (Échap
+//    ferme, Tab passe d'onglet en onglet, flèches, Entrée) ;
+//  - la recherche, le tri et le filtre des longues listes (sacoche, wiki,
+//    bestiaire et livres, boutique, coffre), un sommaire « Aller à » des longues
+//    pages ; les infobulles d'objets ; le choix des quantités ;
+//  - les Options en onglets, l'échelle de l'interface (du petit écran au 4K).
+//  Rien à chaque image quand aucun menu n'est ouvert : sans manette, rien du
+//  tout ; avec une manette, 10 lectures par seconde (Start, Select), sauf si la
+//  pêche le demande (m21.manette.demander). Pas de flou sur la vue 3D.
+//  API : m21 (eq/contrat-v21.md, section M21).
+// ============================================================================
+const m21 = (() => {
+  const D = document, H = D.documentElement;
+  const $q = (s, r) => (r || D).querySelector(s);
+  const $$q = (s, r) => [...(r || D).querySelectorAll(s)];
+  const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/œ/g, 'oe').replace(/æ/g, 'ae').replace(/\s+/g, ' ').trim();
+  const son = (k) => { try { if (typeof sound !== 'undefined' && sound[k]) sound[k](); } catch (e) { /* rien */ } };
+  const sauver = () => { try { store.set('prairie.settings', settings); } catch (e) { /* rien */ } };
+
+  // ================================================================ réglages
+  // (dans DEFAULT_SETTINGS aussi : « Réinitialiser » les remet) ; m21Calme : null = comme le système, true / false = choisi
+  Object.assign(DEFAULT_SETTINGS, { m21Echelle: 'auto', m21Bulles: true, m21Vibrer: true, m21Calme: null });
+  for (const k of ['m21Echelle', 'm21Bulles', 'm21Vibrer', 'm21Calme']) if (settings[k] === undefined) settings[k] = DEFAULT_SETTINGS[k];
+
+  // ================================================================ l'échelle de l'interface
+  const ECHELLES = ['auto', 0.75, 0.85, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5];
+  let K = 1;
+  function kAuto() {
+    const h = innerHeight || 800, w = innerWidth || 1280;
+    let k = 1;
+    if (h < 600 || w < 900) k = Math.max(0.75, Math.min(h / 600, w / 900));
+    else if (h > 1200 && w > 1900) k = Math.min(2.5, Math.min(h / 1080, w / 1920) * 0.92);
+    return Math.round(k * 20) / 20;
+  }
+  function appliquerEchelle() {
+    const v = settings.m21Echelle;
+    K = v === 'auto' || !(+v > 0) ? kAuto() : Math.min(2.5, Math.max(0.5, +v));
+    H.style.setProperty('--m21-k', String(K));
+    const out = $q('#o-m21-echelle-v');
+    if (out) out.textContent = Math.round(K * 100) + ' %';
+  }
+  function appliquerCalme() {
+    const c = settings.m21Calme;
+    H.classList.toggle('m21-calme', c === true);
+    H.classList.toggle('m21-mouvement', c === false);
+  }
+  addEventListener('resize', () => { if (settings.m21Echelle === 'auto') appliquerEchelle(); bulle.cacher(); });
+  const calme = () => settings.m21Calme === true || (settings.m21Calme !== false && !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches));
+
+  // ---------------------------------------------------------------- vw / vh dans les calques zoomés
+  // Le zoom multiplie aussi les vw/vh : toute règle des menus qui en emploie est corrigée une fois (÷ --m21-k),
+  // y compris les feuilles injectées plus tard par les modules.
+  const ZOOME = /#(paper|menu|subs|toasts|pickups|hotbar|death|m21-|satchel|shop|store|talk|reader|choice|alchemy|alchtable|mapview|butin|commandes|livre|biblio|crochetage|fondterm|r15-runes|m15-boite|wiki15|admin|dlg-)|\.pp-panel|\.dialog|\.w15|\.m15-|\.bu-|\.cm-|\.f2a-|\.m21-/;
+  const faites = new WeakSet();
+  function corrigerRegles(rules) {
+    for (const r of rules) {
+      try {
+        if (r.cssRules && !r.style) { corrigerRegles(r.cssRules); continue; }
+        if (!r.style || faites.has(r)) continue;
+        faites.add(r);
+        if (!r.selectorText || !ZOOME.test(r.selectorText)) continue;
+        const st = r.style;
+        for (let i = 0; i < st.length; i++) {
+          const p = st[i], v = st.getPropertyValue(p);
+          if (!/\dv[hw]\b/.test(v) || v.includes('--m21-k')) continue;
+          st.setProperty(p, v.replace(/(-?\d*\.?\d+)v([hw])\b/g, 'calc($1v$2 / var(--m21-k, 1))'), st.getPropertyPriority(p));
+        }
+      } catch (e) { /* une règle illisible : tant pis */ }
+    }
+  }
+  function corrigerFeuilles() { for (const sh of Array.from(D.styleSheets || [])) { try { corrigerRegles(sh.cssRules || []); } catch (e) { /* rien */ } } }
+
+  // ================================================================ la feuille de style
+  const LOUPE = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Ccircle cx='6' cy='6' r='4.2' fill='none' stroke='%238a5a2a' stroke-width='1.6'/%3E%3Cpath d='M9.2 9.2 13 13' stroke='%238a5a2a' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E\")";
+  const STYLE = `
+/* l'échelle : les calques des menus portent le zoom */
+#paper, .dialog, #menu, #subs, #toasts, #pickups, #hotbar, #death, #m21-hud { zoom: var(--m21-k, 1); }
+#m21-hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+.m21-cache { display: none !important; }
+@keyframes m21-entre { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+@keyframes m21-fondu { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---- les panneaux papier */
+#paper { background: var(--m21-voile); }
+.pp-panel { font-family: var(--m21-police); color: var(--m21-encre); }
+.pp-panel:where(:not(#fondterm)) { background-color: var(--m21-papier); border: 1px solid rgba(90,70,40,.38); }
+.pp-panel.open { animation: m21-entre var(--m21-duree) var(--m21-courbe) both; }
+.pp-panel > .tabs { flex: none; min-height: 50px; gap: 2px; padding: 8px 8px 0 16px; background: linear-gradient(180deg, rgba(120,90,40,.11), rgba(120,90,40,0)); border-bottom: 1px solid var(--m21-trait); }
+.pp-panel > .tabs b { font-size: 19px; letter-spacing: .02em; color: var(--m21-encre); }
+.pp-panel .tabs button:not(.x) { border-radius: var(--m21-rayon) var(--m21-rayon) 0 0; transition: color var(--m21-duree), background-color var(--m21-duree), border-color var(--m21-duree); }
+.pp-panel .tabs button:not(.x):not(.on):hover { color: var(--m21-encre); background: var(--m21-sepia-voile); }
+.pp-panel .tabs button.on { color: var(--m21-encre); border-bottom-color: var(--m21-sepia); }
+.pp-panel .tabs .x, .pp-panel .m21-x { flex: none; width: 34px; height: 34px; margin: 0 0 7px auto; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: 50%; background: none; color: var(--m21-encre-douce); font: 17px/1 var(--m21-police); cursor: pointer; transition: background-color var(--m21-duree), color var(--m21-duree), border-color var(--m21-duree); }
+.pp-panel .tabs .x:hover, .pp-panel .m21-x:hover { background: var(--m21-sepia-voile); border-color: var(--m21-trait); color: var(--m21-encre); }
+.pp-panel .m21-x { position: absolute; top: 8px; right: 8px; margin: 0; z-index: 3; }
+#r15-runes .r15-haut .close { width: 34px; height: 34px; padding: 0; border: 1px solid transparent; border-radius: 50%; background: none; color: var(--m21-encre-douce); font: 17px/1 var(--m21-police); }
+#r15-runes .r15-haut .close:hover { background: var(--m21-sepia-voile); border-color: var(--m21-trait); }
+.pp-panel .body, .pp-panel .txt, .dialog .box { scrollbar-width: thin; scrollbar-color: rgba(138,90,42,.5) transparent; }
+.pp-panel .hint { color: var(--m21-encre-pale); }
+.pp-panel .it, .pp-panel .row, .pp-panel .note, .pp-panel .rec button, .pp-panel .close, .pp-panel .opts button { transition: background-color var(--m21-duree), border-color var(--m21-duree), color var(--m21-duree); }
+.pp-panel .it:hover, .pp-panel .row:hover:not(:disabled) { border-color: rgba(138,90,42,.55); }
+.pp-panel .note:hover { background: rgba(255,240,200,.7); border-color: rgba(138,90,42,.5); }
+.pp-panel .rec button:hover:not(:disabled), .pp-panel .close:hover { background: var(--m21-sepia-fonce); }
+.pp-panel kbd, .dialog kbd { font: 12px/1.3 var(--m21-police); color: var(--m21-encre-douce); background: var(--m21-papier-clair); border: 1px solid rgba(90,70,40,.4); border-bottom-width: 2px; border-radius: 3px; padding: 0 5px; }
+#talk { position: relative; }
+#talk .who { padding-right: 40px; }
+#choice h3 { padding-right: 34px; }
+#reader h3 { padding-right: 30px; }
+
+/* ---- les lignes d'objectif (H17, K18 : au-dessus de la vue) ne passent pas sur un menu ouvert */
+:is(#paper.open, #menu.open, .dialog.open) ~ :is(#h17-but, #k18-but) { visibility: hidden !important; }
+html.m21-titre :is(#pickups, #hotbar) { visibility: hidden; }
+
+/* ---- l'anneau de focus (clavier, manette) */
+html.m21-clavier :is(#paper, .dialog, #menu, #death) :focus, :is(#paper, .dialog, #death) :focus-visible { outline: 2px solid var(--m21-anneau) !important; outline-offset: 2px !important; box-shadow: 0 0 0 5px rgba(194,112,28,.2); }
+html.m21-clavier #paper :is(.it, .row, .note, .rec, .w15-e, .w15-gt, .bu-it, .q, .opts button, .cm-art, .cm-etal, [data-bu], .fiche):focus { outline-offset: -2px !important; }
+html.m21-clavier #paper .opts button:focus { background: rgba(138,90,42,.16); color: #1d140a; }
+html.m21-clavier #menu nav button:focus { outline: none !important; box-shadow: none; }
+#satchel .barcfg .hb-slot[tabindex], #satchel .barcfg .tok[tabindex] { cursor: pointer; }
+
+/* ---- éléments communs */
+.m21-btn { padding: 5px 13px; background: rgba(255,255,255,.42); color: var(--m21-encre); border: 1px solid rgba(90,70,40,.42); border-radius: var(--m21-rayon); font: 14px var(--m21-police); cursor: pointer; transition: background-color var(--m21-duree), color var(--m21-duree); }
+.m21-btn:hover:not(:disabled) { background: rgba(255,240,200,.92); }
+.m21-btn.prim { background: var(--m21-sepia); color: #f4ead2; border-color: var(--m21-sepia-fonce); }
+.m21-btn.prim:hover:not(:disabled) { background: var(--m21-sepia-fonce); }
+.m21-btn:disabled { opacity: .45; cursor: default; }
+.m21-jauge { position: relative; height: 10px; background: var(--m21-papier-fonce); border: 1px solid rgba(90,70,40,.45); border-radius: 6px; overflow: hidden; }
+.m21-jauge > i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--m21-sepia); border-radius: 6px; transition: width var(--m21-duree) linear; }
+.m21-jauge.rouge > i { background: var(--m21-rouge); } .m21-jauge.vert > i { background: var(--m21-vert); } .m21-jauge.or > i { background: var(--m21-or); }
+.m21-jauge.nuit { background: rgba(0,0,0,.45); border-color: rgba(232,192,112,.35); }
+.m21-touche { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-width: 1.75em; height: 1.75em; padding: 0 .45em; border: 1px solid rgba(90,70,40,.55); border-bottom-width: 3px; border-radius: 4px; background: var(--m21-papier-clair); color: var(--m21-encre); font: bold .78em/1 var(--m21-police); font-style: normal; vertical-align: .05em; white-space: nowrap; }
+.m21-touche.rond { border-radius: 50%; border-width: 1px; padding: 0; width: 1.75em; color: #f6eedb; background: #5a4a36; border-color: rgba(0,0,0,.35); }
+.m21-touche.b-A { background: #4f6d36; } .m21-touche.b-B { background: #8a3a2a; } .m21-touche.b-X { background: #3d5c7a; } .m21-touche.b-Y { background: #9a7a2a; }
+.m21-touche.long { border-radius: 9px; border-bottom-width: 1px; color: #f6eedb; background: #5a4a36; border-color: rgba(0,0,0,.35); }
+.m21-carte { background: var(--m21-papier-clair); border: 1px solid rgba(90,70,40,.4); border-radius: var(--m21-rayon); padding: 10px 12px; box-shadow: inset 0 0 24px rgba(120,90,40,.12); }
+
+/* ---- la barre recherche / tri / filtre, le sommaire */
+.m21-outils { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 2px 0 10px; padding: 6px 8px; background: rgba(255,255,255,.3); border: 1px solid var(--m21-trait); border-radius: var(--m21-rayon); font-size: 13.5px; }
+.pp-panel > .m21-outils { flex: none; margin: 8px 16px 0; }
+.m21-cherche { flex: 1 1 170px; min-width: 120px; padding: 5px 8px 5px 27px; background: var(--m21-papier-clair) ${LOUPE} no-repeat 8px 50%; border: 1px solid rgba(90,70,40,.42); border-radius: var(--m21-rayon); font: 14px var(--m21-police); color: var(--m21-encre); user-select: text; -webkit-user-select: text; }
+.m21-cherche::placeholder { color: var(--m21-encre-pale); font-style: italic; }
+.m21-sel { display: inline-flex; align-items: center; gap: 5px; color: var(--m21-encre-douce); font-style: italic; }
+.m21-sel select { padding: 4px 6px; background: var(--m21-papier-clair); border: 1px solid rgba(90,70,40,.42); border-radius: var(--m21-rayon); font: 13.5px var(--m21-police); color: var(--m21-encre); font-style: normal; }
+.m21-n { margin-left: auto; color: var(--m21-encre-pale); font-style: italic; font-variant-numeric: tabular-nums; }
+.m21-sommaire { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 0 0 8px; font-size: 13px; color: var(--m21-encre-pale); font-style: italic; }
+.m21-sommaire button { padding: 2px 10px; background: rgba(255,255,255,.3); border: 1px solid var(--m21-trait); border-radius: 11px; font: 12.5px var(--m21-police); color: var(--m21-encre-douce); font-style: normal; cursor: pointer; }
+.m21-sommaire button:hover { background: rgba(255,240,200,.85); color: var(--m21-encre); }
+.m21-vide { margin: 10px 2px; font-style: italic; color: var(--m21-encre-pale); }
+.m15-pages .m21-ic, .m21-onglets .m21-ic { margin-right: 5px; font-size: .95em; opacity: .85; }
+
+/* ---- la ligne des raccourcis (au clavier et à la manette seulement) */
+.m21-aide { display: none; flex: none; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 6px 16px 8px; border-top: 1px solid rgba(90,70,40,.18); font: italic 12.5px var(--m21-police); color: var(--m21-encre-pale); }
+html.m21-clavier .m21-aide { display: flex; }
+.m21-aide > span { white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.m21-aide .m21-touche { font-size: 11px; }
+.dialog .m21-aide { margin: 14px -26px -16px; padding: 7px 26px 9px; }
+#menu .m21-aide { position: absolute; left: clamp(24px, 8vw, 120px); bottom: 14px; padding: 0; border: 0; color: rgba(239,230,207,.62); }
+#death .m21-aide { border: 0; color: #8a8070; }
+html.m21-manette #butin .bu-aide { display: none; }
+
+/* ---- l'infobulle d'objet */
+#m21-bulle { position: absolute; left: 0; top: 0; z-index: 30; width: max-content; max-width: 300px; padding: 10px 12px 8px; background: var(--m21-papier-clair); color: var(--m21-encre); border: 1px solid rgba(90,70,40,.5); border-radius: var(--m21-rayon); box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 0 24px rgba(120,90,40,.14); font: 13.5px/1.4 var(--m21-police); pointer-events: none; opacity: 0; visibility: hidden; transition: opacity var(--m21-duree); }
+#m21-bulle.on { opacity: 1; visibility: visible; }
+#m21-bulle .m21-b-tete { display: flex; gap: 9px; align-items: center; }
+#m21-bulle img { width: 32px; height: 32px; image-rendering: pixelated; flex: none; }
+#m21-bulle .m21-b-tete b { display: block; font-weight: normal; font-size: 15.5px; line-height: 1.2; }
+#m21-bulle small { color: var(--m21-encre-pale); font-style: italic; font-size: 12px; }
+#m21-bulle p { margin: 7px 0 6px; font-style: italic; color: #4a3a22; }
+#m21-bulle .m21-b-l { display: flex; justify-content: space-between; gap: 16px; padding-top: 3px; border-top: 1px dotted var(--m21-trait); font-size: 13px; }
+#m21-bulle .m21-b-l b { font-weight: normal; color: var(--m21-sepia-fonce); }
+
+/* ---- l'encart des quantités */
+.m21-qte-voile { position: absolute; inset: 0; background: rgba(40,30,15,.4); z-index: 8; }
+.m21-qte { position: absolute; left: 50%; top: 50%; translate: -50% -50%; z-index: 9; width: min(410px, calc(100% - 28px)); padding: 14px 16px 12px; background: var(--m21-papier-clair); border: 1px solid rgba(90,70,40,.5); border-radius: var(--m21-rayon); box-shadow: 0 12px 34px rgba(0,0,0,.45), inset 0 0 34px rgba(120,90,40,.16); font-size: 14px; color: var(--m21-encre); animation: m21-fondu var(--m21-duree) ease-out both; }
+.m21-qte .m21-q-tete { display: flex; gap: 10px; align-items: center; }
+.m21-qte .m21-q-tete img { width: 36px; height: 36px; image-rendering: pixelated; flex: none; }
+.m21-qte .m21-q-tete b { display: block; font-weight: normal; font-size: 16.5px; line-height: 1.2; }
+.m21-qte .m21-q-tete small { color: var(--m21-encre-pale); font-style: italic; font-size: 12.5px; }
+.m21-qte .m21-q-ligne { display: flex; align-items: center; gap: 6px; margin: 12px 0 6px; flex-wrap: wrap; }
+.m21-qte .m21-q-ligne > span { margin-right: auto; }
+.m21-qte .m21-q-n { width: 62px; padding: 4px 2px; text-align: center; font: 16px var(--m21-police); color: var(--m21-encre); background: rgba(255,255,255,.7); border: 1px solid rgba(90,70,40,.42); border-radius: var(--m21-rayon); }
+.m21-qte .m21-q-r { width: 100%; margin: 4px 0 6px; accent-color: var(--m21-sepia); }
+.m21-qte .m21-q-cases { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 12px 0 6px; }
+.m21-qte .m21-q-cases button { padding: 6px 0; }
+.m21-qte .m21-q-total { display: flex; justify-content: space-between; font-size: 15.5px; padding: 6px 0 2px; border-top: 1px solid var(--m21-trait); }
+.m21-qte .m21-q-total b { font-weight: normal; color: var(--m21-sepia-fonce); }
+.m21-qte .m21-q-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.m21-qte .m21-q-aide { margin-top: 8px; font: italic 12px var(--m21-police); color: var(--m21-encre-pale); }
+
+/* ---- la confirmation */
+#m21-confirmer { z-index: 25; }
+#m21-confirmer .box { width: min(470px, calc(100vw - 32px)); }
+#m21-confirmer p { margin: 0 0 4px; font-size: 15.5px; line-height: 1.55; color: var(--m21-encre); }
+
+/* ---- les Options en onglets */
+.m21-onglets { display: flex; flex-wrap: wrap; gap: 2px; margin: -2px 0 14px; border-bottom: 1px solid var(--m21-trait); }
+.m21-onglets button { padding: 6px 14px 8px; background: none; border: none; border-bottom: 3px solid transparent; border-radius: var(--m21-rayon) var(--m21-rayon) 0 0; font: 16px var(--m21-police); color: var(--m21-encre-douce); cursor: pointer; transition: color var(--m21-duree), background-color var(--m21-duree), border-color var(--m21-duree); }
+.m21-onglets button.on { color: var(--m21-encre); border-bottom-color: var(--m21-sepia); }
+.m21-onglets button:not(.on):hover { background: var(--m21-sepia-voile); color: var(--m21-encre); }
+#dlg-options .box { width: min(700px, calc(100vw - 32px)); }
+#dlg-help .box { width: min(920px, calc(100vw - 32px)); }
+#dlg-options .cols { min-height: 300px; align-content: start; }
+#dlg-options .cols h4.m15-sec { display: none; }
+.dialog .cols button { padding: 7px 12px; background: rgba(255,255,255,.42); color: var(--m21-encre); border: 1px solid rgba(90,70,40,.42); border-radius: var(--m21-rayon); font-family: var(--m21-police); transition: background-color var(--m21-duree); }
+.dialog .cols button:hover { background: rgba(255,240,200,.92); }
+.dialog .m21-note { grid-column: 1 / -1; margin: 6px 0 0; font: italic 13px/1.45 var(--m21-police); color: var(--m21-encre-pale); }
+
+/* ---- les livres : sommaire et recherche */
+#livre .m21-livre-outils { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 2px 0; color: #e8dcc0; font: italic 13px var(--m21-police); }
+#livre .m21-livre-outils select, #livre .m21-livre-outils input { padding: 4px 7px; background: #efe6cf; color: #33291d; border: 1px solid rgba(0,0,0,.35); border-radius: 3px; font: 13.5px var(--m21-police); font-style: normal; }
+#livre .m21-livre-outils input { flex: 1 1 160px; padding-left: 27px; background: #efe6cf ${LOUPE} no-repeat 8px 50%; }
+#livre .m21-livre-outils .m21-n { color: #d8c8a0; }
+#livre .m21-livre-outils .m21-sel { color: #e8dcc0; }
+#livre > .m21-x { top: 3px; right: 3px; width: 28px; height: 28px; font-size: 15px; color: #efe6cf; background: rgba(40,20,10,.6); border-color: rgba(239,230,207,.25); }
+#livre > .m21-x:hover { background: rgba(40,20,10,.85); color: #fff; }
+#livre .fiche.m21-trouve { background: rgba(255,220,120,.4); box-shadow: 0 0 0 2px rgba(194,112,28,.5); border-radius: 3px; }
+
+/* ---- le wiki : tri et filtre */
+.w15-tete .m21-sel { font-size: 13px; }
+
+@media (max-width: 620px) {
+  .m21-outils { gap: 5px 8px; }
+  .m21-sel > span { display: none; }
+}
+`;
+  let feuille = null;
+  function installerStyle() {
+    if (!feuille) { feuille = D.createElement('style'); feuille.id = 'm21-css'; feuille.textContent = STYLE; }
+    if (D.head.lastElementChild !== feuille) D.head.appendChild(feuille);
+  }
+
+  // ================================================================ calques, focus
+  const FOC = 'button, [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])';
+  const visible = (el) => { if (!el.getClientRects().length) return false; const s = getComputedStyle(el); return s.visibility !== 'hidden'; };
+  function cibles(L) { return L ? $$q(FOC, L).filter((el) => !el.disabled && el.getAttribute('aria-hidden') !== 'true' && el.dataset.m21Nav !== 'non' && !el.closest('[data-m21-nav="non"], .m21-cache') && visible(el)) : []; }
+  // le calque actif : la confirmation, la mort, un dialogue, le panneau (ou son encart), l'écran titre
+  function calque() {
+    const cf = D.getElementById('m21-confirmer');
+    if (cf && cf.classList.contains('open')) return cf.querySelector('.box') || cf;
+    const de = D.getElementById('death');
+    if (de && de.classList.contains('open')) return de;
+    const dl = $$q('.dialog.open').filter((d) => d.id !== 'm21-confirmer').pop();
+    if (dl) return dl.querySelector('.box') || dl;
+    if (typeof ui !== 'undefined' && ui.panel) {
+      const p = $q(ui.panel);
+      if (p && p.classList.contains('open')) return p.querySelector('.m21-qte, .bu-encart, .cm-encart') || p;
+    }
+    const m = D.getElementById('menu');
+    if (m && m.classList.contains('open')) return m;
+    return null;
+  }
+  const racine = (L) => (L ? L.closest('.pp-panel, .dialog, #menu, #death') || L : null);
+  const signature = (el) => {
+    const a = [];
+    for (const at of el.attributes) if (at.name.startsWith('data-') && !at.name.startsWith('data-m21')) a.push(at.name + '=' + at.value);
+    return el.tagName + (el.id ? '#' + el.id : '') + (a.length ? '[' + a.sort().join(',') + ']' : '|' + (el.className || '') + '|' + (el.textContent || '').trim().slice(0, 40));
+  };
+  // fait défiler les conteneurs pour montrer l'élément (sans jamais toucher à la page)
+  function revele(el) {
+    const k = K || 1;
+    let p = el.parentElement;
+    while (p && p !== D.body && p.id !== 'paper') {
+      const s = getComputedStyle(p);
+      if (/(auto|scroll)/.test(s.overflowY) && p.scrollHeight > p.clientHeight + 1) {
+        const r = el.getBoundingClientRect(), q = p.getBoundingClientRect(), m = 8;
+        if (r.top < q.top + m) p.scrollTop -= (q.top + m - r.top) / k;
+        else if (r.bottom > q.bottom - m) p.scrollTop += Math.min(r.bottom - q.bottom + m, r.top - q.top - m) / k;
+      }
+      if (/(auto|scroll)/.test(s.overflowX) && p.scrollWidth > p.clientWidth + 1) {
+        const r = el.getBoundingClientRect(), q = p.getBoundingClientRect(), m = 8;
+        if (r.left < q.left + m) p.scrollLeft -= (q.left + m - r.left) / k;
+        else if (r.right > q.right - m) p.scrollLeft += (r.right - q.right + m) / k;
+      }
+      p = p.parentElement;
+    }
+  }
+  function focus(el) {
+    if (!el) return;
+    try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
+    revele(el);
+  }
+  const FERMER = '.x, [data-close], [data-fermer], .m21-x, .m15-opt, .close, [data-cm-fermer]';
+  // le premier élément à viser dans un calque
+  function premier(L, items) {
+    items = items || cibles(L);
+    if (!items.length) return null;
+    const R = racine(L), mem = nav.mem[R.id || ''];
+    if (mem) { const el = items.find((x) => signature(x) === mem.sig); if (el) return el; }
+    if (R.id === 'menu') return items.find((x) => x.id === 'm-play') || items[0];
+    if (R.id === 'satchel') {
+      const b = $q(':scope > .body', R);
+      const corps = items.filter((x) => b && b.contains(x) && !x.classList.contains('m21-cherche') && !x.closest('.barcfg, .m21-sommaire, .m21-outils'));
+      return corps[0] || items.find((x) => x.classList.contains('on') && x.dataset.m15o) || items[0];
+    }
+    const opts = items.filter((x) => x.closest('.opts'));
+    if (opts.length) return opts[0];
+    const corps = items.filter((x) => !x.matches(FERMER) && !x.closest('.tabs, .m21-onglets, .m21-outils, .m21-aide'));
+    return corps[0] || items[0];
+  }
+  // le voisin dans une direction (les centres, l'écart de côté compte double et demi)
+  function voisin(cur, items, dir) {
+    const r0 = cur.getBoundingClientRect();
+    const cx = (r0.left + r0.right) / 2, cy = (r0.top + r0.bottom) / 2;
+    let best = null, bs = Infinity;
+    for (const el of items) {
+      if (el === cur) continue;
+      const r = el.getBoundingClientRect();
+      if (!r.width && !r.height) continue;
+      const x = (r.left + r.right) / 2, y = (r.top + r.bottom) / 2;
+      let along, ortho;
+      if (dir === 'bas' || dir === 'haut') {
+        along = dir === 'bas' ? y - cy : cy - y;
+        if (along <= 2 || (dir === 'bas' ? r.top < r0.top + 2 : r.bottom > r0.bottom - 2)) continue;
+        ortho = r.right < r0.left ? r0.left - r.right : r.left > r0.right ? r.left - r0.right : 0;
+      } else {
+        along = dir === 'droite' ? x - cx : cx - x;
+        if (along <= 2 || (dir === 'droite' ? r.left < r0.left + 2 : r.right > r0.right - 2)) continue;
+        ortho = r.bottom < r0.top ? r0.top - r.bottom : r.top > r0.bottom ? r.top - r0.bottom : 0;
+      }
+      const sc = along + ortho * 2.5;
+      if (sc < bs) { bs = sc; best = el; }
+    }
+    return best;
+  }
+  // un conteneur qui défile, autour de l'élément (ou dans le calque)
+  function defilant(el, L) {
+    let p = el && el.parentElement;
+    while (p && L && L.contains(p)) {
+      const s = getComputedStyle(p);
+      if (/(auto|scroll)/.test(s.overflowY) && p.scrollHeight > p.clientHeight + 1) return p;
+      p = p.parentElement;
+    }
+    if (!L) return null;
+    for (const c of $$q('.body, .txt, .bu-liste, .w15-liste, .w15-fiche, .cm-arts, .cm-etals, .spread, .r15-corps', L)) if (c.scrollHeight > c.clientHeight + 1) return c;
+    return null;
+  }
+
+  // ================================================================ la navigation (clavier seul, manette)
+  const nav = {
+    clavier: false, mem: {},
+    mode(on) {
+      if (on === this.clavier) return;
+      this.clavier = on;
+      H.classList.toggle('m21-clavier', on);
+      if (on) { addEventListener('mousemove', souris, true); addEventListener('mousedown', souris, true); }
+      else { removeEventListener('mousemove', souris, true); removeEventListener('mousedown', souris, true); manette.marquer(false); }
+      majAides();
+    },
+    deplacer(L, dir) {
+      const items = cibles(L), a = D.activeElement;
+      if (!items.length) { const c = defilant(null, L); if (c) c.scrollTop += (dir === 'haut' ? -1 : dir === 'bas' ? 1 : 0) * 90; return; }
+      const cur = a && L.contains(a) && items.includes(a) ? a : null;
+      if (!cur) { focus(premier(L, items)); return; }
+      const b = voisin(cur, items, dir);
+      if (b) { focus(b); son('click'); return; }
+      // rien plus loin : on fait défiler ce qui défile (une lettre, une fiche)
+      const c = defilant(cur, L);
+      if (c && (dir === 'haut' || dir === 'bas')) c.scrollTop += (dir === 'haut' ? -1 : 1) * 90 / (K || 1);
+    },
+    suivant(L, d) {
+      const items = cibles(L);
+      if (!items.length) return;
+      const i = items.indexOf(D.activeElement);
+      focus(items[i < 0 ? (d > 0 ? 0 : items.length - 1) : (i + d + items.length) % items.length]);
+    },
+    activer(el, maj) {
+      if (!el) return;
+      if (maj) { secondaire(el); return; }
+      if (el.tagName === 'SELECT') { changerSelect(el, 1, true); return; }
+      if (el.tagName === 'INPUT' && el.type === 'range') return;
+      el.click();
+    },
+  };
+  function souris(e) {
+    if (e.type === 'mousemove' && Math.abs(e.movementX || 0) + Math.abs(e.movementY || 0) < 3) return;
+    nav.mode(false);
+  }
+  function changerSelect(el, d, boucle) {
+    const n = el.options.length;
+    if (!n) return;
+    let i = el.selectedIndex + d;
+    if (boucle) i = (i + n) % n; else i = Math.max(0, Math.min(n - 1, i));
+    if (i === el.selectedIndex) return;
+    el.selectedIndex = i;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    son('click');
+  }
+  function changerRange(el, d, grand) {
+    const v0 = el.value;
+    for (let i = 0; i < (grand ? 5 : 1); i++) { if (d > 0) el.stepUp(); else el.stepDown(); }
+    if (el.value === v0) return;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  // les onglets d'un calque : la barre M15 (sacoche), les onglets des Options, une barre .tabs à onglets
+  function onglets(L, d) {
+    const R = racine(L);
+    if (R.id === 'satchel' && typeof menus !== 'undefined') {
+      menus.voisin(d, false);
+      const on = $q('#satchel .m15-o.on');
+      if (on) { nav.mem.satchel = { sig: signature(on) }; focus(on); }
+      return true;
+    }
+    let B = $$q('.m21-onglets button', R);
+    if (B.length < 2) B = $$q(':scope > .tabs button', R).filter((b) => !b.matches(FERMER) && (b.dataset.tab || b.dataset.cmTab || b.getAttribute('role') === 'tab' || b.dataset.m15o));
+    if (B.length < 2) return false;
+    const i = Math.max(0, B.findIndex((b) => b.classList.contains('on')));
+    const b = B[(i + d + B.length) % B.length];
+    const sig = signature(b);
+    b.click();
+    const b2 = $$q(FOC, R).find((x) => signature(x) === sig);
+    if (b2) focus(b2);
+    return true;
+  }
+  function pages(L, d) {
+    const R = racine(L);
+    if (R.id === 'satchel' && typeof menus !== 'undefined') { menus.voisin(d, true); const on = $q('#satchel .m15-pages .on'); if (on) { nav.mem.satchel = { sig: signature(on) }; focus(on); } return; }
+    if (R.id === 'livre' && typeof livres !== 'undefined') { livres.tourner(d); return; }
+    const c = defilant(D.activeElement, L);
+    if (c) c.scrollTop += d * c.clientHeight * 0.85;
+  }
+  // l'action secondaire (Maj+Entrée, clic droit, X) : les quantités, la barre d'outils, sinon Maj+clic
+  function secondaire(el) {
+    const R = racine(el);
+    if (!R) return;
+    if (R.id === 'store' && (el.dataset.get || el.dataset.put)) { qteCoffre(el); return; }
+    // (la boutique : l'encart du marchand, avec sa quantité — jamais un achat par cinq sans le voir)
+    if (R.id === 'shop' && (el.dataset.buy || el.dataset.sell)) { el.click(); return; }
+    if (R.id === 'satchel' && (el.dataset.it || el.dataset.tok)) { choisirCase(el.dataset.it || el.dataset.tok); return; }
+    if (R.id === 'satchel' && el.dataset.slot !== undefined && typeof bar !== 'undefined') { bar.assign(+el.dataset.slot, null); ui.renderSatchel(); return; }
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, shiftKey: true }));
+  }
+  const saisieDe = (a) => !!a && (a.tagName === 'TEXTAREA' || a.isContentEditable || (a.tagName === 'INPUT' && /^(text|search|number|email|password|)$/.test(a.type)));
+
+  function clavier(e) {
+    if (typeof game === 'undefined' || typeof ui === 'undefined') return;
+    const c = e.code, a = D.activeElement;
+    // nos encarts d'abord (avant le jeu, qui fermerait le panneau)
+    if (qte.el && qte.el.isConnected) { if (qte.clavier(e)) return; }
+    else if (qte.el) qte.fermer();
+    if (conf.fin && (c === 'Escape')) { e.preventDefault(); e.stopImmediatePropagation(); conf.fin(false); return; }
+    const L = calque();
+    if (!L) return;
+    const navTouche = /^(Arrow|Page|Home$|End$|Tab$|Enter$|NumpadEnter$)/.test(c);
+    if (navTouche && e.isTrusted) { nav.mode(true); manette.marquer(false); }
+    if (e.defaultPrevented) return;
+    const R = racine(L);
+    const saisie = saisieDe(a) && L.contains(a);
+    // Échap : d'un cran (la recherche, une fiche du wiki) avant de fermer
+    if (c === 'Escape') {
+      if (saisie) { e.preventDefault(); e.stopImmediatePropagation(); if (a.classList.contains('m21-cherche') && a.value) { a.value = ''; a.dispatchEvent(new Event('input', { bubbles: true })); } else a.blur(); return; }
+      // une fiche du wiki ouverte : on revient à la liste (la fiche reste choisie dans la liste)
+      const W = typeof decouvertes !== 'undefined' ? decouvertes : null;
+      if (W && W.vue && W.vue.id && W.cible && R.contains(W.cible) && $q('.w15-fiche h3', R)) {
+        e.preventDefault(); e.stopImmediatePropagation();
+        const id = W.vue.id;
+        W.vue.id = null; W.rendre(W.cible); son('page');
+        const l = $q(`.w15-e[data-w15="${CSS.escape(id)}"]`, R) || $q('.w15-gt', R);
+        if (l && nav.clavier) focus(l);
+        return;
+      }
+      return;
+    }
+    // chercher : Ctrl+F ou /
+    if ((c === 'KeyF' && (e.ctrlKey || e.metaKey)) || (c === 'Slash' && !saisie && !e.ctrlKey)) {
+      const s = $q('.m21-cherche, .w15-cherche', R);
+      if (s && visible(s)) { e.preventDefault(); e.stopImmediatePropagation(); nav.mode(true); focus(s); try { s.select(); } catch (er) { /* rien */ } }
+      return;
+    }
+    if (!navTouche) return;
+    if (c === 'Tab') {
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (saisie || !onglets(L, e.shiftKey ? -1 : 1)) nav.suivant(L, e.shiftKey ? -1 : 1);
+      return;
+    }
+    if (saisie) {
+      if (a.closest('.m21-livre-outils') && (c === 'Enter' || c === 'NumpadEnter')) return;   // (le livre : Entrée cherche la page suivante)
+      if (c === 'ArrowDown' || ((c === 'Enter' || c === 'NumpadEnter') && (a.classList.contains('m21-cherche') || a.classList.contains('w15-cherche')))) {
+        e.preventDefault(); e.stopImmediatePropagation();
+        const items = cibles(L), i = items.indexOf(a);
+        const apres = items.slice(i + 1).find((x) => !x.closest('.m21-outils, .w15-tete'));
+        if (apres) focus(apres);
+      } else if (c === 'ArrowUp') { e.preventDefault(); nav.deplacer(L, 'haut'); }
+      return;
+    }
+    if (c === 'PageUp' || c === 'PageDown') { e.preventDefault(); e.stopImmediatePropagation(); pages(L, c === 'PageUp' ? -1 : 1); return; }
+    if (c === 'Home' || c === 'End') { const items = cibles(L); if (items.length) { e.preventDefault(); focus(c === 'Home' ? premier(L, items) : items[items.length - 1]); } return; }
+    if (c === 'Enter' || c === 'NumpadEnter') {
+      if (a && L.contains(a) && a !== L) { e.preventDefault(); e.stopImmediatePropagation(); nav.activer(a, e.shiftKey); }
+      else { const p = premier(L); if (p) { e.preventDefault(); focus(p); } }
+      return;
+    }
+    // les flèches
+    const dir = { ArrowUp: 'haut', ArrowDown: 'bas', ArrowLeft: 'gauche', ArrowRight: 'droite' }[c];
+    if (!dir) return;
+    const horiz = dir === 'gauche' || dir === 'droite';
+    if (R.hasAttribute('data-m21-fleches') || (R.id === 'livre' && horiz)) return;
+    if (horiz && e.shiftKey && R.id === 'satchel') return;          // Maj+← → : les pages (M15)
+    if (a && L.contains(a)) {
+      if (a.tagName === 'SELECT') { e.preventDefault(); if (horiz) { changerSelect(a, dir === 'droite' ? 1 : -1, false); return; } }
+      else if (a.tagName === 'INPUT' && a.type === 'range') { e.preventDefault(); if (horiz) { changerRange(a, dir === 'droite' ? 1 : -1, e.shiftKey); return; } }
+    }
+    e.preventDefault();
+    nav.deplacer(L, dir);
+  }
+  addEventListener('keydown', (e) => { try { clavier(e); } catch (err) { console.error('m21', err); } }, true);
+
+  // ce qui a le focus : on s'en souvient (pour le retrouver quand le panneau se redessine) ; l'infobulle au clavier
+  D.addEventListener('focusin', (e) => {
+    const t = e.target;
+    if (!t || !t.closest) return;
+    const R = t.closest('#paper > .pp-panel, .dialog, #menu, #death');
+    if (!R) return;
+    if (!t.closest('.m21-qte, .bu-encart, .cm-encart')) nav.mem[R.id || ''] = { sig: signature(t) };
+    if (R.id === 'satchel' && typeof ui !== 'undefined' && (t.dataset.it || t.dataset.tok)) ui.satHover = t.dataset.it || t.dataset.tok;
+    if (nav.clavier) bulle.viser(t, true);
+  }, true);
+  D.addEventListener('focusout', (e) => {
+    const t = e.target;
+    if (t && t.dataset && typeof ui !== 'undefined' && (t.dataset.it || t.dataset.tok) && ui.satHover === (t.dataset.it || t.dataset.tok)) ui.satHover = null;
+    if (bulle.cible === t) bulle.cacher();
+  }, true);
+  // après un redessin (le focus est perdu) : le même élément, ou le premier
+  function retrouver() {
+    if (!nav.clavier) return;
+    const a = D.activeElement;
+    if (a && a !== D.body && a.isConnected && visible(a)) return;
+    const L = calque();
+    if (!L) return;
+    const items = cibles(L);
+    const R = racine(L), mem = nav.mem[R.id || ''];
+    const el = (mem && items.find((x) => signature(x) === mem.sig)) || premier(L, items);
+    if (el) focus(el);
+  }
+
+  // ================================================================ la manette (Gamepad API)
+  const BOUTONS = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'Select', 'Start', 'L3', 'R3', 'haut', 'bas', 'gauche', 'droite'];
+  const DIRS = new Set(['haut', 'bas', 'gauche', 'droite']);
+  const manette = {
+    n: 0, prec: {}, rep: {}, ecouteurs: new Set(), demandes: new Set(), raf: 0, iv: 0, _active: false, t0: 0,
+    connectee() { return this.n > 0; },
+    active() { return this._active; },
+    marquer(on) { if (on === this._active) return; this._active = on; H.classList.toggle('m21-manette', on); majAides(); },
+    pad() {
+      let L = [];
+      try { L = navigator.getGamepads ? navigator.getGamepads() : []; } catch (e) { return null; }
+      let best = null;
+      for (const g of L) if (g && g.connected) { if (g.mapping === 'standard') return g; best = best || g; }
+      return best;
+    },
+    etat() {
+      const g = this.pad();
+      if (!g) return null;
+      const b = {};
+      BOUTONS.slice(0, 12).forEach((k, i) => { const x = g.buttons[i]; b[k] = x ? (x.value || (x.pressed ? 1 : 0)) : 0; });
+      ['haut', 'bas', 'gauche', 'droite'].forEach((k, i) => { const x = g.buttons[12 + i]; b[k] = x && x.pressed ? 1 : 0; });
+      return { boutons: b, gauche: [g.axes[0] || 0, g.axes[1] || 0], droite: [g.axes[2] || 0, g.axes[3] || 0] };
+    },
+    ecouter(fn) { this.ecouteurs.add(fn); return () => this.ecouteurs.delete(fn); },
+    demander(cle, on) { if (on) this.demandes.add(cle); else this.demandes.delete(cle); this.boucle(); },
+    vibrer(ms, fort = 0.6, faible = 0.3) {
+      if (!settings.m21Vibrer) return;
+      const g = this.pad(), v = g && g.vibrationActuator;
+      try { if (v && v.playEffect) v.playEffect('dual-rumble', { duration: ms, strongMagnitude: fort, weakMagnitude: faible }); } catch (e) { /* rien */ }
+    },
+    glyphe(b) { return glyphe(b); },
+    // la boucle : à chaque image si un menu est ouvert (ou si on la demande), sinon dix fois par seconde
+    boucle() {
+      const vif = this.n > 0 && (this.demandes.size > 0 || !!calque());
+      if (this.n <= 0) { if (this.raf) cancelAnimationFrame(this.raf); if (this.iv) clearInterval(this.iv); this.raf = 0; this.iv = 0; return; }
+      if (vif && !this.raf) {
+        if (this.iv) { clearInterval(this.iv); this.iv = 0; }
+        const f = (t) => { this.raf = 0; this.tick(t); if (this.n > 0 && (this.demandes.size > 0 || calque())) this.raf = requestAnimationFrame(f); else this.boucle(); };
+        this.raf = requestAnimationFrame(f);
+      } else if (!vif && !this.raf && !this.iv) {
+        this.iv = setInterval(() => { this.tick(performance.now()); if (this.demandes.size > 0 || calque()) { clearInterval(this.iv); this.iv = 0; this.boucle(); } }, 100);
+      }
+    },
+    tick(now) {
+      const g = this.pad();
+      if (!g) return;
+      const B = (i) => { const b = g.buttons[i]; return !!b && (b.pressed || b.value > 0.5); };
+      const ax = g.axes[0] || 0, ay = g.axes[1] || 0;
+      const st = {};
+      BOUTONS.slice(0, 12).forEach((k, i) => { st[k] = B(i); });
+      st.haut = B(12) || ay < -0.55; st.bas = B(13) || ay > 0.55; st.gauche = B(14) || ax < -0.55; st.droite = B(15) || ax > 0.55;
+      const dt = this.t0 ? Math.min(0.1, (now - this.t0) / 1000) : 0.016;
+      this.t0 = now;
+      for (const k of BOUTONS) {
+        if (st[k] !== !!this.prec[k]) {
+          for (const fn of this.ecouteurs) { try { fn({ bouton: k, appui: st[k] }); } catch (e) { console.error('m21 manette', e); } }
+          if (st[k]) { this.rep[k] = now + 380; this.presser(k); } else delete this.rep[k];
+        } else if (st[k] && DIRS.has(k) && now >= (this.rep[k] || Infinity)) { this.rep[k] = now + 110; this.presser(k); }
+      }
+      this.prec = st;
+      // le stick droit fait défiler
+      const ry = g.axes[3] || 0;
+      if (Math.abs(ry) > 0.25) { const L = calque(); const c = L && defilant(D.activeElement, L); if (c) c.scrollTop += ry * 900 * dt / (K || 1); }
+    },
+    presser(k) {
+      const L = calque();
+      if (!L) {
+        // en jeu : Start, le menu ; Select, le menu Tab
+        if (typeof game === 'undefined' || !game.world || game.dying) return;
+        // (pendant la pêche, la manette est au pêcheur : Select n'ouvre rien ; Start met toujours en pause)
+        if (k === 'Select' && typeof p21 !== 'undefined' && p21.actif && p21.actif()) return;
+        if (k === 'Start') { this.marquer(true); nav.mode(true); touche('Escape'); }
+        else if (k === 'Select' && game.kind === 'farm' && game.mode === 'play') { this.marquer(true); nav.mode(true); touche('Tab'); }
+        return;
+      }
+      this.marquer(true);
+      nav.mode(true);
+      const R = racine(L);
+      switch (k) {
+        case 'haut': touche('ArrowUp'); break;
+        case 'bas': touche('ArrowDown'); break;
+        case 'gauche': touche('ArrowLeft'); break;
+        case 'droite': touche('ArrowRight'); break;
+        case 'A': if (cibles(L).length) touche('Enter'); else touche('Space'); break;
+        case 'B': case 'Start': touche('Escape'); break;
+        case 'X': touche('Enter', { shift: true }); break;
+        case 'Y': { const s = $q('.m21-cherche, .w15-cherche', R); if (s && visible(s)) focus(s); else if (R.id === 'butin') touche('KeyT'); break; }
+        case 'LB': touche('Tab', { shift: true }); break;
+        case 'RB': touche('Tab'); break;
+        case 'LT': touche('PageUp'); break;
+        case 'RT': touche('PageDown'); break;
+        case 'Select': if (R.id === 'satchel') ui.close(); else touche('Escape'); break;
+        default: break;
+      }
+    },
+  };
+  const NOMS = { ArrowUp: 'ArrowUp', ArrowDown: 'ArrowDown', ArrowLeft: 'ArrowLeft', ArrowRight: 'ArrowRight', Enter: 'Enter', Escape: 'Escape', Tab: 'Tab', PageUp: 'PageUp', PageDown: 'PageDown', Space: ' ', KeyT: 't', KeyE: 'e' };
+  function touche(code, o) {
+    o = o || {};
+    const a = D.activeElement, t = a && a !== D.body && a.isConnected ? a : D.body;
+    const init = { code, key: NOMS[code] || code, shiftKey: !!o.shift, bubbles: true, cancelable: true };
+    t.dispatchEvent(new KeyboardEvent('keydown', init));
+    (D.activeElement && D.activeElement.isConnected ? D.activeElement : D.body).dispatchEvent(new KeyboardEvent('keyup', init));
+  }
+  addEventListener('gamepadconnected', () => { manette.n++; manette.boucle(); });
+  addEventListener('gamepaddisconnected', () => { manette.n = Math.max(0, manette.n - 1); if (!manette.pad()) manette.n = 0; manette.boucle(); if (!manette.n) manette.marquer(false); });
+
+  // les signes des boutons et des touches
+  function glyphe(b) {
+    if (b === 'A' || b === 'B' || b === 'X' || b === 'Y') return `<span class="m21-touche rond b-${b}">${b}</span>`;
+    if (/^(LB|RB|LT|RT|L3|R3)$/.test(b)) return `<span class="m21-touche long">${b}</span>`;
+    if (b === 'Start') return '<span class="m21-touche long">☰</span>';
+    if (b === 'Select') return '<span class="m21-touche long">⧉</span>';
+    if (b === 'croix') return '<span class="m21-touche">✛</span>';
+    return `<span class="m21-touche">${esc(b)}</span>`;
+  }
+  const NOMS_TOUCHES = { Space: 'Espace', Enter: 'Entrée', Escape: 'Échap', Tab: 'Tab', ShiftLeft: 'Maj', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', PageUp: 'Pg↑', PageDown: 'Pg↓', Mouse0: 'Clic', Mouse2: 'Clic droit' };
+  function nomTouche(code) { if (NOMS_TOUCHES[code]) return NOMS_TOUCHES[code]; const m = /^(Key|Digit|Numpad)(.+)$/.exec(code || ''); return m ? m[2] : String(code || ''); }
+  function toucheHTML(code, bouton) { return manette.active() && bouton ? glyphe(bouton) : `<span class="m21-touche">${esc(nomTouche(code))}</span>`; }
+
+  // ================================================================ la ligne des raccourcis
+  function aideHTML(R) {
+    const M = manette.active();
+    const k = (cl, ma) => (M ? ma.split(' ').map(glyphe).join('') : cl.split(' ').map((x) => `<span class="m21-touche">${esc(x)}</span>`).join(''));
+    const L = [];
+    const tabs = R.id === 'satchel' || $$q('.m21-onglets button', R).length > 1 || $$q(':scope > .tabs button', R).filter((b) => !b.matches(FERMER) && (b.dataset.tab || b.dataset.cmTab)).length > 1;
+    L.push([k('↑ ↓ ← →', 'croix'), 'se déplacer']);
+    L.push([k('Entrée', 'A'), 'valider']);
+    L.push([k('Échap', 'B'), R.id === 'menu' ? 'reprendre' : 'refermer']);
+    if (tabs) L.push([k('Tab', 'LB RB'), 'onglets']);
+    if (R.id === 'satchel' && $q('.m15-pages', R)) L.push([k('Pg↑ Pg↓', 'LT RT'), 'pages']);
+    if (R.id === 'livre') L.push([k('← →', 'LT RT'), 'tourner les pages']);
+    if (R.id === 'store') L.push([k('Maj+Entrée', 'X'), 'quantité']);
+    if (R.id === 'satchel' && $q('[data-it]', R)) L.push([k('Maj+Entrée', 'X'), 'barre d’outils']);
+    if ($q('.m21-cherche, .w15-cherche', R)) L.push([k('Ctrl+F', 'Y'), 'chercher']);
+    return L.map(([t, x]) => `<span>${t} ${esc(x)}</span>`).join('');
+  }
+  function poserAide(R) {
+    if (!R || R.id === 'fondterm' || R.id === 'admin') return;
+    let a = $q(':scope > .m21-aide', R);
+    const html = aideHTML(R);
+    if (!a) { a = D.createElement('div'); a.className = 'm21-aide'; a.setAttribute('aria-hidden', 'true'); R.appendChild(a); }
+    if (a._h !== html) { a.innerHTML = html; a._h = html; }
+  }
+  function majAides() {
+    const L = calque();
+    if (!L) return;
+    const R = racine(L);
+    if (R.classList.contains('dialog')) poserAide(R.querySelector('.box') || R);
+    else poserAide(R);
+  }
+
+  // ================================================================ l'infobulle d'objet
+  const bulle = {
+    el: null, cible: null, t: 0,
+    idDe(t) { const d = t.dataset; return d.it || d.buy || d.sell || d.get || d.put || null; },
+    viser(t, tout) {
+      if (!settings.m21Bulles || !t || !t.dataset) return;
+      const id = this.idDe(t);
+      if (!(id && typeof ITEMS !== 'undefined' && ITEMS[id]) && !t.dataset.m21Info) { if (this.cible) this.cacher(); return; }
+      clearTimeout(this.t);
+      if (tout) this.montrer(t); else this.t = setTimeout(() => this.montrer(t), 380);
+    },
+    montrer(t) {
+      if (!t.isConnected || !calque()) return;
+      const pap = D.getElementById('paper');
+      if (!pap || !pap.contains(t)) return;
+      if (!this.el || !this.el.isConnected) { this.el = D.createElement('div'); this.el.id = 'm21-bulle'; this.el.setAttribute('role', 'tooltip'); pap.appendChild(this.el); }
+      const id = this.idDe(t);
+      this.el.innerHTML = t.dataset.m21Info ? `<p style="margin:0">${esc(t.dataset.m21Info)}</p>` : infoObjet(id, t);
+      this.cible = t;
+      const k = K || 1, r = t.getBoundingClientRect(), W = innerWidth, Hh = innerHeight;
+      this.el.style.left = '0px'; this.el.style.top = '0px';
+      const b = this.el.getBoundingClientRect();
+      let x = r.right + 10, y = r.top;
+      if (x + b.width > W - 8) x = r.left - b.width - 10;
+      if (x < 8) { x = Math.max(8, Math.min(W - b.width - 8, r.left)); y = r.bottom + 8; if (y + b.height > Hh - 8) y = r.top - b.height - 8; }
+      y = Math.max(8, Math.min(Hh - b.height - 8, y));
+      this.el.style.left = (x / k) + 'px'; this.el.style.top = (y / k) + 'px';
+      this.el.classList.add('on');
+    },
+    cacher() { clearTimeout(this.t); this.cible = null; if (this.el) this.el.classList.remove('on'); },
+  };
+  function infoObjet(id, t) {
+    const it = typeof ITEMS !== 'undefined' && ITEMS[id];
+    if (!it) return '';
+    const cat = (typeof ITEM_CAT_NAMES !== 'undefined' && ITEM_CAT_NAMES[it.cat]) || '';
+    let desc = '';
+    try { desc = typeof butin !== 'undefined' && butin.description ? butin.description(id) : (it.desc || ''); } catch (e) { desc = it.desc || ''; }
+    let n = 0;
+    try { n = farm.s ? farm.count(id) : 0; } catch (e) { /* rien */ }
+    let rev = 0;
+    try { rev = ui.revente ? ui.revente(id) : 0; } catch (e) { /* rien */ }
+    const L = [];
+    if (t && t.dataset.get !== undefined && typeof ui !== 'undefined' && ui.store && ui.store.store) L.push(['Dans le coffre', ui.store.store[id] || 0]);
+    L.push(['Dans la sacoche', n]);
+    if (rev > 0) L.push(['Se revend', rev > 1 ? `jusqu’à ${rev} pièces` : 'une pièce']);
+    return `<div class="m21-b-tete"><img src="${iconURL(id)}" alt=""><div><b>${esc(itemName(id))}</b>${cat ? `<small>${esc(cat)}</small>` : ''}</div></div>${desc ? `<p>${esc(desc)}</p>` : ''}${L.map(([a, b]) => `<div class="m21-b-l"><span>${esc(a)}</span><b>${esc(String(b))}</b></div>`).join('')}`;
+  }
+
+  // ================================================================ l'encart des quantités
+  const qte = {
+    el: null, voile: null, o: null, k: 1,
+    ouvrir(o) {
+      const P = typeof ui !== 'undefined' && ui.panel ? $q(ui.panel) : null;
+      if (!P) return false;
+      this.fermer();
+      bulle.cacher();
+      this.o = o;
+      const min = o.min === undefined ? 1 : o.min, max = Math.max(min, o.max | 0);
+      this.k = Math.max(min, Math.min(max, o.valeur === undefined ? 1 : o.valeur));
+      const v = D.createElement('div'); v.className = 'm21-qte-voile'; v.onclick = () => this.fermer();
+      const d = D.createElement('div'); d.className = 'm21-qte'; d.setAttribute('role', 'dialog');
+      const tete = `<div class="m21-q-tete">${o.id ? `<img src="${iconURL(o.id)}" alt="">` : ''}<div><b>${esc(o.titre || (o.id ? itemName(o.id) : ''))}</b>${o.sous ? `<small>${esc(o.sous)}</small>` : ''}</div></div>`;
+      if (o.cases) {
+        d.innerHTML = `${tete}<div class="m21-q-cases">${o.cases.map((c, i) => `<button class="m21-btn${c.on ? ' prim' : ''}" data-qc="${i}">${esc(c.nom)}</button>`).join('')}</div>
+          <div class="m21-q-actions"><button class="m21-btn" data-q="non">Annuler</button></div>`;
+        d.querySelectorAll('[data-qc]').forEach((b) => (b.onclick = () => { const c = o.cases[+b.dataset.qc]; this.fermer(); if (c && c.fn) c.fn(); }));
+      } else {
+        d.innerHTML = `${tete}
+          <div class="m21-q-ligne"><span>Combien ?</span><button class="m21-btn" data-q="-" aria-label="Un de moins">−</button><input class="m21-q-n" type="text" inputmode="numeric" value="${this.k}" aria-label="Quantité"><button class="m21-btn" data-q="+" aria-label="Un de plus">+</button><button class="m21-btn" data-q="max">Tout (${max})</button></div>
+          <input class="m21-q-r" type="range" min="${min}" max="${max}" step="1" value="${this.k}" aria-label="Quantité" data-m21-nav="non">
+          ${o.prix ? '<div class="m21-q-total"><span>Total</span><b></b></div>' : ''}
+          <div class="m21-q-actions"><button class="m21-btn" data-q="non">Annuler</button><button class="m21-btn prim" data-q="oui">${esc(o.verbe || 'Valider')}</button></div>
+          <div class="m21-q-aide">← → un de plus ou de moins · ↑ ↓ dix · Entrée : valider · Échap : annuler</div>`;
+        d.querySelector('[data-q="-"]').onclick = () => this.ajuster(-1);
+        d.querySelector('[data-q="+"]').onclick = () => this.ajuster(1);
+        d.querySelector('[data-q="max"]').onclick = () => this.poser(max);
+        d.querySelector('[data-q="oui"]').onclick = () => this.valider();
+        const inp = d.querySelector('.m21-q-n');
+        inp.oninput = () => { const x = parseInt(inp.value.replace(/\D/g, ''), 10); if (x > 0) this.poser(x, true); };
+        inp.onchange = () => { inp.value = this.k; };
+        const rg = d.querySelector('.m21-q-r');
+        rg.oninput = () => this.poser(+rg.value);
+      }
+      d.querySelector('[data-q="non"]').onclick = () => this.fermer();
+      P.appendChild(v); P.appendChild(d);
+      this.el = d; this.voile = v;
+      this.poser(this.k, true);
+      son('page');
+      const f = d.querySelector('[data-q="oui"]') || d.querySelector('.m21-btn.prim') || d.querySelector('[data-qc]');
+      if (f) focus(f);
+      return true;
+    },
+    poser(k, garderSaisie) {
+      const o = this.o, d = this.el;
+      if (!o || !d || o.cases) return;
+      const min = o.min === undefined ? 1 : o.min, max = Math.max(min, o.max | 0);
+      this.k = Math.max(min, Math.min(max, Math.round(k)));
+      const inp = d.querySelector('.m21-q-n'), rg = d.querySelector('.m21-q-r'), tot = d.querySelector('.m21-q-total b');
+      if (inp && !garderSaisie) inp.value = this.k; else if (inp && D.activeElement !== inp) inp.value = this.k;
+      if (rg) rg.value = this.k;
+      if (tot) { const t = this.k * o.prix; tot.textContent = t > 1 ? `${t} pièces` : t === 1 ? 'Une pièce' : 'Rien'; }
+    },
+    ajuster(d) { this.poser(this.k + d); son('click'); },
+    valider() { const o = this.o, k = this.k; this.fermer(); if (o && o.ok && k > 0) o.ok(k); },
+    fermer() {
+      if (this.el) this.el.remove();
+      if (this.voile) this.voile.remove();
+      const ok = !!this.el;
+      this.el = null; this.voile = null; this.o = null;
+      if (ok && nav.clavier) queueMicrotask(retrouver);
+    },
+    // ← → ±1, ↑ ↓ ±10, Entrée, Échap ; vrai si la touche est prise
+    clavier(e) {
+      const c = e.code, a = D.activeElement;
+      const prendre = () => { e.preventDefault(); e.stopImmediatePropagation(); };
+      if (c === 'Escape') { prendre(); this.fermer(); return true; }
+      if (this.o && this.o.cases) {
+        if (c === 'Tab' || /^Arrow/.test(c)) { prendre(); nav.mode(true); const B = $$q('button', this.el), i = B.indexOf(a); const d = c === 'ArrowLeft' || c === 'ArrowUp' || (c === 'Tab' && e.shiftKey) ? -1 : 1; focus(B[i < 0 ? 0 : (i + d + B.length) % B.length]); return true; }
+        if (c === 'Enter' || c === 'NumpadEnter') { prendre(); if (a && this.el.contains(a)) a.click(); return true; }
+        return false;
+      }
+      const saisie = a && a.classList && a.classList.contains('m21-q-n');
+      if (c === 'Enter' || c === 'NumpadEnter') { prendre(); if (a && a.dataset && a.dataset.q === 'non') this.fermer(); else this.valider(); return true; }
+      if (c === 'ArrowLeft' || c === 'ArrowRight') { if (saisie && e.isTrusted) return false; prendre(); this.ajuster(c === 'ArrowRight' ? (e.shiftKey ? 10 : 1) : (e.shiftKey ? -10 : -1)); return true; }
+      if (c === 'ArrowUp' || c === 'ArrowDown') { prendre(); this.ajuster(c === 'ArrowUp' ? 10 : -10); return true; }
+      if (c === 'Tab') { prendre(); nav.mode(true); const B = cibles(this.el), i = B.indexOf(a); focus(B[i < 0 ? 0 : (i + (e.shiftKey ? -1 : 1) + B.length) % B.length]); return true; }
+      if (c === 'Home' || c === 'End') { prendre(); this.poser(c === 'Home' ? 0 : 1e9); return true; }
+      return false;
+    },
+  };
+  // le coffre : prendre ou déposer un nombre choisi (le bouton d'origine, appelé autant de fois, sans redessiner entre deux)
+  function qteCoffre(b) {
+    const get = b.dataset.get !== undefined, id = get ? b.dataset.get : b.dataset.put;
+    const src = get ? (ui.store && ui.store.store) : farm.s.inv;
+    const max = (src && src[id]) || 0, f0 = b.onclick;
+    if (!f0 || max <= 0) return;
+    if (max === 1) { f0.call(b, { shiftKey: false, ctrlKey: false, preventDefault() {}, stopPropagation() {} }); return; }
+    qte.ouvrir({ id, sous: get ? 'Prendre dans le coffre' : 'Déposer', max, valeur: max, verbe: get ? 'Prendre' : 'Déposer', ok: (n) => {
+      const R = ui.renderStore;
+      ui.renderStore = function () {};
+      try {
+        if (n >= max) f0.call(b, { shiftKey: true, ctrlKey: false, preventDefault() {}, stopPropagation() {} });
+        else for (let i = 0; i < n; i++) f0.call(b, { shiftKey: false, ctrlKey: false, preventDefault() {}, stopPropagation() {} });
+      } catch (e) { console.error('m21 coffre', e); } finally { ui.renderStore = R; }
+      if (ui.panel === '#store') ui.renderStore();
+      son('pop');
+    } });
+  }
+  // la sacoche : mettre un objet dans la barre d'outils (sans glisser)
+  function choisirCase(id) {
+    if (typeof bar === 'undefined' || !farm.s || !Array.isArray(farm.s.bar)) return;
+    const nom = typeof BAR_TOKENS !== 'undefined' && BAR_TOKENS[id] ? BAR_TOKENS[id].name : itemName(id);
+    qte.ouvrir({ id: ITEMS[id] ? id : null, titre: nom, sous: 'Dans quelle case de la barre d’outils ?', cases: farm.s.bar.map((tok, i) => ({ nom: String(i + 1), on: tok === id, fn: () => { bar.assign(i, id); ui.renderSatchel(); son('click'); } })) });
+  }
+
+  // ================================================================ la confirmation (dans le style du jeu, à la manette)
+  const conf = { fin: null };
+  function confirmer(o) {
+    o = o || {};
+    return new Promise((res) => {
+      if (conf.fin) conf.fin(false);
+      let d = D.getElementById('m21-confirmer');
+      if (!d) { d = D.createElement('div'); d.id = 'm21-confirmer'; d.className = 'screen dialog'; D.body.appendChild(d); }
+      d.innerHTML = `<div class="box" role="alertdialog"><h2>${esc(o.titre || 'Êtes-vous sûr ?')}</h2>${o.texte ? `<p>${esc(o.texte)}</p>` : ''}<div class="actions"><button data-c="non">${esc(o.non || 'Non')}</button><button class="primary" data-c="oui">${esc(o.oui || 'Oui')}</button></div></div>`;
+      d.classList.add('open');
+      conf.fin = (v) => { conf.fin = null; d.classList.remove('open'); manette.boucle(); if (nav.clavier) queueMicrotask(retrouver); res(!!v); };
+      d.querySelector('[data-c="oui"]').onclick = () => conf.fin && conf.fin(true);
+      d.querySelector('[data-c="non"]').onclick = () => conf.fin && conf.fin(false);
+      son('click');
+      manette.boucle();
+      if (nav.clavier) focus(d.querySelector('[data-c="non"]'));
+      poserAide(d.querySelector('.box'));
+    });
+  }
+
+  // ================================================================ recherche, tri, filtre d'une liste
+  const ETATS = {};
+  function outils(cont, o) {
+    if (!cont || !o) return null;
+    const items = typeof o.items === 'function' ? o.items(cont) : $$q(o.items, cont);
+    if (!items.length || items.length < (o.min || 0)) return null;   // (rien à chercher : pas de barre)
+    const cle = o.cle || 'liste';
+    const tris = o.tris || [];
+    const place = typeof o.place === 'function' ? o.place(cont) : o.place;
+    const st = ETATS[cle] || (ETATS[cle] = { q: '', tri: tris[0] ? tris[0].id : '', f: '' });
+    const filtres = typeof o.filtres === 'function' ? o.filtres(items) : (o.filtres || []);
+    if (st.f && !filtres.some((f) => f.id === st.f)) st.f = '';
+    const hote = place ? place.parentNode : cont;
+    const vieille = hote && $q(`:scope > .m21-outils[data-m21-cle="${cle}"]`, hote);
+    if (vieille) vieille.remove();
+    // les titres de groupe (ceux qui précèdent une liste de ces éléments), relevés avant tout déplacement
+    const tetes = o.groupes ? $$q(o.groupes, cont).filter((h) => h.nextElementSibling && items.some((el) => h.nextElementSibling.contains(el))) : [];
+    const barre = D.createElement('div');
+    barre.className = 'm21-outils';
+    barre.dataset.m21Cle = cle;
+    barre.innerHTML = `<input type="text" class="m21-cherche" role="searchbox" placeholder="${esc(o.placeholder || 'Chercher…')}" value="${esc(st.q)}" aria-label="Chercher" spellcheck="false" autocomplete="off">`
+      + (tris.length > 1 ? `<label class="m21-sel"><span>Trier</span><select class="m21-tri" aria-label="Trier">${tris.map((t) => `<option value="${esc(t.id)}"${t.id === st.tri ? ' selected' : ''}>${esc(t.nom)}</option>`).join('')}</select></label>` : '')
+      + (filtres.length ? `<label class="m21-sel"><span>Montrer</span><select class="m21-filtre" aria-label="Montrer"><option value="">Tout</option>${filtres.map((f) => `<option value="${esc(f.id)}"${f.id === st.f ? ' selected' : ''}>${esc(f.nom)}</option>`).join('')}</select></label>` : '')
+      + '<span class="m21-n"></span>';
+    if (place) place.parentNode.insertBefore(barre, place); else cont.insertBefore(barre, cont.firstChild);
+    for (const el of items) el._m21t = norm(o.texte ? o.texte(el) : el.textContent);
+    // le tri : chaque liste dans son parent, ou toutes à plat dans le premier (o.plat)
+    const T = tris.find((t) => t.id === st.tri);
+    if (T && T.cle) {
+      const val = new Map(items.map((el) => [el, T.cle(el)]));
+      const cmp = (a, b) => { const x = val.get(a), y = val.get(b); const r = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'fr'); return T.desc ? -r : r; };
+      if (o.plat) {
+        const g0 = items[0].parentNode;
+        for (const el of items.slice().sort(cmp)) g0.appendChild(el);
+        for (const h of tetes) h.classList.add('m21-cache');
+      } else {
+        // chaque liste reste à sa place dans son parent (on range devant une ancre posée au premier élément)
+        const par = new Map();
+        for (const el of items) { const p = el.parentNode; if (!par.has(p)) par.set(p, []); par.get(p).push(el); }
+        for (const [p, L] of par) {
+          const ancre = D.createComment('m21');
+          p.insertBefore(ancre, L[0]);
+          for (const el of L.slice().sort(cmp)) p.insertBefore(el, ancre);
+          ancre.remove();
+        }
+      }
+    }
+    const nEl = barre.querySelector('.m21-n');
+    let vide = null;
+    const appliquer = () => {
+      const q = norm(st.q), F = filtres.find((f) => f.id === st.f);
+      let n = 0;
+      for (const el of items) { const ok = (!q || el._m21t.includes(q)) && (!F || F.test(el)); el.classList.toggle('m21-cache', !ok); if (ok) n++; }
+      if (!(T && T.cle && o.plat)) {
+        for (const h of tetes) {
+          const g = h.nextElementSibling, dans = items.filter((el) => g.contains(el));
+          h.classList.toggle('m21-cache', !dans.some((el) => !el.classList.contains('m21-cache')));
+        }
+      }
+      nEl.textContent = q || F ? `${n} / ${items.length}` : String(items.length);
+      if (!n && (q || F) && !vide) { vide = D.createElement('p'); vide.className = 'm21-vide'; vide.textContent = 'Rien ne correspond.'; barre.after(vide); }
+      else if ((n || !(q || F)) && vide) { vide.remove(); vide = null; }
+    };
+    const refaire = o.refaire || (() => { if (typeof menus !== 'undefined') menus.rafraichir(); });
+    const inp = barre.querySelector('.m21-cherche');
+    inp.oninput = () => { st.q = inp.value; appliquer(); };
+    inp.onkeydown = (e) => { if (/^Arrow(Left|Right)$/.test(e.code)) e.stopPropagation(); };
+    const sel = barre.querySelector('.m21-tri');
+    if (sel) sel.onchange = () => { st.tri = sel.value; refaire(); };
+    const fil = barre.querySelector('.m21-filtre');
+    if (fil) fil.onchange = () => { st.f = fil.value; appliquer(); };
+    appliquer();
+    return barre;
+  }
+
+  // ================================================================ décorer les panneaux (après chaque dessin)
+  const LISTES = {
+    // la sacoche, page Objets
+    sac: {
+      cle: 'sac', min: 6, items: (b) => $$q('.grid .it[data-it]', b), groupes: 'h4', plat: true,
+      texte: (el) => { const it = ITEMS[el.dataset.it]; return itemName(el.dataset.it) + ' ' + ((it && ITEM_CAT_NAMES[it.cat]) || ''); },
+      tris: [
+        { id: 'cat', nom: 'Par catégorie' },
+        { id: 'nom', nom: 'Par nom', cle: (el) => norm(itemName(el.dataset.it)) },
+        { id: 'qte', nom: 'Par nombre', desc: true, cle: (el) => (farm.s && farm.s.inv[el.dataset.it]) || 0 },
+        { id: 'prix', nom: 'Par valeur', desc: true, cle: (el) => { const it = ITEMS[el.dataset.it]; return ((it && it.price) || 0) * ((farm.s && farm.s.inv[el.dataset.it]) || 1); } },
+      ],
+      filtres: (items) => {
+        const cats = new Set(items.map((el) => ITEMS[el.dataset.it] && ITEMS[el.dataset.it].cat));
+        return Object.keys(ITEM_CAT_NAMES).filter((c) => cats.has(c)).map((c) => ({ id: c, nom: ITEM_CAT_NAMES[c], test: (el) => ITEMS[el.dataset.it] && ITEMS[el.dataset.it].cat === c }));
+      },
+    },
+  };
+  // l'établi : ce que l'on sait faire
+  LISTES.fab = {
+    cle: 'fab', min: 8, items: (b) => $$q(':scope > .rec', b),
+    texte: (el) => el.textContent,
+    tris: [{ id: 'ordre', nom: 'Dans l’ordre' }, { id: 'nom', nom: 'Par nom', cle: (el) => norm((el.querySelector('b') || el).textContent) }],
+    filtres: [{ id: 'possible', nom: 'Faisable maintenant', test: (el) => el.classList.contains('ok') }],
+  };
+  function decorerMenu(P) {
+    const body = $q(':scope > .body', P);
+    if (!body || body._m21) return;
+    body._m21 = true;
+    const id = ui.satTab, page = typeof menus !== 'undefined' && menus.pages[id];
+    // la page Objets : outils sous la bourse (avant les catégories)
+    if (id === 'sac') {
+      const g = $q('.grid', body), h = g && g.previousElementSibling && g.previousElementSibling.tagName === 'H4' ? g.previousElementSibling : g;
+      if (h) outils(body, Object.assign({}, LISTES.sac, { place: h }));
+      for (const el of $$q('.barcfg [data-slot], .barcfg [data-tok]', body)) if (!el.hasAttribute('tabindex')) el.tabIndex = 0;
+      const ind = $$q(':scope > p.hint', body).pop();
+      if (ind && $q('.grid [data-it]', body) && !$q('.m21-pied', ind)) ind.insertAdjacentHTML('beforeend', ' <span class="m21-pied">Clic droit : le ranger dans une case de la barre d’outils.</span>');
+    } else if (id === 'fab') {
+      const r0 = $q(':scope > .rec', body);
+      if (r0) outils(body, Object.assign({}, LISTES.fab, { place: r0 }));
+    } else if (page && page.outils) {
+      try { outils(body, page.outils); } catch (e) { console.error('m21 outils', e); }
+    }
+    // une longue page : « Aller à » les titres
+    if (!(page && (page.sommaire === false || page.outils)) && id !== 'sac' && id !== 'wiki') {
+      const T = $$q('h4', body).filter((h) => !h.closest('.barcfg, .m21-outils, .fiche') && visible(h));
+      if (T.length >= 4 && body.scrollHeight > body.clientHeight * 1.4) {
+        const s = D.createElement('div');
+        s.className = 'm21-sommaire';
+        s.innerHTML = '<span>Aller à :</span>' + T.map((h, i) => `<button type="button" data-m21h="${i}">${esc(h.textContent.replace(/\s+/g, ' ').trim().slice(0, 34))}</button>`).join('');
+        body.insertBefore(s, body.firstChild);
+        s.querySelectorAll('[data-m21h]').forEach((b) => (b.onclick = () => {
+          const h = T[+b.dataset.m21h];
+          if (!h) return;
+          body.scrollTop += (h.getBoundingClientRect().top - body.getBoundingClientRect().top) / (K || 1) - 6;
+          if (nav.clavier) { const items = cibles(P), apres = items.find((x) => h.compareDocumentPosition(x) & Node.DOCUMENT_POSITION_FOLLOWING && !s.contains(x)); if (apres) focus(apres); }
+        }));
+      }
+    }
+    // la croix : « Refermer (Échap) »
+    const x = $q(':scope > .tabs [data-close]', P);
+    if (x) x.title = 'Refermer (Échap)';
+  }
+  function decorerBoutique(P) {
+    const body = $q(':scope > .body', P);
+    if (!body || body._m21) return;
+    body._m21 = true;
+    outils(P, { cle: 'boutique', min: 12, place: body, items: (c) => $$q('.row[data-buy], .row[data-sell]', c), refaire: () => ui.renderShop(),
+      tris: [{ id: 'ordre', nom: 'Dans l’ordre' }, { id: 'prix', nom: 'Par prix', cle: (el) => +el.dataset.p || 0 }, { id: 'nom', nom: 'Par nom', cle: (el) => norm(el.textContent) }],
+      filtres: [{ id: 'moyens', nom: 'Dans mes moyens', test: (el) => !el.dataset.buy || (+el.dataset.p || 0) <= ((farm.s && farm.s.money) || 0) }] });
+  }
+  function decorerCoffre(P) {
+    const body = $q(':scope > .body', P);
+    if (!body || body._m21) return;
+    body._m21 = true;
+    // le pied : comment choisir le nombre (un texte à part : celui d'origine garde sa traduction)
+    const pied = $q(':scope > .foot', P);
+    if (pied && !$q('.m21-pied', pied)) pied.insertAdjacentHTML('beforeend', ' <span class="m21-pied">· clic droit : choisir le nombre</span>');
+    outils(P, { cle: 'coffre', min: 14, place: body, items: (c) => $$q('.it[data-get], .it[data-put]', c), refaire: () => ui.renderStore(),
+      tris: [{ id: 'ordre', nom: 'Dans l’ordre' }, { id: 'nom', nom: 'Par nom', cle: (el) => norm(itemName(el.dataset.get || el.dataset.put)) }, { id: 'qte', nom: 'Par nombre', desc: true, cle: (el) => +((el.querySelector('i') || {}).textContent || 0) }] });
+  }
+  const CROIX = ':scope > .tabs .x, :scope > .tabs [data-close], .r15-haut .close, .ft-head .x, :scope > .m21-x';
+  function decorer(P) {
+    if (!P || !P.classList.contains('open')) return;
+    if (P.id !== 'fondterm' && P.id !== 'admin' && !$q(CROIX, P)) {
+      const x = D.createElement('button');
+      x.type = 'button'; x.className = 'm21-x'; x.title = 'Refermer (Échap)'; x.setAttribute('aria-label', 'Refermer'); x.textContent = '✕';
+      x.onclick = () => ui.close();
+      P.appendChild(x);
+    }
+    // l'infobulle remplace le titre natif des objets
+    if (settings.m21Bulles) for (const el of $$q('[data-it][title], [data-buy][title], [data-sell][title], [data-get][title], [data-put][title]', P)) { el.dataset.m21Titre = el.title; el.removeAttribute('title'); }
+    if (P.id === 'satchel') decorerMenu(P);
+    else if (P.id === 'shop') decorerBoutique(P);
+    else if (P.id === 'store') decorerCoffre(P);
+    poserAide(P);
+  }
+  // l'observateur : un panneau redessiné (pas le texte qui s'écrit) → on décore, on retrouve le focus
+  let enCours = false;
+  function surMutations(recs) {
+    if (enCours || typeof ui === 'undefined' || !ui.panel) return;
+    const P = $q(ui.panel);
+    if (!P || !P.classList.contains('open')) return;
+    let utile = false;
+    for (const r of recs) { const t = r.target; if (t === P || (t.parentNode === P) || (t.classList && (t.classList.contains('body') || t.classList.contains('opts')))) { utile = true; break; } }
+    if (!utile) { if (nav.clavier) retrouver(); return; }
+    enCours = true;
+    try { decorer(P); retrouver(); } catch (e) { console.error('m21', e); } finally { enCours = false; obsPaper.takeRecords(); }
+  }
+  const obsPaper = new MutationObserver(surMutations);
+
+  // ================================================================ les Options : onglets, réglages nouveaux
+  let optSec = 0;
+  function ongletsOptions() {
+    const box = $q('#dlg-options .box'), cols = $q('#dlg-options .cols');
+    if (!box || !cols) return;
+    const secs = [];
+    let cur = null;
+    for (const el of cols.children) {
+      if (el.matches('h4.m15-sec')) { cur = { nom: el.textContent, els: [] }; secs.push(cur); }
+      else if (cur) cur.els.push(el);
+    }
+    if (secs.length < 2) return;
+    if (optSec >= secs.length) optSec = 0;
+    let barre = $q(':scope > .m21-onglets', box);
+    if (!barre) { barre = D.createElement('div'); barre.className = 'm21-onglets'; barre.setAttribute('role', 'tablist'); box.insertBefore(barre, cols); }
+    barre.innerHTML = secs.map((s, i) => `<button type="button" role="tab" data-m21sec="${i}" class="${i === optSec ? 'on' : ''}" aria-selected="${i === optSec}">${esc(s.nom)}</button>`).join('');
+    secs.forEach((s, i) => { for (const el of s.els) el.classList.toggle('m21-cache', i !== optSec); });
+    barre.querySelectorAll('[data-m21sec]').forEach((b) => (b.onclick = () => { optSec = +b.dataset.m21sec; ongletsOptions(); son('page'); }));
+  }
+  // (les quatre réglages sont dans src/shell.html, où le wiki les lit ; recréés ici s'ils manquaient)
+  function installerOptions() {
+    const cols = $q('#dlg-options .cols');
+    if (!cols || installerOptions.fait) return;
+    installerOptions.fait = true;
+    if (!$q('#o-m21-echelle')) creerOptions(cols);
+    lierOptions();
+  }
+  function creerOptions(cols) {
+    const l1 = D.createElement('label');
+    l1.innerHTML = `Taille de l’interface <output id="o-m21-echelle-v"></output><select id="o-m21-echelle">${ECHELLES.map((v) => `<option value="${v}">${v === 'auto' ? 'Automatique (selon l’écran)' : Math.round(v * 100) + ' %'}</option>`).join('')}</select>`;
+    const l2 = D.createElement('label'); l2.className = 'row';
+    l2.innerHTML = '<input type="checkbox" id="o-m21-calme"> Réduire les animations';
+    const l3 = D.createElement('label'); l3.className = 'row';
+    l3.innerHTML = '<input type="checkbox" id="o-m21-bulles"> Infobulles des objets';
+    const l4 = D.createElement('label'); l4.className = 'row';
+    l4.innerHTML = '<input type="checkbox" id="o-m21-vibrer"> Vibrations de la manette';
+    cols.append(l1, l2, l3, l4);
+  }
+  function lierOptions() {
+    const se = $q('#o-m21-echelle');
+    se.value = String(settings.m21Echelle);
+    if (se.selectedIndex < 0) se.value = 'auto';
+    se.onchange = () => { settings.m21Echelle = se.value === 'auto' ? 'auto' : +se.value; sauver(); appliquerEchelle(); };
+    const sc = $q('#o-m21-calme');
+    sc.checked = calme();
+    sc.onchange = () => { settings.m21Calme = sc.checked; sauver(); appliquerCalme(); };
+    const sb = $q('#o-m21-bulles');
+    sb.checked = !!settings.m21Bulles;
+    sb.onchange = () => { settings.m21Bulles = sb.checked; sauver(); if (!sb.checked) bulle.cacher(); };
+    const sv = $q('#o-m21-vibrer');
+    sv.checked = !!settings.m21Vibrer;
+    sv.onchange = () => { settings.m21Vibrer = sv.checked; sauver(); if (sv.checked) manette.vibrer(160, 0.5, 0.3); };
+    appliquerEchelle();
+  }
+  // une option d'un autre module, rangée dans une section
+  function option(section, el) {
+    const cols = $q('#dlg-options .cols');
+    if (!cols || !el) return;
+    cols.appendChild(el);
+    const inp = el.matches('input, select') ? el : el.querySelector('input, select');
+    if (inp && inp.id && typeof menus !== 'undefined' && Array.isArray(menus.SECTIONS)) {
+      const S = menus.SECTIONS.find(([n]) => n === section);
+      if (S && !S[1].includes(inp.id)) S[1].push(inp.id);
+    }
+  }
+
+  // ================================================================ le wiki : tri et filtre
+  const wiki = { tri: 'nom', montrer: '' };
+  function brancherWiki() {
+    if (typeof decouvertes === 'undefined' || decouvertes._m21) return;
+    decouvertes._m21 = true;
+    const _c = decouvertes.connues.bind(decouvertes);
+    decouvertes.connues = function () {
+      const G = _c();
+      if (!wiki.montrer && wiki.tri === 'nom') return G;
+      const D2 = this.S();
+      for (const g in G) {
+        let L = G[g];
+        if (wiki.montrer) L = L.filter(([id, F]) => { const c = this.complet(id, F); return wiki.montrer === 'fini' ? c : !c; });
+        if (wiki.tri === 'recent') L = L.slice().sort((a, b) => (((D2.pages[b[0]] || {}).j || 0) - ((D2.pages[a[0]] || {}).j || 0)) || a[1].titre.localeCompare(b[1].titre, 'fr'));
+        else if (wiki.tri === 'afaire') L = L.slice().sort((a, b) => (this.complet(a[0], a[1]) - this.complet(b[0], b[1])) || a[1].titre.localeCompare(b[1].titre, 'fr'));
+        G[g] = L;
+      }
+      return G;
+    };
+    const _r = decouvertes.rendre.bind(decouvertes);
+    decouvertes.rendre = function (el) {
+      _r(el);
+      try {
+        const tete = el && $q('.w15-tete', el);
+        if (!tete || $q('.m21-sel', tete)) return;
+        const s = D.createElement('span');
+        s.innerHTML = `<label class="m21-sel"><span>Trier</span><select class="m21-wtri" aria-label="Trier"><option value="nom">De A à Z</option><option value="recent">Les plus récentes</option><option value="afaire">À compléter d’abord</option></select></label> <label class="m21-sel"><span>Montrer</span><select class="m21-wmontrer" aria-label="Montrer"><option value="">Tout</option><option value="afaire">À compléter</option><option value="fini">Complètes</option></select></label>`;
+        const n = $q('.w15-n', tete);
+        tete.insertBefore(s, n || null);
+        const st = $q('.m21-wtri', s), sm = $q('.m21-wmontrer', s);
+        st.value = wiki.tri; sm.value = wiki.montrer;
+        st.onchange = () => { wiki.tri = st.value; decouvertes.rendre(el); const b = $q('.m21-wtri', el); if (b && nav.clavier) focus(b); };
+        sm.onchange = () => { wiki.montrer = sm.value; decouvertes.rendre(el); const b = $q('.m21-wmontrer', el); if (b && nav.clavier) focus(b); };
+      } catch (e) { console.error('m21 wiki', e); }
+    };
+  }
+
+  // ================================================================ les livres : sommaire et recherche
+  const livreEtat = { q: '' };
+  function brancherLivres() {
+    if (typeof livres === 'undefined' || livres._m21) return;
+    livres._m21 = true;
+    const _r = livres.rendre.bind(livres);
+    livres.rendre = function () {
+      _r();
+      try {
+        const C = this.cur, el = $q('#livre');
+        if (!C || !el || C.pages.length < 9 || C.limite !== undefined) return;
+        const nav0 = $q(':scope > .nav', el);
+        if (!nav0) return;
+        const txt = (p) => norm((p.titre || '') + ' ' + String(p.html || p.texte || '').replace(/<[^>]+>/g, ' '));
+        const som = [];
+        C.pages.forEach((p, i) => { if (i > 0 && p.titre && !/\(suite\)\s*$/.test(p.titre)) som.push([i, p.titre]); });
+        const o = D.createElement('div');
+        o.className = 'm21-livre-outils';
+        o.innerHTML = (som.length > 2 ? `<label class="m21-sel"><span>Sommaire</span><select class="m21-som" aria-label="Sommaire"><option value="">—</option>${som.map(([i, t]) => `<option value="${i}">${esc(t)}</option>`).join('')}</select></label>` : '')
+          + `<input type="text" class="m21-cherche" role="searchbox" placeholder="Chercher dans le livre…" value="${esc(livreEtat.q)}" aria-label="Chercher dans le livre" spellcheck="false" autocomplete="off"><span class="m21-n"></span>`;
+        el.insertBefore(o, nav0);
+        const sel = $q('.m21-som', o);
+        if (sel) {
+          const cur = som.filter(([i]) => Math.floor(i / 2) <= C.spread).pop();
+          if (cur) sel.value = String(cur[0]);
+          sel.onchange = () => { const i = +sel.value; if (!(i > 0)) return; C.spread = Math.floor(i / 2); if (!C.opts.surPlace) this.S().marque[C.id] = C.spread; son('page'); this.rendre(); const s2 = $q('#livre .m21-som'); if (s2 && nav.clavier) focus(s2); };
+        }
+        const inp = $q('.m21-cherche', o), nEl = $q('.m21-n', o);
+        const marquer = () => {
+          const q = norm(livreEtat.q);
+          for (const f of $$q('#livre .fiche')) f.classList.toggle('m21-trouve', !!q && norm(f.textContent).includes(q));
+          if (!q) { nEl.textContent = ''; return; }
+          const n = C.pages.filter((p) => txt(p).includes(q)).length;
+          nEl.textContent = n ? (n > 1 ? `${n} pages` : 'une page') : 'rien';
+        };
+        const chercher = (d) => {
+          const q = norm(livreEtat.q);
+          if (!q) return;
+          const n = C.pages.length, i0 = C.spread * 2 + (d > 0 ? 2 : -1);
+          for (let k = 0; k < n; k++) {
+            const i = ((i0 + d * k) % n + n) % n;
+            if (i > 0 && txt(C.pages[i]).includes(q)) { if (Math.floor(i / 2) !== C.spread) { C.spread = Math.floor(i / 2); son('page'); this.rendre(); const i2 = $q('#livre .m21-cherche'); if (i2) focus(i2); } return; }
+          }
+        };
+        inp.oninput = () => { livreEtat.q = inp.value; marquer(); };
+        inp.onkeydown = (e) => { if (/^Arrow(Left|Right)$/.test(e.code)) e.stopPropagation(); if (e.code === 'Enter' || e.code === 'NumpadEnter') { e.preventDefault(); e.stopPropagation(); chercher(e.shiftKey ? -1 : 1); } };
+        marquer();
+      } catch (e) { console.error('m21 livre', e); }
+    };
+  }
+
+  // ================================================================ les crochets : ouvrir, fermer, la manette, le focus
+  function apresOuverture() {
+    bulle.cacher();
+    manette.boucle();
+    queueMicrotask(() => {
+      try {
+        const L = calque();
+        if (!L) return;
+        const R = racine(L);
+        if (R.classList.contains('pp-panel')) decorer(R);
+        else majAides();
+        if (nav.clavier) { const a = D.activeElement; if (!(a && a !== D.body && L.contains(a))) focus(premier(L)); }
+      } catch (e) { console.error('m21', e); }
+    });
+  }
+  function brancherUI() {
+    if (typeof ui === 'undefined' || ui._m21) return;
+    ui._m21 = true;
+    const _open = ui.open.bind(ui);
+    ui.open = function (id, html) { qte.fermer(); const r = _open(id, html); apresOuverture(); return r; };
+    const _close = ui.close.bind(ui);
+    ui.close = function (silent) { qte.fermer(); bulle.cacher(); const r = _close(silent); apresOuverture(); return r; };
+    const _od = ui.openDialog.bind(ui);
+    ui.openDialog = function (id) {
+      const r = _od(id);
+      if (id === '#dlg-options') { try { installerOptions(); ongletsOptions(); appliquerEchelle(); const c = $q('#o-m21-calme'); if (c) c.checked = calme(); } catch (e) { console.error('m21 options', e); } }
+      const box = $q(id + ' .box');
+      if (box) poserAide(box);
+      apresOuverture();
+      return r;
+    };
+    const _cd = ui.closeDialogs.bind(ui);
+    ui.closeDialogs = function () { if (conf.fin) conf.fin(false); const r = _cd(); apresOuverture(); return r; };
+    const _sm = ui.showMenu.bind(ui);
+    ui.showMenu = function (show) { const r = _sm(show); H.classList.toggle('m21-titre', !!show); if (show) { const m = $q('#menu'); if (m) poserAide(m); } apresOuverture(); return r; };
+    const _sd = ui.showDeath.bind(ui);
+    ui.showDeath = function (...a) { const r = _sd(...a); const d = $q('#death'); if (d) poserAide(d); apresOuverture(); return r; };
+  }
+
+  // la nouvelle partie : la confirmation du jeu (plus de confirm() du navigateur)
+  function brancherNouvellePartie() {
+    const b = $q('#ng-go');
+    if (!b || b._m21) return;
+    b._m21 = true;
+    let passe = false;
+    b.addEventListener('click', (e) => {
+      if (passe) { passe = false; return; }
+      if (!(typeof farm !== 'undefined' && farm.s && !farm.s.over && farm.s.day > 1)) return;
+      e.stopImmediatePropagation(); e.preventDefault();
+      confirmer({ titre: 'Nouvelle partie', texte: 'Commencer une nouvelle partie ? La partie en cours sera perdue (la vallée s’en souviendra).', oui: 'Commencer', non: 'Annuler' }).then((oui) => {
+        if (!oui) return;
+        const c = window.confirm;
+        window.confirm = () => true;
+        passe = true;
+        try { b.click(); } finally { window.confirm = c; passe = false; }
+      });
+    }, true);
+  }
+
+  // ================================================================ mise en place
+  function installer() {
+    installerStyle();
+    corrigerFeuilles();
+    appliquerEchelle();
+    appliquerCalme();
+    new MutationObserver((recs) => {
+      let neuf = false;
+      for (const r of recs) for (const n of r.addedNodes) if (n.nodeName === 'STYLE' || n.nodeName === 'LINK' || n.nodeType === 3) neuf = true;
+      if (!neuf) return;
+      corrigerFeuilles();
+      installerStyle();
+    }).observe(D.head, { childList: true, subtree: true });
+    const pap = D.getElementById('paper');
+    if (pap) {
+      obsPaper.observe(pap, { childList: true, subtree: true });
+      // l'infobulle : au survol (souris), délégué
+      pap.addEventListener('mouseover', (e) => { const t = e.target.closest && e.target.closest('[data-it], [data-buy], [data-sell], [data-get], [data-put], [data-m21-info]'); if (t && t !== bulle.cible) bulle.viser(t, false); else if (!t && bulle.cible) bulle.cacher(); });
+      pap.addEventListener('mouseleave', () => bulle.cacher());
+      pap.addEventListener('mousedown', () => bulle.cacher(), true);
+      pap.addEventListener('wheel', () => bulle.cacher(), { passive: true, capture: true });
+      // le clic droit : les quantités du coffre, la barre d'outils
+      pap.addEventListener('contextmenu', (e) => {
+        const t = e.target.closest && e.target.closest('#store [data-get], #store [data-put], #satchel .grid [data-it], #satchel [data-tok]');
+        if (!t) return;
+        e.preventDefault();
+        secondaire(t);
+      });
+    }
+    installerOptions();
+    brancherUI();
+    brancherWiki();
+    brancherLivres();
+    brancherNouvellePartie();
+    // les quatre sections des Options (M15) : une de plus, « Interface »
+    try {
+      if (typeof menus !== 'undefined' && Array.isArray(menus.SECTIONS) && !menus.SECTIONS.some(([n]) => n === 'Interface')) {
+        const J = menus.SECTIONS.findIndex(([n]) => n === 'Jeu');
+        menus.SECTIONS.splice(J < 0 ? menus.SECTIONS.length : J, 0, ['Interface', ['o-m21-echelle', 'o-m21-calme', 'o-m21-bulles', 'o-hotbar', 'o-subs', 'o-dot']]);
+        for (const [n, L] of menus.SECTIONS) if (n !== 'Interface') for (const id of ['o-hotbar', 'o-subs', 'o-dot']) { const i = L.indexOf(id); if (i >= 0) L.splice(i, 1); }
+        const C = menus.SECTIONS.find(([n]) => n === 'Commandes');
+        if (C && !C[1].includes('o-m21-vibrer')) C[1].push('o-m21-vibrer');
+      }
+    } catch (e) { console.error('m21 sections', e); }
+  }
+  // (hors navigateur — l'équilibrage charge le jeu dans une machine virtuelle sans vrai DOM — rien ne doit casser)
+  try { installer(); } catch (e) { console.error('m21 : mise en place', e); }
+
+  return {
+    version: 1,
+    k: () => K, calme, echelle(v) { settings.m21Echelle = v; sauver(); appliquerEchelle(); },
+    outils, infoObjet, option, confirmer,
+    quantite: (o) => qte.ouvrir(o),
+    touche: toucheHTML, glyphe,
+    manette, nav: { focus, premier: (L) => premier(L || calque()), calque, mode: (on) => nav.mode(on) },
+    fermerTout() { qte.fermer(); bulle.cacher(); if (conf.fin) conf.fin(false); },
+    _interne: { bulle, qte, nav, aideHTML, decorer, retrouver, corrigerFeuilles, ongletsOptions },
+  };
+})();
 
 // ---- 12-zzzzzzzzzzzP21-hud.js
 // ============================================================================
@@ -158500,6 +159912,7 @@ const I18N_EN = {"v":1,"exact":[
 ["(déjà à vous)","(already yours)"],
 ["(nom illisible)","(name illegible)"],
 ["(poteau, panneau)","(signpost, board)"],
+["(prefers-reduced-motion: reduce)","(prefers-reduced-motion: reduce)"],
 ["(rappel reçu)","(reminder received)"],
 ["(récoltes, prises, trésors)","(crops, catches, treasures)"],
 ["(trouvé : à la loge)","(found: at the lodge)"],
@@ -158616,8 +160029,14 @@ const I18N_EN = {"v":1,"exact":[
 [": vous lui avez offert",": you gave them a gift"],
 [": vu de vos yeux.)",": seen with your own eyes.)"],
 [":scope > .body",":scope > .body"],
+[":scope > .foot",":scope > .foot"],
 [":scope > .m15-pages",":scope > .m15-pages"],
+[":scope > .m21-aide",":scope > .m21-aide"],
+[":scope > .m21-onglets",":scope > .m21-onglets"],
+[":scope > .nav",":scope > .nav"],
+[":scope > .rec",":scope > .rec"],
 [":scope > .tabs",":scope > .tabs"],
+[":scope > .tabs button",":scope > .tabs button"],
 [":scope > h4",":scope > h4"],
 [":scope > h4.m15-sec",":scope > h4.m15-sec"],
 [":scope > p.hint",":scope > p.hint"],
@@ -158817,6 +160236,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Aller voir le phare","Go and see the lighthouse"],
 ["Aller voir là où on l’a vu attendre.","Go and see where he was seen waiting."],
 ["Aller à","Go to"],
+["Aller à :","Go to:"],
 ["Aller à la Grande Porte, au bout de la route de Clairpré.","Go to the Great Gate, at the end of the Clairpré road."],
 ["Allez chercher le garde !","Go and fetch the warden!"],
 ["Allez en paix, mon enfant.","Go in peace, my child."],
@@ -159407,6 +160827,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Auriez-vous l’obligeance de… Non. Rien. Je me méfie de cette formule, depuis quelque temps.","Would you kindly… No. Nothing. I’ve grown wary of that phrase, lately."],
 ["Auteur","Author"],
 ["Automatique","Automatic"],
+["Automatique (selon l’écran)","Automatic (based on screen)"],
 ["Autour de la meule, il faut veiller. Le feu doit couver sans flamber. Si la meule s’éventre, c’est que quelqu’un a marché dessus.\n\nCette nuit, la meule s’est éventrée. Il n’y avait personne. Il y avait des traces.","You must keep watch around the mound. The fire must smoulder without flaring. If the mound bursts open, someone has walked on it.\n\nLast night, the mound burst open. There was nobody. There were tracks."],
 ["Autour des chalets d’estive et des étables, sur la terre engraissée par le bétail.","Around the summer-pasture chalets and the cowsheds, on soil enriched by the cattle."],
 ["Autour des palombes","Northern goshawk"],
@@ -159482,6 +160903,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Aïe, aïe, aïe. Mon bras de vendeur. Mon gagne-pain !","Ow, ow, ow. My selling arm. My bread and butter!"],
 ["Aïe. Bon. Ne le dites pas au maire.","Ouch. Right. Don’t tell the mayor."],
 ["Aïe… Saleté de pierre.","Ow… Blasted stone."],
+["B · Start","B · Start"],
 ["B0","B0"],
 ["B1","B1"],
 ["B1 : génération","B1: generation"],
@@ -160502,6 +161924,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Cher chef concierge (Gaspard dit que c’est vous maintenant),\n\nJ’ai vu les chevaux de l’Opéra. Ils sont plus grands que sur la carte postale, je m’étais trompé. Le Grand Hôtel a sept cents chambres et un ascenseur qui monte tout seul, il fait un bruit de soupir. On m’a donné un gilet à boutons dorés et un numéro, le 43. Je porte des valises de lords anglais. Ils ne donnent pas plus d’un sou non plus.\n\nLe soir je regarde vers le sud-est. On ne voit rien, il y a des toits. Mais je sais que c’est par là.\n\nVotre groom pour toujours,\nFirmin\n\nP.-S. Dites à Mlle Fauvel que j’ai plié mes draps moi-même.","Dear head concierge (Gaspard says it’s you now),\n\nI saw the horses of the Opéra. They are bigger than on the postcard; I was wrong. The Grand Hôtel has seven hundred rooms and a lift that goes up all by itself, with a noise like a sigh. They gave me a waistcoat with gold buttons and a number, 43. I carry the luggage of English lords. They don’t tip more than a sou either.\n\nIn the evening I look towards the south-east. You can’t see anything, there are only rooftops. But I know it’s that way.\n\nYour bellboy forever,\nFirmin\n\nP.S. Tell Mlle Fauvel I folded my sheets myself."],
 ["Chercher au bord de l’eau, au pied du pont, du côté de la ville.","Search along the water’s edge, at the foot of the bridge, on the town side."],
 ["Chercher au cimetière, un soir, une place pour la croix d’Émile.","Search the cemetery, one evening, for a place for Émile’s cross."],
+["Chercher dans le livre…","Search the book…"],
 ["Chercher dans les hauteurs un éboulis qui cache l’entrée d’une grotte, le dégager à la pelle, puis avancer sans bruit : la Bête dort, et son chasseur est resté avec elle.","Search the heights for a rockfall hiding the mouth of a cave, dig it clear with a shovel, then go on without a sound: the Beast is sleeping, and its hunter stayed with it."],
 ["Chercher derrière les crânes","Search behind the skulls"],
 ["Chercher la petite tombe oubliée dans le bois, près du hameau abandonné, et y déposer des fleurs.","Find the little forgotten grave in the woods near the abandoned hamlet, and lay flowers on it."],
@@ -160623,6 +162046,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Clairvoyance","Clairvoyance"],
 ["Clapier","Rabbit hutch"],
 ["Claude","Claude"],
+["Clic","Click"],
 ["Clic : adoucir le relief","Click: soften the terrain"],
 ["Clic : déplier la carte.","Click: unfold the map."],
 ["Clic : déplier la carte. Une vieille carte approximative des environs de la ville.","Click: unfold the map. A rough old map of the area around the town."],
@@ -160661,6 +162085,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Clic G / D","L / R click"],
 ["Clic G : poser · Clic D : supprimer · R : pivoter · Clic molette : copier","Left click: place · Right click: delete · R: rotate · Middle click: copy"],
 ["Clic droit","Right click"],
+["Clic droit : le ranger dans une case de la barre d’outils.","Right click: put it in a toolbar slot."],
 ["Clic droit avec la pelle : on rehausse le sol là où l’on vise.","Right-click with the shovel: raises the ground where you aim."],
 ["Clic gauche","Left click"],
 ["Clic gauche / droit","Left / right click"],
@@ -160725,6 +162150,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Colporteur","Pedlar"],
 ["Colporteuse","Pedlar"],
 ["Colza","Rapeseed"],
+["Combien ?","How many?"],
 ["Combinaison de protection","Protective suit"],
 ["Commande : un drap pour le maire. Commande : un linceul pour la vieille Varenne, qui n’est pas morte, et qui l’a payé d’avance.\n\nLe métier bat tout seul la nuit. Au matin, il y a trois rangs de plus, dans une couleur que je n’ai pas.","Order: a sheet for the mayor. Order: a shroud for old Mother Varenne, who is not dead, and who paid for it in advance.\n\nThe loom beats away by itself at night. In the morning, there are three more rows, in a colour I do not have."],
 ["Commande de clous pour le toit de l’église. Pas assez de fer. Huit minerais de fer, cinq charbons. Vous pouvez ?","Nail order for the church roof. Not enough iron. Eight iron ore, five coal. Can you?"],
@@ -160769,6 +162195,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Compagnons du Devoir","Compagnons du Devoir"],
 ["Complies. La porte. Le verrou. La corde à la cheville. Et puis, Seigneur, ce que vous voudrez.","Compline. The door. The bolt. The rope round my ankle. And then, Lord, whatever you will."],
 ["Complète","Full"],
+["Complètes","Complete"],
 ["Composteur","Composter"],
 ["Compris ! Restez où vous êtes, je m’éloigne.","Understood! Stay where you are, I’m moving off."],
 ["Compris. Pas de rancune. Les bêtes, elles, ne me font jamais ce coup-là.","Understood. No hard feelings. Animals never pull that one on me."],
@@ -160919,6 +162346,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Croix de bois","Wooden cross"],
 ["Croix de bois, croix de fer","Cross My Heart"],
 ["Croix de bois, croix de fer.","Cross my heart."],
+["Croix ou stick gauche · A","D-pad or left stick · A"],
 ["Croquis d’un peintre","Painter’s sketch"],
 ["Crossope aquatique","Eurasian water shrew"],
 ["Croupier du passe-dix","Passe-dix croupier"],
@@ -160936,6 +162364,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Crête de basilic","Basilisk comb"],
 ["Crête-de-coq","Yellow rattle"],
 ["Ctrl","Ctrl"],
+["Ctrl+F","Ctrl+F"],
 ["Ctrl+Z","Ctrl+Z"],
 ["Cube","Cube"],
 ["Cueillette","Foraging"],
@@ -161107,6 +162536,7 @@ const I18N_EN = {"v":1,"exact":[
 ["C’était ça. C’était ça.","That was it. That was it."],
 ["D4","D4"],
 ["DANS LA POÊLE","IN THE PAN"],
+["DANS LES MENUS","IN THE MENUS"],
 ["DEUX HOMMES","TWO MEN"],
 ["DOMContentLoaded","DOMContentLoaded"],
 ["Dahlias","Dahlias"],
@@ -161210,9 +162640,12 @@ const I18N_EN = {"v":1,"exact":[
 ["Dans l’Envers, sous le vieux puits, traîne une bourse que personne n’a perdue.","In the Underside, beneath the old well, lies a purse that no one has lost."],
 ["Dans l’eau claire et peu profonde, sur le sable du bord, en de très rares endroits.","In clear, shallow water, on the sand at the edge, in very few places."],
 ["Dans l’oculaire, très net, un monde bleu et vert, avec une seule lune. Des nuages lents. Une vallée entre des montagnes, si petite qu’on la cache avec un cil.\n\nVous déplacez la lunette. À côté du monde, sur une grande part du ciel, il n’y a plus d’étoiles. Pas de nuage, pas de poussière : rien. Le bord du rien est net, comme découpé aux ciseaux.","In the eyepiece, crisp and clear, a blue and green world, with a single moon. Slow clouds. A valley between mountains, so small that an eyelash could hide it.\n\nYou swing the telescope. Beside the world, across a large part of the sky, there are no more stars. No cloud, no dust: nothing. The edge of the nothing is sharp, as if cut with scissors."],
+["Dans l’ordre","In order"],
 ["Dans l’écorce, un clou, et un gobelet d’étain pendu au clou.","In the bark, a nail, and a pewter cup hanging from the nail."],
+["Dans mes moyens","Affordable"],
 ["Dans mes rêves agités, je vois cette ville. Valbrume.\nTu m’avais promis de m’y ramener un jour. Tu ne l’as jamais fait.\nAlors j’y suis, seule, à notre endroit… à t’attendre.","In my restless dreams, I see this town. Valbrume.\nYou promised me you’d take me back there one day. You never did.\nSo here I am, alone, at our spot… waiting for you."],
 ["Dans mon lit ! Violation de domicile sur la personne d’un agent assermenté ! Dehors ! Je verbalise demain !","In my bed! Trespass upon the person of a sworn officer! Out! I’ll write you up tomorrow!"],
+["Dans quelle case de la barre d’outils ?","Which toolbar slot?"],
 ["Dans quelques bois de bouleaux tourbeux des montagnes, nulle part ailleurs. Un souvenir des grands froids d’autrefois.","In a few boggy birch woods in the mountains, nowhere else. A memory of the great cold of long ago."],
 ["Dans quelques prairies des hauteurs, nulle part ailleurs. On en a compté les pieds.","In a few meadows on the heights, nowhere else. Every plant has been counted."],
 ["Dans quelques prés humides, en lisière. Il sent plus fort le soir.","In a few wet meadows, at the edges. It smells stronger in the evening."],
@@ -161244,6 +162677,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Davantage ? Tu sais déjà les trois tisanes. C’est plus que le médecin du bourg.","More? You already know the three tisanes. That’s more than the doctor from the market town knows."],
 ["Davantage.","More."],
 ["De 10 à 100. Le naturel paie six pour cinq.","From 10 to 100. A natural pays six to five."],
+["De A à Z","A to Z"],
 ["De Lyon","From Lyon"],
 ["De Saint-Flour","From Saint-Flour"],
 ["De Saint-Flour, encore","From Saint-Flour, again"],
@@ -162180,6 +163614,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Démarrer en","Start in"],
 ["Démonte ce que vous avez posé.","Dismantles what you have placed."],
 ["Déplier les feuillets","Unfold the sheets"],
+["Déposer","Deposit"],
 ["Déposer du pain et du lait dans la niche, tout au fond de la mine profonde, et revenir le lendemain voir si la roche s’est ouverte.","Leave bread and milk in the niche at the very bottom of the deep mine, and come back the next day to see whether the rock has opened."],
 ["Déposer en offrande :","Leave as an offering:"],
 ["Déposer la valise","Set down the suitcase"],
@@ -162506,6 +163941,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Encorné par un sanglier","Gored by a boar"],
 ["Encre, buvard, sceau… Où est encore passé le sceau ? Préfet ! Descends de ce registre !","Ink, blotter, seal… Where has the seal got to now? Préfet! Get down off that register!"],
 ["Encrier","Inkwell"],
+["End","End"],
 ["Endormi dehors, une nuit où l’on ne dort pas dehors","Fell asleep outdoors, on a night when no one sleeps outdoors"],
 ["Enfourner du pain au four banal","Bake bread in the communal oven"],
 ["Enfumoir","Bee smoker"],
@@ -162556,6 +163992,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Entrez… si vous y tenez.","Come in… if you must."],
 ["Entré : le charretier de la Ville Basse, avec le sel. Sorti le soir.\nEntrés : deux moines des Tertres. Sortis le lendemain.\nSorties : dame Aude, avec sa nourrice, pour la foire d’en bas. Le matin.\nEntré : frère Anselme, revenu des Tertres.\n\n(Une page plus loin, d’une autre main, très serrée.)\nLa cendre tombe sur la ville. Le feu du Guet ne brûle pas.\nOn monte les Degrés avec des torches.\nOrdre du sire : le pont reste levé.\nIls sont au fossé. Ils appellent par leurs noms.\nLe pont reste levé.\n\n(La dernière ligne.)\nJe ne note plus les entrées. Il n’en vient plus.","Entered: the carter from the Lower Town, with the salt. Left in the evening.\nEntered: two monks from the Barrows. Left next day.\nLeft: Lady Aude, with her nurse, for the fair down below. In the morning.\nEntered: Brother Anselme, back from the Barrows.\n\n(A page further on, in another hand, very cramped.)\nThe ash is falling on the town. The Watch-fire is not burning.\nThey are climbing the Steps with torches.\nThe lord’s order: the bridge stays raised.\nThey are at the moat. They call to us by name.\nThe bridge stays raised.\n\n(The last line.)\nI no longer note the entries. None come any more."],
 ["Entré par derrière la chute, comme me l’avait dit le berger. L’eau fait un bruit de forge ; dedans, plus rien.","Entered by going behind the waterfall, as the shepherd had told me. The water makes a din like a forge; inside, nothing more."],
+["Entrée","Enter"],
 ["Enveloppe adressée à « Mlle {npc:postiere}, Receveuse des Postes, {ville} », de sa propre écriture, oblitérée d’un tampon qui n’existe pas.\n\nDedans, une seule ligne : « Ne va pas au puits. »\n\nAu dos de l’enveloppe, une liste de dates, une par an. La dernière n’est pas encore passée.","An envelope addressed to “Mademoiselle {npc:postiere}, Postmistress, {ville}”, in her own handwriting, postmarked with a stamp that does not exist.\n\nInside, a single line: “Don’t go to the well.”\n\nOn the back of the envelope, a list of dates, one a year. The last has not yet come."],
 ["Enveloppe bordée de noir","Black-bordered envelope"],
 ["Envoyer la commande","Send the order"],
@@ -162709,6 +164146,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Faire-part bordé de noir","Black-edged notice"],
 ["Faire-part de naissance : une fille chez les Morel, « qui a les yeux ouverts depuis le premier jour et ne pleure jamais ».\n\nQuelqu’un a ajouté au crayon : « Elle voit les deux faces. »","Birth announcement: a daughter born to the Morels, “who has had her eyes open since the first day and never cries”.\n\nSomeone has added in pencil: “She sees both sides.”"],
 ["Faire-part jauni","Yellowed announcement"],
+["Faisable maintenant","Craftable now"],
 ["Faisan","Pheasant"],
 ["Fait.","Done."],
 ["Fait. Retourner voir","Done. Go back to see"],
@@ -163304,6 +164742,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Génération du monde…","Generating the world…"],
 ["Génération du nouveau monde…","Generating the new world…"],
 ["Géode","Geode"],
+["H4","H4"],
 ["HAUTE JUSTICE DE VALMONT\nQUATRE PILIERS","HIGH JUSTICE OF VALMONT\nFOUR PILLARS"],
 ["HAUTGUET.\nICI L’ON VEILLE, POUR QUE LA VILLE DORME.","HAUTGUET.\nHERE WE KEEP WATCH, THAT THE TOWN MAY SLEEP."],
 ["HAUTGUET. ICI L’ON VEILLE, POUR QUE LA VILLE DORME.","HAUTGUET. HERE WE KEEP WATCH, SO THAT THE TOWN MAY SLEEP."],
@@ -163463,6 +164902,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Ho, ho ! La salle, c’est en bas ! Ici, c’est ma chambre, mes chaussettes et mes secrets. Redescendez, je vous offre un café pour oublier ce que vous avez vu.","Ho, ho! The common room’s downstairs! Up here it’s my bedroom, my socks and my secrets. Go back down, and I’ll stand you a coffee to forget what you’ve seen."],
 ["Hochet d’argent","Silver rattle"],
 ["Holà ! Merci de prévenir !","Halloo! Thanks for the warning!"],
+["Home","Home"],
 ["Homme long","Long Man"],
 ["Homme-pendu","Hanged man"],
 ["Homme. Moi, je dors. Toi, tu n’es rien.","Man. I sleep. You are nothing."],
@@ -164164,12 +165604,14 @@ const I18N_EN = {"v":1,"exact":[
 ["In vino veritas, mon fils. Et dans celui-ci, je trouve surtout de l’eau.","In vino veritas, my son. And in this one, I mostly find water."],
 ["Individu de sexe masculin, gérant de la grande bibliothèque du plateau. Âge apparent : soixante ans. Présent sur les registres depuis 1612. Il prête livres et cartes contre paiement, pour un délai fixé. Tout dépassement provoque sa transformation en entité hostile de grande puissance, qui traque l’emprunteur jusqu’à [DONNÉES SUPPRIMÉES].","Male individual, keeper of the great library on the plateau. Apparent age: sixty. Present in the records since 1612. He lends books and maps for a fee, for a fixed period. Any overrun triggers his transformation into a hostile entity of great power, which hunts the borrower down until [DATA EXPUNGED]."],
 ["Individu humain, habitant de la vallée, dont l’identité change d’une version de la chronologie à l’autre. Il agit la nuit, masqué de toile, armé d’un couperet. L’anomalie ne tient pas à l’homme : elle tient à ce que la vallée en produit un, et un seul, dans chaque version.","Human individual, a resident of the valley, whose identity changes from one version of the timeline to another. Acts at night, masked in cloth, armed with a cleaver. The anomaly does not lie in the man: it lies in the fact that the valley produces one, and only one, in each version."],
+["Infobulles des objets","Object tooltips"],
 ["Infusion","Herbal tea"],
 ["Ingrédients","Ingredients"],
 ["Ingrédients d’alchimie","Alchemy ingredients"],
 ["Inscriptions relevées","Recorded inscriptions"],
 ["Inscrit. Jusqu’à quatre heures, ce que vous tirez du lac compte. Après, on pèse. Enfin, on regarde.","You’re entered. Until four o’clock, whatever you pull out of the lake counts. After that, we weigh. Well, we look."],
 ["Insigne de la cité","City badge"],
+["Interface","Interface"],
 ["Interrogée sur ce qu’elle filait, a répondu : « L’hiver, monseigneur. Il faut bien que quelqu’un le couse. »\n\nInterrogée sur la mort des blés, a répondu qu’elle n’y était pour rien, et que c’était la petite qui avait voulu essayer.\n\nInterrogée sur ses complices, a répondu qu’elles étaient nombreuses, et vieilles, et qu’on les trouverait dans toutes les vallées, à la fenêtre, les nuits de neige.","Asked what she was spinning, answered: “Winter, my lord. Someone has to sew it, after all.”\n\nAsked about the death of the wheat, answered that she had nothing to do with it, and that it was the little girl who had wanted to try.\n\nAsked about her accomplices, answered that they were many, and old, and that they would be found in every valley, at the window, on snowy nights."],
 ["Intéressant. Notez. Toujours noter.","Interesting. Write it down. Always write it down."],
 ["Inventaire","Inventory"],
@@ -165073,7 +166515,11 @@ const I18N_EN = {"v":1,"exact":[
 ["L18 service","L18 service"],
 ["L18 surcharge","L18 override"],
 ["L18 wiki","L18 wiki"],
+["L3","L3"],
 ["LA VILLE AVAIT UN NOM.\nON L’A DONNÉ AU FEU AVEC LES AUTRES,\nPOUR QUE RIEN NE PUISSE PLUS L’APPELER.","THE TOWN HAD A NAME.\nIT WAS GIVEN TO THE FIRE WITH THE OTHERS,\nSO THAT NOTHING COULD CALL IT ANY MORE."],
+["LB","LB"],
+["LB RB","LB RB"],
+["LB RB · LT RT","LB RB · LT RT"],
 ["LE CHIEN NE VEUT","THE DOG WON’T"],
 ["LE FEU","FIRE"],
 ["LE GÂTEAU EST UN MENSONGE\nLE GÂTEAU EST UN MENSONGE\nLE GÂTEAU EST UN MENSONGE\nLE GÂTEAU EST UN MENSONGE\nle gâteau est un mensonge\nle gâteau est un mensonge","THE CAKE IS A LIE\nTHE CAKE IS A LIE\nTHE CAKE IS A LIE\nTHE CAKE IS A LIE\nthe cake is a lie\nthe cake is a lie"],
@@ -165082,6 +166528,9 @@ const I18N_EN = {"v":1,"exact":[
 ["LES BÊTES SE TAISENT","THE ANIMALS GO QUIET"],
 ["LES FOURCHES FURENT ABATTUES EN 1790\nPUIS RELEVÉES EN 1791\nPAR LES MÊMES","THE GALLOWS WERE PULLED DOWN IN 1790\nTHEN RAISED AGAIN IN 1791\nBY THE SAME PEOPLE"],
 ["LES YEUX GRÉSILLENT","YOUR EYES SIZZLE"],
+["LINK","LINK"],
+["LT","LT"],
+["LT RT","LT RT"],
 ["La 101","Room 101"],
 ["La 108","Room 108"],
 ["La 108 prend le thé à quatre heures et le chagrin à cinq. Je ne la sers pas : je l’accompagne.","Room 108 takes tea at four and sorrow at five. I don’t serve her: I keep her company."],
@@ -167747,6 +169196,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Les plans d’une mangeoire. Elle vous le rendra. Enfin, elle vous mordra moins.","The plans for a feed trough. She’ll repay you. Well, she’ll bite you less."],
 ["Les plans d’une table d’alchimiste. Chez vous, vous en aurez besoin.","The plans for an alchemist’s table. You’ll need one at home."],
 ["Les plantes se ferment quand vous approchez. Je fais comme elles.","The plants close up when you come near. I do the same."],
+["Les plus récentes","Most recent"],
 ["Les plus vieux bergers savent une autre histoire, qu’ils ne racontent qu’entre eux, quand les enfants dorment. Le Ver ne veille pas de lui-même. Le soir où la cendre est tombée sur les Terres d’Avant, des hommes lui ont passé au cou un collier de fer, et lui ont donné un ordre, un seul : « Qu’il garde. Que rien ne sorte. »\n\nDouze hommes le servaient, qu’on appelait le Guet. Ils le nourrissaient, et le soir, ils le faisaient rentrer à la cloche, comme on rentre une bête au parc.\n\nOn dit encore qu’une seule arme l’a jamais blessé : un carreau de baliste, sous l’aile gauche. Les bergers ne savent pas qui l’a tiré. Ils savent qu’il n’y en a pas eu d’autre.","The oldest shepherds know another story, which they tell only among themselves, when the children are asleep. The Worm does not keep watch of its own accord. On the evening the ash fell upon the Lands of Before, men put an iron collar about its neck and gave it an order, one only: “Let it keep guard. Let nothing get out.”\n\nTwelve men served it, who were called the Watch. They fed it, and in the evening they brought it in by the bell, as one brings a beast into the fold.\n\nIt is also said that only one weapon ever wounded it: a ballista bolt, beneath the left wing. The shepherds do not know who loosed it. They know there was never another."],
 ["Les poches de l’inconnu","The unknown man’s pockets"],
 ["Les poches de l’inconnue","The unknown woman’s pockets"],
@@ -168658,6 +170108,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Maison vide","Empty house"],
 ["Mais… qui êtes-vous ? Qu’est-ce que vous faites là ? Dehors ! Et que je ne vous revoie pas !","But… who are you? What are you doing here? Out! And don’t let me see you again!"],
 ["Maj","Shift"],
+["Maj+Entrée","Shift+Enter"],
 ["Maj+clic : tout déplacer","Shift+click: move all"],
 ["Malle","Trunk"],
 ["Malzieu. Docteur, autrefois. Je ne joue plus : je regarde jouer, c’est plus instructif.","Malzieu. Doctor, once. I no longer play: I watch others play, it’s more instructive."],
@@ -169204,6 +170655,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Montre à gousset","Pocket watch"],
 ["Montre-toi.","Show yourself."],
 ["Montre. … Une vis. Deux minutes.","Show me. … A screw. Two minutes."],
+["Montrer","Show"],
 ["Montrer ce que vous avez","Show what you have"],
 ["Montrer des pièces","Show some coins"],
 ["Montrer votre fleur de pierre au bibliothécaire","Show your stone flower to the librarian"],
@@ -170098,6 +171550,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Oseille sauvage","Wild sorrel"],
 ["Ossements","Bones"],
 ["Ouh là. Vous, je vous sers double, désormais. Par prudence.","Whoa there. You, I’ll be serving doubles from now on. Just to be safe."],
+["Oui","Yes"],
 ["Oui ! Depuis, Lise est toute nette. Même ses pieds : avant, elle en avait pas. Elle demande si tu viendras la voir. Elle dit que tu lui dois une chanson.","Yes! Since then, Lise isn’t blurry any more. Even her feet: before, she didn’t have any. She’s asking if you’ll come and see her. She says you owe her a song."],
 ["Oui ! Enfin… affirmatif. Oui. Je vais l’écrire au registre. Non, je ne vais pas l’écrire au registre.","Yes! That is… affirmative. Yes. I’ll write it in the register. No, I won’t write it in the register."],
 ["Oui ! Oh, oui. Il faut que je l’écrive à quelqu’un. À toi. Je vais t’écrire que j’ai dit oui.","Yes! Oh, yes. I have to write it to someone. To you. I’ll write and tell you I said yes."],
@@ -170251,6 +171704,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Page d’almanach","Almanac page"],
 ["Page d’un registre relié de noir","Page from a black-bound register"],
 ["Page suivante ›","Next page ›"],
+["PageDown","PageDown"],
+["PageUp","PageUp"],
 ["Pages du frère Anselme","Brother Anselme’s pages"],
 ["Pages griffonnées","Scribbled pages"],
 ["Paie, et on s’en va !","Pay up, and we’re off!"],
@@ -170293,15 +171748,20 @@ const I18N_EN = {"v":1,"exact":[
 ["Paquerette","Paquerette"],
 ["Paquet de peau cousue","Parcel of sewn skin"],
 ["Paquet ficelé","Tied parcel"],
+["Par catégorie","By category"],
 ["Par ce brouillard, même moi je rentre tôt. Il y a des formes, sur la place, qui ne sont pas des passants.","In this fog, even I come home early. There are shapes in the square that are not passers-by."],
 ["Par hasard, et par la porte de derrière, comme mardi dernier. Asseyez-vous, mon père. Pas sur cette souche.","By chance, and by the back door, like last Tuesday. Sit down, Father. Not on that stump."],
 ["Par la faim. C’est la seule porte qui s’ouvre. L’autre, la noire, là-bas au fond, ne s’est jamais ouverte, et le jour où elle s’ouvrira, ce ne sera pas pour toi. Ce sera pour tout le monde.","Through hunger. It is the only door that opens. The other one, the black one, down there at the end, has never opened, and the day it does, it will not be for you. It will be for everyone."],
 ["Par le fond. Je le répare. On est quittes.","Through the bottom. I fix it. We’re square."],
 ["Par l’orage, je m’abrite sous ma roulotte. Mon père s’abritait sous un chêne. Mon père est mort foudroyé.","When there’s a storm, I shelter under my caravan. My father used to shelter under an oak. My father was killed by lightning."],
+["Par nom","By name"],
+["Par nombre","By quantity"],
 ["Par ordre du maire","By order of the mayor"],
+["Par prix","By price"],
 ["Par temps clair, au-dessus des monts de l’est, j’ai vu une ombre glisser sur les nuages. Trop grande pour un aigle. Beaucoup trop grande.","In clear weather, above the mountains of the east, I saw a shadow slide across the clouds. Too big for an eagle. Far too big."],
 ["Par temps de brouillard, les voix portent loin. Trop loin. On entend des gens qui ne sont pas là.","In fog, voices carry far. Too far. You hear people who aren’t there."],
 ["Par un orage pareil, ne vous abritez jamais sous un arbre. Surtout pas sous le vieux chêne.","In a storm like this, never shelter under a tree. Especially not under the old oak."],
+["Par valeur","By value"],
 ["Paraît que {npc:postiere} lit les cartes postales avant de les distribuer. Moi, je ne dis rien, mais elle savait pour ma tante avant ma tante.","Word is {npc:postiere} reads the postcards before she delivers them. I’m not saying anything, but she knew about my aunt before my aunt did."],
 ["Parce que j’ai quelque chose à dire, et que les autres chèvres sont bêtes.","Because I have something to say, and the other goats are stupid."],
 ["Parce que tout ce qui nourrit, ici, a été pris à quelqu’un. Tu as assez pris. Tu vas avoir faim, longtemps, et puis tu t’arrêteras. Comme les autres. Comme moi, un jour, peut-être.","Because everything that nourishes, here, was taken from someone. You have taken enough. You will be hungry, for a long time, and then you will stop. Like the others. Like me, one day, perhaps."],
@@ -170692,6 +172152,9 @@ const I18N_EN = {"v":1,"exact":[
 ["Peut se défendre.","Can defend itself."],
 ["Peut-être. Peut-être pas. C’est le seul avantage des morts : on peut décider qu’ils auraient dit oui.","Maybe. Maybe not. It’s the one advantage of the dead: you can decide they would have said yes."],
 ["Pff. Maman veut pas que j’aille au puits, alors que tout le monde y va, même le curé !","Hmph. Mama won’t let me go to the well, when everybody goes there, even the priest!"],
+["Pg↑","PgUp"],
+["Pg↑ Pg↓","PgUp PgDn"],
+["Pg↓","PgDn"],
 ["Philomène","Philomène"],
 ["Philtre de l’Envers","Philtre of the Underside"],
 ["Philtre des morts","Philtre of the dead"],
@@ -171107,6 +172570,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Première prise","First catch"],
 ["Prendre","Take"],
 ["Prendre ce qui pend à la branche","Take what hangs from the branch"],
+["Prendre dans le coffre","Take from the chest"],
 ["Prendre la bobine de fil","Take the spool of thread"],
 ["Prendre la bougie","Take the candle"],
 ["Prendre la chaise","Take the chair"],
@@ -171280,6 +172744,8 @@ const I18N_EN = {"v":1,"exact":[
 ["QU’IL GARDE.\nQUE RIEN NE SORTE.\nQUE NUL NE LE DÉLIE.","LET IT KEEP GUARD.\nLET NOTHING GET OUT.\nLET NONE UNBIND IT."],
 ["Qualité graphique","Graphics quality"],
 ["Qualité graphique abaissée : la machine peinait.","Graphics quality lowered: the machine was struggling."],
+["Pour pêcher : maintenez pour lancer, ferrez quand le bouchon plonge, puis moulinez sans casser la ligne.","To fish: hold to cast, strike when the float dips, then reel in without breaking the line."],
+["maintenir puis relâcher : lancer ; au bouchon qui plonge, clic : ferrer ; clic maintenu : mouliner, et les touches qui s’affichent","hold then release: cast; when the float dips, click: strike; hold click: reel in, and press the keys that appear"],
 ["Quand Joseph se réveille","When Joseph wakes up"],
 ["Quand il mord","When it bites"],
 ["Quand il n’est pas revenu, j’ai jeté mon anneau à la Dauna. On fait ça, ici. On donne, pour qu’elle rende. Elle n’a rien rendu. Maintenant, je voudrais l’anneau.","When he didn’t come back, I threw my ring to the Dauna. That’s what we do here. We give, so that she’ll give back. She gave nothing back. Now I would like the ring back."],
@@ -171554,9 +173020,11 @@ const I18N_EN = {"v":1,"exact":[
 ["R15 : le Dessous","R15: the Underneath"],
 ["R15 : le caveau","R15: the vault"],
 ["R15 : le tertre","R15: the mound"],
+["R3","R3"],
 ["R32F","R32F"],
 ["R8","R8"],
 ["RANCH — Poulaillers et granges : chantiers livrés et bâtis en un jour. S’adresser à l’éleveuse, au hameau.","RANCH — Henhouses and barns: building sites delivered and built in a day. Apply to the stockbreeder, in the hamlet."],
+["RB","RB"],
 ["RECHERCHÉ","WANTED"],
 ["RECHERCHÉE","WANTED"],
 ["REFUGE DU CLUB DES MARCHEURS\n1848\nQUI ENTRE FERME LA PORTE","REFUGE OF THE WALKERS’ CLUB\n1848\nWHOEVER ENTERS CLOSES THE DOOR"],
@@ -171752,6 +173220,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Redevenir mortel","Become mortal again"],
 ["Refermer","Close"],
 ["Refermer (Tab)","Close (Tab)"],
+["Refermer (Échap)","Close (Esc)"],
 ["Refermez ça. Tout de suite.","Close that. Right now."],
 ["Reflets","Reflections"],
 ["Refuser","Refuse"],
@@ -172038,6 +173507,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Rien encore. Le Grand Hôtel des Cimes est sur le replat des monts de l’Est ; le funiculaire part d’en bas, au bout de la route du château.","Nothing yet. The Grand Hôtel des Cimes is on a shelf of the eastern mountains; the funicular leaves from below, at the end of the castle road."],
 ["Rien encore. Les planches attendent.","Nothing yet. The planks wait."],
 ["Rien ne change. C’est ça, garder.","Nothing changes. That’s what guarding is."],
+["Rien ne correspond.","Nothing matches."],
 ["Rien ne nourrit ici que ce qu’on a pris, et ce qu’on a pris n’est pas à vous.\n\nLe pain devient cendre. L’eau devient cendre. Le vin devient cendre. La mémoire devient cendre en dernier, et c’est pour cela qu’on se souvient si longtemps.","Nothing nourishes here but what was taken, and what was taken is not yours.\n\nBread turns to ash. Water turns to ash. Wine turns to ash. Memory turns to ash last of all, and that is why you remember for so long."],
 ["Rien ne presse. Elle non plus.","There is no hurry. It is in no hurry either."],
 ["Rien ne presse. Jules ne la réclame pas. Pas encore.","No hurry. Jules isn’t asking for it. Not yet."],
@@ -172173,6 +173643,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Récupéré. Confiné en cellule 5 (vitrine, verrou de niveau 2).","Recovered. Contained in Cell 5 (display case, Level 2 lock)."],
 ["Rédaction de Célestin","Célestin’s composition"],
 ["Rédaction. Sujet : racontez une promenade. Un matin, j’étais levé avant tout le monde parce que la vache avait vêlé, et je suis allé au bois de bouleaux voir si le brouillard était encore dedans. Il y avait un cerf tout blanc, blanc comme le givre sur les carreaux. Maman dit qu’il ne faut jamais courir derrière, alors j’ai marché. Il m’attendait à chaque arbre. On est arrivés dans un rond de bouleaux, avec une pierre au milieu où il y a des cornes sculptées. Il n’était plus là. J’ai dit la prière pour les Anciens, comme grand-mère. Après, j’ai trouvé un bout de corne blanche dans l’herbe, mais je l’ai laissé sur la pierre, parce que ce n’était pas à moi. Célestin, 10 ans, 1894. En rouge, de la main du maître : « Hors sujet. Mais bien écrit. Ne va pas seul au bois. »","Composition. Subject: describe a walk. One morning I was up before everybody because the cow had calved, and I went to the birch wood to see if the fog was still in it. There was a stag, all white, white like the frost on the windowpanes. Mama says you must never run after it, so I walked. He waited for me at every tree. We came to a ring of birches, with a stone in the middle that has antlers carved on it. He wasn’t there any more. I said the prayer for the Ancients, like Grandma does. Afterwards I found a bit of white antler in the grass, but I left it on the stone, because it wasn’t mine. Célestin, aged 10, 1894. In red, in the schoolmaster’s hand: “Off topic. But well written. Do not go into the woods alone.”"],
+["Réduire les animations","Reduce animations"],
 ["Réfléchir encore","Think it over"],
 ["Réglé, et quittancé ! Je raye. Ne marchez plus dans mes semis.","Settled, and receipted! I’m crossing it out. Stay off my seedbeds from now on."],
 ["Régénération","Regeneration"],
@@ -172217,6 +173688,7 @@ const I18N_EN = {"v":1,"exact":[
 ["SOUS CHAQUE ROI, UN AUTRE TERTRE.","UNDER EVERY KING, ANOTHER MOUND."],
 ["SOUS CHAQUE TERTRE, UN ROI.","UNDER EVERY MOUND, A KING."],
 ["SOUS CHAQUE TERTRE, UN ROI.\nSOUS CHAQUE ROI, UN AUTRE TERTRE.","UNDER EVERY BARROW, A KING.\nUNDER EVERY KING, ANOTHER BARROW."],
+["STYLE","STYLE"],
 ["Sa boussole… L’aiguille ne montre pas le nord. Elle montre le lac. Toujours le lac.","His compass… The needle doesn’t point north. It points at the lake. Always the lake."],
 ["Sa boussole… L’aiguille ne montre pas le nord. Elle montre le lac. Toujours le lac. Tenez, les plans de sa canne. La meilleure de la vallée.","His compass… The needle doesn’t point north. It points to the lake. Always the lake. Here, the plans for his rod. The best in the valley."],
 ["Sa cloche ! Elle est froide comme la glace…","Her bell! It’s cold as ice…"],
@@ -172358,6 +173830,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Se recueillir, simplement","Simply pay your respects"],
 ["Se relever","Get up"],
 ["Se rendre","Go"],
+["Se revend","Sells for"],
 ["Se taire","Keep silent"],
 ["Se taire, et reculer","Keep silent, and back away"],
 ["Se taire.","Keep silent."],
@@ -172383,6 +173856,8 @@ const I18N_EN = {"v":1,"exact":[
 ["Sel","Salt"],
 ["Sel : six sacs. Tabac : deux ballots. Dentelle : rien, les douaniers l’ont prise au col.\n\nOn repassera par la cheminée quand la neige tiendra. Pas avant.","Salt: six sacks. Tobacco: two bales. Lace: nothing, the customs men took it at the pass.\n\nWe’ll come back through the chimney when the snow holds. Not before."],
 ["Sel, bougies, un clou de girofle pour la dent, et une corde.\n\nPas trop longue, la corde.","Salt, candles, a clove for the tooth, and a rope.\n\nNot too long, the rope."],
+["Select","Select"],
+["Select (Vue) · stick droit","Select (View) · right stick"],
 ["Selle de cuir","Leather saddle"],
 ["Semer en maintenant le clic","Scatter while holding the click"],
 ["Semez après la Saint-Médard, et priez qu’il ne pleuve pas ce jour-là : s’il pleut, c’est pour quarante jours. Le Seigneur a le sens de l’humour.","Sow after Saint Médard’s Day, and pray it does not rain that day: if it does, it will rain for forty days. The Lord has a sense of humour."],
@@ -172520,6 +173995,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Six pommiers, deux ruches.","Six apple trees, two beehives."],
 ["Six recettes sont désormais au grimoire (onglet Grimoire de la sacoche).","Six recipes are now in the grimoire (Grimoire tab of the satchel)."],
 ["Six sous, mon brave. Le fil, ça ne se donne pas.","Six sous, my friend. A good edge isn’t given away."],
+["Slash","Slash"],
 ["Soigne bien les plaies et la fatigue.","Heals wounds and weariness well."],
 ["Soigne un peu.","Heals a little."],
 ["Soit.","So be it."],
@@ -172531,6 +174007,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Soleil de plomb : ne pas le regarder en face.","Scorching sun: do not look straight at it."],
 ["Soleil rouge","Red Sun"],
 ["Soleil écrasant","Blazing sun"],
+["Sommaire","Contents"],
 ["Sommeil immédiat, jusqu’au matin.","Instant sleep, until morning."],
 ["Somnifère","Sleeping draught"],
 ["Son","Sound"],
@@ -172662,6 +174139,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Splash ! Cette flaque-là, elle est profonde. Y a quelqu’un au fond qui me regarde.","Splash! That puddle’s deep. There’s someone at the bottom looking at me."],
 ["Splendide ! La place respire enfin. Voici les plans des bancs municipaux, avec les compliments de la commune. Enfin, les miens.","Splendid! The square can breathe at last. Here are the plans for the municipal benches, with the compliments of the municipality. Well, mine."],
 ["Splendide. La place respire enfin.","Splendid. The square can finally breathe."],
+["Start","Start"],
 ["Statue","Statue"],
 ["Statue de cerf","Stag statue"],
 ["Statue de saint Aubin","Statue of Saint Aubin"],
@@ -172827,6 +174305,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Tac-tac","Tap-tap"],
 ["Taché. Il sent la terre et le fer.","Stained. It smells of earth and iron."],
 ["Taille","Size"],
+["Taille de l’interface","Interface size"],
 ["Taille de monde invalide.","Invalid world size."],
 ["Taillé dans le bouleau où le Cerf Blanc s’est couché une aube de novembre, et tendu d’un crin de sa queue. On dit qu’il n’a jamais tiré sur une bête blanche, et qu’il se briserait plutôt. Le Cerf ne le laisse qu’à ceux qui l’ont honoré et n’ont pas tué de ses frères depuis sept jours.","Carved from the birch where the White Stag lay down one November dawn, and strung with a hair from his tail. They say it has never loosed at a white beast, and would sooner break. The Stag leaves it only to those who have honoured him and have killed none of his brothers for seven days."],
 ["Taillé dans un seul bâton d’if, le cœur rouge dedans, l’aubier blanc dehors. Il tire loin, et fort.","Carved from a single yew stave, the red heartwood inside, the white sapwood outside. It shoots far, and hard."],
@@ -173129,6 +174608,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Tous les soirs, je joue le quatrième mouvement, très bas. Les clients croient que c’est une berceuse. Ils dorment comme des enfants. Je ne leur dis pas ce que c’est.","Every evening I play the fourth movement, very softly. The guests think it’s a lullaby. They sleep like children. I don’t tell them what it is."],
 ["Tous les soirs, à cinq heures, je vais au cimetière. Pas sur la tombe de mes parents : au fond, sous le lierre, il y a une vieille pierre au nom d’Anselme, qui a l’air d’avoir cent ans de plus que lui. J’y mets des fleurs, et je lui raconte la journée ; je lui parle de vous, aussi. Quelqu’un d’autre y dépose deux pains, et je fais semblant de ne pas savoir qui.","Every evening at five, I go to the cemetery. Not to my parents’ grave: right at the back, under the ivy, there’s an old stone with Anselme’s name on it that looks a hundred years older than him. I put flowers on it and tell him about my day; I tell him about you, too. Someone else leaves two loaves there, and I pretend I don’t know who."],
 ["Tous les soirs. Graissés, affûtés, pendus au mur.","Every evening. Greased, sharpened, hung on the wall."],
+["Tout","All"],
 ["Tout ? Posez tout sur la table. Non, pas sur le chat. (Il travaille longtemps, en marmonnant, en dessinant, en reniflant.)","All of it? Put it all on the table. No, not on the cat. (He works for a long time, muttering, sketching, sniffing.)"],
 ["Tout a le même goût, ici. Le goût de la cave.","Everything tastes the same down here. Like the cellar."],
 ["Tout au bout de l’est, dans le bois, une eau saute d’une falaise si haute qu’on l’appelle le Saut du Loup. Le loup, je ne l’ai jamais vu. La falaise, si.","Right out at the eastern end, in the wood, water leaps off a cliff so high they call it the Wolf’s Leap. The wolf, I’ve never seen. The cliff, I have."],
@@ -173228,6 +174708,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Tricheur ! Tu triches aux dés depuis Pâques !","Cheat! You’ve been cheating at dice since Easter!"],
 ["Trientale","Starflower"],
 ["Trientale d’Europe","European starflower"],
+["Trier","Sort"],
 ["Triton crêté","Crested newt"],
 ["Trois","Three"],
 ["Trois Je vous salue Marie, et dormez la porte fermée. C’est ma pénitence préférée, par ici.","Three Hail Marys, and sleep with your door locked. That’s my favourite penance, round here."],
@@ -175435,6 +176916,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Viande fumée","Smoked meat"],
 ["Viande fumée. Du pain. Mange. Et ne pense pas à t’enfuir : je te trouverais. Tout le monde te trouverait.","Smoked meat. Bread. Eat. And don’t think about running off: I’d find you. Anyone would find you."],
 ["Viande grillée","Grilled meat"],
+["Vibrations de la manette","Controller vibration"],
 ["Victor","Victor"],
 ["Victorine","Victorine"],
 ["Vidal","Vidal"],
@@ -176154,6 +177636,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Wiki : tout débloqué","Wiki: all unlocked"],
 ["Wiki interactif","Interactive wiki"],
 ["Wololo… Pardon. Une vieille prière de mon séminaire. Elle faisait changer les gens de couleur, disait-on.","Wololo… Pardon me. An old prayer from my seminary. It was said to make people change colour."],
+["X · Y","X · Y"],
 ["X0","X0"],
 ["X1","X1"],
 ["XI","XI"],
@@ -176259,6 +177742,7 @@ const I18N_EN = {"v":1,"exact":[
 ["bandit manchot","one-armed bandit"],
 ["bar.update(","bar.update("],
 ["barre d'outils (à composer dans la sacoche : glisser un objet sur une case)","toolbar (set it up in the satchel: drag an item onto a slot)"],
+["barre d’outils","toolbar"],
 ["beau-père","stepfather"],
 ["berger, monté au col des Treize en 1854","shepherd, who went up to the Pass of the Thirteen in 1854"],
 ["bientôt fini","almost over"],
@@ -176271,6 +177755,7 @@ const I18N_EN = {"v":1,"exact":[
 ["bras de fer","arm wrestling"],
 ["brelan de","triple"],
 ["butin.clore(","butin.clore("],
+["button, [href], input:not([type=\"hidden\"]), select, textarea, [tabindex]:not([tabindex=\"-1\"])","button, [href], input:not([type=\"hidden\"]), select, textarea, [tabindex]:not([tabindex=\"-1\"])"],
 ["bâtiment:","bâtiment:"],
 ["béguin","crush"],
 ["bête","beast"],
@@ -176281,6 +177766,7 @@ const I18N_EN = {"v":1,"exact":[
 ["c2 g2 c3 e3 g3","c2 g2 c3 e3 g3"],
 ["c3 g3 c4 d4 e4","c3 g3 c4 d4 e4"],
 ["cahier saisi chez une rebouteuse de la Combe, 1803","notebook seized at the house of a bonesetter of the Combe, 1803"],
+["calc($1v$2 / var(--m21-k, 1))","calc($1v$2 / var(--m21-k, 1))"],
 ["calculé par un abonné de l’Observatoire, à Clairpré","calculated by a subscriber to the Observatory, at Clairpré"],
 ["calèu","calèu"],
 ["calèus","calèus"],
@@ -176320,6 +177806,7 @@ const I18N_EN = {"v":1,"exact":[
 ["chef concierge","head concierge"],
 ["chef concierge aux clefs d’or","head concierge of the Golden Keys"],
 ["chef de cuisine","head chef"],
+["chercher dans la liste","search the list"],
 ["chevalier du guet","Knight of the Watch"],
 ["chez les nains","among the dwarves"],
 ["chez quelqu’un","at someone’s place"],
@@ -176332,6 +177819,7 @@ const I18N_EN = {"v":1,"exact":[
 ["chimère","chimera"],
 ["chimères","chimeras"],
 ["choisir l'outil","choose a tool"],
+["choisir la quantité (coffre) · ranger dans la barre d'outils","choose the quantity (chest) · put in the toolbar"],
 ["chronique d’une maison, par Hippolyte Darnaud, archiviste","chronicle of a house, by Hippolyte Darnaud, archivist"],
 ["chuchoté, un doigt sur la bouche","whispered, a finger to the lips"],
 ["cine.camera()","cine.camera()"],
@@ -177328,6 +178816,9 @@ const I18N_EN = {"v":1,"exact":[
 ["le marché","the market"],
 ["le marché d’en bas","the market below"],
 ["le matin","in the morning"],
+["le menu : sacoche, atelier, carnet, wiki","the menu: satchel, workshop, notebook, wiki"],
+["le menu Tab · faire défiler","the Tab menu · scroll"],
+["le mettre dans cette case de la barre d'outils","put it in this toolbar slot"],
 ["le meuble","the piece of furniture"],
 ["le meunier","the miller"],
 ["le minotaure","the minotaur beetle"],
@@ -177685,6 +179176,18 @@ const I18N_EN = {"v":1,"exact":[
 ["l’îlot des noyés","the islet of the drowned"],
 ["l’œdicnème","the stone-curlew"],
 ["l’œnanthe safranée","hemlock water-dropwort"],
+["m21 : mise en place","m21: setup"],
+["m21 coffre","m21 coffre"],
+["m21 livre","m21 livre"],
+["m21 manette","m21 manette"],
+["m21 options","m21 options"],
+["m21 outils","m21 outils"],
+["m21 sections","m21 sections"],
+["m21 wiki","m21 wiki"],
+["m21Bulles","m21Bulles"],
+["m21Calme","m21Calme"],
+["m21Echelle","m21Echelle"],
+["m21Vibrer","m21Vibrer"],
 ["ma-ma hum , ta zogga","ma-ma hum , ta zogga"],
 ["maintenir E : la reprendre","hold E: pick it up"],
 ["maintenir E : le reprendre","hold E: pick it up"],
@@ -177789,6 +179292,8 @@ const I18N_EN = {"v":1,"exact":[
 ["ombre+vie","ombre+vie"],
 ["on se salue","on nodding terms"],
 ["on vous fuit","people avoid you"],
+["onglet suivant · précédent","next tab · previous"],
+["onglets · pages","tabs · pages"],
 ["onz mûr , pan nenn , d’sou","onz mûr , pan nenn , d’sou"],
 ["oth nai , ta ven","oth nai , ta ven"],
 ["ouvre les dalles","opens the slabs"],
@@ -177800,6 +179305,7 @@ const I18N_EN = {"v":1,"exact":[
 ["p21 : prise","p21 : prise"],
 ["p21 hud","p21 hud"],
 ["p21 main","p21 main"],
+["pages de l'onglet","tab pages"],
 ["par Achille Brun, architecte voyer","by Achille Brun, architect and road surveyor"],
 ["par Isidore Vautrin, maître serrurier","by Isidore Vautrin, master locksmith"],
 ["par Mme veuve Clémence Sarrazin, herboriste","by Mme Clémence Sarrazin, widow, herbalist"],
@@ -177869,6 +179375,8 @@ const I18N_EN = {"v":1,"exact":[
 ["q20 : scène","q20: scene"],
 ["quand le brouillard monte de la vallée, ne descends pas. Attends qu’il redescende. Il y a des choses qui montent avec lui.","when the fog rises from the valley, don’t go down. Wait for it to go back down. There are things that rise with it."],
 ["quand on a mis un homme en prison, au cachot, il a gratté un mot dans la pierre. Personne n’est allé le lire. On a peur de ce qu’on lirait.","when a man was put in prison, in the dungeon, he scratched a word into the stone. Nobody has gone to read it. They’re afraid of what they would read."],
+["quantité","quantity"],
+["quantité, barre d'outils · chercher","quantity, toolbar · search"],
 ["quatrième","fourth"],
 ["quelque chose que je ne connais pas","something I don’t recognise"],
 ["quelque chose qui brille","something shiny"],
@@ -177898,10 +179406,12 @@ const I18N_EN = {"v":1,"exact":[
 ["recueillis par la société savante du canton","collected by the learned society of the canton"],
 ["recueillis par l’instituteur","collected by the schoolmaster"],
 ["redonne des forces","restores strength"],
+["refermer, revenir d'un cran","close, go back one step"],
 ["registre de la grande bibliothèque","register of the great library"],
 ["relâché","released"],
 ["relâchée","released"],
 ["retombée","comedown"],
+["retour · le menu","back · menu"],
 ["retrouvé mort","found dead"],
 ["retrouvé sans vie","found lifeless"],
 ["retrouvée morte","found dead"],
@@ -177940,9 +179450,11 @@ const I18N_EN = {"v":1,"exact":[
 ["sans danger","harmless"],
 ["sans signature","unsigned"],
 ["sauter · courir · s'accroupir","jump · run · crouch"],
+["screen dialog","screen dialog"],
 ["scène","scene"],
 ["se défend","fights back"],
 ["se déplacer","move"],
+["se déplacer · valider","move · validate"],
 ["se taire","to fall silent"],
 ["secouer : fruits, nids, graines","shake: fruit, nests, seeds"],
 ["secrète","secretive"],
@@ -177985,6 +179497,7 @@ const I18N_EN = {"v":1,"exact":[
 ["sur la porte de la maison Delorme, en ville","on the door of the Delorme house, in town"],
 ["sur la terrasse","on the terrace"],
 ["sur le","on the"],
+["sur un objet","on an object"],
 ["sur un tonneau, devant l’auberge, le soir","on a barrel, outside the inn, in the evening"],
 ["sur votre droite","on your right"],
 ["sur votre gauche","on your left"],
@@ -178017,6 +179530,7 @@ const I18N_EN = {"v":1,"exact":[
 ["to top","to top"],
 ["tojor onz","tojor onz"],
 ["tourmenté","tormented"],
+["tourner les pages","turn pages"],
 ["tournée","a round of drinks"],
 ["tout près","very close"],
 ["tout près d’ici, à quelques minutes de marche","very near here, a few minutes’ walk away"],
@@ -178170,6 +179684,7 @@ const I18N_EN = {"v":1,"exact":[
 ["une montre de dame","a lady’s watch"],
 ["une montre de gousset","a pocket watch"],
 ["une mère de famille","a mother of three"],
+["une page","a page"],
 ["une partie de whist","a game of whist"],
 ["une pièce","a coin"],
 ["une portée vide.","an empty stave."],
@@ -178745,6 +180260,8 @@ const I18N_EN = {"v":1,"exact":[
 ["« Ça passera en grandissant », vous aviez dit. Hier, elle a mis deux couverts pour le goûter, et j’ai fait semblant de ne rien voir.","“She’ll grow out of it,” you said. Yesterday she laid two places for tea, and I pretended not to notice."],
 ["« … » Elle écoute quelque chose, très loin au-dessus.","“…” She listens to something, very far above."],
 ["· VOL","· FLYING"],
+["· clic droit","· right click"],
+["· clic droit : choisir le nombre","· right click: choose the number"],
 ["· déjà lu","· already read"],
 ["· figé","· frozen"],
 ["· jour","· day"],
@@ -178760,6 +180277,7 @@ const I18N_EN = {"v":1,"exact":[
 ["À JEANNE ET MARIE VIGNAL\nQUI N’ONT PAS VOULU DESCENDRE\nHIVER 1812","TO JEANNE AND MARIE VIGNAL\nWHO WOULD NOT COME DOWN\nWINTER 1812"],
 ["À LA BÊTE DOUCE, QUI DORT POUR NOUS.\nNE COURS PAS ICI.","TO THE GENTLE BEAST, WHO SLEEPS FOR US.\nDO NOT RUN HERE."],
 ["À LA FERME","ON THE FARM"],
+["À LA MANETTE (MENUS)","WITH A CONTROLLER (MENUS)"],
 ["À LA MÉMOIRE DES GENS DU HAMEAU DES AULNES\nMORTS DE LA FIÈVRE EN SEPTEMBRE 1629\nLE HAMEAU N’A PAS ÉTÉ REBÂTI","IN MEMORY OF THE PEOPLE OF THE HAMLET OF THE ALDERS\nWHO DIED OF THE FEVER IN SEPTEMBER 1629\nTHE HAMLET WAS NOT REBUILT"],
 ["À L’ENFANT\nQU’ON N’A PAS PU BAPTISER\nIL A VU LE JOUR UNE HEURE","TO THE CHILD\nWHO COULD NOT BE BAPTISED\nHE SAW THE LIGHT OF DAY FOR ONE HOUR"],
 ["À Madagascar, une nuit de faction, j’ai vu bouger les hautes herbes devant le poste. J’ai crié « Qui vive ? » une fois, pas deux, parce que j’avais trop peur pour attendre la réponse, et j’ai tiré. C’était Yves Le Goff, un petit Breton de dix-neuf ans, qui était sorti vomir sa fièvre en silence pour ne réveiller personne. Le rapport a dit « mort de fièvre » : le sergent l’a écrit pour moi, et je l’ai laissé faire. Depuis, je ne porte plus qu’une pique, pour voir qui je touche, et je garde les ponts la nuit, {prenom}, parce que c’est là que la peur habite. Je me suis dit que si je restais avec elle, elle ne ferait de mal à personne d’autre.","In Madagascar, one night on sentry duty, I saw the tall grass moving in front of the post. I shouted “Who goes there?” once, not twice, because I was too frightened to wait for an answer, and I fired. It was Yves Le Goff, a young Breton lad of nineteen, who had slipped out to retch up his fever in silence so as not to wake anyone. The report said “died of fever”: the sergeant wrote it for me, and I let him. Since then, I carry nothing but a pike, so I can see who I’m striking, and I guard the bridges at night, {prenom}, because that’s where fear lives. I told myself that if I stayed with it, it wouldn’t hurt anyone else."],
@@ -178777,6 +180295,8 @@ const I18N_EN = {"v":1,"exact":[
 ["À celui qui paie ! C’est la meilleure santé qui soit.","To whoever’s paying! That’s the finest toast there is."],
 ["À celui qui trouvera.\n\nC’est pour le cheval, d’abord. Qu’on lui achète de l’avoine, l’hiver, et qu’on ne le vende pas au boucher. Le reste, c’est pour celui qui l’aura fait.\n\nJe ne sortirai pas, cette nuit. On m’attend au bout du champ, depuis trois soirs. Je n’ai pas peur. J’ai seulement froid.","To whoever finds this.\n\nThis is for the horse, first. Let oats be bought for him in winter, and let him not be sold to the butcher. The rest is for whoever has done this.\n\nI shall not go out tonight. Someone has been waiting for me at the end of the field for three evenings. I am not afraid. I am only cold."],
 ["À chaque lacet, il est un peu moins net, comme la brume quand le soleil y entre.","At every switchback, he is a little less distinct, like mist when the sun enters it."],
+["À compléter","Incomplete"],
+["À compléter d’abord","Incomplete first"],
 ["À côté, un sceau d’argent terni, gravé de Hautes Lettres :","Beside it, a tarnished silver seal, engraved with High Letters:"],
 ["À demain, mon chou ! Et mangez un peu, vous avez une petite mine.","See you tomorrow, love! And eat something, you’re looking peaky."],
 ["À douze ans, j’ai chipé la pipe de l’oncle pour faire l’homme, et j’ai mis le feu à la remise du presbytère. {npc:pecheur} m’a aidé à éteindre avec son seau à écrevisses ; quand le curé de ce temps-là est arrivé, c’est lui qui avait les mains noires. Il a pris la raclée de sa vie devant tout le village, et il ne m’a jamais dénoncé, pas même d’un regard. Moi, je n’ai rien dit : je me suis caché derrière le comptoir et j’ai mangé une deuxième part de gâteau. Voilà l’ami que j’ai. Et voilà l’ami qu’il a.","At twelve, I pinched Uncle’s pipe to act the grown man, and set fire to the presbytery shed. {npc:pecheur} helped me put it out with his crayfish bucket; when the priest of those days arrived, he was the one with the black hands. He got the thrashing of his life in front of the whole village, and he never gave me away, not even with a look. Me, I said nothing: I hid behind the counter and ate a second slice of cake. That’s the friend I have. And that’s the friend he has."],
@@ -179075,6 +180595,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Évariste","Évariste"],
 ["Évidemment. Une poche de gaz qui se vide et se remplit. Je l’écrirai ainsi. Merci, vous êtes un esprit sain.","Of course. A gas pocket emptying and filling. I’ll write it that way. Thank you, you have a sound mind."],
 ["Événements","Events"],
+["Êtes-vous sûr ?","Are you sure?"],
 ["Être au calvaire, au crépuscule, pour la rencontre.","Be at the wayside cross at dusk for the meeting."],
 ["Être dans le couloir de service à onze heures du soir.","Be in the service corridor at eleven in the evening."],
 ["Être là pour la fin de l’histoire de Firmin, au matin.","Be there for the end of Firmin’s story, in the morning."],
@@ -179279,6 +180800,7 @@ const I18N_EN = {"v":1,"exact":[
 ["… Ça arrive. Rarement.","… It happens. Rarely."],
 ["… Ça vient d’avant, d’avant le lac, même. Serrez bien ça contre vous, et que ça ne tombe jamais à l’eau : elle reprendrait tout.","… That comes from before, from before the lake, even. Hold it tight against you, and never let it fall in the water: she’d take everything back."],
 ["‹ Page précédente","‹ Previous page"],
+["← → un de plus ou de moins · ↑ ↓ dix · Entrée : valider · Échap : annuler","← → one more or less · ↑ ↓ ten · Enter: validate · Esc: cancel"],
 ["↶ Annuler","↶ Undo"],
 ["▶ Jouer","▶ Play"],
 ["☰ Menu","☰ Menu"],
@@ -179972,6 +181494,7 @@ const I18N_EN = {"v":1,"exact":[
 ["Tablette {0}{1}","Tablet {0}{1}"],
 ["Tenez, notez : « {0} ». Anselme savait le faire les yeux fermés. Vous, gardez-les ouverts.","Here, write this down: “{0}”. Anselme could do it with his eyes shut. You, keep yours open."],
 ["Tenu par {0}.","Run by {0}."],
+["Tout ({0})","All ({0})"],
 ["Treize timbres de cuivre sur une planche vernie, reliés par des fils aux chambres des étages. Sous chaque timbre, une étiquette émaillée : 101, 102… Sous le treizième, l’étiquette est noire.\n\n{0}","Thirteen copper bells on a varnished board, wired to the rooms on the upper floors. Under each bell, an enamelled label: 101, 102… Under the thirteenth, the label is black.\n\n{0}"],
 ["Trois barreaux. {0}","Three bars. {0}"],
 ["Trois jours (caution : {0} pièces)","Three days (deposit: {0} coins)"],
@@ -180100,6 +181623,7 @@ const I18N_EN = {"v":1,"exact":[
 ["histoire : scène {0}","story: scene {0}"],
 ["illisible, relevée le jour {0}","illegible, copied down on day {0}"],
 ["jour {0}, {1}","day {0}, {1}"],
+["jusqu’à {0} pièces","up to {0} coins"],
 ["la mort de {0}","the death of {0}"],
 ["le Grand Hôtel des Cimes (chambre {0})","the Grand Hôtel des Cimes (room {0})"],
 ["le jour {0}","day {0}"],
