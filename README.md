@@ -1377,6 +1377,37 @@ Les commandes sont dans le menu **Commandes** (Échap).
   `src/12-zzzzzzzzzzzP21-hud.js` (la canne, la ligne, l'affichage, le carnet, l'option) ; `play.catchFish` reste la
   fonction qui choisit et donne la prise.
 
+**Les menus, refaits**
+- **Tous les menus** : l'écran titre, la nouvelle partie, les options, les commandes ; le menu Tab (Sacoche, Atelier,
+  Carnet et toutes ses pages, Wiki) ; les dialogues, les lettres, la boutique, le coffre, le butin, les commandes ;
+  l'alambic, la table d'alchimiste, les livres, la bibliothèque, les cartes, les runes, la boîte aux lettres, le
+  crochetage ; les notifications et la barre d'outils.
+- **Un même style** : papier, encre et sépia, la police de l'écran titre partout, une seule croix ✕ en haut à droite,
+  un anneau ambré sur l'élément choisi, un fondu bref à l'ouverture. Options › Interface : *Réduire les animations*, et
+  la **taille de l'interface** (automatique selon l'écran, ou de 75 % à 250 %). Les options sont rangées en onglets
+  (Image, Son, Commandes, Interface, Jeu).
+- **Les mêmes touches partout** :
+  - les flèches déplacent le choix, Entrée valide, Échap referme ou revient d'un cran ;
+  - Tab et Maj+Tab passent d'onglet en onglet (Tab ne referme plus le menu : c'est Échap) ;
+  - Pg↑ et Pg↓ changent de page, Ctrl+F ou / cherchent ;
+  - une ligne en bas du menu rappelle les touches.
+- **La manette** :
+  - la croix ou le stick gauche déplacent le choix, A valide, B revient ;
+  - LB et RB changent d'onglet, LT et RT de page ;
+  - X donne la quantité, Y cherche, le stick droit fait défiler ;
+  - Start ouvre le menu, Select le menu Tab ;
+  - les aides montrent alors les boutons de la manette.
+- **Plus pratique** :
+  - chercher, trier et filtrer dans la sacoche, l'établi (« Faisable maintenant »), la boutique, le coffre, le wiki et
+    les livres ;
+  - des infobulles d'objets (ce que c'est, combien on en a, le meilleur prix de revente) ;
+  - « Combien ? » au coffre ;
+  - ranger un objet dans la barre d'outils sans le glisser (1 à 9 sur l'objet) ;
+  - la nouvelle partie se confirme dans le jeu.
+- Rien de perdu : chaque fonction reste où on la cherche. Rien ne coûte quand aucun menu n'est ouvert, et la vue 3D
+  n'est jamais floutée.
+- Code : `src/12-zzzzzzzzzzzM21-menus.js` (API `m21`) et les variables `--m21-*` de `src/shell.html`.
+
 **Jamais coincé sous la carte**
 - Le jeu retient, au fil du jeu, les dernières places sûres du personnage (les pieds posés, ou à la nage). Passé sous
   le sol avec rien dessous pour le porter (on tomberait sans fin), plus bas que mille mètres, ou si sa position devient
