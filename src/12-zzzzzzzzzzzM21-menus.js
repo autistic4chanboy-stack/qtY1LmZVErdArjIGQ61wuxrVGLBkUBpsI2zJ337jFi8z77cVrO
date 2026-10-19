@@ -119,6 +119,7 @@ const m21 = (() => {
 
 /* ---- les lignes d'objectif (H17, K18 : au-dessus de la vue) ne passent pas sur un menu ouvert */
 :is(#paper.open, #menu.open, .dialog.open) ~ :is(#h17-but, #k18-but) { visibility: hidden !important; }
+html.m21-titre :is(#pickups, #hotbar) { visibility: hidden; }
 
 /* ---- l'anneau de focus (clavier, manette) */
 html.m21-clavier :is(#paper, .dialog, #menu, #death) :focus, :is(#paper, .dialog, #death) :focus-visible { outline: 2px solid var(--m21-anneau) !important; outline-offset: 2px !important; box-shadow: 0 0 0 5px rgba(194,112,28,.2); }
@@ -1242,7 +1243,7 @@ html.m21-manette #butin .bu-aide { display: none; }
     const _cd = ui.closeDialogs.bind(ui);
     ui.closeDialogs = function () { if (conf.fin) conf.fin(false); const r = _cd(); apresOuverture(); return r; };
     const _sm = ui.showMenu.bind(ui);
-    ui.showMenu = function (show) { const r = _sm(show); if (show) { const m = $q('#menu'); if (m) poserAide(m); } apresOuverture(); return r; };
+    ui.showMenu = function (show) { const r = _sm(show); H.classList.toggle('m21-titre', !!show); if (show) { const m = $q('#menu'); if (m) poserAide(m); } apresOuverture(); return r; };
     const _sd = ui.showDeath.bind(ui);
     ui.showDeath = function (...a) { const r = _sd(...a); const d = $q('#death'); if (d) poserAide(d); apresOuverture(); return r; };
   }
