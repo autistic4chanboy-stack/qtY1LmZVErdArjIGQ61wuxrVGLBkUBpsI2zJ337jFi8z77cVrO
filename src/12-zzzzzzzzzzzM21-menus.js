@@ -78,7 +78,7 @@ const m21 = (() => {
       } catch (e) { /* une règle illisible : tant pis */ }
     }
   }
-  function corrigerFeuilles() { for (const sh of D.styleSheets) { try { corrigerRegles(sh.cssRules); } catch (e) { /* rien */ } } }
+  function corrigerFeuilles() { for (const sh of Array.from(D.styleSheets || [])) { try { corrigerRegles(sh.cssRules || []); } catch (e) { /* rien */ } } }
 
   // ================================================================ la feuille de style
   const LOUPE = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Ccircle cx='6' cy='6' r='4.2' fill='none' stroke='%238a5a2a' stroke-width='1.6'/%3E%3Cpath d='M9.2 9.2 13 13' stroke='%238a5a2a' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E\")";
@@ -1289,7 +1289,8 @@ html.m21-manette #butin .bu-aide { display: none; }
       }
     } catch (e) { console.error('m21 sections', e); }
   }
-  installer();
+  // (hors navigateur — l'équilibrage charge le jeu dans une machine virtuelle sans vrai DOM — rien ne doit casser)
+  try { installer(); } catch (e) { console.error('m21 : mise en place', e); }
 
   return {
     version: 1,
