@@ -14733,6 +14733,8 @@ const I18N_EN = {"v":1,"exact":[
 ["QU’IL GARDE.\nQUE RIEN NE SORTE.\nQUE NUL NE LE DÉLIE.","LET IT KEEP GUARD.\nLET NOTHING GET OUT.\nLET NONE UNBIND IT."],
 ["Qualité graphique","Graphics quality"],
 ["Qualité graphique abaissée : la machine peinait.","Graphics quality lowered: the machine was struggling."],
+["Pour pêcher : maintenez pour lancer, ferrez quand le bouchon plonge, puis moulinez sans casser la ligne.","To fish: hold to cast, strike when the float dips, then reel in without breaking the line."],
+["maintenir puis relâcher : lancer ; au bouchon qui plonge, clic : ferrer ; clic maintenu : mouliner, et les touches qui s’affichent","hold then release: cast; when the float dips, click: strike; hold click: reel in, and press the keys that appear"],
 ["Quand Joseph se réveille","When Joseph wakes up"],
 ["Quand il mord","When it bites"],
 ["Quand il n’est pas revenu, j’ai jeté mon anneau à la Dauna. On fait ça, ici. On donne, pour qu’elle rende. Elle n’a rien rendu. Maintenant, je voudrais l’anneau.","When he didn’t come back, I threw my ring to the Dauna. That’s what we do here. We give, so that she’ll give back. She gave nothing back. Now I would like the ring back."],

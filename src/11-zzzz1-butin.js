@@ -110,7 +110,7 @@ const BU_OUTILS = {
   houe: 'Retourne la terre avant de semer.',
   arrosoir: 'Arrose les cultures ; il se remplit au puits, à la rivière ou à l’étang.',
   faux: 'Fauche les hautes herbes, dont on fait le foin.',
-  canne: 'Pour pêcher : lancez vers l’eau, et attendez que ça morde.',
+  canne: 'Pour pêcher : maintenez pour lancer, ferrez quand le bouchon plonge, puis moulinez sans casser la ligne.',
   arc: 'Tendez longtemps, puis relâchez : la flèche part.',
   marteau: 'Démonte ce que vous avez posé.',
   cisailles: 'Pour tondre les moutons.',
