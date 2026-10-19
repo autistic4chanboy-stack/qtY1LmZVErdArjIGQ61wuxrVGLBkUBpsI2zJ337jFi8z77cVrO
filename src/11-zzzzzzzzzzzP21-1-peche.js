@@ -100,8 +100,12 @@ const p21 = {
     this.avant = tenu;
     // les directions : clavier (file d'appuis), croix et stick (fronts), souris (un geste net)
     let dir = this.dirs.shift() || null;
+    // (l'épuisette : un appui, d'où qu'il vienne, même en tenant déjà le moulinet)
+    let frappe = appui || !!(input.locked && (input.clicked & 1));
     if (pad) {
       const P = this.padAvant;
+      if (pad.A > 0.5 && !P.A) frappe = true;
+      P.A = pad.A > 0.5;
       for (const [b, d] of [['gauche', 'g'], ['droite', 'd'], ['haut', 'h'], ['bas', 'b']]) { const v = pad[b] > 0.5; if (v && !P[b] && !dir) dir = d; P[b] = v; }
       if (pad.X > 0.5 && !P.X && !this.F && !this.et) this.changerAppat();
       P.X = pad.X > 0.5;
@@ -114,7 +118,7 @@ const p21 = {
       else if (Math.abs(dp) > 0.11) dir = dp > 0 ? 'h' : 'b';
       if (dir) { this.yaw0 = p.yaw; this.pitch0 = p.pitch; }
     }
-    if (this.C && this.C.epuisette && appui) dir = 'e';
+    if (this.C && this.C.epuisette && frappe) dir = 'e';
     return { tenu, appui, lache, dir };
   },
   inviteEnCours() { return !!(this.C && (this.C.invite || this.C.epuisette)); },
@@ -728,6 +732,7 @@ Object.assign(SoundEngine.prototype, {
     if (e.repeat || !p21.C) return;
     const d = P21_DIRS[e.code];
     if (d && !p21.C.epuisette) p21.dirs.push(d);
+    else if (e.code === 'Space' && p21.C.epuisette) p21.dirs.push('e');
   });
   // la glace : le trou du lac gelé (n'importe quelle canne, en main ou dans la sacoche)
   HOOKS.inter.peche_glace = (it) => p21.glace(it);

@@ -110,11 +110,11 @@ const p21Main = {
     let im = this.cache.get(cle);
     if (!im) {
       const pb = new PixelBuf(VM_W, VM_H);
-      let tip = null;
-      if (cle[0] === 'p') this.mainPoisson(pb, p21.prise);
+      let tip = null, cv = null;
+      if (cle[0] === 'p') cv = this.mainPoisson(pb, p21.prise);
       else tip = this.canne(pb, cle);
-      edgeDarken(pb, 0.8);
-      im = { cv: pb.canvas(), tip };
+      if (!cv) { edgeDarken(pb, 0.8); cv = pb.canvas(); }
+      im = { cv, tip };
       if (this.cache.size > 80) this.cache.delete(this.cache.keys().next().value);
       this.cache.set(cle, im);
     }
@@ -156,16 +156,19 @@ const p21Main = {
   // la prise, tenue en main, de profil (la tête vers le milieu de l'écran)
   mainPoisson(pb, P) {
     const id = P.id, f = (Math.floor(P.t * 4) & 1) ? 1 : -1;
-    if (!FISH[id]) { // un coffre, une perle, des herbes : l'icône, en grand
+    if (!FISH[id]) { // un coffre, une perle, des herbes : l'icône, en grand (le bras, l'icône, puis le poing par-dessus)
       const sp = ATLAS.sprites['it_' + id];
-      vmArm(pb, 88, 92);
+      vmArm(pb, 88, 92); edgeDarken(pb, 0.8);
+      const cv = pb.canvas(), ctx = cv.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
       if (sp && sp.canvas) {
-        const c = sp.canvas, d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data, k = Math.max(1, Math.floor(46 / Math.max(c.width, c.height)));
-        const ox = 58 - (c.width * k) / 2, oy = 58 - (c.height * k) / 2;
-        for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) { const i = (y * c.width + x) * 4; if (d[i + 3] > 40) for (let a = 0; a < k; a++) for (let bb = 0; bb < k; bb++) pb.set(ox + x * k + a, oy + y * k + bb, [d[i], d[i + 1], d[i + 2]]); }
+        const c = sp.canvas, k = Math.max(1, Math.floor(46 / Math.max(c.width, c.height)));
+        ctx.drawImage(c, Math.round(58 - (c.width * k) / 2), Math.round(56 - (c.height * k) / 2), c.width * k, c.height * k);
       }
-      vmFist(pb, 88, 86);
-      return;
+      const pf = new PixelBuf(VM_W, VM_H);
+      vmFist(pf, 88, 86); edgeDarken(pf, 0.8);
+      ctx.drawImage(pf.canvas(), 0, 0);
+      return cv;
     }
     const st = p21Tirage.espece(id)[0];
     const FORME = { fretin: 0.26, perche: 0.34, carpe: 0.4, truite: 0.28, saumon: 0.27, brochet: 0.2, anguille: 0.09, silure: 0.23, ecrevisse: 0.3, aveugle: 0.28, lune: 0.5, esturgeon: 0.18, reine: 0.42, vieux: 0.22, notaire: 0.21, ancien: 0.33 };
