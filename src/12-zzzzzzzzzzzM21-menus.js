@@ -117,6 +117,9 @@ const m21 = (() => {
 #choice h3 { padding-right: 34px; }
 #reader h3 { padding-right: 30px; }
 
+/* ---- les lignes d'objectif (H17, K18 : au-dessus de la vue) ne passent pas sur un menu ouvert */
+:is(#paper.open, #menu.open, .dialog.open) ~ :is(#h17-but, #k18-but) { visibility: hidden !important; }
+
 /* ---- l'anneau de focus (clavier, manette) */
 html.m21-clavier :is(#paper, .dialog, #menu, #death) :focus, :is(#paper, .dialog, #death) :focus-visible { outline: 2px solid var(--m21-anneau) !important; outline-offset: 2px !important; box-shadow: 0 0 0 5px rgba(194,112,28,.2); }
 html.m21-clavier #paper :is(.it, .row, .note, .rec, .w15-e, .w15-gt, .bu-it, .q, .opts button, .cm-art, .cm-etal, [data-bu], .fiche):focus { outline-offset: -2px !important; }
