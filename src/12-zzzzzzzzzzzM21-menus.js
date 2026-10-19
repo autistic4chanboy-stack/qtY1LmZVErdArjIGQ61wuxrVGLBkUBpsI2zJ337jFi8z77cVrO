@@ -204,6 +204,7 @@ html.m21-manette #butin .bu-aide { display: none; }
 .m21-onglets button.on { color: var(--m21-encre); border-bottom-color: var(--m21-sepia); }
 .m21-onglets button:not(.on):hover { background: var(--m21-sepia-voile); color: var(--m21-encre); }
 #dlg-options .box { width: min(700px, calc(100vw - 32px)); }
+#dlg-help .box { width: min(920px, calc(100vw - 32px)); }
 #dlg-options .cols { min-height: 300px; align-content: start; }
 #dlg-options .cols h4.m15-sec { display: none; }
 .dialog .m21-note { grid-column: 1 / -1; margin: 6px 0 0; font: italic 13px/1.45 var(--m21-police); color: var(--m21-encre-pale); }
@@ -213,6 +214,9 @@ html.m21-manette #butin .bu-aide { display: none; }
 #livre .m21-livre-outils select, #livre .m21-livre-outils input { padding: 4px 7px; background: #efe6cf; color: #33291d; border: 1px solid rgba(0,0,0,.35); border-radius: 3px; font: 13.5px var(--m21-police); font-style: normal; }
 #livre .m21-livre-outils input { flex: 1 1 160px; padding-left: 27px; background: #efe6cf ${LOUPE} no-repeat 8px 50%; }
 #livre .m21-livre-outils .m21-n { color: #d8c8a0; }
+#livre .m21-livre-outils .m21-sel { color: #e8dcc0; }
+#livre > .m21-x { top: 3px; right: 3px; width: 28px; height: 28px; font-size: 15px; color: #efe6cf; background: rgba(40,20,10,.6); border-color: rgba(239,230,207,.25); }
+#livre > .m21-x:hover { background: rgba(40,20,10,.85); color: #fff; }
 #livre .fiche.m21-trouve { background: rgba(255,220,120,.4); box-shadow: 0 0 0 2px rgba(194,112,28,.5); border-radius: 3px; }
 
 /* ---- le wiki : tri et filtre */
@@ -473,7 +477,8 @@ html.m21-manette #butin .bu-aide { display: none; }
       return;
     }
     if (saisie) {
-      if (c === 'ArrowDown' || ((c === 'Enter' || c === 'NumpadEnter') && a.classList.contains('m21-cherche'))) {
+      if (a.closest('.m21-livre-outils') && (c === 'Enter' || c === 'NumpadEnter')) return;   // (le livre : Entrée cherche la page suivante)
+      if (c === 'ArrowDown' || ((c === 'Enter' || c === 'NumpadEnter') && (a.classList.contains('m21-cherche') || a.classList.contains('w15-cherche')))) {
         e.preventDefault(); e.stopImmediatePropagation();
         const items = cibles(L), i = items.indexOf(a);
         const apres = items.slice(i + 1).find((x) => !x.closest('.m21-outils, .w15-tete'));
@@ -1058,9 +1063,15 @@ html.m21-manette #butin .bu-aide { display: none; }
     secs.forEach((s, i) => { for (const el of s.els) el.classList.toggle('m21-cache', i !== optSec); });
     barre.querySelectorAll('[data-m21sec]').forEach((b) => (b.onclick = () => { optSec = +b.dataset.m21sec; ongletsOptions(); son('page'); }));
   }
+  // (les quatre réglages sont dans src/shell.html, où le wiki les lit ; recréés ici s'ils manquaient)
   function installerOptions() {
     const cols = $q('#dlg-options .cols');
-    if (!cols || $q('#o-m21-echelle')) return;
+    if (!cols || installerOptions.fait) return;
+    installerOptions.fait = true;
+    if (!$q('#o-m21-echelle')) creerOptions(cols);
+    lierOptions();
+  }
+  function creerOptions(cols) {
     const l1 = D.createElement('label');
     l1.innerHTML = `Taille de l’interface <output id="o-m21-echelle-v"></output><select id="o-m21-echelle">${ECHELLES.map((v) => `<option value="${v}">${v === 'auto' ? 'Automatique (selon l’écran)' : Math.round(v * 100) + ' %'}</option>`).join('')}</select>`;
     const l2 = D.createElement('label'); l2.className = 'row';
@@ -1070,6 +1081,8 @@ html.m21-manette #butin .bu-aide { display: none; }
     const l4 = D.createElement('label'); l4.className = 'row';
     l4.innerHTML = '<input type="checkbox" id="o-m21-vibrer"> Vibrations de la manette';
     cols.append(l1, l2, l3, l4);
+  }
+  function lierOptions() {
     const se = $q('#o-m21-echelle');
     se.value = String(settings.m21Echelle);
     if (se.selectedIndex < 0) se.value = 'auto';

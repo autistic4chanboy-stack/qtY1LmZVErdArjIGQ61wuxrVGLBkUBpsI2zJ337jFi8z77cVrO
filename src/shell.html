@@ -508,6 +508,21 @@ kbd { font-family: Consolas, 'Courier New', monospace; font-size: 11px; padding:
       <label class="row"><input type="checkbox" id="o-grain"> Grain de pellicule</label>
       <label class="row"><input type="checkbox" id="o-invert"> Inverser l'axe vertical</label>
       <label class="row"><input type="checkbox" id="o-fps"> Afficher les images/s</label>
+      <label>Taille de l’interface <output id="o-m21-echelle-v"></output><select id="o-m21-echelle">
+        <option value="auto">Automatique (selon l’écran)</option>
+        <option value="0.75">75 %</option>
+        <option value="0.85">85 %</option>
+        <option value="1">100 %</option>
+        <option value="1.1">110 %</option>
+        <option value="1.25">125 %</option>
+        <option value="1.5">150 %</option>
+        <option value="1.75">175 %</option>
+        <option value="2">200 %</option>
+        <option value="2.5">250 %</option>
+      </select></label>
+      <label class="row"><input type="checkbox" id="o-m21-calme"> Réduire les animations</label>
+      <label class="row"><input type="checkbox" id="o-m21-bulles"> Infobulles des objets</label>
+      <label class="row"><input type="checkbox" id="o-m21-vibrer"> Vibrations de la manette</label>
     </div>
     <div class="actions"><button id="o-reset">Réinitialiser</button><button class="primary dlg-close">Fermer</button></div>
   </div>
